@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>SolidWorksMcp</RootNamespace>
+    <AssemblyName>SolidWorksMcp</AssemblyName>
+    <!-- .NET Framework 4.8 non e' una scelta di gusto: l'add-in vero e'
+         compilato per quello, e questo ponte lo carica per riflessione. -->
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <!-- x64 come SolidWorks: un processo a 32 bit non si aggancia. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>bin\</OutputPath>
+    <LangVersion>7.3</LangVersion>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Programma.cs" />
+    <Compile Include="Mcp\Protocollo.cs" />
+    <Compile Include="Ponte\Sessione.cs" />
+    <Compile Include="Strumenti\Catalogo.cs" />
+    <Compile Include="Strumenti\Attrezzi.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Il catalogo viaggia con l'eseguibile: senza, il ponte sa eseguire ma
+         non sa dire cosa si puo' chiedere. -->
+    <None Include="Strumenti\catalogo.json">
+      <Link>catalogo.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="App.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

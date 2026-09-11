@@ -43,6 +43,65 @@ modello  <--MCP/stdio-->  SolidWorksMcp.exe  --riflessione-->  OpenPDM.SwAddin.d
                                                                   SolidWorks
 ```
 
+## Gli strumenti
+
+Quattro, non trentasei. Le operazioni di disegno sono trentasei, ma esporne
+una per strumento costerebbe decine di migliaia di caratteri di schemi in
+ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
+
+| strumento | a cosa serve |
+|---|---|
+| `guarda_il_pezzo` | lo stato del documento aperto: ingombro, volume, corpi, lavorazioni con le loro quote, facce e spigoli con il loro identificativo |
+| `elenco_operazioni` | l'elenco corto per famiglia: un nome e una riga |
+| `descrivi_operazione` | lo schema completo di una |
+| `disegna` | esegue una sequenza e **riporta cos'e' venuto**: le misure di ogni passo e lo stato dopo |
+
+**`guarda_il_pezzo` non e' un accessorio.** Gli identificativi che gli altri
+strumenti vogliono — `F1`, `E4`, `Corpo1` — nascono li' e valgono per quella
+lettura: sono POSIZIONALI, si rinumerano per area a ogni lettura, e dopo
+ogni modifica vanno riletti. Chi salta il primo strumento lavora alla cieca,
+ed e' il difetto piu' caro di tutto il progetto.
+
+## Come si mette in funzione
+
+```jsonc
+// nella configurazione del client MCP
+{
+  "mcpServers": {
+    "solidworks": {
+      "command": "S:\\PDM\\SolidWorksMcp\\bin\\SolidWorksMcp.exe"
+    }
+  }
+}
+```
+
+Prima di collegare un client conviene il giro secco:
+
+```
+bin\SolidWorksMcp.exe --prova
+```
+
+Stampa su stderr se si e' agganciato, quale add-in ha caricato, quante
+operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
+
+### Variabili d'ambiente
+
+| | |
+|---|---|
+| `OPENPDM_ADDIN` | dove sta `OpenPDM.SwAddin.dll`; se manca, accanto all'eseguibile |
+| `OPENPDM_CATALOGO` | dove sta `catalogo.json`; se manca, accanto all'eseguibile |
+| `SW_REDIST` | la cartella `api\redist` di SolidWorks, se non e' in `C:\Program Files\SOLIDWORKS Corp` |
+
+Le librerie di interoperabilita' di Dassault **non stanno in questo
+repository**: si prendono dall'installazione, cosi' la versione e' sempre
+quella che sta girando.
+
+## Il catalogo
+
+`Strumenti/catalogo.json` e' una copia ESPORTATA dal server, non una
+seconda scrittura: vedi [Strumenti/aggiorna.md](Strumenti/aggiorna.md).
+Contiene solo le operazioni **misurate dentro SolidWorks**.
+
 ## Stato
 
 Vedi [CHANGELOG.md](CHANGELOG.md). La versione sta in `VERSION.txt` e sale a
