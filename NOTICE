@@ -1,0 +1,46 @@
+SolidWorks MCP
+Copyright 2026 Oscar Contato
+
+Questo prodotto include software sviluppato da Oscar Contato.
+Distribuito secondo i termini della Apache License 2.0 (vedi LICENSE).
+
+-------------------------------------------------------------------------------
+MARCHI
+-------------------------------------------------------------------------------
+
+SOLIDWORKS(R) e 3DEXPERIENCE(R) sono marchi registrati di Dassault Systemes
+SolidWorks Corporation.
+
+Questo progetto NON e' un prodotto di Dassault Systemes, non e' affiliato,
+sponsorizzato ne' avallato da Dassault Systemes. Il nome SOLIDWORKS e' usato
+solo per indicare con quale programma questo software e' interoperabile, cioe'
+nel modo descrittivo e nominativo consentito dall'uso corretto dei marchi.
+
+Questo progetto NON ridistribuisce alcun componente di Dassault Systemes. Le
+librerie di interoperabilita' (SolidWorks.Interop.*.dll) vengono caricate a
+tempo di esecuzione dall'installazione di SOLIDWORKS presente sulla macchina di
+chi lo usa: non sono incluse in questo repository ne' nei pacchetti prodotti.
+Per usare questo software occorre una licenza valida di SOLIDWORKS, che non e'
+fornita qui.
+
+-------------------------------------------------------------------------------
+COMPONENTI DI TERZE PARTI
+-------------------------------------------------------------------------------
+
+Nessuno. Il progetto usa solo la libreria standard di .NET Framework 4.8
+(System, System.Core, System.Web.Extensions per la serializzazione JSON).
+
+Il protocollo Model Context Protocol (MCP) e' una specifica aperta pubblicata
+da Anthropic; qui e' implementato da zero, senza usarne il codice.
+
+-------------------------------------------------------------------------------
+AVVERTENZA D'USO
+-------------------------------------------------------------------------------
+
+Questo software MODIFICA modelli CAD. Un modello modificato puo' essere diverso
+da quello che chi ha chiesto la modifica si aspettava. Chi lo usa resta
+responsabile di verificare il risultato prima di mandarlo in produzione, in
+officina o a un fornitore.
+
+Vale integralmente l'esclusione di garanzia e di responsabilita' della sezione 7
+e 8 della Apache License 2.0.

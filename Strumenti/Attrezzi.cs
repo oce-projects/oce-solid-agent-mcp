@@ -115,6 +115,16 @@ namespace SolidWorksMcp.Strumenti
                                     },
                                     new[] { "operazione" }),
                             },
+                            ["qualunque_documento"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "boolean",
+                                ["description"] =
+                                    "Normalmente si disegna sul documento che hai " +
+                                    "guardato con «guarda_il_pezzo», e se davanti ce " +
+                                    "n'e' un altro l'operazione si ferma. Metti true " +
+                                    "SOLO se sai che il documento e' cambiato e vuoi " +
+                                    "lavorare su quello che c'e' adesso.",
+                            },
                         },
                         new[] { "passi" })),
             };
@@ -137,11 +147,41 @@ namespace SolidWorksMcp.Strumenti
 
         // ─────────────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// L'ultimo documento che «guarda_il_pezzo» ha descritto.
+        ///
+        /// Non e' un ricordo di comodo: e' il contratto fra i due strumenti.
+        /// Un piano nasce guardando UN documento, e va eseguito su QUELLO.
+        /// </summary>
+        private Dictionary<string, object> _guardato;
+
         private Dictionary<string, object> GuardaIlPezzo()
         {
             var stato = _sessione.Stato(out var errore);
             if (stato == null) return Protocollo.Contenuto(errore, true);
+            _guardato = IdentitaDelloStato(stato);
             return Protocollo.Contenuto(Protocollo.InJson(stato));
+        }
+
+        /// <summary>Titolo e percorso presi dallo stato, senza ripassare dal COM.</summary>
+        private static Dictionary<string, object> IdentitaDelloStato(
+            Dictionary<string, object> stato)
+        {
+            if (stato == null) return null;
+            return new Dictionary<string, object>
+            {
+                ["titolo"] = stato.TryGetValue("titolo", out var t) ? t : "",
+                ["percorso"] = stato.TryGetValue("percorso", out var p) ? p : "",
+            };
+        }
+
+        private static string NomeLeggibile(Dictionary<string, object> identita)
+        {
+            if (identita == null) return "(nessuno)";
+            var p = Convert.ToString(identita.TryGetValue("percorso", out var x) ? x : "");
+            if (!string.IsNullOrWhiteSpace(p)) return p;
+            var t = Convert.ToString(identita.TryGetValue("titolo", out var y) ? y : "");
+            return string.IsNullOrWhiteSpace(t) ? "(senza nome)" : t;
         }
 
         private Dictionary<string, object> ElencoOperazioni(
@@ -195,7 +235,49 @@ namespace SolidWorksMcp.Strumenti
                     "Il piano e' vuoto: «passi» deve essere un elenco di " +
                     "{operazione, argomenti}.", true);
 
-            var prima = _sessione.Stato(out _);
+            var prima = _sessione.Stato(out var erroreLettura);
+            if (prima == null)
+                return Protocollo.Contenuto(erroreLettura, true);
+
+            // SI DISEGNA SUL DOCUMENTO CHE SI E' GUARDATO, NON SU QUELLO DAVANTI.
+            //
+            // Il ponte lavora sul documento ATTIVO, e il documento attivo e'
+            // quello la cui finestra sta davanti: cambia se qualcuno clicca,
+            // se un'altra operazione ne apre uno, se SolidWorks ne porta uno in
+            // primo piano da solo. Il 14 settembre 2026 e' successo davvero —
+            // un blocco 314x274x52 estruso dentro il pezzo di qualcun altro,
+            // senza un errore, senza un avviso.
+            //
+            // Qui non si indovina e non si cambia finestra da soli: si
+            // CONFRONTA con quello che «guarda_il_pezzo» aveva descritto, e se
+            // non combacia ci si ferma. Chi sa cosa sta facendo puo' dire
+            // esplicitamente «si', quello davanti» con `qualunque_documento`.
+            var adesso = IdentitaDelloStato(prima);
+            if (_guardato == null)
+            {
+                if (!Bool(argomenti, "qualunque_documento"))
+                    return Protocollo.Contenuto(
+                        "Non ho ancora guardato nessun pezzo, quindi non so su quale " +
+                        "documento vuoi che disegni: adesso davanti c'e' «" +
+                        NomeLeggibile(adesso) + "». Chiama prima «guarda_il_pezzo» — " +
+                        "serve comunque, perche' gli identificativi delle facce " +
+                        "nascono li'.", true);
+                _guardato = adesso;
+            }
+            else if (!Ponte.Sessione.StessoDocumento(_guardato, adesso))
+            {
+                if (!Bool(argomenti, "qualunque_documento"))
+                    return Protocollo.Contenuto(
+                        "Mi fermo: il documento e' cambiato. Avevi guardato «" +
+                        NomeLeggibile(_guardato) + "», adesso davanti c'e' «" +
+                        NomeLeggibile(adesso) + "». Disegnare qui vorrebbe dire " +
+                        "scrivere nel pezzo sbagliato, e gli identificativi del tuo " +
+                        "piano non valgono su questo. Riguarda il pezzo giusto con " +
+                        "«guarda_il_pezzo», oppure — se e' proprio questo che vuoi — " +
+                        "ripeti con «qualunque_documento»: true.", true);
+                _guardato = adesso;
+            }
+
             var esiti = new List<object>();
             bool tuttoBene = true;
 
@@ -245,6 +327,10 @@ namespace SolidWorksMcp.Strumenti
             var dopo = _sessione.Stato(out var erroreStato);
             var risultato = new Dictionary<string, object>
             {
+                // SI DICE SEMPRE SU COSA SI E' LAVORATO. Anche quando e' ovvio:
+                // e' l'unico modo perche' chi legge se ne accorga quando ovvio
+                // non era.
+                ["documento"] = NomeLeggibile(adesso),
                 ["esiti"] = esiti,
                 ["stato_dopo"] = dopo,
                 ["nota_stato"] = dopo == null ? erroreStato : null,
@@ -273,6 +359,15 @@ namespace SolidWorksMcp.Strumenti
         {
             var v = Prendi(d, chiave);
             return v == null ? null : Convert.ToString(v);
+        }
+
+        private static bool Bool(Dictionary<string, object> d, string chiave)
+        {
+            var v = Prendi(d, chiave);
+            if (v == null) return false;
+            if (v is bool b) return b;
+            return string.Equals(Convert.ToString(v), "true",
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static Dictionary<string, object> Oggetto(

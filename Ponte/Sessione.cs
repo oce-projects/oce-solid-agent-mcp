@@ -179,6 +179,64 @@ namespace SolidWorksMcp.Ponte
         }
 
         /// <summary>
+        /// CHI E' il documento: titolo e percorso, per poterlo riconoscere dopo.
+        ///
+        /// PERCHE' SERVE, ED E' COSTATO UN PEZZO DI QUALCUN ALTRO.
+        /// Il 14 settembre 2026 una sessione di prova ha estruso un blocco
+        /// 314x274x52 dentro «Parte4», che non era il suo documento. Non per un
+        /// difetto di geometria: fra la creazione del proprio pezzo e la
+        /// chiamata, il documento ATTIVO era cambiato — una finestra portata
+        /// davanti, e il ponte ha lavorato su quella. Nessun errore, nessun
+        /// avviso, geometria scritta nel pezzo sbagliato.
+        ///
+        /// E' il difetto che questo progetto esiste per rendere impossibile,
+        /// nella sua forma piu' pura, e stava nel ponte.
+        /// </summary>
+        public Dictionary<string, object> Identita(object doc)
+        {
+            if (doc == null) return null;
+            string titolo = "", percorso = "";
+            try { titolo = Convert.ToString(Chiama(doc, "GetTitle")); } catch { }
+            try { percorso = Convert.ToString(Chiama(doc, "GetPathName")); } catch { }
+            return new Dictionary<string, object>
+            {
+                ["titolo"] = titolo ?? "",
+                ["percorso"] = percorso ?? "",
+            };
+        }
+
+        private static object Chiama(object oggetto, string metodo)
+        {
+            return oggetto.GetType().InvokeMember(
+                metodo, BindingFlags.InvokeMethod, null, oggetto, null);
+        }
+
+        /// <summary>
+        /// Due identita' sono lo stesso documento?
+        ///
+        /// Il PERCORSO vince quando c'e': e' l'unica cosa che non cambia. Il
+        /// titolo e' il ripiego per i documenti mai salvati, che percorso non
+        /// ne hanno — e sono proprio quelli su cui si lavora in prova.
+        /// </summary>
+        public static bool StessoDocumento(
+            Dictionary<string, object> a, Dictionary<string, object> b)
+        {
+            if (a == null || b == null) return false;
+            string pa = Convert.ToString(a.ContainsKey("percorso") ? a["percorso"] : "");
+            string pb = Convert.ToString(b.ContainsKey("percorso") ? b["percorso"] : "");
+            if (!string.IsNullOrWhiteSpace(pa) || !string.IsNullOrWhiteSpace(pb))
+                return string.Equals(
+                    (pa ?? "").Trim().Replace('/', '\\'),
+                    (pb ?? "").Trim().Replace('/', '\\'),
+                    StringComparison.OrdinalIgnoreCase);
+
+            string ta = Convert.ToString(a.ContainsKey("titolo") ? a["titolo"] : "");
+            string tb = Convert.ToString(b.ContainsKey("titolo") ? b["titolo"] : "");
+            return !string.IsNullOrWhiteSpace(ta) &&
+                   string.Equals(ta, tb, StringComparison.Ordinal);
+        }
+
+        /// <summary>
         /// Lo stato del documento attivo: e' quello che il modello DEVE vedere
         /// prima di proporre qualunque cosa.
         /// </summary>
