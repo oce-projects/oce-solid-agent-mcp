@@ -51,6 +51,21 @@ namespace SolidWorksMcp.Installer
                 r.Equals(Prefisso + file, StringComparison.OrdinalIgnoreCase));
         }
 
+        /// <summary>
+        /// Il file c'e'? Guarda dove guarderebbe <see cref="EstraiSePresente"/>:
+        /// prima dentro il carico, poi accanto all'installatore.
+        ///
+        /// Serve ai controlli, che devono poter dire «ce l'ho» **prima** di
+        /// scrivere qualcosa su disco: un controllo che per rispondere deve
+        /// installare non e' un controllo.
+        /// </summary>
+        public static bool Contiene(string file)
+        {
+            if (NomeRisorsa(file) != null) return true;
+            try { return File.Exists(Path.Combine(Passi.CartellaDiQuestoExe, file)); }
+            catch { return false; }
+        }
+
         /// <summary>Scrive il file, o solleva dicendo perche' non ci riesce.</summary>
         public static void Estrai(string file, string destinazione, Action<string> racconta)
         {

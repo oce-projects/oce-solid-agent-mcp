@@ -16,6 +16,87 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.7.0 — 14 settembre 2026
+
+**Adesso e' vero: un file solo, e chi lo installa deve avere soltanto
+SOLIDWORKS.**
+
+La 0.5.0 aveva dovuto scrivere una correzione onesta: «installabile da chiunque,
+usabile da chi ha gia' l'add-in». Il carico non poteva contenere le operazioni
+perche' stavano in `OpenPDM.SwAddin.dll`, codice privato che un pacchetto
+pubblico non puo' portarsi dietro senza pubblicarlo.
+
+Da quando stanno in `Riscontro.Disegno.dll`, dentro questo repository, quella
+ragione non c'e' piu'. **`dist\Installa.exe` — 324 kB — se le porta dentro.**
+
+### Provato installando davvero, non solo compilando
+
+Installazione silenziosa in una cartella vuota, senza OpenPDM da nessuna parte:
+
+```
+[ok] Ponte da installare: incluso in questo installatore
+[ok] Operazioni di disegno: Riscontro.Disegno.dll e' dentro l'installatore
+  scritto SolidWorksMcp.exe (32 kB)
+  scritto catalogo.json (70 kB)
+  scritto Riscontro.Disegno.dll (172 kB)
+  ...
+[prova] agganciata: True
+[prova] volume_mm3 = 396858,4
+[prova] il ponte sta in piedi.
+```
+
+E poi un piano vero **eseguito dal ponte installato**, non da quello di
+sviluppo: blocco 200×100×20, foro Ø10 passante, ripetizione di 4 a passo 30.
+`volume_cambiato -4.712,39`, `facce 7 → 10`, `copie_fatte 3`. Gli stessi numeri
+del ponte compilato in casa.
+
+### Tre cose cambiate nell'installatore, e il perche' di ognuna
+
+1. **La libreria non si cerca piu' sulla macchina, si estrae dal carico.**
+   Cercarla aveva senso quando il pacchetto non poteva contenerla. Continuare
+   vorrebbe dire installare, su una macchina che ha per caso una copia vecchia
+   da qualche parte, **quella** copia — con le operazioni di due settimane fa e
+   nessuno che lo dica.
+2. **Se manca, adesso e' bloccante.** Prima era un avviso, ed era giusto: non
+   avere l'add-in era normale, il ponte partiva e diceva di non essere
+   agganciato. Adesso le operazioni sono parte del prodotto: se mancano il
+   pacchetto e' rotto, e un pacchetto rotto che si installa lo scopre chi lo
+   usa.
+3. **Il campo «dove sta l'add-in» e' sparito dalla finestra.** Chiedere a chi
+   installa un file che il pacchetto gia' contiene non e' una gentilezza: e' una
+   domanda senza risposta giusta, e chi non sa cosa rispondere pensa di aver
+   sbagliato qualcosa. Al suo posto una riga in sola lettura che dice da dove
+   vengono le operazioni.
+
+### Via la riflessione (B7)
+
+Il ponte chiama `Riscontro.Disegno` direttamente: `new OperazioniSw(...)`,
+`StatoDocumento.Leggi(...)`, `esito.Misure`. I nomi dei tipi non sono piu'
+stringhe, e un errore di battitura lo prende il compilatore invece del cliente.
+
+Resta il late binding verso SOLIDWORKS — `DocumentoAttivo`, `Identita`,
+`Chiama` — e non e' una svista: e' la strada misurata (`ActiveDoc` e non
+`IActiveDoc2`, vedi il commento nel codice), e rifarla qui vorrebbe dire
+ripagare una misura gia' pagata.
+
+**Trappola trovata per strada:** `SolidWorks.Interop.sldworks` ha un tipo
+`Environment`, che rende ambiguo `Environment.GetEnvironmentVariable`. Le tre
+chiamate sono qualificate `System.Environment`, con la riga che dice perche'.
+
+### La proprieta' che non decide piu' niente, e lo dice
+
+`RISCONTRO_DISEGNO` e `OPENPDM_ADDIN` non scelgono piu' quale DLL caricare —
+.NET la carica da solo accanto all'eseguibile. Restano lette per **avvisare**:
+se puntano altrove, il ponte lo dice invece di lasciar credere che contino
+ancora. Una variabile d'ambiente che non fa niente e' peggio di una che non
+esiste.
+
+Per la stessa ragione un percorso inesistente non e' piu' un rifiuto ma un
+avviso: fermarsi per un percorso sbagliato mentre la libreria giusta e' gia' in
+mano sarebbe rifiutare cio' che funziona.
+
+---
+
 ## 0.6.0 — 14 settembre 2026
 
 **Il ponte non carica piu' il PDM per disegnare un foro.**

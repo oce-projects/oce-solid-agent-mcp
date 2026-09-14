@@ -65,7 +65,6 @@ namespace SolidWorksMcp.Installer
         private static int Silenzioso(string[] argomenti)
         {
             var cartella = Valore(argomenti, "--cartella") ?? Passi.CartellaPredefinita;
-            var addin = Valore(argomenti, "--addin") ?? Passi.TrovaAddin();
             var redist = Valore(argomenti, "--redist") ?? Passi.TrovaRedist();
             bool niente = argomenti.Any(a => Uguale(a, "--senza-client"));
 
@@ -77,7 +76,7 @@ namespace SolidWorksMcp.Installer
             // un installatore che stampa caratteri rotti sembra rotto lui.
             Console.WriteLine(Passi.NomeProdotto + " - installazione silenziosa");
 
-            var controlli = Passi.Controlla(addin, redist);
+            var controlli = Passi.Controlla(redist);
             foreach (var c in controlli)
             {
                 var segno = c.Esito == Esito.Bene ? "[ok]" : c.Esito == Esito.Avviso ? "[~] " : "[NO]";
@@ -91,7 +90,7 @@ namespace SolidWorksMcp.Installer
             }
 
             string eseguibile;
-            try { eseguibile = Passi.Installa(cartella, addin, racconta); }
+            try { eseguibile = Passi.Installa(cartella, racconta); }
             catch (Exception ex)
             {
                 Console.WriteLine("Installazione fallita: " + ex.Message);

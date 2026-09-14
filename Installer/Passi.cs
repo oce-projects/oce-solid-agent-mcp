@@ -38,7 +38,13 @@ namespace SolidWorksMcp.Installer
         public const string NomeProdotto = "SolidWorks MCP";
         public const string NomeEseguibile = "SolidWorksMcp.exe";
         public const string NomeCatalogo = "catalogo.json";
-        public const string NomeAddin = "OpenPDM.SwAddin.dll";
+        /// <summary>
+        /// Le operazioni di disegno. **Sta nel carico**, non si cerca sulla
+        /// macchina: fino alla 0.5.0 era `OpenPDM.SwAddin.dll`, codice
+        /// privato che il pacchetto non poteva contenere, e l'installatore
+        /// doveva andarla a cercare. Adesso ce l'ha dentro.
+        /// </summary>
+        public const string NomeLibreria = "Riscontro.Disegno.dll";
 
         /// <summary>Dove va installato, se chi installa non dice altro.</summary>
         public static string CartellaPredefinita =>
@@ -53,14 +59,14 @@ namespace SolidWorksMcp.Installer
         // I controlli
         // ─────────────────────────────────────────────────────────────────
 
-        public static List<Controllo> Controlla(string percorsoAddin, string redist)
+        public static List<Controllo> Controlla(string redist)
         {
             var fuori = new List<Controllo>
             {
                 ControllaFramework(),
                 ControllaSolidWorks(redist),
                 ControllaPayload(),
-                ControllaAddin(percorsoAddin),
+                ControllaLibreria(),
                 ControllaSolidWorksAperto(),
             };
             return fuori;
@@ -222,57 +228,76 @@ namespace SolidWorksMcp.Installer
             };
         }
 
-        public static string TrovaAddin()
+        /// <summary>
+        /// La libreria che sta ACCANTO a questo eseguibile, se c'e'.
+        ///
+        /// NON si va piu' a cercarla per la macchina, e non e' una
+        /// semplificazione: cercarla vorrebbe dire installare, su una
+        /// macchina che ha per caso una copia vecchia da qualche parte,
+        /// QUELLA copia — con le operazioni di due settimane fa e nessuno
+        /// che lo dica. Il carico ce l'ha, e quella e' la buona.
+        ///
+        /// Serve solo al caso di chi lancia l'installatore appena compilato
+        /// dalla cartella `bin`, dove il carico non e' ancora incorporato.
+        /// </summary>
+        public static string TrovaLibreriaAccanto()
         {
-            var suo = Environment.GetEnvironmentVariable("OPENPDM_ADDIN");
-            if (!string.IsNullOrWhiteSpace(suo) && File.Exists(suo)) return suo;
-
-            var candidati = new[]
+            try
             {
-                Path.Combine(CartellaDiQuestoExe, NomeAddin),
-                Path.Combine(CartellaPredefinita, NomeAddin),
-                Path.Combine(CartellaDiQuestoExe,
-                    @"..\..\OpenPDM\client-windows\OpenPDMSwAddin\bin\Release\" + NomeAddin),
-            };
-            foreach (var c in candidati)
-            {
-                try { if (File.Exists(c)) return Path.GetFullPath(c); }
-                catch { }
+                var c = Path.Combine(CartellaDiQuestoExe, NomeLibreria);
+                if (File.Exists(c)) return Path.GetFullPath(c);
             }
+            catch { }
             return null;
         }
 
-        private static Controllo ControllaAddin(string percorso)
+        /// <summary>
+        /// Le operazioni di disegno ci sono? Dalla 0.6.0 la risposta e' quasi
+        /// sempre «si', le ho dentro»: e' una constatazione, non piu' una
+        /// domanda a chi installa.
+        ///
+        /// Il caso che resta e' l'installatore lanciato dalla cartella `bin`
+        /// appena compilata, dove il carico non e' ancora incorporato.
+        /// </summary>
+        private static Controllo ControllaLibreria()
         {
-            if (string.IsNullOrWhiteSpace(percorso)) percorso = TrovaAddin();
+            if (Payload.Contiene(NomeLibreria))
+                return new Controllo
+                {
+                    Titolo = "Operazioni di disegno",
+                    Esito = Esito.Bene,
+                    Dettaglio = NomeLibreria + " e' dentro l'installatore",
+                };
 
-            if (!string.IsNullOrWhiteSpace(percorso) && File.Exists(percorso))
+            var accanto = TrovaLibreriaAccanto();
+            if (!string.IsNullOrWhiteSpace(accanto))
             {
                 string v = "";
-                try { v = FileVersionInfo.GetVersionInfo(percorso).FileVersion; }
+                try { v = FileVersionInfo.GetVersionInfo(accanto).FileVersion; }
                 catch { }
                 return new Controllo
                 {
-                    Titolo = "Add-in OpenPDM",
+                    Titolo = "Operazioni di disegno",
                     Esito = Esito.Bene,
-                    Dettaglio = percorso + (string.IsNullOrWhiteSpace(v) ? "" : "  (" + v + ")"),
+                    Dettaglio = accanto + (string.IsNullOrWhiteSpace(v) ? "" : "  (" + v + ")"),
                 };
             }
 
-            // NON e' un errore bloccante, ed e' importante che sia detto qui:
-            // il ponte parte lo stesso e risponde, semplicemente non sa
-            // disegnare. Meglio un'installazione che funziona a meta' e lo
-            // dichiara, che un installatore che si rifiuta di finire.
+            // ADESSO E' BLOCCANTE, E PRIMA NON LO ERA.
+            // Quando le operazioni stavano in una DLL privata, non averle era
+            // normale e l'installazione aveva senso lo stesso: il ponte
+            // partiva e diceva di non essere agganciato. Adesso le operazioni
+            // sono parte del prodotto: se mancano, il pacchetto e' rotto, e un
+            // pacchetto rotto che si installa lo scopre chi lo usa.
             return new Controllo
             {
-                Titolo = "Add-in OpenPDM",
-                Esito = Esito.Avviso,
-                Dettaglio = "non trovato",
+                Titolo = "Operazioni di disegno",
+                Esito = Esito.Male,
+                Dettaglio = NomeLibreria + " non c'e' ne' dentro ne' accanto",
                 CosaFare =
-                    "Senza l'add-in il ponte si installa e risponde, ma non sa " +
-                    "disegnare: dira' che non e' agganciato. L'add-in fa parte di " +
-                    "OpenPDM, che oggi e' privato. Se ce l'hai, indicalo con " +
-                    "«Sfoglia».",
+                    "Questo installatore e' incompleto. Se hai clonato il " +
+                    "repository, compila con build.ps1: produce un Installa.exe " +
+                    "con il ponte e le operazioni dentro.",
             };
         }
 
@@ -310,7 +335,7 @@ namespace SolidWorksMcp.Installer
         /// dell'eseguibile installato, o solleva con un motivo leggibile.
         /// </summary>
         public static string Installa(
-            string cartella, string percorsoAddin, Action<string> racconta)
+            string cartella, Action<string> racconta)
         {
             if (string.IsNullOrWhiteSpace(cartella))
                 throw new Exception("Non mi hai detto dove installare.");
@@ -326,18 +351,17 @@ namespace SolidWorksMcp.Installer
                 NomeEseguibile + ".config",
                 Path.Combine(cartella, NomeEseguibile + ".config"), racconta);
 
-            // 2. l'add-in, se c'e'. Si COPIA invece di puntarlo dov'e': cosi'
-            //    il ponte continua a funzionare anche se quella cartella
-            //    sparisce, e l'installazione e' una cosa sola da cancellare.
-            if (!string.IsNullOrWhiteSpace(percorsoAddin) && File.Exists(percorsoAddin))
-            {
-                var destinazione = Path.Combine(cartella, NomeAddin);
-                if (!PercorsiUguali(percorsoAddin, destinazione))
-                {
-                    File.Copy(percorsoAddin, destinazione, true);
-                    racconta("copiato " + NomeAddin);
-                }
-            }
+            // 2. LE OPERAZIONI. Prima dal carico; se il carico non ce l'ha
+            //    (installatore lanciato dalla cartella bin appena
+            //    compilata), da accanto all'eseguibile. Se non c'e' ne'
+            //    l'una ne' l'altra si SOLLEVA: un ponte installato che non
+            //    disegna e' peggio di un'installazione che si ferma.
+            //    `Estrai` guarda prima dentro il carico e poi accanto
+            //    all'installatore, e solleva se non c'e' ne' l'una ne' l'altra.
+            //    Solleva ed e' giusto: un ponte installato che non disegna e'
+            //    peggio di un'installazione che si ferma dicendo cosa manca.
+            var libreria = Path.Combine(cartella, NomeLibreria);
+            Payload.Estrai(NomeLibreria, libreria, racconta);
 
             // 3. le note legali viaggiano con il programma
             foreach (var nome in new[] { "LICENSE", "NOTICE" })
@@ -422,7 +446,7 @@ namespace SolidWorksMcp.Installer
             foreach (var nome in new[]
             {
                 NomeEseguibile, NomeEseguibile + ".config", "SolidWorksMcp.pdb",
-                NomeCatalogo, NomeAddin, "LICENSE", "NOTICE",
+                NomeCatalogo, NomeLibreria, "LICENSE", "NOTICE",
             })
             {
                 var f = Path.Combine(cartella, nome);

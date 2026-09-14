@@ -18,6 +18,43 @@
     <Optimize>true</Optimize>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Dove sta SOLIDWORKS: serve solo per le interop, che NON entrano nel
+         pacchetto (Private=False). Si scavalca con /p:SwInstallPath=... -->
+    <SwInstallPath Condition="'$(SwInstallPath)' == ''">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS</SwInstallPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- LE OPERAZIONI DI DISEGNO, CHIAMATE E NON RIFLESSE.
+         Fino alla 0.5.0 il ponte caricava OpenPDM.SwAddin.dll a mano,
+         perche' quella DLL e' privata e questo repository non poteva
+         referenziarla. Adesso la libreria sta qui dentro: e' un riferimento
+         di progetto come un altro, e i nomi dei tipi li controlla il
+         compilatore invece del cliente. -->
+    <ProjectReference Include="Riscontro.Disegno\Riscontro.Disegno.csproj">
+      <Project>{7B3C1F42-9A5E-4D18-A6C2-51E0D7B44A93}</Project>
+      <Name>Riscontro.Disegno</Name>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Interop di SOLIDWORKS: il ponte passa ISldWorks e IModelDoc2
+         tipizzati alla libreria. Private=False, quindi restano dove le ha
+         messe l'installazione e non finiscono ne' nel repository ne' nel
+         pacchetto. -->
+    <Reference Include="SolidWorks.Interop.sldworks">
+      <HintPath>$(SwInstallPath)\api\redist\SolidWorks.Interop.sldworks.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swconst">
+      <HintPath>$(SwInstallPath)\api\redist\SolidWorks.Interop.swconst.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />

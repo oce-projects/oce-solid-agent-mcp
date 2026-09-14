@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Riscontro.Disegno;
+// ATTENZIONE AL NOME: SolidWorks.Interop.sldworks ha un tipo `Environment`,
+// che rende ambiguo `Environment.GetEnvironmentVariable`. Qui sotto quelle
+// chiamate sono qualificate `System.Environment`: non e prolissita, senza
+// non compila.
+using SolidWorks.Interop.sldworks;
 
 namespace SolidWorksMcp.Ponte
 {
@@ -10,17 +16,24 @@ namespace SolidWorksMcp.Ponte
     /// L'aggancio a SolidWorks e alla libreria di disegno vera.
     ///
     /// NON SI RISCRIVE NIENTE. Le operazioni di disegno sono quelle di
-    /// `Riscontro.Disegno.dll`, caricate per riflessione: cosi' quello che si
+    /// `Riscontro.Disegno`, chiamate direttamente: cosi' quello che si
     /// prova da qui e' ESATTAMENTE quello che il progettista avra' in mano.
     /// Una seconda implementazione «solo per le prove» misurerebbe se stessa —
     /// che e' il modo piu' elegante di non misurare niente.
     ///
     /// Fino all'add-in 0.46.0 la libreria caricata era `OpenPDM.SwAddin.dll`,
-    /// cioe' il ponte tirava dentro tutto il PDM per disegnare un foro. Dalla
-    /// 0.47.0 le operazioni stanno per conto loro. **La riflessione pero' e'
-    /// rimasta, e adesso non ha piu' ragione di esserci**: e' la voce B7 del
-    /// TODO. Finche' c'e', i nomi dei tipi sono stringhe e un errore di
-    /// battitura si scopre a runtime.
+    /// cioe' il ponte tirava dentro tutto il PDM per disegnare un foro, e la
+    /// riflessione era l'unico modo: quella DLL e' privata e questo
+    /// repository non poteva referenziarla.
+    ///
+    /// Dalla 0.6.0 `Riscontro.Disegno` sta qui dentro e si referenzia come
+    /// un progetto qualunque. **La riflessione sui tipi della libreria non
+    /// c'e' piu'**: i nomi sono nomi, non stringhe, e un errore di battitura
+    /// lo prende il compilatore invece del cliente.
+    ///
+    /// Resta il late binding verso SOLIDWORKS (`DocumentoAttivo`,
+    /// `Identita`, `Chiama`), e non e' una svista: e' la strada misurata,
+    /// e il commento sopra `DocumentoAttivo` racconta perche'.
     ///
     /// NON SI AVVIA SOLIDWORKS. Ci si aggancia a una sessione che c'e' gia'.
     /// Un ponte che avvia il programma decide per conto di chi lo usa quale
@@ -30,10 +43,13 @@ namespace SolidWorksMcp.Ponte
     internal sealed class Sessione
     {
         private object _sw;                 // ISldWorks, tenuto come object
-        private Assembly _addin;
-        private Type _tOperazioni;
-        private Type _tStato;
-        private Type _tEsito;
+
+        /// <summary>
+        /// L'assembly della libreria, tenuto SOLO per dirne la versione.
+        /// I tipi non si cercano piu' qui dentro: si nominano.
+        /// </summary>
+        private Assembly _libreria;
+        private bool _caricata;
 
         /// <summary>
         /// Dove sta la libreria di disegno. Si puo' cambiare con
@@ -41,19 +57,20 @@ namespace SolidWorksMcp.Ponte
         ///
         /// **Non e' piu' `OpenPDM.SwAddin.dll`.** Le operazioni sono uscite
         /// dall'add-in e vivono in `Riscontro.Disegno.dll` (add-in 0.47.0): il
-        /// ponte non ha piu' bisogno del PDM per disegnare. La vecchia
-        /// variabile `OPENPDM_ADDIN` resta accettata perche' chi ce l'ha
-        /// impostata non deve scoprirlo da un rifiuto, ma se punta ancora
-        /// all'add-in non troverebbe i tipi: in quel caso lo si dice per nome.
+        /// ponte non ha piu' bisogno del PDM per disegnare.
+        ///
+        /// Da quando la libreria e' referenziata invece che caricata a mano,
+        /// **questa proprieta' non decide piu' niente**: .NET carica la DLL da
+        /// solo, accanto all'eseguibile. Serve a due cose, tutte e due di chi
+        /// legge e non del programma — dire QUALE file si sta usando davvero, e
+        /// avvisare se qualcuno ha impostato una variabile che punta altrove,
+        /// invece di lasciargli credere che quella variabile conti ancora.
+        /// La vecchia `OPENPDM_ADDIN` resta letta per lo stesso motivo.
         /// </summary>
         public string PercorsoLibreria { get; private set; }
 
-        public bool Agganciata => _sw != null && _tOperazioni != null;
+        public bool Agganciata => _sw != null && _caricata;
 
-        /// <summary>
-        /// Si aggancia, oppure spiega perche' no. Non solleva: un ponte che
-        /// muore all'avvio non fa in tempo a dire niente a chi lo chiama.
-        /// </summary>
         /// <summary>
         /// Dove SolidWorks tiene le sue librerie di interoperabilita'.
         /// Si puo' cambiare con SW_REDIST.
@@ -87,7 +104,7 @@ namespace SolidWorksMcp.Ponte
                     return null;
 
                 var posti = new List<string>();
-                var suo = Environment.GetEnvironmentVariable("SW_REDIST");
+                var suo = System.Environment.GetEnvironmentVariable("SW_REDIST");
                 if (!string.IsNullOrWhiteSpace(suo)) posti.Add(suo);
                 posti.AddRange(PostiDelRedist);
 
@@ -108,53 +125,63 @@ namespace SolidWorksMcp.Ponte
             };
         }
 
+        /// <summary>
+        /// Si aggancia, oppure spiega perche' no. Non solleva: un ponte che
+        /// muore all'avvio non fa in tempo a dire niente a chi lo chiama.
+        /// </summary>
         public string Aggancia()
         {
             TrovaLeLibrerieDiSolidWorks();
-            PercorsoLibreria = Environment.GetEnvironmentVariable("RISCONTRO_DISEGNO");
+            PercorsoLibreria = System.Environment.GetEnvironmentVariable("RISCONTRO_DISEGNO");
             if (string.IsNullOrWhiteSpace(PercorsoLibreria))
-                PercorsoLibreria = Environment.GetEnvironmentVariable("OPENPDM_ADDIN");
+                PercorsoLibreria = System.Environment.GetEnvironmentVariable("OPENPDM_ADDIN");
             if (string.IsNullOrWhiteSpace(PercorsoLibreria))
                 PercorsoLibreria = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",
                     "Riscontro.Disegno.dll");
 
+            // NON SI RIFIUTA PIU' SE IL FILE NON C'E' DOVE CI SI ASPETTA.
+            // Il tipo adesso e' compilato dentro: se .NET non trovasse la
+            // DLL, il ponte non sarebbe nemmeno partito. Rifiutare qui
+            // vorrebbe dire fermarsi per un percorso sbagliato mentre la
+            // libreria giusta e' gia' in mano — un rifiuto di cio' che
+            // funziona, che e' il difetto peggiore.
             if (!File.Exists(PercorsoLibreria))
-                return "Non trovo la libreria di disegno in «" + PercorsoLibreria + "». " +
-                       "Mettila accanto all'eseguibile oppure indica il percorso " +
-                       "nella variabile d'ambiente RISCONTRO_DISEGNO.";
+                Mcp.Protocollo.Nota(
+                    "[ponte] «" + PercorsoLibreria + "» non esiste; uso quella " +
+                    "caricata insieme all'eseguibile.");
 
             try
             {
-                // SI LEGGONO I BYTE INVECE DI LoadFrom, e non e' pignoleria:
-                // se la libreria sta su un'unita' di rete `Assembly.LoadFrom`
-                // fallisce con 0x80131515, un errore che non nomina la rete e
-                // manda a cercare una dipendenza mancante che non esiste.
-                _addin = Assembly.Load(File.ReadAllBytes(PercorsoLibreria));
+                // SI DICE QUALE FILE, ANCHE SE ADESSO IL TIPO E' COMPILATO.
+                //
+                // `OperazioniSw` arriva dal riferimento di progetto, quindi
+                // .NET la carica da solo dalla cartella dell'eseguibile. Ma
+                // chi ha impostato RISCONTRO_DISEGNO o OPENPDM_ADDIN si
+                // aspetta che serva a qualcosa, e una variabile che non fa
+                // niente e' peggio di una che non esiste: si tocca il tipo e
+                // si guarda DA DOVE e' venuto davvero, poi lo si confronta
+                // con quello che era stato chiesto.
+                _libreria = typeof(OperazioniSw).Assembly;
+                _caricata = true;
 
-                _tOperazioni = _addin.GetType("Riscontro.Disegno.OperazioniSw", false);
-                _tStato = _addin.GetType("Riscontro.Disegno.StatoDocumento", false);
-                _tEsito = _addin.GetType("Riscontro.Disegno.OperazioniSw+Esito", false);
-
-                if (_tOperazioni == null || _tStato == null || _tEsito == null)
+                var davvero = "";
+                try { davvero = _libreria.Location ?? ""; } catch { }
+                if (!string.IsNullOrEmpty(davvero) &&
+                    !string.Equals(
+                        Path.GetFullPath(davvero), Path.GetFullPath(PercorsoLibreria),
+                        StringComparison.OrdinalIgnoreCase))
                 {
-                    // IL CASO DI CHI HA ANCORA IL VECCHIO PERCORSO IMPOSTATO.
-                    // Dirgli «tipo non trovato» lo manderebbe a cercare un
-                    // difetto che non c'e': il file e' quello sbagliato, non
-                    // rotto.
-                    bool vecchia = _addin.GetType("OpenPDM.SwAddin.Agente.OperazioniSw", false) != null;
-                    return vecchia
-                        ? "«" + PercorsoLibreria + "» e' il vecchio add-in OpenPDM. " +
-                          "Dalla 0.47.0 le operazioni stanno in «Riscontro.Disegno.dll»: " +
-                          "punta li' RISCONTRO_DISEGNO, oppure togli OPENPDM_ADDIN e " +
-                          "mettila accanto all'eseguibile."
-                        : "«" + PercorsoLibreria + "» si carica ma non contiene le " +
-                          "operazioni di disegno: non e' Riscontro.Disegno.dll.";
+                    Mcp.Protocollo.Nota(
+                        "[ponte] avviso: avevi indicato «" + PercorsoLibreria +
+                        "» ma sto usando «" + davvero + "». Le operazioni sono " +
+                        "quelle del secondo.");
+                    PercorsoLibreria = davvero;
                 }
             }
             catch (Exception ex)
             {
-                return "La libreria c'e' ma non si carica: " + ex.Message;
+                return "La libreria di disegno non si carica: " + ex.Message;
             }
 
             try
@@ -187,7 +214,7 @@ namespace SolidWorksMcp.Ponte
 
         public string VersioneLibreria()
         {
-            try { return _addin.GetName().Version.ToString(); }
+            try { return _libreria.GetName().Version.ToString(); }
             catch { return "?"; }
         }
 
@@ -291,10 +318,8 @@ namespace SolidWorksMcp.Ponte
             }
             try
             {
-                var stato = LeggiStatoOggetto(doc);
-                var dati = _tStato.GetProperty(
-                    "Dati", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                return dati.GetValue(stato) as Dictionary<string, object>;
+                var stato = LeggiStato(doc);
+                return stato?.Dati;
             }
             catch (Exception ex)
             {
@@ -303,17 +328,14 @@ namespace SolidWorksMcp.Ponte
             }
         }
 
-        private object LeggiStatoOggetto(object doc)
+        /// <summary>
+        /// Lo stato del documento. Il secondo parametro e' l'applicazione:
+        /// senza, lo stato non sa dire quali ALTRI documenti sono aperti, e
+        /// per le tavole quello non e' un di piu' ma una precondizione.
+        /// </summary>
+        private StatoDocumento LeggiStato(object doc)
         {
-            var leggi = _tStato.GetMethod(
-                "Leggi", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            // La firma ha un secondo parametro facoltativo (l'applicazione):
-            // senza, lo stato non sa dire quali ALTRI documenti sono aperti, e
-            // per le tavole quello non e' un di piu' ma una precondizione.
-            var parametri = leggi.GetParameters().Length == 1
-                ? new[] { doc }
-                : new[] { doc, _sw };
-            return leggi.Invoke(null, parametri);
+            return StatoDocumento.Leggi(doc as IModelDoc2, _sw as ISldWorks);
         }
 
         /// <summary>
@@ -339,27 +361,23 @@ namespace SolidWorksMcp.Ponte
 
             try
             {
-                var costruttore = _tOperazioni.GetConstructors(
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)[0];
-                var op = costruttore.Invoke(new object[]
-                {
-                    _sw,
-                    (Action<string>)(riga => Mcp.Protocollo.Nota("  " + riga)),
-                });
+                var op = new OperazioniSw(
+                    _sw as ISldWorks,
+                    riga => Mcp.Protocollo.Nota("  " + riga));
 
-                var stato = LeggiStatoOggetto(doc);
-                var esegui = _tOperazioni.GetMethod(
-                    "Esegui", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                var stato = LeggiStato(doc);
+                var esito = op.Esegui(
+                    doc as IModelDoc2, operazione, argomenti, stato, null);
 
-                var esito = esegui.Invoke(op, new object[]
+                if (esito == null)
                 {
-                    doc, operazione, argomenti, stato, null,
-                });
-
-                bool riuscito = (bool)_tEsito.GetField("Riuscito").GetValue(esito);
-                if (!riuscito)
+                    errore = "L'operazione «" + operazione + "» non ha risposto niente: " +
+                             "e' un difetto della libreria, segnalalo con il log.";
+                    return null;
+                }
+                if (!esito.Riuscito)
                 {
-                    errore = _tEsito.GetField("Errore").GetValue(esito) as string;
+                    errore = esito.Errore;
                     return null;
                 }
 
@@ -373,7 +391,7 @@ namespace SolidWorksMcp.Ponte
                 }
                 catch { }
 
-                return _tEsito.GetField("Misure").GetValue(esito) as Dictionary<string, object>;
+                return esito.Misure;
             }
             catch (TargetInvocationException ex)
             {

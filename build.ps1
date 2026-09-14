@@ -11,9 +11,17 @@
 #  Il risultato e' un eseguibile unico da dare a chiunque: si scarica, doppio
 #  clic, e Claude parla con SOLIDWORKS. Nessun altro file da mettere accanto.
 #
-#  COSA NON FINISCE DENTRO: OpenPDM.SwAddin.dll. E' codice privato, e un
-#  pacchetto pubblico che se lo porta dietro lo pubblica. L'installatore lo
-#  cerca sulla macchina di chi installa e, se non c'e', lo dice.
+#  COSA FINISCE DENTRO: il ponte, il catalogo, la configurazione, le note
+#  legali E LE OPERAZIONI (Riscontro.Disegno.dll). Fino alla 0.5.0 le
+#  operazioni stavano in OpenPDM.SwAddin.dll, codice privato che un pacchetto
+#  pubblico non poteva incorporare senza pubblicarlo: l'installatore doveva
+#  cercarlo sulla macchina di chi installa, e chi non ce l'aveva installava un
+#  ponte che si fermava subito. Da quando la libreria e' in questo repository
+#  quella ragione non c'e' piu'.
+#
+#  COSA CONTINUA A NON FINIRE DENTRO: le interop di Dassault. Quelle si
+#  prendono dall'installazione di SOLIDWORKS di chi installa — sono sue, e
+#  sono per definizione della versione giusta.
 #
 #      .\build.ps1              compila e impacchetta
 #      .\build.ps1 -Pulisci     cancella prima bin, obj e dist
@@ -96,9 +104,14 @@ if (Test-Path $payload) { Remove-Item $payload -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $payload | Out-Null
 
 # Quello che serve al ponte per girare, e le note legali che devono viaggiare
-# con il programma. L'add-in NON c'e', ed e' voluto.
+# con il programma.
+#
+# `Riscontro.Disegno.dll` E' OBBLIGATORIO, non facoltativo: senza, il ponte
+# si installa e poi non disegna. Un pacchetto che si monta e non funziona e'
+# peggio di uno che rifiuta di montarsi.
 $daPortare = @(
     @{ da = "bin\SolidWorksMcp.exe";        a = "SolidWorksMcp.exe";        obbligatorio = $true  },
+    @{ da = "bin\Riscontro.Disegno.dll";    a = "Riscontro.Disegno.dll";    obbligatorio = $true  },
     @{ da = "bin\catalogo.json";            a = "catalogo.json";            obbligatorio = $true  },
     @{ da = "bin\SolidWorksMcp.exe.config"; a = "SolidWorksMcp.exe.config"; obbligatorio = $true  },
     @{ da = "LICENSE";                      a = "LICENSE";                  obbligatorio = $false },
@@ -150,15 +163,11 @@ Ok ("Installa.exe  " + [math]::Round($grandeExe / 1KB) + " kB  (ponte incorporat
 Nota $finale
 
 Write-Host ""
-# NON DIRE PIU' DI QUELLO CHE C'E'.
-# Questa riga diceva «dallo a chiunque abbia SOLIDWORKS», e non e' ancora vero:
-# il carico incorpora il ponte, il catalogo e le note legali, ma NON
-# OpenPDM.SwAddin.dll, che il ponte carica per riflessione da accanto
-# all'eseguibile. Chi non ha gia' quell'add-in installa un ponte che si ferma
-# subito, con un messaggio chiaro ma pur sempre un rifiuto. Finche' le
-# operazioni non sono estratte in una libreria propria (sezione B del TODO), il
-# pacchetto e' completo solo per chi ha OpenPDM.
-Write-Host "  Un file solo, ma il ponte carica ancora OpenPDM.SwAddin.dll da" -ForegroundColor White
-Write-Host "  accanto all'eseguibile: il carico NON la contiene. Per ora e'" -ForegroundColor White
-Write-Host "  installabile da chiunque, usabile da chi ha gia' l'add-in." -ForegroundColor White
+# ADESSO SI PUO' DIRE, PERCHE' E' VERO.
+# Questa riga ha detto per una versione «installabile da chiunque, usabile da
+# chi ha gia' l'add-in»: il carico non poteva contenere le operazioni, che
+# stavano in una DLL privata. Da quando stanno in Riscontro.Disegno.dll,
+# dentro questo repository, il carico se le porta. L'unica cosa che serve
+# sulla macchina di chi installa e' SOLIDWORKS, per le sue interop.
+Write-Host "  Un file solo. Dallo a chiunque abbia SOLIDWORKS." -ForegroundColor White
 Write-Host "  Prova:  .\dist\Installa.exe --aiuto" -ForegroundColor DarkGray

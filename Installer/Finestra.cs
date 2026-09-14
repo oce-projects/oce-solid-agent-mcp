@@ -94,9 +94,16 @@ namespace SolidWorksMcp.Installer
             CampoConBottone(_cartella, "Sfoglia…", ref y, ScegliCartella);
 
             Aggiungi(Titoletto("Add-in OpenPDM (facoltativo)", ref y));
-            _addin.Text = Passi.TrovaAddin() ?? "";
-            _addin.ForeColor = string.IsNullOrWhiteSpace(_addin.Text) ? Color.Gray : Color.Black;
-            CampoConBottone(_addin, "Sfoglia…", ref y, ScegliAddin);
+            // LE OPERAZIONI NON SI CHIEDONO PIU'. Dalla 0.6.0 stanno nel
+            // carico: il campo resta per DIRE da dove vengono, in sola
+            // lettura. Chiedere un file che il pacchetto gia' contiene e'
+            // una domanda senza risposta giusta, e chi non sa cosa
+            // rispondere pensa di aver sbagliato qualcosa.
+            var accanto = Passi.TrovaLibreriaAccanto();
+            _addin.Text = accanto ?? "dentro l'installatore";
+            _addin.ReadOnly = true;
+            _addin.ForeColor = Color.Gray;
+            Campo(_addin, ref y);
 
             // ── client ───────────────────────────────────────────────────
             Aggiungi(Titoletto("Quali programmi collegare", ref y));
@@ -181,6 +188,16 @@ namespace SolidWorksMcp.Installer
             y += 34;
         }
 
+        /// <summary>Un campo largo tutta la riga, senza bottone accanto.</summary>
+        private void Campo(TextBox campo, ref int y)
+        {
+            campo.Location = new Point(18, y);
+            campo.Size = new Size(766, 24);
+            campo.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            Aggiungi(campo);
+            y += 34;
+        }
+
         private void Aggiungi(Control c) => Controls.Add(c);
 
         // ─────────────────────────────────────────────────────────────────
@@ -198,7 +215,7 @@ namespace SolidWorksMcp.Installer
             _controlli.Items.Clear();
             _redist = Passi.TrovaRedist();
 
-            var esiti = Passi.Controlla(_addin.Text, _redist);
+            var esiti = Passi.Controlla(_redist);
             bool bloccato = false;
 
             foreach (var c in esiti)
@@ -240,21 +257,6 @@ namespace SolidWorksMcp.Installer
                 if (d.ShowDialog(this) == DialogResult.OK) _cartella.Text = d.SelectedPath;
         }
 
-        private void ScegliAddin()
-        {
-            using (var d = new OpenFileDialog
-            {
-                Title = "Dove sta " + Passi.NomeAddin + "?",
-                Filter = Passi.NomeAddin + "|" + Passi.NomeAddin + "|Tutti i file (*.*)|*.*",
-            })
-            {
-                if (d.ShowDialog(this) != DialogResult.OK) return;
-                _addin.Text = d.FileName;
-                _addin.ForeColor = Color.Black;
-                Ricontrolla();
-            }
-        }
-
         // ─────────────────────────────────────────────────────────────────
 
         private void Installa()
@@ -264,7 +266,7 @@ namespace SolidWorksMcp.Installer
             try
             {
                 Scrivi("— installazione —");
-                var eseguibile = Passi.Installa(_cartella.Text, _addin.Text, Scrivi);
+                var eseguibile = Passi.Installa(_cartella.Text, Scrivi);
 
                 // I CLIENT: e' il lavoro vero. Copiare due file lo sa fare
                 // chiunque; scrivere la voce giusta in un JSON nascosto senza
