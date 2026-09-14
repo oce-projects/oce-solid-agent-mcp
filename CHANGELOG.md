@@ -16,6 +16,60 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.8.0 — 14 settembre 2026 · libreria 0.48.0
+
+**`modifica_quota` dice anche quando una lavorazione cambia natura, non solo
+misura.**
+
+### Il difetto, misurato
+
+Piastra 200×100×20 con una tasca **cieca** Ø60 profonda 5. Si porta lo spessore
+a 3 — una modifica di quota qualunque, di quelle che si fanno dieci volte al
+giorno. La tasca diventa **passante**.
+
+Prima di questa versione, tutto quello che si vedeva era:
+
+```
+riuscita: true
+volume_mm3: 51.517,7    volume_cambiato_mm3: -334.345,13
+```
+
+Il volume torna — `60.000 − π·900·3 = 51.517,7`, esatto. I corpi sono sempre
+uno. La ricostruzione e' riuscita. E **SOLIDWORKS non ha niente da dire**:
+`GetErrorCode2` risponde 0 e `IsWarning` e' falso su tutte le feature.
+
+Una sede cieca e un passaggio sono due pezzi diversi. Quello che ci si appoggia
+dentro, in uno cade dall'altra parte.
+
+### Adesso
+
+```
+lavorazioni_con_meno_facce: ["Taglio-Estrusione1 2 -> 1"]
+nota: "La quota nuova ha cambiato l'albero, non solo le misure:
+       hanno perso facce: Taglio-Estrusione1 2 -> 1. Una lavorazione cieca che
+       perde una faccia di solito e' diventata PASSANTE: il fondo non c'e' piu'."
+```
+
+### Si riporta, non si rifiuta
+
+Assottigliare una piastra finche' una tasca diventa passante puo' essere
+esattamente cio' che si vuole. Rifiutarlo sarebbe rifiutare cio' che e' soltanto
+insolito — il difetto peggiore dei due. Ma chi ha chiesto la modifica deve
+poterlo **leggere qui**, invece di scoprirlo in officina.
+
+E il controllo tace quando deve: portando lo stesso pezzo a 12 mm — la tasca
+resta cieca — `nota` e' `null`. Le due prove vanno in coppia, e senza la seconda
+la prima non direbbe niente.
+
+### Il conto ha un tetto, e non e' prudenza generica
+
+Leggere le facce di ogni lavorazione dell'albero costa circa **200 ms a
+feature** (misurato). Su un pezzo con centinaia di lavorazioni questa lettura da
+sola durerebbe piu' dell'operazione: oltre 200 si smette e si riporta quello che
+si e' visto.
+
+---
+
 ## 0.7.1 — 14 settembre 2026 · libreria 0.47.1
 
 **Il tubo scritto come lo scrive il catalogo adesso si disegna.**

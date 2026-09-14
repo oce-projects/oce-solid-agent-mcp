@@ -2303,6 +2303,8 @@ namespace Riscontro.Disegno
             // swSetValueInConfiguration_e.swSetValue_InAllConfigurations = 2
             const int inTutteLeConfigurazioni = 2;
             int esito;
+            var lavorazioniPrima = FaccePerLavorazione(modello);
+
             try
             {
                 esito = quota.SetSystemValue3(Unita.M(valore), inTutteLeConfigurazioni, null);
@@ -2350,17 +2352,35 @@ namespace Riscontro.Disegno
                     "di " + corpiPrima + ": la quota nuova ha spezzato o unito " +
                     "qualcosa." + RestaNelPezzo);
 
-            return Riuscito(null, new Dictionary<string, object>
+            var misure = new Dictionary<string, object>
             {
                 ["quota"] = nomeQuota,
                 ["prima_mm"] = Math.Round(prima, 3),
                 ["adesso_mm"] = Math.Round(dopo, 3),
                 ["volume_mm3"] = Math.Round(volumeDopo, 2),
                 ["volume_cambiato_mm3"] = Math.Round(volumeDopo - volumePrima, 2),
-                ["nota"] = volumeFermo
-                    ? "la quota e' cambiata ma il volume no: controlla che sia quella giusta"
-                    : null,
-            });
+            };
+
+            // L'ALBERO PUO' ESSERE CAMBIATO, NON SOLO LE MISURE.
+            //
+            // Misurato: piastra 200x100x20 con una tasca cieca profonda 5,
+            // portato lo spessore a 3. La tasca diventa PASSANTE — la
+            // lavorazione di taglio passa da 2 facce a 1, perche' il fondo non
+            // c'e' piu' — e nessuno lo dice: GetErrorCode2 risponde 0,
+            // IsWarning e' falso, il volume torna, i corpi sono sempre uno.
+            //
+            // Una sede cieca e un passaggio sono due pezzi diversi. Chi ha
+            // chiesto di assottigliare la piastra magari lo voleva, quindi non
+            // si rifiuta; ma deve poterlo leggere qui invece di scoprirlo in
+            // officina.
+            var cambiate = LavorazioniCambiate(
+                lavorazioniPrima, FaccePerLavorazione(modello), misure);
+
+            misure["nota"] = volumeFermo
+                ? "la quota e' cambiata ma il volume no: controlla che sia quella giusta"
+                : cambiate;
+
+            return Riuscito(null, misure);
         }
 
         /// <summary>
@@ -3697,6 +3717,87 @@ namespace Riscontro.Disegno
                 "materiale" + (fatte > 1 ? ", oppure si sono fuse fra loro" : "") + ". " +
                 comeSiRipara +
                 " La ripetizione e' rimasta nel pezzo: annullala con Ctrl+Z.";
+        }
+
+        /// <summary>
+        /// Quante facce possiede ogni lavorazione dell'albero, per nome.
+        ///
+        /// Serve a vedere se una modifica di quota ha cambiato la NATURA di
+        /// una lavorazione, non solo le sue misure. Il conto delle facce del
+        /// pezzo intero non basta: una tasca che diventa passante toglie una
+        /// faccia al pezzo, ma cosi' fanno anche altre dieci cose.
+        ///
+        /// C'e' un tetto, e non e' prudenza generica: l'albero costa circa
+        /// 200 ms a feature (misurato), quindi su un pezzo con centinaia di
+        /// lavorazioni questa lettura da sola durerebbe piu' dell'operazione.
+        /// Oltre il tetto si smette e si riporta quello che si e' visto.
+        /// </summary>
+        private static Dictionary<string, int> FaccePerLavorazione(IModelDoc2 modello)
+        {
+            var fuori = new Dictionary<string, int>();
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                int viste = 0;
+                while (f != null && viste < 200)
+                {
+                    int quante = FacceDellaFeature(f);
+                    if (quante > 0)
+                    {
+                        viste++;
+                        try { fuori[f.Name] = quante; } catch { }
+                    }
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        /// <summary>
+        /// Cosa e' cambiato nell'albero, in una frase per chi legge.
+        /// Null se non e' cambiato niente di topologico.
+        ///
+        /// SI RIPORTA, NON SI RIFIUTA. Assottigliare una piastra finche' una
+        /// tasca diventa passante puo' essere esattamente cio' che si vuole:
+        /// rifiutarlo sarebbe rifiutare cio' che e' soltanto insolito. Ma una
+        /// sede cieca e un passaggio sono due pezzi diversi, e chi ha chiesto
+        /// la modifica deve poterlo leggere invece di scoprirlo in officina.
+        /// </summary>
+        private static string LavorazioniCambiate(
+            Dictionary<string, int> prima, Dictionary<string, int> dopo,
+            Dictionary<string, object> misure)
+        {
+            var perse = new List<string>();
+            var prese = new List<string>();
+            var sparite = new List<string>();
+
+            foreach (var voce in prima)
+            {
+                int ora;
+                if (!dopo.TryGetValue(voce.Key, out ora)) { sparite.Add(voce.Key); continue; }
+                if (ora < voce.Value) perse.Add(voce.Key + " " + voce.Value + " -> " + ora);
+                else if (ora > voce.Value) prese.Add(voce.Key + " " + voce.Value + " -> " + ora);
+            }
+
+            if (perse.Count == 0 && prese.Count == 0 && sparite.Count == 0) return null;
+
+            if (perse.Count > 0) misure["lavorazioni_con_meno_facce"] = perse.ToArray();
+            if (prese.Count > 0) misure["lavorazioni_con_piu_facce"] = prese.ToArray();
+            if (sparite.Count > 0) misure["lavorazioni_sparite"] = sparite.ToArray();
+
+            var righe = new List<string>();
+            if (sparite.Count > 0)
+                righe.Add("non hanno piu' nessuna faccia: " + string.Join(", ", sparite));
+            if (perse.Count > 0)
+                righe.Add("hanno perso facce: " + string.Join(", ", perse) +
+                          ". Una lavorazione cieca che perde una faccia di solito e' " +
+                          "diventata PASSANTE: il fondo non c'e' piu'");
+            if (prese.Count > 0)
+                righe.Add("hanno preso facce: " + string.Join(", ", prese));
+
+            return "La quota nuova ha cambiato l'albero, non solo le misure: " +
+                   string.Join("; ", righe) + ".";
         }
 
         private static int ContaCorpiSolidi(IModelDoc2 modello)
