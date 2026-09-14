@@ -16,6 +16,59 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.25.1 — 14 settembre 2026 · libreria 0.61.0
+
+**La guardia guardava l'albero, e `git push` manda la storia.**
+
+Un minuto prima del primo push, `controlla-pubblicabilita.ps1` diceva «Pulito».
+L'albero di lavoro era stato riparato davvero. Ma nella **storia** il percorso di
+scratchpad col nome utente c'era ancora in **155 punti su 41 commit**.
+
+Non due, come diceva `git log -S`: quello segnala i commit in cui il conteggio
+**cambia**, e il blob invece vive in ogni albero intermedio finche' non viene
+tolto. Si guarda l'albero di ogni commit, non il suo diff.
+
+I quarantuno commit non erano ancora su `origin`, quindi riscriverli e' costato
+zero e non ha rotto niente: dopo il push sarebbe stato un force-push su storia
+pubblicata. `Controlli/bonifica-storia.js` piu' `git filter-branch` sul solo
+intervallo `origin/main..HEAD`, cosi' i due commit gia' pubblicati restano
+intatti. **L'albero finale e' identico bit per bit a prima** — era gia' a posto,
+era la storia dietro che non lo era.
+
+### Il perimetro sbagliato tre volte
+
+1. `controlla-catalogo.ps1` guardava dentro `catalogo.json`, perche' quando fu
+   scritto il catalogo era l'unica cosa che usciva.
+2. Questo guardava tutto l'albero, ma solo sette **estensioni**: `App.config`,
+   `app.manifest`, `LICENSE` e `NOTICE` non ne avevano una buona.
+3. E guardava solo l'albero.
+
+Adesso il perimetro **non e' piu' una lista, e' cio' che esce**: `git ls-files`
+piu' i non ancora tracciati e non ignorati — cioe' esattamente cio' che un
+`git add -A` porterebbe dentro. Le estensioni sono diventate una lista di
+**esclusione** (i binari): un tipo di file di testo nuovo entra da solo.
+**Una lista di inclusione sbaglia in silenzio, una di esclusione sbaglia
+rumorosamente.**
+
+### E il controllo non stava leggendo i file
+
+Visto solo perche' la guardia nuova e' stata puntata prima sulla storia sporca,
+per vederla rossa. `Select-String` ricevuto un array di stringhe per **pipeline**
+le tratta come **testo da cercare**, non come elenco di file: cercava il nome
+utente dentro i *nomi dei percorsi* e rispondeva «ok nessuno» senza aver aperto
+niente. Si e' scoperto perche' `S:\` combacia con ogni percorso assoluto di
+questo disco e ha fatto scoppiare un `Substring`. Riparato con `-LiteralPath`, e
+provato a rosso su tutte e cinque le categorie prima di crederci.
+
+Due trappole minori, misurate qui: una funzione PowerShell chiamata `Git` fa
+risolvere `& git` a se stessa (ricorsione infinita, e l'errore dice solo
+«Overflow della profondita' delle chiamate»); e l'eccezione per i file che
+possono nominare i vietati va scritta **per nome e non per percorso**, perche'
+nella storia `controlla-catalogo.ps1` sta in `Strumenti\` — i file si spostano,
+il loro mestiere no.
+
+---
+
 ## 0.25.0 — 14 settembre 2026 · libreria 0.61.0
 
 **Il punto che seleziona e l'ancora che identifica sono due cose diverse.**
