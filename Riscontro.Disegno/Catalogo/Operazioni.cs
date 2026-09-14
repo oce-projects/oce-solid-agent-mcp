@@ -212,7 +212,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "(l'apertura in chiave, non il diametro "
                         + "circoscritto)\n\n«lunghezza_mm» e' quanto e' lunga la barra: per un "
                         + "tubolare 80x80x5 lungo 1000 sono larghezza 80, altezza 80, parete "
-                        + "5, lunghezza 1000.",
+                        + "5, lunghezza 1000.\n\nGLI SPIGOLI SONO VIVI, e sul peso si "
+                        + "vede. Un profilo commerciale ha gli angoli raggiati, quindi "
+                        + "questa sezione pesa di piu': un tubolare 80x80x5 lungo 1000 "
+                        + "viene 1.500.000 mm3 contro i circa 1.443.000 del profilo vero, "
+                        + "cioe' il 4% in piu'. Per la forma non cambia niente; se il "
+                        + "numero che ti serve e' il PESO, prendi il profilo dalla "
+                        + "libreria con «membro_strutturale».",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",

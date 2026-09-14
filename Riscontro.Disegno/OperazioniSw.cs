@@ -183,6 +183,7 @@ namespace Riscontro.Disegno
             "applica_materiale", "asola", "cordone_saldatura", "crea_asse",
             "crea_disegno", "crea_piano", "distinta_taglio", "esporta_pdf",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
+            "estrudi_sezione",
             "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
             "imposta_foglio", "membro_strutturale", "modifica_quota",
             "quote_dal_modello", "raccordo_spigoli", "ripeti_circolare",
@@ -219,6 +220,7 @@ namespace Riscontro.Disegno
                 {
                     case "estrudi_rettangolo": return EstrudiRettangolo(modello, argomenti);
                     case "estrudi_cerchio": return EstrudiCerchio(modello, argomenti);
+                    case "estrudi_sezione": return EstrudiSezione(modello, argomenti);
                     // La sagoma libera e le RICETTE finiscono nello stesso
                     // esecutore: una ruota dentata non e' un'altra operazione,
                     // e' un modo di scrivere dei contorni. Il server la espande
@@ -491,6 +493,73 @@ namespace Riscontro.Disegno
                 return true;
             }
             catch { return false; }
+        }
+
+        /// <summary>
+        /// <summary>
+        /// Estrude una SEZIONE NORMALIZZATA: due o tre quote invece di otto
+        /// coordinate.
+        ///
+        /// Non e' un'altra estrusione: e' un modo di scrivere dei contorni.
+        /// La ricetta costruisce i contorni e li passa allo stesso esecutore
+        /// di `estrudi_profilo` — due esecutori per la stessa cosa
+        /// divergerebbero alla prima modifica.
+        ///
+        /// Prima questa ricetta viveva solo nel server Python, quindi
+        /// l'operazione era **dichiarata nel catalogo e non eseguibile**: dal
+        /// ponte rispondeva «operazione sconosciuta» a chi la chiedeva con i
+        /// suoi argomenti veri.
+        /// </summary>
+        private Esito EstrudiSezione(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            string tipo = Str(a, "tipo", "");
+
+            string[] volute;
+            if (string.IsNullOrWhiteSpace(tipo) ||
+                !Sezioni.Volute.TryGetValue(tipo.Trim(), out volute))
+                return Fallito(
+                    "Sezione «" + tipo + "» sconosciuta. Ci sono: " +
+                    string.Join(", ", Sezioni.Volute.Keys) + ".");
+
+            // LE QUOTE CHE SERVONO A QUESTA SEZIONE, e solo quelle.
+            // Lo schema del catalogo le dichiara tutte insieme perche' e'
+            // una sola operazione, ma un tubolare non ha un diametro e un
+            // tondo non ha una parete: se una manca va detto QUALE, non
+            // «parametri non validi».
+            var m = new Dictionary<string, double>();
+            var mancanti = new List<string>();
+            foreach (var q in volute)
+            {
+                double v;
+                string perche;
+                if (!NumObbligatorio(a, q, out v, out perche)) { mancanti.Add(q); continue; }
+                if (v <= 0) return Fallito(
+                    "«" + q + "» e' " + v + ": una quota di una sezione non puo' " +
+                    "essere zero o negativa.");
+                m[q] = v;
+            }
+            if (mancanti.Count > 0)
+                return Fallito(
+                    "Per una sezione «" + tipo + "» " +
+                    (mancanti.Count == 1 ? "serve " : "servono ") +
+                    string.Join(", ", mancanti.ConvertAll(x => "«" + x + "»")) + ".");
+
+            string motivo;
+            var contorni = Sezioni.Contorni(tipo, m, out motivo);
+            if (contorni == null) return Fallito(motivo);
+
+            // Si riscrivono gli argomenti per l'esecutore dei profili,
+            // lasciando fuori le quote della sezione: da qui in poi la
+            // sagoma e' fatta, e le quote non servono piu' a nessuno.
+            var suoi = new Dictionary<string, object>
+            {
+                ["contorni"] = contorni.ToArray(),
+                ["spessore_mm"] = Num(a, "lunghezza_mm", 0),
+            };
+            if (a.ContainsKey("piano")) suoi["piano"] = a["piano"];
+            if (a.ContainsKey("simmetrico")) suoi["simmetrico"] = a["simmetrico"];
+
+            return EstrudiProfilo(modello, suoi);
         }
 
         /// <summary>

@@ -16,6 +16,65 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.12.0 — 14 settembre 2026 · libreria 0.52.0
+
+**`estrudi_sezione` si puo' finalmente eseguire.** Era dichiarata nel catalogo e
+non esisteva nello switch: viveva solo perche' il server la espandeva in
+`contorni` prima di mandarla, e il ramo `default` ricadeva sull'estrusione di
+profilo trovandoceli. Chiamata dal ponte con i suoi argomenti veri — `tipo`,
+`parete_mm` — rispondeva «operazione sconosciuta».
+
+Le operazioni dichiarate e non eseguibili passano da **due a una**: resta
+`ruota_dentata`.
+
+### Sette sezioni, e ogni numero torna al calcolo
+
+| sezione | volume misurato | verifica |
+|---|---|---|
+| tubolare 80×80×5 × 1000 | 1.500.000 | (80² − 70²) · 1000 |
+| tondo Ø50 × 200 | 392.699,1 | π · 25² · 200 |
+| tubo Ø60/Ø50 × 100 | 86.393,8 | π/4 · (60² − 50²) · 100 |
+| angolare 50×50×5 × 100 | 47.500 | (50·5 + 45·5) · 100 |
+| esagono chiave 30 × 100 | 77.942,4 | (√3/2) · 30² · 100 |
+| U 50×40×5 × 100 | 60.000 | 2000 − 40·35 |
+| T 60×60×6 × 100 | 68.400 | 360 + 324 |
+
+L'esagono e' quotato **sull'apertura in chiave**, come si compra e come si
+misura: l'ingombro esce 30 × **34,64**, cioe' 30/cos 30°. Confonderla con il
+diametro circoscritto darebbe un esagono piu' grande del 15%.
+
+L'asola 60×20 esce 11.163,3 contro gli 11.141,6 nominali, **+0,19%**: i
+semicerchi stanno sul cerchio **circoscritto** e non su quello nominale. E'
+voluto — un'asola con i semicerchi inscritti e' piu' stretta del nominale, e una
+vite che ci deve passare non passa. Dove si approssima, si approssima in eccesso.
+
+### I controlli sono fisici, e ognuno ha il suo difetto alle spalle
+
+| chiesto | risposta |
+|---|---|
+| tubolare 80×80 con parete **40** | «non resta cavita'… a meta' esatta il vuoto ha area zero, SOLIDWORKS non lo segnala ed estrude una barra piena — che pesa quattro volte tanto ed e' verde come quella giusta» |
+| angolare 50×50 con spessore **50** | «non e' piu' un profilo, viene fuori un piatto» |
+| asola **20×20** | «la lunghezza deve essere maggiore della larghezza, altrimenti e' un cerchio» |
+| tubolare senza `parete_mm` | «Per una sezione «tubolare» serve «parete_mm»» |
+
+Nessuno dei quattro tocca il documento: zero facce dopo il rifiuto.
+
+### Il criterio della voce era sbagliato, e il perche' e' finito nel catalogo
+
+C4 chiedeva: tubolare 80×80×5 lungo 1000 → **1.443.000 mm³** entro lo 0,5%.
+Misurato: **1.500.000**, che e' il 4% in piu' e sarebbe una bocciatura.
+
+Il numero della voce e' quello del **profilo commerciale**, che ha gli angoli
+raggiati. Questa ricetta — come quella Python da cui viene — fa **spigoli vivi**:
+1.500.000 e' il valore giusto per quello che disegna.
+
+Ma la differenza e' vera e conta: chi usa `estrudi_sezione` per pesare un pezzo
+si porta a casa il 4% in piu'. **Il catalogo non lo diceva**, e adesso lo dice —
+ed e' la prima modifica fatta con la strada nuova della 0.10.0: si tocca
+`Operazioni.cs`, si riesporta, e il diff di `catalogo.json` e' **una riga sola**.
+
+---
+
 ## 0.11.0 — 14 settembre 2026 · libreria 0.51.0
 
 **Il telaio si chiede come lo documenta il catalogo, e «interasse» esiste.**
