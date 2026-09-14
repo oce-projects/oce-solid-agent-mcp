@@ -29,6 +29,7 @@ $libreria = Join-Path $radice 'Riscontro.Disegno\bin\Release\Riscontro.Disegno.d
 # nome ; cosa gli serve accanto
 $attrezzi = @(
     @{ nome = 'ProvaRuota';   sw = $false; lib = $true  },
+    @{ nome = 'ProvaSagoma';  sw = $false; lib = $true  },
     @{ nome = 'ChiudiScarti'; sw = $true;  lib = $false },
     @{ nome = 'NuovaParte';   sw = $true;  lib = $false }
 )
@@ -67,4 +68,4 @@ foreach ($a in $attrezzi) {
 }
 
 Write-Host ''
-Write-Host 'Fatti. ProvaRuota non apre SOLIDWORKS; gli altri due si.'
+Write-Host 'Fatti. Le due Prova* non aprono SOLIDWORKS; ChiudiScarti e NuovaParte si.'

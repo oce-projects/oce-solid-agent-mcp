@@ -546,7 +546,10 @@ namespace Riscontro.Disegno
             };
             if (a.ContainsKey("piano")) suoi["piano"] = a["piano"];
 
-            var esito = EstrudiProfilo(modello, suoi);
+            // Il tetto largo: questi punti li ha calcolati una formula, non
+            // scritti un modello. Una ruota da 127 denti sono milleventi
+            // segmenti, e il tetto dei duecento la rifiuterebbe.
+            var esito = EstrudiProfilo(modello, suoi, MaxVerticiGenerati);
 
             // I NUMERI DELLA RUOTA, ACCANTO A QUELLI DELL'ESTRUSIONE.
             // Chi ha chiesto z=20 m=2 vuole poter controllare che il
@@ -629,7 +632,7 @@ namespace Riscontro.Disegno
             if (a.ContainsKey("piano")) suoi["piano"] = a["piano"];
             if (a.ContainsKey("simmetrico")) suoi["simmetrico"] = a["simmetrico"];
 
-            return EstrudiProfilo(modello, suoi);
+            return EstrudiProfilo(modello, suoi, MaxVerticiGenerati);
         }
 
         /// <summary>
@@ -654,9 +657,11 @@ namespace Riscontro.Disegno
         /// caso, anche se qualcosa va storto: e' un'impostazione dell'ambiente
         /// di chi lavora, non nostra.
         /// </summary>
-        private Esito EstrudiProfilo(IModelDoc2 modello, Dictionary<string, object> a)
+        private Esito EstrudiProfilo(
+            IModelDoc2 modello, Dictionary<string, object> a,
+            int maxVertici = MaxVerticiModello)
         {
-            var contorni = Contorni(a, out string motivo);
+            var contorni = Contorni(a, out string motivo, maxVertici);
             if (contorni == null) return Fallito(motivo);
 
             double spessore = Num(a, "spessore_mm");
@@ -807,6 +812,29 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>Un contorno letto dal piano: cerchio, composito o spezzata.</summary>
+        /// <summary>
+        /// Quanti contorni al massimo in una sagoma sola.
+        ///
+        /// I limiti qui sono di CONTEGGIO, non di quota: quante volte si puo'
+        /// spezzare una linea, non quanto puo' essere lunga. Una piastra da tre
+        /// metri e' legittima; una sagoma da cinquemila vertici scritta da un
+        /// modello quasi mai.
+        /// </summary>
+        private const int MaxContorni = 20;
+
+        /// <summary>Vertici massimi per contorno, quando li scrive un modello.</summary>
+        private const int MaxVerticiModello = 200;
+
+        /// <summary>
+        /// Vertici massimi per contorno, quando li genera una ricetta.
+        ///
+        /// I contorni che escono da <see cref="RuotaDentata"/> o da
+        /// <see cref="Sezioni"/> non passano dalla testa di nessuno e possono
+        /// essere molto piu' fitti: una ruota da 127 denti sono milleventi
+        /// segmenti, ed e' giusto cosi'.
+        /// </summary>
+        private const int MaxVerticiGenerati = 4000;
+
         private class Contorno
         {
             public bool Cerchio;
@@ -826,7 +854,8 @@ namespace Riscontro.Disegno
         /// deve essere: qui si fallisce invece di tirare a indovinare, perche'
         /// un vertice letto male non da' errore — da' una sagoma diversa.
         /// </summary>
-        private static List<Contorno> Contorni(Dictionary<string, object> a, out string motivo)
+        private static List<Contorno> Contorni(
+            Dictionary<string, object> a, out string motivo, int maxVertici = MaxVerticiModello)
         {
             motivo = null;
             object grezzo;
@@ -950,7 +979,166 @@ namespace Riscontro.Disegno
                 fuori.Add(poligonale);
             }
             if (fuori.Count == 0) { motivo = "La sagoma non ha nessun contorno."; return null; }
+            if (fuori.Count > MaxContorni)
+            {
+                motivo = fuori.Count + " contorni sono troppi (al massimo " + MaxContorni + ").";
+                return null;
+            }
+            if (!SagomaSensata(fuori, maxVertici, out motivo)) return null;
             return fuori;
+        }
+
+        /// <summary>
+        /// I PUNTI DI UN CONTORNO, per i controlli geometrici e basta.
+        ///
+        /// Un cerchio si campiona a 64 lati: serve solo a sapere se sta dentro
+        /// il bordo esterno, non a disegnarlo. Disegnato resta un cerchio vero.
+        /// </summary>
+        private static List<double[]> PuntiDi(Contorno c)
+        {
+            if (c.Cerchio)
+            {
+                const int lati = 64;
+                double r = c.Diametro / 2.0;
+                var fuori = new List<double[]>(lati);
+                for (int i = 0; i < lati; i++)
+                {
+                    double t = 2 * Math.PI * i / lati;
+                    fuori.Add(new[] { c.Centro[0] + r * Math.Cos(t), c.Centro[1] + r * Math.Sin(t) });
+                }
+                return fuori;
+            }
+            var tutti = new List<double[]>();
+            foreach (var tratto in c.Tratti) tutti.AddRange(tratto.Punti);
+            return FormaChiusa.Anello(tutti);
+        }
+
+        /// <summary>
+        /// I MODI IN CUI UNA SAGOMA SBAGLIATA NON DA' ERRORE.
+        ///
+        /// Nessuno di questi controlli protegge da un crash: proteggono da un
+        /// pezzo che si costruisce benissimo e non e' quello chiesto. E' il
+        /// motivo per cui stanno qui e non nello schema — lo schema guarda la
+        /// FORMA del dato, questo guarda la geometria che ne esce.
+        ///
+        ///   1. un contorno composito i cui tratti non si attaccano: non da'
+        ///      errore, non si estrude e basta;
+        ///   2. un contorno che si incrocia da solo: SOLIDWORKS costruisce le
+        ///      regioni che riesce e da' un pezzo plausibile e sbagliato;
+        ///   3. un contorno di area nulla;
+        ///   4. **un vuoto che esce dal bordo esterno**, che invece di forare
+        ///      il pezzo lo TAGLIA. Il solido che ne esce e' valido, e nessuno
+        ///      dice niente.
+        ///
+        /// Il quarto e' il piu' insidioso dei quattro, perche' il pezzo
+        /// sbagliato ha l'aria di essere venuto bene.
+        /// </summary>
+        private static bool SagomaSensata(List<Contorno> contorni, int maxVertici, out string motivo)
+        {
+            motivo = null;
+            for (int i = 0; i < contorni.Count; i++)
+            {
+                var voce = contorni[i];
+                string etichetta = i == 0 ? "Il contorno esterno" : "Il vuoto n. " + i;
+
+                // Un cerchio non si puo' incrociare da solo e non ha area
+                // nulla: campionarlo per scoprirlo sarebbe lavoro sprecato.
+                if (voce.Cerchio) continue;
+
+                // 1. I TRATTI SI ATTACCANO?
+                // La tolleranza e' un millesimo di millimetro e non un
+                // micron: i punti dei contorni generati escono arrotondati al
+                // decimillesimo, e pretendere di piu' rifiuterebbe geometria
+                // giusta.
+                for (int j = 0; j < voce.Tratti.Count; j++)
+                {
+                    var fine = voce.Tratti[j].Punti[voce.Tratti[j].Punti.Count - 1];
+                    var dopo = voce.Tratti[(j + 1) % voce.Tratti.Count].Punti[0];
+                    if (!FormaChiusa.Vicini(fine, dopo, 1e-3))
+                    {
+                        motivo = string.Format(
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            "{0}: il tratto {1} finisce in ({2:0.###}, {3:0.###}) e il " +
+                            "seguente comincia in ({4:0.###}, {5:0.###}): il contorno non " +
+                            "si chiude, e un contorno aperto non da' errore — non si " +
+                            "estrude e basta.",
+                            etichetta, j + 1, fine[0], fine[1], dopo[0], dopo[1]);
+                        return false;
+                    }
+                }
+
+                var anello = PuntiDi(voce);
+                if (anello.Count > maxVertici)
+                {
+                    motivo = etichetta + " ha " + anello.Count + " vertici (al massimo " +
+                             maxVertici + ").";
+                    return false;
+                }
+                if (anello.Count < 3)
+                {
+                    motivo = etichetta + " ha " + anello.Count + " vertici distinti: con " +
+                             "meno di tre non si chiude una sagoma.";
+                    return false;
+                }
+
+                // 2. SI INCROCIA DA SOLO?
+                int dove = FormaChiusa.DoveSiIncrocia(anello);
+                if (dove >= 0)
+                {
+                    var p = anello[dove];
+                    // MISURATO, e vale la pena dirlo com'e': su un papillon
+                    // SOLIDWORKS si ferma, ma l'unica cosa che dice e'
+                    // «L'estrusione non e' stata creata» — che non aiuta a
+                    // capire dove sia il guaio. Questo messaggio esiste per
+                    // dare il punto, non per aggiungere un rifiuto.
+                    motivo = string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "{0} si incrocia da solo: il lato che parte da ({1:0.###}, " +
+                        "{2:0.###}) ne attraversa un altro. SOLIDWORKS si fermerebbe " +
+                        "comunque, ma direbbe soltanto «L'estrusione non e' stata " +
+                        "creata». Di solito e' l'ordine dei vertici.",
+                        etichetta, p[0], p[1]);
+                    return false;
+                }
+
+                // 3. AREA NULLA?
+                if (FormaChiusa.Area(anello) <= 0)
+                {
+                    motivo = etichetta + " ha area nulla: i suoi punti stanno tutti " +
+                             "sulla stessa retta.";
+                    return false;
+                }
+            }
+
+            // 4. I VUOTI STANNO DENTRO IL BORDO?
+            if (contorni.Count > 1)
+            {
+                var esterno = PuntiDi(contorni[0]);
+                for (int i = 1; i < contorni.Count; i++)
+                {
+                    foreach (var punto in PuntiDi(contorni[i]))
+                    {
+                        if (FormaChiusa.Dentro(punto, esterno)) continue;
+                        // I DUE MODI IN CUI FINISCE, TUTTI E DUE MISURATI.
+                        // Se il vuoto e' staccato dal bordo SOLIDWORKS non
+                        // dice niente: fa un secondo corpo. Misurato su una
+                        // piastra 100x100 con un cerchio Ø30 a 200 mm di
+                        // distanza — «riuscita», 2 corpi, ingombro 265 mm.
+                        // Se invece scavalca il bordo si ferma, ma dice
+                        // soltanto «L'estrusione non e' stata creata».
+                        motivo = string.Format(
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            "Il vuoto n. {0} esce dal contorno esterno: il punto " +
+                            "({1:0.###}, {2:0.###}) e' fuori. Se e' staccato dal bordo " +
+                            "SOLIDWORKS ne fa un SECONDO CORPO senza dire niente; se lo " +
+                            "scavalca si ferma dicendo soltanto «L'estrusione non e' " +
+                            "stata creata». Un vuoto va tutto dentro il contorno esterno.",
+                            i, punto[0], punto[1]);
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         /// <summary>La spezzata chiusa: si ripete il primo punto in coda.</summary>

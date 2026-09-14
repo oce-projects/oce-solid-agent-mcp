@@ -16,6 +16,95 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.14.0 — 14 settembre 2026 · libreria 0.54.0
+
+**I contorni vengono controllati prima di disegnarli.** Era l'ultimo pezzo di
+C4, e chiude la voce: `_pulisci_contorni` e `_controlla_contorni` esistevano
+solo nel server Python, quindi un piano che arrivava al ponte **per la via
+diretta** non passava da nessun controllo geometrico.
+
+La geometria sta in `Riscontro.Disegno\FormaChiusa.cs`, in un file suo e non
+dentro l'esecutore, per un motivo pratico: cosi' si prova senza aprire
+SOLIDWORKS. Un controllo geometrico che si puo' provare solo a CAD aperto viene
+provato poco.
+
+### Il difetto silenzioso, misurato
+
+Una piastra 100 × 100 con un cerchio Ø30 **staccato**, a 200 mm di distanza:
+
+```
+riuscita: true
+corpi_totali: 2
+ingombro: [265, 10, 100]        volume: 107.068,6   (100.000 + 7.068,6)
+```
+
+Un vuoto fuori dal bordo non fora: SOLIDWORKS ne fa un **secondo corpo**, dice
+«riuscita», e nessuno se ne accorge leggendo «sagoma con 5 contorni».
+
+Gli altri tre casi provati — vuoto che **scavalca** il bordo, contorno a
+papillon, contorno composito con i tratti staccati — SOLIDWORKS li ferma gia'.
+Ma dice soltanto **«L'estrusione non e' stata creata»**, che non fa capire dove
+sia il guaio. Li' il guadagno non e' il rifiuto: e' la spiegazione, con il punto.
+
+### I quattro controlli, e cosa dicono
+
+| | messaggio |
+|---|---|
+| tratti che non si attaccano | «il tratto 1 finisce in (50, 0) e il seguente comincia in (52, 0)» |
+| contorno che si incrocia | «il lato che parte da (100, 0) ne attraversa un altro» |
+| area nulla | «i suoi punti stanno tutti sulla stessa retta» |
+| vuoto fuori dal bordo | «il punto (215, 0) e' fuori» |
+
+Ogni messaggio porta **le coordinate**: «si incrocia» su una sagoma da duecento
+vertici non aiuta nessuno a ripararla.
+
+Un messaggio e' stato **corretto perche' affermava il falso**: diceva
+«SOLIDWORKS non lo rifiuterebbe» del contorno che si incrocia, e la misura dice
+che invece si ferma. Adesso dice quello che succede davvero, compreso il
+messaggio inutile che si riceverebbe.
+
+### I limiti, che sono di conteggio e non di quota
+
+| | |
+|---|---|
+| contorni per sagoma | 20 |
+| vertici per contorno, **scritti da un modello** | 200 |
+| vertici per contorno, **generati da una ricetta** | 4000 |
+
+Quante volte si puo' spezzare una linea, non quanto puo' essere lunga: una
+piastra da tre metri e' legittima, una sagoma da cinquemila vertici scritta da
+un modello quasi mai. Le ricette passano dal tetto largo perche' i loro punti li
+calcola una formula — una ruota da 127 denti sono 1016 segmenti.
+
+### Nessuna regressione, e i volumi lo dicono
+
+Tutte le ricette passano ora dai controlli nuovi. Volumi identici a prima:
+
+| | |
+|---|---|
+| ruote | 12.263,3 · 43.964,1 · 8.808,6 · 54.999,8 |
+| sezioni | 1.500.000 · 392.699,1 · 86.393,8 · 47.500 · 77.942,4 · 60.000 · 68.400 |
+
+Su z=42 i segmenti scendono da 420 a 336 — e' il guadagno della 0.13.0 sul
+piede a lunghezza zero — **a volume invariato**.
+
+### `Controlli\ProvaSagoma`, e perche' meta' dei casi devono passare
+
+Un controllo che rifiuta troppo e' peggio di uno che rifiuta poco: blocca lavoro
+buono e non si scopre finche' qualcuno non ci sbatte. Meta' dei casi della prova
+sono sagome legittime che **devono** passare:
+
+* **l'elle concava** e **la stella a cinque punte** — chi confonde «concavo» con
+  «si incrocia» rifiuta meta' delle staffe che esistono;
+* **il triangolo** — con tre lati sono tutti adiacenti fra loro, e chi non salta
+  le coppie adiacenti accusa ogni triangolo;
+* **il quadrato**, che ha quattro vertici e il quarto non e' un doppione: togliere
+  sempre l'ultimo punto e' l'errore facile da fare in `Anello`;
+* **il punto nell'incavo dell'elle**, dentro l'ingombro e fuori dal materiale:
+  smaschera un «sta dentro» fatto con la scatola invece che col poligono.
+
+---
+
 ## 0.13.0 — 14 settembre 2026 · libreria 0.53.0
 
 **`ruota_dentata` si puo' eseguire.** Era l'ultima delle due operazioni che il
