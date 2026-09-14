@@ -16,6 +16,98 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.24.0 — 14 settembre 2026 · libreria 0.60.0
+
+**I corpi erano controllati per esistenza e non per identita'**, e il commento
+del codice diceva il contrario.
+
+### Il rosso, misurato
+
+Due blocchi separati: `C1` il grande a `[-70,10,0]`, `C2` il piccolo a
+`[60,10,0]`. Un piano di due passi: taglia in due il grande, poi **sposta C2**.
+
+Il taglio rinumera i corpi. «C2» diventa **meta' del blocco grande**, e viene
+spostato quello:
+
+```
+riuscita: true          (nessun avviso)
+C2  centro [-87.5, 110, 0]   <- mezzo blocco grande, spostato
+C3  centro [60, 10, 0]       <- il blocco piccolo, mai toccato
+```
+
+### Il commento prometteva gia' il controllo
+
+`CorpiDaUid` diceva sopra: «La firma di un corpo e' centro e volume della
+scatola... **E' lo stesso controllo che si fa sulle facce.**» Il codice non
+chiamava `FirmaCombacia` affatto.
+
+> Un commento che descrive un controllo che non c'e' e' **peggio** di nessun
+> commento: chi legge smette di cercare il buco proprio dove sta.
+
+Il buco era doppio: anche il ponte non copiava `centro_mm` nella firma, quindi
+per «C1» non c'era niente da confrontare nemmeno volendo.
+
+### Adesso
+
+```
+«C2» adesso indica un'altra parte del pezzo (spostato di 17,5 mm). Il pezzo e'
+cambiato da quando hai confermato: non lavoro sul corpo sbagliato.
+```
+
+E spostare un corpo che non si e' mosso continua a riuscire.
+
+**La parola giusta per la cosa giusta:** lo stesso confronto serve a facce,
+spigoli e corpi, e «non lavoro sulla faccia sbagliata» detto di un corpo manda a
+cercare una faccia che non c'entra.
+
+### Le lavorazioni: `feature_id`
+
+L'uid di una lavorazione **e' il suo nome**, e un nome si rinomina: chi rinomina
+«Taglio1» e poi chiama «Taglio1» un'altra lavorazione ha trasferito
+l'identificativo, e `SelectByID2` seleziona obbediente quella nuova. Lo stato
+porta ora `feature_id` da `IFeature.GetID()`, e prima di selezionare si
+confronta.
+
+### Restano gli assi
+
+Lo stato degli assi e' `{uid, tipo}`: non c'e' niente da firmare, quindi
+`asse1_uid` e `asse2_uid` sono ancora controllati per esistenza e non per
+identita'. Servirebbe pubblicare punto e direzione — lavoro a se'.
+
+### E lo stato dice cosa c'e' SELEZIONATO
+
+Non uno strumento nuovo: una riga in piu' in quello che si legge gia', scritta
+**solo quando c'e' qualcosa di selezionato**.
+
+```
+niente        il campo non c'e'
+una faccia    [{"tipo":"faccia","uid":"F5"}]
+tre insieme   [{"tipo":"faccia","uid":"F5"},{"tipo":"faccia","uid":"F3"},
+               {"tipo":"spigolo","uid":"E9"}]
+```
+
+L'identificativo e' **lo stesso** che lo stato assegna, quindi il progettista
+puo' indicare la faccia col dito invece di descriverla a parole: l'ambiguita' si
+toglie prima dell'operazione invece di scoprirla dopo.
+
+I due casi scomodi sono **decisi**, non scoperti: niente selezionato → il campo
+non si scrive; piu' cose insieme → si tornano tutte, perche' sceglierne una
+sarebbe indovinare. E un terzo: un'entita' selezionata che nello stato non ha un
+nome (oltre il tetto delle sessanta facce, o un vertice) si dice **che cosa e'**
+senza dargli un nome.
+
+### Il nome delle lavorazioni sta in una mappa, non su ogni faccia
+
+Scriverlo su ogni faccia ha fatto sforare il tetto dei 16 KB dello stato: su un
+telaio saldato i nomi sono «TUBO STRUTTURALE QUADRO 80X80X5(1)», e sessanta
+facce che vengono da quattro lavorazioni li ripetevano sessanta volte —
+**18.629 caratteri**, contro un limite che il banco sorveglia.
+
+Con la mappa in fondo (`lavorazioni: {"12": "..."}`) e il solo numero su ogni
+faccia: **15.752**. Il margine e' sottile, e va tenuto d'occhio.
+
+---
+
 ## 0.23.0 — 14 settembre 2026 · libreria 0.59.0
 
 **Il ritrovamento a occhio chiuso e' chiuso.** Era l'unico modo in cui il

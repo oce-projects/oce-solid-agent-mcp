@@ -1271,7 +1271,7 @@ namespace Riscontro.Disegno
                 return null;
             }
 
-            var corpi = CorpiDaUid(stato, uid, out motivo);
+            var corpi = CorpiDaUid(stato, uid, a, out motivo);
             if (corpi == null) return null;
             quanti = corpi.Count;
             return corpi.Cast<object>().ToArray();
@@ -1285,9 +1285,22 @@ namespace Riscontro.Disegno
         /// ha modificato il pezzo fra la proposta e l'esecuzione, «C1» indica
         /// un altro corpo e il passo si ferma invece di lavorare al posto
         /// sbagliato. E' lo stesso controllo che si fa sulle facce.
+        ///
+        /// QUESTO COMMENTO E' STATO A LUNGO UNA PROMESSA E NON UN FATTO.
+        /// Diceva gia' cosi', e il codice `FirmaCombacia` non lo chiamava
+        /// affatto: i corpi erano controllati per ESISTENZA e non per
+        /// IDENTITA'. Misurato il 14/9/2026 (voce E4): due blocchi, un taglio
+        /// che spezza il primo in due, poi «sposta C2». Il taglio rinumera i
+        /// corpi, «C2» diventa mezzo blocco grande, e viene spostato quello —
+        /// **`riuscita: true`, nessun avviso**, e il blocco piccolo resta dov'e'.
+        ///
+        /// Un commento che descrive un controllo che non c'e' e' peggio di
+        /// nessun commento: chi legge smette di cercare il buco proprio dove
+        /// sta.
         /// </summary>
         private List<IBody2> CorpiDaUid(
-            StatoDocumento stato, List<string> uid, out string motivo)
+            StatoDocumento stato, List<string> uid,
+            Dictionary<string, object> argomenti, out string motivo)
         {
             motivo = null;
             if (stato == null)
@@ -1312,6 +1325,9 @@ namespace Riscontro.Disegno
                     motivo = "Il corpo «" + u + "» non e' piu' utilizzabile.";
                     return null;
                 }
+
+                // E ADESSO IL CONTROLLO CHE IL COMMENTO SOPRA PROMETTEVA.
+                if (!FirmaCombacia(argomenti, u, firma, out motivo)) return null;
                 bool gia = false;
                 foreach (var c in fuori)
                     if (ReferenceEquals(c, corpo) || Equals(c, corpo)) { gia = true; break; }
@@ -1357,7 +1373,7 @@ namespace Riscontro.Disegno
                         "di questo stesso piano.";
                     return null;
                 }
-                var corpi = CorpiDaUid(stato, uid, out motivo);
+                var corpi = CorpiDaUid(stato, uid, a, out motivo);
                 if (corpi == null) return null;
                 facce = Riferimenti.EstremitaLibereDi(corpi, out motivo);
                 dove = "dei corpi " + string.Join(", ", uid);

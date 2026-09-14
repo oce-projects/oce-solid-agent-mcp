@@ -250,13 +250,33 @@ namespace SolidWorksMcp.Strumenti
                     // corroborazione del ritrovamento (voce E3): senza, una
                     // faccia di un'altra lavorazione finita nello stesso posto
                     // e' indistinguibile da quella che si cercava.
+                    // `centro_mm` e `ingombro_mm` sono la firma dei CORPI, e
+                    // fino alla 0.24.0 non venivano copiati: per «C1» la firma
+                    // usciva vuota, `FirmaCombacia` non aveva niente da
+                    // confrontare e rispondeva sempre di si'. I corpi erano
+                    // controllati per ESISTENZA e non per IDENTITA'.
                     foreach (var campo in new[]
                              {
                                  "punto_mm", "normale", "area_mm2", "lunghezza_mm",
-                                 "lavorazione", "lavorazione_id",
+                                 "lavorazione_id", "centro_mm", "ingombro_mm",
+                                 "feature_id",
                              })
                         if (voce.TryGetValue(campo, out var x) && x != null)
                             firma[campo] = x;
+
+                    // IL NOME DELLA LAVORAZIONE SI RISOLVE QUI.
+                    //
+                    // Lo stato lo scrive una volta sola, in una mappa in fondo,
+                    // perche' ripeterlo su sessanta facce faceva sforare il
+                    // tetto dei 16 KB. La firma invece se lo porta esteso: non
+                    // va a nessun modello — e' un allegato interno al passo — e
+                    // serve a scrivere un rifiuto che nomina la lavorazione
+                    // attesa invece di darne il numero.
+                    if (firma.TryGetValue("lavorazione_id", out var idLav) && idLav != null)
+                    {
+                        var nome = NomeLavorazione(stato, idLav);
+                        if (nome != null) firma["lavorazione"] = nome;
+                    }
                     if (firma.Count > 0) fuori[Convert.ToString(uid)] = firma;
                 }
             }
@@ -766,6 +786,23 @@ namespace SolidWorksMcp.Strumenti
             if (ordinati.Count <= 12) return string.Join(", ", ordinati);
             return string.Join(", ", ordinati.Take(12)) +
                    " e altri " + (ordinati.Count - 12);
+        }
+
+        /// <summary>
+        /// Il nome di una lavorazione, dalla mappa che lo stato scrive in
+        /// fondo. Null se non c'e': meglio una firma senza nome che una firma
+        /// con un nome inventato.
+        /// </summary>
+        private static string NomeLavorazione(Dictionary<string, object> stato, object id)
+        {
+            if (stato == null || id == null) return null;
+            if (!stato.TryGetValue("lavorazioni", out var g) || g == null) return null;
+            var mappa = g as Dictionary<string, object>;
+            if (mappa == null) return null;
+            var chiave = Convert.ToString(id);
+            return mappa.TryGetValue(chiave, out var nome) && nome != null
+                ? Convert.ToString(nome)
+                : null;
         }
 
         /// <summary>

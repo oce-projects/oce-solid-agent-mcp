@@ -3688,11 +3688,69 @@ namespace Riscontro.Disegno
                 motivo = "Non hai detto quale lavorazione ripetere o specchiare.";
                 return false;
             }
+            // E' ANCORA QUELLA? Vedi LavorazioneEQuella.
+            if (!LavorazioneEQuella(modello, uid, a, out motivo)) return false;
+
             if (!modello.Extension.SelectByID2(uid, "BODYFEATURE", 0, 0, 0, true, marca, null, 0))
             {
                 motivo = "Non ho trovato la lavorazione «" + uid + "».";
                 return false;
             }
+            return true;
+        }
+
+        /// <summary>
+        /// La lavorazione che porta quel nome e' ancora quella che il piano
+        /// aveva guardato?
+        ///
+        /// L'UID DI UNA LAVORAZIONE E' IL SUO NOME — non c'e' altro
+        /// nell'albero — e un nome si rinomina. Chi rinomina «Taglio1» e poi
+        /// chiama «Taglio1» un'altra lavorazione ha trasferito
+        /// l'identificativo da una cosa a un'altra, e `SelectByID2` selezionera'
+        /// obbedientemente quella nuova.
+        ///
+        /// `IFeature.GetID()` non si rinomina, e il piano se lo porta dietro
+        /// nella firma. Qui si confrontano.
+        ///
+        /// SI CONTROLLA SOLO SE SI PUO'. Niente firma, o firma senza
+        /// `feature_id`, vuol dire niente da confrontare: non si inventa un
+        /// rifiuto. E' la stessa regola di `FirmaCombacia`.
+        /// </summary>
+        private static bool LavorazioneEQuella(
+            IModelDoc2 modello, string uid,
+            Dictionary<string, object> argomenti, out string motivo)
+        {
+            motivo = null;
+            var attesa = FirmaAttesa(argomenti, uid);
+            if (attesa == null) return true;
+            object grezzo;
+            if (!attesa.TryGetValue("feature_id", out grezzo) || grezzo == null) return true;
+            int atteso;
+            try { atteso = Convert.ToInt32(grezzo); } catch { return true; }
+
+            var parte = modello as IPartDoc;
+            if (parte == null) return true;
+            IFeature f = parte.IFirstFeature();
+            while (f != null)
+            {
+                string nome = null;
+                try { nome = f.Name; } catch { }
+                if (string.Equals(nome, uid, StringComparison.OrdinalIgnoreCase))
+                {
+                    int adesso;
+                    try { adesso = f.GetID(); } catch { return true; }
+                    if (adesso == atteso) return true;
+                    motivo =
+                        "La lavorazione «" + uid + "» non e' piu' quella che avevi " +
+                        "guardato: qualcuno ha rinominato l'albero, e adesso quel nome " +
+                        "sta su un'altra lavorazione. Rileggi lo stato del documento e " +
+                        "nominala di nuovo.";
+                    return false;
+                }
+                f = f.GetNextFeature() as IFeature;
+            }
+            // Non l'ho trovata scorrendo l'albero: lo dice SelectByID2 con il
+            // suo messaggio, che e' piu' preciso di uno inventato qui.
             return true;
         }
 
@@ -5203,7 +5261,14 @@ namespace Riscontro.Disegno
             var attesa = FirmaAttesa(argomenti, uid);
             if (attesa == null) return true;
 
-            var puntoAtteso = Terna(attesa, "punto_mm");
+            // DUE NOMI PER LA STESSA COSA, e non e' pigrizia.
+            // Una faccia pubblica `punto_mm` — un punto SU di lei; un corpo
+            // pubblica `centro_mm` — il centro della sua scatola. Sono due
+            // misure diverse con lo stesso mestiere: dire DOVE sta l'entita'.
+            // Chiamarle allo stesso modo nello stato sarebbe stato peggio (il
+            // centro di un corpo non sta sul corpo, se il corpo e' a ferro di
+            // cavallo), quindi qui si accettano tutti e due.
+            var puntoAtteso = Terna(attesa, "punto_mm") ?? Terna(attesa, "centro_mm");
             if (puntoAtteso != null && adesso.PuntoMm != null && adesso.PuntoMm.Length == 3)
             {
                 double scarto = 0;
@@ -5211,10 +5276,14 @@ namespace Riscontro.Disegno
                     scarto = Math.Max(scarto, Math.Abs(puntoAtteso[i] - adesso.PuntoMm[i]));
                 if (scarto > TolleranzaPuntoMm)
                 {
+                    // LA PAROLA GIUSTA PER LA COSA GIUSTA. Lo stesso confronto
+                    // serve a facce, spigoli e corpi, e dire «non lavoro sulla
+                    // faccia sbagliata» di un corpo manda a cercare una faccia
+                    // che non c'entra niente.
                     motivo =
-                        $"«{uid}» adesso indica un'altra parte del pezzo (spostata di " +
+                        $"«{uid}» adesso indica un'altra parte del pezzo (spostato di " +
                         $"{scarto:0.##} mm). Il pezzo e' cambiato da quando hai " +
-                        "confermato: non lavoro sulla faccia sbagliata.";
+                        $"confermato: {NonLavoroSu(adesso)}";
                     return false;
                 }
             }
@@ -5234,6 +5303,22 @@ namespace Riscontro.Disegno
                 }
             }
             return true;
+        }
+
+        /// <summary>
+        /// La frase di chiusura del rifiuto, con la parola giusta per il tipo
+        /// di entita'. Tre parole invece di una, ed e' la differenza fra un
+        /// messaggio che si capisce e uno che manda a cercare la cosa
+        /// sbagliata.
+        /// </summary>
+        private static string NonLavoroSu(StatoDocumento.FirmaEntita entita)
+        {
+            switch (entita?.Tipo)
+            {
+                case "BODY": return "non lavoro sul corpo sbagliato.";
+                case "EDGE": return "non lavoro sullo spigolo sbagliato.";
+                default: return "non lavoro sulla faccia sbagliata.";
+            }
         }
 
         private static Dictionary<string, object> FirmaAttesa(

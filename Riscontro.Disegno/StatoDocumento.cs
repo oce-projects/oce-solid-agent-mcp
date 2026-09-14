@@ -129,6 +129,86 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// CHE COSA E' SELEZIONATO, con gli identificativi dello stato.
+        ///
+        /// I DUE CASI SCOMODI SI DECIDONO QUI, non si scoprono dopo:
+        ///
+        ///   * **niente selezionato** — si torna una lista vuota, e chi chiama
+        ///     non scrive il campo. Non e' un errore: la maggior parte delle
+        ///     volte non c'e' niente selezionato;
+        ///   * **piu' cose insieme** — si tornano tutte, nell'ordine in cui
+        ///     SOLIDWORKS le da'. Sceglierne una sarebbe indovinare, e
+        ///     rifiutare sarebbe inutile: chi ha selezionato quattro facce
+        ///     probabilmente voleva selezionarne quattro.
+        ///
+        /// E un terzo caso, che il criterio della voce non nominava: un'entita'
+        /// selezionata che nello stato **non ha un identificativo** — perche' e'
+        /// oltre il tetto delle sessanta facce, o perche' e' un vertice, che lo
+        /// stato non descrive affatto. Li' si dice **che cosa e'** senza dargli
+        /// un nome: «una faccia che non ho descritto» e' un'informazione, «non
+        /// c'e' niente» sarebbe una bugia.
+        ///
+        /// Il tipo si legge dall'OGGETTO e non dall'enum della selezione: un
+        /// `as IFace2` non si puo' sbagliare, un numero di enum letto male si'.
+        /// </summary>
+        private static List<Dictionary<string, object>> LaSelezione(
+            IModelDoc2 modello, Dictionary<string, FirmaEntita> firme)
+        {
+            var fuori = new List<Dictionary<string, object>>();
+            try
+            {
+                var selezione = modello?.SelectionManager as ISelectionMgr;
+                if (selezione == null) return fuori;
+                int quante = selezione.GetSelectedObjectCount2(-1);
+                for (int i = 1; i <= quante && i <= 20; i++)
+                {
+                    object oggetto = null;
+                    try { oggetto = selezione.GetSelectedObject6(i, -1); } catch { }
+                    if (oggetto == null) continue;
+
+                    string cosa =
+                        oggetto is IFace2 ? "faccia" :
+                        oggetto is IEdge ? "spigolo" :
+                        oggetto is IBody2 ? "corpo" :
+                        oggetto is IVertex ? "vertice" :
+                        oggetto is IFeature ? "lavorazione" : null;
+
+                    var voce = new Dictionary<string, object>();
+                    if (cosa != null) voce["tipo"] = cosa;
+
+                    // Il nome, se lo stato gliene ha dato uno.
+                    foreach (var f in firme)
+                    {
+                        if (f.Value.Entita == null) continue;
+                        if (!ReferenceEquals(f.Value.Entita, oggetto) &&
+                            !Equals(f.Value.Entita, oggetto)) continue;
+                        voce["uid"] = f.Key;
+                        break;
+                    }
+
+                    if (!voce.ContainsKey("uid"))
+                    {
+                        // Una lavorazione si chiama col suo nome, che nello
+                        // stato E' l'uid.
+                        var lavorazione = oggetto as IFeature;
+                        if (lavorazione != null)
+                        {
+                            try { voce["uid"] = lavorazione.Name; } catch { }
+                        }
+                    }
+                    if (!voce.ContainsKey("uid"))
+                        voce["nota"] =
+                            "selezionata, ma non e' fra quelle che ho descritto: " +
+                            "non posso nominarla.";
+
+                    if (voce.Count > 0) fuori.Add(voce);
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        /// <summary>
         /// La lavorazione che ha generato una faccia: identificativo e nome.
         ///
         /// Non solleva e non si lamenta: una faccia senza lavorazione
@@ -238,6 +318,8 @@ namespace Riscontro.Disegno
             // rende visibile un punto cieco invece di nasconderlo dietro un
             // numero.
             var tipiIgnoti = new SortedSet<string>(StringComparer.Ordinal);
+            // I nomi delle lavorazioni citate dalle facce, una volta sola.
+            var nomiDelleLavorazioni = new SortedDictionary<int, string>();
             int lavorazioniInErrore = 0;
             IFeature f = parte.IFirstFeature();
             while (f != null)
@@ -273,6 +355,17 @@ namespace Riscontro.Disegno
                     {
                         var voceF = new Dictionary<string, object>
                         { ["uid"] = nome, ["tipo"] = tipo };
+
+                        // L'UID DI UNA LAVORAZIONE E' IL SUO NOME, e un nome
+                        // si rinomina. Chi rinomina «Taglio1» in «Foro cavo» e
+                        // poi chiama «Taglio1» un'altra lavorazione ha appena
+                        // trasferito l'identificativo da una cosa a un'altra,
+                        // e nessuno se ne accorge.
+                        //
+                        // `GetID()` non si rinomina. Non sostituisce l'uid —
+                        // il nome serve a chi legge — ma permette di
+                        // controllare che il nome indichi ancora quella.
+                        try { voceF["feature_id"] = f.GetID(); } catch { }
 
                         // UNA LAVORAZIONE SOPPRESSA E UNA VIVA ERANO
                         // INDISTINGUIBILI. Il modello proponeva di raccordare
@@ -660,13 +753,25 @@ namespace Riscontro.Disegno
                     // ritrovamento, che senza non puo' distinguere «la stessa
                     // faccia spostata» da «un'altra faccia finita nello stesso
                     // posto».
+                    // IL NOME SI SCRIVE UNA VOLTA SOLA, IN FONDO.
+                    //
+                    // Scriverlo su ogni faccia costa: su un telaio saldato i
+                    // nomi delle lavorazioni sono cose come «TUBO STRUTTURALE
+                    // QUADRO 80X80X5(1)», e sessanta facce che vengono da
+                    // quattro lavorazioni li ripetevano sessanta volte.
+                    // Misurato: lo stato di un telaio da quattro barre e'
+                    // passato da sotto i 16 KB a **18.629 caratteri**, e c'e'
+                    // una prova di banco che quel tetto lo sorveglia.
+                    //
+                    // Con la mappa in fondo i nomi lunghi sono quattro, e su
+                    // ogni faccia resta il numero.
                     int lavorazioneId;
                     string lavorazione;
                     LavorazioneDellaFaccia(t.Item1, out lavorazioneId, out lavorazione);
                     if (lavorazione != null)
                     {
-                        voce["lavorazione"] = lavorazione;
                         voce["lavorazione_id"] = lavorazioneId;
+                        nomiDelleLavorazioni[lavorazioneId] = lavorazione;
                     }
 
                     facce.Add(voce);
@@ -780,6 +885,30 @@ namespace Riscontro.Disegno
             if (corpiDescritti.Count > 0) dati["corpi"] = corpiDescritti;
             dati["facce"] = facce;
             dati["spigoli"] = spigoli;
+            // COSA C'E' SELEZIONATO ADESSO, detto con gli stessi nomi.
+            //
+            // E' l'altra meta' della firma: invece di descrivere a parole quale
+            // faccia si intende, il progettista la INDICA col dito e lo stato
+            // dice come si chiama. L'ambiguita' si toglie prima
+            // dell'operazione, non si scopre dopo.
+            //
+            // Non e' uno strumento nuovo, ed e' voluto: il ponte ne ha quattro
+            // e il motivo e' scritto in `Attrezzi`. Questa e' una riga in piu'
+            // in una risposta che si legge gia', e si scrive **solo quando c'e'
+            // qualcosa di selezionato** — su un documento senza selezione non
+            // costa niente.
+            // Il dizionario dei nomi, solo se qualcuno lo usa.
+            if (nomiDelleLavorazioni.Count > 0)
+            {
+                var mappa = new Dictionary<string, object>();
+                foreach (var v in nomiDelleLavorazioni)
+                    mappa[v.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)] = v.Value;
+                dati["lavorazioni"] = mappa;
+            }
+
+            var selezionate = LaSelezione(modello, stato.Firme);
+            if (selezionate != null && selezionate.Count > 0) dati["selezione"] = selezionate;
+
             dati["troncato"] = troncato;
             dati["unita_protocollo"] = "mm";
             stato.Dati = dati;
