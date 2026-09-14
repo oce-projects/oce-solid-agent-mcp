@@ -97,6 +97,43 @@ Ok ("SolidWorksMcp.exe  " + [math]::Round((Get-Item $ponte).Length / 1KB) + " kB
 if ($SoloPonte) { Passo "Fatto"; Ok $ponte; exit 0 }
 
 # -----------------------------------------------------------------------------
+Passo "1b. Il catalogo"
+# -----------------------------------------------------------------------------
+# SI RIGENERA, NON SI SPERA.
+#
+# `catalogo.json` e' un PRODOTTO del catalogo C#. Finche' lo si rigenerava a
+# mano — e prima serviva il server, docker e la rete — poteva restare indietro
+# rispetto al codice senza che nulla lo dicesse: il ponte avrebbe dichiarato
+# operazioni con descrizioni vecchie, o taciuto operazioni nuove.
+#
+# Qui si riscrive a ogni pacchetto, e se cambia lo si dice: un file che cambia
+# durante una build e' una cosa che chi guarda deve vedere, non una sorpresa
+# nel prossimo `git status`.
+& $msbuild (Join-Path $radice "Riscontro.Catalogo\Riscontro.Catalogo.csproj") -p:Configuration=Release -v:m -nologo
+if ($LASTEXITCODE -ne 0) { Muori "compilazione dell'esportatore del catalogo fallita" }
+
+$esportatore = Join-Path $radice "bin\Riscontro.Catalogo.exe"
+$catalogo = Join-Path $radice "Strumenti\catalogo.json"
+$primaDi = $null
+if (Test-Path $catalogo) { $primaDi = [IO.File]::ReadAllBytes($catalogo) }
+
+& $esportatore $catalogo
+if ($LASTEXITCODE -ne 0) { Muori "il catalogo non si e' scritto" }
+
+$dopoDi = [IO.File]::ReadAllBytes($catalogo)
+if ($null -eq $primaDi) {
+    Ok "catalogo.json scritto ($($dopoDi.Length) byte)"
+} elseif ([Convert]::ToBase64String($primaDi) -eq [Convert]::ToBase64String($dopoDi)) {
+    Ok "catalogo.json invariato ($($dopoDi.Length) byte)"
+} else {
+    Ok "catalogo.json RIGENERATO: $($primaDi.Length) -> $($dopoDi.Length) byte"
+    Nota "era indietro rispetto al C#. Guarda il diff prima di committare."
+}
+
+# Il ponte legge quello che sta accanto a lui, non quello in Strumenti\.
+Copy-Item $catalogo (Join-Path $radice "bin\catalogo.json") -Force
+
+# -----------------------------------------------------------------------------
 Passo "2. Il carico da incorporare"
 # -----------------------------------------------------------------------------
 $payload = Join-Path $radice "Installer\Payload"

@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Riscontro.Catalogo — scrive catalogo.json dal catalogo C#.
+
+  Non referenzia le interop di SOLIDWORKS e non ne ha bisogno: il catalogo e'
+  dati, e per scriverlo non serve che SOLIDWORKS sia installato. Referenzia
+  pero' `Riscontro.Disegno`, che le interop le vuole a tempo di compilazione —
+  quindi per ora la macchina che rigenera il catalogo deve avere SOLIDWORKS.
+
+  SI POTREBBE SPEZZARE, e non si fa adesso: mettere il catalogo in una libreria
+  sua libererebbe questo eseguibile da SOLIDWORKS, ma aggiungerebbe un terzo
+  progetto per un guadagno che oggi non serve a nessuno. Quando servira' — il
+  giorno in cui una build automatica senza SOLIDWORKS dovra' controllare il
+  catalogo — sara' il momento di farlo, e questa riga sara' il promemoria.
+-->
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
+          Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{2C8A5D71-4E33-4B26-9F18-6D0A7C3E91B4}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Riscontro.Catalogo</RootNamespace>
+    <AssemblyName>Riscontro.Catalogo</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <LangVersion>9.0</LangVersion>
+    <Deterministic>true</Deterministic>
+    <OutputPath>..\bin\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Riscontro.Disegno\Riscontro.Disegno.csproj">
+      <Project>{7B3C1F42-9A5E-4D18-A6C2-51E0D7B44A93}</Project>
+      <Name>Riscontro.Disegno</Name>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Programma.cs" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

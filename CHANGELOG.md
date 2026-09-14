@@ -16,6 +16,86 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.10.0 — 14 settembre 2026 · libreria 0.50.0
+
+**Il catalogo vive in C#, accanto al codice che esegue. `catalogo.json` e'
+diventato un prodotto.**
+
+```bash
+.\bin\Riscontro.Catalogo.exe Strumenti\catalogo.json
+```
+
+Nient'altro. Prima ci volevano tre passi, due macchine e docker: impacchettare i
+sorgenti del server, mandarli via `scp`, farli girare in un container
+usa-e-getta, riportarsi indietro il file. **Chi clonava questo repository non
+poteva rigenerare il catalogo**, e un file che non si puo' rigenerare e' un file
+che nessuno osa toccare — mentre quel file e' l'interfaccia verso il modello.
+
+La ragione piu' importante e' un'altra: **lo strato che DESCRIVE un'operazione
+adesso e' lo stesso che la ESEGUE.** E' l'unica disposizione in cui
+un'operazione descritta e non eseguibile non puo' entrare in catalogo senza che
+qualcuno se ne accorga. `Provata` e' un `bool` C# accanto al `case` che esegue,
+non una promessa scritta in un altro repository.
+
+### Il criterio era diff vuoto, ed e' diff vuoto
+
+```
+[catalogo] identico a Strumenti/catalogo.json (72204 caratteri)
+72.452 byte, identici byte per byte
+```
+
+### Generato, non traslitterato a mano
+
+La voce C3 del piano chiedeva di traslitterare 2.051 righe di Python, e nella
+sua nota di rischio diceva: *«duemila righe di traslitterazione fatte di sera
+sono duemila occasioni di cambiare una parola in una descrizione senza
+accorgersene — e quelle descrizioni sono l'interfaccia vera verso il modello»*.
+
+Il C# e' stato **generato dal `catalogo.json` che c'era**, che di quel Python e'
+gia' il prodotto ed e' il file che il ponte legge davvero. Le occasioni di
+cambiare una parola diventano zero, e il criterio si verifica lo stesso. Il
+generatore si usa una volta; da adesso il C# si modifica a mano, e sono 2.026
+righe leggibili come l'originale.
+
+### La forma del file e' parte del contratto
+
+Rientro di uno spazio, accenti per esteso, a capo a solo avanzamento riga,
+nessun a capo finale, chiavi nell'ordine in cui sono scritte. `Nodo` e' un tipo
+apposta, e **non un `Dictionary<string, object>`**: un dizionario non promette
+l'ordine delle chiavi, e se le chiavi ballano a ogni compilazione ogni commit
+mostra un file intero cambiato e nessuno vede piu' la riga cambiata davvero.
+
+### `build.ps1` lo rigenera, e dice se e' cambiato
+
+Un catalogo che si rigenera a mano resta indietro. Adesso si riscrive a ogni
+pacchetto, e la build stampa `invariato` oppure `RIGENERATO: N -> M byte` con
+l'invito a guardare il diff.
+
+Fuori dal file restano — **e si dicono, una per riga su stderr** — le operazioni
+non provate e le famiglie senza nemmeno un'operazione. Un elenco che si accorcia
+in silenzio non si nota.
+
+### Cosa NON e' stato fatto, e perche'
+
+`ai_disegno.py` e' ancora la fonte del catalogo **per il server**: finche' non
+legge questo JSON, le fonti sono due.
+
+Accertato con un grep, che la voce chiedeva: `CATALOGO_DISEGNO` ha **tre**
+consumatori fuori da `ai_disegno.py` — `<un file del server>`,
+`<un file del server>` e `:252` — e usano `.nome`, `.provata`,
+`.precondizione`, tutti campi che il record C# ha. Ma `ai_disegno.py` tiene
+anche `limiti` e `riassunto`, che non sono fra i sei esportati e servono a
+`valida()`: l'inversione e' uno **spacco** del record, non una sostituzione. E'
+lavoro sul server in produzione, che la voce C3 aveva gia' dichiarato fuori
+dalla propria stima.
+
+**Un criterio non rispettato alla lettera, e detto.** La voce chiedeva che
+`aggiorna.md` non contenesse piu' le parole «server», «docker», «python». Ci
+sono ancora, ma solo per dire **che non servono** e per registrare cosa resta.
+Toglierle avrebbe reso il documento peggiore, non piu' pulito.
+
+---
+
 ## 0.9.0 — 14 settembre 2026 · libreria 0.49.0
 
 Due cose, e la seconda e' un rischio vivo su un file condiviso.
