@@ -16,6 +16,95 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.15.0 — 14 settembre 2026 · libreria 0.55.0
+
+**Il ponte esegue i piani con `EsecutorePiano`, lo stesso giro dell'add-in.**
+Aveva un giro suo — un `OperazioniSw` nuovo a ogni passo e `passiFatti` a
+`null` — e costava tre cose. Le prime due sono misurate qui sotto, **prima e
+dopo**; la terza e' che una seconda implementazione dello stesso ciclo sono due
+comportamenti che divergono, e le prove si fanno su una sola delle due.
+
+### 1. Un passo puo' nominare quello che ha fatto il passo prima
+
+Un piano di due passi — piastra, poi foro sulla sua faccia in cima:
+
+| | |
+|---|---|
+| **prima** | passo 1 riuscito (volume 120.000), passo 2 **rifiutato**: «cita il passo 1, ma di quel passo non ho la geometria» |
+| **dopo** | `[agente] faccia presa dal passo 1` — tutti e due riusciti |
+
+Non era una mancanza dell'add-in: `Riferimenti` e `passiFatti` esistevano gia' e
+funzionavano. Il ponte semplicemente non li usava, perche' passava `null`.
+
+### 2. Un solo Ctrl+Z disfa il piano intero
+
+Stesso piano di due estrusioni, volume 133.500. **Un solo** annullamento:
+
+| | volume dopo |
+|---|---|
+| **prima** | **120.000** — disfatto solo il secondo passo |
+| **dopo** | **nessun corpo solido** — disfatto tutto |
+
+Misurato mettendo da parte la modifica e ricostruendo, non dedotto dal codice.
+
+### Il piano si controlla TUTTO prima di cominciare
+
+Nome dell'operazione, percorsi e forma degli argomenti si vedono leggendo. Prima
+si controllavano a mano a mano: un errore di forma al passo 3 fermava il piano
+**con i primi due gia' costruiti**, e nel documento restava mezzo pezzo per una
+cosa che si poteva dire senza aprire niente.
+
+Misurato: piano con passo 1 valido e passo 2 senza `diametro_mm` →
+`corpo_solido: false`, `feature: []`, volume `null`. Non e' stato toccato niente.
+
+E ogni rifiuto di forma lo **dice**: «Il piano non e' stato eseguito per niente:
+il documento e' rimasto com'era.» Senza quella frase la risposta elenca solo il
+passo sbagliato, e chi legge si mette a cercare nel documento una piastra che
+non c'e'.
+
+### `DocumentoSenzaFile`, e il controllo che lo sorveglia
+
+`EsecutorePiano.ControlliPreliminari` rifiuta i documenti mai salvati — giusto
+per l'add-in, che vive in un PDM dove un file non salvato non e' in check-out;
+sbagliato per il ponte, che lavora apposta su `Parte1` appena aperta.
+
+Il controllo e' stato **parametrizzato, non cancellato**, e il pericolo era
+scritto nella voce B8: che qualcuno lo accenda anche nell'add-in «perche' dava
+fastidio». Per questo:
+
+* il nome dice cosa **permette**, non cosa disattiva;
+* il predefinito e' falso;
+* `Controlli\controlla-documenti-senza-file.ps1` esce **1** se la proprieta' si
+  accende fuori da `Ponte\Sessione.cs`, o se compare nelle sorgenti dell'add-in.
+  Tutte e due le strade sono state **viste fallire** prima di crederci.
+
+Quando le sorgenti dell'add-in non sono raggiungibili il controllo **non dice
+che va bene**: dice a voce alta che quella meta' non l'ha guardata.
+
+### Un documento senza file adesso ha un nome
+
+`EsecutorePiano` confrontava i percorsi nudi per sapere se il documento era
+ancora quello di prima. Due documenti mai salvati hanno **tutti e due percorso
+vuoto**: il controllo che esiste per non scrivere nel pezzo di qualcun altro li
+avrebbe detti lo stesso documento, proprio nel caso in cui il ponte lavora
+sempre. Adesso l'identita' e' il percorso quando c'e', e `titolo:<titolo>`
+quando non c'e'.
+
+### Tolto `Sessione.Esegui`
+
+Dopo questo cambio non lo chiamava piu' nessuno: 67 righe di codice morto, via.
+
+### Nessuna regressione
+
+| | |
+|---|---|
+| ruote e sezioni | 12.263,3 · 86.393,8 · 1.500.000 — identici |
+| le quattro sagome rifiutate | ancora rifiutate, documento intatto |
+| `ProvaRuota`, `ProvaSagoma`, `controlla-catalogo` | 0 |
+| `prova-installatore` | 11 PASS, 0 FAIL |
+
+---
+
 ## 0.14.0 — 14 settembre 2026 · libreria 0.54.0
 
 **I contorni vengono controllati prima di disegnarli.** Era l'ultimo pezzo di

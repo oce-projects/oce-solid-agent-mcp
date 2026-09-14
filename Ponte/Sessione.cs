@@ -339,17 +339,35 @@ namespace SolidWorksMcp.Ponte
         }
 
         /// <summary>
-        /// Esegue una operazione. Ritorna le misure, oppure null con il motivo.
+        /// IL PIANO INTERO, ESEGUITO DALLA LIBRERIA E NON DAL PONTE.
         ///
-        /// LO STATO SI RILEGGE PRIMA DI OGNI OPERAZIONE. Gli identificativi
-        /// delle facce sono POSIZIONALI — si rinumerano per area a ogni
-        /// lettura — quindi dopo un taglio «F13» non e' piu' la faccia di
-        /// prima. Chi esegue se ne accorge dalla firma che il piano porta con
-        /// se' e la ritrova; ma la firma va confrontata con lo stato di
-        /// ADESSO, non con quello di dieci secondi fa.
+        /// Fino alla 0.14.0 il ponte aveva un giro suo: un
+        /// <see cref="OperazioniSw"/> nuovo a ogni passo e `passiFatti` a
+        /// `null`. Funzionava, e costava tre cose misurabili:
+        ///
+        ///   * **niente riferimenti fra passi.** Un piano di due passi in cui il
+        ///     secondo diceva «la faccia in cima a quello che hai fatto al passo
+        ///     1» falliva con «di quel passo non ho la geometria». Misurato il
+        ///     14/9/2026: passo 1 riuscito, volume 120.000, passo 2 rifiutato;
+        ///   * **niente voce di annullamento unica.** `Ctrl+Z` disfaceva un
+        ///     passo solo;
+        ///   * **una seconda implementazione dello stesso ciclo**, piu' povera
+        ///     di quella che l'add-in usa tutti i giorni. Due implementazioni
+        ///     sono due comportamenti che divergono, e le prove si fanno su una
+        ///     sola delle due.
+        ///
+        /// Adesso il ciclo e' <see cref="EsecutorePiano"/>, lo stesso
+        /// dell'add-in, e il ponte gli passa i passi attraverso
+        /// <see cref="PianoInMemoria"/>.
+        ///
+        /// SUL FILO E SULL'ASINCRONO. Il ponte e' sincrono: legge una riga da
+        /// standard input, risponde, ricomincia. Non c'e' nessun filo di
+        /// SOLIDWORKS separato su cui accodare, quindi `sulThreadSw` esegue
+        /// sul posto e `GetAwaiter().GetResult()` non puo' incastrarsi — tutte
+        /// le attese si completano prima di essere attese.
         /// </summary>
-        public Dictionary<string, object> Esegui(
-            string operazione, Dictionary<string, object> argomenti, out string errore)
+        public List<Dictionary<string, object>> EseguiPiano(
+            List<PassoDelPiano> passi, out string errore)
         {
             errore = null;
             var doc = DocumentoAttivo();
@@ -359,49 +377,47 @@ namespace SolidWorksMcp.Ponte
                 return null;
             }
 
+            var fonte = new PianoInMemoria(passi);
+            var esecutore = new EsecutorePiano(
+                _sw as ISldWorks,
+                fonte,
+                riga => Mcp.Protocollo.Nota("  " + riga),
+                f => System.Threading.Tasks.Task.FromResult(f()))
+            {
+                // Il nome che l'utente legge nel menu «Annulla» di SOLIDWORKS.
+                NomeAnnullamento = "Ponte MCP",
+
+                // QUI SI', E SOLO QUI. Il ponte lavora apposta su parti appena
+                // aperte e mai salvate: senza questo, il suo caso normale
+                // sarebbe rifiutato con «salvalo su disco prima». Nell'add-in
+                // resta falso, e c'e' un controllo che lo sorveglia.
+                DocumentoSenzaFile = true,
+            };
+
             try
             {
-                var op = new OperazioniSw(
-                    _sw as ISldWorks,
-                    riga => Mcp.Protocollo.Nota("  " + riga));
+                var esito = esecutore
+                    .EseguiAsync(null)
+                    .GetAwaiter()
+                    .GetResult();
 
-                var stato = LeggiStato(doc);
-                var esito = op.Esegui(
-                    doc as IModelDoc2, operazione, argomenti, stato, null);
-
-                if (esito == null)
-                {
-                    errore = "L'operazione «" + operazione + "» non ha risposto niente: " +
-                             "e' un difetto della libreria, segnalalo con il log.";
-                    return null;
-                }
-                if (!esito.Riuscito)
-                {
+                // L'ERRORE SI RIPORTA ANCHE QUANDO GLI ESITI LO DICONO GIA'.
+                // Un piano fermato PRIMA del primo passo — documento sbagliato,
+                // controlli preliminari — non lascia nessun esito, e senza
+                // questo il ponte risponderebbe «nessun passo, tutto bene».
+                if (!esito.Completato && !string.IsNullOrEmpty(esito.Errore))
                     errore = esito.Errore;
-                    return null;
-                }
-
-                // Si ricostruisce: cambiare i parametri non muove la geometria,
-                // la muove la ricostruzione. Senza, il numero e' nuovo e il
-                // pezzo e' vecchio.
-                try
-                {
-                    doc.GetType().InvokeMember(
-                        "EditRebuild3", BindingFlags.InvokeMethod, null, doc, null);
-                }
-                catch { }
-
-                return esito.Misure;
+                return fonte.Esiti;
             }
             catch (TargetInvocationException ex)
             {
                 errore = (ex.InnerException ?? ex).Message;
-                return null;
+                return fonte.Esiti;
             }
             catch (Exception ex)
             {
                 errore = ex.Message;
-                return null;
+                return fonte.Esiti;
             }
         }
     }

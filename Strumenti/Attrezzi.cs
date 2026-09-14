@@ -90,9 +90,19 @@ namespace SolidWorksMcp.Strumenti
                     "disegna",
                     "Esegue in SolidWorks una sequenza di operazioni e RIPORTA " +
                     "COS'E' VENUTO: le misure di ogni passo e lo stato del " +
-                    "documento dopo. Si ferma al primo passo fallito, perche' i " +
-                    "passi seguenti quasi sempre nominano cio' che il passo " +
-                    "fallito avrebbe dovuto creare.",
+                    "documento dopo.\n\n" +
+                    "Il piano viene controllato TUTTO prima di cominciare: se un " +
+                    "passo qualunque ha un nome sbagliato o argomenti che non " +
+                    "rispettano lo schema, non viene eseguito niente e il " +
+                    "documento resta com'era.\n\n" +
+                    "Se invece un passo fallisce mentre viene eseguito, ci si " +
+                    "ferma li': i passi seguenti quasi sempre nominano cio' che " +
+                    "il passo fallito avrebbe dovuto creare. Quello che era gia' " +
+                    "stato costruito resta, e un solo Ctrl+Z lo toglie tutto.\n\n" +
+                    "Un passo puo' nominare la geometria creata da un passo " +
+                    "PRECEDENTE dello stesso piano (per esempio faccia_rif: " +
+                    "{passo: 1, genere: \"faccia_superiore\"}): e' l'unico modo, " +
+                    "perche' quella faccia non ha ancora nessun identificativo.",
                     Oggetto(
                         new Dictionary<string, object>
                         {
@@ -306,6 +316,19 @@ namespace SolidWorksMcp.Strumenti
         /// e lo stato del documento DOPO. E' l'unica forma che permette a chi
         /// ha chiesto di accorgersi che il pezzo non e' quello che voleva.
         /// </summary>
+        /// <summary>
+        /// La frase che si aggiunge a ogni rifiuto di FORMA.
+        ///
+        /// Il piano si controlla tutto prima di cominciare, quindi un errore al
+        /// passo 3 ferma anche i primi due. La risposta pero' elenca solo il
+        /// passo che ha sbagliato, e senza questa frase chi legge puo' credere
+        /// che i precedenti siano stati eseguiti — e mettersi a cercare nel
+        /// documento una piastra che non c'e'.
+        /// </summary>
+        private const string NienteToccato =
+            " Il piano non e' stato eseguito per niente: il documento e' rimasto " +
+            "com'era. Correggi questo passo e rimanda il piano intero.";
+
         private Dictionary<string, object> Disegna(Dictionary<string, object> argomenti)
         {
             if (!_sessione.Agganciata)
@@ -394,13 +417,25 @@ namespace SolidWorksMcp.Strumenti
 
             _guardato = adesso;
 
+            // IL PIANO SI CONTROLLA TUTTO PRIMA DI TOCCARE IL DOCUMENTO.
+            //
+            // Nome dell'operazione, percorsi e forma degli argomenti si vedono
+            // leggendo, senza aprire niente. Prima si controllavano a mano a
+            // mano: un errore di forma al passo 3 fermava il piano con i primi
+            // due GIA' COSTRUITI, e nel documento restava mezzo pezzo per una
+            // cosa che si poteva dire prima di cominciare.
+            //
+            // Adesso o il piano e' scrivibile tutto, o non si tocca niente.
+            var daFare = new List<Riscontro.Disegno.PassoDelPiano>();
             var esiti = new List<object>();
             bool tuttoBene = true;
+            int ordine = 0;
 
             foreach (var p in passi)
             {
                 var passo = p as Dictionary<string, object>;
                 if (passo == null) continue;
+                ordine++;
 
                 var nome = Testo(passo, "operazione");
                 var suoi = Prendi(passo, "argomenti") as Dictionary<string, object>
@@ -422,7 +457,7 @@ namespace SolidWorksMcp.Strumenti
                             "Non esiste nessuna operazione «" + nome + "»." +
                             (simili.Count > 0
                                 ? " Forse cercavi: " + string.Join(", ", simili) + "."
-                                : ""),
+                                : "") + NienteToccato,
                     });
                     tuttoBene = false;
                     break;
@@ -438,7 +473,7 @@ namespace SolidWorksMcp.Strumenti
                     {
                         ["operazione"] = nome,
                         ["riuscita"] = false,
-                        ["errore"] = percorsoStorto,
+                        ["errore"] = percorsoStorto + NienteToccato,
                     });
                     tuttoBene = false;
                     break;
@@ -461,7 +496,7 @@ namespace SolidWorksMcp.Strumenti
                     {
                         ["operazione"] = nome,
                         ["riuscita"] = false,
-                        ["errore"] = formaStorta,
+                        ["errore"] = formaStorta + NienteToccato,
                     });
                     tuttoBene = false;
                     break;
@@ -474,16 +509,37 @@ namespace SolidWorksMcp.Strumenti
                 if (firme != null && !suoi.ContainsKey("_firme"))
                     suoi["_firme"] = firme;
 
-                var misure = _sessione.Esegui(nome, suoi, out var errore);
-                bool ok = misure != null;
-                esiti.Add(new Dictionary<string, object>
+                daFare.Add(new Riscontro.Disegno.PassoDelPiano
                 {
-                    ["operazione"] = nome,
-                    ["riuscita"] = ok,
-                    ["errore"] = ok ? null : errore,
-                    ["misure"] = misure,
+                    Ordine = ordine,
+                    Operazione = nome,
+                    Argomenti = suoi,
+                    Riassunto = nome,
                 });
-                if (!ok) { tuttoBene = false; break; }
+            }
+
+            // IL GIRO E' QUELLO DELLA LIBRERIA, NON UNO NOSTRO.
+            // Da qui arrivano i riferimenti fra passi («la faccia in cima a
+            // quello che hai fatto al passo 1») e la voce di annullamento
+            // unica: un solo Ctrl+Z disfa il piano intero.
+            if (tuttoBene)
+            {
+                var fatti = _sessione.EseguiPiano(daFare, out var erroreGiro);
+                if (fatti != null) foreach (var e in fatti) esiti.Add(e);
+                if (!string.IsNullOrEmpty(erroreGiro))
+                {
+                    tuttoBene = false;
+                    // Un piano fermato PRIMA del primo passo non lascia nessun
+                    // esito: senza questo, la risposta sarebbe un elenco vuoto
+                    // e un «riuscita» implicito che nessuno ha detto.
+                    if (fatti == null || fatti.Count == 0)
+                        esiti.Add(new Dictionary<string, object>
+                        {
+                            ["operazione"] = daFare.Count > 0 ? daFare[0].Operazione : null,
+                            ["riuscita"] = false,
+                            ["errore"] = erroreGiro,
+                        });
+                }
             }
 
             var dopo = _sessione.Stato(out var erroreStato);

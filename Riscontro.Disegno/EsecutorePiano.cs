@@ -56,6 +56,36 @@ namespace Riscontro.Disegno
         }
         private string _nomeAnnullamento = "Assistente";
 
+        /// <summary>
+        /// Lascia lavorare su un documento MAI SALVATO su disco.
+        ///
+        /// **Va acceso solo dal ponte MCP, mai dall'add-in.** Sono due mestieri
+        /// diversi che usano lo stesso esecutore:
+        ///
+        ///   * l'add-in lavora dentro un PDM. Un file non salvato non e' in
+        ///     check-out, e scriverci dentro produce modifiche che al
+        ///     salvataggio falliscono o finiscono in una copia. Li' il rifiuto
+        ///     «salvalo su disco prima» e' la cosa giusta;
+        ///   * il ponte MCP lavora apposta su `Parte1` appena aperta. Li' quel
+        ///     rifiuto renderebbe il ponte inutile per il suo caso normale.
+        ///
+        /// PERCHE' NON E' UN BOOLEANO QUALUNQUE. Il pericolo scritto nella voce
+        /// B8 e' che qualcuno lo metta a vero anche nell'add-in «perche' dava
+        /// fastidio», e si torni a scrivere in file non in check-out senza che
+        /// niente fallisca. Per questo:
+        ///
+        ///   * il nome dice cosa PERMETTE, non cosa disattiva;
+        ///   * il valore predefinito e' falso, quindi chi non ne sa niente e'
+        ///     protetto;
+        ///   * e c'e' un controllo che lo sorveglia —
+        ///     `Controlli\controlla-documenti-senza-file.ps1` fallisce se questa
+        ///     proprieta' compare nei sorgenti dell'add-in.
+        ///
+        /// Non tocca il controllo sulla SOLA LETTURA: quello vale in tutti e due
+        /// i mestieri, e un file di sola lettura non si scrive comunque.
+        /// </summary>
+        public bool DocumentoSenzaFile { get; set; }
+
         public EsecutorePiano(
             ISldWorks sw,
             IFontePiano fonte,
@@ -102,7 +132,7 @@ namespace Riscontro.Disegno
             if (string.IsNullOrEmpty(percorsoAtteso))
             {
                 percorsoAtteso = (string)await _sulThreadSw(
-                    () => _sw.IActiveDoc2?.GetPathName() ?? "");
+                    () => Identita(_sw.IActiveDoc2));
             }
             if (string.IsNullOrEmpty(percorsoAtteso))
             {
@@ -184,8 +214,7 @@ namespace Riscontro.Disegno
                         // Lo stato mandato al server e' stato letto PRIMA della
                         // chiamata di rete; questo e' il documento su cui si
                         // scrive DOPO. Fra i due c'e' tutto il giro HTTP.
-                        var qui = "";
-                        try { qui = modello?.GetPathName() ?? ""; } catch { }
+                        var qui = Identita(modello);
                         if (!string.Equals(qui, percorsoAtteso, StringComparison.OrdinalIgnoreCase))
                         {
                             return new OperazioniSw.Esito
@@ -260,8 +289,7 @@ namespace Riscontro.Disegno
                     // raggrupperebbe sotto il nostro nome modifiche che non
                     // sono nostre.
                     var m = _sw.IActiveDoc2;
-                    var qui = "";
-                    try { qui = m?.GetPathName() ?? ""; } catch { }
+                    var qui = Identita(m);
                     if (string.Equals(qui, percorsoAtteso, StringComparison.OrdinalIgnoreCase))
                     {
                         try { m.Extension.FinishRecordingUndoObject(_nomeAnnullamento); } catch { }
@@ -271,6 +299,33 @@ namespace Riscontro.Disegno
             }
 
             return risultato;
+        }
+
+        /// <summary>
+        /// COME SI CHIAMA UN DOCUMENTO, per sapere se e' ancora quello di prima.
+        ///
+        /// Il percorso su disco, quando c'e'. Quando non c'e' — un pezzo appena
+        /// aperto e mai salvato — il titolo, con un prefisso che lo distingue:
+        /// un file che si chiamasse per davvero «Parte1» non deve poter essere
+        /// scambiato per la «Parte1» in memoria.
+        ///
+        /// Prima si confrontavano i percorsi nudi. Senza il titolo, DUE
+        /// documenti mai salvati hanno tutti e due percorso vuoto, e si
+        /// sarebbero detti lo stesso documento: il controllo che esiste per non
+        /// scrivere nel pezzo di qualcun altro avrebbe detto di si' proprio nel
+        /// caso in cui il ponte lavora sempre.
+        /// </summary>
+        private static string Identita(IModelDoc2 modello)
+        {
+            if (modello == null) return "";
+            try
+            {
+                var percorso = modello.GetPathName();
+                if (!string.IsNullOrEmpty(percorso)) return percorso;
+                var titolo = modello.GetTitle();
+                return string.IsNullOrEmpty(titolo) ? "" : "titolo:" + titolo;
+            }
+            catch { return ""; }
         }
 
         /// <summary>
@@ -285,7 +340,7 @@ namespace Riscontro.Disegno
                 return "L'assistente lavora solo su una parte, non su assiemi o disegni.";
 
             var percorso = modello.GetPathName();
-            if (string.IsNullOrEmpty(percorso))
+            if (string.IsNullOrEmpty(percorso) && !DocumentoSenzaFile)
                 return "Il documento non e' mai stato salvato: salvalo su disco prima.";
 
             // UN FILE IN SOLA LETTURA NON SI TOCCA, e non e' un dettaglio.
