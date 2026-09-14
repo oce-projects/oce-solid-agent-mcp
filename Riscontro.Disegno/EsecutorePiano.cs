@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using SolidWorks.Interop.sldworks;
@@ -129,16 +130,45 @@ namespace Riscontro.Disegno
             // puo' avere cambiato finestra. La lavorazione finiva nell'altro
             // documento, in check-out, dentro una sola voce di annullamento che
             // nessuno sa di dover premere.
-            if (string.IsNullOrEmpty(percorsoAtteso))
+            // IL DOCUMENTO SI TIENE PER MANO, NON PER NOME.
+            //
+            // Qui si prende UNA volta l'oggetto su cui si lavora, e da qui in
+            // poi «e' ancora quello?» si chiede confrontando l'oggetto, non una
+            // stringa.
+            //
+            // Le stringhe non reggono, ed e' stato misurato: un piano che
+            // SALVA il pezzo a meta' strada cambia sia il percorso (da vuoto a
+            // un file) sia il titolo (da «Parte131» a «z06»). Un confronto per
+            // nome vedeva cambiare il nome e si fermava dicendo «il documento
+            // attivo e' cambiato mentre eseguivo» — su un documento che non
+            // era cambiato affatto, si era solo salvato. Rifiutare cio' che e'
+            // corretto e' il peggiore dei due modi di sbagliare.
+            //
+            // Il nome resta, ma solo per i MESSAGGI: chi legge vuole sapere
+            // come si chiama il pezzo, non il suo puntatore.
+            var documentoAtteso = (IModelDoc2)await _sulThreadSw(() => _sw.IActiveDoc2);
+            if (documentoAtteso == null)
             {
-                percorsoAtteso = (string)await _sulThreadSw(
-                    () => Identita(_sw.IActiveDoc2));
-            }
-            if (string.IsNullOrEmpty(percorsoAtteso))
-            {
-                risultato.Errore =
-                    "Non so su quale documento dovrei lavorare: salvalo su disco e riprova.";
+                risultato.Errore = "Non c'e' nessun documento aperto su cui lavorare.";
                 return risultato;
+            }
+
+            // Se il chiamante ha detto su quale documento vale il piano, lo si
+            // verifica UNA volta, adesso. Dopo di che comanda l'oggetto.
+            if (!string.IsNullOrEmpty(percorsoAtteso))
+            {
+                var qui = (string)await _sulThreadSw(() => Identita(documentoAtteso));
+                if (!string.Equals(qui, percorsoAtteso, StringComparison.OrdinalIgnoreCase))
+                {
+                    risultato.Errore =
+                        "Il piano era per «" + percorsoAtteso + "», ma davanti c'e' «" +
+                        qui + "». Non ho toccato niente.";
+                    return risultato;
+                }
+            }
+            else
+            {
+                percorsoAtteso = (string)await _sulThreadSw(() => Identita(documentoAtteso));
             }
 
             // Tutto il piano dentro UNA voce di annullamento: se l'utente
@@ -214,15 +244,15 @@ namespace Riscontro.Disegno
                         // Lo stato mandato al server e' stato letto PRIMA della
                         // chiamata di rete; questo e' il documento su cui si
                         // scrive DOPO. Fra i due c'e' tutto il giro HTTP.
-                        var qui = Identita(modello);
-                        if (!string.Equals(qui, percorsoAtteso, StringComparison.OrdinalIgnoreCase))
+                        if (!StessoOggetto(modello, documentoAtteso))
                         {
                             return new OperazioniSw.Esito
                             {
                                 Riuscito = false,
                                 Errore =
                                     "Il documento attivo e' cambiato mentre eseguivo: " +
-                                    "il piano era per «" + percorsoAtteso + "». " +
+                                    "il piano era per «" + percorsoAtteso + "», adesso " +
+                                    "davanti c'e' «" + Identita(modello) + "». " +
                                     "Non ho toccato niente.",
                             };
                         }
@@ -251,6 +281,17 @@ namespace Riscontro.Disegno
                             // vede subito e non alla fine, quando non si sa
                             // piu' quale passo lo ha causato.
                             try { modello.EditRebuild3(); } catch { }
+
+                            // SE IL PASSO HA DICHIARATO DI AVER CAMBIATO
+                            // DOCUMENTO, si va dietro. Solo se lo dichiara:
+                            // un documento che cambia senza che nessuno lo dica
+                            // resta un motivo per fermarsi.
+                            if (e.DocumentoNuovo != null)
+                            {
+                                documentoAtteso = e.DocumentoNuovo;
+                                _log("[agente] da qui in poi si lavora su «" +
+                                     Identita(documentoAtteso) + "»");
+                            }
                         }
                         return e;
                     });
@@ -288,11 +329,16 @@ namespace Riscontro.Disegno
                     // se l'utente e' passato a un'altra finestra, chiuderla li'
                     // raggrupperebbe sotto il nostro nome modifiche che non
                     // sono nostre.
-                    var m = _sw.IActiveDoc2;
-                    var qui = Identita(m);
-                    if (string.Equals(qui, percorsoAtteso, StringComparison.OrdinalIgnoreCase))
+                    // Si chiude sull'OGGETTO che si era aperto, non su quello
+                    // che ha lo stesso nome: fra l'apertura e la chiusura il
+                    // pezzo puo' essersi salvato e aver cambiato nome.
+                    if (StessoOggetto(_sw.IActiveDoc2, documentoAtteso))
                     {
-                        try { m.Extension.FinishRecordingUndoObject(_nomeAnnullamento); } catch { }
+                        try
+                        {
+                            documentoAtteso.Extension.FinishRecordingUndoObject(_nomeAnnullamento);
+                        }
+                        catch { }
                     }
                     return null;
                 });
@@ -315,6 +361,40 @@ namespace Riscontro.Disegno
         /// scrivere nel pezzo di qualcun altro avrebbe detto di si' proprio nel
         /// caso in cui il ponte lavora sempre.
         /// </summary>
+        /// <summary>
+        /// DUE RIFERIMENTI SONO LO STESSO DOCUMENTO?
+        ///
+        /// Non si confrontano i nomi: un documento che si salva a meta' piano
+        /// cambia percorso E titolo, e resta lo stesso documento. Si
+        /// confrontano gli oggetti COM, cioe' i puntatori a `IUnknown`, che
+        /// sono l'identita' vera e non cambiano finche' il documento e' aperto.
+        ///
+        /// `ReferenceEquals` prima, perche' quasi sempre .NET riusa lo stesso
+        /// involucro per lo stesso oggetto COM e si risparmia il giro; ma non
+        /// e' garantito, quindi quando non basta si chiede a `IUnknown`. Le due
+        /// `Release` non sono opzionali: `GetIUnknownForObject` incrementa il
+        /// conteggio, e un conteggio che non torna a zero e' un documento che
+        /// SOLIDWORKS non chiude piu'.
+        /// </summary>
+        private static bool StessoOggetto(object a, object b)
+        {
+            if (a == null || b == null) return false;
+            if (ReferenceEquals(a, b)) return true;
+            IntPtr pa = IntPtr.Zero, pb = IntPtr.Zero;
+            try
+            {
+                pa = Marshal.GetIUnknownForObject(a);
+                pb = Marshal.GetIUnknownForObject(b);
+                return pa == pb;
+            }
+            catch { return false; }
+            finally
+            {
+                if (pa != IntPtr.Zero) Marshal.Release(pa);
+                if (pb != IntPtr.Zero) Marshal.Release(pb);
+            }
+        }
+
         private static string Identita(IModelDoc2 modello)
         {
             if (modello == null) return "";

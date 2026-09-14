@@ -147,7 +147,13 @@ namespace Riscontro.Disegno
                 ["documenti_aperti"] = DocumentiAperti().Count,
             };
             _log("[agente] tavola creata da " + template);
-            return SenzaFeature(misure);
+            var esito = SenzaFeature(misure);
+            // DA QUI IN POI SI LAVORA SULLA TAVOLA, e lo si dice.
+            // Chi esegue il piano sorveglia che il documento non cambi sotto i
+            // piedi; questo e' l'unico cambio legittimo, quindi va dichiarato
+            // invece di subito.
+            esito.DocumentoNuovo = disegno;
+            return esito;
         }
 
         // ─────────────────────────────────────────────────────────────────

@@ -145,6 +145,25 @@ namespace Riscontro.Disegno
             /// direzione non ce l'hanno.
             /// </summary>
             public double[] Direzione;
+            /// <summary>
+            /// IL DOCUMENTO SU CUI SI LAVORA DA ADESSO IN POI, quando questa
+            /// operazione lo ha cambiato APPOSTA.
+            ///
+            /// Ce n'e' una sola che lo fa — `crea_disegno` — e non e' un
+            /// effetto collaterale: una tavola E' un documento nuovo, e i passi
+            /// dopo (le viste, le quote) vanno fatti li'.
+            ///
+            /// Serve perche' chi esegue il piano sorveglia che il documento non
+            /// cambi sotto i piedi: e' la difesa che impedisce di estrudere nel
+            /// pezzo di qualcun altro. Senza un modo per DICHIARARE il cambio,
+            /// quella difesa fermerebbe un piano corretto («fammi la tavola e
+            /// mettici le viste») — e un rifiuto di cio' che e' giusto e' il
+            /// peggiore dei due modi di sbagliare.
+            ///
+            /// Si segue solo cio' che e' dichiarato. Un documento che cambia
+            /// senza che nessuno lo dica resta un motivo per fermarsi.
+            /// </summary>
+            public IModelDoc2 DocumentoNuovo;
             public Dictionary<string, object> Misure = new Dictionary<string, object>();
         }
 

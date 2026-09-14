@@ -16,6 +16,90 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.16.0 — 14 settembre 2026 · libreria 0.56.0
+
+**Il documento si tiene per mano, non per nome.** E un piano puo' finalmente
+fare una tavola e riempirla.
+
+### Il difetto che la 0.15.0 aveva appena creato
+
+La 0.15.0 aveva dato un'identita' ai documenti senza file (`titolo:<titolo>`).
+Sembrava giusto, e si e' rotto al primo piano vero:
+
+```
+passo 1  estrudi_rettangolo   ok
+passo 2  salva_documento      ok
+passo 3  crea_disegno         RIFIUTATO
+         «Il documento attivo e' cambiato mentre eseguivo: il piano era
+          per «titolo:Parte131». Non ho toccato niente.»
+```
+
+Il documento **non era cambiato**: si era *salvato*. E salvando cambiano tutti e
+due i nomi — il percorso da vuoto a un file, il titolo da «Parte131» a «z06».
+**Nessuna stringa sopravvive a un salvataggio.**
+
+Adesso l'identita' e' l'**oggetto COM**: si prende una volta all'inizio e si
+confrontano i puntatori a `IUnknown` (con le `Release` che servono — un
+conteggio che non torna a zero e' un documento che SOLIDWORKS non chiude piu').
+Il nome resta, ma solo per i messaggi.
+
+Vale anche per l'add-in, che prima confrontava i percorsi: un `salva con nome` a
+meta' piano lo avrebbe fermato allo stesso modo.
+
+### `Esito.DocumentoNuovo`: l'unico cambio di documento che si dichiara
+
+Con l'identita' riparata, il piano «pezzo → tavola → viste» si fermava lo stesso
+— e stavolta **a ragione**: `crea_disegno` cambia documento davvero, perche' una
+tavola *e'* un documento nuovo.
+
+La difesa non si spegne: l'operazione **dichiara** il cambio, e chi esegue lo
+segue soltanto se e' dichiarato.
+
+```
+[agente] passo 3: crea_disegno
+[agente] tavola creata da <impostazioni SOLIDWORKS>\...
+[agente] da qui in poi si lavora su «titolo:Disegno3 - Foglio1»
+[agente] passo 4: viste_standard        -> viste_totali: 3
+```
+
+Un documento che cambia **senza** che nessuno lo dica resta un motivo per
+fermarsi: e' la difesa che impedisce di estrudere nel pezzo di qualcun altro.
+
+### Misura 0.6 chiusa: si disegna sul foglio, e la sezione esce
+
+Era l'ultima delle dieci misure della sezione 0, e sblocca GT4 (sezioni e
+dettagli in tavola).
+
+```
+linea tracciata in x=0.0945, da y=0.2074 a y=0.2516
+linea selezionata: True, oggetti selezionati: 1, tipo 10 (swSelSKETCHSEGS)
+CreateSectionViewAt5 ha risposto: un oggetto
+viste sul foglio: 4 -> 5
+  -> LA SEZIONE C'E'. Ultima vista: «Vista in sezione A-A»
+```
+
+**Una cosa che si credeva e non era vera:** `ISheet.GetTemplateSketch()` **non**
+e' la superficie di disegno del foglio — e' il CARTIGLIO, 71 segmenti invariati
+prima e dopo. La linea finisce nello schizzo della **prima vista**, che *e'* il
+foglio (`Type = 1`), e si rilegge con `IView.GetSketch()`.
+
+Due accorgimenti che non si deducono: la linea deve attraversare la vista da
+parte a parte (una che la sfiora da' una sezione vuota **senza dire niente**), e
+lo schizzo va chiuso con `InsertSketch(true)` prima di chiedere la sezione.
+
+E il riscontro e' **il conto delle viste**: `CreateSectionViewAt5` puo'
+rispondere un oggetto senza aver fatto niente. 4 → 5 e' la misura.
+
+### Attrezzi nuovi
+
+| | |
+|---|---|
+| `Controlli\Annulla` | un solo Ctrl+Z, col volume prima e dopo |
+| `Controlli\SchizzoSulFoglio` | dove finisce una linea tracciata sul foglio, e come si riprende |
+| `Controlli\SezioneInTavola` | il giro completo fino alla sezione, col conto delle viste |
+
+---
+
 ## 0.15.0 — 14 settembre 2026 · libreria 0.55.0
 
 **Il ponte esegue i piani con `EsecutorePiano`, lo stesso giro dell'add-in.**
