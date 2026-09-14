@@ -227,9 +227,22 @@ namespace Riscontro.Disegno
                         Math.Round(definizione.CounterBoreDepth * 1000, 2);
             }
 
-            string mancante = ForiMancanti(feature, assi, offsetM, posizioni, diametroForo);
-            if (mancante != null) return Fallito(mancante);
-            misure["posizioni_verificate"] = true;
+            // TRE ESITI, NON DUE. «Non ho potuto guardare» e' una risposta
+            // diversa da «ho guardato e va bene», e finche' erano la stessa il
+            // banco stampava «posizioni verificate» su un campo che non voleva
+            // dire niente. Vedi GiudizioPosizioni per com'e' andata.
+            //
+            // Non verificabile NON e' un rifiuto: la lavorazione e' riuscita, e'
+            // il controllo che non c'e' stato. Si dice, e si va avanti.
+            string nonPosso;
+            var assiTrovati = AssiDeiFori(feature, diametroForo, out nonPosso);
+
+            var esito = GiudizioPosizioni.Giudica(
+                assiTrovati, nonPosso, assi, offsetM, posizioni, out string dovePosizioni);
+
+            if (esito == EsitoPosizioni.Sbagliate) return Fallito(dovePosizioni);
+            if (esito == EsitoPosizioni.Verificate) misure["posizioni_verificate"] = true;
+            else misure["posizioni_non_verificate"] = dovePosizioni;
 
             return Riuscito(feature, misure, NormaleDellaFaccia(faccia));
         }
@@ -523,26 +536,42 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// C'e' un foro in ognuno dei punti chiesti?
+        /// Raccoglie gli assi delle facce cilindriche del diametro atteso.
         ///
         /// SI GUARDA IL PEZZO, NON LA DEFINIZIONE. La definizione l'abbiamo
         /// scritta noi: rileggerla direbbe soltanto che l'abbiamo scritta.
-        /// Qui si cercano le facce cilindriche del diametro giusto e si
-        /// misura la distanza fra il loro asse e il punto chiesto.
         ///
-        /// Ritorna null se e' tutto a posto, altrimenti il motivo.
+        /// QUESTA FUNZIONE NON GIUDICA, RACCOGLIE. E' l'unica meta' che ha
+        /// bisogno di SOLIDWORKS; il giudizio sta in
+        /// <see cref="GiudizioPosizioni"/>, che si prova a tavolino.
+        ///
+        /// Quando non riesce a raccogliere, lo DICE in <paramref name="nonPosso"/>
+        /// invece di tornare una lista vuota che somiglia a «nessun foro
+        /// fuori posto». La versione precedente tornava `null` — cioe' «tutto
+        /// a posto» — in quattro strade in cui non aveva guardato niente, e chi
+        /// la chiamava scriveva `posizioni_verificate = true` senza condizione.
         /// </summary>
-        private string ForiMancanti(
-            IFeature feature, double[] assi, double offsetM,
-            List<double[]> posizioni, double diametroMm)
+        private List<double[]> AssiDeiFori(
+            IFeature feature, double diametroMm, out string nonPosso)
         {
-            if (diametroMm <= 0) return null;   // niente da confrontare: non si inventa un verdetto
-            List<double[]> assiTrovati;
+            nonPosso = null;
+
+            if (diametroMm <= 0)
+            {
+                nonPosso = "SOLIDWORKS non dichiara un diametro per questa lavorazione: " +
+                           "non ho un termine di confronto";
+                return null;
+            }
+
+            var assiTrovati = new List<double[]>();
             try
             {
-                assiTrovati = new List<double[]>();
                 var facce = feature.GetFaces() as object[];
-                if (facce == null) return null;
+                if (facce == null)
+                {
+                    nonPosso = "la lavorazione non espone le sue facce";
+                    return null;
+                }
                 foreach (var o in facce)
                 {
                     var superficie = (o as IFace2)?.IGetSurface();
@@ -553,46 +582,13 @@ namespace Riscontro.Disegno
                     assiTrovati.Add(par);
                 }
             }
-            catch { return null; }
-            if (assiTrovati.Count == 0) return null;
-
-            double peggiore = 0;
-            int lontano = -1;
-            for (int i = 0; i < posizioni.Count; i++)
+            catch (Exception ex)
             {
-                var atteso = new double[3];
-                atteso[(int)assi[0]] = Unita.M(posizioni[i][0]);
-                atteso[(int)assi[1]] = Unita.M(posizioni[i][1]);
-                atteso[(int)assi[2]] = offsetM;
-
-                double vicino = double.MaxValue;
-                foreach (var par in assiTrovati)
-                    vicino = Math.Min(vicino, DistanzaDallAsse(atteso, par));
-                if (vicino > peggiore) { peggiore = vicino; lontano = i; }
+                nonPosso = "non sono riuscito a leggere le facce della lavorazione: " + ex.Message;
+                return null;
             }
 
-            if (peggiore * 1000.0 > 0.1)
-                return string.Format(
-                    CultureInfo.InvariantCulture,
-                    "Il foro {0}, chiesto a ({1:0.##}, {2:0.##}), e' finito a {3:0.##} mm " +
-                    "da li'. Non te lo lascio passare per buono: annullalo con Ctrl+Z.",
-                    lontano + 1, posizioni[lontano][0], posizioni[lontano][1], peggiore * 1000.0);
-            return null;
-        }
-
-        /// <summary>Distanza fra un punto e la retta di un cilindro, in metri.</summary>
-        private static double DistanzaDallAsse(double[] punto, double[] cilindro)
-        {
-            double vx = punto[0] - cilindro[0];
-            double vy = punto[1] - cilindro[1];
-            double vz = punto[2] - cilindro[2];
-            double ax = cilindro[3], ay = cilindro[4], az = cilindro[5];
-            double norma = Math.Sqrt(ax * ax + ay * ay + az * az);
-            if (norma < 1e-12) return double.MaxValue;
-            ax /= norma; ay /= norma; az /= norma;
-            double lungo = vx * ax + vy * ay + vz * az;
-            double dx = vx - lungo * ax, dy = vy - lungo * ay, dz = vz - lungo * az;
-            return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            return assiTrovati;
         }
     }
 }

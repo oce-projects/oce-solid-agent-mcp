@@ -4,7 +4,15 @@
 //   node guarda.js                stampa il riassunto
 //   node guarda.js tutto          stampa il JSON intero
 const { spawn } = require("child_process");
-const ESE = process.env.PONTE || "S:/PDM/SolidWorksMcp/bin/SolidWorksMcp.exe";
+const path = require("path");
+
+// IL PERCORSO SI RICAVA, NON SI SCRIVE. Qui c'era il percorso assoluto di
+// questa macchina di sviluppo: chi clonava il repository altrove e lanciava il
+// comando come lo documenta LEGGIMI.md otteneva un ENOENT su un file che sul
+// suo disco non esiste, senza nessun indizio che andasse impostata `PONTE`.
+// `corri_piani.js`, due file piu' in la', lo faceva gia' giusto.
+const RADICE = path.resolve(__dirname, "..");
+const ESE = process.env.PONTE || path.join(RADICE, "bin", "SolidWorksMcp.exe");
 const tutto = process.argv[2] === "tutto";
 
 const richieste = [

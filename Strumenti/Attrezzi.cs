@@ -403,7 +403,12 @@ namespace SolidWorksMcp.Strumenti
                     "Il piano e' vuoto: «passi» deve essere un elenco di " +
                     "{operazione, argomenti}.", true);
 
-            var prima = _sessione.Stato(out var erroreLettura);
+            // SENZA ANCORA: questa lettura serve a sapere su QUALE documento si
+            // lavora, quanto volume c'era e quante lavorazioni erano gia' in
+            // errore. Non se ne costruiscono firme (quelle si fanno su «dopo»,
+            // piu' sotto) e non torna a chi legge. L'ancora costa un
+            // GetTessTriangles per faccia, e qui si pagava per buttarla.
+            var prima = _sessione.StatoSenzaAncora(out var erroreLettura);
             if (prima == null)
                 return Protocollo.Contenuto(erroreLettura, true);
 
@@ -768,31 +773,102 @@ namespace SolidWorksMcp.Strumenti
         }
 
         /// <summary>
-        /// Tutti gli identificativi che quello stato descriveva: facce,
-        /// spigoli, corpi, assi e lavorazioni.
+        /// Tutti i nomi che quello stato ha davvero MOSTRATO: gli uid di facce,
+        /// spigoli, corpi, assi e lavorazioni, piu' i nomi di lavorazione che lo
+        /// stato scrive in giro per altre vie.
+        ///
+        /// LA REGOLA: SI RACCOGLIE CIO' CHE LO STATO HA SCRITTO, NON CIO' CHE
+        /// AVEVA IN MENTE DI SCRIVERE.
+        ///
+        /// Questo controllo blocca un piano PRIMA di eseguirlo quando cita un
+        /// nome che non c'era. Se raccoglie meno nomi di quanti lo stato ne ha
+        /// mostrati, rifiuta lavoro legittimo — e lo rifiuta nel modo peggiore,
+        /// perche' chi ha scritto il piano quel nome l'ha letto nella risposta
+        /// precedente e ha ragione a fidarsene.
+        ///
+        /// Fino alla 0.25.2 guardava solo il campo `uid` delle cinque famiglie.
+        /// Ma lo stato pubblica nomi di lavorazione anche in tre altri posti:
+        ///
+        ///   * `da_lavorazione` su ogni faccia — ed e' messo li' apposta per
+        ///     «quel foro portalo a M10»;
+        ///   * `fatto_da` su ogni corpo;
+        ///   * la mappa `lavorazioni` in fondo.
+        ///
+        /// E l'elenco `feature` invece e' FILTRATO per tipo e tagliato a
+        /// `MaxFeature`. Quindi bastava un pezzo con piu' di ottanta
+        /// lavorazioni, o una lavorazione di un tipo che non entra nell'elenco,
+        /// perche' lo stato mostrasse un nome e il controllo lo dichiarasse
+        /// inesistente.
+        ///
+        /// SI ALLARGA E NON SI STRINGE. L'insieme e' unico e non distingue le
+        /// famiglie: `faccia_uid` accetta anche un nome di lavorazione. E'
+        /// voluto — questo e' un controllo di ESISTENZA, non di tipo, e chi
+        /// sbaglia famiglia viene fermato dopo con un messaggio che sa dire di
+        /// che tipo e' quell'entita' (`NonLavoroSu`). Stringere qui vorrebbe
+        /// dire rischiare un rifiuto sbagliato per guadagnare un messaggio
+        /// leggermente migliore.
         /// </summary>
         private static HashSet<string> UidDelloStato(Dictionary<string, object> stato)
         {
             var fuori = new HashSet<string>(StringComparer.Ordinal);
+
+            // 1. Gli uid veri e propri.
             foreach (var famiglia in new[] { "facce", "spigoli", "corpi", "assi", "feature" })
-            {
-                object grezzo;
-                if (!stato.TryGetValue(famiglia, out grezzo) || grezzo == null) continue;
-                // Le famiglie sono List<Dictionary<...>>, non object[]: un
-                // `as object[]` qui tornerebbe null in silenzio e il controllo
-                // direbbe «non esiste» su tutto. E' gia' successo una volta,
-                // con le firme.
-                var elenco = grezzo as System.Collections.IEnumerable;
-                if (elenco == null) continue;
-                foreach (var v in elenco)
+                foreach (var voce in VociDi(stato, famiglia))
                 {
-                    var voce = v as Dictionary<string, object>;
                     object uid;
-                    if (voce != null && voce.TryGetValue("uid", out uid) && uid != null)
+                    if (voce.TryGetValue("uid", out uid) && uid != null)
                         fuori.Add(Convert.ToString(uid));
                 }
+
+            // 2. I nomi di lavorazione scritti sulle facce e sui corpi.
+            foreach (var voce in VociDi(stato, "facce"))
+            {
+                object nome;
+                if (voce.TryGetValue("da_lavorazione", out nome) && nome != null)
+                    fuori.Add(Convert.ToString(nome));
             }
+            foreach (var voce in VociDi(stato, "corpi"))
+            {
+                object nome;
+                if (voce.TryGetValue("fatto_da", out nome) && nome != null)
+                    fuori.Add(Convert.ToString(nome));
+            }
+
+            // 3. La mappa delle lavorazioni: le CHIAVI sono i numeri, i VALORI
+            //    sono i nomi. Chi scrive un piano copia il nome, non il numero.
+            object grezzo;
+            if (stato.TryGetValue("lavorazioni", out grezzo))
+            {
+                var mappa = grezzo as Dictionary<string, object>;
+                if (mappa != null)
+                    foreach (var v in mappa.Values)
+                        if (v != null) fuori.Add(Convert.ToString(v));
+            }
+
+            fuori.Remove("");
             return fuori;
+        }
+
+        /// <summary>
+        /// Le voci di una famiglia dello stato, come dizionari.
+        ///
+        /// Le famiglie sono `List&lt;Dictionary&lt;...&gt;&gt;`, non `object[]`: un
+        /// `as object[]` qui tornerebbe null in silenzio e il controllo direbbe
+        /// «non esiste» su tutto. E' gia' successo una volta, con le firme.
+        /// </summary>
+        private static IEnumerable<Dictionary<string, object>> VociDi(
+            Dictionary<string, object> stato, string famiglia)
+        {
+            object grezzo;
+            if (!stato.TryGetValue(famiglia, out grezzo) || grezzo == null) yield break;
+            var elenco = grezzo as System.Collections.IEnumerable;
+            if (elenco == null) yield break;
+            foreach (var v in elenco)
+            {
+                var voce = v as Dictionary<string, object>;
+                if (voce != null) yield return voce;
+            }
         }
 
         /// <summary>Un valore che puo' essere una stringa o un elenco di stringhe.</summary>

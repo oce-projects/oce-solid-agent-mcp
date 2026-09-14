@@ -152,6 +152,145 @@ namespace Controlli.ProvaSagoma
             Sta("nell'incavo dell'elle", new[] { 7.0, 7 }, elle, false);
             Sta("nel pieno dell'elle", new[] { 2.0, 7 }, elle, true);
             Console.WriteLine();
+
+            IlBordo();
+        }
+
+        // ==================================================================
+        // Il bordo, che non e' ne' dentro ne' fuori
+        // ==================================================================
+        //
+        // LA PARITA' DEGLI ATTRAVERSAMENTI NON SA RISPONDERE SUL BORDO, e la
+        // risposta che da' DIPENDE DAL LATO. Con il confronto `x < taglio` un
+        // vertice sul bordo destro risulta fuori e lo stesso vertice sul bordo
+        // sinistro risulta dentro.
+        //
+        // Non sarebbe grave se fosse un dettaglio di un punto solo. Ma il
+        // controllo dei contorni in `SagomaSensata` classifica TUTTI i vertici
+        // di un contorno e rifiuta quando ne trova di dentro e di fuori
+        // insieme («sta A CAVALLO del bordo esterno»). Una cava a filo del
+        // bordo destro ha due vertici «fuori» e due «dentro»: rifiutata. La
+        // stessa cava specchiata a sinistra ha tutti e quattro i vertici
+        // «dentro»: accettata.
+        //
+        // Stessa geometria, verdetto opposto a seconda del lato, e quello
+        // sbagliato e' un RIFIUTO DI LAVORO LEGITTIMO — una cava a filo del
+        // bordo e' un'asola aperta, si fa tutti i giorni.
+        //
+        // La riparazione: tre risposte invece di due. `DoveSta` dice Dentro,
+        // Fuori o SulBordo, e chi classifica i contorni tratta «sul bordo»
+        // come cio' che e': un contatto, non un attraversamento.
+
+        private static void IlBordo()
+        {
+            Console.WriteLine("Il bordo");
+
+            var piastra = P(new[] { 0.0, 0 }, new[] { 10.0, 0 },
+                            new[] { 10.0, 10 }, new[] { 0.0, 10 });
+
+            // I quattro lati, uno per uno: la risposta deve essere la stessa.
+            Dove("un punto sul lato destro", new[] { 10.0, 5 }, piastra, DoveSiTrova.SulBordo);
+            Dove("un punto sul lato sinistro", new[] { 0.0, 5 }, piastra, DoveSiTrova.SulBordo);
+            Dove("un punto sul lato in alto", new[] { 5.0, 10 }, piastra, DoveSiTrova.SulBordo);
+            Dove("un punto sul lato in basso", new[] { 5.0, 0 }, piastra, DoveSiTrova.SulBordo);
+            Dove("un vertice", new[] { 10.0, 10 }, piastra, DoveSiTrova.SulBordo);
+
+            // E dentro e fuori continuano a funzionare.
+            Dove("il centro", new[] { 5.0, 5 }, piastra, DoveSiTrova.Dentro);
+            Dove("appena dentro il bordo destro", new[] { 9.99, 5 }, piastra, DoveSiTrova.Dentro);
+            Dove("appena fuori dal bordo destro", new[] { 10.01, 5 }, piastra, DoveSiTrova.Fuori);
+
+            // LA SIMMETRIA, che e' il punto di tutto questo.
+            var aDestra = P(new[] { 8.0, 2 }, new[] { 10.0, 2 },
+                            new[] { 10.0, 8 }, new[] { 8.0, 8 });
+            var aSinistra = P(new[] { 0.0, 2 }, new[] { 2.0, 2 },
+                              new[] { 2.0, 8 }, new[] { 0.0, 8 });
+            Specchio("una cava a filo del bordo", aDestra, aSinistra, piastra);
+
+            // PERCHE' `DoveSta` ESISTE, fissato in una prova invece che in un
+            // commento. `Dentro` da solo — la parita' degli attraversamenti —
+            // risponde in modo DIVERSO sulle due cave specchiate: e' il difetto
+            // che ha portato a scrivere `DoveSta`, e resta qui perche' se un
+            // giorno qualcuno «ripara» `Dentro` questa riga glielo dice.
+            int destraDentro = 0, sinistraDentro = 0;
+            foreach (var p in aDestra) if (FormaChiusa.Dentro(p, piastra)) destraDentro++;
+            foreach (var p in aSinistra) if (FormaChiusa.Dentro(p, piastra)) sinistraDentro++;
+            if (destraDentro != sinistraDentro)
+                Console.WriteLine("  ok  `Dentro` da solo e' asimmetrico (a destra " +
+                    destraDentro + " dentro su 4, a sinistra " + sinistraDentro +
+                    "): e' il motivo per cui c'e' `DoveSta`");
+            else
+                Male("`Dentro` da solo non e' piu' asimmetrico (" + destraDentro +
+                     " e " + sinistraDentro + "): rileggere se `DoveSta` serve ancora");
+
+            // E una che sta DAVVERO a cavallo deve restare a cavallo.
+            var aCavallo = P(new[] { 8.0, 2 }, new[] { 12.0, 2 },
+                             new[] { 12.0, 8 }, new[] { 8.0, 8 });
+            int d, f, b;
+            Classifica(aCavallo, piastra, out d, out f, out b);
+            if (d > 0 && f > 0)
+                Console.WriteLine("  ok  una cava davvero a cavallo: " +
+                    d + " dentro, " + f + " fuori, " + b + " sul bordo");
+            else
+                Male("una cava davvero a cavallo non viene piu' vista: " +
+                     d + " dentro, " + f + " fuori, " + b + " sul bordo");
+
+            Console.WriteLine();
+        }
+
+        private static void Classifica(
+            List<double[]> contorno, List<double[]> esterno,
+            out int dentro, out int fuori, out int sulBordo)
+        {
+            dentro = 0; fuori = 0; sulBordo = 0;
+            foreach (var punto in contorno)
+                switch (FormaChiusa.DoveSta(punto, esterno))
+                {
+                    case DoveSiTrova.Dentro: dentro++; break;
+                    case DoveSiTrova.Fuori: fuori++; break;
+                    default: sulBordo++; break;
+                }
+        }
+
+        /// <summary>
+        /// Due geometrie specchiate devono dare la STESSA classificazione.
+        ///
+        /// Si controlla la simmetria e nient'altro. La prima versione di questa
+        /// prova chiedeva anche `f1 == 0`, cioe' che tutte e due PASSASSERO: era
+        /// la direzione sbagliata, e l'ha detto SOLIDWORKS. Una cava a filo del
+        /// bordo non si estrude da nessuno dei due lati — due contorni che si
+        /// toccano non delimitano una regione — quindi il verdetto giusto e'
+        /// «no» da tutt'e due le parti, e cio' che era rotto era il «si» a
+        /// sinistra.
+        ///
+        /// Quello che questa prova deve difendere e' che i due lati non
+        /// divergano. COSA si risponde lo decide il pezzo, non lei.
+        /// </summary>
+        private static void Specchio(
+            string cosa, List<double[]> uno, List<double[]> altro, List<double[]> esterno)
+        {
+            int d1, f1, b1, d2, f2, b2;
+            Classifica(uno, esterno, out d1, out f1, out b1);
+            Classifica(altro, esterno, out d2, out f2, out b2);
+
+            if (d1 == d2 && f1 == f2 && b1 == b2)
+            {
+                Console.WriteLine("  ok  " + cosa +
+                    ": stesso verdetto da tutt'e due i lati (" +
+                    d1 + " dentro, " + b1 + " sul bordo, " + f1 + " fuori)");
+                return;
+            }
+            Male(cosa + ": a destra " + d1 + "/" + f1 + "/" + b1 +
+                 ", a sinistra " + d2 + "/" + f2 + "/" + b2 +
+                 "  (dentro/fuori/bordo) - stessa geometria, verdetto diverso");
+        }
+
+        private static void Dove(
+            string cosa, double[] punto, List<double[]> poligono, DoveSiTrova atteso)
+        {
+            var avuto = FormaChiusa.DoveSta(punto, poligono);
+            if (avuto == atteso) Console.WriteLine("  ok  " + cosa + ": " + avuto);
+            else Male(cosa + ": detto " + avuto + ", atteso " + atteso);
         }
 
         // ------------------------------------------------------------------

@@ -16,6 +16,214 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.25.2 — 14 settembre 2026 · libreria 0.62.0
+
+**Sette controlli che non controllavano, trovati da una revisione fatta prima
+del push.** Uno di loro sorvegliava il banco.
+
+### 1. Il banco si dava la promozione da solo
+
+`OperazioniFori` chiamava `ForiMancanti` e poi scriveva, senza condizione:
+
+```csharp
+misure["posizioni_verificate"] = true;
+```
+
+`ForiMancanti` tornava `null` — «tutto a posto» — anche in **quattro strade in
+cui non aveva guardato niente**: diametro ignoto, `GetFaces()` nullo, il `catch`,
+e soprattutto **nessuna faccia cilindrica del diametro atteso**, cioe' proprio il
+caso in cui i fori potrebbero non esserci. Uno dei suoi `return null` aveva
+perfino il commento giusto: *«niente da confrontare: non si inventa un
+verdetto»*.
+
+> **La funzione si rifiutava di inventare il verdetto, e chi la chiamava lo
+> inventava al posto suo.**
+
+E il banco decideva il pass con `misure.ContainsKey("posizioni_verificate")`:
+una chiave sempre scritta. `verificate` era vero per costruzione, e il ramo che
+stampava «POSIZIONI NON VERIFICATE» era **codice morto**. Le cinque prove
+`foro_guidato` misuravano il diametro credendo di misurare anche le posizioni.
+
+Adesso gli esiti sono **tre**: `Verificate`, `NonVerificabile`, `Sbagliate`.
+«Non ho potuto guardare» non e' un rifiuto — la lavorazione e' riuscita, e' il
+controllo che non c'e' stato — e viaggia in una chiave **diversa**,
+`posizioni_non_verificate`, col motivo dentro: un `posizioni_verificate = false`
+sarebbe stato letto come «verificate» da chiunque guardi se la chiave c'e'.
+
+Il giudizio sta in `GiudizioPosizioni`, **senza SOLIDWORKS**: raccogliere le
+facce cilindriche richiede il COM, decidere cosa farne no. Separati, il caso che
+conta — zero facce trovate — si scrive in una riga, e con SOLIDWORKS acceso non
+si sapeva come costringerlo a capitare. `Controlli\ProvaPosizioni` (20 prove).
+
+Una prova e' partita rossa e aveva ragione lei: «scostamento esattamente 0,1 mm»
+non e' un caso provabile. Il giro mm → m → mm da' 0,10000000000000142, e il
+verdetto dipendeva dall'ultimo bit. Al suo posto si misura la **separazione**:
+rumore 2,9e-15 mm contro una soglia di 0,1 — quattordici ordini di grandezza.
+
+### 2. La cava a filo del bordo, rifiutata solo da un lato
+
+`FormaChiusa.Dentro` usa la parita' degli attraversamenti, che **sul bordo non
+sa rispondere** e risponde secondo il lato: col confronto `x < taglio` un
+vertice sul bordo destro risulta fuori, lo stesso a sinistra risulta dentro.
+
+Su una piastra 100×100: una cava a filo del bordo **destro** —
+(30,−10)(50,−10)(50,10)(30,10) — aveva due vertici «fuori» e due «dentro», e
+veniva rifiutata come «sta a cavallo del bordo esterno». La stessa cava
+**specchiata a sinistra** aveva tutti e quattro i vertici «dentro», e passava.
+
+Stessa geometria, verdetto opposto secondo il lato. Uno dei due era sbagliato, e
+SOLIDWORKS ha detto quale.
+
+**La prima riparazione andava nel verso sbagliato, e vale la pena scriverlo.**
+Il ragionamento era: «una cava a filo del bordo e' un'asola aperta, si fa tutti
+i giorni, quindi vanno accettate tutt'e due». E' vero del **pezzo** e falso
+dello **schizzo**: due contorni che condividono un tratto di bordo non
+delimitano una regione, e l'asola aperta si disegna come **un** contorno solo
+con otto punti, non come due che si toccano.
+
+Misurato — tre geometrie, un solo risultato, «L'estrusione non e' stata creata»:
+la cava a destra, la stessa specchiata a sinistra, e un rombo che tocca il bordo
+in **un solo vertice**.
+
+Quindi il verdetto giusto e' **no da tutt'e due i lati**, e cio' che era rotto
+era il **si'** a sinistra. Il guadagno di `DoveSta` non e' far passare di piu':
+e' far rispondere **uguale** ai due lati, e dare un motivo migliore di quello
+che da' SOLIDWORKS — «TOCCA il bordo esterno in 2 punti», piu' la strada per
+avere l'asola che si voleva.
+
+> Il verso di una riparazione non si ricava dal ragionamento sull'officina: si
+> chiede al pezzo. «E' lavoro legittimo» diceva come **deve** andare, non come
+> **va**.
+
+La banda del bordo e' un micrometro, con dieci milioni di volte di margine sul
+rumore e diecimila sulla piu' piccola quota sensata. In `ProvaSagoma` la prova
+sulle due cave specchiate controlla la **simmetria** e nient'altro — quale sia
+la risposta lo decide il pezzo — e resta la prova che `Dentro` da solo **e'**
+asimmetrico: se un giorno qualcuno lo ripara, quella riga glielo dice.
+
+### 3. Il raggio troppo grande passava da una strada e non dall'altra
+
+Il commento di `SelezionaSpigoli` prometteva che «tutti i controlli che contano
+stanno qui», e fra quelli che la misura chiesta ci stia sulla lunghezza dello
+spigolo. Il ramo `spigoli_rif` usciva con `return true` **prima** di arrivarci:
+un raccordo da 30 mm su uno spigolo da 10 era rifiutato con `spigoli_uid` e
+lasciato passare con `spigoli_rif`, fino a `FeatureFillet3` che fallisce dicendo
+soltanto che non e' stato creato.
+
+> Il metodo era uno, ma aveva due strade, e bastava questo per credersi al
+> sicuro. **Mettere due strade sotto lo stesso commento non e' meno pericoloso
+> che mettere due copie sotto due nomi.**
+
+### 4. Il tetto sulle lavorazioni non diceva di essere scattato
+
+Tre tetti su quattro si dichiaravano. `MaxFeature` no: le lavorazioni oltre
+l'ottantesima finivano in `altre_feature` insieme a quelle di tipo ignorato —
+due cose diverse sommate — e `troncato` restava `false`.
+
+Era il peggiore dei quattro da tacere: l'albero si scorre in **ordine di
+creazione**, quindi le ottanta elencate sono le piu' **vecchie**, e quella che
+il piano ha appena creato e' fra le scartate. Il modello leggeva «elenco
+completo», non trovava la lavorazione nuova, e poteva concluderne che
+l'operazione non aveva fatto niente — e rifarla.
+
+Adesso: `feature_non_elencate`, `feature_totali`, `troncato: true`. Quali si
+tengono resta da cambiare, ed e' la voce **E12**: serve un giro leggero prima e
+il dettaglio dopo, perche' `QuoteDellaFeature` costa chiamate COM.
+
+> **Un tetto che non dice di essere scattato non e' un tetto: e' una risposta
+> sbagliata che si presenta come completa.**
+
+### 5. Il piano controllato «tutto» si fermava al primo livello
+
+La descrizione di `disegna` promette al modello che *«se un passo qualunque ha
+argomenti che non rispettano lo schema, non viene eseguito niente e il documento
+resta com'era»*. `Ponte.Forma` per `type: "object"` verificava che fosse un
+oggetto e **non guardava dentro**: ne' il `required` annidato ne' le
+`properties`.
+
+Lo schema di `ripeti_lineare` dichiara `feature_rif` con
+`required: ["passo", "genere"]`. Un piano di quattro passi il cui quarto scrive
+`feature_rif: {}` passava tutta la validazione preventiva, i primi tre passi
+venivano costruiti nel documento, e il quarto falliva. **Il documento restava a
+meta'.** La garanzia di tutto-o-niente e' esattamente cio' per cui quel
+controllo esiste: mantenerla solo al primo livello vuol dire non mantenerla.
+
+Adesso scende fino a tre livelli e il messaggio nomina il campo per esteso
+(«feature_rif.passo»), perche' lo stesso nome «passo» sta sotto tre riferimenti
+diversi nello stesso schema.
+
+### 6. Lo stato mostrava un nome, e il controllo lo dichiarava inesistente
+
+`UidCheNonEsistono` ferma un piano che cita un identificativo che non c'era. Ma
+raccoglieva **solo il campo `uid` delle cinque famiglie**, mentre lo stato
+pubblica nomi di lavorazione anche in tre altri posti: `da_lavorazione` su ogni
+faccia (messo li' apposta per «quel foro portalo a M10»), `fatto_da` su ogni
+corpo, e la mappa `lavorazioni`. E l'elenco `feature` e' filtrato per tipo e
+tagliato a `MaxFeature`.
+
+Bastava un pezzo con piu' di ottanta lavorazioni, o una di tipo non elencato,
+perche' lo stato mostrasse un nome e il controllo lo chiamasse inesistente —
+**un rifiuto falso causato dall'output di chi lo emette**, e il piu' odioso,
+perche' chi l'ha scritto quel nome l'ha letto nella risposta precedente.
+
+### 7. L'ancora si pagava anche per buttarla
+
+`Ponte.Sessione.LeggiStato` aveva il flag cablato a `true`. La lettura «prima»
+di `disegna` serve solo a sapere su quale documento si lavora, quanto volume
+c'era e quante lavorazioni erano in errore: non se ne costruiscono firme e non
+torna a chi legge. Pagava lo stesso un `GetTessTriangles` e un baricentro pesato
+per area **su ogni faccia**.
+
+Adesso c'e' `StatoSenzaAncora`. Nome diverso e non un parametro in piu': e' la
+lezione di `LeggiConAncora` della 0.25.1.
+
+### Una prova del banco misurava anche cio' che non doveva
+
+`stato: sotto i 16 KB su un telaio da quattro barre` e' fallita a **16.280
+caratteri**, contro i **15.628** di un'ora prima, **senza che il codice fosse
+cambiato**.
+
+Lo stato elenca `documenti_aperti`, quindi la misura dipende da cosa c'e' aperto
+in SOLIDWORKS oltre al telaio. Sei parti salvate da un giro di `corri_piani.js`
+erano rimaste aperte: ~650 caratteri, ed erano tutta la differenza.
+
+E `ChiudiScarti --chiudi` **non** le chiude: risparmia apposta i documenti che
+hanno un file. Ci vuole la cartella — `ChiudiScarti.exe --chiudi "...\Banco\lavoro"`.
+
+Adesso il messaggio stampa **sempre** quanti documenti erano aperti, verde o
+rosso che sia, e quando sono piu' di uno lo dice. Una prova che dipende
+dall'ambiente non e' sbagliata — e' sbagliata se non lo dichiara, e mezz'ora
+spesa a cercare una regressione che non c'era e' il prezzo di non dichiararlo.
+
+> Un messaggio che da' il criterio serve a leggere anche i verdi, non solo i
+> rossi.
+
+### E cinque casi del banco non potevano piu' girare
+
+`corri_piani.js` creava `Banco\lavoro\profili\` **vuota**. I cinque casi del
+telaio nominano `{BANCO}/profili/QUADRO_COPIA.SLDLFP`: prima della riparazione
+col segnaposto (0.25.0) quel percorso puntava alla scratchpad di sessione, dove
+il file c'era perche' qualcuno ce l'aveva messo a mano. Il segnaposto ha reso il
+percorso portabile e ha lasciato il file **senza nessuno che lo provveda**.
+
+Rispondevano «Il profilo ... non esiste su questa postazione», che e' un
+messaggio giusto per un problema che non c'era. Adesso `preparaLaCartella` copia
+il profilo normato da `PROFILI_SALDATURA`, e se non lo trova **lo dice** invece
+di morire: chi clona il repository non ha quella libreria e deve poter far
+girare tutti gli altri casi.
+
+Si copia e non si usa l'originale perche' inserire un profilo **apre** il suo
+`.SLDLFP` e lo lascia sporco: il banco lavorerebbe sulla libreria normata vera
+dell'officina.
+
+### E, in coda, chi clona
+
+`costruisci-controlli.ps1` aveva il percorso dell'interop costante. Adesso
+accetta `-SwRedist` e legge `SW_REDIST`, che e' la stessa variabile che
+`Banco\LEGGIMI.md` gia' documenta.
+
+---
+
 ## 0.25.1 — 14 settembre 2026 · libreria 0.61.0
 
 **La guardia guardava l'albero, e `git push` manda la storia.**

@@ -71,6 +71,40 @@ ed e' il difetto piu' caro di tutto il progetto.
 
 ## Come si mette in funzione
 
+### Prima si compila
+
+`bin\` sta nel `.gitignore`: dopo un clone quella cartella **non esiste**, e
+l'eseguibile nominato qui sotto nemmeno.
+
+```
+.\build.ps1
+```
+
+Serve MSBuild (i **Build Tools for Visual Studio 2022**, gratis, bastano) e
+SOLIDWORKS installato sulla macchina: le librerie di interoperabilita' non
+stanno in questo repository e si prendono da li'.
+
+Se SOLIDWORKS non e' nel posto di serie, la cartella si dice — ed e' la
+**radice** dell'installazione, non `api\redist`:
+
+```
+.\build.ps1 -SwInstallPath 'D:\Programmi\SOLIDWORKS Corp\SOLIDWORKS'
+```
+
+Gli attrezzi di prova in `Controlli\` hanno uno script loro, e stanno fuori
+dalla soluzione apposta — un progetto in piu' li farebbe ricompilare a ogni
+build senza motivo:
+
+```
+.\Controlli\costruisci-controlli.ps1
+```
+
+Qui la cartella si chiama `-SwRedist` ed e' `api\redist`, non la radice: sono
+due script diversi nati in due momenti diversi, e uniformarli e' una voce del
+`TODO.md` e non una cosa da indovinare.
+
+### Poi si collega
+
 ```jsonc
 // nella configurazione del client MCP
 {

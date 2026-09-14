@@ -103,6 +103,7 @@
     <Compile Include="Riferimenti.cs" />
     <Compile Include="ErroriFeature.cs" />
     <Compile Include="FormaChiusa.cs" />
+    <Compile Include="GiudizioPosizioni.cs" />
     <Compile Include="RuotaDentata.cs" />
     <Compile Include="Sezioni.cs" />
     <Compile Include="Unita.cs" />

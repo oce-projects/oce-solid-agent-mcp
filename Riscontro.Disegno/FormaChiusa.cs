@@ -4,6 +4,26 @@ using System.Collections.Generic;
 namespace Riscontro.Disegno
 {
     /// <summary>
+    /// Dove sta un punto rispetto al bordo di una sagoma.
+    ///
+    /// Il bordo e' una risposta a se': un punto che ci sta sopra non e' ne'
+    /// dentro ne' fuori, e costringerlo a essere uno dei due fa dipendere il
+    /// verdetto dal lato del poligono su cui capita. Vedi
+    /// <see cref="FormaChiusa.DoveSta"/>.
+    /// </summary>
+    public enum DoveSiTrova
+    {
+        /// <summary>Dentro il materiale, bordo escluso.</summary>
+        Dentro,
+
+        /// <summary>Fuori dal materiale, bordo escluso.</summary>
+        Fuori,
+
+        /// <summary>Sul bordo, entro <see cref="FormaChiusa.SulBordoMm"/>.</summary>
+        SulBordo
+    }
+
+    /// <summary>
     /// LA GEOMETRIA DI UNA SAGOMA PIANA, senza SOLIDWORKS di mezzo.
     ///
     /// Serve a rispondere a due domande che SOLIDWORKS **non** fa:
@@ -76,11 +96,108 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// Dove sta un punto rispetto a un poligono: dentro, fuori, o sul suo
+        /// bordo.
+        ///
+        /// PERCHE' TRE RISPOSTE E NON DUE.
+        ///
+        /// La parita' degli attraversamenti non sa rispondere sul bordo, e la
+        /// risposta che da' DIPENDE DAL LATO: col confronto `x &lt; taglio` un
+        /// vertice sul bordo destro risulta fuori, e lo stesso vertice sul
+        /// bordo sinistro risulta dentro.
+        ///
+        /// Sarebbe un dettaglio se restasse un punto solo. Ma il controllo dei
+        /// contorni classifica TUTTI i vertici e decide da quelli. Misurato il
+        /// 14/9/2026 su una piastra 100x100: una cava a filo del bordo DESTRO —
+        /// (30,-10)(50,-10)(50,10)(30,10) — ha due vertici «fuori» e due
+        /// «dentro», e veniva rifiutata come «a cavallo del bordo esterno». La
+        /// stessa cava specchiata a SINISTRA ha tutti e quattro i vertici
+        /// «dentro», e passava.
+        ///
+        /// Stessa geometria, verdetto opposto secondo il lato. Uno dei due era
+        /// sbagliato — e SOLIDWORKS ha detto quale.
+        ///
+        /// LA PRIMA RIPARAZIONE ANDAVA NEL VERSO SBAGLIATO, e vale la pena
+        /// scriverlo. Il ragionamento era «una cava a filo del bordo e'
+        /// un'asola aperta, si fa tutti i giorni, quindi vanno accettate tutte
+        /// e due». E' vero del PEZZO e falso dello SCHIZZO: due contorni che
+        /// condividono un tratto di bordo non delimitano una regione, e
+        /// l'asola aperta si disegna come UN contorno solo con otto punti, non
+        /// come due che si toccano.
+        ///
+        /// Misurato, tre geometrie, un solo risultato — «L'estrusione non e'
+        /// stata creata»:
+        ///
+        ///   * cava a filo del bordo destro;
+        ///   * la stessa specchiata a sinistra;
+        ///   * un rombo che tocca il bordo in UN SOLO VERTICE.
+        ///
+        /// Quindi il verdetto giusto per tutt'e due i lati e' RIFIUTARE, e
+        /// quello che era sbagliato era l'accettazione a sinistra. Il valore di
+        /// «sul bordo» non e' far passare di piu': e' far dare **la stessa
+        /// risposta** ai due lati, e dare un motivo migliore di quello che da'
+        /// SOLIDWORKS.
+        ///
+        /// > Il verso di una riparazione non si ricava dal ragionamento
+        /// > sull'officina: si chiede al pezzo. «E' lavoro legittimo» diceva
+        /// > come DEVE andare, non come VA.
+        /// </summary>
+        public static DoveSiTrova DoveSta(double[] punto, IList<double[]> poligono)
+        {
+            if (punto == null || poligono == null || poligono.Count < 3)
+                return DoveSiTrova.Fuori;
+            if (DistanzaDalBordo(punto, poligono) <= SulBordoMm)
+                return DoveSiTrova.SulBordo;
+            return Dentro(punto, poligono) ? DoveSiTrova.Dentro : DoveSiTrova.Fuori;
+        }
+
+        /// <summary>
+        /// Quanto un punto puo' distare dal bordo e contare ancora come «sul
+        /// bordo», in millimetri.
+        ///
+        /// Un micrometro. Misurato il divario da tutt'e due le parti: il rumore
+        /// del calcolo su coordinate in millimetri e' dell'ordine di 1e-13,
+        /// dieci milioni di volte sotto; la piu' piccola quota che abbia senso
+        /// su un pezzo e' un centesimo di millimetro, diecimila volte sopra.
+        /// Nessuno dei due puo' essere confuso con l'altro.
+        /// </summary>
+        public const double SulBordoMm = 1e-6;
+
+        /// <summary>
+        /// La distanza minima fra un punto e il bordo del poligono, in mm.
+        /// </summary>
+        public static double DistanzaDalBordo(double[] punto, IList<double[]> poligono)
+        {
+            double minima = double.MaxValue;
+            int n = poligono.Count;
+            for (int i = 0; i < n; i++)
+            {
+                double d = DistanzaDalSegmento(punto, poligono[i], poligono[(i + 1) % n]);
+                if (d < minima) minima = d;
+            }
+            return minima;
+        }
+
+        /// <summary>Distanza fra un punto e un segmento, estremi compresi.</summary>
+        private static double DistanzaDalSegmento(double[] p, double[] a, double[] b)
+        {
+            double vx = b[0] - a[0], vy = b[1] - a[1];
+            double wx = p[0] - a[0], wy = p[1] - a[1];
+            double lunghezza2 = vx * vx + vy * vy;
+            // Segmento degenere: e' un punto, e la distanza e' da quel punto.
+            if (lunghezza2 < 1e-24) return Math.Sqrt(wx * wx + wy * wy);
+            double t = (wx * vx + wy * vy) / lunghezza2;
+            if (t < 0) t = 0; else if (t > 1) t = 1;
+            double dx = wx - t * vx, dy = wy - t * vy;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        /// <summary>
         /// Il punto sta dentro il poligono? Parita' degli attraversamenti.
         ///
-        /// Un punto ESATTAMENTE sul bordo puo' cadere da una parte o
-        /// dall'altra: e' il limite del metodo, e per questo il controllo sui
-        /// vuoti non si fida di un punto solo ma li guarda tutti.
+        /// NON RISPONDE SUL BORDO, e la risposta che da' li' dipende dal lato:
+        /// usare <see cref="DoveSta"/> ogni volta che un punto puo' trovarcisi.
+        /// Questa resta per i casi in cui il bordo e' escluso per costruzione.
         /// </summary>
         public static bool Dentro(double[] punto, IList<double[]> poligono)
         {

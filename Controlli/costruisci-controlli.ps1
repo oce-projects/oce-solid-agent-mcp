@@ -12,6 +12,17 @@
 #
 # ATTENZIONE al compilatore. Il csc in Framework64\v4.0.30319 e' quello VECCHIO
 # e non conosce nemmeno l'operatore ?. : qui si usa Roslyn dei Build Tools.
+#
+# DOVE STA L'INTEROP: si puo' scavalcare. SOLIDWORKS non e' installato nello
+# stesso posto su tutte le macchine, e un percorso costante qui vuol dire che
+# chi clona deve modificare lo script a mano per compilare.
+#
+#   .\Controlli\costruisci-controlli.ps1 -SwRedist 'D:\...\api\redist'
+#   oppure   $env:SW_REDIST = 'D:\...\api\redist'
+#
+# E' la stessa variabile che Banco\LEGGIMI.md gia' documenta per il banco.
+
+param([string]$SwRedist)
 
 $ErrorActionPreference = 'Stop'
 $radice = Split-Path -Parent $PSScriptRoot
@@ -23,13 +34,19 @@ $csc = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $csc) { throw "Roslyn (csc.exe dei Build Tools) non trovato." }
 
-$interop = 'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist'
+$interop = @(
+    $SwRedist,
+    $env:SW_REDIST,
+    'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist'
+) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
 $libreria = Join-Path $radice 'Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll'
 
 # nome ; cosa gli serve accanto
 $attrezzi = @(
-    @{ nome = 'ProvaRuota';   sw = $false; lib = $true  },
-    @{ nome = 'ProvaSagoma';  sw = $false; lib = $true  },
+    @{ nome = 'ProvaRuota';     sw = $false; lib = $true  },
+    @{ nome = 'ProvaSagoma';    sw = $false; lib = $true  },
+    @{ nome = 'ProvaPosizioni'; sw = $false; lib = $true  },
     @{ nome = 'ChiudiScarti'; sw = $true;  lib = $false },
     @{ nome = 'NuovaParte';   sw = $true;  lib = $false },
     @{ nome = 'Annulla';      sw = $true;  lib = $false },
@@ -76,4 +93,4 @@ foreach ($a in $attrezzi) {
 }
 
 Write-Host ''
-Write-Host 'Fatti. Le due Prova* non aprono SOLIDWORKS; ChiudiScarti e NuovaParte si.'
+Write-Host 'Fatti. Le tre Prova* non aprono SOLIDWORKS; ChiudiScarti e NuovaParte si.'

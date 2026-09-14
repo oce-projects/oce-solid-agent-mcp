@@ -56,9 +56,49 @@ function risolviSegnaposto(testo) {
   return testo.split("{BANCO}").join(LAVORO.split("\\").join("/"));
 }
 
+// LA CARTELLA SI CREAVA VUOTA, E CINQUE CASI NON POTEVANO GIRARE.
+//
+// I casi del telaio nominano `{BANCO}/profili/QUADRO_COPIA.SLDLFP`. Prima
+// della riparazione col segnaposto (0.25.0) quel percorso puntava alla
+// scratchpad di sessione, dove il file c'era davvero perche' qualcuno ce
+// l'aveva messo a mano. Il segnaposto ha reso il percorso portabile e ha
+// lasciato il file senza nessuno che lo provveda: `preparaLaCartella` creava
+// `profili/` e non ci metteva dentro niente.
+//
+// Misurato il 14/9/2026: cinque casi rispondevano «Il profilo ... non esiste su
+// questa postazione», che e' un messaggio giusto per un problema che non c'era.
+//
+// PERCHE' UNA COPIA E NON L'ORIGINALE. Inserire un profilo APRE il suo
+// `.SLDLFP` e lo lascia sporco: il banco lavorerebbe sulla libreria normata
+// vera dell'officina. Si copia, e si lavora sulla copia.
+const PROFILI = process.env.PROFILI_SALDATURA ||
+  "<impostazioni SOLIDWORKS>\\ELEMENTI SALDATURA\\NORMATI";
+
+// nome nella libreria -> nome della copia che i casi nominano
+const DA_COPIARE = {
+  "TUBO STRUTTURALE QUADRO.SLDLFP": "QUADRO_COPIA.SLDLFP",
+};
+
 function preparaLaCartella() {
   for (const c of [LAVORO, path.join(LAVORO, "pezzo"), path.join(LAVORO, "profili")]) {
     if (!fs.existsSync(c)) fs.mkdirSync(c, { recursive: true });
+  }
+
+  for (const [origine, copia] of Object.entries(DA_COPIARE)) {
+    const da = path.join(PROFILI, origine);
+    const a = path.join(LAVORO, "profili", copia);
+    if (fs.existsSync(a)) continue;
+    if (!fs.existsSync(da)) {
+      // SI DICE, e non si muore: chi clona il repository non ha quella
+      // libreria, e deve poter far girare tutti gli altri casi. Ma deve anche
+      // sapere PERCHE' quei cinque falliranno, invece di leggere un messaggio
+      // che incolpa il percorso.
+      console.error(
+        "  [banco] manca il profilo «" + origine + "» in " + PROFILI + "\n" +
+        "          i casi del telaio falliranno. Scavalca con PROFILI_SALDATURA.");
+      continue;
+    }
+    fs.copyFileSync(da, a);
   }
 }
 

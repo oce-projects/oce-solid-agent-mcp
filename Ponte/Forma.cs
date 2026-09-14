@@ -82,15 +82,48 @@ namespace SolidWorksMcp.Ponte
                 var regola = grezzo as Dictionary<string, object>;
                 if (regola == null || voce.Value == null) continue;
 
-                var storto = Sbaglia(operazione, voce.Key, regola, voce.Value);
+                var storto = Sbaglia(operazione, voce.Key, regola, voce.Value, 0);
                 if (storto != null) return storto;
             }
 
             return null;
         }
 
+        /// <summary>
+        /// Quanto in profondita' si scende dentro gli oggetti annidati.
+        ///
+        /// Gli schemi di questo catalogo arrivano a due livelli
+        /// (`feature_rif.passo`). Tre e' un margine, e il tetto c'e' perche' un
+        /// controllo che si chiama da solo senza fondo e' un modo di piantarsi.
+        /// </summary>
+        private const int ProfonditaMassima = 3;
+
+        /// <summary>
+        /// Controlla un valore contro la sua regola. Scende anche DENTRO gli
+        /// oggetti annidati, e fino alla 0.25.2 non lo faceva.
+        ///
+        /// LA PROMESSA CHE NON ERA MANTENUTA. La descrizione dello strumento
+        /// `disegna` dice al modello: «Il piano viene controllato TUTTO prima di
+        /// cominciare: se un passo qualunque ha un nome sbagliato o argomenti
+        /// che non rispettano lo schema, non viene eseguito niente e il
+        /// documento resta com'era». `PianoInMemoria` ripete la stessa
+        /// garanzia.
+        ///
+        /// Ma il controllo si fermava al primo livello: per `type: "object"`
+        /// verificava che fosse un oggetto e basta, senza guardare il `required`
+        /// e le `properties` dentro. Lo schema di `ripeti_lineare` dichiara
+        /// `feature_rif` come oggetto con `required: ["passo", "genere"]`, e un
+        /// piano di quattro passi il cui quarto scrive `feature_rif: {}`
+        /// passava tutta la validazione preventiva. I primi tre passi venivano
+        /// costruiti nel documento, poi il quarto falliva.
+        ///
+        /// Il documento restava a meta'. La garanzia di tutto-o-niente e'
+        /// esattamente cio' per cui questo controllo esiste: mantenerla solo al
+        /// primo livello vuol dire non mantenerla.
+        /// </summary>
         private static string Sbaglia(
-            string operazione, string nome, Dictionary<string, object> regola, object valore)
+            string operazione, string nome, Dictionary<string, object> regola,
+            object valore, int profondita)
         {
             var tipo = Convert.ToString(Prendi(regola, "type") ?? "");
 
@@ -116,9 +149,15 @@ namespace SolidWorksMcp.Ponte
                     break;
 
                 case "object":
-                    if (!(valore is Dictionary<string, object>))
+                    var dentro = valore as Dictionary<string, object>;
+                    if (dentro == null)
                         return "Per «" + operazione + "», «" + nome + "» vuole un oggetto e " +
                                "invece e' " + ComeSiChiama(valore) + ".";
+                    if (profondita < ProfonditaMassima)
+                    {
+                        var storto = Annidato(operazione, nome, regola, dentro, profondita + 1);
+                        if (storto != null) return storto;
+                    }
                     break;
 
                 case "string":
@@ -137,6 +176,53 @@ namespace SolidWorksMcp.Ponte
                     return "Per «" + operazione + "», «" + nome + "» puo' essere solo " +
                            string.Join(", ", ammessi.Select(x => "«" + x + "»")) +
                            ", e invece dice «" + scritto + "».";
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Dentro un oggetto annidato: prima cio' che manca, poi cio' che c'e'
+        /// della forma sbagliata. E' la stessa forma di <see cref="Controlla"/>,
+        /// un livello piu' giu'.
+        ///
+        /// Il nome del campo si scrive per esteso — «feature_rif.passo» — o chi
+        /// legge il messaggio non sa dove guardare: lo stesso nome «passo» puo'
+        /// stare sotto tre riferimenti diversi nello stesso schema.
+        /// </summary>
+        private static string Annidato(
+            string operazione, string percorso, Dictionary<string, object> regola,
+            Dictionary<string, object> valore, int profondita)
+        {
+            var proprieta = Prendi(regola, "properties") as Dictionary<string, object>;
+            if (proprieta == null) return null;
+
+            // ── quello che manca ──
+            var obbligatori = Elenco(Prendi(regola, "required"));
+            var mancanti = obbligatori
+                .Where(n => !valore.ContainsKey(n) || valore[n] == null)
+                .ToList();
+
+            if (mancanti.Count == 1)
+                return "Per «" + operazione + "», «" + percorso + "» deve dire anche «" +
+                       mancanti[0] + "», e non lo dice.";
+            if (mancanti.Count > 1)
+                return "Per «" + operazione + "», «" + percorso + "» deve dire anche " +
+                       string.Join(", ", mancanti.Select(x => "«" + x + "»")) +
+                       ", e non li dice.";
+
+            // ── quello che c'e', ma della forma sbagliata ──
+            foreach (var voce in valore)
+            {
+                if (voce.Key.StartsWith("_")) continue;
+                object grezzo;
+                if (!proprieta.TryGetValue(voce.Key, out grezzo)) continue;
+                var dentro = grezzo as Dictionary<string, object>;
+                if (dentro == null || voce.Value == null) continue;
+
+                var storto = Sbaglia(
+                    operazione, percorso + "." + voce.Key, dentro, voce.Value, profondita);
+                if (storto != null) return storto;
             }
 
             return null;

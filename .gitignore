@@ -11,6 +11,7 @@ Installer/Payload/
 # misura finche' non ha un formato. Quello lo decide la voce F2; fino ad
 # allora resta un file di lavoro.
 Banco/ultimo-giro.txt
+Banco/ultimo-ponte.txt
 
 # I pezzi che il banco crea mentre prova: usa e getta, e con dentro percorsi
 # di questa macchina. I casi li nominano con `{BANCO}`, che il runner risolve

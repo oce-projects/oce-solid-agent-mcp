@@ -409,12 +409,25 @@ namespace ProvaSaldatura
 
                 double d = misure.ContainsKey("diametro_lavorato_mm")
                     ? Convert.ToDouble(misure["diametro_lavorato_mm"]) : 0;
-                bool verificate = misure.ContainsKey("posizioni_verificate");
+                // LA CHIAVE C'ERA SEMPRE, e questo ramo non poteva scattare.
+                // Fino alla 0.25.1 qui c'era `misure.ContainsKey(...)`, e il
+                // ponte scriveva quella chiave senza condizione: `verificate`
+                // era vero per costruzione, «POSIZIONI NON VERIFICATE» era
+                // codice morto, e queste prove misuravano solo il diametro
+                // credendo di misurare anche le posizioni.
+                // Adesso la chiave va letta E deve essere vera, e il ponte ne
+                // scrive una DIVERSA quando non ha potuto guardare.
+                bool verificate = misure.ContainsKey("posizioni_verificate") &&
+                                  Convert.ToBoolean(misure["posizioni_verificate"]);
+                string perche = misure.ContainsKey("posizioni_non_verificate")
+                    ? Convert.ToString(misure["posizioni_non_verificate"]) : null;
                 bool ok = verificate && Math.Abs(d - diametroAtteso) < 0.05;
                 Segna(nome, ok, string.Format("diametro {0:0.##} (atteso {1:0.##}), fori {2}, {3}",
                     d, diametroAtteso,
                     misure.ContainsKey("fori") ? misure["fori"] : "?",
-                    verificate ? "posizioni verificate" : "POSIZIONI NON VERIFICATE"));
+                    verificate
+                        ? "posizioni verificate"
+                        : "POSIZIONI NON VERIFICATE" + (perche == null ? "" : ": " + Corto(perche))));
             }
             catch (Exception ex) { Segna(nome, false, ex.Message); }
             finally { Chiudi(doc); }
@@ -576,8 +589,36 @@ namespace ProvaSaldatura
                 // domanda giusta non e' «quanto alzo» ma «servono davvero
                 // sessanta spigoli?»: su un saldato sono rumore, e il tetto
                 // sul NUMERO e' l'unico che non si puo' alzare all'infinito.
+                // QUESTA PROVA MISURA ANCHE CIO' CHE NON DOVREBBE, e va detto
+                // nel messaggio invece che scoperto ogni volta.
+                //
+                // Lo stato elenca `documenti_aperti`, quindi la misura dipende
+                // da cosa c'e' aperto in SOLIDWORKS oltre al telaio. Misurato
+                // il 14/9/2026: sei parti salvate da un giro di `corri_piani.js`
+                // rimaste aperte valgono ~650 caratteri, e portano la prova da
+                // 15.628 a 16.280 — cioe' la fanno FALLIRE senza che il codice
+                // sia cambiato. Mezz'ora spesa a cercare una regressione che
+                // non c'era.
+                //
+                // `ChiudiScarti --chiudi` da solo non le chiude: risparmia
+                // apposta i documenti con un file. Ci vuole la cartella:
+                //   ChiudiScarti.exe --chiudi "...\Banco\lavoro"
+                //
+                // Il numero si stampa SEMPRE, non solo quando fallisce: un
+                // messaggio che dice il criterio serve a leggere anche i verdi.
+                int aperti = 0;
+                try
+                {
+                    var elenco = stato.ContainsKey("documenti_aperti")
+                        ? stato["documenti_aperti"] as System.Collections.IList : null;
+                    if (elenco != null) aperti = elenco.Count;
+                }
+                catch { }
+
                 Segna("stato: sotto i 16 KB su un telaio da quattro barre", caratteri < 16000,
-                      caratteri + " caratteri");
+                      caratteri + " caratteri, " + aperti +
+                      (aperti == 1 ? " documento aperto" : " documenti aperti") +
+                      (aperti > 1 ? " (piu' di uno gonfia la misura: vedi qui sopra)" : ""));
             }
             catch (Exception ex) { Segna("stato del documento", false, ex.Message); }
             finally { Chiudi(doc); }

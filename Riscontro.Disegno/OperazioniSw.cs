@@ -1241,12 +1241,32 @@ namespace Riscontro.Disegno
                 var staccati = new List<int>();
                 for (int i = 1; i < contorni.Count; i++)
                 {
-                    int dentro = 0, fuori = 0;
+                    // TRE CASELLE, NON DUE. Un vertice ESATTAMENTE sul bordo
+                    // esterno non e' ne' dentro ne' fuori, e costringerlo a
+                    // essere uno dei due faceva dipendere il verdetto dal LATO:
+                    // misurato su una piastra 100x100, una cava a filo del
+                    // bordo destro veniva rifiutata come «a cavallo» e la
+                    // stessa cava specchiata a sinistra passava.
+                    //
+                    // I DUE LATI DEVONO DARE LA STESSA RISPOSTA, E LA RISPOSTA
+                    // E' NO. Misurato: cava a destra, cava a sinistra e rombo
+                    // che tocca in un solo vertice falliscono tutti e tre con
+                    // «L'estrusione non e' stata creata». Due contorni che si
+                    // toccano non delimitano una regione; un'asola aperta si
+                    // disegna come UN contorno solo con otto punti.
+                    // Il guadagno non e' far passare di piu': e' rispondere
+                    // uguale da tutt'e due le parti, e dirlo meglio di come lo
+                    // dice SOLIDWORKS.
+                    int dentro = 0, fuori = 0, sulBordo = 0;
                     double[] primoFuori = null;
                     foreach (var punto in PuntiDi(contorni[i]))
                     {
-                        if (FormaChiusa.Dentro(punto, esterno)) dentro++;
-                        else { fuori++; if (primoFuori == null) primoFuori = punto; }
+                        switch (FormaChiusa.DoveSta(punto, esterno))
+                        {
+                            case DoveSiTrova.Dentro: dentro++; break;
+                            case DoveSiTrova.SulBordo: sulBordo++; break;
+                            default: fuori++; if (primoFuori == null) primoFuori = punto; break;
+                        }
                     }
 
                     if (dentro > 0 && fuori > 0)
@@ -1262,6 +1282,26 @@ namespace Riscontro.Disegno
                             i, primoFuori[0], primoFuori[1]);
                         return false;
                     }
+                    // TOCCA IL BORDO: non si estrude, e si dice perche'.
+                    // Non e' «a cavallo» — non c'e' niente fuori — ed e' un
+                    // caso a se' che merita il suo messaggio: chi l'ha scritto
+                    // voleva un'asola aperta, e la strada per averla c'e'.
+                    if (sulBordo > 0)
+                    {
+                        motivo = string.Format(
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            "Il contorno n. {0} TOCCA il bordo esterno in {1} " +
+                            (sulBordo == 1 ? "punto" : "punti") + ". Due contorni che si " +
+                            "toccano non delimitano una regione, e SOLIDWORKS si ferma " +
+                            "dicendo soltanto «L'estrusione non e' stata creata». " +
+                            "Se volevi un'asola aperta sul bordo, disegnala come UN " +
+                            "contorno solo: il bordo esterno che entra e rientra. Se " +
+                            "volevi un foro, spostalo dentro di almeno un decimo.",
+                            i, sulBordo);
+                        return false;
+                    }
+
+                    // Staccato vuol dire che non tocca nemmeno.
                     if (dentro == 0) staccati.Add(i);
                 }
 
@@ -4448,6 +4488,15 @@ namespace Riscontro.Disegno
         /// riassegnano a ogni lettura), e che la misura chiesta ci stia sulla
         /// lunghezza dello spigolo. Scritti due volte, il giorno in cui si
         /// corregge uno l'altro resta indietro.
+        ///
+        /// E LE DUE STRADE DENTRO QUESTO METODO ERANO GIA' DIVERGENTI.
+        /// Il metodo era uno, ma aveva due rami — per uid e per riferimento a
+        /// un passo — e il secondo usciva con `return true` prima di arrivare
+        /// al controllo sulla misura. Bastava un metodo solo per credersi al
+        /// sicuro: il commento qui sopra prometteva un controllo che meta' del
+        /// metodo non faceva. Misurato il 14/9/2026, riparato nella 0.25.2.
+        /// Mettere due strade sotto lo stesso commento non e' meno pericoloso
+        /// che mettere due copie sotto due nomi.
         /// </summary>
         /// <param name="misuraMassima">
         /// Raggio o lato: non puo' superare meta' dello spigolo. Zero = non
@@ -4479,6 +4528,43 @@ namespace Riscontro.Disegno
                 List<IEntity> trovati;
                 if (!Riferimenti.Spigoli(passo, GenereDi(a, "spigoli_rif"), out trovati, out motivo))
                     return false;
+
+                // LA MISURA SI CONTROLLA ANCHE QUI, e fino alla 0.25.2 no.
+                //
+                // Il commento di questo metodo prometteva che «tutti i
+                // controlli che contano stanno qui», e fra quelli elencava che
+                // la misura chiesta ci stia sulla lunghezza dello spigolo. Ma
+                // questo ramo usciva con `return true` PRIMA di arrivarci: lo
+                // stesso raccordo da 30 mm su uno spigolo da 10 veniva
+                // rifiutato con `spigoli_uid` e lasciato passare con
+                // `spigoli_rif`, fino a FeatureFillet3 che fallisce dicendo
+                // soltanto che non e' stato creato.
+                //
+                // Qui non c'e' una firma da cui leggere la misura — gli spigoli
+                // arrivano dal passo, non dallo stato — quindi si misurano
+                // adesso, che e' anche il momento giusto: fra la proposta e
+                // l'esecuzione il pezzo puo' essere cambiato.
+                if (misuraMassima > 0)
+                {
+                    double corto = 0;
+                    foreach (var e in trovati)
+                    {
+                        double lung = StatoDocumento.LunghezzaMm(e as IEdge);
+                        if (lung <= 0) continue;          // non misurabile: non si inventa un verdetto
+                        if (misuraMassima <= lung / 2) continue;
+                        if (corto == 0 || lung < corto) corto = lung;
+                    }
+                    if (corto > 0)
+                    {
+                        motivo = string.Format(
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            "{0:0.##} mm e' troppo per gli spigoli del passo {1}: il piu' corto " +
+                            "e' lungo {2:0.##} mm, e non ci sta neanche meta'. " +
+                            "Il massimo che ci sta e' {3:0.##} mm.",
+                            misuraMassima, numero, corto, corto / 2);
+                        return false;
+                    }
+                }
 
                 modello.ClearSelection2(true);
                 foreach (var e in trovati) e.Select4(true, null);
@@ -5112,7 +5198,9 @@ namespace Riscontro.Disegno
                 if (!FirmaCombacia(argomenti, uid, voce.Value, out perche)) continue;
 
                 // COMBACIARE PER POSIZIONE NON BASTA. Vedi Corrobora.
-                string nonRegge = Corrobora(attesa, uid, voce.Value);
+                string cresciuta;
+                string nonRegge = Corrobora(attesa, uid, voce.Value, out cresciuta);
+                if (cresciuta != null) _log("[agente] " + cresciuta);
                 if (nonRegge != null)
                 {
                     // Si tiene il PRIMO motivo di scarto per il messaggio: se
@@ -5175,11 +5263,39 @@ namespace Riscontro.Disegno
         ///    per nome (`IFeature.GetID()`). Una faccia che viene da un'altra
         ///    lavorazione non e' la stessa faccia, comunque sia messa.
         ///
-        /// 2. **L'area puo' solo CALARE.** E' un vincolo monotono, non un
-        ///    confronto: ci si fa un foro e la faccia perde area, ed e'
-        ///    legittimo — e' proprio il motivo per cui l'area era stata esclusa
-        ///    dal confronto. Ma non ne GUADAGNA: una faccia cresciuta e' un
-        ///    altro pezzo di pezzo.
+        /// 2. **L'area puo' solo CALARE**, ma SOLO quando la prima prova non ha
+        ///    gia' risposto. E' un vincolo monotono, non un confronto: ci si fa
+        ///    un foro e la faccia perde area, ed e' legittimo — e' proprio il
+        ///    motivo per cui l'area era stata esclusa dal confronto. Ma non ne
+        ///    GUADAGNA: una faccia cresciuta e' un altro pezzo di pezzo.
+        ///
+        /// IL CONTROLLO SULL'AREA SI MORDEVA LA CODA, e riparato il 14/9/2026.
+        ///
+        /// Gli uid si assegnano per area decrescente. Una faccia che si allarga
+        /// abbastanza da scavalcarne un'altra in classifica CAMBIA UID per
+        /// forza: `FirmaCombacia` sull'uid vecchio fallisce, si passa alla
+        /// ricerca, la faccia vera viene ritrovata — e veniva scartata proprio
+        /// perche' era cresciuta. **La crescita dell'area era insieme la causa
+        /// di questa ricerca e il motivo del suo fallimento.**
+        ///
+        /// Misurato: staffa a elle, aletta orizzontale 100x20 = 2000 mm² (F2) e
+        /// verticale 80x20 = 1600 mm² (F3). Piano di due passi: `modifica_quota`
+        /// porta la verticale da 80 a 120, poi `taglio_cilindrico` su «F3». Dopo
+        /// il primo passo la verticale vale 2400 e diventa F2; la ricerca
+        /// ritrova la faccia giusta — stesso piano, stesso punto, stessa
+        /// normale, **stessa lavorazione** — e il controllo sull'area la
+        /// buttava. Un rifiuto di lavoro legittimo.
+        ///
+        /// LA RIPARAZIONE non e' togliere il controllo: e' ordinarlo. Quando la
+        /// prima prova ha ACCERTATO che la lavorazione e' la stessa — non
+        /// «non lo so», proprio accertato — l'identita' e' gia' stabilita da un
+        /// segnale piu' forte, e la crescita dell'area diventa una cosa da
+        /// DIRE, non da rifiutare. Il vincolo monotono resta intero dove serve
+        /// davvero: quando la lavorazione non si sa, che e' il caso E2.
+        ///
+        /// In E2 le due facce venivano da lavorazioni diverse (l'estrusione e
+        /// il taglio), quindi la prima prova le separa e il difetto resta
+        /// chiuso: si controlla in `Banco/casi/E2-i-due-casi.md`.
         ///
         /// PERCHE' QUI E NON DENTRO `FirmaCombacia`. Perche' quel confronto
         /// serve anche a decidere se la faccia di partenza va ancora bene, e
@@ -5193,19 +5309,23 @@ namespace Riscontro.Disegno
         /// </summary>
         private static string Corrobora(
             Dictionary<string, object> attesa, string uid,
-            StatoDocumento.FirmaEntita candidata)
+            StatoDocumento.FirmaEntita candidata, out string nota)
         {
+            nota = null;
             if (attesa == null) return null;
 
             // 1. LA STESSA LAVORAZIONE.
             // Solo se li conosciamo tutti e due: due «-1» non sono una
             // corrispondenza, sono due volte «non lo so».
+            bool stessaLavorazioneAccertata = false;
             object grezzoId;
             if (attesa.TryGetValue("lavorazione_id", out grezzoId) && grezzoId != null &&
                 candidata.LavorazioneId >= 0)
             {
                 int atteso;
                 try { atteso = Convert.ToInt32(grezzoId); } catch { atteso = -1; }
+                if (atteso >= 0 && atteso == candidata.LavorazioneId)
+                    stessaLavorazioneAccertata = true;
                 if (atteso >= 0 && atteso != candidata.LavorazioneId)
                 {
                     object nomeAtteso;
@@ -5233,6 +5353,23 @@ namespace Riscontro.Disegno
                 // centesimo e un confronto secco accuserebbe l'arrotondamento.
                 if (areaAttesa > 0 && candidata.Misura > areaAttesa * 1.001)
                 {
+                    // LA LAVORAZIONE ACCERTATA VINCE SULL'AREA.
+                    // Se si sa con certezza che viene dalla stessa lavorazione,
+                    // l'identita' e' gia' stabilita: una faccia puo' essere
+                    // cresciuta perche' una quota e' cambiata, ed e' legittimo.
+                    // Si DICE di quanto, e si va avanti.
+                    if (stessaLavorazioneAccertata)
+                    {
+                        nota = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "La faccia «{0}» si era spostata ed e' anche CRESCIUTA: " +
+                            "{1:0.##} mm² contro {2:0.##} che il piano si aspettava. " +
+                            "L'ho presa lo stesso perche' viene dalla stessa lavorazione " +
+                            "«{3}», ma se il piano contava sulla misura di prima, " +
+                            "ricontrolla il risultato.",
+                            uid, candidata.Misura, areaAttesa, candidata.Lavorazione ?? "?");
+                        return null;
+                    }
+
                     return string.Format(System.Globalization.CultureInfo.InvariantCulture,
                         "La faccia «{0}» si e' spostata, e l'unica che combacia per " +
                         "posizione e' piu' GRANDE di quella che cercavo: {1:0.##} mm² " +

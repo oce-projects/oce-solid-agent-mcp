@@ -27,16 +27,39 @@
 #      .\build.ps1 -Pulisci     cancella prima bin, obj e dist
 #      .\build.ps1 -SoloPonte   solo il ponte, senza installatore
 #
+#      .\build.ps1 -SwInstallPath 'D:\...\SOLIDWORKS'
+#      $env:SW_INSTALL_PATH = 'D:\...\SOLIDWORKS'
+#                               se SOLIDWORKS non e' nel posto di serie
+#
 # =============================================================================
 
 [CmdletBinding()]
 param(
     [switch] $Pulisci,
-    [switch] $SoloPonte
+    [switch] $SoloPonte,
+
+    # DOVE STA SOLIDWORKS. I .csproj lo leggono gia' da /p:SwInstallPath, ma
+    # questo script non lo passava: chi ha SOLIDWORKS in un posto non standard
+    # non poteva compilare con `.\build.ps1` e doveva chiamare msbuild a mano,
+    # cosa che il README non diceva. La cartella e' la RADICE
+    # dell'installazione, non `api\redist`: i .csproj ci aggiungono loro il
+    # resto.
+    [string] $SwInstallPath
 )
 
 $ErrorActionPreference = "Stop"
 $radice = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
+# Anche da variabile d'ambiente, cosi' non va ripetuto a ogni chiamata.
+if (-not $SwInstallPath -and $env:SW_INSTALL_PATH) { $SwInstallPath = $env:SW_INSTALL_PATH }
+$dove = @()
+if ($SwInstallPath) {
+    if (-not (Test-Path $SwInstallPath)) {
+        Write-Host "  -SwInstallPath punta a una cartella che non c'e': $SwInstallPath" -ForegroundColor Red
+        exit 1
+    }
+    $dove = @("-p:SwInstallPath=$SwInstallPath")
+}
 
 function Passo($t) { Write-Host ""; Write-Host "=== $t" -ForegroundColor Cyan }
 function Ok($t)    { Write-Host "  $t" -ForegroundColor Green }
@@ -87,7 +110,7 @@ if ($Pulisci) {
 # -----------------------------------------------------------------------------
 Passo "1. Il ponte"
 # -----------------------------------------------------------------------------
-& $msbuild (Join-Path $radice "SolidWorksMcp.csproj") -p:Configuration=Release -v:m -nologo
+& $msbuild (Join-Path $radice "SolidWorksMcp.csproj") -p:Configuration=Release -v:m -nologo @dove
 if ($LASTEXITCODE -ne 0) { Muori "compilazione del ponte fallita" }
 
 $ponte = Join-Path $radice "bin\SolidWorksMcp.exe"
@@ -109,7 +132,7 @@ Passo "1b. Il catalogo"
 # Qui si riscrive a ogni pacchetto, e se cambia lo si dice: un file che cambia
 # durante una build e' una cosa che chi guarda deve vedere, non una sorpresa
 # nel prossimo `git status`.
-& $msbuild (Join-Path $radice "Riscontro.Catalogo\Riscontro.Catalogo.csproj") -p:Configuration=Release -v:m -nologo
+& $msbuild (Join-Path $radice "Riscontro.Catalogo\Riscontro.Catalogo.csproj") -p:Configuration=Release -v:m -nologo @dove
 if ($LASTEXITCODE -ne 0) { Muori "compilazione dell'esportatore del catalogo fallita" }
 
 $esportatore = Join-Path $radice "bin\Riscontro.Catalogo.exe"
@@ -171,7 +194,7 @@ Ok ((Get-ChildItem $payload).Count.ToString() + " file da incorporare")
 # -----------------------------------------------------------------------------
 Passo "3. L'installatore"
 # -----------------------------------------------------------------------------
-& $msbuild (Join-Path $radice "Installer\Installa.csproj") -p:Configuration=Release -v:m -nologo
+& $msbuild (Join-Path $radice "Installer\Installa.csproj") -p:Configuration=Release -v:m -nologo @dove
 if ($LASTEXITCODE -ne 0) { Muori "compilazione dell'installatore fallita" }
 
 $exe = Join-Path $radice "bin\Installa.exe"

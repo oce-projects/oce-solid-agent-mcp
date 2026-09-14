@@ -31,6 +31,23 @@ namespace Riscontro.Disegno
     /// Un pezzo di lamiera piegata ha centinaia di facce. Mandarle tutte a un
     /// modello linguistico costa token e non aiuta: si mandano le piu' grandi,
     /// e si scrive `troncato: true` invece di far credere che siano tutte.
+    ///
+    /// Sono quattro, e ognuno dice di essere scattato:
+    ///
+    ///   MaxFacce, MaxSpigoli  -> `troncato: true`
+    ///   MaxCorpi              -> `corpi_non_elencati` + `corpi_totali`
+    ///   MaxFeature            -> `feature_non_elencate` + `feature_totali`
+    ///                            + `troncato: true`
+    ///
+    /// L'ultimo e' stato muto fino alla 0.25.2: le lavorazioni oltre
+    /// l'ottantesima finivano in `altre_feature`, insieme a quelle di tipo
+    /// ignorato, e `troncato` restava false. Era il peggiore dei quattro da
+    /// tacere, perche' l'albero si scorre in ordine di CREAZIONE: le elencate
+    /// sono le piu' vecchie, e quella appena creata dal piano e' fra le
+    /// scartate.
+    ///
+    /// UN TETTO CHE NON DICE DI ESSERE SCATTATO NON E' UN TETTO: e' una
+    /// risposta sbagliata che si presenta come completa.
     /// </summary>
     public partial class StatoDocumento
     {
@@ -437,6 +454,12 @@ namespace Riscontro.Disegno
             var assi = new List<Dictionary<string, object>>();
             int nPiani = 0;
             int altreFeature = 0;
+            // DUE CONTATORI, NON UNO. `altreFeature` conta le lavorazioni di un
+            // TIPO che non entra nell'elenco — invisibili per scelta, e i tipi
+            // si dicono in `altre_feature_tipi`. `featureNonElencate` conta
+            // quelle che sarebbero entrate e non ci stanno per il tetto: sono
+            // due cose diverse, e sommarle nascondeva la seconda.
+            int featureNonElencate = 0;
             // QUALI, non solo QUANTE.
             //
             // «altre_feature: 7» dice che c'e' dell'altro e non dice cosa,
@@ -556,7 +579,31 @@ namespace Riscontro.Disegno
                         QuoteDellaFeature(f, voceF);
                         feature.Add(voceF);
                     }
-                    else altreFeature++;
+                    else
+                    {
+                        // IL TETTO SI DICHIARA, come gli altri due.
+                        //
+                        // Fino alla 0.25.2 questa lavorazione finiva in
+                        // `altreFeature` insieme a quelle di tipo ignorato, e
+                        // `troncato` restava false: lo stato diceva che
+                        // l'elenco era completo mentre non lo era.
+                        //
+                        // E' il piu' insidioso dei tre tetti, perche' l'albero
+                        // si scorre in ORDINE DI CREAZIONE: le ottanta elencate
+                        // sono le PIU' VECCHIE, e quella che il piano ha appena
+                        // creato e' fra le scartate. Il modello leggeva
+                        // `troncato: false`, non trovava la lavorazione nuova, e
+                        // poteva concluderne che l'operazione non aveva fatto
+                        // niente — e rifarla.
+                        //
+                        // Restano le piu' vecchie anche adesso: cambiare quali
+                        // si tengono e' un'altra voce (E12), perche' i dettagli
+                        // costano chiamate COM e vanno raccolti dopo aver deciso
+                        // chi sopravvive. Ma «non ci stanno tutte» adesso si
+                        // legge, e un elenco incompleto dichiarato e' una cosa
+                        // diversa da un elenco incompleto spacciato per intero.
+                        featureNonElencate++;
+                    }
                 }
                 else if (!CartelleDiServizio.Contains(tipo))
                 {
@@ -1018,6 +1065,14 @@ namespace Riscontro.Disegno
 
             dati["feature"] = feature;
             if (altreFeature > 0) dati["altre_feature"] = altreFeature;
+            // Il tetto sulle lavorazioni, dichiarato come quelli su facce,
+            // spigoli e corpi. `troncato` vale per tutto lo stato.
+            if (featureNonElencate > 0)
+            {
+                dati["feature_non_elencate"] = featureNonElencate;
+                dati["feature_totali"] = feature.Count + featureNonElencate;
+                troncato = true;
+            }
             // I tipi si mandano SEMPRE quando ce ne sono: e' cio' che
             // permette di accorgersi che una lavorazione e' invisibile.
             if (tipiIgnoti.Count > 0) dati["altre_feature_tipi"] = tipiIgnoti.ToArray();
@@ -1485,8 +1540,18 @@ namespace Riscontro.Disegno
             catch { return false; }
         }
 
-        private static double LunghezzaMm(IEdge spigolo)
+        /// <summary>
+        /// Lunghezza approssimata di uno spigolo, in mm. Zero se non si legge.
+        ///
+        /// `internal` e non `private` perche' la usa anche `SelezionaSpigoli`
+        /// quando gli spigoli arrivano per riferimento a un passo e non per
+        /// uid: li' non c'e' una firma da cui leggere la misura, e senza questa
+        /// il controllo «il raggio ci sta sullo spigolo» veniva saltato.
+        /// Copiarla sarebbe stato il modo di farle divergere.
+        /// </summary>
+        internal static double LunghezzaMm(IEdge spigolo)
         {
+            if (spigolo == null) return 0;
             // Distanza fra gli estremi: per uno spigolo curvo NON e' la
             // lunghezza vera, ed e' voluto. Serve solo a ordinare gli spigoli
             // per grandezza e a fare da firma per ritrovarli: una misura

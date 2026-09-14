@@ -11,7 +11,16 @@
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>bin\</OutputPath>
     <LangVersion>7.3</LangVersion>
-    <SwRedist>C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist</SwRedist>
+    <!-- DOVE STA L'INTEROP, e si puo' scavalcare in tre modi.
+         `LEGGIMI.md` documentava `set SW_REDIST=...`, ma quella variabile la
+         leggeva solo `Program.cs` a tempo di ESECUZIONE, per l'AssemblyResolve:
+         a tempo di COMPILAZIONE questo valore era costante, e chi seguiva
+         l'istruzione documentata vedeva fallire la build per HintPath non
+         trovato. Il rimedio non risolveva il problema che nominava.
+         Adesso: variabile d'ambiente SW_REDIST, oppure /p:SwRedist=..., e in
+         mancanza di tutti e due il posto di serie. -->
+    <SwRedist Condition=" '$(SwRedist)' == '' AND '$(SW_REDIST)' != '' ">$(SW_REDIST)</SwRedist>
+    <SwRedist Condition=" '$(SwRedist)' == '' ">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist</SwRedist>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />

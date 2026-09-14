@@ -307,7 +307,41 @@ namespace SolidWorksMcp.Ponte
         /// Lo stato del documento attivo: e' quello che il modello DEVE vedere
         /// prima di proporre qualunque cosa.
         /// </summary>
+        /// <summary>
+        /// Lo stato del documento, ancora compresa: e' la lettura da cui si
+        /// costruiscono le FIRME dei passi.
+        /// </summary>
         public Dictionary<string, object> Stato(out string errore)
+        {
+            return Stato(true, out errore);
+        }
+
+        /// <summary>
+        /// Lo stato del documento SENZA l'ancora.
+        ///
+        /// L'ancora costa: un `GetTessTriangles` e un baricentro pesato per
+        /// area su OGNI faccia. Su un telaio saldato sono decine di chiamate
+        /// COM per un dato che serve a una cosa sola — corroborare il
+        /// ritrovamento di una faccia — e quindi solo a chi costruisce le
+        /// firme.
+        ///
+        /// Fino alla 0.25.2 il flag era cablato a `true` e la si pagava anche
+        /// per la lettura «prima» di `disegna`, che serve solo a sapere su
+        /// quale documento si lavora, quanto volume c'era e quante lavorazioni
+        /// erano in errore: tre cose che l'ancora non riguarda. Quello stato
+        /// non torna nemmeno a chi legge.
+        ///
+        /// Il nome e' diverso invece di essere un parametro in piu' sullo
+        /// stesso metodo: e' la lezione di `LeggiConAncora` — cambiare
+        /// l'insieme delle firme di un metodo rompe chi lo chiama per
+        /// riflessione, anche quando il compilatore non dice niente.
+        /// </summary>
+        public Dictionary<string, object> StatoSenzaAncora(out string errore)
+        {
+            return Stato(false, out errore);
+        }
+
+        private Dictionary<string, object> Stato(bool conAncora, out string errore)
         {
             errore = null;
             var doc = DocumentoAttivo();
@@ -318,7 +352,7 @@ namespace SolidWorksMcp.Ponte
             }
             try
             {
-                var stato = LeggiStato(doc);
+                var stato = LeggiStato(doc, conAncora);
                 return stato?.Dati;
             }
             catch (Exception ex)
@@ -333,9 +367,9 @@ namespace SolidWorksMcp.Ponte
         /// senza, lo stato non sa dire quali ALTRI documenti sono aperti, e
         /// per le tavole quello non e' un di piu' ma una precondizione.
         /// </summary>
-        private StatoDocumento LeggiStato(object doc)
+        private StatoDocumento LeggiStato(object doc, bool conAncora)
         {
-            return StatoDocumento.LeggiConAncora(doc as IModelDoc2, _sw as ISldWorks, true);
+            return StatoDocumento.LeggiConAncora(doc as IModelDoc2, _sw as ISldWorks, conAncora);
         }
 
         /// <summary>
