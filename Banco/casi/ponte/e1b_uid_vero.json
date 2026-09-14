@@ -1,0 +1,3 @@
+[
+ { "operazione": "taglio_cilindrico", "argomenti": { "faccia_uid": "F1", "x_mm": 20, "y_mm": 10, "diametro_mm": 8, "passante": true } }
+]

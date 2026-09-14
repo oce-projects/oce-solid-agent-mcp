@@ -502,6 +502,33 @@ namespace SolidWorksMcp.Strumenti
                     break;
                 }
 
+                // GLI IDENTIFICATIVI CITATI ESISTONO DAVVERO?
+                //
+                // E' l'altra meta' della difesa anti-deriva, e prende un caso
+                // che le FIRME non possono prendere: un piano che crea il pezzo
+                // da zero e poi cita «F1» non ha nessuna firma da confrontare,
+                // perche' quando lo stato e' stato letto quella faccia non
+                // c'era. Nessuna firma, nessun confronto, e il piano passa.
+                //
+                // Misurato il 14/9/2026: `[estrudi_rettangolo, taglio_cilindrico
+                // su F1]` su un documento vuoto riusciva, volume 117.738,1. Il
+                // foro e' finito sulla faccia piu' grande — che in quel caso era
+                // anche quella giusta, ma **non l'aveva scelta nessuno**: «F1»
+                // e' posizionale e si rinumera per area a ogni lettura.
+                var uidStorto = UidCheNonEsistono(
+                    _catalogo.Schema(nome), suoi, prima);
+                if (uidStorto != null)
+                {
+                    esiti.Add(new Dictionary<string, object>
+                    {
+                        ["operazione"] = nome,
+                        ["riuscita"] = false,
+                        ["errore"] = uidStorto + NienteToccato,
+                    });
+                    tuttoBene = false;
+                    break;
+                }
+
                 // LE FIRME DI QUANDO IL PIANO E' NATO, ALLEGATE AL PASSO.
                 // Non si sovrascrive quello che il chiamante ha gia' messo:
                 // un piano che porta le sue firme sa meglio di noi di cosa
@@ -607,6 +634,130 @@ namespace SolidWorksMcp.Strumenti
         {
             if (stato == null) return null;
             return stato.TryGetValue("volume_mm3", out var v) ? v : null;
+        }
+
+        /// <summary>
+        /// GLI IDENTIFICATIVI CHE IL PASSO CITA E CHE NELLO STATO NON C'ERANO.
+        /// Null se e' tutto a posto.
+        ///
+        /// Si guardano solo i campi che lo schema chiama `*_uid`: sono quelli
+        /// che nominano geometria **che c'era gia'**. La geometria creata dal
+        /// piano stesso si nomina con `*_rif`, che cita il PASSO e non
+        /// l'identificativo — ed e' l'unico modo, perche' al momento in cui il
+        /// piano si scrive quella faccia non esiste e nessuno le puo' dare un
+        /// nome.
+        ///
+        /// PERCHE' NON BASTAVANO LE FIRME. La firma confronta un identificativo
+        /// con la geometria che descriveva quando il piano e' nato. Se la
+        /// faccia **non esisteva affatto**, non c'e' nessuna firma: niente da
+        /// confrontare, nessun rifiuto, e il piano passa. La firma protegge
+        /// dallo spostamento; questo protegge dall'invenzione.
+        ///
+        /// NON SI RIFIUTA IL LEGITTIMO. Un piano che crea geometria e poi ci
+        /// lavora sopra e' normale, e passa: usa `*_rif`. Il messaggio lo dice,
+        /// perche' un rifiuto che non indica la strada buona insegna soltanto a
+        /// riprovare a caso.
+        /// </summary>
+        private static string UidCheNonEsistono(
+            Dictionary<string, object> schema,
+            Dictionary<string, object> argomenti,
+            Dictionary<string, object> stato)
+        {
+            if (schema == null || argomenti == null || stato == null) return null;
+            object grezzoProp;
+            if (!schema.TryGetValue("properties", out grezzoProp)) return null;
+            var proprieta = grezzoProp as Dictionary<string, object>;
+            if (proprieta == null) return null;
+
+            var esistenti = UidDelloStato(stato);
+
+            foreach (var campo in proprieta.Keys)
+            {
+                if (!campo.EndsWith("_uid", StringComparison.Ordinal)) continue;
+                object valore;
+                if (!argomenti.TryGetValue(campo, out valore) || valore == null) continue;
+
+                foreach (var uid in Stringhe(valore))
+                {
+                    if (esistenti.Contains(uid)) continue;
+
+                    // SI DICE COSA C'E', non solo cosa manca. Su un documento
+                    // vuoto l'elenco e' vuoto, ed e' proprio quello il caso in
+                    // cui chi legge deve capire che deve cambiare strada.
+                    string cosaCe = esistenti.Count == 0
+                        ? "Nel pezzo che ho guardato non c'era nessun identificativo: " +
+                          "era vuoto."
+                        : "Quelli che c'erano sono: " + Elenca(esistenti) + ".";
+
+                    return
+                        "«" + campo + "» cita «" + uid + "», che nel pezzo che ho " +
+                        "guardato non c'era. " + cosaCe + "\n\n" +
+                        "Gli identificativi nascono da «guarda_il_pezzo» e valgono per " +
+                        "QUELLA lettura. Se la geometria la crea un passo precedente di " +
+                        "questo stesso piano, non ha ancora nessun identificativo e va " +
+                        "nominata con il riferimento al passo — per esempio " +
+                        "\"" + campo.Replace("_uid", "_rif") + "\": {\"passo\": 1, " +
+                        "\"genere\": \"faccia_superiore\"}. Se invece c'era gia', " +
+                        "rileggi il pezzo e copia l'identificativo da li'.";
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Tutti gli identificativi che quello stato descriveva: facce,
+        /// spigoli, corpi, assi e lavorazioni.
+        /// </summary>
+        private static HashSet<string> UidDelloStato(Dictionary<string, object> stato)
+        {
+            var fuori = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var famiglia in new[] { "facce", "spigoli", "corpi", "assi", "feature" })
+            {
+                object grezzo;
+                if (!stato.TryGetValue(famiglia, out grezzo) || grezzo == null) continue;
+                // Le famiglie sono List<Dictionary<...>>, non object[]: un
+                // `as object[]` qui tornerebbe null in silenzio e il controllo
+                // direbbe «non esiste» su tutto. E' gia' successo una volta,
+                // con le firme.
+                var elenco = grezzo as System.Collections.IEnumerable;
+                if (elenco == null) continue;
+                foreach (var v in elenco)
+                {
+                    var voce = v as Dictionary<string, object>;
+                    object uid;
+                    if (voce != null && voce.TryGetValue("uid", out uid) && uid != null)
+                        fuori.Add(Convert.ToString(uid));
+                }
+            }
+            return fuori;
+        }
+
+        /// <summary>Un valore che puo' essere una stringa o un elenco di stringhe.</summary>
+        private static IEnumerable<string> Stringhe(object valore)
+        {
+            if (valore is string s) { if (s.Length > 0) yield return s; yield break; }
+            if (valore is System.Collections.IEnumerable elenco)
+            {
+                foreach (var v in elenco)
+                {
+                    var t = Convert.ToString(v);
+                    if (!string.IsNullOrEmpty(t)) yield return t;
+                }
+            }
+        }
+
+        /// <summary>
+        /// L'elenco, ma corto. Su un pezzo con quattrocento facce scriverli
+        /// tutti non aiuta nessuno: i primi dodici bastano a far capire che
+        /// forma hanno i nomi.
+        /// </summary>
+        private static string Elenca(HashSet<string> uid)
+        {
+            var ordinati = uid.ToList();
+            ordinati.Sort(StringComparer.Ordinal);
+            if (ordinati.Count <= 12) return string.Join(", ", ordinati);
+            return string.Join(", ", ordinati.Take(12)) +
+                   " e altri " + (ordinati.Count - 12);
         }
 
         /// <summary>

@@ -1,0 +1,4 @@
+[
+ { "operazione": "crea_piano", "argomenti": { "piano": "superiore", "distanza_mm": 50 } },
+ { "operazione": "raccordo_spigoli", "argomenti": { "spigoli_uid": ["E1"], "raggio_mm": 500 } }
+]

@@ -16,6 +16,51 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.21.0 — 14 settembre 2026 · libreria 0.58.0
+
+**Gli identificativi citati devono esistere.** E' l'altra meta' della difesa
+anti-deriva, e prende un caso che le firme non possono prendere.
+
+### Il rosso
+
+`[estrudi_rettangolo, taglio_cilindrico su F1]` su un documento vuoto:
+**riusciva**, volume 117.738,1. Il foro e' finito sulla faccia piu' grande — che
+in quel caso era anche quella giusta, ma **non l'aveva scelta nessuno**. «F1» e'
+posizionale e si rinumera per area a ogni lettura.
+
+### Perche' le firme non bastavano
+
+La firma confronta un identificativo con la geometria che descriveva quando il
+piano e' nato. Se la faccia **non esisteva affatto**, non c'e' nessuna firma da
+confrontare, quindi nessun rifiuto.
+
+> La firma protegge dallo **spostamento**; questo protegge dall'**invenzione**.
+
+### Il messaggio indica la strada buona
+
+```
+«faccia_uid» cita «F1», che nel pezzo che ho guardato non c'era.
+Nel pezzo che ho guardato non c'era nessun identificativo: era vuoto.
+
+Gli identificativi nascono da «guarda_il_pezzo» e valgono per QUELLA lettura.
+Se la geometria la crea un passo precedente di questo stesso piano [...] va
+nominata con il riferimento al passo — per esempio "faccia_rif": {"passo": 1,
+"genere": "faccia_superiore"}.
+```
+
+Un rifiuto che non indica la strada buona insegna soltanto a riprovare a caso.
+Vale per tutti i tredici campi `*_uid` del catalogo, stringa o elenco.
+
+### Il legittimo passa
+
+| | |
+|---|---|
+| lo stesso piano con `faccia_rif` | passa, 117.738,1 |
+| `faccia_uid: "F1"` su un pezzo che c'e' gia' | passa, −π·4²·20 |
+| foro / ripetizione / specchio per uid, asse e feature | passano |
+
+---
+
 ## 0.20.0 — 14 settembre 2026 · libreria 0.58.0
 
 **Il banco entra nel repository, e si scopre che era rotto da tre giorni.**
