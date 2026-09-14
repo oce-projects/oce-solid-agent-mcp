@@ -373,6 +373,90 @@ namespace Oce.Solid.Agent.Ponte
         }
 
         /// <summary>
+        /// UNA FOTOGRAFIA del documento attivo, in PNG. Null col motivo.
+        ///
+        /// Sta qui e non in `Attrezzi` per la stessa ragione di `Stato`: e'
+        /// `Sessione` che sa qual e' il documento davanti, e trovarlo e' la
+        /// meta' difficile — il commento sopra `DocumentoAttivo` racconta
+        /// quanto e' costata.
+        ///
+        /// Il nome e' nuovo e non un parametro in piu' su qualcosa che c'era:
+        /// vedi `StatoSenzaAncora`, stessa regola, stessa pagina.
+        /// </summary>
+        public byte[] Fotografia(string quale, int larghezza, int altezza, out string errore)
+        {
+            errore = null;
+            var doc = DocumentoAttivo();
+            if (doc == null)
+            {
+                errore = "Non c'e' nessun documento aperto in SolidWorks.";
+                return null;
+            }
+
+            var modello = doc as IModelDoc2;
+            if (modello == null)
+            {
+                errore = "Il documento davanti non si lascia fotografare.";
+                return null;
+            }
+
+            return VistaDelPezzo.Scatta(modello, quale, larghezza, altezza, out errore);
+        }
+
+        /// <summary>I nomi delle viste che si possono chiedere.</summary>
+        public static IEnumerable<string> NomiDelleViste
+        {
+            get { return VistaDelPezzo.NomiDelleViste; }
+        }
+
+        /// <summary>
+        /// UN PASSO INDIETRO sul documento davanti. Torna il motivo se non si
+        /// e' potuto, null se e' andata.
+        ///
+        /// PERCHE' `EditUndo2` E NON `RunCommand`. Il comando di menu dipende
+        /// dalla lingua dell'installazione e da cosa ha il fuoco; `EditUndo2`
+        /// e' l'API, e fa la stessa cosa che fa `Ctrl+Z` su
+        /// `Controlli\Annulla`, dove e' gia' provata.
+        ///
+        /// UN PASSO SOLO, E NON E' UN DETTAGLIO. `EsecutorePiano` apre e chiude
+        /// UNA voce di annullamento intorno all'intero piano
+        /// (`StartRecordingUndoObject` / `FinishRecordingUndoObject`): un passo
+        /// indietro disfa il piano intero. E' il criterio di chiusura della
+        /// voce B8, gia' misurato. Chiederne due vorrebbe dire disfare anche
+        /// qualcosa che questo ponte non ha fatto.
+        ///
+        /// `EditUndo2` torna `void`: non dice se ha annullato. Chi chiama deve
+        /// GUARDARE il documento dopo — che e' esattamente cio' che fa
+        /// `Attrezzi.Annulla`, e l'unica ragione per cui questa operazione e'
+        /// difendibile.
+        /// </summary>
+        public string UnPassoIndietro()
+        {
+            var doc = DocumentoAttivo() as IModelDoc2;
+            if (doc == null) return "Non c'e' nessun documento aperto in SolidWorks.";
+            try { doc.EditUndo2(1); return null; }
+            catch (Exception ex) { return "SOLIDWORKS non ha annullato: " + ex.Message; }
+        }
+
+        /// <summary>
+        /// UN PASSO AVANTI: rimette quello che `UnPassoIndietro` ha tolto.
+        ///
+        /// Serve a una cosa sola, e non e' una comodita': se l'annullamento ha
+        /// disfatto qualcosa di DIVERSO da quello che doveva — perche' dopo il
+        /// piano qualcuno ha fatto un gesto che e' finito in cima alla pila —
+        /// questo lo rimette a posto. Non c'e' nessuna API per guardare la pila
+        /// degli annullamenti prima di premere: l'unica strada onesta e'
+        /// provare, controllare, e disfare la prova se era quella sbagliata.
+        /// </summary>
+        public string UnPassoAvanti()
+        {
+            var doc = DocumentoAttivo() as IModelDoc2;
+            if (doc == null) return "Non c'e' nessun documento aperto in SolidWorks.";
+            try { doc.EditRedo2(1); return null; }
+            catch (Exception ex) { return "SOLIDWORKS non ha rifatto: " + ex.Message; }
+        }
+
+        /// <summary>
         /// IL PIANO INTERO, ESEGUITO DALLA LIBRERIA E NON DAL PONTE.
         ///
         /// Fino alla 0.14.0 il ponte aveva un giro suo: un

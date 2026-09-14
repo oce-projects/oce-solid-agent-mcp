@@ -41,10 +41,13 @@ namespace Riscontro.Disegno
     ///
     /// L'ultimo e' stato muto fino alla 0.25.2: le lavorazioni oltre
     /// l'ottantesima finivano in `altre_feature`, insieme a quelle di tipo
-    /// ignorato, e `troncato` restava false. Era il peggiore dei quattro da
-    /// tacere, perche' l'albero si scorre in ordine di CREAZIONE: le elencate
-    /// sono le piu' vecchie, e quella appena creata dal piano e' fra le
-    /// scartate.
+    /// ignorato, e `troncato` restava false.
+    ///
+    /// E fino alla 0.30.0 teneva le PIU' VECCHIE, che era il peggiore dei due
+    /// modi di troncare: l'albero si scorre in ordine di creazione, quindi la
+    /// lavorazione che il piano ha appena fatto — l'unica che chi legge sta
+    /// davvero cercando — era sempre fra le scartate. Adesso si tengono le
+    /// ultime (voce E12), e il dettaglio si paga solo su quelle.
     ///
     /// UN TETTO CHE NON DICE DI ESSERE SCATTATO NON E' UN TETTO: e' una
     /// risposta sbagliata che si presenta come completa.
@@ -130,6 +133,21 @@ namespace Riscontro.Disegno
         /// Vale per QUESTA sessione: non si serializza e non si porta in giro.
         /// </summary>
         public IModelDoc2 Modello { get; private set; }
+
+        /// <summary>
+        /// Una lavorazione in attesa di sapere se entra nell'elenco.
+        ///
+        /// Porta solo cio' che il giro sull'albero ha gia' letto — il tipo e il
+        /// nome, che si leggono comunque per capire di che si tratta — piu' il
+        /// riferimento COM. Il dettaglio, che costa, si paga dopo e solo sulle
+        /// sopravvissute.
+        /// </summary>
+        private sealed class Candidata
+        {
+            public IFeature F;
+            public string Tipo;
+            public string Nome;
+        }
 
         public class FirmaEntita
         {
@@ -515,6 +533,9 @@ namespace Riscontro.Disegno
             // quelle che sarebbero entrate e non ci stanno per il tetto: sono
             // due cose diverse, e sommarle nascondeva la seconda.
             int featureNonElencate = 0;
+            // Le lavorazioni che POTREBBERO entrare nell'elenco, raccolte tutte
+            // e scelte dopo. Vedi il commento su `candidate.Add` piu' sotto.
+            var candidate = new List<Candidata>();
             // QUALI, non solo QUANTE.
             //
             // «altre_feature: 7» dice che c'e' dell'altro e non dice cosa,
@@ -562,103 +583,26 @@ namespace Riscontro.Disegno
                 }
                 else if (FeatureCheContano.Contains(tipo))
                 {
-                    if (feature.Count < MaxFeature)
-                    {
-                        var voceF = new Dictionary<string, object>
-                        { ["uid"] = nome, ["tipo"] = tipo };
-
-                        // L'UID DI UNA LAVORAZIONE E' IL SUO NOME, e un nome
-                        // si rinomina. Chi rinomina «Taglio1» in «Foro cavo» e
-                        // poi chiama «Taglio1» un'altra lavorazione ha appena
-                        // trasferito l'identificativo da una cosa a un'altra,
-                        // e nessuno se ne accorge.
-                        //
-                        // `GetID()` non si rinomina. Non sostituisce l'uid —
-                        // il nome serve a chi legge — ma permette di
-                        // controllare che il nome indichi ancora quella.
-                        try { voceF["feature_id"] = f.GetID(); } catch { }
-
-                        // UNA LAVORAZIONE SOPPRESSA E UNA VIVA ERANO
-                        // INDISTINGUIBILI. Il modello proponeva di raccordare
-                        // gli spigoli di un foro che nel pezzo non c'e'.
-                        // Si scrive solo quando e' vera: e' il caso raro, e
-                        // scriverla sempre costerebbe posto per dire «tutto
-                        // normale» ottanta volte.
-                        try { if (f.IsSuppressed()) voceF["soppressa"] = true; } catch { }
-
-                        // UNA LAVORAZIONE IN ERRORE E UNA SANA ERANO
-                        // INDISTINGUIBILI, ed e' peggio della soppressa.
-                        //
-                        // Misurato il 14/9/2026: piastra 100x60x20 con un
-                        // raccordo da 8 sugli spigoli in cima, poi la larghezza
-                        // portata a 10. Due raccordi da 8 su 10 mm non ci
-                        // stanno, e SOLIDWORKS lo dice —
-                        // `GetErrorCode2` = 12, `GetWhatsWrongCount` = 1 — ma
-                        // lo stato descriveva «Raccordo1, raggio 8» come una
-                        // lavorazione qualunque. Il volume era 3.000, cioe'
-                        // **esattamente** 100x10x3: il raccordo non aveva
-                        // fatto niente, e chi leggeva vedeva un pezzo sano.
-                        //
-                        // Si scrive solo quando c'e', come per `soppressa`:
-                        // e' il caso raro.
-                        try
-                        {
-                            bool soloAvviso;
-                            int codice = f.GetErrorCode2(out soloAvviso);
-                            if (codice != 0)
-                            {
-                                voceF["errore"] = ErroriFeature.Frase(codice);
-                                voceF["errore_codice"] = codice;
-                                if (soloAvviso) voceF["solo_avviso"] = true;
-                                lavorazioniInErrore++;
-                            }
-                        }
-                        catch { }
-
-                        // I PARAMETRI: quello che rende un foro «un M8» invece
-                        // che «una lavorazione di nome Foro1».
-                        ParametriDellaFeature(f, tipo, voceF);
-
-                        // LE QUOTE: senza queste non si modifica niente.
-                        //
-                        // «quel foro portalo da M8 a M10» e «lo spessore
-                        // portalo a 3» sono la richiesta piu' frequente in
-                        // officina, e finora erano impossibili per una
-                        // ragione semplice: il modello non sapeva che le
-                        // quote esistessero. Vedeva un nome e dei parametri
-                        // in sola lettura.
-                        //
-                        // Una quota ha un NOME che si puo' citare
-                        // («D1@Schizzo1») e un valore. Metterli qui e' cio'
-                        // che rende possibile `modifica_quota`.
-                        QuoteDellaFeature(f, voceF);
-                        feature.Add(voceF);
-                    }
-                    else
-                    {
-                        // IL TETTO SI DICHIARA, come gli altri due.
-                        //
-                        // Fino alla 0.25.2 questa lavorazione finiva in
-                        // `altreFeature` insieme a quelle di tipo ignorato, e
-                        // `troncato` restava false: lo stato diceva che
-                        // l'elenco era completo mentre non lo era.
-                        //
-                        // E' il piu' insidioso dei tre tetti, perche' l'albero
-                        // si scorre in ORDINE DI CREAZIONE: le ottanta elencate
-                        // sono le PIU' VECCHIE, e quella che il piano ha appena
-                        // creato e' fra le scartate. Il modello leggeva
-                        // `troncato: false`, non trovava la lavorazione nuova, e
-                        // poteva concluderne che l'operazione non aveva fatto
-                        // niente — e rifarla.
-                        //
-                        // Restano le piu' vecchie anche adesso: cambiare quali
-                        // si tengono e' un'altra voce (E12), perche' i dettagli
-                        // costano chiamate COM e vanno raccolti dopo aver deciso
-                        // chi sopravvive. Ma «non ci stanno tutte» adesso si
-                        // legge, e un elenco incompleto dichiarato e' una cosa
-                        // diversa da un elenco incompleto spacciato per intero.
-                        featureNonElencate++;
-                    }
+                    // SI RACCOLGONO TUTTE, E SI SCEGLIE DOPO (voce E12).
+                    //
+                    // Fino alla 0.30.0 qui c'era `if (feature.Count <
+                    // MaxFeature)`, cioe' si tenevano le prime ottanta
+                    // INCONTRATE. E l'albero si scorre con `GetNextFeature`,
+                    // in ordine di CREAZIONE: le prime ottanta sono le piu'
+                    // VECCHIE, e la lavorazione che il piano ha appena creato
+                    // e' fra quelle scartate. Il modello non la trovava, e
+                    // poteva concluderne che l'operazione non aveva fatto
+                    // niente — e rifarla.
+                    //
+                    // IL COSTO NON CAMBIA, ed e' il motivo per cui si puo'
+                    // fare. `GetTypeName2()` e `Name` si leggono gia' per OGNI
+                    // lavorazione dell'albero, prima di questo controllo, per
+                    // decidere di che tipo e': il giro leggero esisteva gia' ed
+                    // era gia' pagato. Qui si aggiunge solo un riferimento a
+                    // una lista. La parte cara — `GetID`, `IsSuppressed`,
+                    // `GetErrorCode2`, i parametri, le quote — resta su ottanta
+                    // lavorazioni esatte, solo che adesso sono le ULTIME.
+                    candidate.Add(new Candidata { F = f, Tipo = tipo, Nome = nome });
                 }
                 else if (!CartelleDiServizio.Contains(tipo))
                 {
@@ -666,6 +610,31 @@ namespace Riscontro.Disegno
                     if (!string.IsNullOrEmpty(tipo)) tipiIgnoti.Add(tipo);
                 }
                 try { f = (IFeature)f.GetNextFeature(); } catch { f = null; }
+            }
+
+            // ── QUALI OTTANTA (voce E12) ──────────────────────────────────
+            //
+            // L'albero si scorre in ordine di CREAZIONE, quindi le prime sono
+            // le piu' vecchie. Tenere le prime ottanta vuol dire buttare via
+            // proprio la lavorazione che il piano ha appena creato — quella che
+            // chi legge sta cercando. Si tengono le ULTIME.
+            //
+            // Il dettaglio si paga QUI, e solo su queste: e' la stessa spesa di
+            // prima, su lavorazioni diverse.
+            //
+            // IL TETTO SI DICHIARA, come gli altri tre. Un elenco incompleto
+            // dichiarato e' una cosa diversa da un elenco incompleto spacciato
+            // per intero — ed e' quello che questo stato faceva fino alla
+            // 0.25.2, con `troncato: false` su un elenco troncato.
+            if (candidate.Count > MaxFeature)
+            {
+                featureNonElencate = candidate.Count - MaxFeature;
+                candidate.RemoveRange(0, featureNonElencate);
+            }
+            foreach (var c in candidate)
+            {
+                var voceF = DettaglioFeature(c.F, c.Tipo, c.Nome, ref lavorazioniInErrore);
+                if (voceF != null) feature.Add(voceF);
             }
 
             // ── corpi, facce, spigoli ─────────────────────────────────────
@@ -1684,6 +1653,96 @@ namespace Riscontro.Disegno
                 };
             }
             catch { return null; }
+        }
+
+
+        /// <summary>
+        /// Il DETTAGLIO di una lavorazione: tutto cio' che costa chiamate COM.
+        ///
+        /// Sta in un metodo suo perche' si chiama DOPO aver deciso quali
+        /// lavorazioni sopravvivono al tetto, e non mentre si scorre l'albero
+        /// (voce E12). Il giro sull'albero legge solo tipo e nome — che erano
+        /// gia' letti comunque — e mette da parte un riferimento; il dettaglio
+        /// si paga solo sulle ottanta che restano.
+        /// </summary>
+        /// <param name="inErrore">
+        /// Si incrementa per ogni lavorazione che porta un errore. E' un
+        /// contatore di chi chiama, e passa per riferimento perche' il
+        /// conteggio finisce in `lavorazioni_in_errore` sullo stato intero:
+        /// tenerlo qui dentro vorrebbe dire perderlo.
+        /// </param>
+        private static Dictionary<string, object> DettaglioFeature(
+            IFeature f, string tipo, string nome, ref int inErrore)
+        {
+            var voceF = new Dictionary<string, object>
+            { ["uid"] = nome, ["tipo"] = tipo };
+
+            // L'UID DI UNA LAVORAZIONE E' IL SUO NOME, e un nome
+            // si rinomina. Chi rinomina «Taglio1» in «Foro cavo» e
+            // poi chiama «Taglio1» un'altra lavorazione ha appena
+            // trasferito l'identificativo da una cosa a un'altra,
+            // e nessuno se ne accorge.
+            //
+            // `GetID()` non si rinomina. Non sostituisce l'uid —
+            // il nome serve a chi legge — ma permette di
+            // controllare che il nome indichi ancora quella.
+            try { voceF["feature_id"] = f.GetID(); } catch { }
+
+            // UNA LAVORAZIONE SOPPRESSA E UNA VIVA ERANO
+            // INDISTINGUIBILI. Il modello proponeva di raccordare
+            // gli spigoli di un foro che nel pezzo non c'e'.
+            // Si scrive solo quando e' vera: e' il caso raro, e
+            // scriverla sempre costerebbe posto per dire «tutto
+            // normale» ottanta volte.
+            try { if (f.IsSuppressed()) voceF["soppressa"] = true; } catch { }
+
+            // UNA LAVORAZIONE IN ERRORE E UNA SANA ERANO
+            // INDISTINGUIBILI, ed e' peggio della soppressa.
+            //
+            // Misurato il 14/9/2026: piastra 100x60x20 con un
+            // raccordo da 8 sugli spigoli in cima, poi la larghezza
+            // portata a 10. Due raccordi da 8 su 10 mm non ci
+            // stanno, e SOLIDWORKS lo dice —
+            // `GetErrorCode2` = 12, `GetWhatsWrongCount` = 1 — ma
+            // lo stato descriveva «Raccordo1, raggio 8» come una
+            // lavorazione qualunque. Il volume era 3.000, cioe'
+            // **esattamente** 100x10x3: il raccordo non aveva
+            // fatto niente, e chi leggeva vedeva un pezzo sano.
+            //
+            // Si scrive solo quando c'e', come per `soppressa`:
+            // e' il caso raro.
+            try
+            {
+                bool soloAvviso;
+                int codice = f.GetErrorCode2(out soloAvviso);
+                if (codice != 0)
+                {
+                    voceF["errore"] = ErroriFeature.Frase(codice);
+                    voceF["errore_codice"] = codice;
+                    if (soloAvviso) voceF["solo_avviso"] = true;
+                    inErrore++;
+                }
+            }
+            catch { }
+
+            // I PARAMETRI: quello che rende un foro «un M8» invece
+            // che «una lavorazione di nome Foro1».
+            ParametriDellaFeature(f, tipo, voceF);
+
+            // LE QUOTE: senza queste non si modifica niente.
+            //
+            // «quel foro portalo da M8 a M10» e «lo spessore
+            // portalo a 3» sono la richiesta piu' frequente in
+            // officina, e finora erano impossibili per una
+            // ragione semplice: il modello non sapeva che le
+            // quote esistessero. Vedeva un nome e dei parametri
+            // in sola lettura.
+            //
+            // Una quota ha un NOME che si puo' citare
+            // («D1@Schizzo1») e un valore. Metterli qui e' cio'
+            // che rende possibile `modifica_quota`.
+            QuoteDellaFeature(f, voceF);
+            return voceF;
         }
 
         private static double[] PuntoSuFaccia(IFace2 faccia)

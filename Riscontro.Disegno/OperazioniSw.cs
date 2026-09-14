@@ -82,7 +82,7 @@ namespace Riscontro.Disegno
         /// tace lascia credere che il pezzo sia intatto.
         /// </summary>
         private const string RestaNelPezzo =
-            " Il taglio pero' e' gia' stato fatto: annullalo con Ctrl+Z.";
+            " Il taglio pero' e' gia' stato fatto: ritiralo — " + Frasi.CosiSiRitira + ".";
 
         /// <summary>
         /// Coda dei messaggi di errore che lasciano uno schizzo nell'albero.
@@ -98,7 +98,8 @@ namespace Riscontro.Disegno
         /// e' riuscita, e che nel pezzo e' rimasto qualcosa di nostro.
         /// </summary>
         private const string LasciatoSchizzo =
-            " Nel pezzo e' rimasto lo schizzo che avevo disegnato: puoi toglierlo con Ctrl+Z.";
+            " Nel pezzo e' rimasto lo schizzo che avevo disegnato: puoi toglierlo — " +
+            Frasi.CosiSiRitira + ".";
 
         /// <summary>
         /// Il terzo esito di <see cref="SenzaLoSchizzo"/>, e il piu' importante
@@ -146,7 +147,8 @@ namespace Riscontro.Disegno
         /// </summary>
         private const string SchizzoToltoMaNonSolo =
             " Ho tolto lo schizzo che avevo disegnato, ma togliendolo e' cambiato" +
-            " anche il pezzo: controllalo, e se non e' come lo vuoi annulla con Ctrl+Z.";
+            " anche il pezzo: controllalo, e se non e' come lo vuoi ritiralo — " +
+            Frasi.CosiSiRitira + ".";
 
         /// <summary>
         /// Il tipo dell'origine del pezzo, l'unica cosa che <see cref="SenzaLoSchizzo"/>
@@ -1953,7 +1955,26 @@ namespace Riscontro.Disegno
 
             // Un volume che non si e' potuto leggere non diventa uno zero: uno
             // zero vorrebbe dire «non ha tolto niente», che e' un'affermazione.
-            if (volumePrima <= 0 || volumeDopo < 0) return;
+            //
+            // `<= 0` SU TUTTI E DUE, e la prima scrittura aveva `volumeDopo < 0`.
+            // `VolumeMm3` non torna MAI un negativo: risponde 0 quando il
+            // documento non e' una parte, quando `GetBodies2` da' null e dal
+            // `catch` che avvolge tutto — cioe' su ogni strada di errore.
+            // Quindi quel ramo non poteva scattare, e uno zero di lettura
+            // fallita passava come se fosse una misura: `tolti` diventava
+            // l'INTERO volume del pezzo, e su un foro perfettamente riuscito
+            // usciva una `nota_volume` che diceva «192.000 mm³ invece di 392,7».
+            // L'allarme falso sul corretto, cioe' esattamente cio' che questa
+            // voce dichiara peggiore del difetto che sta chiudendo.
+            //
+            // Il commento qui sopra diceva gia' la cosa giusta, ed e' stata la
+            // riga a non farla: e' la forma di difetto piu' frequente trovata
+            // in questo progetto, commessa mentre la si documentava.
+            //
+            // `Guscio` la scrive giusta quindici righe piu' in la'
+            // (`volumePrima > 0 && volumeDopo > 0`): la stessa cosa, fatta bene,
+            // nello stesso file.
+            if (volumePrima <= 0 || volumeDopo <= 0) return;
 
             misure["tolti_mm3"] = Math.Round(tolti, 2);
             if (attesoMm3 <= 0) return;
@@ -2525,7 +2546,7 @@ namespace Riscontro.Disegno
                 return Fallito(
                     "Dopo lo spostamento il pezzo ha " + corpiDopo + " corpi invece di " +
                     corpiAttesi + ". Non ti confermo un pezzo diverso da quello " +
-                    "che ti ho mostrato — annullalo con Ctrl+Z.");
+                    "che ti ho mostrato: ritiralo — " + Frasi.CosiSiRitira + ".");
 
             double volumeDopo;
             double[] centroDopo;
@@ -2538,7 +2559,7 @@ namespace Riscontro.Disegno
                     "Dopo lo spostamento il pezzo ha un volume di " +
                     volumeDopo.ToString("0.#") + " mm3 invece di " +
                     volumeAtteso.ToString("0.#") + ": qualcosa si e' unito o " +
-                    "tagliato. Annullalo con Ctrl+Z.");
+                    "tagliato. Ritiralo — " + Frasi.CosiSiRitira + ".");
 
             // Il baricentro atteso. Senza copia si sposta la frazione di volume
             // mossa; con le copie, la copia k-esima sta a k*d, e la somma dei k
@@ -2569,7 +2590,7 @@ namespace Riscontro.Disegno
                     "pezzo e' fuori di " + scarto.ToString("0.###") + " mm da dove " +
                     "lo mette uno spostamento di " + distanza.ToString("0.##") +
                     " mm. Quasi sempre vuol dire che la distanza applicata non e' " +
-                    "quella chiesta. Annullalo con Ctrl+Z.");
+                    "quella chiesta. Ritiralo — " + Frasi.CosiSiRitira + ".");
 
             return Riuscito(feature, new Dictionary<string, object>
             {
@@ -2839,14 +2860,14 @@ namespace Riscontro.Disegno
                     "Il rialzo doveva unirsi al pezzo e invece i corpi sono " +
                     "passati da " + corpiPrima + " a " + corpiDopo + ": quasi " +
                     "sempre vuol dire che il profilo non tocca il corpo. " +
-                    "Annullalo con Ctrl+Z.");
+                    "Ritiralo — " + Frasi.CosiSiRitira + ".");
 
             if (aggiunto <= 0)
                 return Fallito(
                     "Il rialzo non ha aggiunto materiale: il volume e' " +
                     (aggiunto < 0 ? "calato" : "rimasto uguale") + ". Di solito " +
                     "vuol dire che l'estrusione e' andata DENTRO il pezzo " +
-                    "invece che in fuori. Annullalo con Ctrl+Z.");
+                    "invece che in fuori. Ritiralo — " + Frasi.CosiSiRitira + ".");
 
             return Riuscito(feature, new Dictionary<string, object>
             {
@@ -4073,7 +4094,8 @@ namespace Riscontro.Disegno
                     "La rivoluzione ha creato la feature ma il documento ha " +
                     nCorpi + " corpi solidi invece di uno: molto probabilmente " +
                     "il profilo attraversa l'asse. Non ti confermo un pezzo " +
-                    "diverso da quello che ti ho mostrato — annullalo con Ctrl+Z.");
+                    "diverso da quello che ti ho mostrato: ritiralo — " +
+                    Frasi.CosiSiRitira + ".");
 
             string notaBlocco;
             bool bloccato = BloccaSchizzo(modello, out notaBlocco);
@@ -4164,13 +4186,31 @@ namespace Riscontro.Disegno
                 // una lettura precedente: non c'e' nessuna firma da
                 // confrontare, ed e' lo stesso motivo per cui il ramo
                 // `faccia_rif` di `RisolviFaccia` salta quel controllo.
+                // TUTTE, NON ALMENO UNA. La prima scrittura contava quante si
+                // erano lasciate selezionare e si fermava solo a zero: con tre
+                // riferimenti risolti e due facce selezionate andava avanti, e
+                // il guscio usciva aperto su DUE facce invece che su tre —
+                // «riuscita: true», volume calato, tutti i controlli a valle
+                // soddisfatti, e un contenitore chiuso su un lato che doveva
+                // essere aperto.
+                //
+                // La regola di questa voce era gia' scritta e valeva sulla
+                // RISOLUZIONE: «se uno solo non si risolve, fallisce tutto».
+                // Valeva su meta' del percorso. Il ramo degli uid, quindici
+                // righe piu' giu', rifiuta alla PRIMA faccia che non si
+                // seleziona: una riparazione che copre un ramo e ne lascia
+                // scoperto il gemello.
                 int presi = 0;
                 foreach (var f in daiPassi)
-                    if ((f as IEntity)?.Select4(true, null) == true) presi++;
-                if (presi == 0)
-                    return Fallito(
-                        "Le facce indicate da «facce_rif» non si sono lasciate " +
-                        "selezionare." + RestaNelPezzo);
+                {
+                    if ((f as IEntity)?.Select4(true, null) == true) { presi++; continue; }
+                    return Fallito(string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "La faccia n. {0} di «facce_rif» non si e' lasciata selezionare: " +
+                        "{1} su {2} erano pronte. Un guscio aperto su meno facce di quelle " +
+                        "chieste non e' quasi giusto, e' un pezzo diverso.{3}",
+                        presi + 1, presi, daiPassi.Count, RestaNelPezzo));
+                }
                 _log("[agente] " + presi + " facce prese dai passi precedenti");
             }
             else if (uid.Count == 0)
@@ -4530,7 +4570,8 @@ namespace Riscontro.Disegno
                 "dice riuscito. Di solito le copie mancanti cadono fuori dal " +
                 "materiale" + (fatte > 1 ? ", oppure si sono fuse fra loro" : "") + ". " +
                 comeSiRipara +
-                " La ripetizione e' rimasta nel pezzo: annullala con Ctrl+Z.";
+                " La ripetizione e' rimasta nel pezzo: ritirala — " +
+                Frasi.CosiSiRitira + ".";
         }
 
         /// <summary>

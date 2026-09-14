@@ -124,7 +124,14 @@ namespace Oce.Solid.Agent
                             "qualunque cosa chiama «guarda_il_pezzo»: gli " +
                             "identificativi delle facce e degli spigoli nascono " +
                             "li' e valgono per quella lettura. Dopo ogni " +
-                            "modifica il pezzo cambia e vanno riletti.",
+                            "modifica il pezzo cambia e vanno riletti.\n\n" +
+                            "Se la forma e' in dubbio, «guarda_il_pezzo» con " +
+                            "«viste» ti fa VEDERE il pezzo: l'elenco delle facce " +
+                            "dice quante sono e quanto misurano, non com'e' " +
+                            "fatto.\n\n" +
+                            "Se quello che hai disegnato non va, «annulla» ritira " +
+                            "l'ultimo piano tutto intero: non serve rifare il " +
+                            "pezzo da capo.",
                     });
 
                 case "notifications/initialized":

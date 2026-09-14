@@ -174,7 +174,7 @@ namespace ProvaSaldatura
                 Segna("scatta la vista del pezzo", fatte > 0,
                       fatte + " viste su " + viste.Length + " salvate in " + cartella);
             }
-            catch (Exception ex) { Segna("scatta la vista del pezzo", false, ex.Message); }
+            catch (Exception ex) { Segna("scatta la vista del pezzo", false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -258,7 +258,7 @@ namespace ProvaSaldatura
                       json.Length + " caratteri, " + (feature == null ? 0 : feature.Count) +
                       " lavorazioni, " + (facce == null ? 0 : facce.Count) + " facce");
             }
-            catch (Exception ex) { Segna("censimento di cosa vede il modello", false, ex.Message); }
+            catch (Exception ex) { Segna("censimento di cosa vede il modello", false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -427,7 +427,7 @@ namespace ProvaSaldatura
                     "baricentro Z spostato di {4:0.###} mm (atteso {5:0.###})",
                     corpi, corpiAttesi, volume, volumeAttesa, spostato, spostamentoCentroZ));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -607,7 +607,7 @@ namespace ProvaSaldatura
                     tolto, volumePieno,
                     uguale ? "devono coincidere" : "devono essere meno: sporge dalle coste"));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -654,7 +654,7 @@ namespace ProvaSaldatura
                           tolto, volumeAtteso,
                           misure.ContainsKey("materiale_tolto_mm3") ? misure["materiale_tolto_mm3"] : "?"));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -724,7 +724,7 @@ namespace ProvaSaldatura
                       string.Format("spigolo {0:0.#} mm, tolti {1:0.#} mm3, attesi {2:0.#} ({3})",
                                     lungo, tolto, atteso, controprova));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -840,7 +840,7 @@ namespace ProvaSaldatura
                 Segna(nome, corpi == 1 && Math.Abs(v - atteso) < Math.Max(5, atteso * 0.02),
                       string.Format("volume {0:0.#} mm3, atteso {1:0.#}, corpi {2}", v, atteso, corpi));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -900,7 +900,7 @@ namespace ProvaSaldatura
                           ing == null ? "?" : string.Join("x", ing.Select(x => x.ToString("0.#"))),
                           string.Join("x", ingombroAtteso.Select(x => x.ToString("0.#")))));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -948,7 +948,7 @@ namespace ProvaSaldatura
                           t == null ? "non leggibile" : "[" + string.Join(",", t.Select(x => x.ToString("0.#"))) + "]",
                           quota, distanza));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -1033,7 +1033,7 @@ namespace ProvaSaldatura
                       no == null && !string.IsNullOrEmpty(scarto),
                       no == null ? "rifiutato: " + Corto(scarto) : "NON ha rifiutato");
             }
-            catch (Exception ex) { Segna("crea_asse", false, ex.Message); }
+            catch (Exception ex) { Segna("crea_asse", false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -1144,7 +1144,7 @@ namespace ProvaSaldatura
                       : indietro && !avanti ? "opposto allo spigolo: «capovolgi_1» inverte"
                       : "istanze da tutte e due le parti, o nessuna");
             }
-            catch (Exception ex) { Segna("ripeti_lineare", false, ex.Message); }
+            catch (Exception ex) { Segna("ripeti_lineare", false, Perche(ex)); }
             finally { Chiudi(doc); }
 
             // ── la griglia, e lo spigolo curvo che deve essere rifiutato ──
@@ -1278,7 +1278,7 @@ namespace ProvaSaldatura
                           no == null ? "rifiutato: " + Corto(scarto) : "NON ha rifiutato");
                 }
             }
-            catch (Exception ex) { Segna("ripeti_lineare, griglia", false, ex.Message); }
+            catch (Exception ex) { Segna("ripeti_lineare, griglia", false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -1355,7 +1355,7 @@ namespace ProvaSaldatura
                       no == null && !string.IsNullOrEmpty(scarto),
                       no == null ? "rifiutato: " + Corto(scarto) : "NON ha rifiutato");
             }
-            catch (Exception ex) { Segna("specchia", false, ex.Message); }
+            catch (Exception ex) { Segna("specchia", false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 

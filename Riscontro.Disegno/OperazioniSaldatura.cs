@@ -569,7 +569,8 @@ namespace Riscontro.Disegno
                             System.Globalization.CultureInfo.InvariantCulture,
                             "Il telaio doveva essere {0:0.#}x{1:0.#} mm di ingombro esterno " +
                             "ed e' venuto {2:0.##}x{3:0.##}. Non te lo lascio passare per " +
-                            "buono: annullalo con Ctrl+Z. (Sporgenza misurata del " +
+                            "buono: ritiralo — " + Frasi.CosiSiRitira +
+                            ". (Sporgenza misurata del " +
                             "profilo: {4:0.##}x{5:0.##} mm.)",
                             ingombroPromesso[0], ingombroPromesso[1], vistoU, vistoV,
                             sporgenze[0], sporgenze[1]));

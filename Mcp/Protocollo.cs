@@ -99,6 +99,52 @@ namespace Oce.Solid.Agent.Mcp
             };
         }
 
+        /// <summary>
+        /// Testo PIU' immagini, che e' la sola forma in cui un modello puo'
+        /// VEDERE il pezzo invece di leggerne l'elenco delle facce.
+        ///
+        /// MCP prevede un contenuto di tipo `image`: i byte in base64 e il tipo
+        /// MIME accanto. Fino alla 0.31.0 questo protocollo sapeva fare solo
+        /// `text`, e il ponte non aveva nessuna strada per far uscire
+        /// un'immagine — mentre la capacita' di scattarla esisteva, provata, nel
+        /// banco.
+        ///
+        /// IL TESTO VA PER PRIMO, e non e' una questione di gusto: descrive cosa
+        /// si sta guardando. Un'immagine senza didascalia in mezzo a una
+        /// conversazione e' un indovinello.
+        ///
+        /// UN NOME DIVERSO invece di un parametro in piu' su `Contenuto`:
+        /// cambiare l'insieme delle firme di un metodo rompe chi lo chiama per
+        /// riflessione anche quando il compilatore tace. E' la lezione della
+        /// 0.25.1, applicata prima di ricascarci.
+        /// </summary>
+        public static Dictionary<string, object> ContenutoConImmagini(
+            string testo, IEnumerable<KeyValuePair<string, byte[]>> immagini)
+        {
+            var pezzi = new List<object>
+            {
+                new Dictionary<string, object> { ["type"] = "text", ["text"] = testo },
+            };
+
+            if (immagini != null)
+                foreach (var i in immagini)
+                {
+                    if (i.Value == null || i.Value.Length == 0) continue;
+                    pezzi.Add(new Dictionary<string, object>
+                    {
+                        ["type"] = "image",
+                        ["data"] = Convert.ToBase64String(i.Value),
+                        ["mimeType"] = string.IsNullOrEmpty(i.Key) ? "image/png" : i.Key,
+                    });
+                }
+
+            return new Dictionary<string, object>
+            {
+                ["content"] = pezzi.ToArray(),
+                ["isError"] = false,
+            };
+        }
+
         public const int ErroreParsing = -32700;
         public const int RichiestaNonValida = -32600;
         public const int MetodoSconosciuto = -32601;

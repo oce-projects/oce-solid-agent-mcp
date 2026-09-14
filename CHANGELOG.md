@@ -16,6 +16,272 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.31.0 — 14-15 settembre 2026 · libreria 0.66.0
+
+**Il modello non aveva mai visto il pezzo, e non poteva tornare indietro.**
+
+Due meta' dello stesso goal — *proponi, fai, **guarda**, **correggi*** — e nessuna
+delle due era mai entrata nel TODO.
+
+### R1 — `annulla`: il quinto strumento
+
+Questo ponte diceva **ventuno volte** al modello «annullalo con Ctrl+Z». Il
+destinatario di quei messaggi e' un modello linguistico, che non ha una
+tastiera: era una riparazione offerta a qualcuno che non poteva prenderla.
+
+E le trentasei operazioni sono tutte additive o parametriche. L'unica correzione
+possibile era `modifica_quota` — si cambia un numero, non si ritira una scelta.
+**L'albero poteva solo crescere:** chi si accorgeva di aver sbagliato aveva due
+strade, tutte e due sbagliate — costruirci sopra, o rifare il pezzo da capo, che
+e' proprio cio' che il goal esclude.
+
+**La macchina c'era gia'.** `EsecutorePiano` apre e chiude una voce di
+annullamento intorno a ogni piano (voce B8, misurata: «un solo Ctrl+Z riporta il
+documento al valore di `volume_prima_mm3`»), e `Controlli\Annulla` prova che
+funziona. Si azionava solo con una tastiera umana. Stessa forma della sezione V:
+la capacita' c'e', e non arriva a chi legge.
+
+**Un QUINTO strumento e non un'operazione del catalogo:** le operazioni si
+eseguono dentro `disegna`, cioe' dentro un piano, e annullare un piano da dentro
+il piano stesso e' un nodo. Il motivo per cui gli strumenti non sono trentasei —
+non esporre le operazioni una per una — non riguarda un gesto che operazione non
+e'.
+
+#### Il rifiuto viene prima
+
+Fra il piano e la richiesta di annullamento il progettista puo' aver lavorato a
+mano, e premere annulla allora gli toglie il **suo** lavoro. Quindi `disegna`
+lascia un ricordo — documento, volume e numero di lavorazioni prima e dopo — e
+`annulla` lo riconfronta. Tre rifiuti, ognuno col suo caso rosso in
+`Banco/prova_annulla.js`:
+
+| caso | cosa fa |
+|---|---|
+| nessun piano eseguito | rifiuta: non saprebbe nemmeno dire cosa toglierebbe |
+| chiamato due volte | il secondo rifiuta: il ricordo si consuma al primo, e il passo successivo toglierebbe quello che c'era **prima** del piano |
+| un altro documento davanti | rifiuta dicendo quale aveva in mano e quale c'e' adesso |
+
+**Il ricordo si scrive anche quando il piano e' fallito a meta'**, ed e' il caso
+che conta di piu': un piano fermato al passo 3 lascia i primi due costruiti, e
+sono proprio quelli che si vuole ritirare. Si **cancella** invece quando il pezzo
+non e' cambiato — un piano che non ha costruito niente non ha aperto nessuna
+voce di annullamento, e ricordarlo vorrebbe dire offrire di disfare qualcosa di
+precedente.
+
+#### Due numeri non sono una prova, e si controlla anche dopo
+
+Volume e conteggio non vedono un gesto che non cambia ne' l'uno ne' l'altro — un
+nome cambiato, una configurazione. Non esiste nessuna API per guardare la pila
+degli annullamenti prima di premere (`IModelDocExtension` ha solo
+`StartRecordingUndoObject` / `FinishRecordingUndoObject`). Quindi si preme, si
+**controlla**, e se il pezzo non e' tornato dov'era si **rimette** con
+`EditRedo2` e si dice cos'e' successo. Provare, controllare, e disfare la prova
+sbagliata e' l'unica strada onesta che c'e'.
+
+`QuanteFeature` somma `feature_non_elencate`: senza, il conteggio si fermerebbe
+a ottanta e direbbe «non e' cambiato niente» anche dopo dieci fori nuovi — il
+difetto di E12 ripetuto dall'altra parte.
+
+### R3 — le frasi non nominano piu' un tasto
+
+Tredici messaggi riscritti; **otto commenti lasciati com'erano**, perche' li'
+chi legge e' una persona e per una persona `Ctrl+Z` e' il gesto giusto.
+
+La frase adesso sta in `Riscontro.Disegno/Frasi.cs`, una volta sola. Era scritta
+ventuno volte con parole quasi uguali, e il giorno in cui e' cambiata ha
+presentato il conto: ventuno posti da correggere.
+
+E dice **due** cose:
+
+```
+«annulla» se stai parlando col ponte, Ctrl+Z se sei davanti allo schermo
+```
+
+Questa libreria ha due lettori. Il modello, che arriva dal ponte e non ha una
+tastiera. E la persona, che usa le stesse operazioni dall'add-in di OpenPDM,
+dove `annulla` **non esiste**: nominare solo lo strumento l'avrebbe mandata a
+cercare nel menu un comando che non c'e' — lo stesso difetto di questa voce, coi
+destinatari scambiati.
+
+### Il banco dice DOVE, non solo cosa
+
+`Perche(ex)` al posto di `ex.Message` in diciotto punti: tipo dell'eccezione,
+messaggio, prima riga di stack, e via l'involucro `TargetInvocationException`
+che la riflessione mette intorno a tutto.
+
+Il motivo e' costato un giro: una prova ha stampato «Riferimento a un oggetto
+non impostato su un'istanza di oggetto.» e nient'altro. Quella frase dice che
+qualcosa era null e non dice **cosa**, ne' se il null stesse nel banco o nella
+libreria — e localizzarla voleva dire rilanciare diciassette minuti di prove.
+
+### V1 — `guarda_il_pezzo` sa scattare una fotografia
+
+### V1 — `guarda_il_pezzo` sa scattare una fotografia
+
+Fino a qui, «guardare il pezzo» voleva dire ricevere un elenco: sessanta facce
+con area, normale e verso. Per una piastra forata basta. Per capire che FORMA ha
+un guscio con le alette, no — sessanta facce con un'area non sono una forma,
+sono un elenco.
+
+**La capacita' c'era ed era provata.** Il banco salva viste con `SaveBMP` da
+mesi. Ma viveva nel banco, e `SaveBMP` non compariva **nemmeno una volta** nella
+libreria: la cosa che serviva a chi legge stava nel programma che controlla se
+la libreria funziona. E' la forma di difetto della voce E8 — una misura presa e
+buttata via — con l'aggravante che qui non era mai stata collegata a niente.
+
+Adesso:
+
+- **`Riscontro.Disegno/VistaDelPezzo.cs`** (nuovo): `Scatta(modello, quale,
+  larghezza, altezza, out motivo)` torna i byte di un **PNG**. Nove viste col
+  nome che usa chi disegna, l'isometrica per prima perche' e' la sola che da
+  sola mostri una forma.
+- **`Mcp/Protocollo.cs`**: `ContenutoConImmagini` — MCP prevede contenuti di
+  tipo `image` (base64 piu' tipo MIME) e questo protocollo sapeva fare solo
+  `text`. Il testo va per primo: un'immagine senza didascalia, in mezzo a una
+  conversazione, e' un indovinello.
+- **`Ponte/Sessione.cs`**: `Fotografia(...)`, che e' dove sta la meta'
+  difficile — sapere qual e' il documento davanti.
+- **`Strumenti/Attrezzi.cs`**: `guarda_il_pezzo` guadagna `viste`, facoltativo,
+  **al massimo tre**.
+
+**SU RICHIESTA, MAI DI SERIE.** Una vista 1024x768 costa piu' di mille token:
+piu' di dieci volte l'intero stato del documento, che sta sotto i 16.000
+caratteri. Se ogni lettura ne portasse tre, il costo del ponte cambierebbe di un
+ordine di grandezza — e lo pagherebbe anche chi voleva solo sapere quanti corpi
+ci sono.
+
+**PNG e non il BMP che SOLIDWORKS da'.** `SaveBMP` scrive non compresso: 1024x768
+sono 2,3 MB, in base64 tre. Lo stesso fotogramma in PNG sta in poche decine di
+KB, coi pixel identici.
+
+**NON SI TOCCA LA VISTA DI CHI LAVORA.** Il ponte si aggancia al documento che
+un progettista ha davanti. Girare il pezzo per fotografarlo e lasciarlo girato
+vuol dire spostargli la roba sotto le mani. L'orientamento si salva prima e si
+rimette nel `finally`, **anche quando la fotografia fallisce a meta'**: un danno
+vero fatto da un'operazione di sola lettura.
+
+#### E rimetterlo a posto e' stata la parte difficile: sei strade su nove non funzionano
+
+| strada | esito |
+|---|---|
+| riassegnare `IModelView.Transform` | scarto **2598** sull'indice 12 (la scala) |
+| `Transform` copiato con `IInverse()` due volte | idem |
+| `IModelDoc2.ViewOrientationUndo()` | scarto 212 sull'indice 9 |
+| terna `Orientation3`/`Translation3`/`Scale2`, ordine O → **T** → S | scarto **4,77** sull'indice 9 |
+| **terna, ordine O → S → T** | **torna** |
+
+**`Transform` non e' lo stato della vista:** e' la sua descrizione. Lo stato da
+cui una vista si ricostruisce e' la terna — da dove guardi, dove sei centrato,
+quanto sei vicino.
+
+**E l'ordine non e' stile.** Con O → T → S la rotazione (indici 0-8 della
+matrice) torna **esatta** e sbaglia solo la traslazione: `Translation3` vale per
+la scala che c'e' in quel momento, quindi rimetterla prima di `Scale2` rimette
+una posizione buona per un'altra inquadratura. Il pezzo usciva **dritto e
+spostato**, che e' peggio di storto — sembra giusto.
+
+Il numero l'ha detto la misura: e' stato «scarto 4,77 **sull'indice 9**» a
+indicare la traslazione, dopo che tre spiegazioni ragionate erano risultate
+false una dopo l'altra.
+
+#### `Controlli\ProvaVista`, perche' tre secondi non sono diciassette minuti
+
+Le prime tre strade sono state provate **dentro il banco**, cioe' pagando un
+giro da diciassette minuti per ogni risposta. Adesso stanno in un attrezzo suo
+che ne prova nove in tre secondi e stampa **di quanto** e **su quale numero**
+ciascuna sbaglia — ed e' quel dettaglio, non il verde/rosso, che ha trovato la
+risposta.
+
+> Una domanda da tre secondi non si paga diciassette minuti. Se la si sta
+> pagando, manca un attrezzo.
+
+**LO STATO ESCE COMUNQUE.** Se nessuna fotografia riesce, `guarda_il_pezzo`
+risponde lo stesso con l'elenco delle facce e dice nel testo perche' le viste
+mancano. Fallire tutto perche' non si e' potuto scattare toglierebbe a chi legge
+l'unica cosa che gli serviva.
+
+**Tre spiegazioni ragionate, tutte e tre false.** Prima che la misura trovasse
+l'ordine, il rosso «l'orientamento non torna» ha avuto tre diagnosi, ognuna
+plausibile e ognuna smentita dal pezzo:
+
+1. «`Transform` torna l'oggetto **vivo** della vista, quindi salvarlo non salva
+   niente» — falsa: una misura scritta apposta ha mostrato che i suoi sedici
+   numeri **non** cambiano da soli. E' una copia.
+2. «allora e' `ViewOrientationUndo()`, che esiste apposta» — non torna.
+3. «allora e' la terna invece di `Transform`» — giusta a meta': serviva anche
+   l'ordine.
+
+> Il verso di una riparazione non si ricava ragionando sull'officina: si chiede
+> al pezzo. Qui il pezzo ha detto no tre volte prima di dire dove.
+
+**Due errori del compilatore che valgono una riga ciascuno**, perche' erano
+scritti contro un'API immaginata invece che letta:
+
+- `ShowNamedView2` torna `void`. La prima scrittura la trattava come un `bool` e
+  ci costruiva sopra un controllo — un controllo su un valore che non esiste.
+- Il *settore* di `IModelView.Transform` vuole `MathTransform`, non
+  `IMathTransform`. Il compilatore lo dice solo sulla riga che rimette a posto
+  l'orientamento: cioe' sulla riga che non si puo' provare senza aprire
+  SOLIDWORKS.
+
+**La prova nel banco (`ProvaFotografia`), col suo caso ROSSO.** Quattro
+affermazioni piu' una: esce qualcosa; **e' un PNG e non un BMP** (firma
+`89 50 4E 47`); **l'orientamento torna com'era** (sedici numeri confrontati);
+**una vista inventata viene rifiutata dicendo quali esistono** — senza
+quest'ultima, «scatta sempre qualcosa» passerebbe anche se il nome non venisse
+mai guardato. E in coda: nessun file lasciato nella temporanea, perche'
+`SaveBMP` vuole un percorso e ogni scatto scrive 2 MB su disco.
+
+Quando l'orientamento non si e' potuto leggere nemmeno PRIMA, la prova e'
+**fallita**, non verde: un controllo senza ingresso non ha una risposta, e uno
+che si arrende dicendo «ok» e' il difetto che questo progetto esiste per rendere
+impossibile.
+
+### E12 — il tetto sulle lavorazioni non nasconde piu' le ultime
+
+`StatoDocumento` elencava al massimo ottanta lavorazioni e teneva **le prime**:
+su un pezzo da ottantacinque, le cinque piu' recenti — cioe' quelle appena
+fatte, le sole di cui si stia parlando — sparivano. Adesso si tengono le
+ULTIME, e quante ne restano fuori si dice.
+
+Il giro dell'albero passa da una lista di `Candidata` (feature, tipo, nome): il
+taglio si fa **prima** di chiamare `DettaglioFeature`, cosi' le ottanta voci
+costruite sono le ottanta che escono, e non ottantacinque di cui cinque buttate.
+
+### `--lento`, e le prove saltate si contano
+
+La prova di E12 costruisce ottantacinque tagli. Ottantacinque tagli costano
+almeno **mezz'ora** — contro i tredici minuti di tutte le altre insieme — e in
+questo giro, alla lavorazione 84, SOLIDWORKS ha macinato un core al 100% per
+**ottantotto minuti** senza finirne una. Una prova che pesa cosi' e' una prova
+che prima o poi qualcuno salta.
+
+Quindi si lancia solo con `--lento`. **Ma una prova saltata si deve vedere:** il
+banco la stampa come `SALTATA` col motivo e la conta a parte. «88 prove, 0
+fallite» su un giro in cui una non e' partita e' una frase vera che fa credere
+una cosa falsa.
+
+### Due difetti miei, trovati dalla revisione
+
+**`NotaSulVolume` dava l'allarme su un foro perfetto.** La guardia diceva
+`volumeDopo < 0`, e `VolumeMm3` non torna **mai** un negativo: risponde 0 quando
+il documento non e' una parte, quando `GetBodies2` da' null, e dal `catch` che
+avvolge tutto — cioe' su ogni strada di errore. Il ramo non poteva scattare, e
+uno zero di lettura fallita passava come misura: `tolti` diventava l'intero
+volume del pezzo, e su un foro riuscito usciva «192.000 mm³ invece di 392,7».
+Un rifiuto di cio' che e' corretto, che questo progetto dichiara peggiore
+dell'errore che stava chiudendo. Il commento due righe sopra diceva gia' la cosa
+giusta: e' stata la riga a non farla.
+
+**`guscio` con `facce_rif` poteva aprire meno facce di quelle chieste.** La
+regola «tutte o nessuna» valeva sulla RISOLUZIONE e non sulla SELEZIONE: con tre
+riferimenti risolti e due facce selezionate si andava avanti, «riuscita: true»,
+volume calato, e un contenitore chiuso su un lato che doveva essere aperto. Il
+ramo gemello, quindici righe piu' giu', rifiutava gia' alla prima faccia:
+una riparazione che copre un ramo e lascia scoperto il suo gemello.
+
+---
+
 ## 0.30.0 — 14 settembre 2026 · libreria 0.65.0
 
 **Due voci, e tutte e due si sono rivelate diverse da come erano scritte.**

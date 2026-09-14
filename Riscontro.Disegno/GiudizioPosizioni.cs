@@ -160,7 +160,8 @@ namespace Riscontro.Disegno
                 motivo = string.Format(
                     CultureInfo.InvariantCulture,
                     "Il foro {0}, chiesto a ({1:0.##}, {2:0.##}), e' finito a {3:0.##} mm " +
-                    "da li'. Non te lo lascio passare per buono: annullalo con Ctrl+Z.",
+                    "da li'. Non te lo lascio passare per buono: ritiralo — " +
+                    Frasi.CosiSiRitira + ".",
                     lontano + 1, posizioni[lontano][0], posizioni[lontano][1], peggiore * 1000.0);
                 return EsitoPosizioni.Sbagliate;
             }

@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Oce.Solid.Agent.Mcp;
 using Oce.Solid.Agent.Ponte;
 
 namespace Oce.Solid.Agent.Strumenti
 {
     /// <summary>
-    /// I quattro strumenti che il ponte espone.
+    /// I cinque strumenti che il ponte espone.
     ///
-    /// PERCHE' QUATTRO E NON TRENTASEI.
+    /// PERCHE' CINQUE E NON TRENTASEI.
     /// Le operazioni di disegno sono trentasei, e la tentazione e' di esporne
     /// una per strumento. Sarebbe sbagliato per due ragioni misurate nel
     /// progetto:
@@ -19,12 +20,22 @@ namespace Oce.Solid.Agent.Strumenti
     ///      catalogo a due livelli del server esiste esattamente per questo.
     ///   2. **l'ordine giusto.** Il difetto piu' caro di questo progetto non e'
     ///      un'operazione sbagliata: e' un'operazione giusta fatta ALLA CIECA.
-    ///      Quattro strumenti in fila — guarda, cerca, approfondisci, fai —
+    ///      Gli strumenti in fila — guarda, cerca, approfondisci, fai —
     ///      rendono difficile saltare il primo.
     ///
     /// `guarda_il_pezzo` non e' un accessorio: e' il primo, e senza di lui gli
     /// identificativi che gli altri vogliono (`F1`, `E4`, `Corpo1`) non
     /// esistono.
+    ///
+    /// **IL QUINTO E' `annulla`, ed e' arrivato dopo (voce R1).** Non e'
+    /// un'operazione di disegno, e sta fuori dal catalogo per una ragione
+    /// precisa: le operazioni si eseguono dentro `disegna`, cioe' dentro un
+    /// piano, e annullare un piano da dentro il piano stesso e' un nodo. Il
+    /// motivo per cui gli strumenti non sono trentasei — non esporre le
+    /// operazioni una per una — non riguarda un gesto che operazione non e'.
+    ///
+    /// Fino alla 0.31.0 questo ponte diceva **ventuno volte** «annullalo con
+    /// Ctrl+Z» a un destinatario che non ha una tastiera.
     /// </summary>
     internal sealed class Attrezzi
     {
@@ -47,8 +58,34 @@ namespace Oce.Solid.Agent.Strumenti
                     "ingombro, volume, corpi, lavorazioni con le loro quote, facce " +
                     "e spigoli con il loro identificativo. Gli identificativi (F1, " +
                     "E4, Corpo1) che le altre operazioni vogliono nascono QUI e " +
-                    "valgono per questa lettura: dopo ogni modifica si rilegge.",
-                    Oggetto(new Dictionary<string, object>(), new string[0]),
+                    "valgono per questa lettura: dopo ogni modifica si rilegge.\n\n" +
+                    "Con «viste» torna anche una FOTOGRAFIA del pezzo, che e' " +
+                    "l'unico modo di sapere che FORMA ha: l'elenco delle facce " +
+                    "dice quante sono e quanto misurano, non com'e' fatto. " +
+                    "Costa: ogni vista pesa piu' dell'intero stato scritto, " +
+                    "quindi si chiede quando la forma e' in dubbio — dopo un " +
+                    "guscio, dopo uno smusso, prima di dire che il pezzo e' " +
+                    "finito — non a ogni lettura.",
+                    Oggetto(
+                        new Dictionary<string, object>
+                        {
+                            ["viste"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "array",
+                                ["description"] =
+                                    "quali viste fotografare, al massimo " +
+                                    MassimoDiViste + ". Se non sai quale, chiedi " +
+                                    "«isometrica»: e' la sola che da sola mostra una " +
+                                    "forma. Ci sono: " +
+                                    string.Join(", ", Sessione.NomiDelleViste) + ".",
+                                ["items"] = new Dictionary<string, object>
+                                {
+                                    ["type"] = "string",
+                                    ["enum"] = Nomi(Sessione.NomiDelleViste),
+                                },
+                            },
+                        },
+                        new string[0]),
                     soloLettura: true, distruttivo: false, idempotente: true),
 
                 Strumento(
@@ -98,7 +135,8 @@ namespace Oce.Solid.Agent.Strumenti
                     "Se invece un passo fallisce mentre viene eseguito, ci si " +
                     "ferma li': i passi seguenti quasi sempre nominano cio' che " +
                     "il passo fallito avrebbe dovuto creare. Quello che era gia' " +
-                    "stato costruito resta, e un solo Ctrl+Z lo toglie tutto.\n\n" +
+                    "stato costruito resta, e «annulla» lo toglie tutto in una " +
+                    "volta.\n\n" +
                     "Un passo puo' nominare la geometria creata da un passo " +
                     "PRECEDENTE dello stesso piano (per esempio faccia_rif: " +
                     "{passo: 1, genere: \"faccia_superiore\"}): e' l'unico modo, " +
@@ -147,6 +185,27 @@ namespace Oce.Solid.Agent.Strumenti
                     // inviterebbe un client a riprovare da solo dopo un
                     // errore di rete.
                     soloLettura: false, distruttivo: true, idempotente: false),
+
+                Strumento(
+                    "annulla",
+                    "RITIRA l'ultimo piano eseguito da «disegna», tutto intero. " +
+                    "E' il gesto che questo ponte chiedeva di fare con Ctrl+Z, " +
+                    "che tu non hai.\n\n" +
+                    "Si annulla SOLO se il pezzo e' ancora come «disegna» lo " +
+                    "aveva lasciato: se dopo il piano qualcuno ha lavorato a " +
+                    "mano, mi fermo e dico cosa e' cambiato — annullare " +
+                    "allora toglierebbe il lavoro di qualcun altro.\n\n" +
+                    "Dopo, il pezzo torna al volume che aveva prima del piano, e " +
+                    "gli identificativi delle facce NON sono piu' quelli: la " +
+                    "risposta porta lo stato nuovo, ed e' quello che vale.",
+                    Oggetto(new Dictionary<string, object>(), new string[0]),
+                    // NON e' idempotente: chiamarlo due volte non annulla due
+                    // volte lo stesso piano — la seconda toglierebbe quello
+                    // che c'era PRIMA, cioe' lavoro che questo ponte non ha
+                    // fatto. Il ricordo si cancella dopo il primo, ma
+                    // dichiararlo idempotente inviterebbe un client a
+                    // riprovare da solo dopo un errore di rete.
+                    soloLettura: false, distruttivo: true, idempotente: false),
             };
         }
 
@@ -155,10 +214,11 @@ namespace Oce.Solid.Agent.Strumenti
         {
             switch (nome)
             {
-                case "guarda_il_pezzo": return GuardaIlPezzo();
+                case "guarda_il_pezzo": return GuardaIlPezzo(argomenti);
                 case "elenco_operazioni": return ElencoOperazioni(argomenti);
                 case "descrivi_operazione": return DescriviOperazione(argomenti);
                 case "disegna": return Disegna(argomenti);
+                case "annulla": return Annulla();
                 default:
                     return Protocollo.Contenuto(
                         "Non conosco lo strumento «" + nome + "».", true);
@@ -203,14 +263,150 @@ namespace Oce.Solid.Agent.Strumenti
         /// </summary>
         private Dictionary<string, object> _firmeViste;
 
-        private Dictionary<string, object> GuardaIlPezzo()
+        /// <summary>
+        /// Quante viste al massimo in una sola risposta.
+        ///
+        /// Tre bastano a definire una forma — isometrica piu' due — e sono
+        /// gia' tre volte il costo dello stato scritto. Nove (tutte quelle
+        /// che esistono) sarebbero un ordine di grandezza in piu' per un
+        /// pezzo, e nessuno le guarderebbe tutte.
+        /// </summary>
+        private const int MassimoDiViste = 3;
+
+        /// <summary>Larghezza e altezza del fotogramma.</summary>
+        private const int LarghezzaVista = 1024;
+        private const int AltezzaVista = 768;
+
+        private Dictionary<string, object> GuardaIlPezzo(
+            Dictionary<string, object> argomenti)
         {
             var stato = _sessione.Stato(out var errore);
             if (stato == null) return Protocollo.Contenuto(errore, true);
             _guardato = IdentitaDelloStato(stato);
             _firmeViste = FirmeDelloStato(stato);
             TogliLeAncore(stato);
-            return Protocollo.Contenuto(Protocollo.InJson(stato));
+
+            var chieste = VisteChieste(argomenti);
+            if (chieste.Count == 0)
+                return Protocollo.Contenuto(Protocollo.InJson(stato));
+
+            // LO STATO ESCE COMUNQUE, anche se nessuna fotografia riesce.
+            // Un `guarda_il_pezzo` che fallisce perche' non si e' potuto
+            // scattare toglierebbe a chi legge anche l'elenco delle facce —
+            // cioe' l'unica cosa che gli serviva davvero. I motivi delle
+            // fotografie mancate si dicono nel testo, accanto allo stato.
+            var immagini = new List<KeyValuePair<string, byte[]>>();
+            var mancate = new List<string>();
+            var riuscite = new List<string>();
+
+            foreach (var quale in chieste)
+            {
+                // LO STESSO DOCUMENTO DELLO STATO, PRIMA DI OGNI SCATTO.
+                //
+                // `Stato` e `Fotografia` chiedono a SOLIDWORKS qual e' il
+                // documento davanti, ognuna per conto suo: fra le due
+                // chiamate basta che chi lavora porti avanti un'altra
+                // finestra e il ponte risponde con la fotografia di un pezzo
+                // e le misure di un altro. Nessun errore, nessun avviso,
+                // un'immagine che contraddice l'elenco accanto a cui sta.
+                //
+                // E' esattamente il difetto costato «Parte4» l'11 settembre,
+                // rifatto nella forma piu' pura: due letture di `ActiveDoc`
+                // trattate come se fossero una sola.
+                //
+                // Si controlla A OGNI GIRO e non una volta sola: tre viste
+                // sono tre ridisegni e un paio di secondi, e la finestra
+                // puo' cambiare durante.
+                var adesso = _sessione.Identita(_sessione.DocumentoAttivo());
+                if (!Sessione.StessoDocumento(_guardato, adesso))
+                {
+                    mancate.Add(quale + ": davanti adesso c'e' «" +
+                                NomeLeggibile(adesso) + "», non «" +
+                                NomeLeggibile(_guardato) + "». Non fotografo " +
+                                "un pezzo diverso da quello che ho appena " +
+                                "misurato.");
+                    continue;
+                }
+
+                var png = _sessione.Fotografia(
+                    quale, LarghezzaVista, AltezzaVista, out var perche);
+                if (png != null && png.Length > 0)
+                {
+                    immagini.Add(new KeyValuePair<string, byte[]>("image/png", png));
+                    riuscite.Add(quale);
+                }
+                else
+                {
+                    mancate.Add(quale + ": " + (perche ?? "non so perche'"));
+                }
+            }
+
+            var testo = new StringBuilder();
+            if (riuscite.Count > 0)
+            {
+                // LA DIDASCALIA PRIMA DELLE IMMAGINI, E NELL'ORDINE.
+                // Le immagini arrivano senza nome: sapere che la prima e'
+                // l'isometrica e la seconda la frontale e' la differenza fra
+                // una vista e un indovinello.
+                testo.Append(riuscite.Count == 1
+                    ? "Qui sotto la vista " + riuscite[0] + " del pezzo."
+                    : "Qui sotto " + riuscite.Count + " viste del pezzo, in " +
+                      "quest'ordine: " + string.Join(", ", riuscite) + ".");
+                testo.Append(" Le fotografie mostrano la FORMA; le misure sono " +
+                             "nello stato qui di seguito, ed e' li' che stanno " +
+                             "gli identificativi.\n\n");
+            }
+            if (mancate.Count > 0)
+                testo.Append("Viste non riuscite — " +
+                             string.Join("; ", mancate) + "\n\n");
+
+            testo.Append(Protocollo.InJson(stato));
+
+            return Protocollo.ContenutoConImmagini(testo.ToString(), immagini);
+        }
+
+        /// <summary>
+        /// Quali viste ha chiesto chi legge: nomi veri, senza doppioni, al
+        /// massimo <see cref="MassimoDiViste"/>.
+        ///
+        /// UN NOME SBAGLIATO NON SI SCARTA IN SILENZIO: arriva a
+        /// `VistaDelPezzo.Scatta`, che risponde con l'elenco di quelli veri.
+        /// Scartarlo qui vorrebbe dire rispondere «ecco il pezzo» a chi ha
+        /// chiesto una vista che non ha mai avuto — e non capirebbe perche'
+        /// manca.
+        /// </summary>
+        private static List<string> VisteChieste(Dictionary<string, object> argomenti)
+        {
+            // `Stringhe` C'ERA GIA', e fa esattamente la cosa difficile: una
+            // stringa e' un `IEnumerable` **di caratteri**, quindi
+            // `viste: "isometrica"` — l'errore piu' naturale del mondo, e lo
+            // schema chiede un elenco — scorso come sequenza darebbe tre viste
+            // che si chiamano «i», «s», «o». Tre rifiuti incomprensibili al
+            // posto della fotografia chiesta.
+            //
+            // Scriverne una seconda copia qui sarebbe stato il difetto che
+            // questo progetto ha visto tre volte oggi: la regola giusta gia'
+            // scritta da un'altra parte, e una riga nuova che non la fa.
+            var fuori = new List<string>();
+            foreach (var x in Stringhe(Prendi(argomenti, "viste")))
+            {
+                var nome = x.Trim();
+                if (nome.Length == 0) continue;
+                if (fuori.Contains(nome, StringComparer.OrdinalIgnoreCase)) continue;
+                fuori.Add(nome);
+                if (fuori.Count >= MassimoDiViste) break;
+            }
+            return fuori;
+        }
+
+        /// <summary>
+        /// I nomi come vettore, che e' la forma che JSON Schema vuole per
+        /// `enum`: un `IEnumerable&lt;string&gt;` serializzato diventa
+        /// un oggetto, non un elenco.
+        /// </summary>
+        private static string[] Nomi(IEnumerable<string> nomi)
+        {
+            return new List<string>(nomi).ToArray();
         }
 
         /// <summary>
@@ -711,7 +907,295 @@ namespace Oce.Solid.Agent.Strumenti
                               "non le ha rotte questo piano.";
             }
 
+            // ── IL RICORDO PER «annulla» (voce R1) ───────────────────────
+            //
+            // Si tiene com'era il pezzo quando questo piano ha finito: e'
+            // l'unica cosa che permettera' di ritirarlo senza rischiare di
+            // togliere il lavoro di qualcun altro.
+            //
+            // SI SCRIVE ANCHE QUANDO IL PIANO E' FALLITO A META', ed e' il caso
+            // che conta di piu': un piano fermato al passo 3 lascia i primi due
+            // costruiti, e sono proprio quelli che chi legge vuole ritirare.
+            // Il messaggio di errore glielo dice gia' («quello che era gia'
+            // stato costruito resta»).
+            //
+            // SI CANCELLA quando il pezzo non e' cambiato, e cancella anche il
+            // ricordo di un piano PRECEDENTE che sarebbe ancora ritirabile.
+            //
+            // E' una perdita, ed e' voluta. `EsecutorePiano` apre la voce di
+            // annullamento PRIMA del primo passo e la chiude comunque: un piano
+            // fallito subito ne lascia una vuota, e se SOLIDWORKS la mette in
+            // pila lo stesso, un passo indietro toglie quella — non il piano di
+            // prima. Non c'e' nessuna API per guardare la pila e togliersi il
+            // dubbio.
+            //
+            // Di solito, in questo progetto, **rifiutare cio' che e' corretto e'
+            // il peggiore dei due modi di sbagliare**. Qui no, e vale la pena
+            // dire perche': un rifiuto di troppo costa a chi legge una
+            // rilettura e un piano nuovo; un annullamento di troppo cancella il
+            // lavoro di una persona, e nessun messaggio lo rimette. Quando i due
+            // errori non costano uguale, il criterio si rovescia.
+            double volPrima = NumeroDi(prima, "volume_mm3");
+            double volDopo = NumeroDi(dopo, "volume_mm3");
+            int featPrima = QuanteFeature(prima);
+            int featDopo = QuanteFeature(dopo);
+
+            bool haCostruito =
+                dopo != null &&
+                (featDopo != featPrima || Math.Abs(volDopo - volPrima) > ScartoVolumeMm3);
+
+            _ultimoPiano = haCostruito
+                ? new UltimoPiano
+                {
+                    Documento = adesso,
+                    VolumePrima = volPrima,
+                    VolumeDopo = volDopo,
+                    FeaturePrima = featPrima,
+                    FeatureDopo = featDopo,
+                }
+                : null;
+
             return Protocollo.Contenuto(Protocollo.InJson(risultato), !tuttoBene);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // R1 — ritirare quello che si e' fatto
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Com'era il pezzo quando l'ultimo piano ha finito.
+        ///
+        /// E' l'unica cosa che permette di annullare senza rischiare di
+        /// togliere il lavoro di qualcun altro: se il pezzo non e' piu' cosi',
+        /// fra il piano e adesso e' successo qualcosa, e quel qualcosa non
+        /// l'ha fatto questo ponte.
+        /// </summary>
+        private sealed class UltimoPiano
+        {
+            public Dictionary<string, object> Documento;
+            public double VolumePrima;
+            public double VolumeDopo;
+            public int FeaturePrima;
+            public int FeatureDopo;
+        }
+
+        private UltimoPiano _ultimoPiano;
+
+        /// <summary>
+        /// Quanto si puo' sbagliare un volume e considerarlo lo stesso.
+        ///
+        /// Un millesimo di mm³: SOLIDWORKS ricalcola il volume a ogni rebuild e
+        /// l'ultima cifra balla. Piu' stretto di cosi' rifiuterebbe pezzi
+        /// identici; piu' largo lascerebbe passare una modifica vera — un foro
+        /// Ø1 profondo 1 sono 0,79 mm³, quasi mille volte questa soglia.
+        /// </summary>
+        private const double ScartoVolumeMm3 = 0.001;
+
+        /// <summary>
+        /// RITIRA L'ULTIMO PIANO.
+        ///
+        /// PERCHE' ESISTE. Fino alla 0.31.0 questo ponte diceva **ventuno
+        /// volte** al modello «annullalo con Ctrl+Z». Il destinatario di quei
+        /// messaggi e' un modello linguistico, che non ha una tastiera: era una
+        /// riparazione offerta a qualcuno che non poteva prenderla. E le
+        /// trentasei operazioni sono tutte additive o parametriche, quindi
+        /// l'albero poteva solo crescere: un modello che si accorgeva di aver
+        /// sbagliato aveva due strade, tutte e due sbagliate — costruirci sopra,
+        /// o rifare il pezzo da capo.
+        ///
+        /// LA MACCHINA C'ERA GIA'. `EsecutorePiano` apre e chiude una voce di
+        /// annullamento intorno a ogni piano (voce B8, misurata: «un solo
+        /// Ctrl+Z riporta il documento al valore di volume_prima_mm3»). Si
+        /// azionava solo con una tastiera umana. E' la stessa forma della
+        /// sezione V — la capacita' c'e', e non arriva a chi legge.
+        ///
+        /// ── IL RIFIUTO VIENE PRIMA ────────────────────────────────────────
+        ///
+        /// Fra il piano e questa chiamata il progettista puo' aver lavorato a
+        /// mano. Premere annulla allora gli toglie il SUO lavoro, ed e' un
+        /// danno che nessun messaggio ripara. Quindi si confrontano DUE
+        /// numeri che la risposta di `disegna` gia' conteneva — il volume e
+        /// quante lavorazioni ci sono — e se non tornano **ci si ferma e si
+        /// dice cosa e' cambiato**.
+        ///
+        /// Sono due numeri, non una prova: un gesto che non cambia ne' il
+        /// volume ne' il conteggio passa inosservato. Per quello si controlla
+        /// anche DOPO, e se l'annullamento ha disfatto una cosa diversa da
+        /// quella attesa, si RIMETTE (`UnPassoAvanti`) e si dice cos'e'
+        /// successo. Non c'e' nessuna API per guardare la pila degli
+        /// annullamenti prima di premere: provare, controllare, e disfare la
+        /// prova sbagliata e' l'unica strada onesta.
+        /// </summary>
+        private Dictionary<string, object> Annulla()
+        {
+            if (!_sessione.Agganciata)
+                return Protocollo.Contenuto("Il ponte non e' agganciato a SolidWorks.", true);
+
+            var memoria = _ultimoPiano;
+            if (memoria == null)
+                return Protocollo.Contenuto(
+                    "Non ho nessun piano da ritirare: «annulla» disfa l'ultimo " +
+                    "«disegna» di questa conversazione, e qui non ne ho ancora " +
+                    "eseguito nessuno che abbia costruito qualcosa.\n\n" +
+                    "Non premo annulla alla cieca: toglierei qualcosa che non ho " +
+                    "fatto io, e non saprei nemmeno dire cosa.", true);
+
+            var prima = _sessione.StatoSenzaAncora(out var erroreLettura);
+            if (prima == null) return Protocollo.Contenuto(erroreLettura, true);
+
+            var adesso = IdentitaDelloStato(prima);
+            if (!Ponte.Sessione.StessoDocumento(memoria.Documento, adesso))
+                return Protocollo.Contenuto(
+                    "Mi fermo: il documento e' cambiato. Il piano l'avevo eseguito " +
+                    "su «" + NomeLeggibile(memoria.Documento) + "», adesso davanti " +
+                    "c'e' «" + NomeLeggibile(adesso) + "». Annullare qui " +
+                    "toglierebbe l'ultima cosa fatta su un pezzo che non c'entra.\n\n" +
+                    "Porta davanti il pezzo giusto e richiamami.", true);
+
+            double volumeOra = NumeroDi(prima, "volume_mm3");
+            int featureOra = QuanteFeature(prima);
+
+            if (Math.Abs(volumeOra - memoria.VolumeDopo) > ScartoVolumeMm3 ||
+                featureOra != memoria.FeatureDopo)
+                return Protocollo.Contenuto(
+                    "Mi fermo: dopo il piano il pezzo e' cambiato, e non l'ho " +
+                    "cambiato io.\n\n" +
+                    Confronto("volume", memoria.VolumeDopo, volumeOra, "mm³") +
+                    Confronto("lavorazioni", memoria.FeatureDopo, featureOra, "") +
+                    "\nUn passo indietro adesso non disferebbe il mio piano: " +
+                    "disferebbe l'ultima cosa fatta, che e' di qualcun altro. " +
+                    "Se vuoi comunque tornare indietro, e' un gesto che deve fare " +
+                    "chi sta davanti allo schermo, perche' solo lui sa cosa sta " +
+                    "buttando via.", true);
+
+            // ── SI PREME ─────────────────────────────────────────────────
+            var erroreAnnulla = _sessione.UnPassoIndietro();
+            if (erroreAnnulla != null)
+                return Protocollo.Contenuto(erroreAnnulla, true);
+
+            var dopo = _sessione.Stato(out var erroreStato);
+            if (dopo == null)
+                return Protocollo.Contenuto(
+                    "Ho premuto annulla e poi non sono riuscito a rileggere il " +
+                    "documento: " + erroreStato + "\n\n" +
+                    "Non posso dirti se ha funzionato. Guarda il pezzo prima di " +
+                    "fare altro.", true);
+
+            double volumeDopo = NumeroDi(dopo, "volume_mm3");
+            int featureDopo = QuanteFeature(dopo);
+            bool tornato =
+                Math.Abs(volumeDopo - memoria.VolumePrima) <= ScartoVolumeMm3 &&
+                featureDopo == memoria.FeaturePrima;
+
+            if (!tornato)
+            {
+                // HA DISFATTO UN'ALTRA COSA: SI RIMETTE.
+                // Il volume e il conteggio non erano cambiati, quindi il gesto
+                // che stava in cima alla pila non era geometrico — un nome
+                // cambiato, una configurazione, una vista. L'ho tolto io senza
+                // volerlo, e lo rimetto io.
+                var erroreRedo = _sessione.UnPassoAvanti();
+                var riletto = _sessione.Stato(out _);
+
+                _guardato = IdentitaDelloStato(riletto);
+                _firmeViste = FirmeDelloStato(riletto);
+                if (riletto != null) TogliLeAncore(riletto);
+
+                return Protocollo.Contenuto(Protocollo.InJson(
+                    new Dictionary<string, object>
+                    {
+                        ["annullato"] = false,
+                        ["documento"] = NomeLeggibile(adesso),
+                        ["motivo"] =
+                            "Ho premuto annulla e il pezzo non e' tornato dov'era: " +
+                            "il volume doveva essere " + Numero(memoria.VolumePrima) +
+                            " mm³ e le lavorazioni " + memoria.FeaturePrima +
+                            ", invece sono " + Numero(volumeDopo) + " mm³ e " +
+                            featureDopo + ". Vuol dire che in cima alla pila degli " +
+                            "annullamenti non c'era il mio piano, ma un gesto fatto " +
+                            "dopo che non cambiava ne' il volume ne' il conteggio — " +
+                            "quindi non potevo vederlo prima di premere." +
+                            (erroreRedo == null
+                                ? " L'ho rimesso a posto subito (un passo avanti)."
+                                : " E NON sono riuscito a rimetterlo: " + erroreRedo +
+                                  " Guarda il documento prima di fare altro."),
+                        ["stato_dopo"] = riletto,
+                    }), true);
+            }
+
+            // RIUSCITO: IL RICORDO SI CANCELLA.
+            // Un secondo «annulla» non deve disfare quello che c'era PRIMA del
+            // piano: quello non l'ha fatto questo ponte, e la pila degli
+            // annullamenti non sa distinguere.
+            _ultimoPiano = null;
+
+            // GLI IDENTIFICATIVI NON SONO PIU' QUELLI, e chi legge deve
+            // saperlo dalla risposta invece di scoprirlo al piano seguente:
+            // gli uid sono posizionali e si rinumerano per area a ogni
+            // lettura. Si firma questa lettura, esattamente come fa `disegna`.
+            _guardato = IdentitaDelloStato(dopo);
+            _firmeViste = FirmeDelloStato(dopo);
+            TogliLeAncore(dopo);
+
+            return Protocollo.Contenuto(Protocollo.InJson(
+                new Dictionary<string, object>
+                {
+                    ["annullato"] = true,
+                    ["documento"] = NomeLeggibile(adesso),
+                    ["volume_prima_mm3"] = Math.Round(volumeOra, 2),
+                    ["volume_dopo_mm3"] = Math.Round(volumeDopo, 2),
+                    ["lavorazioni_prima"] = featureOra,
+                    ["lavorazioni_dopo"] = featureDopo,
+                    ["nota"] =
+                        "Il piano e' stato ritirato tutto intero e il pezzo e' " +
+                        "tornato com'era. Gli identificativi di «stato_dopo» sono " +
+                        "quelli validi adesso: quelli di prima non valgono piu'.",
+                    ["stato_dopo"] = dopo,
+                }));
+        }
+
+        /// <summary>Una riga di confronto, solo se i due numeri sono diversi.</summary>
+        private static string Confronto(string cosa, double atteso, double trovato, string unita)
+        {
+            if (Math.Abs(atteso - trovato) <= ScartoVolumeMm3) return "";
+            return "  " + cosa + ": era " + Numero(atteso) +
+                   (unita.Length > 0 ? " " + unita : "") + " quando ho finito, " +
+                   "adesso e' " + Numero(trovato) +
+                   (unita.Length > 0 ? " " + unita : "") + "\n";
+        }
+
+        private static string Numero(double v)
+        {
+            return v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static double NumeroDi(Dictionary<string, object> stato, string chiave)
+        {
+            if (stato == null) return 0;
+            object v;
+            if (!stato.TryGetValue(chiave, out v) || v == null) return 0;
+            try { return Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture); }
+            catch { return 0; }
+        }
+
+        /// <summary>
+        /// Quante lavorazioni ha il pezzo, comprese quelle che il tetto ha
+        /// lasciato fuori.
+        ///
+        /// SENZA `feature_non_elencate` QUESTO CONTEGGIO MENTIREBBE su ogni
+        /// pezzo con piu' di ottanta lavorazioni: si fermerebbe a ottanta e
+        /// direbbe «non e' cambiato niente» anche dopo dieci fori nuovi. E'
+        /// esattamente il difetto della voce E12, ripetuto da questa parte.
+        /// </summary>
+        private static int QuanteFeature(Dictionary<string, object> stato)
+        {
+            if (stato == null) return 0;
+            int quante = 0;
+            foreach (var v in VociDi(stato, "feature")) { if (v != null) quante++; }
+            object fuori;
+            if (stato.TryGetValue("feature_non_elencate", out fuori) && fuori != null)
+                try { quante += Convert.ToInt32(fuori); } catch { }
+            return quante;
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -1024,6 +1508,7 @@ namespace Oce.Solid.Agent.Strumenti
                 case "elenco_operazioni": return "Elenco delle operazioni";
                 case "descrivi_operazione": return "Descrivi una operazione";
                 case "disegna": return "Disegna nel pezzo";
+                case "annulla": return "Ritira l'ultimo piano";
                 default: return nome;
             }
         }

@@ -52,22 +52,47 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Quattro, non trentasei. Le operazioni di disegno sono trentasei, ma esporne
+Cinque, non trentasei. Le operazioni di disegno sono trentasei, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 
 | strumento | a cosa serve |
 |---|---|
-| `guarda_il_pezzo` | lo stato del documento aperto: ingombro, volume, corpi, lavorazioni con le loro quote, facce e spigoli con il loro identificativo |
+| `guarda_il_pezzo` | lo stato del documento aperto: ingombro, volume, corpi, lavorazioni con le loro quote, facce e spigoli con il loro identificativo. Con `viste` torna anche una **fotografia** del pezzo |
 | `elenco_operazioni` | l'elenco corto per famiglia: un nome e una riga |
 | `descrivi_operazione` | lo schema completo di una |
 | `disegna` | esegue una sequenza e **riporta cos'e' venuto**: le misure di ogni passo e lo stato dopo |
+| `annulla` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `disegna` l'aveva lasciato |
 
 **`guarda_il_pezzo` non e' un accessorio.** Gli identificativi che gli altri
 strumenti vogliono — `F1`, `E4`, `Corpo1` — nascono li' e valgono per quella
 lettura: sono POSIZIONALI, si rinumerano per area a ogni lettura, e dopo
 ogni modifica vanno riletti. Chi salta il primo strumento lavora alla cieca,
 ed e' il difetto piu' caro di tutto il progetto.
+
+**Misurare e vedere non sono la stessa cosa.** Lo stato dice che il foro e'
+Ø10 profondo 5; non dice che il pezzo non somiglia a una staffa. Dalla 0.31.0
+`guarda_il_pezzo` accetta `viste` — per esempio `["isometrica"]` — e risponde
+con una o piu' immagini PNG accanto allo stato.
+
+**Al massimo tre, e solo se le si chiede.** Una vista costa piu' di dieci volte
+l'intero stato scritto, che sta sotto i 16.000 caratteri: portarne tre a ogni
+lettura cambierebbe di un ordine di grandezza il costo del ponte, e lo
+pagherebbe anche chi voleva solo sapere quanti corpi ci sono.
+
+Fotografare **non tocca la vista di chi lavora**: l'orientamento si salva prima
+e si rimette dopo, anche quando la fotografia fallisce a meta'.
+
+**E si puo' tornare indietro.** Fino alla 0.31.0 le trentasei operazioni erano
+tutte additive o parametriche: l'albero poteva solo crescere, e chi si accorgeva
+di aver sbagliato doveva costruirci sopra o rifare il pezzo da capo. `annulla`
+ritira l'ultimo piano tutto intero — `disegna` lo esegue gia' dentro **una sola**
+voce di annullamento.
+
+**Si rifiuta se il pezzo e' cambiato dopo.** Volume e numero di lavorazioni
+devono essere ancora quelli che `disegna` aveva lasciato: se il progettista ha
+lavorato a mano nel frattempo, annullare toglierebbe il suo lavoro, e il ponte
+si ferma dicendo cosa e' cambiato.
 
 ## Come si mette in funzione
 

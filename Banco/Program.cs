@@ -139,6 +139,19 @@ namespace ProvaSaldatura
                 _libreria = argomenti[dove + 1];
                 argomenti.RemoveRange(dove, 2);
             }
+            // `--lento`: le prove che costano MINUTI, non secondi.
+            //
+            // Il tetto sulle lavorazioni (E12) va provato su un pezzo con piu'
+            // di ottanta lavorazioni, e ottantacinque tagli costano ~26 secondi
+            // l'uno: mezz'ora per una prova sola, contro i tredici minuti di
+            // tutte le altre insieme. Su ogni giro sarebbe un prezzo che nessuno
+            // paga volentieri, e una prova che pesa troppo e' una prova che
+            // prima o poi qualcuno salta.
+            //
+            // MA UN CONTROLLO SALTATO SI DEVE VEDERE. Quando non si lancia, il
+            // banco lo DICE e lo conta fra i saltati: un controllo che sparisce
+            // in silenzio e' come un controllo che non scatta mai.
+            _lento = argomenti.Remove("--lento");
             argomentiRiga = argomenti.ToArray();
 
             if (!File.Exists(_libreria))
@@ -180,13 +193,22 @@ namespace ProvaSaldatura
             Fori();
             Materiale();
             Stato();
+            ProvaFotografia();
+            if (_lento) ProvaTettoLavorazioni();
+            else Saltata("il tetto sulle lavorazioni (E12)",
+                         "85 lavorazioni, circa mezz'ora: si lancia con --lento");
             NuoveOperazioni();
 
             Console.WriteLine();
             Console.WriteLine(new string('=', 76));
             foreach (var r in _esiti) Console.WriteLine(r);
             Console.WriteLine();
-            Console.WriteLine(_esiti.Count + " prove, " + _falliti + " fallite");
+            // LE SALTATE SI CONTANO A PARTE E SI DICONO. «88 prove, 0 fallite»
+            // su un giro in cui una prova non e' stata lanciata e' una frase
+            // vera che fa credere una cosa falsa.
+            Console.WriteLine(
+                (_esiti.Count - _saltate) + " prove, " + _falliti + " fallite" +
+                (_saltate > 0 ? ", " + _saltate + " SALTATE (--lento le lancia)" : ""));
             return _falliti == 0 ? 0 : 1;
         }
 
@@ -196,6 +218,24 @@ namespace ProvaSaldatura
             _esiti.Add((ok ? "  OK   " : "  NO   ") + nome.PadRight(52) + dettaglio);
             Console.WriteLine((ok ? "  OK   " : "  NO   ") + nome.PadRight(52) + dettaglio);
         }
+
+        /// <summary>
+        /// Una prova che NON e' stata lanciata, e il perche'.
+        ///
+        /// Non conta come fallita e non conta come riuscita: conta come
+        /// saltata, e si vede. Una prova che sparisce dal resoconto quando non
+        /// si lancia e' peggio di una che non esiste — chi legge «88 prove, 0
+        /// fallite» crede di aver provato tutto.
+        /// </summary>
+        private static void Saltata(string nome, string perche)
+        {
+            _saltate++;
+            _esiti.Add("  --   " + nome.PadRight(52) + "SALTATA: " + perche);
+            Console.WriteLine("  --   " + nome.PadRight(52) + "SALTATA: " + perche);
+        }
+
+        private static int _saltate;
+        private static bool _lento;
 
         // ==================================================================
         // 1. il misuratore di sezione dell'add-in
@@ -345,7 +385,7 @@ namespace ProvaSaldatura
                     misure.ContainsKey("sporgenza_profilo_mm") ? misure["sporgenza_profilo_mm"] : "?",
                     misure.ContainsKey("barre") ? misure["barre"] : "?"));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -429,7 +469,7 @@ namespace ProvaSaldatura
                         ? "posizioni verificate"
                         : "POSIZIONI NON VERIFICATE" + (perche == null ? "" : ": " + Corto(perche))));
             }
-            catch (Exception ex) { Segna(nome, false, ex.Message); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
 
@@ -477,7 +517,7 @@ namespace ProvaSaldatura
                           "sul documento: «" + letto + "»" +
                           (haMassa ? ", massa " + stato["massa_kg"] + " kg" : ", MASSA ASSENTE"));
                 }
-                catch (Exception ex) { Segna("materiale «" + caso[0] + "»", false, ex.Message); }
+                catch (Exception ex) { Segna("materiale «" + caso[0] + "»", false, Perche(ex)); }
                 finally { Chiudi(doc); }
             }
         }
@@ -620,8 +660,327 @@ namespace ProvaSaldatura
                       (aperti == 1 ? " documento aperto" : " documenti aperti") +
                       (aperti > 1 ? " (piu' di uno gonfia la misura: vedi qui sopra)" : ""));
             }
-            catch (Exception ex) { Segna("stato del documento", false, ex.Message); }
+            catch (Exception ex) { Segna("stato del documento", false, Perche(ex)); }
             finally { Chiudi(doc); }
+        }
+
+        // ==================================================================
+        //  Il tetto sulle lavorazioni tiene le ULTIME (voce E12)
+        // ==================================================================
+        //
+        // PERCHE' QUI E NON IN UN CASO DEL PONTE. E' un'asserzione sulla FORMA
+        // dello stato, come quella dei 16 KB qui sopra, e il posto giusto e'
+        // dove lo stato si legge senza nient'altro in mezzo.
+        //
+        // Ed e' anche l'unico posto dove costa poco. Provato il 14/9/2026 a
+        // passare dal ponte: un piano con 85 `taglio_cilindrico` ci ha messo
+        // 26 secondi a taglio e si e' fatto uccidere dal tetto dei trenta
+        // minuti al quarantaseiesimo passo. Spezzarlo in cinque piani non
+        // funziona — `faccia_rif: {passo: 1}` e' relativo AL PIANO, quindi nel
+        // secondo blocco «passo 1» e' il primo taglio del blocco e non la
+        // barra, e il ponte l'ha rifiutato (giustamente e a voce alta).
+        //
+        // Qui si chiama la libreria direttamente: niente JSON-RPC, niente
+        // macchina dei piani, e la faccia si ritrova dallo stato a ogni giro.
+        // ==================================================================
+        // V1. la fotografia del pezzo — l'unica cosa che dice una FORMA
+        // ==================================================================
+        /// <summary>
+        /// Prova `VistaDelPezzo.Scatta`.
+        ///
+        /// PERCHE' QUESTA PROVA ESISTE, E PERCHE' PROVA QUESTE QUATTRO COSE.
+        /// La capacita' di fotografare c'era gia' — il banco salvava BMP con
+        /// `SaveBMP` da mesi — e non e' mai arrivata a chi legge. Quando una
+        /// capacita' scende dal banco al ponte, le cose che si rompono non
+        /// sono quelle che il banco provava: sono quelle che il banco non
+        /// doveva rispettare perche' nessuno lo guardava mentre lavorava.
+        ///
+        ///   1. **esce qualcosa** — il minimo;
+        ///   2. **e' un PNG** — perche' lo stesso fotogramma in BMP e' una
+        ///      cinquantina di volte piu' pesante, e la conversione e' un
+        ///      passaggio che puo' fallire in silenzio restituendo il BMP;
+        ///   3. **l'orientamento di chi lavora torna com'era** — e' la sola
+        ///      regola di questo file che riguarda una persona invece di un
+        ///      dato: un'operazione di sola lettura che lascia il pezzo
+        ///      girato ha fatto un danno vero;
+        ///   4. **una vista inventata viene rifiutata dicendo quali ci sono**
+        ///      — il caso ROSSO. Senza, «scatta sempre qualcosa» passerebbe
+        ///      anche se il nome non venisse mai guardato.
+        ///
+        /// E in coda: **niente file lasciati nella temporanea.** `SaveBMP`
+        /// vuole un percorso, quindi ogni scatto scrive 2 MB su disco; se il
+        /// `Bitmap` tiene aperto il file la cancellazione fallisce e nessuno
+        /// se ne accorge finche' la cartella non e' piena.
+        /// </summary>
+        private static void ProvaFotografia()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== VistaDelPezzo (V1) ===");
+
+            var t = _addin.GetType(NS + "VistaDelPezzo", false);
+            if (t == null)
+            {
+                Segna("fotografia: la classe c'e'", false,
+                      "VistaDelPezzo non e' nella libreria caricata");
+                return;
+            }
+            var scatta = t.GetMethod("Scatta", BindingFlags.Public | BindingFlags.Static);
+            if (scatta == null)
+            {
+                Segna("fotografia: Scatta c'e'", false, "il metodo non esiste");
+                return;
+            }
+
+            var doc = NuovaParte();
+            if (doc == null) { Segna("fotografia: parte nuova", false, "non creata"); return; }
+
+            string modello = "oce-vista-";
+            int temporaneiPrima = FileTemporanei(modello);
+
+            try
+            {
+                string errore;
+                var misure = Esegui(doc, "estrudi_rettangolo", new Dictionary<string, object>
+                {
+                    ["piano"] = "superiore",
+                    ["lunghezza_mm"] = 200.0,
+                    ["larghezza_mm"] = 100.0,
+                    ["spessore_mm"] = 20.0,
+                    ["centrato"] = true,
+                }, out errore);
+                if (misure == null) { Segna("fotografia: il blocco", false, Corto(errore)); return; }
+
+                var vista = doc.ActiveView as IModelView;
+
+                // ── LE NOVE STRADE STANNO IN `Controlli\ProvaVista` ──────
+                //
+                // Qui c'erano tre domande sul come si rimette a posto una
+                // vista, e ognuna e' costata un giro di banco da diciassette
+                // minuti per una risposta di tre secondi. Adesso stanno in un
+                // attrezzo a se':
+                //
+                //     Controlli\ProvaVista\bin\ProvaVista.exe
+                //
+                // che prova nove strade e stampa quali tornano. E' li' che va
+                // guardato se questa prova ridiventa rossa: dice anche **di
+                // quanto** e **su quale numero** si sbaglia, ed e' quel numero
+                // che ha trovato la risposta (l'ordine delle tre scritture).
+                //
+                // Qui resta l'affermazione che conta per chi usa il ponte: dopo
+                // una fotografia, il pezzo sullo schermo di chi lavora sta
+                // com'era.
+                double[] prima = Orientamento(vista);
+
+                var p = new object[] { doc, "isometrica", 800, 600, null };
+                var png = scatta.Invoke(null, p) as byte[];
+                string motivo = p[4] as string;
+
+                Segna("fotografia: l'isometrica esce", png != null && png.Length > 0,
+                      png == null ? Corto(motivo) : png.Length + " byte");
+
+                // LA FIRMA DEL PNG: 89 50 4E 47. Un BMP comincia con «BM».
+                bool eUnPng = png != null && png.Length > 8 &&
+                              png[0] == 0x89 && png[1] == 0x50 &&
+                              png[2] == 0x4E && png[3] == 0x47;
+                Segna("fotografia: e' un PNG, non il BMP di SOLIDWORKS", eUnPng,
+                      png == null || png.Length < 2
+                          ? "niente da guardare"
+                          : "primi byte " + png[0].ToString("X2") + " " + png[1].ToString("X2"));
+
+                // 800x600 non compresso sarebbe 1,4 MB: se il PNG ci si
+                // avvicina, la conversione non ha compresso niente.
+                if (png != null)
+                    Segna("fotografia: pesa molto meno del BMP", png.Length < 800 * 600,
+                          png.Length + " byte contro " + (800 * 600 * 3) + " del BMP crudo");
+
+                double[] dopo = Orientamento(vista);
+                Segna("fotografia: l'orientamento di chi lavora e' tornato com'era",
+                      StessoOrientamento(prima, dopo),
+                      prima == null ? "non leggibile" : "16 numeri confrontati");
+
+                // ── IL CASO ROSSO ────────────────────────────────────────
+                var q = new object[] { doc, "assonometrica-della-nonna", 800, 600, null };
+                var nulla = scatta.Invoke(null, q) as byte[];
+                string perche = q[4] as string;
+                Segna("fotografia: una vista inventata e' rifiutata, coi nomi veri",
+                      nulla == null && perche != null &&
+                      perche.IndexOf("isometrica", StringComparison.OrdinalIgnoreCase) >= 0,
+                      nulla != null
+                          ? "ha scattato lo stesso"
+                          : Corto(perche));
+
+                // ── NIENTE SPAZZATURA NELLA TEMPORANEA ───────────────────
+                int temporaneiDopo = FileTemporanei(modello);
+                Segna("fotografia: nessun file lasciato nella temporanea",
+                      temporaneiDopo <= temporaneiPrima,
+                      temporaneiPrima + " prima, " + temporaneiDopo + " dopo");
+            }
+            finally { Chiudi(doc); }
+        }
+
+        /// <summary>Quanti file temporanei di questo nome ci sono adesso.</summary>
+        private static int FileTemporanei(string modello)
+        {
+            try { return Directory.GetFiles(Path.GetTempPath(), modello + "*").Length; }
+            catch { return 0; }
+        }
+
+        /// <summary>
+        /// I sedici numeri che descrivono come e' girato il pezzo sullo
+        /// schermo. Null se non si e' potuto leggere — e allora il confronto
+        /// non afferma niente, invece di affermare che va tutto bene.
+        /// </summary>
+        private static double[] Orientamento(IModelView vista)
+        {
+            if (vista == null) return null;
+            try { return Copia(vista.Transform as IMathTransform); }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// I sedici numeri di una trasformazione, COME ARRAY e non come
+        /// riferimento: `ArrayData` costruisce un vettore nuovo a ogni lettura,
+        /// ed e' quello che rende il confronto possibile.
+        /// </summary>
+        private static double[] Copia(IMathTransform m)
+        {
+            if (m == null) return null;
+            try { return m.ArrayData as double[]; }
+            catch { return null; }
+        }
+
+        private static bool StessoOrientamento(double[] a, double[] b)
+        {
+            // Se non si e' potuto leggere nemmeno prima, questa prova non ha
+            // un ingresso: NON e' verde, e' senza risposta. La si dichiara
+            // fallita perche' un controllo che si arrende dicendo «ok» e' il
+            // difetto che questo progetto esiste per rendere impossibile.
+            if (a == null || b == null) return false;
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (Math.Abs(a[i] - b[i]) > 1e-9) return false;
+            return true;
+        }
+
+        private static void ProvaTettoLavorazioni()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== il tetto sulle lavorazioni (E12) ===");
+
+            const int Quanti = 85;      // il tetto e' 80: cinque devono restare fuori
+            const int Tetto = 80;
+            var doc = NuovaParte();
+            if (doc == null) { Segna("tetto: parte nuova", false, "non creata"); return; }
+
+            try
+            {
+                string errore;
+                var misure = Esegui(doc, "estrudi_rettangolo", new Dictionary<string, object>
+                {
+                    ["piano"] = "superiore",
+                    ["lunghezza_mm"] = (Quanti - 1) * 10.0 + 30,
+                    ["larghezza_mm"] = 30.0,
+                    ["spessore_mm"] = 8.0,
+                    ["centrato"] = true,
+                }, out errore);
+                if (misure == null) { Segna("tetto: la barra", false, Corto(errore)); return; }
+
+                // I tagli, uno per giro. La faccia in alto si ritrova dallo
+                // stato ogni volta: e' cio' che farebbe chi disegna, e non
+                // serve nessun riferimento a un passo.
+                double x0 = -((Quanti - 1) * 10.0) / 2;
+                int fatti = 0;
+                for (int i = 0; i < Quanti; i++)
+                {
+                    var stato = LeggiStato(doc);
+                    string uidAlto = FacciaInAlto(stato);
+                    if (uidAlto == null) break;
+
+                    var m = Esegui(doc, "taglio_cilindrico", new Dictionary<string, object>
+                    {
+                        ["faccia_uid"] = uidAlto,
+                        ["x_mm"] = x0 + i * 10.0,
+                        ["y_mm"] = 0.0,
+                        ["diametro_mm"] = 4.0,
+                        ["passante"] = true,
+                    }, out errore, stato);
+                    if (m == null) break;
+                    fatti++;
+                }
+                Segna("tetto: " + Quanti + " lavorazioni costruite", fatti == Quanti,
+                      fatti + " su " + Quanti + (fatti < Quanti ? " -- " + Corto(errore) : ""));
+                if (fatti < Quanti) return;
+
+                var finale = LeggiStato(doc);
+                var elenco = finale.ContainsKey("feature")
+                    ? finale["feature"] as System.Collections.IList : null;
+                int inElenco = elenco == null ? 0 : elenco.Count;
+
+                // 1. IL TETTO SI DICHIARA.
+                int totali = finale.ContainsKey("feature_totali")
+                    ? Convert.ToInt32(finale["feature_totali"]) : 0;
+                int fuori = finale.ContainsKey("feature_non_elencate")
+                    ? Convert.ToInt32(finale["feature_non_elencate"]) : 0;
+                bool troncato = finale.ContainsKey("troncato") &&
+                                Convert.ToBoolean(finale["troncato"]);
+                Segna("tetto: dichiarato",
+                      totali == Quanti + 1 && fuori == Quanti + 1 - Tetto && troncato,
+                      "elencate " + inElenco + ", totali " + totali + ", fuori " + fuori +
+                      ", troncato " + troncato);
+
+                // 2. E QUELLA CHE CONTA: L'ULTIMA C'E'.
+                //
+                // E' il difetto vero di E12, e non si vede da nessun conteggio:
+                // l'albero si scorre in ordine di CREAZIONE, quindi tenere le
+                // prime ottanta vuol dire buttare via proprio la lavorazione
+                // che il piano ha appena fatto -- l'unica che chi legge sta
+                // cercando. Il modello non la trovava e poteva concluderne che
+                // l'operazione non aveva fatto niente, e rifarla.
+                string ultima = null, prima = null;
+                if (elenco != null && elenco.Count > 0)
+                {
+                    var u = elenco[elenco.Count - 1] as Dictionary<string, object>;
+                    var p = elenco[0] as Dictionary<string, object>;
+                    if (u != null && u.ContainsKey("uid")) ultima = Convert.ToString(u["uid"]);
+                    if (p != null && p.ContainsKey("uid")) prima = Convert.ToString(p["uid"]);
+                }
+                Segna("tetto: nell'elenco c'e' l'ULTIMA creata, non la prima",
+                      ultima != null && ultima.EndsWith(Quanti.ToString()),
+                      "prima elencata: " + (prima ?? "?") + ", ultima: " + (ultima ?? "?"));
+
+                // 3. E L'ESTRUSIONE, che e' la PIU' VECCHIA, non c'e' piu'.
+                bool cSonoLeVecchie = false;
+                if (elenco != null)
+                    foreach (var v in elenco)
+                    {
+                        var d = v as Dictionary<string, object>;
+                        if (d != null && d.ContainsKey("uid") &&
+                            Convert.ToString(d["uid"]).StartsWith("Estrusione"))
+                        { cSonoLeVecchie = true; break; }
+                    }
+                Segna("tetto: la piu' vecchia e' stata scartata", !cSonoLeVecchie,
+                      cSonoLeVecchie ? "l'estrusione c'e' ancora: si tengono le prime"
+                                     : "l'estrusione non c'e' piu', come deve");
+            }
+            catch (Exception ex) { Segna("tetto sulle lavorazioni", false, Perche(ex)); }
+            finally { Chiudi(doc); }
+        }
+
+        /// <summary>L'uid della faccia piana rivolta in alto, dallo stato.</summary>
+        private static string FacciaInAlto(Dictionary<string, object> stato)
+        {
+            var facce = stato != null && stato.ContainsKey("facce")
+                ? stato["facce"] as System.Collections.IList : null;
+            if (facce == null) return null;
+            foreach (var v in facce)
+            {
+                var f = v as Dictionary<string, object>;
+                if (f == null) continue;
+                if (f.ContainsKey("verso") && Convert.ToString(f["verso"]) == "alto" &&
+                    f.ContainsKey("uid"))
+                    return Convert.ToString(f["uid"]);
+            }
+            return null;
         }
 
         // ==================================================================
@@ -761,6 +1120,41 @@ namespace ProvaSaldatura
             var s = new System.Web.Script.Serialization.JavaScriptSerializer();
             s.MaxJsonLength = int.MaxValue;
             try { return s.Serialize(o); } catch { return ""; }
+        }
+
+        /// <summary>
+        /// Perche' una prova e' saltata per aria: messaggio, TIPO e la riga da
+        /// cui e' partita.
+        ///
+        /// PERCHE' NON BASTA `ex.Message`. Il 15/9/2026 una prova ha stampato
+        /// «Riferimento a un oggetto non impostato su un'istanza di oggetto.»
+        /// e basta. Quella frase dice che qualcosa era null e non dice
+        /// **cosa**, ne' se il null stesse nel banco o nella libreria: per
+        /// localizzarla serviva un altro giro da diciassette minuti.
+        ///
+        /// Un banco che riporta un'eccezione senza dire da dove viene fa
+        /// pagare a ogni indagine il prezzo di un giro intero.
+        ///
+        /// **Si scarta anche l'involucro della riflessione.** Il banco chiama
+        /// la libreria con `Invoke`, quindi qualunque cosa esploda la' dentro
+        /// arriva come `TargetInvocationException` — «Eccezione generata dalla
+        /// destinazione di una chiamata», che non dice niente di niente.
+        /// Quella che interessa e' sempre l'`InnerException`.
+        /// </summary>
+        private static string Perche(Exception ex)
+        {
+            if (ex == null) return "(nessuna eccezione)";
+            while (ex is TargetInvocationException && ex.InnerException != null)
+                ex = ex.InnerException;
+
+            string dove = "";
+            try
+            {
+                var righe = (ex.StackTrace ?? "").Split('\n');
+                if (righe.Length > 0) dove = "  <- " + righe[0].Trim();
+            }
+            catch { }
+            return ex.GetType().Name + ": " + Corto(ex.Message) + dove;
         }
 
         private static string Corto(string s)

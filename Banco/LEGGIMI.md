@@ -8,9 +8,10 @@ Sono due banchi diversi, per due domande diverse:
 |---|---|---|
 | `ProvaSaldatura.exe` | le operazioni della libreria fanno il pezzo giusto? | si' |
 | `corri_piani.js` | il ponte MCP esegue i piani come deve? | si' |
+| `prova_annulla.js` | `annulla` ritira il piano — e si **rifiuta** quando deve? | si' |
 | `..\Controlli\Prova*.exe` | la matematica torna? | **no** |
 
-I primi due misurano pezzi, il terzo misura formule. Il terzo si lancia in un
+I primi tre misurano pezzi, l'ultimo misura formule. L'ultimo si lancia in un
 secondo e va lanciato per primo: se non torna la formula, non vale la pena
 aprire il CAD.
 
@@ -50,7 +51,13 @@ esiti.
 ```
 node Banco\corri_piani.js Banco\casi\ponte\c4r_primario.json
 node Banco\guarda.js                  leggi lo stato senza mandare un piano
+node Banco\prova_annulla.js           «annulla» (voce R1), coi suoi tre rossi
 ```
+
+`prova_annulla.js` sta qui e non in `ProvaSaldatura` per una ragione precisa:
+`annulla` **non e' nella libreria**. E' uno strumento del ponte, e la parte che
+conta — il ricordo dell'ultimo piano, e i tre casi in cui si RIFIUTA — vive in
+`Attrezzi`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
 
 Con `PONTE=...` si punta a un altro eseguibile: serve per provare quello
 **installato** invece di quello appena compilato, che e' l'unico modo di sapere

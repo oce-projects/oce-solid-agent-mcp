@@ -63,6 +63,10 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <!-- Serve a `VistaDelPezzo` per trasformare in PNG il BMP che SOLIDWORKS
+         scrive: un BMP 1024x768 non compresso e' 2,3 MB, lo stesso fotogramma
+         in PNG sta in poche decine di KB. -->
+    <Reference Include="System.Drawing" />
     <!-- Servono SOLO a MaterialiSolidWorks.cs, che legge l'elenco materiali.
          System.Xml non era nell'elenco previsto e serve lo stesso: XDocument
          sta in System.Xml.Linq ma la sua Load() ha XmlReader nella firma, che
@@ -103,7 +107,9 @@
     <Compile Include="Riferimenti.cs" />
     <Compile Include="ErroriFeature.cs" />
     <Compile Include="FormaChiusa.cs" />
+    <Compile Include="Frasi.cs" />
     <Compile Include="GiudizioPosizioni.cs" />
+    <Compile Include="VistaDelPezzo.cs" />
     <Compile Include="RuotaDentata.cs" />
     <Compile Include="Sezioni.cs" />
     <Compile Include="Unita.cs" />
