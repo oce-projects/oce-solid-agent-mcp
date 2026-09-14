@@ -1,0 +1,1127 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using SolidWorks.Interop.sldworks;
+using SolidWorks.Interop.swconst;
+
+namespace Riscontro.Disegno
+{
+    /// <summary>
+    /// LA TAVOLA.
+    ///
+    /// Fino alla 0.39.0 il catalogo sapeva fare solo pezzi: ventinove
+    /// operazioni, tutte su un `.SLDPRT`. Le stringhe «Drawing», «IView» e
+    /// «SaveAs» non comparivano in nessun file dell'add-in. Cioe' l'assistente
+    /// poteva disegnare un contenitore stagno e non poteva consegnarlo: in
+    /// officina non arriva un modello, arriva una tavola quotata.
+    ///
+    /// Il censimento (RAG 80r) ha contato 278 metodi su `IDrawingDoc` e 481 su
+    /// `IView`. Qui ce ne sono sette. La scelta e' voluta: sette operazioni
+    /// misurate valgono piu' di settanta dichiarate, ed e' la regola del
+    /// catalogo a due livelli (RAG 80j).
+    ///
+    /// LE TRE TRAPPOLE DI QUESTA FAMIGLIA, tutte della specie che questo
+    /// progetto esiste per prendere — nessun errore, risultato sbagliato:
+    ///
+    /// 1. IL DIEDRO. `Create3rdAngleViews2` e `Create1stAngleViews2` sono
+    ///    gemelle, nessuna delle due fallisce, e producono tavole con la vista
+    ///    destra e la sinistra SCAMBIATE. L'Italia disegna in primo diedro; una
+    ///    tavola in terzo e' leggibile, plausibile, e il pezzo che ne esce e'
+    ///    specchiato. Nessuna misura geometrica lo rivela. Qui la terza non e'
+    ///    esposta affatto e il primo diedro non e' un parametro: e' una
+    ///    costante.
+    ///
+    /// 2. LA QUOTA CHE MENTE. `CreateLinearDim4` prende un parametro `Val`, e
+    ///    `IDisplayDimension.SetText` sovrascrive il numero mostrato: l'API
+    ///    permette di scrivere in tavola un numero che NON e' la geometria.
+    ///    Qui non c'e' nessuna operazione che quoti a mano: le quote si
+    ///    prendono dal modello (`InsertModelAnnotations3`), dove non possono
+    ///    mentire.
+    ///
+    /// 3. IL PDF DI UN FOGLIO SOLO. L'esportazione di serie prende il foglio
+    ///    corrente: una tavola da tre fogli esce in officina come una pagina,
+    ///    senza errori. `IExportPdfData` ha sette metodi in tutto e due
+    ///    servono solo a evitare questo. Qui si contano i fogli prima e le
+    ///    PAGINE del PDF dopo.
+    /// </summary>
+    public partial class OperazioniSw
+    {
+        /// <summary>
+        /// Il numero di preferenza del template di disegno predefinito.
+        /// Non si scrive mai un percorso a mano: e' la lezione dei profili di
+        /// saldatura. L'officina ha il suo template, con il suo cartiglio e il
+        /// suo diedro, e un percorso scritto a mano funziona sulla macchina di
+        /// chi l'ha scritto e su nessun'altra.
+        /// </summary>
+        private const int TemplateDisegnoPredefinito =
+            (int)swUserPreferenceStringValue_e.swDefaultTemplateDrawing;
+
+        // ─────────────────────────────────────────────────────────────────
+        // crea_disegno
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Crea la tavola del modello aperto, e la lascia attiva.
+        ///
+        /// DUE DOCUMENTI APERTI INSIEME: e' la novita' architetturale, non
+        /// l'API. `CreateDrawViewFromModelView3(ModelName, ...)` vuole il
+        /// percorso di un documento GIA' APERTO — quindi il modello deve
+        /// restare aperto mentre il disegno diventa attivo. Fino a qui
+        /// l'agente lavorava su un documento solo e lo stato lo dava per
+        /// sottinteso.
+        /// </summary>
+        private Esito CreaDisegno(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            if (modello == null)
+                return Fallito("Non c'e' nessun documento aperto da mettere in tavola.");
+
+            string percorsoModello = "";
+            try { percorsoModello = modello.GetPathName() ?? ""; } catch { }
+            if (string.IsNullOrWhiteSpace(percorsoModello))
+                return Fallito(
+                    "Il pezzo non e' mai stato salvato, quindi non ha un percorso, e " +
+                    "una vista di tavola si aggancia al PERCORSO del modello. " +
+                    "Salvalo una prima volta e poi rifammi la tavola.");
+
+            int tipoModello = 0;
+            try { tipoModello = modello.GetType(); } catch { }
+            if (tipoModello != (int)swDocumentTypes_e.swDocPART &&
+                tipoModello != (int)swDocumentTypes_e.swDocASSEMBLY)
+                return Fallito(
+                    "Il documento attivo non e' ne' un pezzo ne' un assieme: " +
+                    "non so di cosa fare la tavola.");
+
+            string template = Str(a, "template", null);
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                try { template = _sw.GetUserPreferenceStringValue(TemplateDisegnoPredefinito); }
+                catch { template = null; }
+            }
+            if (string.IsNullOrWhiteSpace(template) || !File.Exists(template))
+                return Fallito(
+                    "Non trovo il modello di tavola di questa installazione " +
+                    (string.IsNullOrWhiteSpace(template)
+                        ? "(la preferenza e' vuota)."
+                        : "(«" + template + "» non c'e')") +
+                    " Senza, la tavola nascerebbe senza cartiglio e con il " +
+                    "diedro sbagliato: preferisco fermarmi.");
+
+            // Formato e scala si passano gia' qui: `NewDocument` li accetta, e
+            // farlo in due tempi vorrebbe dire un foglio buttato.
+            int formato = FormatoFoglio(Str(a, "formato", "A3"));
+            object nuovo;
+            try { nuovo = _sw.NewDocument(template, formato, 0, 0); }
+            catch (Exception ex) { return Fallito("Non riesco a creare la tavola: " + ex.Message); }
+
+            var disegno = nuovo as IModelDoc2;
+            if (disegno == null)
+                return Fallito(
+                    "SolidWorks non ha creato nessuna tavola e non ha detto perche'.");
+
+            int tipoNuovo = 0;
+            try { tipoNuovo = disegno.GetType(); } catch { }
+            if (tipoNuovo != (int)swDocumentTypes_e.swDocDRAWING)
+                return Fallito(
+                    "Il documento creato non e' una tavola: il modello «" + template +
+                    "» non e' un modello di disegno.");
+
+            // IL MODELLO DEVE ESSERE ANCORA APERTO.
+            //
+            // E' la precondizione di tutto quello che viene dopo, e non e'
+            // scontata: creare un documento cambia il documento attivo, e
+            // basta una preferenza («chiudi i documenti non usati») perche' il
+            // pezzo sparisca sotto i piedi. Se sparisce, le viste nascerebbero
+            // vuote senza dare errore.
+            if (!DocumentoAperto(percorsoModello))
+                return Fallito(
+                    "La tavola e' nata ma il pezzo non risulta piu' aperto: le viste " +
+                    "verrebbero vuote. Riapri il pezzo e riprova.");
+
+            var misure = new Dictionary<string, object>
+            {
+                ["template"] = template,
+                ["formato"] = Str(a, "formato", "A3"),
+                ["modello_in_tavola"] = percorsoModello,
+                ["fogli"] = ContaFogli(disegno),
+                ["documenti_aperti"] = DocumentiAperti().Count,
+            };
+            _log("[agente] tavola creata da " + template);
+            return SenzaFeature(misure);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // imposta_foglio
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Formato e scala del foglio attivo. Il diedro NON e' un parametro.
+        /// </summary>
+        private Esito ImpostaFoglio(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            var disegno = modello as IDrawingDoc;
+            if (disegno == null)
+                return Fallito("Il documento attivo non e' una tavola.");
+
+            ISheet foglio;
+            try { foglio = disegno.GetCurrentSheet() as ISheet; }
+            catch (Exception ex) { return Fallito("Non riesco a leggere il foglio: " + ex.Message); }
+            if (foglio == null) return Fallito("La tavola non ha un foglio attivo.");
+
+            string nomeFormato = Str(a, "formato", "A3");
+            int formato = FormatoFoglio(nomeFormato);
+            double scalaNum = Num(a, "scala_numeratore", 1);
+            double scalaDen = Num(a, "scala_denominatore", 1);
+            if (scalaNum <= 0 || scalaDen <= 0)
+                return Fallito("La scala deve avere due numeri positivi, per esempio 1:2.");
+
+            // FORMATO E SCALA SI SCRIVONO INSIEME, E IL DIEDRO SI RILEGGE.
+            //
+            // Il primo tentativo faceva `SetSize` e poi `SetScale`, e la
+            // seconda tornava `false` — misurato l'11 settembre 2026 sulla
+            // prima tavola vera. La ragione e' la stessa gia' pagata con le
+            // facce: cambiare il foglio invalida il puntatore al foglio, e
+            // la seconda chiamata lavorava su un oggetto vecchio.
+            //
+            // `SetProperties2` fa tutto in un colpo, quindi il problema non
+            // si pone. Porta pero' un parametro che NON deve essere deciso
+            // qui: `FirstAngle`. E' il diedro, cioe' la trappola piu' cara
+            // di questa famiglia (una tavola in terzo diedro ha destra e
+            // sinistra scambiate, non da' nessun errore, e il pezzo esce
+            // specchiato). Si LEGGE quello che il modello di tavola
+            // dell'officina ha gia' deciso e si riscrive uguale.
+            var prima = ProprietaDelFoglio(foglio);
+            bool primoDiedro = prima != null && prima.Length > 4 && prima[4] != 0;
+
+            try
+            {
+                foglio.SetProperties2(
+                    formato,
+                    (int)swDwgTemplates_e.swDwgTemplateNone,
+                    scalaNum, scalaDen,
+                    primoDiedro,
+                    0, 0,
+                    true);
+            }
+            catch (Exception ex) { return Fallito("Foglio non impostato: " + ex.Message); }
+
+            // Il puntatore al foglio e' vecchio da questa riga in poi.
+            try { foglio = disegno.GetCurrentSheet() as ISheet; }
+            catch { foglio = null; }
+            if (foglio == null) return Fallito("Ho perso il foglio dopo averlo impostato.");
+
+            // SI RILEGGE. Le due chiamate tornano `true` anche quando il
+            // foglio e' rimasto com'era — e' successo con `SetMaterialPropertyName2`,
+            // e la difesa e' sempre la stessa: chiedere al documento, non
+            // fidarsi della chiamata.
+            double[] misureFoglio = MisureFoglio(foglio);
+            var scalaDopo = LeggiScala(foglio);
+            if (scalaDopo != null && scalaDen != 0 &&
+                Math.Abs(scalaDopo[0] / scalaDopo[1] - scalaNum / scalaDen) > 1e-9)
+                return Fallito(
+                    "Ho chiesto la scala " + scalaNum + ":" + scalaDen +
+                    " e il foglio dice " + scalaDopo[0] + ":" + scalaDopo[1] +
+                    ". Non dico che e' fatto quando non lo e'.");
+
+            var misure = new Dictionary<string, object>
+            {
+                ["formato"] = nomeFormato,
+                ["larghezza_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[0], 1) : null,
+                ["altezza_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[1], 1) : null,
+                ["scala"] = scalaDopo != null ? scalaDopo[0] + ":" + scalaDopo[1] : null,
+                ["diedro"] = primoDiedro ? "primo" : "terzo",
+            };
+            // IL DIEDRO SI DICE SEMPRE, anche quando e' giusto. Non e' un
+            // avviso: e' l'unico modo perche' qualcuno se ne accorga prima
+            // che il pezzo sia tagliato.
+            if (!primoDiedro)
+                _log("[agente] ATTENZIONE: questa tavola e' in TERZO diedro");
+            return SenzaFeature(misure);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // viste_standard
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Le tre viste standard, in PRIMO diedro.
+        ///
+        /// `Create1stAngleViews2` torna `bool`, non le viste: per sapere cosa
+        /// ha fatto bisogna contarle prima e dopo. E' la stessa forma gia'
+        /// vista con `InsertFeatureShell` — una chiamata che dice «si'» e non
+        /// dice cosa.
+        /// </summary>
+        private Esito VisteStandard(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            var disegno = modello as IDrawingDoc;
+            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+
+            string percorsoModello = Str(a, "modello", null);
+            if (string.IsNullOrWhiteSpace(percorsoModello))
+                percorsoModello = PrimoModelloAperto();
+            if (string.IsNullOrWhiteSpace(percorsoModello))
+                return Fallito(
+                    "Non c'e' nessun pezzo aperto da mettere in vista: una vista di " +
+                    "tavola si aggancia a un documento APERTO, non a un file su disco.");
+            var percorsoSw = PercorsoCanonico(percorsoModello);
+            if (percorsoSw == null)
+                return Fallito(
+                    "«" + percorsoModello + "» non risulta aperto. Le viste " +
+                    "nascerebbero vuote senza dare errore.");
+
+            int prima = ContaViste(disegno);
+            bool ok;
+            try { ok = disegno.Create1stAngleViews2(percorsoSw); }
+            catch (Exception ex) { return Fallito("Viste non create: " + ex.Message); }
+
+            int dopo = ContaViste(disegno);
+            if (!ok && dopo == prima)
+                return Fallito(
+                    "SolidWorks non ha creato nessuna vista e non ha detto perche'. " +
+                    "Di solito vuol dire che il modello non e' ricostruito.");
+            if (dopo <= prima)
+                return Fallito(
+                    "La chiamata e' andata a buon fine ma le viste sono sempre " + prima +
+                    ": la tavola e' vuota. Non lo chiamo riuscito.");
+
+            var misure = new Dictionary<string, object>
+            {
+                ["diedro"] = "primo",
+                ["modello"] = percorsoSw,
+                ["viste_prima"] = prima,
+                ["viste_dopo"] = dopo,
+                ["viste_create"] = dopo - prima,
+                ["nomi"] = NomiDelleViste(disegno),
+            };
+            return SenzaFeature(misure);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // vista_modello (isometrica e le altre viste con nome)
+        // ─────────────────────────────────────────────────────────────────
+
+        private Esito VistaModello(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            var disegno = modello as IDrawingDoc;
+            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+
+            string percorsoModello = Str(a, "modello", null);
+            if (string.IsNullOrWhiteSpace(percorsoModello))
+                percorsoModello = PrimoModelloAperto();
+            var percorsoSw = PercorsoCanonico(percorsoModello);
+            if (percorsoSw == null)
+                return Fallito("Non c'e' nessun pezzo aperto da mettere in vista.");
+
+            // I NOMI DELLE VISTE SONO QUELLI DI SOLIDWORKS, NON QUELLI DEL
+            // PROGETTISTA. Si accetta l'italiano e si traduce: chiedere a chi
+            // scrive il piano di ricordarsi «*Isometric» con l'asterisco e'
+            // un modo di far fallire il piano per una stella.
+            string chiesta = (Str(a, "vista", "isometrica") ?? "").Trim().ToLowerInvariant();
+            var nomiSw = NomiVistaSw(chiesta);
+            if (nomiSw == null)
+                return Fallito(
+                    "Non conosco la vista «" + chiesta + "». Ne conosco nove: " +
+                    "isometrica, dimetrica, trimetrica, fronte, dietro, sopra, " +
+                    "sotto, destra, sinistra.");
+
+            double x = Unita.M(Num(a, "x_mm", 0));
+            double y = Unita.M(Num(a, "y_mm", 0));
+
+            // IL NOME DELLA VISTA NON SI INDOVINA: SI PROVA.
+            //
+            // Una vista con nome si chiede per NOME, e il nome dipende
+            // dalla lingua dell'installazione: su SolidWorks italiano la
+            // vista isometrica si chiama «*Isometrica», su quello inglese
+            // «*Isometric». La chiamata non fallisce con un messaggio: torna
+            // `null` e basta, e da fuori sembra che la tavola non voglia
+            // quella vista.
+            //
+            // E' la stessa cosa gia' pagata con `ShowNamedView2`, dove ne'
+            // l'italiano ne' l'inglese funzionavano e serviva il numero. Qui
+            // il numero non c'e', quindi si provano le scritture e si
+            // DICHIARA quale ha funzionato: cosi' la prossima volta il
+            // fatto e' scritto invece che ricordato.
+            // PRIMA SI CHIEDE AL MODELLO COME LE CHIAMA LUI.
+            //
+            // `IModelDoc2.GetModelViewNames()` restituisce i nomi veri delle
+            // viste di QUESTO documento su QUESTA installazione. Provare una
+            // lista scritta a mano funziona finche' qualcuno non apre il
+            // programma in un'altra lingua; chiedere funziona sempre, e
+            // quando non trova niente puo' dire cosa c'era davvero — che e'
+            // la differenza fra un errore utile e «non ha funzionato».
+            var suoi = NomiDelleVisteDelModello(percorsoSw);
+            var daProvare = new List<string>();
+            // Si cerca la RADICE dentro il nome vero, non il nome intero:
+            // «isometri» prende «*Isometrico», «*Isometrica» e «*Isometric»
+            // senza doverli conoscere tutti e tre.
+            foreach (var radice in nomiSw)
+            {
+                foreach (var n in suoi)
+                {
+                    if (n.IndexOf(radice, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                    if (!daProvare.Contains(n)) daProvare.Add(n);
+                }
+            }
+            // Se il modello non dichiara niente — puo' succedere su un
+            // documento appena aperto — restano le scritture note.
+            foreach (var noto in NomiNotiPerRadice(nomiSw))
+                if (!daProvare.Contains(noto)) daProvare.Add(noto);
+
+            int prima = ContaViste(disegno);
+            IView vista = null;
+            string nomeSw = null;
+            var rifiutati = new List<string>();
+            foreach (var candidato in daProvare)
+            {
+                try { vista = disegno.CreateDrawViewFromModelView3(percorsoSw, candidato, x, y, 0); }
+                catch { vista = null; }
+                if (vista != null) { nomeSw = candidato; break; }
+                rifiutati.Add(candidato);
+            }
+
+            int dopo = ContaViste(disegno);
+            if (vista == null || dopo <= prima)
+                return Fallito(
+                    "SolidWorks non ha creato la vista «" + chiesta + "». Ho provato " +
+                    "a chiamarla: " + string.Join(", ", rifiutati) + ". " +
+                    (suoi.Count > 0
+                        ? "Il pezzo dice di avere queste viste: " + string.Join(", ", suoi) + "."
+                        : "Il pezzo non dichiara nessuna vista con nome."));
+
+            string nome = "";
+            double scala = 0;
+            try { nome = vista.Name; } catch { }
+            try { scala = vista.ScaleDecimal; } catch { }
+
+            var misure = new Dictionary<string, object>
+            {
+                ["vista"] = chiesta,
+                ["nome_sw"] = nomeSw,
+                ["nomi_rifiutati"] = rifiutati.Count > 0 ? (object)string.Join(",", rifiutati) : null,
+                ["nome"] = nome,
+                ["scala"] = scala > 0 ? (object)Math.Round(scala, 4) : null,
+                ["viste_dopo"] = dopo,
+            };
+            return SenzaFeature(misure);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // quote_dal_modello
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Porta in tavola le quote che il modello ha gia'.
+        ///
+        /// E' l'unica via di quotatura esposta, e la ragione e' di sicurezza,
+        /// non di comodita': una quota inserita a mano puo' portare un numero
+        /// diverso dalla geometria (`Val`, e `SetText` che sovrascrive il testo
+        /// mostrato). Una quota che viene dal modello no.
+        ///
+        /// PERCHE' QUI C'E' UNA TABELLA DI TENTATIVI E NON UNA CHIAMATA.
+        /// Misurato l'11 settembre 2026 sulla prima tavola vera: un pezzo con
+        /// cinque quote, tre viste standard, e `InsertModelAnnotations3` che
+        /// non porta niente — senza errore, restituendo un vettore vuoto, cioe'
+        /// esattamente cio' che restituisce quando ha funzionato e non c'era
+        /// nulla da portare.
+        ///
+        /// Le cose che possono fare la differenza sono tre, e la
+        /// documentazione le tratta tutte da dettaglio:
+        ///
+        ///   - QUALI BIT. `swInsertDimensions` (8) e' il bit generico; le quote
+        ///     sono pero' divise in MARCATE per il disegno (32768) e NON
+        ///     marcate (524288), e una lavorazione fatta via API non e'
+        ///     marcata. Chiederli tutti insieme non e' la stessa cosa che
+        ///     chiederli uno per volta.
+        ///   - DOVE PIAZZARLE. `UsePlacementInSketch` prende la posizione
+        ///     dallo schizzo del modello; se lo schizzo non e' quotato non c'e'
+        ///     nessuna posizione da prendere.
+        ///   - QUALE VERSIONE. La 2 ha un parametro che la 3 ha perso —
+        ///     `AllTypes`, «portale tutte, non guardare la maschera» — e la
+        ///     regola «la piu' alta e' la migliore» in questo interop e' gia'
+        ///     dimostrata falsa (`InsertEndCapFeature3` aveva TOLTO le facce
+        ///     rispetto alla 2).
+        ///
+        /// Quindi si prova, in ordine dal piu' preciso al piu' grossolano, e
+        /// si scrive nelle misure quale strada ha funzionato. Non e' eleganza:
+        /// e' l'unico modo di trasformare «non ha funzionato» in un fatto.
+        /// </summary>
+        private Esito QuoteDalModello(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            var disegno = modello as IDrawingDoc;
+            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+
+            int viste = ContaViste(disegno);
+            if (viste == 0)
+                return Fallito(
+                    "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
+                    "Metti prima le viste.");
+
+            const int MARCATE = (int)swInsertAnnotation_e.swInsertDimensionsMarkedForDrawing;
+            const int NON_MARCATE = (int)swInsertAnnotation_e.swInsertDimensionsNotMarkedForDrawing;
+            const int GENERICO = (int)swInsertAnnotation_e.swInsertDimensions;
+
+            bool tutte = Bool(a, "tutte_le_quote", false);
+            int extra = Bool(a, "callout_fori", true)
+                ? (int)swInsertAnnotation_e.swInsertholeCallout
+                : 0;
+
+            // Di serie si prendono solo le quote MARCATE per il disegno: sono
+            // quelle che un progettista ha scelto di mostrare, e una tavola con
+            // tutte le quote del modello e' illeggibile.
+            var maschere = tutte
+                ? new[] { MARCATE | NON_MARCATE | GENERICO, NON_MARCATE, GENERICO, MARCATE }
+                : new[] { MARCATE, MARCATE | GENERICO };
+
+            int prima = ContaQuote(disegno);
+            int dopo = prima;
+            string comeFatto = null;
+            int restituite = 0;
+            var provati = new List<string>();
+
+            foreach (var maschera in maschere)
+            {
+                int tipi = maschera | extra;
+
+                foreach (var dalloSchizzo in new[] { false, true })
+                {
+                    try
+                    {
+                        var tornate = disegno.InsertModelAnnotations3(
+                            (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
+                            tipi,
+                            true,    // tutte le viste
+                            false,   // DuplicateDims: mai. Una quota due volte e' una tavola sporca.
+                            false,   // HiddenFeatureDims
+                            dalloSchizzo) as object[];
+                        restituite = tornate == null ? 0 : tornate.Length;
+                    }
+                    catch (Exception ex) { return Fallito("Quote non inserite: " + ex.Message); }
+
+                    provati.Add("v3/" + maschera + (dalloSchizzo ? "/schizzo" : ""));
+                    dopo = ContaQuote(disegno);
+                    if (dopo > prima)
+                    {
+                        comeFatto = "InsertModelAnnotations3, bit " + maschera +
+                                    (dalloSchizzo ? ", posizione dallo schizzo" : "");
+                        break;
+                    }
+                }
+                if (dopo > prima) break;
+
+                // La versione 2, con `AllTypes`: il parametro che la 3 non ha.
+                try
+                {
+                    if (disegno.InsertModelAnnotations2(
+                            (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
+                            true, tipi, true, false, false))
+                    {
+                        provati.Add("v2/" + maschera);
+                        dopo = ContaQuote(disegno);
+                        if (dopo > prima)
+                        {
+                            comeFatto = "InsertModelAnnotations2 con AllTypes, bit " + maschera;
+                            break;
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            if (dopo <= prima)
+            {
+                // La piu' vecchia di tutte, un parametro solo. Torna `void`:
+                // l'unico modo di sapere se ha fatto qualcosa e' ricontare.
+                try
+                {
+                    disegno.InsertModelDimensions(
+                        (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel);
+                    provati.Add("InsertModelDimensions");
+                    dopo = ContaQuote(disegno);
+                    if (dopo > prima) comeFatto = "InsertModelDimensions";
+                }
+                catch { }
+            }
+
+            if (dopo <= prima)
+            {
+                // Una vista alla volta, selezionandola prima: alcune
+                // installazioni ignorano «tutte le viste».
+                int quante = 0;
+                try
+                {
+                    var doc = (IModelDoc2)disegno;
+                    var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
+                    while (v != null)
+                    {
+                        try
+                        {
+                            doc.ClearSelection2(true);
+                            if (doc.Extension.SelectByID2(
+                                    v.Name, "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0))
+                            {
+                                disegno.InsertModelAnnotations3(
+                                    (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
+                                    MARCATE | NON_MARCATE | GENERICO | extra,
+                                    false, false, false, false);
+                                quante++;
+                            }
+                        }
+                        catch { }
+                        v = v.GetNextView() as IView;
+                    }
+                    doc.ClearSelection2(true);
+                }
+                catch { }
+                provati.Add("vista per vista");
+                dopo = ContaQuote(disegno);
+                if (dopo > prima) comeFatto = "una vista alla volta (" + quante + ")";
+            }
+
+            if (dopo <= prima)
+            {
+                // QUANTE NE HA IL PEZZO, E QUALI. Senza questa risposta un
+                // «non e' arrivata nessuna quota» non distingue fra «la
+                // chiamata non funziona» e «non c'era niente da portare»:
+                // sono due difetti diversi e si riparano in due posti diversi.
+                var nomiQuote = NomiDelleQuoteDelModello(PrimoModelloAperto());
+                return Fallito(
+                    "Non e' arrivata nessuna quota (erano " + prima + ", sono " + dopo +
+                    "; l'ultimo tentativo ne ha restituite " + restituite + "). " +
+                    (nomiQuote.Count == 0
+                        ? "Il pezzo non ha nessuna quota da portare in tavola: e' stato " +
+                          "costruito senza quotare gli schizzi. Le quote vanno messe sul " +
+                          "MODELLO, non sulla tavola."
+                        : "Il pezzo ha " + nomiQuote.Count + " quote (" +
+                          string.Join(", ", nomiQuote) + ") e nessuna arriva in tavola. " +
+                          "Ho provato: " + string.Join(", ", provati) + "."));
+            }
+
+            var misure = new Dictionary<string, object>
+            {
+                ["come"] = comeFatto,
+                ["quote_prima"] = prima,
+                ["quote_dopo"] = dopo,
+                ["quote_inserite"] = dopo - prima,
+                ["viste"] = viste,
+                ["solo_marcate_per_il_disegno"] = !tutte,
+            };
+            return SenzaFeature(misure);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // esporta_pdf
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Il PDF di TUTTI i fogli, con il conto delle pagine.
+        ///
+        /// Il difetto da prendere e' noto: l'esportazione di serie prende il
+        /// foglio corrente, e una tavola da tre fogli esce come una pagina
+        /// sola senza errori. Quindi si chiedono tutti i fogli, e poi si
+        /// CONTANO le pagine del file scritto. Contare le pagine di un PDF e'
+        /// grezzo, ed e' l'unica verifica che possa davvero fallire.
+        /// </summary>
+        private Esito EsportaPdf(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            var disegno = modello as IDrawingDoc;
+            if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
+
+            string dove = Str(a, "percorso", null);
+            if (string.IsNullOrWhiteSpace(dove))
+            {
+                string suo = "";
+                try { suo = modello.GetPathName() ?? ""; } catch { }
+                if (string.IsNullOrWhiteSpace(suo))
+                    return Fallito(
+                        "La tavola non e' mai stata salvata e non mi hai detto dove " +
+                        "mettere il PDF.");
+                dove = Path.ChangeExtension(suo, ".pdf");
+            }
+
+            int fogli = ContaFogli(modello);
+            if (fogli == 0) return Fallito("La tavola non ha fogli.");
+
+            object datiPdf;
+            try { datiPdf = _sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData); }
+            catch (Exception ex) { return Fallito("Non riesco a preparare il PDF: " + ex.Message); }
+
+            var pdf = datiPdf as IExportPdfData;
+            if (pdf == null)
+                return Fallito("Questa installazione non espone le opzioni di esportazione PDF.");
+
+            try
+            {
+                pdf.ViewPdfAfterSaving = false;
+                // TUTTI i fogli, esplicitamente. E' il difetto che questa
+                // operazione esiste per non fare.
+                pdf.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
+            }
+            catch (Exception ex) { return Fallito("Non riesco a chiedere tutti i fogli: " + ex.Message); }
+
+            if (File.Exists(dove))
+            {
+                try { File.Delete(dove); }
+                catch (Exception ex)
+                {
+                    return Fallito(
+                        "C'e' gia' un PDF li' e non riesco a sostituirlo (" + ex.Message +
+                        "): probabilmente e' aperto.");
+                }
+            }
+
+            int errori = 0, avvisi = 0;
+            bool ok;
+            try
+            {
+                ok = modello.Extension.SaveAs(
+                    dove, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
+                    (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
+                    pdf, ref errori, ref avvisi);
+            }
+            catch (Exception ex) { return Fallito("PDF non scritto: " + ex.Message); }
+
+            if (!ok || !File.Exists(dove))
+                return Fallito("Il PDF non e' stato scritto (codice " + errori + ").");
+
+            int pagine = ContaPaginePdf(dove);
+            if (pagine > 0 && pagine != fogli)
+                return Fallito(
+                    "Il PDF e' uscito con " + pagine + " pagine e la tavola ha " + fogli +
+                    " fogli. Il file c'e' e non e' quello che ti serve: guardalo prima " +
+                    "di mandarlo in officina." + " (" + dove + ")");
+
+            var misure = new Dictionary<string, object>
+            {
+                ["percorso"] = dove,
+                ["fogli"] = fogli,
+                ["pagine"] = pagine > 0 ? (object)pagine : null,
+                ["byte"] = new FileInfo(dove).Length,
+            };
+            _log("[agente] PDF: " + fogli + " fogli, " + pagine + " pagine, " + dove);
+            return SenzaFeature(misure);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // salva_documento
+        // ─────────────────────────────────────────────────────────────────
+
+        private Esito SalvaDocumento(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            if (modello == null) return Fallito("Non c'e' nessun documento aperto.");
+
+            string dove = Str(a, "percorso", null);
+            int errori = 0, avvisi = 0;
+            bool ok;
+
+            if (string.IsNullOrWhiteSpace(dove))
+            {
+                string suo = "";
+                try { suo = modello.GetPathName() ?? ""; } catch { }
+                if (string.IsNullOrWhiteSpace(suo))
+                    return Fallito(
+                        "Il documento non e' mai stato salvato: dimmi dove metterlo.");
+                dove = suo;
+            }
+
+            try
+            {
+                ok = modello.Extension.SaveAs(
+                    dove, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
+                    (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
+                    null, ref errori, ref avvisi);
+            }
+            catch (Exception ex) { return Fallito("Non salvato: " + ex.Message); }
+
+            if (!ok || !File.Exists(dove))
+                return Fallito("Il documento non e' stato salvato (codice " + errori + ").");
+
+            var misure = new Dictionary<string, object>
+            {
+                ["percorso"] = dove,
+                ["byte"] = new FileInfo(dove).Length,
+                ["avvisi"] = avvisi,
+            };
+            return SenzaFeature(misure);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Attrezzi
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>Un esito riuscito per un'operazione che non crea feature.</summary>
+        private Esito SenzaFeature(Dictionary<string, object> misure)
+        {
+            return new Esito { Riuscito = true, Misure = misure };
+        }
+
+        private static int FormatoFoglio(string nome)
+        {
+            switch ((nome ?? "").Trim().ToUpperInvariant())
+            {
+                case "A0": return (int)swDwgPaperSizes_e.swDwgPaperA0size;
+                case "A1": return (int)swDwgPaperSizes_e.swDwgPaperA1size;
+                case "A2": return (int)swDwgPaperSizes_e.swDwgPaperA2size;
+                case "A4": return (int)swDwgPaperSizes_e.swDwgPaperA4size;
+                case "A4V":
+                case "A4 VERTICALE": return (int)swDwgPaperSizes_e.swDwgPaperA4sizeVertical;
+                default: return (int)swDwgPaperSizes_e.swDwgPaperA3size;
+            }
+        }
+
+        /// <summary>
+        /// Il nome che SolidWorks usa per una vista con nome.
+        ///
+        /// L'asterisco davanti NON e' un refuso: e' il modo in cui SolidWorks
+        /// distingue le viste di sistema da quelle salvate dall'utente.
+        /// </summary>
+        /// <summary>
+        /// Le RADICI con cui riconoscere una vista fra quelle che il
+        /// documento dichiara. Ce ne sono due per voce, una per la lingua
+        /// dell'interfaccia e una per l'inglese, e sono radici e non parole
+        /// intere proprio perche' la desinenza cambia: questa installazione
+        /// dice «*Isometrico», un'altra «*Isometrica».
+        /// </summary>
+        private static string[] NomiVistaSw(string chiesta)
+        {
+            switch (chiesta)
+            {
+                case "isometrica":
+                case "isometrico":
+                case "iso": return new[] { "isometri", "isometric" };
+                case "dimetrica":
+                case "dimetrico": return new[] { "dimetri", "dimetric" };
+                case "trimetrica":
+                case "trimetrico": return new[] { "trimetri", "trimetric" };
+                case "fronte":
+                case "anteriore":
+                case "frontale": return new[] { "anterior", "front" };
+                case "dietro":
+                case "posteriore": return new[] { "posterior", "back" };
+                case "sopra":
+                case "superiore":
+                case "alto": return new[] { "superior", "top" };
+                case "sotto":
+                case "inferiore":
+                case "basso": return new[] { "inferior", "bottom" };
+                case "destra": return new[] { "destra", "right" };
+                case "sinistra": return new[] { "sinistr", "left" };
+                default: return null;
+            }
+        }
+
+        /// <summary>Le scritture note, per quando il documento non dichiara nulla.</summary>
+        private static List<string> NomiNotiPerRadice(string[] radici)
+        {
+            var fuori = new List<string>();
+            foreach (var r in radici)
+            {
+                // Si ricostruisce «*Radice» con l'iniziale maiuscola: e' la
+                // forma che SolidWorks usa per le viste di sistema, e vale
+                // come ultimo tentativo, non come regola.
+                if (r.Length == 0) continue;
+                fuori.Add("*" + char.ToUpperInvariant(r[0]) + r.Substring(1));
+            }
+            return fuori;
+        }
+
+        private int ContaFogli(IModelDoc2 disegno)
+        {
+            try
+            {
+                var d = disegno as IDrawingDoc;
+                if (d == null) return 0;
+                var nomi = d.GetSheetNames() as string[];
+                return nomi == null ? 0 : nomi.Length;
+            }
+            catch { return 0; }
+        }
+
+        private int ContaViste(IDrawingDoc disegno)
+        {
+            int n = 0;
+            try
+            {
+                var foglio = disegno.GetFirstView() as IView;   // il primo e' il FOGLIO
+                if (foglio == null) return 0;
+                var v = foglio.GetNextView() as IView;
+                while (v != null) { n++; v = v.GetNextView() as IView; }
+            }
+            catch { }
+            return n;
+        }
+
+        private List<string> NomiDelleViste(IDrawingDoc disegno)
+        {
+            var fuori = new List<string>();
+            try
+            {
+                var foglio = disegno.GetFirstView() as IView;
+                if (foglio == null) return fuori;
+                var v = foglio.GetNextView() as IView;
+                while (v != null)
+                {
+                    try { fuori.Add(v.Name); } catch { }
+                    v = v.GetNextView() as IView;
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        private int ContaQuote(IDrawingDoc disegno)
+        {
+            int n = 0;
+            try
+            {
+                var foglio = disegno.GetFirstView() as IView;
+                if (foglio == null) return 0;
+                var v = foglio.GetNextView() as IView;
+                while (v != null)
+                {
+                    try { n += v.GetDimensionCount(); } catch { }
+                    v = v.GetNextView() as IView;
+                }
+            }
+            catch { }
+            return n;
+        }
+
+        private static double[] ProprietaDelFoglio(ISheet foglio)
+        {
+            try { return foglio.GetProperties2() as double[]; }
+            catch { return null; }
+        }
+
+        private static double[] MisureFoglio(ISheet foglio)
+        {
+            var p = ProprietaDelFoglio(foglio);
+            if (p == null || p.Length < 7) return null;
+            // 5 = larghezza, 6 = altezza, in metri.
+            return new[] { Unita.Mm(p[5]), Unita.Mm(p[6]) };
+        }
+
+        private static double[] LeggiScala(ISheet foglio)
+        {
+            var p = ProprietaDelFoglio(foglio);
+            if (p == null || p.Length < 4) return null;
+            // 2 = numeratore, 3 = denominatore.
+            if (p[3] == 0) return null;
+            return new[] { p[2], p[3] };
+        }
+
+        /// <summary>
+        /// Quante quote ha il MODELLO, cioe' quante ce ne sarebbero da
+        /// portare in tavola. Si contano scorrendo l'albero e chiedendo a
+        /// ogni lavorazione le sue quote visualizzate — la stessa strada
+        /// che lo stato del documento usa per elencarle.
+        /// </summary>
+        private List<string> NomiDelleQuoteDelModello(string percorso)
+        {
+            var fuori = new List<string>();
+            try
+            {
+                var d = DocumentoPerPercorso(percorso);
+                var parte = d as IPartDoc;
+                if (parte == null) return fuori;
+                var f = parte.IFirstFeature();
+                int guardia = 0;
+                while (f != null && guardia++ < 2000)
+                {
+                    try
+                    {
+                        var q = f.GetFirstDisplayDimension() as IDisplayDimension;
+                        while (q != null)
+                        {
+                            try
+                            {
+                                var vera = q.GetDimension2(0) as IDimension;
+                                fuori.Add(vera != null ? vera.FullName : "?");
+                            }
+                            catch { fuori.Add("?"); }
+                            q = f.GetNextDisplayDimension(q) as IDisplayDimension;
+                        }
+                    }
+                    catch { }
+                    f = f.IGetNextFeature();
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        /// <summary>Il documento aperto a quel percorso, o null.</summary>
+        private IModelDoc2 DocumentoPerPercorso(string percorso)
+        {
+            if (string.IsNullOrWhiteSpace(percorso)) return null;
+            try
+            {
+                var d = _sw.GetFirstDocument() as IModelDoc2;
+                int guardia = 0;
+                while (d != null && guardia++ < 200)
+                {
+                    string suo = "";
+                    try { suo = d.GetPathName() ?? ""; } catch { }
+                    if (StessoFile(suo, percorso)) return d;
+                    d = d.GetNext() as IModelDoc2;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>Come questo documento chiama le sue viste con nome.</summary>
+        private List<string> NomiDelleVisteDelModello(string percorso)
+        {
+            var fuori = new List<string>();
+            try
+            {
+                var d = DocumentoPerPercorso(percorso);
+                if (d == null) return fuori;
+                var nomi = d.GetModelViewNames() as string[];
+                if (nomi == null) return fuori;
+                foreach (var n in nomi)
+                    if (!string.IsNullOrWhiteSpace(n)) fuori.Add(n);
+            }
+            catch { }
+            return fuori;
+        }
+
+        /// <summary>I documenti aperti adesso, con percorso e tipo.</summary>
+        private List<Dictionary<string, object>> DocumentiAperti()
+        {
+            var fuori = new List<Dictionary<string, object>>();
+            try
+            {
+                var d = _sw.GetFirstDocument() as IModelDoc2;
+                while (d != null)
+                {
+                    string percorso = "", titolo = "";
+                    int tipo = 0;
+                    try { percorso = d.GetPathName() ?? ""; } catch { }
+                    try { titolo = d.GetTitle() ?? ""; } catch { }
+                    try { tipo = d.GetType(); } catch { }
+                    fuori.Add(new Dictionary<string, object>
+                    {
+                        ["percorso"] = percorso,
+                        ["titolo"] = titolo,
+                        ["tipo"] = NomeTipoDocumento(tipo),
+                    });
+                    d = d.GetNext() as IModelDoc2;
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        internal static string NomeTipoDocumento(int tipo)
+        {
+            switch (tipo)
+            {
+                case (int)swDocumentTypes_e.swDocPART: return "parte";
+                case (int)swDocumentTypes_e.swDocASSEMBLY: return "assieme";
+                case (int)swDocumentTypes_e.swDocDRAWING: return "tavola";
+                default: return "altro";
+            }
+        }
+
+        /// <summary>
+        /// Due percorsi sono lo stesso file?
+        ///
+        /// SEMBRA UNA DOMANDA BANALE E NON LO E'. Misurato alla prima prova
+        /// dentro SolidWorks, l'11 settembre 2026: il piano diceva
+        /// `C:/Users/.../pezzo.SLDPRT` e SolidWorks rispondeva
+        /// `C:\Users\...\pezzo.SLDPRT`. Stesso file, due scritture, e un
+        /// confronto fra stringhe che diceva di no. Il risultato era il
+        /// peggiore possibile per un utente: «il pezzo non risulta aperto»
+        /// mentre il pezzo era li', aperto, davanti a tutti.
+        ///
+        /// Non si usa `Path.GetFullPath` perche' normalizza anche i
+        /// percorsi relativi e puo' sollevare su una stringa storta: qui
+        /// serve solo mettere d'accordo le barre e le maiuscole.
+        /// </summary>
+        private static bool StessoFile(string a, string b)
+        {
+            if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) return false;
+            return string.Equals(
+                a.Trim().Replace('/', '\\'),
+                b.Trim().Replace('/', '\\'),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Il percorso di questo documento COME LO SCRIVE SOLIDWORKS,
+        /// oppure null se non e' aperto.
+        ///
+        /// Non basta sapere che il file e' aperto: il percorso va poi
+        /// passato a `Create1stAngleViews2` e a
+        /// `CreateDrawViewFromModelView3`, e li' una barra in avanti al
+        /// posto di una all'indietro fa tornare `false` senza spiegazioni
+        /// e senza creare niente.
+        /// </summary>
+        private string PercorsoCanonico(string percorso)
+        {
+            if (string.IsNullOrWhiteSpace(percorso)) return null;
+            foreach (var d in DocumentiAperti())
+            {
+                object p;
+                if (!d.TryGetValue("percorso", out p)) continue;
+                var suo = Convert.ToString(p);
+                if (StessoFile(suo, percorso)) return suo;
+            }
+            return null;
+        }
+
+        private bool DocumentoAperto(string percorso)
+        {
+            return PercorsoCanonico(percorso) != null;
+        }
+
+        /// <summary>Il primo pezzo o assieme aperto: quello che va in tavola.</summary>
+        private string PrimoModelloAperto()
+        {
+            foreach (var d in DocumentiAperti())
+            {
+                var tipo = Convert.ToString(d["tipo"]);
+                if (tipo != "parte" && tipo != "assieme") continue;
+                var p = Convert.ToString(d["percorso"]);
+                if (!string.IsNullOrWhiteSpace(p)) return p;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Quante pagine ha davvero il PDF appena scritto.
+        ///
+        /// Si legge il file e si contano gli oggetti «/Type /Page» che non
+        /// sono «/Type /Pages» (il nodo dell'albero). E' grezzo — un PDF con
+        /// flussi compressi puo' nascondere gli oggetti — e per questo un
+        /// risultato zero NON viene trattato come errore: vuol dire «non
+        /// sono riuscito a contare», non «zero pagine». Meglio una misura che
+        /// a volte tace di una che a volte mente.
+        /// </summary>
+        private static int ContaPaginePdf(string percorso)
+        {
+            try
+            {
+                var testo = File.ReadAllText(percorso, System.Text.Encoding.ASCII);
+                int n = 0, i = 0;
+                while (true)
+                {
+                    i = testo.IndexOf("/Type", i, StringComparison.Ordinal);
+                    if (i < 0) break;
+                    int j = i + 5;
+                    while (j < testo.Length && (testo[j] == ' ' || testo[j] == '\r' ||
+                                                testo[j] == '\n' || testo[j] == '\t')) j++;
+                    if (j + 5 <= testo.Length && testo.Substring(j, 5) == "/Page")
+                    {
+                        char dopo = j + 5 < testo.Length ? testo[j + 5] : ' ';
+                        if (dopo != 's') n++;   // «/Pages» e' il nodo, non una pagina
+                    }
+                    i = j;
+                }
+                return n;
+            }
+            catch { return 0; }
+        }
+    }
+}

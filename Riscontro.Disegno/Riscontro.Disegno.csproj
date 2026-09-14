@@ -63,7 +63,11 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <!-- Serve SOLO a MaterialiSolidWorks.cs, che legge l'elenco materiali. -->
+    <!-- Servono SOLO a MaterialiSolidWorks.cs, che legge l'elenco materiali.
+         System.Xml non era nell'elenco previsto e serve lo stesso: XDocument
+         sta in System.Xml.Linq ma la sua Load() ha XmlReader nella firma, che
+         sta in System.Xml. Senza, CS0012 su MaterialiSolidWorks.cs:82. -->
+    <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
 
