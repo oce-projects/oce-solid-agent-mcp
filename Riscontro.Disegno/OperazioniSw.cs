@@ -183,7 +183,7 @@ namespace Riscontro.Disegno
             "applica_materiale", "asola", "cordone_saldatura", "crea_asse",
             "crea_disegno", "crea_piano", "distinta_taglio", "esporta_pdf",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
-            "estrudi_sezione",
+            "estrudi_sezione", "ruota_dentata",
             "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
             "imposta_foglio", "membro_strutturale", "modifica_quota",
             "quote_dal_modello", "raccordo_spigoli", "ripeti_circolare",
@@ -221,6 +221,7 @@ namespace Riscontro.Disegno
                     case "estrudi_rettangolo": return EstrudiRettangolo(modello, argomenti);
                     case "estrudi_cerchio": return EstrudiCerchio(modello, argomenti);
                     case "estrudi_sezione": return EstrudiSezione(modello, argomenti);
+                    case "ruota_dentata": return RuotaDentataOp(modello, argomenti);
                     // La sagoma libera e le RICETTE finiscono nello stesso
                     // esecutore: una ruota dentata non e' un'altra operazione,
                     // e' un modo di scrivere dei contorni. Il server la espande
@@ -496,6 +497,75 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// <summary>
+        /// Una RUOTA DENTATA cilindrica a denti dritti.
+        ///
+        /// Come la sezione, non e' un'altra estrusione: e' un modo di
+        /// scrivere dei contorni, e finisce nello stesso esecutore.
+        ///
+        /// La geometria sta in <see cref="RuotaDentata"/>, che e' il file
+        /// piu' delicato della libreria: una traslitterazione sbagliata
+        /// dell'evolvente non da' nessun errore, da' una ruota che ingrana
+        /// male.
+        /// </summary>
+        private Esito RuotaDentataOp(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            double dentiGrezzo, modulo, spessore;
+            string perche;
+            if (!NumObbligatorio(a, "denti", out dentiGrezzo, out perche))
+                return Fallito("Per una ruota dentata serve «denti»: " + perche);
+            if (!NumObbligatorio(a, "modulo_mm", out modulo, out perche))
+                return Fallito("Per una ruota dentata serve «modulo_mm»: " + perche);
+            if (!NumObbligatorio(a, "spessore_mm", out spessore, out perche))
+                return Fallito("Per una ruota dentata serve «spessore_mm»: " + perche);
+
+            int denti = (int)Math.Round(dentiGrezzo);
+            if (Math.Abs(dentiGrezzo - denti) > 1e-9)
+                return Fallito(
+                    "I denti sono " + dentiGrezzo + ": un numero di denti e' " +
+                    "intero, e mezzo dente non si taglia.");
+            if (denti < 3)
+                return Fallito("Una ruota da " + denti + " denti non e' una ruota.");
+            if (modulo <= 0 || spessore <= 0)
+                return Fallito("Modulo e spessore devono essere maggiori di zero.");
+
+            string motivo;
+            var contorni = RuotaDentata.Contorni(
+                denti, modulo,
+                Num(a, "angolo_pressione_gradi", 20.0),
+                Num(a, "foro_mm", 0),
+                Bool(a, "cava_linguetta", false),
+                8,
+                out motivo);
+            if (contorni == null) return Fallito(motivo);
+
+            var suoi = new Dictionary<string, object>
+            {
+                ["contorni"] = contorni.ToArray(),
+                ["spessore_mm"] = spessore,
+            };
+            if (a.ContainsKey("piano")) suoi["piano"] = a["piano"];
+
+            var esito = EstrudiProfilo(modello, suoi);
+
+            // I NUMERI DELLA RUOTA, ACCANTO A QUELLI DELL'ESTRUSIONE.
+            // Chi ha chiesto z=20 m=2 vuole poter controllare che il
+            // diametro esterno sia 44: e' il modo piu' rapido di accorgersi
+            // che qualcosa nella matematica non torna, e non si legge dal
+            // volume.
+            if (esito != null && esito.Riuscito && esito.Misure != null)
+            {
+                esito.Misure["denti"] = denti;
+                esito.Misure["modulo_mm"] = modulo;
+                esito.Misure["diametro_primitivo_mm"] = Math.Round(modulo * denti, 4);
+                esito.Misure["diametro_esterno_mm"] = Math.Round(modulo * (denti + 2), 4);
+                esito.Misure["diametro_fondo_mm"] =
+                    Math.Round(modulo * denti - 2.5 * modulo, 4);
+                esito.Misure["passo_mm"] = Math.Round(Math.PI * modulo, 4);
+            }
+            return esito;
+        }
+
         /// <summary>
         /// Estrude una SEZIONE NORMALIZZATA: due o tre quote invece di otto
         /// coordinate.

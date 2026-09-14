@@ -16,6 +16,121 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.13.0 — 14 settembre 2026 · libreria 0.53.0
+
+**`ruota_dentata` si puo' eseguire.** Era l'ultima delle due operazioni che il
+catalogo dichiarava senza saperle fare. Le operazioni dichiarate e non
+eseguibili passano da **una a zero**, e `Controlli\controlla-catalogo.ps1` esce
+finalmente **0**.
+
+La geometria sta in `Riscontro.Disegno\RuotaDentata.cs`: evolvente vera, fianchi
+a spline sui punti calcolati dalla formula, foro e cava per linguetta.
+
+### Due difetti che non davano errore, trovati senza aprire SOLIDWORKS
+
+`Controlli\ProvaRuota` confronta i punti che escono dal generatore con le
+formule ISO. Esce 0/1, non apre il CAD, e ha trovato questo:
+
+**(1) Da 42 denti in su il fianco partiva sotto il fondo del dente.** Il cerchio
+di base sta sotto il fondo quando `cos α < 1 − 2,5/z`, cioe' da z=42 con l'angolo
+standard di 20 gradi. Su z=127 m=1 il fianco scendeva **2,58 mm sotto il
+diametro di fondo** e il contorno si tagliava da solo. Il fianco ora parte da
+`max(rb, rf)`.
+
+Nessuna prova lo prendeva: i casi al limite erano z=16, 17, 20, 24, e z=40 —
+che pure era stata provata — sta dalla parte giusta del salto **per 33 micron**.
+
+**(2) Il fondo era agganciato all'angolo sbagliato**, e il primo fix non bastava.
+ψ e' il semiangolo del dente **sul cerchio di base**; quando il fianco parte piu'
+in alto, al fondo il dente si e' gia' stretto di `scarto(tMin)`. Usando ψ per
+entrambi, su z=127 il fondo partiva a 0,027272 rad e finiva a 0,022208:
+**percorreva il giro all'indietro**. SOLIDWORKS diceva soltanto «L'estrusione non
+e' stata creata».
+
+Di contorno, la retta radiale del piede esiste ora solo quando c'e' da scendere
+davvero — su z=42 era lunga **0,9 micron** — e i segmenti per dente scendono da
+10 a 8 dove la base sta sotto il fondo: **1016 invece di 1270** su z=127.
+
+### Il controllo che ha preso il secondo, ed e' generale
+
+Srotolando l'angolo lungo il contorno, **un contorno chiuso non torna mai
+indietro**. Un passo negativo e' un'autointersezione, e si vede senza aprire
+niente.
+
+La soglia e' **calcolata, non scelta**: i punti escono arrotondati a 1e-4 mm, che
+sul raggio piu' piccolo valgono `1e-4/rf` radianti di rumore; la soglia e' tre
+volte tanto. Su z=20 fa 1,7e-5 contro 6e-6 misurati, su z=127 fa 4,8e-6 contro
+1,7e-3 del difetto. Fra rumore e difetto ci sono due ordini di grandezza.
+
+### Guardia nuova: i denti che si toccano alla base
+
+Il vano al fondo misura `(2π/z − 2·psiRadice)·rf`. Si annulla oltre
+`2,5·tan α = π/2`, cioe' per **α > 32,15 gradi**, e i denti si salderebbero fra
+loro. Il messaggio da' il criterio e il numero:
+
+> Con z=60, m=1 e un angolo di pressione di 35 gradi fra un dente e l'altro
+> resterebbero -0.0955 mm di fondo: i denti si toccherebbero alla base.
+
+### `GetBodyBox` non misura il diametro esterno di una ruota
+
+Con z=20 l'ingombro e' `[44, 10, 44]`, esatto. Con z=17 e' `[37,79, 10, 37,94]`
+invece di `[38, 10, 38]`.
+
+Non e' approssimazione: la freccia della corda di cresta vale **0,0012 mm**. La
+scatola coincide col diametro esterno **solo quando un dente cade sull'asse** —
+con 20 denti il passo e' 18 gradi e ci cade, con 17 e' 21,18 gradi e no. Il
+criterio scritto nel TODO funziona perche' fissa z=20.
+
+### I casi al limite
+
+| caso | esito | numeri |
+|---|---|---|
+| z=20 m=2 | ok | Ø esterno 44, volume 12.263,3 |
+| z=17 m=2 | ok | limite di intaglio, `floor(2/sin²20°) = 17` |
+| z=16 m=2 | rifiutata | «sotto 17 denti serve la correzione di profilo» |
+| z=24 m=3 foro Ø20 | ok | ingombro `[78, 12, 78]` |
+| z=24 m=3 foro Ø20 + cava | ok | volume 43.964,1 |
+| z=20 m=2 foro Ø34 | rifiutata | «fondo dente a 35 mm: non lascia materiale» |
+| z=20,5 | rifiutata | «mezzo dente non si taglia» |
+| z=42 m=2 | ok | Ø esterno 88 — primo caso oltre il salto |
+| z=127 m=1 | ok | Ø esterno 129, 1016 segmenti |
+| z=5 m=4 α=45° | rifiutata | «si chiuderebbe a punta» |
+| z=60 m=1 α=35° | rifiutata | «si toccherebbero alla base» |
+
+Il limite di intaglio e' arrotondato **per difetto**: `2/sin²20° = 17,097`, e una
+ruota da 17 denti si fa tutti i giorni. Rifiutarla sarebbe il modo peggiore di
+sbagliare.
+
+Il caso z=5 m=4 a 20 gradi **non provava quello che sembrava**: veniva rifiutato
+dall'intaglio, non dalla punta. Spostato a α=45°, dove il limite di intaglio
+scende a 4 denti. Nella prova il motivo atteso e' ora scritto accanto al caso.
+
+### La cava per linguetta, verificata per differenza di volume
+
+43.964,1 mm³ con la cava contro 44.177,2 senza, su 12 mm: **17,76 mm²** di
+sezione in piu'. Il conto per Ø20 (b=6, t2=2,8) da' 17,72 mm² — scarto 0,2%, nel
+verso giusto perche' il foro e' un poligono a 180 lati **circoscritto**.
+
+Questo verifica che la geometria rispetti la tabella `CaveLinguetta`, **non che
+la tabella sia giusta**: resta da confrontare con la UNI 6604 vera.
+
+### Due attrezzi nuovi, per il banco
+
+| attrezzo | a cosa serve |
+|---|---|
+| `Controlli\ChiudiScarti` | chiude i documenti di prova. Solo quelli **mai salvati** o dentro le cartelle passate come argomento, e non salva mai |
+| `Controlli\NuovaParte` | apre una parte vuota per far ripartire il banco |
+
+Servono perche' ogni piano di prova lascia aperta una parte, e **ogni lettura di
+stato le scorre tutte** a 244 ms di `GetNext()` ciascuna: 47 documenti chiusi in
+una volta sola. Peggio ancora con un pezzo pesante: con la ruota da 1018 facce
+lasciata aperta, due ruote banali dopo di lei hanno sforato i dieci minuti.
+
+`NuovaParte` e' compilato e non uno script perche' `ISldWorks.NewDocument` per
+late binding da PowerShell 5.1 risponde `TYPE_E_ELEMENTNOTFOUND`.
+
+---
+
 ## 0.12.0 — 14 settembre 2026 · libreria 0.52.0
 
 **`estrudi_sezione` si puo' finalmente eseguire.** Era dichiarata nel catalogo e

@@ -101,6 +101,7 @@
     <Compile Include="StatoDocumento.cs" />
     <Compile Include="StatoTavola.cs" />
     <Compile Include="Riferimenti.cs" />
+    <Compile Include="RuotaDentata.cs" />
     <Compile Include="Sezioni.cs" />
     <Compile Include="Unita.cs" />
     <Compile Include="MaterialiSolidWorks.cs" />
