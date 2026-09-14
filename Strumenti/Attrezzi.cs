@@ -165,12 +165,84 @@ namespace SolidWorksMcp.Strumenti
         /// </summary>
         private Dictionary<string, object> _guardato;
 
+        /// <summary>
+        /// Com'erano fatte le entita' quando «guarda_il_pezzo» le ha
+        /// descritte: uid -> punto, normale, area, lunghezza.
+        ///
+        /// GLI UID SONO POSIZIONALI. L'add-in li riassegna a ogni lettura
+        /// ordinando le facce per area, quindi basta un passo che cambia
+        /// il pezzo perche' «F1» indichi un'altra faccia. Un piano pero'
+        /// nasce da UNA lettura: i suoi uid parlano di quel momento li'.
+        ///
+        /// MISURATO il 14 settembre 2026, tre passi in una sola chiamata a
+        /// «disegna» su un blocco 200x100x20:
+        ///   1. estrudi il blocco          -> F1 = faccia di sopra, 20.000 mm2
+        ///   2. tasca Ø60 profonda 5 su F1 -> la faccia di sopra scende a
+        ///      17.172,57 mm2 e passa DIETRO a quella di sotto nell'ordine
+        ///   3. tasca Ø10 profonda 5 su F1 -> «F1» adesso e' quella di SOTTO
+        /// Tutti e tre i passi hanno risposto «riuscita: true». La tasca
+        /// piccola e' finita sulla faccia sbagliata, le profondita' erano
+        /// quelle chieste, e il volume tornava: 385.470,1 mm3, esatto. Non
+        /// c'era niente, in quella risposta, che facesse sospettare.
+        ///
+        /// L'add-in sa gia' difendersi: legge «_firme» dagli argomenti e
+        /// confronta. Ma quella chiave la scriveva solo il server di
+        /// OpenPDM, e qui non la scriveva nessuno — quindi il confronto
+        /// non aveva termini e passava sempre. Questo campo e' il termine
+        /// che mancava.
+        /// </summary>
+        private Dictionary<string, object> _firmeViste;
+
         private Dictionary<string, object> GuardaIlPezzo()
         {
             var stato = _sessione.Stato(out var errore);
             if (stato == null) return Protocollo.Contenuto(errore, true);
             _guardato = IdentitaDelloStato(stato);
+            _firmeViste = FirmeDelloStato(stato);
             return Protocollo.Contenuto(Protocollo.InJson(stato));
+        }
+
+        /// <summary>
+        /// Cosa basta per riconoscere la stessa entita' fra due letture.
+        ///
+        /// Gli stessi quattro campi che usa il server di OpenPDM, cosi' le
+        /// due strade dicono la stessa cosa all'add-in. Chi confronta
+        /// davvero e' lui, e guarda punto e normale: l'area di una faccia
+        /// cambia in modo legittimo — ci si fa un foro — mentre
+        /// l'orientamento no.
+        /// </summary>
+        private static Dictionary<string, object> FirmeDelloStato(
+            Dictionary<string, object> stato)
+        {
+            if (stato == null) return null;
+            var fuori = new Dictionary<string, object>();
+            // I CORPI SONO ENTITA' COME LE ALTRE: per un saldato sono LE
+            // entita', e «tappa le estremita' di C1» nomina corpi.
+            foreach (var famiglia in new[] { "facce", "spigoli", "feature", "assi", "corpi" })
+            {
+                // SI SCORRE COME IEnumerable, NON SI CASTA A object[].
+                // Lo stato arriva dall'add-in con i suoi tipi veri, e la' le
+                // famiglie sono List<Dictionary<string, object>>: un
+                // «as object[]» torna null in silenzio, e il 14 settembre 2026
+                // questo controllo e' rimasto spento per quello. Passando da
+                // IEnumerable va bene tutte e due le forme, anche quella che
+                // arriva da un JSON.
+                var voci = (stato.TryGetValue(famiglia, out var g) ? g : null)
+                           as System.Collections.IEnumerable;
+                if (voci == null) continue;
+                foreach (var v in voci)
+                {
+                    var voce = v as Dictionary<string, object>;
+                    if (voce == null || !voce.TryGetValue("uid", out var uid) || uid == null)
+                        continue;
+                    var firma = new Dictionary<string, object>();
+                    foreach (var campo in new[] { "punto_mm", "normale", "area_mm2", "lunghezza_mm" })
+                        if (voce.TryGetValue(campo, out var x) && x != null)
+                            firma[campo] = x;
+                    if (firma.Count > 0) fuori[Convert.ToString(uid)] = firma;
+                }
+            }
+            return fuori.Count > 0 ? fuori : null;
         }
 
         /// <summary>Titolo e percorso presi dallo stato, senza ripassare dal COM.</summary>
@@ -310,6 +382,16 @@ namespace SolidWorksMcp.Strumenti
                         "quello che c'e' adesso, ripeti passando «documento»: \"" +
                         NomeLeggibile(adesso) + "\".", true);
             }
+            // LE FIRME VALGONO SOLO SUL DOCUMENTO CHE LE HA PRODOTTE.
+            // Se il piano nomina un altro documento, gli uid del piano non
+            // parlano di questo e allegare le firme vecchie produrrebbe
+            // rifiuti che non c'entrano niente. Meglio nessun confronto che
+            // un confronto fra due pezzi diversi.
+            var firme =
+                _guardato != null && Ponte.Sessione.StessoDocumento(_guardato, adesso)
+                    ? _firmeViste
+                    : null;
+
             _guardato = adesso;
 
             var esiti = new List<object>();
@@ -362,6 +444,13 @@ namespace SolidWorksMcp.Strumenti
                     break;
                 }
 
+                // LE FIRME DI QUANDO IL PIANO E' NATO, ALLEGATE AL PASSO.
+                // Non si sovrascrive quello che il chiamante ha gia' messo:
+                // un piano che porta le sue firme sa meglio di noi di cosa
+                // sta parlando.
+                if (firme != null && !suoi.ContainsKey("_firme"))
+                    suoi["_firme"] = firme;
+
                 var misure = _sessione.Esegui(nome, suoi, out var errore);
                 bool ok = misure != null;
                 esiti.Add(new Dictionary<string, object>
@@ -375,6 +464,18 @@ namespace SolidWorksMcp.Strumenti
             }
 
             var dopo = _sessione.Stato(out var erroreStato);
+
+            // «stato_dopo» E' LA LETTURA SUCCESSIVA, E VA FIRMATA COME TALE.
+            //
+            // Questa risposta porta con se' lo stato del documento dopo i
+            // passi, con gli identificativi nuovi: chi legge scrivera' il
+            // piano seguente su QUESTI, non su quelli di «guarda_il_pezzo».
+            // Se le firme restassero quelle di prima, il piano seguente —
+            // scritto giusto — verrebbe rifiutato perche' confrontato con una
+            // lettura che il suo autore non ha mai visto. Sarebbe un rifiuto
+            // di cio' che e' corretto, che e' il difetto peggiore dei due.
+            if (dopo != null) _firmeViste = FirmeDelloStato(dopo);
+
             var risultato = new Dictionary<string, object>
             {
                 // SI DICE SEMPRE SU COSA SI E' LAVORATO. Anche quando e' ovvio:

@@ -16,6 +16,97 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.5.0 — 14 settembre 2026
+
+**Il ponte non lavora piu' sulla faccia sbagliata in silenzio.**
+
+### Il difetto, misurato
+
+Blocco 200×100×20 gia' aperto. Il modello chiama `guarda_il_pezzo` — `F1` e' la
+faccia di sopra, 20.000 mm² — e manda un piano di due passi:
+
+1. tasca Ø60 profonda 5 **su F1**;
+2. tasca Ø10 profonda 5 **su F1**.
+
+Il primo passo porta la faccia di sopra a 17.172,57 mm². Gli identificativi
+sono **posizionali** — l'add-in li riassegna ordinando le facce per area — e
+quella di sopra passa cosi' dietro a quella di sotto, rimasta a 20.000. Al
+secondo passo `F1` e' la faccia **di sotto**.
+
+Misurato: la tasca piccola e' finita sul fondo del pezzo.
+
+| faccia | area | dice |
+|---|---|---|
+| F1 (sotto) | 19.921,46 = 20.000 − π·25 | il Ø10 e' **qui** |
+| F2 (sopra) | 17.172,57 | intatta dal Ø10 |
+| F9, parete | π·10·5, punto y = 0 | sale **dal basso** |
+| F10, fondo | punto y = **5** | 5 mm **dal basso** |
+
+Tutti e due i passi hanno risposto `riuscita: true`, le profondita' erano quelle
+chieste, e il volume tornava: **385.470,1 mm³, esatto**.
+
+Ed e' esattamente lo stesso volume del pezzo giusto. Le due lavorazioni tolgono
+lo stesso materiale: **nessun controllo sul volume avrebbe potuto distinguerle.**
+
+### La difesa c'era gia', e nessuno l'alimentava
+
+L'add-in sa riconoscere che «F1» non e' piu' la faccia di prima: legge la chiave
+`_firme` dagli argomenti del passo e confronta punto e normale. Ma quella chiave
+la scriveva **solo** il server Python di OpenPDM (`ai_disegno.py`). Nel ponte non
+compariva in nessun sorgente, quindi `FirmaCombacia` non aveva termini da
+confrontare e tornava `true` sempre.
+
+Adesso `guarda_il_pezzo` ricorda le firme di cio' che ha descritto — punto,
+normale, area, lunghezza, per facce, spigoli, feature, assi e **corpi** — e
+`disegna` le allega a ogni passo. Stessi quattro campi del server, cosi' le due
+strade dicono all'add-in la stessa cosa.
+
+Sullo stesso piano, adesso:
+
+> `«F1» adesso indica un'altra parte del pezzo (spostata di 20 mm). Il pezzo e'
+> cambiato da quando hai confermato: non lavoro sulla faccia sbagliata.`
+
+e la faccia di sotto resta a 20.000 mm²: il taglio sbagliato **non avviene**.
+
+### `stato_dopo` e' la lettura successiva, e va firmata come tale
+
+`disegna` restituisce lo stato del documento dopo i passi, con gli
+identificativi nuovi: chi legge scrive il piano seguente su **quelli**. Se le
+firme restassero quelle di `guarda_il_pezzo`, il piano seguente — scritto
+giusto — verrebbe rifiutato perche' confrontato con una lettura che il suo
+autore non ha mai visto. Quindi le firme si aggiornano da `stato_dopo`.
+
+Misurato: due `disegna` di fila nella stessa sessione, il secondo che cita `F2`
+preso da `stato_dopo`, passa e taglia la faccia giusta — F2 scende da 17.172,57
+a 17.094,03, la faccia di sotto resta a 20.000.
+
+### Le firme valgono solo sul documento che le ha prodotte
+
+Se il piano nomina un altro documento con `documento`, gli identificativi non
+parlano di questo: allegare le firme vecchie produrrebbe rifiuti che non
+c'entrano niente. Meglio nessun confronto che un confronto fra due pezzi
+diversi.
+
+### Un difetto mio, preso dalla misura
+
+La prima stesura leggeva le famiglie dello stato con `as object[]`. Lo stato
+arriva dall'add-in con i suoi tipi veri, e la' sono
+`List<Dictionary<string, object>>`: il cast tornava `null` in silenzio e il
+controllo restava **spento**. Se ne e' accorta la prova, non la lettura del
+codice — il piano guasto passava ancora. Ora si scorre come `IEnumerable`, che
+va bene per tutte e due le forme.
+
+### Provato sul banco, quattro misure
+
+| piano | atteso | ottenuto |
+|---|---|---|
+| `uid_stantio_2` — `F1` citata dopo che `F1` e' cambiata | **rifiuto** | rifiutato, «spostata di 20 mm», pezzo intatto |
+| `uid_buono` — `F3` che si e' solo risposizionata in `F4` | **passa** | passa, Ø6 sulla faccia frontale (4.000 → 3.971,73) |
+| `seq_a` + `seq_b` — due `disegna`, il secondo su `stato_dopo` | **passa** | passa, Ø10 sulla faccia di sopra |
+| `cp_1`+`cp_2`+`cp_3b` — piano che crea il pezzo da zero | **passa** | passa, nessuna firma da confrontare |
+
+---
+
 ## 0.4.0 — 14 settembre 2026
 
 **Un file solo: si scarica, doppio clic, e Claude parla con SOLIDWORKS.**
