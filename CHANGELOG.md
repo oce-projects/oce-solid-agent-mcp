@@ -16,6 +16,66 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.11.0 — 14 settembre 2026 · libreria 0.51.0
+
+**Il telaio si chiede come lo documenta il catalogo, e «interasse» esiste.**
+
+### La divergenza
+
+Il catalogo dichiara `lunghezza_mm`, `larghezza_mm`, `piano`, `misure`,
+`centrato` **al primo livello** — sono nel suo `required`, e la descrizione
+promette che il telaio «si chiede con due quote invece che con otto
+coordinate». Il C# invece cercava un oggetto annidato `telaio`, che e' la forma
+che il server costruisce dentro `valida()` prima di mandare.
+
+Quindi un modello che legge il catalogo e scrive quello che c'e' scritto **non
+veniva servito** — e dal server non si vedeva, perche' il server riscrive in
+mezzo. E' la stessa forma del difetto della 0.7.1, su un'operazione piu' grossa.
+
+Adesso si accettano tutte e due le forme. Se ci sono tutte e due vince quella
+annidata: chi la manda l'ha costruita apposta.
+
+### `misure: "interasse"` era documentato e non implementato
+
+Il catalogo lo elenca fra i valori ammessi da sempre. Il C# accendeva il blocco
+del telaio **solo** su `ingombro`, e per tutto il resto cadeva nel ripiego dei
+segmenti — che pero' questa operazione esiste apposta per non far scrivere. Chi
+chiedeva un telaio a interasse si prendeva «non ho potuto ricavarne il
+percorso».
+
+Le due modalita', misurate sullo stesso telaio 1000×800 in tubolare 80×80×5, e
+i numeri si spiegano a vicenda:
+
+| `misure` | ingombro sul pezzo | |
+|---|---|---|
+| `ingombro` (predefinito) | **1000 × 800** | le quote chieste, misurate sul pezzo finito |
+| `interasse` | **1080 × 880** | il percorso e' 1000×800, piu' 40 mm per lato di profilo |
+
+### Il numero del 9 settembre, ricontrollato
+
+Il criterio della voce C4 era: telaio 1000×800 in 80×80×5, ingombro esterno
+**1000×800 entro 0,1 mm** — *«e' il difetto misurato il 9 settembre, quindi e'
+proprio il numero da ricontrollare»*. Misurato: `[1000, 800, 80]`, quattro
+barre, con la sporgenza rilevata a 80×80 e il percorso arretrato a 920×720.
+
+### Trovato leggendo, e vale la pena dirlo
+
+La voce chiedeva di portare in C# le 145 righe di `_segmenti_telaio` del server.
+**Il grosso c'era gia', ed e' migliore del Python**: il C# non calcola quattro
+angoli sul nominale, MISURA quanto sporge il profilo e arretra il percorso.
+Mancavano tre cose piccole — i segmenti non piu' obbligatori, la forma del
+catalogo, e `interasse` — non centoquarantacinque righe.
+
+### Un cambio di comportamento, e va detto
+
+Un piano che passava i `segmenti` gia' calcolati **insieme** alle due quote al
+primo livello prima dava 1080×880; adesso da' 1000×800. Le quote del catalogo
+**sono** l'ingombro esterno, quindi il nuovo numero e' quello giusto — ma e' un
+numero diverso da ieri, e chi avesse tarato qualcosa su quello se ne accorge
+qui. Per avere il vecchio comportamento si scrive `misure: "interasse"`.
+
+---
+
 ## 0.10.0 — 14 settembre 2026 · libreria 0.50.0
 
 **Il catalogo vive in C#, accanto al codice che esegue. `catalogo.json` e'

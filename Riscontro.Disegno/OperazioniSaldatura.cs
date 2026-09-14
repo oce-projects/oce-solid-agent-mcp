@@ -247,8 +247,21 @@ namespace Riscontro.Disegno
                 _log("[agente] non ho potuto verificare le misure del profilo: " + ex.Message);
             }
 
+            // I SEGMENTI SI POSSONO NON AVERE, SE C'E' UN TELAIO.
+            //
+            // Un telaio rettangolare e' descritto da due quote e un piano: i
+            // quattro segmenti sono una conseguenza, non un dato. Il server
+            // li calcola e li manda insieme, quindi da quella parte non si
+            // notava; dal ponte l'operazione rispondeva «Il piano non porta
+            // nessun segmento» senza nemmeno guardare il telaio — cioe'
+            // chiedeva di calcolare a mano cio' che sa fare da sola, e lo
+            // chiedeva con un messaggio che non lo diceva.
+            //
+            // Chi li porta lo stesso viene servito: sono il ripiego per chi
+            // vuole le quote d'asse invece dell'ingombro esterno.
+            var telaioChiesto = TelaioChiesto(a);
             var segmenti = SegmentiDa(a, out string motivo);
-            if (segmenti == null) return Fallito(motivo);
+            if (segmenti == null && telaioChiesto == null) return Fallito(motivo);
 
             double rotazione = Num(a, "rotazione_gradi", 0);
             double gioco = Num(a, "gioco_mm", 0);
@@ -280,9 +293,44 @@ namespace Riscontro.Disegno
             double[] ingombroPromesso = null;
             double[] sporgenze = null;
             int asseU = -1, asseV = -1;
-            var telaio = Mappa(a, "telaio");
+            var telaio = telaioChiesto;
+            string comeSiMisura = Str(telaio, "misure", "ingombro");
+
+            // ── IL TELAIO A INTERASSE ────────────────────────────────────
+            //
+            // Le due quote sono la LINEA D'ASSE del percorso, non l'ingombro
+            // finito: e' il caso di chi ragiona sugli interassi — fori,
+            // piastre, attacchi — e la sporgenza del profilo se la tiene.
+            // Il percorso e' allora il rettangolo nominale, senza
+            // arretramento.
+            //
+            // Il catalogo lo documenta da sempre fra i valori ammessi di
+            // «misure». Il C# no: cadeva nel ripiego dei segmenti, che pero'
+            // questa operazione esiste apposta per non far scrivere.
+            if (telaio != null && segmenti == null &&
+                !string.Equals(comeSiMisura, "ingombro", StringComparison.Ordinal))
+            {
+                string pianoAsse = Str(telaio, "piano", "frontale");
+                int aU, aV;
+                if (!AssiDelPiano(pianoAsse, out aU, out aV))
+                    return Fallito("Non conosco il piano «" + pianoAsse + "» per un telaio.");
+
+                double lungoAsse = Num(telaio, "lunghezza_mm", 0);
+                double largoAsse = Num(telaio, "larghezza_mm", 0);
+                if (lungoAsse <= 0 || largoAsse <= 0)
+                    return Fallito("Il telaio non ha due quote utilizzabili.");
+
+                segmenti = SegmentiTelaio(
+                    lungoAsse, largoAsse, aU, aV,
+                    Bool(telaio, "centrato", true), new[] { 0.0, 0.0 });
+                _log(string.Format(
+                    "[agente] telaio a interasse {0:0.#}x{1:0.#}: il percorso e' " +
+                    "quello, e l'ingombro finito sara' piu' grande di quanto " +
+                    "sporge il profilo.", lungoAsse, largoAsse));
+            }
+
             if (telaio != null &&
-                string.Equals(Str(telaio, "misure", "ingombro"), "ingombro", StringComparison.Ordinal))
+                string.Equals(comeSiMisura, "ingombro", StringComparison.Ordinal))
             {
                 string piano = Str(telaio, "piano", "frontale");
                 if (!AssiDelPiano(piano, out asseU, out asseV))
@@ -328,6 +376,17 @@ namespace Riscontro.Disegno
                     lungo, largo, sporgenze[0], sporgenze[1],
                     lungo - sporgenze[0], largo - sporgenze[1]));
             }
+
+            // SE ARRIVATI QUI I SEGMENTI ANCORA NON CI SONO, il telaio c'era
+            // ma non era utilizzabile — «misure» diverso da «ingombro», o un
+            // piano che non si riconosce. Si dice quello, non «manca il
+            // percorso»: chi ha scritto un telaio ha chiesto un telaio.
+            if (segmenti == null)
+                return Fallito(
+                    "Hai chiesto un telaio ma non ho potuto ricavarne il " +
+                    "percorso, e non mi hai dato dei segmenti su cui ripiegare. " +
+                    "Un telaio vuole «lunghezza_mm», «larghezza_mm» e «piano»; " +
+                    "se invece vuoi dare tu il percorso, passa «segmenti».");
 
             // ── lo schizzo 3D del percorso ──────────────────────────────
             modello.ClearSelection2(true);
@@ -1027,6 +1086,54 @@ namespace Riscontro.Disegno
         /// ZERO da Convert.ToDouble, e la barra finirebbe altrove senza che
         /// nessuno veda un errore.
         /// </summary>
+        /// <summary>
+        /// Il telaio, scritto in una delle due forme che esistono.
+        ///
+        /// IL CATALOGO NE DOCUMENTA UNA E IL SERVER NE MANDA UN'ALTRA, e
+        /// vanno servite tutte e due:
+        ///
+        ///   dal catalogo:  { lunghezza_mm, larghezza_mm, piano, centrato, misure }
+        ///   dal server:    { telaio: { lunghezza_mm, ... }, segmenti: [...] }
+        ///
+        /// La prima e' quella che il catalogo dichiara nel suo `required` e
+        /// che la descrizione promette («si chiede con due quote invece che
+        /// con otto coordinate»). La seconda la costruisce `valida()` nel
+        /// server, che reimpacchetta prima di mandare — ed e' per questo che
+        /// la divergenza non si vedeva da quella parte: un modello che legge
+        /// il catalogo e scrive quello che c'e' scritto arrivava qui e non
+        /// veniva servito.
+        ///
+        /// Se ci sono tutte e due vince quella annidata: chi la manda l'ha
+        /// costruita apposta, e di solito porta anche i segmenti gia' fatti.
+        /// </summary>
+        private static Dictionary<string, object> TelaioChiesto(Dictionary<string, object> a)
+        {
+            var annidato = Mappa(a, "telaio");
+            if (annidato != null) return annidato;
+            if (a == null) return null;
+
+            // Senza le due quote non c'e' nessun telaio da ricavare: sara'
+            // un membro strutturale con i suoi segmenti, che passa da qui
+            // perche' condivide il `case`.
+            if (!a.ContainsKey("lunghezza_mm") || !a.ContainsKey("larghezza_mm"))
+                return null;
+
+            var fuori = new Dictionary<string, object>
+            {
+                ["lunghezza_mm"] = a["lunghezza_mm"],
+                ["larghezza_mm"] = a["larghezza_mm"],
+                // I predefiniti sono quelli che il catalogo promette: il
+                // piano frontale, centrato, e le quote lette come ingombro
+                // esterno. Quest'ultimo e' il punto dell'operazione: chi
+                // chiede un telaio 1000x800 vuole misurare 1000x800 sul
+                // pezzo, non sulla linea d'asse.
+                ["piano"] = a.ContainsKey("piano") ? a["piano"] : "frontale",
+                ["centrato"] = a.ContainsKey("centrato") ? a["centrato"] : true,
+                ["misure"] = a.ContainsKey("misure") ? a["misure"] : "ingombro",
+            };
+            return fuori;
+        }
+
         private List<Segmento> SegmentiDa(Dictionary<string, object> a, out string motivo)
         {
             motivo = null;
