@@ -16,6 +16,97 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.30.0 — 14 settembre 2026 · libreria 0.65.0
+
+**Due voci, e tutte e due si sono rivelate diverse da come erano scritte.**
+
+### E8 — il meccanismo aveva misurato lo spostamento e buttato via la misura
+
+E8 erano **due voci in una**, con destini opposti.
+
+**La tolleranza proporzionale non si fa.** Gliel'aveva attribuita E5 chiudendosi
+(«l'ancora e' il numero che rende possibile una tolleranza proporzionale, che e'
+la voce E8»). Ma dopo E6 il ritrovamento funziona per persist ID, e l'ancora
+**non la legge nessuno**: `Attrezzi` la copia nelle firme, `StatoDocumento` la
+calcola pagando un `GetTessTriangles` per faccia a ogni `guarda_il_pezzo`, e poi
+`FirmaEntita` non ha nessun campo per tenerla, `FirmaDiUnaFaccia` non la calcola,
+e ne' `FirmaCombacia` ne' `Corrobora` ne' `FraseDelloSpostamento` leggono mai
+quella chiave. **Zero consumatori.** Otto ore per un problema gia' risolto.
+
+**Il testo vero di E8 era un'altra cosa, ed era rotta.** La voce chiede che,
+quando la geometria si sposta, si **mostri a chi ha confermato cosa e'
+cambiato**. La 0.26.0 ha costruito esattamente quella frase — «si e' spostata di
+60 mm, da [50, 0, 0] a [110, 0, 0]» — e poi l'ha consegnata a `_log`:
+
+```
+_log  ->  Ponte/Sessione.cs:418  ->  Mcp.Protocollo.Nota  ->  Console.Error
+```
+
+**In un server MCP su stdio stderr non e' la risposta.** Misurato: `e2_caso_a`
+esegue il foro su un pezzo **lungo il 60% in piu'** di quello confermato, sulla
+faccia giusta, e nella risposta JSON c'era `riuscita: true` e nient'altro.
+
+> Il meccanismo scritto apposta per non avere difetti silenziosi ne aveva uno
+> addosso: aveva misurato lo spostamento e buttato via la misura.
+
+Il canale giusto esisteva gia' ed era vuoto: `Esito.Misure` arriva dritto nel
+JSON, come fa `nota_volume`. Adesso i riancoraggi si drenano in `Riuscito`, che
+e' **l'unico punto da cui passa ogni successo di tutte e trentasei le
+operazioni**, compresi i quattro file `partial`: nessuna operazione puo'
+dimenticarsene.
+
+Tre strade coperte, non una: il persist ID, la nota di `Corrobora` sulla faccia
+cresciuta, e la ricerca per firma — che prima diceva «si era spostata: ritrovata
+dalla firma» **senza un numero**, e adesso usa la stessa frase del persist ID.
+Due strade diverse per ritrovare, una sola per dirlo.
+
+### E15 — `guscio` accetta i riferimenti, e il ramo chiuso non ha mai funzionato
+
+**`facce_rif`.** «Fai un blocco e poi svuotalo» adesso e' un piano solo — la
+sequenza del contenitore per l'antenna. Fino a ieri `guscio` era l'unica
+operazione su faccia che non accettava un riferimento a un passo: voleva
+`facce_uid`, che nascono solo da una lettura. Misurato: volume **82.500**, lo
+stesso numero che il banco misura da sempre per «guscio 5 mm verso l'interno».
+
+Un elenco di riferimenti **singoli**, non un genere plurale: `Riferimenti`
+risolve una faccia per volta e rifiuta quando il ruolo non e' univoco, e quella
+regola e' giusta. E se uno solo non si risolve **fallisce tutto**: un guscio
+aperto su due facce invece che su tre non e' «quasi giusto», e' un pezzo diverso
+che sarebbe riuscito in silenzio.
+
+**`tutto_chiuso` non aveva mai funzionato.**
+
+```csharp
+var corpoEntita = corpi[0] as IEntity;   // sempre null
+```
+
+Un corpo **non e'** una `IEntity` nell'interop: quel ramo rispondeva «Non sono
+riuscito a selezionare il corpo solido» su qualunque pezzo. Adesso da' 105.000
+mm³ su un blocco da 240.000 con parete 5.
+
+E la lezione era **gia' scritta in questo stesso file**, quattromila righe piu'
+su, nel commento di `sposta_corpi`: misurata dentro SOLIDWORKS il 10 settembre,
+con cinque prove che dicevano «i corpi indicati non si sono lasciati
+selezionare», e li' gia' riparata con `IBody2.Select2`.
+
+> Una lezione scritta e non applicata e' una lezione che il codice non ha
+> imparato: il commento la ricorda a chi legge QUELLE righe, e chi scrive
+> altrove non passa di li'.
+
+### E due riparazioni minori, trovate strada facendo
+
+`facce_tolte` diceva **0** su un guscio che una faccia l'aveva tolta davvero,
+perche' contava solo gli uid. Una misura che dice zero quando il numero e' uno e'
+il difetto di questo progetto in miniatura.
+
+`build.ps1` si fermava a meta' dicendo che era andato male mentre era andato
+bene: PowerShell 5.1 avvolge ogni riga di stderr di un comando nativo in un
+`NativeCommandError` e ferma lo script anche con l'eseguibile uscito 0. Adesso la
+preferenza si abbassa solo intorno alla chiamata nativa, e si guarda
+`$LASTEXITCODE`, che e' l'unica cosa che dice davvero com'e' andata.
+
+---
+
 ## 0.29.0 — 14 settembre 2026 · libreria 0.64.0
 
 **Un taglio riuscito a meta' adesso lo dice.** Voce E13.

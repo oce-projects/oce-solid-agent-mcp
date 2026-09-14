@@ -671,6 +671,30 @@ namespace Riscontro.Disegno.Catalogo
                                 "items", O(
                                     "type", "string"),
                                 "description", "le facce da TOGLIERE (restano aperte), prese dallo stato del documento"),
+                            "facce_rif", O(
+                                "type", "array",
+                                "description", "le facce da TOGLIERE, quando le crea un passo PRECEDENTE di questo "
+                                    + "stesso piano e quindi non hanno ancora un identificativo. Metti "
+                                    + "questo OPPURE «facce_uid», non tutti e due.\n\nUn elemento per "
+                                    + "ogni faccia da aprire: «fai un blocco e poi svuotalo dall'alto» "
+                                    + "e' un piano solo.\n\nGeneri ammessi:\n- faccia_superiore: la "
+                                    + "faccia in cima all'estrusione, quella opposta al piano di "
+                                    + "schizzo\n- faccia_inferiore: la faccia sul piano di schizzo\n"
+                                    + "- faccia_di_fondo: il fondo di una tasca cieca\n"
+                                    + "- faccia_del_foro: la parete cilindrica di un foro",
+                                "items", O(
+                                    "type", "object",
+                                    "properties", O(
+                                        "passo", O(
+                                            "type", "integer",
+                                            "description", "il numero d'ordine del passo che crea la geometria, "
+                                                + "contando da 1. Deve essere un passo PRECEDENTE a questo."),
+                                        "genere", O(
+                                            "type", "string",
+                                            "enum", A(
+                                                "faccia_superiore", "faccia_inferiore",
+                                                "faccia_di_fondo", "faccia_del_foro"))),
+                                    "required", A("passo", "genere"))),
                             "spessore_mm", O(
                                 "type", "number",
                                 "description", "spessore della parete che resta"),

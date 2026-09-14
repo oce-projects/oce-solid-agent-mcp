@@ -261,6 +261,10 @@ namespace Riscontro.Disegno
             IReadOnlyDictionary<int, Riferimenti.Passo> passiFatti = null)
         {
             _passiFatti = passiFatti ?? new Dictionary<int, Riferimenti.Passo>();
+            // Si svuota all'INIZIO: svuotarlo alla fine lo lascerebbe pieno
+            // quando l'operazione fallisce, e la successiva erediterebbe gli
+            // spostamenti di quella prima.
+            _riancoraggi.Clear();
             // La fotografia dell'albero PRIMA di toccare qualsiasi cosa. La
             // legge solo SenzaLoSchizzo, e solo per non cancellare roba che
             // c'era gia'. Sta qui e non dentro le singole operazioni perche'
@@ -4115,15 +4119,61 @@ namespace Riscontro.Disegno
             bool tuttoChiuso = Bool(a, "tutto_chiuso", false);
             var uid = Lista(a, "facce_uid");
 
-            if (uid.Count == 0 && !tuttoChiuso)
+            // LE FACCE POSSONO VENIRE DA UN PASSO PRECEDENTE (voce E15).
+            //
+            // Fino alla 0.30.0 `guscio` era l'UNICA operazione su faccia che
+            // non accettava un riferimento a un passo: voleva `facce_uid`, che
+            // nascono solo da una lettura. Quindi «fai un blocco e poi svuotalo»
+            // non si poteva scrivere in un piano solo, mentre «fai un blocco e
+            // poi foralo» si' — ed e' proprio la sequenza del contenitore per
+            // l'antenna: blocco, guscio, alette.
+            //
+            // UN ELENCO DI RIFERIMENTI SINGOLI, non un genere plurale. Il
+            // vocabolario di `Riferimenti` risolve una faccia per volta, e
+            // nessuna operazione del catalogo usa oggi un genere che ne dia
+            // piu' d'una: inventarne uno qui vorrebbe dire aprire superficie
+            // nuova per un problema che si risolve ripetendo l'elemento.
+            List<IFace2> daiPassi = null;
+            if (uid.Count == 0 && HaElenco(a, "facce_rif"))
+            {
+                if (!FacceDaiRiferimenti(a, "facce_rif", out daiPassi, out string perche))
+                    return Fallito(perche);
+            }
+            else if (uid.Count > 0 && HaElenco(a, "facce_rif"))
+            {
                 return Fallito(
-                    "Nessuna faccia indicata per il guscio. Se serve davvero un " +
-                    "corpo cavo completamente chiuso, senza nessuna apertura, " +
-                    "metti «tutto_chiuso: true» — di solito pero' e' una faccia " +
-                    "dimenticata nella richiesta.");
+                    "Il guscio ha sia «facce_uid» sia «facce_rif»: uno nomina facce " +
+                    "che ci sono gia', l'altro facce che le crea un passo di questo " +
+                    "piano. Scegline uno.");
+            }
+
+            if (uid.Count == 0 && daiPassi == null && !tuttoChiuso)
+                return Fallito(
+                    "Nessuna faccia indicata per il guscio. Se la faccia la crea un " +
+                    "passo precedente di questo piano, usa «facce_rif»: " +
+                    "[{\"passo\": 1, \"genere\": \"faccia_superiore\"}]. Se serve davvero " +
+                    "un corpo cavo completamente chiuso, senza nessuna apertura, metti " +
+                    "«tutto_chiuso: true» — di solito pero' e' una faccia dimenticata " +
+                    "nella richiesta.");
 
             modello.ClearSelection2(true);
-            if (uid.Count == 0)
+
+            if (daiPassi != null)
+            {
+                // Le facce arrivano FRESCHE dal passo appena eseguito, non da
+                // una lettura precedente: non c'e' nessuna firma da
+                // confrontare, ed e' lo stesso motivo per cui il ramo
+                // `faccia_rif` di `RisolviFaccia` salta quel controllo.
+                int presi = 0;
+                foreach (var f in daiPassi)
+                    if ((f as IEntity)?.Select4(true, null) == true) presi++;
+                if (presi == 0)
+                    return Fallito(
+                        "Le facce indicate da «facce_rif» non si sono lasciate " +
+                        "selezionare." + RestaNelPezzo);
+                _log("[agente] " + presi + " facce prese dai passi precedenti");
+            }
+            else if (uid.Count == 0)
             {
                 // Guscio chiuso: si seleziona il corpo. Con piu' corpi non si
                 // sceglie: si chiede. Un guscio applicato al corpo sbagliato
@@ -4137,8 +4187,33 @@ namespace Riscontro.Disegno
                         "In questo documento ci sono " + corpi.Length + " corpi " +
                         "solidi: un guscio chiuso senza facce indicate lavorerebbe " +
                         "su uno scelto a caso. Indica le facce da togliere.");
-                var corpoEntita = corpi[0] as IEntity;
-                if (corpoEntita == null || !corpoEntita.Select4(false, null))
+                // UN CORPO NON E' UNA IEntity, e questo ramo non l'ha mai
+                // saputo. `corpi[0] as IEntity` torna **sempre** null
+                // nell'interop, quindi «tutto_chiuso: true» rispondeva «Non
+                // sono riuscito a selezionare il corpo solido» su QUALUNQUE
+                // pezzo — non era un caso limite, era rotto sempre.
+                //
+                // La cosa che fa male: la lezione era gia' scritta, in questo
+                // stesso file, quattromila righe piu' su. Il commento di
+                // `SpostaCorpi` la racconta per esteso — misurata dentro
+                // SOLIDWORKS il 10 settembre 2026, con cinque prove che
+                // dicevano «i corpi indicati non si sono lasciati selezionare»
+                // — e li' e' gia' riparata con `IBody2.Select2`. Qui no.
+                //
+                // Una lezione scritta e non applicata e' una lezione che il
+                // codice non ha imparato: il commento la ricorda a chi legge
+                // QUELLE righe, e chi scrive altrove non passa di li'.
+                var corpo = corpi[0] as IBody2;
+                bool preso = corpo != null && corpo.Select2(false, null);
+                if (!preso)
+                {
+                    // La vecchia strada resta come ripiego, non come prima
+                    // scelta: se un domani l'interop cambiasse idea, questo
+                    // ramo continua a funzionare invece di rompersi.
+                    var comeEntita = corpi[0] as IEntity;
+                    preso = comeEntita != null && comeEntita.Select4(false, null);
+                }
+                if (!preso)
                     return Fallito("Non sono riuscito a selezionare il corpo solido.");
             }
             else
@@ -4207,7 +4282,12 @@ namespace Riscontro.Disegno
             {
                 ["spessore_mm"] = spessore,
                 ["verso"] = versoEsterno ? "esterno" : "interno",
-                ["facce_tolte"] = uid.Count,
+                // NON `uid.Count`: le facce possono arrivare anche da
+                // `facce_rif`, e contare solo gli uid faceva dire «facce_tolte:
+                // 0» a un guscio che una faccia l'aveva tolta davvero. Una
+                // misura che dice zero quando il numero e' uno e' il difetto
+                // che questo progetto insegue, in miniatura.
+                ["facce_tolte"] = daiPassi != null ? daiPassi.Count : uid.Count,
             };
             if (volumePrima > 0 && volumeDopo > 0)
                 misure["materiale_tolto_mm3"] = Math.Round(volumePrima - volumeDopo, 1);
@@ -5295,7 +5375,7 @@ namespace Riscontro.Disegno
                     // SI SPIEGA DI QUANTO, INVECE DI RIFIUTARE. E' il motivo per
                     // cui questa voce esiste: la faccia e' quella giusta, si e'
                     // solo mossa, e chi legge deve sapere che si e' mossa.
-                    if (spostamento != null) _log("[agente] " + spostamento);
+                    Riancorata(spostamento);
                     motivo = null;
                     return dalPersist;
                 }
@@ -5324,6 +5404,7 @@ namespace Riscontro.Disegno
             if (attesa == null) return null;   // niente firma: resta il rifiuto di prima
 
             IFace2 ritrovata = null;
+            StatoDocumento.FirmaEntita firmaRitrovata = null;
             int quante = 0;
             string scartataPerche = null;
             foreach (var voce in stato.Firme)
@@ -5337,7 +5418,7 @@ namespace Riscontro.Disegno
                 // COMBACIARE PER POSIZIONE NON BASTA. Vedi Corrobora.
                 string cresciuta;
                 string nonRegge = Corrobora(attesa, uid, voce.Value, out cresciuta);
-                if (cresciuta != null) _log("[agente] " + cresciuta);
+                Riancorata(cresciuta);
                 if (nonRegge != null)
                 {
                     // Si tiene il PRIMO motivo di scarto per il messaggio: se
@@ -5349,11 +5430,21 @@ namespace Riscontro.Disegno
 
                 quante++;
                 ritrovata = candidata;
+                firmaRitrovata = voce.Value;
             }
 
             if (quante == 1)
             {
-                _log("[agente] la faccia «" + uid + "» si era spostata: ritrovata dalla firma");
+                // SI DICE DI QUANTO, non solo CHE. Fino alla 0.29.0 questa
+                // strada diceva «si era spostata: ritrovata dalla firma» e
+                // basta — un fatto senza una misura, e per giunta solo su
+                // stderr. La firma misurata e' gia' in mano (`firmaRitrovata`),
+                // e la frase la scrive la stessa funzione che usa il persist
+                // ID: due strade diverse per ritrovare, una sola per dirlo.
+                Riancorata(
+                    FraseDelloSpostamento(attesaPersist, uid, firmaRitrovata, null)
+                    ?? "la faccia «" + uid + "» si era spostata ed e' stata ritrovata " +
+                       "dalla firma misurata.");
                 motivo = null;
                 return ritrovata;
             }
@@ -5880,6 +5971,38 @@ namespace Riscontro.Disegno
             string nome = "";
             try { nome = feature.Name; } catch { }
             _log($"[agente] creata feature {nome}");
+
+            // CIO' CHE SI E' MOSSO ARRIVA A CHI LEGGE (voce E8).
+            //
+            // Qui e' l'unico punto da cui passa OGNI successo di tutte e
+            // trentasei le operazioni, comprese quelle nei file `partial`
+            // (Fori, Saldatura, Tavola, Materiale). Drenare qui vuol dire che
+            // nessuna operazione puo' dimenticarsene.
+            //
+            // IL DIFETTO CHE QUESTO CHIUDE, ed e' il piu' beffardo di tutti:
+            // la 0.26.0 ha costruito il ritrovamento per persist ID e con esso
+            // la frase che dice DI QUANTO la faccia si e' spostata — «si e'
+            // spostata di 60 mm, da [50, 0, 0] a [110, 0, 0]». Poi l'ha
+            // consegnata a `_log`, che in questo ponte finisce su
+            // `Console.Error`. E in un server MCP su stdio **stderr non e' la
+            // risposta**: il modello che ha scritto il piano e la persona che
+            // l'ha confermato non la vedono mai.
+            //
+            // Risultato misurato: `e2_caso_a` esegue il foro su un pezzo lungo
+            // il 60% in piu' di quello confermato, sulla faccia giusta, e nella
+            // risposta c'e' `riuscita: true` e nient'altro. Il meccanismo
+            // scritto apposta per non avere difetti silenziosi ne aveva uno
+            // addosso: **aveva misurato lo spostamento e buttato via la
+            // misura**.
+            //
+            // Il canale giusto esisteva gia' ed era vuoto: `Esito.Misure`
+            // arriva dritto nel JSON della risposta, come fa `nota_volume`.
+            if (_riancoraggi.Count > 0)
+            {
+                if (misure == null) misure = new Dictionary<string, object>();
+                misure["riancoraggi"] = _riancoraggi.ToArray();
+            }
+
             return new Esito
             {
                 Riuscito = true,
@@ -5888,6 +6011,31 @@ namespace Riscontro.Disegno
                 Direzione = direzione,
                 Misure = misure,
             };
+        }
+
+        /// <summary>
+        /// Le facce che sono state ritrovate altrove rispetto a dove il piano
+        /// se le aspettava, con scritto di quanto si sono mosse.
+        ///
+        /// E' un CAMPO e non un parametro: nessuna firma di metodo cambia,
+        /// quindi chi chiama per riflessione non se ne accorge. E' la regola
+        /// che la 0.25.1 ha imparato a caro prezzo.
+        ///
+        /// Si svuota all'inizio di ogni operazione, non alla fine: un elenco
+        /// che si svuota alla fine resta pieno se l'operazione fallisce, e la
+        /// successiva erediterebbe gli spostamenti di quella prima.
+        /// </summary>
+        private readonly List<string> _riancoraggi = new List<string>();
+
+        /// <summary>
+        /// Registra che una faccia e' stata ritrovata altrove, e lo dice anche
+        /// a stderr per chi guarda il ponte lavorare.
+        /// </summary>
+        private void Riancorata(string frase)
+        {
+            if (string.IsNullOrEmpty(frase)) return;
+            _log("[agente] " + frase);
+            _riancoraggi.Add(frase);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -6066,6 +6214,94 @@ namespace Riscontro.Disegno
         {
             if (a == null || !a.TryGetValue(chiave, out var v) || v == null) return se;
             return Convert.ToString(v) ?? se;
+        }
+
+        /// <summary>C'e' un elenco non vuoto sotto questa chiave?</summary>
+        private static bool HaElenco(Dictionary<string, object> a, string chiave)
+        {
+            if (a == null || !a.TryGetValue(chiave, out var v) || v == null) return false;
+            if (v is string) return false;
+            var e = v as System.Collections.IEnumerable;
+            if (e == null) return false;
+            foreach (var x in e) if (x != null) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Le facce che un elenco di riferimenti a passi precedenti risolve.
+        ///
+        /// UN ELENCO DI RIFERIMENTI SINGOLI, e non un genere plurale. Il
+        /// vocabolario di <see cref="Riferimenti"/> risolve una faccia per
+        /// volta e rifiuta quando il ruolo non e' univoco — che e' la regola
+        /// giusta e non va toccata. Per averne piu' d'una si ripete l'elemento:
+        /// e' cio' che fa gia' chi scrive `facce_uid` con tre uid dentro.
+        ///
+        /// SE UNO SOLO NON SI RISOLVE, FALLISCE TUTTO. Un guscio aperto su due
+        /// facce invece che su tre non e' «quasi giusto»: e' un pezzo diverso,
+        /// e sarebbe riuscito in silenzio.
+        /// </summary>
+        private bool FacceDaiRiferimenti(
+            Dictionary<string, object> a, string campo,
+            out List<IFace2> facce, out string motivo)
+        {
+            facce = new List<IFace2>();
+            motivo = null;
+
+            object grezzo;
+            if (a == null || !a.TryGetValue(campo, out grezzo) || grezzo == null)
+            {
+                motivo = "«" + campo + "» e' vuoto.";
+                return false;
+            }
+            var elenco = grezzo as System.Collections.IEnumerable;
+            if (elenco == null || grezzo is string)
+            {
+                motivo = "«" + campo + "» deve essere un elenco di riferimenti a passi.";
+                return false;
+            }
+
+            int quale = 0;
+            foreach (var v in elenco)
+            {
+                quale++;
+                var voce = v as Dictionary<string, object>;
+                if (voce == null)
+                {
+                    motivo = "Il riferimento n. " + quale + " di «" + campo +
+                             "» non e' un oggetto {passo, genere}.";
+                    return false;
+                }
+
+                // Si riusa `PassoCitato` costruendo un dizionario di un campo
+                // solo: cosi' i controlli sul passo — che esista, che sia
+                // precedente, che abbia creato qualcosa — restano quelli, e
+                // non se ne scrive una seconda copia che divergera'.
+                var uno = new Dictionary<string, object> { [campo] = voce };
+                int numero;
+                var passo = PassoCitato(uno, campo, out numero, out motivo);
+                if (passo == null)
+                {
+                    motivo = "Riferimento n. " + quale + ": " +
+                             (motivo ?? "non risolto.");
+                    return false;
+                }
+
+                IFace2 faccia;
+                if (!Riferimenti.Faccia(passo, GenereDi(uno, campo), out faccia, out motivo))
+                {
+                    motivo = "Riferimento n. " + quale + ": " +
+                             (motivo ?? "faccia non trovata.");
+                    return false;
+                }
+                facce.Add(faccia);
+            }
+
+            if (facce.Count == 0)
+            {
+                motivo = "«" + campo + "» non ha nessun riferimento.";
+                return false;
+            }
+            return true;
         }
 
         private static List<string> Lista(Dictionary<string, object> a, string chiave)

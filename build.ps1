@@ -140,8 +140,23 @@ $catalogo = Join-Path $radice "Strumenti\catalogo.json"
 $primaDi = $null
 if (Test-Path $catalogo) { $primaDi = [IO.File]::ReadAllBytes($catalogo) }
 
+# UN ESEGUIBILE CHE SCRIVE SU stderr NON E' UN ESEGUIBILE CHE FALLISCE.
+#
+# `Riscontro.Catalogo.exe` stampa su stderr la riga «[catalogo] scritto ...»,
+# che e' un resoconto e non un errore. Ma con `$ErrorActionPreference = 'Stop'`
+# PowerShell 5.1 avvolge ogni riga di stderr di un comando nativo in un
+# ErrorRecord (`NativeCommandError`) e FERMA lo script, anche con l'eseguibile
+# uscito 0. Il build si interrompeva a meta' dicendo che era andato male
+# mentre era andato bene, e il catalogo risultava scritto.
+#
+# Si abbassa la preferenza SOLO intorno alla chiamata nativa, e si continua a
+# guardare $LASTEXITCODE, che e' l'unica cosa che dice davvero com'e' andata.
+$vecchiaPreferenza = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 & $esportatore $catalogo
-if ($LASTEXITCODE -ne 0) { Muori "il catalogo non si e' scritto" }
+$esitoCatalogo = $LASTEXITCODE
+$ErrorActionPreference = $vecchiaPreferenza
+if ($esitoCatalogo -ne 0) { Muori "il catalogo non si e' scritto" }
 
 $dopoDi = [IO.File]::ReadAllBytes($catalogo)
 if ($null -eq $primaDi) {
