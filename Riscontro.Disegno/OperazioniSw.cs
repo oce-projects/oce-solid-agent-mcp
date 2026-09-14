@@ -1787,6 +1787,10 @@ namespace Riscontro.Disegno
             if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
             if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
 
+            // SI MISURA PRIMA, perche' dopo non si puo' piu'.
+            // Serve al controllo sul volume in fondo: vedi `NotaSulVolume`.
+            double volumePrima = VolumeMm3(modello);
+
             double raggioForo = diametro / 2;
             string senzaSperanza = TaglioSenzaSperanza(
                 modello, assi,
@@ -1875,13 +1879,94 @@ namespace Riscontro.Disegno
                     "chiedilo cieco con la profondita' dello spessore." +
                     RestaNelPezzo);
 
-            return Riuscito(feature, new Dictionary<string, object>
+            var misure = new Dictionary<string, object>
             {
                 ["diametro_mm"] = diametro,
                 ["passante"] = passante,
                 ["pareti_forate"] = pareti,
                 ["quote_sullo_schizzo"] = quoteMesse,
-            }, NormaleDellaFaccia(faccia));
+            };
+
+            // QUANTO SE N'E' ANDATO DAVVERO. Vedi `NotaSulVolume`.
+            NotaSulVolume(
+                misure, volumePrima, VolumeMm3(modello),
+                passante ? 0 : Math.PI * raggioForo * raggioForo * profondita,
+                "Il foro da " + diametro.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " mm");
+
+            return Riuscito(feature, misure, NormaleDellaFaccia(faccia));
+        }
+
+        /// <summary>
+        /// Quanto una lavorazione puo' discostarsi dal volume atteso prima che
+        /// valga la pena dirlo. Un centesimo.
+        ///
+        /// Misurato il 14/9/2026 sui due casi che contano: un foro tutto sulla
+        /// faccia toglie il volume esatto (192.000 - 191.607,3 = 392,7 contro
+        /// i 392,699 di pi*5^2*5, cioe' meno di un millesimo di scostamento), e
+        /// uno centrato sul bordo ne toglie **la meta'**. Fra i due c'e' un
+        /// fattore cinquecento: qualunque soglia in mezzo funziona, e l'uno per
+        /// cento lascia passare l'arrotondamento senza lasciar passare niente
+        /// che abbia una forma.
+        /// </summary>
+        private const double ScostamentoVolume = 0.01;
+
+        /// <summary>
+        /// SI DICE QUANTO SE N'E' ANDATO, E QUANTO SE NE DOVEVA ANDARE.
+        ///
+        /// IL DIFETTO CHE QUESTO CHIUDE (voce E13). Un `taglio_cilindrico` con
+        /// il profilo a cavallo del bordo della faccia toglie meta' materiale e
+        /// risponde `riuscita: true`, `pareti_forate: 1`. Misurato: foro da 10
+        /// profondo 5 centrato sul bordo inferiore di una faccia, **196,3 mm³
+        /// invece di 392,7** — esattamente meta' — con il fondo del foro ridotto
+        /// a un mezzo disco da 39,27 mm² invece di 78,54.
+        ///
+        /// IL GUARDIANO C'ERA E GUARDAVA DALL'ALTRA PARTE. `SottoIlProfilo` sa
+        /// contare quanti punti del profilo cadono sulla faccia e lo dice bene,
+        /// ma il suo commento dichiara: «NON RIFIUTA NIENTE E NON DEVE MAI
+        /// FARLO: si chiama solo quando SOLIDWORKS ha gia' detto di no». Quando
+        /// SOLIDWORKS dice di SI', non lo chiama nessuno.
+        ///
+        /// NON SI RIFIUTA, SI DICE. L'operazione e' riuscita e il pezzo esiste:
+        /// rifiutare adesso vorrebbe dire buttare una lavorazione fatta per un
+        /// sospetto. Si scrive quanto se n'e' andato, quanto ci si aspettava, e
+        /// di quanto si discosta — poi decide chi legge. E' la stessa forma di
+        /// `posizioni_non_verificate` e dell'ancora che si sposta.
+        ///
+        /// SOLO SUI CIECHI L'ATTESO E' UNA MOLTIPLICAZIONE. Per un passante il
+        /// volume dipende da quanto materiale c'e' sotto, che non si sa senza
+        /// misurarlo: li' si scrive `tolti_mm3` e basta, senza un atteso che
+        /// sarebbe inventato. Un allarme sbagliato su un passante legittimo
+        /// sarebbe peggio del difetto che si sta chiudendo.
+        ///
+        /// <param name="attesoMm3">Zero quando non si puo' sapere.</param>
+        /// </summary>
+        private static void NotaSulVolume(
+            Dictionary<string, object> misure,
+            double volumePrima, double volumeDopo, double attesoMm3, string cosa)
+        {
+            if (misure == null) return;
+            double tolti = volumePrima - volumeDopo;
+
+            // Un volume che non si e' potuto leggere non diventa uno zero: uno
+            // zero vorrebbe dire «non ha tolto niente», che e' un'affermazione.
+            if (volumePrima <= 0 || volumeDopo < 0) return;
+
+            misure["tolti_mm3"] = Math.Round(tolti, 2);
+            if (attesoMm3 <= 0) return;
+
+            misure["attesi_mm3"] = Math.Round(attesoMm3, 2);
+            double scostamento = Math.Abs(tolti - attesoMm3) / attesoMm3;
+            if (scostamento <= ScostamentoVolume) return;
+
+            misure["nota_volume"] = string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "{0} ha tolto {1:0.##} mm³ invece dei {2:0.##} che ci si aspettava " +
+                "({3:0.#}% {4}). L'operazione e' riuscita, ma il pezzo non e' quello " +
+                "che il piano descriveva: di solito vuol dire che il profilo cade in " +
+                "parte fuori dalla faccia, o su materiale gia' tolto. Guarda il pezzo " +
+                "prima di andare avanti.",
+                cosa, tolti, attesoMm3, scostamento * 100,
+                tolti < attesoMm3 ? "in meno" : "in piu'");
         }
 
         private Esito TaglioRettangolare(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
@@ -1899,6 +1984,9 @@ namespace Riscontro.Disegno
             double profondita = Num(a, "profondita_mm", 0);
             if (!passante && profondita <= 0)
                 return Fallito("Tasca non passante senza profondita'.");
+
+            // SI MISURA PRIMA, perche' dopo non si puo' piu'.
+            double volumePrima = VolumeMm3(modello);
             double x, y;
             if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
             if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
@@ -1968,13 +2056,25 @@ namespace Riscontro.Disegno
                     CampioniRettangolo(x, y, lunghezza, larghezza));
                 return Fallito("Il taglio non e' stato creato." + sotto + SenzaLoSchizzo(modello));
             }
-            return Riuscito(feature, new Dictionary<string, object>
+            var misureTasca = new Dictionary<string, object>
             {
                 ["lunghezza_mm"] = lunghezza,
                 ["larghezza_mm"] = larghezza,
                 ["passante"] = passante,
                 ["quote_sullo_schizzo"] = quoteMesse,
-            }, NormaleDellaFaccia(faccia));
+            };
+
+            // LO STESSO DIFETTO DI `taglio_cilindrico`, e la stessa riparazione
+            // (voce E13). Una tasca il cui profilo cade in parte fuori dalla
+            // faccia toglie meno materiale di quanto il piano descriveva, e
+            // risponde «riuscita» lo stesso.
+            NotaSulVolume(
+                misureTasca, volumePrima, VolumeMm3(modello),
+                passante ? 0 : lunghezza * larghezza * profondita,
+                "La tasca " + lunghezza.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+                "x" + larghezza.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+
+            return Riuscito(feature, misureTasca, NormaleDellaFaccia(faccia));
         }
 
         /// <summary>

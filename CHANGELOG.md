@@ -16,6 +16,63 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.29.0 — 14 settembre 2026 · libreria 0.64.0
+
+**Un taglio riuscito a meta' adesso lo dice.** Voce E13.
+
+`taglio_cilindrico` con il profilo a cavallo del bordo della faccia toglieva
+meta' materiale e rispondeva `riuscita: true`, `pareti_forate: 1`. Misurato: un
+foro da 10 profondo 5, centrato sul bordo inferiore di una faccia, toglieva
+**196,3 mm³ invece di 392,7** — esattamente meta' — con il fondo ridotto a un
+mezzo disco da 39,27 mm² invece di 78,54.
+
+**Il guardiano c'era e guardava dall'altra parte.** `SottoIlProfilo` sa contare
+quanti punti del profilo cadono sulla faccia e lo dice bene, ma il suo commento
+dichiara: «NON RIFIUTA NIENTE E NON DEVE MAI FARLO: si chiama solo quando
+SOLIDWORKS ha gia' detto di no». Quando SOLIDWORKS dice di **si'**, non lo
+chiama nessuno.
+
+### Non si rifiuta, si dice
+
+L'operazione e' riuscita e il pezzo esiste: rifiutare a cose fatte vorrebbe dire
+buttare una lavorazione per un sospetto. Misure nuove su `taglio_cilindrico` e
+`taglio_rettangolare` — `tolti_mm3`, `attesi_mm3`, e quando non tornano una
+`nota_volume` che dice di quanto e cosa di solito significa. E' la stessa forma
+di `posizioni_non_verificate` e dell'ancora che si sposta.
+
+### Solo sui ciechi l'atteso e' una moltiplicazione
+
+Per un passante il volume dipende da quanto materiale c'e' sotto, che non si sa
+senza misurarlo: li' si scrive `tolti_mm3` e basta, senza un atteso che sarebbe
+inventato. **Un allarme sbagliato su un passante legittimo sarebbe peggio del
+difetto che si sta chiudendo.**
+
+### La soglia viene da due misure, non da un'opinione
+
+Un foro tutto sulla faccia toglie **392,7** contro i 392,699 attesi — meno di un
+millesimo. Uno centrato sul bordo ne toglie **la meta'**. Fra i due c'e' un
+fattore cinquecento: l'uno per cento lascia passare l'arrotondamento e non
+lascia passare niente che abbia una forma.
+
+### Il primo caso rosso non riproduceva il difetto
+
+Era scritto con `faccia_rif: faccia_superiore`, e li' il punto (0,0) cade in
+**mezzo** alla faccia: il foro veniva intero, `tolti 392,7 attesi 392,7`, tutto
+verde. Sembrava che la riparazione funzionasse, e non si stava provando niente.
+
+Il difetto vive sulle facce **laterali**, dove (0,0) cade sul bordo — e per
+nominarne una serve l'uid, perche' il vocabolario dei ruoli non ha nessuna
+parola per i fianchi di un'estrusione. E' **esattamente il 58% di facce senza
+ruolo misurato in E7** poche ore prima: le due voci si sono spiegate a vicenda.
+
+> Un caso di prova che non si e' visto fallire non e' una prova: e' una frase
+> che somiglia a una prova.
+
+Controlli: banco 88 prove 0 fallite, con **zero** `nota_volume` su ottantotto
+operazioni legittime — che e' la meta' che conta di piu'.
+
+---
+
 ## 0.28.0 — 14 settembre 2026 · libreria 0.63.0
 
 **E7 misurata, e il numero la declassa.** Nuovo attrezzo
