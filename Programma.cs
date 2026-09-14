@@ -35,7 +35,7 @@ namespace SolidWorksMcp
             else
                 Protocollo.Nota(
                     "[ponte] SolidWorks " + sessione.VersioneSolidWorks() +
-                    ", add-in " + sessione.VersioneAddin());
+                    ", libreria di disegno " + sessione.VersioneLibreria());
 
             var catalogo = new Catalogo();
             if (catalogo.ErroreDiCaricamento != null)
@@ -181,7 +181,7 @@ namespace SolidWorksMcp
         private static int Prova(Sessione sessione, Catalogo catalogo)
         {
             Protocollo.Nota("[prova] agganciata: " + sessione.Agganciata);
-            Protocollo.Nota("[prova] add-in: " + sessione.PercorsoAddin);
+            Protocollo.Nota("[prova] libreria di disegno: " + sessione.PercorsoLibreria);
             Protocollo.Nota("[prova] catalogo: " + catalogo.Percorso);
 
             if (catalogo.Quante > 0)

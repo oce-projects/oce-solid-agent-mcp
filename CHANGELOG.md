@@ -16,6 +16,82 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.6.0 — 14 settembre 2026
+
+**Il ponte non carica piu' il PDM per disegnare un foro.**
+
+Le 36 operazioni sono uscite da `OpenPDM.SwAddin.dll` e vivono in
+`Riscontro.Disegno.dll`, dodici file e 10.714 righe, dentro questo repository.
+Il ponte carica quella.
+
+### Cosa cambia per chi usa il ponte
+
+Il file da mettere accanto all'eseguibile e' **`Riscontro.Disegno.dll`**, non
+piu' `OpenPDM.SwAddin.dll`. La variabile d'ambiente e' `RISCONTRO_DISEGNO`;
+`OPENPDM_ADDIN` resta accettata, perche' chi ce l'ha impostata non deve
+scoprirlo da un rifiuto.
+
+E se punta ancora al vecchio add-in, il ponte lo dice per nome invece di
+lamentare un tipo mancante:
+
+> `«…\OpenPDM.SwAddin.dll» e' il vecchio add-in OpenPDM. Dalla 0.47.0 le
+> operazioni stanno in «Riscontro.Disegno.dll»: punta li' RISCONTRO_DISEGNO,
+> oppure togli OPENPDM_ADDIN e mettila accanto all'eseguibile.`
+
+Provate tutte e due le strade: quella giusta si aggancia, quella sbagliata
+spiega. **Un messaggio che non si e' visto uscire non e' un messaggio.**
+
+### Il confine inventato, e il difetto che invitava a fare
+
+`EsecutorePiano` era l'unico dei dodici file a parlare con il server di
+OpenPDM. Adesso parla con `IFontePiano`, e l'add-in ne fornisce
+l'implementazione.
+
+La forma ovvia sarebbe far tornare `null` per dire «piano finito». **Non si e'
+fatta**, e la ragione e' scritta nel codice: un adattatore che inghiotte
+un'eccezione di rete e ritorna `null` racconterebbe «piano completato» per un
+piano interrotto a meta'. C'e' un tipo `ProssimoPasso` con `Finito` esplicito,
+e davanti a un `null` l'esecutore si ferma dicendo che non sa quale dei due
+casi sia.
+
+### Le librerie di Dassault continuano a restare fuori
+
+`Riscontro.Disegno` referenzia le interop con `Private=False` e l'HintPath
+sull'installazione: nessun binario di Dassault entra in questo repository, che
+era la condizione perche' si potesse pubblicare.
+
+### Il caricamento adesso legge i byte
+
+`Assembly.LoadFrom` su un'unita' di rete fallisce con `0x80131515`, un errore
+che non nomina la rete e manda a cercare una dipendenza mancante che non
+esiste. Si leggono i byte e si carica da quelli.
+
+### Cosa NON e' cambiato, ed e' il punto
+
+Rifatta la prova di riferimento sul pezzo vero, dopo l'estrazione:
+
+```
+estrudi_rettangolo  200x100x20                      -> riuscita
+taglio_cilindrico   Ø10 passante                    -> riuscita
+ripeti_lineare      4 istanze, passo 30, capovolgi  -> riuscita
+                    volume_cambiato -4.712,39 mm³
+                    facce 7 -> 10   copie_fatte 3
+```
+
+Gli stessi numeri di prima dell'estrazione, alla cifra.
+
+### Resta aperto
+
+**La riflessione c'e' ancora, e adesso non ha piu' ragione di esserci.** Il
+ponte potrebbe referenziare la libreria come un progetto qualunque: e' la voce
+B7 del `TODO.md`. Finche' c'e', i nomi dei tipi sono stringhe e un errore di
+battitura si scopre solo a runtime.
+
+Il percorso della libreria nel csproj dell'add-in e' **assoluto**, scavalcabile
+con `/p:RiscontroDisegnoProj=...`, finche' non arriva il sottomodulo (B6).
+
+---
+
 ## 0.5.0 — 14 settembre 2026
 
 **Il ponte non lavora piu' sulla faccia sbagliata in silenzio.**

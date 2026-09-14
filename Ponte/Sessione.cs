@@ -7,13 +7,20 @@ using System.Runtime.InteropServices;
 namespace SolidWorksMcp.Ponte
 {
     /// <summary>
-    /// L'aggancio a SolidWorks e all'add-in vero.
+    /// L'aggancio a SolidWorks e alla libreria di disegno vera.
     ///
     /// NON SI RISCRIVE NIENTE. Le operazioni di disegno sono quelle di
-    /// `OpenPDM.SwAddin.dll`, caricate per riflessione: cosi' quello che si
+    /// `Riscontro.Disegno.dll`, caricate per riflessione: cosi' quello che si
     /// prova da qui e' ESATTAMENTE quello che il progettista avra' in mano.
     /// Una seconda implementazione «solo per le prove» misurerebbe se stessa —
     /// che e' il modo piu' elegante di non misurare niente.
+    ///
+    /// Fino all'add-in 0.46.0 la libreria caricata era `OpenPDM.SwAddin.dll`,
+    /// cioe' il ponte tirava dentro tutto il PDM per disegnare un foro. Dalla
+    /// 0.47.0 le operazioni stanno per conto loro. **La riflessione pero' e'
+    /// rimasta, e adesso non ha piu' ragione di esserci**: e' la voce B7 del
+    /// TODO. Finche' c'e', i nomi dei tipi sono stringhe e un errore di
+    /// battitura si scopre a runtime.
     ///
     /// NON SI AVVIA SOLIDWORKS. Ci si aggancia a una sessione che c'e' gia'.
     /// Un ponte che avvia il programma decide per conto di chi lo usa quale
@@ -28,8 +35,18 @@ namespace SolidWorksMcp.Ponte
         private Type _tStato;
         private Type _tEsito;
 
-        /// <summary>Dove sta l'add-in. Si puo' cambiare con OPENPDM_ADDIN.</summary>
-        public string PercorsoAddin { get; private set; }
+        /// <summary>
+        /// Dove sta la libreria di disegno. Si puo' cambiare con
+        /// `RISCONTRO_DISEGNO`.
+        ///
+        /// **Non e' piu' `OpenPDM.SwAddin.dll`.** Le operazioni sono uscite
+        /// dall'add-in e vivono in `Riscontro.Disegno.dll` (add-in 0.47.0): il
+        /// ponte non ha piu' bisogno del PDM per disegnare. La vecchia
+        /// variabile `OPENPDM_ADDIN` resta accettata perche' chi ce l'ha
+        /// impostata non deve scoprirlo da un rifiuto, ma se punta ancora
+        /// all'add-in non troverebbe i tipi: in quel caso lo si dice per nome.
+        /// </summary>
+        public string PercorsoLibreria { get; private set; }
 
         public bool Agganciata => _sw != null && _tOperazioni != null;
 
@@ -94,27 +111,50 @@ namespace SolidWorksMcp.Ponte
         public string Aggancia()
         {
             TrovaLeLibrerieDiSolidWorks();
-            PercorsoAddin = Environment.GetEnvironmentVariable("OPENPDM_ADDIN");
-            if (string.IsNullOrWhiteSpace(PercorsoAddin))
-                PercorsoAddin = Path.Combine(
+            PercorsoLibreria = Environment.GetEnvironmentVariable("RISCONTRO_DISEGNO");
+            if (string.IsNullOrWhiteSpace(PercorsoLibreria))
+                PercorsoLibreria = Environment.GetEnvironmentVariable("OPENPDM_ADDIN");
+            if (string.IsNullOrWhiteSpace(PercorsoLibreria))
+                PercorsoLibreria = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",
-                    "OpenPDM.SwAddin.dll");
+                    "Riscontro.Disegno.dll");
 
-            if (!File.Exists(PercorsoAddin))
-                return "Non trovo l'add-in in «" + PercorsoAddin + "». " +
-                       "Mettilo accanto all'eseguibile oppure indica il percorso " +
-                       "nella variabile d'ambiente OPENPDM_ADDIN.";
+            if (!File.Exists(PercorsoLibreria))
+                return "Non trovo la libreria di disegno in «" + PercorsoLibreria + "». " +
+                       "Mettila accanto all'eseguibile oppure indica il percorso " +
+                       "nella variabile d'ambiente RISCONTRO_DISEGNO.";
 
             try
             {
-                _addin = Assembly.LoadFrom(PercorsoAddin);
-                _tOperazioni = _addin.GetType("OpenPDM.SwAddin.Agente.OperazioniSw", true);
-                _tStato = _addin.GetType("OpenPDM.SwAddin.Agente.StatoDocumento", true);
-                _tEsito = _addin.GetType("OpenPDM.SwAddin.Agente.OperazioniSw+Esito", true);
+                // SI LEGGONO I BYTE INVECE DI LoadFrom, e non e' pignoleria:
+                // se la libreria sta su un'unita' di rete `Assembly.LoadFrom`
+                // fallisce con 0x80131515, un errore che non nomina la rete e
+                // manda a cercare una dipendenza mancante che non esiste.
+                _addin = Assembly.Load(File.ReadAllBytes(PercorsoLibreria));
+
+                _tOperazioni = _addin.GetType("Riscontro.Disegno.OperazioniSw", false);
+                _tStato = _addin.GetType("Riscontro.Disegno.StatoDocumento", false);
+                _tEsito = _addin.GetType("Riscontro.Disegno.OperazioniSw+Esito", false);
+
+                if (_tOperazioni == null || _tStato == null || _tEsito == null)
+                {
+                    // IL CASO DI CHI HA ANCORA IL VECCHIO PERCORSO IMPOSTATO.
+                    // Dirgli «tipo non trovato» lo manderebbe a cercare un
+                    // difetto che non c'e': il file e' quello sbagliato, non
+                    // rotto.
+                    bool vecchia = _addin.GetType("OpenPDM.SwAddin.Agente.OperazioniSw", false) != null;
+                    return vecchia
+                        ? "«" + PercorsoLibreria + "» e' il vecchio add-in OpenPDM. " +
+                          "Dalla 0.47.0 le operazioni stanno in «Riscontro.Disegno.dll»: " +
+                          "punta li' RISCONTRO_DISEGNO, oppure togli OPENPDM_ADDIN e " +
+                          "mettila accanto all'eseguibile."
+                        : "«" + PercorsoLibreria + "» si carica ma non contiene le " +
+                          "operazioni di disegno: non e' Riscontro.Disegno.dll.";
+                }
             }
             catch (Exception ex)
             {
-                return "L'add-in c'e' ma non si carica: " + ex.Message;
+                return "La libreria c'e' ma non si carica: " + ex.Message;
             }
 
             try
@@ -145,7 +185,7 @@ namespace SolidWorksMcp.Ponte
             catch { return "?"; }
         }
 
-        public string VersioneAddin()
+        public string VersioneLibreria()
         {
             try { return _addin.GetName().Version.ToString(); }
             catch { return "?"; }

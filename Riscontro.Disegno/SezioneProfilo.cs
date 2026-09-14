@@ -283,11 +283,38 @@ namespace Riscontro.Disegno
         // il ricordo, in memoria e su disco
         // ─────────────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Il nome della cartella sotto %LOCALAPPDATA% dove vive l'archivio
+        /// delle sezioni misurate.
+        ///
+        /// Era scritto fisso «OpenPDM», ed e' sfuggito all'audit A1 perche'
+        /// cercava percorsi e nomi di persone, non il nome del prodotto dentro
+        /// una stringa. In una libreria che esiste per non presupporre OpenPDM,
+        /// scrivere nella cartella di OpenPDM e' sbagliato due volte: sporca
+        /// casa d'altri, e lega la libreria a un prodotto che potrebbe non
+        /// essere installato.
+        ///
+        /// Chi ospita la libreria puo' rimetterci il nome che vuole. L'add-in
+        /// OpenPDM lo fa, cosi' l'archivio gia' misurato non viene abbandonato:
+        /// non e' un dato prezioso — si ricostruisce misurando — ma buttarlo
+        /// senza dirlo costerebbe una riapertura di libreria per profilo.
+        /// </summary>
+        public static string CartellaArchivio
+        {
+            get { return _cartellaArchivio; }
+            set
+            {
+                _cartellaArchivio =
+                    string.IsNullOrWhiteSpace(value) ? "Riscontro" : value.Trim();
+            }
+        }
+        private static string _cartellaArchivio = "Riscontro";
+
         private static string PercorsoArchivio()
         {
             string cartella = Path.Combine(
                 System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
-                "OpenPDM");
+                _cartellaArchivio);
             return Path.Combine(cartella, "sezioni-profili.txt");
         }
 
