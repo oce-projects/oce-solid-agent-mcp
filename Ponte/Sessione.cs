@@ -392,6 +392,12 @@ namespace SolidWorksMcp.Ponte
                 // sarebbe rifiutato con «salvalo su disco prima». Nell'add-in
                 // resta falso, e c'e' un controllo che lo sorveglia.
                 DocumentoSenzaFile = true,
+
+                // E anche qui, e solo qui. Il catalogo del ponte porta cinque
+                // operazioni di tavola: rifiutare le tavole renderebbe inutili
+                // proprio quelle. L'assistente dell'add-in disegna pezzi, e li'
+                // resta falso.
+                AncheSuTavole = true,
             };
 
             try

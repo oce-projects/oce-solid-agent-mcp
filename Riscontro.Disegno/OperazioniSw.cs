@@ -110,6 +110,39 @@ namespace Riscontro.Disegno
         /// e proprio per questo va detto se succede. Rispondere
         /// <see cref="LasciatoSchizzo"/> qui sarebbe una bugia («lo schizzo e'
         /// rimasto» quando non e' rimasto) che coprirebbe un danno vero.
+        ///
+        /// NON SI E' MAI VISTA ACCADERE, e il 14/9/2026 si e' provato a farla
+        /// accadere. Voce D7 del TODO.
+        ///
+        /// Perche' e' difficile da raggiungere, ragionando sulle condizioni che
+        /// <see cref="SenzaLoSchizzo"/> impone prima di arrivare qui: lo schizzo
+        /// e' l'ultima feature, e' nato in questo passo, e **non ha figli**. Uno
+        /// schizzo senza figli non porta materiale, e `swDelete_Absorbed` toglie
+        /// lui e le sue quote e basta. Quindi volume e conteggio corpi non
+        /// possono cambiare, e il conteggio feature cala di esattamente uno.
+        ///
+        /// Provato anche il caso piu' cattivo che si e' saputo costruire: lo
+        /// stesso giro su un pezzo **gia' instabile** — con una lavorazione in
+        /// errore nell'albero — perche' la cancellazione fa ricostruire, e una
+        /// ricostruzione su un pezzo rotto puo' dare un volume diverso. Non e'
+        /// successo: lo schizzo si e' tolto pulito e il messaggio non e' uscito.
+        ///
+        /// COSA LA RENDEREBBE RAGGIUNGIBILE. Uno di questi:
+        ///
+        ///   * `IGetChildCount()` che risponde 0 per uno schizzo che invece un
+        ///     figlio ce l'ha (un riferimento esterno non contato come figlio);
+        ///   * un'operazione che lascia dietro di se' un CORPO oltre allo
+        ///     schizzo, e poi fallisce: li' il conteggio corpi cambierebbe;
+        ///   * `swDelete_Absorbed` che in una versione futura cancelli piu' di
+        ///     quello che cancella oggi.
+        ///
+        /// **Il messaggio resta**, e non e' codice morto: e' la guardia che
+        /// distingue «ho rimesso il pezzo com'era» da «credo di averlo rimesso
+        /// com'era». Il giorno in cui una delle tre cose sopra diventa vera,
+        /// questa riga e' la differenza fra accorgersene e non accorgersene.
+        /// Ed e' scritta apposta come «controllalo» e non come «ho rotto il
+        /// pezzo»: quello che si sa e' che i numeri non tornano, non chi sia
+        /// stato.
         /// </summary>
         private const string SchizzoToltoMaNonSolo =
             " Ho tolto lo schizzo che avevo disegnato, ma togliendolo e' cambiato" +
@@ -387,10 +420,6 @@ namespace Riscontro.Disegno
         /// quotato, ma e' comunque un pezzo giusto: se la quotatura non
         /// riesce si va avanti e si scrive quante ne sono state messe, che
         /// e' un numero che chi legge puo' controllare.
-        /// </summary>
-        /// <summary>
-        /// Mette una quota sul lato orizzontale e una sul lato verticale di
-        /// un rettangolo appena disegnato. Ritorna quante ne ha messe.
         /// </summary>
         private int QuotaIlRettangolo(
             IModelDoc2 modello, object[] lati,
