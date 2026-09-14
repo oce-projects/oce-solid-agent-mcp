@@ -158,6 +158,48 @@ namespace Riscontro.Disegno
         /// un identificativo che, quando il piano e' stato scritto, non
         /// esisteva ancora.
         /// </param>
+        /// <summary>
+        /// I nomi che lo switch qui sotto sa eseguire.
+        ///
+        /// SERVE A CONFRONTARE IL CATALOGO CON CIO' CHE ESISTE DAVVERO. Il
+        /// catalogo dichiara 36 operazioni; qui ce ne sono 34, e le due che
+        /// mancano — `estrudi_sezione` e `ruota_dentata` — esistono solo perche'
+        /// il server le espande in `contorni` prima che arrivino qui, e il ramo
+        /// `default` ricade sull'estrusione di profilo quando trova dei
+        /// contorni. Chiamate con i loro argomenti veri rispondono «operazione
+        /// sconosciuta». Il controllo che confronta i due insiemi lo dice; senza
+        /// elenco, sarebbe una regex su 4.700 righe che si rompe alla prima
+        /// riformattazione.
+        ///
+        /// **QUESTO ELENCO PUO' DERIVARE DALLO SWITCH, ed e' il suo difetto.**
+        /// Ci si difende in due modi, tutti e due nel controllo e nessuno nella
+        /// buona volonta': si verifica che ogni nome qui dentro sia davvero
+        /// dispatchabile (chiamando `Esegui` e guardando che NON risponda
+        /// «operazione sconosciuta»), e si confronta con i `case` letti dal
+        /// sorgente — dove leggerne zero e' un fallimento, non un successo.
+        /// </summary>
+        public static readonly string[] NomiEseguibili =
+        {
+            "applica_materiale", "asola", "cordone_saldatura", "crea_asse",
+            "crea_disegno", "crea_piano", "distinta_taglio", "esporta_pdf",
+            "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
+            "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
+            "imposta_foglio", "membro_strutturale", "modifica_quota",
+            "quote_dal_modello", "raccordo_spigoli", "ripeti_circolare",
+            "ripeti_lineare", "rivoluzione", "salva_documento",
+            "smusso_spigoli", "specchia", "sposta_corpi", "taglia_membri",
+            "taglio_cilindrico", "taglio_rettangolare", "tappo_estremita",
+            "telaio_rettangolare", "vista_modello", "viste_standard",
+        };
+
+        /// <summary>
+        /// La frase esatta con cui lo switch rifiuta un nome che non conosce.
+        /// Sta qui e non scritta due volte perche' il controllo la confronta:
+        /// se cambia, il controllo deve accorgersene invece di credere che
+        /// tutto vada bene.
+        /// </summary>
+        public const string OperazioneSconosciuta = "Operazione sconosciuta: ";
+
         public Esito Esegui(
             IModelDoc2 modello,
             string operazione,
@@ -249,7 +291,7 @@ namespace Riscontro.Disegno
                         // e senza che nessuno debba reinstallare niente.
                         if (argomenti != null && argomenti.ContainsKey("contorni"))
                             return EstrudiProfilo(modello, argomenti);
-                        return Fallito($"Operazione sconosciuta: {operazione}");
+                        return Fallito(OperazioneSconosciuta + operazione);
                 }
             }
             catch (Exception ex)
