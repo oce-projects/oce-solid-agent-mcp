@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Riscontro.Disegno — le operazioni di disegno, senza il PDM.
+
+  E' la libreria che esiste perche' il motore di disegno si possa provare, e
+  usare, SENZA OpenPDM. Non e' un ripiego per pubblicare: separare le due cose
+  e' l'unico modo di mettere le operazioni su un banco che non abbia bisogno di
+  un server, di un vault e di una rete.
+
+  TRE COSE CHE NON DEVONO ENTRARE QUI, E IL PERCHE'.
+
+  1. Le DLL di Dassault. `Private=False` e `EmbedInteropTypes=False` con
+     l'HintPath sull'installazione: le interop restano dove le ha messe
+     SOLIDWORKS e non finiscono in nessun repository. E' la condizione perche'
+     questa libreria si possa pubblicare.
+
+  2. WPF, WebView2, System.Net.Http, System.Web.Extensions. Sono l'interfaccia
+     e il trasporto dell'add-in, non il disegno. Se uno di questi ricompare fra
+     i riferimenti, vuol dire che e' rientrato del codice che qui non va.
+
+  3. `EsecutorePiano.cs`. E' l'unico file dello strato che dipende da OpenPDM
+     (`ApiClient`), ed entra solo dietro l'interfaccia `IFontePiano` — voce B3
+     del TODO. Finche' non c'e' quella, sta fuori.
+
+  LangVersion 9.0 e non 7.3: l'add-in compila a 9.0 e il codice lo usa. Il
+  ponte MCP e' a 7.3, ma il ponte non compila questi file — li carica.
+-->
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
+          Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7B3C1F42-9A5E-4D18-A6C2-51E0D7B44A93}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Riscontro.Disegno</RootNamespace>
+    <AssemblyName>Riscontro.Disegno</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <LangVersion>9.0</LangVersion>
+    <Deterministic>true</Deterministic>
+    <!-- Dove sta SOLIDWORKS. Si puo' scavalcare da riga di comando:
+         msbuild /p:SwInstallPath="D:\...\SOLIDWORKS" -->
+    <SwInstallPath Condition="'$(SwInstallPath)' == ''">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS</SwInstallPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <!-- Serve SOLO a MaterialiSolidWorks.cs, che legge l'elenco materiali. -->
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SOLIDWORKS Interop: restano dove le ha messe l'installazione. -->
+    <Reference Include="SolidWorks.Interop.sldworks">
+      <HintPath>$(SwInstallPath)\api\redist\SolidWorks.Interop.sldworks.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swconst">
+      <HintPath>$(SwInstallPath)\api\redist\SolidWorks.Interop.swconst.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="OperazioniSw.cs" />
+    <Compile Include="OperazioniSaldatura.cs" />
+    <Compile Include="OperazioniTavola.cs" />
+    <Compile Include="OperazioniFori.cs" />
+    <Compile Include="OperazioniMateriale.cs" />
+    <Compile Include="StatoDocumento.cs" />
+    <Compile Include="StatoTavola.cs" />
+    <Compile Include="Riferimenti.cs" />
+    <Compile Include="Unita.cs" />
+    <Compile Include="MaterialiSolidWorks.cs" />
+    <Compile Include="SezioneProfilo.cs" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
