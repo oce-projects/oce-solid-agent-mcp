@@ -1,0 +1,3 @@
+[
+ { "operazione": "taglio_rettangolare", "argomenti": { "faccia_uid": "F1", "x_mm": 20, "y_mm": 0, "lunghezza_mm": 40, "larghezza_mm": 40, "passante": false, "profondita_mm": 8 } }
+]

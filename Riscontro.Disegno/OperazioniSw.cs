@@ -2886,8 +2886,31 @@ namespace Riscontro.Disegno
                         if (!string.IsNullOrEmpty(pieno))
                         {
                             if (nomi.Count < 12 && gia.Add(pieno)) nomi.Add(pieno);
+
+                            // TRE FORME, E TUTTE E TRE DEVONO ANDARE.
+                            //
+                            //   D1                          il nome corto
+                            //   D1@Schizzo1                 nome e lavorazione
+                            //   D1@Schizzo1@Parte286.Part   come lo scrive lo stato
+                            //
+                            // La seconda mancava, e il messaggio d'errore la
+                            // dava per buona («per esempio «D1@Schizzo1»»):
+                            // il messaggio diceva il falso.
+                            //
+                            // E non e' un dettaglio di comodita': la forma con
+                            // il documento in coda contiene il TITOLO del
+                            // documento, quindi un caso di banco scritto con
+                            // quella non si puo' rilanciare su un altro pezzo.
+                            // Senza la forma di mezzo, le prove che cambiano
+                            // una quota non sono ripetibili.
+                            string senzaDocumento = pieno;
+                            int ultimaChiocciola = pieno.LastIndexOf('@');
+                            if (ultimaChiocciola > 0)
+                                senzaDocumento = pieno.Substring(0, ultimaChiocciola);
+
                             if (string.Equals(pieno, nome, StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(corto, nome, StringComparison.OrdinalIgnoreCase))
+                                string.Equals(corto, nome, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(senzaDocumento, nome, StringComparison.OrdinalIgnoreCase))
                             {
                                 return d;
                             }

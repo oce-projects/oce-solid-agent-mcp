@@ -1,0 +1,4 @@
+[
+ { "operazione": "modifica_quota", "argomenti": { "quota": "D1@Schizzo1", "valore_mm": 160 } },
+ { "operazione": "taglio_cilindrico", "argomenti": { "faccia_uid": "F6", "x_mm": 0, "y_mm": 0, "diametro_mm": 10, "passante": false, "profondita_mm": 5 } }
+]
