@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <!-- WinExe e non Exe: senza, si apre una finestra nera del prompt dietro
+         alla finestra dell'installatore, e la prima impressione di un
+         installatore e' meta' del suo lavoro. -->
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>SolidWorksMcp.Installer</RootNamespace>
+    <AssemblyName>Installa</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <!-- x64 come il ponte e come SOLIDWORKS. L'installatore legge la versione
+         di DLL a 64 bit: un processo a 32 bit vedrebbe un'altra vista del
+         registro e un'altra Program Files. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
+    <LangVersion>7.3</LangVersion>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <WarningLevel>4</WarningLevel>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Programma.cs" />
+    <Compile Include="Passi.cs" />
+    <Compile Include="Payload.cs" />
+    <Compile Include="Configurazione.cs" />
+    <Compile Include="Finestra.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <!--
+      IL PONTE DENTRO L'INSTALLATORE.
+
+      Tutto quello che sta in Payload\ diventa una risorsa incorporata, cosi'
+      `Installa.exe` e' UN FILE SOLO: si scarica, doppio clic, finito. Niente
+      zip da scompattare, niente «metti questo accanto a quello».
+
+      La cartella e' vuota nel repository e la riempie build.ps1 subito prima di
+      compilare. Se e' vuota, l'installatore compila lo stesso e cerca i file
+      accanto a se': e' il modo in cui lavora chi sviluppa, senza dover
+      mantenere due strade diverse.
+
+      L'add-in NON si mette qui: e' codice privato, e un installatore pubblico
+      che se lo porta dietro lo pubblica.
+    -->
+    <EmbeddedResource Include="Payload\**\*" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

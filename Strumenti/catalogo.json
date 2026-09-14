@@ -4,8 +4,6 @@
   "lavorazioni": "togliere o modificare materiale su un corpo che c'e' gia'",
   "saldature": "carpenteria: barre, telai, tagli fra barre, distinta",
   "riferimenti": "piani e assi su cui costruire",
-  "corpi": "spostare, copiare, unire, dividere corpi interi",
-  "lamiera": "lamiera piegata",
   "proprieta": "cio' che il pezzo E', non la sua forma",
   "tavola": "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF"
  },

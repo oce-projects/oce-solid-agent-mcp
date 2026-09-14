@@ -16,6 +16,80 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.4.0 — 14 settembre 2026
+
+**Un file solo: si scarica, doppio clic, e Claude parla con SOLIDWORKS.**
+
+`dist\Installa.exe`, 151 kB. Si porta dentro il ponte, il catalogo, la
+configurazione e le note legali come risorse incorporate, li scrive su disco, e
+— questo e' il lavoro vero — **scrive da se' la voce nella configurazione del
+client MCP**.
+
+### Perche' l'installatore, e non tre righe di README
+
+Le tre righe di README le salta chi ha fretta, e poi il ponte non parte per una
+ragione che nessuno dei due indovina. Il punto dove ci si perde non e' copiare
+due file: e' aprire un JSON nascosto in `%APPDATA%`, capire dove va il blocco,
+non rompere quello che c'era, e sapere che Claude va riavviato perche' legga.
+
+Tre regole nella scrittura di quella configurazione, tutte e tre pagate da
+qualcun altro prima di noi:
+
+- **non si sovrascrive il file.** Chi usa Claude ha spesso altri server MCP
+  configurati: si legge, si aggiunge la propria voce, si riscrive il resto
+  com'era;
+- **si fa una copia prima**, sempre, con la data nel nome;
+- **si dice di riavviare.** Claude legge quel file all'avvio, e «non succede
+  niente» e' il modo piu' rapido di far concludere che l'installazione e'
+  fallita.
+
+Il JSON viene riscritto **indentato**: lasciare all'utente una riga da duemila
+caratteri dove prima c'era qualcosa di leggibile e' un danno anche se il
+contenuto e' giusto.
+
+### Quello che fa, in ordine
+
+Controlla prima di toccare: .NET Framework 4.8, SOLIDWORKS installato (e la
+cartella `api\redist`, che serve perche' le librerie di Dassault **non** sono
+incluse), il carico da installare, l'add-in, e se SOLIDWORKS e' aperto adesso.
+Ogni controllo che fallisce dice **cosa fare**, non solo che e' fallito.
+
+Poi installa in `%LOCALAPPDATA%`, collega i client scelti, e chiude con il
+**giro secco**: `--prova` si aggancia, dice cosa vede, ed esce. E' l'unica cosa
+che permette di scrivere «installato» sapendo che e' vero.
+
+Niente elevazione: non scrive in Program Files, non tocca il registro, non
+registra componenti COM. In molte officine il progettista l'amministratore non
+ce l'ha, e un installatore che lo chiede non si puo' usare.
+
+C'e' anche `--silenzioso` per installare su piu' postazioni, e `Disinstalla`,
+che toglie **solo** i file messi da qui — mai una cancellazione ricorsiva su
+una cartella scelta da chi installa.
+
+### Misurato
+
+| prova | esito |
+|---|---|
+| installazione pulita | 4 file scritti, giro secco: «il ponte sta in piedi» |
+| reinstallazione sopra una precedente | riscritti, nessun errore |
+| **l'exe DA SOLO in una cartella vuota** | **estrae tutto e si installa: il carico e' davvero dentro** |
+| `--aiuto` da un prompt | si attacca alla console di chi ha chiamato |
+
+La terza riga e' la prova che conta: se il carico non fosse incorporato,
+l'installatore lo prenderebbe dalla cartella accanto e la prova passerebbe
+lo stesso senza che il file sia autosufficiente. `build.ps1` ha anche un
+controllo che si rifiuta di produrre un pacchetto piu' piccolo del ponte che
+dovrebbe contenere.
+
+### Una cosa piccola, e il perche'
+
+La console stampa solo ASCII. Ci si attacca alla console di chi ha lanciato il
+comando, con la sua tabella codici: un trattino lungo esce come un rombo con un
+punto interrogativo, e un installatore che stampa caratteri rotti sembra rotto
+lui.
+
+---
+
 ## 0.3.0 — 14 settembre 2026
 
 **Tre difese, e una era un difetto che avevo aggiunto io.**
