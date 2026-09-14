@@ -16,6 +16,75 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.3.0 — 14 settembre 2026
+
+**Tre difese, e una era un difetto che avevo aggiunto io.**
+
+### Il ponte dichiara cosa fa
+
+Il protocollo prevede quattro suggerimenti che il client usa per decidere se
+fermarsi a chiedere conferma a chi sta lavorando: `readOnlyHint`,
+`destructiveHint`, `idempotentHint`, `openWorldHint`. Non ce n'era **nessuno**,
+quindi ogni client trattava `guarda_il_pezzo` — che non tocca niente — e
+`disegna` — che modifica il pezzo in modo che nessuno annulla per lui —
+esattamente allo stesso modo.
+
+Per un progetto la cui tesi e' «nessuna geometria esiste senza che qualcuno
+l'abbia confermata», era l'omissione piu' vistosa.
+
+`disegna` e' dichiarato **non idempotente**, ed e' la riga che conta:
+rieseguire lo stesso piano non rimette il pezzo com'era, fa un **secondo foro**.
+Dichiararlo idempotente inviterebbe un client a riprovare da solo dopo un
+errore di rete, e il pezzo uscirebbe con il doppio delle lavorazioni senza che
+nessuno l'abbia chiesto.
+
+**Misurato:** `tools/list` riporta le quattro annotazioni su tutti e quattro gli
+strumenti; `disegna` distruttivo, non idempotente, non di sola lettura.
+
+### Si NOMINA il documento, non si spegne il controllo
+
+La 0.2.x aveva `qualunque_documento: true` per scavalcare il rifiuto quando il
+documento attivo era cambiato. Era un difetto, e della specie peggiore: **un
+argomento che disattiva una difesa e' un invito a disattivarla.** Chi incontra
+il rifiuto ha tutti gli incentivi per riprovare con quello acceso, e la difesa
+sparisce proprio nel caso in cui serviva.
+
+Adesso si passa `documento` con il titolo o il percorso. Chiede la stessa cosa
+in una forma che non si puo' dare a caso: **per scriverne il nome bisogna averlo
+guardato.** Un booleano lo mette chiunque; un nome che non corrisponde viene
+rifiutato come tutto il resto.
+
+### I percorsi si controllano prima di eseguire
+
+`salva_documento` ed `esporta_pdf` prendono un percorso **dal modello** e ci
+scrivono sopra. E' l'unica cosa che il ponte tocca fuori dal documento aperto, e
+arrivava da un testo generato senza nessun controllo.
+
+Tre regole, in `Ponte/Percorsi.cs`:
+
+- una radice obbligatoria, se `RISCONTRO_RADICE` e' impostata;
+- le cartelle di **sistema e di programma** mai, in nessun caso — non perche'
+  qualcuno le chiederebbe apposta, ma perche' un percorso relativo sbagliato ci
+  finisce da solo;
+- le cartelle dichiarate in `RISCONTRO_SOLA_LETTURA`, che nascono da un fatto:
+  inserendo un membro strutturale SOLIDWORKS apre da solo il file di libreria
+  dei profili e lo lascia marcato come modificato. Da li' un salvataggio
+  qualunque riscrive la libreria di tutti.
+
+**Misurato**, e la terza riga e' quella che conta:
+
+| richiesta | esito |
+|---|---|
+| un percorso dentro la cartella di sistema | rifiutato, niente eseguito |
+| un percorso con `..\..\` che ci finisce dentro | rifiutato: normalizzato **prima** del confronto |
+| una cartella di lavoro normale | **salvato, 45.144 byte** |
+
+L'ultima riga e' la lezione gia' pagata altrove: un controllo che rifiuta anche
+cio' che e' soltanto insolito e' peggio di nessun controllo, perche' blocca
+lavoro legittimo e nessuno lo rivede.
+
+---
+
 ## 0.2.0 — 11 settembre 2026
 
 **Il ponte sta in piedi e disegna.** Quattro strumenti, protocollo completo,

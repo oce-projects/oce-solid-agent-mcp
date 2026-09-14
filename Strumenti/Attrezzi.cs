@@ -48,7 +48,8 @@ namespace SolidWorksMcp.Strumenti
                     "e spigoli con il loro identificativo. Gli identificativi (F1, " +
                     "E4, Corpo1) che le altre operazioni vogliono nascono QUI e " +
                     "valgono per questa lettura: dopo ogni modifica si rilegge.",
-                    Oggetto(new Dictionary<string, object>(), new string[0])),
+                    Oggetto(new Dictionary<string, object>(), new string[0]),
+                    soloLettura: true, distruttivo: false, idempotente: true),
 
                 Strumento(
                     "elenco_operazioni",
@@ -66,7 +67,8 @@ namespace SolidWorksMcp.Strumenti
                                     "riferimenti, corpi, saldature, proprieta', tavola",
                             },
                         },
-                        new string[0])),
+                        new string[0]),
+                    soloLettura: true, distruttivo: false, idempotente: true),
 
                 Strumento(
                     "descrivi_operazione",
@@ -81,7 +83,8 @@ namespace SolidWorksMcp.Strumenti
                                 ["description"] = "il nome esatto, da «elenco_operazioni»",
                             },
                         },
-                        new[] { "nome" })),
+                        new[] { "nome" }),
+                    soloLettura: true, distruttivo: false, idempotente: true),
 
                 Strumento(
                     "disegna",
@@ -115,18 +118,25 @@ namespace SolidWorksMcp.Strumenti
                                     },
                                     new[] { "operazione" }),
                             },
-                            ["qualunque_documento"] = new Dictionary<string, object>
+                            ["documento"] = new Dictionary<string, object>
                             {
-                                ["type"] = "boolean",
+                                ["type"] = "string",
                                 ["description"] =
-                                    "Normalmente si disegna sul documento che hai " +
-                                    "guardato con «guarda_il_pezzo», e se davanti ce " +
-                                    "n'e' un altro l'operazione si ferma. Metti true " +
-                                    "SOLO se sai che il documento e' cambiato e vuoi " +
-                                    "lavorare su quello che c'e' adesso.",
+                                    "Su quale documento disegnare: il titolo o il " +
+                                    "percorso, copiato da «guarda_il_pezzo». Serve " +
+                                    "SOLO se il documento davanti e' cambiato da " +
+                                    "quando l'hai guardato: normalmente si omette. " +
+                                    "Nominarlo vuol dire «so quale pezzo sto " +
+                                    "toccando», e un nome che non corrisponde viene " +
+                                    "rifiutato.",
                             },
                         },
-                        new[] { "passi" })),
+                        new[] { "passi" }),
+                    // Rieseguire lo stesso piano NON rimette il pezzo
+                    // com'era: fa un secondo foro. Dichiararlo idempotente
+                    // inviterebbe un client a riprovare da solo dopo un
+                    // errore di rete.
+                    soloLettura: false, distruttivo: true, idempotente: false),
             };
         }
 
@@ -253,30 +263,54 @@ namespace SolidWorksMcp.Strumenti
             // non combacia ci si ferma. Chi sa cosa sta facendo puo' dire
             // esplicitamente «si', quello davanti» con `qualunque_documento`.
             var adesso = IdentitaDelloStato(prima);
-            if (_guardato == null)
+            var nominato = Testo(argomenti, "documento");
+
+            // SI NOMINA IL DOCUMENTO, NON SI SPEGNE IL CONTROLLO.
+            //
+            // La prima versione aveva un `qualunque_documento: true` per
+            // scavalcare il rifiuto. Era un difetto: un argomento che
+            // disattiva una difesa e' un invito a disattivarla, e chi lo
+            // incontra ha tutti gli incentivi per riprovare con quello
+            // acceso — cioe' la difesa sparisce proprio nel caso in cui
+            // serviva.
+            //
+            // Nominare il documento chiede la stessa cosa in una forma che
+            // non si puo' dare a caso: per scriverne il nome bisogna averlo
+            // guardato. Un booleano lo mette chiunque; un nome sbagliato
+            // viene rifiutato come tutto il resto.
+            bool loHaNominato =
+                !string.IsNullOrWhiteSpace(nominato) &&
+                Ponte.Sessione.StessoDocumento(
+                    adesso,
+                    new Dictionary<string, object>
+                    {
+                        [nominato.IndexOfAny(new[] { '\\', '/' }) >= 0
+                            ? "percorso" : "titolo"] = nominato,
+                    });
+
+            if (!loHaNominato)
             {
-                if (!Bool(argomenti, "qualunque_documento"))
+                if (_guardato == null)
                     return Protocollo.Contenuto(
                         "Non ho ancora guardato nessun pezzo, quindi non so su quale " +
                         "documento vuoi che disegni: adesso davanti c'e' «" +
                         NomeLeggibile(adesso) + "». Chiama prima «guarda_il_pezzo» — " +
                         "serve comunque, perche' gli identificativi delle facce " +
                         "nascono li'.", true);
-                _guardato = adesso;
-            }
-            else if (!Ponte.Sessione.StessoDocumento(_guardato, adesso))
-            {
-                if (!Bool(argomenti, "qualunque_documento"))
+
+                if (!Ponte.Sessione.StessoDocumento(_guardato, adesso))
                     return Protocollo.Contenuto(
                         "Mi fermo: il documento e' cambiato. Avevi guardato «" +
                         NomeLeggibile(_guardato) + "», adesso davanti c'e' «" +
                         NomeLeggibile(adesso) + "». Disegnare qui vorrebbe dire " +
                         "scrivere nel pezzo sbagliato, e gli identificativi del tuo " +
-                        "piano non valgono su questo. Riguarda il pezzo giusto con " +
-                        "«guarda_il_pezzo», oppure — se e' proprio questo che vuoi — " +
-                        "ripeti con «qualunque_documento»: true.", true);
-                _guardato = adesso;
+                        "piano non valgono su questo.\n\n" +
+                        "Se e' cambiato per una ragione che conosci, rileggilo con " +
+                        "«guarda_il_pezzo». Se sai gia' che vuoi lavorare proprio su " +
+                        "quello che c'e' adesso, ripeti passando «documento»: \"" +
+                        NomeLeggibile(adesso) + "\".", true);
             }
+            _guardato = adesso;
 
             var esiti = new List<object>();
             bool tuttoBene = true;
@@ -307,6 +341,22 @@ namespace SolidWorksMcp.Strumenti
                             (simili.Count > 0
                                 ? " Forse cercavi: " + string.Join(", ", simili) + "."
                                 : ""),
+                    });
+                    tuttoBene = false;
+                    break;
+                }
+
+                // I PERCORSI SI CONTROLLANO PRIMA DI ESEGUIRE.
+                // Sono l'unica cosa che questo ponte scrive fuori dal
+                // documento aperto, e arrivano da un testo generato.
+                var percorsoStorto = Ponte.Percorsi.Controlla(suoi);
+                if (percorsoStorto != null)
+                {
+                    esiti.Add(new Dictionary<string, object>
+                    {
+                        ["operazione"] = nome,
+                        ["riuscita"] = false,
+                        ["errore"] = percorsoStorto,
                     });
                     tuttoBene = false;
                     break;
@@ -361,14 +411,6 @@ namespace SolidWorksMcp.Strumenti
             return v == null ? null : Convert.ToString(v);
         }
 
-        private static bool Bool(Dictionary<string, object> d, string chiave)
-        {
-            var v = Prendi(d, chiave);
-            if (v == null) return false;
-            if (v is bool b) return b;
-            return string.Equals(Convert.ToString(v), "true",
-                StringComparison.OrdinalIgnoreCase);
-        }
 
         private static Dictionary<string, object> Oggetto(
             Dictionary<string, object> proprieta, string[] obbligatori)
@@ -381,15 +423,61 @@ namespace SolidWorksMcp.Strumenti
             };
         }
 
+        /// <summary>
+        /// Uno strumento, con le sue ANNOTAZIONI.
+        ///
+        /// PERCHE' LE ANNOTAZIONI NON SONO UN DETTAGLIO DI PROTOCOLLO.
+        /// Il client MCP le usa per decidere se fermarsi a chiedere conferma a
+        /// chi sta lavorando. Senza, `guarda_il_pezzo` — che non tocca niente —
+        /// e `disegna` — che modifica il pezzo in modo che nessuno annulla per
+        /// lui — arrivano al client identici, e il client tratta identiche due
+        /// cose che non lo sono.
+        ///
+        /// Per un progetto la cui tesi e' «nessuna geometria esiste senza che
+        /// qualcuno l'abbia confermata», dichiararle e' il minimo.
+        ///
+        /// `idempotente` merita una riga: `disegna` NON lo e'. Rieseguire lo
+        /// stesso piano non rimette il pezzo com'era — fa un SECONDO foro.
+        /// Dichiararlo idempotente inviterebbe un client a riprovare da solo
+        /// dopo un errore di rete, e il pezzo uscirebbe con il doppio delle
+        /// lavorazioni senza che nessuno l'abbia chiesto.
+        /// </summary>
         private static Dictionary<string, object> Strumento(
-            string nome, string descrizione, Dictionary<string, object> schema)
+            string nome,
+            string descrizione,
+            Dictionary<string, object> schema,
+            bool soloLettura,
+            bool distruttivo,
+            bool idempotente)
         {
             return new Dictionary<string, object>
             {
                 ["name"] = nome,
                 ["description"] = descrizione,
                 ["inputSchema"] = schema,
+                ["annotations"] = new Dictionary<string, object>
+                {
+                    ["title"] = TitoloUmano(nome),
+                    ["readOnlyHint"] = soloLettura,
+                    ["destructiveHint"] = distruttivo,
+                    ["idempotentHint"] = idempotente,
+                    // Il mondo esterno qui e' SolidWorks: un programma che non
+                    // controlliamo, con documenti che cambiano sotto i piedi.
+                    ["openWorldHint"] = true,
+                },
             };
+        }
+
+        private static string TitoloUmano(string nome)
+        {
+            switch (nome)
+            {
+                case "guarda_il_pezzo": return "Guarda il pezzo aperto";
+                case "elenco_operazioni": return "Elenco delle operazioni";
+                case "descrivi_operazione": return "Descrivi una operazione";
+                case "disegna": return "Disegna nel pezzo";
+                default: return nome;
+            }
         }
     }
 }
