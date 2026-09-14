@@ -87,6 +87,30 @@ namespace Riscontro.Disegno
         /// </summary>
         public bool DocumentoSenzaFile { get; set; }
 
+        /// <summary>
+        /// Lascia lavorare anche su una TAVOLA, non solo su una parte.
+        ///
+        /// Stessa storia di <see cref="DocumentoSenzaFile"/>, altro mestiere:
+        ///
+        ///   * l'assistente dell'add-in disegna PEZZI. Un piano che arriva su
+        ///     una tavola li' e' quasi sempre un errore di chi ha cambiato
+        ///     finestra, e fermarsi e' giusto;
+        ///   * il ponte MCP ha cinque operazioni di tavola in catalogo
+        ///     (`crea_disegno`, `viste_standard`, `imposta_foglio`,
+        ///     `quote_dal_modello`, `esporta_pdf`). Rifiutare le tavole
+        ///     renderebbe inutili proprio quelle.
+        ///
+        /// GLI ASSIEMI RESTANO FUORI in tutti e due i casi, e non per
+        /// dimenticanza: nessuna operazione della libreria sa lavorare su un
+        /// assieme, quindi permetterlo vorrebbe dire far arrivare il piano fino
+        /// a un rifiuto piu' oscuro invece di fermarlo qui con un motivo
+        /// chiaro.
+        ///
+        /// Sorvegliata da `Controlli\controlla-documenti-senza-file.ps1`
+        /// insieme all'altra.
+        /// </summary>
+        public bool AncheSuTavole { get; set; }
+
         public EsecutorePiano(
             ISldWorks sw,
             IFontePiano fonte,
@@ -416,8 +440,13 @@ namespace Riscontro.Disegno
         {
             var modello = _sw.IActiveDoc2;
             if (modello == null) return "Non c'e' nessun documento aperto.";
-            if (modello.GetType() != (int)swDocumentTypes_e.swDocPART)
-                return "L'assistente lavora solo su una parte, non su assiemi o disegni.";
+            int tipo = modello.GetType();
+            bool ammesso = tipo == (int)swDocumentTypes_e.swDocPART
+                || (AncheSuTavole && tipo == (int)swDocumentTypes_e.swDocDRAWING);
+            if (!ammesso)
+                return AncheSuTavole
+                    ? "Si lavora su una parte o su una tavola, non su un assieme."
+                    : "L'assistente lavora solo su una parte, non su assiemi o disegni.";
 
             var percorso = modello.GetPathName();
             if (string.IsNullOrEmpty(percorso) && !DocumentoSenzaFile)

@@ -16,6 +16,86 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.17.0 — 14 settembre 2026 · libreria 0.57.0
+
+**I tagli portano le loro quote.** `taglio_cilindrico` mette il diametro,
+`taglio_rettangolare` lunghezza e larghezza. Senza, quei pezzi non erano
+modificabili con `modifica_quota`: si potevano fare e non si potevano
+correggere, che e' la lamentela piu' frequente dell'officina.
+
+### Misurato
+
+Piastra 120 × 80 × 20, foro Ø12 passante, tasca 24 × 16 passante:
+
+```
+volume: 182.058,1     atteso 192.000 - pi*6^2*20 - 24*16*20 = 182.058,05
+```
+
+Poi `modifica_quota` sul diametro, 12 → 20:
+
+```
+prima 182.058,1   dopo 178.036,8   differenza 4.021,3
+atteso pi*(10^2-6^2)*20 = 4.021,24
+```
+
+### Due decisioni, e il perche'
+
+**Si quota la DIMENSIONE, non la posizione.** La posizione vorrebbe un
+riferimento da cui misurare, e sceglierlo per conto di chi disegna vuol dire
+vincolare lo schizzo piu' di quanto abbia chiesto: il `modifica_quota`
+successivo fallirebbe con un messaggio di sovra-vincolo che non parla di niente.
+
+**Le quote nascono marcate per il disegno** (`IDisplayDimension.MarkedForDrawing`).
+`quote_dal_modello` di serie importa solo quelle — una tavola con tutte le quote
+del modello e' illeggibile — quindi una quota non marcata non sarebbe mai
+arrivata in tavola.
+
+### La Z che mancava
+
+`QuotaSegmenti` passava ad `AddDimension` il punto del testo come `(x, y, 0)`.
+Va bene per uno schizzo su un piano di riferimento, dove Z e' zero per
+costruzione; **non** per uno schizzo su una faccia qualunque, che e' dove stanno
+tutti i tagli. Adesso il punto ha tre coordinate.
+
+### Non funziona ancora: `quote_dal_modello`
+
+Le quote arrivano nel pezzo e **non arrivano in tavola**. Non e' una regressione:
+quell'operazione non ha mai funzionato, e solo adesso c'e' qualcosa da importare.
+
+Misurato: 16 quote nel pezzo, tutte marcate; tre viste risolte; **zero**
+importate. Provati tre versioni dell'API, cinque valori di fonte, quattro
+maschere di tipo, la vista attivata e la vista selezionata, l'opzione di
+documento di inserimento automatico accesa, e gli schizzi sui due piani. Due
+conti indipendenti d'accordo su zero. Dettaglio e cosa resta da provare nella
+voce D3 del `TODO.md`.
+
+### Trovato per strada: un'opzione chiesta al livello sbagliato non si lamenta
+
+`swDetailingAutoInsertDimsMarkedForDrawing` (248) e' una preferenza di
+**documento**. Chiedendola all'**applicazione**: `GetUserPreferenceToggle`
+risponde `False`, `SetUserPreferenceToggle(248, true)` **non fallisce**, e la
+rilettura da' ancora `False`. Nessun errore, nessun avviso, nessun effetto.
+
+> Un'opzione che «non si lascia cambiare» quasi sempre e' un'opzione chiesta al
+> livello sbagliato.
+
+### E un'insidia dell'interop
+
+`ISketchSegment.GetType()` **non** e' quello di `Object`: l'interop lo nasconde
+con un metodo suo che torna il tipo di segmento come intero (0 = linea). Scrivere
+`.Name` dietro non compila — ed e' un bene, perche' se compilasse si leggerebbe
+un nome di classe al posto di una linea.
+
+### Attrezzi nuovi
+
+| | |
+|---|---|
+| `Controlli\QuoteInTavola` | prova tutte le combinazioni di inserimento e **conta** dopo ognuna |
+| `Controlli\Opzione` | legge e scrive una preferenza ai due livelli, applicazione e documento |
+| `Controlli\ApiQuote` | quali API e quali costanti esistono davvero, per parola |
+
+---
+
 ## 0.16.0 — 14 settembre 2026 · libreria 0.56.0
 
 **Il documento si tiene per mano, non per nome.** E un piano puo' finalmente

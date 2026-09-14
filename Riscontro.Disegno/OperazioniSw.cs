@@ -404,7 +404,7 @@ namespace Riscontro.Disegno
             double fuoriX = Math.Max(Math.Abs(x2 - x1) * 0.15, 0.005);
             double fuoriY = Math.Max(Math.Abs(y2 - y1) * 0.15, 0.005);
 
-            var daQuotare = new List<Tuple<object, double, double>>();
+            var daQuotare = new List<Quota>();
             bool orizzontaleFatta = false, verticaleFatta = false;
 
             foreach (var o in lati)
@@ -426,7 +426,7 @@ namespace Riscontro.Disegno
                 if (orizzontale) ty = Math.Min(y1, y2) - fuoriY;
                 else tx = Math.Min(x1, x2) - fuoriX;
 
-                daQuotare.Add(Tuple.Create(o, tx, ty));
+                daQuotare.Add(Quota.Su(o, new[] { tx, ty, 0.0 }));
                 if (orizzontale) orizzontaleFatta = true; else verticaleFatta = true;
                 if (orizzontaleFatta && verticaleFatta) break;
             }
@@ -459,8 +459,35 @@ namespace Riscontro.Disegno
         /// e si scrive quante ne sono state messe, che e' un numero che chi
         /// legge puo' controllare.
         /// </summary>
-        private int QuotaSegmenti(
-            IModelDoc2 modello, List<Tuple<object, double, double>> daQuotare)
+        /// <summary>
+        /// Un segmento da quotare, e DOVE va scritto il numero (metri,
+        /// coordinate del modello).
+        ///
+        /// La Z c'e' e non e' un di piu'. Prima il punto del testo era
+        /// `(x, y, 0)`: va bene per uno schizzo su un piano di riferimento,
+        /// dove Z e' zero per costruzione, e **non** per uno schizzo su una
+        /// faccia qualunque — che e' dove stanno tutti i tagli. Con la Z
+        /// inchiodata a zero la quota di un foro su un fianco nasce fuori dal
+        /// piano dello schizzo, e SOLIDWORKS la rifiuta senza spiegare.
+        /// </summary>
+        private class Quota
+        {
+            public object Segmento;
+            public double X, Y, Z;
+
+            public static Quota Su(object segmento, double[] punto)
+            {
+                return new Quota
+                {
+                    Segmento = segmento,
+                    X = punto[0],
+                    Y = punto[1],
+                    Z = punto.Length > 2 ? punto[2] : 0,
+                };
+            }
+        }
+
+        private int QuotaSegmenti(IModelDoc2 modello, List<Quota> daQuotare)
         {
             if (modello == null || daQuotare == null || daQuotare.Count == 0) return 0;
 
@@ -480,10 +507,27 @@ namespace Riscontro.Disegno
                 try
                 {
                     modello.ClearSelection2(true);
-                    var segmento = voce.Item1 as ISketchSegment;
+                    var segmento = voce.Segmento as ISketchSegment;
                     if (segmento == null || !segmento.Select4(false, null)) continue;
-                    if (modello.Extension.AddDimension(voce.Item2, voce.Item3, 0, 0) == null)
-                        continue;
+                    var nata = modello.Extension.AddDimension(voce.X, voce.Y, voce.Z, 0)
+                        as IDisplayDimension;
+                    if (nata == null) continue;
+
+                    // MARCATA PER IL DISEGNO, ed e' la riga che fa la
+                    // differenza fra una tavola quotata e una muta.
+                    //
+                    // `quote_dal_modello` importa di serie solo le quote
+                    // MARCATE: sono quelle che un progettista ha scelto di
+                    // mostrare, e una tavola con tutte le quote del modello e'
+                    // illeggibile. Una quota nata da `AddDimension` non e'
+                    // marcata, quindi le nostre non arrivavano mai — misurato
+                    // il 14/9/2026: pezzo con 11 quote, tavola con 0, e
+                    // nemmeno chiedendo «tutte_le_quote».
+                    //
+                    // Marcandole qui, la tavola prende ESATTAMENTE le quote che
+                    // le operazioni hanno messo apposta, e non quelle di
+                    // servizio.
+                    try { nata.MarkedForDrawing = true; } catch { }
                 }
                 catch { continue; }
                 messe++;
@@ -1222,10 +1266,7 @@ namespace Riscontro.Disegno
             // se no finisce sopra il disegno.
             double lontano = Unita.M(diametro / 2) * 1.4 + 0.005;
             int quoteMesse = QuotaSegmenti(modello,
-                new List<Tuple<object, double, double>>
-                {
-                    Tuple.Create((object)cerchio, lontano, lontano),
-                });
+                new List<Quota> { Quota.Su(cerchio, new[] { lontano, lontano, 0.0 }) });
 
             schizzi.InsertSketch(false);
 
@@ -1655,7 +1696,30 @@ namespace Riscontro.Disegno
                 try { schizzi.InsertSketch(false); } catch { }
                 return Fallito(errore);
             }
-            schizzi.CreateCircleByRadius(centro[0], centro[1], centro[2], Unita.M(diametro / 2));
+            var cerchioTaglio = schizzi.CreateCircleByRadius(
+                centro[0], centro[1], centro[2], Unita.M(diametro / 2));
+
+            // IL DIAMETRO, SULLO SCHIZZO DEL FORO.
+            //
+            // Senza, il foro non e' modificabile con `modifica_quota` e la sua
+            // tavola resta muta: `quote_dal_modello` non ha niente da
+            // riportare. E' la lamentela piu' frequente dell'officina —
+            // un pezzo che si puo' fare ma non si puo' correggere.
+            //
+            // SI QUOTA LA DIMENSIONE, NON LA POSIZIONE. La posizione vorrebbe
+            // un riferimento da cui misurare, e sceglierlo per conto di chi
+            // disegna vuol dire vincolare lo schizzo piu' di quanto abbia
+            // chiesto: il `modifica_quota` dopo fallirebbe con un messaggio di
+            // sovra-vincolo che non parla di niente.
+            string erroreTesto;
+            var testoQuota = PuntoNelloSchizzo(
+                modello, assi, offsetM,
+                x + raggioForo * 1.4 + 5, y + raggioForo * 1.4 + 5, out erroreTesto);
+            int quoteMesse = cerchioTaglio != null && testoQuota != null
+                ? QuotaSegmenti(modello,
+                    new List<Quota> { Quota.Su(cerchioTaglio, testoQuota) })
+                : 0;
+
             schizzi.InsertSketch(false);
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
@@ -1702,6 +1766,7 @@ namespace Riscontro.Disegno
                 ["diametro_mm"] = diametro,
                 ["passante"] = passante,
                 ["pareti_forate"] = pareti,
+                ["quote_sullo_schizzo"] = quoteMesse,
             }, NormaleDellaFaccia(faccia));
         }
 
@@ -1746,7 +1811,34 @@ namespace Riscontro.Disegno
                 try { schizzi.InsertSketch(false); } catch { }
                 return Fallito(errore);
             }
-            schizzi.CreateCornerRectangle(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
+            var latiTaglio = schizzi.CreateCornerRectangle(
+                p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]) as object[];
+
+            // LE DUE QUOTE DELLA TASCA, per lo stesso motivo del foro tondo.
+            //
+            // Si prendono i primi due lati e basta: sono adiacenti, quindi
+            // perpendicolari, quindi uno da' la lunghezza e l'altro la
+            // larghezza. QUALE dei due sia l'uno e quale l'altro non si
+            // stabilisce a priori — su una faccia qualunque «orizzontale» non
+            // vuol dire niente — e non serve saperlo: le due quote nascono
+            // comunque giuste, e il criterio della voce si verifica MISURANDO
+            // i valori, non deducendoli dall'ordine dei lati.
+            int quoteMesse = 0;
+            if (latiTaglio != null && latiTaglio.Length >= 2)
+            {
+                string erroreTesto;
+                var sotto = PuntoNelloSchizzo(
+                    modello, assi, offsetM,
+                    x, y - larghezza / 2 - 5, out erroreTesto);
+                var aFianco = PuntoNelloSchizzo(
+                    modello, assi, offsetM,
+                    x + lunghezza / 2 + 5, y, out erroreTesto);
+                var elenco = new List<Quota>();
+                if (sotto != null) elenco.Add(Quota.Su(latiTaglio[0], sotto));
+                if (aFianco != null) elenco.Add(Quota.Su(latiTaglio[1], aFianco));
+                quoteMesse = QuotaSegmenti(modello, elenco);
+            }
+
             schizzi.InsertSketch(false);
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
@@ -1767,6 +1859,7 @@ namespace Riscontro.Disegno
                 ["lunghezza_mm"] = lunghezza,
                 ["larghezza_mm"] = larghezza,
                 ["passante"] = passante,
+                ["quote_sullo_schizzo"] = quoteMesse,
             }, NormaleDellaFaccia(faccia));
         }
 
