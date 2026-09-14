@@ -56,7 +56,8 @@ $attrezzi = @(
     @{ nome = 'Opzione'; sw = $true; lib = $false },
     @{ nome = 'ApiQuote'; sw = $true; lib = $false },
     @{ nome = 'AlberoRosso'; sw = $true; lib = $false },
-    @{ nome = 'Seleziona'; sw = $true; lib = $false }
+    @{ nome = 'Seleziona'; sw = $true; lib = $false },
+    @{ nome = 'CoperturaRuoli'; sw = $true; lib = $false }
 )
 
 foreach ($a in $attrezzi) {

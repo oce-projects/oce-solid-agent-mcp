@@ -16,6 +16,75 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.28.0 — 14 settembre 2026 · libreria 0.63.0
+
+**E7 misurata, e il numero la declassa.** Nuovo attrezzo
+`Controlli/CoperturaRuoli`.
+
+La voce E7 proponeva di nominare una faccia per SIGNIFICATO invece che per
+posizione — «il fondo della tasca» resta il fondo qualunque quota si cambi a
+monte — e chiedeva un numero **prima** di costruire, piu' cosa farne:
+
+> «Se e' sotto meta', questa e' un complemento, non la strada principale, **e va
+> scritto.»
+
+**31,4% su 86 facce, dieci pezzi.** E' un complemento.
+
+### La media nasconde la cosa che conta
+
+| | facce | con ruolo | |
+|---|---|---|---|
+| cilindro | 3 | **3** | **100%** |
+| cilindro forato | 4 | **4** | **100%** |
+| piastra forata | 7 | 3 | 43% |
+| piastra | 6 | 2 | 33% |
+| tasca | 11 | 3 | 27% |
+| due tasche | 16 | 4 | 25% |
+| raccordato | 10 | 2 | 20% |
+
+La spaccatura e' **geometrica**, non statistica. Un pezzo di rivoluzione ha una
+faccia in cima, una sotto e una cilindrica: tre facce, tre ruoli, nessuna
+ambiguita'. Un pezzo prismatico ha quattro o sei **fianchi**, e per i fianchi il
+vocabolario non ha nessuna parola. Su «due tasche» sono dodici facce su sedici.
+
+### E i ruoli che scattano sono quelli che servono meno
+
+Dei 27 ruoli assegnati: `faccia_superiore` **13**, `faccia_inferiore` **10**,
+`faccia_del_foro` **4**, `faccia_di_fondo` **0**.
+
+Ventitre su ventisette sono «sopra» e «sotto», cioe' le facce che si
+identificano gia' benissimo da sole. `faccia_del_foro` — l'unico che risolve un
+problema vero — copre **quattro facce su ottantasei**.
+
+### Tre modi diversi di non avere un ruolo
+
+Contati separati, perche' si riparano in tre modi diversi: **50** per geometria
+(i fianchi: si risolve solo allargando il vocabolario), **8** ambigue (piu' di una
+faccia cilindrica sulla stessa lavorazione, dove si rifiuta invece di scegliere:
+si risolve rifiutando meglio), **9** senza direzione leggibile (il dato c'e' nel
+modello ma non si ricava: e' l'unico dei tre che sia un difetto nostro).
+
+### Perche' si chiude qui
+
+E6 ha risolto entrambi i casi di E2, e in 0.1 il persist ID aveva ritrovato 8
+facce su 8 in tutte e cinque le modifiche riuscite. La strada principale c'e'
+gia'. Costruire un secondo meccanismo che copre il 31% — e per l'85% di quel 31%
+copre «la faccia in cima», che non e' mai stato il problema — vorrebbe dire
+aprire superficie nuova per un guadagno che non si riesce a nominare.
+
+> Una voce da dodici ore chiusa da una misura di due non e' lavoro risparmiato:
+> e' lavoro che non andava fatto, e adesso si sa perche'.
+
+Restano tre voci nuove, tutte dimensionate su numeri gia' misurati: **E14** (le 8
+ambigue), **E15** (`guscio` e' l'unica operazione su faccia che non accetta un
+riferimento a un passo, trovata costruendo i dieci pezzi) e **E13** dalla
+versione precedente.
+
+`CoperturaRuoli` esce **sempre 0**: e' una misura, non un controllo. Un numero
+basso non e' un fallimento, e' la risposta.
+
+---
+
 ## 0.27.0 — 14 settembre 2026 · libreria 0.63.0
 
 **Il marchio esce dal nome del prodotto.** Voce I1.
