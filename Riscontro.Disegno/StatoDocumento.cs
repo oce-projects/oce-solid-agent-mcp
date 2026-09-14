@@ -193,6 +193,7 @@ namespace Riscontro.Disegno
             // rende visibile un punto cieco invece di nasconderlo dietro un
             // numero.
             var tipiIgnoti = new SortedSet<string>(StringComparer.Ordinal);
+            int lavorazioniInErrore = 0;
             IFeature f = parte.IFirstFeature();
             while (f != null)
             {
@@ -235,6 +236,35 @@ namespace Riscontro.Disegno
                         // scriverla sempre costerebbe posto per dire «tutto
                         // normale» ottanta volte.
                         try { if (f.IsSuppressed()) voceF["soppressa"] = true; } catch { }
+
+                        // UNA LAVORAZIONE IN ERRORE E UNA SANA ERANO
+                        // INDISTINGUIBILI, ed e' peggio della soppressa.
+                        //
+                        // Misurato il 14/9/2026: piastra 100x60x20 con un
+                        // raccordo da 8 sugli spigoli in cima, poi la larghezza
+                        // portata a 10. Due raccordi da 8 su 10 mm non ci
+                        // stanno, e SOLIDWORKS lo dice —
+                        // `GetErrorCode2` = 12, `GetWhatsWrongCount` = 1 — ma
+                        // lo stato descriveva «Raccordo1, raggio 8» come una
+                        // lavorazione qualunque. Il volume era 3.000, cioe'
+                        // **esattamente** 100x10x3: il raccordo non aveva
+                        // fatto niente, e chi leggeva vedeva un pezzo sano.
+                        //
+                        // Si scrive solo quando c'e', come per `soppressa`:
+                        // e' il caso raro.
+                        try
+                        {
+                            bool soloAvviso;
+                            int codice = f.GetErrorCode2(out soloAvviso);
+                            if (codice != 0)
+                            {
+                                voceF["errore"] = ErroriFeature.Frase(codice);
+                                voceF["errore_codice"] = codice;
+                                if (soloAvviso) voceF["solo_avviso"] = true;
+                                lavorazioniInErrore++;
+                            }
+                        }
+                        catch { }
 
                         // I PARAMETRI: quello che rende un foro «un M8» invece
                         // che «una lavorazione di nome Foro1».
@@ -656,6 +686,28 @@ namespace Riscontro.Disegno
 
             dati["corpo_solido"] = haCorpo;
             dati["piani_disponibili"] = nPiani;
+
+            // L'ALBERO E' ROSSO? SI DICE IN TESTA, NON SOLO DENTRO.
+            //
+            // Le lavorazioni in errore sono gia' segnate una per una, ma chi
+            // legge lo stato scorre l'elenco delle feature solo se ha motivo
+            // di farlo. Un numero in cima e' il motivo.
+            //
+            // **`NeedsRebuild2` NON basta, ed e' misurato**: sul pezzo col
+            // raccordo impossibile rispondeva **0** — nessuna ricostruzione
+            // necessaria — mentre `GetWhatsWrongCount` diceva 1 e il raccordo
+            // aveva codice 12. Le due domande sono diverse: «va ricostruito» e
+            // «e' rotto» non sono la stessa cosa, e fidarsi della prima per
+            // rispondere alla seconda avrebbe dato una guardia sempre verde.
+            if (lavorazioniInErrore > 0)
+                dati["lavorazioni_in_errore"] = lavorazioniInErrore;
+            try
+            {
+                if (modello.Extension.NeedsRebuild2 != 0)
+                    dati["ricostruzione_necessaria"] = true;
+            }
+            catch { }
+
             dati["feature"] = feature;
             if (altreFeature > 0) dati["altre_feature"] = altreFeature;
             // I tipi si mandano SEMPRE quando ce ne sono: e' cio' che

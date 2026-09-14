@@ -195,6 +195,32 @@ namespace Riscontro.Disegno
                 percorsoAtteso = (string)await _sulThreadSw(() => Identita(documentoAtteso));
             }
 
+            // LA FINESTRA DEGLI ERRORI SI SPEGNE, e si rimette com'era.
+            //
+            // Ogni passo ricostruisce, e una ricostruzione con un errore apre
+            // «Cosa c'e' che non va»: un modale. La chiamata COM che l'ha
+            // scatenato **non torna piu'**, e un piano lanciato da un banco non
+            // sorvegliato resta li' tutta la notte. E' esattamente la lezione
+            // gia' pagata con `swInputDimValOnCreate` sulla quotatura.
+            //
+            // Non si perde niente: gli errori si leggono dallo stato, che
+            // adesso li riporta lavorazione per lavorazione.
+            bool mostravaGliErrori = false;
+            bool sapevaMostrarli = false;
+            await _sulThreadSw(() =>
+            {
+                try
+                {
+                    mostravaGliErrori = _sw.GetUserPreferenceToggle(
+                        (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild);
+                    sapevaMostrarli = true;
+                    _sw.SetUserPreferenceToggle(
+                        (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild, false);
+                }
+                catch { }
+                return null;
+            });
+
             // Tutto il piano dentro UNA voce di annullamento: se l'utente
             // preme Ctrl+Z subito dopo, torna com'era prima, non a meta'.
             // (StartRecordingUndoObject/FinishRecordingUndoObject esistono
@@ -349,6 +375,21 @@ namespace Riscontro.Disegno
             {
                 await _sulThreadSw(() =>
                 {
+                    // La finestra degli errori torna com'era: e'
+                    // un'impostazione di chi lavora, non nostra. Si rimette
+                    // solo se si e' riusciti a leggerla — scriverci sopra un
+                    // valore inventato sarebbe peggio che lasciarla spenta.
+                    if (sapevaMostrarli)
+                    {
+                        try
+                        {
+                            _sw.SetUserPreferenceToggle(
+                                (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild,
+                                mostravaGliErrori);
+                        }
+                        catch { }
+                    }
+
                     // Si chiude la voce di annullamento sul documento GIUSTO:
                     // se l'utente e' passato a un'altra finestra, chiuderla li'
                     // raggrupperebbe sotto il nostro nome modifiche che non

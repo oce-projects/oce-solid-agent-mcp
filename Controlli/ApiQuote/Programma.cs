@@ -33,7 +33,7 @@ namespace Controlli.ApiQuote
             // LE COSTANTI, non solo i metodi. Un'opzione di sistema che non si
             // conosce e' indistinguibile da una che non esiste.
             var costanti = typeof(SolidWorks.Interop.swconst.swUserPreferenceToggle_e).Assembly;
-            foreach (var e in new[] { "swUserPreferenceToggle_e", "swInsertAnnotation_e",
+            foreach (var e in new[] { "swUserPreferenceToggle_e", "swInsertAnnotation_e", "swFeatureError_e",
                                       "swImportModelItemsSource_e", "swUserPreferenceIntegerValue_e" })
             {
                 var te = costanti.GetType("SolidWorks.Interop.swconst." + e);

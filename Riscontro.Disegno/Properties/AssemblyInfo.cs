@@ -21,6 +21,6 @@ using System.Runtime.InteropServices;
 // Non e' visibile a COM: la usa il ponte, non SOLIDWORKS.
 [assembly: ComVisible(false)]
 
-[assembly: AssemblyVersion("0.57.0.0")]
-[assembly: AssemblyFileVersion("0.57.0.0")]
-[assembly: AssemblyInformationalVersion("0.57.0")]
+[assembly: AssemblyVersion("0.58.0.0")]
+[assembly: AssemblyFileVersion("0.58.0.0")]
+[assembly: AssemblyInformationalVersion("0.58.0")]

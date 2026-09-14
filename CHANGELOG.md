@@ -16,6 +16,68 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.18.0 — 14 settembre 2026 · libreria 0.58.0
+
+**Lo stato dice quando una lavorazione e' rotta.** Prima non lo diceva, ed era
+un difetto che non dava errore **dentro gli occhiali**: il modello guardava un
+pezzo rotto e vedeva un pezzo sano.
+
+### Il rosso, costruito prima di ripararlo
+
+Piastra 100 × 60 × 20, raccordo da 8 sugli spigoli in cima, poi la larghezza
+portata a **10**. Due raccordi da 8 su 10 mm non ci stanno, e SOLIDWORKS lo sa:
+
+```
+GetWhatsWrongCount: 1
+Raccordo1 [Fillet] errore=12  swFeatureErrorFilletInvalidRadius
+```
+
+`guarda_il_pezzo` rispondeva `{"uid":"Raccordo1","tipo":"Fillet","raggio_mm":8}`
+— un raccordo normale. E il volume era **3.000**, cioe' esattamente 100 × 10 × 3:
+il raccordo non aveva fatto niente.
+
+### Adesso
+
+```
+lavorazioni_in_errore: 1
+"errore": "il raggio del raccordo non va bene per questa geometria: di solito
+           vuol dire che e' piu' grande di quanto ci stia"
+"errore_codice": 12
+```
+
+Sullo stesso pezzo riparato il campo **non compare affatto**. Le due prove vanno
+in coppia: senza la seconda, la prima non direbbe niente.
+
+### `NeedsRebuild2` non bastava
+
+Sul pezzo rotto rispondeva **0**, mentre `GetWhatsWrongCount` diceva 1. «Va
+ricostruito» e «e' rotto» sono due domande diverse, e usare la prima per
+rispondere alla seconda avrebbe dato una guardia **sempre verde**.
+
+### Quello che non si sa resta un numero
+
+`ErroriFeature.cs` traduce i codici conosciuti — raccordi (10-19), estrusioni
+(30-37), il riferimento penzolante (51). Per gli altri esce il nome dell'enum e
+il numero.
+
+> Un nome inventato su un codice e' peggio del numero nudo, perche' sembra una
+> spiegazione.
+
+### La finestra che pianta il banco
+
+`EsecutorePiano` spegne `swShowErrorsEveryRebuild` per la durata del piano e la
+rimette com'era. Una ricostruzione con un errore apre un modale, e la chiamata
+COM che l'ha scatenato **non torna piu'**: stessa lezione di
+`swInputDimValOnCreate`. Provato con la finestra **accesa**: il piano che rompe
+il pezzo va fino in fondo e l'opzione torna al valore di prima.
+
+### Attrezzo nuovo
+
+`Controlli\AlberoRosso` — `NeedsRebuild2`, `GetWhatsWrong` e il codice di errore
+di ogni feature, con il nome dell'enum accanto.
+
+---
+
 ## 0.17.0 — 14 settembre 2026 · libreria 0.57.0
 
 **I tagli portano le loro quote.** `taglio_cilindrico` mette il diametro,
