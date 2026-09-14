@@ -105,6 +105,22 @@ va bene per tutte e due le forme.
 | `seq_a` + `seq_b` — due `disegna`, il secondo su `stato_dopo` | **passa** | passa, Ø10 sulla faccia di sopra |
 | `cp_1`+`cp_2`+`cp_3b` — piano che crea il pezzo da zero | **passa** | passa, nessuna firma da confrontare |
 
+### Correzione a quello che la 0.4.0 diceva dell'installatore
+
+La voce qui sotto dice «si scarica, doppio clic, e Claude parla con
+SOLIDWORKS», e `build.ps1` stampava «dallo a chiunque abbia SOLIDWORKS».
+**Non e' ancora vero, e la riga e' stata cambiata.**
+
+Il carico incorpora il ponte, il catalogo, la configurazione e le note legali,
+ma **non** `OpenPDM.SwAddin.dll`, che il ponte carica per riflessione da accanto
+all'eseguibile o da `OPENPDM_ADDIN`. Chi non ha gia' quell'add-in installa un
+ponte che si ferma subito — con un messaggio chiaro, ma pur sempre un rifiuto.
+
+Finche' le operazioni non sono estratte in una libreria propria (sezione B del
+`TODO.md`), la formula esatta e': **installabile da chiunque, usabile da chi ha
+gia' l'add-in.** La voce del 0.4.0 resta com'era scritta, perche' un registro
+non si riscrive; questa e' la correzione, datata.
+
 ---
 
 ## 0.4.0 — 14 settembre 2026

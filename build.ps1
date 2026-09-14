@@ -150,5 +150,15 @@ Ok ("Installa.exe  " + [math]::Round($grandeExe / 1KB) + " kB  (ponte incorporat
 Nota $finale
 
 Write-Host ""
-Write-Host "  Un file solo. Dallo a chiunque abbia SOLIDWORKS." -ForegroundColor White
+# NON DIRE PIU' DI QUELLO CHE C'E'.
+# Questa riga diceva «dallo a chiunque abbia SOLIDWORKS», e non e' ancora vero:
+# il carico incorpora il ponte, il catalogo e le note legali, ma NON
+# OpenPDM.SwAddin.dll, che il ponte carica per riflessione da accanto
+# all'eseguibile. Chi non ha gia' quell'add-in installa un ponte che si ferma
+# subito, con un messaggio chiaro ma pur sempre un rifiuto. Finche' le
+# operazioni non sono estratte in una libreria propria (sezione B del TODO), il
+# pacchetto e' completo solo per chi ha OpenPDM.
+Write-Host "  Un file solo, ma il ponte carica ancora OpenPDM.SwAddin.dll da" -ForegroundColor White
+Write-Host "  accanto all'eseguibile: il carico NON la contiene. Per ora e'" -ForegroundColor White
+Write-Host "  installabile da chiunque, usabile da chi ha gia' l'add-in." -ForegroundColor White
 Write-Host "  Prova:  .\dist\Installa.exe --aiuto" -ForegroundColor DarkGray
