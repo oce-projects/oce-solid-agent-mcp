@@ -246,7 +246,15 @@ namespace SolidWorksMcp.Strumenti
                     if (voce == null || !voce.TryGetValue("uid", out var uid) || uid == null)
                         continue;
                     var firma = new Dictionary<string, object>();
-                    foreach (var campo in new[] { "punto_mm", "normale", "area_mm2", "lunghezza_mm" })
+                    // `lavorazione` e `lavorazione_id` servono alla
+                    // corroborazione del ritrovamento (voce E3): senza, una
+                    // faccia di un'altra lavorazione finita nello stesso posto
+                    // e' indistinguibile da quella che si cercava.
+                    foreach (var campo in new[]
+                             {
+                                 "punto_mm", "normale", "area_mm2", "lunghezza_mm",
+                                 "lavorazione", "lavorazione_id",
+                             })
                         if (voce.TryGetValue(campo, out var x) && x != null)
                             firma[campo] = x;
                     if (firma.Count > 0) fuori[Convert.ToString(uid)] = firma;

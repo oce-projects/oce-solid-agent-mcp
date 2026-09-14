@@ -104,6 +104,51 @@ namespace Riscontro.Disegno
             public double[] PuntoMm;     // un punto sull'entita', in mm
             public double[] Normale;     // solo per le facce piane
             public object Entita;        // IFace2 / IEdge, valido in questa sessione
+
+            /// <summary>
+            /// DA QUALE LAVORAZIONE VIENE QUESTA FACCIA, per identificativo e
+            /// per nome. `-1` quando non si e' potuto leggere.
+            ///
+            /// PERCHE' L'IDENTIFICATIVO E NON IL NOME. Il nome e' localizzato
+            /// («Estrusione1» / «Boss-Extrude1») e si puo' rinominare a mano:
+            /// confrontarlo vorrebbe dire che la stessa faccia smette di
+            /// essere la stessa perche' qualcuno ha cambiato la lingua di
+            /// SOLIDWORKS. `IFeature.GetID()` non cambia.
+            ///
+            /// Il nome si tiene lo stesso, ma solo PER I MESSAGGI: chi legge un
+            /// rifiuto vuole sapere «viene da Taglio-Estrusione1», non «viene
+            /// dalla lavorazione 42».
+            ///
+            /// `IFace2.GetFeature()` da' la GENERATRICE, non l'ultima che ha
+            /// toccato la faccia: misurato il 14/9/2026 (voce 0.5), un raccordo
+            /// rimpicciolisce tre facce e tutte e tre continuano a dire
+            /// «estrusione».
+            /// </summary>
+            public int LavorazioneId = -1;
+            public string Lavorazione;
+        }
+
+        /// <summary>
+        /// La lavorazione che ha generato una faccia: identificativo e nome.
+        ///
+        /// Non solleva e non si lamenta: una faccia senza lavorazione
+        /// leggibile esce con `-1` e `null`, e chi la usa deve saper vivere
+        /// senza. Meglio nessun dato che un dato inventato — un confronto fra
+        /// due `-1` direbbe «stessa lavorazione» di due facce qualunque.
+        /// </summary>
+        private static void LavorazioneDellaFaccia(
+            IFace2 faccia, out int id, out string nome)
+        {
+            id = -1;
+            nome = null;
+            try
+            {
+                var f = faccia?.GetFeature() as IFeature;
+                if (f == null) return;
+                nome = f.Name;
+                id = f.GetID();
+            }
+            catch { id = -1; }
         }
 
         /// <summary>
@@ -609,8 +654,24 @@ namespace Riscontro.Disegno
                     // A quale corpo appartiene. Su un saldato senza questo
                     // campo arrivano quaranta facce indistinguibili.
                     if (corpi.Count > 1 && t.Item2 < MaxCorpi) voce["corpo"] = "C" + (t.Item2 + 1);
+
+                    // DA QUALE LAVORAZIONE VIENE. Serve a due cose diverse: a
+                    // chi legge lo stato, per capire cos'e' quella faccia; e al
+                    // ritrovamento, che senza non puo' distinguere «la stessa
+                    // faccia spostata» da «un'altra faccia finita nello stesso
+                    // posto».
+                    int lavorazioneId;
+                    string lavorazione;
+                    LavorazioneDellaFaccia(t.Item1, out lavorazioneId, out lavorazione);
+                    if (lavorazione != null)
+                    {
+                        voce["lavorazione"] = lavorazione;
+                        voce["lavorazione_id"] = lavorazioneId;
+                    }
+
                     facce.Add(voce);
                     uidDellaFaccia[t.Item1] = uid;
+
                     stato.Firme[uid] = new FirmaEntita
                     {
                         Tipo = "FACE",
@@ -618,6 +679,8 @@ namespace Riscontro.Disegno
                         PuntoMm = punto,
                         Normale = normale,
                         Entita = t.Item1,
+                        LavorazioneId = lavorazioneId,
+                        Lavorazione = lavorazione,
                     };
                 }
 

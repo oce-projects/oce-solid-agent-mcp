@@ -16,6 +16,107 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.23.0 — 14 settembre 2026 · libreria 0.59.0
+
+**Il ritrovamento a occhio chiuso e' chiuso.** Era l'unico modo in cui il
+sistema produceva un pezzo sbagliato senza dirlo.
+
+### Prima
+
+Il ritrovamento per firma accettava la candidata confrontando **solo punto e
+normale**. Nel caso B della voce E2, dopo aver assottigliato il pezzo, la faccia
+in alto (area 4400) finiva esattamente dove il piano cercava il fondo della
+tasca (area 1600). Il punto combaciava, l'area era quasi il triplo, e veniva
+presa lo stesso: `riuscita: true`, un mezzo foro al posto di un foro.
+
+**Il punto aveva vinto sull'area.**
+
+### Adesso
+
+```
+La faccia «F5» si e' spostata, e l'unica che combacia per posizione viene da
+«Estrusione-Estrusione1» invece che da «Taglio-Estrusione1»: non e' la stessa
+faccia, e' un'altra finita nello stesso posto.
+```
+
+Il pezzo resta intatto: fondo 1600 e faccia in alto 4400, tutte e due dove
+erano.
+
+### Due prove, e nessuna e' «l'area deve combaciare»
+
+1. **la stessa lavorazione**, per `IFeature.GetID()` e non per nome: il nome e'
+   localizzato e rinominabile, e la stessa faccia smetterebbe di essere la
+   stessa perche' qualcuno ha cambiato la lingua di SOLIDWORKS;
+2. **l'area puo' solo calare** — vincolo monotono, non confronto: un foro toglie
+   area ed e' legittimo, ma non ne aggiunge.
+
+Stanno **fuori** da `FirmaCombacia` e non dentro: quel confronto decide anche se
+la faccia di partenza va ancora bene, e li' l'area che cresce e' normale. La
+corroborazione vale solo quando si sta gia' cercando un sostituto.
+
+Lo stato porta ora `lavorazione` e `lavorazione_id` su ogni faccia — utili anche
+a chi legge, non solo al controllo.
+
+### La controprova
+
+Le quattro asole del coperchio, che era il caso da non rompere: **quattro su
+quattro**, tre delle quali ritrovate dalla firma. Il criterio ne chiedeva tre.
+
+### E un difetto MIO, riparato: rifiutavo lavoro legittimo
+
+Il controllo sui contorni della 0.14.0 rifiutava il piano delle **quattro alette
+del coperchio**, che e' giusto: quattro contorni **staccati** su una faccia sono
+quattro regioni, non quattro vuoti fuori dal bordo.
+
+I casi adesso sono tre:
+
+| | |
+|---|---|
+| dentro | e' un vuoto |
+| **a cavallo** | taglia il bordo: incoerente sempre, **si rifiuta** |
+| **fuori** | e' una regione a se': **si accetta e si dice** |
+
+Del terzo esce `nota_contorni`, accanto a `corpi_totali`. Il difetto della
+piastra col cerchio staccato — 2 corpi, «riuscita» — passa ora **con la nota e
+il conteggio dei corpi sotto gli occhi**, invece di essere impedito.
+
+> Un rifiuto di cio' che e' corretto e' il peggiore dei due modi di sbagliare.
+
+---
+
+## 0.22.0 — 14 settembre 2026 · libreria 0.58.0
+
+**I due casi della voce E2, costruiti prima di riparare.** In
+`Banco/casi/E2-i-due-casi.md`, con i numeri attesi accanto a ogni passo, e
+lanciabili **senza nessun modello linguistico**.
+
+Il caso B e' quello che conta: dopo `modifica_quota` 20 → 12 la faccia in alto
+finisce dove il piano cerca il fondo della tasca, e il ritrovamento la prende.
+
+```
+giusto     58.885,8   cilindro 125,66 mm² = π·10·4 a [5,0,0]
+sbagliato  59.042,9   cilindro  62,83 mm² a [-5,0,8]
+```
+
+157,1 mm³, lo 0,27%: mezzo foro profondo 2 invece di un foro intero profondo 4.
+Ricostruzione pulita, nessun avviso, «riuscita: true».
+
+**Due numeri della voce corretti misurando:** lo spostamento del caso A e' 60 mm
+e non 30 (il pezzo cresce da una parte sola, non simmetrico); e la tasca del
+caso B va centrata in Y, se no esce dal bordo e diventa 1200 mm² invece di 1600.
+
+### `modifica_quota` suggeriva una forma che non funzionava
+
+Il messaggio dice «per esempio «D1@Schizzo1»», e quella forma veniva rifiutata:
+il confronto voleva il nome corto o quello intero col documento in coda. **Il
+messaggio diceva il falso.**
+
+Non e' comodita': la forma con il documento contiene il **titolo**, quindi un
+caso di banco scritto cosi' non si puo' rilanciare su un altro pezzo. Adesso le
+tre forme valgono tutte, e i casi che cambiano una quota sono ripetibili.
+
+---
+
 ## 0.21.0 — 14 settembre 2026 · libreria 0.58.0
 
 **Gli identificativi citati devono esistere.** E' l'altra meta' della difesa

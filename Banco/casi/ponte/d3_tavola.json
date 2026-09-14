@@ -1,5 +1,5 @@
 [
- { "operazione": "modifica_quota", "argomenti": { "quota": "D1@Schizzo3@Parte140.Part", "valore_mm": 36 } },
+ { "operazione": "modifica_quota", "argomenti": { "quota": "D1@Schizzo3", "valore_mm": 36 } },
  { "operazione": "salva_documento", "argomenti": { "percorso": "{BANCO}/pezzo/d3.SLDPRT" } },
  { "operazione": "crea_disegno", "argomenti": {} },
  { "operazione": "viste_standard", "argomenti": {} },

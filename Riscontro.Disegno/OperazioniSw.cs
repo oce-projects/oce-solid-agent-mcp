@@ -753,7 +753,7 @@ namespace Riscontro.Disegno
             IModelDoc2 modello, Dictionary<string, object> a,
             int maxVertici = MaxVerticiModello)
         {
-            var contorni = Contorni(a, out string motivo, maxVertici);
+            var contorni = Contorni(a, out string motivo, out string notaContorni, maxVertici);
             if (contorni == null) return Fallito(motivo);
 
             double spessore = Num(a, "spessore_mm");
@@ -797,13 +797,19 @@ namespace Riscontro.Disegno
             string notaBlocco;
             bool bloccato = BloccaSchizzo(modello, out notaBlocco);
 
-            return Riuscito(feature, new Dictionary<string, object>
+            var misure = new Dictionary<string, object>
             {
                 ["schizzo_bloccato"] = bloccato,
                 ["contorni"] = contorni.Count,
                 ["segmenti"] = segmenti,
                 ["spessore_mm"] = spessore,
-            }, Riferimenti.NormaleDelPiano(piano));
+            };
+            // I contorni staccati dal primo non si rifiutano, si DICONO: un
+            // contorno fuori dal bordo esterno e' una regione a se', ed e'
+            // legittimo (quattro alette su una faccia). Ma diventa un corpo in
+            // piu', e chi credeva di fare un foro deve poterlo leggere.
+            if (notaContorni != null) misure["nota_contorni"] = notaContorni;
+            return Riuscito(feature, misure, Riferimenti.NormaleDelPiano(piano));
         }
 
         /// <summary>
@@ -947,9 +953,11 @@ namespace Riscontro.Disegno
         /// un vertice letto male non da' errore — da' una sagoma diversa.
         /// </summary>
         private static List<Contorno> Contorni(
-            Dictionary<string, object> a, out string motivo, int maxVertici = MaxVerticiModello)
+            Dictionary<string, object> a, out string motivo, out string nota,
+            int maxVertici = MaxVerticiModello)
         {
             motivo = null;
+            nota = null;
             object grezzo;
             if (a == null || !a.TryGetValue("contorni", out grezzo) || grezzo == null)
             {
@@ -1076,7 +1084,7 @@ namespace Riscontro.Disegno
                 motivo = fuori.Count + " contorni sono troppi (al massimo " + MaxContorni + ").";
                 return null;
             }
-            if (!SagomaSensata(fuori, maxVertici, out motivo)) return null;
+            if (!SagomaSensata(fuori, maxVertici, out motivo, out nota)) return null;
             return fuori;
         }
 
@@ -1125,9 +1133,11 @@ namespace Riscontro.Disegno
         /// Il quarto e' il piu' insidioso dei quattro, perche' il pezzo
         /// sbagliato ha l'aria di essere venuto bene.
         /// </summary>
-        private static bool SagomaSensata(List<Contorno> contorni, int maxVertici, out string motivo)
+        private static bool SagomaSensata(
+            List<Contorno> contorni, int maxVertici, out string motivo, out string nota)
         {
             motivo = null;
+            nota = null;
             for (int i = 0; i < contorni.Count; i++)
             {
                 var voce = contorni[i];
@@ -1202,33 +1212,68 @@ namespace Riscontro.Disegno
                 }
             }
 
-            // 4. I VUOTI STANNO DENTRO IL BORDO?
+            // 4. I CONTORNI DOPO IL PRIMO: DENTRO, A CAVALLO, O FUORI?
+            //
+            // TRE CASI, E SOLO UNO E' UN ERRORE. La prima stesura ne rifiutava
+            // due, e cosi' rifiutava lavoro legittimo:
+            //
+            //   dentro     e' un vuoto. Normale.
+            //   a cavallo  taglia il bordo esterno. Incoerente sempre: non e'
+            //              ne' un vuoto ne' una regione, e SOLIDWORKS si ferma
+            //              dicendo soltanto «L'estrusione non e' stata creata».
+            //   fuori      e' una REGIONE A SE'. E' legittimo: quattro alette
+            //              su una faccia sono quattro contorni staccati.
+            //
+            // Misurato il 14/9/2026: il piano delle quattro alette del coperchio
+            // (`Banco/casi/pezzi/coperchio_5.json`) veniva rifiutato da questo
+            // controllo, ed era un piano giusto. **Un rifiuto di cio' che e'
+            // corretto e' il peggiore dei due modi di sbagliare** — e' la
+            // lezione del guscio, e questo controllo l'aveva dimenticata.
+            //
+            // Del terzo caso si DICE, forte: un contorno staccato diventa un
+            // corpo in piu', e chi credeva di fare un foro si trova un disco
+            // (misurato: piastra 100x100 con un cerchio Ø30 a 200 mm, 2 corpi,
+            // «riuscita»). Ma lo si dice invece di impedirlo, e chi legge ha in
+            // mano anche `corpi_totali` per controllare.
             if (contorni.Count > 1)
             {
                 var esterno = PuntiDi(contorni[0]);
+                var staccati = new List<int>();
                 for (int i = 1; i < contorni.Count; i++)
                 {
+                    int dentro = 0, fuori = 0;
+                    double[] primoFuori = null;
                     foreach (var punto in PuntiDi(contorni[i]))
                     {
-                        if (FormaChiusa.Dentro(punto, esterno)) continue;
-                        // I DUE MODI IN CUI FINISCE, TUTTI E DUE MISURATI.
-                        // Se il vuoto e' staccato dal bordo SOLIDWORKS non
-                        // dice niente: fa un secondo corpo. Misurato su una
-                        // piastra 100x100 con un cerchio Ø30 a 200 mm di
-                        // distanza — «riuscita», 2 corpi, ingombro 265 mm.
-                        // Se invece scavalca il bordo si ferma, ma dice
-                        // soltanto «L'estrusione non e' stata creata».
+                        if (FormaChiusa.Dentro(punto, esterno)) dentro++;
+                        else { fuori++; if (primoFuori == null) primoFuori = punto; }
+                    }
+
+                    if (dentro > 0 && fuori > 0)
+                    {
                         motivo = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
-                            "Il vuoto n. {0} esce dal contorno esterno: il punto " +
-                            "({1:0.###}, {2:0.###}) e' fuori. Se e' staccato dal bordo " +
-                            "SOLIDWORKS ne fa un SECONDO CORPO senza dire niente; se lo " +
-                            "scavalca si ferma dicendo soltanto «L'estrusione non e' " +
-                            "stata creata». Un vuoto va tutto dentro il contorno esterno.",
-                            i, punto[0], punto[1]);
+                            "Il contorno n. {0} sta A CAVALLO del bordo esterno: il punto " +
+                            "({1:0.###}, {2:0.###}) e' fuori e altri sono dentro. Non e' " +
+                            "ne' un vuoto ne' una regione a se', e SOLIDWORKS si ferma " +
+                            "dicendo soltanto «L'estrusione non e' stata creata». " +
+                            "Spostalo tutto dentro se e' un vuoto, tutto fuori se e' un " +
+                            "pezzo a parte.",
+                            i, primoFuori[0], primoFuori[1]);
                         return false;
                     }
+                    if (dentro == 0) staccati.Add(i);
                 }
+
+                if (staccati.Count > 0)
+                    nota =
+                        (staccati.Count == 1
+                            ? "Il contorno n. " + staccati[0] + " non sta dentro il primo"
+                            : "I contorni n. " + string.Join(", ", staccati) +
+                              " non stanno dentro il primo") +
+                        ": non sono vuoti, sono regioni a se'. Vengono estrusi lo stesso, " +
+                        "e il pezzo puo' avere piu' di un corpo — guarda «corpi_totali». " +
+                        "Se volevi dei fori, vanno spostati dentro il contorno esterno.";
             }
             return true;
         }
@@ -2587,7 +2632,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito EstrudiSuFaccia(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            var contorni = Contorni(a, out string motivo);
+            var contorni = Contorni(a, out string motivo, out string _);
             if (contorni == null) return Fallito(motivo);
 
             var faccia = RisolviFaccia(stato, a, Str(a, "faccia_uid", ""), out motivo);
@@ -3729,7 +3774,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito Rivoluzione(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            var contorni = Contorni(a, out string motivo);
+            var contorni = Contorni(a, out string motivo, out string _);
             if (contorni == null) return Fallito(motivo);
 
             object asseGrezzo;
@@ -4999,6 +5044,7 @@ namespace Riscontro.Disegno
 
             IFace2 ritrovata = null;
             int quante = 0;
+            string scartataPerche = null;
             foreach (var voce in stato.Firme)
             {
                 if (voce.Value.Tipo != "FACE") continue;
@@ -5006,6 +5052,18 @@ namespace Riscontro.Disegno
                 if (candidata == null) continue;
                 string perche;
                 if (!FirmaCombacia(argomenti, uid, voce.Value, out perche)) continue;
+
+                // COMBACIARE PER POSIZIONE NON BASTA. Vedi Corrobora.
+                string nonRegge = Corrobora(attesa, uid, voce.Value);
+                if (nonRegge != null)
+                {
+                    // Si tiene il PRIMO motivo di scarto per il messaggio: se
+                    // alla fine non si ritrova niente, chi legge deve sapere
+                    // che una candidata c'era e perche' non e' stata presa.
+                    if (scartataPerche == null) scartataPerche = nonRegge;
+                    continue;
+                }
+
                 quante++;
                 ritrovata = candidata;
             }
@@ -5023,6 +5081,110 @@ namespace Riscontro.Disegno
                     " che le somigliano tutte uguali: non scelgo io. Rileggi lo " +
                     "stato del documento e nominala di nuovo.";
             }
+            else if (scartataPerche != null)
+            {
+                // Il caso che conta: UNA candidata c'era, combaciava per
+                // posizione, e la corroborazione l'ha smentita. Prima veniva
+                // presa e il pezzo usciva sbagliato senza che nessuno dicesse
+                // niente.
+                motivo = scartataPerche;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// LA SECONDA PROVA, prima di dire «ritrovata».
+        ///
+        /// Il ritrovamento per firma esisteva gia' e serviva: gli uid sono
+        /// posizionali, e senza di lui «taglia quattro asole uguali» non si
+        /// poteva scrivere in un piano solo. Ma accettava la candidata
+        /// confrontando **solo punto e normale**, e quello non basta.
+        ///
+        /// MISURATO (voce E2, 14/9/2026). Piastra 100x60x20 con una tasca 40x40
+        /// profonda 8: il fondo sta a Z=12 con area 1600, la faccia in alto a
+        /// Z=20 con area 4400. Si porta lo spessore a 12; il fondo scende a Z=4
+        /// e **la faccia in alto scende a Z=12**, cioe' esattamente dove il
+        /// piano cerca il fondo.
+        ///
+        /// Il punto combaciava. L'area era 4400 contro 1600 attesi — quasi il
+        /// triplo — e veniva presa lo stesso: `riuscita: true`, ricostruzione
+        /// pulita, e un mezzo foro profondo 2 al posto di un foro intero
+        /// profondo 4. **Il punto aveva vinto sull'area.**
+        ///
+        /// DUE PROVE, E NESSUNA DELLE DUE E' «L'AREA DEVE COMBACIARE».
+        ///
+        /// 1. **La lavorazione dev'essere la stessa**, per identificativo e non
+        ///    per nome (`IFeature.GetID()`). Una faccia che viene da un'altra
+        ///    lavorazione non e' la stessa faccia, comunque sia messa.
+        ///
+        /// 2. **L'area puo' solo CALARE.** E' un vincolo monotono, non un
+        ///    confronto: ci si fa un foro e la faccia perde area, ed e'
+        ///    legittimo — e' proprio il motivo per cui l'area era stata esclusa
+        ///    dal confronto. Ma non ne GUADAGNA: una faccia cresciuta e' un
+        ///    altro pezzo di pezzo.
+        ///
+        /// PERCHE' QUI E NON DENTRO `FirmaCombacia`. Perche' quel confronto
+        /// serve anche a decidere se la faccia di partenza va ancora bene, e
+        /// li' l'area che cresce e' normale — si allarga il pezzo e la faccia
+        /// in alto diventa piu' grande, senza che il punto si muova. La
+        /// corroborazione vale **solo quando si sta gia' cercando un
+        /// sostituto**, cioe' quando qualcosa si e' gia' mosso.
+        ///
+        /// Ritorna null se la candidata regge; il motivo del rifiuto se no —
+        /// e il motivo da' **il criterio**, non il verdetto.
+        /// </summary>
+        private static string Corrobora(
+            Dictionary<string, object> attesa, string uid,
+            StatoDocumento.FirmaEntita candidata)
+        {
+            if (attesa == null) return null;
+
+            // 1. LA STESSA LAVORAZIONE.
+            // Solo se li conosciamo tutti e due: due «-1» non sono una
+            // corrispondenza, sono due volte «non lo so».
+            object grezzoId;
+            if (attesa.TryGetValue("lavorazione_id", out grezzoId) && grezzoId != null &&
+                candidata.LavorazioneId >= 0)
+            {
+                int atteso;
+                try { atteso = Convert.ToInt32(grezzoId); } catch { atteso = -1; }
+                if (atteso >= 0 && atteso != candidata.LavorazioneId)
+                {
+                    object nomeAtteso;
+                    string daChi = attesa.TryGetValue("lavorazione", out nomeAtteso) &&
+                                   nomeAtteso != null
+                        ? "«" + Convert.ToString(nomeAtteso) + "»"
+                        : "un'altra lavorazione";
+                    return
+                        "La faccia «" + uid + "» si e' spostata, e l'unica che combacia " +
+                        "per posizione viene da «" + (candidata.Lavorazione ?? "?") +
+                        "» invece che da " + daChi + ": non e' la stessa faccia, e' " +
+                        "un'altra finita nello stesso posto. Rileggi lo stato del " +
+                        "documento e dimmi tu quale.";
+                }
+            }
+
+            // 2. L'AREA PUO' SOLO CALARE.
+            object grezzoArea;
+            if (attesa.TryGetValue("area_mm2", out grezzoArea) && grezzoArea != null)
+            {
+                double areaAttesa;
+                try { areaAttesa = Convert.ToDouble(grezzoArea, System.Globalization.CultureInfo.InvariantCulture); }
+                catch { return null; }
+                // Un per mille di margine: le aree si arrotondano al
+                // centesimo e un confronto secco accuserebbe l'arrotondamento.
+                if (areaAttesa > 0 && candidata.Misura > areaAttesa * 1.001)
+                {
+                    return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "La faccia «{0}» si e' spostata, e l'unica che combacia per " +
+                        "posizione e' piu' GRANDE di quella che cercavo: {1:0.##} mm² " +
+                        "contro {2:0.##}. Una lavorazione toglie area a una faccia, non " +
+                        "gliene aggiunge: quella non e' la stessa faccia. Rileggi lo " +
+                        "stato del documento e dimmi tu quale.",
+                        uid, candidata.Misura, areaAttesa);
+                }
+            }
+
             return null;
         }
 
