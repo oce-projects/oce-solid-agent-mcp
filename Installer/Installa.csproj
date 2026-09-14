@@ -8,7 +8,7 @@
          alla finestra dell'installatore, e la prima impressione di un
          installatore e' meta' del suo lavoro. -->
     <OutputType>WinExe</OutputType>
-    <RootNamespace>SolidWorksMcp.Installer</RootNamespace>
+    <RootNamespace>Oce.Solid.Agent.Installer</RootNamespace>
     <AssemblyName>Installa</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <!-- x64 come il ponte e come SOLIDWORKS. L'installatore legge la versione

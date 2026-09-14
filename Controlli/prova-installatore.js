@@ -108,7 +108,7 @@ esito("3. la cartella NON viene cancellata se dentro resta roba d'altri",
   restano === null ? "cartella cancellata con dentro un file di chi usa il programma"
                    : "resta: " + restano.join(", "));
 esito("3. il ponte e' sparito",
-  restano !== null && !restano.includes("SolidWorksMcp.exe"),
+  restano !== null && !restano.includes("oce-solid-agent-mcp.exe"),
   restano === null ? "n/d" : restano.join(", "));
 
 // ── riepilogo ────────────────────────────────────────────────────────────

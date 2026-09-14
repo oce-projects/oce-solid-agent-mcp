@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace SolidWorksMcp.Strumenti
+namespace Oce.Solid.Agent.Strumenti
 {
     /// <summary>
     /// Il catalogo delle operazioni, letto da `catalogo.json`.

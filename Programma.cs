@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using SolidWorksMcp.Mcp;
-using SolidWorksMcp.Ponte;
-using SolidWorksMcp.Strumenti;
+using Oce.Solid.Agent.Mcp;
+using Oce.Solid.Agent.Ponte;
+using Oce.Solid.Agent.Strumenti;
 
-namespace SolidWorksMcp
+namespace Oce.Solid.Agent
 {
     /// <summary>
     /// Il giro principale: legge una riga, risponde una riga.
@@ -116,7 +116,7 @@ namespace SolidWorksMcp
                         },
                         ["serverInfo"] = new Dictionary<string, object>
                         {
-                            ["name"] = "solidworks-mcp",
+                            ["name"] = "oce-solid-agent",
                             ["version"] = Versione,
                         },
                         ["instructions"] =

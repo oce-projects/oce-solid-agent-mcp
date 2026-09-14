@@ -1,4 +1,4 @@
-# SolidWorks MCP
+# OCE Solid Agent
 
 Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti trentasei
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
@@ -40,7 +40,7 @@ sono le stesse che l'add-in di OpenPDM esegue quando un progettista preme
 mano.
 
 ```
-modello  <--MCP/stdio-->  SolidWorksMcp.exe  ---->  Riscontro.Disegno.dll
+modello  <--MCP/stdio-->  oce-solid-agent-mcp.exe  ---->  Riscontro.Disegno.dll
                                                              |
                                                          SolidWorks
 ```
@@ -109,8 +109,8 @@ due script diversi nati in due momenti diversi, e uniformarli e' una voce del
 // nella configurazione del client MCP
 {
   "mcpServers": {
-    "solidworks": {
-      "command": "S:\\PDM\\SolidWorksMcp\\bin\\SolidWorksMcp.exe"
+    "oce-solid-agent": {
+      "command": "C:\\percorso\\del\\clone\\bin\\oce-solid-agent-mcp.exe"
     }
   }
 }
@@ -119,7 +119,7 @@ due script diversi nati in due momenti diversi, e uniformarli e' una voce del
 Prima di collegare un client conviene il giro secco:
 
 ```
-bin\SolidWorksMcp.exe --prova
+bin\oce-solid-agent-mcp.exe --prova
 ```
 
 Stampa su stderr se si e' agganciato, quale add-in ha caricato, quante

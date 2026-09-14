@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 using System.Web.Script.Serialization;
 
-namespace SolidWorksMcp.Installer
+namespace Oce.Solid.Agent.Installer
 {
     /// <summary>Un client MCP che si puo' configurare da qui.</summary>
     internal sealed class Client
@@ -228,7 +228,7 @@ namespace SolidWorksMcp.Installer
             {
                 // Il nome della copia porta la data: cosi' se ne accumulano
                 // poche e si capisce quale e' quale.
-                copia = file + ".prima-di-solidworks-mcp-" +
+                copia = file + ".prima-di-oce-solid-agent-" +
                         DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
                 File.Copy(file, copia, true);
                 racconta("copia di sicurezza: " + Path.GetFileName(copia));

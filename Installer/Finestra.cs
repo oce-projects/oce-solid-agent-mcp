@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace SolidWorksMcp.Installer
+namespace Oce.Solid.Agent.Installer
 {
     /// <summary>
     /// LA FINESTRA.

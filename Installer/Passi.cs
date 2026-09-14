@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Win32;
 
-namespace SolidWorksMcp.Installer
+namespace Oce.Solid.Agent.Installer
 {
     /// <summary>Com'e' andato un controllo: verde, giallo, rosso.</summary>
     internal enum Esito { Bene, Avviso, Male }
@@ -35,8 +35,8 @@ namespace SolidWorksMcp.Installer
     /// </summary>
     internal static class Passi
     {
-        public const string NomeProdotto = "SolidWorks MCP";
-        public const string NomeEseguibile = "SolidWorksMcp.exe";
+        public const string NomeProdotto = "OCE Solid Agent";
+        public const string NomeEseguibile = "oce-solid-agent-mcp.exe";
         public const string NomeCatalogo = "catalogo.json";
         /// <summary>
         /// Le operazioni di disegno. **Sta nel carico**, non si cerca sulla
@@ -50,7 +50,7 @@ namespace SolidWorksMcp.Installer
         public static string CartellaPredefinita =>
             Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "SolidWorksMcp");
+                "Oce.Solid.Agent");
 
         public static string CartellaDiQuestoExe =>
             Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
@@ -445,7 +445,7 @@ namespace SolidWorksMcp.Installer
             // qualcuno per un percorso incollato male.
             foreach (var nome in new[]
             {
-                NomeEseguibile, NomeEseguibile + ".config", "SolidWorksMcp.pdb",
+                NomeEseguibile, NomeEseguibile + ".config", "Oce.Solid.Agent.pdb",
                 NomeCatalogo, NomeLibreria, "LICENSE", "NOTICE",
             })
             {

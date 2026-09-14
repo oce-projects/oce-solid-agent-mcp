@@ -4,7 +4,7 @@
 #
 #  Tre passi, in quest'ordine perche' il secondo dipende dal primo:
 #
-#    1. compila il ponte             -> bin\SolidWorksMcp.exe
+#    1. compila il ponte             -> bin\oce-solid-agent-mcp.exe
 #    2. lo mette in Installer\Payload\ come risorsa da incorporare
 #    3. compila l'installatore       -> dist\Installa.exe, che se lo porta dentro
 #
@@ -110,12 +110,12 @@ if ($Pulisci) {
 # -----------------------------------------------------------------------------
 Passo "1. Il ponte"
 # -----------------------------------------------------------------------------
-& $msbuild (Join-Path $radice "SolidWorksMcp.csproj") -p:Configuration=Release -v:m -nologo @dove
+& $msbuild (Join-Path $radice "Oce.Solid.Agent.csproj") -p:Configuration=Release -v:m -nologo @dove
 if ($LASTEXITCODE -ne 0) { Muori "compilazione del ponte fallita" }
 
-$ponte = Join-Path $radice "bin\SolidWorksMcp.exe"
-if (-not (Test-Path $ponte)) { Muori "compilato senza errori ma SolidWorksMcp.exe non c'e'" }
-Ok ("SolidWorksMcp.exe  " + [math]::Round((Get-Item $ponte).Length / 1KB) + " kB")
+$ponte = Join-Path $radice "bin\oce-solid-agent-mcp.exe"
+if (-not (Test-Path $ponte)) { Muori "compilato senza errori ma oce-solid-agent-mcp.exe non c'e'" }
+Ok ("oce-solid-agent-mcp.exe  " + [math]::Round((Get-Item $ponte).Length / 1KB) + " kB")
 
 if ($SoloPonte) { Passo "Fatto"; Ok $ponte; exit 0 }
 
@@ -170,10 +170,10 @@ New-Item -ItemType Directory -Force -Path $payload | Out-Null
 # si installa e poi non disegna. Un pacchetto che si monta e non funziona e'
 # peggio di uno che rifiuta di montarsi.
 $daPortare = @(
-    @{ da = "bin\SolidWorksMcp.exe";        a = "SolidWorksMcp.exe";        obbligatorio = $true  },
+    @{ da = "bin\oce-solid-agent-mcp.exe";        a = "oce-solid-agent-mcp.exe";        obbligatorio = $true  },
     @{ da = "bin\Riscontro.Disegno.dll";    a = "Riscontro.Disegno.dll";    obbligatorio = $true  },
     @{ da = "bin\catalogo.json";            a = "catalogo.json";            obbligatorio = $true  },
-    @{ da = "bin\SolidWorksMcp.exe.config"; a = "SolidWorksMcp.exe.config"; obbligatorio = $true  },
+    @{ da = "bin\oce-solid-agent-mcp.exe.config"; a = "oce-solid-agent-mcp.exe.config"; obbligatorio = $true  },
     @{ da = "LICENSE";                      a = "LICENSE";                  obbligatorio = $false },
     @{ da = "NOTICE";                       a = "NOTICE";                   obbligatorio = $false }
 )

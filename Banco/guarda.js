@@ -12,7 +12,7 @@ const path = require("path");
 // suo disco non esiste, senza nessun indizio che andasse impostata `PONTE`.
 // `corri_piani.js`, due file piu' in la', lo faceva gia' giusto.
 const RADICE = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(RADICE, "bin", "SolidWorksMcp.exe");
+const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
 const tutto = process.argv[2] === "tutto";
 
 const richieste = [

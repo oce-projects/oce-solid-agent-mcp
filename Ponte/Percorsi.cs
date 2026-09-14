@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace SolidWorksMcp.Ponte
+namespace Oce.Solid.Agent.Ponte
 {
     /// <summary>
     /// DOVE SI PUO' SCRIVERE.

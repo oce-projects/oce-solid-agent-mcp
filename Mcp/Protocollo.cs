@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Web.Script.Serialization;
 
-namespace SolidWorksMcp.Mcp
+namespace Oce.Solid.Agent.Mcp
 {
     /// <summary>
     /// MCP su stdio: JSON-RPC 2.0, un messaggio per riga.

@@ -10,7 +10,7 @@ using Riscontro.Disegno;
 // non compila.
 using SolidWorks.Interop.sldworks;
 
-namespace SolidWorksMcp.Ponte
+namespace Oce.Solid.Agent.Ponte
 {
     /// <summary>
     /// L'aggancio a SolidWorks e alla libreria di disegno vera.

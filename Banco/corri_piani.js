@@ -29,7 +29,7 @@ const fs = require("fs");
 const path = require("path");
 
 const RADICE = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(RADICE, "bin", "SolidWorksMcp.exe");
+const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
 const CHIUDI = path.join(RADICE, "Controlli", "ChiudiScarti", "bin", "ChiudiScarti.exe");
 const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
 

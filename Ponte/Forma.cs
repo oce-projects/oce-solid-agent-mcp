@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-namespace SolidWorksMcp.Ponte
+namespace Oce.Solid.Agent.Ponte
 {
     /// <summary>
     /// GLI ARGOMENTI RISPETTANO LO SCHEMA CHE IL CATALOGO DICHIARA?

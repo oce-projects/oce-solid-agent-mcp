@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Riscontro.Disegno;
 
-namespace SolidWorksMcp.Ponte
+namespace Oce.Solid.Agent.Ponte
 {
     /// <summary>
     /// IL PIANO CHE ARRIVA DA MCP, servito a <see cref="EsecutorePiano"/> un

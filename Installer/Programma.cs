@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace SolidWorksMcp.Installer
+namespace Oce.Solid.Agent.Installer
 {
     internal static class Programma
     {

@@ -16,6 +16,84 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.27.0 — 14 settembre 2026 · libreria 0.63.0
+
+**Il marchio esce dal nome del prodotto.** Voce I1.
+
+Il nome e' **OCE Solid Agent**; il repository, il pacchetto e l'eseguibile si
+chiamano `oce-solid-agent-mcp`.
+
+| | prima | adesso |
+|---|---|---|
+| namespace | `SolidWorksMcp.*` | `Oce.Solid.Agent.*` |
+| eseguibile | `SolidWorksMcp.exe` | `oce-solid-agent-mcp.exe` |
+| progetto | `SolidWorksMcp.csproj` | `Oce.Solid.Agent.csproj` |
+| nome prodotto (installatore) | `SolidWorks MCP` | `OCE Solid Agent` |
+| nome sul protocollo MCP | `solidworks-mcp` | `oce-solid-agent` |
+| prima riga del `NOTICE` | `SolidWorks MCP` | `OCE Solid Agent` |
+
+29 file, 71 sostituzioni, con `Controlli/rinomina-prodotto.js`: uno script e non
+ventinove modifiche a mano, perche' si rifa' identico se si sbaglia, si legge
+cosa ha toccato, e una sostituzione a mano su ventinove file ne dimentica uno —
+quello che nessuno riguardera' piu'.
+
+### Non bastava rinominare il repository
+
+Il nome del prodotto non stava solo nell'URL. Stava nel `RootNamespace`,
+nell'`AssemblyName`, nel nome dell'eseguibile che finisce nella configurazione
+di **ogni client MCP**, nel payload dell'installatore e nel manifest. Chi
+scaricava il pacchetto si trovava `SolidWorksMcp.exe` sul disco.
+
+### Due cose che si sono viste solo facendo
+
+**La prima passata aveva preso solo la grafia attaccata.** Si era lasciata
+dietro le sei separate, che erano **le piu' visibili di tutte**: il nome che
+l'installatore mostra, la prima riga delle note legali, il titolo del README e —
+la peggiore — il nome che il server dichiara **sul protocollo MCP**, cioe' quello
+che legge il client.
+
+E la seconda passata dava **zero**, perche' il filtro d'ingresso dello script
+cercava solo la prima forma e saltava i file che avevano solo le altre. Il
+conteggio usciva zero e sembrava «niente da fare».
+
+> Un filtro piu' stretto dell'elenco delle sostituzioni e' un modo di non fare
+> meta' del lavoro senza dirlo.
+
+**L'`AssemblyName` e' il nome del PACCHETTO, non del namespace.** Alla prima
+compilazione era uscito `Oce.Solid.Agent.exe` mentre build, installatore, banco e
+README puntavano tutti a `oce-solid-agent-mcp.exe`. Chi copia una riga dalla
+documentazione deve trovare il file che c'e'.
+
+### Cosa non si e' toccato, e sono decisioni
+
+**`CHANGELOG.md`**: le voci storiche dicono cosa si chiamava allora, e un
+changelog riscritto e' un changelog che mente.
+
+**`Riscontro.Disegno`**: non contiene nessun marchio altrui ed e' un buon nome.
+La rinomina serve a togliere un marchio, non a uniformare.
+
+**La parola `SolidWorks` da sola**, che resta ovunque serva: nominare il
+programma con cui si e' interoperabili e' uso lecito e necessario, ed e' la
+regola che questo progetto si era gia' scritto — il marchio e' un aggettivo che
+modifica un sostantivo, mai il nome del prodotto.
+
+### E il TODO, che la rinomina aveva rovinato
+
+Lo script ha sostituito il nome anche dove il TODO **parlava** del nome, e il
+criterio di chiusura di I1 era diventato il suo contrario: «un grep di
+`Oce.Solid.Agent` non trova piu' niente». Riparati nove riferimenti, distinguendo
+il **repository** (`oce-solid-agent-mcp`) dal **progetto C#**
+(`Oce.Solid.Agent.csproj`) — che dopo oggi sono due nomi diversi.
+
+> Una sostituzione meccanica su un documento che descrive il passato riscrive
+> anche il passato.
+
+Controlli: ponte riavviato col nome nuovo (agganciato, libreria 0.63.0.0, 36
+operazioni); banco 88 prove 0 fallite; ProvaRuota, ProvaSagoma, ProvaPosizioni a
+0; il ponte esegue i piani e il caso negativo continua a essere rifiutato.
+
+---
+
 ## 0.26.0 — 14 settembre 2026 · libreria 0.63.0
 
 **Il persist ID propone, la misura giudica.** Voce E6.

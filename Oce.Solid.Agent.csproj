@@ -5,8 +5,15 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <OutputType>Exe</OutputType>
-    <RootNamespace>SolidWorksMcp</RootNamespace>
-    <AssemblyName>SolidWorksMcp</AssemblyName>
+    <RootNamespace>Oce.Solid.Agent</RootNamespace>
+    <!-- IL NOME DELL'ESEGUIBILE E' QUELLO DEL PACCHETTO, NON DEL NAMESPACE.
+         `oce-solid-agent-mcp.exe` e' cio' che finisce nella configurazione di
+         ogni client MCP, nell'installatore e nei comandi del README: deve
+         coincidere con il nome del repository e del pacchetto, o chi copia una
+         riga dalla documentazione trova un file che non c'e'.
+         Il namespace resta in PascalCase con i punti, che e' la convenzione
+         .NET; il file no, e i due non devono somigliarsi per forza. -->
+    <AssemblyName>oce-solid-agent-mcp</AssemblyName>
     <!-- .NET Framework 4.8 non e' una scelta di gusto: l'add-in vero e'
          compilato per quello, e questo ponte lo carica per riflessione. -->
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
