@@ -16,6 +16,56 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.7.1 — 14 settembre 2026 · libreria 0.47.1
+
+**Il tubo scritto come lo scrive il catalogo adesso si disegna.**
+
+Nella descrizione di `estrudi_profilo` il catalogo porta questo esempio per
+esteso:
+
+```
+Esempio, TUBO diametro esterno 60 spessore 5:
+[{"cerchio": [0, 0], "diametro_mm": 60}, {"cerchio": [0, 0], "diametro_mm": 50}]
+```
+
+Il parser capiva `{"tipo":"cerchio","centro":[x,y],"diametro_mm":d}` e **non**
+questa. Un modello che leggeva il catalogo e copiava l'esempio scritto li' dentro
+finiva nel ramo poligonale, cercava `vertici`, non lo trovava e falliva.
+
+**Una divergenza fra cio' che si dichiara e cio' che si sa fare, dentro il file
+che esiste per non averne.** E sulla forma peggiore: e' quella che il catalogo
+**raccomanda** per fori e tondi, con l'avvertenza che un cerchio approssimato a
+segmenti ha il materiale dentro la circonferenza e un albero non ci entra.
+
+Misurato, il tubo del catalogo:
+
+```
+volume 86.393,8 mm³   =   π/4 · (60² − 50²) · 100
+```
+
+### Mancante e non numerico sono due cose diverse
+
+Prima finivano tutte e due in «il diametro non e' un numero», perche' la chiave
+assente sollevava dentro lo stesso `try`. Chi ha scritto `{"cerchio":[0,0]}` e
+basta va mandato a mettere il diametro, non a controllare un numero che non ha
+scritto. Provati tutti e due:
+
+| scritto | risposta |
+|---|---|
+| `{"cerchio":[0,0]}` | «Un cerchio senza "diametro_mm": un centro da solo non dice quanto e' grande.» |
+| `{"cerchio":[0,0],"diametro_mm":0}` | «Il diametro del cerchio e' 0: un cerchio di diametro zero o negativo non si disegna.» |
+
+### Una cosa che il piano diceva e non era vera
+
+Il `TODO.md` dava per non supportata anche la forma `{"vertici":[[x,y],...]}`.
+**Lo e':** e' il ramo predefinito del parser. La divergenza vera era una sola.
+
+E il volume atteso che il piano riportava — «863.938 mm³» — e' l'**area della
+sezione in mm²** con l'etichetta sbagliata: per il volume va moltiplicata per i
+100 mm di spessore.
+
+---
+
 ## 0.7.0 — 14 settembre 2026
 
 **Adesso e' vero: un file solo, e chi lo installa deve avere soltanto

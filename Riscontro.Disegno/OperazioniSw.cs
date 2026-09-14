@@ -716,14 +716,65 @@ namespace Riscontro.Disegno
                     continue;
                 }
 
-                var tipo = Convert.ToString(voce.TryGetValue("tipo", out var t) ? t : "poligonale");
+                // DUE MODI DI SCRIVERE UN CERCHIO, E IL CATALOGO NE
+                // RACCOMANDA UNO CHE IL PARSER NON CAPIVA.
+                //
+                // La descrizione di `estrudi_profilo` porta questo esempio
+                // per esteso — «TUBO diametro esterno 60 spessore 5»:
+                //
+                //   [{"cerchio": [0,0], "diametro_mm": 60},
+                //    {"cerchio": [0,0], "diametro_mm": 50}]
+                //
+                // Il parser capiva solo la forma esplicita con `tipo` e
+                // `centro`, quindi un modello che copiava l'esempio del
+                // catalogo finiva nel ramo poligonale, cercava `vertici`,
+                // non lo trovava e falliva. Una divergenza fra cio' che si
+                // dichiara e cio' che si sa fare, dentro il file che esiste
+                // per non averne — e proprio sulla forma che il catalogo
+                // consiglia per fori e tondi, dove sbagliare costa un pezzo
+                // in cui l'albero non entra.
+                bool chiaveCerchio = voce.ContainsKey("cerchio");
+                var tipo = Convert.ToString(
+                    voce.TryGetValue("tipo", out var t) ? t
+                    : chiaveCerchio ? "cerchio" : "poligonale");
                 if (string.Equals(tipo, "cerchio", StringComparison.OrdinalIgnoreCase))
                 {
-                    var centro = Punti(voce.TryGetValue("centro", out var ce) ? new[] { ce } : null, out motivo);
+                    object grezzoCentro = null;
+                    if (voce.TryGetValue("centro", out var ce) && ce != null) grezzoCentro = ce;
+                    else if (chiaveCerchio) grezzoCentro = voce["cerchio"];
+                    var centro = Punti(
+                        grezzoCentro != null ? new[] { grezzoCentro } : null, out motivo);
+                    if (centro == null || centro.Count != 1)
+                    {
+                        motivo = "Il centro del cerchio non e' [x, y]. Si scrive \"cerchio\": [x, y] oppure \"tipo\": \"cerchio\" con \"centro\": [x, y].";
+                        return null;
+                    }
+
+                    // MANCANTE E NON NUMERICO SONO DUE COSE DIVERSE.
+                    // Prima finivano tutte e due in «non e' un numero»,
+                    // perche' la chiave assente sollevava dentro lo stesso
+                    // try. Chi ha scritto {"cerchio":[0,0]} e basta va
+                    // mandato a mettere il diametro, non a controllare un
+                    // numero che non ha scritto.
+                    object grezzoDiametro;
+                    if (!voce.TryGetValue("diametro_mm", out grezzoDiametro) || grezzoDiametro == null)
+                    {
+                        motivo = "Un cerchio senza \"diametro_mm\": un centro da solo non dice quanto e' grande.";
+                        return null;
+                    }
                     double diametro;
-                    try { diametro = Convert.ToDouble(voce["diametro_mm"], System.Globalization.CultureInfo.InvariantCulture); }
+                    try
+                    {
+                        diametro = Convert.ToDouble(
+                            grezzoDiametro, System.Globalization.CultureInfo.InvariantCulture);
+                    }
                     catch { motivo = "Il diametro del cerchio non e' un numero."; return null; }
-                    if (centro == null || centro.Count != 1) { motivo = "Il centro del cerchio non e' [x, y]."; return null; }
+                    if (diametro <= 0)
+                    {
+                        motivo = "Il diametro del cerchio e' " + diametro + ": un cerchio di diametro zero o negativo non si disegna.";
+                        return null;
+                    }
+
                     fuori.Add(new Contorno { Cerchio = true, Centro = centro[0], Diametro = diametro });
                     continue;
                 }

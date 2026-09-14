@@ -67,6 +67,7 @@ namespace SolidWorksMcp.Installer
             var cartella = Valore(argomenti, "--cartella") ?? Passi.CartellaPredefinita;
             var redist = Valore(argomenti, "--redist") ?? Passi.TrovaRedist();
             bool niente = argomenti.Any(a => Uguale(a, "--senza-client"));
+            var configScelto = Valore(argomenti, "--config");
 
             Action<string> racconta = riga => Console.WriteLine("  " + riga);
 
@@ -99,7 +100,23 @@ namespace SolidWorksMcp.Installer
 
             if (!niente)
             {
-                foreach (var client in Configurazione.ClientTrovati().Where(c => c.Installato))
+                // CON --config SI COLLEGA QUEL FILE E BASTA.
+                // Non si va a cercare quali client sono installati: chi ha
+                // indicato un file sa cosa vuole, e andare a toccarne altri
+                // sarebbe fare piu' di quello che e' stato chiesto.
+                var clienti = string.IsNullOrWhiteSpace(configScelto)
+                    ? Configurazione.ClientTrovati().Where(c => c.Installato)
+                    : new[]
+                    {
+                        new Client
+                        {
+                            Nome = "file indicato",
+                            File = configScelto,
+                            Installato = true,
+                        },
+                    }.AsEnumerable();
+
+                foreach (var client in clienti)
                 {
                     try { Configurazione.Collega(client, eseguibile, redist, racconta); }
                     catch (Exception ex) { Console.WriteLine("  " + client.Nome + ": " + ex.Message); }
@@ -144,6 +161,7 @@ namespace SolidWorksMcp.Installer
             "  --addin <percorso>      dove sta OpenPDM.SwAddin.dll\n" +
             "  --redist <percorso>     la cartella api\\redist di SOLIDWORKS\n" +
             "  --senza-client          non toccare la configurazione dei client MCP\n" +
+            "  --config <percorso>     collega QUEL file invece di cercare i client\n" +
             "\n" +
             "Non serve l'amministratore: installa nella cartella dell'utente e non\n" +
             "scrive nel registro di sistema.";
