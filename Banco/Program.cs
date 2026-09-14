@@ -54,10 +54,26 @@ namespace ProvaSaldatura
         /// esattamente il motivo per cui la voce F1 esiste.
         /// </remarks>
         private const string NS = "Riscontro.Disegno.";
-        private const string QUADRO =
-            @"<impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\NORMATI\TUBO STRUTTURALE QUADRO.SLDLFP";
-        private const string RETT =
-            @"<impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\NORMATI\TUBO STRUTTURALE RETTANGOLARE.SLDLFP";
+        /// <summary>
+        /// I PROFILI NORMATI, che sono di chi lavora e non del repository.
+        ///
+        /// Le prove sulle saldature hanno bisogno dei file di libreria veri:
+        /// un `.SLDLFP` inventato non misura niente. Il percorso predefinito e'
+        /// quello di questa installazione, e si scavalca con
+        /// `PROFILI_SALDATURA`.
+        ///
+        /// Era una costante. Chi clona il repository non ha quel disco, e con
+        /// una costante scopriva di non averlo quando il banco falliva senza
+        /// dire perche'.
+        /// </summary>
+        private static readonly string ProfiliSaldatura =
+            System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA")
+            ?? @"<impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\NORMATI";
+
+        private static readonly string QUADRO =
+            System.IO.Path.Combine(ProfiliSaldatura, "TUBO STRUTTURALE QUADRO.SLDLFP");
+        private static readonly string RETT =
+            System.IO.Path.Combine(ProfiliSaldatura, "TUBO STRUTTURALE RETTANGOLARE.SLDLFP");
 
         private static ISldWorks _sw;
         private static Assembly _addin;

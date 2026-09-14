@@ -209,6 +209,91 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// L'ANCORA DI UNA FACCIA: il baricentro d'area, in mm.
+        ///
+        /// PERCHE' NON BASTA `punto_mm`. Quel punto fa un mestiere diverso e lo
+        /// fa bene: e' il punto GARANTITO sulla faccia da cui si seleziona, e
+        /// per questo si prende con `GetClosestPointOn(0,0,0)` invece del
+        /// centro del riquadro — il centro di una faccia bucata cade nel vuoto.
+        ///
+        /// Come IMPRONTA DIGITALE pero' e' cattivo, perche' per quasi tutte le
+        /// facce che non guardano l'origine e' un punto di **frontiera**: si
+        /// sposta quando si muove il BORDO, non la faccia.
+        ///
+        /// Misurato il 14/9/2026: piastra 100x60x20, faccia in alto con ancora
+        /// `[0,20,0]`. Una tacca di 15x15 in un angolo — il **3,75%** dell'area
+        /// — sposta quel punto a `[15,20,0]`, cioe' di **15 mm**. Il baricentro
+        /// d'area, nello stesso caso, si sposta di circa 1,9 mm: proporzionale a
+        /// quanto la faccia e' davvero cambiata, invece che a dove capitava il
+        /// bordo.
+        ///
+        /// E QUESTO DA SOLO NON TOGLIE NESSUN RIFIUTO. La tolleranza e' 0,05 mm,
+        /// e 1,9 mm la supera lo stesso. Serve a rendere possibile una
+        /// tolleranza PROPORZIONALE al cambiamento, che e' la voce E8: qui si
+        /// prepara il numero, li' si decidera' cosa farne.
+        ///
+        /// SI USA LA TASSELLATURA, e non e' senza conseguenze: `GetTessTriangles`
+        /// dipende dalla qualita' di visualizzazione del documento. Dentro una
+        /// sessione e' deterministica — misurato, dieci letture identiche — ma
+        /// fra due macchine con impostazioni diverse potrebbe non esserlo, e per
+        /// questo l'ancora **si affianca** a `punto_mm` invece di sostituirlo.
+        /// </summary>
+        private static double[] AncoraDellaFaccia(IFace2 faccia)
+        {
+            try
+            {
+                // LA TASSELLATURA ARRIVA IN `float`, NON IN `double`.
+                // `IGetTessTriangles` nell'interop e' dichiarata `Single`, e
+                // un `as double[]` su un array di float torna **null in
+                // silenzio**: l'ancora usciva vuota su ogni faccia e non c'era
+                // nessun errore da nessuna parte. E' la stessa famiglia
+                // dell'`as object[]` su una List<>, gia' costata un controllo
+                // spento per mezza giornata.
+                var grezzo = faccia?.GetTessTriangles(true);
+                double[] t = grezzo as double[];
+                if (t == null && grezzo is float[] f)
+                {
+                    t = new double[f.Length];
+                    for (int k = 0; k < f.Length; k++) t[k] = f[k];
+                }
+                if (t == null || t.Length < 9) return null;
+
+                // Baricentro pesato sull'AREA dei triangoli, non media dei
+                // vertici: una faccia tassellata fitta da una parte e larga
+                // dall'altra tirerebbe la media dove i triangoli sono piu'
+                // numerosi, che non vuol dire niente.
+                double sx = 0, sy = 0, sz = 0, peso = 0;
+                for (int i = 0; i + 8 < t.Length; i += 9)
+                {
+                    double ax = t[i], ay = t[i + 1], az = t[i + 2];
+                    double bx = t[i + 3], by = t[i + 4], bz = t[i + 5];
+                    double cx = t[i + 6], cy = t[i + 7], cz = t[i + 8];
+
+                    double ux = bx - ax, uy = by - ay, uz = bz - az;
+                    double vx = cx - ax, vy = cy - ay, vz = cz - az;
+                    double nx = uy * vz - uz * vy;
+                    double ny = uz * vx - ux * vz;
+                    double nz = ux * vy - uy * vx;
+                    double area = Math.Sqrt(nx * nx + ny * ny + nz * nz) / 2.0;
+                    if (area <= 0) continue;
+
+                    sx += area * (ax + bx + cx) / 3.0;
+                    sy += area * (ay + by + cy) / 3.0;
+                    sz += area * (az + bz + cz) / 3.0;
+                    peso += area;
+                }
+                if (peso <= 0) return null;
+                return new[]
+                {
+                    Math.Round(Unita.Mm(sx / peso), 3),
+                    Math.Round(Unita.Mm(sy / peso), 3),
+                    Math.Round(Unita.Mm(sz / peso), 3),
+                };
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
         /// La lavorazione che ha generato una faccia: identificativo e nome.
         ///
         /// Non solleva e non si lamenta: una faccia senza lavorazione
@@ -242,7 +327,55 @@ namespace Riscontro.Disegno
         /// un accesso all'applicazione — quindi o lo passa chi chiama o non
         /// si sa. Restava facoltativo per non rompere chi chiamava prima.
         /// </param>
+        /// <param name="conAncora">
+        /// Scrivere l'ancora di ogni faccia dentro lo stato.
+        ///
+        /// SPENTA DI SERIE, e non per prudenza generica. L'ancora e' il
+        /// baricentro d'area e serve a RICONOSCERE una faccia fra due letture;
+        /// non serve a chi legge lo stato per decidere cosa fare, e offrirgliela
+        /// accanto a `punto_mm` sarebbe dargli due punti quando ne deve usare
+        /// uno — e la scelta sbagliata non darebbe errore, darebbe un foro
+        /// fuori dal materiale.
+        ///
+        /// E costa: su un telaio da quattro barre sono **1.400 caratteri**, che
+        /// portano lo stato da 15.7 KB a 17.1 — oltre il tetto dei 16 KB che il
+        /// banco sorveglia.
+        ///
+        /// La accende chi costruisce le FIRME dei passi, e la toglie prima di
+        /// mandare lo stato a qualcuno.
+        /// </param>
+        /// <remarks>
+        /// QUESTA FIRMA NON SI TOCCA, E NON E' PRUDENZA GENERICA.
+        ///
+        /// `Leggi` la chiama anche il banco, **per riflessione**, e li' due
+        /// cose che per un compilatore sono innocue non lo sono:
+        ///
+        ///   * aggiungere un parametro con valore predefinito → `Invoke` con
+        ///     due argomenti su un metodo che ne vuole tre risponde «Mancata
+        ///     corrispondenza nel numero dei parametri». Misurato il
+        ///     14/9/2026: il banco da 88 prove e 0 fallite a **70 e 58**;
+        ///   * aggiungere un OVERLOAD → `GetMethod("Leggi")` ne trova due e
+        ///     risponde «Trovata corrispondenza ambigua». Misurato mezz'ora
+        ///     dopo, riparando il primo errore con il secondo.
+        ///
+        /// **Qualunque cambiamento all'insieme delle firme di un metodo rompe
+        /// chi lo chiama per riflessione**, anche quello che il compilatore
+        /// accetta senza dire niente. Cio' che serve in piu' si mette in un
+        /// metodo con un NOME diverso — vedi <see cref="LeggiConAncora"/>.
+        /// </remarks>
         public static StatoDocumento Leggi(IModelDoc2 modello, ISldWorks sw = null)
+        {
+            return LeggiConAncora(modello, sw, false);
+        }
+
+        /// <summary>
+        /// Come <see cref="Leggi"/>, dicendo se si vuole anche l'ancora di
+        /// ogni faccia.
+        ///
+        /// Nome diverso e non un overload: vedi la nota su `Leggi`.
+        /// </summary>
+        public static StatoDocumento LeggiConAncora(
+            IModelDoc2 modello, ISldWorks sw, bool conAncora)
         {
             var stato = new StatoDocumento();
             if (modello == null) return stato;
@@ -772,6 +905,13 @@ namespace Riscontro.Disegno
                     {
                         voce["lavorazione_id"] = lavorazioneId;
                         nomiDelleLavorazioni[lavorazioneId] = lavorazione;
+                    }
+
+                    // L'ancora: si scrive solo se si e' riusciti a calcolarla.
+                    if (conAncora)
+                    {
+                        var ancora = AncoraDellaFaccia(t.Item1);
+                        if (ancora != null) voce["ancora"] = ancora;
                     }
 
                     facce.Add(voce);

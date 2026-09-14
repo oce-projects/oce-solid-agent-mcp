@@ -16,6 +16,54 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.25.0 — 14 settembre 2026 · libreria 0.61.0
+
+**Il punto che seleziona e l'ancora che identifica sono due cose diverse.**
+
+`punto_mm` e' un punto **garantito sulla faccia**, preso col punto piu' vicino
+all'origine: giusto per selezionare — il centro di una faccia bucata cadrebbe nel
+vuoto. Come impronta digitale e' cattivo, perche' e' un punto di **frontiera**.
+
+Piastra 100 × 60 × 20, una tacca di 15 × 15 in un angolo — **225 mm² su 6000, il
+3,75%**:
+
+| | prima | dopo | spostamento |
+|---|---|---|---|
+| `punto_mm` | `[0,20,0]` | `[15,20,0]` | **15 mm** |
+| `ancora` (baricentro d'area) | `[50,20,-30]` | `[51.656,20,-30.877]` | **1,87 mm** |
+
+### Il criterio della voce era gia' soddisfatto, e andava misurato
+
+«Dieci letture identiche, e una dopo un rebuild a vuoto.» Provato sul caso a
+simmetria di rotazione dove i punti a distanza minima sono infiniti
+(`estrudi_cerchio` Ø40 con svasato coassiale): **dieci su dieci identiche**,
+e identiche dopo il rebuild. L'instabilita' temuta non c'e' su questa versione.
+
+### E l'ancora da sola non toglie nessun rifiuto
+
+La tolleranza e' 0,05 mm e 1,87 la supera lo stesso. L'ancora **non e' la
+riparazione**: e' il numero che rende possibile una tolleranza proporzionale al
+cambiamento, che e' la voce E8. `FirmaCombacia` continua percio' a usare
+`punto_mm`: cambiare il termine di confronto senza cambiare la politica di
+tolleranza sposterebbe i rifiuti senza toglierli.
+
+### L'ancora non si manda a chi legge
+
+Due mestieri, due destinatari. Offrire due punti a chi ne deve usare uno, e la
+scelta sbagliata non darebbe errore: darebbe un foro fuori dal materiale. E su
+sessanta facce l'ancora e' 1.400 caratteri — lo stato passava a **17.171**,
+oltre il tetto dei 16 KB. Si toglie dopo aver costruito le firme, che se la
+portano dietro.
+
+### Il difetto che e' costato mezz'ora
+
+`IFace2.GetTessTriangles` risponde un **`float[]`**, non un `double[]`: un
+`as double[]` torna **null in silenzio**, e l'ancora usciva vuota su ogni faccia
+senza nessun errore. Terza volta per questa famiglia — e l'interop lo diceva,
+`IGetTessTriangles` e' dichiarata `Single`.
+
+---
+
 ## 0.24.0 — 14 settembre 2026 · libreria 0.60.0
 
 **I corpi erano controllati per esistenza e non per identita'**, e il commento

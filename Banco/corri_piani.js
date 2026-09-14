@@ -40,6 +40,28 @@ if (!piani.length) { console.error("dammi i piani"); process.exit(2); }
 
 // ──────────────────────────────────────────────────────────────────────────
 
+// DOVE IL BANCO SCRIVE I SUOI PEZZI.
+//
+// I casi che salvano un file portavano dentro il percorso della scratchpad di
+// sessione — nome utente compreso — e quello era sbagliato due volte: un
+// repository destinato a diventare pubblico non porta in giro il nome di chi
+// lavora, e un caso che punta a una cartella di sessione non si puo'
+// rilanciare la settimana dopo.
+//
+// Adesso scrivono `{BANCO}/pezzo/tizio.SLDPRT`, e qui `{BANCO}` diventa
+// `Banco/lavoro`, che sta nel .gitignore.
+const LAVORO = path.join(__dirname, "lavoro");
+
+function risolviSegnaposto(testo) {
+  return testo.split("{BANCO}").join(LAVORO.split("\\").join("/"));
+}
+
+function preparaLaCartella() {
+  for (const c of [LAVORO, path.join(LAVORO, "pezzo"), path.join(LAVORO, "profili")]) {
+    if (!fs.existsSync(c)) fs.mkdirSync(c, { recursive: true });
+  }
+}
+
 function unGiro(elenco, suQuesto) {
   return new Promise(risolvi => {
     const richieste = [
@@ -55,7 +77,9 @@ function unGiro(elenco, suQuesto) {
       richieste.push({
         jsonrpc: "2.0", id: 10 + i, method: "tools/call",
         params: { name: "disegna",
-                  arguments: { passi: JSON.parse(fs.readFileSync(f, "utf8")) } },
+                  arguments: {
+                    passi: JSON.parse(risolviSegnaposto(fs.readFileSync(f, "utf8"))),
+                  } },
       });
       nome[10 + i] = f;
     });
@@ -115,6 +139,7 @@ function attrezzo(percorso, args) {
 }
 
 async function principale() {
+  preparaLaCartella();
   let daRisparmiare = [];
 
   if (pulisci) {

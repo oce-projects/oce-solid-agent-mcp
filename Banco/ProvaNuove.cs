@@ -109,7 +109,16 @@ namespace ProvaSaldatura
                 doc.ClearSelection2(true);
                 doc.ViewDisplayShaded();
 
-                string cartella = @"{BANCO}\viste";
+                // DOVE FINISCONO GLI SCATTI: accanto all'eseguibile del banco,
+                // in `lavoro\viste`, che sta nel .gitignore.
+                //
+                // Era un percorso assoluto dentro una cartella temporanea di
+                // sessione, nome utente compreso. Sbagliato due volte: quella
+                // cartella non esiste piu', e il nome di chi lavora non deve
+                // uscire da questa macchina (`Controlli\controlla-pubblicabilita.ps1`).
+                string cartella = System.IO.Path.Combine(
+                    System.IO.Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".",
+                    "lavoro", "viste");
                 if (!System.IO.Directory.Exists(cartella)) System.IO.Directory.CreateDirectory(cartella);
 
                 // Piu' viste, perche' UNA SOLA NON BASTA e vale la pena

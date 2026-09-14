@@ -12,6 +12,11 @@ Installer/Payload/
 # allora resta un file di lavoro.
 Banco/ultimo-giro.txt
 
+# I pezzi che il banco crea mentre prova: usa e getta, e con dentro percorsi
+# di questa macchina. I casi li nominano con `{BANCO}`, che il runner risolve
+# qui — cosi' nessun caso porta in giro il nome di chi lavora.
+Banco/lavoro/
+
 # `bin/` e `obj/` sopra bastano anche per Banco/, ed e' voluto che le
 # librerie di Dassault non ci finiscano nemmeno: il csproj del banco le
 # referenzia con Private=False, quindi in bin/ non vengono copiate.

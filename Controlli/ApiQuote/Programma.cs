@@ -53,6 +53,7 @@ namespace Controlli.ApiQuote
             {
                 "IDrawingDoc", "IView", "IModelDocExtension", "IModelDoc2",
                 "IAnnotation", "IDisplayDimension", "ISheet",
+                "IFace2", "IBody2", "ISurface", "IEdge",
             };
 
             foreach (var nome in tipi)

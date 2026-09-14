@@ -209,7 +209,42 @@ namespace SolidWorksMcp.Strumenti
             if (stato == null) return Protocollo.Contenuto(errore, true);
             _guardato = IdentitaDelloStato(stato);
             _firmeViste = FirmeDelloStato(stato);
+            TogliLAncora(stato);
             return Protocollo.Contenuto(Protocollo.InJson(stato));
+        }
+
+        /// <summary>
+        /// L'ANCORA NON SI MANDA A CHI LEGGE, e non e' per risparmiare posto —
+        /// anche se ne risparmia.
+        ///
+        /// `punto_mm` e `ancora` fanno due mestieri diversi e hanno due
+        /// destinatari diversi:
+        ///
+        ///   * `punto_mm` serve a **selezionare**: e' un punto garantito sulla
+        ///     faccia, e chi legge lo usa per dire dove lavorare;
+        ///   * `ancora` serve a **riconoscere**: e' il baricentro d'area, che
+        ///     non sta necessariamente sulla faccia (quello di una faccia a
+        ///     ferro di cavallo cade nel vuoto) e non si puo' usare per
+        ///     selezionare niente.
+        ///
+        /// Mandarli tutti e due vorrebbe dire offrire due punti a chi ne deve
+        /// usare uno, e la scelta sbagliata non darebbe errore: darebbe un foro
+        /// fuori dal materiale.
+        ///
+        /// E il posto conta lo stesso: su un telaio da quattro barre l'ancora
+        /// su sessanta facce sono **1.400 caratteri**, e lo stato passava da
+        /// 15.700 a 17.171 — oltre il tetto dei 16 KB che il banco sorveglia.
+        ///
+        /// Si toglie DOPO aver costruito le firme, che se la portano dietro.
+        /// </summary>
+        private static void TogliLAncora(Dictionary<string, object> stato)
+        {
+            if (stato == null) return;
+            var facce = (stato.TryGetValue("facce", out var g) ? g : null)
+                        as System.Collections.IEnumerable;
+            if (facce == null) return;
+            foreach (var v in facce)
+                (v as Dictionary<string, object>)?.Remove("ancora");
         }
 
         /// <summary>
@@ -258,7 +293,7 @@ namespace SolidWorksMcp.Strumenti
                     foreach (var campo in new[]
                              {
                                  "punto_mm", "normale", "area_mm2", "lunghezza_mm",
-                                 "lavorazione_id", "centro_mm", "ingombro_mm",
+                                 "lavorazione_id", "centro_mm", "ingombro_mm", "ancora",
                                  "feature_id",
                              })
                         if (voce.TryGetValue(campo, out var x) && x != null)
@@ -608,7 +643,7 @@ namespace SolidWorksMcp.Strumenti
             // scritto giusto — verrebbe rifiutato perche' confrontato con una
             // lettura che il suo autore non ha mai visto. Sarebbe un rifiuto
             // di cio' che e' corretto, che e' il difetto peggiore dei due.
-            if (dopo != null) _firmeViste = FirmeDelloStato(dopo);
+            if (dopo != null) { _firmeViste = FirmeDelloStato(dopo); TogliLAncora(dopo); }
 
             var risultato = new Dictionary<string, object>
             {

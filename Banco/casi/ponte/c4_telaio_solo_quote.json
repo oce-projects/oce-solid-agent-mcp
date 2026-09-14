@@ -2,7 +2,7 @@
  {
   "operazione": "telaio_rettangolare",
   "argomenti": {
-   "profilo_percorso": "{BANCO}\\profili\\QUADRO_COPIA.SLDLFP",
+   "profilo_percorso": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
    "configurazione": "80X80X5",
    "trattamento_angolo": "quartabuono",
    "telaio": {

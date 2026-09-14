@@ -335,7 +335,7 @@ namespace SolidWorksMcp.Ponte
         /// </summary>
         private StatoDocumento LeggiStato(object doc)
         {
-            return StatoDocumento.Leggi(doc as IModelDoc2, _sw as ISldWorks);
+            return StatoDocumento.LeggiConAncora(doc as IModelDoc2, _sw as ISldWorks, true);
         }
 
         /// <summary>
