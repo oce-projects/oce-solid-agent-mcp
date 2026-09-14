@@ -1,9 +1,10 @@
 # SolidWorks MCP
 
-Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti le
-operazioni di disegno gia' misurate del progetto OpenPDM, cosi' che un modello
-qualunque — locale o remoto — possa costruire un pezzo e, soprattutto,
-**guardare cos'e' venuto**.
+Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti trentasei
+operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
+remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
+
+Si installa con un file solo e non chiede altro che SOLIDWORKS.
 
 ## Perche' esiste
 
@@ -32,16 +33,22 @@ si misura e si sviluppa.
 
 ## Come funziona
 
-Un'applicazione da riga di comando che parla **MCP su stdio** e carica per
-riflessione `OpenPDM.SwAddin.dll`, l'add-in vero. Non riscrive le operazioni:
-usa quelle, cosi' cio' che si prova di qui e' esattamente cio' che il
-progettista avra' in mano.
+Un'applicazione da riga di comando che parla **MCP su stdio** e chiama
+`Riscontro.Disegno`, la libreria che contiene le operazioni. Non le riscrive:
+sono le stesse che l'add-in di OpenPDM esegue quando un progettista preme
+«conferma», cosi' cio' che si prova di qui e' esattamente cio' che avra' in
+mano.
 
 ```
-modello  <--MCP/stdio-->  SolidWorksMcp.exe  --riflessione-->  OpenPDM.SwAddin.dll
-                                                                      |
-                                                                  SolidWorks
+modello  <--MCP/stdio-->  SolidWorksMcp.exe  ---->  Riscontro.Disegno.dll
+                                                             |
+                                                         SolidWorks
 ```
+
+Fino alla 0.5.0 la libreria era `OpenPDM.SwAddin.dll` — l'add-in intero,
+caricato per riflessione — e il ponte si portava dietro tutto il PDM per fare
+un foro. Dalla 0.6.0 le operazioni stanno per conto loro; dalla 0.7.0
+l'installatore se le porta dentro.
 
 ## Gli strumenti
 
@@ -88,9 +95,15 @@ operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
 
 | | |
 |---|---|
-| `OPENPDM_ADDIN` | dove sta `OpenPDM.SwAddin.dll`; se manca, accanto all'eseguibile |
+| `RISCONTRO_DISEGNO` | quale `Riscontro.Disegno.dll` ci si aspetta di usare. **Non la sceglie**: .NET carica quella accanto all'eseguibile. Serve a farsi dire se le due non coincidono |
+| `OPENPDM_ADDIN` | il vecchio nome di `RISCONTRO_DISEGNO`, ancora letto |
 | `OPENPDM_CATALOGO` | dove sta `catalogo.json`; se manca, accanto all'eseguibile |
 | `SW_REDIST` | la cartella `api\redist` di SolidWorks, se non e' in `C:\Program Files\SOLIDWORKS Corp` |
+
+`RISCONTRO_DISEGNO` non decide piu' quale libreria caricare, e resta letta
+apposta: se punta altrove, il ponte lo **dice**. Una variabile d'ambiente che
+non fa niente e' peggio di una che non esiste — chi l'ha impostata continua a
+credere che conti.
 
 Le librerie di interoperabilita' di Dassault **non stanno in questo
 repository**: si prendono dall'installazione, cosi' la versione e' sempre
