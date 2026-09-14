@@ -1,0 +1,11 @@
+[
+ {
+  "operazione": "estrudi_sezione",
+  "argomenti": {
+   "piano": "superiore",
+   "tipo": "tondo",
+   "diametro_mm": 50,
+   "lunghezza_mm": 200
+  }
+ }
+]

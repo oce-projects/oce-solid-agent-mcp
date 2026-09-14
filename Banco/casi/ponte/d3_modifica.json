@@ -1,0 +1,6 @@
+[
+ {
+  "operazione": "modifica_quota",
+  "argomenti": { "quota": "D1@Schizzo2@Parte140.Part", "valore_mm": 20 }
+ }
+]

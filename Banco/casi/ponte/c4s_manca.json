@@ -1,0 +1,12 @@
+[
+ {
+  "operazione": "estrudi_sezione",
+  "argomenti": {
+   "piano": "superiore",
+   "tipo": "tubolare",
+   "larghezza_mm": 80,
+   "altezza_mm": 80,
+   "lunghezza_mm": 100
+  }
+ }
+]

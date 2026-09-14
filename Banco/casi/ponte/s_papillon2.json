@@ -1,0 +1,10 @@
+[
+ {
+  "operazione": "estrudi_profilo",
+  "argomenti": {
+   "piano": "superiore",
+   "spessore_mm": 10,
+   "contorni": [ [[0,0],[100,0],[0,50],[100,50]] ]
+  }
+ }
+]

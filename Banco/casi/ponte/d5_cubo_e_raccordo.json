@@ -1,0 +1,4 @@
+[
+ { "operazione": "estrudi_rettangolo", "argomenti": { "piano": "superiore", "lunghezza_mm": 10, "larghezza_mm": 10, "spessore_mm": 10, "centrato": true } },
+ { "operazione": "raccordo_spigoli", "argomenti": { "spigoli_rif": { "passo": 1, "genere": "spigoli_superiori" }, "raggio_mm": 20 } }
+]

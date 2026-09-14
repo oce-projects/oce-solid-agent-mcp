@@ -1,0 +1,11 @@
+[
+ {
+  "operazione": "ruota_dentata",
+  "argomenti": {
+   "piano": "superiore",
+   "denti": 127,
+   "modulo_mm": 1,
+   "spessore_mm": 8
+  }
+ }
+]

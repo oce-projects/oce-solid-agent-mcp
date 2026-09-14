@@ -16,6 +16,87 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.20.0 — 14 settembre 2026 · libreria 0.58.0
+
+**Il banco entra nel repository, e si scopre che era rotto da tre giorni.**
+
+`Banco/` con i quattro sorgenti, `Banco/casi/` con **112** piani, il runner del
+ponte (`corri_piani.js`, `guarda.js`) e `Banco/LEGGIMI.md`. Stavano tutti in una
+cartella temporanea di sessione.
+
+### Era rotto, e nessuno poteva accorgersene
+
+Il banco caricava `OpenPDM.SwAddin.dll` e chiedeva i tipi
+`OpenPDM.SwAddin.Agente.OperazioniSw`. Le voci B4 e B5 hanno spostato le
+operazioni in `Riscontro.Disegno`: da allora `GetType(..., true)` solleva.
+
+Tre giorni che non partiva. Non se n'era accorto nessuno **perche' viveva fuori
+dal repository e non lo lanciava piu' niente**.
+
+> Una misura che si puo' rifare solo dalla macchina e dalla settimana in cui e'
+> stata scritta non e' una misura: e' un aneddoto.
+
+### Rimesso in piedi
+
+* i tipi puntano a `Riscontro.Disegno.*`;
+* il percorso della libreria diventa `--libreria <percorso>`, con predefinito
+  accanto all'eseguibile — era una costante dentro una cartella temporanea;
+* `Assembly.Load(File.ReadAllBytes(...))` invece di `LoadFrom`, perche' la
+  libreria sta su un percorso di rete e .NET rifiuta di caricare da li';
+* **`Main` spezzato in due.** Il gestore `AssemblyResolve` va installato prima
+  che il JIT compili un metodo che nomina un tipo interop, e il JIT compila
+  tutto il metodo prima di eseguirne la prima riga: dentro `Main` arrivava
+  troppo tardi, e l'eccezione usciva «in Program.Main» — cioe' **prima di
+  qualunque riga scritta li' dentro**.
+
+### Le librerie di Dassault: due difese invece di una
+
+`bin/` nel `.gitignore`, **e** `Private=False` nel csproj, cosi' le interop non
+vengono copiate affatto. A tempo di esecuzione si prende quella installata sulla
+macchina (`SW_REDIST` per i percorsi non standard).
+
+Verificato: in `Banco\bin\` c'e' **il solo eseguibile**.
+
+### E il banco chiude quello che apre
+
+Ogni piano lasciava aperto il pezzo creato, e lo stato li enumera tutti a ogni
+lettura: 244 ms per documento solo per `GetNext()`. Dopo cinquanta casi il banco
+rallenta se stesso di un minuto e mezzo per lettura.
+
+Non e' comodita': finche' il banco si sporca da solo, **i tempi che misura non
+sono i tempi del prodotto, sono i suoi**.
+
+`corri_piani.js --pulisci` legge quali documenti c'erano **prima**, apre una
+parte pulita per ogni piano, e **chiude dopo ognuno** —
+`ChiudiScarti --risparmia` tiene fuori quelli di chi stava lavorando.
+
+Lo stesso piano dodici volte, nei due modi (`Banco\misura_accumulo.js`):
+
+```
+MAI chiusa:  10.2 11.1 11.4 11.1 11.3 12.1 12.2 13.3 13.8 13.9 15.2 15.4
+             primo 10.2 s, ultimo 15.4 s (x1.5)   alla fine 12 documenti
+
+CHIUSA dopo ogni piano:
+             10.7 10.7 10.1 10.3 10.1  9.9 10.9 10.0 10.1 10.6 10.4 10.2
+             primo 10.7 s, ultimo 10.2 s (x1.0)   alla fine 0 documenti
+```
+
+**0,43 secondi per documento accumulato.**
+
+Due errori di metodo prima di arrivarci, e sono lo stesso errore — misurare una
+cosa credendo di misurarne un'altra:
+
+* la prima misura metteva in fila diciannove piani **diversi** e leggeva i tempi
+  crescere. Crescevano perche' il primo era un tubolare e gli altri ruote
+  dentate da 336 segmenti: si stava leggendo l'ordine dell'elenco;
+* la prima pulizia chiudeva solo **alla fine** del giro. I documenti si
+  accumulano durante, ed e' durante che lo stato li enumera tutti: i tempi erano
+  identici a quelli senza pulizia.
+
+Il confronto che isola la variabile giusta e' lo stesso piano ripetuto.
+
+---
+
 ## 0.19.0 — 14 settembre 2026 · libreria 0.58.0
 
 **Il conteggio degli errori si da' come delta, non come numero.**

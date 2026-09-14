@@ -1,0 +1,17 @@
+[
+ {
+  "operazione": "telaio_rettangolare",
+  "argomenti": {
+   "profilo_percorso": "{BANCO}\\profili\\QUADRO_COPIA.SLDLFP",
+   "configurazione": "80X80X5",
+   "trattamento_angolo": "quartabuono",
+   "telaio": {
+    "lunghezza_mm": 1000,
+    "larghezza_mm": 800,
+    "piano": "frontale",
+    "centrato": true,
+    "misure": "ingombro"
+   }
+  }
+ }
+]

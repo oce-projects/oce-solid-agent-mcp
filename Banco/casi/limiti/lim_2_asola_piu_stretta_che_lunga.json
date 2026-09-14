@@ -1,0 +1,15 @@
+[
+ {
+  "operazione": "asola",
+  "argomenti": {
+   "faccia_uid": "F1",
+   "x_mm": 0,
+   "y_mm": 0,
+   "lunghezza_mm": 5,
+   "larghezza_mm": 20,
+   "angolo_gradi": 0,
+   "passante": false,
+   "profondita_mm": 3
+  }
+ }
+]

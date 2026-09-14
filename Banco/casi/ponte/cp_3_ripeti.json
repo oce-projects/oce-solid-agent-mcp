@@ -1,0 +1,11 @@
+[
+ {
+  "operazione": "ripeti_lineare",
+  "argomenti": {
+   "feature_uid": "Taglio-Estrusione1",
+   "asse1_uid": "E1",
+   "passo1_mm": 30,
+   "numero_istanze1": 4
+  }
+ }
+]

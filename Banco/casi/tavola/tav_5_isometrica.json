@@ -1,0 +1,11 @@
+[
+ {
+  "operazione": "vista_modello",
+  "argomenti": {
+   "modello": "{BANCO}/pezzo/contenitore_c.SLDPRT",
+   "vista": "isometrica",
+   "x_mm": 320,
+   "y_mm": 220
+  }
+ }
+]

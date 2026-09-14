@@ -1,0 +1,13 @@
+[
+ {
+  "operazione": "estrudi_sezione",
+  "argomenti": {
+   "piano": "superiore",
+   "tipo": "t",
+   "larghezza_mm": 60,
+   "altezza_mm": 60,
+   "spessore_mm": 6,
+   "lunghezza_mm": 100
+  }
+ }
+]

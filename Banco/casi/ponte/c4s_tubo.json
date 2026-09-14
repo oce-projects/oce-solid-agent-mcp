@@ -1,0 +1,12 @@
+[
+ {
+  "operazione": "estrudi_sezione",
+  "argomenti": {
+   "piano": "superiore",
+   "tipo": "tubo",
+   "diametro_mm": 60,
+   "parete_mm": 5,
+   "lunghezza_mm": 100
+  }
+ }
+]

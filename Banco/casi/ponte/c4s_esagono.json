@@ -1,0 +1,11 @@
+[
+ {
+  "operazione": "estrudi_sezione",
+  "argomenti": {
+   "piano": "superiore",
+   "tipo": "esagono",
+   "chiave_mm": 30,
+   "lunghezza_mm": 100
+  }
+ }
+]

@@ -1,0 +1,8 @@
+[
+ {
+  "operazione": "crea_disegno",
+  "argomenti": {
+   "formato": "A3"
+  }
+ }
+]

@@ -1,0 +1,3 @@
+[
+ { "operazione": "raccordo_spigoli", "argomenti": { "spigoli_rif": { "passo": 1, "genere": "spigoli_superiori" }, "raggio_mm": 20 } }
+]

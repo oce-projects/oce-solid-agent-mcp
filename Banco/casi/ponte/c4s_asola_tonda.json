@@ -1,0 +1,12 @@
+[
+ {
+  "operazione": "estrudi_sezione",
+  "argomenti": {
+   "piano": "superiore",
+   "tipo": "asola",
+   "larghezza_mm": 20,
+   "altezza_mm": 20,
+   "lunghezza_mm": 10
+  }
+ }
+]

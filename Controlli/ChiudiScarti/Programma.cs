@@ -34,6 +34,12 @@ namespace Controlli.ChiudiScarti
     ///
     ///     ChiudiScarti.exe                       elenca soltanto
     ///     ChiudiScarti.exe --chiudi [cartelle]   chiude davvero
+    ///     ChiudiScarti.exe --chiudi --risparmia "Parte1,Parte2"
+    ///
+    /// `--risparmia` serve al banco, ed e' la differenza fra «chiudo i miei
+    /// scarti» e «chiudo tutto quello che non e' salvato». Il banco legge quali
+    /// documenti c'erano PRIMA di cominciare e li nomina qui: cosi' chiude
+    /// quello che ha aperto lui e non quello che aveva aperto qualcun altro.
     /// </summary>
     internal static class Programma
     {
@@ -41,10 +47,18 @@ namespace Controlli.ChiudiScarti
         {
             bool chiudiDavvero = false;
             var cartelle = new List<string>();
-            foreach (var a in argomenti)
+            var risparmia = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < argomenti.Length; i++)
             {
-                if (a == "--chiudi") chiudiDavvero = true;
-                else cartelle.Add(a.Replace('/', '\\').TrimEnd('\\') + "\\");
+                var a = argomenti[i];
+                if (a == "--chiudi") { chiudiDavvero = true; continue; }
+                if (a == "--risparmia" && i + 1 < argomenti.Length)
+                {
+                    foreach (var t in argomenti[++i].Split(','))
+                        if (t.Trim().Length > 0) risparmia.Add(t.Trim());
+                    continue;
+                }
+                cartelle.Add(a.Replace('/', '\\').TrimEnd('\\') + "\\");
             }
 
             object grezzo;
@@ -66,7 +80,9 @@ namespace Controlli.ChiudiScarti
             {
                 string titolo = doc.GetTitle();
                 string percorso = doc.GetPathName() ?? "";
-                if (Scarto(percorso, cartelle)) daChiudere.Add(titolo);
+                if (risparmia.Contains(titolo))
+                    tenuti.Add(titolo + "  (risparmiato: c'era gia' prima)");
+                else if (Scarto(percorso, cartelle)) daChiudere.Add(titolo);
                 else tenuti.Add(titolo + (percorso == "" ? "" : "  " + percorso));
                 doc = (IModelDoc2)doc.GetNext();
             }

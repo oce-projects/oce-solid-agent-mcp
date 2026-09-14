@@ -1,0 +1,13 @@
+[
+ {
+  "operazione": "estrudi_sezione",
+  "argomenti": {
+   "piano": "superiore",
+   "tipo": "angolare",
+   "larghezza_mm": 50,
+   "altezza_mm": 50,
+   "spessore_mm": 5,
+   "lunghezza_mm": 100
+  }
+ }
+]

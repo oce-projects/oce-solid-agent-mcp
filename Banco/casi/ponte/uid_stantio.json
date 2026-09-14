@@ -1,0 +1,34 @@
+[
+ {
+  "operazione": "estrudi_rettangolo",
+  "argomenti": {
+   "lunghezza_mm": 200,
+   "larghezza_mm": 100,
+   "spessore_mm": 20,
+   "piano": "superiore",
+   "centrato": true
+  }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": {
+   "faccia_uid": "F1",
+   "x_mm": 0,
+   "y_mm": 0,
+   "diametro_mm": 60,
+   "passante": false,
+   "profondita_mm": 5
+  }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": {
+   "faccia_uid": "F1",
+   "x_mm": 70,
+   "y_mm": 0,
+   "diametro_mm": 10,
+   "passante": false,
+   "profondita_mm": 5
+  }
+ }
+]

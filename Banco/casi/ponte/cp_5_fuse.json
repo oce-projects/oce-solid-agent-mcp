@@ -1,0 +1,12 @@
+[
+ {
+  "operazione": "ripeti_lineare",
+  "argomenti": {
+   "feature_uid": "Taglio-Estrusione1",
+   "asse1_uid": "E1",
+   "passo1_mm": 5,
+   "numero_istanze1": 4,
+   "capovolgi_1": true
+  }
+ }
+]

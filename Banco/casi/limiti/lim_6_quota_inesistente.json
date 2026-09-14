@@ -1,0 +1,9 @@
+[
+ {
+  "operazione": "modifica_quota",
+  "argomenti": {
+   "quota": "D42@NonEsiste",
+   "valore_mm": 10
+  }
+ }
+]

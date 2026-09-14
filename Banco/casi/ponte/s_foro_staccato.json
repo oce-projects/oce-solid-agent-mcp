@@ -1,0 +1,13 @@
+[
+ {
+  "operazione": "estrudi_profilo",
+  "argomenti": {
+   "piano": "superiore",
+   "spessore_mm": 10,
+   "contorni": [
+    [[-50,-50],[50,-50],[50,50],[-50,50]],
+    {"cerchio": [200,0], "diametro_mm": 30}
+   ]
+  }
+ }
+]

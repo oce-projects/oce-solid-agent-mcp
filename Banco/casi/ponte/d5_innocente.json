@@ -1,0 +1,3 @@
+[
+ { "operazione": "crea_piano", "argomenti": { "piano": "superiore", "distanza_mm": 5 } }
+]

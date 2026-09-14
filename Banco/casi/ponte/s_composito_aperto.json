@@ -1,0 +1,16 @@
+[
+ {
+  "operazione": "estrudi_profilo",
+  "argomenti": {
+   "piano": "superiore",
+   "spessore_mm": 10,
+   "contorni": [
+    {"tipo": "composito", "tratti": [
+      {"tratto": "linee", "punti": [[0,0],[50,0]]},
+      {"tratto": "linee", "punti": [[52,0],[50,40]]},
+      {"tratto": "linee", "punti": [[50,40],[0,0]]}
+    ]}
+   ]
+  }
+ }
+]

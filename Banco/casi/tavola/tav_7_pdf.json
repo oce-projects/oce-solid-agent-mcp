@@ -1,0 +1,12 @@
+[
+ {
+  "operazione": "salva_documento",
+  "argomenti": {
+   "percorso": "{BANCO}/pezzo/contenitore_c.SLDDRW"
+  }
+ },
+ {
+  "operazione": "esporta_pdf",
+  "argomenti": {}
+ }
+]

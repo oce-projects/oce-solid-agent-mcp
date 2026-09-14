@@ -1,0 +1,3 @@
+[
+ { "operazione": "quote_dal_modello", "argomenti": { "tutte_le_quote": true } }
+]

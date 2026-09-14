@@ -6,3 +6,14 @@ Installer/Payload/
 *.user
 *.suo
 .vs/
+
+# L'uscita dell'ultimo giro di banco: cambia a ogni lancio e non e' una
+# misura finche' non ha un formato. Quello lo decide la voce F2; fino ad
+# allora resta un file di lavoro.
+Banco/ultimo-giro.txt
+
+# `bin/` e `obj/` sopra bastano anche per Banco/, ed e' voluto che le
+# librerie di Dassault non ci finiscano nemmeno: il csproj del banco le
+# referenzia con Private=False, quindi in bin/ non vengono copiate.
+# Due difese per lo stesso guaio, perche' ridistribuire un binario Dassault
+# e' il tipo di errore che si scopre il giorno della pubblicazione.

@@ -1,0 +1,71 @@
+[
+ {
+  "operazione": "telaio_rettangolare",
+  "argomenti": {
+   "profilo_percorso": "<impostazioni SOLIDWORKS>\\ELEMENTI SALDATURA\\NORMATI\\TUBO STRUTTURALE QUADRO.SLDLFP",
+   "configurazione": "80X80X5",
+   "lunghezza_mm": 1000,
+   "larghezza_mm": 800,
+   "piano": "frontale",
+   "centrato": true,
+   "trattamento_angolo": "quartabuono",
+   "segmenti": [
+    {
+     "da": [
+      -500,
+      -400,
+      0
+     ],
+     "a": [
+      500,
+      -400,
+      0
+     ]
+    },
+    {
+     "da": [
+      500,
+      -400,
+      0
+     ],
+     "a": [
+      500,
+      400,
+      0
+     ]
+    },
+    {
+     "da": [
+      500,
+      400,
+      0
+     ],
+     "a": [
+      -500,
+      400,
+      0
+     ]
+    },
+    {
+     "da": [
+      -500,
+      400,
+      0
+     ],
+     "a": [
+      -500,
+      -400,
+      0
+     ]
+    }
+   ],
+   "telaio": {
+    "lunghezza_mm": 1000,
+    "larghezza_mm": 800,
+    "piano": "frontale",
+    "centrato": true,
+    "misure": "ingombro"
+   }
+  }
+ }
+]

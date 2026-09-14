@@ -1,0 +1,12 @@
+[
+ {
+  "operazione": "estrudi_rettangolo",
+  "argomenti": {
+   "lunghezza_mm": 200,
+   "larghezza_mm": 100,
+   "spessore_mm": 20,
+   "piano": "superiore",
+   "centrato": true
+  }
+ }
+]

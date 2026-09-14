@@ -1,0 +1,10 @@
+[
+ {
+  "operazione": "estrudi_cerchio",
+  "argomenti": {
+   "diametro_mm": 80.0,
+   "altezza_mm": 40.0,
+   "piano": "superiore"
+  }
+ }
+]

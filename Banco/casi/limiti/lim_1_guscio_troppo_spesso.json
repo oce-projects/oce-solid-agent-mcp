@@ -1,0 +1,11 @@
+[
+ {
+  "operazione": "guscio",
+  "argomenti": {
+   "facce_uid": [
+    "F1"
+   ],
+   "spessore_mm": 30
+  }
+ }
+]

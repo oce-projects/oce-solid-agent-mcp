@@ -1,0 +1,10 @@
+[
+ {
+  "operazione": "imposta_foglio",
+  "argomenti": {
+   "formato": "A3",
+   "scala_numeratore": 1,
+   "scala_denominatore": 2
+  }
+ }
+]
