@@ -568,6 +568,36 @@ namespace SolidWorksMcp.Strumenti
                 ["volume_dopo_mm3"] = Volume(dopo),
             };
 
+            // IL CONTEGGIO DEGLI ERRORI SI DA' COME DELTA, NON COME NUMERO.
+            //
+            // «lavorazioni_in_errore: 1» dopo un piano sembra dire «il piano ha
+            // rotto qualcosa». Puo' voler dire l'opposto: il pezzo era gia'
+            // rotto quando e' arrivato, e il piano non c'entra. Il numero
+            // assoluto mente su chi sia stato, ed e' il rischio scritto nella
+            // voce D5.
+            //
+            // Si dice quanti ce n'erano prima solo quando cambia qualcosa: su
+            // un pezzo sano che resta sano non c'e' niente da dire, e ripeterlo
+            // a ogni risposta e' posto tolto a cio' che conta.
+            int erroriPrima = LavorazioniInErrore(prima);
+            int erroriDopo = LavorazioniInErrore(dopo);
+            if (erroriPrima > 0 || erroriDopo > 0)
+            {
+                risultato["lavorazioni_in_errore_prima"] = erroriPrima;
+                risultato["nota_errori"] =
+                    erroriDopo > erroriPrima
+                        ? "Il pezzo ha " + erroriDopo + " lavorazioni in errore, e prima " +
+                          "ne aveva " + erroriPrima + ": questo piano ne ha rotte " +
+                          (erroriDopo - erroriPrima) + ". Guarda «stato_dopo» per sapere quali."
+                        : erroriDopo < erroriPrima
+                            ? "Le lavorazioni in errore sono passate da " + erroriPrima +
+                              " a " + erroriDopo + ": questo piano ne ha riparate " +
+                              (erroriPrima - erroriDopo) + "."
+                            : "Il pezzo aveva gia' " + erroriPrima + " lavorazioni in errore " +
+                              "prima di questo piano, e ne ha ancora " + erroriDopo + ": " +
+                              "non le ha rotte questo piano.";
+            }
+
             return Protocollo.Contenuto(Protocollo.InJson(risultato), !tuttoBene);
         }
 
@@ -577,6 +607,19 @@ namespace SolidWorksMcp.Strumenti
         {
             if (stato == null) return null;
             return stato.TryGetValue("volume_mm3", out var v) ? v : null;
+        }
+
+        /// <summary>
+        /// Quante lavorazioni in errore aveva quello stato. Zero anche quando
+        /// il campo non c'e' — ed e' giusto: lo stato lo scrive solo quando ce
+        /// ne sono.
+        /// </summary>
+        private static int LavorazioniInErrore(Dictionary<string, object> stato)
+        {
+            if (stato == null) return 0;
+            object v;
+            if (!stato.TryGetValue("lavorazioni_in_errore", out v) || v == null) return 0;
+            try { return Convert.ToInt32(v); } catch { return 0; }
         }
 
         private static object Prendi(Dictionary<string, object> d, string chiave)

@@ -16,6 +16,55 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.19.0 — 14 settembre 2026 · libreria 0.58.0
+
+**Il conteggio degli errori si da' come delta, non come numero.**
+
+«Il pezzo ha 1 lavorazione in errore» dopo un piano sembra dire «il piano ha
+rotto qualcosa». Puo' voler dire l'opposto: il pezzo era gia' rotto quando e'
+arrivato. Il numero assoluto **mente su chi sia stato**.
+
+```
+piano che rompe:
+  lavorazioni_in_errore: 1   lavorazioni_in_errore_prima: 0
+  nota_errori: "...questo piano ne ha rotte 1."
+
+piano innocente su un pezzo gia' rotto:
+  lavorazioni_in_errore: 1   lavorazioni_in_errore_prima: 1
+  nota_errori: "Il pezzo aveva gia' 1 lavorazioni in errore prima di questo
+                piano...: non le ha rotte questo piano."
+
+pezzo sano che resta sano:
+  (niente)
+```
+
+La terza riga conta quanto le prime due: ripetere «tutto normale» a ogni
+risposta e' posto tolto a cio' che conta.
+
+### Il canale MISURARE c'era gia', e adesso ha dentro le due letture
+
+`guarda_il_pezzo` e' uno strumento a se', `readOnlyHint`, che non passa da
+nessuna conferma perche' non disegna — cioe' esattamente la via (c) che la voce
+D5 proponeva. Non serviva costruirne un altro: serviva metterci dentro l'albero
+(fatto nella 0.18.0) accanto a volume e corpi, che c'erano gia'.
+
+| caso | atteso | misurato |
+|---|---|---|
+| cubo 10 × 10 × 10 sano | `GetWhatsWrongCount` = 0 | **0**, volume 1000, 1 corpo |
+| meno un taglio 4 × 4 passante | 840 mm³ | **840**, 1 corpo |
+
+### Un caso che non si riproduce, ed e' una buona notizia
+
+Il criterio chiedeva un raccordo R=20 su uno spigolo da 10, con codice 18. La
+feature **non viene creata affatto**: l'operazione dice «Il raccordo non e'
+stato creato» e l'albero resta pulito. La libreria non lascia dietro feature
+rosse quando l'operazione fallisce.
+
+Il caso rosso vero e' l'altro: una lavorazione **valida** che diventa impossibile
+per una modifica successiva (0.18.0, codice 12).
+
+---
+
 ## 0.18.0 — 14 settembre 2026 · libreria 0.58.0
 
 **Lo stato dice quando una lavorazione e' rotta.** Prima non lo diceva, ed era
