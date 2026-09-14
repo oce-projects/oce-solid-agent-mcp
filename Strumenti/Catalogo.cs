@@ -71,6 +71,17 @@ namespace SolidWorksMcp.Strumenti
 
         public bool Conosce(string nome) => Trova(nome) != null;
 
+        /// <summary>
+        /// Lo schema grezzo di un'operazione, per chi deve confrontarci gli
+        /// argomenti. `Descrizione` lo impacchetta per il modello; qui
+        /// serve nudo.
+        /// </summary>
+        public Dictionary<string, object> Schema(string nome)
+        {
+            var op = Trova(nome);
+            return op == null ? null : Prendi(op, "schema") as Dictionary<string, object>;
+        }
+
         public Dictionary<string, object> Trova(string nome)
         {
             if (string.IsNullOrWhiteSpace(nome)) return null;

@@ -16,6 +16,76 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.9.0 — 14 settembre 2026 · libreria 0.49.0
+
+Due cose, e la seconda e' un rischio vivo su un file condiviso.
+
+### 1. Il ponte fa rispettare gli schemi che gia' dichiara
+
+Offriva trentasei operazioni con schemi dettagliati e poi non guardava se gli
+argomenti li rispettassero: lo schema serviva solo a suggerire. Uno
+`spessore_mm` dimenticato arrivava a valle come zero e diventava un'estrusione
+di spessore nullo.
+
+```
+estrudi_rettangolo senza spessore_mm
+  -> "Per «estrudi_rettangolo» serve «spessore_mm», e non c'e'.
+      (QUANTO SI ESTRUDE, in mm. Per una piastra e' lo spessore; per una barra
+       o un profilo e' la LUNGHEZZA…)"
+
+estrudi_rettangolo con lunghezza_mm: "duecento"
+  -> "Per «estrudi_rettangolo», «lunghezza_mm» vuole un numero e invece e'
+      un testo («duecento»)."
+```
+
+**E non tocca il documento:** dopo i due rifiuti il pezzo ha 0 feature, 0
+schizzi, 0 facce — nemmeno uno schizzo orfano.
+
+**Solo la forma, mai il merito**, ed e' la riga da tenere in mente leggendo
+`Ponte/Forma.cs`: c'e' il parametro obbligatorio, e' un numero dove serve un
+numero, e' uno dei valori ammessi. Se quel numero *abbia senso* non si giudica —
+allargare un foro ha il centro **esattamente nel vuoto**, e un controllo zelante
+lo rifiuterebbe.
+
+**Un intero e' un numero.** Il difetto piu' facile da scrivere qui sarebbe un
+`type: number` che rifiuta il `20` di `"spessore_mm": 20` perche' il
+deserializzatore l'ha fatto `int`. Provato: passa, e il blocco esce 400.000 mm³.
+Provato anche il ventaglio — blocco, foro, ripetizione, specchio, il tubo con la
+forma `cerchio`, e il telaio saldato con le sue strutture annidate: **nessun
+rifiuto falso**.
+
+### 2. La libreria dei profili: il caso accanto a quello riparato
+
+`RichiudiLaLibreria` (add-in 0.45.0) non tocca il file se era gia' aperto prima
+dell'inserimento, e la ragione scritta e' buona: se il progettista ci stava
+lavorando, chiuderglielo sotto e' un danno.
+
+**Ma «lasciarla com'era» conservava lo stato APERTO, non quello PULITO.**
+
+Misurato: `QUADRO_COPIA.SLDLFP` era aperta **e pulita**; dopo un
+`telaio_rettangolare` risultava `GetSaveFlag() = true`. Il codice la lasciava li'
+apposta. E' esattamente il rischio che tutto questo esiste per togliere — un
+file condiviso a un `Ctrl+S` di distanza dall'essere riscritto — nel caso
+accanto a quello per cui era stato scritto.
+
+Il flag non si puo' ripulire: `IModelDoc2.SetSaveFlag()` non prende argomenti,
+sporca e basta. Quindi tre stati invece di due, e ognuno con la sua ragione:
+
+| com'era prima | cosa si fa | perche' |
+|---|---|---|
+| **chiusa** | si richiude | l'abbiamo aperta noi |
+| **aperta e pulita** | **si richiude lo stesso** | non si perde niente — era pulita — e non si lascia un file condiviso armato |
+| **aperta e sporca** | non si tocca, e si avvisa | qualcuno ci sta lavorando, ed era gia' a rischio prima di noi |
+
+Provati tutti e tre. In tutti e tre, dopo l'operazione: **nessun file su disco
+aperto e modificato**, e la copia sul disco intatta — 99.918 byte, stesso
+orario al nanosecondo.
+
+Nel terzo caso SOLIDWORKS riapre la libreria come riferimento del saldato, ma
+**pulita**, che e' lo stato giusto.
+
+---
+
 ## 0.8.0 — 14 settembre 2026 · libreria 0.48.0
 
 **`modifica_quota` dice anche quando una lavorazione cambia natura, non solo

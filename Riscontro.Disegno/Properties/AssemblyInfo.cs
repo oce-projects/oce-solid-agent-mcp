@@ -8,8 +8,8 @@ using System.Runtime.InteropServices;
 // numero di versione di cio' che l'ha prodotta non e' una misura, e' un
 // aneddoto.
 //
-// Parte da 0.48.0 e non da 0.1.0: e' lo stesso codice dell'add-in OpenPDM alla
-// 0.48.0, spostato. Ricominciare da capo la numerazione farebbe sembrare nuovo
+// Parte da 0.49.0 e non da 0.1.0: e' lo stesso codice dell'add-in OpenPDM alla
+// 0.49.0, spostato. Ricominciare da capo la numerazione farebbe sembrare nuovo
 // cio' che ha gia' un anno di misure alle spalle, e renderebbe impossibile dire
 // «questa prova gira sulla stessa versione di allora».
 [assembly: AssemblyTitle("Riscontro.Disegno")]
@@ -21,6 +21,6 @@ using System.Runtime.InteropServices;
 // Non e' visibile a COM: la usa il ponte, non SOLIDWORKS.
 [assembly: ComVisible(false)]
 
-[assembly: AssemblyVersion("0.48.0.0")]
-[assembly: AssemblyFileVersion("0.48.0.0")]
-[assembly: AssemblyInformationalVersion("0.48.0")]
+[assembly: AssemblyVersion("0.49.0.0")]
+[assembly: AssemblyFileVersion("0.49.0.0")]
+[assembly: AssemblyInformationalVersion("0.49.0")]

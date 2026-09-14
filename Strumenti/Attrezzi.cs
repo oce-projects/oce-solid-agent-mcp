@@ -444,6 +444,29 @@ namespace SolidWorksMcp.Strumenti
                     break;
                 }
 
+                // GLI ARGOMENTI RISPETTANO LO SCHEMA CHE ABBIAMO
+                // DICHIARATO NOI? Il ponte offre trentasei operazioni con
+                // schemi dettagliati: non guardarli vuol dire che lo
+                // schema serve solo a suggerire, e che uno «spessore_mm»
+                // dimenticato arriva a valle come zero — un'estrusione di
+                // spessore nullo, rifiutata da SOLIDWORKS con un messaggio
+                // suo, nel migliore dei casi.
+                //
+                // SOLO LA FORMA, MAI IL MERITO: vedi Ponte/Forma.cs.
+                var formaStorta = Ponte.Forma.Controlla(
+                    nome, _catalogo.Schema(nome), suoi);
+                if (formaStorta != null)
+                {
+                    esiti.Add(new Dictionary<string, object>
+                    {
+                        ["operazione"] = nome,
+                        ["riuscita"] = false,
+                        ["errore"] = formaStorta,
+                    });
+                    tuttoBene = false;
+                    break;
+                }
+
                 // LE FIRME DI QUANDO IL PIANO E' NATO, ALLEGATE AL PASSO.
                 // Non si sovrascrive quello che il chiamante ha gia' messo:
                 // un piano che porta le sue firme sa meglio di noi di cosa

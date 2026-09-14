@@ -67,9 +67,23 @@ namespace Riscontro.Disegno
         /// chiuderebbe una libreria che era di qualcun altro — cioe'
         /// esattamente il danno che questo controllo evita.
         /// </summary>
-        private bool DocumentoGiaAperto(string percorso)
+        /// <summary>
+        /// Com'era la libreria prima che la toccassimo. Tre stati e non due,
+        /// e la differenza e' quella che mancava:
+        ///
+        ///   Chiusa       — non c'era: la si richiude senza pensarci
+        ///   ApertaPulita — c'era e nessuno l'aveva modificata
+        ///   ApertaSporca — c'era e qualcuno ci stava gia' lavorando
+        /// </summary>
+        private enum ComEra { Chiusa, ApertaPulita, ApertaSporca }
+
+        private ComEra StatoDellaLibreria(string percorso)
         {
-            return DocumentoConPercorso(percorso) != null;
+            var doc = DocumentoConPercorso(percorso);
+            if (doc == null) return ComEra.Chiusa;
+            bool sporca = false;
+            try { sporca = doc.GetSaveFlag(); } catch { }
+            return sporca ? ComEra.ApertaSporca : ComEra.ApertaPulita;
         }
 
         private IModelDoc2 DocumentoConPercorso(string percorso)
@@ -104,11 +118,19 @@ namespace Riscontro.Disegno
         /// deve trasformare un lavoro riuscito in un errore. Si scrive nel
         /// log e si va avanti.
         /// </summary>
-        private void RichiudiLaLibreria(string profilo, bool eraGiaAperta)
+        private void RichiudiLaLibreria(string profilo, ComEra comEra)
         {
-            if (eraGiaAperta)
+            var nome = Path.GetFileName(profilo);
+
+            // ERA APERTA E QUALCUNO CI STAVA LAVORANDO: non si tocca.
+            // Era gia' a rischio prima di noi, e chiuderla vorrebbe dire
+            // buttare via il lavoro di qualcun altro.
+            if (comEra == ComEra.ApertaSporca)
             {
-                _log("[agente] la libreria «" + Path.GetFileName(profilo) + "» era gia' aperta prima: la lascio com'era");
+                _log("[agente] la libreria «" + nome + "» era gia' aperta E " +
+                     "modificata prima di questo inserimento: non la tocco. " +
+                     "ATTENZIONE: un salvataggio la riscriverebbe, e non e' " +
+                     "colpa di questa operazione.");
                 return;
             }
 
@@ -119,10 +141,41 @@ namespace Riscontro.Disegno
             try { titolo = doc.GetTitle(); } catch { }
             if (string.IsNullOrWhiteSpace(titolo)) return;
 
+            // ERA APERTA E PULITA, E ADESSO E' SPORCA.
+            //
+            // Qui si chiude lo stesso, ed e' un cambio di idea rispetto a
+            // prima. La versione precedente diceva «era gia' aperta, la
+            // lascio com'era» — ma «com'era» voleva dire PULITA, e
+            // l'inserimento l'ha sporcata. Conservare lo stato aperto e non
+            // quello pulito lascia esattamente il rischio che tutto questo
+            // esiste per togliere: un file condiviso a un Ctrl+S di distanza
+            // dall'essere riscritto.
+            //
+            // Chiudendola non si perde niente — era pulita — e chi ce
+            // l'aveva aperta la riapre com'era. Il flag non si puo'
+            // ripulire: `SetSaveFlag()` non prende argomenti, sporca e basta.
+            bool eraAperta = comEra == ComEra.ApertaPulita;
+            bool sporcaAdesso = false;
+            try { sporcaAdesso = doc.GetSaveFlag(); } catch { }
+
+            if (eraAperta && !sporcaAdesso)
+            {
+                _log("[agente] la libreria «" + titolo + "» era gia' aperta e " +
+                     "l'inserimento non l'ha sporcata: la lascio dov'era.");
+                return;
+            }
+
             try
             {
                 _sw.CloseDoc(titolo);
-                _log("[agente] richiusa senza salvare la libreria «" + titolo + "»: l'inserimento l'aveva aperta e lasciata sporca");
+                _log(eraAperta
+                    ? "[agente] richiusa senza salvare la libreria «" + titolo +
+                      "»: era gia' aperta ma PULITA, e l'inserimento l'ha " +
+                      "sporcata. Lasciarla li' vorrebbe dire lasciarla a un " +
+                      "Ctrl+S dall'essere riscritta. Non hai perso niente: " +
+                      "riaprila e la ritrovi identica."
+                    : "[agente] richiusa senza salvare la libreria «" + titolo +
+                      "»: l'inserimento l'aveva aperta e lasciata sporca");
             }
             catch (Exception ex)
             {
@@ -154,7 +207,7 @@ namespace Riscontro.Disegno
             // differenza conta: se il progettista stava lavorando sul file
             // di libreria, chiuderglielo sotto e' un danno. Si richiude solo
             // cio' che si e' aperto.
-            bool libreriaGiaAperta = DocumentoGiaAperto(profilo);
+            var libreriaComEra = StatoDellaLibreria(profilo);
 
             if (!File.Exists(profilo))
                 return Fallito(
@@ -382,7 +435,7 @@ namespace Riscontro.Disegno
             }
             catch (Exception ex)
             {
-                RichiudiLaLibreria(profilo, libreriaGiaAperta);
+                RichiudiLaLibreria(profilo, libreriaComEra);
                 return Fallito("Il membro strutturale non e' riuscito: " + ex.Message + SenzaLoSchizzo(modello));
             }
 
@@ -397,7 +450,7 @@ namespace Riscontro.Disegno
             // disco condiviso e da cui dipendono tutti i saldati gia' fatti.
             // Il danno non si vede il giorno stesso: si vede quando un
             // telaio vecchio si ricostruisce con una sezione diversa.
-            RichiudiLaLibreria(profilo, libreriaGiaAperta);
+            RichiudiLaLibreria(profilo, libreriaComEra);
 
             if (feature == null)
                 return Fallito(
