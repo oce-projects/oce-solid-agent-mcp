@@ -27,6 +27,13 @@ namespace SolidWorksMcp.Installer
             // MODO SILENZIOSO: per chi installa su piu' postazioni, o da uno
             // script di distribuzione. Fa le stesse cose della finestra e
             // scrive su console invece che in un riquadro.
+            // TOGLIERE SENZA APRIRE LA FINESTRA.
+            // Chi ha installato da script deve poter togliere da script, e
+            // la prova che la cartella NON si cancella quando dentro resta
+            // roba d'altri va potuta rifare senza un dito sul mouse.
+            if (argomenti.Any(a => Uguale(a, "--disinstalla")))
+                return Toglie(argomenti);
+
             if (argomenti.Any(a => Uguale(a, "--silenzioso") || Uguale(a, "-s")))
                 return Silenzioso(argomenti);
 
@@ -61,6 +68,29 @@ namespace SolidWorksMcp.Installer
         }
 
         // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Toglie l'installazione e basta. Non tocca la configurazione dei
+        /// client: chi disinstalla il ponte puo' voler tenere la voce per
+        /// reinstallarlo, e toglierla di nascosto sarebbe fare piu' di
+        /// quello che e' stato chiesto.
+        /// </summary>
+        private static int Toglie(string[] argomenti)
+        {
+            var cartella = Valore(argomenti, "--cartella") ?? Passi.CartellaPredefinita;
+            Console.WriteLine(Passi.NomeProdotto + " - disinstallazione");
+            Console.WriteLine("  cartella: " + cartella);
+            try
+            {
+                Passi.Disinstalla(cartella, riga => Console.WriteLine("  " + riga));
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Disinstallazione fallita: " + ex.Message);
+                return 1;
+            }
+        }
 
         private static int Silenzioso(string[] argomenti)
         {
@@ -162,6 +192,7 @@ namespace SolidWorksMcp.Installer
             "  --redist <percorso>     la cartella api\\redist di SOLIDWORKS\n" +
             "  --senza-client          non toccare la configurazione dei client MCP\n" +
             "  --config <percorso>     collega QUEL file invece di cercare i client\n" +
+            "  --disinstalla           toglie l'installazione, senza aprire la finestra\n" +
             "\n" +
             "Non serve l'amministratore: installa nella cartella dell'utente e non\n" +
             "scrive nel registro di sistema.";
