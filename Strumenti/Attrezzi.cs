@@ -209,7 +209,7 @@ namespace SolidWorksMcp.Strumenti
             if (stato == null) return Protocollo.Contenuto(errore, true);
             _guardato = IdentitaDelloStato(stato);
             _firmeViste = FirmeDelloStato(stato);
-            TogliLAncora(stato);
+            TogliLeAncore(stato);
             return Protocollo.Contenuto(Protocollo.InJson(stato));
         }
 
@@ -237,14 +237,24 @@ namespace SolidWorksMcp.Strumenti
         ///
         /// Si toglie DOPO aver costruito le firme, che se la portano dietro.
         /// </summary>
-        private static void TogliLAncora(Dictionary<string, object> stato)
+        private static void TogliLeAncore(Dictionary<string, object> stato)
         {
             if (stato == null) return;
             var facce = (stato.TryGetValue("facce", out var g) ? g : null)
                         as System.Collections.IEnumerable;
             if (facce == null) return;
             foreach (var v in facce)
-                (v as Dictionary<string, object>)?.Remove("ancora");
+            {
+                var voce = v as Dictionary<string, object>;
+                if (voce == null) continue;
+                voce.Remove("ancora");
+                // IL PERSIST ID SI TOGLIE PER DUE RAGIONI, e la seconda basta
+                // da sola. Non e' leggibile — e' un blob opaco, e chi legge non
+                // ci puo' fare niente. E pesa: 375-423 byte per faccia, cioe'
+                // ~530 caratteri in base64, che su sessanta facce sono ~32 KB,
+                // il DOPPIO dell'intero tetto dello stato.
+                voce.Remove("persist_id");
+            }
         }
 
         /// <summary>
@@ -295,6 +305,14 @@ namespace SolidWorksMcp.Strumenti
                                  "punto_mm", "normale", "area_mm2", "lunghezza_mm",
                                  "lavorazione_id", "centro_mm", "ingombro_mm", "ancora",
                                  "feature_id",
+                                 // IL PERSIST ID VIAGGIA QUI E SOLO QUI.
+                                 // E' il CANDIDATO del ritrovamento (voce E6):
+                                 // ~530 caratteri in base64 per faccia, che
+                                 // nello stato sarebbero ~32 KB su sessanta
+                                 // facce — il doppio del tetto. La firma non va
+                                 // a nessun modello, e' un allegato interno al
+                                 // passo, e li' il posto non e' un problema.
+                                 "persist_id",
                              })
                         if (voce.TryGetValue(campo, out var x) && x != null)
                             firma[campo] = x;
@@ -648,7 +666,7 @@ namespace SolidWorksMcp.Strumenti
             // scritto giusto — verrebbe rifiutato perche' confrontato con una
             // lettura che il suo autore non ha mai visto. Sarebbe un rifiuto
             // di cio' che e' corretto, che e' il difetto peggiore dei due.
-            if (dopo != null) { _firmeViste = FirmeDelloStato(dopo); TogliLAncora(dopo); }
+            if (dopo != null) { _firmeViste = FirmeDelloStato(dopo); TogliLeAncore(dopo); }
 
             var risultato = new Dictionary<string, object>
             {

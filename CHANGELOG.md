@@ -16,6 +16,89 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.26.0 — 14 settembre 2026 · libreria 0.63.0
+
+**Il persist ID propone, la misura giudica.** Voce E6.
+
+Quando una quota a monte sposta una faccia, l'ancora sul punto si perde e il
+piano viene rifiutato pur essendo giusto. Adesso, prima di cercare alla cieca,
+si chiede a SOLIDWORKS: `GetObjectByPersistReference3` e' l'unica ancora che non
+sia una nostra congettura sulla geometria.
+
+### I due casi di E2, e il secondo si e' risolto da solo
+
+| caso | prima | adesso |
+|---|---|---|
+| **A** — si cita `F6`, poi il pezzo si allunga da 100 a 160 | RIFIUTO | **risolto**, e lo dice: «si e' spostata di 60 mm, da [50, 0, 0] a [110, 0, 0]» |
+| **B** — il fondo della tasca scende esattamente dove stava la faccia in alto | risolto per firma, **e il pezzo era sbagliato** (E3 lo aveva chiuso col rifiuto) | **risolto giusto**: volume **58.885,8** |
+
+Il caso B e' il migliore dei due esiti possibili. La voce diceva: «se il persist
+ID facesse tornare la faccia giusta anche li', il caso B diventa un test di
+non-regressione, non un caso risolto». E' successo — **58.885,8** contro i
+59.042,9 del mezzo foro, cioe' il numero del pezzo giusto.
+
+### Mai da solo
+
+Quello che SOLIDWORKS restituisce e' un **candidato**, e passa dallo stesso
+giudice di tutti gli altri — `Corrobora`, con la firma **rimisurata adesso**
+sulla faccia ritrovata e non quella che il piano porta con se', che e' proprio
+cio' che si sta verificando. `GetObjectByPersistReference3` puo' restituire
+senza errore una faccia diversa dopo un rebuild che cambia la topologia:
+sarebbe il difetto peggiore di tutta la sezione, perche' non darebbe errore.
+
+`IsSamePersistentID` **non si usa**: in 0.1 ha risposto vero 46 volte su 46,
+anche dove l'area era raddoppiata perche' due facce si erano fuse. Attesta
+l'identificativo, non la faccia. Il segnale vero e' `ErrorCode` diverso da zero
+— che e' esattamente cio' che succede alle facce cancellate da una soppressione,
+e li' si lascia parlare la ricerca di sempre.
+
+### Dove vive, e perche' non nello stato
+
+**375-423 byte per faccia**, cioe' ~530 caratteri in base64: su sessanta facce
+sarebbero **~32 KB**, il doppio dell'intero tetto dello stato. Viaggia nella
+**firma del passo** — un allegato interno che non arriva a nessun modello — e il
+ponte lo toglie dallo stato subito dopo aver costruito le firme. E' la stessa
+strada dell'ancora della 0.25.0, moltiplicata per venti. Stato misurato dopo:
+invariato.
+
+`StatoDocumento.Modello` e' una **proprieta'** e non un parametro in piu' su
+`Leggi`: cambiare l'insieme delle firme di un metodo rompe chi lo chiama per
+riflessione anche quando il compilatore tace. Lezione della 0.25.1, applicata
+prima di sbatterci di nuovo.
+
+### Due numeri sbagliati nel TODO, corretti misurando
+
+La voce E6 diceva che la faccia si sposta **a X=80**. Misurato: **X=110**. Il
+pezzo cresce da una parte sola anche se lo schizzo e' centrato, quindi la faccia
+destra fa tutti i 60 mm della crescita — lo stesso inciampo gia' corretto in E2,
+dove il TODO diceva 30 mm e la misura diceva 60.
+
+E l'uid **resta `F6`**: le aree non si riordinano, quindi la rinumerazione non
+c'entra niente. Il rifiuto veniva solo dal confronto sul punto, ed e' la prova
+piu' pulita che questa voce serviva: non c'era nessuna ambiguita' da sciogliere,
+c'era solo un'ancora persa.
+
+### E un difetto che non da' errore, reso visibile
+
+Il caso A, appena ha smesso di essere rifiutato, ha prodotto **mezzo foro**:
+`y_mm: 0` mette il centro sul bordo inferiore della faccia, e l'operazione ha
+tolto **196,3 mm³** invece di 392,7 rispondendo `riuscita: true`.
+
+Non e' un difetto di questa versione — era li' da sempre, coperto dal fatto che
+quel piano veniva rifiutato prima di arrivarci. `SottoIlProfilo` sa contare
+quanti punti cadono sulla faccia, ma il suo commento dichiara: «NON RIFIUTA
+NIENTE E NON DEVE MAI FARLO: si chiama solo quando SOLIDWORKS ha gia' detto di
+no». Quando SOLIDWORKS dice di si', non lo chiama nessuno.
+
+Il caso e' stato spostato a `y_mm: 10`, dove il foro sta tutto sulla faccia e i
+numeri tornano (volume **191.607,3** = 192.000 − π·5²·5). Il difetto e' la voce
+**E13**, con i numeri gia' misurati.
+
+> Togliere un rifiuto non toglie solo il rifiuto: toglie anche il coperchio a
+> quello che c'era sotto.
+
+---
+
 ## 0.25.2 — 14 settembre 2026 · libreria 0.62.0
 
 **Sette controlli che non controllavano, trovati da una revisione fatta prima

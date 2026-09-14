@@ -114,6 +114,23 @@ namespace Riscontro.Disegno
         public Dictionary<string, object> Dati { get; private set; } =
             new Dictionary<string, object>();
 
+        /// <summary>
+        /// Il documento da cui questo stato e' stato letto.
+        ///
+        /// Serve a risolvere i riferimenti persistenti (voce E6):
+        /// `GetObjectByPersistReference3` sta su `IModelDocExtension`, e chi
+        /// ritrova una faccia ha in mano lo stato, non il documento.
+        ///
+        /// E' una PROPRIETA' e non un parametro in piu' su `Leggi`: il banco
+        /// chiama questa classe per riflessione, e cambiare l'insieme delle
+        /// firme di un metodo rompe chi lo chiama anche quando il compilatore
+        /// tace. Una proprieta' nuova non la vede nessuno. E' la lezione di
+        /// `LeggiConAncora`, applicata prima di sbatterci di nuovo.
+        ///
+        /// Vale per QUESTA sessione: non si serializza e non si porta in giro.
+        /// </summary>
+        public IModelDoc2 Modello { get; private set; }
+
         public class FirmaEntita
         {
             public string Tipo;          // "FACE" | "EDGE"
@@ -255,6 +272,43 @@ namespace Riscontro.Disegno
         /// fra due macchine con impostazioni diverse potrebbe non esserlo, e per
         /// questo l'ancora **si affianca** a `punto_mm` invece di sostituirlo.
         /// </summary>
+        /// <summary>
+        /// Il riferimento persistente che SOLIDWORKS da' a un'entita', in
+        /// base64. Null se non si riesce a prenderlo.
+        ///
+        /// E' UN BLOB OPACO, e va trattato come tale: non si interpreta, non si
+        /// confronta a pezzi, non si scrive su disco e non si porta da un
+        /// documento all'altro. Vale dentro QUESTO documento e per questa
+        /// sessione di piano, che dura minuti.
+        ///
+        /// `GetPersistReference3` risponde un `byte[]`: misurato il 14/9/2026,
+        /// 375-423 byte per faccia su un pezzo di otto facce. Non e' un intero
+        /// e non e' un nome — e' una struttura, e l'unico modo onesto di
+        /// spedirla in un JSON e' base64.
+        ///
+        /// PERCHE' ADESSO SI USANO. `StatoDocumento` dichiarava di non usarli:
+        /// «non serve per un piano che dura minuti, e sarebbe una API in piu' da
+        /// verificare per un problema che non abbiamo». Era giusto per il
+        /// problema di allora. Il problema adesso c'e': una quota a monte sposta
+        /// una faccia, l'ancora sul punto si perde, e il piano viene rifiutato
+        /// pur essendo giusto. Misurato in 0.1: il persist ID ha ritrovato
+        /// **8 facce su 8** in tutte e cinque le modifiche riuscite, comprese le
+        /// tre in cui l'ancora sul punto si perde.
+        /// </summary>
+        private static string PersistIdDi(IModelDoc2 modello, object entita)
+        {
+            if (modello == null || entita == null) return null;
+            try
+            {
+                var estensione = modello.Extension;
+                if (estensione == null) return null;
+                var blob = estensione.GetPersistReference3(entita) as byte[];
+                if (blob == null || blob.Length == 0) return null;
+                return Convert.ToBase64String(blob);
+            }
+            catch { return null; }
+        }
+
         private static double[] AncoraDellaFaccia(IFace2 faccia)
         {
             try
@@ -396,6 +450,7 @@ namespace Riscontro.Disegno
         {
             var stato = new StatoDocumento();
             if (modello == null) return stato;
+            stato.Modello = modello;
 
             int tipoDoc = 0;
             try { tipoDoc = modello.GetType(); } catch { }
@@ -954,11 +1009,29 @@ namespace Riscontro.Disegno
                         nomiDelleLavorazioni[lavorazioneId] = lavorazione;
                     }
 
-                    // L'ancora: si scrive solo se si e' riusciti a calcolarla.
+                    // LE DUE ANCORE, tutt'e due dietro lo stesso interruttore e
+                    // tutt'e due destinate alla FIRMA e non a chi legge.
+                    //
+                    //   `ancora`     il baricentro d'area: una nostra congettura
+                    //                sulla geometria, che si muove quando la
+                    //                faccia cambia davvero;
+                    //   `persist_id` la risposta che da' SOLIDWORKS alla stessa
+                    //                domanda, e l'unica che non sia una nostra
+                    //                congettura.
+                    //
+                    // Il persist ID e' 375-423 byte per faccia, cioe' ~530
+                    // caratteri in base64: su sessanta facce sono ~32 KB, il
+                    // DOPPIO dell'intero tetto dello stato. Non puo' arrivare a
+                    // chi legge, e infatti il ponte lo toglie subito dopo aver
+                    // costruito le firme — la stessa strada dell'ancora,
+                    // moltiplicata per venti.
                     if (conAncora)
                     {
                         var ancora = AncoraDellaFaccia(t.Item1);
                         if (ancora != null) voce["ancora"] = ancora;
+
+                        var persistId = PersistIdDi(modello, t.Item1);
+                        if (persistId != null) voce["persist_id"] = persistId;
                     }
 
                     facce.Add(voce);
@@ -1573,6 +1646,44 @@ namespace Riscontro.Disegno
                 Math.Round(Unita.Mm((a[1] + b[1]) / 2), 3),
                 Math.Round(Unita.Mm((a[2] + b[2]) / 2), 3),
             };
+        }
+
+        /// <summary>
+        /// La firma di una faccia MISURATA ADESSO, senza rileggere tutto il
+        /// documento.
+        ///
+        /// Serve al ritrovamento per persist ID (voce E6): quando SOLIDWORKS
+        /// propone una faccia, il giudice ha bisogno della firma di QUELLA
+        /// faccia com'e' in questo momento — non di quella che il piano porta
+        /// con se', che e' proprio cio' che si sta verificando.
+        ///
+        /// Niente uid: un uid e' una posizione in una classifica, e qui non
+        /// c'e' nessuna classifica. Chi la usa ha gia' l'uid che cercava.
+        /// </summary>
+        internal static FirmaEntita FirmaDiUnaFaccia(IFace2 faccia)
+        {
+            if (faccia == null) return null;
+            try
+            {
+                double areaMm2 = 0;
+                try { areaMm2 = Unita.Mm2(faccia.GetArea()); } catch { }
+
+                int lavorazioneId;
+                string lavorazione;
+                LavorazioneDellaFaccia(faccia, out lavorazioneId, out lavorazione);
+
+                return new FirmaEntita
+                {
+                    Tipo = "FACE",
+                    Misura = Math.Round(areaMm2, 2),
+                    PuntoMm = PuntoSuFaccia(faccia),
+                    Normale = NormaleFaccia(faccia),
+                    Entita = faccia,
+                    LavorazioneId = lavorazioneId,
+                    Lavorazione = lavorazione,
+                };
+            }
+            catch { return null; }
         }
 
         private static double[] PuntoSuFaccia(IFace2 faccia)

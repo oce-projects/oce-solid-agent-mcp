@@ -1,4 +1,12 @@
 [
- { "operazione": "modifica_quota", "argomenti": { "quota": "D1@Schizzo1", "valore_mm": 160 } },
- { "operazione": "taglio_cilindrico", "argomenti": { "faccia_uid": "F6", "x_mm": 0, "y_mm": 0, "diametro_mm": 10, "passante": false, "profondita_mm": 5 } }
+ {
+  "_perche": "CASO A della voce E2, che la voce E6 ha trasformato da rifiuto in risoluzione. Si cita F6 (la faccia destra) e poi si allunga il pezzo: la faccia si sposta e l'ancora sul punto si perde. MISURATO il 14/9/2026: D1@Schizzo1 100 -> 160 porta il volume a 192.000, l'ingombro a [160,60,20] e F6 da [50,0,0] a [110,0,0] -- sessanta millimetri, perche' il pezzo cresce da una parte sola anche se lo schizzo e' centrato. L'uid resta F6: le aree non si riordinano, quindi non c'e' nessuna ambiguita' da sciogliere, c'e' solo un'ancora persa. Fino alla 0.25.2 il passo 2 veniva RIFIUTATO. Dalla 0.26.0 il persist ID ritrova la faccia vera e l'operazione DICE di quanto si e' spostata.",
+  "operazione": "modifica_quota",
+  "argomenti": { "quota": "D1@Schizzo1", "valore_mm": 160 }
+ },
+ {
+  "_perche": "y_mm 10 e non 0, e il perche' vale piu' del caso. Con y_mm 0 il foro finiva centrato sul BORDO inferiore della faccia (la faccia va da Z=0 a Z=20) e usciva mezzo fuori: volume tolto 196,3 invece di 392,7, fondo del foro un mezzo disco da 39,27 mm2 invece di 78,54. L'operazione rispondeva comunque «riuscita: true» -- un difetto che non da' errore, coperto finora dal fatto che questo passo veniva rifiutato prima di arrivarci. A Z=10 il foro sta tutto sulla faccia. ATTESO: volume 192.000 - pi*5^2*5 = 191.607,3.",
+  "operazione": "taglio_cilindrico",
+  "argomenti": { "faccia_uid": "F6", "x_mm": 0, "y_mm": 10, "diametro_mm": 10, "passante": false, "profondita_mm": 5 }
+ }
 ]

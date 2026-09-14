@@ -5164,6 +5164,43 @@ namespace Riscontro.Disegno
             }
             if (FirmaCombacia(argomenti, uid, firma, out motivo)) return faccia;
 
+            // ── IL PERSIST ID PROPONE, LA MISURA GIUDICA (voce E6) ──────────
+            //
+            // La firma non combacia. Prima di cercare alla cieca si chiede a
+            // SOLIDWORKS: il riferimento persistente e' l'unica ancora che non
+            // sia una nostra congettura sulla geometria.
+            //
+            // MAI DA SOLO. `GetObjectByPersistReference3` puo' restituire SENZA
+            // ERRORE una faccia diversa dopo un rebuild che cambia la topologia:
+            // sarebbe il difetto peggiore di tutta la sezione, perche' non
+            // darebbe errore. Quello che torna e' un CANDIDATO, e passa dallo
+            // stesso giudice di tutti gli altri — `Corrobora`.
+            //
+            // MISURATO (0.1, 14/9/2026): 8 facce su 8 ritrovate in tutte e
+            // cinque le modifiche riuscite, comprese le tre in cui l'ancora sul
+            // punto si perde. Dove ha ceduto — la soppressione della
+            // lavorazione generatrice — ha ceduto in modo DISTINGUIBILE: le due
+            // facce che avevano davvero smesso di esistere non tornano
+            // (`ErrorCode = 1`) invece di tornare sbagliate.
+            // E `IsSamePersistentID` non si usa: ha risposto vero 46 volte su
+            // 46, anche dove l'area era raddoppiata perche' due facce si erano
+            // fuse. Attesta l'identificativo, non la faccia.
+            var attesaPersist = FirmaAttesa(argomenti, uid);
+            if (attesaPersist != null)
+            {
+                string spostamento;
+                var dalPersist = FacciaDalPersistId(stato, attesaPersist, uid, out spostamento);
+                if (dalPersist != null)
+                {
+                    // SI SPIEGA DI QUANTO, INVECE DI RIFIUTARE. E' il motivo per
+                    // cui questa voce esiste: la faccia e' quella giusta, si e'
+                    // solo mossa, e chi legge deve sapere che si e' mossa.
+                    if (spostamento != null) _log("[agente] " + spostamento);
+                    motivo = null;
+                    return dalPersist;
+                }
+            }
+
             // LA FIRMA NON COMBACIA: PRIMA DI RIFIUTARE, SI CERCA.
             //
             // Gli uid sono POSIZIONALI — le facce si rinumerano per area a
@@ -5307,6 +5344,134 @@ namespace Riscontro.Disegno
         /// Ritorna null se la candidata regge; il motivo del rifiuto se no —
         /// e il motivo da' **il criterio**, non il verdetto.
         /// </summary>
+        /// <summary>
+        /// La faccia che SOLIDWORKS ritrova dal riferimento persistente, se la
+        /// ritrova E se regge al giudizio. Null in ogni altro caso — e null
+        /// qui vuol dire «prova un'altra strada», non «rifiuta».
+        ///
+        /// TRE PORTE, E TUTTE E TRE DEVONO APRIRSI.
+        ///
+        ///  1. **Il piano deve portare un persist ID.** Le firme di prima della
+        ///     0.26.0 non ce l'hanno, e un piano scritto ieri deve continuare a
+        ///     funzionare: senza, si torna alla ricerca di sempre.
+        ///  2. **SOLIDWORKS deve ritrovare qualcosa.** `ErrorCode` diverso da
+        ///     zero, oppure un oggetto che non e' una faccia, vogliono dire che
+        ///     quella faccia non esiste piu': e' la risposta giusta al caso
+        ///     della lavorazione soppressa, e va lasciata passare alla ricerca
+        ///     che sapra' dirlo meglio.
+        ///  3. **Il giudizio deve reggere.** Il candidato passa da `Corrobora`
+        ///     come qualunque altro: stessa lavorazione, e l'area che cresce
+        ///     solo se la lavorazione e' accertata. Un persist ID che torna una
+        ///     faccia di un'altra lavorazione e' esattamente il difetto
+        ///     silenzioso che questa voce temeva, e qui si ferma.
+        ///
+        /// <param name="spostamento">
+        /// Di quanto si e' mossa, in parole, quando si e' mossa. Va a chi legge:
+        /// la faccia e' quella giusta e il pezzo NON e' piu' quello di prima,
+        /// e tacerlo sarebbe lavorare bene su un pezzo cambiato senza dirlo.
+        /// </param>
+        /// </summary>
+        private IFace2 FacciaDalPersistId(
+            StatoDocumento stato, Dictionary<string, object> attesa, string uid,
+            out string spostamento)
+        {
+            spostamento = null;
+            if (stato == null || stato.Modello == null || attesa == null) return null;
+
+            object grezzo;
+            if (!attesa.TryGetValue("persist_id", out grezzo) || grezzo == null) return null;
+            var base64 = Convert.ToString(grezzo);
+            if (string.IsNullOrEmpty(base64)) return null;
+
+            byte[] blob;
+            try { blob = Convert.FromBase64String(base64); }
+            catch { return null; }
+            if (blob.Length == 0) return null;
+
+            IFace2 candidata;
+            try
+            {
+                var estensione = stato.Modello.Extension;
+                if (estensione == null) return null;
+                int errore;
+                var oggetto = estensione.GetObjectByPersistReference3(blob, out errore);
+                if (errore != 0 || oggetto == null) return null;
+                candidata = oggetto as IFace2;
+                if (candidata == null) return null;
+            }
+            catch { return null; }
+
+            // IL GIUDIZIO. La firma si rimisura ADESSO sulla faccia ritrovata:
+            // non si usa quella che il piano porta, che e' cio' che si sta
+            // verificando.
+            var firmaOra = StatoDocumento.FirmaDiUnaFaccia(candidata);
+            if (firmaOra == null) return null;
+
+            string nota;
+            if (Corrobora(attesa, uid, firmaOra, out nota) != null) return null;
+
+            spostamento = FraseDelloSpostamento(attesa, uid, firmaOra, nota);
+            return candidata;
+        }
+
+        /// <summary>
+        /// Che cosa e' cambiato fra la firma che il piano portava e quella
+        /// misurata adesso, in una frase. Null se non e' cambiato niente che
+        /// valga la pena dire.
+        ///
+        /// SI DICE IL CRITERIO, NON IL VERDETTO: quanto si e' spostata e di
+        /// quanto e' cambiata l'area, cosi' chi legge puo' decidere se il piano
+        /// contava su quei numeri.
+        /// </summary>
+        private static string FraseDelloSpostamento(
+            Dictionary<string, object> attesa, string uid,
+            StatoDocumento.FirmaEntita ora, string notaCorrobora)
+        {
+            var pezzi = new List<string>();
+
+            var primaPunto = Terna(attesa, "punto_mm");
+            if (primaPunto != null && ora.PuntoMm != null && primaPunto.Length >= 3 &&
+                ora.PuntoMm.Length >= 3)
+            {
+                double dx = ora.PuntoMm[0] - primaPunto[0];
+                double dy = ora.PuntoMm[1] - primaPunto[1];
+                double dz = ora.PuntoMm[2] - primaPunto[2];
+                double quanto = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                if (quanto > 0.05)
+                    pezzi.Add(string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "si e' spostata di {0:0.##} mm, da [{1:0.##}, {2:0.##}, {3:0.##}] " +
+                        "a [{4:0.##}, {5:0.##}, {6:0.##}]",
+                        quanto, primaPunto[0], primaPunto[1], primaPunto[2],
+                        ora.PuntoMm[0], ora.PuntoMm[1], ora.PuntoMm[2]));
+            }
+
+            object grezzoArea;
+            if (attesa.TryGetValue("area_mm2", out grezzoArea) && grezzoArea != null)
+            {
+                double primaArea;
+                try
+                {
+                    primaArea = Convert.ToDouble(
+                        grezzoArea, System.Globalization.CultureInfo.InvariantCulture);
+                }
+                catch { primaArea = 0; }
+                if (primaArea > 0 && Math.Abs(ora.Misura - primaArea) > primaArea * 0.001)
+                    pezzi.Add(string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "l'area e' passata da {0:0.##} a {1:0.##} mm²", primaArea, ora.Misura));
+            }
+
+            if (pezzi.Count == 0) return null;
+
+            return "la faccia «" + uid + "» l'ha ritrovata SOLIDWORKS dal suo " +
+                   "riferimento persistente: " + string.Join(", ", pezzi) +
+                   ". Il pezzo e' cambiato da quando l'hai guardato, ma la faccia e' " +
+                   "quella giusta — se il piano contava sulle misure di prima, " +
+                   "ricontrolla il risultato." +
+                   (notaCorrobora == null ? "" : " " + notaCorrobora);
+        }
+
         private static string Corrobora(
             Dictionary<string, object> attesa, string uid,
             StatoDocumento.FirmaEntita candidata, out string nota)
