@@ -246,7 +246,8 @@ namespace Riscontro.Disegno
             "smusso_spigoli", "sopprimi_lavorazione", "specchia",
             "sposta_corpi", "taglia_membri",
             "taglio_cilindrico", "taglio_rettangolare", "tappo_estremita",
-            "telaio_rettangolare", "vista_modello", "viste_standard",
+            "telaio_rettangolare", "verifica_geometria_corpo",
+            "vista_modello", "viste_standard",
         };
 
         /// <summary>
@@ -348,6 +349,13 @@ namespace Riscontro.Disegno
                     case "tappo_estremita": return TappoEstremita(modello, argomenti, stato);
                     case "fazzoletto": return Fazzoletto(modello, argomenti, stato);
                     case "cordone_saldatura": return CordoneSaldatura(modello, argomenti, stato);
+
+                    // ── verifiche ───────────────────────
+                    // Stanno in OperazioniVerifica.cs. NON DISEGNANO: dicono
+                    // com'e' venuto. `distinta_taglio` e' il precedente —
+                    // un'operazione di catalogo che legge invece di costruire.
+                    case "verifica_geometria_corpo":
+                        return VerificaGeometriaCorpo(modello, argomenti, stato);
                     default:
                         // QUALUNQUE operazione che porta dei contorni si disegna
                         // con lo stesso esecutore. Cosi' una RICETTA nuova

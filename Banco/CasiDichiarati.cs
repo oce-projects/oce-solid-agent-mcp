@@ -64,7 +64,7 @@ namespace ProvaSaldatura
         private static readonly string[] Famiglie =
         {
             "lavorazioni", "coppie", "asola", "smusso", "rivoluzione", "piano",
-            "specchia", "ripeti", "asse", "togliere", "frase",
+            "specchia", "ripeti", "asse", "togliere", "frase", "verifica",
         };
 
         private static void ProvaCasiDichiarati()

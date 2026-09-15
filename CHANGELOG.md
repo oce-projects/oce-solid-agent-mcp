@@ -16,6 +16,60 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.41.0 — 15 settembre 2026 · libreria 0.76.0
+
+### GP1 — `verifica_geometria_corpo`, e la prima operazione che non disegna
+
+Il catalogo passa a **39 operazioni** e guadagna una famiglia: **`verifiche`**
+— *«dire com'è venuto, senza toccarlo»*. Fino a qui nessuna operazione sapeva
+rispondere a «com'è venuto?»: le misure c'erano — `taglio_rettangolare` conta
+il materiale tolto, `foro_guidato` misura dove è finito l'asse — ma erano
+private dentro le operazioni, e il modello non poteva chiamarne nessuna.
+`distinta_taglio` era il solo precedente di un'operazione che legge.
+
+`verifica_geometria_corpo` risponde, per ogni corpo: tipo (solido, foglio,
+filo), quante facce, se è chiuso, quante fessure, quanti difetti topologici
+**col nome** (`swFaultEntityErrorCode_e`, 36 valori) e non col numero. Poi un
+giudizio in una frase, dove *stampabile* vuol dire **un solo corpo solido,
+chiuso, senza difetti**.
+
+**Le due cose misurate prima di scriverla** (`Controlli\CorpoRotto`, un
+attrezzo nuovo che è anche il controllo che le tiene vere):
+
+```
+                          Check()  Check2()  Check3.Count  fessure
+  solido sano                1        0           0           0
+  due solidi che si toccano  1        0           0           0
+  CORPO DI FOGLIO (aperto)   1        0           0           1
+```
+
+1. **`Check()` e `Check2()` hanno convenzioni opposte.** Sullo stesso corpo
+   sano il primo dice 1 e il secondo dice 0. Era la domanda lasciata aperta dal
+   censimento delle API — *«non so se zero voglia dire sano o zero controlli
+   fatti»* — e la risposta è peggio dell'incertezza: le due convenzioni
+   convivono nella stessa interfaccia, e chi ne scambia una ottiene un
+   risultato coerente, stabile e rovesciato.
+2. **Un corpo aperto passa tre controlli su quattro.** Una superficie non è
+   «rotta»: è un corpo valido che non racchiude niente. `Check`, `Check2` e
+   `Check3` la dichiarano sana tutti e tre, e **solo
+   `Diagnose().GetGapsCount()` la vede**. Un'operazione costruita su `Check3` —
+   la via che la voce GP1 nominava per prima — direbbe «nessun problema»
+   esattamente sul caso per cui esiste.
+
+Quindi si guardano tutte e quattro, e i numeri grezzi di `Check()` e `Check2()`
+restano nella risposta: il giorno in cui una versione di SOLIDWORKS cambia una
+delle due convenzioni lo si vede da lì, non da un giudizio girato al contrario.
+
+**Il limite si dichiara a ogni chiamata**, non una volta nella descrizione:
+`cosa_non_guarda` dice che lo spessore delle pareti e le sovrasporgenze non li
+guarda nessuno ancora. Un guscio da tre decimi passa di qui senza una parola.
+
+Trappole di API pagate per strada: **`IBody2.Check3` è una PROPRIETÀ, non un
+metodo** (scritto `Check3()` in late binding non dà errore di compilazione, dà
+un fallimento a runtime dentro un `catch`), e **`InsertPlanarRefSurface` sta su
+`IModelDoc2` e torna un booleano**, mentre ogni altra `Insert*RefSurface` che
+torna una `Feature` sta sul `FeatureManager`.
+
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
 ### F11 — Le famiglie di prove diventano file, e tre difetti che erano lì da mesi

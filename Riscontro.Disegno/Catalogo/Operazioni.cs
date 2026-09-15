@@ -48,6 +48,13 @@ namespace Riscontro.Disegno.Catalogo
                 new KeyValuePair<string, string>(
                     "tavola",
                     "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF"),
+                // LA FAMIGLIA CHE NON DISEGNA. Fino alla 0.76.0 nessuna
+                // operazione del catalogo sapeva rispondere a «com'e' venuto?»:
+                // le misure c'erano ma erano private dentro le operazioni, e il
+                // modello non poteva chiamarne nessuna.
+                new KeyValuePair<string, string>(
+                    "verifiche",
+                    "dire com'e' venuto, senza toccarlo"),
             };
 
         public static readonly List<OperazioneDisegno> Tutte =
@@ -2114,6 +2121,38 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "string",
                                 "description", "il percorso del pezzo da mettere in vista. Se non lo dici si usa "
                                     + "il primo pezzo aperto. Lo trovi in «documenti_aperti» nello stato.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "verifica_geometria_corpo",
+                    Famiglia = "verifiche",
+                    Provata = true,
+                    Sommario =
+                        "Dice se i corpi sono solidi chiusi e sani. Non tocca il pezzo.",
+                    Descrizione =
+                        "Guarda i CORPI del pezzo e dice se sono solidi chiusi e senza "
+                        + "difetti.\n\nNon disegna e non modifica niente: e' una domanda, non "
+                        + "un'operazione. Chiamala prima di consegnare un pezzo che verra' "
+                        + "stampato o esportato.\n\nPer ogni corpo risponde: il tipo (solido, "
+                        + "foglio, filo), quante facce ha, se e' chiuso, quante fessure e "
+                        + "quanti difetti topologici, col NOME del difetto e non col numero. "
+                        + "Poi un giudizio in una frase: «stampabile» vuol dire UN SOLO corpo "
+                        + "solido, chiuso, senza difetti.\n\nUn corpo APERTO -- una superficie "
+                        + "rimasta li' per sbaglio -- e' il caso che conta e quello che "
+                        + "nessuno vede: non da' errore da nessuna parte, sembra un pezzo, e "
+                        + "lo STL che ne esce non racchiude niente.\n\nATTENZIONE a cosa NON "
+                        + "guarda: lo spessore delle pareti e le sovrasporgenze. Un guscio da "
+                        + "tre decimi passa di qui senza una parola.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "corpo_uid", O(
+                                "type", "string",
+                                "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
+                                    + "dici li guarda tutti. Gli identificativi stanno nello stato del "
+                                    + "documento, dentro «corpi».")),
                         "required", A()),
                 },
             };

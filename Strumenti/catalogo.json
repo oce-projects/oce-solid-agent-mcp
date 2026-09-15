@@ -5,7 +5,8 @@
   "saldature": "carpenteria: barre, telai, tagli fra barre, distinta",
   "riferimenti": "piani e assi su cui costruire",
   "proprieta": "cio' che il pezzo E', non la sua forma",
-  "tavola": "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF"
+  "tavola": "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF",
+  "verifiche": "dire com'e' venuto, senza toccarlo"
  },
  "operazioni": [
   {
@@ -1820,6 +1821,23 @@
     "required": []
    },
    "precondizione": "una tavola aperta e il pezzo aperto accanto"
+  },
+  {
+   "nome": "verifica_geometria_corpo",
+   "famiglia": "verifiche",
+   "sommario": "Dice se i corpi sono solidi chiusi e sani. Non tocca il pezzo.",
+   "descrizione": "Guarda i CORPI del pezzo e dice se sono solidi chiusi e senza difetti.\n\nNon disegna e non modifica niente: e' una domanda, non un'operazione. Chiamala prima di consegnare un pezzo che verra' stampato o esportato.\n\nPer ogni corpo risponde: il tipo (solido, foglio, filo), quante facce ha, se e' chiuso, quante fessure e quanti difetti topologici, col NOME del difetto e non col numero. Poi un giudizio in una frase: «stampabile» vuol dire UN SOLO corpo solido, chiuso, senza difetti.\n\nUn corpo APERTO -- una superficie rimasta li' per sbaglio -- e' il caso che conta e quello che nessuno vede: non da' errore da nessuna parte, sembra un pezzo, e lo STL che ne esce non racchiude niente.\n\nATTENZIONE a cosa NON guarda: lo spessore delle pareti e le sovrasporgenze. Un guscio da tre decimi passa di qui senza una parola.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "corpo_uid": {
+      "type": "string",
+      "description": "un corpo solo, per identificativo (per esempio «C2»). Se non lo dici li guarda tutti. Gli identificativi stanno nello stato del documento, dentro «corpi»."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "corpo_solido"
   }
  ]
 }

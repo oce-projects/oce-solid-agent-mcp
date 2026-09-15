@@ -372,6 +372,7 @@ casi/ripeti/       3   la direzione, che e' il dubbio vero
 casi/asse/         2   l'asse dalla parete di un foro
 casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
+casi/verifica/     3   com'e' venuto: solido, chiuso, sano
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 
