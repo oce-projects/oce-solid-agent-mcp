@@ -285,6 +285,287 @@ namespace Riscontro.Disegno
         }
 
         // =================================================================
+        // QUANTO MATERIALE RESTA FRA QUESTE DUE FACCE  (voce GP5)
+        // =================================================================
+        //
+        // E' la domanda dello spessore di parete — «quanto resta fra la cava
+        // della guarnizione e la faccia esterna?» — fatta in un modo che si
+        // puo' controllare: due facce NOMINATE e un numero, invece di tarare
+        // un vettore di intersezioni a raggi.
+        //
+        // ── LE DUE COSE MISURATE PRIMA DI SCRIVERLA ─────────────────────
+        //
+        // 1. **`ClosestDistance` torna METRI.** Su una piastra 40x40x10, fra
+        //    le due facce grandi, risponde `0,01`. Un fattore mille sbagliato
+        //    darebbe 10 dove il vero e' 0,01 — e tutti e due si leggono come
+        //    millimetri plausibili.
+        //
+        // 2. **I due punti che restituisce sono veri**, e distano esattamente
+        //    quanto dichiara: [0, 0, 10] e [0, 0, 0] mm, scarto zero. E'
+        //    l'unico controllo indipendente che si abbia sul numero, e qui si
+        //    fa sempre: se il valore dice una cosa e i suoi stessi punti ne
+        //    dicono un'altra, la chiamata e' fallita e ha risposto lo stesso.
+        // =================================================================
+
+        private Esito DistanzaMinima(
+            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        {
+            string uidA = Str(a, "da_uid", null);
+            string uidB = Str(a, "a_uid", null);
+            if (string.IsNullOrWhiteSpace(uidA) || string.IsNullOrWhiteSpace(uidB))
+                return Fallito(
+                    "Mi servono due cose fra cui misurare: «da_uid» e «a_uid». Gli " +
+                    "identificativi di facce e spigoli stanno nello stato del documento.");
+            if (string.Equals(uidA, uidB, StringComparison.OrdinalIgnoreCase))
+                return Fallito(
+                    "«da_uid» e «a_uid» sono la stessa cosa (" + uidA + "): la distanza " +
+                    "di una faccia da se stessa e' zero, e non e' una misura.");
+
+            string motivo;
+            object entA = EntitaDalloStato(stato, uidA, out motivo);
+            if (entA == null) return Fallito(motivo);
+            object entB = EntitaDalloStato(stato, uidB, out motivo);
+            if (entB == null) return Fallito(motivo);
+
+            double metri;
+            object p1, p2;
+            try { metri = modello.ClosestDistance(entA, entB, out p1, out p2); }
+            catch (Exception ex) { return Fallito("La misura non e' riuscita: " + ex.Message); }
+
+            var puntoA = p1 as double[];
+            var puntoB = p2 as double[];
+            if (puntoA == null || puntoB == null || puntoA.Length < 3 || puntoB.Length < 3)
+                return Fallito(
+                    "SOLIDWORKS ha dato la distanza (" + (metri * 1000).ToString("0.###") +
+                    " mm) ma non i due punti fra cui l'ha misurata. Senza quelli il numero " +
+                    "non si puo' controllare, e non te lo do.");
+
+            // IL CONTROLLO INDIPENDENTE, e non e' uno scrupolo: se il valore
+            // dice 0 e i punti distano 4 mm, la chiamata e' fallita e ha
+            // risposto lo stesso.
+            double fraIPunti = Math.Sqrt(
+                Math.Pow(puntoA[0] - puntoB[0], 2) +
+                Math.Pow(puntoA[1] - puntoB[1], 2) +
+                Math.Pow(puntoA[2] - puntoB[2], 2));
+            double scartoMm = Math.Abs(fraIPunti - metri) * 1000.0;
+            if (scartoMm > 0.001)
+                return Fallito(
+                    "SOLIDWORKS dice che la distanza e' " + (metri * 1000).ToString("0.####") +
+                    " mm, ma i due punti che ha dato ne distano " +
+                    (fraIPunti * 1000).ToString("0.####") + ". Il numero e' smentito dai suoi " +
+                    "stessi punti: non te lo do.");
+
+            var misure = new Dictionary<string, object>
+            {
+                ["da"] = uidA,
+                ["a"] = uidB,
+                ["distanza_mm"] = Tondo(metri * 1000.0),
+                ["punto_da_mm"] = Scala(puntoA, 1000.0),
+                ["punto_a_mm"] = Scala(puntoB, 1000.0),
+                // SI RIPORTA ANCHE IL CONTROLLO, non solo il suo esito: chi
+                // legge vede che il numero e' stato verificato e con che
+                // scarto, invece di doverci credere.
+                ["distanza_fra_i_punti_mm"] = Tondo(fraIPunti * 1000.0),
+                ["scarto_del_controllo_mm"] = Tondo(scartoMm),
+                ["unita"] = "millimetri; SOLIDWORKS li da' in metri e la conversione e' qui",
+            };
+            if (metri * 1000.0 < 0.001)
+                misure["si_toccano"] =
+                    "Le due cose si toccano o si intersecano: la distanza e' zero, e i due " +
+                    "punti sono lo stesso punto.";
+
+            _log("[agente] distanza minima " + uidA + " -> " + uidB + ": " +
+                 (metri * 1000).ToString("0.###") + " mm");
+            return RiuscitoSenzaCreare(misure);
+        }
+
+        // =================================================================
+        // LA MISURA COMPLETA FRA DUE ENTITA'  (voce GP5)
+        // =================================================================
+        //
+        // ── `Calculate(entita)` IGNORA L'ARGOMENTO ──────────────────────
+        //
+        // `IMeasure.Calculate(Object Entities)` **prende un argomento e non lo
+        // guarda**: misura quello che e' SELEZIONATO. Misurato il 15/9/2026:
+        //
+        //   Calculate(new object[] { facciaA, facciaB })   ->  FALSE
+        //   due facce selezionate, poi Calculate(null)     ->  TRUE, 0,01
+        //
+        // E peggio: chiamata con UNA faccia nell'array, mentre la selezione
+        // ne conteneva ancora DUE dalla prova prima, ha risposto TRUE e ha
+        // dato l'area di tutte e due (0,0032 m² invece di 0,0016). Un numero
+        // credibile, del pezzo giusto, di un'altra selezione.
+        //
+        // Quindi: si svuota la selezione, si selezionano le entita' a mano, si
+        // chiama `Calculate(null)` e **si guarda il booleano**.
+        //
+        // ── E `-1` NON E' UNA MISURA ────────────────────────────────────
+        //
+        // `Perimeter` su una faccia piana quadrata risponde **-1**: e' il modo
+        // di SOLIDWORKS di dire «questa cosa qui non ce l'ha». Un perimetro
+        // negativo di un millesimo di millimetro riportato come numero e' il
+        // difetto che non da' errore; qui i valori negativi diventano `null`.
+        // =================================================================
+
+        private Esito MisuraFraEntita(
+            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        {
+            var uid = new List<string>();
+            foreach (var chiave in new[] { "uid", "uid2" })
+            {
+                string u = Str(a, chiave, null);
+                if (!string.IsNullOrWhiteSpace(u)) uid.Add(u);
+            }
+            if (uid.Count == 0)
+                return Fallito(
+                    "Mi serve almeno una cosa da misurare: «uid» (e «uid2» per misurare " +
+                    "FRA due). Gli identificativi di facce e spigoli stanno nello stato " +
+                    "del documento.");
+            if (uid.Count > 2)
+                return Fallito(
+                    "Ne hai date " + uid.Count + ": ne misuro una sola o due. Con piu' di " +
+                    "due, «distanza» e «angolo» non vogliono dire piu' niente.");
+
+            var entita = new List<object>();
+            foreach (var u in uid)
+            {
+                string motivo;
+                var e = EntitaDalloStato(stato, u, out motivo);
+                if (e == null) return Fallito(motivo);
+                entita.Add(e);
+            }
+
+            IMeasure misura;
+            try { misura = modello.Extension.CreateMeasure() as IMeasure; }
+            catch (Exception ex) { return Fallito("Non riesco a preparare la misura: " + ex.Message); }
+            if (misura == null)
+                return Fallito("Questa installazione non espone lo strumento di misura.");
+
+            bool riuscita;
+            try
+            {
+                // LA SELEZIONE E' L'ARGOMENTO VERO. Vedi il commento qui sopra.
+                modello.ClearSelection2(true);
+                for (int i = 0; i < entita.Count; i++)
+                {
+                    var ent = entita[i] as IEntity;
+                    if (ent == null || !ent.Select4(i > 0, null))
+                        return Fallito(
+                            "Non sono riuscito a selezionare «" + uid[i] + "»: senza la " +
+                            "selezione la misura guarderebbe qualcos'altro.");
+                }
+                riuscita = misura.Calculate(null);
+            }
+            catch (Exception ex) { return Fallito("La misura non e' riuscita: " + ex.Message); }
+            finally { try { modello.ClearSelection2(true); } catch { } }
+
+            if (!riuscita)
+                return Fallito(
+                    "Lo strumento di misura ha risposto «no» su " +
+                    string.Join(" e ", uid.Select(u => "«" + u + "»")) +
+                    ". Non ti do i numeri che aveva dentro: sarebbero quelli di prima.");
+
+            var fuori = new Dictionary<string, object>
+            {
+                ["misurate"] = uid.ToArray(),
+                ["unita"] = "millimetri, millimetri quadri e gradi; SOLIDWORKS li da' in " +
+                            "metri e radianti, e la conversione e' qui",
+            };
+            // ── `Area` E `TotalArea` NON SONO LA STESSA COSA, E SI ALTERNANO
+            //
+            // Misurato il 15/9/2026 su una piastra 40x40x10:
+            //
+            //   una faccia sola    Area = 1600 mm²    TotalArea = -1
+            //   due facce          Area = -1          TotalArea = 3200 mm²
+            //
+            // Cioe' quella che vale e' sempre l'altra. Chi ne legge una sola
+            // ha un campo che sparisce a seconda di quante cose ha chiesto —
+            // ed e' quello che e' successo: il caso «area di una faccia sola»
+            // e' uscito con «campo assente: misure.area_mm2». Si riportano
+            // tutte e due, col nome che dice quale e' quale.
+            Metti(fuori, "area_mm2", misura.Area, 1e6);
+            Metti(fuori, "area_totale_mm2", misura.TotalArea, 1e6);
+            Metti(fuori, "perimetro_mm", misura.Perimeter, 1000.0);
+            Metti(fuori, "lunghezza_mm", misura.TotalLength, 1000.0);
+            Metti(fuori, "raggio_mm", misura.Radius, 1000.0);
+            Metti(fuori, "diametro_mm", misura.Diameter, 1000.0);
+            if (uid.Count == 2)
+            {
+                Metti(fuori, "distanza_mm", misura.Distance, 1000.0);
+                Metti(fuori, "distanza_normale_mm", misura.NormalDistance, 1000.0);
+                Metti(fuori, "distanza_fra_i_centri_mm", misura.CenterDistance, 1000.0);
+                // I DELTA POSSONO ESSERE NEGATIVI PER DAVVERO: un delta e' una
+                // differenza, e -20 vuol dire «venti dall'altra parte». Qui
+                // `-1` non e' un segnale, quindi non si filtra.
+                fuori["delta_mm"] = new[]
+                {
+                    Tondo(misura.DeltaX * 1000.0),
+                    Tondo(misura.DeltaY * 1000.0),
+                    Tondo(misura.DeltaZ * 1000.0),
+                };
+                fuori["parallele"] = misura.IsParallel;
+                fuori["perpendicolari"] = misura.IsPerpendicular;
+                fuori["si_intersecano"] = misura.IsIntersect;
+                double gradi = misura.Angle * 180.0 / Math.PI;
+                if (gradi >= 0) fuori["angolo_gradi"] = Tondo(gradi);
+            }
+
+            _log("[agente] misura fra " + string.Join(" e ", uid) +
+                 (fuori.ContainsKey("distanza_mm") ? ": " + fuori["distanza_mm"] + " mm" : ""));
+            return RiuscitoSenzaCreare(fuori);
+        }
+
+        /// <summary>
+        /// Mette un valore nelle misure **solo se e' una misura**.
+        ///
+        /// `IMeasure` risponde `-1` quando la cosa chiesta non si applica — il
+        /// perimetro di una faccia che non ne ha, il raggio di un piano — e un
+        /// `-1` riportato come numero e' il difetto che non da' errore:
+        /// nessuna di queste grandezze puo' essere negativa, quindi un valore
+        /// negativo e' un'assenza travestita.
+        /// </summary>
+        private static void Metti(Dictionary<string, object> dove, string nome,
+                                  double valore, double fattore)
+        {
+            if (double.IsNaN(valore) || valore < 0) return;
+            dove[nome] = Tondo(valore * fattore);
+        }
+
+        /// <summary>
+        /// Una faccia o uno spigolo, presi dallo stato per identificativo.
+        /// Il rifiuto dice di che tipo era quell'uid, se c'era: «E3 e' uno
+        /// spigolo» e' un aiuto, «non lo trovo» no.
+        /// </summary>
+        private static object EntitaDalloStato(StatoDocumento stato, string uid, out string motivo)
+        {
+            motivo = null;
+            if (stato == null)
+            {
+                motivo = "Non ho lo stato del documento: senza, gli identificativi non " +
+                         "vogliono dire niente.";
+                return null;
+            }
+            StatoDocumento.FirmaEntita firma;
+            if (!stato.Firme.TryGetValue(uid, out firma))
+            {
+                motivo = "«" + uid + "» non c'e' in questo documento. Gli identificativi " +
+                         "delle facce e degli spigoli stanno nello stato, e si rinumerano " +
+                         "a ogni lettura: rileggi il pezzo prima di nominarli.";
+                return null;
+            }
+            if (firma.Tipo != "FACE" && firma.Tipo != "EDGE")
+            {
+                motivo = "«" + uid + "» e' di tipo «" + firma.Tipo + "»: so misurare " +
+                         "facce e spigoli.";
+                return null;
+            }
+            if (firma.Entita == null)
+            {
+                motivo = "«" + uid + "» non e' piu' utilizzabile: rileggi il pezzo.";
+                return null;
+            }
+            return firma.Entita;
+        }
 
         /// <summary>
         /// I corpi da misurare: tutti, oppure quello chiesto per

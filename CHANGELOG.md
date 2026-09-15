@@ -16,6 +16,49 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.45.0 — 16 settembre 2026 · libreria 0.80.0
+
+### GP5 — `distanza_minima` e `misura_fra_entita`, e l'argomento che viene ignorato
+
+Catalogo a **46 operazioni**. `distanza_minima` è il modo di rispondere a
+*«quanto materiale resta fra la cava della guarnizione e la faccia esterna?»*
+con due facce **nominate** e un numero, invece di tarare un vettore di
+intersezioni a raggi che nessuno sa verificare — la via che il censimento delle
+API segnalava come troppo rischiosa.
+
+**`ClosestDistance` torna metri**, e i suoi due punti sono veri: su una piastra
+40×40×10, fra le due facce grandi, risponde `0,01` e i punti sono `[0,0,10]` e
+`[0,0,0]` mm, scarto **zero**. Quel confronto adesso si fa a ogni chiamata: **se
+il valore dice una cosa e i suoi stessi punti ne dicono un'altra, la chiamata è
+fallita e ha risposto lo stesso** — e allora l'operazione fallisce invece di
+dare il numero.
+
+**`IMeasure.Calculate(Object Entities)` prende un argomento e non lo guarda.**
+Misura quello che è **selezionato**:
+
+```
+Calculate(new object[] { facciaA, facciaB })          ->  FALSE
+due facce selezionate, poi Calculate(null)            ->  TRUE, 0,01
+```
+
+E peggio: chiamata con **una** faccia nell'array, mentre la selezione ne
+conteneva ancora due, ha risposto `TRUE` e ha dato l'area di tutte e due —
+3200 mm² invece di 1600. Un numero credibile, del pezzo giusto, di un'altra
+selezione. L'operazione svuota la selezione, seleziona a mano e **guarda il
+booleano**.
+
+**`Area` e `TotalArea` si alternano**, e il caso dichiarato l'ha preso:
+
+```
+una faccia sola    Area = 1600 mm²    TotalArea = -1
+due facce          Area = -1          TotalArea = 3200 mm²
+```
+
+Quella che vale è sempre l'altra. Leggendone una sola, il campo spariva a
+seconda di quante cose si chiedevano. E **`-1` non è una misura**: è il modo di
+SOLIDWORKS di dire «questa cosa qui non ce l'ha», quindi i valori negativi
+diventano `null` invece di numeri.
+
 ## 0.44.0 — 15 settembre 2026 · libreria 0.79.0
 
 ### GP4 — `proprieta_di_massa` e `ingombro_corpo`, e la misura che cambia risposta

@@ -1,0 +1,24 @@
+{
+  "nome": "distanza_fra_le_due_facce",
+  "famiglia": "misura",
+  "perche": "Il caso che il censimento delle API chiedeva per nome: su una piastra 40x40x10, fra le due facce grandi, la distanza dev'essere 10 mm. SOLIDWORKS la da' in METRI -- 0,01 -- e un fattore mille sbagliato darebbe 10 dove il vero e' 0,01: tutti e due si leggono come millimetri plausibili, e nessuno dei due da' errore.",
+  "perche_lo_scarto": "il numero arriva insieme ai DUE PUNTI fra cui e' stato misurato, e la loro distanza si ricalcola a parte. Se il valore dicesse zero e i punti distassero quattro millimetri, la chiamata sarebbe fallita e avrebbe risposto lo stesso. Lo scarto fra i due conti e' un'attesa a se': e' l'unico controllo indipendente che si abbia su quel numero.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 16000 } ] },
+    { "operazione": "distanza_minima",
+      "argomenti": { "da_uid": "@faccia(verso=davanti)", "a_uid": "@faccia(verso=dietro)" },
+      "attese": [
+        { "cosa": "misure.distanza_mm", "uguale": 10, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "e' lo spessore della piastra; SOLIDWORKS lo da' in metri e la conversione e' nell'operazione" },
+        { "cosa": "misure.distanza_fra_i_punti_mm", "uguale": 10, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "lo stesso numero, rifatto dai due punti" },
+        { "cosa": "misure.scarto_del_controllo_mm", "uguale": 0, "tolleranza": 0.0005,
+          "perche_questa_tolleranza": "i due conti devono dare lo stesso numero, non uno simile" },
+        { "cosa": "misure.unita", "contiene": ["millimetri", "metri"],
+          "perche": "la risposta dice anche da dove viene la conversione" } ] }
+  ]
+}

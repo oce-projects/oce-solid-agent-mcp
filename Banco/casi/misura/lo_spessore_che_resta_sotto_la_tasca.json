@@ -1,0 +1,27 @@
+{
+  "nome": "lo_spessore_che_resta_sotto_la_tasca",
+  "famiglia": "misura",
+  "perche": "E' LA DOMANDA VERA: «quanto materiale resta fra il fondo della cava e la faccia dall'altra parte?». Su una piastra spessa 20 con una tasca profonda 15 restano 5 mm, e sono i cinque millimetri che decidono se il pezzo tiene o si rompe. Il censimento la chiamava misura di spessore parete e la dava per rischiosa, perche' la via a raggi vuole una taratura che nessuno sa verificare: qui sono due facce nominate e un numero.",
+  "perche_le_facce_si_scelgono_per_area": "dopo la tasca ci sono DUE facce che guardano avanti -- il piano di sopra e il fondo della cava -- e chiederne una per verso sarebbe ambiguo. Il fondo della cava fa 1600 mm2 e la faccia dietro 10.000: si nominano per misura, che e' l'unica cosa che le distingue.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "taglio_rettangolare",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+                     "lunghezza_mm": 40, "larghezza_mm": 40,
+                     "passante": false, "profondita_mm": 15 },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 176000,
+          "perche": "200.000 meno 40*40*15 = 24.000" } ] },
+    { "operazione": "distanza_minima",
+      "argomenti": { "da_uid": "@faccia(area~=1600)", "a_uid": "@faccia(area~=10000)" },
+      "attese": [
+        { "cosa": "misure.distanza_mm", "uguale": 5, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "20 di piastra meno 15 di tasca; la distanza arriva in metri" },
+        { "cosa": "misure.scarto_del_controllo_mm", "uguale": 0, "tolleranza": 0.0005,
+          "perche_questa_tolleranza": "il numero e i suoi punti devono dire la stessa cosa" } ] }
+  ]
+}

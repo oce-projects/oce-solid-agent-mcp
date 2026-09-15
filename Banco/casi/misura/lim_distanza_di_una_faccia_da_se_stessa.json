@@ -1,0 +1,19 @@
+{
+  "nome": "lim_distanza_di_una_faccia_da_se_stessa",
+  "famiglia": "misura",
+  "perche": "La distanza di una faccia da se stessa e' zero, e lo zero e' la risposta piu' pericolosa che questa operazione possa dare: «zero» vuol dire «si toccano», ed e' cio' che si guarda per sapere se due pezzi interferiscono. Uno zero che viene da un uid ripetuto per distrazione e' indistinguibile da uno che viene da due pezzi che si toccano davvero.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 16000 } ] },
+    { "operazione": "distanza_minima",
+      "argomenti": { "da_uid": "@faccia(verso=davanti)", "a_uid": "@faccia(verso=davanti)" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["la stessa cosa", "non e' una misura"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "distanza_fra_le_due_facce" } }
+  ]
+}

@@ -1875,6 +1875,53 @@
    "precondizione": "corpo_solido"
   },
   {
+   "nome": "distanza_minima",
+   "famiglia": "verifiche",
+   "sommario": "Quanto distano due facce o due spigoli, col controllo che il numero non sia smentito dai suoi stessi punti.",
+   "descrizione": "Misura la distanza PIU' CORTA fra due facce, due spigoli, o una faccia e uno spigolo. E' il modo di rispondere a «quanto materiale resta fra la cava della guarnizione e la faccia esterna»: due cose nominate e un numero, invece di un conto a mano sull'ingombro.\n\nRisponde anche con i DUE PUNTI fra cui ha misurato, e con la loro distanza calcolata a parte: se il numero e i punti non tornano, la chiamata e' fallita e ha risposto lo stesso, e in quel caso fallisco invece di darti il numero.\n\nZero vuol dire che le due cose si toccano, e te lo dico.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "da_uid": {
+      "type": "string",
+      "description": "identificativo della prima faccia o del primo spigolo, preso dallo stato del documento (per esempio «F3» o «E7»)."
+     },
+     "a_uid": {
+      "type": "string",
+      "description": "identificativo della seconda."
+     }
+    },
+    "required": [
+     "da_uid",
+     "a_uid"
+    ]
+   },
+   "precondizione": "corpo_solido_e_faccia"
+  },
+  {
+   "nome": "misura_fra_entita",
+   "famiglia": "verifiche",
+   "sommario": "Lo strumento di misura: area, perimetro, distanza, angolo, parallelismo fra una o due entita'.",
+   "descrizione": "Misura UNA faccia o uno spigolo -- area, perimetro, lunghezza, raggio -- oppure DUE, e allora dice anche distanza, differenze sui tre assi, angolo, se sono parallele o perpendicolari.\n\nE' lo stesso strumento di misura che si usa a mano in SOLIDWORKS. Per la sola distanza minima fra due cose, «distanza_minima» e' piu' robusta: controlla il risultato coi punti.\n\nQuello che non si applica non torna: il perimetro di una faccia che non ne ha, il raggio di un piano. SOLIDWORKS li darebbe come -1, che e' un numero e non lo e'.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "uid": {
+      "type": "string",
+      "description": "la faccia o lo spigolo da misurare, preso dallo stato del documento."
+     },
+     "uid2": {
+      "type": "string",
+      "description": "la seconda, se vuoi misurare FRA due cose."
+     }
+    },
+    "required": [
+     "uid"
+    ]
+   },
+   "precondizione": "corpo_solido_e_faccia"
+  },
+  {
    "nome": "esporta_stl",
    "famiglia": "esportazioni",
    "sommario": "Scrive lo STL per la stampa 3D, in millimetri. Verifica il pezzo prima, e rifiuta se non e' un solido chiuso.",

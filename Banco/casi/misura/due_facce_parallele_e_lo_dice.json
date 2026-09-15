@@ -1,0 +1,23 @@
+{
+  "nome": "due_facce_parallele_e_lo_dice",
+  "famiglia": "misura",
+  "perche": "Lo strumento di misura su due facce: distanza, e se sono parallele o perpendicolari. Le due facce grandi di una piastra sono parallele e distano 10; non sono perpendicolari, e anche quel «no» e' un'attesa -- un campo che rispondesse sempre «vero» passerebbe la meta' dei casi.",
+  "_gia_visto_rosso": "`IMeasure.Calculate(Object Entities)` PRENDE UN ARGOMENTO E NON LO GUARDA: misura quello che e' SELEZIONATO. Misurato il 15/9/2026: chiamata con un vettore di due facce risponde FALSE; con le stesse due facce selezionate e l'argomento a null risponde TRUE e da' 0,01. E chiamata con UNA faccia nell'array, mentre la selezione ne conteneva ancora due, ha risposto TRUE e ha dato l'area di tutte e due -- 3200 mm2 invece di 1600. Un numero credibile, del pezzo giusto, di un'altra selezione. L'operazione adesso svuota la selezione, seleziona a mano e guarda il booleano.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 16000 } ] },
+    { "operazione": "misura_fra_entita",
+      "argomenti": { "uid": "@faccia(verso=davanti)", "uid2": "@faccia(verso=dietro)" },
+      "attese": [
+        { "cosa": "misure.distanza_mm", "uguale": 10, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "lo spessore della piastra, dato in metri" },
+        { "cosa": "misure.parallele", "uguale": true },
+        { "cosa": "misure.perpendicolari", "uguale": false,
+          "perche": "anche il «no» e' un'attesa: un campo che risponde sempre vero passerebbe meta' dei casi" },
+        { "cosa": "misure.area_totale_mm2", "uguale": 3200, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "due facce da 40x40: l'area totale e' la somma, ed e' cosi' che si vede se ha misurato TUTTE E DUE le cose che gli sono state date" } ] }
+  ]
+}

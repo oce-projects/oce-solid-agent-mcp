@@ -236,13 +236,13 @@ namespace Riscontro.Disegno
         {
             "applica_materiale", "asola", "cordone_saldatura", "crea_asse",
             "crea_disegno", "crea_piano", "distinta_taglio",
-            "elimina_lavorazione", "esporta_iges", "esporta_pdf",
-            "esporta_step", "esporta_stl",
+            "distanza_minima", "elimina_lavorazione",
+            "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
             "estrudi_sezione", "ruota_dentata",
             "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
             "imposta_foglio", "ingombro_corpo", "membro_strutturale",
-            "modifica_quota", "proprieta_di_massa",
+            "misura_fra_entita", "modifica_quota", "proprieta_di_massa",
             "quote_dal_modello", "raccordo_spigoli", "ripeti_circolare",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "smusso_spigoli", "sopprimi_lavorazione", "specchia",
@@ -365,6 +365,10 @@ namespace Riscontro.Disegno
                         return ProprietaDiMassa(modello, argomenti, stato);
                     case "ingombro_corpo":
                         return IngombroCorpo(modello, argomenti, stato);
+                    case "distanza_minima":
+                        return DistanzaMinima(modello, argomenti, stato);
+                    case "misura_fra_entita":
+                        return MisuraFraEntita(modello, argomenti, stato);
 
                     // ── esportazioni ────────────────────
                     // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama

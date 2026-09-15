@@ -2218,6 +2218,68 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "distanza_minima",
+                    Famiglia = "verifiche",
+                    Provata = true,
+                    Sommario =
+                        "Quanto distano due facce o due spigoli, col controllo che il "
+                        + "numero non sia smentito dai suoi stessi punti.",
+                    Descrizione =
+                        "Misura la distanza PIU' CORTA fra due facce, due spigoli, o una "
+                        + "faccia e uno spigolo. E' il modo di rispondere a «quanto materiale "
+                        + "resta fra la cava della guarnizione e la faccia esterna»: due cose "
+                        + "nominate e un numero, invece di un conto a mano sull'ingombro."
+                        + "\n\nRisponde anche con i DUE PUNTI fra cui ha misurato, e con la "
+                        + "loro distanza calcolata a parte: se il numero e i punti non "
+                        + "tornano, la chiamata e' fallita e ha risposto lo stesso, e in quel "
+                        + "caso fallisco invece di darti il numero.\n\nZero vuol dire che le "
+                        + "due cose si toccano, e te lo dico.",
+                    Precondizione = "corpo_solido_e_faccia",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "da_uid", O(
+                                "type", "string",
+                                "description", "identificativo della prima faccia o del primo spigolo, preso "
+                                    + "dallo stato del documento (per esempio «F3» o «E7»)."),
+                            "a_uid", O(
+                                "type", "string",
+                                "description", "identificativo della seconda.")),
+                        "required", A("da_uid", "a_uid")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "misura_fra_entita",
+                    Famiglia = "verifiche",
+                    Provata = true,
+                    Sommario =
+                        "Lo strumento di misura: area, perimetro, distanza, angolo, "
+                        + "parallelismo fra una o due entita'.",
+                    Descrizione =
+                        "Misura UNA faccia o uno spigolo -- area, perimetro, lunghezza, "
+                        + "raggio -- oppure DUE, e allora dice anche distanza, differenze sui "
+                        + "tre assi, angolo, se sono parallele o perpendicolari.\n\nE' lo "
+                        + "stesso strumento di misura che si usa a mano in SOLIDWORKS. Per la "
+                        + "sola distanza minima fra due cose, «distanza_minima» e' piu' "
+                        + "robusta: controlla il risultato coi punti.\n\nQuello che non si "
+                        + "applica non torna: il perimetro di una faccia che non ne ha, il "
+                        + "raggio di un piano. SOLIDWORKS li darebbe come -1, che e' un "
+                        + "numero e non lo e'.",
+                    Precondizione = "corpo_solido_e_faccia",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "uid", O(
+                                "type", "string",
+                                "description", "la faccia o lo spigolo da misurare, preso dallo stato del "
+                                    + "documento."),
+                            "uid2", O(
+                                "type", "string",
+                                "description", "la seconda, se vuoi misurare FRA due cose.")),
+                        "required", A("uid")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "esporta_stl",
                     Famiglia = "esportazioni",
                     Provata = true,
