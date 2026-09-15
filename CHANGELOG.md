@@ -16,6 +16,67 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.39.0 — 15 settembre 2026 · libreria 0.74.0
+
+### E14 — `faccia_del_foro` restituiva un raccordo, e non lo diceva
+
+`Riferimenti` cercava le facce **cilindriche** lasciate da un passo: una sola la
+restituiva, piu' d'una faceva scattare un rifiuto. **Ma un raccordo lascia facce
+cilindriche come un foro.** Un passo che ne lasciava esattamente una, e quella
+era un raccordo, la restituiva **senza dire niente**: chi aveva chiesto la
+parete di un foro si ritrovava la superficie di un raccordo, e la lavorazione
+successiva ci finiva sopra.
+
+Il criterio e' geometrico, e **misurato** — `Controlli\ForoOppureRaccordo`, un
+attrezzo nuovo che costruisce una piastra con un foro Ø12 e un raccordo R5 e
+chiede all'API:
+
+```
+parete del foro          FaceInSurfaceSense = true    (concava)
+superficie del raccordo  FaceInSurfaceSense = false   (convessa)
+```
+
+La parete di un foro ha il materiale **fuori** dal cilindro. Nel dubbio si
+risponde «non e' un foro»: scambiare un raccordo per un foro fa finire una
+lavorazione sulla faccia sbagliata senza che niente fallisca, il contrario fa
+uscire un rifiuto, che si legge.
+
+### E la voce proponeva il rimedio sbagliato
+
+E14 chiedeva di **scegliere con un criterio** — «il diametro, oppure la
+posizione» — invece di rifiutare quando le pareti sono piu' d'una. Fra quattro
+M10 identici **non esiste nessun criterio**: qualunque scelta e' indovinare, e
+il passo seguente finirebbe su un foro a caso senza che niente fallisca. E'
+esattamente il difetto che questo progetto esiste per rendere impossibile,
+offerto come comodita'.
+
+Il rifiuto resta, e adesso dice **quante sono e di che diametro**: chi legge ha
+gia' in mano cio' che gli serve per nominarne uno.
+
+### Tre rossi sbagliati prima di quello buono
+
+La prova (`Banco/prova_faccia_foro.js`) e' costata piu' della riparazione, e
+ogni tentativo scattava **per il motivo sbagliato** — cioe' sembrava un rosso
+che funziona:
+
+1. **nel banco**: `faccia_rif` nomina un passo dello **stesso piano**, e il
+   banco esegue un'operazione per volta. Rifiutava con «di quel passo non ho la
+   geometria», senza mai arrivare al codice da provare;
+2. **su `taglio_cilindrico`**: quel genere non lo accetta nemmeno. Il ruolo
+   `faccia_del_foro` e' raggiungibile da **una sola** operazione, `guscio` —
+   verificato sul catalogo, non ricordato;
+3. **con `specchia`**: il passo dello specchio lascia **una sola** parete nuova,
+   perche' l'originale appartiene al passo di prima. Prenderla e' giusto.
+
+Quello buono e' `foro_guidato`, che lo dice da solo nello schema: «piu' fori
+uguali stanno in una chiamata sola».
+
+> Un caso di prova non deve dipendere da geometria che il caso stesso sta
+> creando, e «quale operazione lascia N facce» si legge nel catalogo invece di
+> dedurlo.
+
+---
+
 ## 0.38.0 — 15 settembre 2026 · libreria 0.73.0
 
 ### V6 — il fotogramma si adatta al pezzo, e costa meno
