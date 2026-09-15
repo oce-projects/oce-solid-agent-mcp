@@ -15,6 +15,7 @@
       },
       "attese": [
         { "cosa": "volume_mm3", "uguale": 240000 },
+        { "cosa": "stato.ingombro_da_mm", "uguale": [-50, -30, 0] },
         { "cosa": "ingombro_mm", "uguale": [100, 60, 40] },
         { "cosa": "stato.corpi_totali", "uguale": 1 }
       ]

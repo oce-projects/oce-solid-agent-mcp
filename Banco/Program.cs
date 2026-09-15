@@ -154,6 +154,12 @@ namespace ProvaSaldatura
             // in silenzio e' come un controllo che non scatta mai.
             _lento = argomenti.Remove("--lento");
 
+            // `--muta`: non un giro con qualcosa in piu', UN ALTRO GIRO.
+            // Perturba i casi e pretende che diventino rossi (voce F6). Costa
+            // un documento di SOLIDWORKS per mutazione, quindi si lancia prima
+            // di una consegna e non ogni sera.
+            _muta = argomenti.Remove("--muta");
+
             // `--gruppo <nomi>`: una famiglia di prove sola, mentre si lavora.
             //
             // ── PERCHE' ESISTE (voce F13) ─────────────────────────────────
@@ -271,6 +277,28 @@ namespace ProvaSaldatura
                    ", libreria " + _addin.GetName().Version +
                    (_lento ? ", con --lento" : "") +
                    (scelti == null ? "" : ", SOLO i gruppi " + string.Join(", ", scelti)));
+
+            // ── `--muta` E' UN GIRO A SE' ────────────────────────────────
+            //
+            // Non si aggiunge alle prove: le sostituisce. Mescolarlo vorrebbe
+            // dire sommare centinaia di rossi CERCATI a un conteggio che serve
+            // a leggere i rossi non cercati.
+            if (_muta)
+            {
+                IlGiroDelleMutazioni();
+                Console.WriteLine();
+                Console.WriteLine(new string('=', 76));
+                foreach (var r in _esiti) Console.WriteLine(r);
+                Console.WriteLine();
+                var soloMuta = "MUTAZIONI — " + (_esiti.Count - _saltate - _erroriDiBanco) +
+                               " casi, " + _falliti + " ciechi" +
+                               (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "");
+                Console.WriteLine(soloMuta);
+                Console.WriteLine("attese verificate " + _atteseVerificate + " su " + _attese);
+                ChiudiIlDiario(soloMuta);
+                if (_erroriDiBanco > 0) return 2;
+                return _falliti == 0 ? 0 : 1;
+            }
 
             var nonLanciati = new List<string>();
             foreach (var gruppo in Gruppi())
@@ -483,12 +511,21 @@ namespace ProvaSaldatura
 
         private static void Segna(string nome, bool ok, string dettaglio = "")
         {
+            // ZITTO: il modo `--muta` riesegue lo stesso caso decine di volte e
+            // PRETENDE che diventi rosso (voce F6). Quei rossi non sono
+            // regressioni — sono il risultato che si cercava — e finire
+            // nell'elenco degli esiti li farebbe leggere come tali.
+            if (_zitto) { if (!ok) _zittoRosso = true; return; }
+
             if (!ok) _falliti++;
             var riga = (ok ? "  OK   " : "  NO   ") + nome.PadRight(52) + dettaglio;
             _esiti.Add(riga);
             Console.WriteLine(riga);
             Diario(riga);
         }
+
+        private static bool _zitto;
+        private static bool _zittoRosso;
 
         // ══════════════════════════════════════════════════════════════════
         // IL DIARIO: cosa sta facendo il banco, mentre lo fa
@@ -698,6 +735,10 @@ namespace ProvaSaldatura
         /// </summary>
         private static void ErroreDiBanco(string nome, string cosa)
         {
+            // Sotto `--muta` un caso mutato che non si puo' nemmeno eseguire
+            // conta come «e' diventato rosso»: la mutazione ha morso lo stesso.
+            if (_zitto) { _zittoRosso = true; return; }
+
             _erroriDiBanco++;
             var riga = "  !!   " + nome.PadRight(52) + "ERRORE DI BANCO: " + cosa;
             _esiti.Add(riga);
@@ -728,6 +769,7 @@ namespace ProvaSaldatura
         private static int _atteseVerificate;
 
         private static bool _lento;
+        private static bool _muta;
 
         // ==================================================================
         // 1. il misuratore di sezione dell'add-in

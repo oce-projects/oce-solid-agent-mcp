@@ -15,6 +15,7 @@
       },
       "attese": [
         { "cosa": "volume_mm3", "uguale": 4473872 },
+        { "cosa": "stato.ingombro_da_mm", "uguale": [-157, -137, 0] },
         { "cosa": "ingombro_mm", "uguale": [314, 274, 52] }
       ]
     },

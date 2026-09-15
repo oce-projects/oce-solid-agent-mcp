@@ -18,6 +18,37 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F6 — `--muta`: ogni caso deve poter diventare rosso
+
+`.\Banco\banco.ps1 -Muta` perturba **il piano, non il codice**: un argomento
+alla volta moltiplicato per 1,5 (booleani invertiti), il caso rieseguito, e si
+**pretende che diventi rosso**. Un caso che resta verde sotto ogni
+perturbazione e' **cieco**: le sue attese non vincolano i suoi argomenti.
+
+**67 mutazioni su 11 casi, zero ciechi, 854 s** — `Banco/resoconto/mutazioni.md`.
+
+E' **l'unico modo meccanico** di imporre che una prova sia gia' fallita almeno
+una volta: un `provata_a_fallire` scritto a mano e' una dichiarazione, e una
+dichiarazione si copia dal caso accanto.
+
+**Il falso cieco si evita leggendo il catalogo.** Mutare `profondita_mm` su un
+taglio passante lascia il caso verde e non e' cecita': lo schema dice `"solo se
+non passante"`, e il banco legge quella riga — dalla **libreria caricata**, non
+da `bin/catalogo.json`, che lo scrive un'altra compilazione. Due accorgimenti
+della stessa famiglia: si mutano solo i passi **con attese** (un foro da 500
+mutato a 750 copre il pezzo lo stesso), e **zero per 1,5 fa zero**, quindi una
+coordinata a 0 si sposta di 1 mm.
+
+Le mutazioni **sopravvissute** sono la parte utile, e il resoconto le nomina:
+`x_mm 0->1` su un foro resta verde perche' quei casi misurano **quanto**
+materiale e' stato tolto, non **dove**; `lunghezza_mm 400->600` su
+`tasca_400_cieca` resta verde perche' la tasca e' gia' piu' grande della faccia
+e SOLIDWORKS la taglia sul bordo — geometria, non attesa debole.
+
+`--muta` ha un riepilogo suo (`MUTAZIONI — 11 casi, 0 ciechi`): i rossi che
+produce sono **cercati**, e sommarli a un conteggio che serve a leggere i rossi
+non cercati renderebbe inutili tutti e due.
+
 ### F5 — Un rifiuto non sta mai da solo
 
 Ogni caso con `deve_fallire` **deve** nominare in `gemella` un caso che riesce,

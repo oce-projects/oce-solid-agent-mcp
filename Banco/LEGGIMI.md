@@ -159,6 +159,29 @@ Il banco dice **quanti argomenti differiscono** e rifiuta solo i due casi che
 contano: una gemella identica al rifiuto (e' una copia) e una che non ha nemmeno
 un argomento in comune (sono due operazioni che non si parlano).
 
+### `-Muta` — ogni caso deve poter diventare rosso
+
+```
+.\Banco\banco.ps1 -Muta
+```
+
+Perturba **il piano, non il codice**: un argomento alla volta moltiplicato per
+1,5 (booleani invertiti), il caso rieseguito, e si **pretende che diventi
+rosso**. Un caso che resta verde sotto ogni perturbazione e' **cieco**.
+
+E' l'unico modo meccanico di imporre che una prova sia gia' fallita almeno una
+volta: un campo scritto a mano e' una dichiarazione, e una dichiarazione si
+copia dal caso accanto.
+
+Costa **un documento di SOLIDWORKS per mutazione** — 67 mutazioni, ~14 minuti —
+quindi si lancia prima di una consegna, non ogni sera. Scrive
+`Banco/resoconto/mutazioni.md`, una riga per caso, e ha un riepilogo suo
+(`MUTAZIONI — 11 casi, 0 ciechi`): i rossi che produce sono **cercati**.
+
+Le mutazioni su argomenti che l'operazione **ignora** (`profondita_mm` su un
+taglio passante) sono saltate leggendo il catalogo, non indovinate; e si mutano
+solo i passi **con attese**.
+
 ### I giri si contano — `storico.txt`
 
 `in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una redirezione
