@@ -374,7 +374,8 @@ casi/asse/         2   l'asse dalla parete di un foro
 casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
 casi/verifica/     3   com'e' venuto: solido, chiuso, sano
-casi/esporta/      5   lo STL, e il file riletto byte per byte
+casi/esporta/     10   STL, STEP e IGES: il file riletto byte per byte,
+                       e il volume riaperto in SOLIDWORKS
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 

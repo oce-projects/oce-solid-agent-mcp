@@ -57,7 +57,8 @@ namespace Riscontro.Disegno.Catalogo
                     "dire com'e' venuto, senza toccarlo"),
                 new KeyValuePair<string, string>(
                     "esportazioni",
-                    "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D"),
+                    "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D, "
+                    + "STEP e IGES per chi lo deve lavorare"),
             };
 
         public static readonly List<OperazioneDisegno> Tutte =
@@ -2203,6 +2204,86 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "boolean",
                                 "description", "scrive il file anche se la verifica dice di no. Predefinito: "
                                     + "falso. Usalo solo sapendo che cosa non andava.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "esporta_step",
+                    Famiglia = "esportazioni",
+                    Provata = true,
+                    Sommario =
+                        "Scrive lo STEP per chi deve lavorare il pezzo, e rilegge dal file "
+                        + "quale protocollo e' uscito davvero.",
+                    Descrizione =
+                        "Scrive il pezzo come STEP: e' il formato con cui si manda un pezzo a "
+                        + "un fornitore, a un cliente, o lo si porta in un altro CAD.\n\nA "
+                        + "differenza dello STL NON SI RIFIUTA se il pezzo ha piu' corpi o "
+                        + "delle superfici: uno STEP li porta, e un saldato si manda al "
+                        + "fornitore proprio cosi'. La verifica gira lo stesso e il suo "
+                        + "giudizio torna nella risposta, cosi' sai com'era il pezzo che hai "
+                        + "mandato.\n\nDOPO AVER SCRITTO RILEGGE IL FILE e dice quale "
+                        + "protocollo e' uscito DAVVERO, non quale hai chiesto: il valore che "
+                        + "governa la cosa e' un numero senza nome nell'API, e l'unica prova "
+                        + "e' il FILE_SCHEMA scritto dentro il file. Se non combacia, "
+                        + "fallisce -- certi fornitori accettano solo l'AP203.\n\nCon "
+                        + "«riapri_e_confronta» il file viene riaperto in SOLIDWORKS e il suo "
+                        + "volume confrontato col pezzo: e' l'unica misura che dice che la "
+                        + "GEOMETRIA e' sopravvissuta alla traduzione. Costa un'apertura di "
+                        + "documento, quindi non e' il predefinito.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "percorso", O(
+                                "type", "string",
+                                "description", "dove scrivere il file, estensione .step o .stp compresa. Se non "
+                                    + "lo dici si usa il percorso del pezzo con l'estensione cambiata."),
+                            "protocollo", O(
+                                "type", "string",
+                                "enum", A("AP214", "AP203", "AP242"),
+                                "description", "AP214 (predefinito) porta anche i colori; AP203 e' il piu' "
+                                    + "vecchio e il piu' accettato; AP242 e' il piu' nuovo e non tutti lo "
+                                    + "leggono."),
+                            "riapri_e_confronta", O(
+                                "type", "boolean",
+                                "description", "riapre il file appena scritto e confronta il volume col pezzo, "
+                                    + "fallendo oltre un millesimo di scarto. Predefinito: falso, perche' "
+                                    + "costa un'apertura di documento.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "esporta_iges",
+                    Famiglia = "esportazioni",
+                    Provata = true,
+                    Sommario =
+                        "Scrive l'IGES, per i CAD e le macchine che lo STEP non lo leggono.",
+                    Descrizione =
+                        "Scrive il pezzo come IGES. Serve quando dall'altra parte c'e' un CAD "
+                        + "o una macchina che lo STEP non lo legge: e' un formato piu' vecchio "
+                        + "e meno preciso, e fra i due lo STEP e' sempre la prima scelta."
+                        + "\n\nCome lo STEP, non si rifiuta per piu' corpi o superfici, e la "
+                        + "verifica del pezzo torna nella risposta.\n\nDopo aver scritto "
+                        + "conta i record di parametri del file: un IGES con le sole "
+                        + "intestazioni e niente dentro esiste, pesa e si apre.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "percorso", O(
+                                "type", "string",
+                                "description", "dove scrivere il file, estensione .iges o .igs compresa. Se non "
+                                    + "lo dici si usa il percorso del pezzo con l'estensione cambiata."),
+                            "rappresentazione", O(
+                                "type", "string",
+                                "enum", A("solidi", "superfici"),
+                                "description", "«solidi» (predefinito) scrive i corpi come BREP, ed e' quello "
+                                    + "che serve a chi deve lavorare il pezzo; «superfici» scrive facce "
+                                    + "tagliate."),
+                            "riapri_e_confronta", O(
+                                "type", "boolean",
+                                "description", "riapre il file appena scritto e confronta il volume col pezzo. "
+                                    + "Predefinito: falso.")),
                         "required", A()),
                 },
             };

@@ -236,7 +236,8 @@ namespace Riscontro.Disegno
         {
             "applica_materiale", "asola", "cordone_saldatura", "crea_asse",
             "crea_disegno", "crea_piano", "distinta_taglio",
-            "elimina_lavorazione", "esporta_pdf", "esporta_stl",
+            "elimina_lavorazione", "esporta_iges", "esporta_pdf",
+            "esporta_step", "esporta_stl",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
             "estrudi_sezione", "ruota_dentata",
             "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
@@ -364,6 +365,13 @@ namespace Riscontro.Disegno
                     // porta con se' niente che dica che il pezzo era a posto.
                     case "esporta_stl":
                         return EsportaStl(modello, argomenti, stato);
+                    // STEP e IGES finiscono nello stesso esecutore: cambiano
+                    // le preferenze e il modo di rileggere il file, non la
+                    // strada. Due esecutori per la stessa cosa vorrebbero dire
+                    // due comportamenti che divergono alla prima modifica.
+                    case "esporta_step":
+                    case "esporta_iges":
+                        return EsportaScambio(modello, argomenti, operazione, stato);
                     default:
                         // QUALUNQUE operazione che porta dei contorni si disegna
                         // con lo stesso esecutore. Cosi' una RICETTA nuova

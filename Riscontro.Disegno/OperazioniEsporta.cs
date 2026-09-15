@@ -342,5 +342,433 @@ namespace Riscontro.Disegno
             }
             catch { return -1; }
         }
+
+        // =================================================================
+        // STEP e IGES: i formati con cui si manda un pezzo a qualcun altro
+        // =================================================================
+        //
+        // ── PERCHE' NON RIFIUTANO COME LO STL ────────────────────────────
+        //
+        // `esporta_stl` si rifiuta se il pezzo non e' un solo corpo solido
+        // chiuso. Qui NO, ed e' una differenza voluta: un STEP con dieci
+        // corpi e' **normale** — un saldato si manda al fornitore cosi' — e
+        // uno con delle superfici aperte pure, perche' STEP e IGES le
+        // portano. Rifiutarli sarebbe applicare a un formato le regole di un
+        // altro.
+        //
+        // La verifica gira lo stesso e **il suo giudizio viaggia con la
+        // risposta**: chi legge sa com'era il pezzo che ha mandato, e non gli
+        // si impedisce di mandarlo.
+        //
+        // ── NIENTE INTERFACCIA DI ESPORTAZIONE, SOLO PREFERENZE ──────────
+        //
+        // Cercate per riflessione: di STEP e IGES esistono solo le interfacce
+        // di IMPORTAZIONE (`IImportStepData`, `IImportIgesData`). Per scrivere
+        // c'e' `SaveAs3` con `ExportData` a null, e tutto il resto sono
+        // preferenze utente globali:
+        //
+        //   swStepAP (int)                 203, 214, 242 — SENZA un enum
+        //   swIGESRepresentation (int)     swIGES_BREP = 3 (solidi),
+        //                                  swIGES_TRMSRF = 0 (superfici)
+        //   swIGESExportSolidAndSurface    esporta anche i solidi
+        //
+        // `swStepAP` E' IL CASO PIU' SCOMODO: i tre valori leciti NON hanno un
+        // enum in `swconst`, quindi il numero e' un letterale — e un letterale
+        // e' una cosa che si crede. Per questo dopo aver scritto il file si
+        // **rilegge il suo FILE_SCHEMA**, che dice quale protocollo e'
+        // davvero uscito: AP203 si dichiara «CONFIG_CONTROL_DESIGN», AP214
+        // «AUTOMOTIVE_DESIGN», AP242 col suo nome lungo. E' l'unico modo di
+        // sapere che il 214 chiesto e' il 214 ottenuto.
+
+        private Esito EsportaScambio(
+            IModelDoc2 modello, Dictionary<string, object> a, string operazione,
+            StatoDocumento stato)
+        {
+            var parte = modello as IPartDoc;
+            if (parte == null)
+                return Fallito(
+                    "Questo documento non e' un pezzo: STEP e IGES si esportano da una parte.");
+
+            bool iges = operazione == "esporta_iges";
+            string[] estensioniBuone = iges
+                ? new[] { ".iges", ".igs" }
+                : new[] { ".step", ".stp" };
+
+            // LA VERIFICA GIRA LO STESSO, E NON FERMA NIENTE. Il giudizio
+            // viaggia con la risposta: chi manda un pezzo a un fornitore ha
+            // diritto di sapere che aveva due corpi, non di essere fermato.
+            string giudizio = "";
+            var verifica = VerificaGeometriaCorpo(modello, new Dictionary<string, object>(), stato);
+            if (verifica.Riuscito && verifica.Misure != null && verifica.Misure.ContainsKey("giudizio"))
+                giudizio = Convert.ToString(verifica.Misure["giudizio"]);
+
+            string dove = Str(a, "percorso", null);
+            if (string.IsNullOrWhiteSpace(dove))
+            {
+                string suo = "";
+                try { suo = modello.GetPathName() ?? ""; } catch { }
+                if (string.IsNullOrWhiteSpace(suo))
+                    return Fallito(
+                        "Il pezzo non e' mai stato salvato e non mi hai detto dove mettere " +
+                        "il file. Dimmi «percorso», oppure salva prima il pezzo.");
+                dove = Path.ChangeExtension(suo, estensioniBuone[0]);
+            }
+
+            string estensione = (Path.GetExtension(dove) ?? "").ToLowerInvariant();
+            if (Array.IndexOf(estensioniBuone, estensione) < 0)
+                return Fallito(
+                    "Il percorso «" + dove + "» finisce in «" + estensione + "», e per «" +
+                    operazione + "» ci vuole " + string.Join(" oppure ", estensioniBuone) +
+                    ". L'estensione NON e' un dettaglio: e' l'unica cosa che dice a " +
+                    "SaveAs3 che formato scrivere.");
+
+            string cartella;
+            try { cartella = Path.GetDirectoryName(Path.GetFullPath(dove)); }
+            catch (Exception ex) { return Fallito("Percorso che non so leggere: " + ex.Message); }
+            if (!Directory.Exists(cartella))
+                return Fallito("La cartella «" + cartella + "» non esiste: non la creo io.");
+
+            int protocollo = 0;
+            string protocolloChiesto = null;
+            int rappresentazione = 0;
+            string rappresentazioneChiesta = null;
+            if (iges)
+            {
+                rappresentazioneChiesta = (Str(a, "rappresentazione", "solidi") ?? "solidi")
+                    .Trim().ToLowerInvariant();
+                if (rappresentazioneChiesta == "solidi")
+                    rappresentazione = (int)swIGESRepresentation_e.swIGES_BREP;
+                else if (rappresentazioneChiesta == "superfici")
+                    rappresentazione = (int)swIGESRepresentation_e.swIGES_TRMSRF;
+                else return Fallito(
+                    "Rappresentazione «" + rappresentazioneChiesta + "» sconosciuta: ci sono " +
+                    "«solidi» (BREP, quella che serve a chi deve lavorare il pezzo) e " +
+                    "«superfici».");
+            }
+            else
+            {
+                protocolloChiesto = (Str(a, "protocollo", "AP214") ?? "AP214")
+                    .Trim().ToUpperInvariant();
+                if (protocolloChiesto == "AP203") protocollo = 203;
+                else if (protocolloChiesto == "AP214") protocollo = 214;
+                else if (protocolloChiesto == "AP242") protocollo = 242;
+                else return Fallito(
+                    "Protocollo «" + protocolloChiesto + "» sconosciuto: ci sono AP203, " +
+                    "AP214 (predefinito) e AP242.");
+            }
+
+            var prima = LeggiPreferenzeScambio();
+            int errori = 0, avvisi = 0;
+            bool ok;
+            try
+            {
+                if (iges) ImpostaPreferenzeIges(rappresentazione);
+                else ImpostaPreferenzeStep(protocollo);
+
+                if (File.Exists(dove))
+                {
+                    try { File.Delete(dove); }
+                    catch (Exception ex)
+                    {
+                        return Fallito(
+                            "C'e' gia' un file li' e non riesco a sostituirlo (" + ex.Message +
+                            "): probabilmente e' aperto in un altro programma.");
+                    }
+                }
+
+                try
+                {
+                    ok = modello.Extension.SaveAs3(
+                        dove,
+                        (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
+                        (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
+                        null, null, ref errori, ref avvisi);
+                }
+                catch (Exception ex) { return Fallito("File non scritto: " + ex.Message); }
+            }
+            finally { RimettiPreferenzeScambio(prima); }
+
+            if (!ok || !File.Exists(dove))
+                return Fallito("Il file non e' stato scritto (codice " + errori + "): " + dove);
+
+            long quantoPesa = new FileInfo(dove).Length;
+            var misure = new Dictionary<string, object>
+            {
+                ["percorso"] = dove,
+                ["byte"] = quantoPesa,
+                ["verifica"] = giudizio,
+            };
+
+            if (iges)
+            {
+                misure["formato"] = "IGES";
+                misure["rappresentazione"] = rappresentazioneChiesta;
+                string perche;
+                int record = RecordIges(dove, out perche);
+                misure["record_di_parametri"] = record >= 0 ? (object)record : null;
+                misure["come_lo_so"] = perche;
+                if (record == 0)
+                    return Fallito(
+                        "L'IGES e' stato scritto ma non ha nessun record di parametri: e' " +
+                        "un file con le intestazioni e niente dentro. (" + dove + ")");
+            }
+            else
+            {
+                misure["formato"] = "STEP";
+                misure["protocollo_chiesto"] = protocolloChiesto;
+                int entita;
+                string perche;
+                string schema = SchemaDelloStep(dove, out entita, out perche);
+                string uscito = DalloSchema(schema);
+                misure["file_schema"] = schema;
+                misure["protocollo_uscito"] = uscito;
+                misure["entita"] = entita >= 0 ? (object)entita : null;
+                misure["come_lo_so"] = perche;
+
+                if (schema == null)
+                    return Fallito(
+                        "Il file non comincia per «ISO-10303-21» o non ha un FILE_SCHEMA: " +
+                        "non e' uno STEP, qualunque cosa dica l'estensione. (" + dove + ")");
+                if (entita == 0)
+                    return Fallito(
+                        "Lo STEP e' stato scritto ma la sua sezione DATA e' vuota: e' un " +
+                        "file con le intestazioni e niente dentro. (" + dove + ")");
+                if (uscito != null && uscito != protocolloChiesto)
+                    return Fallito(
+                        "Hai chiesto " + protocolloChiesto + " ed e' uscito " + uscito +
+                        " (FILE_SCHEMA «" + schema + "»). Il file c'e' e non e' il " +
+                        "protocollo che serve: certi fornitori accettano solo il 203. (" +
+                        dove + ")");
+            }
+
+            // ── LA PROVA VERA, SE LA SI CHIEDE ───────────────────────────
+            //
+            // Riaprire il file e confrontare il volume e' l'unica misura che
+            // dice che la GEOMETRIA e' sopravvissuta alla traduzione: la
+            // dimensione di un file non lo dice, e nemmeno il numero di
+            // entita'. Non e' il predefinito perche' costa un'apertura di
+            // documento: su un pezzo grosso sono minuti.
+            if (Bool(a, "riapri_e_confronta", false))
+            {
+                double mio = VolumeMm3(modello);
+                string comE;
+                double suo = VolumeRiaprendo(dove, out comE);
+                misure["volume_mm3"] = Math.Round(mio, 2);
+                misure["volume_riletto_mm3"] = suo >= 0 ? (object)Math.Round(suo, 2) : null;
+                misure["come_e_andata_la_rilettura"] = comE;
+                if (suo < 0)
+                    return Fallito(
+                        "Il file e' scritto ma non sono riuscito a rileggerlo per " +
+                        "confrontarlo: " + comE + " (" + dove + ")");
+
+                // UN MILLESIMO, non «circa». Una traduzione che perde un
+                // millesimo di volume ha perso una faccia, e su un pezzo che
+                // va in officina non e' un arrotondamento.
+                double scarto = mio > 0 ? Math.Abs(suo - mio) / mio : Math.Abs(suo - mio);
+                misure["scarto_relativo"] = Math.Round(scarto, 6);
+                if (scarto > 0.001)
+                    return Fallito(
+                        "Il file riaperto ha volume " + suo.ToString("0.##") + " mm3 e il " +
+                        "pezzo ne ha " + mio.ToString("0.##") + ": uno scarto del " +
+                        (scarto * 100).ToString("0.###") + "%. La traduzione ha perso " +
+                        "qualcosa. (" + dove + ")");
+            }
+
+            _log("[agente] " + (iges ? "IGES" : "STEP") + ": " + quantoPesa + " byte, " + dove);
+            return SenzaFeature(misure);
+        }
+
+        private sealed class PreferenzeScambio
+        {
+            public int StepAp;
+            public int IgesRappresentazione;
+            public bool IgesSolidiESuperfici;
+        }
+
+        private PreferenzeScambio LeggiPreferenzeScambio()
+        {
+            var p = new PreferenzeScambio();
+            try { p.StepAp = _sw.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP); } catch { }
+            try { p.IgesRappresentazione = _sw.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation); } catch { }
+            try { p.IgesSolidiESuperfici = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface); } catch { }
+            return p;
+        }
+
+        private void ImpostaPreferenzeStep(int protocollo)
+        {
+            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, protocollo); } catch { }
+        }
+
+        private void ImpostaPreferenzeIges(int rappresentazione)
+        {
+            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation, rappresentazione); } catch { }
+            try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface, true); } catch { }
+        }
+
+        private void RimettiPreferenzeScambio(PreferenzeScambio p)
+        {
+            if (p == null) return;
+            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, p.StepAp); } catch { }
+            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation, p.IgesRappresentazione); } catch { }
+            try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface, p.IgesSolidiESuperfici); } catch { }
+        }
+
+        /// <summary>
+        /// Il `FILE_SCHEMA` dello STEP, e quante entita' ha la sezione DATA.
+        /// Null se il file non comincia per «ISO-10303-21».
+        /// </summary>
+        private static string SchemaDelloStep(string percorso, out int entita, out string perche)
+        {
+            entita = -1;
+            perche = "";
+            try
+            {
+                string schema = null;
+                int quante = 0;
+                bool inizioBuono = false, primaRiga = true, dentroIDati = false;
+                foreach (var riga in File.ReadLines(percorso))
+                {
+                    if (primaRiga)
+                    {
+                        primaRiga = false;
+                        inizioBuono = riga.TrimStart().StartsWith("ISO-10303-21", StringComparison.Ordinal);
+                        if (!inizioBuono) break;
+                    }
+                    if (schema == null)
+                    {
+                        int i = riga.IndexOf("FILE_SCHEMA", StringComparison.Ordinal);
+                        if (i >= 0)
+                        {
+                            int apre = riga.IndexOf('\'', i);
+                            int chiude = apre < 0 ? -1 : riga.IndexOf('\'', apre + 1);
+                            if (apre >= 0 && chiude > apre)
+                                schema = riga.Substring(apre + 1, chiude - apre - 1);
+                        }
+                    }
+                    if (riga.StartsWith("DATA;", StringComparison.Ordinal)) { dentroIDati = true; continue; }
+                    if (riga.StartsWith("ENDSEC;", StringComparison.Ordinal)) { dentroIDati = false; continue; }
+                    if (dentroIDati && riga.TrimStart().StartsWith("#", StringComparison.Ordinal)) quante++;
+                }
+                if (!inizioBuono)
+                {
+                    perche = "il file non comincia per «ISO-10303-21»";
+                    return null;
+                }
+                entita = quante;
+                perche = "letto dal file: il FILE_SCHEMA e le righe «#» della sezione DATA";
+                return schema;
+            }
+            catch (Exception ex)
+            {
+                perche = "non ho potuto leggere il file: " + ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Da `FILE_SCHEMA` al nome del protocollo. I tre nomi sono quelli
+        /// dello STANDARD, non di SOLIDWORKS: AP203 si dichiara
+        /// «CONFIG_CONTROL_DESIGN», AP214 «AUTOMOTIVE_DESIGN», AP242 col suo
+        /// nome lungo.
+        /// </summary>
+        private static string DalloSchema(string schema)
+        {
+            if (string.IsNullOrEmpty(schema)) return null;
+            string s = schema.ToUpperInvariant();
+            if (s.Contains("AP242")) return "AP242";
+            if (s.Contains("AUTOMOTIVE_DESIGN")) return "AP214";
+            if (s.Contains("CONFIG_CONTROL_DESIGN")) return "AP203";
+            return null;
+        }
+
+        /// <summary>
+        /// Quanti record di PARAMETRI ha l'IGES. Un IGES e' fatto di righe da
+        /// ottanta caratteri, e la colonna 73 dice a che sezione appartengono:
+        /// S intestazione, G globale, D directory, P parametri, T coda. Un file
+        /// senza nemmeno un record «P» ha le intestazioni e niente dentro.
+        /// </summary>
+        private static int RecordIges(string percorso, out string perche)
+        {
+            perche = "";
+            try
+            {
+                int quanti = 0;
+                foreach (var riga in File.ReadLines(percorso))
+                    if (riga.Length >= 73 && (riga[72] == 'P' || riga[72] == 'p')) quanti++;
+                perche = "contando i record con «P» nella colonna 73 del file IGES";
+                return quanti;
+            }
+            catch (Exception ex)
+            {
+                perche = "non ho potuto leggere il file: " + ex.Message;
+                return -1;
+            }
+        }
+
+        /// <summary>
+        /// Il volume del file appena scritto, riaperto in SOLIDWORKS e
+        /// richiuso. E' l'unica misura che dice che la GEOMETRIA e'
+        /// sopravvissuta alla traduzione: la dimensione di un file non lo dice,
+        /// e nemmeno il numero di entita'.
+        ///
+        /// IL DOCUMENTO SI CHIUDE SEMPRE, e alla fine si riattiva quello di
+        /// prima: aprire un file e lasciarlo li' vuol dire che l'operazione
+        /// dopo lavora su un documento che non e' quello che il modello crede.
+        ///
+        /// ── `LoadFile4` E NON `OpenDoc6`, E L'ERRORE DICE UN'ALTRA COSA ──
+        ///
+        /// `OpenDoc6` su uno STEP o un IGES **non apre niente** e risponde
+        /// `swFileRequiresRepairError = 2097152` — «il file richiede una
+        /// riparazione». Il file non ha niente da riparare: lo abbiamo appena
+        /// scritto noi, e `LoadFile4` lo apre senza un avviso. Misurato il
+        /// 15/9/2026 su un cubo da 200.000 mm³: `OpenDoc6` con `swDocPART`
+        /// 2097152, con `swDocIMPORTED_PART` 1024 («tipo di file non valido»),
+        /// `LoadFile4(percorso, "", null)` **aperto, un corpo, 200000 mm³**.
+        ///
+        /// E' un messaggio che manda a cercare il guasto dalla parte
+        /// sbagliata: chi lo legge va a guardare il file, e il file e' a
+        /// posto. Per i formati neutri la porta e' `LoadFile4`.
+        /// </summary>
+        private double VolumeRiaprendo(string percorso, out string comE)
+        {
+            comE = "";
+            IModelDoc2 riaperto = null;
+            string titoloPrima = null;
+            try
+            {
+                var attivo = _sw.IActiveDoc2;
+                titoloPrima = attivo == null ? null : attivo.GetTitle();
+            }
+            catch { }
+            try
+            {
+                int errori = 0;
+                riaperto = _sw.LoadFile4(percorso, "", null, ref errori) as IModelDoc2;
+                if (riaperto == null)
+                {
+                    comE = "LoadFile4 non ha aperto niente (codice " + errori + ")";
+                    return -1;
+                }
+                double v = VolumeMm3(riaperto);
+                comE = "riaperto come pezzo e richiuso; volume letto dalla geometria tradotta";
+                return v;
+            }
+            catch (Exception ex)
+            {
+                comE = "eccezione riaprendo: " + ex.Message;
+                return -1;
+            }
+            finally
+            {
+                if (riaperto != null)
+                {
+                    try { _sw.CloseDoc(riaperto.GetTitle()); } catch { }
+                }
+                if (!string.IsNullOrEmpty(titoloPrima))
+                {
+                    try { _sw.ActivateDoc3(titoloPrima, false, 0, 0); } catch { }
+                }
+            }
+        }
     }
 }

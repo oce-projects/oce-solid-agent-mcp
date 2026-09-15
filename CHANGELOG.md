@@ -16,6 +16,58 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.43.0 — 15 settembre 2026 · libreria 0.78.0
+
+### GP3 — `esporta_step` e `esporta_iges`, e il file che non aveva niente da riparare
+
+Catalogo a **42 operazioni**. STEP e IGES sono i formati con cui si manda un
+pezzo a un fornitore, a un cliente, o lo si porta in un altro CAD.
+
+**Non si rifiutano come lo STL, ed è voluto.** Un STEP con dieci corpi è
+*normale* — un saldato si manda al fornitore così — e uno con delle superfici
+aperte pure, perché STEP e IGES le portano. Rifiutarli sarebbe applicare a un
+formato le regole di un altro. La verifica gira lo stesso e **il suo giudizio
+viaggia con la risposta**: chi manda un pezzo ha diritto di sapere che aveva due
+corpi, non di essere fermato.
+
+**Il protocollo si rilegge dal file, non si crede.** `swStepAP` vuole 203, 214 o
+242, e quei tre valori **non hanno un enum** in `swconst`: il numero è un
+letterale. L'unica prova che il 214 chiesto è il 214 ottenuto è il `FILE_SCHEMA`
+scritto dentro il file — `AUTOMOTIVE_DESIGN` per l'AP214,
+`CONFIG_CONTROL_DESIGN` per l'AP203. Se non combacia, l'operazione fallisce:
+certi fornitori accettano solo il 203, e un file col protocollo sbagliato si
+scopre dall'altra parte.
+
+```
+OK   step_ap214_riletto · misure.file_schema      AUTOMOTIVE_DESIGN
+OK   step_ap203_e_lo_dice · misure.file_schema    CONFIG_CONTROL_DESIGN
+```
+
+Due casi scrivono lo stesso cubo con i due protocolli e pretendono schemi
+diversi — con `non_contiene` sull'altro nome, perché «c'è il nome giusto» non
+basta. Se la preferenza non arrivasse a destinazione uscirebbero identici, e
+verdi tutti e due.
+
+**`riapri_e_confronta`: la sola misura che dice che la geometria è
+sopravvissuta.** Il file viene riaperto in SOLIDWORKS e il suo volume
+confrontato col pezzo, fallendo oltre un millesimo di scarto. Misurato: **0,00%
+sia in STEP AP214 sia in IGES BREP**, 200.000 mm³ esatti in tutti e due. Non è
+il predefinito perché costa un'apertura di documento.
+
+**E il difetto che ha richiesto una sonda.** La prima scrittura riapriva con
+`OpenDoc6`, che su un file appena scritto risponde:
+
+```
+OpenDoc6(…, swDocPART, Silent)           NULL   2097152  swFileRequiresRepairError
+OpenDoc6(…, swDocIMPORTED_PART, Silent)  NULL      1024  swInvalidFileTypeError
+LoadFile4(percorso, "", null)            aperto      0   1 corpo, 200000 mm3
+```
+
+«Il file richiede una riparazione» su un file che non ha niente da riparare —
+lo avevamo scritto noi due righe prima. **Un codice d'errore descrive quello che
+l'API ha concluso, non quello che è successo**: per i formati neutri la porta è
+`LoadFile4`, e `OpenDoc6` manda a cercare il guasto dalla parte sbagliata.
+
 ## 0.42.0 — 15 settembre 2026 · libreria 0.77.0
 
 ### GP2 — `esporta_stl`, e il formato che non porta con sé niente

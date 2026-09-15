@@ -1,0 +1,33 @@
+{
+  "nome": "step_ap214_riletto",
+  "famiglia": "esporta",
+  "perche": "IL VOLUME RILETTO DAL FILE, non la dimensione del file. Uno STEP scritto e mai riaperto e' una promessa: esiste, pesa, si apre in qualunque visualizzatore. L'unica misura che dice che la GEOMETRIA e' sopravvissuta alla traduzione e' riaprirlo in SOLIDWORKS e confrontare il volume -- ed e' quello che questo caso fa.",
+  "perche_il_protocollo_si_rilegge": "`swStepAP` vuole 203, 214 o 242 e in `swconst` quei tre valori NON hanno un enum: il numero e' un letterale, e un letterale e' una cosa che si crede. L'unica prova che il 214 chiesto e' il 214 ottenuto e' il FILE_SCHEMA scritto dentro il file, che per l'AP214 dice «AUTOMOTIVE_DESIGN».",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "esporta_step",
+      "argomenti": { "percorso": "{LAVORO}\\gp3_ap214.step", "protocollo": "AP214",
+                     "riapri_e_confronta": true },
+      "attese": [
+        { "cosa": "misure.formato", "uguale": "STEP" },
+        { "cosa": "misure.protocollo_chiesto", "uguale": "AP214" },
+        { "cosa": "misure.protocollo_uscito", "uguale": "AP214",
+          "perche": "chiesto e ottenuto sono due cose diverse, e qui si confrontano" },
+        { "cosa": "misure.file_schema", "contiene": ["AUTOMOTIVE_DESIGN"],
+          "perche": "e' il nome che lo STANDARD da' all'AP214, e sta scritto dentro il file" },
+        { "cosa": "misure.come_lo_so", "contiene": ["letto dal file"] },
+        { "cosa": "misure.volume_mm3", "uguale": 200000, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "e' il volume del pezzo, letto da GetMassProperties che torna metri cubi" },
+        { "cosa": "misure.volume_riletto_mm3", "uguale": 200000, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "come sopra, ma sulla geometria TRADOTTA: e' il numero che conta" },
+        { "cosa": "misure.scarto_relativo", "uguale": 0, "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "un BREP non deve perdere niente: il millesimo che l'operazione ammette e' gia' dieci volte questo" },
+        { "cosa": "misure.come_e_andata_la_rilettura", "contiene": ["riaperto come pezzo e richiuso"] },
+        { "cosa": "corpi", "uguale": 1,
+          "perche": "il pezzo aperto e' ancora il suo: riaprire lo STEP non deve lasciare in giro il documento tradotto" } ] }
+  ]
+}
