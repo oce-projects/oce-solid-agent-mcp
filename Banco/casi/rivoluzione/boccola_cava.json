@@ -1,0 +1,16 @@
+{
+  "nome": "boccola_cava",
+  "famiglia": "rivoluzione",
+  "perche": "Un profilo cavo: la corona da R20 a R10 alta 30. E' il caso in cui il profilo non tocca l'asse, e il solido che ne esce e' un tubo -- se il contorno venisse chiuso sull'asse uscirebbe un cilindro pieno, e il volume lo direbbe.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "rivoluzione",
+      "argomenti": { "piano": "frontale", "angolo_gradi": 360,
+                     "asse": [[0, 0], [30, 0]],
+                     "contorni": [[[0, 10], [0, 20], [30, 20], [30, 10]]] },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 28274.334, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "pi*(20^2 - 10^2)*30: il conto ha pi dentro" },
+        { "cosa": "corpi", "uguale": 1 } ] }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "nome": "piano_superiore_piu_100",
+  "famiglia": "piano",
+  "perche": "Il piano SUPERIORE e' XZ: la sua normale e' +Y, e un piano a +100 deve stare a y = +100. Si misura DOVE E' FINITO, non quello che gli e' stato chiesto: `crea_piano` risponde con la distanza chiesta, e un'attesa su quella verificherebbe che il ponte sa ricopiare un numero.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "crea_piano",
+      "argomenti": { "piano": "superiore", "distanza_mm": 100 },
+      "attese": [
+        { "cosa": "ultimo_piano_mm", "uguale": [0, 100, 0], "tolleranza": 0.1,
+          "perche_questa_tolleranza": "l'origine del piano si legge da una matrice in metri" },
+        { "cosa": "stato.piani_disponibili", "uguale": 4 } ] }
+  ]
+}

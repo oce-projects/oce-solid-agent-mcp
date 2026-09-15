@@ -1,0 +1,16 @@
+{
+  "nome": "smusso_3x6_cianfrino",
+  "famiglia": "smusso",
+  "perche": "Due lati diversi: e' `DistanceDistance`, il cianfrino della saldatura. SE L'ENUM FINISSE SU `AngleDistance` il secondo lato verrebbe ignorato e si toglierebbe 3*3/2*100 = 450 invece di 900 -- la meta', e il pezzo uscirebbe con una preparazione sbagliata senza che niente fallisca.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 120000 } ] },
+    { "operazione": "smusso_spigoli",
+      "argomenti": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 3, "angolo_gradi": 45, "secondo_lato_mm": 6 },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 119100,
+          "perche_esatto": " 120000 meno 3*6/2*100 e' un conto esatto. Se il secondo lato fosse ignorato sarebbe 119550" } ] }
+  ]
+}

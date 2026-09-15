@@ -1,0 +1,16 @@
+{
+  "nome": "mezzo_cilindro_180",
+  "famiglia": "rivoluzione",
+  "perche": "Mezzo giro: esattamente la meta'. Verifica che `angolo_gradi` arrivi in radianti giusti e non venga ignorato -- se fosse ignorato uscirebbe il cilindro intero, e il volume e' il doppio.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "rivoluzione",
+      "argomenti": { "piano": "frontale", "angolo_gradi": 180,
+                     "asse": [[0, 0], [50, 0]],
+                     "contorni": [[[0, 0], [0, 20], [50, 20], [50, 0]]] },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 31415.927, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "pi*20^2*50/2: il conto ha pi dentro" },
+        { "cosa": "corpi", "uguale": 1 } ] }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "nome": "asola_ruotata_30",
+  "famiglia": "asola",
+  "perche": "Trenta gradi: un angolo che non e' ne' zero ne' un quarto di giro, dove un errore di segno o di unita' (gradi contro radianti) si vedrebbe.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "asola",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 30, "passante": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 469299.34, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "480000 meno 535,0332 per 20: il conto ha pi dentro" } ] }
+  ]
+}

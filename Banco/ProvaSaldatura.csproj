@@ -45,6 +45,7 @@
     <Compile Include="Regressione.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProvaNuove.cs" />
+    <Compile Include="ProveSenzaIlPezzo.cs" />
     <Compile Include="Sessione.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

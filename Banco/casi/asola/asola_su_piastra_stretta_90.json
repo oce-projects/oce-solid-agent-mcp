@@ -1,0 +1,16 @@
+{
+  "nome": "asola_su_piastra_stretta_90",
+  "famiglia": "asola",
+  "perche": "La gemella del caso a zero gradi, ed e' QUESTA a vedere la rotazione. Sulla piastra larga 40 l'asola girata di 90 gradi sporge di 5,5 mm da tutte e due le coste -- y da -25,5 a +25,5 contro una semialtezza di 20 -- e le due calotte cadono fuori: resta il rettangolo 40 x 11. Se la rotazione non venisse applicata, questo caso e quello a zero gradi darebbero LO STESSO NUMERO.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 40, "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 160000 } ] },
+    { "operazione": "asola",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 90, "passante": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 151200, "tolleranza": 1.0,
+          "perche_questa_tolleranza": "160000 meno il solo rettangolo 40 x 11 x 20 = 8800. Le due calotte cadono fuori dal materiale: il millimetro cubo copre il modo in cui SOLIDWORKS taglia sul bordo" } ] }
+  ]
+}

@@ -451,17 +451,30 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "quanto-vede",  Cosa = "quanto vede il modello", Azioni = una(QuantoVedeIlModello) },
                 new Gruppo { Nome = "facce",        Cosa = "le facce della piastra", Azioni = una(StampaFaccePiastra) },
                 new Gruppo { Nome = "sposta-corpi", Cosa = "sposta_corpi",           Azioni = una(ProvaSpostaCorpi) },
-                new Gruppo { Nome = "asola",        Cosa = "asola",                  Azioni = una(ProvaAsola) },
-                new Gruppo { Nome = "smusso",       Cosa = "smusso_spigoli",         Azioni = una(ProvaSmusso) },
-                new Gruppo { Nome = "rivoluzione",  Cosa = "rivoluzione",            Azioni = una(ProvaRivoluzioni) },
+                // «asola» non c'e' piu': e' diventata quindici file in
+                // `casi/asola/`, e si lancia con `--gruppo casi` (voce F11).
+                // «smusso» non c'e' piu': e' diventato tre file in
+                // `casi/smusso/`, e si lancia con `--gruppo casi` (voce F11).
+                // «rivoluzione» non c'e' piu': e' diventata cinque file in
+                // `casi/rivoluzione/`. La tolleranza e' la differenza: il C#
+                // accettava `atteso * 0.02`, che sul cilindro da 62.831 mm³
+                // sono 1.256 mm³ di scarto ammesso.
                 // «guscio» non c'e' piu': e' diventato due file in
                 // `casi/lavorazioni/`, e si lancia con `--gruppo casi`.
-                new Gruppo { Nome = "crea-piano",   Cosa = "crea_piano",             Azioni = una(ProvaCreaPiano) },
-                new Gruppo { Nome = "crea-asse",    Cosa = "crea_asse",              Azioni = una(ProvaCreaAsse) },
-                new Gruppo { Nome = "ripeti",       Cosa = "ripeti_lineare",         Azioni = una(ProvaRipetiLineare) },
-                new Gruppo { Nome = "specchia",     Cosa = "specchia",               Azioni = una(ProvaSpecchia) },
-                new Gruppo { Nome = "togliere",     Cosa = "sopprimi/elimina (R2)",  Azioni = una(ProvaTogliere) },
-                new Gruppo { Nome = "forma",        Cosa = "la forma in una frase (V3/V7)", Azioni = una(ProvaFormaAParole) },
+                // «crea-piano» non c'e' piu': e' diventato tre file in
+                // `casi/piano/`, e l'attesa e' su DOVE E' FINITO il piano
+                // (`ultimo_piano_mm`), non sulla distanza che il ponte
+                // ricopia.
+                // «crea-asse» e' rimasto in C# per UNA riga sola: che l'asse
+                // si riagganci con SelectByID2("AXIS"), che e' una chiamata
+                // COM e non un'operazione del catalogo. Tutto il resto della
+                // famiglia sta in `casi/asse/`.
+                new Gruppo { Nome = "crea-asse",    Cosa = "l'asse si ritrova per nome", Azioni = una(ProvaCreaAsse) },
+                // «ripeti», «specchia» e «togliere» non ci sono piu': sono
+                // diventati `casi/ripeti/`, `casi/specchia/` e
+                // `casi/togliere/`, e si lanciano con `--gruppo casi`.
+                // «forma» non c'e' piu': e' diventata `casi/frase/`, da quando
+                // le attese sanno chiedere «contiene» e «non_contiene».
                 new Gruppo { Nome = "dove-stava",   Cosa = "dove stava, e il grep vuoto (E10)",
                              Azioni = new Action[] { ProvaDoveStava, ProvaCheLaFrazioneNonDecide } },
                 new Gruppo { Nome = "casi",         Cosa = "i casi dichiarati, che sono file (F3)",
@@ -501,6 +514,21 @@ namespace ProvaSaldatura
         /// domanda alla riflessione tornasse vuota, «nessuna famiglia fuori
         /// dalla tabella» sarebbe vera per un motivo sbagliato: si controlla
         /// prima che le famiglie le veda.
+        ///
+        /// ── E IL ROSSO NON E' PIU' UN NUMERO ─────────────────────────────
+        ///
+        /// Era `famiglie.Count >= 15`, e il 15/9/2026 e' diventato rosso senza
+        /// che niente si fosse rotto: la voce F11 ha trasformato sei famiglie
+        /// di prove in file JSON, e i metodi sono scesi a dodici. **Un
+        /// pavimento numerico su una cosa che deve calare e' un rosso a
+        /// scadenza**: chi lo incontra lo alza o lo abbassa, e in tutti e due i
+        /// casi ha guardato il numero invece del pezzo.
+        ///
+        /// Adesso il setaccio deve trovare SE STESSO. `ProvaCheLaTabellaCopreTutto`
+        /// e' un metodo `private static void` senza parametri che comincia per
+        /// «Prova»: se la riflessione non lo elenca, non funziona — e la cosa
+        /// non dipende da quante famiglie ci siano oggi. Il conto resta
+        /// scritto accanto come dato, non come soglia.
         /// </summary>
         private static void ProvaCheLaTabellaCopreTutto()
         {
@@ -514,8 +542,11 @@ namespace ProvaSaldatura
                             m.GetParameters().Length == 0)
                 .ToList();
 
-            Segna("F13 ROSSO: il setaccio vede le famiglie di prove",
-                  famiglie.Count >= 15, famiglie.Count + " metodi «Prova…()»");
+            // IL SETACCIO TROVA SE STESSO, o non funziona.
+            bool miVede = famiglie.Any(m => m.Name == "ProvaCheLaTabellaCopreTutto");
+            Segna("F13 ROSSO: il setaccio vede le famiglie di prove", miVede,
+                  famiglie.Count + " metodi «Prova…()»" +
+                  (miVede ? ", compreso questo" : ", e questo NON c'e': la riflessione non lo elenca"));
 
             var gruppi = Gruppi();
             var nella = new HashSet<MethodInfo>(gruppi.SelectMany(g => g.Azioni).Select(a => a.Method));

@@ -110,9 +110,169 @@ namespace Prove.Contratti
                   Attese.Combacia(Attesa("volume_mm3", 240000.0), finto, stato, misure, out d), d);
 
             // ── UN NOME CHE NON ESISTE ────────────────────────────────────
-            Segna("un «cosa» sconosciuto: non si valuta",
-                  Alza(() => { string x; Attese.Combacia(Attesa("pippo", 1.0), null, stato, misure, out x); },
-                       "non so misurare"));
+            //
+            // L'ELENCO DEI NOMI NON STA PIU' NEL VALUTATORE, e questa e' la
+            // prova che non ci torni. Ci stava, e si e' scollato: due misure
+            // nuove aggiunte a chi misura e dimenticate qui uscivano come «non
+            // so misurare «ultimo_piano_mm»: i nomi sono …» con accanto
+            // l'elenco vecchio — un messaggio che diceva il falso su se stesso,
+            // e che dava ERRORE DI BANCO a una prova che il ponte superava.
+            //
+            // Adesso il valutatore non giudica i nomi: li passa a chi il
+            // documento ce l'ha, ed e' quello a dire che non li conosce. Si
+            // verifica il passaggio (la funzione viene davvero chiamata) e che
+            // la frase del rifiuto arrivi intera a chi legge.
+            bool arrivato = false;
+            Func<string, object> severo = c =>
+            {
+                arrivato = true;
+                throw new Attese.NonHoPotutoMisurare(
+                    "non so misurare «" + c + "»: i nomi sono volume_mm3");
+            };
+            Segna("un «cosa» sconosciuto: il rifiuto di chi misura arriva intero",
+                  Alza(() => { string x; Attese.Combacia(Attesa("pippo", 1.0), severo, stato, misure, out x); },
+                       "non so misurare «pippo»"));
+            Segna("un «cosa» sconosciuto viene davvero chiesto a chi misura", arrivato);
+
+            // ── DUE PROFILI DIVERSI NON SI SCRIVONO UGUALI ────────────────
+            //
+            // E' IL ROSSO DI UN DIFETTO CHE E' SCATTATO DAVVERO. Il confronto
+            // fra un caso che deve fallire e la sua gemella usava
+            // `Convert.ToString`, che su un `object[]` torna «System.Object[]»:
+            // il rifiuto della rivoluzione e la sua gemella differiscono SOLO
+            // nei contorni, e il banco li ha chiamati «una copia».
+            //
+            // Le due righe qui sotto sono le due facce della stessa cecita':
+            // liste diverse devono scriversi diverse, liste uguali uguali —
+            // perche' una funzione che torna sempre stringhe diverse passerebbe
+            // la prima prova e romperebbe il confronto lo stesso.
+            Func<double[], object> profilo = p =>
+            {
+                var punti = new List<object>();
+                for (int i = 0; i + 1 < p.Length; i += 2)
+                    punti.Add(new List<object> { p[i], p[i + 1] });
+                return new List<object> { punti };
+            };
+            object cilindro = profilo(new double[] { 0, 0, 0, 20, 50, 20, 50, 0 });
+            object aCavallo = profilo(new double[] { 0, -20, 0, 20, 50, 20, 50, -20 });
+            Segna("due contorni diversi si scrivono diversi",
+                  Attese.ComeSiScrive(cilindro) != Attese.ComeSiScrive(aCavallo),
+                  Attese.ComeSiScrive(aCavallo));
+            Segna("due contorni uguali si scrivono uguali",
+                  Attese.ComeSiScrive(cilindro) ==
+                  Attese.ComeSiScrive(profilo(new double[] { 0, 0, 0, 20, 50, 20, 50, 0 })));
+            Segna("un elenco non si scrive «System.Object[]»",
+                  Attese.ComeSiScrive(cilindro).IndexOf("System.Object", StringComparison.Ordinal) < 0,
+                  Attese.ComeSiScrive(cilindro));
+            Segna("un numero si scrive col punto, non con la virgola",
+                  Attese.ComeSiScrive(1.5) == "1.5", Attese.ComeSiScrive(1.5));
+            Segna("il niente ha un nome", Attese.ComeSiScrive(null) == "(niente)");
+
+            // ── LA GEMELLA HA A CHE VEDERE COL RIFIUTO? (F5) ──────────────
+            //
+            // La regola sta qui e non accanto al banco perche' e' aritmetica
+            // su due dizionari: i suoi rossi si provano in un millesimo di
+            // secondo, e sono quattro casi che a mano non si guardano mai.
+            Func<string, string, Dictionary<string, object>> arg2 = (a, b) =>
+                new Dictionary<string, object> { ["faccia_uid"] = a, ["x_mm"] = b };
+            string d2;
+
+            Segna("gemella identica: rifiutata",
+                  !Attese.SiSomigliano(arg2("F1", "10"), arg2("F1", "10"), out d2) &&
+                  d2.IndexOf("copia", StringComparison.Ordinal) >= 0, d2);
+
+            Segna("gemella che differisce per un argomento: accettata",
+                  Attese.SiSomigliano(arg2("F1", "10"), arg2("F1", "40"), out d2), d2);
+
+            Segna("gemella senza niente in comune, con due argomenti: rifiutata",
+                  !Attese.SiSomigliano(arg2("F1", "10"), arg2("F5", "40"), out d2) &&
+                  d2.IndexOf("non si parlano", StringComparison.Ordinal) >= 0, d2);
+
+            // L'ECCEZIONE DELL'ARITA'. `crea_asse` prende `faccia_uid` e basta:
+            // due casi che differiscono per quello non possono averne uno in
+            // comune, e rifiutarli vieterebbe la coppia a meta' del catalogo.
+            Func<string, Dictionary<string, object>> arg1 = a =>
+                new Dictionary<string, object> { ["faccia_uid"] = a };
+            Segna("gemella di un'operazione con UN argomento solo: accettata",
+                  Attese.SiSomigliano(arg1("@faccia(piana=false)"),
+                                      arg1("@faccia(verso=davanti)"), out d2), d2);
+            Segna("...e lo dice, invece di far finta che sia una coppia normale",
+                  d2.IndexOf("l'unico che questa operazione prende",
+                             StringComparison.Ordinal) >= 0, d2);
+            Segna("un argomento solo, ma uguale: resta una copia",
+                  !Attese.SiSomigliano(arg1("F1"), arg1("F1"), out d2), d2);
+
+            // I contorni sono liste: e' il caso che ha rotto il confronto.
+            Segna("gemelle che differiscono solo in una lista: accettate",
+                  Attese.SiSomigliano(
+                      new Dictionary<string, object> { ["contorni"] = aCavallo, ["angolo_gradi"] = 360.0 },
+                      new Dictionary<string, object> { ["contorni"] = cilindro, ["angolo_gradi"] = 360.0 },
+                      out d2), d2);
+
+            // ── UN'ATTESA SU UNA FRASE ───────────────────────────────────
+            //
+            // `non_contiene` e' la meta' che conta: una frase che dichiara «il
+            // profilo Ø30 per 40» su un pezzo che quel profilo non ce l'ha
+            // piu' e' il difetto che non da' errore.
+            var conForma = new Dictionary<string, object>
+            {
+                ["forma"] = "una rivoluzione del profilo D30 per 40, D20 per 30",
+            };
+            Func<object, object, Dictionary<string, object>> frase = (c, n) =>
+            {
+                var a = new Dictionary<string, object> { ["cosa"] = "stato.forma" };
+                if (c != null) a["contiene"] = c;
+                if (n != null) a["non_contiene"] = n;
+                return a;
+            };
+
+            Segna("frase: il pezzo che c'e' si trova",
+                  Attese.Combacia(frase(new List<object> { "profilo", "D30 per 40" }, null),
+                                  null, conForma, misure, out d), d);
+            Segna("frase ROSSO: un pezzo che non c'e' fa fallire",
+                  !Attese.Combacia(frase(new List<object> { "D99 per 1" }, null),
+                                   null, conForma, misure, out d) &&
+                  d.IndexOf("non dice", StringComparison.Ordinal) >= 0, d);
+            Segna("frase ROSSO: «non_contiene» fallisce se la parola c'e' ancora",
+                  !Attese.Combacia(frase(null, new List<object> { "profilo" }),
+                                   null, conForma, misure, out d) &&
+                  d.IndexOf("dice ancora", StringComparison.Ordinal) >= 0, d);
+            Segna("frase: «non_contiene» passa quando la parola e' sparita",
+                  Attese.Combacia(frase(null, new List<object> { "guscio" }),
+                                  null, conForma, misure, out d), d);
+            Segna("frase: si puo' chiedere l'una e l'altra insieme",
+                  Attese.Combacia(frase(new List<object> { "rivoluzione" },
+                                        new List<object> { "guscio" }),
+                                  null, conForma, misure, out d), d);
+            Segna("frase: una stringa sola vale come elenco di uno",
+                  Attese.Combacia(frase("rivoluzione", null), null, conForma, misure, out d), d);
+            // UN CAMPO ASSENTE NON E' UNA FRASE VUOTA, e non e' nemmeno un
+            // rosso: e' un errore di banco, come per ogni altra misura. Il
+            // caso chiede una cosa che nello stato non c'e', e va detto.
+            Segna("frase ROSSO: un campo che non c'e' non si valuta",
+                  Alza(() => { string x;
+                               Attese.Combacia(frase(new List<object> { "x" }, null), null,
+                                               new Dictionary<string, object>(), misure, out x); },
+                       "campo assente"));
+            // E se invece chi misura risponde «niente», quello si': e' un
+            // rosso, perche' la frase c'era da fare e non c'e'.
+            Segna("frase ROSSO: chi misura risponde niente, e la frase manca",
+                  !Attese.Combacia(
+                      new Dictionary<string, object>
+                      { ["cosa"] = "forma_del_pezzo", ["contiene"] = new List<object> { "x" } },
+                      c => null, stato, misure, out d) &&
+                  d.IndexOf("non c'e'", StringComparison.Ordinal) >= 0, d);
+            Segna("frase ROSSO: un elenco vuoto non chiede niente, e si rifiuta",
+                  Alza(() => { string x;
+                               Attese.Combacia(frase(new List<object>(), null), null, conForma, misure, out x); },
+                       "non chiede niente"));
+            Segna("frase ROSSO: «uguale» insieme a «contiene» si rifiuta",
+                  Alza(() =>
+                  {
+                      var a = frase(new List<object> { "profilo" }, null);
+                      a["uguale"] = "qualcosa";
+                      string x; Attese.Combacia(a, null, conForma, misure, out x);
+                  }, "decidi quale dei due"));
 
             // ── I SELETTORI: ZERO O PIU' D'UNA SI RIFIUTANO ───────────────
             Segna("selettore: una faccia sola si prende",

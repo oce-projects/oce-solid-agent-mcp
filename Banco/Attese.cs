@@ -8,7 +8,7 @@ namespace ProvaSaldatura
     /// <summary>
     /// IL VALUTATORE DELLE ATTESE E I SELETTORI, SENZA SOLIDWORKS (voce F7).
     ///
-    /// â”€â”€ PERCHE' STA IN UNA CLASSE SUA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    /// ── PERCHE' STA IN UNA CLASSE SUA ────────────────────────────────────
     ///
     /// Questo file lo compilano DUE progetti: il banco, che apre il CAD, e
     /// `Prove.Contratti`, che gira su una macchina qualunque in pochi secondi e
@@ -20,7 +20,7 @@ namespace ProvaSaldatura
     /// CAD diventa verde gratis.** E' l'ultimo posto che ci si puo' permettere
     /// di non provare.
     ///
-    /// Le misure che vengono dal DOCUMENTO â€” volume, corpi, ingombro â€” arrivano
+    /// Le misure che vengono dal DOCUMENTO — volume, corpi, ingombro — arrivano
     /// da un `Func&lt;string, object&gt;`: chi ha il documento in mano lo passa, chi
     /// non ce l'ha passa null e prova tutto il resto.
     /// </summary>
@@ -69,6 +69,27 @@ namespace ProvaSaldatura
             dettaglio = "";
             string cosa = Testo(attesa, "cosa");
             if (cosa == null) throw new NonHoPotutoMisurare("un'attesa senza «cosa»");
+
+            // ── QUANDO LA MISURA E' UNA FRASE ─────────────────────────────
+            //
+            // `stato.forma` non e' un numero: e' la descrizione che il pezzo
+            // da' di se stesso — «una rivoluzione del profilo Ø30 per 40, Ø20
+            // per 30, Ø34 per 20». Pretenderla UGUALE vorrebbe dire riscrivere
+            // il caso a ogni virgola sistemata; quello che conta e' che i
+            // pezzi che contano ci siano, e che quelli che NON devono esserci
+            // non ci siano — la seconda meta' e' la piu' importante, perche'
+            // e' come si prende una frase che dichiara un profilo che il pezzo
+            // non ha piu'.
+            bool contiene = attesa.ContainsKey("contiene");
+            bool nonContiene = attesa.ContainsKey("non_contiene");
+            if (contiene || nonContiene)
+            {
+                if (attesa.ContainsKey("uguale"))
+                    throw new NonHoPotutoMisurare("«" + cosa + "» ha «uguale» insieme a " +
+                                        "«contiene»/«non_contiene»: decidi quale dei due");
+                return Frase(cosa, attesa, dalDocumento, stato, misure, out dettaglio);
+            }
+
             if (!attesa.ContainsKey("uguale")) throw new NonHoPotutoMisurare("«" + cosa + "» senza «uguale»");
 
             double tolleranza = 0;
@@ -134,6 +155,70 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
+        /// UN'ATTESA SU UNA FRASE: quali pezzi ci devono essere, e quali no.
+        ///
+        /// `non_contiene` non e' la comodita' simmetrica di `contiene`: e' il
+        /// motivo per cui questo esiste. Una frase che dichiara «il profilo
+        /// Ø30 per 40» su un pezzo che quel profilo non ce l'ha piu' e' il
+        /// difetto che non da' errore, e si prende solo pretendendo che una
+        /// parola SPARISCA.
+        ///
+        /// Il confronto e' esatto — maiuscole e accenti compresi — perche' una
+        /// frase che il modello legge cambia di senso con una lettera.
+        /// </summary>
+        private static bool Frase(
+            string cosa, Dictionary<string, object> attesa, Func<string, object> dalDocumento,
+            Dictionary<string, object> stato, Dictionary<string, object> misure,
+            out string dettaglio)
+        {
+            object misurato = Misura(cosa, dalDocumento, stato, misure);
+            if (misurato == null)
+            {
+                dettaglio = cosa + " non c'e': una frase assente non e' una frase vuota";
+                return false;
+            }
+            string frase = Convert.ToString(misurato, CultureInfo.InvariantCulture);
+
+            var mancano = new List<string>();
+            foreach (var p in Pezzi(attesa, "contiene"))
+                if (frase.IndexOf(p, StringComparison.Ordinal) < 0) mancano.Add("«" + p + "»");
+
+            var diTroppo = new List<string>();
+            foreach (var p in Pezzi(attesa, "non_contiene"))
+                if (frase.IndexOf(p, StringComparison.Ordinal) >= 0) diTroppo.Add("«" + p + "»");
+
+            if (mancano.Count == 0 && diTroppo.Count == 0)
+            {
+                dettaglio = cosa + ": " + Breve(frase);
+                return true;
+            }
+            dettaglio = cosa +
+                (mancano.Count > 0 ? " non dice " + string.Join(", ", mancano) : "") +
+                (mancano.Count > 0 && diTroppo.Count > 0 ? ", e" : "") +
+                (diTroppo.Count > 0 ? " dice ancora " + string.Join(", ", diTroppo) : "") +
+                ": " + Breve(frase);
+            return false;
+        }
+
+        /// <summary>I pezzi di frase di un campo: una stringa sola o un elenco.</summary>
+        private static List<string> Pezzi(Dictionary<string, object> attesa, string campo)
+        {
+            var fuori = new List<string>();
+            object v;
+            if (!attesa.TryGetValue(campo, out v) || v == null) return fuori;
+            if (v is string) { fuori.Add((string)v); return fuori; }
+            var elenco = v as System.Collections.IEnumerable;
+            if (elenco == null)
+            { fuori.Add(Convert.ToString(v, CultureInfo.InvariantCulture)); return fuori; }
+            foreach (var x in elenco)
+                fuori.Add(Convert.ToString(x, CultureInfo.InvariantCulture));
+            if (fuori.Count == 0)
+                throw new NonHoPotutoMisurare("«" + campo + "» e' un elenco vuoto: " +
+                                    "non chiede niente, e passerebbe sempre");
+            return fuori;
+        }
+
+        /// <summary>
         /// Da dove si legge un `cosa`. Tre sorgenti, e il prefisso lo dice:
         /// niente = quello che misura il banco per conto suo, `stato.` = lo
         /// stato dell'add-in, `misure.` = quello che l'operazione ha riportato.
@@ -145,9 +230,15 @@ namespace ProvaSaldatura
             // LE TRE MISURE DEL DOCUMENTO ARRIVANO DA FUORI, e chi non ha un
             // documento in mano passa null: e' quello che rende questo file
             // compilabile dove SOLIDWORKS non c'e' (voce F7).
-            if (cosa == "volume_mm3" || cosa == "corpi" || cosa == "ingombro_mm" ||
-                cosa == "centri_x_mm" || cosa == "centri_y_mm" || cosa == "centri_z_mm" ||
-                cosa == "diametri_mm" || cosa == "centro_massa_mm")
+            // NON C'E' PIU' UN ELENCO DI NOMI QUI.
+            //
+            // Ce n'era uno, e si e' scollato: una misura nuova aggiunta a chi
+            // misura, e dimenticata qui, usciva «non so misurare» con l'elenco
+            // vecchio accanto — un messaggio che dice il falso su se stesso.
+            // Tutto cio' che non ha un prefisso lo si chiede a chi il documento
+            // ce l'ha, ed e' lui a dire se quel nome non lo conosce.
+            if (!cosa.StartsWith("stato.", StringComparison.Ordinal) &&
+                !cosa.StartsWith("misure.", StringComparison.Ordinal))
             {
                 if (dalDocumento == null)
                     throw new NonHoPotutoMisurare(
@@ -156,12 +247,104 @@ namespace ProvaSaldatura
             }
             if (cosa.StartsWith("stato.", StringComparison.Ordinal))
                 return Dentro(stato, cosa.Substring(6), cosa);
-            if (cosa.StartsWith("misure.", StringComparison.Ordinal))
-                return Dentro(misure, cosa.Substring(7), cosa);
-            throw new NonHoPotutoMisurare(
-                "non so misurare «" + cosa + "»: i nomi sono volume_mm3, corpi, " +
-                "ingombro_mm, centri_x_mm, centri_y_mm, centri_z_mm, diametri_mm, " +
-                "centro_massa_mm, stato.… e misure.…");
+            return Dentro(misure, cosa.Substring(7), cosa);
+        }
+
+        /// <summary>
+        /// UN VALORE COME STRINGA, ANCHE QUANDO E' UN ELENCO.
+        ///
+        /// `Convert.ToString` su un `object[]` torna «System.Object[]»: DUE
+        /// PROFILI DIVERSI SI SCRIVONO UGUALI. Il confronto fra un caso che
+        /// deve fallire e la sua gemella si faceva cosi', e diventava cieco
+        /// proprio sull'argomento che li distingue. La cecita' va in tutte e
+        /// due le direzioni: qui ha dato un errore di banco onesto — «e'
+        /// identica al rifiuto» su una coppia che differiva SOLO nei contorni —
+        /// ma la stessa riga avrebbe detto «differisce per 1 argomento»
+        /// guardando due liste che non aveva letto.
+        ///
+        /// Sta qui, e non accanto a chi la usa, perche' e' una funzione pura
+        /// su un dizionario: `Prove.Contratti` la prova in un millesimo di
+        /// secondo, senza CAD (voce F7).
+        /// </summary>
+        internal static string ComeSiScrive(object v)
+        {
+            if (v == null) return "(niente)";
+            if (v is string) return (string)v;
+
+            var dizionario = v as Dictionary<string, object>;
+            if (dizionario != null)
+            {
+                var voci = new List<string>();
+                foreach (var k in dizionario.Keys.OrderBy(x => x, StringComparer.Ordinal))
+                    voci.Add(k + "=" + ComeSiScrive(dizionario[k]));
+                return "{" + string.Join(", ", voci) + "}";
+            }
+
+            var elenco = v as System.Collections.IEnumerable;
+            if (elenco != null)
+            {
+                var pezzi = new List<string>();
+                foreach (var x in elenco) pezzi.Add(ComeSiScrive(x));
+                return "[" + string.Join(", ", pezzi) + "]";
+            }
+
+            return Convert.ToString(v, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// LA GEMELLA HA A CHE VEDERE COL RIFIUTO? (voce F5)
+        ///
+        /// La regola: **argomenti non identici, e almeno un argomento in comune
+        /// con lo stesso valore.** La voce proponeva «differisce per UN solo
+        /// argomento»; misurata sulle coppie canoniche ne rifiutava tre su
+        /// quattro, e chi chiama dice quanti ne differiscono invece di
+        /// decidere al posto di chi legge.
+        ///
+        /// ── L'ECCEZIONE DELL'ARGOMENTO UNICO, CHE E' ARITMETICA ───────────
+        ///
+        /// `crea_asse` prende `faccia_uid` e basta. Due casi che differiscono
+        /// per quell'unico argomento NON POSSONO averne uno in comune: la
+        /// regola li rifiuterebbe sempre, e non perche' siano scollegati ma
+        /// perche' l'operazione ha un argomento solo. Rifiutarli vorrebbe dire
+        /// vietare la coppia a meta' del catalogo. Quando le chiavi in gioco
+        /// sono una sola, «niente in comune» non e' un indizio: e' l'arita'.
+        /// </summary>
+        internal static bool SiSomigliano(
+            Dictionary<string, object> miei, Dictionary<string, object> suoi,
+            out string perche)
+        {
+            miei = miei ?? new Dictionary<string, object>();
+            suoi = suoi ?? new Dictionary<string, object>();
+
+            var chiavi = new HashSet<string>(miei.Keys, StringComparer.Ordinal);
+            foreach (var k in suoi.Keys) chiavi.Add(k);
+
+            int diversi = 0, uguali = 0;
+            var quali = new List<string>();
+            foreach (var k in chiavi.OrderBy(x => x, StringComparer.Ordinal))
+            {
+                string a = miei.ContainsKey(k) ? ComeSiScrive(miei[k]) : null;
+                string b = suoi.ContainsKey(k) ? ComeSiScrive(suoi[k]) : null;
+                if (string.Equals(a, b, StringComparison.Ordinal)) uguali++;
+                else { diversi++; quali.Add(k); }
+            }
+
+            if (diversi == 0)
+            { perche = "e' identica al rifiuto: non e' una gemella, e' una copia"; return false; }
+
+            if (uguali == 0 && chiavi.Count > 1)
+            {
+                perche = "non ha nemmeno un argomento in comune col rifiuto: " +
+                         "sono due operazioni che non si parlano";
+                return false;
+            }
+
+            perche = "stessa operazione, differisce per " + diversi +
+                     (diversi == 1 ? " argomento (" : " argomenti (") +
+                     string.Join(", ", quali) + ")";
+            if (uguali == 0)
+                perche += ", che e' l'unico che questa operazione prende";
+            return true;
         }
 
         /// <summary>

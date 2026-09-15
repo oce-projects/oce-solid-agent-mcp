@@ -1,0 +1,24 @@
+{
+  "nome": "lim_elimina_estrusione_di_base",
+  "famiglia": "togliere",
+  "perche": "E' IL CASO PERICOLOSO PER NOME: togliere l'estrusione di base fa crollare tutto quello che ci sta sopra, e SOLIDWORKS LO FA SENZA CHIEDERE. I fori sono suoi figli: cancellarla li porterebbe via, e con loro il pezzo. Si rifiuta dicendo QUALI sono i figli, cosi' chi legge decide se toglierli prima o se aveva in mente un'altra lavorazione.",
+  "perche_si_cerca_il_nome_di_un_figlio": "e non la parola «dipendono». La prima scrittura di questo rosso cercava «dipende», e correggendo la frase in «da lei dipendono» la prova sarebbe diventata rossa su un codice giusto: un'asserzione sul FRASEGGIO si rompe ogni volta che si sistema una virgola. Quello che serve e' che il rifiuto dica i nomi.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 200, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 400000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": -60, "y_mm": 0,
+                     "diametro_mm": 14, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 396921.24, "tolleranza": 0.5,
+                    "perche_questa_tolleranza": "400000 meno pi*7^2*20: il conto ha pi dentro" } ] },
+    { "operazione": "elimina_lavorazione",
+      "argomenti": { "feature_uid": "Estrusione-Estrusione1" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["Taglio-Estrusione1", "senza chiedere"],
+        "volume_invariato": true,
+        "gemella": "elimina_il_primo_foro" } }
+  ]
+}

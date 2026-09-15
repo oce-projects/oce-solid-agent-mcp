@@ -1,0 +1,48 @@
+{
+  "nome": "sopprimi_il_terzo_foro",
+  "famiglia": "togliere",
+  "perche": "LA SOPPRESSIONE SI DISFA, ed e' la strada da prendere per vedere il pezzo senza una lavorazione senza impegnarsi. Tre fori, si spegne il terzo e il volume deve tornare ESATTAMENTE a quello con due; si riaccende e torna a quello con tre. Il campo `soppressa: true` esisteva nello stato dalla 0.25.2, prima che ci fosse un modo di metterlo: era un display senza interruttore.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 200, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 400000 },
+                  { "cosa": "quante_lavorazioni", "uguale": 1 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": -60, "y_mm": 0,
+                     "diametro_mm": 14, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 396921.24, "tolleranza": 0.5,
+                    "perche_questa_tolleranza": "400000 meno pi*7^2*20: il conto ha pi dentro" } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 0, "y_mm": 0,
+                     "diametro_mm": 14, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 393842.48, "tolleranza": 0.5,
+                    "perche_questa_tolleranza": "400000 meno due volte pi*7^2*20: il conto ha pi dentro" } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 60, "y_mm": 0,
+                     "diametro_mm": 14, "passante": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 390763.72, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "400000 meno tre volte pi*7^2*20: il conto ha pi dentro" },
+        { "cosa": "diametri_mm", "uguale": [14, 14, 14], "tolleranza": 0.02,
+          "perche_questa_tolleranza": "tre fori da 14: il diametro si legge da CylinderParams" },
+        { "cosa": "quante_lavorazioni", "uguale": 4 } ] },
+    { "operazione": "sopprimi_lavorazione",
+      "argomenti": { "feature_uid": "Taglio-Estrusione3" },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 393842.48, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "il volume con due fori, identico: il conto ha pi dentro" },
+        { "cosa": "centri_x_mm", "uguale": [-60, 0], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri. E' QUALE foro si e' spento, non quanti: il volume da solo non distingue il terzo dal primo." },
+        { "cosa": "quante_lavorazioni", "uguale": 4,
+          "perche_quattro": "soppressa non vuol dire cancellata: resta nell'albero, ed e' tutta la differenza con `elimina_lavorazione`" } ] },
+    { "operazione": "sopprimi_lavorazione",
+      "argomenti": { "feature_uid": "Taglio-Estrusione3", "riattiva": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 390763.72, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "il volume con tre fori, com'era: il conto ha pi dentro" },
+        { "cosa": "centri_x_mm", "uguale": [-60, 0, 60], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri" } ] }
+  ]
+}

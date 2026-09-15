@@ -201,7 +201,7 @@ namespace ProvaSaldatura
                     string quale = Testo(attesa, "cosa");
                     if (quale == null) continue;
                     var qui0 = doc;
-                    try { prima[quale] = Misura(quale, c => DalDocumento(c, qui0), stato, null); }
+                    try { prima[quale] = Misura(quale, c => DalDocumento(c, qui0, stato), stato, null); }
                     catch (NonHoPotutoMisurare ex)
                     {
                         ErroreDiBanco(nome, "«" + quale + "» non si misura prima della modifica: " + ex.Message);
@@ -270,7 +270,7 @@ namespace ProvaSaldatura
                         attesa["uguale"] = era;
                     }
 
-                    try { ok = Combacia(attesa, c => DalDocumento(c, qui), stato, fatta, out dettaglio); }
+                    try { ok = Combacia(attesa, c => DalDocumento(c, qui, stato), stato, fatta, out dettaglio); }
                     catch (NonHoPotutoMisurare ex)
                     {
                         ErroreDiBanco(nome, ex.Message);

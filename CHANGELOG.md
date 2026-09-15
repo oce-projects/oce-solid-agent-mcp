@@ -18,6 +18,73 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F11 — Le famiglie di prove diventano file, e tre difetti che erano lì da mesi
+
+Sei famiglie di prove in C# — `rivoluzione`, `crea_piano`, `crea_asse`,
+`ripeti_lineare`, `specchia`, `sopprimi/elimina`, più `la forma in una frase` —
+sono diventate **venticinque casi dichiarati**. `Segna(` in `ProvaNuove.cs`
+passa da **99 a 17**; i casi delle famiglie dichiarate sono **50**, più i
+sedici della regressione.
+
+**Il trasloco ha stretto le tolleranze, non solo spostato il codice.** La
+rivoluzione accettava `atteso * 0.02`: sul cilindro da 62.831 mm³ sono 1.256
+mm³ di scarto ammesso, più di un foro M20 passante. Nei file è ±0,5 mm³ col
+motivo scritto accanto. E i casi pinzano di più: `sopprimi_lavorazione` adesso
+misura **quale** foro si è spento (`centri_x_mm` da `[-60, 0, 60]` a
+`[-60, 0]`), non solo che il volume è tornato.
+
+**Tre difetti trovati scrivendo i file, e nessuno dava errore:**
+
+1. **Un controllo verde che non poteva diventare rosso.** «Nessuno spigolo
+   curvo è offerto al modello» contava gli spigoli con `dritto: false`. **Quel
+   campo non esiste**: lo stato scrive `curvo: true` e non scrive `dritto` su
+   nessuno, quindi il conto restava sempre zero. E la premessa scritta sopra —
+   «il modello non può nominare un bordo curvo, quindi il rifiuto non è
+   raggiungibile» — era falsa: dopo un foro passante gli spigoli curvi sono
+   **due**. Adesso c'è il rifiuto vero,
+   `casi/ripeti/lim_direzione_da_spigolo_curvo.json`.
+2. **Il confronto fra un rifiuto e la sua gemella era cieco sulle liste.**
+   `Convert.ToString` su un `object[]` torna `"System.Object[]"`: due profili
+   diversi si scrivevano uguali.
+3. **L'elenco dei nomi delle misure si era scollato da chi le misura.** Due
+   misure nuove uscivano come «non so misurare …» con accanto l'elenco vecchio,
+   e un errore di banco su una prova che il ponte superava.
+
+**Le attese sanno chiedere una frase.** `contiene` e `non_contiene`, con una
+stringa o un elenco. La metà che conta è la seconda: una descrizione che
+dichiara un profilo che il pezzo non ha più non fallisce niente — è la
+descrizione giusta di un altro pezzo.
+
+**La gemella di un'operazione con un argomento solo.** `crea_asse` prende
+`faccia_uid` e basta: due casi che differiscono per quell'unico argomento non
+possono averne uno in comune, e la regola F5 li rifiutava sempre. Quando le
+chiavi sono una sola, «niente in comune» non è un indizio: è l'arità — e
+l'eccezione si dichiara nel resoconto.
+
+**Il rosso di F13 non è più un numero.** Era `famiglie.Count >= 15` ed è
+diventato rosso senza che niente si fosse rotto, perché le famiglie sono scese
+a dodici. Un pavimento numerico su una cosa che deve calare è un rosso a
+scadenza: adesso il setaccio deve trovare **sé stesso**.
+
+**`banco.ps1` non legge più il resoconto di ieri per nuovo.** Un
+`TypeInitializationException` — un campo statico con inizializzatore che nomina
+`IModelDoc2` gira **prima di `Main`**, cioè prima dell'`AssemblyResolve` — usciva
+come un `NativeCommandError` che nominava lo script, con `ultimo-giro.txt` fermo
+al giro precedente perché `Tee-Object` non lo apre se non passa nessuna riga.
+Adesso il file si toglie prima, e un giro che non scrive niente è uscita 2 con
+l'istruzione per vedere l'eccezione.
+
+**Le prove che non aprono SOLIDWORKS stanno in un file loro**
+(`Banco/ProveSenzaIlPezzo.cs`): i controlli su `Frasi` (E10) e sul racconto
+dell'eccezione (F12) sono funzioni pure su stringhe e un setaccio sui sorgenti,
+e in mezzo alle prove sul pezzo sembravano prove di disegno.
+
+**Resta in C#, col perché scritto accanto:** `sposta_corpi` (servono due
+piastre distanti, e `estrudi_rettangolo` centra sempre sull'origine),
+`ScattaLaVista` e `QuantoVedeIlModello` (misurano immagini), e una riga sola di
+`crea_asse` — che l'asse si riagganci con `SelectByID2("AXIS")`, che è una
+chiamata COM e non un'operazione del catalogo.
+
 ### F10 — La libreria di allora non si conserva: si ricostruisce
 
 `.\Controlli\libreria-di-allora.ps1 0.70.0` trova il commit che **dichiara**

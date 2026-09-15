@@ -50,6 +50,23 @@ namespace ProvaSaldatura
     /// </summary>
     internal static partial class Program
     {
+        /// <summary>
+        /// LE CARTELLE DEI CASI SI NOMINANO, non si scoprono.
+        ///
+        /// In `casi/` vivono anche i piani del formato vecchio, che
+        /// `corri_piani.js` esegue e che qui sarebbero tutti «il file non e' un
+        /// oggetto JSON»: scoprire le cartelle da sole vorrebbe dire
+        /// trasformare un file d'altri in un errore di banco a ogni giro.
+        ///
+        /// Una famiglia nuova si aggiunge qui, e chi la dimentica lo scopre
+        /// subito: i suoi casi non girano e il conto delle attese non sale.
+        /// </summary>
+        private static readonly string[] Famiglie =
+        {
+            "lavorazioni", "coppie", "asola", "smusso", "rivoluzione", "piano",
+            "specchia", "ripeti", "asse", "togliere", "frase",
+        };
+
         private static void ProvaCasiDichiarati()
         {
             Console.WriteLine();
@@ -68,13 +85,8 @@ namespace ProvaSaldatura
                 return;
             }
 
-            // LE CARTELLE SI NOMINANO, non si scoprono. In `casi/` vivono anche
-            // i piani del formato vecchio, che `corri_piani.js` esegue e che qui
-            // sarebbero tutti «il file non e' un oggetto JSON»: scoprire le
-            // cartelle da sole vorrebbe dire trasformare un file d'altri in un
-            // errore di banco a ogni giro.
             var file = new List<string>();
-            foreach (var famiglia in new[] { "lavorazioni", "coppie" })
+            foreach (var famiglia in Famiglie)
             {
                 var cartella = Path.Combine(radiceCasi, famiglia);
                 if (!Directory.Exists(cartella))
@@ -244,34 +256,15 @@ namespace ProvaSaldatura
                 return false;
             }
 
-            var mio = c.Argomenti ?? new Dictionary<string, object>();
-            var chiavi = new HashSet<string>(mio.Keys, StringComparer.Ordinal);
-            foreach (var k in suoi.Keys) chiavi.Add(k);
-
-            int diversi = 0, uguali = 0;
-            var quali = new List<string>();
-            foreach (var k in chiavi.OrderBy(x => x, StringComparer.Ordinal))
-            {
-                string a = mio.ContainsKey(k) ? Convert.ToString(mio[k], CultureInfo.InvariantCulture) : null;
-                string b = suoi.ContainsKey(k) ? Convert.ToString(suoi[k], CultureInfo.InvariantCulture) : null;
-                if (string.Equals(a, b, StringComparison.Ordinal)) uguali++;
-                else { diversi++; quali.Add(k); }
-            }
-
-            if (diversi == 0)
-            { perche = "e' identica al rifiuto: non e' una gemella, e' una copia"; return false; }
-            if (uguali == 0)
-            {
-                perche = "non ha nemmeno un argomento in comune col rifiuto: " +
-                         "sono due operazioni che non si parlano";
-                return false;
-            }
-
-            perche = "stessa operazione, differisce per " + diversi +
-                     (diversi == 1 ? " argomento (" : " argomenti (") +
-                     string.Join(", ", quali) + ")";
-            return true;
+            // IL CONFRONTO VERO STA IN `Attese`, che e' una funzione pura su
+            // due dizionari e la prova `Prove.Contratti` senza CAD. Qui resta
+            // solo il lavoro che il CAD lo tocca: trovare il file e leggerlo.
+            // `Attese.` PER FORZA: il metodo qui accanto si chiama uguale, e
+            // senza il prefisso il compilatore sceglie quello — cioe' se
+            // stesso, all'infinito.
+            return Attese.SiSomigliano(c.Argomenti, suoi, out perche);
         }
+
 
         // ==================================================================
         // I ROSSI DEL RUNNER
@@ -817,15 +810,54 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Le tre misure che si prendono dal documento e non dallo stato.
-        /// E' il ponte fra il valutatore — che di SOLIDWORKS non sa niente — e
-        /// il documento aperto.
+        /// LE MISURE CHE SI PRENDONO DAL DOCUMENTO E NON DALLO STATO, in un
+        /// posto solo. E' il ponte fra il valutatore — che di SOLIDWORKS non sa
+        /// niente — e il documento aperto.
+        ///
+        /// Un elenco e non una catena di `if` per un motivo misurato: l'elenco
+        /// dei nomi viveva in `Attese.Misura`, lontano da chi misura davvero, e
+        /// due misure nuove aggiunte qui e dimenticate la' sono uscite come
+        /// «non so misurare «ultimo_piano_mm»: i nomi sono …» con accanto
+        /// l'elenco vecchio — un messaggio che diceva il falso su se stesso.
+        /// Adesso i nomi sono le chiavi, e il messaggio le legge.
+        ///
+        /// ── PERCHE' E' PIGRA E NON UN CAMPO CON L'INIZIALIZZATORE ─────────
+        ///
+        /// Perche' scritta come `static readonly ... = new Dictionary...` NON
+        /// PARTE PIU' IL BANCO:
+        ///
+        ///     Eccezione non gestita: System.TypeInitializationException
+        ///     ---> System.IO.FileNotFoundException: SolidWorks.Interop.sldworks
+        ///
+        /// Un inizializzatore di campo statico finisce nel costruttore di
+        /// classe di `Program`, che gira PRIMA della prima riga di `Main` — e
+        /// quindi prima che `Main` installi l'`AssemblyResolve` che sa dove
+        /// stanno gli interop. Le lambda nominano `IModelDoc2`, il caricamento
+        /// parte troppo presto, e la cosa non somiglia per niente alla sua
+        /// causa: l'eseguibile muore prima di stampare una riga, e il banco
+        /// lanciato da `banco.ps1` esce con un `NativeCommandError` che
+        /// sembra un guaio di PowerShell.
+        ///
+        /// Il campo senza inizializzatore non entra nel costruttore di classe:
+        /// la tabella nasce alla prima misura, a resolver gia' in piedi.
         /// </summary>
-        private static object DalDocumento(string cosa, IModelDoc2 doc)
+        private static Dictionary<string,
+            Func<IModelDoc2, Dictionary<string, object>, object>> _misureDelDocumento;
+
+        private static Dictionary<string,
+            Func<IModelDoc2, Dictionary<string, object>, object>> MisureDelDocumento
         {
-            if (cosa == "volume_mm3") return VolumeDelDocumento(doc);
-            if (cosa == "corpi") return ContaCorpi(doc);
-            if (cosa == "ingombro_mm") return IngombroDelDocumento(doc);
+            get { return _misureDelDocumento ?? (_misureDelDocumento = CostruisciMisureDelDocumento()); }
+        }
+
+        private static Dictionary<string,
+            Func<IModelDoc2, Dictionary<string, object>, object>> CostruisciMisureDelDocumento()
+        {
+            return new Dictionary<string, Func<IModelDoc2, Dictionary<string, object>, object>>
+        {
+            { "volume_mm3",  (doc, stato) => VolumeDelDocumento(doc) },
+            { "corpi",       (doc, stato) => ContaCorpi(doc) },
+            { "ingombro_mm", (doc, stato) => IngombroDelDocumento(doc) },
 
             // ── DOVE STANNO I FORI, E NON QUANTO MATERIALE MANCA ─────────
             //
@@ -836,10 +868,10 @@ namespace ProvaSaldatura
             //
             // Ordinati, perche' l'ordine in cui SOLIDWORKS elenca le facce non
             // e' una cosa su cui un caso possa contare.
-            if (cosa == "centri_x_mm") return CentriDeiCilindri(doc, 0);
-            if (cosa == "centri_y_mm") return CentriDeiCilindri(doc, 1);
-            if (cosa == "centri_z_mm") return CentriDeiCilindri(doc, 2);
-            if (cosa == "diametri_mm") return DiametriDeiCilindri(doc);
+            { "centri_x_mm", (doc, stato) => CentriDeiCilindri(doc, 0) },
+            { "centri_y_mm", (doc, stato) => CentriDeiCilindri(doc, 1) },
+            { "centri_z_mm", (doc, stato) => CentriDeiCilindri(doc, 2) },
+            { "diametri_mm", (doc, stato) => DiametriDeiCilindri(doc) },
 
             // ── E PER CIO' CHE CILINDRI NON NE LASCIA ────────────────────
             //
@@ -848,8 +880,80 @@ namespace ProvaSaldatura
             // si calcola a mano. E' l'invariante di posizione per tutto quello
             // che non e' un foro: il volume da solo non distingue una tasca
             // ferma da una tasca che ha seguito il bordo.
-            if (cosa == "centro_massa_mm") return CentroDiMassa(doc);
-            return null;
+            { "centro_massa_mm", (doc, stato) => CentroDiMassa(doc) },
+
+            // ── DOVE E' FINITO L'ULTIMO PIANO CREATO ─────────────────────
+            //
+            // `crea_piano` risponde con la distanza CHIESTA, non con quella
+            // ottenuta: un'attesa su `misure.distanza_mm` verificherebbe che il
+            // ponte sa ricopiare un numero. Il segno lo si vede solo misurando
+            // il piano, ed e' il difetto che «sembra giusto» — l'add-in passa
+            // il valore assoluto piu' `OptionFlip`, ma circolano macro che
+            // passano il segno, e con quelle il piano a -100 finisce a +100
+            // senza che niente fallisca.
+            { "ultimo_piano_mm", (doc, stato) => TraslazioneUltimoPiano(doc) },
+
+            // Quanti spigoli curvi ha il pezzo. Serve all'attesa «nessuno
+            // spigolo curvo e' offerto al modello»: il bordo di un foro e' un
+            // cerchio, e come direzione di una ripetizione viene rifiutato.
+            { "spigoli_curvi", (doc, stato) => SpigoliCurvi(stato) },
+
+            // Quanti assi di riferimento ci sono. `crea_asse` non torna una
+            // feature — torna un booleano — e l'unica prova che l'asse esiste
+            // davvero e' che lo stato lo elenchi al passo dopo.
+            { "assi_creati", (doc, stato) => QuantiNellElenco(stato, "assi") },
+
+            // Quante lavorazioni ha l'albero. Serve a `elimina_lavorazione`:
+            // il volume dice che il materiale e' tornato, questo dice che la
+            // lavorazione non c'e' piu'. Sono due cose diverse — una feature
+            // soppressa lascia il volume com'e' e resta nell'elenco.
+            { "quante_lavorazioni", (doc, stato) => QuanteFeature(stato) },
+        };
+        }
+
+        /// <summary>Quante voci ha una famiglia dello stato.</summary>
+        private static int QuantiNellElenco(Dictionary<string, object> stato, string famiglia)
+        {
+            var voci = (stato != null && stato.ContainsKey(famiglia)
+                ? stato[famiglia] : null) as System.Collections.IList;
+            return voci == null ? 0 : voci.Count;
+        }
+
+        /// <summary>
+        /// Una misura del documento, o un rifiuto che dice quali esistono.
+        ///
+        /// Tornava `null` per un nome sconosciuto, e un `null` confrontato con
+        /// un numero e' un ROSSO: la prova falliva dicendo «atteso 100, trovato
+        /// (niente)», che somiglia a un difetto del ponte e non lo e'. Un nome
+        /// che non esiste e' un errore di banco, e va detto come tale.
+        /// </summary>
+        private static object DalDocumento(string cosa, IModelDoc2 doc,
+                                           Dictionary<string, object> stato)
+        {
+            Func<IModelDoc2, Dictionary<string, object>, object> misura;
+            if (!MisureDelDocumento.TryGetValue(cosa, out misura))
+                throw new NonHoPotutoMisurare(
+                    "non so misurare «" + cosa + "»: i nomi sono " +
+                    string.Join(", ", MisureDelDocumento.Keys.ToArray()) +
+                    ", stato.… e misure.…");
+            return misura(doc, stato);
+        }
+
+        /// <summary>Quanti spigoli lo stato dichiara curvi.</summary>
+        private static int SpigoliCurvi(Dictionary<string, object> stato)
+        {
+            var spigoli = (stato != null && stato.ContainsKey("spigoli")
+                ? stato["spigoli"] : null) as System.Collections.IList;
+            if (spigoli == null) return 0;
+            int n = 0;
+            foreach (var s in spigoli)
+            {
+                var voce = s as Dictionary<string, object>;
+                if (voce != null && voce.ContainsKey("curvo") &&
+                    Convert.ToString(voce["curvo"]).Equals("True", StringComparison.OrdinalIgnoreCase))
+                    n++;
+            }
+            return n;
         }
 
         private static double[] CentroDiMassa(IModelDoc2 doc)
@@ -934,7 +1038,7 @@ namespace ProvaSaldatura
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 var radiceCasi = Path.Combine(banco.FullName, "casi");
                 var file = new List<string>();
-                foreach (var famiglia in new[] { "lavorazioni", "coppie" })
+                foreach (var famiglia in Famiglie)
                 {
                     var cartella = Path.Combine(radiceCasi, famiglia);
                     if (!Directory.Exists(cartella))
@@ -1131,7 +1235,7 @@ namespace ProvaSaldatura
                         // `IModelDoc2`, ed e' quello che lo rende provabile
                         // senza SOLIDWORKS (voce F7).
                         var qui = doc;
-                        try { ok = Combacia(attesa, c => DalDocumento(c, qui), stato, misure, out dettaglio); }
+                        try { ok = Combacia(attesa, c => DalDocumento(c, qui, stato), stato, misure, out dettaglio); }
                         catch (NonHoPotutoMisurare ex)
                         { ErroreDiBanco(etichetta + " · " + Testo(attesa, "cosa"), ex.Message); return false; }
                         catch (Exception ex) { Segna(etichetta, false, ex.Message); return false; }

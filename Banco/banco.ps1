@@ -135,9 +135,44 @@ if (-not (Test-Path $eseguibile)) { Muori 2 ("non trovo " + $eseguibile) }
 
 $inizio = Get-Date
 $uscita = Join-Path $Banco "ultimo-giro.txt"
+# "Continue" SOLO QUI, E CON UN MOTIVO MISURATO. Con $ErrorActionPreference a
+# "Stop", la PRIMA riga che il banco scrive su stderr diventa un errore
+# terminante di PowerShell: lo script muore a questa riga con un
+# NativeCommandError che nomina banco.ps1 e non dice niente del banco.
+#
+# E' successo. Il banco non partiva per un TypeInitializationException, e
+# quello che si vedeva era:
+#
+#     ProvaSaldatura.exe :
+#     In S:\PDM\SolidWorksMcp\Banco\banco.ps1:138 car:1
+#     + & $eseguibile $argomenti 2>&1 | Tee-Object -FilePath $uscita
+#
+# senza una parola sull'eccezione, e con `ultimo-giro.txt` fermo al giro
+# PRECEDENTE -- che e' la cosa peggiore: si legge un resoconto vecchio
+# credendolo nuovo. Adesso stderr passa, finisce nel file come tutto il
+# resto, e il codice di uscita e' l'unica cosa che decide.
+# VIA IL FILE DI IERI PRIMA DI LANCIARE. Tee-Object lo apre alla prima riga
+# che passa: se il banco muore prima di scriverne una, il file NON viene
+# toccato e resta li' con dentro il giro precedente, ora compresa. Toglierlo
+# adesso e' quello che rende vero il controllo qui sotto.
+if (Test-Path $uscita) { Remove-Item $uscita -Force }
+
+$primaEra = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 & $eseguibile $argomenti 2>&1 | Tee-Object -FilePath $uscita
 $codice = $LASTEXITCODE
+$ErrorActionPreference = $primaEra
 $durata = (Get-Date) - $inizio
+
+# UN GIRO CHE NON HA SCRITTO NIENTE NON E' UN GIRO. Se il banco muore prima
+# della prima riga -- una libreria che non si carica, un interop che non c'e'
+# -- il file resta quello di ieri e ogni conto che segue e' una bugia.
+$scritto = 0
+if (Test-Path $uscita) { $scritto = (Get-Item $uscita).Length }
+if ($scritto -lt 100) {
+    Muori 2 ("il banco non ha scritto niente (uscita " + $codice + "). " +
+             "Lancia l'eseguibile a mano per vedere l'eccezione: " + $eseguibile)
+}
 
 # --- 5. il resoconto --------------------------------------------------------
 

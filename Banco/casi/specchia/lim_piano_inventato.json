@@ -1,0 +1,24 @@
+{
+  "nome": "lim_piano_inventato",
+  "famiglia": "specchia",
+  "perche": "«diagonale» non e' un piano dell'albero. Un nome inventato deve essere rifiutato dicendo che quel piano non c'e': senza il controllo, la selezione fallirebbe e l'operazione uscirebbe con un errore di SOLIDWORKS che non dice da dove viene.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 60, "y_mm": 25,
+                     "diametro_mm": 12, "passante": true },
+      "attese": [ { "cosa": "diametri_mm", "uguale": [12], "tolleranza": 0.02,
+                    "perche_questa_tolleranza": "il diametro si legge da CylinderParams" } ] },
+    { "operazione": "specchia",
+      "argomenti": { "feature_uid": "@feature(tipo=ICE,n=1)", "piano": "diagonale" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["Non ho trovato il piano", "diagonale"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "foro_specchiato_sul_destro" } }
+  ]
+}

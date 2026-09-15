@@ -123,10 +123,19 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 
 | | |
 |---|---|
-| `cosa` | `volume_mm3`, `corpi`, `ingombro_mm` (li misura il banco), `stato.…` (lo stato dell'add-in), `misure.…` (quello che l'operazione riporta) |
+| `cosa` | senza prefisso = lo misura il banco sul documento; `stato.…` = lo stato dell'add-in; `misure.…` = quello che l'operazione riporta |
+| misure del banco | `volume_mm3`, `corpi`, `ingombro_mm`, `centri_x_mm`/`_y_`/`_z_`, `diametri_mm`, `centro_massa_mm`, `ultimo_piano_mm`, `spigoli_curvi`, `assi_creati`, `quante_lavorazioni`. **L'elenco non e' scritto da nessuna parte a mano**: e' l'elenco delle chiavi di chi le misura, e il messaggio «non so misurare …» lo legge da li' |
+| `uguale` | un numero, un elenco di numeri, o un testo |
+| `contiene` / `non_contiene` | per le misure che sono **frasi** (`stato.forma`): una stringa o un elenco. Non si mettono insieme a `uguale` |
 | `tolleranza` | **assoluta**, in mm o mm³. Diversa da zero → serve `perche_questa_tolleranza`, altrimenti il caso e' **rotto** |
-| selettori | `@faccia(verso=…)`, `@spigolo(asse=Z,lungo~=100)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)` |
+| selettori | `@faccia(verso=…)`, `@faccia(piana=false)`, `@faccia(area~=907.92)`, `@spigolo(asse=Z,lungo~=100)`, `@spigolo(curvo=true,n=1)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)` |
 | `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella` |
+
+**`non_contiene` non e' la comodita' simmetrica di `contiene`: e' il motivo per
+cui esiste.** Una frase che dichiara «il profilo Ø30 per 40» su un pezzo che
+quel profilo non ce l'ha piu' non fallisce niente — e' la descrizione giusta di
+un ALTRO pezzo, e il modello ci costruisce sopra. Si prende solo pretendendo
+che una parola **sparisca**.
 
 **Un selettore che trova zero o piu' di una cosa rifiuta**, e non sceglie la
 prima: un caso che gira su una faccia diversa da quella che il nome del file
@@ -346,11 +355,36 @@ addosso, un piano da mezzo secondo di lavoro ne impiega ottantacinque.
 
 ## I casi
 
+**I casi dichiarati** — quelli che `--gruppo casi` esegue e misura. L'elenco
+delle famiglie sta in `Famiglie` in `CasiDichiarati.cs`: una cartella che c'e'
+ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
+errore di banco.
+
+```
+casi/lavorazioni/  2   il guscio, e da che parte toglie
+casi/coppie/       8   i rifiuti con la loro gemella
+casi/asola/       15   ogni faccia, non una sola
+casi/smusso/       3   dove un raccordo toglierebbe un altro volume
+casi/rivoluzione/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
+casi/piano/        3   DOVE finisce il piano, non la distanza chiesta
+casi/specchia/     2   il foro deve comparire dall'altra parte
+casi/ripeti/       3   la direzione, che e' il dubbio vero
+casi/asse/         2   l'asse dalla parete di un foro
+casi/togliere/     5   sopprimere, riaccendere, cancellare
+casi/frase/        2   la forma detta a parole, e quando tace
+casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
+```
+
+**Gli altri** — piani per il ponte MCP e materiale di lavoro, non li esegue
+`--gruppo casi`:
+
 ```
 casi/limiti/    8   dove le operazioni si rompono
 casi/tavola/    7   viste, quote, PDF
 casi/pezzi/    10   pezzi interi: coperchio, vasca, cupola
-casi/ponte/    87   i piani del ponte MCP, per voce del TODO
+casi/viste/     5   pezzi di cui si sa tutto, per le prove sulle immagini
+casi/forma/     5   materiale per la forma a parole
+casi/ponte/   107   i piani del ponte MCP, per voce del TODO
 ```
 
 I nomi in `casi/ponte/` cominciano con la voce che li ha fatti nascere —

@@ -1,0 +1,14 @@
+{
+  "nome": "piano_superiore_meno_100",
+  "famiglia": "piano",
+  "perche": "E' IL CASO CHE SEMBRA GIUSTO. L'add-in passa il valore ASSOLUTO e aggiunge `OptionFlip` quando la distanza e' negativa: e' la lettura piu' letterale dell'enum, ma circolano macro che passano il segno direttamente. Con quelle, il piano a -100 finisce a +100 e NESSUN ERRORE LO DICE -- lo dice solo questo numero.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "crea_piano",
+      "argomenti": { "piano": "superiore", "distanza_mm": -100 },
+      "attese": [
+        { "cosa": "ultimo_piano_mm", "uguale": [0, -100, 0], "tolleranza": 0.1,
+          "perche_questa_tolleranza": "l'origine del piano si legge da una matrice in metri" },
+        { "cosa": "stato.piani_disponibili", "uguale": 4 } ] }
+  ]
+}
