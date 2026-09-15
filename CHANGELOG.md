@@ -16,6 +16,39 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## Fuori numero — 15 settembre 2026 · nel monorepo, non qui
+
+### B6 — la libreria entra nel monorepo come sottomodulo
+
+Il commit sta in `OpenPDM` (`<commit del monorepo>`), non in questo repository: qui non
+cambia una riga. Lo si racconta qui perche' la voce B6 vive in questo TODO, e
+perche' il clone di prova ha scoperto una cosa che valeva la pena sapere.
+
+`OpenPDMSwAddin.csproj` puntava alla libreria con un percorso **assoluto**,
+`S:\PDM\SolidWorksMcp\...`. Adesso e' un sottomodulo in
+`client-windows/esterni/riscontro-disegno` con percorso relativo.
+
+**Cosa ha scoperto il clone di prova.** Prima del commit, un clone pulito del
+monorepo in una cartella nuova compilava **lo stesso** — andando a prendere la
+libreria da `S:\PDM\SolidWorksMcp`, cioe' dalla copia di lavoro di questa
+macchina, qualunque cosa ci fosse dentro in quel momento.
+
+Su questa postazione il percorso assoluto non falliva mai. **Falliva solo
+altrove, e qui mentiva**: il difetto che non da' errore nella forma piu'
+difficile da vedere, quella in cui la macchina di chi sviluppa e' l'unica in cui
+non si manifesta.
+
+**Il criterio, verificato:** senza `git submodule update --init` esce **un
+errore solo**, che nomina il sottomodulo e il comando — nessun CS0246. Dopo
+l'init, la libreria si compila da dentro il clone e l'add-in esce **0**.
+
+**E il difetto che la voce prevedeva** — «sottomodulo fermo a uno sha vecchio,
+add-in e ponte contro due librerie diverse, senza che nulla fallisca» — non si
+puo' impedire, ma adesso si vede: ogni compilazione stampa contro quale
+libreria sta compilando.
+
+---
+
 ## 0.37.0 — 15 settembre 2026 · libreria 0.72.0
 
 ### V4 — lo spaccato: guardare dentro senza toccare il pezzo
