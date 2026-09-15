@@ -18,6 +18,13 @@ Banco/ultimo-ponte.txt
 # dura quanto il giro e lo riscrive quello dopo.
 Banco/in-corso.txt
 
+# Il resoconto di ogni giro (voce F2): un .md e un .json per lancio, piu'
+# `ultimo.json`. Cambiano a ogni giro e sono la misura di QUESTA macchina in
+# QUESTO momento: versionarli riempirebbe la storia di file che nessuno
+# rilegge e che a ogni merge divergono. Il numero che vale — quello che va in
+# un README o in una decisione — si copia a mano, con la data.
+Banco/resoconto/
+
 # Una riga per giro, in coda: serve a CONTARE le prove che falliscono a caso
 # (voce F12). E' il registro di QUESTA macchina — chi lancia il banco altrove
 # ha i suoi giri, e mescolarli in un file versionato darebbe un conteggio che

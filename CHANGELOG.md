@@ -18,6 +18,41 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F2 — Un comando solo, e un resoconto su disco
+
+`Banco\banco.ps1` compila libreria e banco, guarda se SOLIDWORKS e'
+agganciabile, **svuota i documenti rimasti aperti**, lancia e scrive
+`Banco/resoconto/AAAAMMGG_hhmm.md` e `.json` piu' `ultimo.json` — con revisione
+di SOLIDWORKS, versione della libreria, quante operazioni ha il catalogo,
+commit, durata, e le rosse per esteso.
+
+Lo svuotamento sta dentro il comando perche' non e' pulizia: sei documenti di
+troppo sono ~650 caratteri nello stato, e «stato sotto i 16 KB» fallisce **senza
+che il codice sia cambiato**.
+
+**Le tre uscite, viste tutte e tre:**
+
+```
+0   -Gruppo tabella                              -> 0
+1   volumeAttesa 200000 messo a 199000 a mano    -> 1, e il .md nomina il caso
+2   un errore di sintassi nel banco              -> 2, e NON lancia
+2   -Gruppo vist (un gruppo che non c'e')        -> 2
+```
+
+Il caso 2 da compilazione e' il difetto che la voce nominava per nome: si
+controlla il **codice di uscita** di msbuild, non il testo.
+
+Quello che il resoconto **non** ha — casi ciechi, attese verificate su attese
+totali — e' scritto nel resoconto stesso: sono numeri che esistono quando i casi
+dichiarano le attese, cioe' dalla voce F3. Uno zero messo li' oggi sembrerebbe
+un risultato.
+
+Due difetti presi mentre si provava: il primo `.json` pesava **498 kB**
+(`Get-Content` torna righe con addosso `PSPath`, `PSDrive` e il provider, e
+`ConvertTo-Json` li segue tutti), e **due giri nello stesso minuto si
+sovrascrivevano** — con `-Gruppo` un giro dura secondi, e un resoconto verde e'
+stato cancellato da un giro rosso partito venti secondi dopo.
+
 ### F12 — Il null adesso ha un nome, e i giri si contano
 
 Il 15/9 una prova e' uscita rossa con «Riferimento a un oggetto non impostato su

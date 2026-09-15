@@ -26,6 +26,35 @@ Carica `Riscontro.Disegno.dll` e chiama i suoi tipi per riflessione, con gli
 stessi argomenti che arriverebbero da un piano. Ogni prova lavora su una parte
 usa e getta e la chiude.
 
+### Un comando solo
+
+```
+.\Banco\banco.ps1                        tutto, e scrive il resoconto
+.\Banco\banco.ps1 -Gruppo viste          una famiglia sola
+.\Banco\banco.ps1 -Lento                 anche quelle che costano minuti
+.\Banco\banco.ps1 -SaltaCompilazione     il binario che c'e' gia'
+```
+
+Compila libreria e banco (e **si ferma** se una delle due fallisce), guarda se
+SOLIDWORKS e' agganciabile, **svuota i documenti rimasti aperti**, lancia, e
+scrive `Banco/resoconto/AAAAMMGG_hhmm.md` e `.json` piu' `ultimo.json`.
+
+| uscita | |
+|---|---|
+| **0** | tutto verde |
+| **1** | prove fallite — il `.md` le elenca con atteso e misurato |
+| **2** | errore di banco: compilazione fallita, SOLIDWORKS non agganciabile, gruppo che non esiste |
+
+Il 2 **non e' una prova rossa** e non va contato insieme: e' il banco che non e'
+partito.
+
+Lo svuotamento sta dentro il comando perche' non e' pulizia — vedi «Prima e dopo
+ogni giro», piu' sotto: ogni lettura di stato scorre **tutti** i documenti
+aperti, e sei di troppo fanno fallire «stato sotto i 16 KB» senza che il codice
+sia cambiato.
+
+### A mano, se serve
+
 ```
 msbuild Banco\ProvaSaldatura.csproj -p:Configuration=Release
 Banco\bin\ProvaSaldatura.exe --libreria Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll

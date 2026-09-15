@@ -238,6 +238,19 @@ namespace ProvaSaldatura
             _tStato = _addin.GetType(NS + "StatoDocumento", true);
             _tEsito = _addin.GetType(NS + "OperazioniSw+Esito", true);
 
+            // QUANTE OPERAZIONI HA IL CATALOGO, detto qui e non altrove.
+            // Il resoconto (voce F2) lo vuole in intestazione, e questo e'
+            // l'unico punto in cui la libreria da misurare e' gia' in mano:
+            // farlo leggere allo script vorrebbe dire contarle da un file
+            // costruito da un'altra compilazione, cioe' da un'altra libreria.
+            try
+            {
+                var nomi = _tOperazioni.GetField("NomiEseguibili",
+                    BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string[];
+                if (nomi != null) Console.WriteLine("catalogo: " + nomi.Length + " operazioni");
+            }
+            catch { }
+
             // MODO SESSIONE: invece delle prove, il giro completo — un
             // documento tenuto aperto mentre qualcun altro pianifica.
             if (argomentiRiga != null && argomentiRiga.Length >= 2 &&

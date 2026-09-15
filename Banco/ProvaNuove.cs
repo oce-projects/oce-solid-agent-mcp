@@ -703,6 +703,16 @@ namespace ProvaSaldatura
             // sposta della meta': 25 mm. E' un'uguaglianza, non una stima.
             Sposta("sposta una piastra di 50 in Z", 0, 0, 50, false, 0,
                    corpiAttesi: 2, volumeAttesa: 200000, spostamentoCentroZ: 25);
+            // NOTA per chi passa di qui: il 15/9/2026 questo 200000 e' stato
+            // messo a 199000 apposta, per vedere `banco.ps1` uscire 1 e
+            // nominare il caso con atteso e misurato nel resoconto. E' il
+            // criterio di chiusura della voce F2, e va rifatto cosi' se
+            // qualcuno tocca il resoconto.
+            //
+            // E lo stesso giorno, con un errore di sintassi messo qui apposta,
+            // si e' visto `banco.ps1` fermarsi PRIMA di lanciare e uscire 2:
+            // e' il difetto che la voce F2 nominava per nome — uno script che
+            // esce 0 perche' la compilazione e' fallita e nessuno ha guardato.
             Sposta("sposta di 600 in Z", 0, 0, 600, false, 0,
                    corpiAttesi: 2, volumeAttesa: 200000, spostamentoCentroZ: 300);
             Sposta("sposta all'indietro, -120 in Z", 0, 0, -120, false, 0,
