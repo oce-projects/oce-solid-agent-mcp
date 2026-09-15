@@ -114,11 +114,22 @@ stato confrontato con l'originale.
 | scatola svuotata | 109056 contro 109056 — **0,0%** |
 | staffa a L | 105600 contro 105600 — **0,0%** |
 | flangia con corona | 191938,7 contro 191938,7 — **0,0%** |
-| albero a gradini | 57962,4 contro 55857,5 — 3,8% |
+| albero a gradini | 55857,5 contro 55857,5 — **0,0%** |
 
-**Quattro su cinque al volume esatto**, e il quinto e' quello che il modello
-aveva dichiarato in anticipo di non poter fare, dicendo cosa mancava: i diametri
-intermedi del profilo tornito.
+**Cinque su cinque al volume esatto**, non «vicino».
+
+Al primo giro erano quattro: l'albero usciva al 3,8%, perche' la frase diceva
+«pezzo di rivoluzione» e nient'altro — il nome della famiglia senza una quota. E
+il modello **l'aveva detto prima di provare**, indicando cosa mancava: i
+diametri intermedi. Adesso la frase porta anche il profilo — *«Ø30 per 40, Ø20
+per 30, Ø34 per 20»* — ricavato dall'area delle facce cilindriche.
+
+**E lo dichiara solo se lo sa ricostruire.** La lunghezza di un tratto viene da
+`area / (π·d)`, che vale su un cilindro intero: tagliato da una cava o da un
+foro darebbe un numero corto, plausibile e falso. Il profilo si scrive solo
+quando la somma delle lunghezze fa l'ingombro **e** il volume ricostruito fa il
+volume vero. Altrimenti la frase tace, e resta «pezzo di rivoluzione»: poco, ma
+vero.
 
 **Al massimo tre, e solo se le si chiede.** Una vista costa piu' di dieci volte
 l'intero stato scritto, che sta sotto i 16.000 caratteri: portarne tre a ogni

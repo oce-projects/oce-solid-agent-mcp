@@ -53,6 +53,164 @@ namespace ProvaSaldatura
             ProvaRipetiLineare();
             ProvaSpecchia();
             ProvaTogliere();
+            ProvaFormaAParole();
+        }
+
+        // ==================================================================
+        // V3/V7. la forma detta in una frase, e quando NON si dice
+        // ==================================================================
+        /// <summary>
+        /// La frase che descrive il pezzo, e soprattutto **quando tace**.
+        ///
+        /// ── IL PROFILO DI UN TORNITO SI RICAVA DALL'AREA ──────────────────
+        ///
+        /// La lunghezza di un tratto non sta da nessuna parte nello stato, ma
+        /// un cilindro di diametro d e lunghezza L ha area **π·d·L**. Su un
+        /// albero pulito il conto torna al decimo.
+        ///
+        /// **E su un albero forato no.** Un foro assiale aggiunge una faccia
+        /// cilindrica INTERNA: la formula la tratta come un tratto in piu', la
+        /// somma delle lunghezze sfora l'ingombro e il volume ricostruito conta
+        /// materiale che e' stato tolto. Il profilo che ne uscirebbe e'
+        /// plausibile e falso — la corona di bulloni inventata di V3, con
+        /// un'altra formula.
+        ///
+        /// Per questo `ProfiloTornito` ricostruisce e confronta, e **tace se
+        /// non torna**. Questa prova e' il rosso di quel controllo: senza,
+        /// «il profilo esce giusto sull'albero pulito» passerebbe anche se il
+        /// controllo non ci fosse.
+        /// </summary>
+        private static void ProvaFormaAParole()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== la forma in una frase (V3/V7) ===");
+
+            var tipo = _addin.GetType("Riscontro.Disegno.FormaAParole", false);
+            if (tipo == null) { Segna("forma: la classe c'e'", false, "FormaAParole assente"); return; }
+
+            // ── IL VERDE: un albero pulito ──────────────────────────────
+            IModelDoc2 doc = null;
+            try
+            {
+                doc = NuovaParte();
+                if (doc == null) { Segna("forma: parte nuova", false, "non creata"); return; }
+                string errore;
+                var m = Esegui(doc, "rivoluzione", AlberoAGradini(), out errore);
+                if (m == null) { Segna("forma: l'albero", false, Corto(errore)); return; }
+
+                string frase = Convert.ToString(FraseDi(doc));
+                Segna("forma: l'albero pulito dichiara il profilo",
+                      frase != null && frase.Contains("profilo") &&
+                      frase.Contains("Ø30 per 40") &&
+                      frase.Contains("Ø20 per 30") &&
+                      frase.Contains("Ø34 per 20"),
+                      Corto(frase));
+            }
+            catch (Exception ex) { Segna("forma: albero pulito", false, Perche(ex)); }
+            finally { Chiudi(doc); doc = null; }
+
+            // ── IL ROSSO: lo stesso albero, ma forato ───────────────────
+            try
+            {
+                doc = NuovaParte();
+                if (doc == null) { Segna("forma: parte nuova (forata)", false, "non creata"); return; }
+                string errore;
+                var m = Esegui(doc, "rivoluzione", AlberoAGradini(), out errore);
+                if (m == null) { Segna("forma: l'albero da forare", false, Corto(errore)); return; }
+
+                // Un foro assiale sulla faccia piatta di testa: la faccia
+                // cilindrica interna che ne nasce e' cio' che manda in vacca la
+                // formula dell'area.
+                var stato = LeggiStato(doc);
+                string testa = FacciaPiattaPiuGrande(stato);
+                if (testa == null)
+                {
+                    Saltata("forma ROSSO: l'albero forato tace",
+                            "non ho trovato la faccia di testa su cui forare");
+                }
+                else
+                {
+                    var f = Esegui(doc, "taglio_cilindrico", new Dictionary<string, object>
+                    {
+                        ["faccia_uid"] = testa,
+                        ["x_mm"] = 0.0,
+                        ["y_mm"] = 0.0,
+                        ["diametro_mm"] = 10.0,
+                        ["passante"] = true,
+                    }, out errore, stato);
+                    if (f == null)
+                    {
+                        Saltata("forma ROSSO: l'albero forato tace",
+                                "il foro non e' venuto: " + Corto(errore));
+                    }
+                    else
+                    {
+                        string frase = Convert.ToString(FraseDi(doc));
+                        Segna("forma ROSSO: sull'albero forato NON dichiara il profilo",
+                              frase != null && frase.Contains("rivoluzione") &&
+                              !frase.Contains("profilo"),
+                              Corto(frase));
+                    }
+                }
+            }
+            catch (Exception ex) { Segna("forma: albero forato", false, Perche(ex)); }
+            finally { Chiudi(doc); }
+        }
+
+        /// <summary>Il profilo dell'albero a gradini Ø30/Ø20/Ø34.</summary>
+        private static Dictionary<string, object> AlberoAGradini()
+        {
+            return new Dictionary<string, object>
+            {
+                ["piano"] = "frontale",
+                ["angolo_gradi"] = 360.0,
+                ["asse"] = new object[]
+                {
+                    new double[] { 0, 0 }, new double[] { 90, 0 },
+                },
+                ["contorni"] = new object[]
+                {
+                    new object[]
+                    {
+                        new double[] { 0, 0 }, new double[] { 0, 15 },
+                        new double[] { 40, 15 }, new double[] { 40, 10 },
+                        new double[] { 70, 10 }, new double[] { 70, 17 },
+                        new double[] { 90, 17 }, new double[] { 90, 0 },
+                    },
+                },
+            };
+        }
+
+        /// <summary>La frase `forma` dello stato, o null.</summary>
+        private static object FraseDi(IModelDoc2 doc)
+        {
+            var stato = LeggiStato(doc);
+            object v;
+            return stato != null && stato.TryGetValue("forma", out v) ? v : null;
+        }
+
+        private static string FacciaPiattaPiuGrande(Dictionary<string, object> stato)
+        {
+            string migliore = null;
+            double area = 0;
+            object g;
+            if (stato == null || !stato.TryGetValue("facce", out g) || g == null) return null;
+            var elenco = g as System.Collections.IEnumerable;
+            if (elenco == null) return null;
+            foreach (var v in elenco)
+            {
+                var voce = v as Dictionary<string, object>;
+                object piana, a, uid;
+                if (voce == null) continue;
+                if (!voce.TryGetValue("piana", out piana) || !Convert.ToBoolean(piana)) continue;
+                if (!voce.TryGetValue("area_mm2", out a)) continue;
+                double quanta = Convert.ToDouble(a);
+                if (quanta <= area) continue;
+                if (!voce.TryGetValue("uid", out uid) || uid == null) continue;
+                area = quanta;
+                migliore = Convert.ToString(uid);
+            }
+            return migliore;
         }
 
         // ==================================================================

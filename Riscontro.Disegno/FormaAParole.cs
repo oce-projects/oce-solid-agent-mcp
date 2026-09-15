@@ -98,7 +98,11 @@ namespace Riscontro.Disegno
             // dicono cos'e' il pezzo perche' cos'e' l'ha deciso lui.
             var feature = Voci(stato, "feature").ToList();
             if (feature.Any(f => Testo(f, "tipo") == "Revolution"))
+            {
                 pezzi.Add("pezzo di rivoluzione");
+                string profilo = ProfiloTornito(stato, ing, volume);
+                if (profilo != null) pezzi.Add(profilo);
+            }
 
             var guscio = feature.FirstOrDefault(f => Testo(f, "tipo") == "Shell");
             if (guscio != null)
@@ -127,6 +131,101 @@ namespace Riscontro.Disegno
 
             if (pezzi.Count == 0) return null;
             return string.Join(", ", pezzi) + ".";
+        }
+
+        /// <summary>
+        /// IL PROFILO DI UN PEZZO TORNITO: «Ø30 per 40, Ø20 per 30, Ø34 per 20».
+        /// Null quando non si puo' dire — ed e' il caso piu' importante.
+        ///
+        /// ── PERCHE' ESISTE (voce V7) ──────────────────────────────────────
+        ///
+        /// Nella misura di V3, quattro pezzi su cinque si sono ridisegnati
+        /// dalla sola frase col volume **esatto**. Il quinto, un albero a
+        /// gradini, e' uscito al 3,8% — e il modello aveva detto in anticipo
+        /// perche': «non dice quanti gradini ha il profilo, dove cade lo
+        /// scalino, ne' i diametri intermedi». La frase diceva «pezzo di
+        /// rivoluzione» e nient'altro, cioe' il nome della famiglia senza una
+        /// quota.
+        ///
+        /// ── COME SI RICAVA, E DA COSA ────────────────────────────────────
+        ///
+        /// Le facce cilindriche di un tornito portano `diametro_mm`, `asse` e
+        /// l'area. La **lunghezza** di un tratto non c'e' da nessuna parte, ma
+        /// un cilindro di diametro d e lunghezza L ha area **π·d·L**: la
+        /// lunghezza e' `area / (π·d)`.
+        ///
+        /// L'ORDINE viene dal `punto_mm`, proiettato sull'asse. E' un punto
+        /// sulla superficie e non sull'asse — vedi E16 — ma per ORDINARE
+        /// basta: i tratti di un tornito non si sovrappongono lungo l'asse,
+        /// quindi qualunque punto dentro un tratto lo colloca giusto. Per una
+        /// posizione non basterebbe, e infatti non se ne danno.
+        ///
+        /// ── E LA FORMULA E' FRAGILE, QUINDI SI CONTROLLA ─────────────────
+        ///
+        /// `area / (π·d)` vale su un cilindro **intero**. Se la faccia e'
+        /// tagliata da un piatto, da una cava o da un foro trasversale, l'area
+        /// e' minore e la lunghezza esce **corta** — e nessuno se ne
+        /// accorgerebbe, perche' il numero ha la forma giusta. Un pezzo con un
+        /// foro passante otterrebbe un profilo plausibile e falso: e'
+        /// esattamente la corona di bulloni inventata, con un'altra formula.
+        ///
+        /// Quindi il profilo si dichiara **solo se si ricostruisce**. Due
+        /// controlli, e devono tornare tutti e due:
+        ///
+        ///   1. la somma delle lunghezze fa l'ingombro lungo l'asse;
+        ///   2. il volume ricostruito — Σ π(d/2)²·L — fa il volume vero.
+        ///
+        /// Il secondo e' quello forte: prende i fori trasversali, le cave, e un
+        /// pezzo cavo (dove una faccia cilindrica e' interna e toglie materiale
+        /// invece di aggiungerlo). Se non torna, **si tace**: resta «pezzo di
+        /// rivoluzione», che e' poco ma e' vero.
+        /// </summary>
+        private static string ProfiloTornito(
+            Dictionary<string, object> stato, double[] ingombro, double volume)
+        {
+            if (ingombro == null || ingombro.Length != 3 || volume <= 0) return null;
+
+            // ── l'asse, e dev'essere uno solo ────────────────────────────
+            int lungoQuale = -1;
+            var tratti = new List<double[]>();   // {posizione, diametro, lunghezza}
+
+            foreach (var f in Voci(stato, "facce"))
+            {
+                if (Vero(f, "piana")) continue;
+                double d = Numero(f, "diametro_mm");
+                double area = Numero(f, "area_mm2");
+                var asse = Vettore(f, "asse");
+                var punto = Vettore(f, "punto_mm");
+                if (d <= 0 || area <= 0 || asse == null || punto == null) return null;
+                if (asse.Length != 3 || punto.Length != 3) return null;
+
+                // L'asse dev'essere allineato a X, Y o Z: un tornito storto
+                // rispetto agli assi del modello non si sa raccontare, e
+                // provarci vorrebbe dire indovinare.
+                int quale = -1;
+                for (int i = 0; i < 3; i++)
+                    if (Math.Abs(Math.Abs(asse[i]) - 1) < 1e-6) quale = i;
+                if (quale < 0) return null;
+                if (lungoQuale < 0) lungoQuale = quale;
+                else if (lungoQuale != quale) return null;   // due assi: non e' un tornito semplice
+
+                tratti.Add(new[] { punto[quale], d, area / (Math.PI * d) });
+            }
+
+            if (lungoQuale < 0 || tratti.Count == 0) return null;
+
+            tratti.Sort((a, b) => a[0].CompareTo(b[0]));
+
+            // ── 1. le lunghezze fanno l'ingombro? ────────────────────────
+            double somma = tratti.Sum(t => t[2]);
+            if (Math.Abs(somma - ingombro[lungoQuale]) > 0.05) return null;
+
+            // ── 2. e il volume torna? ────────────────────────────────────
+            double ricostruito = tratti.Sum(t => Math.PI * (t[1] / 2) * (t[1] / 2) * t[2]);
+            if (Math.Abs(ricostruito - volume) > Math.Max(0.5, volume * 0.005)) return null;
+
+            return "profilo " + string.Join(", ",
+                tratti.Select(t => Diam(Mm(t[1])) + " per " + Mm(t[2]))) + " mm";
         }
 
         /// <summary>

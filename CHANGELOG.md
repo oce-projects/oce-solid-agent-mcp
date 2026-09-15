@@ -16,6 +16,19 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.36.0 — 15 settembre 2026 · libreria 0.71.0
+
+Il profilo tornito nella frase (voce V7). Il contenuto e' descritto qui sotto,
+nella 0.35.0, sotto «V7 — e poi sono diventati cinque su cinque»: le due voci
+sono state scritte a poche ore di distanza e raccontano la stessa cosa, quindi
+il racconto sta in un posto solo.
+
+Qui il numero, che e' cambiato: **`prova_forma.js` passa da 4/5 a 5 su 5**, e il
+banco da 105 a **107 prove, 0 fallite** — le due nuove sono il verde del profilo
+sull'albero pulito e il **rosso sull'albero forato**, dove la frase deve tacere.
+
+---
+
 ## 0.35.0 — 15 settembre 2026 · libreria 0.70.0
 
 ### V3 — la forma detta in una frase, e **4 pezzi su 5 si ridisegnano da quella**
@@ -52,6 +65,38 @@ scalino, ne' i diametri intermedi».
 
 Un modello che sa dire in anticipo quale dei cinque non gli riuscira' e' un
 risultato migliore di cinque su cinque ottenuti indovinando.
+
+#### V7 — e poi sono diventati cinque su cinque
+
+La frase adesso porta anche il profilo di un tornito:
+
+```
+pezzo di rivoluzione, profilo Ø30 per 40, Ø20 per 30, Ø34 per 20 mm
+```
+
+```
+pezzo 5 albero_a_gradini    55857.5 contro 55857.5   (0.0%)    <- era 3.8%
+```
+
+**Dove sta la lunghezza di un tratto: nell'area.** Non e' scritta da nessuna
+parte, ma un cilindro di diametro d e lunghezza L ha area **π·d·L**. L'ordine
+viene dal `punto_mm` proiettato sull'asse — e' un punto sulla superficie e non
+sull'asse (E16), ma per **ordinare** basta, perche' i tratti di un tornito non
+si sovrappongono.
+
+**E la formula e' fragile, quindi il profilo si dichiara solo se si
+ricostruisce.** `area / (π·d)` vale su un cilindro **intero**: tagliato da un
+piatto, da una cava o da un foro, l'area cala e la lunghezza esce corta — con la
+forma giusta, quindi invisibile. Due controlli, e devono tornare tutti e due:
+la somma delle lunghezze fa l'ingombro lungo l'asse, **e** il volume
+ricostruito — Σ π(d/2)²·L — fa il volume vero. Se non tornano si tace, e resta
+«pezzo di rivoluzione»: poco, ma vero.
+
+**Il rosso e' nel banco:** lo stesso albero con un **foro assiale Ø10**. La
+faccia cilindrica interna e' un tratto in piu' per la formula, la somma sfora
+l'ingombro e il volume ricostruito conta materiale tolto. La prova chiede che la
+frase dica «rivoluzione» e **non** dica «profilo». Senza, «il profilo esce
+giusto sull'albero pulito» passerebbe anche se il controllo non ci fosse.
 
 #### Il generatore ha inventato un fatto alla prima frase
 
