@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -187,6 +188,15 @@ namespace ProvaSaldatura
                 return Sessione(argomentiRiga[1], daAprire);
             }
 
+            // Il diario si apre QUI e non prima: l'aggancio a SOLIDWORKS e il
+            // caricamento della libreria possono far uscire dal programma, e un
+            // diario aperto per un giro che non e' mai cominciato direbbe
+            // «piantato al primo passo» quando invece non e' partito affatto.
+            ApriIlDiario();
+            Diario("SolidWorks " + _sw.RevisionNumber() +
+                   ", libreria " + _addin.GetName().Version +
+                   (_lento ? ", con --lento" : ""));
+
             Sezioni();
             Materiali();
             Telai();
@@ -206,17 +216,144 @@ namespace ProvaSaldatura
             // LE SALTATE SI CONTANO A PARTE E SI DICONO. «88 prove, 0 fallite»
             // su un giro in cui una prova non e' stata lanciata e' una frase
             // vera che fa credere una cosa falsa.
-            Console.WriteLine(
+            var riepilogo =
                 (_esiti.Count - _saltate) + " prove, " + _falliti + " fallite" +
-                (_saltate > 0 ? ", " + _saltate + " SALTATE (--lento le lancia)" : ""));
+                (_saltate > 0 ? ", " + _saltate + " SALTATE (--lento le lancia)" : "");
+            Console.WriteLine(riepilogo);
+            ChiudiIlDiario(riepilogo);
             return _falliti == 0 ? 0 : 1;
         }
 
         private static void Segna(string nome, bool ok, string dettaglio = "")
         {
             if (!ok) _falliti++;
-            _esiti.Add((ok ? "  OK   " : "  NO   ") + nome.PadRight(52) + dettaglio);
-            Console.WriteLine((ok ? "  OK   " : "  NO   ") + nome.PadRight(52) + dettaglio);
+            var riga = (ok ? "  OK   " : "  NO   ") + nome.PadRight(52) + dettaglio;
+            _esiti.Add(riga);
+            Console.WriteLine(riga);
+            Diario(riga);
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // IL DIARIO: cosa sta facendo il banco, mentre lo fa
+        //
+        // ── IL PROBLEMA, E QUANTO E' COSTATO ──────────────────────────────
+        //
+        // Un giro dura dai tredici ai diciassette minuti, e da fuori **un giro
+        // lento e un giro piantato si vedono uguali**. Il 14/9/2026 un giro
+        // bloccato sull'ottantaquattresimo taglio di `ProvaTettoLavorazioni` e'
+        // sembrato per un'ora e mezza un giro che stava lavorando: l'unico modo
+        // di distinguerli e' stato campionare il contatore di CPU di
+        // SLDWORKS.exe e guardare l'ora di modifica di un file.
+        //
+        // ── E `ultimo-giro.txt` NON LO SCRIVE IL BANCO ────────────────────
+        //
+        // Va detto perche' cambia il rimedio: il banco stampa tutto su stdout,
+        // e `ultimo-giro.txt` e' una REDIREZIONE di chi lo lancia. Quindi
+        // quanto sia aggiornato non dipende dal banco ma dalla shell: con
+        // `Tee-Object` cresce riga per riga, con `Out-String` compare tutto
+        // insieme alla fine. Aggiungere un `Flush` da qualche parte dentro il
+        // banco non avrebbe cambiato niente — non c'e' nessun «da qualche
+        // parte»: non c'era un file.
+        //
+        // Adesso ce n'e' uno **del banco**, `Banco/in-corso.txt`, scritto e
+        // svuotato riga per riga. `ultimo-giro.txt` resta cio' che era, e il
+        // riepilogo di fine giro non cambia di una virgola: e' quello che
+        // LEGGIMI documenta e che si guarda quando il giro e' finito.
+        //
+        // ── PERCHE' C'E' UN TEMPO SU OGNI RIGA ────────────────────────────
+        //
+        // «A che punto e'» si vede dall'ultima riga. «E' piantato» no: per
+        // quello serve sapere **da quanto** quella riga e' li'. Col tempo
+        // accanto bastano due letture a distanza di un minuto, e non serve
+        // piu' andare a cercare l'ora di modifica del file — che e' il dato
+        // che l'altra volta ha ingannato.
+        //
+        // ── NON PUO' FAR FALLIRE IL GIRO ──────────────────────────────────
+        //
+        // E' uno strumento per guardare le prove: se si rompe lui, le prove
+        // devono andare avanti lo stesso. Ogni scrittura sta in un `try`
+        // vuoto. **Ma il fatto che non si sia potuto aprire si dice una volta
+        // su stdout**: un aiuto diagnostico che sparisce in silenzio e' esso
+        // stesso il difetto che questo progetto insegue.
+        // ══════════════════════════════════════════════════════════════════
+
+        private static StreamWriter _diario;
+        private static readonly Stopwatch _cronometro = Stopwatch.StartNew();
+
+        /// <summary>
+        /// Apre `Banco/in-corso.txt` accanto all'eseguibile, un livello sopra
+        /// `bin\`. Se non ci riesce lo dice e si va avanti senza.
+        /// </summary>
+        private static void ApriIlDiario()
+        {
+            string percorso = null;
+            try
+            {
+                var bin = AppDomain.CurrentDomain.BaseDirectory;
+                var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
+                percorso = Path.Combine(
+                    banco != null ? banco.FullName : bin, "in-corso.txt");
+
+                // SI TRONCA: dentro c'e' il giro di ADESSO. Un file che
+                // accumula i giri costringe chi legge a chiedersi quale riga
+                // sia di quale giro, ed e' la domanda che non deve doversi
+                // fare chi sta cercando di capire se e' piantato.
+                _diario = new StreamWriter(percorso, false) { AutoFlush = true };
+                // L'INTESTAZIONE NON NOMINA LA PAROLA CHE CHIUDE IL GIRO.
+                //
+                // La prima scrittura diceva «se l'ultima riga non e' FINE...»,
+                // e cosi' il primo `grep FINE` su questo file trovava
+                // l'INTESTAZIONE e rispondeva «giro finito» dopo tre secondi.
+                // E' successo subito, alla prima prova, a chi l'aveva appena
+                // scritto. Adesso quella parola compare in un punto solo di
+                // tutto il file, e il controllo piu' ingenuo che si possa fare
+                // e' quello giusto.
+                _diario.WriteLine("# il giro in corso, riga per riga. " +
+                                  "Il numero fra parentesi e' quanti secondi " +
+                                  "sono passati dall'avvio.");
+                _diario.WriteLine("# l'ultima riga di un giro arrivato in fondo " +
+                                  "porta il riepilogo; se non c'e', il giro si e' " +
+                                  "fermato prima.");
+                _diario.WriteLine("# se il tempo dell'ultima riga non cresce fra " +
+                                  "due letture, e' piantato.");
+            }
+            catch (Exception ex)
+            {
+                _diario = null;
+                Console.WriteLine("(niente diario" +
+                                  (percorso == null ? "" : " in " + percorso) +
+                                  ": " + ex.Message + ". Le prove vanno avanti.)");
+            }
+        }
+
+        private static void Diario(string riga)
+        {
+            if (_diario == null) return;
+            try
+            {
+                _diario.WriteLine(
+                    "[" + _cronometro.Elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)
+                        .PadLeft(7) + "s] " + riga);
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// L'ultima riga, quella che dice che il giro e' arrivato in fondo.
+        ///
+        /// E' la meta' che conta: senza, un file che si ferma vuol dire «sta
+        /// lavorando» oppure «e' morto», e sono di nuovo indistinguibili.
+        /// </summary>
+        private static void ChiudiIlDiario(string riepilogo)
+        {
+            if (_diario == null) return;
+            try
+            {
+                Diario("FINE — " + riepilogo);
+                _diario.Dispose();
+            }
+            catch { }
+            _diario = null;
         }
 
         /// <summary>
@@ -230,8 +367,10 @@ namespace ProvaSaldatura
         private static void Saltata(string nome, string perche)
         {
             _saltate++;
-            _esiti.Add("  --   " + nome.PadRight(52) + "SALTATA: " + perche);
-            Console.WriteLine("  --   " + nome.PadRight(52) + "SALTATA: " + perche);
+            var riga = "  --   " + nome.PadRight(52) + "SALTATA: " + perche;
+            _esiti.Add(riga);
+            Console.WriteLine(riga);
+            Diario(riga);
         }
 
         private static int _saltate;

@@ -13,6 +13,11 @@ Installer/Payload/
 Banco/ultimo-giro.txt
 Banco/ultimo-ponte.txt
 
+# Il diario del giro IN CORSO, riga per riga col tempo accanto. E' il file che
+# si guarda mentre il banco gira, per sapere a che punto e' e se e' piantato:
+# dura quanto il giro e lo riscrive quello dopo.
+Banco/in-corso.txt
+
 # I pezzi che il banco crea mentre prova: usa e getta, e con dentro percorsi
 # di questa macchina. I casi li nominano con `{BANCO}`, che il runner risolve
 # qui — cosi' nessun caso porta in giro il nome di chi lavora.
@@ -24,6 +29,11 @@ Banco/lavoro/
 # cui e' stata ricavata. I PIANI invece sono versionati (`casi/viste/`):
 # quelli sono la parte che si deve poter rifare uguale.
 Banco/viste/
+
+# I piani che un modello isolato scrive nella misura V3: li rifa' lui a ogni
+# giro, e versionarli vorrebbe dire congelare la risposta di UN modello di UN
+# giorno come se fosse la misura. La misura e' il numero, e sta nel README.
+Banco/casi/forma/
 
 # `bin/` e `obj/` sopra bastano anche per Banco/, ed e' voluto che le
 # librerie di Dassault non ci finiscano nemmeno: il csproj del banco le

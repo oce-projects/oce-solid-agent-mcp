@@ -16,6 +16,101 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.35.0 — 15 settembre 2026 · libreria 0.70.0
+
+### V3 — la forma detta in una frase, e **4 pezzi su 5 si ridisegnano da quella**
+
+Lo stato porta un campo nuovo, `forma`: la stessa geometria in una riga.
+
+```
+Ingombro 140 x 16 x 140 mm, volume 191938.7 mm3 (il 61% dell'ingombro),
+1 foro Ø60 (centro 0,0,0), 6 fori Ø11 su una circonferenza Ø90 a passo 60 gradi.
+```
+
+**68-152 caratteri** sui cinque pezzi di prova, su un tetto di 16.000.
+
+#### La misura, che e' piu' dura di quella di V2
+
+La voce chiedeva che dalla **sola frase** un modello sapesse ridisegnare il
+pezzo con le quote giuste. Cinque frasi date a un modello isolato — che ha
+letto solo `catalogo.json`, nessuno stato, nessuna immagine — perche' scrivesse
+cinque piani. I piani sono stati eseguiti e il volume confrontato con
+l'originale:
+
+```
+pezzo 1 piastra_forata      volume 353214.2 contro 353214.2   (0.0%)
+pezzo 2 guscio_aperto       volume 109056   contro 109056     (0.0%)
+pezzo 3 staffa_a_L          volume 105600   contro 105600     (0.0%)
+pezzo 4 flangia_forata      volume 191938.7 contro 191938.7   (0.0%)
+pezzo 5 albero_a_gradini    volume 57962.4  contro 55857.5    (3.8%)
+```
+
+**Quattro su cinque al volume esatto**, non «vicino»: 0,0%. E il quinto e'
+quello che il modello stesso **aveva dichiarato in anticipo** di non poter fare,
+dicendo cosa mancava: «non dice quanti gradini ha il profilo, dove cade lo
+scalino, ne' i diametri intermedi».
+
+Un modello che sa dire in anticipo quale dei cinque non gli riuscira' e' un
+risultato migliore di cinque su cinque ottenuti indovinando.
+
+#### Il generatore ha inventato un fatto alla prima frase
+
+Sulla piastra diceva: «4 fori Ø12 **su una circonferenza Ø90 a passo 90
+gradi**». I fori stanno ai vertici di un rettangolo **160 x 90**.
+
+La regola era una sola — «tutti alla stessa distanza da un asse» — e ne
+servivano tre:
+
+1. **stesso piano**: equidistanti da un asse vuol dire su un CILINDRO;
+2. **stesso raggio**;
+3. **passo angolare regolare**: i vertici di un rettangolo stanno su un cerchio,
+   e i loro angoli sono 29,4° e 150,6° — non 90° l'uno dall'altro.
+
+E' lo stesso difetto di E16, commesso dal codice scritto per ripararlo. Adesso
+se una qualunque delle tre non torna la frase **non dice niente** e lascia i
+centri: chi legge fa il conto suo su numeri veri.
+
+#### Il nome della famiglia si scrive solo quando un TIPO lo autorizza
+
+`Shell` dice «svuotato», `Revolution` dice «di rivoluzione»: sono cio' che il
+progettista **ha fatto**. Non si dice «piastra» perche' una quota e' piccola
+rispetto alle altre — sarebbe una soglia inventata, e il giorno che sbaglia chi
+legge ci crede lo stesso, perche' la frase suona sicura come tutte le altre.
+
+*(La premessa di V3 era che la frase servisse a far CAPIRE la forma. V2 aveva
+gia' mostrato che col solo stato la famiglia esce giusta 5 volte su 5: quello
+che serviva davvero era **dire i numeri derivati una volta sola e bene** —
+centri, passo, spessore di parete — invece di lasciarli ricavare a ognuno.)*
+
+### E17 — un angolo dichiarato in millimetri
+
+Trovato guardando **perche'** l'albero a gradini fosse l'unico irrecuperabile:
+l'unica quota che quel pezzo offriva era
+
+```
+"nome": "D1@Rivoluzione1", "mm": 6283.185
+```
+
+che e' **2π × 1000**. `SystemValue` torna tutto in unita' di sistema, e per un
+angolo quelle sono i **radianti**; lo stato moltiplicava per mille qualunque
+cosa — la conversione metri→mm — e la etichettava `mm`. Una quota di sei metri e
+ventotto su un pezzo lungo novanta millimetri, e nessuno se ne accorgeva perche'
+il campo si chiama `mm` e il numero e' un numero.
+
+Adesso un angolo esce come **`"gradi": 360`**. Il nome del campo cambia con
+l'unita': tenere `mm` e correggere solo il numero sarebbe stato **peggio di
+prima** — un valore giusto sotto un'etichetta falsa non si puo' nemmeno
+sospettare, mentre 6283 almeno saltava all'occhio.
+
+**E l'enum giusto non era quello che sembrava.** `IDimension.GetType()` torna un
+`int`, ma **non** `swDimensionType_e` (dove angolare vale 3): la prima
+riparazione usava quello e non e' scattata. Misurato mettendo il numero nello
+stato e guardandolo — angolo `1`, lineari `0` — cioe'
+`swDimensionParamType_e`. Due enum quasi omonimi per due cose diverse, e il
+compilatore non puo' dire niente perche' tutti e due sono `int`.
+
+---
+
 ## 0.34.0 — 15 settembre 2026 · libreria 0.69.0
 
 ### R2 — si puo' togliere una lavorazione in mezzo, non solo l'ultimo piano

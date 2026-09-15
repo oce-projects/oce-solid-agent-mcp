@@ -107,6 +107,7 @@
     <Compile Include="Riferimenti.cs" />
     <Compile Include="ErroriFeature.cs" />
     <Compile Include="FormaChiusa.cs" />
+    <Compile Include="FormaAParole.cs" />
     <Compile Include="Frasi.cs" />
     <Compile Include="GiudizioPosizioni.cs" />
     <Compile Include="VistaDelPezzo.cs" />

@@ -96,6 +96,30 @@ indovinare, dando pero' proporzioni giuste (rapporto lati 1,6-1,7:1 contro
 Un modello, un giro per condizione. Su «numeri sbagliati» **3 contro 1 e' un
 solo giro**, e un solo giro non e' una tendenza.
 
+**E la forma si puo' anche DIRE.** Lo stato porta un campo `forma` che riassume
+il pezzo in una riga — 68-152 caratteri contro i 40-115 kB di un'immagine:
+
+```
+Ingombro 140 x 16 x 140 mm, volume 191938.7 mm3 (il 61% dell'ingombro),
+1 foro Ø60 (centro 0,0,0), 6 fori Ø11 su una circonferenza Ø90 a passo 60 gradi.
+```
+
+Misurato con un criterio piu' duro di quello sopra: **dalla sola frase** un
+modello isolato ha riscritto il piano di costruzione, e il pezzo rifatto e'
+stato confrontato con l'originale.
+
+| pezzo | volume rifatto contro originale |
+|---|---|
+| piastra forata | 353214,2 contro 353214,2 — **0,0%** |
+| scatola svuotata | 109056 contro 109056 — **0,0%** |
+| staffa a L | 105600 contro 105600 — **0,0%** |
+| flangia con corona | 191938,7 contro 191938,7 — **0,0%** |
+| albero a gradini | 57962,4 contro 55857,5 — 3,8% |
+
+**Quattro su cinque al volume esatto**, e il quinto e' quello che il modello
+aveva dichiarato in anticipo di non poter fare, dicendo cosa mancava: i diametri
+intermedi del profilo tornito.
+
 **Al massimo tre, e solo se le si chiede.** Una vista costa piu' di dieci volte
 l'intero stato scritto, che sta sotto i 16.000 caratteri: portarne tre a ogni
 lettura cambierebbe di un ordine di grandezza il costo del ponte, e lo

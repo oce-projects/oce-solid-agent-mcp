@@ -1202,6 +1202,31 @@ namespace Riscontro.Disegno
 
             dati["troncato"] = troncato;
             dati["unita_protocollo"] = "mm";
+
+            // ── LA FORMA IN UNA FRASE (voce V3) ──────────────────────────
+            //
+            // Va per ULTIMA perche' legge `dati`: l'ingombro, il volume, le
+            // lavorazioni e le facce devono esserci gia' tutti. Metterla prima
+            // vorrebbe dire descrivere meta' pezzo senza che nessuno se ne
+            // accorga — la frase uscirebbe lo stesso, solo piu' corta.
+            //
+            // Costa **meno di trecento caratteri** su un tetto di 16.000, e
+            // dice cose che oggi ognuno si ricava per conto suo: quanto e'
+            // pieno l'ingombro, lo spessore di parete, i centri dei fori e il
+            // diametro della corona su cui stanno. Quest'ultimo e' il conto che
+            // due modelli hanno sbagliato con confidenza piena (voce E16).
+            //
+            // Null quando non c'e' abbastanza per dirne una: la chiave non
+            // compare, invece di comparire vuota. Una descrizione vuota si
+            // legge come «non c'e' niente da dire su questo pezzo», che e' una
+            // cosa diversa da «non l'ho saputo dire».
+            try
+            {
+                string forma = FormaAParole.Descrivi(dati);
+                if (!string.IsNullOrEmpty(forma)) dati["forma"] = forma;
+            }
+            catch { }
+
             stato.Dati = dati;
             return stato;
         }
@@ -1602,11 +1627,7 @@ namespace Riscontro.Disegno
                             if (string.IsNullOrEmpty(nome)) { try { nome = d.Name; } catch { } }
                             if (!string.IsNullOrEmpty(nome))
                             {
-                                quote.Add(new Dictionary<string, object>
-                                {
-                                    ["nome"] = nome,
-                                    ["mm"] = Math.Round(Unita.Mm(d.SystemValue), 3),
-                                });
+                                quote.Add(Quota(d, nome));
                             }
                         }
                         else altre++;
@@ -1619,6 +1640,86 @@ namespace Riscontro.Disegno
                 if (altre > 0) voce["altre_quote"] = altre;
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Una quota, nell'unita' che le appartiene.
+        ///
+        /// ── UN ANGOLO NON SI MISURA IN MILLIMETRI ─────────────────────────
+        ///
+        /// `SystemValue` torna tutto nelle unita' di sistema, e per un angolo
+        /// quelle sono i **radianti**. Fino alla 0.69.0 questo metodo
+        /// moltiplicava per mille qualunque cosa — la conversione metri→mm — e
+        /// la usciva come `mm`. Su una rivoluzione a 360 gradi:
+        ///
+        ///     "nome": "D1@Rivoluzione1", "mm": 6283.185
+        ///
+        /// che e' **2π × 1000**. Lo stato dichiarava una quota di sei metri e
+        /// ventotto su un pezzo lungo novanta millimetri, e nessuno se ne
+        /// accorgeva perche' il campo si chiama `mm` e il numero e' un numero.
+        ///
+        /// **Trovato per strada, misurando un'altra cosa** (voce V3): un
+        /// modello a cui era stata data la sola descrizione dell'albero a
+        /// gradini non e' riuscito a ridisegnarlo, ed era l'unico dei cinque.
+        /// Guardando perche', l'unica quota che quel pezzo offriva era questa.
+        ///
+        /// ── IL NOME DEL CAMPO CAMBIA CON L'UNITA' ────────────────────────
+        ///
+        /// Un angolo esce come `"gradi": 360`, non come `"mm": 360`. Tenere il
+        /// nome `mm` e cambiare solo il numero sarebbe stato peggio di prima:
+        /// un valore giusto sotto un'etichetta falsa non si puo' nemmeno
+        /// sospettare, mentre 6283 almeno saltava all'occhio.
+        ///
+        /// Le altre — lineari, raggi, diametri, smussi — restano in `mm`, che
+        /// e' l'unita' vera. Quando il tipo non si lascia leggere si tiene
+        /// `mm`: e' il comportamento di prima, ed e' giusto per la
+        /// stragrande maggioranza delle quote.
+        /// </summary>
+        private static Dictionary<string, object> Quota(IDimension d, string nome)
+        {
+            // ── E L'ENUM GIUSTO NON E' QUELLO CHE SEMBRA ─────────────────
+            //
+            // `IDimension.GetType()` e' un metodo COM che torna un `int`, e non
+            // ha niente a che vedere con `Object.GetType()` (verificato per
+            // riflessione sull'interop 29.5.1: torna `System.Int32` ed e'
+            // dichiarato su `IDimension`).
+            //
+            // Ma **non torna `swDimensionType_e`**, che e' l'enum col nome piu'
+            // somigliante e dove «angolare» vale 3. La prima scrittura usava
+            // quello, e la riparazione non e' scattata: la quota continuava a
+            // uscire 6283,185 mm.
+            //
+            // Misurato mettendo il numero nello stato e guardandolo:
+            //
+            //     rivoluzione a 360 gradi  ->  1
+            //     spessore, lunghezza, Ø   ->  0
+            //
+            // che e' `swDimensionParamType_e`: `DoubleLinear = 0`,
+            // `DoubleAngular = 1`, `Integer = 2`, `Unknown = -1`.
+            //
+            // Due enum quasi omonimi per due cose diverse, e il compilatore non
+            // puo' dire niente perche' tutti e due sono `int`. L'unico modo di
+            // saperlo era chiederlo al pezzo.
+            const int Angolare = 1;   // swDimensionParamType_e.swDimensionParamTypeDoubleAngular
+            int tipo = 0;
+            try { tipo = d.GetType(); } catch { }
+
+            if (tipo == Angolare)
+            {
+                double gradi = 0;
+                try { gradi = d.SystemValue * 180.0 / Math.PI; } catch { }
+                return new Dictionary<string, object>
+                {
+                    ["nome"] = nome,
+                    ["gradi"] = Math.Round(gradi, 3),
+                };
+            }
+
+            return new Dictionary<string, object>
+            {
+                ["nome"] = nome,
+                ["mm"] = Math.Round(Unita.Mm(d.SystemValue), 3),
+            };
         }
 
         /// <summary>Il nome della lavorazione che ha generato questa faccia.</summary>

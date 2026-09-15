@@ -9,6 +9,8 @@ Sono due banchi diversi, per due domande diverse:
 | `ProvaSaldatura.exe` | le operazioni della libreria fanno il pezzo giusto? | si' |
 | `corri_piani.js` | il ponte MCP esegue i piani come deve? | si' |
 | `prova_annulla.js` | `annulla` ritira il piano — e si **rifiuta** quando deve? | si' |
+| `raccogli_viste.js` | costruisce le cinque forme di V2/V3 e ne salva immagini e stato | si' |
+| `prova_forma.js` | dalla sola **frase** un modello sa ridisegnare il pezzo? (V3) | si' |
 | `..\Controlli\Prova*.exe` | la matematica torna? | **no** |
 
 I primi tre misurano pezzi, l'ultimo misura formule. L'ultimo si lancia in un
@@ -58,6 +60,27 @@ node Banco\prova_annulla.js           «annulla» (voce R1), coi suoi tre rossi
 `annulla` **non e' nella libreria**. E' uno strumento del ponte, e la parte che
 conta — il ricordo dell'ultimo piano, e i tre casi in cui si RIFIUTA — vive in
 `Attrezzi`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
+
+### `prova_forma.js` — una MISURA, non un controllo
+
+Non fa fallire nessun giro, e il codice di uscita e' sempre zero. Risponde a una
+domanda che non ha un verde e un rosso ma **un numero**: quanti dei cinque pezzi
+si ridisegnano partendo dalla sola frase che li descrive (voce V3).
+
+Va rifatta in tre passi, e il secondo non lo fa una macchina:
+
+```
+node raccogli_viste.js        costruisce i cinque pezzi veri e salva lo stato,
+                              che dentro ha il campo `forma`
+                              -- poi si danno le cinque frasi, E NIENTE ALTRO,
+                                 a un modello isolato, che scrive i piani in
+                                 casi/forma/1..5.json
+node prova_forma.js           esegue i piani e confronta volume e ingombro
+```
+
+**Il modello che scrive i piani non deve vedere `Banco/viste/`**: li' dentro ci
+sono gli stati completi, cioe' le risposte. Se le vede, la misura non misura
+piu' niente.
 
 Con `PONTE=...` si punta a un altro eseguibile: serve per provare quello
 **installato** invece di quello appena compilato, che e' l'unico modo di sapere
