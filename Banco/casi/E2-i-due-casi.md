@@ -44,12 +44,33 @@ Si cita **F6**, la faccia di destra, e poi si allunga il pezzo.
 | passo | atteso |
 |---|---|
 | `modifica_quota D1@Schizzo1 100 → 160` | riuscita, volume **192.000** = 120.000 · 160/100 |
-| `taglio_cilindrico` Ø10 su **F6** | **RIFIUTO** |
+| `taglio_cilindrico` Ø10 su **F6** | **riuscita, e DICE di quanto si e' spostata** |
+
+**Fino alla 0.25.2 era un RIFIUTO**, e la voce E2 l'aveva scritto cosi':
 
 ```
 «F6» adesso indica un'altra parte del pezzo (spostata di 60 mm). Il pezzo e'
 cambiato da quando hai confermato: non lavoro sulla faccia sbagliata.
 ```
+
+**Dalla 0.26.0 (voce E6) il riferimento persistente ritrova la faccia vera**, e
+il passo riesce spiegando cos'e' successo invece di fermarsi. Misurato il
+15/9/2026, ponte 0.40.0 — volume **191.607,3**, tolti 392,7 mm³:
+
+```
+la faccia «F6» l'ha ritrovata SOLIDWORKS dal suo riferimento persistente: si
+e' spostata di 60 mm, da [50, 0, 0] a [110, 0, 0]. Il pezzo e' cambiato da
+quando l'hai guardato, ma la faccia e' quella giusta — se il piano contava
+sulle misure di prima, ricontrolla il risultato. Per quel che vale: «F6»
+stava al 100% del lato X e ci sta ancora — il lato e' passato da 100 a 160
+mm. Puo' essere la stessa faccia cresciuta col pezzo, ma questo non lo decido
+io: l'identita' si misura in millimetri.
+```
+
+L'ultima frase e' della voce E10, ed e' **solo una spiegazione**: la faccia
+l'aveva gia' scelta il riferimento persistente, e il giudizio l'aveva gia' dato
+`Corrobora`. La frazione dell'ingombro non entra in nessuna decisione — e c'e'
+una prova che legge il sorgente per assicurarsene.
 
 > **60 mm, non 30.** La voce del TODO si aspettava 30, supponendo che il pezzo
 > crescesse **simmetrico** attorno al centro. Non lo fa: cresce da una parte

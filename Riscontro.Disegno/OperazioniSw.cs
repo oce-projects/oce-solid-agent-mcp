@@ -6045,6 +6045,10 @@ namespace Riscontro.Disegno
             // verificando.
             var firmaOra = StatoDocumento.FirmaDiUnaFaccia(candidata);
             if (firmaOra == null) return null;
+            // `FirmaDiUnaFaccia` misura UNA faccia e non rilegge il documento:
+            // la scatola del pezzo non ce l'ha, e senza quella la frase non si
+            // puo' scrivere. Gliela passa chi il documento l'ha letto.
+            firmaOra.ScatolaPezzoMm = stato?.ScatolaPezzoMm;
 
             string nota;
             if (Corrobora(attesa, uid, firmaOra, out nota) != null) return null;
@@ -6103,11 +6107,19 @@ namespace Riscontro.Disegno
 
             if (pezzi.Count == 0) return null;
 
+            // LA SPIEGAZIONE, che qui e' il caso per cui la voce E10 esisteva:
+            // la faccia si e' mossa di sessanta millimetri E sta dove stava
+            // rispetto al pezzo. Dirlo aiuta a capire; deciderlo no — e infatti
+            // qui non si decide niente: la faccia l'ha gia' scelta il
+            // riferimento persistente, e il giudizio l'ha gia' dato Corrobora.
             return "la faccia «" + uid + "» l'ha ritrovata SOLIDWORKS dal suo " +
                    "riferimento persistente: " + string.Join(", ", pezzi) +
                    ". Il pezzo e' cambiato da quando l'hai guardato, ma la faccia e' " +
                    "quella giusta — se il piano contava sulle misure di prima, " +
                    "ricontrolla il risultato." +
+                   Frasi.DoveStavaEDoveSta(
+                       uid, primaPunto, ora.PuntoMm,
+                       Sestina(attesa, "scatola_pezzo_mm"), ora.ScatolaPezzoMm) +
                    (notaCorrobora == null ? "" : " " + notaCorrobora);
         }
 
@@ -6221,10 +6233,18 @@ namespace Riscontro.Disegno
                     // serve a facce, spigoli e corpi, e dire «non lavoro sulla
                     // faccia sbagliata» di un corpo manda a cercare una faccia
                     // che non c'entra niente.
+                    // LA SPIEGAZIONE SI ATTACCA DOPO IL VERDETTO, e il verdetto
+                    // e' gia' preso: sopra, sui millimetri. Quello che segue e'
+                    // una frase — non un numero, non un `bool` — e non puo'
+                    // cambiare l'esito nemmeno se qualcuno lo volesse. Vedi
+                    // Frasi.DoveStavaEDoveSta (voce E10).
                     motivo =
                         $"«{uid}» adesso indica un'altra parte del pezzo (spostato di " +
                         $"{scarto:0.##} mm). Il pezzo e' cambiato da quando hai " +
-                        $"confermato: {NonLavoroSu(adesso)}";
+                        $"confermato: {NonLavoroSu(adesso)}" +
+                        Frasi.DoveStavaEDoveSta(
+                            uid, puntoAtteso, adesso.PuntoMm,
+                            Sestina(attesa, "scatola_pezzo_mm"), adesso.ScatolaPezzoMm);
                     return false;
                 }
             }
@@ -6290,6 +6310,28 @@ namespace Riscontro.Disegno
                 catch { return null; }
             }
             return fuori.Count == 3 ? fuori.ToArray() : null;
+        }
+
+        /// <summary>
+        /// I sei numeri della scatola del pezzo da un campo del JSON
+        /// (`{minX,minY,minZ,maxX,maxY,maxZ}`), o null se non ci sono.
+        ///
+        /// Serve solo a scrivere una frase: vedi
+        /// <see cref="Frasi.DoveStavaEDoveSta"/>, dove c'e' anche il motivo per
+        /// cui questi numeri non entrano in nessuna decisione.
+        /// </summary>
+        private static double[] Sestina(Dictionary<string, object> mappa, string chiave)
+        {
+            if (mappa == null || !mappa.TryGetValue(chiave, out var v) || v == null) return null;
+            var elenco = v as System.Collections.IEnumerable;
+            if (elenco == null) return null;
+            var fuori = new List<double>();
+            foreach (var x in elenco)
+            {
+                try { fuori.Add(Convert.ToDouble(x, System.Globalization.CultureInfo.InvariantCulture)); }
+                catch { return null; }
+            }
+            return fuori.Count == 6 ? fuori.ToArray() : null;
         }
 
         /// <summary>

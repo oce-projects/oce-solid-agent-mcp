@@ -239,6 +239,15 @@ namespace ProvaSaldatura
                                 if (voce.TryGetValue(campoFirma, out x) && x != null)
                                     firma[campoFirma] = x;
                             }
+                            // LA SCATOLA DEL PEZZO, come fa il ponte: senza, il
+                            // banco leggerebbe messaggi di rifiuto piu' corti
+                            // di quelli veri, ed e' esattamente la differenza
+                            // che un banco non deve avere.
+                            if (firma.Count > 0)
+                            {
+                                var scatola = ScatolaDelPezzo(stato);
+                                if (scatola != null) firma["scatola_pezzo_mm"] = scatola;
+                            }
                             if (firma.Count > 0) firme[uid] = firma;
                             break;
                         }
@@ -247,6 +256,42 @@ namespace ProvaSaldatura
             }
 
             if (firme.Count > 0) argomenti["_firme"] = firme;
+        }
+
+        /// <summary>
+        /// {minX,minY,minZ,maxX,maxY,maxZ} in mm dai due campi dello stato:
+        /// l'angolo e i lati. Null se uno dei due manca — l'angolo non si
+        /// inventa (vedi il ponte, `Attrezzi.ScatolaDelPezzo`).
+        /// </summary>
+        private static double[] ScatolaDelPezzo(Dictionary<string, object> stato)
+        {
+            double[] da = TreNumeri(stato, "ingombro_da_mm");
+            double[] lati = TreNumeri(stato, "ingombro_mm");
+            if (da == null || lati == null) return null;
+            return new[]
+            {
+                da[0], da[1], da[2],
+                da[0] + lati[0], da[1] + lati[1], da[2] + lati[2],
+            };
+        }
+
+        private static double[] TreNumeri(Dictionary<string, object> stato, string chiave)
+        {
+            object v;
+            if (stato == null || !stato.TryGetValue(chiave, out v) || v == null) return null;
+            var elenco = v as System.Collections.IEnumerable;
+            if (elenco == null) return null;
+            var fuori = new List<double>();
+            foreach (var x in elenco)
+            {
+                try
+                {
+                    fuori.Add(Convert.ToDouble(
+                        x, System.Globalization.CultureInfo.InvariantCulture));
+                }
+                catch { return null; }
+            }
+            return fuori.Count == 3 ? fuori.ToArray() : null;
         }
 
         /// <summary>Apre un documento gia' salvato e lo mette davanti.</summary>

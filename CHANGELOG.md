@@ -16,6 +16,53 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.40.0 — 15 settembre 2026 · libreria 0.75.0
+
+### E10 — La frazione dell'ingombro: come SPIEGAZIONE, mai come identita'
+
+Quando una faccia si sposta perche' il pezzo e' cresciuto, i messaggi dicevano
+«spostata di 60 mm» — vero, e non spiega niente. Adesso dicono anche **dove
+stava rispetto al pezzo**:
+
+```
+«F6» adesso indica un'altra parte del pezzo (spostato di 60.00 mm). Il pezzo
+e' cambiato da quando hai confermato: non lavoro sulla faccia sbagliata.
+Per quel che vale: «F6» stava al 100% del lato X e ci sta ancora — il lato e'
+passato da 100 a 160 mm. Puo' essere la stessa faccia cresciuta col pezzo, ma
+questo non lo decido io: l'identita' si misura in millimetri.
+```
+
+La stessa frase si attacca al messaggio dell'altra strada, quella in cui la
+faccia **viene ritrovata** dal riferimento persistente: e' il caso A della voce
+E2, ed e' il caso per cui questa voce esisteva.
+
+**E il criterio di chiusura vero e' un grep che deve tornare vuoto.** Come
+CRITERIO DI IDENTITA' la frazione e' l'unica delle strade proposte che converte
+un «non lo so» in un «si'» sbagliato: un foro a 20 mm dal bordo, su una piastra
+che passa da 100 a 300, **resta a 20 mm dal bordo** — e' cio' che significa in
+officina — mentre la frazione lo manda a 60, dove una faccia la trova, e
+**conferma invece di rifiutare**. In piu' l'ingombro e' instabile: un rialzo in
+un angolo cambia il denominatore di tutte le facce insieme.
+
+Per questo il conto sta in **un posto solo** (`Frasi.DoveStavaEDoveSta`), torna
+`string` e non `double`, e `FirmaCombacia` e il ciclo di ritrovamento non lo
+nominano. Una prova del banco **legge il sorgente** e lo verifica, con il suo
+rosso: lo stesso setaccio passato su `Frasi.cs`, dove quelle parole ci sono,
+deve trovarle.
+
+### Lo stato dice anche DOVE sta la scatola
+
+`ingombro_da_mm` — tre numeri, l'angolo minimo del pezzo. `ingombro_mm` diceva
+«140 x 16 x 140» e non diceva dove fosse quel volume: 50 su un lato lungo 100
+vuol dire meta' se la scatola parte da zero e **tutto** se parte da −50. Senza
+l'angolo la spiegazione di sopra non si puo' nemmeno scrivere, e chi vuole
+mettere un foro «a 20 mm dal bordo» doveva indovinare se il pezzo fosse
+centrato sull'origine o appoggiato a essa.
+
+Una trentina di caratteri sul tetto di 16.000.
+
+---
+
 ## 0.39.0 — 15 settembre 2026 · libreria 0.74.0
 
 ### E14 — `faccia_del_foro` restituiva un raccordo, e non lo diceva

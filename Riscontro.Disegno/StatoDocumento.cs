@@ -118,6 +118,17 @@ namespace Riscontro.Disegno
             new Dictionary<string, object>();
 
         /// <summary>
+        /// La scatola di tutto il pezzo, in mm: {minX, minY, minZ, maxX, maxY,
+        /// maxZ}. Null quando il documento non ha corpi.
+        ///
+        /// E' una PROPRIETA' NUOVA e non un parametro in piu' da qualche parte:
+        /// il banco chiama questa classe per riflessione, e cambiare l'insieme
+        /// delle firme di un metodo rompe chi lo chiama anche quando il
+        /// compilatore tace.
+        /// </summary>
+        public double[] ScatolaPezzoMm { get; private set; }
+
+        /// <summary>
         /// Il documento da cui questo stato e' stato letto.
         ///
         /// Serve a risolvere i riferimenti persistenti (voce E6):
@@ -178,6 +189,21 @@ namespace Riscontro.Disegno
             /// </summary>
             public int LavorazioneId = -1;
             public string Lavorazione;
+
+            /// <summary>
+            /// LA SCATOLA DEL PEZZO quando questa firma e' stata misurata, in
+            /// mm: {minX, minY, minZ, maxX, maxY, maxZ}. Null se non si e'
+            /// potuta leggere.
+            ///
+            /// NON E' UN CRITERIO E NON PUO' DIVENTARLO. Serve a una sola
+            /// cosa: scrivere in un messaggio dove stava la faccia rispetto al
+            /// pezzo, quando il pezzo e' cambiato. La ragione per cui non puo'
+            /// entrare nell'identita' sta per esteso in
+            /// <see cref="Frasi.DoveStavaEDoveSta"/>, che e' l'unico posto in
+            /// tutta la libreria dove questi numeri si dividono fra loro — e
+            /// torna una FRASE, non un numero.
+            /// </summary>
+            public double[] ScatolaPezzoMm;
         }
 
         /// <summary>
@@ -659,6 +685,11 @@ namespace Riscontro.Disegno
             bool haCorpo = false;
             bool troncato = false;
 
+            // LA SCATOLA DEL PEZZO, non solo quanto e' grande: DOVE STA.
+            // Serve fuori dal blocco dei corpi, quindi si dichiara qui. Vedi
+            // il commento su `ingombro_da_mm` piu' sotto.
+            double[] scatolaDelPezzo = null;
+
             object corpiObj = null;
             try { corpiObj = parte.GetBodies2((int)swBodyType_e.swSolidBody, false); } catch { }
             var corpi = (corpiObj as object[] ?? new object[0])
@@ -776,12 +807,35 @@ namespace Riscontro.Disegno
                     for (int k = 3; k < 6; k++) tutto[k] = Math.Max(tutto[k], b[k]);
                 }
                 if (tutto != null)
+                {
+                    scatolaDelPezzo = tutto;
                     dati["ingombro_mm"] = new[]
                     {
                         Math.Round(tutto[3] - tutto[0], 2),
                         Math.Round(tutto[4] - tutto[1], 2),
                         Math.Round(tutto[5] - tutto[2], 2),
                     };
+
+                    // ── DOVE STA LA SCATOLA, e non solo quanto e' grande ──
+                    //
+                    // `ingombro_mm` dice «140 x 16 x 140» e non dice dove sia
+                    // quel volume: un piano che vuole mettere un foro «a 20 mm
+                    // dal bordo» deve indovinare se il pezzo e' centrato
+                    // sull'origine o appoggiato a essa. Sono tre numeri, una
+                    // trentina di caratteri sul tetto di 16.000.
+                    //
+                    // E' anche l'unico ingresso che rende possibile la
+                    // SPIEGAZIONE della voce E10 — dire dove stava una faccia
+                    // rispetto al pezzo — che senza l'angolo non si puo'
+                    // nemmeno scrivere: 50 su un lato lungo 100 vuol dire meta'
+                    // se la scatola parte da zero e tutto se parte da -50.
+                    dati["ingombro_da_mm"] = new[]
+                    {
+                        Math.Round(tutto[0], 2),
+                        Math.Round(tutto[1], 2),
+                        Math.Round(tutto[2], 2),
+                    };
+                }
 
                 // ── la massa, SOLO se c'e' un materiale ───────────────────
                 //
@@ -1226,6 +1280,17 @@ namespace Riscontro.Disegno
                 if (!string.IsNullOrEmpty(forma)) dati["forma"] = forma;
             }
             catch { }
+
+            // ── LA SCATOLA DEL PEZZO IN OGNI FIRMA ───────────────────────
+            //
+            // Un giro solo, alla fine, perche' la scatola si conosce dopo aver
+            // letto i corpi mentre le firme delle facce si riempiono dopo. E'
+            // lo STESSO oggetto in tutte: e' una proprieta' del pezzo, non
+            // dell'entita', e copiarla non servirebbe a niente.
+            stato.ScatolaPezzoMm = scatolaDelPezzo;
+            if (scatolaDelPezzo != null)
+                foreach (var firmata in stato.Firme.Values)
+                    if (firmata != null) firmata.ScatolaPezzoMm = scatolaDelPezzo;
 
             stato.Dati = dati;
             return stato;

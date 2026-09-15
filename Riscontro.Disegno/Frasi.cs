@@ -39,5 +39,93 @@ namespace Riscontro.Disegno
         /// </summary>
         public const string CosiSiRitira =
             "«annulla» se stai parlando col ponte, Ctrl+Z se sei davanti allo schermo";
+
+        /// <summary>
+        /// DOVE STAVA E DOVE STA, in frazione dell'ingombro — **e solo a
+        /// parole** (voce E10).
+        ///
+        /// ── PERCHE' TORNA UNA FRASE E NON UN NUMERO ───────────────────────
+        ///
+        /// La frazione dell'ingombro — `u = (x − minX) / (maxX − minX)` — e' la
+        /// spiegazione che manca ai messaggi di questa libreria: quando un
+        /// pezzo cresce, «la faccia si e' spostata di 60 mm» e' vero e non dice
+        /// niente, mentre «stava al 100% del lato e ci sta ancora» dice
+        /// **che cosa e' successo**.
+        ///
+        /// E' anche, come CRITERIO DI IDENTITA', l'unica delle strade proposte
+        /// che trasforma un «non lo so» in un «si'» sbagliato:
+        ///
+        ///   * un foro a 20 mm dal bordo, su una piastra che passa da 100 a
+        ///     300, **resta a 20 mm dal bordo**: e' cio' che significa in
+        ///     officina. La frazione dice che e' andato a 60 mm, e siccome li'
+        ///     una faccia la trova, **CONFERMA invece di rifiutare**;
+        ///   * l'ingombro e' instabile: basta un rialzo in un angolo per
+        ///     cambiare il denominatore di **tutte** le facce insieme.
+        ///
+        /// Per questo il tipo di ritorno e' `string` e non `double`, e non e'
+        /// un dettaglio: una frase non entra in un `if`. Chi volesse promuovere
+        /// questo numero a criterio — fra due mesi, «tanto il conto c'e' gia'»
+        /// — dovrebbe rileggersi la frase per estrarne i numeri, e lo si
+        /// vedrebbe. Una ricerca di «frazione» dentro `FirmaCombacia` o dentro
+        /// il ciclo di ritrovamento deve tornare **vuota**: e' il vero criterio
+        /// di chiusura della voce E10.
+        ///
+        /// Null quando non c'e' niente da dire: dati mancanti, scatola
+        /// degenere, oppure la faccia non si e' spostata.
+        /// </summary>
+        /// <param name="uid">Come si chiama l'entita' nel messaggio.</param>
+        /// <param name="prima">Il punto che il piano portava con se', in mm.</param>
+        /// <param name="adesso">Il punto misurato adesso, in mm.</param>
+        /// <param name="scatolaPrima">{minX,minY,minZ,maxX,maxY,maxZ} di allora.</param>
+        /// <param name="scatolaAdesso">{minX,minY,minZ,maxX,maxY,maxZ} di adesso.</param>
+        public static string DoveStavaEDoveSta(
+            string uid, double[] prima, double[] adesso,
+            double[] scatolaPrima, double[] scatolaAdesso)
+        {
+            if (prima == null || adesso == null ||
+                scatolaPrima == null || scatolaAdesso == null) return null;
+            if (prima.Length < 3 || adesso.Length < 3 ||
+                scatolaPrima.Length < 6 || scatolaAdesso.Length < 6) return null;
+
+            // L'ASSE CHE SI E' MOSSO, uno solo. Dire tutti e tre vorrebbe dire
+            // scrivere due righe su due direzioni in cui non e' successo
+            // niente: un messaggio piu' lungo che si legge peggio.
+            int asse = -1;
+            double quanto = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                double d = System.Math.Abs(adesso[i] - prima[i]);
+                if (d > quanto) { quanto = d; asse = i; }
+            }
+            if (asse < 0 || quanto <= 0.05) return null;
+
+            double latoPrima = scatolaPrima[asse + 3] - scatolaPrima[asse];
+            double latoAdesso = scatolaAdesso[asse + 3] - scatolaAdesso[asse];
+            // Sotto il decimo di millimetro la divisione non significa piu'
+            // niente: un lato di 0,01 mm fa uscire percentuali da migliaia.
+            if (latoPrima < 0.1 || latoAdesso < 0.1) return null;
+
+            double uPrima = (prima[asse] - scatolaPrima[asse]) / latoPrima;
+            double uAdesso = (adesso[asse] - scatolaAdesso[asse]) / latoAdesso;
+
+            string nome = asse == 0 ? "X" : (asse == 1 ? "Y" : "Z");
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+
+            // UN PUNTO PERCENTUALE. Piu' stretto sarebbe un confronto fra
+            // arrotondamenti; piu' largo direbbe «ci sta ancora» di una faccia
+            // che si e' spostata davvero rispetto al pezzo.
+            if (System.Math.Abs(uPrima - uAdesso) <= 0.01)
+                return string.Format(c,
+                    " Per quel che vale: «{0}» stava al {1:0.#}% del lato {2} e ci sta " +
+                    "ancora — il lato e' passato da {3:0.##} a {4:0.##} mm. Puo' essere la " +
+                    "stessa faccia cresciuta col pezzo, ma questo non lo decido io: " +
+                    "l'identita' si misura in millimetri.",
+                    uid, uPrima * 100.0, nome, latoPrima, latoAdesso);
+
+            return string.Format(c,
+                " Per quel che vale: «{0}» stava al {1:0.#}% del lato {2} e adesso e' al " +
+                "{3:0.#}% — il lato e' passato da {4:0.##} a {5:0.##} mm.",
+                uid, uPrima * 100.0, nome, uAdesso * 100.0, latoPrima, latoAdesso);
+        }
     }
 }

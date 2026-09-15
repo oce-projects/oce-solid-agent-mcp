@@ -578,6 +578,21 @@ namespace Oce.Solid.Agent.Strumenti
         {
             if (stato == null) return null;
             var fuori = new Dictionary<string, object>();
+
+            // LA SCATOLA DEL PEZZO, la stessa per tutte le entita'.
+            //
+            // Sta nella firma di ognuna e non una volta sola in fondo perche'
+            // `_firme` e' una mappa uid -> firma, e chi la legge cerca per uid:
+            // una chiave che uid non e' sarebbe un caso speciale da ricordarsi
+            // in tre posti. Sei numeri per entita' in un allegato che porta gia'
+            // ~530 caratteri di persist ID a faccia non si notano.
+            //
+            // SERVE SOLO A SCRIVERE UNA FRASE (voce E10): dove stava la faccia
+            // rispetto al pezzo, quando il pezzo e' cambiato. Il motivo per cui
+            // non puo' diventare un criterio di identita' sta per esteso in
+            // `Riscontro.Disegno/Frasi.cs`.
+            double[] scatolaPezzo = ScatolaDelPezzo(stato);
+
             // I CORPI SONO ENTITA' COME LE ALTRE: per un saldato sono LE
             // entita', e «tappa le estremita' di C1» nomina corpi.
             foreach (var famiglia in new[] { "facce", "spigoli", "feature", "assi", "corpi" })
@@ -637,6 +652,12 @@ namespace Oce.Solid.Agent.Strumenti
                         var nome = NomeLavorazione(stato, idLav);
                         if (nome != null) firma["lavorazione"] = nome;
                     }
+                    // DOPO il conteggio di sopra, mai prima: una firma che
+                    // avesse SOLO la scatola del pezzo non direbbe niente di
+                    // quell'entita', e finirebbe lo stesso in `_firme` facendo
+                    // credere che una firma ci sia.
+                    if (firma.Count > 0 && scatolaPezzo != null)
+                        firma["scatola_pezzo_mm"] = scatolaPezzo;
                     if (firma.Count > 0) fuori[Convert.ToString(uid)] = firma;
                 }
             }
@@ -1527,6 +1548,48 @@ namespace Oce.Solid.Agent.Strumenti
             return mappa.TryGetValue(chiave, out var nome) && nome != null
                 ? Convert.ToString(nome)
                 : null;
+        }
+
+        /// <summary>
+        /// La scatola del pezzo — {minX,minY,minZ,maxX,maxY,maxZ} in mm —
+        /// ricavata dai due campi che lo stato pubblica: l'angolo
+        /// (`ingombro_da_mm`) e i lati (`ingombro_mm`).
+        ///
+        /// Null se uno dei due manca. NON si inventa l'angolo mettendolo a
+        /// zero: uno stato che dichiarasse una scatola appoggiata all'origine
+        /// quando il pezzo e' centrato su di essa farebbe scrivere «stava a
+        /// meta' del lato» di una faccia che stava all'estremo, e una
+        /// spiegazione sbagliata e' peggio di nessuna spiegazione.
+        /// </summary>
+        private static double[] ScatolaDelPezzo(Dictionary<string, object> stato)
+        {
+            double[] da = TreNumeri(stato, "ingombro_da_mm");
+            double[] lati = TreNumeri(stato, "ingombro_mm");
+            if (da == null || lati == null) return null;
+            return new[]
+            {
+                da[0], da[1], da[2],
+                da[0] + lati[0], da[1] + lati[1], da[2] + lati[2],
+            };
+        }
+
+        /// <summary>Tre numeri da un campo dello stato, o null.</summary>
+        private static double[] TreNumeri(Dictionary<string, object> stato, string chiave)
+        {
+            if (stato == null || !stato.TryGetValue(chiave, out var v) || v == null) return null;
+            var elenco = v as System.Collections.IEnumerable;
+            if (elenco == null) return null;
+            var fuori = new List<double>();
+            foreach (var x in elenco)
+            {
+                try
+                {
+                    fuori.Add(Convert.ToDouble(
+                        x, System.Globalization.CultureInfo.InvariantCulture));
+                }
+                catch { return null; }
+            }
+            return fuori.Count == 3 ? fuori.ToArray() : null;
         }
 
         /// <summary>
