@@ -376,7 +376,8 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "asola",        Cosa = "asola",                  Azioni = una(ProvaAsola) },
                 new Gruppo { Nome = "smusso",       Cosa = "smusso_spigoli",         Azioni = una(ProvaSmusso) },
                 new Gruppo { Nome = "rivoluzione",  Cosa = "rivoluzione",            Azioni = una(ProvaRivoluzioni) },
-                new Gruppo { Nome = "guscio",       Cosa = "guscio",                 Azioni = una(ProvaGuscio) },
+                // «guscio» non c'e' piu': e' diventato due file in
+                // `casi/lavorazioni/`, e si lancia con `--gruppo casi`.
                 new Gruppo { Nome = "crea-piano",   Cosa = "crea_piano",             Azioni = una(ProvaCreaPiano) },
                 new Gruppo { Nome = "crea-asse",    Cosa = "crea_asse",              Azioni = una(ProvaCreaAsse) },
                 new Gruppo { Nome = "ripeti",       Cosa = "ripeti_lineare",         Azioni = una(ProvaRipetiLineare) },
@@ -385,6 +386,8 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "forma",        Cosa = "la forma in una frase (V3/V7)", Azioni = una(ProvaFormaAParole) },
                 new Gruppo { Nome = "dove-stava",   Cosa = "dove stava, e il grep vuoto (E10)",
                              Azioni = new Action[] { ProvaDoveStava, ProvaCheLaFrazioneNonDecide } },
+                new Gruppo { Nome = "casi",         Cosa = "i casi dichiarati, che sono file (F3)",
+                             Azioni = new Action[] { ProvaCheIlSelettoreRifiuta, ProvaCasiDichiarati } },
                 new Gruppo { Nome = "il-null-ha-un-nome", Cosa = "il banco dice dove non e' riuscito (F12)",
                              Azioni = una(ProvaCheIlNullHaUnNome) },
                 new Gruppo { Nome = "tabella",      Cosa = "la tabella dei gruppi copre tutto (F13)",

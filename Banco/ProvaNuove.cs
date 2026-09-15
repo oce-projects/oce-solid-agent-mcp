@@ -1220,63 +1220,20 @@ namespace ProvaSaldatura
         // ==================================================================
         // 3. guscio — il verso di «Outward», misurato sull'ingombro
         // ==================================================================
-        private static void ProvaGuscio()
-        {
-            Console.WriteLine();
-            Console.WriteLine("=== guscio (add-in) ===");
-
-            // Piastra 100 x 60 x 40 = 240000 mm3, aperta sulla faccia grande.
-            //
-            // VERSO L'INTERNO: l'ingombro esterno NON cambia e il vuoto e'
-            // (100-10) x (60-10) x (40-5) = 157500 -> restano 82500 mm3.
-            //
-            // VERSO L'ESTERNO: il pieno di prima diventa il vuoto e la parete
-            // si aggiunge da fuori: 110 x 70 x 45 - 240000 = 106500 mm3, con
-            // l'ingombro cresciuto.
-            //
-            // I due numeri sono lontanissimi: se «Outward» fosse invertito, si
-            // vedrebbe al primo confronto.
-            Guscio("guscio 5 mm verso l'interno", false, 82500, new double[] { 100, 60, 40 });
-            Guscio("guscio 5 mm verso l'esterno", true, 106500, new double[] { 110, 70, 45 });
-        }
-
-        private static void Guscio(string nome, bool versoEsterno, double volumeAtteso,
-                                   double[] ingombroAtteso)
-        {
-            IModelDoc2 doc = null;
-            try
-            {
-                doc = NuovaParte();
-                PiastraCentrata(doc, 100, 60, 40);
-                var stato = LeggiStato(doc);
-                string uid = FacciaConVerso(stato, "davanti");
-                if (uid == null) { Segna(nome, false, "nessuna faccia «davanti» nello stato"); return; }
-
-                string errore;
-                var misure = Esegui(doc, "guscio", new Dictionary<string, object>
-                {
-                    ["facce_uid"] = new List<object> { uid },
-                    ["spessore_mm"] = 5.0,
-                    ["verso_esterno"] = versoEsterno,
-                }, out errore, stato);
-                if (misure == null) { Segna(nome, false, "fallito: " + Corto(errore)); return; }
-
-                double v = VolumeDelDocumento(doc);
-                var ing = IngombroDelDocumento(doc);
-                bool ingombroGiusto = ing != null &&
-                    Math.Abs(ing[0] - ingombroAtteso[0]) < 0.2 &&
-                    Math.Abs(ing[1] - ingombroAtteso[1]) < 0.2 &&
-                    Math.Abs(ing[2] - ingombroAtteso[2]) < 0.2;
-                Segna(nome, ingombroGiusto && Math.Abs(v - volumeAtteso) < volumeAtteso * 0.02,
-                      string.Format("volume {0:0.#} (atteso {1:0.#}), ingombro {2} (atteso {3})",
-                          v, volumeAtteso,
-                          ing == null ? "?" : string.Join("x", ing.Select(x => x.ToString("0.#"))),
-                          string.Join("x", ingombroAtteso.Select(x => x.ToString("0.#")))));
-            }
-            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
-            finally { Chiudi(doc); }
-        }
-
+        // ── QUESTA PROVA ADESSO E' UN FILE ────────────────────────────────
+        //
+        // `casi/lavorazioni/guscio_interno.json` e `guscio_esterno.json` (voce
+        // F3). Gli stessi due numeri — 82.500 e 106.500 — piu' l'ingombro, le
+        // facce tolte, il verso dichiarato e il materiale asportato, e
+        // **leggibili da chi il C# non lo scrive**.
+        //
+        // Il C# qui sotto e' stato tolto, non lasciato accanto. Due prove sulla
+        // stessa cosa vogliono dire che un giorno una delle due cambiera' e
+        // l'altra no. E soprattutto: quella vecchia accettava
+        // `volumeAtteso * 0.02` — sui 240.000 mm³ della piastra sono **4.800
+        // mm³, piu' di un foro M12 passante**. Una prova che accetta un foro di
+        // scarto non prova il foro, e tenerla in giro come rete di sicurezza
+        // sarebbe tenere in giro proprio il difetto che F3 chiude.
         // ==================================================================
         // 4. crea_piano — DA CHE PARTE finisce con la distanza negativa
         // ==================================================================

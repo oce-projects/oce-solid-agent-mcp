@@ -1,0 +1,38 @@
+{
+  "nome": "guscio_esterno",
+  "famiglia": "lavorazioni",
+  "perche": "La gemella di «guscio_interno», col verso opposto. Verso l'esterno il pieno di prima diventa il vuoto e la parete si aggiunge da fuori: 110 x 70 x 45 - 240000 = 106500 mm3, e l'ingombro CRESCE. E' l'ingombro a rendere questa prova diversa da un confronto di volumi: un guscio che sbagliasse verso lascerebbe l'ingombro dov'era.",
+  "parte": { "nuova": true },
+  "passi": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": {
+        "piano": "frontale",
+        "lunghezza_mm": 100,
+        "larghezza_mm": 60,
+        "spessore_mm": 40,
+        "centrato": true
+      },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 240000 },
+        { "cosa": "ingombro_mm", "uguale": [100, 60, 40] }
+      ]
+    },
+    {
+      "operazione": "guscio",
+      "argomenti": {
+        "facce_uid": ["@faccia(verso=davanti)"],
+        "spessore_mm": 5,
+        "verso_esterno": true
+      },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 106500 },
+        { "cosa": "ingombro_mm", "uguale": [110, 70, 45] },
+        { "cosa": "misure.materiale_tolto_mm3", "uguale": 133500,
+          "tolleranza": 0.1,
+          "perche_questa_tolleranza": "l'operazione arrotonda al decimo prima di riportarlo" },
+        { "cosa": "misure.verso", "uguale": "esterno" }
+      ]
+    }
+  ]
+}

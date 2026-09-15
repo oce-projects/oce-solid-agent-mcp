@@ -18,6 +18,32 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F3 — I casi sono file, e i numeri attesi stanno accanto ai passi
+
+`casi/lavorazioni/guscio_interno.json` e `guscio_esterno.json` girano **senza
+una riga di C# dedicata** e riproducono 82.500 e 106.500, piu' l'ingombro, le
+facce tolte, il verso dichiarato e il materiale asportato. Cambiando 82.500 in
+82.501 il caso diventa **rosso** e il resoconto lo nomina.
+
+**La prova in C# e' stata tolta, non lasciata accanto.** `ProvaGuscio()`
+misurava gli stessi due numeri con `volumeAtteso * 0.02`: sui 240.000 mm³ della
+piastra sono **4.800 mm³, piu' di un foro M12 passante**. Una prova che accetta
+un foro di scarto non prova il foro.
+
+**I selettori rifiutano invece di indovinare**, ed e' il rischio che la voce
+nominava — un caso che gira su una faccia diversa da quella che il nome del file
+promette, e che magari torna lo stesso volume. Dieci prove pure lo verificano:
+zero facce e due facce fanno rifiutare, `@feature(n=…)` e' l'unica ambiguita'
+che si puo' sciogliere, e `@quota` torna il nome col titolo del documento **di
+adesso** — `piani/cambia_diametro.json` scriveva `Parte76`, che cambia a ogni
+giro, e quel piano non si poteva rieseguire.
+
+**Le tolleranze sono assolute e portano il perche'**, e senza il perche' il caso
+e' **rotto**, non permissivo. Stessa regola per un caso senza `perche`, un passo
+**senza attese** (passa e non misura niente) e un `deve_fallire` senza
+`il_messaggio_contiene` (qualunque errore andrebbe bene, anche quello
+sbagliato): escono rossi, non saltati.
+
 ### F2 — Un comando solo, e un resoconto su disco
 
 `Banco\banco.ps1` compila libreria e banco, guarda se SOLIDWORKS e'

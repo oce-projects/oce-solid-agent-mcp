@@ -93,6 +93,39 @@ lettere, e dice quanti gruppi non ha lanciato.
 GIRO PARZIALE (solo viste, 23 gruppi non lanciati) — 6 prove, 0 fallite
 ```
 
+### I casi che sono file — `casi/lavorazioni/`
+
+Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
+`--gruppo casi`. Non serve una riga di C#:
+
+```json
+{ "nome": "guscio_interno", "famiglia": "lavorazioni",
+  "perche": "«Outward» toglie verso l'esterno o verso l'interno?",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "guscio",
+      "argomenti": { "facce_uid": ["@faccia(verso=davanti)"],
+                     "spessore_mm": 5, "verso_esterno": false },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 82500 },
+                  { "cosa": "ingombro_mm", "uguale": [100, 60, 40] },
+                  { "cosa": "misure.verso", "uguale": "interno" } ] } ] }
+```
+
+| | |
+|---|---|
+| `cosa` | `volume_mm3`, `corpi`, `ingombro_mm` (li misura il banco), `stato.…` (lo stato dell'add-in), `misure.…` (quello che l'operazione riporta) |
+| `tolleranza` | **assoluta**, in mm o mm³. Diversa da zero → serve `perche_questa_tolleranza`, altrimenti il caso e' **rotto** |
+| selettori | `@faccia(verso=…)`, `@spigolo(asse=Z,lungo~=100)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)` |
+| `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella` |
+
+**Un selettore che trova zero o piu' di una cosa rifiuta**, e non sceglie la
+prima: un caso che gira su una faccia diversa da quella che il nome del file
+promette puo' tornare lo stesso volume, e allora e' verde e non prova niente.
+L'unica ambiguita' che si scioglie e' `n=` di `@feature`, dove l'ordine lo
+decide chi scrive il caso.
+
+E un passo **senza attese** e' rosso: passa e non misura niente.
+
 ### I giri si contano — `storico.txt`
 
 `in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una redirezione
