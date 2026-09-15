@@ -748,6 +748,71 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "sopprimi_lavorazione",
+                    Famiglia = "lavorazioni",
+                    Provata = true,
+                    Sommario =
+                        "SPEGNE una lavorazione dell'albero, senza cancellarla. Si riaccende.",
+                    Descrizione =
+                        "Spegne una lavorazione: il pezzo torna com'era senza di lei, ma lei "
+                        + "resta nell'albero e si puo' riaccendere con «riattiva».\n\nE' la "
+                        + "strada da prendere quando vuoi VEDERE il pezzo senza una "
+                        + "lavorazione senza impegnarti. Per toglierla davvero c'e' "
+                        + "«elimina_lavorazione», che non si disfa.\n\nIL NOME DELLA "
+                        + "LAVORAZIONE STA NELLO STATO DEL DOCUMENTO, dentro «feature» (per "
+                        + "esempio «Taglio-Estrusione2»). Copialo cosi' com'e'.\n\nI FIGLI SI "
+                        + "SPENGONO CON LEI, ed e' quasi sempre cio' che si vuole: sopprimere "
+                        + "un foro spegne anche i suoi raccordi. La risposta dice quali sono "
+                        + "stati.\n\nDOPO, GLI IDENTIFICATIVI NON VALGONO PIU'. Sopprimere fa "
+                        + "sparire delle facce, e gli identificativi (F1, E4) si rinumerano "
+                        + "per area a ogni lettura: rileggi il pezzo prima del passo seguente.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "feature_uid", O(
+                                "type", "string",
+                                "description", "il nome della lavorazione, copiato dallo stato del documento"),
+                            "riattiva", O(
+                                "type", "boolean",
+                                "description", "a vero RIACCENDE una lavorazione soppressa, invece di spegnerla. "
+                                    + "Predefinito: falso.")),
+                        "required", A(
+                            "feature_uid")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "elimina_lavorazione",
+                    Famiglia = "lavorazioni",
+                    Provata = true,
+                    Sommario =
+                        "CANCELLA una lavorazione dall'albero. Non si disfa con un'altra operazione.",
+                    Descrizione =
+                        "Toglie una lavorazione dall'albero per sempre. Lo schizzo che aveva "
+                        + "assorbito se ne va con lei, cosi' nell'albero non resta niente di "
+                        + "orfano.\n\nNON SI DISFA con un'altra operazione: l'unica strada "
+                        + "indietro e' lo strumento «annulla», e solo se non hai fatto "
+                        + "altro dopo. Se vuoi solo vedere il pezzo senza quella lavorazione, "
+                        + "usa «sopprimi_lavorazione», che si riaccende.\n\nSE QUALCOSA "
+                        + "DIPENDE DA LEI, MI RIFIUTO e ti dico cosa. Cancellare una "
+                        + "lavorazione da cui ne dipendono altre le farebbe sparire tutte, e "
+                        + "SOLIDWORKS lo fa senza chiedere: se e' proprio lei che vuoi "
+                        + "togliere, togli prima cio' che ci sta sopra.\n\nIL NOME DELLA "
+                        + "LAVORAZIONE STA NELLO STATO DEL DOCUMENTO, dentro «feature». "
+                        + "Copialo cosi' com'e'.\n\nDOPO, GLI IDENTIFICATIVI NON VALGONO "
+                        + "PIU': rileggi il pezzo prima del passo seguente.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "feature_uid", O(
+                                "type", "string",
+                                "description", "il nome della lavorazione, copiato dallo stato del documento")),
+                        "required", A(
+                            "feature_uid")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "raccordo_spigoli",
                     Famiglia = "lavorazioni",
                     Provata = true,

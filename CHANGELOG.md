@@ -16,6 +16,69 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.34.0 — 15 settembre 2026 · libreria 0.69.0
+
+### R2 — si puo' togliere una lavorazione in mezzo, non solo l'ultimo piano
+
+Le operazioni passano da **36 a 38**: `sopprimi_lavorazione` (con `riattiva`
+per riaccenderla) ed `elimina_lavorazione`.
+
+`annulla` (R1) disfa **un piano**, tutto intero e solo l'ultimo.
+`modifica_quota` cambia un numero, non ritira una scelta. In mezzo non c'era
+niente: una lavorazione sbagliata al terzo passo di dieci si poteva solo
+subire.
+
+**Il criterio della voce, alla lettera.** Su un pezzo con tre fori, sopprimere
+il terzo riporta il volume al valore che aveva con due — misurato prima di fare
+il terzo, quindi un'uguaglianza e non una stima:
+
+```
+il volume torna a quello con due fori     393842,478 contro 393842,478
+lo stato la mostra soppressa              soppressa: true su Taglio-Estrusione3
+riattivarla rimette il volume com'era     390763,718
+eliminare un foro senza figli riesce      e non e' piu' nell'elenco
+```
+
+### La parte che conta e' il rifiuto
+
+| caso | cosa fa |
+|---|---|
+| una lavorazione da cui ne dipendono altre | `elimina` **rifiuta**, e **dice quali sono** |
+| un nome che non c'e' | rifiuta, e dice quali ci sono |
+| sopprimere cio' che e' gia' spento | lo dice, invece di rispondere «fatto» |
+
+**I figli fermano `elimina` e non `sopprimi`, ed e' voluto.** Sopprimere un
+padre spegne i figli e li riaccende insieme a lui: e' quasi sempre cio' che si
+vuole («togli il foro e i suoi raccordi»). Cancellare li farebbe **sparire**, e
+SOLIDWORKS lo fa senza chiedere.
+
+**E dopo si controlla che sia sparita davvero.** `DeleteSelection2` risponde
+`true`; la domanda e' se quel nome nell'albero non c'e' piu'. E' la differenza
+fra «ha detto di averlo fatto» e «l'ha fatto».
+
+**Gli identificativi cambiano, e la risposta lo dice sempre.** Togliere una
+lavorazione fa sparire delle facce, e gli uid sono posizionali: chi ha in mano
+un piano scritto su «F3» dopo questo non ha piu' «F3».
+
+`RiuscitoSenzaCreare` invece di `Riuscito`: quest'ultimo scrive nel registro
+«creata feature X», e un'operazione che lo dice mentre ne cancella una lascia
+una frase falsa. Nome nuovo e non un parametro in piu' — `Riuscito` e' il punto
+da cui passa **ogni** successo del progetto, il posto peggiore in cui provare a
+cambiare una firma.
+
+### Un rosso SALTATO non e' un rosso passato
+
+La prima scrittura della prova costruiva un raccordo sul terzo foro per dargli
+un figlio. Il raccordo non e' venuto («Nessuno spigolo indicato»), e la prova e'
+finita **SALTATA**: il controllo per cui esiste tutta la voce non e' mai
+scattato, e il giro diceva «104 prove, 0 fallite».
+
+E' esattamente il caso per cui il banco stampa le saltate a parte e le conta.
+Rifatto sul genitore naturale — **l'estrusione di base**, che e' il caso che la
+voce chiama pericoloso per nome: i tre fori sono suoi figli.
+
+---
+
 ## 0.33.0 — 15 settembre 2026 · libreria 0.68.0
 
 ### V5 — le viste non escono piu' tagliate

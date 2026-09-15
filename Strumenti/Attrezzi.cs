@@ -10,12 +10,12 @@ namespace Oce.Solid.Agent.Strumenti
     /// <summary>
     /// I cinque strumenti che il ponte espone.
     ///
-    /// PERCHE' CINQUE E NON TRENTASEI.
-    /// Le operazioni di disegno sono trentasei, e la tentazione e' di esporne
+    /// PERCHE' CINQUE E NON TRENTOTTO.
+    /// Le operazioni di disegno sono trentotto, e la tentazione e' di esporne
     /// una per strumento. Sarebbe sbagliato per due ragioni misurate nel
     /// progetto:
     ///
-    ///   1. **il costo.** Gli schemi interi delle trentasei operazioni sono
+    ///   1. **il costo.** Gli schemi interi delle trentotto operazioni sono
     ///      decine di migliaia di caratteri in ogni singola richiesta. Il
     ///      catalogo a due livelli del server esiste esattamente per questo.
     ///   2. **l'ordine giusto.** Il difetto piu' caro di questo progetto non e'
@@ -31,8 +31,15 @@ namespace Oce.Solid.Agent.Strumenti
     /// un'operazione di disegno, e sta fuori dal catalogo per una ragione
     /// precisa: le operazioni si eseguono dentro `disegna`, cioe' dentro un
     /// piano, e annullare un piano da dentro il piano stesso e' un nodo. Il
-    /// motivo per cui gli strumenti non sono trentasei — non esporre le
+    /// motivo per cui gli strumenti non sono trentotto — non esporre le
     /// operazioni una per una — non riguarda un gesto che operazione non e'.
+    ///
+    /// **Togliere una lavorazione invece SI'**, ed e' nel catalogo
+    /// (`sopprimi_lavorazione`, `elimina_lavorazione`, voce R2): quelle sono
+    /// operazioni sul pezzo come tutte le altre, si scrivono dentro un piano e
+    /// hanno senso in mezzo a una sequenza. La differenza con `annulla` non e'
+    /// «toglie» contro «aggiunge»: e' che `annulla` disfa **un piano**, e un
+    /// piano non e' geometria.
     ///
     /// Fino alla 0.31.0 questo ponte diceva **ventuno volte** «annullalo con
     /// Ctrl+Z» a un destinatario che non ha una tastiera.

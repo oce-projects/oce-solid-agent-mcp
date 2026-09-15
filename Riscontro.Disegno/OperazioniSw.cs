@@ -216,7 +216,7 @@ namespace Riscontro.Disegno
         /// I nomi che lo switch qui sotto sa eseguire.
         ///
         /// SERVE A CONFRONTARE IL CATALOGO CON CIO' CHE ESISTE DAVVERO. Il
-        /// catalogo dichiara 36 operazioni; qui ce ne sono 34, e le due che
+        /// catalogo dichiara 38 operazioni; qui ce ne sono 36, e le due che
         /// mancano — `estrudi_sezione` e `ruota_dentata` — esistono solo perche'
         /// il server le espande in `contorni` prima che arrivino qui, e il ramo
         /// `default` ricade sull'estrusione di profilo quando trova dei
@@ -235,14 +235,16 @@ namespace Riscontro.Disegno
         public static readonly string[] NomiEseguibili =
         {
             "applica_materiale", "asola", "cordone_saldatura", "crea_asse",
-            "crea_disegno", "crea_piano", "distinta_taglio", "esporta_pdf",
+            "crea_disegno", "crea_piano", "distinta_taglio",
+            "elimina_lavorazione", "esporta_pdf",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
             "estrudi_sezione", "ruota_dentata",
             "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
             "imposta_foglio", "membro_strutturale", "modifica_quota",
             "quote_dal_modello", "raccordo_spigoli", "ripeti_circolare",
             "ripeti_lineare", "rivoluzione", "salva_documento",
-            "smusso_spigoli", "specchia", "sposta_corpi", "taglia_membri",
+            "smusso_spigoli", "sopprimi_lavorazione", "specchia",
+            "sposta_corpi", "taglia_membri",
             "taglio_cilindrico", "taglio_rettangolare", "tappo_estremita",
             "telaio_rettangolare", "vista_modello", "viste_standard",
         };
@@ -300,6 +302,8 @@ namespace Riscontro.Disegno
                     case "asola": return Asola(modello, argomenti, stato);
                     case "estrudi_su_faccia": return EstrudiSuFaccia(modello, argomenti, stato);
                     case "modifica_quota": return ModificaQuota(modello, argomenti, stato);
+                    case "sopprimi_lavorazione": return SopprimiLavorazione(modello, argomenti, stato);
+                    case "elimina_lavorazione": return EliminaLavorazione(modello, argomenti, stato);
                     case "sposta_corpi": return SpostaCorpi(modello, argomenti, stato);
                     case "raccordo_spigoli": return RaccordoSpigoli(modello, argomenti, stato);
                     case "smusso_spigoli": return SmussoSpigoli(modello, argomenti, stato);
@@ -5132,6 +5136,409 @@ namespace Riscontro.Disegno
         /// <see cref="LasciatoSchizzo"/> se non si e' potuto toglierlo;
         /// <see cref="SchizzoToltoMaNonSolo"/> se toglierlo ha cambiato il pezzo.
         /// </returns>
+        // ══════════════════════════════════════════════════════════════════
+        // R2 — TOGLIERE una lavorazione dall'albero
+        //
+        // Fino alla 0.33.0 le trentasei operazioni erano tutte additive o
+        // parametriche: l'albero poteva solo CRESCERE. L'unica correzione era
+        // `modifica_quota` — si cambia un numero, non si ritira una scelta — e
+        // `annulla` (R1), che pero' disfa l'ULTIMO piano intero e non una
+        // lavorazione in mezzo.
+        //
+        // Queste due tolgono una lavorazione qualunque: `sopprimi_lavorazione`
+        // la spegne (si riaccende), `elimina_lavorazione` la cancella.
+        //
+        // ── LA PARTE DIFFICILE E' IL RIFIUTO, come per `annulla` ───────────
+        //
+        // **Le lavorazioni hanno figli.** Togliere l'estrusione di base fa
+        // crollare tutto quello che ci sta sopra, e SOLIDWORKS lo fa **senza
+        // chiedere**. La guardia `IGetChildCount()` esisteva gia' per lo
+        // schizzo orfano (`SenzaLoSchizzo`, punto 4); qui e' estesa, e quando
+        // ci sono figli **si rifiuta dicendo quali** — non si sceglie per conto
+        // di chi disegna.
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>La lavorazione che porta quel nome, o null.</summary>
+        private static IFeature TrovaLavorazione(IModelDoc2 modello, string uid)
+        {
+            var parte = modello as IPartDoc;
+            if (parte == null) return null;
+            try
+            {
+                var f = parte.IFirstFeature();
+                while (f != null)
+                {
+                    string nome = null;
+                    try { nome = f.Name; } catch { }
+                    if (string.Equals(nome, uid, StringComparison.OrdinalIgnoreCase)) return f;
+                    f = f.IGetNextFeature();
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// I nomi di cio' che dipende da questa lavorazione.
+        ///
+        /// Servono a SCRIVERLI nel rifiuto. «Non posso, ha dei figli» manda chi
+        /// legge a cercarli a mano; «non posso, ci stanno sopra Taglio1 e
+        /// Raccordo2» gli dice cosa deve togliere prima, o gli fa capire che ha
+        /// sbagliato lavorazione.
+        /// </summary>
+        private static List<string> FigliDi(IFeature f)
+        {
+            var nomi = new List<string>();
+            try
+            {
+                var figli = f.GetChildren() as object[];
+                if (figli == null) return nomi;
+                foreach (var g in figli)
+                {
+                    var figlio = g as IFeature;
+                    if (figlio == null) continue;
+                    try { nomi.Add(figlio.Name); } catch { }
+                }
+            }
+            catch { }
+            return nomi;
+        }
+
+        /// <summary>
+        /// I nomi delle lavorazioni che ci sono, per un rifiuto che aiuta
+        /// invece di constatare. Corto: dodici bastano a far capire la forma
+        /// dei nomi.
+        /// </summary>
+        private static string LavorazioniCheCiSono(IModelDoc2 modello)
+        {
+            var nomi = new List<string>();
+            var parte = modello as IPartDoc;
+            if (parte == null) return "";
+            try
+            {
+                var f = parte.IFirstFeature();
+                while (f != null && nomi.Count < 12)
+                {
+                    string nome = null;
+                    try { nome = f.Name; } catch { }
+                    if (!string.IsNullOrEmpty(nome)) nomi.Add(nome);
+                    f = f.IGetNextFeature();
+                }
+            }
+            catch { }
+            return string.Join(", ", nomi);
+        }
+
+        /// <summary>
+        /// La lavorazione nominata, con tutti i controlli che valgono per
+        /// tutte e due le operazioni. Null col motivo se non si puo'.
+        /// </summary>
+        private IFeature LavorazioneDaToccare(
+            IModelDoc2 modello, Dictionary<string, object> a, out string motivo)
+        {
+            motivo = null;
+            string uid = Str(a, "feature_uid", "");
+            if (string.IsNullOrWhiteSpace(uid))
+            {
+                motivo = "Non hai detto quale lavorazione. I nomi stanno nello " +
+                         "stato del documento, dentro «feature» (per esempio " +
+                         "«Taglio-Estrusione2»).";
+                return null;
+            }
+
+            // E' ANCORA QUELLA? Un nome si rinomina, `GetID()` no. Stessa
+            // difesa di `ripeti_lineare` e `specchia`, e qui pesa di piu':
+            // la' si copia una lavorazione sbagliata, qui la si cancella.
+            if (!LavorazioneEQuella(modello, uid, a, out motivo)) return null;
+
+            var f = TrovaLavorazione(modello, uid);
+            if (f == null)
+            {
+                string ci = LavorazioniCheCiSono(modello);
+                motivo = "Non trovo la lavorazione «" + uid + "» in questo documento." +
+                         (ci.Length > 0 ? " Ci sono: " + ci + "." : "");
+                return null;
+            }
+
+            // L'ORIGINE NON SI TOCCA. E' uno schizzo speciale da cui puo'
+            // dipendere tutto, e `GetChildren` non sempre lo racconta.
+            string tipo = "";
+            try { tipo = f.GetTypeName2(); } catch { }
+            if (tipo == OrigineDelPezzo)
+            {
+                motivo = "«" + uid + "» e' l'origine del pezzo: non e' una " +
+                         "lavorazione e togliendola non resta niente.";
+                return null;
+            }
+            return f;
+        }
+
+        /// <summary>
+        /// SPEGNE una lavorazione, o la riaccende.
+        ///
+        /// ── PERCHE' SOPPRIMERE E NON CANCELLARE ───────────────────────────
+        ///
+        /// La soppressione **si disfa**: e' la strada da prendere quando si
+        /// vuole vedere il pezzo senza quella lavorazione senza impegnarsi.
+        /// Lo stato la mostra gia' — `soppressa: true` — dalla 0.25.2, e quel
+        /// campo esisteva prima che ci fosse un modo di metterlo: era un
+        /// display senza interruttore.
+        ///
+        /// ── GLI IDENTIFICATIVI CAMBIANO, E VA DETTO ───────────────────────
+        ///
+        /// Sopprimere una lavorazione fa sparire le sue facce, e gli uid sono
+        /// **posizionali**: si rinumerano per area a ogni lettura. Misurato
+        /// nella misura 0.1: sopprimendo la lavorazione generatrice sono
+        /// sparite due facce su otto. Chi ha in mano un piano scritto su «F3»
+        /// dopo questo non ha piu' «F3»: la risposta lo dice, e non lo lascia
+        /// scoprire al passo dopo.
+        ///
+        /// **I figli non fermano la soppressione, ma si dicono.** Sopprimere un
+        /// padre spegne anche i figli, ed e' cio' che di solito si vuole («togli
+        /// il foro e i suoi raccordi»). Diverso da `elimina_lavorazione`, dove
+        /// i figli fermano tutto: li' non si torna indietro.
+        /// </summary>
+        private Esito SopprimiLavorazione(
+            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        {
+            string motivo;
+            var f = LavorazioneDaToccare(modello, a, out motivo);
+            if (f == null) return Fallito(motivo);
+
+            string uid = Str(a, "feature_uid", "");
+            bool riattiva = Bool(a, "riattiva", false);
+
+            bool eraSoppressa = false;
+            try { eraSoppressa = f.IsSuppressed(); } catch { }
+            if (eraSoppressa == !riattiva)
+            {
+                // GIA' COM'E' CHIESTA: non e' un errore, ed e' importante non
+                // trattarlo come tale — un piano che la chiede due volte non ha
+                // rotto niente. Ma non si dice «fatto» e basta, perche' allora
+                // «fatto» non distinguerebbe piu' un cambiamento da un nulla.
+                return Fallito(
+                    "«" + uid + "» e' gia' " +
+                    (eraSoppressa ? "soppressa" : "attiva") +
+                    ": non ho cambiato niente. Se volevi il contrario, " +
+                    (eraSoppressa
+                        ? "passa «riattiva»: true."
+                        : "togli «riattiva»."));
+            }
+
+            double volumePrima = VolumeMm3(modello);
+            int corpiPrima = ContaCorpiSolidi(modello);
+            var figli = FigliDi(f);
+
+            // IN TUTTE LE CONFIGURAZIONI, per la stessa ragione di
+            // `modifica_quota`: sopprimere in una sola lascerebbe il pezzo
+            // diverso a seconda di come lo si guarda.
+            const int inTutteLeConfigurazioni = 2;
+            int azione = riattiva
+                ? (int)swFeatureSuppressionAction_e.swUnSuppressFeature
+                : (int)swFeatureSuppressionAction_e.swSuppressFeature;
+
+            bool fatto;
+            try { fatto = f.SetSuppression2(azione, inTutteLeConfigurazioni, null); }
+            catch (Exception ex)
+            {
+                return Fallito("SOLIDWORKS non ha " +
+                               (riattiva ? "riattivato" : "soppresso") +
+                               " «" + uid + "»: " + ex.Message);
+            }
+            if (!fatto)
+                return Fallito("SOLIDWORKS non ha " +
+                               (riattiva ? "riattivato" : "soppresso") +
+                               " «" + uid + "», e non ha detto perche'.");
+
+            try { modello.EditRebuild3(); } catch { }
+
+            double volumeDopo = VolumeMm3(modello);
+            int corpiDopo = ContaCorpiSolidi(modello);
+
+            var misure = new Dictionary<string, object>
+            {
+                ["lavorazione"] = uid,
+                ["soppressa"] = !riattiva,
+                ["volume_prima_mm3"] = Math.Round(volumePrima, 2),
+                ["volume_dopo_mm3"] = Math.Round(volumeDopo, 2),
+                ["corpi"] = corpiDopo,
+                // GLI IDENTIFICATIVI NON VALGONO PIU', e si dice sempre: e' il
+                // difetto piu' caro del progetto — un'operazione giusta fatta
+                // alla cieca — e qui la cecita' e' garantita.
+                ["nota_identificativi"] =
+                    "Le facce sono cambiate: gli identificativi (F1, E4) di " +
+                    "prima non valgono piu'. Rileggi il pezzo prima del passo " +
+                    "seguente.",
+            };
+            if (corpiDopo != corpiPrima)
+                misure["nota_corpi"] =
+                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo + ".";
+            if (figli.Count > 0)
+                misure["nota_figli"] =
+                    "Da «" + uid + "» dipendono " + string.Join(", ", figli) +
+                    ": " + (riattiva ? "si sono riaccese con lei." : "si sono spente con lei.");
+
+            _log("[agente] " + (riattiva ? "riattivata" : "soppressa") + " " + uid +
+                 ", volume " + volumePrima.ToString("0.#") + " -> " + volumeDopo.ToString("0.#"));
+            return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// CANCELLA una lavorazione. Non si torna indietro con un'altra
+        /// operazione: solo con `annulla`.
+        ///
+        /// ── I FIGLI FERMANO TUTTO, E QUI SI' ──────────────────────────────
+        ///
+        /// In `sopprimi_lavorazione` i figli si spengono insieme al padre e si
+        /// riaccendono insieme. Qui sparirebbero, e **SOLIDWORKS lo fa senza
+        /// chiedere**. Quindi si rifiuta, dicendo quali sono: chi legge decide
+        /// se toglierli prima o se aveva in mente un'altra lavorazione.
+        ///
+        /// E' la stessa guardia che `SenzaLoSchizzo` usa al punto 4, estesa da
+        /// «lo schizzo che ho appena fatto io» a «una lavorazione qualunque».
+        ///
+        /// ── `DeleteSelection2` E NON `EditDelete` ─────────────────────────
+        ///
+        /// La documentazione lo dice, e il motivo e' una trappola nota:
+        /// `EditDelete` apre la finestra di conferma, e una chiamata COM che
+        /// apre un modale **non torna** — e' la stessa trappola di
+        /// `AddDimension`. `DeleteSelection2` risponde un bool e non chiede
+        /// niente a nessuno.
+        ///
+        /// `swDelete_Absorbed` toglie anche lo schizzo assorbito: senza, resta
+        /// nell'albero uno schizzo orfano che non fa niente e confonde chi
+        /// legge lo stato.
+        /// </summary>
+        private Esito EliminaLavorazione(
+            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        {
+            string motivo;
+            var f = LavorazioneDaToccare(modello, a, out motivo);
+            if (f == null) return Fallito(motivo);
+
+            string uid = Str(a, "feature_uid", "");
+
+            var figli = FigliDi(f);
+            int quantiFigli = 0;
+            try { quantiFigli = f.IGetChildCount(); } catch { quantiFigli = figli.Count; }
+            if (quantiFigli > 0)
+                return Fallito(
+                    "Non elimino «" + uid + "»: da lei " +
+                    (quantiFigli == 1 ? "dipende" : "dipendono") + " " +
+                    (figli.Count > 0
+                        ? string.Join(", ", figli)
+                        : quantiFigli + " lavorazion" + (quantiFigli == 1 ? "e" : "i")) +
+                    ". Cancellandola sparirebbe" + (quantiFigli == 1 ? "" : "ro") +
+                    " anche quell" + (quantiFigli == 1 ? "a" : "e") +
+                    ", e SOLIDWORKS lo farebbe senza chiedere.\n\n" +
+                    "Se e' proprio lei che vuoi togliere, togli prima cio' che " +
+                    "ci sta sopra. Se ti serve solo vedere il pezzo senza, usa " +
+                    "«sopprimi_lavorazione»: spegne anche i figli e si disfa.");
+
+            double volumePrima = VolumeMm3(modello);
+            int corpiPrima = ContaCorpiSolidi(modello);
+            int featurePrima = ContaFeature(modello);
+
+            bool tolta;
+            try
+            {
+                modello.ClearSelection2(true);
+                if (!f.Select2(false, 0))
+                    return Fallito("Non sono riuscito a selezionare «" + uid + "».");
+                tolta = modello.Extension.DeleteSelection2(
+                    (int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+            }
+            catch (Exception ex)
+            {
+                return Fallito("SOLIDWORKS non ha cancellato «" + uid + "»: " + ex.Message);
+            }
+            finally
+            {
+                try { modello.ClearSelection2(true); } catch { }
+            }
+
+            if (!tolta)
+                return Fallito("SOLIDWORKS non ha cancellato «" + uid + "», e non ha " +
+                               "detto perche'. Il pezzo e' rimasto com'era.");
+
+            try { modello.EditRebuild3(); } catch { }
+
+            // ── E ADESSO SI CONTROLLA CHE SIA DAVVERO SPARITA ────────────
+            //
+            // `DeleteSelection2` ha risposto true. Non basta: la domanda e' se
+            // quel nome nell'albero non c'e' piu'. E' la differenza fra «ha
+            // detto di averlo fatto» e «l'ha fatto» — la stessa distanza che
+            // questo progetto insegue da cinquanta voci.
+            if (TrovaLavorazione(modello, uid) != null)
+                return Fallito(
+                    "Ho chiesto di cancellare «" + uid + "», SOLIDWORKS ha " +
+                    "risposto di si', e la lavorazione e' ancora nell'albero. " +
+                    "Non so dirti cos'e' successo: guarda il pezzo prima di " +
+                    "fare altro.");
+
+            int featureDopo = ContaFeature(modello);
+            double volumeDopo = VolumeMm3(modello);
+            int corpiDopo = ContaCorpiSolidi(modello);
+
+            var misure = new Dictionary<string, object>
+            {
+                ["lavorazione_tolta"] = uid,
+                ["volume_prima_mm3"] = Math.Round(volumePrima, 2),
+                ["volume_dopo_mm3"] = Math.Round(volumeDopo, 2),
+                ["lavorazioni_prima"] = featurePrima,
+                ["lavorazioni_dopo"] = featureDopo,
+                ["corpi"] = corpiDopo,
+                ["nota_identificativi"] =
+                    "Le facce sono cambiate: gli identificativi (F1, E4) di " +
+                    "prima non valgono piu'. Rileggi il pezzo prima del passo " +
+                    "seguente.",
+            };
+            if (corpiDopo != corpiPrima)
+                misure["nota_corpi"] =
+                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
+                    ": togliere questa lavorazione ha spezzato o unito il pezzo.";
+
+            _log("[agente] eliminata " + uid + ", lavorazioni " + featurePrima +
+                 " -> " + featureDopo + ", volume " + volumePrima.ToString("0.#") +
+                 " -> " + volumeDopo.ToString("0.#"));
+            return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// Un successo che NON ha creato niente.
+        ///
+        /// `Riuscito` scrive nel log «creata feature X» e porta la feature
+        /// nuova nell'esito, perche' le trentasei operazioni che c'erano prima
+        /// creavano tutte qualcosa. Togliere no — e un'operazione che dice
+        /// «creata feature» mentre ne cancella una lascia nel registro una
+        /// frase falsa.
+        ///
+        /// **Nome nuovo invece di un parametro in piu' su `Riuscito`:**
+        /// cambiare l'insieme delle firme rompe chi chiama per riflessione
+        /// anche quando il compilatore tace. E' la lezione della 0.25.1, e
+        /// `Riuscito` e' il punto da cui passa OGNI successo del progetto —
+        /// il posto peggiore in cui provarla.
+        ///
+        /// I riancoraggi si drenano lo stesso: se nel trovare la lavorazione
+        /// una faccia e' stata ritrovata altrove, chi legge deve saperlo anche
+        /// qui.
+        /// </summary>
+        private Esito RiuscitoSenzaCreare(Dictionary<string, object> misure)
+        {
+            if (_riancoraggi.Count > 0)
+            {
+                if (misure == null) misure = new Dictionary<string, object>();
+                misure["riancoraggi"] = _riancoraggi.ToArray();
+            }
+            return new Esito
+            {
+                Riuscito = true,
+                FeatureCreata = null,
+                Feature = null,
+                Misure = misure,
+            };
+        }
+
         private string SenzaLoSchizzo(IModelDoc2 modello)
         {
             if (modello == null) return LasciatoSchizzo;

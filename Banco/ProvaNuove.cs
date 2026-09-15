@@ -52,7 +52,225 @@ namespace ProvaSaldatura
             ProvaCreaAsse();
             ProvaRipetiLineare();
             ProvaSpecchia();
+            ProvaTogliere();
         }
+
+        // ==================================================================
+        // R2. sopprimi_lavorazione ed elimina_lavorazione
+        // ==================================================================
+        /// <summary>
+        /// Togliere una lavorazione: spegnerla, riaccenderla, cancellarla.
+        ///
+        /// IL CRITERIO DELLA VOCE, alla lettera: «su un pezzo con tre fori,
+        /// sopprimere il secondo riporta il volume al valore che aveva con due,
+        /// e lo stato lo mostra `soppressa: true`. Eliminarlo lo toglie
+        /// dall'elenco.»
+        ///
+        /// E' un'uguaglianza, non una stima: il volume con due fori si MISURA
+        /// prima di fare il terzo, e dopo la soppressione dev'essere quello.
+        ///
+        /// ── I ROSSI, CHE SONO LA PARTE CHE CONTA ──────────────────────────
+        ///
+        /// Togliere una lavorazione riesce sempre: SOLIDWORKS la toglie e
+        /// basta. La voce esiste per i casi in cui **non si deve**:
+        ///
+        ///   1. una lavorazione da cui ne dipendono altre -> rifiuta, e DICE
+        ///      quali. Senza, sparirebbero anche quelle, senza chiedere.
+        ///   2. un nome che non c'e' -> rifiuta, e dice quali ci sono.
+        ///   3. sopprimere cio' che e' gia' soppresso -> lo dice invece di
+        ///      rispondere «fatto», che non distinguerebbe piu' un
+        ///      cambiamento da un nulla.
+        /// </summary>
+        private static void ProvaTogliere()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== sopprimi/elimina lavorazione (R2) ===");
+
+            IModelDoc2 doc = null;
+            try
+            {
+                doc = NuovaParte();
+                if (doc == null) { Segna("R2: parte nuova", false, "non creata"); return; }
+
+                string errore;
+                var misure = Esegui(doc, "estrudi_rettangolo", new Dictionary<string, object>
+                {
+                    ["piano"] = "superiore",
+                    ["lunghezza_mm"] = 200.0,
+                    ["larghezza_mm"] = 100.0,
+                    ["spessore_mm"] = 20.0,
+                    ["centrato"] = true,
+                }, out errore);
+                if (misure == null) { Segna("R2: la piastra", false, Corto(errore)); return; }
+                string estrusioneDiBase = UltimoNomeFeature(doc);
+
+                // Tre fori, uno per volta, misurando il volume dopo il secondo:
+                // e' quello il numero che la soppressione deve far tornare.
+                string[] fori = new string[3];
+                double volumeConDue = 0;
+                for (int i = 0; i < 3; i++)
+                {
+                    var stato = LeggiStato(doc);
+                    string alto = FacciaInAlto(stato);
+                    if (alto == null) { Segna("R2: faccia in alto", false, "non trovata"); return; }
+                    var m = Esegui(doc, "taglio_cilindrico", new Dictionary<string, object>
+                    {
+                        ["faccia_uid"] = alto,
+                        ["x_mm"] = -60.0 + i * 60.0,
+                        ["y_mm"] = 0.0,
+                        ["diametro_mm"] = 14.0,
+                        ["passante"] = true,
+                    }, out errore, stato);
+                    if (m == null) { Segna("R2: foro " + (i + 1), false, Corto(errore)); return; }
+                    fori[i] = UltimoNomeFeature(doc);
+                    if (i == 1) volumeConDue = VolumeDelDocumento(doc);
+                }
+                double volumeConTre = VolumeDelDocumento(doc);
+                Segna("R2: tre fori, e il terzo toglie materiale",
+                      volumeConTre < volumeConDue - 1,
+                      "con due " + volumeConDue.ToString("0.#") +
+                      ", con tre " + volumeConTre.ToString("0.#"));
+
+                // ── ROSSO 2: un nome che non c'e' ───────────────────────
+                var nulla = Esegui(doc, "elimina_lavorazione", new Dictionary<string, object>
+                {
+                    ["feature_uid"] = "Taglio-Che-Non-Esiste",
+                }, out errore);
+                Segna("R2 ROSSO: un nome inventato e' rifiutato, coi nomi veri",
+                      nulla == null && errore != null && errore.Contains("Ci sono"),
+                      nulla != null ? "NON ha rifiutato" : Corto(errore));
+
+                // ── IL VERDE: sopprimere il secondo ─────────────────────
+                var s = Esegui(doc, "sopprimi_lavorazione", new Dictionary<string, object>
+                {
+                    ["feature_uid"] = fori[2],
+                }, out errore);
+                Segna("R2: sopprimere il terzo foro riesce", s != null, Corto(errore));
+                double volumeSoppresso = VolumeDelDocumento(doc);
+                Segna("R2: il volume torna a quello con due fori",
+                      Math.Abs(volumeSoppresso - volumeConDue) < 0.01,
+                      volumeSoppresso.ToString("0.###") + " contro " +
+                      volumeConDue.ToString("0.###"));
+                Segna("R2: lo stato la mostra soppressa",
+                      Soppressa(LeggiStato(doc), fori[2]),
+                      "cerco «soppressa: true» su " + fori[2]);
+
+                // ── ROSSO 3: sopprimerla di nuovo ───────────────────────
+                var ancora = Esegui(doc, "sopprimi_lavorazione", new Dictionary<string, object>
+                {
+                    ["feature_uid"] = fori[2],
+                }, out errore);
+                Segna("R2 ROSSO: sopprimere cio' che e' gia' spento e' rifiutato",
+                      ancora == null && errore != null && errore.Contains("gia'"),
+                      ancora != null ? "NON ha rifiutato" : Corto(errore));
+
+                // ── E si riaccende ──────────────────────────────────────
+                var r = Esegui(doc, "sopprimi_lavorazione", new Dictionary<string, object>
+                {
+                    ["feature_uid"] = fori[2],
+                    ["riattiva"] = true,
+                }, out errore);
+                Segna("R2: riattivarla rimette il volume com'era",
+                      r != null && Math.Abs(VolumeDelDocumento(doc) - volumeConTre) < 0.01,
+                      r == null ? Corto(errore) : VolumeDelDocumento(doc).ToString("0.###"));
+
+                // ── ROSSO 1: L'ESTRUSIONE DI BASE ───────────────────────
+                //
+                // E' il caso che la voce chiama pericoloso per nome: «togliere
+                // l'estrusione di base fa crollare tutto quello che ci sta
+                // sopra, e SOLIDWORKS lo fa senza chiedere». I tre fori sono
+                // suoi figli, quindi cancellarla li porterebbe via — e con
+                // loro il pezzo.
+                //
+                // La prima scrittura di questo rosso costruiva un raccordo sul
+                // terzo foro per dargli un figlio, e il raccordo non e' venuto:
+                // la prova e' finita SALTATA, cioe' il controllo che questa
+                // voce esiste per fare non e' mai scattato. Un rosso saltato
+                // non e' un rosso passato — il banco lo dice apposta.
+                var conFigli = Esegui(doc, "elimina_lavorazione", new Dictionary<string, object>
+                {
+                    ["feature_uid"] = estrusioneDiBase,
+                }, out errore);
+                // SI CERCA IL NOME DI UN FIGLIO, non la parola «dipendono».
+                // La prima scrittura cercava «dipende», e correggendo la frase
+                // in «da lei dipendono» la prova sarebbe diventata rossa su un
+                // codice giusto: un'asserzione sul FRASEGGIO si rompe ogni
+                // volta che si sistema una virgola.
+                //
+                // Quello che la voce chiede e' che il rifiuto DICA QUALI sono i
+                // figli. Allora e' quello che si cerca: il nome del primo foro,
+                // che dell'estrusione di base e' figlio.
+                Segna("R2 ROSSO: l'estrusione di base e' rifiutata, coi nomi dei figli",
+                      conFigli == null && errore != null && errore.Contains(fori[0]),
+                      conFigli != null ? "NON ha rifiutato" : Corto(errore));
+
+                // ── IL VERDE: eliminare il PRIMO, che figli non ne ha ───
+                double volumePrimaDellaCancellazione = VolumeDelDocumento(doc);
+                var e = Esegui(doc, "elimina_lavorazione", new Dictionary<string, object>
+                {
+                    ["feature_uid"] = fori[0],
+                }, out errore);
+                Segna("R2: eliminare un foro senza figli riesce", e != null, Corto(errore));
+                Segna("R2: non e' piu' nell'elenco delle lavorazioni",
+                      !NellElenco(LeggiStato(doc), fori[0]),
+                      "cerco «" + fori[0] + "» fra le feature");
+                Segna("R2: il volume e' cresciuto di un foro",
+                      VolumeDelDocumento(doc) > volumePrimaDellaCancellazione + 1,
+                      volumePrimaDellaCancellazione.ToString("0.#") + " -> " +
+                      VolumeDelDocumento(doc).ToString("0.#"));
+            }
+            catch (Exception ex) { Segna("R2", false, Perche(ex)); }
+            finally { Chiudi(doc); }
+        }
+
+        /// <summary>Il nome dell'ultima lavorazione dell'albero.</summary>
+        private static string UltimoNomeFeature(IModelDoc2 doc)
+        {
+            string ultimo = null;
+            try
+            {
+                var f = (doc as IPartDoc).IFirstFeature();
+                while (f != null) { try { ultimo = f.Name; } catch { } f = f.IGetNextFeature(); }
+            }
+            catch { }
+            return ultimo;
+        }
+
+        private static bool Soppressa(Dictionary<string, object> stato, string uid)
+        {
+            foreach (var v in Feature(stato))
+            {
+                object u, s;
+                if (!v.TryGetValue("uid", out u) || Convert.ToString(u) != uid) continue;
+                return v.TryGetValue("soppressa", out s) && Convert.ToBoolean(s);
+            }
+            return false;
+        }
+
+        private static bool NellElenco(Dictionary<string, object> stato, string uid)
+        {
+            foreach (var v in Feature(stato))
+            {
+                object u;
+                if (v.TryGetValue("uid", out u) && Convert.ToString(u) == uid) return true;
+            }
+            return false;
+        }
+
+        private static IEnumerable<Dictionary<string, object>> Feature(
+            Dictionary<string, object> stato)
+        {
+            object g;
+            if (stato == null || !stato.TryGetValue("feature", out g) || g == null) yield break;
+            var elenco = g as System.Collections.IEnumerable;
+            if (elenco == null) yield break;
+            foreach (var v in elenco)
+            {
+                var voce = v as Dictionary<string, object>;
+                if (voce != null) yield return voce;
+            }
+        }
+
 
         /// <summary>
         /// LO SCATTO: una vista del pezzo, salvata su file.

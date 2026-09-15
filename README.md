@@ -1,6 +1,6 @@
 # OCE Solid Agent
 
-Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti trentasei
+Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti trentotto
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -52,7 +52,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Cinque, non trentasei. Le operazioni di disegno sono trentasei, ma esporne
+Cinque, non trentotto. Le operazioni di disegno sono trentotto, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 
@@ -104,11 +104,17 @@ pagherebbe anche chi voleva solo sapere quanti corpi ci sono.
 Fotografare **non tocca la vista di chi lavora**: l'orientamento si salva prima
 e si rimette dopo, anche quando la fotografia fallisce a meta'.
 
-**E si puo' tornare indietro.** Fino alla 0.31.0 le trentasei operazioni erano
-tutte additive o parametriche: l'albero poteva solo crescere, e chi si accorgeva
-di aver sbagliato doveva costruirci sopra o rifare il pezzo da capo. `annulla`
+**E si puo' tornare indietro.** Fino alla 0.31.0 le operazioni erano tutte
+additive o parametriche: l'albero poteva solo crescere, e chi si accorgeva di
+aver sbagliato doveva costruirci sopra o rifare il pezzo da capo. `annulla`
 ritira l'ultimo piano tutto intero — `disegna` lo esegue gia' dentro **una sola**
 voce di annullamento.
+
+**E si puo' togliere una lavorazione in mezzo**, non solo l'ultimo piano:
+`sopprimi_lavorazione` la spegne (e `riattiva` la riaccende),
+`elimina_lavorazione` la cancella. La seconda **si rifiuta quando qualcosa
+dipende da quella lavorazione**, e dice cosa: cancellarla la porterebbe via
+insieme ai suoi figli, e SOLIDWORKS lo fa senza chiedere.
 
 **Si rifiuta se il pezzo e' cambiato dopo.** Volume e numero di lavorazioni
 devono essere ancora quelli che `disegna` aveva lasciato: se il progettista ha
