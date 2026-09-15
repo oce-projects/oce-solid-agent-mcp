@@ -41,6 +41,7 @@
 #      .\Banco\banco.ps1 -Gruppo viste          una famiglia sola (voce F13)
 #      .\Banco\banco.ps1 -Lento                 anche le prove che costano minuti
 #      .\Banco\banco.ps1 -Muta                  perturba i casi (voce F6)
+#      .\Banco\banco.ps1 -Regressione           i riferimenti sotto modifica (F8)
 #      .\Banco\banco.ps1 -SaltaCompilazione     il binario che c'e' gia'
 # =============================================================================
 
@@ -48,6 +49,7 @@ param(
     [string] $Gruppo = "",
     [switch] $Lento,
     [switch] $Muta,
+    [switch] $Regressione,
     [switch] $SaltaCompilazione,
     [string] $Libreria = ""
 )
@@ -122,6 +124,10 @@ if ($Lento) { $argomenti += "--lento" }
 # un argomento alla volta e PRETENDE che diventino rossi (voce F6). Costa un
 # documento di SOLIDWORKS per mutazione: si lancia prima di una consegna.
 if ($Muta) { $argomenti += "--muta" }
+# -Regressione: i diciotto casi dei riferimenti (voce F8). Produce TRE NUMERI
+# che sommano ai casi -- reggono, si staccano e lo dicono, si staccano in
+# silenzio -- e il terzo e' l'unico che conta.
+if ($Regressione) { $argomenti += "--regressione" }
 if (-not [string]::IsNullOrWhiteSpace($Gruppo)) { $argomenti += @("--gruppo", $Gruppo) }
 
 $eseguibile = Join-Path $Banco "bin\ProvaSaldatura.exe"

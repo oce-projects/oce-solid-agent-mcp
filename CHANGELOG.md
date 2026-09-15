@@ -18,6 +18,43 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F8 — La regressione sui riferimenti, e i tre numeri
+
+```
+.\Banco\banco.ps1 -Regressione   ->  16 casi
+                                     12  reggono
+                                      0  si staccano e LO DICONO
+                                      4  si staccano IN SILENZIO
+```
+
+Sedici pezzi costruiti, **una sola quota a monte cambiata**, e la geometria a
+valle rimisurata. I numeri sono nel README.
+
+**Lo zero in mezzo e' il piu' interessante dei tre.** Nessuno dei sedici casi si
+e' rotto in modo visibile: le quattro volte che il pezzo e' uscito diverso da
+quello che il disegno dichiarava, SOLIDWORKS ha ricostruito pulito e non ha
+detto niente.
+
+**E la scoperta che vale piu' dei numeri:** un taglio schizzato **su una faccia
+segue quella faccia**. Il foro sul fondo di un guscio regge sia quando la
+scatola si alza di 28 mm sia quando la parete ingrossa di 7. Quello che non
+segue e' la posizione **dentro** la faccia: `x_mm`/`y_mm` sono coordinate
+assolute sul piano di schizzo, e una faccia che cresce non le sposta.
+
+> Non e' «i riferimenti non reggono». E': **il piano di schizzo regge, le
+> coordinate dentro il piano no.**
+
+Due casi dei diciotto **non sono scrivibili oggi**, e sta scritto perche': il
+percorso di un telaio e' un `3DProfileFeature` di cui lo stato non pubblica le
+quote, e `fazzoletto` vuole due facce d'angolo che nessun selettore sa nominare.
+
+Due arnesi nuovi nel formato dei casi: **`come_prima`** (l'invariante e'
+«com'era», e calcolarlo a mano sarebbe rifare un conto che SOLIDWORKS ha gia'
+fatto — sbagliandolo si crea un falso silenzio) e **`centro_massa_mm`**
+(l'invariante di posizione per cio' che fori non ne lascia). Il secondo e'
+servito subito: un caso **reggeva col volume** mentre il foro poteva essere
+finito altrove.
+
 ### F7 — Le prove che girano dove SOLIDWORKS non c'e'
 
 ```

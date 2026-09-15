@@ -1,0 +1,34 @@
+{
+  "nome": "r14_foro_guidato_e_il_preforo",
+  "famiglia": "regressione",
+  "perche": "Un foro guidato M8 su una piastra che si ingrossa. La creazione guidata fori porta con se' la norma -- diametro, filetto, profondita' -- e quella norma non deve cambiare perche' il pezzo e' cambiato. Se il diametro del foro segue lo spessore, il bullone non entra piu'.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "un M8 e' un M8: il diametro lo decide la norma ISO, non la piastra. Ingrossandola da 20 a 35 il foro resta dov'e' e quanto e', ed e' scritto «come_prima» perche' il numero esatto lo decide SOLIDWORKS dalla tabella, non io.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true }
+    },
+    {
+      "operazione": "foro_guidato",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "taglia": "M8",
+        "filettato": true,
+        "passante": true,
+        "posizioni": [ { "x_mm": 0, "y_mm": 0 } ]
+      }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 35 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [200, 120, 35] },
+    { "cosa": "diametri_mm", "come_prima": true,
+      "tolleranza": 0.02,
+      "perche_questa_tolleranza": "il diametro del preforo lo decide la tabella ISO: si misura prima e si pretende che non cambi" },
+    { "cosa": "centri_x_mm", "come_prima": true,
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri" }
+  ]
+}

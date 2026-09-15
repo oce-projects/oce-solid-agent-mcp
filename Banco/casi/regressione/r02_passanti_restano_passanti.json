@@ -1,0 +1,35 @@
+{
+  "nome": "r02_passanti_restano_passanti",
+  "famiglia": "regressione",
+  "perche": "Stessa piastra del caso 1, ma a cambiare e' lo SPESSORE. Quattro fori passanti devono restare passanti: e' la condizione di fine del taglio, non una misura, ed e' proprio il genere di cosa che si rompe in silenzio quando la quota che cambia e' un'altra.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "i fori stanno dove stanno: ingrossare la piastra non li sposta, e in officina nessuno se lo aspetta. Qui l'invariante e' che restino QUATTRO e passanti.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true }
+    },
+    {
+      "operazione": "foro_guidato",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "taglia": "M8",
+        "passante": true,
+        "posizioni": [ { "x_mm": -80, "y_mm": -40 }, { "x_mm": 80, "y_mm": -40 },
+                       { "x_mm": 80, "y_mm": 40 }, { "x_mm": -80, "y_mm": 40 } ]
+      }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 35 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [200, 120, 35] },
+    { "cosa": "centri_x_mm", "come_prima": true,
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+    { "cosa": "centri_y_mm", "come_prima": true,
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "come sopra" },
+    { "cosa": "corpi", "uguale": 1 }
+  ]
+}

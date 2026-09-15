@@ -1,0 +1,31 @@
+{
+  "nome": "r01_quattro_fori_dal_bordo",
+  "famiglia": "regressione",
+  "perche": "Il caso piu' comune che esista: quattro fori di fissaggio a 20 mm dagli angoli di una piastra, e la piastra si allarga. In officina quei fori restano a 20 mm dal bordo -- e' quello che vuol dire «a 20 dagli angoli».",
+  "intento": "ancorato_a_bordo",
+  "perche_intento": "i fori stanno a 20 mm dai bordi: allargando la piastra da 120 a 180 devono restare a 20 mm, cioe' andare da y = +/-40 a y = +/-70. Oggi il sistema sa esprimere solo l'ancoraggio assoluto, quindi restano a +/-40: e' la misura di partenza di E6/E7.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true }
+    },
+    {
+      "operazione": "foro_guidato",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "taglia": "M8",
+        "passante": true,
+        "posizioni": [ { "x_mm": -80, "y_mm": -40 }, { "x_mm": 80, "y_mm": -40 },
+                       { "x_mm": 80, "y_mm": 40 }, { "x_mm": -80, "y_mm": 40 } ]
+      }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 180 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [200, 180, 20] },
+    { "cosa": "centri_y_mm", "uguale": [-70, -70, 70, 70],
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri: il centesimo e' arrotondamento" }
+  ]
+}

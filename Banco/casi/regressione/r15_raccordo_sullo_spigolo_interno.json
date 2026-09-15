@@ -1,0 +1,35 @@
+{
+  "nome": "r15_raccordo_sullo_spigolo_interno",
+  "famiglia": "regressione",
+  "perche": "Due estrusioni a L con un raccordo sullo spigolo interno, e la base si allarga. Il raccordo sta su uno spigolo che la modifica non tocca: deve restare, e restare da 8. Serve a non far credere che si stacchi sempre tutto -- meta' del valore di questa suite sta nei casi che REGGONO.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "il raccordo e' agganciato allo spigolo interno della L, che la larghezza della base non muove. Il raggio resta 8, e i raccordi restano uno: e' «com'era», e infatti si scrive cosi'.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true }
+    },
+    {
+      "operazione": "estrudi_su_faccia",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "contorni": [ { "vertici": [ [-100, -60], [-80, -60], [-80, 60], [-100, 60] ] } ],
+        "altezza_mm": 60
+      }
+    },
+    {
+      "operazione": "raccordo_spigoli",
+      "argomenti": { "spigoli_uid": [ "@spigolo(asse=Y,lungo~=120,n=1)" ], "raggio_mm": 8 }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 160 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [200, 160, 80],
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "l'ingombro si legge con GetExtremePoint" },
+    { "cosa": "diametri_mm", "come_prima": true,
+      "tolleranza": 0.02,
+      "perche_questa_tolleranza": "il raccordo lascia una faccia cilindrica di raggio 8: il diametro si legge da CylinderParams" }
+  ]
+}

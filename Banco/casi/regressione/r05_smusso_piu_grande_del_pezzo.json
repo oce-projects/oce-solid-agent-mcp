@@ -1,0 +1,25 @@
+{
+  "nome": "r05_smusso_piu_grande_del_pezzo",
+  "famiglia": "regressione",
+  "perche": "Uno smusso da 2 su uno SPIGOLO LUNGO, e la piastra diventa spessa 1. Non ci sta, e DEVE staccarsi rumorosamente: un difetto che il progettista vede e' un problema, non una trappola. La prima scrittura smussava i quattro spigoli VERTICALI, e quelli lo spessore non li tocca: il caso e' uscito verde per il motivo sbagliato.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "lo smusso e' 2 x 45 su uno spigolo orizzontale e lo spessore va a 1: non c'e' nessun ancoraggio che possa salvarlo. L'unica risposta giusta e' un errore che si legge.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true }
+    },
+    {
+      "operazione": "smusso_spigoli",
+      "argomenti": {
+        "spigoli_uid": [ "@spigolo(asse=X,lungo~=200,n=1)" ],
+        "lato_mm": 2, "angolo_gradi": 45
+      }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 1 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [200, 120, 1] }
+  ]
+}

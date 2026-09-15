@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using SolidWorks.Interop.sldworks;
+using SolidWorks.Interop.swconst;
 // IL VALUTATORE DELLE ATTESE E I SELETTORI STANNO IN `Attese.cs`, che e'
 // compilato anche da `Prove.Contratti` — il progetto che gira su una macchina
 // SENZA SOLIDWORKS (voce F7). `using static` li lascia scrivere come prima:
@@ -825,7 +826,103 @@ namespace ProvaSaldatura
             if (cosa == "volume_mm3") return VolumeDelDocumento(doc);
             if (cosa == "corpi") return ContaCorpi(doc);
             if (cosa == "ingombro_mm") return IngombroDelDocumento(doc);
+
+            // ── DOVE STANNO I FORI, E NON QUANTO MATERIALE MANCA ─────────
+            //
+            // E' l'invariante della voce F8: **la posizione del cilindro, mai
+            // il volume da solo**. Un caso che «regge» perche' il volume torna,
+            // mentre il foro e' finito dall'altra parte, e' il difetto che
+            // quella suite esiste per misurare.
+            //
+            // Ordinati, perche' l'ordine in cui SOLIDWORKS elenca le facce non
+            // e' una cosa su cui un caso possa contare.
+            if (cosa == "centri_x_mm") return CentriDeiCilindri(doc, 0);
+            if (cosa == "centri_y_mm") return CentriDeiCilindri(doc, 1);
+            if (cosa == "centri_z_mm") return CentriDeiCilindri(doc, 2);
+            if (cosa == "diametri_mm") return DiametriDeiCilindri(doc);
+
+            // ── E PER CIO' CHE CILINDRI NON NE LASCIA ────────────────────
+            //
+            // Una tasca rettangolare non ha un centro che si possa leggere
+            // dalle facce, ma **sposta il baricentro del pezzo**, e di quanto
+            // si calcola a mano. E' l'invariante di posizione per tutto quello
+            // che non e' un foro: il volume da solo non distingue una tasca
+            // ferma da una tasca che ha seguito il bordo.
+            if (cosa == "centro_massa_mm") return CentroDiMassa(doc);
             return null;
+        }
+
+        private static double[] CentroDiMassa(IModelDoc2 doc)
+        {
+            var parte = doc as IPartDoc;
+            if (parte == null) return null;
+            var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            if (corpi == null || corpi.Length == 0) return null;
+            double vx = 0, vy = 0, vz = 0, volume = 0;
+            foreach (var c in corpi)
+            {
+                var mp = (c as IBody2)?.GetMassProperties(1000.0) as double[];
+                if (mp == null || mp.Length < 4) continue;
+                double v = mp[3] * 1e9;
+                if (v <= 0) continue;
+                volume += v;
+                vx += mp[0] * 1000.0 * v;
+                vy += mp[1] * 1000.0 * v;
+                vz += mp[2] * 1000.0 * v;
+            }
+            if (volume <= 0) return null;
+            return new[]
+            {
+                Math.Round(vx / volume, 3), Math.Round(vy / volume, 3), Math.Round(vz / volume, 3),
+            };
+        }
+
+        /// <summary>
+        /// Le coordinate dei centri delle facce cilindriche lungo un asse, in
+        /// mm, ordinate. Un foro passante lascia piu' facce sullo stesso asse:
+        /// si conta il FORO, non la faccia.
+        /// </summary>
+        private static double[] CentriDeiCilindri(IModelDoc2 doc, int asse)
+        {
+            return Cilindri(doc).Select(c => Math.Round(c[asse], 2)).OrderBy(x => x).ToArray();
+        }
+
+        private static double[] DiametriDeiCilindri(IModelDoc2 doc)
+        {
+            return Cilindri(doc).Select(c => Math.Round(c[3] * 2, 2)).OrderBy(x => x).ToArray();
+        }
+
+        /// <summary>{x, y, z, raggio} di ogni cilindro distinto, in mm.</summary>
+        private static List<double[]> Cilindri(IModelDoc2 doc)
+        {
+            var fuori = new List<double[]>();
+            var parte = doc as IPartDoc;
+            if (parte == null) return fuori;
+            var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            if (corpi == null) return fuori;
+            foreach (var c in corpi)
+            {
+                var facce = (c as IBody2)?.GetFaces() as object[];
+                if (facce == null) continue;
+                foreach (var o in facce)
+                {
+                    double[] par;
+                    try
+                    {
+                        var su = (o as IFace2)?.IGetSurface();
+                        if (su == null || !su.IsCylinder()) continue;
+                        par = su.CylinderParams as double[];
+                    }
+                    catch { continue; }
+                    if (par == null || par.Length < 7) continue;
+                    var q = new[] { par[0] * 1000, par[1] * 1000, par[2] * 1000, par[6] * 1000 };
+                    bool gia = fuori.Any(p =>
+                        Math.Abs(p[0] - q[0]) < 0.05 && Math.Abs(p[1] - q[1]) < 0.05 &&
+                        Math.Abs(p[2] - q[2]) < 0.05 && Math.Abs(p[3] - q[3]) < 0.05);
+                    if (!gia) fuori.Add(q);
+                }
+            }
+            return fuori;
         }
 
         /// <summary>I file dei casi, o null (dopo aver gia' detto perche').</summary>

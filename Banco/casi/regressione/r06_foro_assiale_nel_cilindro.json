@@ -1,0 +1,31 @@
+{
+  "nome": "r06_foro_assiale_nel_cilindro",
+  "famiglia": "regressione",
+  "perche": "Un cilindro con un foro sull'asse, e il cilindro dimagrisce. Il foro e' sull'asse: qualunque cosa faccia il diametro esterno, quello resta dov'e' e quanto e'. E' un caso che deve reggere, e il suo contrario -- un foro assiale che si sposta -- sarebbe visibile a occhio.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "un foro sull'asse e' sull'asse: portare il diametro esterno da 100 a 60 non lo tocca. Si misura che restino due cilindri, quello esterno da 60 e il foro da 20, tutti e due centrati in (0,0).",
+  "costruisci": [
+    {
+      "operazione": "estrudi_cerchio",
+      "argomenti": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 }
+    },
+    {
+      "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+                     "diametro_mm": 20, "passante": true }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 60 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [60, 60, 50],
+      "tolleranza": 0.02,
+      "perche_questa_tolleranza": "l'ingombro di un cilindro si legge con GetExtremePoint, che su una superficie curva arrotonda" },
+    { "cosa": "diametri_mm", "uguale": [20, 60],
+      "tolleranza": 0.02,
+      "perche_questa_tolleranza": "i diametri si leggono da CylinderParams, che torna metri" },
+    { "cosa": "centri_x_mm", "uguale": [0, 0], "tolleranza": 0.02,
+      "perche_questa_tolleranza": "come sopra" },
+    { "cosa": "centri_y_mm", "uguale": [0, 0], "tolleranza": 0.02,
+      "perche_questa_tolleranza": "come sopra" }
+  ]
+}

@@ -160,6 +160,11 @@ namespace ProvaSaldatura
             // di una consegna e non ogni sera.
             _muta = argomenti.Remove("--muta");
 
+            // `--regressione`: la suite dei riferimenti (voce F8). Come
+            // `--muta`, e' un altro giro: produce tre numeri, non prove verdi
+            // e rosse, e mescolarli non direbbe niente a nessuno.
+            _regressione = argomenti.Remove("--regressione");
+
             // `--gruppo <nomi>`: una famiglia di prove sola, mentre si lavora.
             //
             // ── PERCHE' ESISTE (voce F13) ─────────────────────────────────
@@ -283,16 +288,21 @@ namespace ProvaSaldatura
             // Non si aggiunge alle prove: le sostituisce. Mescolarlo vorrebbe
             // dire sommare centinaia di rossi CERCATI a un conteggio che serve
             // a leggere i rossi non cercati.
-            if (_muta)
+            if (_muta || _regressione)
             {
-                IlGiroDelleMutazioni();
+                if (_muta) IlGiroDelleMutazioni();
+                else IlGiroDellaRegressione();
                 Console.WriteLine();
                 Console.WriteLine(new string('=', 76));
                 foreach (var r in _esiti) Console.WriteLine(r);
                 Console.WriteLine();
-                var soloMuta = "MUTAZIONI — " + (_esiti.Count - _saltate - _erroriDiBanco) +
-                               " casi, " + _falliti + " ciechi" +
-                               (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "");
+                var soloMuta = _muta
+                    ? "MUTAZIONI — " + (_esiti.Count - _saltate - _erroriDiBanco) +
+                      " casi, " + _falliti + " ciechi" +
+                      (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "")
+                    : "REGRESSIONE — " + (_esiti.Count - _saltate - _erroriDiBanco) +
+                      " righe, " + _falliti + " fallite" +
+                      (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "");
                 Console.WriteLine(soloMuta);
                 Console.WriteLine("attese verificate " + _atteseVerificate + " su " + _attese);
                 ChiudiIlDiario(soloMuta);
@@ -768,6 +778,7 @@ namespace ProvaSaldatura
 
         private static bool _lento;
         private static bool _muta;
+        private static bool _regressione;
 
         // ==================================================================
         // 1. il misuratore di sezione dell'add-in

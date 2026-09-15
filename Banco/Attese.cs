@@ -35,6 +35,21 @@ namespace ProvaSaldatura
             public NonHoPotutoMisurare(string messaggio) : base(messaggio) { }
         }
 
+        /// <summary>
+        /// Dove sta la libreria dei profili saldati su QUESTA installazione.
+        /// Si cambia con `PROFILI_SALDATURA`, come nel banco.
+        /// </summary>
+        internal static string Profili
+        {
+            get
+            {
+                var suo = Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
+                return string.IsNullOrWhiteSpace(suo)
+                    ? @"<impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\NORMATI"
+                    : suo;
+            }
+        }
+
         /// <summary>Un testo lungo, accorciato per stare su una riga di esito.</summary>
         internal static string Breve(string s)
         {
@@ -130,7 +145,9 @@ namespace ProvaSaldatura
             // LE TRE MISURE DEL DOCUMENTO ARRIVANO DA FUORI, e chi non ha un
             // documento in mano passa null: e' quello che rende questo file
             // compilabile dove SOLIDWORKS non c'e' (voce F7).
-            if (cosa == "volume_mm3" || cosa == "corpi" || cosa == "ingombro_mm")
+            if (cosa == "volume_mm3" || cosa == "corpi" || cosa == "ingombro_mm" ||
+                cosa == "centri_x_mm" || cosa == "centri_y_mm" || cosa == "centri_z_mm" ||
+                cosa == "diametri_mm" || cosa == "centro_massa_mm")
             {
                 if (dalDocumento == null)
                     throw new NonHoPotutoMisurare(
@@ -142,8 +159,9 @@ namespace ProvaSaldatura
             if (cosa.StartsWith("misure.", StringComparison.Ordinal))
                 return Dentro(misure, cosa.Substring(7), cosa);
             throw new NonHoPotutoMisurare(
-                "non so misurare «" + cosa + "»: i nomi sono volume_mm3, " +
-                "corpi, ingombro_mm, stato.… e misure.…");
+                "non so misurare «" + cosa + "»: i nomi sono volume_mm3, corpi, " +
+                "ingombro_mm, centri_x_mm, centri_y_mm, centri_z_mm, diametri_mm, " +
+                "centro_massa_mm, stato.… e misure.…");
         }
 
         /// <summary>
@@ -220,6 +238,13 @@ namespace ProvaSaldatura
             var testo = grezzo as string;
             if (testo != null && testo.StartsWith("@", StringComparison.Ordinal))
                 return Seleziona(testo, stato);
+
+            // I SEGNAPOSTO: un caso che nomina un percorso di QUESTA macchina
+            // non e' una prova, e' un ricordo. La libreria dei profili saldati
+            // sta dove la mette ogni installazione, e il caso dice «{PROFILI}»
+            // invece di sapere dov'e'.
+            if (testo != null && testo.Contains("{PROFILI}"))
+                return testo.Replace("{PROFILI}", Profili);
             return grezzo;
         }
 
@@ -233,8 +258,12 @@ namespace ProvaSaldatura
 
             switch (tipo)
             {
-                case "faccia":  return UnoSolo(espressione, "facce", stato, condizioni, "uid", null);
-                case "spigolo": return UnoSolo(espressione, "spigoli", stato, condizioni, "uid", null);
+                // `n=` VALE PER TUTTI, non solo per le feature: fra quattro
+                // spigoli lunghi uguali non esiste nessun criterio, e chi
+                // scrive il caso l'ordine puo' deciderlo — purche' lo DICA.
+                // Senza `n=` l'ambiguita' resta un rifiuto.
+                case "faccia":  return UnoSolo(espressione, "facce", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
+                case "spigolo": return UnoSolo(espressione, "spigoli", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
                 case "feature": return UnaFeature(espressione, stato, condizioni);
                 case "quota":   return UnaQuota(espressione, stato, condizioni);
                 default:
@@ -352,15 +381,19 @@ namespace ProvaSaldatura
         internal static string UnaFeature(
             string espressione, Dictionary<string, object> stato, List<Condizione> condizioni)
         {
-            int? ennesimo = null;
+            return UnoSolo(espressione, "feature", stato, condizioni, "uid",
+                           Ennesimo(espressione, condizioni));
+        }
+
+        /// <summary>Il `n=` di un selettore, se c'e'.</summary>
+        internal static int? Ennesimo(string espressione, List<Condizione> condizioni)
+        {
             var n = condizioni.FirstOrDefault(c => c.Campo == "n");
-            if (n != null)
-            {
-                int k;
-                if (!int.TryParse(n.Valore, out k)) throw new NonHoPotutoMisurare(espressione + ": «n» non e' un numero");
-                ennesimo = k;
-            }
-            return UnoSolo(espressione, "feature", stato, condizioni, "uid", ennesimo);
+            if (n == null) return null;
+            int k;
+            if (!int.TryParse(n.Valore, out k))
+                throw new NonHoPotutoMisurare(espressione + ": «n» non e' un numero");
+            return k;
         }
 
         /// <summary>

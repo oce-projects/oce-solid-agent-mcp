@@ -1,0 +1,41 @@
+{
+  "nome": "r18_ripeti_lineare_passo_invariato",
+  "famiglia": "regressione",
+  "perche": "Cinque fori a passo 30 lungo una piastra che si allunga. Il passo e' una quota di lavorazione -- i fori sono a 30 mm l'uno dall'altro perche' lo dice il disegno -- e non ha niente a che vedere con la lunghezza del pezzo. Se allungando la piastra il passo cambia, la ripetizione ha seguito la cosa sbagliata.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "passo 30 e prima istanza dove il progettista l'ha messa: allungare la piastra lascia tutti e cinque i fori dove sono. L'invariante e' scritto «come_prima» e non come numeri, perche' la DIREZIONE della ripetizione la sceglie SOLIDWORKS dallo spigolo, e calcolarla a mano vorrebbe dire indovinare da che parte va -- un conto sbagliato qui trasformerebbe il caso in un falso silenzio.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 400, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true }
+    },
+    {
+      "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+                     "diametro_mm": 9, "passante": true }
+    },
+    {
+      "operazione": "ripeti_lineare",
+      "argomenti": {
+        "feature_uid": "@feature(tipo=ICE,n=1)",
+        "asse1_uid": "@spigolo(asse=X,lungo~=400,n=1)",
+        "passo1_mm": 30,
+        "numero_istanze1": 5
+      }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 460 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [460, 120, 20] },
+    { "cosa": "centri_x_mm", "come_prima": true,
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+    { "cosa": "centri_y_mm", "come_prima": true,
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "come sopra" },
+    { "cosa": "diametri_mm", "come_prima": true,
+      "tolleranza": 0.02,
+      "perche_questa_tolleranza": "cinque fori da 9: il diametro si legge da CylinderParams" }
+  ]
+}

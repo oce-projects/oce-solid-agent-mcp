@@ -249,6 +249,30 @@ Contiene solo le operazioni **misurate dentro SolidWorks**.
 Vedi [CHANGELOG.md](CHANGELOG.md). La versione sta in `VERSION.txt` e sale a
 ogni modifica: e' una regola, non una consuetudine.
 
+### Quanto reggono i riferimenti quando il pezzo cambia
+
+Sedici pezzi costruiti, **una sola quota a monte cambiata**, e la geometria a
+valle rimisurata. Il risultato e' una di tre cose, non due:
+
+| | casi su 16 | |
+|---|---|---|
+| **reggono** | **12** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
+| **si staccano e lo dicono** | **0** | la ricostruzione fallisce o una lavorazione porta un errore: il progettista lo vede |
+| **si staccano in silenzio** | **4** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
+
+*Misurato il 15/9/2026 su SOLIDWORKS 29.5.1, libreria 0.75.0. Si rifa' con
+`.\Banco\banco.ps1 -Regressione`; il dettaglio caso per caso finisce in
+`Banco/resoconto/regressione.md`.*
+
+**Lo zero in mezzo e' il numero piu' interessante dei tre.** Nessuno dei
+sedici casi si e' rotto in modo visibile: le quattro volte che il pezzo e'
+uscito diverso da quello che il disegno dichiarava, SOLIDWORKS ha ricostruito
+pulito e non ha detto niente. E' la ragione per cui questa suite misura **la
+posizione della geometria** e non il fatto che la ricostruzione sia andata.
+
+La terza riga si scrive **anche quando vale zero**: un conteggio che sparisce
+quando e' zero e' un conteggio che nessuno controlla.
+
 ## Vincoli che non si negoziano
 
 - **Serve SolidWorks aperto.** Il ponte si aggancia a una sessione che c'e',

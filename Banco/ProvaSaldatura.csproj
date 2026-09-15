@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Include="Attese.cs" />
     <Compile Include="CasiDichiarati.cs" />
+    <Compile Include="Regressione.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProvaNuove.cs" />
     <Compile Include="Sessione.cs" />

@@ -1,0 +1,36 @@
+{
+  "nome": "r07_corona_di_fori_resta",
+  "famiglia": "regressione",
+  "perche": "Sei fori su una circonferenza Ø80, e il cilindro esterno cresce da 100 a 140. La corona di bulloni e' una quota di accoppiamento: e' cio' che deve combaciare con la flangia dall'altra parte, e non ha niente a che vedere col diametro esterno.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "la corona sta a Ø80 perche' lo dice la flangia che ci si accoppia, non il pezzo. Ingrossare l'esterno non la tocca: i sei centri restano dove sono.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_cerchio",
+      "argomenti": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 }
+    },
+    {
+      "operazione": "foro_guidato",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "taglia": "M8",
+        "passante": true,
+        "posizioni": [ { "x_mm": 40, "y_mm": 0 }, { "x_mm": 20, "y_mm": 34.641 },
+                       { "x_mm": -20, "y_mm": 34.641 }, { "x_mm": -40, "y_mm": 0 },
+                       { "x_mm": -20, "y_mm": -34.641 }, { "x_mm": 20, "y_mm": -34.641 } ]
+      }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 140 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [140, 140, 50],
+      "tolleranza": 0.02,
+      "perche_questa_tolleranza": "l'ingombro di un cilindro si legge con GetExtremePoint" },
+    { "cosa": "centri_x_mm", "come_prima": true,
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "sei fori piu' il cilindro esterno, che sta in (0,0): 40*cos(60) = 20 esatto" },
+    { "cosa": "centri_y_mm", "come_prima": true,
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "40*sin(60) = 34,6410: il centesimo copre l'arrotondamento" }
+  ]
+}

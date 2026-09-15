@@ -164,6 +164,39 @@ Il banco dice **quanti argomenti differiscono** e rifiuta solo i due casi che
 contano: una gemella identica al rifiuto (e' una copia) e una che non ha nemmeno
 un argomento in comune (sono due operazioni che non si parlano).
 
+### `-Regressione` — quanto reggono i riferimenti
+
+```
+.\Banco\banco.ps1 -Regressione
+```
+
+Sedici pezzi in `casi/regressione/`, ognuno con `costruisci`, **una sola
+`modifica`** e un `intento`. Il risultato e' **una di tre cose, non due**:
+
+| | |
+|---|---|
+| **regge** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
+| **si stacca e lo dice** | la ricostruzione fallisce o una lavorazione porta un errore: il progettista lo vede |
+| **si stacca in silenzio** | ricostruzione a posto, nessun errore, **e la geometria e' altrove** |
+
+La terza riga e' l'unico numero che conta, e si scrive **anche quando vale
+zero**. Il dettaglio caso per caso finisce in `resoconto/regressione.md`, i tre
+numeri nel README.
+
+**L'`intento` e' obbligatorio**, e un caso che non lo dichiara e' un errore di
+banco: un foro a 20 mm dal bordo, su una piastra che si allarga, deve restare a
+20 dal bordo (`ancorato_a_bordo`) o dov'era (`ancorato_a_assoluto`)? Senza
+saperlo non esiste risposta giusta.
+
+Due campi in piu' rispetto ai casi normali:
+
+* **`come_prima: true`** su un'attesa — l'invariante e' «com'era», e si misura
+  prima della modifica. Calcolarlo a mano vorrebbe dire rifare un conto che
+  SOLIDWORKS ha gia' fatto, e sbagliarlo creerebbe un falso silenzio;
+* **`centro_massa_mm`** fra i `cosa` — l'invariante di posizione per cio' che
+  fori non ne lascia. Il volume da solo non distingue una tasca ferma da una
+  tasca che ha seguito il bordo.
+
 ### `-Muta` — ogni caso deve poter diventare rosso
 
 ```
