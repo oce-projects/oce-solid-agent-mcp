@@ -39,25 +39,15 @@ namespace ProvaSaldatura
     /// </summary>
     internal static partial class Program
     {
-        private static void NuoveOperazioni()
-        {
-            ScattaLaVista();
-            QuantoVedeIlModello();
-            StampaFaccePiastra();
-            ProvaSpostaCorpi();
-            ProvaAsola();
-            ProvaSmusso();
-            ProvaRivoluzioni();
-            ProvaGuscio();
-            ProvaCreaPiano();
-            ProvaCreaAsse();
-            ProvaRipetiLineare();
-            ProvaSpecchia();
-            ProvaTogliere();
-            ProvaFormaAParole();
-            ProvaDoveStava();
-            ProvaCheLaFrazioneNonDecide();
-        }
+        // L'ELENCO DI QUESTE PROVE NON STA PIU' QUI.
+        //
+        // Fino alla 0.40.0 c'era un `NuoveOperazioni()` che le chiamava in fila.
+        // Dalla voce F13 stanno nella tabella dei gruppi, in `Program.cs`:
+        // **nello stesso ordine**, con un nome davanti a ognuna, cosi' che
+        // `--gruppo guscio` ne lanci una sola. Due elenchi — uno per lanciarle
+        // tutte e uno per lanciarne una — sarebbero due posti da tenere
+        // allineati, e il giorno in cui divergono il banco lancia meno prove di
+        // quante ne mostra.
 
         // ==================================================================
         // V3/V7. la forma detta in una frase, e quando NON si dice

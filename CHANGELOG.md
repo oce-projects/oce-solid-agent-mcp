@@ -16,6 +16,64 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
+
+### F13 — Un gruppo di prove alla volta, mentre si lavora
+
+`--gruppo <nome>[,<nome>]` lancia una famiglia sola. `--gruppi` li elenca. Un
+nome sbagliato viene rifiutato **prima di agganciare SOLIDWORKS**, con l'elenco
+dei nomi veri e uscita 2.
+
+```
+giro intero              ~900 s
+--gruppo viste            6,6 s
+```
+
+Il 15/9 il banco e' stato lanciato una dozzina di volte: **circa tre ore e mezza
+di SOLIDWORKS**, quasi tutte per riprovare cento cose non toccate.
+
+**Il giro intero resta il predefinito**, perche' «provo solo quella che ho
+cambiato» non funziona e lo stesso giorno l'ha dimostrato due volte: tre numeri
+aggiunti alle facce dei fori hanno fatto sforare il tetto dei 16 KB **su un
+telaio, che fori non ne ha**, e il ritaglio delle immagini ha cambiato
+un'asserzione sul peso del PNG. *Il banco misura cosa hai rotto, non cosa hai
+fatto.*
+
+Per questo un giro parziale **non puo' passare per uno intero** — a schermo e
+nell'ultima riga di `in-corso.txt`, che e' quella che si legge col grep:
+
+```
+NON LANCIATI — 23 gruppi su 24: sezioni, archivio, telai, ...
+il giro intero si lancia senza «--gruppo», ed e' quello che vale prima di committare.
+GIRO PARZIALE (solo viste, 23 gruppi non lanciati) — 6 prove, 0 fallite
+```
+
+### E il difetto che i gruppi introducono
+
+Una prova nuova che nessuno mette nella tabella non gira **e non lo dice**:
+stessa dimenticanza di prima — quando l'elenco era `NuoveOperazioni()` — e
+stesso silenzio. `ProvaCheLaTabellaCopreTutto` chiede a .NET quali metodi
+`Prova…()` esistono davvero e li confronta con la tabella, sui `MethodInfo` e
+non sui nomi scritti a mano.
+
+**Visto scattare**, aggiungendo un metodo che la tabella non nomina:
+
+```
+  OK   F13 ROSSO: il setaccio vede le famiglie di prove    17 metodi «Prova…()»
+  NO   F13: nessuna famiglia di prove fuori dalla tabella  ProvaDimenticataApposta_TEMPORANEA
+```
+
+Per lo stesso motivo le azioni di un gruppo sono un `Action[]` e non una lambda
+che le chiama: una lambda nasconderebbe i metodi veri dietro il suo, e il
+controllo cercherebbe fra i metodi generati dal compilatore dicendo di si' a
+tutto.
+
+**Il ponte e la libreria non cambiano**, e per questo `VERSION.txt` resta a
+0.40.0: un numero che si alza senza che sia cambiato cio' che numera dice il
+falso a chi lo legge per sapere «con quale versione».
+
+---
+
 ## 0.40.0 — 15 settembre 2026 · libreria 0.75.0
 
 ### E10 — La frazione dell'ingombro: come SPIEGAZIONE, mai come identita'

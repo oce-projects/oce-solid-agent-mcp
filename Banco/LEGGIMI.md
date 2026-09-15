@@ -34,6 +34,36 @@ Banco\bin\ProvaSaldatura.exe --libreria Riscontro.Disegno\bin\Release\Riscontro.
 Senza `--libreria` cerca `Riscontro.Disegno.dll` accanto all'eseguibile. Esce 0
 se non fallisce niente.
 
+### Un gruppo solo, mentre si lavora
+
+Un giro intero dura **13-17 minuti**. Mentre si sta scrivendo qualcosa non si
+possono aspettare quindici minuti per sapere di aver sbagliato una riga:
+
+```
+Banco\bin\ProvaSaldatura.exe --gruppi                  quali gruppi ci sono
+Banco\bin\ProvaSaldatura.exe --gruppo viste            solo quelle: 6,6 secondi
+Banco\bin\ProvaSaldatura.exe --gruppo tabella,forma    piu' d'uno, separati da virgola
+```
+
+Un nome sbagliato viene **rifiutato prima di agganciare SOLIDWORKS**, e il
+rifiuto elenca i nomi veri (uscita 2).
+
+**Il giro intero resta il predefinito, ed e' quello che vale prima di
+committare.** «Provo solo quella che ho cambiato» non funziona, e il 15/9/2026
+l'ha dimostrato due volte: tre numeri aggiunti alle facce dei fori hanno fatto
+sforare il tetto dei 16 KB **su un telaio, che fori non ne ha**, e il ritaglio
+delle immagini ha cambiato un'asserzione sul peso del PNG.
+
+> Il banco misura **cosa hai rotto**, non cosa hai fatto. Quello lo sai gia'.
+
+Per questo un giro parziale **non puo' passare per un giro intero**: il
+riepilogo — a schermo e nell'ultima riga di `in-corso.txt` — lo scrive a chiare
+lettere, e dice quanti gruppi non ha lanciato.
+
+```
+GIRO PARZIALE (solo viste, 23 gruppi non lanciati) — 6 prove, 0 fallite
+```
+
 **Le librerie di Dassault non stanno qui dentro.** Il csproj le referenzia con
 `Private=False`, quindi non finiscono nemmeno in `bin\`; a tempo di esecuzione
 si prende quella INSTALLATA sulla macchina, che e' per definizione la stessa che

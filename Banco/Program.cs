@@ -153,7 +153,68 @@ namespace ProvaSaldatura
             // banco lo DICE e lo conta fra i saltati: un controllo che sparisce
             // in silenzio e' come un controllo che non scatta mai.
             _lento = argomenti.Remove("--lento");
+
+            // `--gruppo <nomi>`: una famiglia di prove sola, mentre si lavora.
+            //
+            // ── PERCHE' ESISTE (voce F13) ─────────────────────────────────
+            //
+            // Un giro intero dura 13-17 minuti, e fino alla 0.40.0 non c'era
+            // nessun modo di lanciarne un pezzo. Il 15/9/2026 il banco e' stato
+            // lanciato una dozzina di volte — circa tre ore e mezza di
+            // SOLIDWORKS — quasi tutte per riprovare cento cose non toccate.
+            //
+            // ── E PERCHE' IL GIRO INTERO RESTA IL PREDEFINITO ─────────────
+            //
+            // Perche' «provo solo quella che ho cambiato» NON funziona, e lo
+            // stesso giorno l'ha dimostrato due volte: `centro_mm` sulle facce
+            // dei fori ha fatto sforare il tetto dei 16 KB su un telaio da
+            // quattro barre — che fori non ne ha, ma ha i raccordi d'angolo dei
+            // profili — e il ritaglio delle immagini ha cambiato un'asserzione
+            // sul peso del PNG. **Il banco misura cosa hai rotto, non cosa hai
+            // fatto**: quello lo sai gia'.
+            //
+            // Quindi: `--gruppo` per sbagliare in fretta, il giro intero prima
+            // di committare, e un giro parziale che NON puo' passare per uno
+            // intero — il riepilogo lo scrive a chiare lettere.
+            List<string> scelti = null;
+            int doveG = argomenti.IndexOf("--gruppo");
+            if (doveG >= 0)
+            {
+                if (doveG + 1 >= argomenti.Count)
+                {
+                    Console.WriteLine("«--gruppo» vuole un nome. " + ComeSiChiamano());
+                    return 2;
+                }
+                scelti = new List<string>(
+                    argomenti[doveG + 1].Split(new[] { ',' },
+                                               StringSplitOptions.RemoveEmptyEntries));
+                for (int i = 0; i < scelti.Count; i++) scelti[i] = scelti[i].Trim().ToLowerInvariant();
+                argomenti.RemoveRange(doveG, 2);
+            }
+            if (argomenti.Remove("--gruppi"))
+            {
+                Console.WriteLine(ComeSiChiamano());
+                return 0;
+            }
+
             argomentiRiga = argomenti.ToArray();
+
+            // UN NOME SBAGLIATO SI DICE SUBITO, prima di agganciare SOLIDWORKS.
+            // Un refuso che si scopre dopo trenta secondi di avvio, e che lascia
+            // credere «quel gruppo non ha prove», e' peggio di nessun gruppo.
+            if (scelti != null)
+            {
+                var conosciuti = new HashSet<string>(
+                    Gruppi().Select(g => g.Nome), StringComparer.OrdinalIgnoreCase);
+                var sconosciuti = scelti.Where(n => !conosciuti.Contains(n)).ToList();
+                if (sconosciuti.Count > 0)
+                {
+                    Console.WriteLine("non conosco " +
+                                      string.Join(", ", sconosciuti.Select(n => "«" + n + "»")) +
+                                      ". " + ComeSiChiamano());
+                    return 2;
+                }
+            }
 
             if (!File.Exists(_libreria))
             {
@@ -195,33 +256,191 @@ namespace ProvaSaldatura
             ApriIlDiario();
             Diario("SolidWorks " + _sw.RevisionNumber() +
                    ", libreria " + _addin.GetName().Version +
-                   (_lento ? ", con --lento" : ""));
+                   (_lento ? ", con --lento" : "") +
+                   (scelti == null ? "" : ", SOLO i gruppi " + string.Join(", ", scelti)));
 
-            Sezioni();
-            Materiali();
-            Telai();
-            Fori();
-            Materiale();
-            Stato();
-            ProvaFotografia();
-            if (_lento) ProvaTettoLavorazioni();
-            else Saltata("il tetto sulle lavorazioni (E12)",
-                         "85 lavorazioni, circa mezz'ora: si lancia con --lento");
-            NuoveOperazioni();
+            var nonLanciati = new List<string>();
+            foreach (var gruppo in Gruppi())
+            {
+                if (scelti != null &&
+                    !scelti.Contains(gruppo.Nome, StringComparer.OrdinalIgnoreCase))
+                {
+                    nonLanciati.Add(gruppo.Nome);
+                    continue;
+                }
+                if (gruppo.SoloLento && !_lento)
+                {
+                    Saltata(gruppo.Cosa, gruppo.PerchePesa ?? "si lancia con --lento");
+                    continue;
+                }
+                gruppo.Corri();
+            }
 
             Console.WriteLine();
             Console.WriteLine(new string('=', 76));
             foreach (var r in _esiti) Console.WriteLine(r);
             Console.WriteLine();
+
+            // I GRUPPI NON LANCIATI SI DICONO PER NOME, come le saltate.
+            //
+            // «8 prove, 0 fallite» su un giro parziale e' vero e fa credere una
+            // cosa falsa, esattamente come lo era «88 prove, 0 fallite» con una
+            // prova non lanciata. La difesa sta nella riga di riepilogo, non
+            // nella disciplina di chi lancia: alla sera tardi nessuno si ricorda
+            // di essersi limitato a un gruppo.
+            if (nonLanciati.Count > 0)
+            {
+                Console.WriteLine("NON LANCIATI — " + nonLanciati.Count + " gruppi su " +
+                                  Gruppi().Count + ": " + string.Join(", ", nonLanciati));
+                Console.WriteLine("il giro intero si lancia senza «--gruppo», " +
+                                  "ed e' quello che vale prima di committare.");
+            }
+
             // LE SALTATE SI CONTANO A PARTE E SI DICONO. «88 prove, 0 fallite»
             // su un giro in cui una prova non e' stata lanciata e' una frase
             // vera che fa credere una cosa falsa.
             var riepilogo =
+                (nonLanciati.Count > 0
+                    ? "GIRO PARZIALE (solo " + string.Join(", ", scelti) + ", " +
+                      nonLanciati.Count + " gruppi non lanciati) — "
+                    : "") +
                 (_esiti.Count - _saltate) + " prove, " + _falliti + " fallite" +
                 (_saltate > 0 ? ", " + _saltate + " SALTATE (--lento le lancia)" : "");
             Console.WriteLine(riepilogo);
             ChiudiIlDiario(riepilogo);
             return _falliti == 0 ? 0 : 1;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // I GRUPPI (voce F13)
+        //
+        // L'ORDINE E' QUELLO DI PRIMA, e non e' un dettaglio: alcune prove
+        // lasciano il documento in uno stato che la successiva si aspetta, e
+        // riordinarle per fare pulizia sarebbe il modo piu' silenzioso di
+        // rompere il banco. Questa tabella e' l'elenco di prima, con un nome
+        // davanti a ogni riga.
+        // ══════════════════════════════════════════════════════════════════
+        private sealed class Gruppo
+        {
+            public string Nome;      // come si scrive dopo --gruppo
+            public string Cosa;      // come si chiama quando si dice che e' saltato
+            public bool SoloLento;
+            public string PerchePesa;   // cosa si dice quando --lento non c'e'
+
+            /// <summary>
+            /// LE PROVE DEL GRUPPO, UNA PER UNA e non una lambda che le
+            /// chiama. Una lambda nasconderebbe i metodi veri dietro il suo, e
+            /// `ProvaCheLaTabellaCopreTutto` — il controllo che nessuna
+            /// famiglia resti fuori — non li vedrebbe piu': cercherebbe fra i
+            /// metodi generati dal compilatore e direbbe di si' a tutto.
+            /// </summary>
+            public Action[] Azioni;
+
+            public void Corri() { foreach (var a in Azioni) a(); }
+        }
+
+        private static List<Gruppo> Gruppi()
+        {
+            Func<Action, Action[]> una = a => new[] { a };
+            return new List<Gruppo>
+            {
+                new Gruppo { Nome = "sezioni",   Cosa = "Services.SezioneProfilo",      Azioni = una(Sezioni) },
+                new Gruppo { Nome = "archivio",  Cosa = "Services.MaterialiSolidWorks", Azioni = una(Materiali) },
+                new Gruppo { Nome = "telai",     Cosa = "telaio_rettangolare",          Azioni = una(Telai) },
+                new Gruppo { Nome = "fori",      Cosa = "foro_guidato",                 Azioni = una(Fori) },
+                new Gruppo { Nome = "materiale", Cosa = "applica_materiale",            Azioni = una(Materiale) },
+                new Gruppo { Nome = "stato",     Cosa = "StatoDocumento",               Azioni = una(Stato) },
+                new Gruppo { Nome = "viste",     Cosa = "VistaDelPezzo (V1)",           Azioni = una(ProvaFotografia) },
+                new Gruppo { Nome = "tetto",     Cosa = "il tetto sulle lavorazioni (E12)",
+                             Azioni = una(ProvaTettoLavorazioni), SoloLento = true,
+                             PerchePesa = "85 lavorazioni, circa mezz'ora: si lancia con --lento" },
+
+                // Quelle che stavano dentro `NuoveOperazioni()`.
+                new Gruppo { Nome = "scatto",       Cosa = "scatta la vista",        Azioni = una(ScattaLaVista) },
+                new Gruppo { Nome = "quanto-vede",  Cosa = "quanto vede il modello", Azioni = una(QuantoVedeIlModello) },
+                new Gruppo { Nome = "facce",        Cosa = "le facce della piastra", Azioni = una(StampaFaccePiastra) },
+                new Gruppo { Nome = "sposta-corpi", Cosa = "sposta_corpi",           Azioni = una(ProvaSpostaCorpi) },
+                new Gruppo { Nome = "asola",        Cosa = "asola",                  Azioni = una(ProvaAsola) },
+                new Gruppo { Nome = "smusso",       Cosa = "smusso_spigoli",         Azioni = una(ProvaSmusso) },
+                new Gruppo { Nome = "rivoluzione",  Cosa = "rivoluzione",            Azioni = una(ProvaRivoluzioni) },
+                new Gruppo { Nome = "guscio",       Cosa = "guscio",                 Azioni = una(ProvaGuscio) },
+                new Gruppo { Nome = "crea-piano",   Cosa = "crea_piano",             Azioni = una(ProvaCreaPiano) },
+                new Gruppo { Nome = "crea-asse",    Cosa = "crea_asse",              Azioni = una(ProvaCreaAsse) },
+                new Gruppo { Nome = "ripeti",       Cosa = "ripeti_lineare",         Azioni = una(ProvaRipetiLineare) },
+                new Gruppo { Nome = "specchia",     Cosa = "specchia",               Azioni = una(ProvaSpecchia) },
+                new Gruppo { Nome = "togliere",     Cosa = "sopprimi/elimina (R2)",  Azioni = una(ProvaTogliere) },
+                new Gruppo { Nome = "forma",        Cosa = "la forma in una frase (V3/V7)", Azioni = una(ProvaFormaAParole) },
+                new Gruppo { Nome = "dove-stava",   Cosa = "dove stava, e il grep vuoto (E10)",
+                             Azioni = new Action[] { ProvaDoveStava, ProvaCheLaFrazioneNonDecide } },
+                new Gruppo { Nome = "tabella",      Cosa = "la tabella dei gruppi copre tutto (F13)",
+                             Azioni = una(ProvaCheLaTabellaCopreTutto) },
+            };
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        /// <summary>
+        /// IL DIFETTO CHE I GRUPPI INTRODUCONO, e che non da' errore.
+        ///
+        /// Prima della voce F13 dimenticarsi di chiamare una prova nuova voleva
+        /// dire non aggiungerla a `NuoveOperazioni()`. Adesso vuol dire non
+        /// aggiungerla alla tabella dei gruppi — stessa dimenticanza, stesso
+        /// silenzio: il banco continua a dire «tutto torna» su una prova in meno,
+        /// e il conto totale non lo guarda nessuno da un giro all'altro.
+        ///
+        /// Qui si chiede a .NET quali metodi di prova esistono davvero e si
+        /// confronta con la tabella. Il conto e' fatto sui `MethodInfo`, non sui
+        /// nomi scritti a mano: un elenco scritto a mano avrebbe lo stesso
+        /// difetto che sta controllando.
+        ///
+        /// ── E IL SUO ROSSO ───────────────────────────────────────────────
+        ///
+        /// Un setaccio che non trova niente e uno rotto si vedono uguali. Se la
+        /// domanda alla riflessione tornasse vuota, «nessuna famiglia fuori
+        /// dalla tabella» sarebbe vera per un motivo sbagliato: si controlla
+        /// prima che le famiglie le veda.
+        /// </summary>
+        private static void ProvaCheLaTabellaCopreTutto()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== la tabella dei gruppi copre tutto (F13) ===");
+
+            var famiglie = typeof(Program)
+                .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+                .Where(m => m.Name.StartsWith("Prova", StringComparison.Ordinal) &&
+                            m.ReturnType == typeof(void) &&
+                            m.GetParameters().Length == 0)
+                .ToList();
+
+            Segna("F13 ROSSO: il setaccio vede le famiglie di prove",
+                  famiglie.Count >= 15, famiglie.Count + " metodi «Prova…()»");
+
+            var gruppi = Gruppi();
+            var nella = new HashSet<MethodInfo>(gruppi.SelectMany(g => g.Azioni).Select(a => a.Method));
+            var fuori = famiglie.Where(m => !nella.Contains(m)).Select(m => m.Name).ToList();
+            Segna("F13: nessuna famiglia di prove fuori dalla tabella",
+                  fuori.Count == 0,
+                  fuori.Count == 0 ? gruppi.Count + " gruppi" : string.Join(", ", fuori));
+
+            // DUE GRUPPI COLLO STESSO NOME: `--gruppo x` ne lancerebbe due e
+            // il conto dei non lanciati direbbe una cosa e il giro un'altra.
+            var doppi = gruppi.GroupBy(g => g.Nome, StringComparer.OrdinalIgnoreCase)
+                              .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            Segna("F13: i nomi dei gruppi sono tutti diversi",
+                  doppi.Count == 0,
+                  doppi.Count == 0 ? "" : string.Join(", ", doppi));
+        }
+
+        /// <summary>
+        /// I nomi dei gruppi, per chi ne ha scritto uno sbagliato o non sa
+        /// quali ci sono. Si costruisce dalla stessa tabella che li lancia: un
+        /// elenco scritto a mano accanto invecchia al primo gruppo nuovo.
+        /// </summary>
+        private static string ComeSiChiamano()
+        {
+            return "I gruppi sono: " +
+                   string.Join(", ", Gruppi().Select(g => g.Nome)) +
+                   ". Senza «--gruppo» si lanciano tutti, ed e' quello che vale " +
+                   "prima di committare.";
         }
 
         private static void Segna(string nome, bool ok, string dettaglio = "")
