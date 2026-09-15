@@ -1,0 +1,30 @@
+{
+  "nome": "due_corpi_esportati_a_forza",
+  "famiglia": "esporta",
+  "perche": "LA VIA D'USCITA ESISTE, E SI DICHIARA. Un giorno qualcuno avra' ragione lui -- due corpi che vanno stampati insieme apposta -- e un rifiuto senza scampo si aggira copiando il file a mano, cioe' fuori da ogni controllo. Con «esporta_comunque» il file si scrive E LA RISPOSTA PORTA SCRITTO che la verifica e' stata scavalcata e cosa diceva: chi rilegge il resoconto fra un mese lo sa.",
+  "perche_ventiquattro": "due parallelepipedi, dodici triangoli ciascuno. Il numero dice anche che il secondo corpo e' finito nel file davvero: un STL che ne contenesse uno solo avrebbe la stessa dimensione plausibile e sarebbe il pezzo sbagliato.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "sposta_corpi",
+      "argomenti": { "corpi_uid": ["C1"], "dz_mm": 600, "copia": true, "quante_copie": 1 },
+      "attese": [ { "cosa": "corpi", "uguale": 2 } ] },
+    { "operazione": "esporta_stl",
+      "argomenti": { "percorso": "{LAVORO}\\gp2_forzato.stl", "esporta_comunque": true },
+      "attese": [
+        { "cosa": "misure.triangoli", "uguale": 24,
+          "perche_24": "due parallelepipedi da dodici triangoli" },
+        { "cosa": "misure.byte", "uguale": 1284,
+          "perche_1284": "84 + 50*24" },
+        { "cosa": "misure.esportato_comunque",
+          "contiene": ["L'hai chiesto tu", "2 corpi"],
+          "perche": "il file scritto contro il parere della verifica lo dice nella risposta, e dice anche che cosa non andava" },
+        { "cosa": "misure.verifica",
+          "contiene": ["Non lo esporterei"],
+          "non_contiene": ["si puo' esportare"],
+          "perche": "la verifica ha detto di no e la sua frase resta, intera: scavalcarla non vuol dire cancellarla" } ] }
+  ]
+}

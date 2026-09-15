@@ -1,0 +1,23 @@
+{
+  "nome": "lim_due_corpi_non_si_esporta",
+  "famiglia": "esporta",
+  "perche": "IL RIFIUTO CHE E' IL MOTIVO DELL'OPERAZIONE. Un STL di due corpi e' due gusci separati: si apre, si affetta e si stampa, e la stampante non sa quale dei due era il pezzo. Nessun errore, in nessun punto della catena -- e la misura del file (esiste, pesa qualcosa) non lo cattura. Per questo la verifica gira PRIMA di scrivere, e non dopo.",
+  "perche_la_frase": "il rifiuto deve dire COSA non andava, non «non esporto»: chi legge non ha il pezzo davanti. E deve dire come scavalcarlo, perche' un giorno qualcuno avra' ragione lui.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "sposta_corpi",
+      "argomenti": { "corpi_uid": ["C1"], "dz_mm": 600, "copia": true, "quante_copie": 1 },
+      "attese": [ { "cosa": "corpi", "uguale": 2 } ] },
+    { "operazione": "esporta_stl",
+      "argomenti": { "percorso": "{LAVORO}\\gp2_due_corpi.stl" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["Non esporto", "2 corpi", "esporta_comunque"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "scatola_dodici_triangoli" } }
+  ]
+}

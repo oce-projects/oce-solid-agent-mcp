@@ -103,6 +103,7 @@
     <Compile Include="OperazioniFori.cs" />
     <Compile Include="OperazioniMateriale.cs" />
     <Compile Include="OperazioniVerifica.cs" />
+    <Compile Include="OperazioniEsporta.cs" />
     <Compile Include="StatoDocumento.cs" />
     <Compile Include="StatoTavola.cs" />
     <Compile Include="Riferimenti.cs" />

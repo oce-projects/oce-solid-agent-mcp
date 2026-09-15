@@ -16,6 +16,72 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.42.0 — 15 settembre 2026 · libreria 0.77.0
+
+### GP2 — `esporta_stl`, e il formato che non porta con sé niente
+
+Il catalogo passa a **40 operazioni** e guadagna la famiglia **`esportazioni`**.
+È il primo ponte verso una stampante: senza, un pezzo disegnato dal modello non
+arriva mai a una macchina.
+
+**Un file STL non contiene quasi niente**: un elenco di triangoli. Non dice in
+che unità sono, non dice se il solido è chiuso, non dice da quale pezzo viene.
+Tutto quello che si può sbagliare qui **si apre lo stesso, si affetta lo stesso
+e si stampa lo stesso**, e il difetto si vede quando il pezzo è in mano. Quindi:
+
+**La verifica gira PRIMA, e può fermare tutto.** `esporta_stl` chiama
+`verifica_geometria_corpo` e **si rifiuta di scrivere** se il pezzo non è un
+solo corpo solido chiuso senza difetti. Era la riga per cui GP1 andava fatta
+prima di questa: la misura del file — esiste, pesa qualcosa — non cattura il
+corpo con la fessura.
+
+```
+NO   esporta_stl su due corpi
+     Non esporto: Non lo esporterei cosi': il pezzo ha 2 corpi: per una
+     stampa dev'essere uno solo.
+     Un STL non porta con se' niente che dica che il pezzo era cosi': si
+     apre, si affetta e si stampa lo stesso. Sistema il pezzo, oppure passa
+     «esporta_comunque»: true se sai quello che fai.
+```
+
+**La via d'uscita esiste e si dichiara.** Un giorno qualcuno avrà ragione lui —
+due corpi da stampare insieme apposta — e un rifiuto senza scampo si aggira
+copiando il file a mano, cioè fuori da ogni controllo. Con `esporta_comunque`
+il file si scrive **e la risposta porta scritto** che la verifica è stata
+scavalcata e cosa diceva.
+
+**I millimetri sono espliciti.** `IExportStlData` **non esiste in questo
+interop** (cercata fra tutte le 1737 interfacce): ogni opzione è una
+*preferenza utente globale* della macchina. `swExportStlUnits` lasciata com'è
+vuol dire che il risultato dipende da chi ha usato SOLIDWORKS prima — e il file
+non porta le unità con sé, quindi esportato in pollici il pezzo esce 25,4 volte
+più piccolo e nessun errore lo dice. Le preferenze si **leggono, si impostano e
+si rimettono com'erano**: sono le impostazioni di chi disegna, non nostre.
+`swSTLShowInfoOnSave` va a `false` perché una finestra bloccherebbe la chiamata
+COM e non tornerebbe mai — la stessa trappola di `AddDimension`.
+
+**E poi si rilegge il file, non la risposta.** Un STL binario è 80 byte di
+intestazione, 4 col numero di triangoli, poi 50 per triangolo:
+
+```
+OK   scatola_dodici_triangoli · misure.triangoli   12   (sei facce, due triangoli ciascuna)
+OK   scatola_dodici_triangoli · misure.byte       684   (84 + 50*12)
+```
+
+Se il conto non torna, l'operazione fallisce dicendo che il file c'è e non è
+quello che serve. `SaveAs3` che torna `true` dice solo che SOLIDWORKS non ha
+protestato.
+
+Cinque casi dichiarati in `casi\esporta\`: la scatola binaria, la stessa in
+ASCII (dodici triangoli contati in un altro modo — righe `facet` invece dei
+quattro byte), i due corpi rifiutati, i due corpi esportati a forza (ventiquattro
+triangoli: il numero dice anche che il secondo corpo è finito nel file davvero),
+e l'estensione sbagliata — `.stp` al posto di `.stl` farebbe scrivere tutt'altro
+formato, e il file esisterebbe, peserebbe e si aprirebbe.
+
+I casi possono scrivere file: segnaposto **`{LAVORO}`**, che è `Banco\lavoro\` —
+ignorata da git e svuotabile in qualunque momento.
+
 ## 0.41.0 — 15 settembre 2026 · libreria 0.76.0
 
 ### GP1 — `verifica_geometria_corpo`, e la prima operazione che non disegna

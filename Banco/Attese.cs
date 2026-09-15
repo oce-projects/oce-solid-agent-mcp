@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 
 namespace ProvaSaldatura
@@ -47,6 +48,34 @@ namespace ProvaSaldatura
                 return string.IsNullOrWhiteSpace(suo)
                     ? @"<impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\NORMATI"
                     : suo;
+            }
+        }
+
+        /// <summary>
+        /// DOVE UN CASO PUO' SCRIVERE. `Banco\lavoro\`, la stessa cartella in
+        /// cui `ChiudiScarti` butta i documenti di scarto: e' ignorata da git e
+        /// si puo' svuotare in qualunque momento.
+        ///
+        /// Serve da quando ci sono operazioni che producono FILE —
+        /// `esporta_stl`, `esporta_pdf`, `salva_documento`. Un caso che scrive
+        /// in una cartella sua la riempirebbe di roba che nessuno pulisce; un
+        /// caso che scrive accanto al repository sporcherebbe `git status`.
+        /// La cartella si crea se non c'e': un caso non deve fallire perche'
+        /// qualcuno ha svuotato il cestino.
+        /// </summary>
+        internal static string Lavoro
+        {
+            get
+            {
+                var qui = Path.GetDirectoryName(
+                    System.Reflection.Assembly.GetEntryAssembly() != null
+                        ? System.Reflection.Assembly.GetEntryAssembly().Location
+                        : System.Reflection.Assembly.GetExecutingAssembly().Location);
+                // L'eseguibile sta in `Banco\bin\`: la cartella di lavoro e'
+                // la sorella di `bin`.
+                var dove = Path.GetFullPath(Path.Combine(qui ?? ".", "..", "lavoro"));
+                try { if (!Directory.Exists(dove)) Directory.CreateDirectory(dove); } catch { }
+                return dove;
             }
         }
 
@@ -428,6 +457,10 @@ namespace ProvaSaldatura
             // invece di sapere dov'e'.
             if (testo != null && testo.Contains("{PROFILI}"))
                 return testo.Replace("{PROFILI}", Profili);
+            // `{LAVORO}`: dove un caso puo' scrivere un file senza sporcare
+            // ne' il repository ne' il disco di chi lavora.
+            if (testo != null && testo.Contains("{LAVORO}"))
+                return testo.Replace("{LAVORO}", Lavoro);
             return grezzo;
         }
 

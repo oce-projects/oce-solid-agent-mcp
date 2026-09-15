@@ -1,0 +1,22 @@
+{
+  "nome": "scatola_in_ascii",
+  "famiglia": "esporta",
+  "perche": "Lo stesso pezzo in ASCII: gli stessi dodici triangoli, contati in un altro modo -- righe «facet» invece dei quattro byte dell'intestazione. Due strade per lo stesso numero, e se una delle due sbagliasse si vedrebbe subito.",
+  "perche_non_ci_sono_i_byte": "la dimensione di un STL ASCII dipende da come il float viene scritto, e un'attesa su quella sarebbe un'attesa sul formattatore di SOLIDWORKS, non sul pezzo.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "esporta_stl",
+      "argomenti": { "percorso": "{LAVORO}\\gp2_ascii.stl", "binario": false },
+      "attese": [
+        { "cosa": "misure.triangoli", "uguale": 12,
+          "perche_dodici": "gli stessi dodici del caso binario: e' il pezzo, non il formato" },
+        { "cosa": "misure.formato", "uguale": "ASCII" },
+        { "cosa": "misure.triangoli_come_li_so",
+          "contiene": ["righe", "facet"] },
+        { "cosa": "misure.unita", "uguale": "mm" } ] }
+  ]
+}

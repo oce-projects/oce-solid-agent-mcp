@@ -6,7 +6,8 @@
   "riferimenti": "piani e assi su cui costruire",
   "proprieta": "cio' che il pezzo E', non la sua forma",
   "tavola": "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF",
-  "verifiche": "dire com'e' venuto, senza toccarlo"
+  "verifiche": "dire com'e' venuto, senza toccarlo",
+  "esportazioni": "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D"
  },
  "operazioni": [
   {
@@ -1833,6 +1834,39 @@
      "corpo_uid": {
       "type": "string",
       "description": "un corpo solo, per identificativo (per esempio «C2»). Se non lo dici li guarda tutti. Gli identificativi stanno nello stato del documento, dentro «corpi»."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "corpo_solido"
+  },
+  {
+   "nome": "esporta_stl",
+   "famiglia": "esportazioni",
+   "sommario": "Scrive lo STL per la stampa 3D, in millimetri. Verifica il pezzo prima, e rifiuta se non e' un solido chiuso.",
+   "descrizione": "Scrive il pezzo come STL, il formato che gli slicer delle stampanti 3D leggono.\n\nPRIMA DI SCRIVERE chiama «verifica_geometria_corpo» e SI RIFIUTA se il pezzo non e' un solo corpo solido chiuso senza difetti. Non e' prudenza: un STL non porta con se' niente che dica che il pezzo era a posto -- si apre, si affetta e si stampa lo stesso, e il buco si vede quando il pezzo e' in mano. Se sai quello che fai, «esporta_comunque»: true lo scrive lo stesso e te lo dice nella risposta.\n\nLE UNITA' SONO SEMPRE MILLIMETRI, imposte a mano prima di scrivere e rimesse com'erano dopo. Il file non le porta con se' e lo slicer assume i millimetri: esportato in pollici, il pezzo esce 25,4 volte piu' piccolo e nessun errore lo dice.\n\nDopo aver scritto RILEGGE IL FILE: quanti triangoli dice di avere e se la sua dimensione torna con quel numero. Un STL che non torna e' un file che si apre e non e' il pezzo.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "percorso": {
+      "type": "string",
+      "description": "dove scrivere il file, estensione .stl compresa. Se non lo dici si usa il percorso del pezzo con l'estensione cambiata, e allora il pezzo dev'essere gia' stato salvato."
+     },
+     "qualita": {
+      "type": "string",
+      "enum": [
+       "fine",
+       "grossolana"
+      ],
+      "description": "«fine» (predefinito) fa piu' triangoli e segue meglio le curve; «grossolana» fa un file piu' piccolo e sfaccetta i tondi."
+     },
+     "binario": {
+      "type": "boolean",
+      "description": "vero (predefinito): file binario, molto piu' piccolo. Falso: ASCII, leggibile ma dieci volte piu' grosso."
+     },
+     "esporta_comunque": {
+      "type": "boolean",
+      "description": "scrive il file anche se la verifica dice di no. Predefinito: falso. Usalo solo sapendo che cosa non andava."
      }
     },
     "required": []

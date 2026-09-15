@@ -1,0 +1,19 @@
+{
+  "nome": "lim_estensione_sbagliata",
+  "famiglia": "esporta",
+  "perche": "L'ESTENSIONE NON E' UN DETTAGLIO DEL NOME: e' l'unica cosa che dice a `SaveAs3` che formato scrivere. Un percorso che finisce in .stp fa scrivere uno STEP con dentro tutt'altro, e il file esiste, pesa qualcosa e si apre -- semplicemente non e' quello che qualcuno stava per mandare alla stampante.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "esporta_stl",
+      "argomenti": { "percorso": "{LAVORO}\\gp2_sbagliato.stp" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non finisce in .stl", "che formato scrivere"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "scatola_dodici_triangoli" } }
+  ]
+}

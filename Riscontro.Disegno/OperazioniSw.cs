@@ -236,7 +236,7 @@ namespace Riscontro.Disegno
         {
             "applica_materiale", "asola", "cordone_saldatura", "crea_asse",
             "crea_disegno", "crea_piano", "distinta_taglio",
-            "elimina_lavorazione", "esporta_pdf",
+            "elimina_lavorazione", "esporta_pdf", "esporta_stl",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
             "estrudi_sezione", "ruota_dentata",
             "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
@@ -356,6 +356,14 @@ namespace Riscontro.Disegno
                     // un'operazione di catalogo che legge invece di costruire.
                     case "verifica_geometria_corpo":
                         return VerificaGeometriaCorpo(modello, argomenti, stato);
+
+                    // ── esportazioni ────────────────────
+                    // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama
+                    // `verifica_geometria_corpo` PRIMA di scrivere, e rifiuta
+                    // se il pezzo non e' un solido chiuso solo: un STL non
+                    // porta con se' niente che dica che il pezzo era a posto.
+                    case "esporta_stl":
+                        return EsportaStl(modello, argomenti, stato);
                     default:
                         // QUALUNQUE operazione che porta dei contorni si disegna
                         // con lo stesso esecutore. Cosi' una RICETTA nuova

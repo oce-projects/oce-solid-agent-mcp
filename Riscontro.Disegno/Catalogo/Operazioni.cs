@@ -55,6 +55,9 @@ namespace Riscontro.Disegno.Catalogo
                 new KeyValuePair<string, string>(
                     "verifiche",
                     "dire com'e' venuto, senza toccarlo"),
+                new KeyValuePair<string, string>(
+                    "esportazioni",
+                    "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D"),
             };
 
         public static readonly List<OperazioneDisegno> Tutte =
@@ -2153,6 +2156,53 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
                                     + "dici li guarda tutti. Gli identificativi stanno nello stato del "
                                     + "documento, dentro «corpi».")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "esporta_stl",
+                    Famiglia = "esportazioni",
+                    Provata = true,
+                    Sommario =
+                        "Scrive lo STL per la stampa 3D, in millimetri. Verifica il pezzo "
+                        + "prima, e rifiuta se non e' un solido chiuso.",
+                    Descrizione =
+                        "Scrive il pezzo come STL, il formato che gli slicer delle stampanti "
+                        + "3D leggono.\n\nPRIMA DI SCRIVERE chiama «verifica_geometria_corpo» e "
+                        + "SI RIFIUTA se il pezzo non e' un solo corpo solido chiuso senza "
+                        + "difetti. Non e' prudenza: un STL non porta con se' niente che dica "
+                        + "che il pezzo era a posto -- si apre, si affetta e si stampa lo "
+                        + "stesso, e il buco si vede quando il pezzo e' in mano. Se sai quello "
+                        + "che fai, «esporta_comunque»: true lo scrive lo stesso e te lo dice "
+                        + "nella risposta.\n\nLE UNITA' SONO SEMPRE MILLIMETRI, imposte a mano "
+                        + "prima di scrivere e rimesse com'erano dopo. Il file non le porta "
+                        + "con se' e lo slicer assume i millimetri: esportato in pollici, il "
+                        + "pezzo esce 25,4 volte piu' piccolo e nessun errore lo dice.\n\nDopo "
+                        + "aver scritto RILEGGE IL FILE: quanti triangoli dice di avere e se "
+                        + "la sua dimensione torna con quel numero. Un STL che non torna e' un "
+                        + "file che si apre e non e' il pezzo.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "percorso", O(
+                                "type", "string",
+                                "description", "dove scrivere il file, estensione .stl compresa. Se non lo dici "
+                                    + "si usa il percorso del pezzo con l'estensione cambiata, e allora il "
+                                    + "pezzo dev'essere gia' stato salvato."),
+                            "qualita", O(
+                                "type", "string",
+                                "enum", A("fine", "grossolana"),
+                                "description", "«fine» (predefinito) fa piu' triangoli e segue meglio le "
+                                    + "curve; «grossolana» fa un file piu' piccolo e sfaccetta i tondi."),
+                            "binario", O(
+                                "type", "boolean",
+                                "description", "vero (predefinito): file binario, molto piu' piccolo. Falso: "
+                                    + "ASCII, leggibile ma dieci volte piu' grosso."),
+                            "esporta_comunque", O(
+                                "type", "boolean",
+                                "description", "scrive il file anche se la verifica dice di no. Predefinito: "
+                                    + "falso. Usalo solo sapendo che cosa non andava.")),
                         "required", A()),
                 },
             };

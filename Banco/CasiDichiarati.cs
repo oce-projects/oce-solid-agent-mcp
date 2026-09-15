@@ -65,6 +65,7 @@ namespace ProvaSaldatura
         {
             "lavorazioni", "coppie", "asola", "smusso", "rivoluzione", "piano",
             "specchia", "ripeti", "asse", "togliere", "frase", "verifica",
+            "esporta",
         };
 
         private static void ProvaCasiDichiarati()
