@@ -95,6 +95,7 @@ namespace Prove.Contratti
             ProveCatalogo.Tutte();
             ProveSessione.Tutte();
             ProveProtocollo.Tutte();
+            ProveIlBanco.Tutte();
 
             Console.WriteLine();
             Console.WriteLine(new string('=', 76));

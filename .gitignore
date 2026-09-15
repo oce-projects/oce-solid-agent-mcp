@@ -23,7 +23,16 @@ Banco/in-corso.txt
 # QUESTO momento: versionarli riempirebbe la storia di file che nessuno
 # rilegge e che a ogni merge divergono. Il numero che vale — quello che va in
 # un README o in una decisione — si copia a mano, con la data.
-Banco/resoconto/
+# SI ESCLUDE IL CONTENUTO, NON LA CARTELLA: con `Banco/resoconto/` git non ci
+# entra nemmeno, e la riga di eccezione qui sotto non avrebbe nessun effetto.
+# E' un difetto che non da' errore — il file semplicemente non viene versionato,
+# e la CI dice «il banco non e' stato eseguito» per sempre.
+Banco/resoconto/*
+# ... TRANNE `ultimo.json`, e non e' un'eccezione di comodo (voce F9).
+# E' l'unica prova che qualcuno il banco l'ha lanciato: la CI non puo'
+# pilotare SOLIDWORKS, ma puo' RIFIUTARE UNA CONSEGNA in cui nessuno l'ha
+# fatto. Senza questo file in repository quel controllo non esiste.
+!Banco/resoconto/ultimo.json
 
 # Una riga per giro, in coda: serve a CONTARE le prove che falliscono a caso
 # (voce F12). E' il registro di QUESTA macchina — chi lancia il banco altrove

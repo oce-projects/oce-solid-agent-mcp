@@ -1,0 +1,75 @@
+# =============================================================================
+#  Le prove che una macchina senza SOLIDWORKS puo' davvero fare  (voce F9)
+# =============================================================================
+#
+#  COSA PUO' E COSA NON PUO'. Nessun runner di GitHub ha una licenza
+#  SOLIDWORKS, quindi il banco vero qui non gira e non girera'. Quello che
+#  questa CI fa e' altro, e vale quasi altrettanto:
+#
+#    1. compila il ponte e il progetto delle prove;
+#    2. lancia `Prove.Contratti.exe`, che prova il valutatore delle attese, il
+#       catalogo, `StessoDocumento` e il protocollo MCP parlando col ponte;
+#    3. **rifiuta una consegna in cui nessuno ha lanciato il banco**, leggendo
+#       `Banco/resoconto/ultimo.json` -- l'unico file di `resoconto/` che sta
+#       in repository, e sta li' apposta.
+#
+#  IL DIFETTO SILENZIOSO DA TEMERE e' una CI che compila un progetto vuoto e
+#  resta verde per mesi. Per questo si controlla che l'eseguibile ESISTA prima
+#  di lanciarlo, e le prove stesse pretendono almeno venticinque controlli.
+# =============================================================================
+
+name: prove
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  contratti:
+    runs-on: windows-latest
+
+    steps:
+      - name: Prendi il codice
+        uses: actions/checkout@v4
+        with:
+          # La prova «il banco e' posteriore all'ultima modifica alle
+          # operazioni» chiede a git quando `Riscontro.Disegno` e' stato
+          # toccato: con un clone superficiale quella data non esiste.
+          fetch-depth: 0
+
+      - name: MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Compila il ponte
+        run: msbuild Oce.Solid.Agent.csproj -p:Configuration=Release -v:m
+
+      - name: Compila le prove
+        run: msbuild Prove\Prove.Contratti.csproj -p:Configuration=Release -v:m
+
+      - name: Gli eseguibili esistono davvero
+        shell: pwsh
+        run: |
+          # UNA CI CHE COMPILA IL VUOTO RESTA VERDE PER MESI. Si guarda che i
+          # due file ci siano, prima di credere a un esito.
+          $mancano = @()
+          foreach ($f in @('bin\oce-solid-agent-mcp.exe', 'Prove\bin\Prove.Contratti.exe')) {
+            if (-not (Test-Path $f)) { $mancano += $f }
+          }
+          if ($mancano.Count -gt 0) {
+            Write-Output ("NON COMPILATI: " + ($mancano -join ', '))
+            exit 1
+          }
+          Write-Output "ci sono tutti e due"
+
+      - name: Lancia le prove di contratto
+        run: Prove\bin\Prove.Contratti.exe
+
+      - name: Pubblica prove.xml
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prove.xml
+          path: Prove/bin/prove.xml
+          if-no-files-found: error

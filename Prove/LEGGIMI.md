@@ -37,6 +37,12 @@ parlandoci **su stdio**, come farebbe un cliente qualunque.
 | **il catalogo** | ogni operazione ha nome, famiglia, sommario, descrizione, schema; ogni famiglia usata e' dichiarata; **nessun percorso di questa macchina**; `Simili()` che su «asole» trova «asola» |
 | **`Sessione.StessoDocumento`** | la guardia contro il blocco estruso nel pezzo di qualcun altro, che fino al 15/9/2026 **non aveva nemmeno una prova** |
 | **il protocollo MCP** | `initialize` rimanda la versione ricevuta, una notifica non riceve risposta, `tools/list` da' cinque strumenti, uno strumento sconosciuto da' `isError` **nel contenuto** e non un errore JSON-RPC, JSON malformato da' `-32700` con id nullo, e **su stdout non c'e' niente che non sia JSON** |
+| **il banco e' stato lanciato** | legge `Banco/resoconto/ultimo.json` e **rifiuta una consegna in cui nessuno ha lanciato il banco**: piu' di zero prove, nessuna rossa, non un giro parziale, la libreria di adesso, e **posteriore all'ultima modifica a `Riscontro.Disegno`** |
+
+L'ultima riga e' la ragione per cui esiste la CI (voce F9): nessun runner ha una
+licenza SOLIDWORKS e non l'avra', ma **rifiutare una consegna non provata** si
+puo' fare da qualunque macchina. Per questo `ultimo.json` e' l'unico file di
+`Banco/resoconto/` versionato.
 
 > **Il valutatore delle attese DEVE stare qui.** Se e' rotto lui, tutta la suite
 > con SOLIDWORKS diventa verde gratis.

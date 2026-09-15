@@ -18,6 +18,28 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F9 — Una CI che compila, prova i contratti e **pretende il banco**
+
+`.github/workflows/prove.yml` su `windows-latest`: compila il ponte e
+`Prove.Contratti`, guarda che i due eseguibili **esistano davvero**, lancia le
+prove, pubblica `prove.xml`.
+
+**E fa la cosa che una macchina senza licenza puo' davvero fare**: una prova di
+contratto legge `Banco/resoconto/ultimo.json` e **rifiuta una consegna in cui
+nessuno ha lanciato il banco**. Controlla che il giro abbia misurato qualcosa
+(«0 prove, 0 fallite» non e' un verde), che non sia parziale, che la libreria
+sia quella dichiarata in `AssemblyInfo.cs`, e che sia **posteriore all'ultima
+modifica a `Riscontro.Disegno`** — chiesto a git. *Una libreria toccata dopo
+l'ultimo giro e' una libreria non provata, anche se il numero di versione
+combacia perche' qualcuno si e' dimenticato di alzarlo.*
+
+Il rosso, misurato togliendo il file: «il banco non e' stato eseguito su questa
+versione».
+
+`Banco/resoconto/` resta ignorato **tranne `ultimo.json`**, e non e'
+un'eccezione di comodo: senza quel file in repository quel controllo non
+esiste.
+
 ### F8 — La regressione sui riferimenti, e i tre numeri
 
 ```

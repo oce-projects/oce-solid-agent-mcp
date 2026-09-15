@@ -1,0 +1,23 @@
+{
+    "quando":  "2026-09-15T14:13:47",
+    "solidworks":  "29.5.1",
+    "libreria":  "0.75.0.0",
+    "catalogo":  38,
+    "commit":  "c1e8df0",
+    "gruppo":  "",
+    "lento":  false,
+    "durata_s":  1038,
+    "riepilogo":  "183 prove, 0 fallite, 1 SALTATE (--lento le lancia)",
+    "attese":  "attese verificate 43 su 43",
+    "passate":  183,
+    "fallite":  0,
+    "saltate":  1,
+    "errori":  0,
+    "uscita":  0,
+    "rosse":  [
+
+              ],
+    "di_banco":  [
+
+                 ]
+}
