@@ -26,6 +26,11 @@ Carica `Riscontro.Disegno.dll` e chiama i suoi tipi per riflessione, con gli
 stessi argomenti che arriverebbero da un piano. Ogni prova lavora su una parte
 usa e getta e la chiude.
 
+> **Prima di tutto questo c'e' `Prove\Prove.Contratti.exe`** — 54 controlli in
+> pochi secondi, **senza SOLIDWORKS**: il valutatore delle attese, il catalogo,
+> `StessoDocumento`, il protocollo MCP. Vedi [Prove/LEGGIMI.md](../Prove/LEGGIMI.md).
+> Se sono rossi quelli, aprire il CAD e' tempo perso.
+
 ### Un comando solo
 
 ```

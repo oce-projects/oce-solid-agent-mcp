@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
+          Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <!-- ===================================================================
+       LE PROVE CHE GIRANO SENZA SOLIDWORKS (voce F7)
+
+       UN PROGETTO A SE', E NON UN MODO DI `ProvaSaldatura.exe`. Il csproj
+       del banco risolve l'interop con un `HintPath` dentro
+       `...\SOLIDWORKS\api\redist`: su una macchina senza SOLIDWORKS quel
+       percorso non esiste e la COMPILAZIONE fallisce. Un flag non basta —
+       il problema e' prima del runtime.
+
+       QUI DENTRO NON C'E' NESSUN RIFERIMENTO A `SolidWorks.Interop.*`, e
+       non e' una preferenza: e' il controllo. Se qualcuno ne aggiunge uno,
+       questo progetto smette di essere quello che dice di essere, e il
+       modo piu' semplice di accorgersene e' che non compili piu' altrove.
+
+       Cio' che serve dalla libreria e dal ponte si prende per RIFLESSIONE
+       o parlandoci via stdio, come farebbe un cliente qualunque.
+       =================================================================== -->
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Prove.Contratti</RootNamespace>
+    <AssemblyName>Prove.Contratti</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <!-- x64 COME IL PONTE, e non e' un dettaglio di gusto: un `AnyCPU`
+         eseguibile su .NET Framework parte a 32 bit (`Prefer32Bit` e' vero di
+         default), e caricare l'immagine x64 del ponte da un processo a 32 bit
+         da' `BadImageFormatException` — un messaggio che parla di «file o
+         assembly non caricabile» e sembra un file mancante. -->
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <OutputPath>bin\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <LangVersion>7.3</LangVersion>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Carica.cs" />
+    <Compile Include="Programma.cs" />
+    <Compile Include="ProveCatalogo.cs" />
+    <Compile Include="ProveSessione.cs" />
+    <Compile Include="ProveProtocollo.cs" />
+    <Compile Include="ProveAttese.cs" />
+    <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.
+         Non una copia: una copia diverge, e il giorno che diverge la suite
+         col CAD comincia a passare per ragioni che qui non si vedono. -->
+    <Compile Include="..\Banco\Attese.cs">
+      <Link>Attese.cs</Link>
+    </Compile>
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

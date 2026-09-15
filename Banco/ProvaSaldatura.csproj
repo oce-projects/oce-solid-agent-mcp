@@ -40,6 +40,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attese.cs" />
     <Compile Include="CasiDichiarati.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProvaNuove.cs" />

@@ -18,6 +18,41 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F7 — Le prove che girano dove SOLIDWORKS non c'e'
+
+```
+msbuild Prove\Prove.Contratti.csproj -p:Configuration=Release
+Prove\bin\Prove.Contratti.exe    ->  54 controlli, 0 falliti, prove.xml (JUnit)
+```
+
+Un progetto **a se'**, non un modo del banco: il csproj del banco risolve
+l'interop con un `HintPath` dentro `…\SOLIDWORKS\api\redist`, e su una macchina
+senza SOLIDWORKS **la compilazione fallisce**. Un flag non basta — il problema e'
+prima del runtime.
+
+Prova il **valutatore delle attese** (19), il **catalogo** e `Simili()` (11),
+`Sessione.StessoDocumento` (10, e fino a oggi quella guardia non aveva **nemmeno
+una prova**), il **protocollo MCP** parlando col ponte su stdio (13), e che
+questo progetto **non referenzi l'interop** — guardando i riferimenti
+dell'assembly, non il testo del csproj.
+
+Il valutatore e' lo **stesso file** che compila il banco, non una copia: una
+copia diverge, e il giorno che diverge la suite col CAD comincia a passare per
+ragioni che qui non si vedono. *Se e' rotto lui, tutta la suite con SOLIDWORKS
+diventa verde gratis.*
+
+**Tre difetti trovati appena scritta**, e sono il suo valore:
+
+* **il BOM che rompeva la prima riga.** `Process.StandardInput` nasce con la
+  codifica di `Console.InputEncoding` e gli si mette `AutoFlush = true`, che fa
+  un Flush, e un Flush UTF-8 scrive il preambolo: **tre byte davanti alla prima
+  riga**. Il ponte rispondeva `-32700`, e il sintomo diceva «initialize non
+  risponde» perche' la riga d'errore non porta l'id;
+* **un controllo scattato per il motivo sbagliato**: «nessun percorso di questa
+  macchina» cercava `O:\` senza distinguere maiuscole, e trovava `tipo:\n`;
+* **`BadImageFormatException` che sembrava un file mancante**: un `AnyCPU`
+  eseguibile parte a 32 bit, e l'immagine x64 del ponte da li' non si carica.
+
 ### F6 — `--muta`: ogni caso deve poter diventare rosso
 
 `.\Banco\banco.ps1 -Muta` perturba **il piano, non il codice**: un argomento

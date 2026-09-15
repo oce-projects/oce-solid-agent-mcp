@@ -749,10 +749,8 @@ namespace ProvaSaldatura
         /// <summary>
         /// Quello che una prova non ha potuto misurare. Vedi ErroreDiBanco.
         /// </summary>
-        private sealed class NonHoPotutoMisurare : Exception
-        {
-            public NonHoPotutoMisurare(string messaggio) : base(messaggio) { }
-        }
+        // `NonHoPotutoMisurare` sta in `Attese.cs`: la alza il valutatore, e
+        // quel file lo compila anche `Prove.Contratti`, dove SOLIDWORKS non c'e'.
 
         private static int _saltate;
         private static int _erroriDiBanco;
