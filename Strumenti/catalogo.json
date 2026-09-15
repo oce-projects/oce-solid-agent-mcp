@@ -1841,6 +1841,40 @@
    "precondizione": "corpo_solido"
   },
   {
+   "nome": "proprieta_di_massa",
+   "famiglia": "verifiche",
+   "sommario": "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
+   "descrizione": "Risponde a «quanto pesa questo pezzo»: volume, area della superficie, massa, densita' e baricentro.\n\nLA MASSA SENZA MATERIALE NON E' ZERO, E' «NON SI SA»: se al pezzo non e' stato dato un materiale ti rispondo null e ti dico perche'. SOLIDWORKS risponderebbe lo stesso usando la densita' predefinita del modello -- di solito 1000 kg/m3, cioe' acqua -- e un pezzo d'acciaio che pesa come l'acqua e' un numero credibile e sbagliato di otto volte. Usa prima «applica_materiale».\n\nLa massa arriva anche RICALCOLATA a mano (volume per densita') accanto a quella di SOLIDWORKS: se le due divergono, una delle misure non e' nelle unita' che dichiara, ed e' il modo in cui un fattore mille si fa vedere invece di nascondersi.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "corpo_uid": {
+      "type": "string",
+      "description": "un corpo solo, per identificativo (per esempio «C2»). Se non lo dici li pesa tutti insieme."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "corpo_solido"
+  },
+  {
+   "nome": "ingombro_corpo",
+   "famiglia": "verifiche",
+   "sommario": "La scatola del pezzo in mm, corpo per corpo e tutta insieme.",
+   "descrizione": "Risponde a «entra nella scatola 300x260x40»: da dove a dove arriva il pezzo su ognuno dei tre assi, e quanto misura.\n\nI punti sono quelli VERI del corpo, presi in sei direzioni, non la scatola approssimata: un ingombro dichiarato piu' grande del vero fa dimensionare male tutto quello che ci sta intorno.\n\nE' la scatola ALLINEATA AGLI ASSI del modello, non la piu' piccola possibile: un pezzo lungo messo in diagonale ha un ingombro molto piu' grande di quello che gli servirebbe girato bene, e questa misura non dice come girarlo.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "corpo_uid": {
+      "type": "string",
+      "description": "un corpo solo, per identificativo (per esempio «C2»). Se non lo dici misura tutti i corpi e la scatola che li contiene."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "corpo_solido"
+  },
+  {
    "nome": "esporta_stl",
    "famiglia": "esportazioni",
    "sommario": "Scrive lo STL per la stampa 3D, in millimetri. Verifica il pezzo prima, e rifiuta se non e' un solido chiuso.",

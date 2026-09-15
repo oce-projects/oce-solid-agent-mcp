@@ -16,6 +16,56 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.44.0 — 15 settembre 2026 · libreria 0.79.0
+
+### GP4 — `proprieta_di_massa` e `ingombro_corpo`, e la misura che cambia risposta
+
+Catalogo a **44 operazioni**. Le due domande che si fanno prima di ordinare —
+«quanto pesa questo pezzo in alluminio» e «entra nella scatola 300×260×40» — si
+calcolavano già dentro `StatoDocumento` ma **nessuna operazione poteva
+chiederle**: arrivavano dentro l'intero stato del documento, o non arrivavano.
+
+**Il difetto che il caso dichiarato ha preso alla prima esecuzione.**
+
+```
+NO   massa_di_un_cubo_di_acciaio · misure.densita_kg_m3   1 (atteso 8000 ±0.5)
+```
+
+`IMassProperty` **cambia le sue risposte a seconda di che cosa gli si è chiesto
+prima**. Sullo stesso oggetto, con `AddBodies` che risponde `true`:
+
+```
+letto subito Density                     ->  8000   (giusto)
+letto prima Volume,      poi Density     ->     1
+letto prima SurfaceArea, poi Density     ->     1
+letto prima CenterOfMass, poi Density    ->  8000   (indenne)
+```
+
+E la massa segue: **0,0002 kg invece di 1,6 — ottomila volte più leggera**, con
+volume, area e baricentro tutti giusti accanto. Nessuna eccezione, nessun valore
+assurdo: un numero credibile in mezzo a quattro numeri giusti.
+
+Il rimedio non è «leggi prima la massa»: un ordine di righe è un contratto che
+si rompe il giorno in cui qualcuno le riordina, e non fallirebbe niente. È **un
+`IMassProperty` nuovo per ogni numero** — quattro chiamate COM che non le sente
+nessuno, e l'ordine smette di esistere come concetto.
+
+**La massa senza materiale è `null`, non un numero.** SOLIDWORKS non fallisce:
+risponde con la densità predefinita del modello, **1000 kg/m³, cioè acqua** —
+0,2 kg invece di 1,6 sullo stesso cubo. Credibile e sbagliato di otto volte.
+L'operazione risponde `null` e scrive perché e cosa fare.
+
+**E i momenti principali non ci sono, di proposito.**
+`IMassProperty.PrincipleMomentsOfInertia` risponde **tre zeri**, e così
+`IMassProperty2.PrincipalMomentsOfInertia` con l'altra grafia. I momenti veri
+stanno in `Extension.GetMassProperties(1)`, posizioni 6-8. Un campo che si
+chiama «momenti principali» e risponde zero non dà errore — un momento nullo è
+un momento — quindi non si riporta affatto.
+
+`ingombro_corpo` prende i **punti veri** con `GetExtremePoint` in sei direzioni,
+non la scatola approssimata di `GetBodyBox`, e dichiara il suo limite a ogni
+chiamata: è la scatola allineata agli assi, non la più piccola possibile.
+
 ## 0.43.0 — 15 settembre 2026 · libreria 0.78.0
 
 ### GP3 — `esporta_step` e `esporta_iges`, e il file che non aveva niente da riparare

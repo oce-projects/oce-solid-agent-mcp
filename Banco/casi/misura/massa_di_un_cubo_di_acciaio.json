@@ -1,0 +1,38 @@
+{
+  "nome": "massa_di_un_cubo_di_acciaio",
+  "famiglia": "misura",
+  "perche": "«Quanto pesa questo pezzo» e' una delle due domande che si fanno prima di ordinare il materiale. Un cubo da 100x100x20 fa 200.000 mm3; l'AISI 304 della libreria di SOLIDWORKS ha densita' 8000 kg/m3, quindi 1,6 kg esatti. Nessuno dei tre numeri e' arrotondato: e' un conto che deve tornare.",
+  "_gia_visto_rosso": "Questo caso e' gia' scattato, il 15/9/2026, la prima volta che e' stato lanciato: «densita_kg_m3 1 (atteso 8000)». `IMassProperty` cambia le sue risposte a seconda di che cosa gli si e' chiesto prima -- letto `Volume` o `SurfaceArea` su quell'oggetto, `Density` diventa 1 e la massa esce OTTOMILA VOLTE piu' leggera, con volume, area e baricentro tutti giusti accanto. L'operazione adesso usa un oggetto nuovo per ogni numero, e questa riga e' cio' che lo tiene vero.",
+  "perche_il_ricalcolo": "la massa arriva due volte -- quella di SOLIDWORKS e quella rifatta a mano come volume per densita' -- e lo scarto fra le due e' un'attesa a se'. Se un giorno una delle due misure fosse in unita' diverse da quelle che dichiara, sarebbe questa riga a dirlo: un fattore mille non si nasconde in una differenza.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "applica_materiale",
+      "argomenti": { "materiale": "AISI 304" },
+      "attese": [ { "cosa": "stato.materiale", "contiene": ["AISI 304"] } ] },
+    { "operazione": "proprieta_di_massa",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.corpi", "uguale": 1 },
+        { "cosa": "misure.volume_mm3", "uguale": 200000, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "il volume si legge in metri cubi e si moltiplica per un miliardo" },
+        { "cosa": "misure.area_mm2", "uguale": 28000, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "2*(100*100) + 4*(100*20) = 28.000; l'area si legge in metri quadri" },
+        { "cosa": "misure.densita_kg_m3", "uguale": 8000, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "e' la densita' che la libreria di SOLIDWORKS da' all'AISI 304" },
+        { "cosa": "misure.massa_kg", "uguale": 1.6, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "200.000 mm3 per 8000 kg/m3 = 1,6 kg: il millesimo e' l'arrotondamento della risposta" },
+        { "cosa": "misure.massa_ricalcolata_kg", "uguale": 1.6, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "come sopra, rifatto a mano" },
+        { "cosa": "misure.scarto_sul_ricalcolo", "uguale": 0, "tolleranza": 0.00001,
+          "perche_questa_tolleranza": "le due strade devono dare lo stesso numero, non uno simile" },
+        { "cosa": "misure.centro_massa_mm", "uguale": [0, 0, 10], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "il baricentro si legge in metri; la piastra e' centrata in X e Y e va da z = 0 a z = 20" },
+        { "cosa": "misure.materiale", "contiene": ["AISI 304"] },
+        { "cosa": "misure.unita", "contiene": ["millimetri", "chilogrammi"],
+          "perche": "chi legge la risposta puo' non aver mai visto la descrizione dell'operazione" } ] }
+  ]
+}

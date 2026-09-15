@@ -241,7 +241,8 @@ namespace Riscontro.Disegno
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
             "estrudi_sezione", "ruota_dentata",
             "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
-            "imposta_foglio", "membro_strutturale", "modifica_quota",
+            "imposta_foglio", "ingombro_corpo", "membro_strutturale",
+            "modifica_quota", "proprieta_di_massa",
             "quote_dal_modello", "raccordo_spigoli", "ripeti_circolare",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "smusso_spigoli", "sopprimi_lavorazione", "specchia",
@@ -357,6 +358,13 @@ namespace Riscontro.Disegno
                     // un'operazione di catalogo che legge invece di costruire.
                     case "verifica_geometria_corpo":
                         return VerificaGeometriaCorpo(modello, argomenti, stato);
+                    // Le due domande che si fanno prima di ordinare: quanto
+                    // pesa, e in che scatola ci sta. Stanno in
+                    // OperazioniMisura.cs.
+                    case "proprieta_di_massa":
+                        return ProprietaDiMassa(modello, argomenti, stato);
+                    case "ingombro_corpo":
+                        return IngombroCorpo(modello, argomenti, stato);
 
                     // ── esportazioni ────────────────────
                     // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama

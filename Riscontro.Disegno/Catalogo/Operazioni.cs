@@ -2161,6 +2161,63 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "proprieta_di_massa",
+                    Famiglia = "verifiche",
+                    Provata = true,
+                    Sommario =
+                        "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
+                    Descrizione =
+                        "Risponde a «quanto pesa questo pezzo»: volume, area della "
+                        + "superficie, massa, densita' e baricentro.\n\nLA MASSA SENZA "
+                        + "MATERIALE NON E' ZERO, E' «NON SI SA»: se al pezzo non e' stato "
+                        + "dato un materiale ti rispondo null e ti dico perche'. SOLIDWORKS "
+                        + "risponderebbe lo stesso usando la densita' predefinita del modello "
+                        + "-- di solito 1000 kg/m3, cioe' acqua -- e un pezzo d'acciaio che "
+                        + "pesa come l'acqua e' un numero credibile e sbagliato di otto "
+                        + "volte. Usa prima «applica_materiale».\n\nLa massa arriva anche "
+                        + "RICALCOLATA a mano (volume per densita') accanto a quella di "
+                        + "SOLIDWORKS: se le due divergono, una delle misure non e' nelle "
+                        + "unita' che dichiara, ed e' il modo in cui un fattore mille si fa "
+                        + "vedere invece di nascondersi.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "corpo_uid", O(
+                                "type", "string",
+                                "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
+                                    + "dici li pesa tutti insieme.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "ingombro_corpo",
+                    Famiglia = "verifiche",
+                    Provata = true,
+                    Sommario =
+                        "La scatola del pezzo in mm, corpo per corpo e tutta insieme.",
+                    Descrizione =
+                        "Risponde a «entra nella scatola 300x260x40»: da dove a dove arriva "
+                        + "il pezzo su ognuno dei tre assi, e quanto misura.\n\nI punti sono "
+                        + "quelli VERI del corpo, presi in sei direzioni, non la scatola "
+                        + "approssimata: un ingombro dichiarato piu' grande del vero fa "
+                        + "dimensionare male tutto quello che ci sta intorno.\n\nE' la "
+                        + "scatola ALLINEATA AGLI ASSI del modello, non la piu' piccola "
+                        + "possibile: un pezzo lungo messo in diagonale ha un ingombro molto "
+                        + "piu' grande di quello che gli servirebbe girato bene, e questa "
+                        + "misura non dice come girarlo.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "corpo_uid", O(
+                                "type", "string",
+                                "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
+                                    + "dici misura tutti i corpi e la scatola che li contiene.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "esporta_stl",
                     Famiglia = "esportazioni",
                     Provata = true,
