@@ -59,7 +59,8 @@ $attrezzi = @(
     @{ nome = 'Seleziona'; sw = $true; lib = $false },
     @{ nome = 'CoperturaRuoli'; sw = $true; lib = $false },
     @{ nome = 'ProvaVista'; sw = $true; lib = $false },
-    @{ nome = 'ProvaInquadratura'; sw = $true; lib = $true; disegno = $true }
+    @{ nome = 'ProvaInquadratura'; sw = $true; lib = $true; disegno = $true },
+    @{ nome = 'ForoOppureRaccordo'; sw = $true; lib = $false }
 )
 
 foreach ($a in $attrezzi) {

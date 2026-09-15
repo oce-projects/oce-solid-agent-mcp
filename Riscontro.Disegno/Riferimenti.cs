@@ -99,27 +99,72 @@ namespace Riscontro.Disegno
 
                 case "faccia_del_foro":
                 {
-                    var cilindriche = new List<IFace2>();
+                    // ── UN FORO E' CONCAVO, UN RACCORDO E' CONVESSO ───────
+                    //
+                    // Fino alla 0.73.0 qui bastava «cilindrica», e un raccordo
+                    // lascia facce cilindriche come un foro. Se un passo ne
+                    // lasciava **una sola** e quella era un raccordo, questo
+                    // ramo la restituiva **senza dire niente**: chi aveva
+                    // chiesto la parete di un foro si ritrovava la superficie
+                    // di un raccordo, e la lavorazione successiva ci finiva
+                    // sopra. Un difetto che non da' errore.
+                    //
+                    // Misurato da `Controlli\ForoOppureRaccordo` su una piastra
+                    // con un foro Ø12 e un raccordo R5:
+                    //
+                    //     parete del foro         FaceInSurfaceSense = true
+                    //     superficie del raccordo FaceInSurfaceSense = false
+                    //
+                    // La parete di un foro ha il materiale FUORI dal cilindro,
+                    // e la sua normale guarda verso l'asse: e' concava.
+                    var concave = new List<IFace2>();
+                    int convesse = 0;
                     foreach (var f in facce)
-                        if (Cilindrica(f)) cilindriche.Add(f);
-                    if (cilindriche.Count == 0)
                     {
-                        motivo =
-                            "Il passo «" + passo.Operazione + "» non ha lasciato " +
-                            "nessuna faccia cilindrica: non c'e' nessuna parete " +
-                            "di foro da prendere.";
+                        if (!Cilindrica(f)) continue;
+                        if (Concava(f)) concave.Add(f); else convesse++;
+                    }
+
+                    if (concave.Count == 0)
+                    {
+                        motivo = convesse > 0
+                            ? "Il passo «" + passo.Operazione + "» ha lasciato " +
+                              convesse + " fac" + (convesse == 1 ? "cia" : "ce") +
+                              " cilindric" + (convesse == 1 ? "a" : "he") +
+                              ", ma convess" + (convesse == 1 ? "a" : "e") + ": " +
+                              "sono superfici di raccordo o di un cilindro pieno, " +
+                              "non pareti di foro. La parete di un foro e' " +
+                              "concava — il materiale sta fuori."
+                            : "Il passo «" + passo.Operazione + "» non ha lasciato " +
+                              "nessuna faccia cilindrica: non c'e' nessuna parete " +
+                              "di foro da prendere.";
                         return false;
                     }
-                    if (cilindriche.Count > 1)
+
+                    // PIU' DI UNA PARETE DI FORO RESTA UN RIFIUTO, e non e' una
+                    // mancanza da riparare.
+                    //
+                    // La voce E14 proponeva di sceglierne una «con un criterio —
+                    // il diametro, oppure la posizione». Fra quattro M10 uguali
+                    // non esiste nessun criterio: qualunque cosa si scelga e'
+                    // **indovinare**, e il passo seguente finirebbe su un foro a
+                    // caso senza che niente fallisca. E' esattamente il difetto
+                    // che questo progetto esiste per rendere impossibile, offerto
+                    // come comodita'.
+                    //
+                    // Il rifiuto pero' adesso dice quanti sono e di che
+                    // diametro: chi legge ha gia' in mano cio' che gli serve per
+                    // nominarne uno.
+                    if (concave.Count > 1)
                     {
                         motivo =
                             "Il passo «" + passo.Operazione + "» ha lasciato " +
-                            cilindriche.Count + " facce cilindriche: non so " +
-                            "quale sia «la» parete del foro. Indica la faccia " +
-                            "per identificativo.";
+                            concave.Count + " pareti di foro (" + Diametri(concave) +
+                            "): «la» parete del foro non esiste. Rileggi il pezzo e " +
+                            "indica quale, per identificativo.";
                         return false;
                     }
-                    faccia = cilindriche[0];
+                    faccia = concave[0];
                     return true;
                 }
 
@@ -579,6 +624,49 @@ namespace Riscontro.Disegno
                 return superficie != null && superficie.IsCylinder();
             }
             catch { return false; }
+        }
+
+        /// <summary>
+        /// Una faccia cilindrica e' CONCAVA — cioe' la parete di un foro?
+        ///
+        /// `FaceInSurfaceSense()` dice se la normale della faccia e' rovesciata
+        /// rispetto a quella della superficie. Per un cilindro la normale
+        /// naturale punta in fuori dall'asse: se la faccia la rovescia, il
+        /// materiale sta FUORI dal cilindro, ed e' un foro.
+        ///
+        /// Misurato, non dedotto (`Controlli\ForoOppureRaccordo`, 15/9/2026):
+        /// su una piastra con un foro Ø12 e un raccordo R5, la parete del foro
+        /// risponde **true** e la superficie del raccordo **false**.
+        ///
+        /// Nel dubbio si risponde **false**, cioe' «non e' un foro»: il costo
+        /// di sbagliare nei due versi non e' lo stesso. Scambiare un raccordo
+        /// per un foro fa finire una lavorazione sulla faccia sbagliata senza
+        /// che niente fallisca; scambiare un foro per un raccordo fa uscire un
+        /// rifiuto, che si legge.
+        /// </summary>
+        private static bool Concava(IFace2 faccia)
+        {
+            try { return faccia.FaceInSurfaceSense(); }
+            catch { return false; }
+        }
+
+        /// <summary>I diametri di queste facce cilindriche, per il rifiuto.</summary>
+        private static string Diametri(List<IFace2> facce)
+        {
+            var visti = new List<string>();
+            foreach (var f in facce)
+            {
+                try
+                {
+                    var par = (f.GetSurface() as ISurface)?.CylinderParams as double[];
+                    if (par == null || par.Length < 7) continue;
+                    string d = "Ø" + Unita.Mm(par[6] * 2).ToString(
+                        "0.##", System.Globalization.CultureInfo.InvariantCulture);
+                    if (!visti.Contains(d)) visti.Add(d);
+                }
+                catch { }
+            }
+            return visti.Count == 0 ? "diametri non leggibili" : string.Join(", ", visti);
         }
 
         /// <summary>La direzione di uno spigolo RETTILINEO, o null se non lo e'.</summary>
