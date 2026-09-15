@@ -409,6 +409,43 @@ namespace Oce.Solid.Agent.Ponte
             get { return VistaDelPezzo.NomiDelleViste; }
         }
 
+        /// <summary>I piani su cui si puo' sezionare.</summary>
+        public static IEnumerable<string> NomiDeiPiani
+        {
+            get { return VistaDelPezzo.NomiDeiPiani; }
+        }
+
+        /// <summary>
+        /// UNO SPACCATO del documento attivo, in PNG (voce V4). Null col
+        /// motivo.
+        ///
+        /// Nome nuovo accanto a `Fotografia`, non parametri in piu' su quella:
+        /// stessa regola di `StatoSenzaAncora`, e qui vale doppio perche'
+        /// `Fotografia` e' gia' chiamata da `Attrezzi`.
+        /// </summary>
+        public byte[] Spaccato(
+            string quale, string piano, double offsetMm,
+            int larghezza, int altezza, out string errore)
+        {
+            errore = null;
+            var doc = DocumentoAttivo();
+            if (doc == null)
+            {
+                errore = "Non c'e' nessun documento aperto in SolidWorks.";
+                return null;
+            }
+
+            var modello = doc as IModelDoc2;
+            if (modello == null)
+            {
+                errore = "Il documento davanti non si lascia fotografare.";
+                return null;
+            }
+
+            return VistaDelPezzo.ScattaInSezione(
+                modello, quale, piano, offsetMm, larghezza, altezza, out errore);
+        }
+
         /// <summary>
         /// UN PASSO INDIETRO sul documento davanti. Torna il motivo se non si
         /// e' potuto, null se e' andata.

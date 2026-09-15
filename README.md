@@ -139,6 +139,14 @@ pagherebbe anche chi voleva solo sapere quanti corpi ci sono.
 Fotografare **non tocca la vista di chi lavora**: l'orientamento si salva prima
 e si rimette dopo, anche quando la fotografia fallisce a meta'.
 
+**E si puo' guardare dentro.** Con `sezione: {piano: "destro"}` il pezzo arriva
+in **spaccato**: uno spaccato dice di un guscio piu' di dieci viste esterne —
+dall'esterno una scatola svuotata e una piena sono lo stesso parallelepipedo, e
+lo spessore del fondo non si legge.
+
+Taglia **solo il disegno**, non la geometria: nessuna feature nell'albero,
+nessun corpo diviso. E si toglie da sola appena scattata, come l'orientamento.
+
 **E si puo' tornare indietro.** Fino alla 0.31.0 le operazioni erano tutte
 additive o parametriche: l'albero poteva solo crescere, e chi si accorgeva di
 aver sbagliato doveva costruirci sopra o rifare il pezzo da capo. `annulla`

@@ -11,6 +11,7 @@ Sono due banchi diversi, per due domande diverse:
 | `prova_annulla.js` | `annulla` ritira il piano — e si **rifiuta** quando deve? | si' |
 | `raccogli_viste.js` | costruisce le cinque forme di V2/V3 e ne salva immagini e stato | si' |
 | `prova_forma.js` | dalla sola **frase** un modello sa ridisegnare il pezzo? (V3) | si' |
+| `prova_sezione.js` | lo **spaccato** mostra la parete, e si toglie da solo? (V4) | si' |
 | `..\Controlli\Prova*.exe` | la matematica torna? | **no** |
 
 I primi tre misurano pezzi, l'ultimo misura formule. L'ultimo si lancia in un
@@ -81,6 +82,21 @@ node prova_forma.js           esegue i piani e confronta volume e ingombro
 **Il modello che scrive i piani non deve vedere `Banco/viste/`**: li' dentro ci
 sono gli stati completi, cioe' le risposte. Se le vede, la misura non misura
 piu' niente.
+
+### `prova_sezione.js` — meta' automatica, meta' da guardare
+
+Costruisce un guscio, ne scatta la vista intera e lo **spaccato**, e controlla
+da sola le cose che si contano:
+
+- la sezione esce ed e' un PNG;
+- **e' diversa dalla vista intera** — il rosso vero, perche' una sezione che non
+  seziona darebbe un'immagine identica e «la sezione esce» passerebbe lo stesso;
+- dopo, volume, corpi e lavorazioni sono quelli di prima: **nessuna sezione
+  rimasta accesa, nessun corpo tagliato**. E' il rischio che la voce V4 nomina.
+
+L'altra meta' — «dalla sezione si LEGGE lo spessore» — la puo' dire solo
+qualcuno che guarda. Le due immagini restano in `Banco/viste/`
+(`v4-guscio-intero.png` e `v4-guscio-sezione.png`) proprio per quello.
 
 Con `PONTE=...` si punta a un altro eseguibile: serve per provare quello
 **installato** invece di quello appena compilato, che e' l'unico modo di sapere

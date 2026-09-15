@@ -294,6 +294,145 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// LO SPACCATO: il pezzo tagliato da un piano, fotografato (voce V4).
+        ///
+        /// ── PERCHE' UNA SEZIONE E NON UN'ALTRA VISTA ──────────────────────
+        ///
+        /// Uno spaccato dice di un guscio piu' di dieci viste esterne: e'
+        /// esattamente il gesto che fa un progettista per capire uno spessore.
+        /// Dall'esterno una scatola svuotata e una scatola piena sono lo stesso
+        /// parallelepipedo.
+        ///
+        /// ── NON TOCCA IL PEZZO, E NON LO TOCCA DAVVERO ────────────────────
+        ///
+        /// `GraphicsOnlySection = true`: taglia **il disegno a schermo**, non la
+        /// geometria. Nessuna feature nell'albero, nessun corpo diviso, niente
+        /// da annullare. E' la differenza fra guardare e modificare, e questo
+        /// ponte sta dalla parte del guardare.
+        ///
+        /// E la sezione **si toglie nel `finally`**, insieme all'orientamento:
+        /// lasciarla accesa cambierebbe cio' che il progettista vede sul suo
+        /// schermo, che e' il rischio scritto nella voce.
+        ///
+        /// ── E NON PASSA DA `RunCommand` ──────────────────────────────────
+        ///
+        /// Il comando di menu «Vista in sezione» apre un pannello e resta li' ad
+        /// aspettare: una chiamata COM che apre un modale **non torna** — la
+        /// trappola di `AddDimension`, gia' pagata una volta.
+        /// `IModelViewManager.CreateSectionView` risponde un bool e non chiede
+        /// niente a nessuno.
+        /// </summary>
+        public static byte[] ScattaInSezione(
+            IModelDoc2 modello, string quale, string piano, double offsetMm,
+            int larghezza, int altezza, out string motivo)
+        {
+            motivo = null;
+            if (modello == null) { motivo = "Nessun documento aperto."; return null; }
+
+            var gestore = modello.ModelViewManager;
+            if (gestore == null)
+            {
+                motivo = "Questo documento non sa fare le sezioni.";
+                return null;
+            }
+
+            var suQuale = PianoDiRiferimento(modello, piano);
+            if (suQuale == null)
+            {
+                motivo = "Non trovo il piano «" + piano + "». Ci sono: " +
+                         "frontale, superiore, destro.";
+                return null;
+            }
+
+            bool sezioneAccesa = false;
+            try
+            {
+                var dati = gestore.CreateSectionViewData();
+                if (dati == null)
+                {
+                    motivo = "SOLIDWORKS non ha preparato la sezione.";
+                    return null;
+                }
+                dati.FirstPlane = suQuale;
+                dati.FirstOffset = Unita.M(offsetMm);
+                // SOLO GRAFICA: e' la riga che rende questa operazione di sola
+                // lettura. Senza, SOLIDWORKS taglia il modello per davvero.
+                dati.GraphicsOnlySection = true;
+                dati.Redraw = true;
+
+                sezioneAccesa = gestore.CreateSectionView(dati);
+                if (!sezioneAccesa)
+                {
+                    motivo = "SOLIDWORKS non ha aperto la sezione sul piano «" +
+                             piano + "».";
+                    return null;
+                }
+
+                return Scatta(modello, quale, larghezza, altezza, out motivo);
+            }
+            catch (Exception ex)
+            {
+                motivo = "Non sono riuscito a sezionare il pezzo: " + ex.Message;
+                return null;
+            }
+            finally
+            {
+                // SI TOGLIE SEMPRE, anche se la fotografia e' fallita a meta'.
+                // Una sezione lasciata accesa sullo schermo di chi lavora e' lo
+                // stesso danno dell'orientamento lasciato girato, e per la
+                // stessa ragione: l'ha fatto un'operazione che doveva solo
+                // guardare.
+                if (sezioneAccesa)
+                {
+                    try { gestore.RemoveSectionView(); } catch { }
+                    try { modello.GraphicsRedraw2(); } catch { }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Uno dei tre piani di riferimento, per nome.
+        ///
+        /// Si contano i `RefPlane` nell'ordine dell'albero: i primi tre sono
+        /// frontale, superiore, destro. **Un nome sconosciuto torna null**, non
+        /// il frontale: un ripiego silenzioso qui vorrebbe dire sezionare su un
+        /// piano diverso da quello chiesto e chiamarlo lo stesso «sezione».
+        /// E' la stessa lezione di `TrovaPianoBase`, dove un `: 1` finale
+        /// faceva ripiegare sul frontale qualunque nome.
+        /// </summary>
+        private static object PianoDiRiferimento(IModelDoc2 modello, string quale)
+        {
+            var parte = modello as IPartDoc;
+            if (parte == null) return null;
+            int voluto = quale == "frontale" ? 1
+                       : quale == "superiore" ? 2
+                       : quale == "destro" ? 3
+                       : 0;
+            if (voluto == 0) return null;
+
+            int visti = 0;
+            IFeature f = parte.IFirstFeature();
+            while (f != null)
+            {
+                string tipo = "";
+                try { tipo = f.GetTypeName2(); } catch { }
+                if (tipo == "RefPlane")
+                {
+                    visti++;
+                    if (visti == voluto) return f;
+                }
+                try { f = f.IGetNextFeature(); } catch { return null; }
+            }
+            return null;
+        }
+
+        /// <summary>I nomi dei piani su cui si puo' sezionare.</summary>
+        public static IEnumerable<string> NomiDeiPiani
+        {
+            get { return new[] { "frontale", "superiore", "destro" }; }
+        }
+
+        /// <summary>
         /// Di quanto si stringe dopo l'adattamento automatico.
         ///
         /// **1,15, e il tetto lo detta la direzione GIA' PIENA.** Dopo

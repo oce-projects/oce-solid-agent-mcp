@@ -16,6 +16,66 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.37.0 — 15 settembre 2026 · libreria 0.72.0
+
+### V4 — lo spaccato: guardare dentro senza toccare il pezzo
+
+`guarda_il_pezzo` accetta `sezione: {piano: "destro", offset_mm: 0}` e risponde
+con il pezzo **tagliato**. Uno spaccato dice di un guscio piu' di dieci viste
+esterne: dall'esterno una scatola svuotata e una piena sono lo stesso
+parallelepipedo, e **lo spessore del fondo non si legge affatto**.
+
+**Non passa da `RunCommand`.** Il comando di menu «Vista in sezione» apre un
+pannello e resta li' ad aspettare: una chiamata COM che apre un modale **non
+torna** — la trappola di `AddDimension`, gia' pagata una volta.
+`IModelViewManager.CreateSectionView` risponde un bool e non chiede niente a
+nessuno.
+
+**E non tocca il pezzo davvero.** `GraphicsOnlySection = true` taglia il
+**disegno a schermo**, non la geometria: nessuna feature nell'albero, nessun
+corpo diviso, niente da annullare. La sezione si toglie con
+`RemoveSectionView()` nel `finally`, insieme all'orientamento — lasciarla accesa
+sarebbe lo stesso danno del pezzo lasciato girato.
+
+Misurato da `Banco/prova_sezione.js`, dopo lo scatto: **volume 109056, corpi 1,
+lavorazioni 2** — identici a prima.
+
+#### Il rosso: una sezione che non seziona
+
+`prova_sezione.js` confronta i byte delle due immagini. Una sezione che non
+taglia niente darebbe un'immagine **identica** alla vista intera, e «la sezione
+esce» passerebbe lo stesso.
+
+#### E si guarda DI FRONTE, non in isometrica — misurato
+
+Il primo giro fotografava la sezione nell'orientamento corrente. Due modelli
+isolati, a cui e' stato chiesto quante volte lo spessore sta nell'altezza della
+scatola — il vero e' **12,5**:
+
+| | parete | fondo | fiducia dichiarata |
+|---|---|---|---|
+| vista intera | 8 · 13 | **non leggibile** · **non leggibile** | 2/5 |
+| sezione in **isometrica** | 6 | 8 | — |
+| sezione **di fronte** | **12** | **12** | **5/5** |
+
+Due cose insieme. La sezione **rivela il fondo**, che dall'esterno non si vedeva
+proprio — tutti e due i giudici hanno risposto «non leggibile» guardando
+l'esterno, ed e' il criterio della voce. Ma in isometrica i numeri erano
+sbagliati del 40-50%, perche' **uno spessore sottile in scorcio sembra piu'
+grosso**.
+
+Adesso la vista si ricava dal piano — `destro` → si guarda da destra — e non si
+puo' scegliere: chi chiede uno spaccato sul piano destro vuole guardarlo da
+destra, e poterlo scegliere sarebbe un modo in piu' di sbagliare. Rimisurato:
+**12 contro 12,5, il 4%**, e la fiducia dichiarata sale da 2/5 a **5/5** — il
+modello e' piu' sicuro proprio dove ha ragione.
+
+> Un'immagine in scorcio mostra una FORMA; solo una vista ortogonale porta un
+> NUMERO. E' la riga di V2 — le immagini danno la forma, i numeri stanno nel
+> testo — con l'unica eccezione che valga la pena avere.
+
+---
+
 ## 0.36.0 — 15 settembre 2026 · libreria 0.71.0
 
 Il profilo tornito nella frase (voce V7). Il contenuto e' descritto qui sotto,

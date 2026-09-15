@@ -62,3 +62,23 @@ qualcuno dei due invita a tirare a indovinare.**
   rivoluzione). Se il risultato fosse stretto, servirebbero pezzi veri.
 - Non misura la stessa cosa di V3. La' si chiede se la forma si possa **dire**;
   qui si chiede se si debba **vedere**.
+
+---
+
+## Quello che si e' scoperto misurando, e vale per tutte e tre le voci
+
+Tre misure — V2 (quante viste), V3 (la forma detta a parole), V4 (lo spaccato) —
+hanno detto la stessa cosa da tre parti diverse:
+
+> **Un'immagine porta una FORMA. Un numero sta nel testo.**
+
+- **V2** — con le sole immagini: famiglia 5/5, quote 0/5, e **zero numeri
+  inventati** («non stimabile, nessun riferimento di scala»). Col solo stato:
+  tutto giusto, ma **tre numeri derivati sbagliati** con confidenza piena.
+- **V3** — la frase, che i numeri li porta gia' calcolati: **cinque pezzi su
+  cinque** si ridisegnano al volume esatto.
+- **V4** — la sezione **rivela** uno spessore che dall'esterno non esisteva, ma
+  in isometrica lo si legge sbagliato del 40-50%: **solo una vista ortogonale
+  porta un numero**.
+
+L'eccezione di V4 e' l'unica, ed e' quella che vale la pena avere.

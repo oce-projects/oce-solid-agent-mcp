@@ -91,6 +91,34 @@ namespace Oce.Solid.Agent.Strumenti
                                     ["enum"] = Nomi(Sessione.NomiDelleViste),
                                 },
                             },
+                            ["sezione"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "object",
+                                ["description"] =
+                                    "UNO SPACCATO: il pezzo tagliato da un piano. Dice di un " +
+                                    "guscio piu' di dieci viste esterne — dall'esterno una " +
+                                    "scatola svuotata e una piena sono lo stesso " +
+                                    "parallelepipedo. Taglia solo il DISEGNO, non il pezzo, e " +
+                                    "si toglie da sola appena scattata.",
+                                ["properties"] = new Dictionary<string, object>
+                                {
+                                    ["piano"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["enum"] = Nomi(Sessione.NomiDeiPiani),
+                                        ["description"] = "su quale piano tagliare",
+                                    },
+                                    ["offset_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] =
+                                            "di quanto spostare il piano di taglio, in mm. " +
+                                            "Predefinito 0, cioe' il piano stesso — che passa " +
+                                            "per l'origine, non per il centro del pezzo.",
+                                    },
+                                },
+                                ["required"] = new[] { "piano" },
+                            },
                         },
                         new string[0]),
                     soloLettura: true, distruttivo: false, idempotente: true),
@@ -294,7 +322,8 @@ namespace Oce.Solid.Agent.Strumenti
             TogliLeAncore(stato);
 
             var chieste = VisteChieste(argomenti);
-            if (chieste.Count == 0)
+            var sezione = Prendi(argomenti, "sezione") as Dictionary<string, object>;
+            if (chieste.Count == 0 && sezione == null)
                 return Protocollo.Contenuto(Protocollo.InJson(stato));
 
             // LO STATO ESCE COMUNQUE, anche se nessuna fotografia riesce.
@@ -345,6 +374,61 @@ namespace Oce.Solid.Agent.Strumenti
                 else
                 {
                     mancate.Add(quale + ": " + (perche ?? "non so perche'"));
+                }
+            }
+
+            // ── LO SPACCATO, se lo hanno chiesto (voce V4) ───────────────
+            //
+            // Viene DOPO le viste esterne e prima del testo: nell'ordine in cui
+            // si guarda un pezzo, prima da fuori e poi dentro.
+            if (sezione != null)
+            {
+                var adessoSez = _sessione.Identita(_sessione.DocumentoAttivo());
+                if (!Sessione.StessoDocumento(_guardato, adessoSez))
+                {
+                    mancate.Add("sezione: davanti adesso c'e' «" +
+                                NomeLeggibile(adessoSez) + "», non «" +
+                                NomeLeggibile(_guardato) + "».");
+                }
+                else
+                {
+                    string piano = Testo(sezione, "piano");
+                    double offset = 0;
+                    object grezzo = Prendi(sezione, "offset_mm");
+                    if (grezzo != null)
+                        try { offset = Convert.ToDouble(grezzo,
+                                  System.Globalization.CultureInfo.InvariantCulture); }
+                        catch { }
+
+                    // UNA SEZIONE SI GUARDA DI FRONTE, e non e' una preferenza.
+                    //
+                    // Il primo giro la fotografava nell'orientamento corrente,
+                    // cioe' in isometrica. Misurato: un modello a cui e' stata
+                    // data quella immagine ha letto la parete «6 volte
+                    // nell'altezza» e il fondo «8», quando il vero e' **12,5**
+                    // per tutti e due — sbagliato del 40-50%.
+                    //
+                    // Non era colpa sua: in isometrica uno spessore sottile e'
+                    // scorciato, e sembra piu' grosso di quello che e'. Guardata
+                    // perpendicolarmente al piano di taglio, la sezione e' in
+                    // scala vera nelle due direzioni che contano.
+                    //
+                    // La vista si ricava dal piano, e non si chiede: chi chiede
+                    // uno spaccato sul piano destro vuole guardarlo da destra.
+                    // Poterla scegliere sarebbe un modo in piu' di sbagliare.
+                    var png = _sessione.Spaccato(
+                        VistaDiFronteAl(piano), piano, offset,
+                        LarghezzaVista, AltezzaVista, out var perche);
+                    if (png != null && png.Length > 0)
+                    {
+                        immagini.Add(new KeyValuePair<string, byte[]>("image/png", png));
+                        riuscite.Add("sezione sul piano " + piano +
+                                     (Math.Abs(offset) > 1e-9
+                                         ? " a " + offset.ToString("0.##",
+                                             System.Globalization.CultureInfo.InvariantCulture) + " mm"
+                                         : ""));
+                    }
+                    else mancate.Add("sezione: " + (perche ?? "non so perche'"));
                 }
             }
 
@@ -404,6 +488,26 @@ namespace Oce.Solid.Agent.Strumenti
                 if (fuori.Count >= MassimoDiViste) break;
             }
             return fuori;
+        }
+
+        /// <summary>
+        /// La vista da cui si guarda uno spaccato: quella perpendicolare al
+        /// piano di taglio.
+        ///
+        /// Null per un piano che non si conosce — e allora si scatta
+        /// nell'orientamento corrente, che e' meglio di niente: il rifiuto per
+        /// il nome sbagliato lo fa `ScattaInSezione`, che conosce i piani veri,
+        /// e farlo anche qui vorrebbe dire scrivere due volte lo stesso elenco.
+        /// </summary>
+        private static string VistaDiFronteAl(string piano)
+        {
+            switch (piano)
+            {
+                case "frontale": return "frontale";
+                case "superiore": return "superiore";
+                case "destro": return "destra";
+                default: return null;
+            }
         }
 
         /// <summary>
