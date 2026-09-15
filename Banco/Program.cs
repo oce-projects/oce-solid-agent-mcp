@@ -372,6 +372,8 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "forma",        Cosa = "la forma in una frase (V3/V7)", Azioni = una(ProvaFormaAParole) },
                 new Gruppo { Nome = "dove-stava",   Cosa = "dove stava, e il grep vuoto (E10)",
                              Azioni = new Action[] { ProvaDoveStava, ProvaCheLaFrazioneNonDecide } },
+                new Gruppo { Nome = "il-null-ha-un-nome", Cosa = "il banco dice dove non e' riuscito (F12)",
+                             Azioni = una(ProvaCheIlNullHaUnNome) },
                 new Gruppo { Nome = "tabella",      Cosa = "la tabella dei gruppi copre tutto (F13)",
                              Azioni = una(ProvaCheLaTabellaCopreTutto) },
             };
@@ -573,6 +575,58 @@ namespace ProvaSaldatura
             }
             catch { }
             _diario = null;
+            ScriviNelloStorico(riepilogo);
+        }
+
+        /// <summary>
+        /// UNA RIGA PER GIRO, in coda a `Banco/storico.txt` (voce F12).
+        ///
+        /// ── PERCHE' SERVE ────────────────────────────────────────────────
+        ///
+        /// `in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una
+        /// redirezione di chi lancia: **dei giri passati non restava niente.**
+        /// Cosi' «quella prova e' fallita una volta sola» non si poteva
+        /// dimostrare ne' smentire — e una prova che fallisce a caso e che
+        /// nessuno contabilizza smette di essere una prova: la volta che
+        /// fallira' per un motivo vero, verra' archiviata come «quella che ogni
+        /// tanto salta».
+        ///
+        /// Le prove fallite si scrivono PER NOME, perche' la domanda che si fa
+        /// a questo file e' sempre la stessa: «quante volte e' successo a
+        /// QUELLA?».
+        ///
+        /// Non e' versionato: e' il registro di questa macchina, non una misura
+        /// da portare in giro. Il conteggio, quando serve a decidere, si copia
+        /// nel TODO con la data.
+        /// </summary>
+        private static void ScriviNelloStorico(string riepilogo)
+        {
+            try
+            {
+                var bin = AppDomain.CurrentDomain.BaseDirectory;
+                var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
+                var file = Path.Combine(banco != null ? banco.FullName : bin, "storico.txt");
+
+                var rotte = _esiti.Where(r => r.StartsWith("  NO   ", StringComparison.Ordinal))
+                                  .Select(r => r.Substring(7).Trim())
+                                  .Select(r => r.Length > 52 ? r.Substring(0, 52).Trim() : r)
+                                  .ToList();
+
+                var riga = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) +
+                           "  libreria " + (_addin != null ? _addin.GetName().Version.ToString() : "?") +
+                           "  " + riepilogo +
+                           (rotte.Count > 0 ? "  ->  " + string.Join(" | ", rotte) : "");
+
+                bool nuovo = !File.Exists(file);
+                using (var s = new StreamWriter(file, true))
+                {
+                    if (nuovo)
+                        s.WriteLine("# una riga per giro di banco. Serve a contare le prove " +
+                                    "che falliscono a caso: «quante volte e' successo a quella?».");
+                    s.WriteLine(riga);
+                }
+            }
+            catch { }
         }
 
         /// <summary>
@@ -1090,7 +1144,6 @@ namespace ProvaSaldatura
             }
 
             var doc = NuovaParte();
-            if (doc == null) { Segna("fotografia: parte nuova", false, "non creata"); return; }
 
             string modello = "oce-vista-";
             int temporaneiPrima = FileTemporanei(modello);
@@ -1228,7 +1281,6 @@ namespace ProvaSaldatura
             const int Quanti = 85;      // il tetto e' 80: cinque devono restare fuori
             const int Tetto = 80;
             var doc = NuovaParte();
-            if (doc == null) { Segna("tetto: parte nuova", false, "non creata"); return; }
 
             try
             {
@@ -1526,7 +1578,65 @@ namespace ProvaSaldatura
         {
             string tpl = _sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
-            return _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
+            // NON TORNA NULL: se SOLIDWORKS non apre il documento, lo DICE.
+            // Vedi OppureDillo, e la voce F12 per il perche' e' costato.
+            return OppureDillo(_sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2,
+                               "la parte nuova su cui provare");
+        }
+
+        /// <summary>
+        /// L'oggetto, oppure un'eccezione che DICE quale passo non l'ha
+        /// prodotto (voce F12).
+        ///
+        /// ── QUANTO E' COSTATO NON AVERLA ─────────────────────────────────
+        ///
+        /// Il 15/9/2026 la prova «spostamento nullo (deve fallire)» e' uscita
+        /// rossa con «Riferimento a un oggetto non impostato su un'istanza di
+        /// oggetto.», e basta. Nel giro rosso mancava anche la riga che la
+        /// libreria stampa prima di rifiutare, quindi il null stava **prima**
+        /// della chiamata da provare — ma su diciotto punti del banco
+        /// `NuovaParte()` veniva usata senza guardare se avesse prodotto
+        /// qualcosa, e un `NullReferenceException` non dice quale dei diciotto.
+        ///
+        /// Il difetto non e' la prova che e' fallita: e' che **fallendo non ha
+        /// detto niente**. Un banco che sa dire «ho fallito qui» ha gia'
+        /// risolto meta' del problema; uno che dice «riferimento nullo» ne
+        /// costa diciassette minuti ogni volta che ricapita.
+        ///
+        /// Non e' una prova rossa: e' il banco che non e' riuscito a
+        /// PREPARARE il pezzo, ed e' un'altra cosa — per questo il messaggio lo
+        /// dice a chiare lettere.
+        /// </summary>
+        private static T OppureDillo<T>(T cosa, string quale) where T : class
+        {
+            if (cosa != null) return cosa;
+            throw new InvalidOperationException(
+                "SOLIDWORKS non ha prodotto " + quale + " (ha risposto null). " +
+                "Non e' la prova a essere fallita: e' il banco che non e' " +
+                "riuscito a preparare il pezzo. Guarda quanti documenti sono " +
+                "rimasti aperti, e rilancia.");
+        }
+
+        /// <summary>
+        /// I tre piani di riferimento del documento, e un'eccezione che li
+        /// nomina se l'albero non li da'. Era l'altro punto della stessa
+        /// famiglia (voce F12): `GetFeatures(false) as object[]` puo' tornare
+        /// null, e il `.Select` subito dopo dava lo stesso NullReference muto
+        /// di `NuovaParte()`.
+        /// </summary>
+        private static List<IFeature> PianiDiRiferimento(IModelDoc2 doc)
+        {
+            var albero = OppureDillo(doc.FeatureManager.GetFeatures(false) as object[],
+                                     "l'albero delle feature del documento");
+            var piani = albero
+                .Select(o => o as IFeature)
+                .Where(f => { try { return f.GetTypeName2() == "RefPlane"; } catch { return false; } })
+                .ToList();
+            if (piani.Count == 0)
+                throw new InvalidOperationException(
+                    "il documento non ha nessun piano di riferimento: il modello " +
+                    "di parte predefinito non e' quello che il banco si aspetta.");
+            return piani;
         }
 
         private static void Chiudi(IModelDoc2 doc)
@@ -1537,10 +1647,7 @@ namespace ProvaSaldatura
 
         private static void Piastra(IModelDoc2 doc, double L, double W, double H)
         {
-            var piani = (doc.FeatureManager.GetFeatures(false) as object[])
-                .Select(o => o as IFeature)
-                .Where(f => { try { return f.GetTypeName2() == "RefPlane"; } catch { return false; } })
-                .ToList();
+            var piani = PianiDiRiferimento(doc);
             doc.ClearSelection2(true);
             piani[0].Select2(false, 0);          // frontale: la faccia in cima avra' normale +Z
             var sm = doc.SketchManager;

@@ -86,7 +86,6 @@ namespace ProvaSaldatura
             try
             {
                 doc = NuovaParte();
-                if (doc == null) { Segna("forma: parte nuova", false, "non creata"); return; }
                 string errore;
                 var m = Esegui(doc, "rivoluzione", AlberoAGradini(), out errore);
                 if (m == null) { Segna("forma: l'albero", false, Corto(errore)); return; }
@@ -106,7 +105,6 @@ namespace ProvaSaldatura
             try
             {
                 doc = NuovaParte();
-                if (doc == null) { Segna("forma: parte nuova (forata)", false, "non creata"); return; }
                 string errore;
                 var m = Esegui(doc, "rivoluzione", AlberoAGradini(), out errore);
                 if (m == null) { Segna("forma: l'albero da forare", false, Corto(errore)); return; }
@@ -241,7 +239,6 @@ namespace ProvaSaldatura
             try
             {
                 doc = NuovaParte();
-                if (doc == null) { Segna("R2: parte nuova", false, "non creata"); return; }
 
                 string errore;
                 var misure = Esegui(doc, "estrudi_rettangolo", new Dictionary<string, object>
@@ -849,10 +846,7 @@ namespace ProvaSaldatura
         private static void PiastraDove(IModelDoc2 doc, double L, double W, double H,
                                         double x, double y, bool fondi)
         {
-            var piani = (doc.FeatureManager.GetFeatures(false) as object[])
-                .Select(o => o as IFeature)
-                .Where(f => { try { return f.GetTypeName2() == "RefPlane"; } catch { return false; } })
-                .ToList();
+            var piani = PianiDiRiferimento(doc);
             doc.ClearSelection2(true);
             piani[0].Select2(false, 0);
             var sm = doc.SketchManager;
@@ -1965,10 +1959,7 @@ namespace ProvaSaldatura
         /// </summary>
         private static void PiastraCentrata(IModelDoc2 doc, double L, double W, double H)
         {
-            var piani = (doc.FeatureManager.GetFeatures(false) as object[])
-                .Select(o => o as IFeature)
-                .Where(f => { try { return f.GetTypeName2() == "RefPlane"; } catch { return false; } })
-                .ToList();
+            var piani = PianiDiRiferimento(doc);
             doc.ClearSelection2(true);
             piani[0].Select2(false, 0);          // frontale: la faccia grande guarda +Z
             var sm = doc.SketchManager;
@@ -1982,6 +1973,60 @@ namespace ProvaSaldatura
                 false, false, false, false, 0, 0, false, false, false, false,
                 true, true, true, 0, 0, false);
             doc.ClearSelection2(true);
+        }
+
+        // ==================================================================
+        // F12. quando il banco non riesce a preparare il pezzo, lo DICE
+        // ==================================================================
+        /// <summary>
+        /// Il null ha un nome.
+        ///
+        /// Il 15/9/2026 una prova e' uscita rossa con «Riferimento a un oggetto
+        /// non impostato su un'istanza di oggetto.» e basta: su diciotto punti
+        /// del banco `NuovaParte()` veniva usata senza guardare se avesse
+        /// prodotto qualcosa, e un `NullReferenceException` non dice quale dei
+        /// diciotto. Adesso `NuovaParte()` non torna null: alza un'eccezione
+        /// che nomina il passo.
+        ///
+        /// Questa prova guarda che il nome ci sia davvero, e che `Perche()` —
+        /// la funzione che il banco usa per raccontare un'eccezione — lo porti
+        /// fino alla riga di esito. Senza, «il messaggio nomina il passo»
+        /// resterebbe un'intenzione scritta in un commento.
+        /// </summary>
+        private static void ProvaCheIlNullHaUnNome()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== quando il banco non riesce a preparare il pezzo (F12) ===");
+
+            // ── IL ROSSO: il null alza, e il messaggio nomina il passo ────
+            string detto = null;
+            string raccontato = null;
+            try
+            {
+                OppureDillo<IModelDoc2>(null, "la parte nuova su cui provare");
+            }
+            catch (Exception ex)
+            {
+                detto = ex.Message;
+                raccontato = Perche(ex);
+            }
+            Segna("F12 ROSSO: un null alza, e dice QUALE passo",
+                  detto != null && detto.Contains("la parte nuova su cui provare"),
+                  Corto(detto));
+
+            // `Perche` tronca a 110 caratteri: si guarda l'inizio, che e' dove
+            // sta il nome del passo, e il tipo dell'eccezione.
+            Segna("F12: il racconto dell'eccezione porta tipo e passo",
+                  raccontato != null &&
+                  raccontato.StartsWith("InvalidOperationException:", StringComparison.Ordinal) &&
+                  raccontato.Contains("la parte nuova"),
+                  Corto(raccontato));
+
+            // ── IL VERDE: quel che c'e' passa, e torna lo stesso oggetto ──
+            var qualcosa = new object();
+            Segna("F12: quello che c'e' passa, e torna com'era",
+                  ReferenceEquals(OppureDillo(qualcosa, "un oggetto qualunque"), qualcosa),
+                  "");
         }
 
         // ==================================================================

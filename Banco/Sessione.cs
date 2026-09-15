@@ -55,8 +55,12 @@ namespace ProvaSaldatura
                 }
                 else
                 {
+                    // Il controllo su null non c'e' piu': `NuovaParte()` non
+                    // torna null, alza un'eccezione che DICE cos'e' mancato, e
+                    // il `catch` qui sotto la stampa (voce F12). Un controllo
+                    // irraggiungibile e' peggio di nessun controllo: si legge
+                    // come una difesa e non difende da niente.
                     doc = NuovaParte();
-                    if (doc == null) { Console.WriteLine("non riesco a creare la parte"); return 1; }
                 }
 
                 // IL DOCUMENTO DELLA SESSIONE VA MESSO DAVANTI.

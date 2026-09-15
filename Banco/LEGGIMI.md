@@ -64,6 +64,25 @@ lettere, e dice quanti gruppi non ha lanciato.
 GIRO PARZIALE (solo viste, 23 gruppi non lanciati) — 6 prove, 0 fallite
 ```
 
+### I giri si contano — `storico.txt`
+
+`in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una redirezione
+di chi lancia: **dei giri passati non restava niente.** Dalla voce F12 ogni giro
+aggiunge una riga in coda a `Banco/storico.txt`, con le prove fallite **per
+nome**:
+
+```
+2026-09-15 08:53  libreria 0.75.0.0  117 prove, 0 fallite, 1 SALTATE
+2026-09-15 09:11  libreria 0.75.0.0  117 prove, 1 fallite  ->  spostamento nullo (deve fallire)
+```
+
+Serve a rispondere a una domanda sola, che senza questo file non ha risposta:
+**«quante volte e' successo a quella?»** — perche' una prova che fallisce a caso
+e che nessuno contabilizza smette di essere una prova: la volta che fallira' per
+un motivo vero, verra' archiviata come «quella che ogni tanto salta».
+
+Non e' versionato: e' il registro di **questa** macchina.
+
 **Le librerie di Dassault non stanno qui dentro.** Il csproj le referenzia con
 `Private=False`, quindi non finiscono nemmeno in `bin\`; a tempo di esecuzione
 si prende quella INSTALLATA sulla macchina, che e' per definizione la stessa che

@@ -18,6 +18,29 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F12 — Il null adesso ha un nome, e i giri si contano
+
+Il 15/9 una prova e' uscita rossa con «Riferimento a un oggetto non impostato su
+un'istanza di oggetto.», e basta. **Non si e' riprodotta**, e non serviva:
+bastava contare quanti null potessero dare quel messaggio in quel punto. Erano
+due, e di una famiglia sola — `NuovaParte()` usata senza guardare cosa avesse
+prodotto (**18 punti**) e `GetFeatures(false) as object[]` col `.Select` subito
+dopo (**3 punti**).
+
+`NuovaParte()` non torna piu' null: alza un'eccezione che nomina il passo e dice
+che **non e' la prova a essere fallita** — e' il banco che non e' riuscito a
+*preparare* il pezzo, che e' un'altra cosa e si legge in un altro modo. I sei
+`if (doc == null)` sono stati **tolti**: dopo questa modifica non scattano mai
+piu', e un controllo irraggiungibile si legge come una difesa senza difendere da
+niente.
+
+**E il conteggio, che prima era impossibile.** La voce chiedeva «quante volte su
+quanti giri»: `in-corso.txt` lo riscrive il giro dopo e `ultimo-giro.txt` e' una
+redirezione di chi lancia, quindi **dei giri passati non restava niente**. Ogni
+giro aggiunge ora una riga a `Banco/storico.txt` con le prove fallite **per
+nome**, perche' la domanda a quel file e' sempre «quante volte e' successo a
+QUELLA?». Non versionato: e' il registro di questa macchina.
+
 ### F13 — Un gruppo di prove alla volta, mentre si lavora
 
 `--gruppo <nome>[,<nome>]` lancia una famiglia sola. `--gruppi` li elenca. Un
