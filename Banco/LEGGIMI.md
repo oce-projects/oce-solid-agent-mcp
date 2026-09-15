@@ -43,10 +43,15 @@ scrive `Banco/resoconto/AAAAMMGG_hhmm.md` e `.json` piu' `ultimo.json`.
 |---|---|
 | **0** | tutto verde |
 | **1** | prove fallite — il `.md` le elenca con atteso e misurato |
-| **2** | errore di banco: compilazione fallita, SOLIDWORKS non agganciabile, gruppo che non esiste |
+| **2** | errore di banco: compilazione fallita, SOLIDWORKS non agganciabile, gruppo che non esiste, oppure un caso che **non si e' potuto misurare** |
 
-Il 2 **non e' una prova rossa** e non va contato insieme: e' il banco che non e'
-partito.
+Il 2 **non e' una prova rossa** e non va contato insieme: una prova rossa e' una
+misura, un errore di banco e' una misura **mancata**. E il 2 vince sull'1: se il
+banco non ha potuto misurare, quante prove siano fallite e' una domanda a cui
+non si e' risposto.
+
+L'ultima riga del giro dice **«attese verificate N su M»**, sempre, anche quando
+i due numeri combaciano. Se divergono, qualcosa sta misurando il nulla.
 
 Lo svuotamento sta dentro il comando perche' non e' pulizia — vedi «Prima e dopo
 ogni giro», piu' sotto: ogni lettura di stato scorre **tutti** i documenti
@@ -124,7 +129,14 @@ promette puo' tornare lo stesso volume, e allora e' verde e non prova niente.
 L'unica ambiguita' che si scioglie e' `n=` di `@feature`, dove l'ordine lo
 decide chi scrive il caso.
 
-E un passo **senza attese** e' rosso: passa e non misura niente.
+Tutto quello che impedisce di **misurare** e' un errore di banco (uscita 2), non
+una prova rossa: un campo che nello stato o nelle misure non c'e' (col messaggio
+che dice quali c'erano), un caso senza `perche`, un passo **senza attese**, un
+`deve_fallire` senza `il_messaggio_contiene`, una tolleranza senza il suo
+perche', una `gemella` che non esiste, un selettore che non risolve.
+
+Un `null` **dichiarato** invece si misura: `materiale: null` vuol dire «quel
+posto esiste ed e' vuoto», ed e' una cosa diversa da un campo che manca.
 
 ### I giri si contano — `storico.txt`
 

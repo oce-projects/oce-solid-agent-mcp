@@ -18,6 +18,35 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F4 — Un campo che non c'e' non e' uno zero, ed e' uscita 2
+
+Un caso che chiede `misure.materiale_tolto_mm3` a `applica_materiale` — che non
+lo riporta — **non fallisce: non si e' potuto misurare**.
+
+```
+!!  ... ERRORE DI BANCO: campo assente: misure.materiale_tolto_mm3;
+        ci sono: archivio, classe, materiale
+
+28 prove, 0 fallite, 1 ERRORI DI BANCO
+attese verificate 15 su 16
+uscita: 2
+```
+
+**Il 2 vince sull'1**: se il banco non ha potuto misurare, quante prove siano
+fallite e' una domanda a cui non si e' risposto. Simbolo suo (`!!`), conteggio
+suo, uscita sua, e nel resoconto una sezione sua — «non sono prove rosse, sono
+prove che NON SONO STATE FATTE».
+
+**«Attese verificate N su M» si scrive sempre**, anche quando combaciano: un
+numero che compare solo quando le cose vanno male non lo guarda nessuno finche'
+non e' troppo tardi.
+
+E un `null` dichiarato **non** e' un campo assente: lo stato scrive
+`materiale: null` apposta, per dire «quel posto esiste ed e' vuoto». Nel novanta
+per cento dei casi una prova smette di verificare perche' il campo che leggeva
+e' stato rinominato, un dizionario che non trova la chiave torna `null`, e
+`null` confrontato con `null` passa.
+
 ### F3 — I casi sono file, e i numeri attesi stanno accanto ai passi
 
 `casi/lavorazioni/guscio_interno.json` e `guscio_esterno.json` girano **senza

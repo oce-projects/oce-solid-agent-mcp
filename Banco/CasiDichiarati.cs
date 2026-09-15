@@ -208,6 +208,77 @@ namespace ProvaSaldatura
             Segna("F3: col perche', la tolleranza si applica", valutata, Corto(detto));
         }
 
+        // ==================================================================
+        // F4. un campo che non c'e' non e' uno zero, ed e' uscita 2
+        // ==================================================================
+        /// <summary>
+        /// LA TRAPPOLA, NELLA SUA FORMA LETTERALE.
+        ///
+        /// Una prova che verificava un difetto smette di verificarlo quando il
+        /// difetto viene chiuso altrove, e **resta verde**. Nel novanta per
+        /// cento dei casi il modo in cui smette e' che il campo che leggeva e'
+        /// stato rinominato: un dizionario che non trova la chiave torna
+        /// `null`, e `null` confrontato con `null` passa.
+        ///
+        /// Qui un campo assente alza, il messaggio lo nomina **e nomina i campi
+        /// che c'erano** — la stessa forma del messaggio sulle quote
+        /// inesistenti — e chi chiama lo fa diventare un ERRORE DI BANCO, che
+        /// non e' una prova rossa e porta il giro a **uscita 2**.
+        /// </summary>
+        private static void ProvaCheUnCampoAssenteNonEUnoZero()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== un campo che non c'e' non e' uno zero (F4) ===");
+
+            // Le misure che `applica_materiale` riporta davvero. Non c'e'
+            // «materiale_tolto_mm3»: quell'operazione non toglie niente.
+            var misure = new Dictionary<string, object>
+            {
+                ["materiale"] = "1.0037 (S235JR)",
+                ["archivio"] = "solidworks materials",
+                ["classe"] = "Acciaio",
+            };
+
+            string detto = Perche(() =>
+            {
+                string d;
+                Combacia(new Dictionary<string, object>
+                { ["cosa"] = "misure.materiale_tolto_mm3", ["uguale"] = 0.0 },
+                         null, null, misure, out d);
+                return d;
+            });
+            Segna("F4 ROSSO: campo assente, e dice quali c'erano",
+                  detto.Contains("campo assente: misure.materiale_tolto_mm3") &&
+                  detto.Contains("ci sono: archivio, classe, materiale"),
+                  Corto(detto));
+
+            // ── E UN NULL DICHIARATO NON E' UN CAMPO ASSENTE ───────────────
+            //
+            // Lo stato scrive `materiale: null` APPOSTA, per dire «quel posto
+            // esiste ed e' vuoto»: e' l'unico modo perche' il modello si accorga
+            // di doverlo riempire. Confonderlo con un campo che manca
+            // toglierebbe di mezzo proprio quella distinzione.
+            var statoSenzaMateriale = new Dictionary<string, object> { ["materiale"] = null };
+            string d2;
+            bool ok = false;
+            try
+            {
+                ok = Combacia(new Dictionary<string, object>
+                { ["cosa"] = "stato.materiale", ["uguale"] = "" },
+                              null, statoSenzaMateriale, null, out d2);
+            }
+            catch (Exception ex) { d2 = ex.Message; }
+            Segna("F4: «materiale: null» si misura, non e' un campo assente", ok, Corto(d2));
+
+            // ── IL CONTO DELLE ATTESE ──────────────────────────────────────
+            //
+            // Tentate e verificate: se divergono, qualcosa sta misurando il
+            // nulla. Qui si guarda solo che il conto ci sia e non sia fermo a
+            // zero — il numero vero lo scrive il riepilogo del giro.
+            Segna("F4: le attese si contano", _attese > 0 && _atteseVerificate > 0,
+                  _atteseVerificate + " su " + _attese);
+        }
+
         /// <summary>Il risultato, oppure null se ha alzato.</summary>
         private static string Prova(Func<string> f)
         {
@@ -233,29 +304,32 @@ namespace ProvaSaldatura
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
                 caso = s.DeserializeObject(File.ReadAllText(percorso)) as Dictionary<string, object>;
             }
-            catch (Exception ex) { Segna(nome, false, "JSON illeggibile: " + Perche(ex)); return; }
-            if (caso == null) { Segna(nome, false, "il file non e' un oggetto JSON"); return; }
+            // UN CASO SCRITTO MALE E' UN ERRORE DI BANCO, NON UNA PROVA ROSSA
+            // (voce F4): «una prova e' fallita» dice che si e' misurato
+            // qualcosa, e qui non si e' misurato niente.
+            catch (Exception ex) { ErroreDiBanco(nome, "JSON illeggibile: " + Perche(ex)); return; }
+            if (caso == null) { ErroreDiBanco(nome, "il file non e' un oggetto JSON"); return; }
 
             // Il nome del caso e' quello DENTRO il file, e deve combaciare col
             // nome del file: due nomi diversi per la stessa cosa fanno cercare
             // nel posto sbagliato quando una prova diventa rossa.
             string dichiarato = Testo(caso, "nome");
-            if (dichiarato == null) { Segna(nome, false, "manca «nome»"); return; }
+            if (dichiarato == null) { ErroreDiBanco(nome, "manca «nome»"); return; }
             if (dichiarato != nome)
             {
-                Segna(nome, false, "il file si chiama «" + nome + "» e dentro dice «" +
-                                   dichiarato + "»");
+                ErroreDiBanco(nome, "il file si chiama «" + nome + "» e dentro dice «" +
+                                    dichiarato + "»");
                 return;
             }
             if (Testo(caso, "perche") == null)
             {
-                Segna(nome, false, "manca «perche»: un caso senza il dubbio che scioglie " +
-                                   "non si sa piu' perche' esiste");
+                ErroreDiBanco(nome, "manca «perche»: un caso senza il dubbio che scioglie " +
+                                    "non si sa piu' perche' esiste");
                 return;
             }
 
             var passi = Elenco(caso, "passi");
-            if (passi == null || passi.Count == 0) { Segna(nome, false, "manca «passi»"); return; }
+            if (passi == null || passi.Count == 0) { ErroreDiBanco(nome, "manca «passi»"); return; }
 
             IModelDoc2 doc = null;
             try
@@ -266,16 +340,20 @@ namespace ProvaSaldatura
                 for (int i = 0; i < passi.Count; i++)
                 {
                     var passo = passi[i] as Dictionary<string, object>;
-                    if (passo == null) { Segna(nome, false, "il passo " + (i + 1) + " non e' un oggetto"); return; }
+                    if (passo == null) { ErroreDiBanco(nome, "il passo " + (i + 1) + " non e' un oggetto"); return; }
                     string etichetta = nome + " · passo " + (i + 1);
 
                     string operazione = Testo(passo, "operazione");
-                    if (operazione == null) { Segna(etichetta, false, "manca «operazione»"); return; }
+                    if (operazione == null) { ErroreDiBanco(etichetta, "manca «operazione»"); return; }
 
                     object grezziArg;
                     passo.TryGetValue("argomenti", out grezziArg);
                     Dictionary<string, object> argomenti;
+                    // UN SELETTORE CHE NON RISOLVE NON E' UNA PROVA ROSSA:
+                    // il caso non si e' potuto ESEGUIRE, e dirlo «fallito»
+                    // farebbe credere che si sia misurato qualcosa (voce F4).
                     try { argomenti = Risolvi(grezziArg, stato) as Dictionary<string, object>; }
+                    catch (NonHoPotutoMisurare ex) { ErroreDiBanco(etichetta, ex.Message); return; }
                     catch (Exception ex) { Segna(etichetta, false, ex.Message); return; }
                     if (argomenti == null) argomenti = new Dictionary<string, object>();
 
@@ -304,20 +382,28 @@ namespace ProvaSaldatura
                     {
                         // UN PASSO SENZA ATTESE E' UN PASSO CIECO. Passa e non
                         // misura niente, ed e' il modo piu' comodo di avere una
-                        // prova verde che non prova. Si dice.
-                        Segna(etichetta, false,
+                        // prova verde che non prova. Si dice, e si dice che il
+                        // caso e' scritto male, non che il pezzo e' sbagliato.
+                        ErroreDiBanco(etichetta,
                               "nessuna attesa: un passo che non misura niente non e' una prova");
                         return;
                     }
 
                     foreach (var a in attese)
                     {
+                        _attese++;
                         var attesa = a as Dictionary<string, object>;
-                        if (attesa == null) { Segna(etichetta, false, "un'attesa non e' un oggetto"); return; }
+                        if (attesa == null)
+                        { ErroreDiBanco(etichetta, "un'attesa non e' un oggetto"); return; }
                         string dettaglio;
                         bool ok;
                         try { ok = Combacia(attesa, doc, stato, misure, out dettaglio); }
+                        catch (NonHoPotutoMisurare ex)
+                        { ErroreDiBanco(etichetta + " · " + Testo(attesa, "cosa"), ex.Message); return; }
                         catch (Exception ex) { Segna(etichetta, false, ex.Message); return; }
+                        // VERIFICATA vuol dire «ho misurato e ho confrontato»,
+                        // non «e' andata bene»: una rossa e' verificata eccome.
+                        _atteseVerificate++;
                         Segna(etichetta + " · " + Testo(attesa, "cosa"), ok, dettaglio);
                         if (!ok) return;
                     }
@@ -350,7 +436,7 @@ namespace ProvaSaldatura
             var pezzi = Elenco(regole, "il_messaggio_contiene");
             if (pezzi == null || pezzi.Count == 0)
             {
-                Segna(etichetta, false,
+                ErroreDiBanco(etichetta,
                       "«deve_fallire» senza «il_messaggio_contiene»: qualunque errore " +
                       "andrebbe bene, anche quello sbagliato");
                 return false;
@@ -396,7 +482,10 @@ namespace ProvaSaldatura
                 var accanto = Path.Combine(Path.GetDirectoryName(percorsoDelCaso), gemella + ".json");
                 if (!File.Exists(accanto))
                 {
-                    Segna(etichetta, false, "la gemella «" + gemella + "» non esiste");
+                    // «gemella mancante» e' uno dei tre errori di banco che la
+                    // voce F2 nominava per nome, insieme a «caso non ammesso» e
+                    // «campo assente».
+                    ErroreDiBanco(etichetta, "la gemella «" + gemella + "» non esiste");
                     return false;
                 }
             }
@@ -415,8 +504,8 @@ namespace ProvaSaldatura
         {
             dettaglio = "";
             string cosa = Testo(attesa, "cosa");
-            if (cosa == null) throw new Exception("un'attesa senza «cosa»");
-            if (!attesa.ContainsKey("uguale")) throw new Exception("«" + cosa + "» senza «uguale»");
+            if (cosa == null) throw new NonHoPotutoMisurare("un'attesa senza «cosa»");
+            if (!attesa.ContainsKey("uguale")) throw new NonHoPotutoMisurare("«" + cosa + "» senza «uguale»");
 
             double tolleranza = 0;
             if (attesa.ContainsKey("tolleranza") && attesa["tolleranza"] != null)
@@ -426,7 +515,7 @@ namespace ProvaSaldatura
                 // tolleranza senza motivo e' il posto in cui un giorno qualcuno
                 // allarghera' il numero invece di guardare il pezzo.
                 if (Math.Abs(tolleranza) > 1e-12 && Testo(attesa, "perche_questa_tolleranza") == null)
-                    throw new Exception("«" + cosa + "» ha tolleranza " +
+                    throw new NonHoPotutoMisurare("«" + cosa + "» ha tolleranza " +
                                         tolleranza.ToString(CultureInfo.InvariantCulture) +
                                         " e non dice «perche_questa_tolleranza»");
             }
@@ -493,11 +582,12 @@ namespace ProvaSaldatura
             if (cosa == "corpi") return ContaCorpi(doc);
             if (cosa == "ingombro_mm") return IngombroDelDocumento(doc);
             if (cosa.StartsWith("stato.", StringComparison.Ordinal))
-                return Dentro(stato, cosa.Substring(6));
+                return Dentro(stato, cosa.Substring(6), cosa);
             if (cosa.StartsWith("misure.", StringComparison.Ordinal))
-                return Dentro(misure, cosa.Substring(7));
-            throw new Exception("non so misurare «" + cosa + "»: i nomi sono volume_mm3, " +
-                                "corpi, ingombro_mm, stato.… e misure.…");
+                return Dentro(misure, cosa.Substring(7), cosa);
+            throw new NonHoPotutoMisurare(
+                "non so misurare «" + cosa + "»: i nomi sono volume_mm3, " +
+                "corpi, ingombro_mm, stato.… e misure.…");
         }
 
         /// <summary>
@@ -505,12 +595,11 @@ namespace ProvaSaldatura
         /// Null quando il percorso non porta da nessuna parte — e chi chiama lo
         /// fa diventare un rosso, perche' un campo assente non e' uno zero.
         /// </summary>
-        private static object Dentro(object radice, string percorso)
+        private static object Dentro(object radice, string percorso, string nomeIntero)
         {
             object qui = radice;
             foreach (var pezzo in percorso.Split('.'))
             {
-                if (qui == null) return null;
                 string chiave = pezzo;
                 int indice = -1;
                 int quadra = pezzo.IndexOf('[');
@@ -521,12 +610,32 @@ namespace ProvaSaldatura
                 }
 
                 var mappa = qui as Dictionary<string, object>;
-                if (mappa == null || !mappa.TryGetValue(chiave, out qui)) return null;
+                if (mappa == null)
+                    throw new NonHoPotutoMisurare(
+                        "campo assente: " + nomeIntero + "; «" + chiave +
+                        "» andrebbe cercato dentro qualcosa che non e' un oggetto");
+
+                // LA CHIAVE CHE NON C'E' E UN VALORE NULL NON SONO LA STESSA
+                // COSA, ed e' tutta la voce F4. `materiale: null` vuol dire
+                // «quel posto esiste ed e' vuoto»; una chiave che manca vuol
+                // dire che il caso sta leggendo un campo che non esiste piu' —
+                // e un `null` confrontato con un `null` passerebbe.
+                if (!mappa.ContainsKey(chiave))
+                    throw new NonHoPotutoMisurare(
+                        "campo assente: " + nomeIntero + "; ci sono: " +
+                        string.Join(", ", mappa.Keys.OrderBy(k => k, StringComparer.Ordinal)));
+                qui = mappa[chiave];
 
                 if (indice >= 0)
                 {
                     var lista = qui as System.Collections.IList;
-                    if (lista == null || indice >= lista.Count) return null;
+                    if (lista == null)
+                        throw new NonHoPotutoMisurare(
+                            "campo assente: " + nomeIntero + "; «" + chiave + "» non e' un elenco");
+                    if (indice >= lista.Count)
+                        throw new NonHoPotutoMisurare(
+                            "campo assente: " + nomeIntero + "; «" + chiave + "» ha " +
+                            lista.Count + " voci e il caso chiede la numero " + indice);
                     qui = lista[indice];
                 }
             }
@@ -562,7 +671,7 @@ namespace ProvaSaldatura
         {
             int apre = espressione.IndexOf('(');
             if (apre < 0 || !espressione.EndsWith(")", StringComparison.Ordinal))
-                throw new Exception("selettore storto: «" + espressione + "»");
+                throw new NonHoPotutoMisurare("selettore storto: «" + espressione + "»");
             string tipo = espressione.Substring(1, apre - 1);
             var condizioni = Condizioni(espressione.Substring(apre + 1, espressione.Length - apre - 2));
 
@@ -573,7 +682,7 @@ namespace ProvaSaldatura
                 case "feature": return UnaFeature(espressione, stato, condizioni);
                 case "quota":   return UnaQuota(espressione, stato, condizioni);
                 default:
-                    throw new Exception("selettore sconosciuto «@" + tipo + "»: ci sono " +
+                    throw new NonHoPotutoMisurare("selettore sconosciuto «@" + tipo + "»: ci sono " +
                                         "@faccia, @spigolo, @feature, @quota");
             }
         }
@@ -598,7 +707,7 @@ namespace ProvaSaldatura
                 if (t.Length == 0) continue;
                 bool circa = t.Contains("~=");
                 int uguale = circa ? t.IndexOf("~=", StringComparison.Ordinal) : t.IndexOf('=');
-                if (uguale < 0) throw new Exception("condizione senza «=»: «" + t + "»");
+                if (uguale < 0) throw new NonHoPotutoMisurare("condizione senza «=»: «" + t + "»");
                 fuori.Add(new Condizione
                 {
                     Campo = t.Substring(0, uguale).Trim(),
@@ -631,7 +740,7 @@ namespace ProvaSaldatura
             var voci = (stato != null && stato.ContainsKey(famiglia)
                 ? stato[famiglia] : null) as System.Collections.IList;
             if (voci == null)
-                throw new Exception("lo stato non ha «" + famiglia + "»: " + espressione);
+                throw new NonHoPotutoMisurare("lo stato non ha «" + famiglia + "»: " + espressione);
 
             var trovate = new List<Dictionary<string, object>>();
             foreach (var v in voci)
@@ -666,7 +775,7 @@ namespace ProvaSaldatura
             if (ennesimo.HasValue)
             {
                 if (ennesimo.Value < 1 || ennesimo.Value > trovate.Count)
-                    throw new Exception(espressione + ": ne ho trovate " + trovate.Count +
+                    throw new NonHoPotutoMisurare(espressione + ": ne ho trovate " + trovate.Count +
                                         ", e il caso chiede la numero " + ennesimo.Value);
                 return Convert.ToString(trovate[ennesimo.Value - 1][campoDaTornare]);
             }
@@ -676,9 +785,9 @@ namespace ProvaSaldatura
             // su una faccia diversa da quella che il nome del file promette, e
             // che magari torna lo stesso volume.
             if (trovate.Count == 0)
-                throw new Exception(espressione + ": non l'ho trovata");
+                throw new NonHoPotutoMisurare(espressione + ": non l'ho trovata");
             if (trovate.Count > 1)
-                throw new Exception(espressione + ": ne ho trovate " + trovate.Count +
+                throw new NonHoPotutoMisurare(espressione + ": ne ho trovate " + trovate.Count +
                                     ". Sceglierne una sarebbe indovinare: aggiungi una " +
                                     "condizione, oppure «n=» se l'ordine lo decidi tu");
             return Convert.ToString(trovate[0][campoDaTornare]);
@@ -692,7 +801,7 @@ namespace ProvaSaldatura
             if (n != null)
             {
                 int k;
-                if (!int.TryParse(n.Valore, out k)) throw new Exception(espressione + ": «n» non e' un numero");
+                if (!int.TryParse(n.Valore, out k)) throw new NonHoPotutoMisurare(espressione + ": «n» non e' un numero");
                 ennesimo = k;
             }
             return UnoSolo(espressione, "feature", stato, condizioni, "uid", ennesimo);
@@ -713,11 +822,11 @@ namespace ProvaSaldatura
         {
             string dentroA = condizioni.FirstOrDefault(c => c.Campo == "feature")?.Valore;
             string chiamata = condizioni.FirstOrDefault(c => c.Campo == "nome")?.Valore;
-            if (chiamata == null) throw new Exception(espressione + ": serve «nome»");
+            if (chiamata == null) throw new NonHoPotutoMisurare(espressione + ": serve «nome»");
 
             var feature = (stato != null && stato.ContainsKey("feature")
                 ? stato["feature"] : null) as System.Collections.IList;
-            if (feature == null) throw new Exception("lo stato non ha «feature»: " + espressione);
+            if (feature == null) throw new NonHoPotutoMisurare("lo stato non ha «feature»: " + espressione);
 
             var trovate = new List<string>();
             foreach (var f in feature)
@@ -741,9 +850,9 @@ namespace ProvaSaldatura
                 }
             }
 
-            if (trovate.Count == 0) throw new Exception(espressione + ": non l'ho trovata");
+            if (trovate.Count == 0) throw new NonHoPotutoMisurare(espressione + ": non l'ho trovata");
             if (trovate.Count > 1)
-                throw new Exception(espressione + ": ne ho trovate " + trovate.Count +
+                throw new NonHoPotutoMisurare(espressione + ": ne ho trovate " + trovate.Count +
                                     " (" + string.Join(", ", trovate) + ")");
             return trovate[0];
         }

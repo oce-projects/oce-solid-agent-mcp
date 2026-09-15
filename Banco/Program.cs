@@ -317,10 +317,23 @@ namespace ProvaSaldatura
                     ? "GIRO PARZIALE (solo " + string.Join(", ", scelti) + ", " +
                       nonLanciati.Count + " gruppi non lanciati) — "
                     : "") +
-                (_esiti.Count - _saltate) + " prove, " + _falliti + " fallite" +
-                (_saltate > 0 ? ", " + _saltate + " SALTATE (--lento le lancia)" : "");
+                (_esiti.Count - _saltate - _erroriDiBanco) + " prove, " + _falliti + " fallite" +
+                (_saltate > 0 ? ", " + _saltate + " SALTATE (--lento le lancia)" : "") +
+                (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "");
             Console.WriteLine(riepilogo);
-            ChiudiIlDiario(riepilogo);
+
+            // ATTESE VERIFICATE N SU M. Si scrive SEMPRE, anche quando i due
+            // numeri combaciano: e' il numero che dice se la suite sta
+            // misurando, e un numero che compare solo quando le cose vanno male
+            // non lo guarda nessuno finche' non e' troppo tardi.
+            var conto = "attese verificate " + _atteseVerificate + " su " + _attese;
+            Console.WriteLine(conto);
+            ChiudiIlDiario(riepilogo + " · " + conto);
+
+            // TRE USCITE, E IL 2 VINCE SULL'1. Se il banco non ha potuto
+            // misurare, quante prove siano fallite e' una domanda a cui non si
+            // e' risposto.
+            if (_erroriDiBanco > 0) return 2;
             return _falliti == 0 ? 0 : 1;
         }
 
@@ -387,7 +400,14 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "dove-stava",   Cosa = "dove stava, e il grep vuoto (E10)",
                              Azioni = new Action[] { ProvaDoveStava, ProvaCheLaFrazioneNonDecide } },
                 new Gruppo { Nome = "casi",         Cosa = "i casi dichiarati, che sono file (F3)",
-                             Azioni = new Action[] { ProvaCheIlSelettoreRifiuta, ProvaCasiDichiarati } },
+                             Azioni = new Action[]
+                             {
+                                 ProvaCheIlSelettoreRifiuta,
+                                 ProvaCasiDichiarati,
+                                 // DOPO i casi: guarda anche il conto delle
+                                 // attese, che prima di eseguirli e' zero.
+                                 ProvaCheUnCampoAssenteNonEUnoZero,
+                             } },
                 new Gruppo { Nome = "il-null-ha-un-nome", Cosa = "il banco dice dove non e' riuscito (F12)",
                              Azioni = una(ProvaCheIlNullHaUnNome) },
                 new Gruppo { Nome = "tabella",      Cosa = "la tabella dei gruppi copre tutto (F13)",
@@ -662,7 +682,51 @@ namespace ProvaSaldatura
             Diario(riga);
         }
 
+        /// <summary>
+        /// UN ERRORE DI BANCO NON E' UNA PROVA ROSSA (voce F4).
+        ///
+        /// Una prova rossa dice «il pezzo e' venuto diverso da come doveva»:
+        /// e' una misura, ed e' un'informazione. Un errore di banco dice «non
+        /// ho potuto misurare» — un campo che nello stato non c'e', un
+        /// selettore che non risolve, un caso scritto male. Contarli insieme
+        /// vuol dire leggere «una prova e' fallita» quando invece **non e' stata
+        /// fatta nessuna prova**, ed e' il modo in cui una suite si svuota senza
+        /// che il conto totale cambi.
+        ///
+        /// Per questo ha un suo simbolo, un suo conteggio, e **il suo codice di
+        /// uscita: 2**.
+        /// </summary>
+        private static void ErroreDiBanco(string nome, string cosa)
+        {
+            _erroriDiBanco++;
+            var riga = "  !!   " + nome.PadRight(52) + "ERRORE DI BANCO: " + cosa;
+            _esiti.Add(riga);
+            Console.WriteLine(riga);
+            Diario(riga);
+        }
+
+        /// <summary>
+        /// Quello che una prova non ha potuto misurare. Vedi ErroreDiBanco.
+        /// </summary>
+        private sealed class NonHoPotutoMisurare : Exception
+        {
+            public NonHoPotutoMisurare(string messaggio) : base(messaggio) { }
+        }
+
         private static int _saltate;
+        private static int _erroriDiBanco;
+
+        /// <summary>
+        /// ATTESE TENTATE E ATTESE VERIFICATE, e se divergono qualcosa sta
+        /// misurando il nulla (voce F4). E' la forma letterale della trappola
+        /// del progetto: una prova che verificava un difetto smette di
+        /// verificarlo quando il campo che leggeva viene rinominato, un
+        /// dizionario che non trova la chiave torna `null`, e `null`
+        /// confrontato con `null` passa.
+        /// </summary>
+        private static int _attese;
+        private static int _atteseVerificate;
+
         private static bool _lento;
 
         // ==================================================================

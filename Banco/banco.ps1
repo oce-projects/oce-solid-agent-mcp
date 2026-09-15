@@ -31,9 +31,11 @@
 #  USCITE:
 #    0  tutto verde
 #    1  prove fallite
-#    2  errore di banco (compilazione, SOLIDWORKS non agganciabile, gruppo
-#       inesistente): NON e' la stessa cosa di una prova rossa e non va
-#       contata insieme.
+#    2  errore di banco: compilazione fallita, SOLIDWORKS non agganciabile,
+#       gruppo inesistente, oppure un caso che NON SI E' POTUTO MISURARE (un
+#       campo assente, un selettore che non risolve, una gemella che non c'e').
+#       NON e' la stessa cosa di una prova rossa e non va contata insieme: una
+#       prova rossa e' una misura, un errore di banco e' una misura MANCATA.
 #
 #      .\Banco\banco.ps1
 #      .\Banco\banco.ps1 -Gruppo viste          una famiglia sola (voce F13)
@@ -150,6 +152,10 @@ $elenco = if ($taglio -gt 0) { $righe[$taglio..($righe.Count - 1)] } else { $rig
 $passate = @($elenco | Where-Object { $_ -match "^  OK   " })
 $fallite = @($elenco | Where-Object { $_ -match "^  NO   " })
 $saltate = @($elenco | Where-Object { $_ -match "^  --   " })
+# GLI ERRORI DI BANCO SI CONTANO A PARTE (voce F4): "non ho potuto misurare"
+# non e' "ho misurato e non torna", e sommarli farebbe leggere una suite che
+# si e' svuotata come una suite che ha trovato qualcosa.
+$errori  = @($elenco | Where-Object { $_ -match "^  !!   " })
 
 function Prendi($regex) {
     $r = ($righe | Where-Object { $_ -match $regex } | Select-Object -First 1)
@@ -160,6 +166,11 @@ function Prendi($regex) {
 $sw_ver  = Prendi "^SolidWorks (.+)$"
 $lib_ver = Prendi "^libreria ([0-9.]+)"
 $catalogo = Prendi "^catalogo: ([0-9]+) operazioni"
+# ATTESE VERIFICATE N SU M: se i due numeri divergono, qualcosa sta misurando
+# il nulla. Lo scrive il banco, non si ricalcola qui.
+$attese = ($righe | Where-Object { $_ -match "^attese verificate " } | Select-Object -Last 1)
+$attese = [string]$attese
+if ([string]::IsNullOrWhiteSpace($attese)) { $attese = "attese verificate: (non dichiarate)" }
 
 $commit = "(non in un repository)"
 try {
@@ -205,17 +216,15 @@ $md.Add("|---|---|")
 $md.Add("| passate | " + $passate.Count + " |")
 $md.Add("| fallite | " + $fallite.Count + " |")
 $md.Add("| saltate | " + $saltate.Count + " |")
+$md.Add("| errori di banco | " + $errori.Count + " |")
 $md.Add("| uscita | " + $codice + " |")
 $md.Add("")
-
-# QUELLO CHE QUESTO RESOCONTO NON HA, detto invece che sottinteso: i casi
-# CIECHI e il rapporto "attese verificate su attese totali" li chiede la voce
-# F2, ma sono numeri che esistono solo quando i casi dichiarano le attese -
-# cioe' dalla voce F3 in poi. Scriverli adesso vorrebbe dire scrivere zero e
-# farlo sembrare un risultato.
-$md.Add("> Casi ciechi e attese verificate su attese totali: non ci sono ancora.")
-$md.Add("> Sono numeri che esistono quando i casi dichiarano le attese, cioe'")
-$md.Add("> dalla voce F3. Qui c'e' quello che il banco misura oggi.")
+$md.Add("**" + $attese + "**")
+$md.Add("")
+$md.Add("> Se i due numeri divergono, qualcosa sta misurando il nulla: un caso")
+$md.Add("> che legge un campo che non esiste piu'. Un errore di banco non e'")
+$md.Add("> una prova rossa - vuol dire che la prova NON E' STATA FATTA - e")
+$md.Add("> porta il giro a uscita 2.")
 $md.Add("")
 
 if ($fallite.Count -gt 0) {
@@ -228,6 +237,17 @@ if ($fallite.Count -gt 0) {
     # tre backtick dentro una stringa a doppi apici sono un errore di sintassi.
     $md.Add('```')
     foreach ($r in $fallite) { $md.Add($r.TrimEnd()) }
+    $md.Add('```')
+    $md.Add("")
+}
+
+if ($errori.Count -gt 0) {
+    $md.Add("## Gli errori di banco")
+    $md.Add("")
+    $md.Add("Non sono prove rosse: sono prove che NON SONO STATE FATTE.")
+    $md.Add("")
+    $md.Add('```')
+    foreach ($r in $errori) { $md.Add($r.TrimEnd()) }
     $md.Add('```')
     $md.Add("")
 }
@@ -259,11 +279,14 @@ $oggetto = [ordered]@{
     lento      = [bool]$Lento
     durata_s   = [int]$durata.TotalSeconds
     riepilogo  = $fine
+    attese     = $attese
     passate    = $passate.Count
     fallite    = $fallite.Count
     saltate    = $saltate.Count
+    errori     = $errori.Count
     uscita     = $codice
     rosse      = @($fallite | ForEach-Object { $_.TrimEnd() })
+    di_banco   = @($errori | ForEach-Object { $_.TrimEnd() })
 }
 $json = $oggetto | ConvertTo-Json -Depth 4
 $fileJson = Join-Path $cartella ($nome + ".json")
