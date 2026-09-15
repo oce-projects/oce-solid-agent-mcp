@@ -16,6 +16,74 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.33.0 — 15 settembre 2026 · libreria 0.68.0
+
+### V5 — le viste non escono piu' tagliate
+
+**Il difetto.** `ViewZoomtofit2` inquadra dentro l'**area grafica** di
+SOLIDWORKS; `SaveBMP` rende poi nel fotogramma che gli si chiede. Se le due
+forme non coincidono, quello che avanza viene tagliato via — e non lo dice
+nessuno.
+
+```
+area grafica  1845 x 924  ->  1,997
+chiesto       1024 x 768  ->  1,333
+```
+
+Sette viste su dodici uscivano dal bordo **destro**: sempre a destra, mai in
+verticale, mai a sinistra.
+
+**A trovarlo non sono stato io.** Due modelli se ne erano accorti da soli
+durante la misura di V2, mentre rispondevano a un'altra domanda: «la terza
+dimensione non e' determinabile perche' **esce dall'inquadratura**», «la vista
+risulta **tagliata sul lato destro**».
+
+**La riparazione.** Il fotogramma non impone piu' la sua forma: prende quella
+dell'area grafica, dentro le misure massime chieste. Con 1024x768 chiesti e
+un'area 2:1 escono 1024x513 — piu' piccolo, e **intero**. Larghezza e altezza
+passate restano un tetto, non una pretesa.
+
+**E poi si stringe di 1,15.** L'adattamento automatico lasciava il pezzo al
+~50% della larghezza: meta' dei pixel di un'immagine che costa piu' di mille
+token non mostrava niente. Il fattore non e' scelto a gusto — **il tetto lo
+detta la direzione gia' piena**: in verticale si stava gia' all'**78%**, e
+provando 1,35 la staffa a L e la piastra uscivano dal bordo di sopra e di
+sotto. Si guadagnava larghezza tagliando altezza.
+
+Dopo: **zero viste tagliate su dodici**, riempimento da ~50% a **58-89%**.
+
+Uno zoom uniforme non puo' fare di meglio: i due margini sono diversi e il
+fattore e' uno solo. Inquadrare bene per davvero vuol dire proiettare
+l'ingombro del pezzo nella vista e adattare le due direzioni per conto loro —
+un'altra voce, non una costante da alzare.
+
+### `Controlli\ProvaInquadratura`, e il righello che si prova da solo
+
+Scatta e conta i **pixel**: la scatola di quelli che non sono sfondo tocca un
+bordo? quanto riempie? Tre forme scelte per essere scomode in modi diversi
+(una staffa lunga e bassa, una piastra larga e piatta, una barra 15:1); un
+pezzo cubico non direbbe niente perche' ci sta sempre.
+
+**Due soglie sbagliate prima di quella buona**, e tutte e due dichiaravano
+tagliate dodici viste su dodici **con la stessa scatola su pezzi di forma
+diversa** — che e' il segno che una misura non sta misurando il suo ingresso.
+A smascherarle e' stato guardare il fotogramma: su una barra che sta fra y 358
+e 410, il righello diceva y 5-443.
+
+Adesso lo strumento ha **un caso rosso suo**: fotografa un documento **vuoto** e
+il conto dei pixel di pezzo deve fare **zero**. Costa uno scatto, e le due
+soglie sbagliate sarebbero morte li' invece che dopo tre giri e due letture a
+occhio.
+
+E quando dice «tagliata» **lascia il fotogramma su disco**: uno strumento che
+emette un verdetto deve far vedere su cosa.
+
+**I due criteri non sono dello stesso genere, e l'esito dipende solo dal
+primo.** Tagliare e' un difetto — un pezzo tagliato e' un pezzo diverso.
+Riempire poco e' un costo: si stampa sempre, e non fa fallire niente.
+
+---
+
 ## 0.32.0 — 15 settembre 2026 · libreria 0.67.0
 
 **La misura di V2 stava misurando un'altra cosa, e ha trovato questa.**

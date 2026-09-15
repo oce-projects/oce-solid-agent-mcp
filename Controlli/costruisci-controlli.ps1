@@ -58,7 +58,8 @@ $attrezzi = @(
     @{ nome = 'AlberoRosso'; sw = $true; lib = $false },
     @{ nome = 'Seleziona'; sw = $true; lib = $false },
     @{ nome = 'CoperturaRuoli'; sw = $true; lib = $false },
-    @{ nome = 'ProvaVista'; sw = $true; lib = $false }
+    @{ nome = 'ProvaVista'; sw = $true; lib = $false },
+    @{ nome = 'ProvaInquadratura'; sw = $true; lib = $true; disegno = $true }
 )
 
 foreach ($a in $attrezzi) {
@@ -87,6 +88,11 @@ foreach ($a in $attrezzi) {
             $rif += '-reference:' + (Join-Path $bin $d)
         }
     }
+
+    # `disegno = $true` aggiunge System.Drawing: serve a chi guarda i PIXEL di
+    # un'immagine invece della geometria. Roslyn non lo referenzia da solo, e
+    # senza si prende un CS0246 su `Bitmap` che non dice da dove viene.
+    if ($a.disegno) { $rif += '-reference:System.Drawing.dll' }
 
     $uscita = Join-Path $bin ($a.nome + '.exe')
     & $csc -nologo -langversion:7.3 -target:exe "-out:$uscita" @rif $sorgente
