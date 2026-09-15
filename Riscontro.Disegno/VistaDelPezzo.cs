@@ -512,6 +512,113 @@ namespace Riscontro.Disegno
         /// `finally` fallirebbe lasciando spazzatura nella cartella temporanea
         /// a ogni scatto.
         /// </summary>
+        /// <summary>
+        /// Quanto sfondo si lascia attorno al pezzo, ritagliando.
+        ///
+        /// Il 4% del lato maggiore, e **mai meno di dodici pixel**. Il minimo
+        /// non e' un vezzo: la prova `ProvaInquadratura` considera «tagliato»
+        /// un pezzo che arriva a tre pixel dal bordo, e un margine piu' stretto
+        /// della sua franchigia farebbe fallire la prova su un'immagine
+        /// perfetta.
+        /// </summary>
+        private const double MargineDelRitaglio = 0.04;
+        private const int MargineMinimo = 12;
+
+        /// <summary>
+        /// Il fotogramma **ritagliato attorno al pezzo** (voce V6). Null quando
+        /// non conviene o non si puo', e allora si tiene quello intero.
+        ///
+        /// ── PERCHE' SI RITAGLIA INVECE DI ZOOMARE ─────────────────────────
+        ///
+        /// Dopo l'adattamento, misurato, il pezzo riempiva il **58% in
+        /// larghezza e l'89% in altezza**. Sembra un'inquadratura da stringere,
+        /// e non lo e': **il verticale e' il vincolo**. `ViewZoomtofit2` scala
+        /// finche' il pezzo ci sta in tutte e due le direzioni, e quella che
+        /// tocca per prima finisce a ~90%; l'altra resta indietro di quanto la
+        /// forma del pezzo differisce dalla forma del fotogramma.
+        ///
+        /// Uno zoom non puo' riparare questo, perche' agisce sulle due
+        /// direzioni insieme: provato con 1,35 e il pezzo usciva dal bordo di
+        /// sopra e di sotto per guadagnare larghezza. **Non si adatta il pezzo
+        /// al fotogramma: si adatta il fotogramma al pezzo.**
+        ///
+        /// ── E NON PUO' TAGLIARE IL PEZZO, PER COSTRUZIONE ─────────────────
+        ///
+        /// Il ritaglio si fa sulla scatola dei pixel che NON sono sfondo, piu'
+        /// un margine. Tagliare via un pezzo di pezzo vorrebbe dire che quei
+        /// pixel non erano pezzo — cioe' che la soglia mente, ed e' la stessa
+        /// soglia che `ProvaInquadratura` prova su un documento vuoto.
+        ///
+        /// Costa anche MENO: meno pixel, quindi meno token, per piu' pezzo.
+        /// </summary>
+        private static Bitmap AttornoAlPezzo(Bitmap intera)
+        {
+            try
+            {
+                int larghezza = intera.Width, altezza = intera.Height;
+                int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
+
+                // LockBits E UNA RIGA PER VOLTA, non GetPixel: su 1024x513 sono
+                // mezzo milione di letture, e `GetPixel` le paga una chiamata
+                // l'una.
+                //
+                // E `Marshal.Copy` invece di un blocco `unsafe`: accendere
+                // `AllowUnsafeBlocks` cambia il modo in cui si compila **tutta
+                // la libreria**, ed e' un impegno piu' grosso di quanto valga
+                // un ritaglio. La copia per riga costa una allocazione sola e
+                // la stessa velocita'.
+                var dati = intera.LockBits(
+                    new Rectangle(0, 0, larghezza, altezza),
+                    ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+                try
+                {
+                    var riga = new byte[Math.Abs(dati.Stride)];
+                    for (int y = 0; y < altezza; y++)
+                    {
+                        System.Runtime.InteropServices.Marshal.Copy(
+                            dati.Scan0 + y * dati.Stride, riga, 0, riga.Length);
+                        for (int x = 0; x < larghezza; x++)
+                        {
+                            // SFONDO = CHIARO SU TUTTI E TRE I CANALI.
+                            // Il grigio del pezzo sta sui 128-150, la sfumatura
+                            // di SOLIDWORKS non scende sotto ~215. Si guardano i
+                            // canali e non la somma: un grigio medio e un
+                            // azzurro chiaro possono avere la stessa somma.
+                            int i = x * 3;
+                            if (riga[i] >= 200 && riga[i + 1] >= 200 && riga[i + 2] >= 200)
+                                continue;
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            maxY = y;
+                        }
+                    }
+                }
+                finally { intera.UnlockBits(dati); }
+
+                if (maxX < 0) return null;   // fotogramma vuoto: si tiene intero
+
+                int margine = Math.Max(
+                    MargineMinimo,
+                    (int)Math.Round(Math.Max(maxX - minX, maxY - minY) * MargineDelRitaglio));
+
+                int x0 = Math.Max(0, minX - margine);
+                int y0 = Math.Max(0, minY - margine);
+                int x1 = Math.Min(larghezza - 1, maxX + margine);
+                int y1 = Math.Min(altezza - 1, maxY + margine);
+                int w = x1 - x0 + 1, h = y1 - y0 + 1;
+                if (w <= 0 || h <= 0) return null;
+
+                // SE NON GUADAGNA, NON SI FA. Ritagliare il 2% costa una copia
+                // del fotogramma per non cambiare niente, e in cambio toglie
+                // margine a chi guarda.
+                if (w > larghezza * 0.95 && h > altezza * 0.95) return null;
+
+                return intera.Clone(new Rectangle(x0, y0, w, h), intera.PixelFormat);
+            }
+            catch { return null; }
+        }
+
         private static byte[] InPng(string bmp, out string motivo)
         {
             motivo = null;
@@ -519,10 +626,11 @@ namespace Riscontro.Disegno
             {
                 byte[] grezzi = File.ReadAllBytes(bmp);
                 using (var dentro = new MemoryStream(grezzi))
-                using (var immagine = Image.FromStream(dentro))
+                using (var intera = new Bitmap(dentro))
                 using (var fuori = new MemoryStream())
                 {
-                    immagine.Save(fuori, ImageFormat.Png);
+                    using (var stretta = AttornoAlPezzo(intera))
+                        (stretta ?? intera).Save(fuori, ImageFormat.Png);
                     return fuori.ToArray();
                 }
             }

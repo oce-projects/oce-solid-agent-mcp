@@ -16,6 +16,60 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.38.0 — 15 settembre 2026 · libreria 0.73.0
+
+### V6 — il fotogramma si adatta al pezzo, e costa meno
+
+Dopo l'adattamento automatico il pezzo riempiva il **58% in larghezza e l'89% in
+altezza**. Sembra un'inquadratura da stringere, e non lo e': **il verticale e'
+il vincolo**. `ViewZoomtofit2` scala finche' il pezzo ci sta in tutte e due le
+direzioni, e quella che tocca per prima finisce a ~90%; l'altra resta indietro
+di quanto la forma del pezzo differisce da quella del fotogramma.
+
+Uno zoom non lo puo' riparare, perche' agisce sulle due direzioni **insieme** —
+provato in V5 con 1,35, e il pezzo usciva di sopra e di sotto per guadagnare
+larghezza.
+
+> Non si adatta il pezzo al fotogramma: si adatta **il fotogramma al pezzo**.
+
+Il PNG si ritaglia attorno alla scatola dei pixel che non sono sfondo, piu' un
+margine del 4% e mai meno di dodici pixel — la prova considera «tagliato» un
+pezzo a tre pixel dal bordo, e un margine sotto la sua franchigia farebbe
+fallire un'immagine perfetta.
+
+```
+staffa a L    isometrica  92% x 93%     piastra  isometrica  91% x 93%
+barra 300x20  isometrica  93% x 89%     barra    destra      93% x 93%
+
+Nessuna vista tagliata.       (12 su 12, criterio della voce: 75%)
+```
+
+**E costa meno, non di piu':**
+
+| | prima | adesso |
+|---|---|---|
+| isometrica della flangia | 97 kB | **24 kB** |
+| isometriche delle cinque forme | 71-115 kB | **24-44 kB** |
+
+Meno pixel **e** piu' pezzo dentro. Un'immagine costa piu' di mille token, e
+quelli erano token pagati per non mostrare niente.
+
+**Non puo' tagliare il pezzo, per costruzione:** il ritaglio si fa sulla scatola
+dei pixel del pezzo, quindi tagliarne via uno vorrebbe dire che quel pixel non
+era pezzo — cioe' che la soglia mente. Ed e' la stessa soglia che
+`ProvaInquadratura` prova su un **documento vuoto**, dove il conto deve fare
+zero.
+
+`LockBits` una riga per volta con `Marshal.Copy`, e non un blocco `unsafe`:
+accenderlo cambierebbe il modo in cui si compila **tutta la libreria**, ed e' un
+impegno piu' grosso di quanto valga un ritaglio.
+
+**Con questa, le sezioni R e V sono chiuse tutte e due.** Erano nate lo stesso
+giorno dalla stessa dimenticanza — il goal dice *proponi, fai, guarda,
+correggi*, e il file aveva solo le prime due.
+
+---
+
 ## Fuori numero — 15 settembre 2026 · nel monorepo, non qui
 
 ### B6 — la libreria entra nel monorepo come sottomodulo
