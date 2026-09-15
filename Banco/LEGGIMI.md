@@ -138,6 +138,27 @@ perche', una `gemella` che non esiste, un selettore che non risolve.
 Un `null` **dichiarato** invece si misura: `materiale: null` vuol dire «quel
 posto esiste ed e' vuoto», ed e' una cosa diversa da un campo che manca.
 
+### Le coppie — `casi/coppie/`
+
+Ogni caso con `deve_fallire` **deve** nominare in `gemella` un caso che riesce,
+e quella gemella dev'essere **verde nello stesso giro**:
+
+> Una prova che verifica solo il rifiuto non distingue «il controllo funziona»
+> da «il controllo rifiuta tutto».
+
+Quattro coppie, tutte sullo stesso blocco 314 x 274 x 52:
+
+| rifiuta | riesce | differiscono per |
+|---|---|---|
+| foro 500 passante | foro 270 su faccia 274 | `diametro_mm` |
+| tasca 400x400 passante | la stessa, **cieca** da 5 | `passante` |
+| foro a (5000, 5000) | foro 60 **col centro sul bordo** | `x_mm`, `y_mm` |
+| asola 500x300 | asola 30x9 | `lunghezza_mm`, `larghezza_mm` |
+
+Il banco dice **quanti argomenti differiscono** e rifiuta solo i due casi che
+contano: una gemella identica al rifiuto (e' una copia) e una che non ha nemmeno
+un argomento in comune (sono due operazioni che non si parlano).
+
 ### I giri si contano — `storico.txt`
 
 `in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una redirezione

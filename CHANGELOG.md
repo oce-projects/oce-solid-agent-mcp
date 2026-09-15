@@ -18,6 +18,37 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F5 — Un rifiuto non sta mai da solo
+
+Ogni caso con `deve_fallire` **deve** nominare in `gemella` un caso che riesce,
+e quella gemella dev'essere **verde nello stesso giro**. Togliendo il campo da
+uno dei `lim_*.json` il comando esce **2** e nomina il caso.
+
+> Una prova che verifica solo il rifiuto non distingue «il controllo funziona»
+> da «il controllo rifiuta tutto».
+
+Le quattro coppie canoniche di 80v sono nel repository, tutte sullo stesso
+blocco 314 x 274 x 52 (**4.473.872 mm³**), con i numeri rimisurati oggi:
+
+```
+foro 270 passante                tolti 2.977.287,36   (pi*135^2*52)
+foro 60 col CENTRO SUL BORDO     tolti 73.513,27      (mezzo cilindro: 73.512,62)
+tasca 400x400 cieca da 5         volume 4.043.692, ingombro [314, 274, 47]
+asola 30x9 passante              area 252,62, tolti 13.136,1
+gemelle 4/4 verdi
+```
+
+Il secondo e' il piu' importante: il centro cade **fuori** dal materiale e il
+taglio e' legittimo lo stesso — un controllo scritto come «il centro deve stare
+dentro l'ingombro» lo avrebbe rifiutato.
+
+**La regola scritta nei Rischi non regge alle sue stesse coppie.** «La gemella
+deve differire per UN solo argomento» ne rifiuta **due su quattro**: il foro
+fuori dal materiale differisce per due coordinate, l'asola per lunghezza e
+larghezza. Quella che gira chiede stessa operazione, argomenti non identici e
+almeno un argomento in comune — e **dice quanti ne differiscono**, invece di
+decidere al posto di chi legge.
+
 ### F4 — Un campo che non c'e' non e' uno zero, ed e' uscita 2
 
 Un caso che chiede `misure.materiale_tolto_mm3` a `applica_materiale` — che non

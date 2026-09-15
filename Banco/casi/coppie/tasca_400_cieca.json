@@ -1,0 +1,38 @@
+{
+  "nome": "tasca_400_cieca",
+  "famiglia": "coppie",
+  "perche": "La gemella di «lim_tasca_che_copre_tutto», e dice perche' il controllo ha bisogno di «da parte a parte»: una tasca che copre tutta la faccia ma NON passa accorcia il pezzo, ed accorciare un pezzo e' una cosa che si fa. Differisce dalla gemella per UN SOLO argomento: «passante».",
+  "parte": { "nuova": true },
+  "passi": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": {
+        "piano": "frontale",
+        "lunghezza_mm": 314,
+        "larghezza_mm": 274,
+        "spessore_mm": 52,
+        "centrato": true
+      },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 4473872 }
+      ]
+    },
+    {
+      "operazione": "taglio_rettangolare",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "x_mm": 0,
+        "y_mm": 0,
+        "lunghezza_mm": 400,
+        "larghezza_mm": 400,
+        "passante": false,
+        "profondita_mm": 5
+      },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 4043692 },
+        { "cosa": "ingombro_mm", "uguale": [314, 274, 47] },
+        { "cosa": "corpi", "uguale": 1 }
+      ]
+    }
+  ]
+}

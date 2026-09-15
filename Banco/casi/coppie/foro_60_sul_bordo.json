@@ -1,0 +1,37 @@
+{
+  "nome": "foro_60_sul_bordo",
+  "famiglia": "coppie",
+  "perche": "La gemella di «lim_foro_fuori_dal_materiale», ed e' la piu' importante delle quattro: IL CENTRO CADE FUORI DAL MATERIALE (x = 157, cioe' esattamente sul bordo) e il taglio e' legittimo lo stesso. Un controllo scritto come «il centro deve stare dentro l'ingombro» -- che e' la formulazione che viene per prima -- lo avrebbe rifiutato. Quello che gira guarda la scatola del PROFILO, non il centro.",
+  "parte": { "nuova": true },
+  "passi": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": {
+        "piano": "frontale",
+        "lunghezza_mm": 314,
+        "larghezza_mm": 274,
+        "spessore_mm": 52,
+        "centrato": true
+      },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 4473872 }
+      ]
+    },
+    {
+      "operazione": "taglio_cilindrico",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "x_mm": 157,
+        "y_mm": 0,
+        "diametro_mm": 60,
+        "passante": true
+      },
+      "attese": [
+        { "cosa": "misure.tolti_mm3", "uguale": 73512.62,
+          "tolleranza": 1.0,
+          "perche_questa_tolleranza": "mezzo cilindro, pi*30^2/2*52: il centro sta ESATTAMENTE sul bordo e quel che resta dentro non e' esattamente la meta'" },
+        { "cosa": "corpi", "uguale": 1 }
+      ]
+    }
+  ]
+}

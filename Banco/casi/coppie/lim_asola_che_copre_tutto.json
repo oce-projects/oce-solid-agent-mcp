@@ -1,0 +1,38 @@
+{
+  "nome": "lim_asola_che_copre_tutto",
+  "famiglia": "coppie",
+  "perche": "Un'asola 500 x 300 passante su un pezzo che occupa 314 x 274 non lascerebbe niente. La gemella e' la stessa asola ridotta a 30 x 9, che e' l'asola vera del mestiere: differiscono per due argomenti, la lunghezza e la larghezza, e sono i due che il controllo guarda.",
+  "parte": { "nuova": true },
+  "passi": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": {
+        "piano": "frontale",
+        "lunghezza_mm": 314,
+        "larghezza_mm": 274,
+        "spessore_mm": 52,
+        "centrato": true
+      },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 4473872 }
+      ]
+    },
+    {
+      "operazione": "asola",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "x_mm": 0,
+        "y_mm": 0,
+        "lunghezza_mm": 500,
+        "larghezza_mm": 300,
+        "passante": true
+      },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["copre tutto il pezzo", "314 x 274"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "asola_30x9"
+      }
+    }
+  ]
+}

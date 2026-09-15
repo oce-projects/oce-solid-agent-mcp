@@ -48,35 +48,222 @@ namespace ProvaSaldatura
             Console.WriteLine();
             Console.WriteLine("=== i casi dichiarati, che sono file (F3) ===");
 
-            string cartella;
+            string radiceCasi;
             try
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                cartella = Path.Combine(banco.FullName, "casi", "lavorazioni");
+                radiceCasi = Path.Combine(banco.FullName, "casi");
             }
             catch (Exception ex)
             {
-                Segna("casi dichiarati: trovo la cartella", false, Perche(ex));
+                ErroreDiBanco("casi dichiarati: trovo la cartella", Perche(ex));
                 return;
             }
 
-            if (!Directory.Exists(cartella))
+            // LE CARTELLE SI NOMINANO, non si scoprono. In `casi/` vivono anche
+            // i piani del formato vecchio, che `corri_piani.js` esegue e che qui
+            // sarebbero tutti «il file non e' un oggetto JSON»: scoprire le
+            // cartelle da sole vorrebbe dire trasformare un file d'altri in un
+            // errore di banco a ogni giro.
+            var file = new List<string>();
+            foreach (var famiglia in new[] { "lavorazioni", "coppie" })
             {
-                // NON «saltata»: la cartella dei casi che non c'e' e' un banco
-                // che ha perso i suoi casi, e va visto.
-                Segna("casi dichiarati: la cartella c'e'", false, cartella);
-                return;
+                var cartella = Path.Combine(radiceCasi, famiglia);
+                if (!Directory.Exists(cartella))
+                {
+                    ErroreDiBanco("casi dichiarati: la cartella «" + famiglia + "» c'e'", cartella);
+                    return;
+                }
+                file.AddRange(Directory.GetFiles(cartella, "*.json"));
             }
-
-            var file = Directory.GetFiles(cartella, "*.json").OrderBy(x => x).ToList();
+            file = file.OrderBy(x => Path.GetFileName(x), StringComparer.Ordinal).ToList();
             if (file.Count == 0)
             {
-                Segna("casi dichiarati: ce n'e' almeno uno", false, "cartella vuota: " + cartella);
+                ErroreDiBanco("casi dichiarati: ce n'e' almeno uno", "nessun file in " + radiceCasi);
                 return;
             }
 
-            foreach (var f in file) CorriUnCaso(f);
+            // ── DUE GIRI, E IL SECONDO E' LA VOCE F5 ──────────────────────
+            //
+            // Prima si eseguono tutti i casi e si tiene da parte com'e' andata;
+            // poi si guardano le gemelle. Non si puo' fare in un giro solo,
+            // perche' «la gemella e' verde IN QUESTO GIRO» e' una domanda a cui
+            // si puo' rispondere solo quando il giro e' finito.
+            var comeEAndata = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var daControllare = new List<Gemellaggio>();
+            var doveSta = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (var f in file)
+            {
+                doveSta[Path.GetFileNameWithoutExtension(f)] = f;
+                comeEAndata[Path.GetFileNameWithoutExtension(f)] = CorriUnCaso(f, daControllare);
+            }
+
+            GuardaLeGemelle(daControllare, comeEAndata, doveSta);
+        }
+
+        /// <summary>
+        /// Un rifiuto e la prova che lo accompagna (voce F5).
+        /// </summary>
+        private sealed class Gemellaggio
+        {
+            public string Etichetta;     // «lim_… · passo 2»
+            public string Caso;          // chi la nomina
+            public string Gemella;       // chi deve riuscire
+            public string Operazione;    // il passo che ha rifiutato
+            public Dictionary<string, object> Argomenti;   // com'erano scritti nel file
+        }
+
+        /// <summary>
+        /// LE PROVE IN COPPIA, IMPOSTE DAL BANCO (voce F5).
+        ///
+        /// ── PERCHE' ───────────────────────────────────────────────────────
+        ///
+        /// **Una prova che verifica solo il rifiuto non distingue «il controllo
+        /// funziona» da «il controllo rifiuta tutto».** Il caso 1 di 80u — il
+        /// guscio da 30 su una scatola alta 52, che sembrava impossibile ed era
+        /// solo brutto — dice cosa succede senza: si trasforma una
+        /// disattenzione in una regola del prodotto.
+        ///
+        /// Tre cose, e tutte e tre sono errori di banco quando non tornano,
+        /// perche' riguardano il caso e non il pezzo:
+        ///
+        ///   1. la gemella **e' nominata**;
+        ///   2. la gemella **e' verde in questo giro** — che esista non basta:
+        ///      una gemella rossa e' una coppia che non prova niente;
+        ///   3. la gemella **ha qualcosa a che vedere** col rifiuto: stessa
+        ///      operazione, argomenti non identici, e almeno un argomento in
+        ///      comune con lo stesso valore.
+        /// </summary>
+        private static void GuardaLeGemelle(
+            List<Gemellaggio> coppie, Dictionary<string, bool> comeEAndata,
+            Dictionary<string, string> doveSta)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== le gemelle: un rifiuto non sta mai da solo (F5) ===");
+
+            if (coppie.Count == 0)
+            {
+                Segna("gemelle: ce n'e' almeno una da controllare", false,
+                      "nessun caso con «deve_fallire»");
+                return;
+            }
+
+            int verdi = 0;
+            foreach (var c in coppie)
+            {
+                bool andata;
+                if (!comeEAndata.TryGetValue(c.Gemella, out andata))
+                {
+                    ErroreDiBanco(c.Etichetta, "la gemella «" + c.Gemella + "» non e' fra i casi eseguiti");
+                    continue;
+                }
+                if (!andata)
+                {
+                    // UNA GEMELLA ROSSA E' UNA COPPIA CHE NON PROVA NIENTE: il
+                    // rifiuto resta senza il suo contraltare, e non si sa piu'
+                    // se il controllo funziona o rifiuta tutto.
+                    ErroreDiBanco(c.Etichetta, "la gemella «" + c.Gemella + "» non e' verde in questo giro");
+                    continue;
+                }
+
+                string perche;
+                if (!SiSomigliano(c, doveSta, out perche))
+                {
+                    ErroreDiBanco(c.Etichetta, "gemella finta: " + perche);
+                    continue;
+                }
+
+                verdi++;
+                Segna("gemella di «" + c.Caso + "»", true, c.Gemella + " — " + perche);
+            }
+
+            Segna("gemelle " + verdi + "/" + coppie.Count + " verdi",
+                  verdi == coppie.Count, "");
+        }
+
+        /// <summary>
+        /// La gemella ha a che vedere col rifiuto?
+        ///
+        /// ── LA REGOLA SCRITTA NELLA VOCE NON REGGE ALLE SUE STESSE COPPIE ──
+        ///
+        /// La voce F5 proponeva «la gemella deve differire per UN solo
+        /// argomento». Misurata sulle quattro coppie canoniche di 80v, quella
+        /// regola **ne rifiuta tre su quattro**: il foro fuori dal materiale
+        /// differisce per due coordinate, l'asola per lunghezza e larghezza. E'
+        /// una regola che avrebbe buttato via gli esempi che la voce stessa
+        /// porta come canonici.
+        ///
+        /// Quella che gira dice la stessa cosa senza il numero fisso: **stessa
+        /// operazione, argomenti non identici, e almeno un argomento in comune
+        /// con lo stesso valore.** Quanti ne differiscono si DICE, cosi' chi
+        /// legge vede una coppia lasca senza che il banco debba decidere al
+        /// posto suo.
+        /// </summary>
+        private static bool SiSomigliano(
+            Gemellaggio c, Dictionary<string, string> doveSta, out string perche)
+        {
+            perche = "";
+            string percorso;
+            if (!doveSta.TryGetValue(c.Gemella, out percorso))
+            { perche = "non trovo il file della gemella"; return false; }
+
+            Dictionary<string, object> gemella;
+            try
+            {
+                var s = new System.Web.Script.Serialization.JavaScriptSerializer();
+                gemella = s.DeserializeObject(File.ReadAllText(percorso)) as Dictionary<string, object>;
+            }
+            catch (Exception ex) { perche = "JSON della gemella illeggibile: " + ex.Message; return false; }
+
+            var passi = Elenco(gemella, "passi");
+            if (passi == null) { perche = "la gemella non ha passi"; return false; }
+
+            Dictionary<string, object> suoi = null;
+            foreach (var p in passi)
+            {
+                var passo = p as Dictionary<string, object>;
+                if (passo == null) continue;
+                if (!string.Equals(Testo(passo, "operazione"), c.Operazione, StringComparison.Ordinal)) continue;
+                if (passo.ContainsKey("deve_fallire")) continue;   // due rifiuti non sono una coppia
+                suoi = (passo.ContainsKey("argomenti") ? passo["argomenti"] : null)
+                       as Dictionary<string, object>;
+                break;
+            }
+            if (suoi == null)
+            {
+                perche = "la gemella non ha nessun passo «" + c.Operazione + "» che riesce";
+                return false;
+            }
+
+            var mio = c.Argomenti ?? new Dictionary<string, object>();
+            var chiavi = new HashSet<string>(mio.Keys, StringComparer.Ordinal);
+            foreach (var k in suoi.Keys) chiavi.Add(k);
+
+            int diversi = 0, uguali = 0;
+            var quali = new List<string>();
+            foreach (var k in chiavi.OrderBy(x => x, StringComparer.Ordinal))
+            {
+                string a = mio.ContainsKey(k) ? Convert.ToString(mio[k], CultureInfo.InvariantCulture) : null;
+                string b = suoi.ContainsKey(k) ? Convert.ToString(suoi[k], CultureInfo.InvariantCulture) : null;
+                if (string.Equals(a, b, StringComparison.Ordinal)) uguali++;
+                else { diversi++; quali.Add(k); }
+            }
+
+            if (diversi == 0)
+            { perche = "e' identica al rifiuto: non e' una gemella, e' una copia"; return false; }
+            if (uguali == 0)
+            {
+                perche = "non ha nemmeno un argomento in comune col rifiuto: " +
+                         "sono due operazioni che non si parlano";
+                return false;
+            }
+
+            perche = "stessa operazione, differisce per " + diversi +
+                     (diversi == 1 ? " argomento (" : " argomenti (") +
+                     string.Join(", ", quali) + ")";
+            return true;
         }
 
         // ==================================================================
@@ -295,7 +482,7 @@ namespace ProvaSaldatura
         // ==================================================================
         // UN CASO
         // ==================================================================
-        private static void CorriUnCaso(string percorso)
+        private static bool CorriUnCaso(string percorso, List<Gemellaggio> gemelle)
         {
             string nome = Path.GetFileNameWithoutExtension(percorso);
             Dictionary<string, object> caso;
@@ -307,29 +494,29 @@ namespace ProvaSaldatura
             // UN CASO SCRITTO MALE E' UN ERRORE DI BANCO, NON UNA PROVA ROSSA
             // (voce F4): «una prova e' fallita» dice che si e' misurato
             // qualcosa, e qui non si e' misurato niente.
-            catch (Exception ex) { ErroreDiBanco(nome, "JSON illeggibile: " + Perche(ex)); return; }
-            if (caso == null) { ErroreDiBanco(nome, "il file non e' un oggetto JSON"); return; }
+            catch (Exception ex) { ErroreDiBanco(nome, "JSON illeggibile: " + Perche(ex)); return false; }
+            if (caso == null) { ErroreDiBanco(nome, "il file non e' un oggetto JSON"); return false; }
 
             // Il nome del caso e' quello DENTRO il file, e deve combaciare col
             // nome del file: due nomi diversi per la stessa cosa fanno cercare
             // nel posto sbagliato quando una prova diventa rossa.
             string dichiarato = Testo(caso, "nome");
-            if (dichiarato == null) { ErroreDiBanco(nome, "manca «nome»"); return; }
+            if (dichiarato == null) { ErroreDiBanco(nome, "manca «nome»"); return false; }
             if (dichiarato != nome)
             {
                 ErroreDiBanco(nome, "il file si chiama «" + nome + "» e dentro dice «" +
                                     dichiarato + "»");
-                return;
+                return false;
             }
             if (Testo(caso, "perche") == null)
             {
                 ErroreDiBanco(nome, "manca «perche»: un caso senza il dubbio che scioglie " +
                                     "non si sa piu' perche' esiste");
-                return;
+                return false;
             }
 
             var passi = Elenco(caso, "passi");
-            if (passi == null || passi.Count == 0) { ErroreDiBanco(nome, "manca «passi»"); return; }
+            if (passi == null || passi.Count == 0) { ErroreDiBanco(nome, "manca «passi»"); return false; }
 
             IModelDoc2 doc = null;
             try
@@ -340,11 +527,11 @@ namespace ProvaSaldatura
                 for (int i = 0; i < passi.Count; i++)
                 {
                     var passo = passi[i] as Dictionary<string, object>;
-                    if (passo == null) { ErroreDiBanco(nome, "il passo " + (i + 1) + " non e' un oggetto"); return; }
+                    if (passo == null) { ErroreDiBanco(nome, "il passo " + (i + 1) + " non e' un oggetto"); return false; }
                     string etichetta = nome + " · passo " + (i + 1);
 
                     string operazione = Testo(passo, "operazione");
-                    if (operazione == null) { ErroreDiBanco(etichetta, "manca «operazione»"); return; }
+                    if (operazione == null) { ErroreDiBanco(etichetta, "manca «operazione»"); return false; }
 
                     object grezziArg;
                     passo.TryGetValue("argomenti", out grezziArg);
@@ -353,8 +540,8 @@ namespace ProvaSaldatura
                     // il caso non si e' potuto ESEGUIRE, e dirlo «fallito»
                     // farebbe credere che si sia misurato qualcosa (voce F4).
                     try { argomenti = Risolvi(grezziArg, stato) as Dictionary<string, object>; }
-                    catch (NonHoPotutoMisurare ex) { ErroreDiBanco(etichetta, ex.Message); return; }
-                    catch (Exception ex) { Segna(etichetta, false, ex.Message); return; }
+                    catch (NonHoPotutoMisurare ex) { ErroreDiBanco(etichetta, ex.Message); return false; }
+                    catch (Exception ex) { Segna(etichetta, false, ex.Message); return false; }
                     if (argomenti == null) argomenti = new Dictionary<string, object>();
 
                     double volumePrima = VolumeDelDocumento(doc);
@@ -371,11 +558,23 @@ namespace ProvaSaldatura
                     {
                         if (!GuardaIlRifiuto(etichetta, deveFallire, misure, errore,
                                              doc, stato, volumePrima, featurePrima, percorso))
-                            return;
+                            return false;
+                        // LA COPPIA SI REGISTRA QUI E SI GUARDA ALLA FINE:
+                        // «la gemella e' verde in questo giro» si sa solo dopo
+                        // che il giro e' finito (voce F5).
+                        gemelle.Add(new Gemellaggio
+                        {
+                            Etichetta = etichetta,
+                            Caso = nome,
+                            Gemella = Testo(deveFallire, "gemella"),
+                            Operazione = operazione,
+                            Argomenti = (passo.ContainsKey("argomenti") ? passo["argomenti"] : null)
+                                        as Dictionary<string, object>,
+                        });
                         continue;
                     }
 
-                    if (misure == null) { Segna(etichetta, false, "fallito: " + Corto(errore)); return; }
+                    if (misure == null) { Segna(etichetta, false, "fallito: " + Corto(errore)); return false; }
 
                     var attese = Elenco(passo, "attese");
                     if (attese == null || attese.Count == 0)
@@ -386,7 +585,7 @@ namespace ProvaSaldatura
                         // caso e' scritto male, non che il pezzo e' sbagliato.
                         ErroreDiBanco(etichetta,
                               "nessuna attesa: un passo che non misura niente non e' una prova");
-                        return;
+                        return false;
                     }
 
                     foreach (var a in attese)
@@ -394,23 +593,28 @@ namespace ProvaSaldatura
                         _attese++;
                         var attesa = a as Dictionary<string, object>;
                         if (attesa == null)
-                        { ErroreDiBanco(etichetta, "un'attesa non e' un oggetto"); return; }
+                        { ErroreDiBanco(etichetta, "un'attesa non e' un oggetto"); return false; }
                         string dettaglio;
                         bool ok;
                         try { ok = Combacia(attesa, doc, stato, misure, out dettaglio); }
                         catch (NonHoPotutoMisurare ex)
-                        { ErroreDiBanco(etichetta + " · " + Testo(attesa, "cosa"), ex.Message); return; }
-                        catch (Exception ex) { Segna(etichetta, false, ex.Message); return; }
+                        { ErroreDiBanco(etichetta + " · " + Testo(attesa, "cosa"), ex.Message); return false; }
+                        catch (Exception ex) { Segna(etichetta, false, ex.Message); return false; }
                         // VERIFICATA vuol dire «ho misurato e ho confrontato»,
                         // non «e' andata bene»: una rossa e' verificata eccome.
                         _atteseVerificate++;
                         Segna(etichetta + " · " + Testo(attesa, "cosa"), ok, dettaglio);
-                        if (!ok) return;
+                        if (!ok) return false;
                     }
                 }
             }
-            catch (Exception ex) { Segna(nome, false, Perche(ex)); }
+            catch (Exception ex) { Segna(nome, false, Perche(ex)); return false; }
             finally { Chiudi(doc); }
+
+            // TUTTI I PASSI, TUTTE LE ATTESE. Ci si arriva solo se non e'
+            // uscito niente per strada: e' questo che la voce F5 chiama «verde
+            // in questo giro».
+            return true;
         }
 
         // ==================================================================
@@ -473,21 +677,30 @@ namespace ProvaSaldatura
                 }
             }
 
-            // LA GEMELLA: il caso che fa la stessa cosa e RIESCE. Qui si guarda
-            // solo che esista — imporla a tutti e' la voce F5 — perche' un
-            // rimando a un file che non c'e' e' un rimando che nessuno seguira'.
+            // LA GEMELLA E' OBBLIGATORIA (voce F5).
+            //
+            // Una prova che verifica solo il rifiuto non distingue «il
+            // controllo funziona» da «il controllo rifiuta tutto». Il caso 1 di
+            // 80u — il guscio da 30 su una scatola alta 52, che sembrava
+            // impossibile ed era solo brutto — dice cosa succede senza.
             string gemella = Testo(regole, "gemella");
-            if (gemella != null)
+            if (gemella == null)
             {
-                var accanto = Path.Combine(Path.GetDirectoryName(percorsoDelCaso), gemella + ".json");
-                if (!File.Exists(accanto))
-                {
-                    // «gemella mancante» e' uno dei tre errori di banco che la
-                    // voce F2 nominava per nome, insieme a «caso non ammesso» e
-                    // «campo assente».
-                    ErroreDiBanco(etichetta, "la gemella «" + gemella + "» non esiste");
-                    return false;
-                }
+                ErroreDiBanco(etichetta,
+                    "caso non ammesso: un «deve_fallire» deve nominare in «gemella» " +
+                    "il caso che RIESCE con argomenti quasi uguali. Senza, questo " +
+                    "rifiuto non distingue un controllo che funziona da uno che " +
+                    "rifiuta tutto.");
+                return false;
+            }
+            var accanto = Path.Combine(Path.GetDirectoryName(percorsoDelCaso), gemella + ".json");
+            if (!File.Exists(accanto))
+            {
+                // «gemella mancante» e' uno dei tre errori di banco che la
+                // voce F2 nominava per nome, insieme a «caso non ammesso» e
+                // «campo assente».
+                ErroreDiBanco(etichetta, "la gemella «" + gemella + "» non esiste");
+                return false;
             }
 
             Segna(etichetta, true, "rifiutato: " + Corto(errore));

@@ -1,0 +1,37 @@
+{
+  "nome": "lim_foro_fuori_dal_materiale",
+  "famiglia": "coppie",
+  "perche": "Un foro centrato a (5000, 5000) su un pezzo che su X va da -157 a 157: il profilo cade tutto fuori, non c'e' niente da togliere. E' il gemello del foro da 500: due difetti diversi che fino alla 0.42.0 davano LA STESSA FRASE, e le due cose da fare sono opposte.",
+  "parte": { "nuova": true },
+  "passi": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": {
+        "piano": "frontale",
+        "lunghezza_mm": 314,
+        "larghezza_mm": 274,
+        "spessore_mm": 52,
+        "centrato": true
+      },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 4473872 }
+      ]
+    },
+    {
+      "operazione": "taglio_cilindrico",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "x_mm": 5000,
+        "y_mm": 5000,
+        "diametro_mm": 60,
+        "passante": true
+      },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["cade tutto fuori dal materiale", "-157 a 157"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "foro_60_sul_bordo"
+      }
+    }
+  ]
+}
