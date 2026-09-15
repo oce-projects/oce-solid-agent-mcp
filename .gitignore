@@ -18,6 +18,13 @@ Banco/ultimo-ponte.txt
 # qui — cosi' nessun caso porta in giro il nome di chi lavora.
 Banco/lavoro/
 
+# Il materiale della misura V2: venti PNG e cinque stati, ~1,5 MB, rifatti da
+# `raccogli_viste.js` in un minuto. Non e' la misura — la misura e' il numero
+# che finisce nel README — e un repository non porta in giro i fotogrammi da
+# cui e' stata ricavata. I PIANI invece sono versionati (`casi/viste/`):
+# quelli sono la parte che si deve poter rifare uguale.
+Banco/viste/
+
 # `bin/` e `obj/` sopra bastano anche per Banco/, ed e' voluto che le
 # librerie di Dassault non ci finiscano nemmeno: il csproj del banco le
 # referenzia con Private=False, quindi in bin/ non vengono copiate.

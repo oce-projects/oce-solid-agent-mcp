@@ -70,10 +70,31 @@ lettura: sono POSIZIONALI, si rinumerano per area a ogni lettura, e dopo
 ogni modifica vanno riletti. Chi salta il primo strumento lavora alla cieca,
 ed e' il difetto piu' caro di tutto il progetto.
 
-**Misurare e vedere non sono la stessa cosa.** Lo stato dice che il foro e'
-Ø10 profondo 5; non dice che il pezzo non somiglia a una staffa. Dalla 0.31.0
-`guarda_il_pezzo` accetta `viste` — per esempio `["isometrica"]` — e risponde
-con una o piu' immagini PNG accanto allo stato.
+**Misurare e vedere non sono la stessa cosa.** Dalla 0.31.0 `guarda_il_pezzo`
+accetta `viste` — per esempio `["isometrica"]` — e risponde con una o piu'
+immagini PNG accanto allo stato.
+
+**Quanto serve, misurato.** Cinque pezzi di forma diversa (piastra forata,
+scatola svuotata, staffa a L, flangia con corona di fori, albero a gradini),
+quattro modelli isolati, criterio scritto prima di guardare le risposte:
+
+| il modello riceve | dice che oggetto e' | dice le lavorazioni | dice le quote | **numeri sbagliati** |
+|---|---|---|---|---|
+| solo l'isometrica | **5/5** | 3/5 | 0/5 | **0** |
+| quattro viste | **5/5** | 4/5 | 0/5 | **0** |
+| solo lo stato | **5/5** | **5/5** | **5/5** | **3** |
+| stato + isometrica | **5/5** | **5/5** | **5/5** | **1** |
+
+Due cose che non ci aspettavamo. **Il solo stato testuale basta a capire che
+oggetto e', 5 volte su 5** — «scatola a pareti sottili aperta su un lato»,
+«albero di rivoluzione a gradini» — quindi il ponte non era cieco come
+sembrava. E **un'immagine non fa inventare numeri**: dieci risposte su dieci
+hanno scritto «non stimabile, nessun riferimento di scala» invece di tirare a
+indovinare, dando pero' proporzioni giuste (rapporto lati 1,6-1,7:1 contro
+1,67 vero).
+
+Un modello, un giro per condizione. Su «numeri sbagliati» **3 contro 1 e' un
+solo giro**, e un solo giro non e' una tendenza.
 
 **Al massimo tre, e solo se le si chiede.** Una vista costa piu' di dieci volte
 l'intero stato scritto, che sta sotto i 16.000 caratteri: portarne tre a ogni

@@ -899,7 +899,15 @@ namespace Riscontro.Disegno
                     // per riconoscere i fori in `OperazioniFori`.
                     double raggioMm;
                     double[] asseCilindro;
-                    if (normale == null && CilindroDi(t.Item1, out raggioMm, out asseCilindro))
+                    // `= null` e non e' pignoleria: `CilindroDi` lo assegna con
+                    // un `out`, ma la chiamata sta a destra di un `&&` e su una
+                    // faccia piana non viene eseguita. Senza l'inizializzazione
+                    // il compilatore rifiuta l'uso piu' in basso — ed e' un
+                    // rifiuto giusto: quella variabile li' non avrebbe un
+                    // valore.
+                    double[] centroCilindro = null;
+                    if (normale == null &&
+                        CilindroDi(t.Item1, out raggioMm, out asseCilindro, out centroCilindro))
                     {
                         voce["raggio_mm"] = Math.Round(raggioMm, 3);
                         voce["diametro_mm"] = Math.Round(raggioMm * 2, 3);
@@ -930,6 +938,52 @@ namespace Riscontro.Disegno
                             || !string.Equals(daFeature, lavorazioneDelCorpo[t.Item2], StringComparison.Ordinal)))
                     {
                         voce["da_lavorazione"] = daFeature;
+
+                        // ── DOVE STA IL FORO, e non e' `punto_mm` ──────────
+                        //
+                        // `punto_mm` sta sulla SUPERFICIE — serve a
+                        // SELEZIONARE — e dista un raggio dall'asse in una
+                        // direzione che nessuno dichiara. Chi lo usa per
+                        // misurare un interasse sbaglia di un raggio per ogni
+                        // foro e non se ne accorge: il numero ha la forma
+                        // giusta.
+                        //
+                        // Misurato il 15/9/2026 (voce E16) su una flangia con
+                        // sei fori su Ø90: due modelli indipendenti hanno
+                        // risposto **Ø79**, tutti e due con confidenza 5 su 5.
+                        //
+                        // `centro_mm` e non `asse_mm`: `asse` qui sopra e' gia'
+                        // la DIREZIONE, e due campi quasi omonimi che vogliono
+                        // dire cose diverse sono il modo piu' sicuro di farli
+                        // scambiare.
+                        //
+                        // ── E SI SCRIVE SOLO QUI DENTRO, non su ogni
+                        //    faccia cilindrica. IL TETTO L'HA DETTO.
+                        //
+                        // La prima scrittura lo metteva su TUTTE, e il banco
+                        // ha fermato il commit: lo stato di un telaio da
+                        // quattro barre e' passato da 15.633 a **16.163**
+                        // caratteri, oltre il tetto di 16.000, con **un solo
+                        // documento aperto** — quindi crescita vera, non
+                        // scarti lasciati in giro.
+                        //
+                        // Le facce cilindriche di un telaio tubolare sono i
+                        // raccordi d'angolo dei profili: decine, e fra i loro
+                        // assi non misura un interasse nessuno. Quelle che
+                        // contano sono le facce che vengono da una lavorazione
+                        // DIVERSA da quella che ha fatto il corpo — cioe' un
+                        // foro, una tasca, una svasatura: le cose che si
+                        // posizionano. E' la stessa regola che decide
+                        // `da_lavorazione`, applicata dove serve, ed e' il
+                        // motivo per cui questa riga sta dentro quel blocco
+                        // invece che accanto al raggio.
+                        //
+                        // **Cosa questo NON copre, e va detto:** una faccia
+                        // cilindrica che E' il corpo — l'interno di un tubo —
+                        // non prende il centro. Se un giorno servira'
+                        // misurarci qualcosa, e' una voce nuova, non una riga
+                        // da aggiungere qui di nascosto.
+                        if (centroCilindro != null) voce["centro_mm"] = centroCilindro;
                     }
                     // DA CHE PARTE GUARDA, DETTO IN ITALIANO.
                     //
@@ -1370,10 +1424,53 @@ namespace Riscontro.Disegno
         /// la usa gia' in produzione per riconoscere i fori: si riusa invece di
         /// riscriverla, perche' due copie divergono alla prima modifica.
         /// </summary>
-        private static bool CilindroDi(IFace2 faccia, out double raggioMm, out double[] asse)
+        /// <summary>
+        /// Un cilindro: raggio, direzione dell'asse, e UN PUNTO SULL'ASSE.
+        ///
+        /// ── IL PUNTO SULL'ASSE E' ARRIVATO TARDI, E COSTAVA CARO ──────────
+        ///
+        /// `CylinderParams` torna sette numeri: **punto (0-2)**, asse (3-5),
+        /// raggio in metri (6). Fino alla 0.66.0 questo metodo leggeva
+        /// `par[3..6]` e buttava via `par[0..2]` — cioe' l'unica cosa che dice
+        /// DOVE sta il foro.
+        ///
+        /// **Cosa restava a chi legge.** Di una faccia cilindrica lo stato
+        /// diceva `punto_mm`, `raggio_mm`, `diametro_mm` e `asse`. Ma
+        /// `punto_mm` viene da `PuntoSuFaccia`, ed e' un punto **sulla
+        /// superficie**, garantito a un raggio dall'asse in una direzione
+        /// qualunque: serve a SELEZIONARE, non a dire dove sia il foro. E
+        /// `asse` e' una direzione, non una posizione. Il centro non era
+        /// ricavabile: per una faccia cilindrica `normale` e' null, quindi non
+        /// c'e' nemmeno la direzione in cui correggere.
+        ///
+        /// **La misura, del 15/9/2026 (voce V2).** Due modelli, ognuno per
+        /// conto suo e senza vedere le risposte dell'altro, hanno letto lo
+        /// stato di una flangia con sei fori su una circonferenza Ø90 e hanno
+        /// risposto **Ø79**, tutti e due con confidenza 5 su 5. Ø79 e' Ø90
+        /// meno il diametro di un foro: avevano misurato fra i BORDI vicini
+        /// invece che fra gli assi, perche' e' l'unica cosa che lo stato dava.
+        /// Sulla stessa piastra l'interasse 160 usciva 149,5.
+        ///
+        /// Nessuno dei due ha sbagliato a ragionare. Hanno usato un numero
+        /// corretto per la cosa per cui non era: **il difetto che non da'
+        /// errore**, prodotto dallo stato invece che dalla geometria. Una
+        /// flangia con la corona sbagliata di 11 mm non si imbullona.
+        ///
+        /// ── IL PARAMETRO IN PIU' QUI SI PUO' FARE ────────────────────────
+        ///
+        /// La regola del progetto e' che cambiare l'insieme delle firme di un
+        /// metodo rompe chi lo chiama per riflessione anche quando il
+        /// compilatore tace. Vale per cio' che il banco invoca per nome —
+        /// `Leggi`, `LeggiConAncora`, `OperazioniSw.Esegui`. Questo e'
+        /// `private static` dentro il file che lo usa, con un solo punto di
+        /// chiamata: fuori di qui non lo puo' invocare nessuno.
+        /// </summary>
+        private static bool CilindroDi(
+            IFace2 faccia, out double raggioMm, out double[] asse, out double[] centro)
         {
             raggioMm = 0;
             asse = null;
+            centro = null;
             try
             {
                 var superficie = faccia.IGetSurface();
@@ -1386,6 +1483,12 @@ namespace Riscontro.Disegno
                     Math.Round(par[3], 4),
                     Math.Round(par[4], 4),
                     Math.Round(par[5], 4),
+                };
+                centro = new[]
+                {
+                    Math.Round(Unita.Mm(par[0]), 3),
+                    Math.Round(Unita.Mm(par[1]), 3),
+                    Math.Round(Unita.Mm(par[2]), 3),
                 };
                 return raggioMm > 0;
             }

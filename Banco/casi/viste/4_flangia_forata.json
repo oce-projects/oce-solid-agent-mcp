@@ -1,0 +1,36 @@
+[
+ {
+  "_perche": "V2 -- forma 4 di 5: FLANGIA. Sei fori su una circonferenza di bulloneria. Nello stato testuale sono sei facce cilindriche con lo stesso diametro e sei punti diversi: che stiano su un cerchio, e a che passo, va RICAVATO. In un'immagine si vede.\n\nPrende il posto del telaio saldato che la voce V2 elencava: `telaio_rettangolare` vuole il percorso di una libreria profili di QUESTA macchina, e un caso di prova che nomina qualcosa di questo disco non e' una prova, e' un ricordo.",
+  "_verita": "Disco Ø140 spesso 16, foro centrale passante Ø60, sei fori passanti Ø11 su una circonferenza Ø90 a passo 60 gradi. Volume pi*70^2*16 - pi*30^2*16 - 6*pi*5.5^2*16 = 246300.9 - 45238.9 - 9123.0 = 191939.0 mm3.",
+  "operazione": "estrudi_cerchio",
+  "argomenti": { "piano": "superiore", "diametro_mm": 140, "altezza_mm": 16 }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": 0, "y_mm": 0, "diametro_mm": 60, "passante": true }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": 45, "y_mm": 0, "diametro_mm": 11, "passante": true }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": 22.5, "y_mm": 38.971, "diametro_mm": 11, "passante": true }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": -22.5, "y_mm": 38.971, "diametro_mm": 11, "passante": true }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": -45, "y_mm": 0, "diametro_mm": 11, "passante": true }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": -22.5, "y_mm": -38.971, "diametro_mm": 11, "passante": true }
+ },
+ {
+  "operazione": "taglio_cilindrico",
+  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": 22.5, "y_mm": -38.971, "diametro_mm": 11, "passante": true }
+ }
+]

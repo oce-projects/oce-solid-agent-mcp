@@ -16,6 +16,104 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.32.0 — 15 settembre 2026 · libreria 0.67.0
+
+**La misura di V2 stava misurando un'altra cosa, e ha trovato questa.**
+
+### E16 — `punto_mm` di un foro non e' dove sta il foro
+
+Due modelli, ognuno per conto suo e senza vedere le risposte dell'altro, hanno
+letto lo stato di una flangia con **sei fori su una circonferenza Ø90** e hanno
+risposto **Ø79**, tutti e due con **confidenza 5 su 5**. Sulla stessa piastra
+l'interasse 160 e' uscito 149,5.
+
+79 = 90 − 11: avevano misurato fra i **bordi vicini** dei fori invece che fra
+gli assi. Non per distrazione — perche' era l'unica cosa che lo stato dava.
+
+**Cosa c'era, di una faccia cilindrica:**
+
+| campo | cos'e' davvero |
+|---|---|
+| `punto_mm` | un punto **sulla superficie**, a un raggio dall'asse in una direzione che nessuno dichiara. Serve a SELEZIONARE |
+| `asse` | una **direzione** (`[0,1,0]`), non una posizione |
+| `normale` | `null`, perche' la faccia e' curva — quindi nemmeno la direzione in cui correggere |
+
+Il centro non era ricavabile da nessuna combinazione di quei tre.
+
+**E il dato era gia' letto, e buttato via.** `CylinderParams` torna sette
+numeri — **punto (0-2)**, asse (3-5), raggio (6) — e `CilindroDi` leggeva
+`par[3..6]` scartando `par[0..2]`, cioe' l'unica cosa che dice **dove**.
+
+E' la terza volta che questo progetto trova la stessa forma: una misura presa e
+gettata (E8, la sezione V, e adesso questa).
+
+**Adesso** le facce cilindriche portano `centro_mm`, un punto sull'asse. Si
+chiama cosi' e non `asse_mm` perche' `asse` accanto e' gia' la direzione: due
+campi quasi omonimi che vogliono dire cose diverse sono il modo piu' sicuro di
+farli scambiare.
+
+**Solo sulle facce che vengono da una lavorazione, e l'ha deciso il tetto.** La
+prima scrittura lo metteva su tutte le facce cilindriche, e **il banco ha
+fermato il commit**: un telaio da quattro barre e' passato da 15.633 a
+**16.163** caratteri, oltre il tetto di 16.000, con un solo documento aperto.
+Le facce cilindriche di un telaio tubolare sono i raccordi d'angolo dei
+profili — decine, e fra i loro assi non misura un interasse nessuno. Quelle che
+contano sono le facce che vengono da una lavorazione **diversa** da quella che
+ha fatto il corpo: fori, tasche, svasature, cioe' le cose che si posizionano.
+Stessa regola di `da_lavorazione`. Sulla flangia a sette fori: **+230
+caratteri**.
+
+Non copre una faccia cilindrica che *e'* il corpo — l'interno di un tubo. Se
+servira', e' una voce nuova.
+
+**Il verde** e' stato chiesto a un modello nuovo, a cui non e' stato detto che
+`centro_mm` esistesse: ha risposto Ø90 e interasse 160x90, e ha dichiarato da
+solo di aver usato `centro_mm`. E' il modo in cui si verifica se un campo nuovo
+e' *leggibile* invece che soltanto *presente*.
+
+### V2 — quante viste servono, e la risposta non e' quella che ci aspettavamo
+
+Cinque forme, quattro condizioni, quattro modelli **isolati**. Criterio scritto
+**prima** di guardare le risposte (`Banco/casi/viste/COME_SI_CONTA.md`).
+
+| condizione | FAMIGLIA | LAVORAZIONI | QUOTE | **INVENZIONI** |
+|---|---|---|---|---|
+| solo isometrica | **5/5** | 3/5 | 0/5 | **0** |
+| quattro viste | **5/5** | 4/5 | 0/5 | **0** |
+| solo stato *(il ponte prima della 0.31.0)* | **5/5** | **5/5** | **5/5** | **3** |
+| stato + isometrica *(adesso)* | **5/5** | **5/5** | **5/5** | **1** |
+
+**Col solo stato testuale la famiglia esce giusta 5 volte su 5.** «Scatola a
+pareti sottili aperta su un lato», «albero di rivoluzione a gradini», «flangia
+circolare forata»: tutte prese senza vedere niente. La premessa della sezione V
+— «il modello non capisce la forma» — era **troppo forte**.
+
+Il contributo dell'immagine e' un altro:
+
+> Con il solo stato il modello ha prodotto **tre** numeri sbagliati, tutti con
+> confidenza 5 su 5. Con lo stato piu' l'isometrica, **uno**.
+
+E in dieci risposte su dieci basate solo su immagini, il modello ha scritto
+«non stimabile in mm assoluti, nessun riferimento di scala»: **zero numeri
+inventati**, e proporzioni giuste (rapporto lati 1,6-1,7:1 contro 1,67 vero).
+
+Un modello, un giro per condizione, cinque forme scelte da chi ha scritto la
+misura: su FAMIGLIA e QUOTE il divario e' netto, su INVENZIONI **3 contro 1 e'
+un solo giro**, e un solo giro non e' una tendenza.
+
+### V5 aperta: le tre viste standard escono TAGLIATE
+
+Il rosso l'ha scritto un modello, mentre rispondeva ad altro: «la terza
+dimensione non e' determinabile perche' **esce dall'inquadratura**», «la vista
+risulta **tagliata sul lato destro**». Guardata a occhio: nella frontale della
+staffa il pezzo comincia a 300 px da sinistra ed esce dal bordo destro.
+
+L'isometrica e' intera e centrata — ed e' quella che il ponte consiglia. Per
+questo il difetto e' passato, e per questo il confronto «quattro viste contro
+una» qui sopra e' **viziato a sfavore delle quattro**.
+
+---
+
 ## 0.31.0 — 14-15 settembre 2026 · libreria 0.66.0
 
 **Il modello non aveva mai visto il pezzo, e non poteva tornare indietro.**
