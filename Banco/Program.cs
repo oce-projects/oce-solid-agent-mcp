@@ -245,9 +245,36 @@ namespace ProvaSaldatura
             _addin = Assembly.Load(File.ReadAllBytes(_libreria));
             Console.WriteLine("SolidWorks " + _sw.RevisionNumber());
             Console.WriteLine("libreria " + _addin.GetName().Version + "  (" + _libreria + ")");
-            _tOperazioni = _addin.GetType(NS + "OperazioniSw", true);
-            _tStato = _addin.GetType(NS + "StatoDocumento", true);
-            _tEsito = _addin.GetType(NS + "OperazioniSw+Esito", true);
+            // ── LA LIBRERIA NON SI CARICA NON E' UN GIRO ROSSO (voce F10) ─
+            //
+            // Puntando `--libreria` a una versione storica — quel che serve per
+            // dimostrare che una prova custodisce davvero il suo difetto — i
+            // tipi possono non esserci: prima della 0.52.0 le operazioni
+            // stavano in `OpenPDM.SwAddin`, con un altro spazio dei nomi.
+            //
+            // Senza questa rete il banco usciva con un'eccezione non gestita e
+            // il codice -532462766, che in un log e' indistinguibile da un
+            // piantamento. Un confronto storico che da' «rosso dappertutto» non
+            // significa niente, e questo ne e' il caso limite.
+            try
+            {
+                _tOperazioni = _addin.GetType(NS + "OperazioniSw", true);
+                _tStato = _addin.GetType(NS + "StatoDocumento", true);
+                _tEsito = _addin.GetType(NS + "OperazioniSw+Esito", true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine();
+                Console.WriteLine("LA LIBRERIA NON ESPONE I TIPI CHE IL BANCO CERCA.");
+                Console.WriteLine("  libreria: " + _addin.GetName().Version + "  (" + _libreria + ")");
+                Console.WriteLine("  cercavo:  " + NS + "OperazioniSw");
+                Console.WriteLine("  " + ex.GetType().Name + ": " + ex.Message);
+                Console.WriteLine();
+                Console.WriteLine("Non e' un giro rosso: e' una libreria che il banco non sa leggere.");
+                Console.WriteLine("Prima della 0.52.0 le operazioni stavano in «OpenPDM.SwAddin», " +
+                                  "con un altro spazio dei nomi: il confronto storico comincia da li'.");
+                return 2;
+            }
 
             // QUANTE OPERAZIONI HA IL CATALOGO, detto qui e non altrove.
             // Il resoconto (voce F2) lo vuole in intestazione, e questo e'

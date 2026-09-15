@@ -220,6 +220,30 @@ Le mutazioni su argomenti che l'operazione **ignora** (`profondita_mm` su un
 taglio passante) sono saltate leggendo il catalogo, non indovinate; e si mutano
 solo i passi **con attese**.
 
+### La libreria di allora — `Controlli\libreria-di-allora.ps1`
+
+Una prova custodisce davvero il suo difetto solo se, lanciata contro il codice
+di **prima** della riparazione, diventa rossa.
+
+```
+.\Controlli\libreria-di-allora.ps1 0.70.0
+.\Banco\banco.ps1 -Libreria <il percorso stampato> -Gruppo casi -SaltaCompilazione
+.\Controlli\libreria-di-allora.ps1 0.70.0 -Pulisci
+```
+
+La DLL non si conserva da nessuna parte: **si ricostruisce**, perche' in questo
+repository un commit e' una versione (`git log` su `AssemblyInfo.cs`, una riga
+per numero).
+
+Un caso puo' dichiarare **`rossa_prima_di: "0.67.0"`**: su una libreria piu'
+vecchia di cosi', quel caso **deve** fallire. Se passa, non stava custodendo
+niente.
+
+**Il confronto storico comincia dalla 0.52.0.** Prima di allora le operazioni
+stavano in `OpenPDM.SwAddin` con un altro spazio dei nomi: il banco non le
+trova, lo dice ed esce 2 — «non e' un giro rosso, e' una libreria che il banco
+non sa leggere».
+
 ### I giri si contano — `storico.txt`
 
 `in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una redirezione

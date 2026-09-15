@@ -986,13 +986,52 @@ namespace ProvaSaldatura
             }
 
             IModelDoc2 doc = null;
+            bool verde;
             try
             {
                 doc = NuovaParte();
-                return EseguiIPassi(nome, caso, doc, gemelle, percorso);
+                verde = EseguiIPassi(nome, caso, doc, gemelle, percorso);
             }
             catch (Exception ex) { Segna(nome, false, Perche(ex)); return false; }
             finally { Chiudi(doc); }
+
+            return SuQuestaLibreria(nome, caso, verde);
+        }
+
+        /// <summary>
+        /// `rossa_prima_di` — LA PROVA PIU' FORTE CHE UNA PROVA CUSTODISCA
+        /// DAVVERO IL SUO DIFETTO (voce F10).
+        ///
+        /// Un caso puo' dichiarare la versione della libreria **prima della
+        /// quale doveva essere rossa**. Lanciando il banco con `--libreria` su
+        /// una versione piu' vecchia, quel caso **deve** fallire: se passa, non
+        /// stava custodendo niente.
+        ///
+        /// Un `provata_a_fallire` scritto a mano e' una dichiarazione, e una
+        /// dichiarazione si copia dal caso accanto. Questo no: lo decide la
+        /// libreria che gira.
+        /// </summary>
+        private static bool SuQuestaLibreria(string nome, Dictionary<string, object> caso, bool verde)
+        {
+            string prima = Testo(caso, "rossa_prima_di");
+            if (prima == null) return verde;
+
+            Version soglia, adesso;
+            if (!Version.TryParse(prima, out soglia))
+            {
+                ErroreDiBanco(nome, "«rossa_prima_di» non e' una versione: «" + prima + "»");
+                return false;
+            }
+            adesso = _addin.GetName().Version;
+            if (adesso >= soglia) return verde;   // libreria riparata: vale l'esito vero
+
+            // Libreria piu' vecchia della riparazione: il caso DEVE essere rosso.
+            Segna(nome + " · rossa prima della " + prima, !verde,
+                  verde
+                      ? "su " + adesso + " e' passata, e non doveva: questa prova non " +
+                        "custodisce il difetto che dice di custodire"
+                      : "su " + adesso + " e' rossa, come deve");
+            return !verde;
         }
 
         /// <summary>

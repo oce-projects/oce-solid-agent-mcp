@@ -18,6 +18,34 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ## Il banco, non il ponte — 15 settembre 2026 · nessun numero nuovo
 
+### F10 — La libreria di allora non si conserva: si ricostruisce
+
+`.\Controlli\libreria-di-allora.ps1 0.70.0` trova il commit che **dichiara**
+quella `AssemblyVersion` — dentro `AssemblyInfo.cs`, non nei messaggi di commit
+— ne fa un worktree usa e getta, lo compila e stampa il percorso della DLL.
+`-Pulisci` lo toglie.
+
+**La disciplina che la voce chiedeva c'e' gia'**, e si misura: `git log` su
+`AssemblyInfo.cs` mostra una riga per numero, senza salti. Il difetto che la
+voce descriveva — un commit che copriva 0.29.1 → 0.44.0 — era del monorepo
+OpenPDM, prima che la libreria si trasferisse qui.
+
+**`rossa_prima_di`**: un caso dichiara la versione prima della quale doveva
+essere rosso, e su una libreria piu' vecchia **deve** fallire. Visto scattare:
+«su 0.75.0.0 e' passata, e non doveva: questa prova non custodisce il difetto
+che dice di custodire».
+
+**E «la libreria non si carica» non e' piu' un giro rosso.** Puntando
+`--libreria` alla 0.30.2 il banco usciva con un'eccezione non gestita e il
+codice **-532462766**, indistinguibile da un piantamento; adesso lo dice ed esce
+2. Il confronto storico **comincia dalla 0.52.0**, misurato: prima di allora le
+operazioni stavano in `OpenPDM.SwAddin`, con un altro spazio dei nomi.
+
+Una prova incrociata che e' venuta gratis: i casi di oggi lanciati sulla 0.70.0
+non passano in silenzio — dicono «campo assente: `stato.ingombro_da_mm`» e
+nominano tutti i campi che c'erano. E' il comportamento della voce F4, visto
+attraverso il tempo invece che attraverso un refuso.
+
 ### F9 — Una CI che compila, prova i contratti e **pretende il banco**
 
 `.github/workflows/prove.yml` su `windows-latest`: compila il ponte e
