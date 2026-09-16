@@ -142,6 +142,35 @@ namespace ProvaSaldatura
             if (attesoLista != null && !(atteso is string))
             {
                 var attesi = Numeri(attesoLista);
+
+                // ── UN ELENCO CHE NUMERI NON NE HA ───────────────────────
+                //
+                // `["C2"]`, i corpi su cui una booleana ha lavorato. Fino alla
+                // 0.81.0 finiva in «non e' un elenco di numeri:
+                // System.String[]» — un messaggio vero e inutile: il caso
+                // chiedeva una cosa sensata e il valutatore non sapeva
+                // confrontarla. Un elenco di TESTO si confronta a uno a uno,
+                // con la stessa scrittura che serve alle gemelle.
+                if (attesi == null)
+                {
+                    var misuratoElenco = misurato as System.Collections.IEnumerable;
+                    if (misuratoElenco == null || misurato is string)
+                    {
+                        dettaglio = cosa + " non e' un elenco: " + CosaEra(misurato);
+                        return false;
+                    }
+                    var q = new List<string>();
+                    foreach (var x in attesoLista) q.Add(ComeSiScrive(x));
+                    var r = new List<string>();
+                    foreach (var x in misuratoElenco) r.Add(ComeSiScrive(x));
+                    dettaglio = cosa + " [" + string.Join(", ", r) + "] (atteso [" +
+                                string.Join(", ", q) + "])";
+                    if (q.Count != r.Count) return false;
+                    for (int i = 0; i < q.Count; i++)
+                        if (!string.Equals(q[i], r[i], StringComparison.Ordinal)) return false;
+                    return true;
+                }
+
                 var misurati = Numeri(misurato as System.Collections.IEnumerable);
                 if (misurati == null)
                 {

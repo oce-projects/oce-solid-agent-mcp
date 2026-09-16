@@ -2218,6 +2218,45 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "combina_corpi",
+                    Famiglia = "lavorazioni",
+                    Provata = true,
+                    Sommario =
+                        "Unisce, sottrae o interseca due o piu' corpi dello stesso pezzo.",
+                    Descrizione =
+                        "La booleana fra CORPI dello stesso pezzo: «unisci» li fonde in uno, "
+                        + "«sottrai» toglie gli altri dal principale, «interseca» tiene solo "
+                        + "quello che hanno in comune.\n\nServe agli stampi e alle dime, e ai "
+                        + "pezzi disegnati come piu' corpi e poi messi insieme. I corpi "
+                        + "separati nascono con «sposta_corpi» e la copia.\n\nNELLA "
+                        + "SOTTRAZIONE L'ORDINE CAMBIA IL PEZZO: il corpo principale e' "
+                        + "quello che RESTA, gli altri sono quelli che gli vanno addosso. Se "
+                        + "non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nDopo "
+                        + "l'unione conto i corpi: se sono ancora due, non si sono fusi -- di "
+                        + "solito non si toccano davvero -- e fallisco invece di confermarti "
+                        + "un pezzo diverso da quello che credi.\n\nDopo una booleana gli "
+                        + "identificativi di corpi e facce NON valgono piu': rileggi il pezzo.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "operazione", O(
+                                "type", "string",
+                                "enum", A("unisci", "sottrai", "interseca"),
+                                "description", "che booleana fare."),
+                            "corpo_principale_uid", O(
+                                "type", "string",
+                                "description", "il corpo che RESTA (per esempio «C1»). Se non lo dici e' il "
+                                    + "primo. Conta solo per «sottrai», ma scriverlo non fa mai male."),
+                            "corpi_utensile_uid", O(
+                                "type", "array",
+                                "items", O("type", "string"),
+                                "description", "i corpi da unire, sottrarre o intersecare col principale. Se "
+                                    + "non li dici, tutti gli altri.")),
+                        "required", A("operazione")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "distanza_minima",
                     Famiglia = "verifiche",
                     Provata = true,

@@ -1875,6 +1875,41 @@
    "precondizione": "corpo_solido"
   },
   {
+   "nome": "combina_corpi",
+   "famiglia": "lavorazioni",
+   "sommario": "Unisce, sottrae o interseca due o piu' corpi dello stesso pezzo.",
+   "descrizione": "La booleana fra CORPI dello stesso pezzo: «unisci» li fonde in uno, «sottrai» toglie gli altri dal principale, «interseca» tiene solo quello che hanno in comune.\n\nServe agli stampi e alle dime, e ai pezzi disegnati come piu' corpi e poi messi insieme. I corpi separati nascono con «sposta_corpi» e la copia.\n\nNELLA SOTTRAZIONE L'ORDINE CAMBIA IL PEZZO: il corpo principale e' quello che RESTA, gli altri sono quelli che gli vanno addosso. Se non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nDopo l'unione conto i corpi: se sono ancora due, non si sono fusi -- di solito non si toccano davvero -- e fallisco invece di confermarti un pezzo diverso da quello che credi.\n\nDopo una booleana gli identificativi di corpi e facce NON valgono piu': rileggi il pezzo.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "operazione": {
+      "type": "string",
+      "enum": [
+       "unisci",
+       "sottrai",
+       "interseca"
+      ],
+      "description": "che booleana fare."
+     },
+     "corpo_principale_uid": {
+      "type": "string",
+      "description": "il corpo che RESTA (per esempio «C1»). Se non lo dici e' il primo. Conta solo per «sottrai», ma scriverlo non fa mai male."
+     },
+     "corpi_utensile_uid": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "i corpi da unire, sottrarre o intersecare col principale. Se non li dici, tutti gli altri."
+     }
+    },
+    "required": [
+     "operazione"
+    ]
+   },
+   "precondizione": "corpo_solido"
+  },
+  {
    "nome": "distanza_minima",
    "famiglia": "verifiche",
    "sommario": "Quanto distano due facce o due spigoli, col controllo che il numero non sia smentito dai suoi stessi punti.",

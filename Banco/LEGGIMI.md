@@ -125,7 +125,7 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 |---|---|
 | `cosa` | senza prefisso = lo misura il banco sul documento; `stato.…` = lo stato dell'add-in; `misure.…` = quello che l'operazione riporta |
 | misure del banco | `volume_mm3`, `corpi`, `ingombro_mm`, `centri_x_mm`/`_y_`/`_z_`, `diametri_mm`, `centro_massa_mm`, `ultimo_piano_mm`, `spigoli_curvi`, `assi_creati`, `quante_lavorazioni`. **L'elenco non e' scritto da nessuna parte a mano**: e' l'elenco delle chiavi di chi le misura, e il messaggio «non so misurare …» lo legge da li' |
-| `uguale` | un numero, un elenco di numeri, o un testo |
+| `uguale` | un numero, un testo, un elenco di numeri (con tolleranza) o un elenco di TESTO (uno a uno, e l'ordine conta) |
 | `contiene` / `non_contiene` | per le misure che sono **frasi** (`stato.forma`): una stringa o un elenco. Non si mettono insieme a `uguale` |
 | `tolleranza` | **assoluta**, in mm o mm³. Diversa da zero → serve `perche_questa_tolleranza`, altrimenti il caso e' **rotto** |
 | selettori | `@faccia(verso=…)`, `@faccia(piana=false)`, `@faccia(area~=907.92)`, `@spigolo(asse=Z,lungo~=100)`, `@spigolo(curvo=true,n=1)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)` |
@@ -375,6 +375,7 @@ casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
 casi/verifica/     3   com'e' venuto: solido, chiuso, sano
 casi/misura/      10   quanto pesa, in che scatola ci sta, quanto dista
+casi/corpi/        5   le booleane: unisci, sottrai, interseca
 casi/esporta/     10   STL, STEP e IGES: il file riletto byte per byte,
                        e il volume riaperto in SOLIDWORKS
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)

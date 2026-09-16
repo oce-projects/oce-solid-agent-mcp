@@ -234,7 +234,8 @@ namespace Riscontro.Disegno
         /// </summary>
         public static readonly string[] NomiEseguibili =
         {
-            "applica_materiale", "asola", "cordone_saldatura", "crea_asse",
+            "applica_materiale", "asola", "combina_corpi",
+            "cordone_saldatura", "crea_asse",
             "crea_disegno", "crea_piano", "distinta_taglio",
             "distanza_minima", "elimina_lavorazione",
             "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
@@ -308,6 +309,8 @@ namespace Riscontro.Disegno
                     case "sopprimi_lavorazione": return SopprimiLavorazione(modello, argomenti, stato);
                     case "elimina_lavorazione": return EliminaLavorazione(modello, argomenti, stato);
                     case "sposta_corpi": return SpostaCorpi(modello, argomenti, stato);
+                    // Le booleane fra corpi stanno in OperazioniCorpi.cs.
+                    case "combina_corpi": return CombinaCorpi(modello, argomenti, stato);
                     case "raccordo_spigoli": return RaccordoSpigoli(modello, argomenti, stato);
                     case "smusso_spigoli": return SmussoSpigoli(modello, argomenti, stato);
                     case "guscio": return Guscio(modello, argomenti, stato);

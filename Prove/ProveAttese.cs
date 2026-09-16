@@ -168,6 +168,44 @@ namespace Prove.Contratti
                   Attese.ComeSiScrive(1.5) == "1.5", Attese.ComeSiScrive(1.5));
             Segna("il niente ha un nome", Attese.ComeSiScrive(null) == "(niente)");
 
+            // ── UN ELENCO CHE NUMERI NON NE HA ───────────────────────────
+            //
+            // `["C2"]` — i corpi su cui una booleana ha lavorato. Fino alla
+            // 0.81.0 usciva «non e' un elenco di numeri: System.String[]»: un
+            // messaggio vero e inutile, perche' il caso chiedeva una cosa
+            // sensata e il valutatore non sapeva confrontarla.
+            var conElenchi = new Dictionary<string, object>
+            {
+                ["utensili"] = new List<object> { "C2", "C3" },
+                ["uno"] = new List<object> { "C2" },
+                ["misti"] = new List<object> { "C2", 7.0 },
+            };
+            Func<string, object, Dictionary<string, object>> att = (c, u) =>
+                new Dictionary<string, object> { ["cosa"] = c, ["uguale"] = u };
+
+            Segna("elenco di testo: uguale passa",
+                  Attese.Combacia(att("stato.utensili", new List<object> { "C2", "C3" }),
+                                  null, conElenchi, misure, out d), d);
+            Segna("elenco di testo ROSSO: un elemento diverso",
+                  !Attese.Combacia(att("stato.utensili", new List<object> { "C2", "C9" }),
+                                   null, conElenchi, misure, out d), d);
+            Segna("elenco di testo ROSSO: l'ORDINE conta",
+                  !Attese.Combacia(att("stato.utensili", new List<object> { "C3", "C2" }),
+                                   null, conElenchi, misure, out d), d);
+            Segna("elenco di testo ROSSO: uno in meno",
+                  !Attese.Combacia(att("stato.utensili", new List<object> { "C2" }),
+                                   null, conElenchi, misure, out d), d);
+            Segna("elenco di testo: anche uno solo",
+                  Attese.Combacia(att("stato.uno", new List<object> { "C2" }),
+                                  null, conElenchi, misure, out d), d);
+            Segna("elenco misto testo e numeri: si confronta come testo",
+                  Attese.Combacia(att("stato.misti", new List<object> { "C2", 7.0 }),
+                                  null, conElenchi, misure, out d), d);
+            Segna("elenco di testo ROSSO: se la misura NON e' un elenco, lo dice",
+                  !Attese.Combacia(att("stato.materiale", new List<object> { "C2" }),
+                                   null, stato, misure, out d) &&
+                  d.IndexOf("non e' un elenco", StringComparison.Ordinal) >= 0, d);
+
             // ── LA GEMELLA HA A CHE VEDERE COL RIFIUTO? (F5) ──────────────
             //
             // La regola sta qui e non accanto al banco perche' e' aritmetica

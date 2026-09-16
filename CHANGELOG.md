@@ -16,6 +16,59 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.46.0 — 16 settembre 2026 · libreria 0.81.0
+
+### GP8 — `combina_corpi`, e l'enum col nome giusto che è quello sbagliato
+
+Catalogo a **47 operazioni**. Le booleane fra corpi dello stesso pezzo: unisci,
+sottrai, interseca. Servono agli stampi e alle dime, e ai pezzi disegnati come
+più corpi e poi messi insieme.
+
+**L'enum che si chiama come l'operazione non è il suo.** In `swconst` c'è
+`swCombineBodiesOperationType_e`, con i valori `Add = 0`, `Subtract = 1`,
+`Common = 2` — i nomi esatti delle tre booleane. Passati a
+`InsertCombineFeature` **tornano `null` tutti e tre**, senza un'eccezione e
+senza un codice. Il metodo vuole `swBodyOperationType_e`:
+
+```
+SWBODYADD       = 15903     unisci
+SWBODYCUT       = 15902     sottrai
+SWBODYINTERSECT = 15901     interseca
+```
+
+Un nome dice come si chiama una costante, non a quale funzione appartiene.
+
+**E l'array va avvolto, e contiene anche il principale.** Misurato su pezzi
+nuovi, una variante per pezzo:
+
+| `ToolVar` | ADD | CUT | INTERSECT |
+|---|---|---|---|
+| `object[]` col solo utensile | NULL | NULL | NULL |
+| `Body2[]` tipizzato | NULL | ok | NULL |
+| `DispatchWrapper[]` solo utensile | NULL | ok | NULL |
+| `DispatchWrapper[]` **tutti e due** | ok | ok | ok |
+
+Un `object[]` di oggetti COM non diventa un `SAFEARRAY` di `IDispatch*` da solo
+— ci vuole `DispatchWrapper` — e senza il corpo principale nell'elenco `unisci`
+e `interseca` non fanno niente, senza dirlo.
+
+**I tre numeri, su un caso che li distingue.** Due cubi da 10 sfalsati di 2 in X
+e 5 in Z, sovrapposti per 400 mm³: **1600 / 600 / 400**. Con due cubi uguali e
+centrati sarebbero stati 1500, 500 e 500, e «sottrai» e «interseca» non si
+sarebbero distinti — un caso in cui due valori sbagliati danno lo stesso
+risultato non tabella niente.
+
+Dopo un `unisci` i corpi si contano: se sono ancora due non si sono fusi, e
+l'operazione fallisce invece di confermare un pezzo diverso da quello che chi
+legge crede di avere.
+
+**E il banco ha imparato a confrontare un elenco di testo.** `["C2"]` — i corpi
+su cui la booleana ha lavorato — finiva in *«non è un elenco di numeri:
+System.String[]»*: un messaggio vero e inutile, perché il caso chiedeva una cosa
+sensata e il valutatore non sapeva confrontarla. Adesso gli elenchi senza numeri
+si confrontano uno a uno, **e l'ordine conta**; sette controlli nuovi in
+`Prove.Contratti`.
+
 ## 0.45.0 — 16 settembre 2026 · libreria 0.80.0
 
 ### GP5 — `distanza_minima` e `misura_fra_entita`, e l'argomento che viene ignorato

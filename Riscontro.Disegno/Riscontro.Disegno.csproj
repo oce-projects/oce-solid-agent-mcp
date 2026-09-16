@@ -105,6 +105,7 @@
     <Compile Include="OperazioniVerifica.cs" />
     <Compile Include="OperazioniEsporta.cs" />
     <Compile Include="OperazioniMisura.cs" />
+    <Compile Include="OperazioniCorpi.cs" />
     <Compile Include="StatoDocumento.cs" />
     <Compile Include="StatoTavola.cs" />
     <Compile Include="Riferimenti.cs" />
