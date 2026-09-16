@@ -238,6 +238,7 @@ namespace Riscontro.Disegno
             "combina_corpi",
             "cordone_saldatura", "crea_asse", "crea_configurazione",
             "crea_disegno", "crea_piano", "distinta_taglio",
+            "piano_per_tre_punti",
             "distanza_minima", "elimina_lavorazione",
             "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
@@ -325,6 +326,11 @@ namespace Riscontro.Disegno
                     case "smusso_spigoli": return SmussoSpigoli(modello, argomenti, stato);
                     case "guscio": return Guscio(modello, argomenti, stato);
                     case "crea_piano": return CreaPiano(modello, argomenti);
+                    // Il piano obliquo, in OperazioniPiani.cs. `crea_piano` sa
+                    // fare solo lo sfalsato dai tre standard: per una faccia
+                    // inclinata non c'era niente su cui disegnare.
+                    case "piano_per_tre_punti":
+                        return PianoPerTrePunti(modello, argomenti, stato);
                     case "crea_asse": return CreaAsse(modello, argomenti, stato);
                     case "ripeti_lineare": return RipetiLineare(modello, argomenti, stato);
                     case "specchia": return Specchia(modello, argomenti);

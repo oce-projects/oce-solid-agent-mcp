@@ -111,6 +111,7 @@
     <Compile Include="OperazioniIstanze.cs" />
     <Compile Include="OperazioniSformo.cs" />
     <Compile Include="OperazioniSporgenze.cs" />
+    <Compile Include="OperazioniPiani.cs" />
     <Compile Include="StatoDocumento.cs" />
     <Compile Include="StatoTavola.cs" />
     <Compile Include="Riferimenti.cs" />

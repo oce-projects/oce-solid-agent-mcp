@@ -1,0 +1,30 @@
+{
+  "nome": "lim_tre_punti_in_fila",
+  "famiglia": "piano",
+  "perche": "Tre punti allineati non fanno un piano: per una retta ne passano infiniti. SOLIDWORKS risponde null e non dice perche' -- misurato. Qui ci si rifiuta PRIMA di chiamare, perche' il perche' si sa senza chiederlo: il prodotto vettoriale dei due vettori e' zero. Un rifiuto che spiega vale quanto uno che indovina il motivo dopo.",
+  "perche_non_basta_lasciar_fallire_solidworks": "Il messaggio che ne uscirebbe sarebbe «il piano non e' stato creato e SOLIDWORKS non dice perche'», che e' vero e inutile. Chi ha sbagliato un numero non saprebbe quale dei tre.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "stato.piani_disponibili", "uguale": 3 } ] },
+    { "operazione": "piano_per_tre_punti",
+      "argomenti": { "punto1_mm": [0, 0, 0], "punto2_mm": [50, 0, 0],
+                     "punto3_mm": [100, 0, 0] },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["sono in fila", "infiniti piani"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "piano_obliquo_per_tre_punti" } },
+    { "operazione": "piano_per_tre_punti",
+      "argomenti": { "punto1_mm": [0, 0, 0], "punto2_mm": [50, 0, 0],
+                     "punto3_mm": [100, 10, 0] },
+      "attese": [
+        { "cosa": "misure.normale_riletta", "uguale": [0, 0, 1], "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "tre punti sul piano z=0: la normale e' l'asse Z",
+          "perche": "SPOSTANDO IL TERZO PUNTO DI DIECI MILLIMETRI FUORI DALLA RETTA, il piano nasce. E' la meta' che dice che il rifiuto di sopra guarda l'allineamento e non qualcos'altro: cambia un solo numero su nove." },
+        { "cosa": "stato.piani_disponibili", "uguale": 4,
+          "perche": "e dopo il rifiuto i piani erano ancora tre: il passo rifiutato non ne aveva lasciato nessuno per strada" } ] }
+  ]
+}

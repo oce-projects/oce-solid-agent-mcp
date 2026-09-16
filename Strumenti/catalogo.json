@@ -2143,6 +2143,44 @@
    "precondizione": "corpo_solido"
   },
   {
+   "nome": "piano_per_tre_punti",
+   "famiglia": "riferimenti",
+   "sommario": "Un piano obliquo, dato per tre punti, e rileggo la sua normale per dirti che e' quello.",
+   "descrizione": "«crea_piano» sa fare solo il piano SFALSATO da uno dei tre standard: serve a tutto quello che e' allineato agli assi e a niente altro. Per un foro inclinato, una faccia obliqua o una staffa a 30 gradi non c'era nessun piano su cui disegnare.\n\nI PUNTI SONO COORDINATE, non vertici del pezzo: tre terne di numeri in millimetri, nel sistema del modello. Non ti chiedo di indicarmi dei vertici perche' nello stato del documento i vertici non hanno un identificativo -- facce e spigoli si', i vertici no.\n\nCONTROLLO CHE IL PIANO SIA QUELLO. Dai tre punti calcolo la normale, poi rileggo quella del piano appena nato e le confronto: se non coincidono mi rifiuto. «Una feature in piu' nell'albero» lo direbbe anche di un piano storto, e su un piano storto ci disegneresti sopra senza accorgertene.\n\nTRE PUNTI IN FILA NON FANNO UN PIANO, e te lo dico prima di provare: per una retta ne passano infiniti.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "punto1_mm": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      },
+      "description": "il primo punto, tre numeri in mm: [x, y, z]."
+     },
+     "punto2_mm": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      },
+      "description": "il secondo punto."
+     },
+     "punto3_mm": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      },
+      "description": "il terzo punto. Non dev'essere sulla retta degli altri due."
+     }
+    },
+    "required": [
+     "punto1_mm",
+     "punto2_mm",
+     "punto3_mm"
+    ]
+   },
+   "precondizione": null
+  },
+  {
    "nome": "sformo",
    "famiglia": "lavorazioni",
    "sommario": "Inclina delle facce di un angolo, rispetto a una faccia che resta ferma. Misura l'angolo sul pezzo, non sulla lavorazione.",

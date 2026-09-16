@@ -16,6 +16,53 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.54.0 — 16 settembre 2026 · libreria 0.89.0
+
+### GP9 (in parte) — `piano_per_tre_punti`, e la terza riga che non è la terza colonna
+
+Catalogo a **57 operazioni**. `crea_piano` sapeva fare solo il piano *sfalsato*
+da uno dei tre standard: per un foro inclinato o una faccia obliqua non c'era
+nessun piano su cui disegnare.
+
+**Tre coordinate, non tre vertici.** `CreatePlaneThru3Points3` vuole tre vertici
+selezionati; `CreatePlaneFixed2` prende tre terne di numeri. Si usa la seconda, e
+non per gusto: **lo stato del documento non elenca i vertici** — facce e spigoli
+hanno un identificativo, i vertici no — quindi «tre vertici selezionati» è una
+cosa che il modello linguistico non ha modo di chiedere.
+
+**La normale è la terza RIGA di `Transform.ArrayData`, non la terza colonna.**
+Misurato su tre piani di normale nota:
+
+| punti | normale attesa | terza riga |
+|---|---|---|
+| (0,0,20) (100,0,20) (0,100,20) | (0, 0, 1) | (0, 0, 1) |
+| (0,0,0) (100,0,0) (0,0,100) | (0, −1, 0) | (0, −1, 0) |
+| (0,0,0) (100,0,0) (0,100,100) | (0, −0,7071, 0,7071) | (0, −0,7071, 0,7071) |
+
+Sui primi due **la terza riga e la terza colonna danno lo stesso risultato**: una
+sonda fatta solo con piani allineati agli assi avrebbe scelto a caso, con una
+probabilità su due di sbagliare per sempre. Sul terzo la colonna dà
+`(0, 0,7071, 0,7071)` — girata di 90°. *Un caso in cui due valori sbagliati danno
+lo stesso risultato non tabella niente*: il piano obliquo sta nella sonda apposta,
+e sta nel caso di banco per lo stesso motivo.
+
+L'operazione **calcola la normale dai tre punti e la confronta con quella che il
+piano dice di essere**, rifiutandosi se divergono: «una feature in più
+nell'albero» lo direbbe anche di un piano storto, e su un piano storto ci si
+disegna sopra senza accorgersene. E tre punti in fila si rifiutano **prima** di
+chiamare, perché il perché si sa senza chiederlo — SOLIDWORKS risponde `null` e
+non lo dice.
+
+`UseGlobal` provato `true` e `false`: stessa trasformazione, numero per numero.
+Non si espone.
+
+**Le altre due parti di GP9 restano aperte, con la ragione scritta**: nessuna
+operazione del catalogo consuma un sistema di coordinate o un punto di
+riferimento, e un'operazione il cui effetto non è osservabile da nessuna altra è
+esattamente quello che questo progetto rifiuta di aggiungere.
+
+---
+
 ## 0.53.0 — 16 settembre 2026 · libreria 0.88.0
 
 ### GP16 — `verifica_sovrasporgenze`, e la normale che era già giusta

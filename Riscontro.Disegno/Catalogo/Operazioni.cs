@@ -2585,6 +2585,47 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "piano_per_tre_punti",
+                    Famiglia = "riferimenti",
+                    Provata = true,
+                    Sommario =
+                        "Un piano obliquo, dato per tre punti, e rileggo la sua normale per "
+                        + "dirti che e' quello.",
+                    Descrizione =
+                        "«crea_piano» sa fare solo il piano SFALSATO da uno dei tre standard: "
+                        + "serve a tutto quello che e' allineato agli assi e a niente altro. "
+                        + "Per un foro inclinato, una faccia obliqua o una staffa a 30 gradi "
+                        + "non c'era nessun piano su cui disegnare.\n\nI PUNTI SONO "
+                        + "COORDINATE, non vertici del pezzo: tre terne di numeri in "
+                        + "millimetri, nel sistema del modello. Non ti chiedo di indicarmi dei "
+                        + "vertici perche' nello stato del documento i vertici non hanno un "
+                        + "identificativo -- facce e spigoli si', i vertici no.\n\nCONTROLLO "
+                        + "CHE IL PIANO SIA QUELLO. Dai tre punti calcolo la normale, poi "
+                        + "rileggo quella del piano appena nato e le confronto: se non "
+                        + "coincidono mi rifiuto. «Una feature in piu' nell'albero» lo direbbe "
+                        + "anche di un piano storto, e su un piano storto ci disegneresti "
+                        + "sopra senza accorgertene.\n\nTRE PUNTI IN FILA NON FANNO UN PIANO, "
+                        + "e te lo dico prima di provare: per una retta ne passano infiniti.",
+                    Precondizione = null,
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "punto1_mm", O(
+                                "type", "array",
+                                "items", O("type", "number"),
+                                "description", "il primo punto, tre numeri in mm: [x, y, z]."),
+                            "punto2_mm", O(
+                                "type", "array",
+                                "items", O("type", "number"),
+                                "description", "il secondo punto."),
+                            "punto3_mm", O(
+                                "type", "array",
+                                "items", O("type", "number"),
+                                "description", "il terzo punto. Non dev'essere sulla retta degli altri due.")),
+                        "required", A("punto1_mm", "punto2_mm", "punto3_mm")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "sformo",
                     Famiglia = "lavorazioni",
                     Provata = true,
