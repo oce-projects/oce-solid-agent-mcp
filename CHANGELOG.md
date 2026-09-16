@@ -16,6 +16,51 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.53.0 — 16 settembre 2026 · libreria 0.88.0
+
+### GP16 — `verifica_sovrasporgenze`, e la normale che era già giusta
+
+Catalogo a **56 operazioni**. Cosa non si stampa senza supporti: una parete che
+pende nel vuoto oltre un certo angolo esce a filamenti persi, e SOLIDWORKS non
+dice niente — il pezzo è sano, il volume è giusto, la geometria è chiusa.
+
+**Il rischio della voce, misurato, si è rovesciato.** La voce avvertiva che la
+normale di `ISurface` è quella della superficie sottostante e va girata quando
+`FaceInSurfaceSense()` è falso, e che sbagliarlo dà *«un'analisi che dichiara
+supportata proprio la faccia che pende nel vuoto»*. Su un blocco di cui si sa
+tutto (100×100×20, sei facce con normali uscenti note):
+
+| | |
+|---|---|
+| `IFace2.Normal` esce dal materiale | **6 volte su 6** |
+| `Normal` concorde con `PlaneParams` | 1 volta su 6 |
+| `FaceInSurfaceSense() = true` | sulle **5** in cui sono *opposte* |
+| `FaceInSurfaceSense() = false` | sull'**1** in cui sono concordi |
+
+Due cose. **`IFace2.Normal` è già giusta** e non va corretta con niente — è
+quella che il progetto usa dappertutto, e adesso è misurato invece che sperato.
+E **la regola «se il senso è falso, gira» sarebbe stata sbagliata al
+contrario**, non su metà delle facce ma su cinque sesti.
+
+**Le facce curve si tassellano.** Il sotto di un cilindro orizzontale pende nel
+vuoto nella parte bassa e non in quella alta: non basta una normale per faccia.
+`GetTessTriangles` risponde **`float[]`, non `double[]`** — il cast sbagliato
+torna null in silenzio. Il verso dei triangoli lo decide l'avvolgimento, che è
+una convenzione: **si controlla contro `IFace2.Normal` su tutte le facce piane**,
+dove la risposta si conosce, e se non combacia l'operazione si rifiuta invece di
+rispondere con un'analisi rovesciata.
+
+**L'angolo si conta dalla verticale**, come negli slicer: parete dritta 0,
+soffitto orizzontale 90, «soglia 45» vuol dire oltre 45. Non è l'angolo col
+piano, che è il complementare — due numeri che si somigliano e dicono il
+contrario.
+
+**E quello che appoggia sul piano non è una sporgenza.** La faccia di sotto
+guarda dritta in giù — 90°, il caso peggiore — ma appoggia sul piano della
+macchina. Contarla vorrebbe dire dichiarare non stampabile ogni pezzo esistente.
+
+---
+
 ## 0.52.0 — 16 settembre 2026 · libreria 0.87.0
 
 ### GP15 — `sformo`, e due API che non si distinguono leggendo

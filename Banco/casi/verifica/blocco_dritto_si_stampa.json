@@ -1,0 +1,30 @@
+{
+  "nome": "blocco_dritto_si_stampa",
+  "famiglia": "verifica",
+  "perche": "Il termine di paragone delle sovrasporgenze, ed e' la meta' del criterio della voce: «su una faccia verticale nota, supportata». Un blocco dritto non ha niente che penda: quattro pareti verticali (0 gradi di sporgenza), la faccia di sopra che guarda in su, e quella di sotto che appoggia sul piano.",
+  "perche_la_faccia_di_sotto_non_conta": "Guarda dritta in giu': 90 gradi di sporgenza, il caso peggiore possibile. Ma appoggia sul piano della macchina e si stampa benissimo. Contarla vorrebbe dire dichiarare non stampabile OGNI pezzo esistente -- ed e' il modo piu' facile di scrivere un controllo che non serve a niente. La si conta a parte, in `area_appoggiata_al_piano_mm2`.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "verifica_sovrasporgenze",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.soglia_gradi", "uguale": 45 },
+        { "cosa": "misure.facce_guardate", "uguale": 6 },
+        { "cosa": "misure.facce_curve", "uguale": 0 },
+        { "cosa": "misure.facce_sporgenti", "uguale": 0 },
+        { "cosa": "misure.sporgenza_peggiore_gradi", "uguale": 0 },
+        { "cosa": "misure.si_stampa_senza_supporti", "uguale": true },
+        { "cosa": "misure.area_totale_mm2", "uguale": 28000, "tolleranza": 1,
+          "perche_questa_tolleranza": "due facce da 100x100 e quattro da 100x20: il conto e' esatto, ma l'area la somma la tassellazione" },
+        { "cosa": "misure.area_appoggiata_al_piano_mm2", "uguale": 10000, "tolleranza": 1,
+          "perche_questa_tolleranza": "la faccia di sotto, 100x100",
+          "perche": "LA RIGA CHE DICE CHE IL PIANO E' STATO RICONOSCIUTO. Senza, questo numero sarebbe zero e `facce_sporgenti` sarebbe uno: il blocco piu' banale del mondo risulterebbe non stampabile." },
+        { "cosa": "misure.giudizio", "contiene": ["Si stampa senza supporti"] },
+        { "cosa": "misure.cosa_non_guarda", "contiene": ["ponti fra due appoggi", "isole staccate"],
+          "perche": "il limite si dichiara a ogni chiamata: una traversa orizzontale corta si stampa lo stesso, e questa operazione non lo sa" } ] }
+  ]
+}

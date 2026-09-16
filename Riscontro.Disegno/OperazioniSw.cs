@@ -254,6 +254,7 @@ namespace Riscontro.Disegno
             "sposta_corpi", "taglia_membri",
             "taglio_cilindrico", "taglio_rettangolare", "tappo_estremita",
             "telaio_rettangolare", "verifica_geometria_corpo",
+            "verifica_sovrasporgenze",
             "vista_modello", "viste_standard",
         };
 
@@ -370,6 +371,11 @@ namespace Riscontro.Disegno
                     // un'operazione di catalogo che legge invece di costruire.
                     case "verifica_geometria_corpo":
                         return VerificaGeometriaCorpo(modello, argomenti, stato);
+                    // Cosa non si stampa senza supporti. Sta in
+                    // OperazioniSporgenze.cs, e come le altre verifiche non
+                    // tocca il pezzo: guarda l'angolo di ogni superficie.
+                    case "verifica_sovrasporgenze":
+                        return VerificaSovrasporgenze(modello, argomenti, stato);
                     // Le due domande che si fanno prima di ordinare: quanto
                     // pesa, e in che scatola ci sta. Stanno in
                     // OperazioniMisura.cs.

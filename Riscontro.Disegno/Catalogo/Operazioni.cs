@@ -2169,6 +2169,55 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "verifica_sovrasporgenze",
+                    Famiglia = "verifiche",
+                    Provata = true,
+                    Sommario =
+                        "Dice cosa non si stampa senza supporti, e di quanto. Non tocca il "
+                        + "pezzo.",
+                    Descrizione =
+                        "Una parete che pende nel vuoto oltre un certo angolo si stampa a "
+                        + "filamenti persi. SOLIDWORKS non dice niente -- il pezzo e' sano, "
+                        + "il volume e' giusto, la geometria e' chiusa -- e il difetto si "
+                        + "vede solo sulla macchina, a stampa finita.\n\nGUARDO OGNI "
+                        + "SUPERFICIE, anche quelle curve: il sotto di un cilindro "
+                        + "orizzontale pende nel vuoto nella sua parte bassa e non in quella "
+                        + "alta, quindi non basta una normale per faccia. Tassello e guardo "
+                        + "triangolo per triangolo, pesando per area.\n\nL'ANGOLO SI CONTA "
+                        + "DALLA VERTICALE, come negli slicer: una parete dritta e' 0, un "
+                        + "soffitto orizzontale e' 90, e «soglia 45» vuol dire che oltre i 45 "
+                        + "serve il supporto. Non e' l'angolo col piano, che e' il "
+                        + "complementare: due numeri che si somigliano e dicono il "
+                        + "contrario.\n\nQUELLO CHE APPOGGIA SUL PIANO NON LO CONTO. La "
+                        + "faccia di sotto guarda dritta in giu' -- 90 gradi, il caso "
+                        + "peggiore -- ma appoggia sul piano della macchina e si stampa "
+                        + "benissimo.\n\nTi rispondo la sporgenza peggiore, quanta area "
+                        + "pende, e le facce una per una con dove stanno, cosi' sai se girare "
+                        + "il pezzo o smussare.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "soglia_gradi", O(
+                                "type", "number",
+                                "description", "oltre quanti gradi dalla verticale serve il supporto. "
+                                    + "Predefinito 45, che e' il valore normale di una stampante a "
+                                    + "filamento; 30-35 per stare larghi, 60 se la macchina raffredda "
+                                    + "bene."),
+                            "direzione_di_stampa", O(
+                                "type", "array",
+                                "items", O("type", "number"),
+                                "description", "il verso in cui cresce la stampa, tre numeri. Predefinito "
+                                    + "[0, 0, 1]. Cambiarlo e' il modo di chiedere «e se lo stampassi "
+                                    + "girato?» senza girare il pezzo."),
+                            "corpo_uid", O(
+                                "type", "string",
+                                "description", "un corpo solo (per esempio «C2»). Se non lo dici li guardo "
+                                    + "tutti.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "proprieta_di_massa",
                     Famiglia = "verifiche",
                     Provata = true,
