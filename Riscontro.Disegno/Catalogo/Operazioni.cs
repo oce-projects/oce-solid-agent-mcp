@@ -2218,6 +2218,42 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "raccordo_variabile",
+                    Famiglia = "lavorazioni",
+                    Provata = true,
+                    Sommario =
+                        "Un raccordo che cambia raggio da un capo all'altro dello spigolo.",
+                    Descrizione =
+                        "Arrotonda uno spigolo con un raggio che VARIA: grande da una parte, "
+                        + "piccolo dall'altra.\n\nServe dove il pezzo deve incassare un carico "
+                        + "in un punto e non ha posto nell'altro -- una staffa che si allarga "
+                        + "verso l'attacco, il bordo di un coperchio che si assottiglia. Per "
+                        + "un raccordo uguale da capo a fondo c'e' «raccordo_spigoli».\n\nLo "
+                        + "spigolo dev'essere aperto, con due estremi: su un cerchio -- il "
+                        + "bordo di un foro -- non c'e' un «da» e un «a» fra cui variare."
+                        + "\n\nIl raggio piu' grande deve starci sullo spigolo: se supera la "
+                        + "meta' della sua lunghezza lo dico prima di provare. E dopo "
+                        + "controllo che abbia tolto davvero del materiale: una feature che "
+                        + "nasce senza togliere niente lascia lo spigolo vivo, e l'albero "
+                        + "cresciuto per finta.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "spigolo_uid", O(
+                                "type", "string",
+                                "description", "lo spigolo da raccordare, preso dallo stato del documento "
+                                    + "(per esempio «E7»)."),
+                            "raggio_inizio_mm", O(
+                                "type", "number",
+                                "description", "il raggio a un capo dello spigolo, in mm."),
+                            "raggio_fine_mm", O(
+                                "type", "number",
+                                "description", "il raggio all'altro capo, in mm.")),
+                        "required", A("spigolo_uid", "raggio_inizio_mm", "raggio_fine_mm")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "combina_corpi",
                     Famiglia = "lavorazioni",
                     Provata = true,

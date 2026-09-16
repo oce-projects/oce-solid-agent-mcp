@@ -244,7 +244,8 @@ namespace Riscontro.Disegno
             "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
             "imposta_foglio", "ingombro_corpo", "membro_strutturale",
             "misura_fra_entita", "modifica_quota", "proprieta_di_massa",
-            "quote_dal_modello", "raccordo_spigoli", "ripeti_circolare",
+            "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
+            "ripeti_circolare",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "smusso_spigoli", "sopprimi_lavorazione", "specchia",
             "sposta_corpi", "taglia_membri",
@@ -309,8 +310,11 @@ namespace Riscontro.Disegno
                     case "sopprimi_lavorazione": return SopprimiLavorazione(modello, argomenti, stato);
                     case "elimina_lavorazione": return EliminaLavorazione(modello, argomenti, stato);
                     case "sposta_corpi": return SpostaCorpi(modello, argomenti, stato);
-                    // Le booleane fra corpi stanno in OperazioniCorpi.cs.
+                    // Le booleane fra corpi e il raccordo a raggio variabile
+                    // stanno in OperazioniCorpi.cs.
                     case "combina_corpi": return CombinaCorpi(modello, argomenti, stato);
+                    case "raccordo_variabile":
+                        return RaccordoVariabile(modello, argomenti, stato);
                     case "raccordo_spigoli": return RaccordoSpigoli(modello, argomenti, stato);
                     case "smusso_spigoli": return SmussoSpigoli(modello, argomenti, stato);
                     case "guscio": return Guscio(modello, argomenti, stato);

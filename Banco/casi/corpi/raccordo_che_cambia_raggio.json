@@ -1,0 +1,28 @@
+{
+  "nome": "raccordo_che_cambia_raggio",
+  "famiglia": "corpi",
+  "perche": "Un raccordo che va da 3 a 8 lungo uno spigolo da 40. IL NUMERO E' QUELLO CHE DISTINGUE IL VARIABILE DAL COSTANTE: il volume tolto da un raccordo di raggio r su uno spigolo lungo L e' L*r^2*(1 - pi/4); per un raggio che va da 3 a 8 la media di r^2 e' (9 + 24 + 64)/3 = 32,33, e il conto da' 277,5 mm3. Un raccordo COSTANTE da 3 ne toglierebbe 77,3, uno da 8 ne toglierebbe 549,4. I tre numeri sono lontani, e nessuno dei due sbagliati puo' passare per quello giusto.",
+  "perche_due_numeri": "l'operazione riporta sia il materiale tolto DAVVERO sia il conto rifatto a mano, e il caso li pretende tutti e due. Il raccordo vero non e' esattamente una spazzata lineare del raggio -- misurati 277,7 contro 277,5 di conto, lo 0,07% -- e per questo il conto a mano si chiama «quello che ci si aspetta» e non «quello giusto».",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
+                     "spessore_mm": 40, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 64000 } ] },
+    { "operazione": "raccordo_variabile",
+      "argomenti": { "spigolo_uid": "@spigolo(asse=Z,lungo~=40,n=1)",
+                     "raggio_inizio_mm": 3, "raggio_fine_mm": 8 },
+      "attese": [
+        { "cosa": "misure.raggio_inizio_mm", "uguale": 3 },
+        { "cosa": "misure.raggio_fine_mm", "uguale": 8 },
+        { "cosa": "misure.materiale_tolto_mm3", "uguale": 277.7, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "e' il numero MISURATO su questo pezzo; il mezzo millimetro cubo copre l'arrotondamento della risposta, non un margine di opinione" },
+        { "cosa": "misure.tolto_che_ci_si_aspetta_mm3", "uguale": 277.55, "tolleranza": 0.1,
+          "perche_questa_tolleranza": "40 * 32,333 * 0,214602: e' un conto chiuso, e la decima di mm3 e' l'arrotondamento" },
+        { "cosa": "misure.come_si_conta", "contiene": ["ordine di grandezza", "non e' esattamente una spazzata lineare"],
+          "perche": "il conto a mano si dichiara approssimato dove viene riportato, non in una nota che nessuno legge" },
+        { "cosa": "volume_mm3", "uguale": 63722.3, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "64.000 meno i 277,7 tolti: il volume del pezzo lo conferma dall'altra parte" },
+        { "cosa": "corpi", "uguale": 1 } ] }
+  ]
+}

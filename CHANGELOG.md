@@ -16,6 +16,48 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.47.0 — 16 settembre 2026 · libreria 0.82.0
+
+### GP7 — `raccordo_variabile`, e il numero che distingue il variabile dal costante
+
+Catalogo a **48 operazioni**. Un raccordo il cui raggio **cambia** da un capo
+all'altro dello spigolo: grande dove il pezzo incassa un carico, piccolo dove
+non c'è posto.
+
+**La ricetta era il rischio della voce, e si è chiusa alla prima misura.** Cubo
+40×40×40, spigolo verticale, raggi 3 e 8, una forma per pezzo nuovo:
+
+```
+spigolo + i suoi 2 vertici, Radii = {3, 8}      277,7 mm³
+SOLO i due vertici (senza lo spigolo)             NULL
+con le marche 1/1/1 invece che senza marca      277,7 mm³
+aggiungendo PointRadiusArray = {3, 8}           277,7 mm³
+```
+
+**Lo spigolo va selezionato**, i vertici pure, **le marche non contano**, e
+`PointRadiusArray` **non serve** — quello è per i punti *intermedi*, che qui non
+ci sono. Passarlo per abitudine sarebbe un argomento che non si sa cosa fa.
+
+**E il numero è quello che distingue il variabile dal costante.** Il volume
+tolto da un raccordo di raggio r su uno spigolo lungo L è L·r²·(1 − π/4); per un
+raggio che va da 3 a 8 la media di r² è (9 + 24 + 64)/3 = 32,33 e il conto dà
+**277,5**, misurati **277,7** — lo 0,07%, perché il blend non è esattamente una
+spazzata lineare del raggio. Un raccordo **costante** da 3 ne toglierebbe
+**77,3**, uno da 8 **549,4**: i tre numeri sono lontani, e nessuno dei due
+sbagliati può passare per quello giusto. L'operazione riporta tutti e due — il
+tolto vero e il conto rifatto a mano — e dichiara che il secondo è un ordine di
+grandezza.
+
+Due rifiuti: il raggio più grande che non ci sta sullo spigolo (lo dice prima di
+provare, con la lunghezza vera) e il **cerchio** — il bordo di un foro non ha due
+estremi fra cui variare.
+
+**`raccordo_faccia` non è fatto**, e la voce resta aperta a metà: con le due
+facce selezionate a marca 1 e 2 torna `NULL` in tutte e quattro le combinazioni
+di opzioni provate. L'ipotesi da provare per prima è che serva a facce **non
+adiacenti** — quelle che ho usato condividono uno spigolo, cioè sono il caso del
+raccordo normale.
+
 ## 0.46.0 — 16 settembre 2026 · libreria 0.81.0
 
 ### GP8 — `combina_corpi`, e l'enum col nome giusto che è quello sbagliato

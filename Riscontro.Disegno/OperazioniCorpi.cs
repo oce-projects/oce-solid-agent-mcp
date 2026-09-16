@@ -240,6 +240,165 @@ namespace Riscontro.Disegno
             return Riuscito(feature, misure);
         }
 
+        // =================================================================
+        // IL RACCORDO A RAGGIO VARIABILE  (voce GP7)
+        // =================================================================
+        //
+        // Serve a smussare gradualmente uno spigolo lungo: grande dove il
+        // pezzo deve incassare un carico, piccolo dove non c'e' posto.
+        //
+        // ── LA RICETTA, MISURATA E NON DEDOTTA ──────────────────────────
+        //
+        // La voce avvisava che «il popolamento di Radii / PointRadiusArray /
+        // PointRhoArray (ordine, quanti valori per vertice) non e' verificato:
+        // un passo sbagliato da' raggi plausibili e sbagliati». Provato su un
+        // cubo 40x40x40, spigolo verticale, raggi 3 e 8:
+        //
+        //   spigolo + i suoi 2 vertici selezionati, Radii = {3, 8}   277,7 mm³
+        //   SOLO i due vertici (senza lo spigolo)                      NULL
+        //   con le marche 1/1/1 invece che senza marca               277,7 mm³
+        //   aggiungendo PointRadiusArray = {3, 8}                    277,7 mm³
+        //
+        // Quindi: **lo spigolo va selezionato**, i vertici pure, le marche non
+        // contano e `PointRadiusArray` non serve — quello e' per i punti
+        // INTERMEDI, che qui non ci sono.
+        //
+        // ── E IL NUMERO CHE DISTINGUE IL VARIABILE DAL COSTANTE ─────────
+        //
+        // Il volume tolto da un raccordo di raggio r su uno spigolo lungo L e'
+        // L·r²·(1 − π/4). Per un raggio che va da 3 a 8, la media di r² e'
+        // (9 + 24 + 64)/3 = 32,33, e il conto da' **277,5 mm³** — misurato
+        // 277,7, cioe' il blend non e' esattamente una spazzata lineare del
+        // raggio ma ci sta dentro per lo 0,07%.
+        //
+        // I due numeri sbagliati sono lontani: un raccordo costante da 3 ne
+        // toglierebbe **77,3**, uno costante da 8 **549,4**. E' cosi' che si
+        // vede se ha fatto il variabile o se ha preso solo il primo raggio.
+        // =================================================================
+
+        private Esito RaccordoVariabile(
+            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        {
+            string uid = Str(a, "spigolo_uid", null);
+            if (string.IsNullOrWhiteSpace(uid))
+                return Fallito(
+                    "Non hai detto su quale spigolo. Gli identificativi degli spigoli " +
+                    "stanno nello stato del documento, e somigliano a «E7».");
+
+            double r1 = Num(a, "raggio_inizio_mm");
+            double r2 = Num(a, "raggio_fine_mm");
+            if (r1 <= 0 || r2 <= 0)
+                return Fallito(
+                    "I due raggi devono essere tutti e due maggiori di zero: hai chiesto " +
+                    r1.ToString("0.##") + " e " + r2.ToString("0.##") + ". Per un raccordo " +
+                    "uguale da capo a fondo c'e' «raccordo_spigoli».");
+
+            StatoDocumento.FirmaEntita firma;
+            if (stato == null || !stato.Firme.TryGetValue(uid, out firma) || firma.Tipo != "EDGE")
+                return Fallito("Lo spigolo «" + uid + "» non c'e' piu' in questo documento.");
+            string scostamento;
+            if (!FirmaCombacia(a, uid, firma, out scostamento)) return Fallito(scostamento);
+
+            var spigolo = firma.Entita as IEdge;
+            if (spigolo == null)
+                return Fallito("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
+
+            // IL RAGGIO PIU' GRANDE DEVE STARCI, e si misura adesso: fra la
+            // proposta e l'esecuzione il pezzo puo' essere cambiato. E' lo
+            // stesso controllo del raccordo costante, sul piu' grande dei due.
+            double massimo = Math.Max(r1, r2);
+            if (firma.Misura > 0 && massimo > firma.Misura / 2)
+                return Fallito(string.Format(
+                    "{0:0.##} mm e' troppo per lo spigolo «{1}», lungo {2:0.##} mm: non ci " +
+                    "sta neanche meta'.", massimo, uid, firma.Misura));
+
+            var v1 = spigolo.GetStartVertex() as IEntity;
+            var v2 = spigolo.GetEndVertex() as IEntity;
+            if (v1 == null || v2 == null)
+                return Fallito(
+                    "Lo spigolo «" + uid + "» non ha due vertici: e' chiuso su se stesso " +
+                    "(un cerchio), e un raccordo variabile ha bisogno di due estremi fra " +
+                    "cui variare.");
+
+            double volumePrima = VolumeMm3(modello);
+
+            IFeature feature;
+            try
+            {
+                modello.ClearSelection2(true);
+                // LO SPIGOLO PRIMA, POI I DUE VERTICI. Senza lo spigolo la
+                // chiamata torna null: misurato.
+                if (!(spigolo as IEntity).Select4(true, null))
+                    return Fallito("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
+                if (!v1.Select4(true, null) || !v2.Select4(true, null))
+                    return Fallito(
+                        "Non sono riuscito a selezionare i due vertici dello spigolo «" +
+                        uid + "»: senza di loro il raggio non ha dove variare.");
+
+                feature = modello.FeatureManager.FeatureFillet3(
+                    Options: (int)(swFeatureFilletOptions_e.swFeatureFilletVarRadiusType |
+                                   swFeatureFilletOptions_e.swFeatureFilletPropagate),
+                    R1: Unita.M(r1),
+                    R2: 0,
+                    Rho: 0,
+                    Ftyp: (int)swFeatureFilletType_e.swFeatureFilletType_VariableRadius,
+                    OverflowType: (int)swFilletOverFlowType_e.swFilletOverFlowType_Default,
+                    ConicRhoType: (int)swFeatureFilletProfileType_e.swFeatureFilletCircular,
+                    // UNO PER VERTICE, nell'ordine in cui sono stati
+                    // selezionati: inizio e fine.
+                    Radii: new double[] { Unita.M(r1), Unita.M(r2) },
+                    Dist2Arr: null,
+                    RhoArr: null,
+                    SetBackDistances: null,
+                    // I PUNTI INTERMEDI NON CI SONO, e `PointRadiusArray` e'
+                    // per quelli: passarlo non cambia niente (misurato), e
+                    // passarlo per abitudine sarebbe un argomento che non si
+                    // sa cosa fa.
+                    PointRadiusArray: null,
+                    PointDist2Array: null,
+                    PointRhoArray: null) as IFeature;
+            }
+            catch (Exception ex) { return Fallito("Il raccordo variabile non e' riuscito: " + ex.Message); }
+
+            if (feature == null)
+                return Fallito(
+                    "Il raccordo variabile non e' stato creato, e SOLIDWORKS non dice " +
+                    "perche'. Di solito e' il raggio: anche se ci sta sullo spigolo, puo' " +
+                    "non starci sulle facce che gli stanno intorno.");
+
+            try { modello.EditRebuild3(); } catch { }
+            double tolto = volumePrima - VolumeMm3(modello);
+
+            // UN RACCORDO CHE NON TOGLIE NIENTE NON E' UN RACCORDO. La feature
+            // c'e', l'albero e' cresciuto, e lo spigolo e' ancora vivo.
+            if (tolto <= 0)
+                return Fallito(
+                    "Il raccordo e' stato creato ma non ha tolto niente (volume " +
+                    volumePrima.ToString("0.##") + " mm3 prima e dopo). Lo spigolo e' " +
+                    "ancora vivo: non ti confermo un pezzo diverso da quello che ti ho " +
+                    "mostrato — " + Frasi.CosiSiRitira + ".");
+
+            return Riuscito(feature, new Dictionary<string, object>
+            {
+                ["spigolo"] = uid,
+                ["raggio_inizio_mm"] = r1,
+                ["raggio_fine_mm"] = r2,
+                ["materiale_tolto_mm3"] = Math.Round(tolto, 2),
+                // IL CONTO A MANO ACCANTO, e non e' ridondanza: distingue «ha
+                // fatto il variabile» da «ha preso solo il primo raggio».
+                // Il blend non e' esattamente una spazzata lineare, quindi e'
+                // un ORDINE DI GRANDEZZA, ed e' scritto che lo e'.
+                ["tolto_che_ci_si_aspetta_mm3"] = firma.Misura > 0
+                    ? (object)Math.Round(
+                        firma.Misura * ((r1 * r1 + r1 * r2 + r2 * r2) / 3.0) * (1 - Math.PI / 4), 2)
+                    : null,
+                ["come_si_conta"] =
+                    "lunghezza per la media di r^2 fra i due raggi, per (1 - pi/4). E' un " +
+                    "ordine di grandezza: il raccordo vero non e' esattamente una spazzata " +
+                    "lineare del raggio.",
+            });
+        }
+
         /// <summary>
         /// Da «C2» all'indice 1. Meno uno se non e' un identificativo di corpo
         /// o se il corpo non c'e': i due casi si dicono uguale a chi chiama,
