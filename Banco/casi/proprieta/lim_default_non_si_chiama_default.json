@@ -1,0 +1,30 @@
+{
+  "nome": "lim_default_non_si_chiama_default",
+  "famiglia": "proprieta",
+  "perche": "LA CONFIGURAZIONE PREDEFINITA NON SI CHIAMA «Default». Si chiama «Default<A macchina>», e le parentesi angolari sono DENTRO il nome che le API accettano. `ShowConfiguration2(\"Default\")` risponde FALSE -- non solleva niente, non dice niente -- e chi non guardasse il valore di ritorno continuerebbe a disegnare sulla variante di prima per tutto il resto del piano, senza che nel file finito ci sia niente da cui accorgersene: la geometria e' coerente, le quote tornano, e' solo il pezzo sbagliato.",
+  "perche_non_lo_indovino": "E anche volendo, non si potrebbe. Un pezzo appena nato dal modello di questa azienda ha GIA' DUE configurazioni vere che cominciano per «Default» -- «<A macchina>» e «<Saldato>», la coppia dei saldati, e `GetConfigurationCount()` risponde 2. Tradurre il nome corto vorrebbe dire sceglierne una, e sbagliare quella scelta non da' nessun errore. Il messaggio dice invece com'e' fatto il nome, che e' l'unica cosa che serve.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "crea_configurazione",
+      "argomenti": { "nome": "Sinistra" },
+      "attese": [ { "cosa": "stato.configurazione", "uguale": "Sinistra" } ] },
+    { "operazione": "attiva_configurazione",
+      "argomenti": { "nome": "Default" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non e' un nome intero", "Default<", "fa parte del nome"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "si_torna_indietro_col_nome_intero" } },
+    { "operazione": "attiva_configurazione",
+      "argomenti": { "nome": "Sinistra" },
+      "attese": [
+        { "cosa": "stato.configurazione", "uguale": "Sinistra",
+          "perche": "DOPO IL RIFIUTO SI E' ANCORA DOVE SI ERA. Un rifiuto che avesse gia' spostato il documento sarebbe la cosa peggiore delle due: un errore da leggere e una variante cambiata lo stesso." },
+        { "cosa": "misure.era_gia_attiva", "uguale": true,
+          "perche_vero": "E QUESTO PASSO E' COSTATO UN ROSSO. `ShowConfiguration2` risponde FALSE anche quando la configurazione chiesta e' gia' quella attiva: quel booleano non distingue «non l'ho fatto» da «non c'era niente da fare». Il rifiuto che ne usciva diceva da solo di essere sbagliato -- «ho chiesto di attivare Sinistra e adesso e' attiva Sinistra». Adesso il criterio e' quale configurazione e' attiva, e il booleano torna qui come informazione." } ] }
+  ]
+}

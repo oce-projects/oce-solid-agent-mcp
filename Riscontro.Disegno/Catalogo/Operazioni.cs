@@ -59,6 +59,14 @@ namespace Riscontro.Disegno.Catalogo
                     "esportazioni",
                     "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D, "
                     + "STEP e IGES per chi lo deve lavorare"),
+                // QUELLO CHE IL PEZZO DICE DI SE'. Il numero di disegno e la
+                // revisione non sono geometria, ma sono cio' che arriva al
+                // cartiglio e alla scheda del PDM: un pezzo giusto con la
+                // revisione sbagliata e' un pezzo sbagliato.
+                new KeyValuePair<string, string>(
+                    "identita",
+                    "quello che il pezzo dice di se': numero disegno, revisione, "
+                    + "cliente, e le sue varianti"),
             };
 
         public static readonly List<OperazioneDisegno> Tutte =
@@ -2525,6 +2533,120 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "riapre il file appena scritto e confronta il volume col pezzo. "
                                     + "Predefinito: falso.")),
                         "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "scrivi_proprieta",
+                    Famiglia = "identita",
+                    Provata = true,
+                    Sommario =
+                        "Scrive una proprieta' personalizzata -- numero disegno, revisione, "
+                        + "cliente -- sul documento oppure su una configurazione.",
+                    Descrizione =
+                        "Scrive una proprieta' personalizzata: e' cio' che finisce nel "
+                        + "cartiglio della tavola e nella scheda del PDM. «Numero disegno», "
+                        + "«Revisione», «Cliente», «Descrizione».\n\nIL DOCUMENTO E UNA "
+                        + "CONFIGURAZIONE SONO DUE CASSETTI SEPARATI. Una proprieta' scritta "
+                        + "sul documento da una configurazione NON SI VEDE, e viceversa: non "
+                        + "si ereditano. Se dici «configurazione» la scrivo li' e solo li'; "
+                        + "se non la dici la scrivo sul documento e solo sul documento. Te lo "
+                        + "ripeto nella risposta ogni volta, perche' e' l'errore che non da' "
+                        + "errore: si scrive il numero di disegno sul documento, lo si "
+                        + "rilegge dalla configurazione, non c'e', e nessuno dice perche'."
+                        + "\n\nSE C'E' GIA', LA SOSTITUISCO. Non ti lascio credere di aver "
+                        + "cambiato una revisione che invece e' rimasta quella di prima."
+                        + "\n\nDOPO AVER SCRITTO RILEGGO. Il comando risponde un codice, non "
+                        + "il valore: se rileggendo non trovo quello che ho scritto fallisco "
+                        + "invece di confermarti una scheda dati che non e' quella che credi.",
+                    Precondizione = null,
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "nome", O(
+                                "type", "string",
+                                "description", "il nome della proprieta', per esempio «Numero disegno» o "
+                                    + "«Revisione». Scrivilo come lo vuoi vedere nel cartiglio: il nome "
+                                    + "e' quello che vedra' chi legge la scheda."),
+                            "valore", O(
+                                "type", "string",
+                                "description", "il valore da scrivere. Stringa vuota per svuotarla."),
+                            "configurazione", O(
+                                "type", "string",
+                                "description", "il nome della configurazione su cui scriverla. Se non lo dici "
+                                    + "la scrivo sul DOCUMENTO, ed e' un posto diverso. I nomi stanno "
+                                    + "nello stato del documento, dentro «configurazioni».")),
+                        "required", A("nome", "valore")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "crea_configurazione",
+                    Famiglia = "identita",
+                    Provata = true,
+                    Sommario =
+                        "Fa una variante del pezzo -- sinistra e destra, con e senza foro -- "
+                        + "e la attiva subito.",
+                    Descrizione =
+                        "Crea una configurazione: la stessa staffa sinistra e destra, con e "
+                        + "senza foro, dentro un file solo. E' come un'officina a disegno "
+                        + "chiede una famiglia di pezzi.\n\nLA CREA E LA ATTIVA. SOLIDWORKS "
+                        + "sposta subito il documento sulla configurazione nuova, senza che "
+                        + "glielo si chieda: tutto quello che disegni dopo, e tutto quello "
+                        + "che lo stato ti racconta dopo, riguarda QUELLA. Te lo dico nella "
+                        + "risposta. Per tornare a un'altra c'e' «attiva_configurazione»."
+                        + "\n\nIL NOME CHE TI RISPONDO E' QUELLO DA USARE, e non e' detto che "
+                        + "sia quello che mi hai chiesto: i nomi di SOLIDWORKS possono avere "
+                        + "delle parentesi angolari dentro, e quelle fanno parte del nome. "
+                        + "Riportalo com'e'.",
+                    Precondizione = null,
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "nome", O(
+                                "type", "string",
+                                "description", "il nome della configurazione, per esempio «Sinistra» o "
+                                    + "«Senza foro». Se ce n'e' gia' una cosi' mi rifiuto."),
+                            "descrizione", O(
+                                "type", "string",
+                                "description", "la descrizione che comparira' nell'elenco delle "
+                                    + "configurazioni."),
+                            "commento", O(
+                                "type", "string",
+                                "description", "un commento libero.")),
+                        "required", A("nome")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "attiva_configurazione",
+                    Famiglia = "identita",
+                    Provata = true,
+                    Sommario =
+                        "Passa a una configurazione gia' esistente, e verifica che ci sia "
+                        + "davvero passato.",
+                    Descrizione =
+                        "Sposta il documento su un'altra configurazione. Da qui in poi quello "
+                        + "che disegni e quello che lo stato ti racconta riguardano quella."
+                        + "\n\nIL NOME NON E' QUELLO CHE SEMBRA. La configurazione predefinita "
+                        + "si chiama spesso «Default<A macchina>» e NON «Default»: quello fra "
+                        + "parentesi angolari fa parte del nome. Chiedendo «Default» "
+                        + "SOLIDWORKS risponde di no, in silenzio -- e spesso di "
+                        + "configurazioni che cominciano per «Default» ce n'e' piu' d'una (la "
+                        + "coppia dei saldati: «<A macchina>» e «<Saldato>»), per cui non c'e' "
+                        + "nemmeno un modo giusto di indovinare. NON INDOVINO: copia il nome "
+                        + "intero da «configurazioni» nello stato del documento.\n\nDOPO AVER "
+                        + "CHIESTO CONTROLLO QUALE E' ATTIVA "
+                        + "ADESSO: non mi basta che il comando abbia detto di si', perche' "
+                        + "lavorare per mezz'ora sulla variante sbagliata non da' nessun "
+                        + "errore.",
+                    Precondizione = null,
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "nome", O(
+                                "type", "string",
+                                "description", "il nome INTERO della configurazione da attivare, copiato da "
+                                    + "«configurazioni» nello stato del documento. Suffisso fra "
+                                    + "parentesi angolari compreso, se c'e'.")),
+                        "required", A("nome")),
                 },
             };
     }

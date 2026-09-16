@@ -1,0 +1,29 @@
+{
+  "nome": "numero_disegno_sul_documento",
+  "famiglia": "proprieta",
+  "perche": "Il termine di paragone: si scrive una proprieta' sul documento e la si rilegge. E' il caso che dice che l'operazione funziona, e serve perche' senza di lui un rifiuto su un caso rotto non distinguerebbe un controllo che funziona da uno che rifiuta tutto.",
+  "perche_anche_lo_stato": "L'operazione rilegge da sola e risponde il valore: se il caso guardasse solo quello, un'operazione che si tiene il valore in una variabile e non tocca il file passerebbe. Lo stato del documento e' letto da un'altra parte del codice, e legge dal documento vero.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "scrivi_proprieta",
+      "argomenti": { "nome": "Revisione", "valore": "A" },
+      "attese": [
+        { "cosa": "misure.proprieta", "uguale": "Revisione" },
+        { "cosa": "misure.valore", "uguale": "A" },
+        { "cosa": "misure.dove", "contiene": ["documento"] },
+        { "cosa": "stato.proprieta.Revisione", "uguale": "A",
+          "perche": "il valore va letto dal documento, non dalla risposta dell'operazione che l'ha scritto" },
+        { "cosa": "volume_mm3", "uguale": 200000,
+          "perche": "scrivere una proprieta' non tocca la geometria: se il volume cambia, l'operazione sta facendo dell'altro" } ] },
+    { "operazione": "scrivi_proprieta",
+      "argomenti": { "nome": "Revisione", "valore": "B" },
+      "attese": [
+        { "cosa": "misure.valore", "uguale": "B",
+          "perche": "LA SECONDA SCRITTURA SOSTITUISCE. Con «solo se nuova» SOLIDWORKS lascerebbe «A» e risponderebbe lo stesso: una revisione che non cambia senza che nessuno dia errore." },
+        { "cosa": "stato.proprieta.Revisione", "uguale": "B" } ] }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "nome": "lim_configurazione_che_non_esiste",
+  "famiglia": "proprieta",
+  "perche": "IL ROSSO DI `attiva_configurazione`. `ShowConfiguration2` su un nome che non c'e' risponde FALSE e basta: nessuna eccezione, nessun messaggio, il documento resta dov'era. Un'operazione che non guardasse il valore di ritorno direbbe «fatto» e lascerebbe il piano a disegnare sulla variante di prima -- e nel file finito non ci sarebbe niente da cui accorgersene.",
+  "perche_il_messaggio_elenca": "«Non trovo la configurazione Destra» e' meta' della risposta; l'altra meta' e' quali ci sono, perche' quasi sempre il nome giusto e' li' scritto in un modo che chi chiama non si aspettava -- con delle parentesi angolari dentro, per esempio.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "crea_configurazione",
+      "argomenti": { "nome": "Sinistra" },
+      "attese": [ { "cosa": "stato.configurazione", "uguale": "Sinistra" } ] },
+    { "operazione": "attiva_configurazione",
+      "argomenti": { "nome": "Destra" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["Non trovo la configurazione", "Destra", "Sinistra"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "si_torna_indietro_col_nome_intero" } }
+  ]
+}

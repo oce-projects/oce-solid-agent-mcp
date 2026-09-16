@@ -234,8 +234,9 @@ namespace Riscontro.Disegno
         /// </summary>
         public static readonly string[] NomiEseguibili =
         {
-            "applica_materiale", "asola", "combina_corpi",
-            "cordone_saldatura", "crea_asse",
+            "applica_materiale", "asola", "attiva_configurazione",
+            "combina_corpi",
+            "cordone_saldatura", "crea_asse", "crea_configurazione",
             "crea_disegno", "crea_piano", "distinta_taglio",
             "distanza_minima", "elimina_lavorazione",
             "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
@@ -246,7 +247,7 @@ namespace Riscontro.Disegno
             "imposta_foglio", "ingombro_corpo", "membro_strutturale",
             "misura_fra_entita", "modifica_quota", "proprieta_di_massa",
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
-            "ripeti_circolare",
+            "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "smusso_spigoli", "sopprimi_lavorazione", "specchia",
             "sposta_corpi", "taglia_membri",
@@ -379,6 +380,19 @@ namespace Riscontro.Disegno
                         return DistanzaMinima(modello, argomenti, stato);
                     case "misura_fra_entita":
                         return MisuraFraEntita(modello, argomenti, stato);
+
+                    // ── quello che il pezzo dice di se' ─
+                    // Stanno in OperazioniProprieta.cs. Non disegnano niente:
+                    // riempiono il cartiglio e la scheda del PDM, e fanno le
+                    // varianti. Le proprieta' del DOCUMENTO e quelle di una
+                    // CONFIGURAZIONE sono due elenchi separati che non si
+                    // vedono a vicenda — misurato, non dedotto.
+                    case "scrivi_proprieta":
+                        return ScriviProprieta(modello, argomenti, stato);
+                    case "crea_configurazione":
+                        return CreaConfigurazione(modello, argomenti, stato);
+                    case "attiva_configurazione":
+                        return AttivaConfigurazione(modello, argomenti, stato);
 
                     // ── esportazioni ────────────────────
                     // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama

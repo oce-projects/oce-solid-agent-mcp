@@ -712,6 +712,67 @@ namespace Riscontro.Disegno
             catch { }
             dati["materiale"] = materiale;
 
+            // LA CONFIGURAZIONE ATTIVA, E LE ALTRE.
+            //
+            // Un pezzo con piu' configurazioni e' lo stesso file che descrive
+            // piu' pezzi: la staffa sinistra e la destra, con e senza foro. Le
+            // facce, i corpi, il volume e la massa scritti qui sopra sono
+            // quelli della configurazione ATTIVA, e di nessun'altra.
+            //
+            // Senza questo campo lo stato dice «volume 84200 mm3» e chi legge
+            // non ha modo di sapere DI QUALE variante: e' esattamente il
+            // difetto che non da' errore. Si scrive sempre, anche quando la
+            // configurazione e' una sola, perche' un campo che compare solo a
+            // volte insegna a non cercarlo.
+            //
+            // Il nome ha spesso qualcosa fra parentesi angolari
+            // («Default<A macchina>»), e QUELLO E' IL NOME: non e' un'etichetta
+            // che il nome si porta appresso. Un pezzo nato dal modello di
+            // questa azienda ha due configurazioni vere, «Default<A macchina>»
+            // e «Default<Saldato>» — la coppia dei saldati. Si riporta com'e',
+            // perche' e' quello che `attiva_configurazione` vuole indietro.
+            try
+            {
+                var gestoreConf = modello.ConfigurationManager as IConfigurationManager;
+                if (gestoreConf != null) dati["configurazione"] = gestoreConf.ActiveConfiguration.Name;
+            }
+            catch { }
+            try
+            {
+                var nomiConf = modello.GetConfigurationNames() as string[];
+                if (nomiConf != null && nomiConf.Length > 0) dati["configurazioni"] = nomiConf;
+            }
+            catch { }
+            // QUANTE NE DICHIARA LUI, che non e' per forza quante sono le
+            // righe di «configurazioni»: i nomi li da' `GetConfigurationNames`,
+            // il conto lo da' `GetConfigurationCount`, e sono due chiamate
+            // diverse. Si scrivono tutti e due, perche' il giorno in cui non
+            // combaciano quello e' il fatto da sapere -- non un dettaglio da
+            // nascondere scegliendo quale dei due mostrare.
+            try { dati["quante_configurazioni"] = modello.GetConfigurationCount(); }
+            catch { }
+
+            // LE PROPRIETA' PERSONALIZZATE, NEI DUE CASSETTI SEPARATI.
+            //
+            // Sono cio' che finisce nel cartiglio e nella scheda del PDM.
+            // Stanno in due campi e non in uno perche' sono in due posti
+            // diversi: quelle del documento e quelle della configurazione
+            // attiva non si ereditano e non si vedono a vicenda. Un campo
+            // solo, «proprieta», sarebbe una fusione che nel file non esiste,
+            // e chi rileggesse non avrebbe modo di sapere dove cercare.
+            var delDocumento = LeggiProprieta(modello, "");
+            if (delDocumento.Count > 0) dati["proprieta"] = delDocumento;
+            try
+            {
+                object attiva;
+                if (dati.TryGetValue("configurazione", out attiva))
+                {
+                    var dellaConfig = LeggiProprieta(modello, Convert.ToString(attiva) ?? "");
+                    if (dellaConfig.Count > 0) dati["proprieta_configurazione"] = dellaConfig;
+                }
+            }
+            catch { }
+
             if (corpi.Count > 0)
             {
                 haCorpo = true;
@@ -1294,6 +1355,44 @@ namespace Riscontro.Disegno
 
             stato.Dati = dati;
             return stato;
+        }
+
+        /// <summary>
+        /// Le proprieta' personalizzate di un cassetto: `""` per il documento,
+        /// il nome di una configurazione per quella configurazione.
+        ///
+        /// SI LEGGONO RISOLTE. Una proprieta' puo' essere una formula
+        /// («"SW-Mass@pezzo.SLDPRT"») e allora ha due valori: quello scritto e
+        /// quello che ne esce. Chi guarda la scheda vede il secondo, e questa
+        /// e' una descrizione di cio' che si vede.
+        /// </summary>
+        private static Dictionary<string, object> LeggiProprieta(
+            IModelDoc2 modello, string configurazione)
+        {
+            var fuori = new Dictionary<string, object>(StringComparer.Ordinal);
+            try
+            {
+                var cassetto = modello.Extension.get_CustomPropertyManager(configurazione)
+                               as ICustomPropertyManager;
+                if (cassetto == null) return fuori;
+                var nomi = cassetto.GetNames() as string[];
+                if (nomi == null) return fuori;
+                foreach (var nome in nomi)
+                {
+                    if (string.IsNullOrEmpty(nome)) continue;
+                    try
+                    {
+                        string valore, risolto;
+                        bool eraRisolto, collegata;
+                        cassetto.Get6(nome, false, out valore, out risolto,
+                                      out eraRisolto, out collegata);
+                        fuori[nome] = risolto ?? valore ?? "";
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return fuori;
         }
 
         /// <summary>

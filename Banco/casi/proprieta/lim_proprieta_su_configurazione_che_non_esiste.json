@@ -1,0 +1,23 @@
+{
+  "nome": "lim_proprieta_su_configurazione_che_non_esiste",
+  "famiglia": "proprieta",
+  "perche": "IL RIFIUTO PIU' IMPORTANTE DELLA VOCE, e il piu' facile da non fare. `get_CustomPropertyManager(\"Destra\")` su una configurazione che non esiste NON solleva niente: torna un gestore, e `Add3` su quel gestore risponde «AddedOrChanged». La proprieta' e' scritta, il codice e' contento, e nel file non c'e'. E' il difetto che non da' errore nella sua forma piu' pura: tutta la catena dice di si'.",
+  "perche_il_nome_si_controlla_prima": "L'unico modo di prenderlo e' chiedere al documento quali configurazioni dichiara PRIMA di scrivere. Il controllo non puo' stare dopo -- dopo, tutto e' andato bene.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "crea_configurazione",
+      "argomenti": { "nome": "Sinistra" },
+      "attese": [ { "cosa": "stato.configurazione", "uguale": "Sinistra" } ] },
+    { "operazione": "scrivi_proprieta",
+      "argomenti": { "nome": "NumeroDisegno", "valore": "DIS-1234", "configurazione": "Destra" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["Non trovo la configurazione", "Destra", "Sinistra"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "i_due_cassetti_non_si_vedono" } }
+  ]
+}

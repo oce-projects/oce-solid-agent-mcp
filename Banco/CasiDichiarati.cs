@@ -65,7 +65,7 @@ namespace ProvaSaldatura
         {
             "lavorazioni", "coppie", "asola", "smusso", "rivoluzione", "piano",
             "specchia", "ripeti", "asse", "togliere", "frase", "verifica",
-            "esporta", "misura", "corpi",
+            "esporta", "misura", "corpi", "proprieta",
         };
 
         private static void ProvaCasiDichiarati()
@@ -909,7 +909,40 @@ namespace ProvaSaldatura
             // lavorazione non c'e' piu'. Sono due cose diverse — una feature
             // soppressa lascia il volume com'e' e resta nell'elenco.
             { "quante_lavorazioni", (doc, stato) => QuanteFeature(stato) },
+
+            // QUANTI NOMI DI CONFIGURAZIONE DICHIARA IL PEZZO.
+            //
+            // I NOMI NON SI POSSONO SCRIVERE IN UN CASO. Quella predefinita si
+            // chiama «Default<A macchina>»: il pezzo fra parentesi angolari e'
+            // lo stato di visualizzazione ed e' localizzato, quindi un caso
+            // che lo scrivesse sarebbe verde su questa installazione e rosso
+            // sulla prossima. Il CONTO invece e' un fatto: se
+            // `crea_configurazione` non creasse niente resterebbe quello di
+            // prima mentre l'operazione risponde che e' andata bene.
+            //
+            // «NOMI» E NON «CONFIGURAZIONI», e la distinzione e' costata un
+            // rosso: un pezzo appena nato da questo modello dichiara DUE nomi
+            // -- «Default<A macchina>» e «Default<Saldato>» -- e un caso che
+            // dava per scontato «un pezzo nuovo, una configurazione» ha
+            // trovato tre dove ne aspettava due. Il conto vero, quello che
+            // `GetConfigurationCount()` risponde, e' la misura qui sotto.
+            { "quanti_nomi_di_configurazione", (doc, stato) => QuantiNellElenco(stato, "configurazioni") },
+
+            // QUANTE NE CONTA SOLIDWORKS, che e' un'altra chiamata e puo'
+            // rispondere un altro numero. Sta nello stato, letta da
+            // `GetConfigurationCount()`.
+            { "quante_configurazioni", (doc, stato) => DalloStato(stato, "quante_configurazioni") },
         };
+        }
+
+        /// <summary>
+        /// Un campo dello stato preso com'e'. Null quando non c'e' — e chi
+        /// chiama lo fa diventare un rosso, perche' un campo assente non e'
+        /// uno zero.
+        /// </summary>
+        private static object DalloStato(Dictionary<string, object> stato, string campo)
+        {
+            return stato != null && stato.ContainsKey(campo) ? stato[campo] : null;
         }
 
         /// <summary>Quante voci ha una famiglia dello stato.</summary>

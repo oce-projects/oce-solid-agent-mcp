@@ -16,6 +16,90 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.49.0 — 16 settembre 2026 · libreria 0.84.0
+
+### GP12 — proprietà personalizzate e configurazioni, e i due cassetti che non si vedono
+
+Catalogo a **52 operazioni**, con una famiglia nuova — **`identita`**: *quello
+che il pezzo dice di sé*. `scrivi_proprieta`, `crea_configurazione`,
+`attiva_configurazione`.
+
+Fino a qui il catalogo sapeva fare geometria e non sapeva dire **di chi è**. Il
+numero di disegno e la revisione non sono geometria, ma sono ciò che arriva al
+cartiglio e alla scheda del PDM: un pezzo giusto con la revisione sbagliata è un
+pezzo sbagliato.
+
+**Lo stesso nome su due interfacce, con firme diverse.** La voce avvisava di una
+*«firma gemella-ma-diversa»*: è peggio. `AddConfiguration`, `AddConfiguration2`
+e `AddConfiguration3` stanno su **`IModelDoc2`** (otto parametri, otto, quattro;
+tornano `void`, `bool`, `object`), e `AddConfiguration`/`AddConfiguration2`
+stanno **anche** su `IConfigurationManager` (sei e sette parametri, tornano
+`IConfiguration`). Cercata sull'interfaccia sbagliata, `AddConfiguration3` *«non
+esiste»* — ed è l'errore che abbiamo fatto prima di guardare. *Un nome dice come
+si chiama un metodo, non su quale interfaccia sta.* Si usa
+`IConfigurationManager.AddConfiguration2`, che è l'unica a tornare l'oggetto
+configurazione — da cui si rilegge il nome vero — e a prendere `Rebuild`.
+
+**Le due strade per le proprietà di una configurazione sono la stessa strada.**
+La voce chiedeva di accertare se `IConfiguration.get_CustomPropertyManager()` e
+`IModelDocExtension.get_CustomPropertyManager(nome)` dessero risultati
+equivalenti — *«due strade mai confrontate»*. Misurate entrambe sullo stesso
+pezzo: scritta con l'una si rilegge identica con l'altra, in tutti e due i
+versi. Si usa `Extension(nome)`, che non ha bisogno dell'oggetto configurazione
+in mano.
+
+**Ma il documento e la configurazione sono due cassetti separati**, e questo non
+si sapeva: una proprietà scritta sul documento **da una configurazione non si
+vede**, e viceversa. Non si ereditano. Chi scrive il numero di disegno sul
+documento e poi lo cerca fra le proprietà della configurazione non lo trova, e
+nessuno gli dice perché. `scrivi_proprieta` guarda ogni volta anche nell'altro
+cassetto e risponde `si_vede_dall_altro_cassetto`, così è un numero misurato su
+questo pezzo adesso e non una nota nel catalogo che nessuno ha letto.
+
+**La configurazione predefinita non si chiama `Default`.** Si chiama
+`Default<A macchina>`, e le parentesi angolari sono **dentro il nome**.
+`ShowConfiguration2("Default")` risponde **false** — non solleva niente, non
+dice niente — e chi non guarda il valore di ritorno lavora sulla variante
+sbagliata per tutto il resto del piano.
+
+E non si può nemmeno indovinare: un pezzo appena nato dal modello di questa
+azienda ha **due configurazioni vere**, `Default<A macchina>` e
+`Default<Saldato>` — la coppia dei saldati — e `GetConfigurationCount()`
+risponde **2**. Non sono stati di visualizzazione: quelli sono un'altra cosa
+ancora (`IConfiguration.GetDisplayStates()`, qui uno per configurazione). Perciò
+`attiva_configurazione` **non traduce** il nome corto: lo confronta con quelli
+che il documento dichiara, e se non c'è lo dice spiegando perché. L'unica fonte
+buona è `GetConfigurationNames()`: *i nomi non si costruiscono, si chiedono.*
+Dopo aver chiesto, **ricontrolla quale è attiva adesso**.
+
+**E `ShowConfiguration2` risponde `false` quando non c'era niente da fare** —
+cioè quando la configurazione chiesta è già quella attiva. L'ha trovata il
+banco, nel modo più bello possibile: due casi rossi il cui messaggio di rifiuto
+diceva da solo che il rifiuto era sbagliato («*ho chiesto di attivare Sinistra e
+adesso è attiva Sinistra*»). Quel booleano non distingue «non l'ho fatto» da
+«non c'era niente da fare», e quindi **non può essere il criterio**: il criterio
+è quale configurazione è attiva dopo. Il booleano torna nella risposta come
+`era_gia_attiva`, perché la differenza fra uno spostamento e un non-spostamento
+conta lo stesso.
+
+**`AddConfiguration2` attiva subito** la configurazione nuova senza che glielo
+si chieda: tutto quello che il piano disegna dopo, e tutto quello che lo stato
+racconta dopo, riguarda *quella*. Si dice nella risposta.
+
+**E `get_CustomPropertyManager("Destra")` su una configurazione che non esiste
+non solleva niente**: torna un gestore, e `Add3` su quel gestore risponde
+`AddedOrChanged`. La proprietà è scritta, il codice è contento, nel file non
+c'è. È il difetto che non dà errore nella sua forma più pura — tutta la catena
+dice di sì. L'unico modo di prenderlo è chiedere al documento quali
+configurazioni dichiara **prima** di scrivere.
+
+Lo stato del documento porta adesso `configurazione`, `configurazioni`,
+`quante_configurazioni`, `proprieta` e `proprieta_configurazione` — due campi
+per le proprietà e non uno, perché sono due posti diversi: un campo solo sarebbe
+una fusione che nel file non esiste.
+
+---
+
 ## 0.48.0 — 16 settembre 2026 · libreria 0.83.0
 
 ### GP11 — `filettatura_cosmetica`, e la nota che non è generata ma ricopiata

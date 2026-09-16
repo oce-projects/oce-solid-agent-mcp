@@ -1,0 +1,40 @@
+{
+  "nome": "i_due_cassetti_non_si_vedono",
+  "famiglia": "proprieta",
+  "perche": "LA TRAPPOLA DELLA VOCE, misurata. Le proprieta' del documento e quelle di una configurazione sono due elenchi separati: non si ereditano e non si vedono a vicenda. Chi scrive il numero di disegno sul documento e poi lo cerca fra le proprieta' della configurazione NON LO TROVA, e SOLIDWORKS non dice perche'. E' il difetto che non da' errore: la scheda dati esce vuota e il pezzo e' giusto.",
+  "perche_qui_e_non_nel_catalogo": "La nota nel catalogo la legge chi sceglie l'operazione; questo caso la tiene vera. Il giorno in cui una versione di SOLIDWORKS cominciasse a ereditarle, la nota resterebbe scritta e sbagliata: questo caso diventerebbe rosso.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "scrivi_proprieta",
+      "argomenti": { "nome": "NumeroDisegno", "valore": "DIS-1234" },
+      "attese": [
+        { "cosa": "misure.valore", "uguale": "DIS-1234" },
+        { "cosa": "misure.si_vede_dall_altro_cassetto", "uguale": false,
+          "perche": "scritta sul DOCUMENTO, dalla configurazione attiva non si vede" },
+        { "cosa": "misure.i_due_cassetti", "contiene": ["NON si vede"] } ] },
+    { "operazione": "crea_configurazione",
+      "argomenti": { "nome": "Sinistra", "descrizione": "staffa sinistra" },
+      "attese": [ { "cosa": "misure.configurazione", "uguale": "Sinistra" } ] },
+    { "operazione": "scrivi_proprieta",
+      "argomenti": { "nome": "Mano", "valore": "SX", "configurazione": "Sinistra" },
+      "attese": [
+        { "cosa": "misure.valore", "uguale": "SX" },
+        { "cosa": "misure.configurazione", "uguale": "Sinistra" },
+        { "cosa": "misure.dove", "contiene": ["Sinistra"] },
+        { "cosa": "misure.si_vede_dall_altro_cassetto", "uguale": false,
+          "perche": "scritta sulla CONFIGURAZIONE, dal documento non si vede: e' lo stesso muro guardato dall'altra parte" },
+        { "cosa": "stato.proprieta.NumeroDisegno", "uguale": "DIS-1234",
+          "perche": "quella del documento e' ancora li' dove l'abbiamo messa" },
+        { "cosa": "stato.proprieta_configurazione.Mano", "uguale": "SX",
+          "perche": "e quella della configurazione sta nell'altro elenco. Sono due campi nello stato apposta: un campo solo sarebbe una fusione che nel file non esiste." } ] },
+    { "operazione": "scrivi_proprieta",
+      "argomenti": { "nome": "NumeroDisegno", "valore": "DIS-1234", "configurazione": "Sinistra" },
+      "attese": [
+        { "cosa": "misure.si_vede_dall_altro_cassetto", "uguale": true,
+          "perche_vero": "ADESSO SI VEDE DI LA', ma perche' ce n'e' una SUA che si chiama uguale -- non perche' sia la stessa. Questa riga sta qui perche' il «falso» delle righe sopra dev'essere un fatto misurato e non una costante scritta a mano: un campo che risponde sempre falso e' indistinguibile da un campo giusto, finche' non si costruisce il caso in cui deve rispondere vero." } ] }
+  ]
+}
