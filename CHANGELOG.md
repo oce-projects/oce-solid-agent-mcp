@@ -16,6 +16,40 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.48.0 — 16 settembre 2026 · libreria 0.83.0
+
+### GP11 — `filettatura_cosmetica`, e la nota che non è generata ma ricopiata
+
+Catalogo a **49 operazioni**. Dice *«qui c'è un filetto»* su un perno o un foro
+già fatto: è un'annotazione, non un taglio.
+
+**Si attacca a uno SPIGOLO, non a una faccia.** Sulla faccia cilindrica
+`InsertCosmeticThread3` torna `null` in tutte le combinazioni provate. A dirlo è
+stato il modello dei dati: `ICosmeticThreadFeatureData` ha una proprietà
+**`Edge`**. Col bordo circolare selezionato funziona al primo colpo.
+
+**E la domanda della voce non aveva risposta.** La voce chiedeva di trovare il
+valore giusto di `Standard` usando «la nota generata» come giudice. Misurato:
+con `Standard` 0, 1, 2, 3 e 8 (ISO), con `StandardType` «Tapped hole», «Machine
+Threads», «Maschiatura», «Filettature macchina», e `Size` «M6x1.0», «M6»,
+«M6x1» — la feature nasce sempre, e rileggendola:
+
+```
+Standard = -2    StandardType = «»    Size = «»    callout = «»
+```
+
+Passando invece la **nota**: `callout = «M6x1»`, anche con `Standard = -2` e i
+due nomi vuoti. **Lo standard e la taglia vengono ignorati, e il callout è
+esattamente il testo che gli si dà.**
+
+Quindi l'operazione chiede una `denominazione`, la scrive, e **dichiara nella
+risposta che quel testo è di chi l'ha chiesto e non di una tabella**: nessuno
+controlla che «M6x1» sia giusto per un perno da 6, e in officina arriva com'è
+scritto. *Generata* e *ricopiata* non sono la stessa cosa.
+
+**Il volume resta quello di prima** — 282,74 mm³ su un cilindro Ø6×10, prima e
+dopo. Se cambia, l'operazione fallisce: vorrebbe dire che ha tagliato davvero.
+
 ## 0.47.0 — 16 settembre 2026 · libreria 0.82.0
 
 ### GP7 — `raccordo_variabile`, e il numero che distingue il variabile dal costante

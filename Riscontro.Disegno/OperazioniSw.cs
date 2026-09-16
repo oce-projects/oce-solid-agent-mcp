@@ -241,7 +241,8 @@ namespace Riscontro.Disegno
             "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
             "estrudi_sezione", "ruota_dentata",
-            "estrudi_su_faccia", "fazzoletto", "foro_guidato", "guscio",
+            "estrudi_su_faccia", "fazzoletto", "filettatura_cosmetica",
+            "foro_guidato", "guscio",
             "imposta_foglio", "ingombro_corpo", "membro_strutturale",
             "misura_fra_entita", "modifica_quota", "proprieta_di_massa",
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
@@ -315,6 +316,8 @@ namespace Riscontro.Disegno
                     case "combina_corpi": return CombinaCorpi(modello, argomenti, stato);
                     case "raccordo_variabile":
                         return RaccordoVariabile(modello, argomenti, stato);
+                    case "filettatura_cosmetica":
+                        return FilettaturaCosmetica(modello, argomenti, stato);
                     case "raccordo_spigoli": return RaccordoSpigoli(modello, argomenti, stato);
                     case "smusso_spigoli": return SmussoSpigoli(modello, argomenti, stato);
                     case "guscio": return Guscio(modello, argomenti, stato);

@@ -399,6 +399,194 @@ namespace Riscontro.Disegno
             });
         }
 
+        // =================================================================
+        // LA FILETTATURA COSMETICA  (voce GP11)
+        // =================================================================
+        //
+        // NON TAGLIA NIENTE: e' un'annotazione. Dice «qui c'e' un filetto» a
+        // chi legge il pezzo e alla tavola, e il volume resta quello di prima.
+        // Se il volume cambia si e' chiamata la cosa sbagliata, e questa
+        // operazione lo controlla.
+        //
+        // ── SI ATTACCA A UNO SPIGOLO, NON A UNA FACCIA ──────────────────
+        //
+        // Sulla faccia cilindrica `InsertCosmeticThread3` torna **null** in
+        // tutte le combinazioni provate. A dirlo e' stato il modello dei dati:
+        // `ICosmeticThreadFeatureData` ha una proprieta' **`Edge`**. Con lo
+        // spigolo CIRCOLARE selezionato funziona al primo colpo.
+        //
+        // ── E IL CALLOUT NON E' GENERATO: E' RICOPIATO ──────────────────
+        //
+        // La voce GP11 diceva: «la nota generata, riletta, dice M6x1 — e' il
+        // solo modo di sapere se `Standard` era il numero giusto». Misurato il
+        // 16/9/2026, la risposta e' che **`Standard` non e' nessun numero**:
+        //
+        //   Standard = 0, 1, 2, 3, 8 (ISO), con StandardType «Tapped hole»,
+        //   «Machine Threads», «Maschiatura», «Filettature macchina», e Size
+        //   «M6x1.0», «M6», «M6x1»:
+        //       la feature nasce sempre, e rileggendola
+        //       Standard = -2,  StandardType = «»,  Size = «»,  callout = «»
+        //
+        //   passando invece la NOTA:
+        //       callout = «M6x1»   — anche con Standard = -2 e i due nomi vuoti
+        //
+        // Cioe': lo standard e la taglia **vengono ignorati**, e il callout e'
+        // esattamente il testo che gli si da'. Quindi l'operazione chiede una
+        // denominazione e la scrive, e **non finge** che venga da una tabella:
+        // «generata» e «ricopiata» non sono la stessa cosa, e chi legge una
+        // tavola ha diritto di sapere quale delle due sta guardando.
+        // =================================================================
+
+        private Esito FilettaturaCosmetica(
+            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        {
+            string uid = Str(a, "spigolo_uid", null);
+            if (string.IsNullOrWhiteSpace(uid))
+                return Fallito(
+                    "Non hai detto su quale spigolo. Il filetto cosmetico si attacca allo " +
+                    "spigolo CIRCOLARE di un cilindro o di un foro — non alla faccia — e " +
+                    "gli identificativi degli spigoli stanno nello stato del documento.");
+
+            string denominazione = Str(a, "denominazione", null);
+            if (string.IsNullOrWhiteSpace(denominazione))
+                return Fallito(
+                    "Manca la «denominazione», per esempio «M6x1». Un filetto cosmetico " +
+                    "senza denominazione e' un'annotazione che non dice niente: sulla " +
+                    "tavola comparirebbe un filetto senza misura, e chi lo legge dovrebbe " +
+                    "indovinarla. Il testo lo scrivo come me lo dai: SOLIDWORKS non lo " +
+                    "ricava da una tabella.");
+
+            StatoDocumento.FirmaEntita firma;
+            if (stato == null || !stato.Firme.TryGetValue(uid, out firma) || firma.Tipo != "EDGE")
+                return Fallito("Lo spigolo «" + uid + "» non c'e' piu' in questo documento.");
+            string scostamento;
+            if (!FirmaCombacia(a, uid, firma, out scostamento)) return Fallito(scostamento);
+
+            var spigolo = firma.Entita as IEdge;
+            if (spigolo == null)
+                return Fallito("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
+
+            double diametro = 0;
+            bool tondo = false;
+            try
+            {
+                var curva = spigolo.IGetCurve();
+                tondo = curva != null && curva.IsCircle();
+                if (tondo)
+                {
+                    var p = curva.CircleParams as double[];
+                    if (p != null && p.Length >= 7) diametro = p[6] * 2000.0;
+                }
+            }
+            catch { }
+
+            if (!tondo)
+                return Fallito(
+                    "Lo spigolo «" + uid + "» non e' un cerchio: un filetto cosmetico si " +
+                    "attacca al bordo tondo di un cilindro o di un foro. Su uno spigolo " +
+                    "dritto non c'e' niente da filettare.");
+
+            // IL DIAMETRO LO DICE LO SPIGOLO, non chi chiama: e' il bordo su
+            // cui il filetto si attacca, e un diametro diverso da quello
+            // disegnerebbe un filetto che non sta sul pezzo.
+            double diametroChiesto = Num(a, "diametro_mm", 0);
+            if (diametroChiesto > 0 && diametro > 0 &&
+                Math.Abs(diametroChiesto - diametro) > 0.01)
+                return Fallito(string.Format(
+                    "Hai chiesto un filetto da {0:0.##} mm, ma lo spigolo «{1}» e' un " +
+                    "cerchio da {2:0.##}. Il filetto si attacca a quel bordo: o e' quello " +
+                    "giusto, o e' l'altro spigolo.", diametroChiesto, uid, diametro));
+            if (diametro <= 0) diametro = diametroChiesto;
+            if (diametro <= 0)
+                return Fallito("Non riesco a misurare il diametro dello spigolo «" + uid + "».");
+
+            double profondita = Num(a, "profondita_mm", 0);
+            bool passante = Bool(a, "passante", false);
+            if (!passante && profondita <= 0)
+                return Fallito(
+                    "Dimmi quanto e' profondo il filetto («profondita_mm») oppure che e' " +
+                    "«passante».");
+
+            double volumePrima = VolumeMm3(modello);
+
+            IFeature feature;
+            try
+            {
+                modello.ClearSelection2(true);
+                if (!(spigolo as IEntity).Select4(false, null))
+                    return Fallito("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
+
+                feature = modello.FeatureManager.InsertCosmeticThread3(
+                    // Standard e taglia SONO IGNORATI da questa chiamata
+                    // (misurato): si passa «nessuno standard» invece di
+                    // fingere che un numero serva a qualcosa.
+                    Standard: -2,
+                    StandardType: "",
+                    Size: "",
+                    Diameter: Unita.M(diametro),
+                    EndType: passante
+                        ? (int)swCosmeticThreadType_e.swApplyCosmeticThread_ThroughFeature
+                        : (int)swCosmeticThreadType_e.swApplyCosmeticThread_Blind,
+                    Depth: passante ? 0 : Unita.M(profondita),
+                    Note: denominazione) as IFeature;
+            }
+            catch (Exception ex) { return Fallito("Il filetto cosmetico non e' riuscito: " + ex.Message); }
+
+            if (feature == null)
+                return Fallito(
+                    "Il filetto cosmetico non e' stato creato, e SOLIDWORKS non dice " +
+                    "perche'. Controlla che lo spigolo «" + uid + "» sia il bordo di una " +
+                    "faccia cilindrica.");
+
+            try { modello.EditRebuild3(); } catch { }
+
+            // E' COSMETICA: se il volume e' cambiato, si e' tagliato davvero.
+            double volumeDopo = VolumeMm3(modello);
+            if (Math.Abs(volumeDopo - volumePrima) > 0.01)
+                return Fallito(string.Format(
+                    "Il filetto doveva essere COSMETICO e il volume e' cambiato: {0:0.##} " +
+                    "mm3 prima, {1:0.##} dopo. Qualcosa ha tagliato davvero, e non e' " +
+                    "quello che hai chiesto — ritiralo: " + Frasi.CosiSiRitira + ".",
+                    volumePrima, volumeDopo));
+
+            string tipoFeature = "";
+            try { tipoFeature = feature.GetTypeName2(); } catch { }
+            string callout = "";
+            try
+            {
+                var dati = feature.GetDefinition() as ICosmeticThreadFeatureData;
+                if (dati != null) callout = dati.ThreadCallout ?? "";
+            }
+            catch { }
+
+            // UN'ANNOTAZIONE CHE NON DICE NIENTE non e' un'annotazione: la
+            // feature ci sarebbe, la tavola mostrerebbe un filetto muto.
+            if (string.IsNullOrEmpty(callout))
+                return Fallito(
+                    "Il filetto e' stato creato ma la sua denominazione e' rimasta vuota: " +
+                    "sulla tavola comparirebbe un filetto senza misura. Ritiralo — " +
+                    Frasi.CosiSiRitira + ".");
+
+            return Riuscito(feature, new Dictionary<string, object>
+            {
+                ["spigolo"] = uid,
+                ["denominazione"] = callout,
+                ["diametro_mm"] = Math.Round(diametro, 3),
+                ["profondita_mm"] = passante ? (object)null : profondita,
+                ["passante"] = passante,
+                ["tipo_feature"] = tipoFeature,
+                ["volume_mm3"] = Math.Round(volumeDopo, 2),
+                ["non_taglia_niente"] =
+                    "E' un'annotazione: il volume del pezzo e' lo stesso di prima. Se ti " +
+                    "serve il filetto VERO, tagliato, questa non e' l'operazione.",
+                // SI DICHIARA DA DOVE VIENE IL TESTO. Vedi il commento in testa.
+                ["la_denominazione_e_tua"] =
+                    "«" + callout + "» e' il testo che mi hai dato, non uno ricavato da una " +
+                    "tabella di filettature: questa chiamata ignora lo standard e la taglia. " +
+                    "Se e' sbagliato, sulla tavola finisce sbagliato.",
+            });
+        }
+
         /// <summary>
         /// Da «C2» all'indice 1. Meno uno se non e' un identificativo di corpo
         /// o se il corpo non c'e': i due casi si dicono uguale a chi chiama,

@@ -2218,6 +2218,52 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "filettatura_cosmetica",
+                    Famiglia = "lavorazioni",
+                    Provata = true,
+                    Sommario =
+                        "Dice «qui c'e' un filetto» su un perno o un foro gia' fatto. Non "
+                        + "taglia niente.",
+                    Descrizione =
+                        "Mette una FILETTATURA COSMETICA sul bordo tondo di un perno o di un "
+                        + "foro: e' un'annotazione, non un taglio. Il volume del pezzo resta "
+                        + "quello di prima, e se cambia fallisco -- vorrebbe dire che ha "
+                        + "tagliato davvero.\n\nServe quando il filetto e' su un perno o su un "
+                        + "foro fatto a mano: per un foro filettato guidato c'e' gia' "
+                        + "«foro_guidato», che le misure le prende dalla norma.\n\nSI ATTACCA "
+                        + "ALLO SPIGOLO, non alla faccia: il bordo circolare del cilindro o "
+                        + "del foro.\n\nATTENZIONE ALLA DENOMINAZIONE: il testo che scrivi -- "
+                        + "«M6x1» -- e' quello che finisce sulla tavola, PAROLA PER PAROLA. "
+                        + "Questa chiamata di SOLIDWORKS ignora lo standard e la taglia: non "
+                        + "c'e' nessuna tabella che controlli se «M6x1» e' giusto per un "
+                        + "perno da 6. Se lo scrivi sbagliato, in officina arriva sbagliato.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "spigolo_uid", O(
+                                "type", "string",
+                                "description", "il bordo TONDO su cui attaccare il filetto, preso dallo stato "
+                                    + "del documento (per esempio «E3»)."),
+                            "denominazione", O(
+                                "type", "string",
+                                "description", "il testo del filetto, per esempio «M6x1». Finisce in tavola "
+                                    + "com'e' scritto qui."),
+                            "profondita_mm", O(
+                                "type", "number",
+                                "description", "quanto e' profondo il filetto, in mm. Non serve se e' passante."),
+                            "passante", O(
+                                "type", "boolean",
+                                "description", "vero: il filetto va da parte a parte, e la profondita' non serve."),
+                            "diametro_mm", O(
+                                "type", "number",
+                                "description", "il diametro, se vuoi che lo controlli: se non combacia con quello "
+                                    + "dello spigolo te lo dico invece di filettare il bordo sbagliato. Se non "
+                                    + "lo dici, lo misuro dallo spigolo.")),
+                        "required", A("spigolo_uid", "denominazione")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "raccordo_variabile",
                     Famiglia = "lavorazioni",
                     Provata = true,
