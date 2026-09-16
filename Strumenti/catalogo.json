@@ -2115,6 +2115,42 @@
    "precondizione": "corpo_solido"
   },
   {
+   "nome": "sformo",
+   "famiglia": "lavorazioni",
+   "sommario": "Inclina delle facce di un angolo, rispetto a una faccia che resta ferma. Misura l'angolo sul pezzo, non sulla lavorazione.",
+   "descrizione": "L'angolo di spoglia: le pareti di un pezzo stampato in stampo devono pendere di un grado o due, o il pezzo non esce dalla forma. Serve anche alle fusioni e alle lavorazioni con angolo di spoglia.\n\nDUE FACCE DIVERSE, E NON VANNO CONFUSE. La faccia NEUTRA e' quella che resta ferma: e' il piano da cui si misura l'angolo, e va in «faccia_neutra_uid». Le facce da inclinare vanno in «facce_uid». Se le scambi, SOLIDWORKS fa una lavorazione lo stesso, la chiama con lo stesso nome e non da' nessun errore -- ma ha sformato altre facce, di un'altra quantita'. Io me ne accorgo e ti fermo.\n\nCOME ME NE ACCORGO. La lavorazione, richiesta l'angolo, dichiara sempre quello che le hai chiesto -- anche quando non ha inclinato niente. Percio' conto le facce del pezzo che stanno davvero all'angolo giusto rispetto alla neutra, prima e dopo, e se non ne sono comparse abbastanza mi rifiuto.\n\nIL VERSO. Con «capovolgi» la parete pende dall'altra parte: il pezzo cresce invece di calare. Ti rispondo quanto materiale si e' mosso e da che parte, cosi' lo vedi senza guardare il pezzo di lato.\n\nSOLO FACCE PIANE: una faccia cilindrica sformata diventa conica e non ha un'inclinazione sola, quindi non la conto.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "faccia_neutra_uid": {
+      "type": "string",
+      "description": "la faccia che RESTA FERMA, da cui si misura l'angolo (per esempio «F1»). Di solito e' il fondo o la bocca dello stampo."
+     },
+     "facce_uid": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "le facce da inclinare. Devono toccare la neutra."
+     },
+     "angolo_gradi": {
+      "type": "number",
+      "description": "di quanto inclinarle, in gradi. Per uno stampo 1-3 gradi; per una fusione in sabbia anche 5."
+     },
+     "capovolgi": {
+      "type": "boolean",
+      "description": "vero per far pendere le pareti dall'altra parte -- il pezzo cresce invece di calare. Predefinito falso."
+     }
+    },
+    "required": [
+     "faccia_neutra_uid",
+     "facce_uid",
+     "angolo_gradi"
+    ]
+   },
+   "precondizione": "corpo_solido_e_faccia"
+  },
+  {
    "nome": "sopprimi_istanza",
    "famiglia": "lavorazioni",
    "sommario": "Toglie una o piu' copie da una ripetizione gia' fatta, e si rifiuta se la copia non c'era.",

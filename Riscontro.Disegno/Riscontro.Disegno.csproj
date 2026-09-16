@@ -109,6 +109,7 @@
     <Compile Include="OperazioniProprieta.cs" />
     <Compile Include="OperazioniTesto.cs" />
     <Compile Include="OperazioniIstanze.cs" />
+    <Compile Include="OperazioniSformo.cs" />
     <Compile Include="StatoDocumento.cs" />
     <Compile Include="StatoTavola.cs" />
     <Compile Include="Riferimenti.cs" />

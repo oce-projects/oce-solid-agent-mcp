@@ -2536,6 +2536,56 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "sformo",
+                    Famiglia = "lavorazioni",
+                    Provata = true,
+                    Sommario =
+                        "Inclina delle facce di un angolo, rispetto a una faccia che resta "
+                        + "ferma. Misura l'angolo sul pezzo, non sulla lavorazione.",
+                    Descrizione =
+                        "L'angolo di spoglia: le pareti di un pezzo stampato in stampo devono "
+                        + "pendere di un grado o due, o il pezzo non esce dalla forma. Serve "
+                        + "anche alle fusioni e alle lavorazioni con angolo di spoglia."
+                        + "\n\nDUE FACCE DIVERSE, E NON VANNO CONFUSE. La faccia NEUTRA e' "
+                        + "quella che resta ferma: e' il piano da cui si misura l'angolo, e "
+                        + "va in «faccia_neutra_uid». Le facce da inclinare vanno in "
+                        + "«facce_uid». Se le scambi, SOLIDWORKS fa una lavorazione lo "
+                        + "stesso, la chiama con lo stesso nome e non da' nessun errore -- "
+                        + "ma ha sformato altre facce, di un'altra quantita'. Io me ne "
+                        + "accorgo e ti fermo.\n\nCOME ME NE ACCORGO. La lavorazione, "
+                        + "richiesta l'angolo, dichiara sempre quello che le hai chiesto -- "
+                        + "anche quando non ha inclinato niente. Percio' conto le facce del "
+                        + "pezzo che stanno davvero all'angolo giusto rispetto alla neutra, "
+                        + "prima e dopo, e se non ne sono comparse abbastanza mi rifiuto."
+                        + "\n\nIL VERSO. Con «capovolgi» la parete pende dall'altra parte: il "
+                        + "pezzo cresce invece di calare. Ti rispondo quanto materiale si e' "
+                        + "mosso e da che parte, cosi' lo vedi senza guardare il pezzo di "
+                        + "lato.\n\nSOLO FACCE PIANE: una faccia cilindrica sformata diventa "
+                        + "conica e non ha un'inclinazione sola, quindi non la conto.",
+                    Precondizione = "corpo_solido_e_faccia",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "faccia_neutra_uid", O(
+                                "type", "string",
+                                "description", "la faccia che RESTA FERMA, da cui si misura l'angolo (per "
+                                    + "esempio «F1»). Di solito e' il fondo o la bocca dello stampo."),
+                            "facce_uid", O(
+                                "type", "array",
+                                "items", O("type", "string"),
+                                "description", "le facce da inclinare. Devono toccare la neutra."),
+                            "angolo_gradi", O(
+                                "type", "number",
+                                "description", "di quanto inclinarle, in gradi. Per uno stampo 1-3 gradi; "
+                                    + "per una fusione in sabbia anche 5."),
+                            "capovolgi", O(
+                                "type", "boolean",
+                                "description", "vero per far pendere le pareti dall'altra parte -- il pezzo "
+                                    + "cresce invece di calare. Predefinito falso.")),
+                        "required", A("faccia_neutra_uid", "facce_uid", "angolo_gradi")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "sopprimi_istanza",
                     Famiglia = "lavorazioni",
                     Provata = true,

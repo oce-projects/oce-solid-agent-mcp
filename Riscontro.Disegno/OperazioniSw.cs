@@ -249,7 +249,8 @@ namespace Riscontro.Disegno
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
             "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
-            "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione", "specchia",
+            "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
+            "specchia",
             "sposta_corpi", "taglia_membri",
             "taglio_cilindrico", "taglio_rettangolare", "tappo_estremita",
             "telaio_rettangolare", "verifica_geometria_corpo",
@@ -409,6 +410,13 @@ namespace Riscontro.Disegno
                     // GetDefinition() + ModifyDefinition().
                     case "sopprimi_istanza":
                         return SopprimiIstanza(modello, argomenti, stato);
+
+                    // ── l'angolo di spoglia ─────────────
+                    // Sta in OperazioniSformo.cs. Quattro API per lo stesso
+                    // comando, e due con la firma IDENTICA: quella giusta si e'
+                    // trovata misurando, non leggendo.
+                    case "sformo":
+                        return Sformo(modello, argomenti, stato);
 
                     // ── esportazioni ────────────────────
                     // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama

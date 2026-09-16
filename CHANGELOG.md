@@ -16,6 +16,54 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.52.0 — 16 settembre 2026 · libreria 0.87.0
+
+### GP15 — `sformo`, e due API che non si distinguono leggendo
+
+Catalogo a **55 operazioni**. L'angolo di spoglia: le pareti di un pezzo
+stampato in stampo devono pendere di un grado o due, o il pezzo non esce dalla
+forma.
+
+**Quattro famiglie per lo stesso comando, e due hanno la firma identica.**
+
+    IFeatureManager.InsertMultiFaceDraft(Angle, FlipDir, EdgeDraft,
+                           PropType, IsStepDraft, IsBodyDraft) -> Feature
+    IFeatureManager.DraftXpertChange    (Angle, FlipDir, EdgeDraft,
+                           PropType, IsStepDraft, IsBodyDraft) -> Feature
+    IModelDoc2.InsertMfDraft (Angle, FlipDir, IsEdgeDraft, PropType) -> void
+    IModelDoc2.InsertMfDraft2(... , StepDraft)                       -> void
+
+Le prime due hanno gli stessi nomi di parametro, gli stessi tipi e lo stesso
+tipo di ritorno: **non si distinguono leggendo**. Misurate, con le stesse
+identiche selezioni e gli stessi identici argomenti, `InsertMultiFaceDraft` fa
+lo sformo e **`DraftXpertChange` torna `null`**. Le altre due tornano `void` e
+non si possono nemmeno controllare.
+
+**I marchi, e il difetto che ci sta dentro.** Faccia neutra marchio 1, facce da
+sformare marchio 2. Sullo stesso blocco 100×100×20, sformo di 5°:
+
+| marchi | esito | laterali | volume |
+|---|---|---|---|
+| neutra 1, facce 2 | `Sformo1` | **5,00°** | 200000 → 207080,7 |
+| neutra 2, facce 1 | `Sformo1` | **0,00°** | 200000 → 243744,3 |
+
+La seconda riga è il difetto: scambiando i marchi la lavorazione **nasce lo
+stesso, si chiama lo stesso, non dà nessun errore** — e ha sformato altre facce,
+di un'altra quantità.
+
+**E l'angolo della feature non è una misura.** In tutti e due i casi
+`IDraftFeatureData.Angle` rilegge **5°**: quello che si è chiesto, non quello
+che è successo — anche dove le facce sono rimaste a zero. Perciò l'operazione
+conta le facce **del pezzo** che stanno all'angolo giusto rispetto alla neutra,
+prima e dopo, e si rifiuta se non ne sono comparse abbastanza. L'angolo
+dichiarato dalla feature torna nella risposta accanto a quello misurato, con
+scritto che cos'è.
+
+È la terza API in due giorni che risponde con ciò che le è stato chiesto invece
+che con ciò che ha fatto, dopo `ShowConfiguration2` e `ModifyDefinition`.
+
+---
+
 ## 0.51.0 — 16 settembre 2026 · libreria 0.86.0
 
 ### GP14 — `sopprimi_istanza`, e le due ripetizioni che restano bloccate
