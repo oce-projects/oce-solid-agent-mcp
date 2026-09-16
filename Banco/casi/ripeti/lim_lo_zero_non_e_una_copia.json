@@ -1,0 +1,29 @@
+{
+  "nome": "lim_lo_zero_non_e_una_copia",
+  "famiglia": "ripeti",
+  "perche": "Chiedere di togliere la copia «0». E' l'errore che fa chi conta da zero come conta il codice, e NON E' INNOCUO -- ma non per la ragione che sembra. Misurato: per SOLIDWORKS scrivere `SkippedItemArray = {0}` vuol dire «nessuna copia tolta», cioe' RIMETTILE TUTTE. Quindi uno zero passato di la' cosi' com'e' non toglierebbe l'originale: cancellerebbe in silenzio tutte le copie tolte prima, rispondendo che e' andata bene. E' il difetto che non da' errore, e si evita rifiutando il numero prima.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+                     "diametro_mm": 9, "passante": true },
+      "attese": [ { "cosa": "centri_x_mm", "uguale": [0], "tolleranza": 0.05,
+                    "perche_questa_tolleranza": "il centro si legge da CylinderParams" } ] },
+    { "operazione": "ripeti_lineare",
+      "argomenti": { "feature_uid": "@feature(tipo=ICE,n=1)",
+                     "asse1_uid": "@spigolo(asse=X,lungo~=200,n=1)",
+                     "passo1_mm": 25, "numero_istanze1": 4 },
+      "attese": [ { "cosa": "misure.copie_fatte", "uguale": 3 } ] },
+    { "operazione": "sopprimi_istanza",
+      "argomenti": { "feature_uid": "@feature(tipo=LPattern,n=1)", "copie": [0] },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["si contano da 1", "l'originale"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "salta_la_seconda_copia" } }
+  ]
+}

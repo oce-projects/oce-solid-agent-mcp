@@ -249,7 +249,7 @@ namespace Riscontro.Disegno
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
             "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
-            "smusso_spigoli", "sopprimi_lavorazione", "specchia",
+            "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione", "specchia",
             "sposta_corpi", "taglia_membri",
             "taglio_cilindrico", "taglio_rettangolare", "tappo_estremita",
             "telaio_rettangolare", "verifica_geometria_corpo",
@@ -401,6 +401,14 @@ namespace Riscontro.Disegno
                     // prima: dipende dal font. Si misura e si controlla.
                     case "incidi_testo":
                         return IncidiTesto(modello, argomenti, stato);
+
+                    // ── togliere una copia ──────────────
+                    // Sta in OperazioniIstanze.cs. Non e' una lavorazione nuova:
+                    // e' una scrittura DENTRO una ripetizione gia' fatta, ed e'
+                    // l'unica operazione del catalogo che passa da
+                    // GetDefinition() + ModifyDefinition().
+                    case "sopprimi_istanza":
+                        return SopprimiIstanza(modello, argomenti, stato);
 
                     // ── esportazioni ────────────────────
                     // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama

@@ -2536,6 +2536,53 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "sopprimi_istanza",
+                    Famiglia = "lavorazioni",
+                    Provata = true,
+                    Sommario =
+                        "Toglie una o piu' copie da una ripetizione gia' fatta, e si "
+                        + "rifiuta se la copia non c'era.",
+                    Descrizione =
+                        "Una griglia di fori che ne salta uno dove passa una nervatura, una "
+                        + "fila di asole che si ferma prima della piega. La ripetizione si fa "
+                        + "prima, intera, con «ripeti_lineare» o «ripeti_circolare»; poi si "
+                        + "toglie quello che non deve esserci.\n\nLE COPIE SI CONTANO DA 1, E "
+                        + "L'ORIGINALE NON E' UNA COPIA. In una fila di quattro, la 1 e' la "
+                        + "prima dopo l'originale e la 3 e' l'ultima.\n\nMI RIFIUTO SE LA "
+                        + "COPIA NON C'ERA, ed e' la ragione per cui questa operazione "
+                        + "controlla invece di limitarsi a scrivere. Una ripetizione "
+                        + "costruisce solo le copie che stanno nel materiale e risponde "
+                        + "«riuscito» anche quando ne ha fatte meno di quelle chieste: "
+                        + "chiedere di togliere la quarta di quattro, quando la quarta e' "
+                        + "caduta fuori dal pezzo, RIESCE e non cambia niente. Io conto le "
+                        + "facce prima e dopo, e se non sono calate ti dico che quella copia "
+                        + "non c'era e rimetto tutto com'era.\n\nSi puo' rimettere una copia "
+                        + "tolta con «riattiva».\n\nNON TUTTE LE RIPETIZIONI SANNO FARLO: "
+                        + "quelle guidate da uno schizzo, da una catena o da una quota non "
+                        + "hanno le copie numerate. Uno specchio ha una copia sola: si toglie "
+                        + "cancellandolo.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "feature_uid", O(
+                                "type", "string",
+                                "description", "la RIPETIZIONE da cui togliere le copie (per esempio «L3»), non "
+                                    + "la lavorazione ripetuta. Gli identificativi stanno nello stato "
+                                    + "del documento, dentro «feature»."),
+                            "copie", O(
+                                "type", "array",
+                                "items", O("type", "integer"),
+                                "description", "i numeri delle copie da togliere, contando da 1 dopo "
+                                    + "l'originale. Per esempio [2] toglie la seconda copia."),
+                            "riattiva", O(
+                                "type", "boolean",
+                                "description", "vero per RIMETTERE copie tolte prima, invece di toglierne. "
+                                    + "Predefinito falso.")),
+                        "required", A("feature_uid", "copie")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "incidi_testo",
                     Famiglia = "lavorazioni",
                     Provata = true,

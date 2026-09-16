@@ -16,6 +16,67 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.51.0 — 16 settembre 2026 · libreria 0.86.0
+
+### GP14 — `sopprimi_istanza`, e le due ripetizioni che restano bloccate
+
+Catalogo a **54 operazioni**. Una griglia di fori che ne salta uno dove passa
+una nervatura, una fila di asole che si ferma prima della piega.
+
+**Non c'è un metodo: si scrive un array.** Non esiste una «SkipInstance». Si
+prende il dato della feature, si scrive `SkippedItemArray`, e si rimette:
+`GetDefinition()` → `AccessSelections` → `SkippedItemArray = {…}` →
+`ModifyDefinition()`. È una scrittura *dopo* la creazione, non un parametro.
+
+**Gli indici, misurati.** Piastra 200×100, foro a x=−50, ripetizione di 4 con
+passo 25 verso −X, cioè posizioni −50 (l'originale), −75, −100, −125. Scritto
+`{2}`, sparisce quello a **−100**: l'indice è la *seconda copia*, l'originale non
+si conta, il conto parte da 1. È anche il modo in cui conterebbe chi chiede, per
+cui il numero passa così com'è — e lo **zero si rifiuta** dicendo che
+l'originale non è una copia.
+
+**Il difetto: si può togliere una copia che non c'è.** Nella stessa prova la
+quarta posizione (−125) cadeva fuori dalla piastra, e SOLIDWORKS aveva
+costruito tre copie su quattro rispondendo «riuscito» — è la nota 80y, ed è
+ancora vera. Chiedere di saltare una copia mai esistita **riesce**:
+`ModifyDefinition` risponde `true`, l'array si scrive, nel pezzo non cambia
+niente. Perciò si contano le facce della ripetizione prima e dopo, e se non sono
+calate **ci si rifiuta rimettendo l'array com'era**.
+
+**Rimettere una copia si scrive `{0}`, non `{}`.** Togliere funziona al primo
+colpo; rimettere no, e l'ha preso il banco. Tre modi di svuotare la lista, dopo
+aver tolto la copia 2 da una fila di quattro (facce 3 → 2):
+
+| scritto | `ModifyDefinition` | facce dopo | rilettura |
+|---|---|---|---|
+| `new int[0]` | **true** | 2 (invariate) | `{2}` |
+| `null` | **true** *(ma la scrittura alza `RPC_E_SERVERFAULT`)* | 2 (invariate) | `{2}` |
+| `new int[]{ 0 }` | true | **3** | `{}` |
+
+Lo zero è il modo di dire «nessuna», non un indice; si scrive in un modo e si
+rilegge in un altro; e **due modi su tre rispondono `true` su una cosa che non è
+successa**. È la ragione per cui qui il criterio è il conto delle facce e mai il
+valore di ritorno — e retro-giustifica il rifiuto di `copie: [0]`, che passato
+di là cancellerebbe in silenzio tutte le copie tolte prima.
+
+**E delle nove famiglie di ripetizione, tre non hanno l'array.** Misurato:
+sketch-driven, chain e dimension-driven non espongono `SkippedItemArray`, pur
+avendo tutte `AccessSelections` con la stessa firma. Non esiste nessuna
+interfaccia comune — scriverne una fa fallire la compilazione, che è il modo
+migliore di scoprirlo.
+
+**Le altre due della voce restano aperte, e la ragione è scritta.**
+`FeatureFillPattern` ha risposto `null` in **quindici** combinazioni misurate
+(marchi di selezione, contorno faccia o schizzo, a passo o a numero, margine
+zero, stagger 0° e 90°, layout quadro e a perforazione, seme come feature, come
+schizzo, come faccia cilindrica, seme creato da SOLIDWORKS, `GeometryPattern`)
+— senza eccezione, senza messaggio e senza lasciare nell'albero nessuna feature
+in errore. E `InsertTableDrivenPattern2` con `FileName` vuoto risponde `null`:
+vuole un file su disco, che è un'altra forma di operazione. Tabelle e dettagli
+in `81u_quindici_volte_null_senza_un_perche`.
+
+---
+
 ## 0.50.0 — 16 settembre 2026 · libreria 0.85.0
 
 ### GP13 — `incidi_testo`, e la scritta che sparisce a metà senza dire niente
