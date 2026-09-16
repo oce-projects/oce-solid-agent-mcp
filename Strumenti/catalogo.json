@@ -2115,6 +2115,58 @@
    "precondizione": "corpo_solido"
   },
   {
+   "nome": "incidi_testo",
+   "famiglia": "lavorazioni",
+   "sommario": "Incide (o fa in rilievo) una scritta su una faccia piana, e si rifiuta se la scritta non ci sta.",
+   "descrizione": "Scrive delle PAROLE nel pezzo: numero di serie, verso di montaggio, nome del cliente, «ALTO». Incisa (predefinito) o in rilievo.\n\nCONTROLLO PRIMA CHE CI STIA, ED E' LA META' DEL LAVORO. La larghezza di una scritta non si calcola dalla stringa: dipende dal font, e «PROVA» alta 10 mm in Century Gothic e' larga 47 mm. Una scritta che esce dalla faccia viene tagliata via IN SILENZIO -- la lavorazione nasce verde, e nel pezzo c'e' «PRO». Io leggo dove finiscono davvero le lettere e mi rifiuto, dicendoti di quanto sbordava.\n\nTI RISPONDO QUANTO E' LARGA E ALTA DAVVERO, cosi' la seconda volta sai gia' che numeri passare.\n\nL'ancora e' l'inizio della scritta in basso a sinistra: da li' va a destra. L'area delle lettere che ti rispondo va col quadrato dell'altezza -- raddoppiando «altezza_mm» l'area quadruplica -- ed e' il modo di controllare due marcature l'una con l'altra.\n\nNON SU UNA FACCIA CURVA: il testo avvolto e' un'altra lavorazione, che non ho.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "testo": {
+      "type": "string",
+      "description": "la scritta, per esempio «SN-0042» o «ALTO»."
+     },
+     "faccia_uid": {
+      "type": "string",
+      "description": "la faccia piana su cui scrivere (per esempio «F1»). Gli identificativi stanno nello stato del documento."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "dove comincia la scritta sulla faccia, in mm, nelle coordinate della faccia. Predefinito 0."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "l'altra coordinata dell'ancora. Predefinito 0. L'ancora e' l'ANGOLO IN BASSO A SINISTRA della scritta, non il suo centro."
+     },
+     "altezza_mm": {
+      "type": "number",
+      "description": "l'altezza delle lettere in mm. Predefinito 5."
+     },
+     "profondita_mm": {
+      "type": "number",
+      "description": "quanto in profondita' incidere, o quanto alzare se «in_rilievo». Predefinito 0,5 mm, che e' una marcatura da leggere. Per una che si senta al tatto servono 0,3-0,8 mm."
+     },
+     "in_rilievo": {
+      "type": "boolean",
+      "description": "vero per una scritta in rilievo invece che incisa. Predefinito falso. In rilievo si stampa meglio in 3D, incisa si legge meglio su un pezzo lavorato."
+     },
+     "font": {
+      "type": "string",
+      "description": "il nome del carattere, per esempio «Arial». Se non lo dici uso quello del documento. Un font che non c'e' su questo computer cambia la larghezza della scritta."
+     },
+     "grassetto": {
+      "type": "boolean",
+      "description": "vero per il grassetto: lettere piu' spesse, che su una stampa 3D o una fusione si leggono meglio. Predefinito falso."
+     }
+    },
+    "required": [
+     "testo",
+     "faccia_uid"
+    ]
+   },
+   "precondizione": "corpo_solido_e_faccia"
+  },
+  {
    "nome": "scrivi_proprieta",
    "famiglia": "identita",
    "sommario": "Scrive una proprieta' personalizzata -- numero disegno, revisione, cliente -- sul documento oppure su una configurazione.",

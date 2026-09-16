@@ -107,6 +107,7 @@
     <Compile Include="OperazioniMisura.cs" />
     <Compile Include="OperazioniCorpi.cs" />
     <Compile Include="OperazioniProprieta.cs" />
+    <Compile Include="OperazioniTesto.cs" />
     <Compile Include="StatoDocumento.cs" />
     <Compile Include="StatoTavola.cs" />
     <Compile Include="Riferimenti.cs" />

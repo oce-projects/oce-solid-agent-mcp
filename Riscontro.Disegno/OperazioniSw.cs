@@ -244,7 +244,7 @@ namespace Riscontro.Disegno
             "estrudi_sezione", "ruota_dentata",
             "estrudi_su_faccia", "fazzoletto", "filettatura_cosmetica",
             "foro_guidato", "guscio",
-            "imposta_foglio", "ingombro_corpo", "membro_strutturale",
+            "imposta_foglio", "incidi_testo", "ingombro_corpo", "membro_strutturale",
             "misura_fra_entita", "modifica_quota", "proprieta_di_massa",
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
             "ripeti_circolare", "scrivi_proprieta",
@@ -393,6 +393,14 @@ namespace Riscontro.Disegno
                         return CreaConfigurazione(modello, argomenti, stato);
                     case "attiva_configurazione":
                         return AttivaConfigurazione(modello, argomenti, stato);
+
+                    // ── la marcatura ────────────────────
+                    // Sta in OperazioniTesto.cs. E' l'unica operazione che
+                    // scrive delle PAROLE nel pezzo, e l'unica in cui la
+                    // grandezza di cio' che si disegna non si puo' calcolare
+                    // prima: dipende dal font. Si misura e si controlla.
+                    case "incidi_testo":
+                        return IncidiTesto(modello, argomenti, stato);
 
                     // ── esportazioni ────────────────────
                     // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama

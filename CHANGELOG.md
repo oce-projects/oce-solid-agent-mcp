@@ -16,6 +16,63 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.50.0 — 16 settembre 2026 · libreria 0.85.0
+
+### GP13 — `incidi_testo`, e la scritta che sparisce a metà senza dire niente
+
+Catalogo a **53 operazioni**. Scrive delle *parole* nel pezzo — numero di serie,
+verso di montaggio, marcatura del cliente — incise o in rilievo su una faccia
+piana.
+
+`IModelDoc2.InsertSketchText` fa lo **schizzo**; il materiale lo tolgono (o lo
+aggiungono) il taglio e l'estrusione già misurati. Non apre nessuna finestra —
+non è come `AddDimension` — e funziona anche con `AddToDB = true`.
+
+**Il difetto, e qui è grosso.** «PROVA» alta 10 mm, incisa 2 mm, su un quadrato
+di 100×100:
+
+    ancorata a (0, 0)     ->  tolti 230,70 mm3
+    ancorata a (30, 10)   ->  tolti 111,20 mm3
+
+**Metà della scritta cade fuori dalla faccia e sparisce in silenzio.** La
+lavorazione nasce verde, si chiama `Taglio-Estrusione1`, e nel pezzo c'è «PRO».
+Su un numero di serie non c'è niente da cui accorgersene guardando l'albero.
+Tutta fuori invece si prende già (`FeatureCut4` torna `null`): il caso che conta
+è la sovrapposizione **parziale**.
+
+**Come si prende.** La larghezza di una scritta non si calcola dalla stringa:
+dipende dal disegno dei glifi. Ma `ISketchText.GetEdges()` torna i contorni
+delle lettere — **56 `IEdge` per «PROVA»** — e da quelli si legge dove la
+scritta finisce davvero, in coordinate del modello. Si controlla **prima** di
+tagliare e ci si rifiuta, dicendo di quanto sbordava; lo schizzo viene ritirato.
+Per «PROVA» in Century Gothic alta 10 mm sono **47,05 × 10,51 mm** — un numero
+che si può solo misurare.
+
+**E quello che un numero ce l'ha.** L'area delle lettere non si prevede, ma va
+col **quadrato dell'altezza**:
+
+    altezza  5 mm  ->  area  28,83 mm2  ->  area/h² = 1,1533
+    altezza 10 mm  ->  area 115,35 mm2  ->  area/h² = 1,1535
+    altezza 20 mm  ->  area 265,88 mm2  ->  area/h² = 0,6647   <- rotto
+
+Il terzo è rotto perché a 20 mm «PROVA» è larga 94 mm e sulla faccia da 100 non
+ci stava: **la stessa legge che tiene i primi due è quella che denuncia il
+terzo.** L'operazione risponde `area_su_altezza_quadra`, e il banco lo pretende
+uguale fra tre marcature di altezza e profondità diverse.
+
+**`Alignment` non fa niente.** La voce lo dava per «non verificato nel
+significato pratico». Provati tutti e cinque i valori 0..4 sulla stessa scritta:
+la scatola torna identica al millesimo in tutti e cinque. Non è un parametro che
+non si è capito — è un parametro che questa chiamata ignora. Perciò non si
+espone.
+
+L'operazione dichiara anche **cosa non guarda**: confronta la scritta con la
+*scatola* della faccia, e dice se quella faccia riempie la propria scatola
+(allora il controllo è completo) o se ha un foro o un contorno rientrante
+(allora una lettera potrebbe caderci sopra senza che se ne accorga).
+
+---
+
 ## 0.49.0 — 16 settembre 2026 · libreria 0.84.0
 
 ### GP12 — proprietà personalizzate e configurazioni, e i due cassetti che non si vedono
