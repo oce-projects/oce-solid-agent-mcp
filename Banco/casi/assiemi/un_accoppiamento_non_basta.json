@@ -1,0 +1,43 @@
+{
+  "nome": "un_accoppiamento_non_basta",
+  "famiglia": "assiemi",
+  "perche": "LA VOCE GA4 ERA BLOCCATA SU UN'INCOGNITA CHE NON C'ERA. Diceva: «quali marche di selezione serva usare, la riflessione non lo dice», e ci appendeva la stima. Non serve nessuna marca: si selezionano le due facce con Select4(append) e AddMate5 risponde swAddMateError_NoError. Scoperto dentro una sonda scritta per un'altra domanda -- le sonde vanno lette tutte, non solo per la riga che si era andati a cercare.",
+  "perche_questo_caso_esiste": "Per provare che accoppiare CAMBIA qualcosa di misurabile. Il conteggio degli accoppiamenti sale, e «appoggiato» -- che era true su un componente inserito e non vincolato -- diventa false. Senza questa coppia di misure, «ho accoppiato» sarebbe solo una frase.",
+  "perche_UN_accoppiamento_non_basta": "E' la riga che questo caso porta con se'. Un coincidente fra due facce toglie tre gradi di liberta' su sei: il coperchio non puo' piu' staccarsi dalla base ne' inclinarsi, ma PUO' ANCORA SCORRERE nel piano e girare attorno alla normale. L'assieme sembra montato e non lo e'. Il caso pretende che il ponte NON dichiari vincolato un pezzo con un accoppiamento solo, e che dica a voce alta di non sapere quanto resti libero.",
+  "assieme": {
+    "componenti": [
+      { "nome": "base",
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+        ] },
+      { "nome": "coperchio",
+        "posizione_mm": [0, 40, 0],
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+        ] }
+    ]
+  },
+  "passi": [
+    { "operazione": "accoppia",
+      "argomenti": {
+        "componente_a": "C1", "faccia_a": "alto",
+        "componente_b": "C2", "faccia_b": "basso",
+        "tipo": "coincidente", "allineamento": "opposto"
+      },
+      "attese": [
+        { "cosa": "misure.accoppiamenti_dopo", "uguale": [1, 1],
+          "perche": "LA MISURA, e non il valore di ritorno: AddMate5 risponde un Mate2 E scrive un ErrorStatus, e nessuno dei due dice che l'accoppiamento esiste. Lo dice il conteggio, su tutti e due i componenti." },
+        { "cosa": "misure.appoggiato_b", "uguale": false,
+          "perche": "IL CERCHIO SI CHIUDE. Nel caso «inserire_non_e_accoppiare» questo stesso campo era true su un componente appena inserito. Adesso c'e' un accoppiamento e diventa false: e' la prova che i due casi misurano la stessa cosa e che accoppiare la cambia." },
+        { "cosa": "misure.giudizio", "contiene": ["non te lo so dire", "cinque su sei"],
+          "perche": "IL ROSSO CHE CONTA DAVVERO. Un coincidente toglie tre gradi su sei: il coperchio non si stacca piu' ma scorre ancora nel piano e gira attorno alla normale. Se un giorno questa frase sparisse dalla risposta, il ponte starebbe lasciando credere che un accoppiamento solo basti -- e un assieme che sembra montato senza esserlo e' esattamente il difetto che questo progetto insegue." },
+        { "cosa": "stato.componenti[1].accoppiamenti", "uguale": 1,
+          "perche": "lo stato e l'operazione devono dire lo stesso numero: due letture che divergono sono peggio di una sola" },
+        { "cosa": "stato.assieme_vincolato", "uguale": true,
+          "perche_questo_true_NON_vuol_dire_montato": "«vincolato» qui significa, alla lettera, «ogni componente non fisso ha almeno un accoppiamento» -- ed e' vero: il coperchio ne ha uno. NON significa «non si muove piu'». E' per questo che lo stato porta anche «cosa_non_so_dei_vincoli», e l'attesa qui sotto pretende che ci sia: un campo che dice true senza la sua avvertenza accanto sarebbe una mezza verita' che nessuno correggerebbe." },
+        { "cosa": "stato.cosa_non_so_dei_vincoli", "contiene": ["almeno un accoppiamento", "cinque su sei"] }
+      ] }
+  ]
+}

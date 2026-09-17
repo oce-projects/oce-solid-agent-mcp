@@ -235,7 +235,7 @@ namespace Riscontro.Disegno
         public static readonly string[] NomiEseguibili =
         {
             "applica_materiale", "asola", "attiva_configurazione",
-            "combina_corpi",
+            "accoppia", "combina_corpi",
             "cordone_saldatura", "crea_asse", "crea_configurazione",
             "crea_disegno", "crea_piano", "distinta_taglio",
             "piano_per_tre_punti", "profili_saldatura",
@@ -344,6 +344,10 @@ namespace Riscontro.Disegno
                     // liberi sembrano un assieme.
                     case "inserisci_componente":
                         return InserisciComponente(modello, argomenti, stato);
+                    // La seconda, e quella che fa la differenza: inserire non
+                    // e' accoppiare. Sta in OperazioniAccoppia.cs.
+                    case "accoppia":
+                        return Accoppia(modello, argomenti, stato);
                     case "piano_per_tre_punti":
                         return PianoPerTrePunti(modello, argomenti, stato);
 

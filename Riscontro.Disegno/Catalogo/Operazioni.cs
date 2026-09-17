@@ -2630,6 +2630,67 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "accoppia",
+                    Famiglia = "assiemi",
+                    Provata = true,
+                    Sommario =
+                        "Vincola due componenti fra loro prendendo una faccia per uno. "
+                        + "E' la differenza fra un assieme e un mucchio ordinato.",
+                    Descrizione =
+                        "Mette un accoppiamento fra due componenti dell'assieme aperto.\n\n"
+                        + "LE FACCE SI NOMINANO PER VERSO, non per identificativo: «la "
+                        + "faccia in basso di C2 sulla faccia in alto di C1». I componenti "
+                        + "sono quelli che «guarda_il_pezzo» elenca come C1, C2, ... e quegli "
+                        + "identificativi sono STABILI (al contrario di quelli delle facce di "
+                        + "una parte, che si rinumerano a ogni lettura).\n\nI versi sono "
+                        + "quelli dell'ASSIEME, non del pezzo: se un componente e' ruotato, "
+                        + "la sua faccia «in alto» e' quella che guarda in alto **nel "
+                        + "montaggio**. Se non trovo nessuna faccia piana in quel verso te lo "
+                        + "dico invece di prenderne una a caso.\n\nFra piu' facce nello stesso "
+                        + "verso prendo LA PIU' GRANDE: su un coperchio o una piastra e' "
+                        + "quella che vuoi.\n\nQUELLO CHE NON TI SO DIRE, e te lo dico: **di "
+                        + "quanto i componenti restino ancora liberi**. SOLIDWORKS non mi da' "
+                        + "i gradi di liberta' residui da qui, e un accoppiamento solo ne "
+                        + "lascia liberi cinque su sei: per vincolare davvero un pezzo ne "
+                        + "servono di solito tre. Ti dico quanti ne ha adesso, non quanto "
+                        + "basti.\n\nNon conto sulla risposta: conto gli accoppiamenti dei due "
+                        + "componenti prima e dopo, e se non sono aumentati te lo dico invece "
+                        + "di dichiarare fatto.",
+                    Precondizione = "un assieme aperto con almeno due componenti",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "componente_a", O(
+                                "type", "string",
+                                "description", "l'identificativo del primo componente, da "
+                                    + "«guarda_il_pezzo»: «C1», «C2», ..."),
+                            "faccia_a", O(
+                                "type", "string",
+                                "description", "quale sua faccia, per verso: alto, basso, destra, "
+                                    + "sinistra, davanti, dietro. Versi dell'ASSIEME."),
+                            "componente_b", O(
+                                "type", "string",
+                                "description", "l'identificativo del secondo componente."),
+                            "faccia_b", O(
+                                "type", "string",
+                                "description", "quale sua faccia, per verso."),
+                            "tipo", O(
+                                "type", "string",
+                                "description", "coincidente (predefinito), concentrico, parallelo, "
+                                    + "perpendicolare, distanza, tangente."),
+                            "distanza_mm", O(
+                                "type", "number",
+                                "description", "solo per «distanza»: quanto stanno lontane. Senza, "
+                                    + "mi rifiuto -- non c'e' nessun valore predefinito ragionevole."),
+                            "allineamento", O(
+                                "type", "string",
+                                "description", "«allineato» (predefinito) o «opposto». Se SOLIDWORKS "
+                                    + "rifiuta per allineamento, prova l'altro: due facce che si "
+                                    + "guardano vogliono «opposto».")),
+                        "required", A("componente_a", "faccia_a", "componente_b", "faccia_b")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "inserisci_componente",
                     Famiglia = "assiemi",
                     Provata = true,

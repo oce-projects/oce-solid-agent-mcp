@@ -24,6 +24,63 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.59.0 — 17 September 2026 · library 0.93.0
+
+### `accoppia` — and the unknown that was blocking it did not exist
+
+GA4 was marked blocking and blocked, on this: *"which selection marks are needed,
+reflection does not say"*, with an 8-10 hour estimate hanging off it.
+
+**No marks are needed.** Select the two entities with
+`IEntity.Select4(append: true, null)` and call `AddMate5`: it answers
+`swAddMateError_NoError`. That was measured inside a probe written for an
+entirely different question — *probes are worth reading whole, not only for the
+line you went looking for.*
+
+Sixty-two operations now. Coincident, concentric, parallel, perpendicular,
+distance, tangent; aligned or anti-aligned; `distanza_mm` required for distance,
+because there is no reasonable default for how far apart two faces are.
+
+**How the faces are named, which was the real question.** The state gives
+`C1..Cn` for components and **no identifiers for their faces**. Making some would
+mean numbering hundreds of faces, and they would be **positional** — to be
+re-read after every change. So faces are named by **direction**, reusing the
+vocabulary this project already has for parts: *"the top face of C1 on the bottom
+face of C2"*. It does not cover everything — an oblique face has no direction —
+and it **says so** instead of guessing. The directions are the **assembly's**,
+not the part's: a rotated component's "top" face is the one facing up *in the
+assembly*.
+
+**`C1` means one thing.** The ordering that assigns it now lives in one place,
+`StatoDocumento.ComponentiInOrdine`, used by the state **and** by `accoppia`. Two
+copies of that rule and one of them drifting would make `C1` mean two different
+things — and mate the wrong component with nothing raising an error.
+
+**The measurement is not the return value.** `AddMate5` returns a `Mate2` *and*
+writes an `ErrorStatus`, and neither says the mate exists. The mate counts on
+both components are compared before and after, re-reading the handles by name
+after the rebuild.
+
+### The entry's own success criterion had to be rewritten
+
+GA4 asked for: *"an insufficient mate must leave `GetRemainingDOFs > 0` on that
+axis"*. **That is not reachable** — `GetRemainingDOFs` answers *unavailable* in
+every condition tried.
+
+So the case `un_accoppiamento_non_basta` does the nearest thing that is **true**:
+it proves the mate exists (the count rises, `appoggiato` turns false) **and** that
+the bridge says out loud it does not know how much freedom is left.
+
+A coincident mate removes three degrees of freedom out of six: the lid can no
+longer lift off, but it can still **slide in the plane and spin about the
+normal**. If that sentence ever disappears from the answer, the bridge would be
+letting a reader believe one mate is enough — and an assembly that looks
+assembled without being assembled is the exact defect this project chases.
+
+715 bench tests, 0 failed, 550 expectations verified. 128 contract checks.
+
+---
+
 ## 0.58.0 — 16 September 2026 · library 0.92.0
 
 ### Assemblies: the bench can build one, the state can read one, and one operation can touch one

@@ -62,6 +62,39 @@ namespace Riscontro.Disegno
         /// conteggio totale si scrive comunque.
         private const int MaxComponenti = 40;
 
+        /// <summary>
+        /// I componenti nell'ordine che decide gli uid `C1..Cn`.
+        ///
+        /// ── PERCHE' STA IN UN METODO E NON DENTRO `DescriviAssieme` ──────
+        ///
+        /// Questo ordine **e' il significato di `C1`**. Lo stato lo usa per
+        /// numerare, e `accoppia` (voce GA4) lo usa per ritrovare il componente
+        /// che l'utente ha nominato. Se le due liste fossero costruite in due
+        /// posti, basterebbe che una cambiasse perche' **`C1` volesse dire due
+        /// cose diverse** — e allora si accoppierebbe il componente sbagliato
+        /// senza che niente dia errore. E' il difetto che non da' errore nella
+        /// forma piu' banale e piu' cara: due copie della stessa regola.
+        ///
+        /// L'ordine e' per `Name2`, che dentro un assieme e' unico: cosi'
+        /// `C1..Cn` resta lo stesso fra due letture, al contrario degli uid
+        /// delle facce, che sono posizionali e si rinumerano.
+        /// </summary>
+        internal static List<KeyValuePair<string, IComponent2>> ComponentiInOrdine(object[] tutti)
+        {
+            var voci = new List<KeyValuePair<string, IComponent2>>();
+            if (tutti == null) return voci;
+            foreach (var o in tutti)
+            {
+                var c = o as IComponent2;
+                if (c == null) continue;
+                string nome = null;
+                try { nome = c.Name2; } catch { }
+                voci.Add(new KeyValuePair<string, IComponent2>(nome ?? "", c));
+            }
+            voci.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            return voci;
+        }
+
         /// <summary>Componenti, conteggi e configurazione di un assieme.</summary>
         private static void DescriviAssieme(IAssemblyDoc assieme, Dictionary<string, object> dati)
         {
@@ -103,16 +136,7 @@ namespace Riscontro.Disegno
             // parte: fidarsene vorrebbe dire uid che cambiano quando SOLIDWORKS
             // decide di cambiarlo, cioe' la trappola delle facce, ripetuta dove
             // si poteva evitare.
-            var voci = new List<KeyValuePair<string, IComponent2>>();
-            foreach (var o in tutti)
-            {
-                var c = o as IComponent2;
-                if (c == null) continue;
-                string nome = null;
-                try { nome = c.Name2; } catch { }
-                voci.Add(new KeyValuePair<string, IComponent2>(nome ?? "", c));
-            }
-            voci.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            var voci = ComponentiInOrdine(tutti);
 
             var elenco = new List<Dictionary<string, object>>();
             int soppressi = 0, leggeri = 0, fissi = 0;

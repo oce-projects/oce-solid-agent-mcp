@@ -103,7 +103,7 @@ step 5 first, then step 3.
 
 ## What it covers
 
-Sixty-one measured operations, grouped as the tools present them:
+Sixty-two measured operations, grouped as the tools present them:
 
 | family | what is in it |
 |---|---|
@@ -116,20 +116,19 @@ Sixty-one measured operations, grouped as the tools present them:
 | checks (6) | body geometry, overhangs, mass properties, bounding box, minimum distance, distance between entities |
 | drawing (7) | create drawing, views, standard views, sheet setup, dimensions from the model, save, export PDF |
 | export (3) | STL, STEP, IGES |
-| assemblies (1) | insert a component — and tell you whether it is actually constrained or just sitting there |
+| assemblies (2) | insert a component, mate two of them — and tell you whether a part is actually held or just sitting there |
 
 ## What it does NOT cover — by design, listed
 
 Not "some complex geometry". These, by name:
 
-- **Mating assemblies.** You can open an assembly, see its components, and insert
-  one. You cannot **mate** anything yet — so an assembly built this way is a
-  tidy pile, not a machine. The state says so in plain words rather than leaving
-  you to notice: every component reports whether it is fixed and how many mates
-  it has, and a component that is neither is flagged as *sitting there*.
-  It will also tell you what it **cannot** tell you: SOLIDWORKS® does not expose
-  the remaining degrees of freedom here, so "constrained" means *"has at least
-  one mate"*, not *"cannot move"* — one mate still leaves five of six.
+- **Knowing when an assembly is fully constrained.** You can open an assembly,
+  see its components, insert one and mate two of them by naming a face on each
+  ("the bottom of C2 on the top of C1"). What it cannot tell you is **how much
+  freedom is left**: SOLIDWORKS® does not expose the remaining degrees of freedom
+  here, so "constrained" means *"has at least one mate"*, not *"cannot move"* —
+  one mate still leaves five of six, and holding a part usually takes three.
+  It says this in the answer rather than letting you assume otherwise.
 - **Sheet metal.** No flanges, no bends, no flat patterns.
 - **Surfaces.** Solid bodies only.
 - **Sweep along an arbitrary path**, and **loft between arbitrary profiles.**

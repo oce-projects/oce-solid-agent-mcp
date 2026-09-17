@@ -115,6 +115,7 @@
     <Compile Include="OperazioniPercorso.cs" />
     <Compile Include="OperazioniProfili.cs" />
     <Compile Include="StatoDocumento.cs" />
+    <Compile Include="OperazioniAccoppia.cs" />
     <Compile Include="OperazioniAssieme.cs" />
     <Compile Include="StatoAssieme.cs" />
     <Compile Include="StatoTavola.cs" />

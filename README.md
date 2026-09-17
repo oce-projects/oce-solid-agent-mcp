@@ -1,6 +1,6 @@
 # OCE Solid Agent
 
-Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti sessantuno
+Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti sessantadue
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -52,7 +52,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sei, non sessantuno. Le operazioni di disegno sono sessantuno, ma esporne
+Sei, non sessantadue. Le operazioni di disegno sono sessantadue, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
