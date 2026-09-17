@@ -2056,6 +2056,86 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "croci_di_centro",
+                    Famiglia = "tavola",
+                    // ── NON PROVATA, E NON PERCHE' MANCHI IL TEMPO ──────
+                    //
+                    // Il codice c'e' ed e' giusto; e' l'API che dice di si' e
+                    // non fa niente. Misurato il 17/9/2026, tre sonde:
+                    //
+                    //   - 25 combinazioni di `InsertType` x `InsertOption` su
+                    //     `AutoInsertCenterMarks2`: risposta `True` ogni volta,
+                    //     croci 0 -> 0, linee d'asse 0 -> 0;
+                    //   - la vista GIUSTA (quella che mostra tre spigoli
+                    //     circolari, contati con `GetVisibleEntityCount2`),
+                    //     attivata con `ActivateView` e selezionata: 0 -> 0;
+                    //   - `InsertCenterMark2` e `InsertCenterMark3` su ognuno
+                    //     dei tre spigoli circolari selezionati: 0 messe;
+                    //   - con `swDetailingAutoInsertCenterMarks` e le tre
+                    //     `...ForHoles/Fillets/Slots` accese a mano, e con
+                    //     `UseDocumentDefaults: false` e dimensione esplicita:
+                    //     ancora 0 -> 0.
+                    //
+                    // Non si e' trovato nessun modo di far nascere una croce di
+                    // centro da codice su questa installazione. **Finche' non si
+                    // trova, l'operazione non si offre**: e' la regola del
+                    // catalogo a due livelli, e vale soprattutto quando la
+                    // tentazione e' forte — qui l'operazione «riesce», e chi la
+                    // chiamasse crederebbe di avere i centri.
+                    //
+                    // Il codice resta (`OperazioniCentrini.cs`) perche' la
+                    // parte difficile e' gia' fatta e misurata, e perche'
+                    // riporta `croci_aggiunte = 0` invece di dichiarare fatto:
+                    // il giorno in cui si scopre cosa manca, si rimette
+                    // `Provata = true` e c'e' gia' tutto, caso di banco
+                    // compreso. Vedi la voce W2.11 del TODO.
+                    Provata = false,
+                    Sommario =
+                        "Mette le croci di centro sui fori delle viste, e le CONTA.",
+                    Descrizione =
+                        "Mette la croce di centro su ogni foro delle viste, in un colpo: "
+                        + "non serve selezionare niente.\n\nPERCHE' SERVE. Una tavola con "
+                        + "dodici fori e nessuna croce di centro si stampa e sembra "
+                        + "completa. In officina manca la cosa che serve per forare: "
+                        + "**dove sta il centro.** Nessun errore, tavola inutilizzabile."
+                        + "\n\nTI DICO QUANTE NE SONO NATE, non che ho chiamato l'API: le "
+                        + "croci si contano sulla vista prima e dopo. Se il numero e' "
+                        + "**zero** te lo grido invece di dire «fatto» — quasi sempre vuol "
+                        + "dire che quella vista non ha cerchi, cioe' che e' la vista "
+                        + "sbagliata.\n\nLA DIMENSIONE, se non me la dici, e' quella del "
+                        + "documento. E' voluto: la misura delle croci e' una convenzione "
+                        + "di studio, e sceglierne una io vorrebbe dire darti tavole che "
+                        + "non somigliano alle altre tavole della tua officina.\n\nSenza "
+                        + "«vista» le guardo tutte.",
+                    Precondizione = "una tavola con almeno una vista",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O(
+                                "type", "string",
+                                "description", "il nome di UNA vista, come lo riporta lo stato della "
+                                    + "tavola. Vuoto = tutte le viste."),
+                            "su", O(
+                                "type", "string",
+                                "description", "«fori» (predefinito), «raccordi», «asole» oppure "
+                                    + "«tutti». Un nome diverso da questi lo rifiuto invece di "
+                                    + "ripiegare sui fori: ti ritroveresti le croci su un'altra cosa."),
+                            "dimensione_mm", O(
+                                "type", "number",
+                                "description", "quanto e' grande la croce. Se non lo dici uso le "
+                                    + "impostazioni del documento, che e' quasi sempre la cosa giusta."),
+                            "distacco_mm", O(
+                                "type", "number",
+                                "description", "lo stacco fra la croce e le linee estese. Conta solo "
+                                    + "con «linee_estese»."),
+                            "linee_estese", O(
+                                "type", "boolean",
+                                "description", "le linee d'asse che escono dalla croce fino al bordo "
+                                    + "del cerchio. Spente se non dici niente.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "salva_documento",
                     Famiglia = "tavola",
                     Provata = true,
@@ -2688,6 +2768,56 @@ namespace Riscontro.Disegno.Catalogo
                                     + "rifiuta per allineamento, prova l'altro: due facce che si "
                                     + "guardano vogliono «opposto».")),
                         "required", A("componente_a", "faccia_a", "componente_b", "faccia_b")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "sostituisci_componente",
+                    Famiglia = "assiemi",
+                    Provata = true,
+                    Sommario =
+                        "Cambia il file di un componente gia' montato, e ti dice se i "
+                        + "vincoli sono sopravvissuti SANI o solo sopravvissuti.",
+                    Descrizione =
+                        "«Il coperchio va rifatto»: cambia il file di un componente gia' "
+                        + "montato.\n\nGUARDA SEMPRE COSA TI RISPONDO SUGLI ACCOPPIAMENTI. "
+                        + "Misurato: i vincoli del pezzo vecchio **restano** -- non si "
+                        + "perdono -- ma restare non vuol dire funzionare. Un vincolo che "
+                        + "puntava a una faccia del pezzo vecchio sopravvive nell'albero e "
+                        + "puo' andare in ERRORE, e allora il conteggio lo vede ancora e "
+                        + "sembra tutto a posto.\n\n**Un vincolo rotto e' peggio di un "
+                        + "vincolo assente**: assente si vede, rotto sembra che tenga. "
+                        + "Percio' ti dico due cose, non una: quanti accoppiamenti ci sono "
+                        + "prima e dopo, E quanti problemi ha il documento prima e dopo. Se i "
+                        + "problemi sono aumentati te lo grido, e la cosa da fare e' togliere "
+                        + "quei vincoli e rimetterli con «accoppia».\n\nIL FILE NUOVO "
+                        + "DEV'ESSERE GIA' APERTO in SOLIDWORKS, come per "
+                        + "«inserisci_componente»: copia il percorso da «documenti_aperti».\n\n"
+                        + "Se gli dai lo stesso file che c'e' gia' mi rifiuto: riuscirebbe e "
+                        + "non cambierebbe niente, e tu crederesti di aver cambiato il "
+                        + "pezzo.\n\nLa configurazione la scelgo per NOME corrispondente: non "
+                        + "apro finestre per farti scegliere, perche' una finestra aperta da "
+                        + "qui non la chiuderebbe nessuno.",
+                    Precondizione = "un assieme aperto, e il file nuovo gia' aperto",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "componente", O(
+                                "type", "string",
+                                "description", "l'identificativo del componente da sostituire, da "
+                                    + "«guarda_il_pezzo»: «C1», «C2», ..."),
+                            "percorso", O(
+                                "type", "string",
+                                "description", "percorso completo del file NUOVO, gia' aperto in "
+                                    + "SOLIDWORKS."),
+                            "configurazione", O(
+                                "type", "string",
+                                "description", "quale configurazione del pezzo nuovo. Vuota = quella "
+                                    + "col nome corrispondente."),
+                            "tutte_le_istanze", O(
+                                "type", "boolean",
+                                "description", "vero (predefinito): se lo stesso pezzo e' montato piu' "
+                                    + "volte, le sostituisce tutte. Falso: solo quella.")),
+                        "required", A("componente", "percorso")),
                 },
                 new OperazioneDisegno
                 {

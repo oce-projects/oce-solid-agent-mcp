@@ -439,6 +439,32 @@ namespace Riscontro.Disegno
             catch { return null; }
         }
 
+        /// <summary>
+        /// Quanti problemi dichiara il documento, o `-1` se non si sa.
+        ///
+        /// ── PERCHE' SERVE, E PERCHE' IL CONTEGGIO DEI VINCOLI NON BASTA ──
+        ///
+        /// Dopo una sostituzione di componente gli accoppiamenti **restano**
+        /// (misurato). Restare non vuol dire funzionare: un vincolo che punta a
+        /// una faccia del pezzo VECCHIO sopravvive come voce nell'albero e va in
+        /// errore. Il conteggio lo vede ancora — e direbbe «due prima, due
+        /// adesso», cioe' tutto a posto.
+        ///
+        /// **Due vincoli rotti sono peggio di zero vincoli**: zero si vede,
+        /// rotti sembrano vincolare. `GetWhatsWrongCount` e' la domanda che
+        /// separa le due cose, ed e' la stessa che il progettista si fa
+        /// guardando l'albero rosso.
+        /// </summary>
+        internal static int QuantiProblemi(IModelDoc2 modello)
+        {
+            try
+            {
+                var e = modello == null ? null : modello.Extension;
+                return e == null ? -1 : e.GetWhatsWrongCount();
+            }
+            catch { return -1; }
+        }
+
         private static int QuantiComponentiInAssieme(IAssemblyDoc assieme)
         {
             try

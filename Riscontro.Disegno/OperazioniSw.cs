@@ -252,6 +252,8 @@ namespace Riscontro.Disegno
             "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
+            "sostituisci_componente",
+            "croci_di_centro",
             "sweep_circolare",
             "specchia",
             "sposta_corpi", "taglia_membri",
@@ -348,6 +350,10 @@ namespace Riscontro.Disegno
                     // e' accoppiare. Sta in OperazioniAccoppia.cs.
                     case "accoppia":
                         return Accoppia(modello, argomenti, stato);
+                    // «Il coperchio va rifatto»: sta in OperazioniSostituisci.cs,
+                    // e la cosa che misura e' se gli accoppiamenti sopravvivono.
+                    case "sostituisci_componente":
+                        return SostituisciComponente(modello, argomenti, stato);
                     case "piano_per_tre_punti":
                         return PianoPerTrePunti(modello, argomenti, stato);
 
@@ -377,6 +383,10 @@ namespace Riscontro.Disegno
                     case "viste_standard": return VisteStandard(modello, argomenti);
                     case "vista_modello": return VistaModello(modello, argomenti);
                     case "quote_dal_modello": return QuoteDalModello(modello, argomenti);
+                    // Le croci di centro, in OperazioniCentrini.cs. Una tavola
+                    // con dodici fori e nessun centro si stampa e sembra
+                    // completa: in officina manca dove forare.
+                    case "croci_di_centro": return CrociDiCentro(modello, argomenti);
                     case "esporta_pdf": return EsportaPdf(modello, argomenti);
                     case "salva_documento": return SalvaDocumento(modello, argomenti);
 

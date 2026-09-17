@@ -17,12 +17,18 @@
 # stesso posto su tutte le macchine, e un percorso costante qui vuol dire che
 # chi clona deve modificare lo script a mano per compilare.
 #
-#   .\Controlli\costruisci-controlli.ps1 -SwRedist 'D:\...\api\redist'
-#   oppure   $env:SW_REDIST = 'D:\...\api\redist'
+#   .\Controlli\costruisci-controlli.ps1 -SwInstallPath 'D:\...\SOLIDWORKS'
+#   oppure   $env:SW_INSTALL_PATH = 'D:\...\SOLIDWORKS'
 #
-# E' la stessa variabile che Banco\LEGGIMI.md gia' documenta per il banco.
+# VOCE H10: la variabile e' UNA SOLA e vuol dire LA RADICE dell'installazione,
+# quella che finisce con \SOLIDWORKS. Da li' si ricava api\redist; al contrario
+# no. Prima qui si chiedeva gia' la sottocartella, e chi impostava la radice per
+# compilare la libreria si trovava questo script che non la vedeva.
+#
+# -SwRedist e SW_REDIST restano letti, dopo: chi ce li ha gia' nel proprio
+# profilo non deve accorgersi di niente.
 
-param([string]$SwRedist)
+param([string]$SwInstallPath, [string]$SwRedist)
 
 $ErrorActionPreference = 'Stop'
 $radice = Split-Path -Parent $PSScriptRoot
@@ -34,10 +40,17 @@ $csc = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $csc) { throw "Roslyn (csc.exe dei Build Tools) non trovato." }
 
+$radiciSw = @($SwInstallPath, $env:SW_INSTALL_PATH) |
+    Where-Object { $_ } |
+    ForEach-Object { Join-Path $_ 'api\redist' }
+
 $interop = @(
-    $SwRedist,
-    $env:SW_REDIST,
-    'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist'
+    $radiciSw +
+    @(
+        $SwRedist,
+        $env:SW_REDIST,
+        'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist'
+    )
 ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 
 $libreria = Join-Path $radice 'Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll'

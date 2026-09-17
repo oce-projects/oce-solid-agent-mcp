@@ -21,9 +21,16 @@ using System.Runtime.InteropServices;
 // Non e' visibile a COM: la usa il ponte, non SOLIDWORKS.
 [assembly: ComVisible(false)]
 
-[assembly: AssemblyVersion("0.93.0.0")]
-[assembly: AssemblyFileVersion("0.93.0.0")]
+// 0.94.1: **solo commenti.** La regola dice che ogni modifica alla libreria
+// alza la versione, e non fa eccezioni per i commenti — perche' «sono solo
+// commenti» e' esattamente quello che si dice un attimo prima che non lo
+// fossero. Qui e' vero (due blocchi di documentazione in
+// `OperazioniSostituisci.cs`, riscritti perche' dicevano una cosa che il banco
+// ha poi smentito), e il numero si muove lo stesso.
+// 0.95.0: `croci_di_centro` (operazione 64) e le croci nello stato della tavola.
+[assembly: AssemblyVersion("0.95.0.0")]
+[assembly: AssemblyFileVersion("0.95.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
-[assembly: AssemblyInformationalVersion("0.93.0")]
+[assembly: AssemblyInformationalVersion("0.94.0")]

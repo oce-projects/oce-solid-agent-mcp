@@ -24,6 +24,246 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.62.0 — 17 September 2026 · library 0.95.0
+
+### The bench could not turn the page, and that is why ten entries were stuck
+
+Seven drawing operations have been in the catalogue for months, all marked
+`Provata = true`. Declared bench cases for those seven: **zero.** Ten GT entries
+open, all with the same shape — *write it, then prove it* — and the second half
+never arrived. For a year the implicit explanation was "we haven't got there
+yet".
+
+The real explanation is one line. The bench ran every step of a case on the
+**same** `IModelDoc2`, and `crea_disegno` opens a second document. The next step
+got the part back, and refused with *"the active document is not a drawing"* —
+the right message for a problem the person writing the case could not solve. So
+nobody wrote the case.
+
+> **An operation with no case is not proven: it is declared.**
+
+It is exactly the shape of GA0: no assembly operation could have a case until the
+bench learned to build an assembly. That became the entry *before* all the
+others. Here the entry did not exist at all — it does now, GT0.
+
+**The fix is not `IActiveDoc2`.** On this machine SOLIDWORKS is shared: "active"
+is whatever *anyone* has in front of them, and one window is enough for the bench
+to measure somebody else's document. The bench follows what the operation
+**declares** — `Esito.DocumentoNuovo`, which `crea_disegno` has been filling for
+months and which the bench was throwing away.
+
+> **A declared change can be followed; a deduced one can only be suffered.**
+
+Three details that separate "follows" from "follows well": it switches **only if
+the step succeeded** (a half-failed `crea_disegno` can leave a wreck on screen);
+it **says so in the diary** (a silent document switch makes a red three steps
+later unreadable); and it tolerates the field being absent, because the bench
+loads the library by reflection and an older one does not have it.
+
+### `croci_di_centro`: written, measured, and **not shipped**
+
+Still sixty-three operations. A drawing with three holes and no center marks
+prints, looks complete, and in the workshop the one thing needed to drill is
+missing: where the centre is.
+
+`AutoInsertCenterMarks2` **returns `True` and inserts nothing.** Not an error —
+a yes that does nothing, which is exactly the kind of thing this project exists
+to catch, and this time the API is the one doing it. Three probes:
+
+- **25 combinations** of `InsertType` × `InsertOption`, plus the version without
+  the `2`: `True` every time, center marks 0 → 0, centerlines 0 → 0;
+- the plate really has the holes (**3 cylindrical faces**) and the view really
+  shows them (**3 circular edges**, counted with `GetVisibleEntityCount2`); every
+  view, activated and selected: still 0 → 0;
+- detailing preferences read, then switched on by hand
+  (`swDetailingAutoInsertCenterMarks` was **off**, `…ForHoles` on, size 2.5 mm),
+  `UseDocumentDefaults: false` with an explicit size, and `InsertCenterMark2` /
+  `InsertCenterMark3` on each selected circular edge: **0 marks placed.**
+
+The first probe had two defects of mine — it tried one view (the one without
+circles) and never checked the holes existed. The second removed both. *A probe
+that does not measure the thing is not evidence of the thing*, even when the
+result later holds up.
+
+So the operation is marked **`Provata = false`**: it does not reach the
+catalogue and is offered to nobody. *An operation that has not been built and
+measured is not exposed* — and that matters most here, where it "succeeds":
+whoever called it would believe they had the centres. The code stays, because it
+reports `croci_aggiunte = 0` rather than declaring done, and because the day the
+missing piece is found there is nothing left to write.
+
+**What was not ruled out:** that it depends on the workshop's drawing template.
+A virgin template was not tried — ten minutes, and it separates "the API does not
+work" from "it does not work with this template". Written next to the entry.
+
+**What is gained anyway:** the drawing state now carries `croci_di_centro` per
+view and a total, and the bench case asserts it is **zero**. The hole is now
+visible — a drawing that comes out with no centres says so, and before, nobody
+said it.
+
+> The prediction in the case allowed 9 or 3. The measurement was **0**, which was
+> neither. *When the measurement is none of the answers you predicted, the
+> question was usually about something else.*
+
+### Four numbers out of twenty were wrong, and nobody could have noticed
+
+The bench README has a table — folder, how many cases, what they prove.
+`lavorazioni` said 2 and had 7. `ripeti` said 3 and had 6. Four of twenty.
+
+A number in a document does not fail; it ages. Same defect the README's operation
+count had ("thirty-eight" when there were sixty), fixed the same way: not by
+re-counting once by hand — *a count made by hand ages while you write it* — but by
+having it re-counted every run. A contract test now sums the declared numbers per
+folder and compares them with the files on disk.
+
+Per folder, and summed, because one folder is now listed twice with two different
+numbers: `casi/tavola/` holds both the hand-run plans and the declared cases.
+7 + 1 = 8. Demanding that each line match alone would turn a correct table red.
+
+### And a census that read fine and could not be called
+
+`SolidWorks.Interop.gtswutilities.dll` ships in the redist. It loads, its
+twenty-two interfaces enumerate, every signature of `IThicknessAnalysis` and
+`ICompareGeometry` reads cleanly — and **none of it can be called here.** The
+three coclasses are not registered in `CLSID` (GUIDs taken from the interop
+itself, both registry views), no `gtcocsw*` binary exists on disk, and the add-in
+is not among the registered ones. SOLIDWORKS Utilities is simply not installed.
+
+> **That an interface can be READ does not prove it can be CALLED.**
+
+Written down rather than worked around: the question "how thin is this shell at
+its worst point" still has no answer in this catalogue, and the stated purpose of
+the project is a watertight box for a boat.
+
+---
+
+## 0.61.0 — 17 September 2026 · library 0.94.1
+
+### The catalogue as a Resource, and one name for where SOLIDWORKS lives
+
+Three findings from one afternoon, and they are the same thing seen from three
+sides: **two names for one thing become two things.**
+
+**`SW_INSTALL_PATH` and `SW_REDIST` meant two different things** (W2.12 / H10).
+The root of the installation and its `api\redist` subfolder. Neither was wrong.
+What it did: whoever set the first one to build the library saw the bench fail to
+find the interop, and nothing named the second variable until after the failure.
+
+The root wins — `api\redist` follows from it, not the other way round; going up
+from a subfolder means guessing a convention, and a guessed convention is where
+plausible-and-wrong paths come from. `SW_REDIST` is still read, and still
+second: *a variable that stops working without saying so is worse than one that
+was never there.* Same treatment `OPENPDM_ADDIN` got. And the last `OPENPDM_*`
+left, `OPENPDM_CATALOGO`, is now `RISCONTRO_CATALOGO` — old name still read.
+
+**Three of the environment variables the bridge reads were not in the README**,
+found while reading it for another reason. Two of the three were
+`RISCONTRO_RADICE` and `RISCONTRO_SOLA_LETTURA` — the only two configurable
+defences the bridge has, the ones that say where it must *not* write. The code
+was there and worked.
+
+> **A defence that is in the code and not in the README is a defence nobody turns
+> on.** Whoever installs reads the table, not the sources.
+
+They were invisible to a grep too: they go through a `Variabile(...)` helper, not
+`GetEnvironmentVariable`. *Looking for one form means finding one form.* There is
+now a contract test that collects both forms across the bridge and the library
+and requires every name to appear in the README — with a line that checks it
+found something at all, because a test that finds nothing passes forever.
+
+It found **nine**, not eight. Counting by hand had given eight; the ninth is
+`SW_INSTALL_PATH` itself, born half an hour earlier. *A count made by hand ages
+while you write it; the one that re-reads does not.*
+
+**The catalogue is now also an MCP Resource** (W2.12), not only a tool. The
+content is the same; who decides, and when, is not. A tool is called by the model
+when it works out that it needs it; a resource is attached by the person using
+the client, before the model says anything.
+
+One resource, `catalogo://operazioni`, plus a URI template,
+`catalogo://operazione/{nome}` — not one resource per operation. It is the same
+two-level catalogue that governs the tools, said in the vocabulary of resources.
+`subscribe` and `listChanged` are deliberately not declared: the catalogue is a
+file read at startup. *A declared capability that is never exercised is a promise
+someone will wait for.*
+
+Two doors on one thing become two things the day one of them gets written
+separately. So: `Risorse` knows nothing about the catalogue — it takes the same
+`Catalogo` object the tools use and calls the same two methods, and a contract
+test asks the resource and the tool and compares the two texts byte for byte.
+
+The library version moves for comments only. It is the one change that could not
+alter behaviour — and *"it's only comments" is exactly what gets said right
+before it wasn't.*
+
+---
+
+## 0.60.0 — 17 September 2026 · library 0.94.0
+
+### `sostituisci_componente` — the mates survive, and they are broken
+
+"The lid has to be remade" is the commonest gesture in design, and GA7 named the
+danger it carries: *if the API replaces the document but does not keep the
+mates, you get the typical defect again — different part, no error.*
+
+**The signature existed. It was on the other interface.** GA7 sat at *"not
+estimable"* because the API census had looked for `ReplaceComponent` among the
+170 methods of `IComponent2` and concluded *"no dedicated signature is listed"*.
+It is on `IAssemblyDoc`: `ReplaceComponents2(FileName, ConfigName,
+ReplaceAllInstance, UseConfigChoice, ReAttachMates)`. Third time in this project
+that *a name tells you what a method is called, not which object owns it* — and
+the expensive step is not failing to find it, it is turning "I did not find it"
+into "it does not exist".
+
+**What the bench measured, and it is not what I predicted.** Two components, one
+coincident mate, lid replaced with a 6 mm one:
+
+| | before | after |
+|---|---|---|
+| components | 2 | 2 |
+| mates (endpoint count) | 2 | 2 |
+| mates lost | — | **0** |
+| `GetWhatsWrongCount()` | **0** | **2** |
+
+The first three rows say "all good". The fourth says those mates are **in
+error** — they pointed at faces of the old part. SOLIDWORKS keeps them in the
+tree and marks them red.
+
+> **A broken mate is worse than a missing one: missing is visible, broken looks
+> like it holds.** Surviving is not working.
+
+So the operation reports **two** before/after pairs, not one —
+`accoppiamenti_prima/dopo` and `problemi_prima/dopo` — and its loudest branch is
+the one where the mates survive and the problem count rises. It names the remedy
+too: delete those mates and put them back with `accoppia`. *A warning with no
+remedy is one people learn to ignore.*
+
+**`ReAttachMates` is not a knob.** With `true`, and a real mate to reattach,
+`ReplaceComponents2` raises `RPC_E_SERVERFAULT` — measured in four conditions:
+assembly saved and not, new file open and closed. With `false` it always passes.
+So `false` is hard-coded and what it costs is written down: *an argument that
+changes nothing is worse than an argument that is not there, because whoever
+sets it believes they decided something.*
+
+**And I was wrong twice on the way here, which is why the bench case is named
+`il_coperchio_rifatto_tiene_i_vincoli_ma_rotti` and carries its own history.**
+The probe that found `RPC_E_SERVERFAULT` never counted mates — it printed
+component paths — and from "the call succeeds with `false`" I deduced "the mates
+are discarded". They are not. **A probe that does not measure the thing is not
+evidence of the thing, not even when it succeeds.** Then, having measured that
+the mates survive, I concluded they were fine. They are not.
+
+Two more traps avoided in the same operation: `IComponent2` does not cast to
+`IEntity` — it has its own three-parameter `Select4`, and the third parameter is
+`ShowPopup`, which must be `false`; and `swReplaceComponentsConfiguration_e` has
+a `ManuallySelect` value that opens a modal dialog. **Three calls in one
+operation that know how to open a window**, and from here nobody can press OK.
+
+Sixty-three operations. README updated to match — the count is checked by a test,
+not by hand.
+
+---
+
 ## 0.59.0 — 17 September 2026 · library 0.93.0
 
 ### `accoppia` — and the unknown that was blocking it did not exist

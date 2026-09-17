@@ -305,6 +305,78 @@ namespace Prove.Contratti
                              .IndexOf("emergency", StringComparison.Ordinal) >= 0,
                       Corto(Convert.ToString(Dentro(erroreLivello, "message"))));
 
+                // ── LE RISORSE (voce W2.12) ───────────────────────────────
+                //
+                // Il catalogo si puo' ATTACCARE invece che chiedere. Tre cose
+                // da provare, e la terza e' quella che conta.
+                var elencoRisorse = Ogg(Chiedi(p, 40,
+                    "{\"jsonrpc\":\"2.0\",\"id\":40,\"method\":\"resources/list\",\"params\":{}}"));
+                var risorse = Dentro(Dentro(elencoRisorse, "result"), "resources") as object[];
+                Segna("resources/list da' il catalogo",
+                      risorse != null && risorse.Length == 1 &&
+                      Convert.ToString(Dentro(risorse[0], "uri")) == "catalogo://operazioni",
+                      risorse == null ? "(niente)" : risorse.Length + ": " +
+                          string.Join(", ", risorse.Select(x => Convert.ToString(Dentro(x, "uri")))));
+
+                var modelli = Ogg(Chiedi(p, 41,
+                    "{\"jsonrpc\":\"2.0\",\"id\":41,\"method\":\"resources/templates/list\",\"params\":{}}"));
+                var schemi = Dentro(Dentro(modelli, "result"), "resourceTemplates") as object[];
+                Segna("resources/templates/list da' il modello per una operazione",
+                      schemi != null && schemi.Length == 1 &&
+                      Convert.ToString(Dentro(schemi[0], "uriTemplate"))
+                          == "catalogo://operazione/{nome}",
+                      schemi == null ? "(niente)" : schemi.Length + ": " +
+                          string.Join(", ", schemi.Select(x => Convert.ToString(Dentro(x, "uriTemplate")))));
+
+                // ── E QUESTA E' LA PROVA VERA: **LE DUE PORTE, UNA COSA** ──
+                //
+                // La risorsa e lo strumento devono rispondere lo STESSO testo.
+                // Se un giorno qualcuno scrive l'elenco «anche» dentro
+                // `Risorse`, qui diventa rosso — ed e' l'unico posto che se ne
+                // accorgerebbe, perche' le due strade non si incontrano mai da
+                // sole. *Due porte sulla stessa cosa diventano due cose il
+                // giorno in cui una delle due si scrive a parte.*
+                var lettura = Ogg(Chiedi(p, 42,
+                    "{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"resources/read\",\"params\":" +
+                    "{\"uri\":\"catalogo://operazioni\"}}"));
+                var contenuti = Dentro(Dentro(lettura, "result"), "contents") as object[];
+                var testoRisorsa = contenuti == null || contenuti.Length == 0
+                    ? null : Convert.ToString(Dentro(contenuti[0], "text"));
+                Segna("resources/read torna il testo del catalogo",
+                      !string.IsNullOrWhiteSpace(testoRisorsa) &&
+                      testoRisorsa.IndexOf("\"famiglie\"", StringComparison.Ordinal) >= 0,
+                      Corto(testoRisorsa));
+
+                var daStrumento = Ogg(Chiedi(p, 43,
+                    "{\"jsonrpc\":\"2.0\",\"id\":43,\"method\":\"tools/call\",\"params\":" +
+                    "{\"name\":\"elenco_operazioni\",\"arguments\":{}}}"));
+                var pezzi = Dentro(Dentro(daStrumento, "result"), "content") as object[];
+                var testoStrumento = pezzi == null || pezzi.Length == 0
+                    ? null : Convert.ToString(Dentro(pezzi[0], "text"));
+                Segna("la risorsa e lo strumento dicono LA STESSA COSA",
+                      !string.IsNullOrWhiteSpace(testoRisorsa) &&
+                      !string.IsNullOrWhiteSpace(testoStrumento) &&
+                      string.Equals(testoRisorsa, testoStrumento, StringComparison.Ordinal),
+                      testoRisorsa == null || testoStrumento == null
+                          ? "(una delle due e' vuota)"
+                          : testoRisorsa.Length + " caratteri contro " + testoStrumento.Length);
+
+                // ── UN URI CHE NON ESISTE DICE COSA ESISTE ────────────────
+                //
+                // Il caso rosso: senza, «non trovato» sarebbe un vicolo cieco.
+                var mancante = Ogg(Chiedi(p, 44,
+                    "{\"jsonrpc\":\"2.0\",\"id\":44,\"method\":\"resources/read\",\"params\":" +
+                    "{\"uri\":\"catalogo://operazione/questa_non_esiste\"}}"));
+                var erroreUri = Dentro(mancante, "error") as Dictionary<string, object>;
+                var messaggioUri = erroreUri == null
+                    ? null : Convert.ToString(Dentro(erroreUri, "message"));
+                Segna("un URI sconosciuto e' un errore, non una risposta vuota",
+                      erroreUri != null, erroreUri == null ? "(ha risposto ok)" : Corto(messaggioUri));
+                Segna("e l'errore dice quali URI ci sono",
+                      messaggioUri != null &&
+                      messaggioUri.IndexOf("catalogo://operazioni", StringComparison.Ordinal) >= 0,
+                      Corto(messaggioUri));
+
                 // ── JSON MALFORMATO: -32700, id nullo ─────────────────────
                 Scrivi(p, "{questo non e' json");
                 var storto = Ogg(Riga(p, AttesaMs));

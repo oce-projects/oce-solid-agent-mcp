@@ -18,7 +18,17 @@
          l'istruzione documentata vedeva fallire la build per HintPath non
          trovato. Il rimedio non risolveva il problema che nominava.
          Adesso: variabile d'ambiente SW_REDIST, oppure /p:SwRedist=..., e in
-         mancanza di tutti e due il posto di serie. -->
+         mancanza di tutti e due il posto di serie.
+
+         VOCE H10, 17/9/2026: LA VARIABILE BUONA E' SW_INSTALL_PATH, la RADICE
+         dell'installazione — la stessa che leggono gia' gli altri due .csproj.
+         Qui si leggeva solo `api\redist`, e chi impostava la radice per
+         compilare la libreria vedeva fallire il banco senza capire perche':
+         due nomi, due significati, e nessuno dei due lo diceva all'altro.
+         L'ordine: /p:SwRedist (esplicito, vince) -> SW_INSTALL_PATH ->
+         SW_REDIST (il vecchio nome, ancora letto) -> il posto di serie. -->
+    <SwRedist Condition=" '$(SwRedist)' == '' AND '$(SwInstallPath)' != '' ">$(SwInstallPath)\api\redist</SwRedist>
+    <SwRedist Condition=" '$(SwRedist)' == '' AND '$(SW_INSTALL_PATH)' != '' ">$(SW_INSTALL_PATH)\api\redist</SwRedist>
     <SwRedist Condition=" '$(SwRedist)' == '' AND '$(SW_REDIST)' != '' ">$(SW_REDIST)</SwRedist>
     <SwRedist Condition=" '$(SwRedist)' == '' ">C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist</SwRedist>
   </PropertyGroup>

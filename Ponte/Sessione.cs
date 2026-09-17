@@ -73,13 +73,46 @@ namespace Oce.Solid.Agent.Ponte
 
         /// <summary>
         /// Dove SolidWorks tiene le sue librerie di interoperabilita'.
-        /// Si puo' cambiare con SW_REDIST.
+        /// Si puo' cambiare con SW_INSTALL_PATH (vedi <see cref="RedistChiesto"/>).
         /// </summary>
         private static readonly string[] PostiDelRedist =
         {
             @"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist",
             @"C:\Program Files\SolidWorks Corp\SolidWorks\api\redist",
         };
+
+        /// <summary>
+        /// LA CARTELLA REDIST CHIESTA DA CHI HA INSTALLATO, O `null` (voce H10).
+        ///
+        /// ── PERCHE' DUE VARIABILI, E PERCHE' UNA SOLA E' QUELLA GIUSTA ───
+        ///
+        /// C'erano **tre modi** di dire dove sta SOLIDWORKS, con **due
+        /// significati**: la radice dell'installazione (`SW_INSTALL_PATH`, che
+        /// i `.csproj` leggono gia') e la sottocartella `api\redist`
+        /// (`SW_REDIST`). Nessuno dei due era sbagliato, ma *due nomi per la
+        /// stessa cosa sono due cose che un giorno divergono*, e qui
+        /// divergevano gia': chi impostava quella per compilare doveva
+        /// impostare **anche** l'altra per far girare il ponte, senza che
+        /// niente glielo dicesse.
+        ///
+        /// **Vince la radice.** Da `...\SOLIDWORKS` si ricava `api\redist`; al
+        /// contrario no — da una sottocartella si risalirebbe per convenzione,
+        /// e una convenzione indovinata e' il posto dove nascono i percorsi
+        /// plausibili e sbagliati.
+        ///
+        /// `SW_REDIST` **resta letto**, e resta secondo: chi ce l'ha gia' nel
+        /// proprio profilo non deve accorgersi di niente. *Una variabile che
+        /// smette di funzionare senza dirlo e' peggio di una che non c'e' mai
+        /// stata.*
+        /// </summary>
+        internal static string RedistChiesto()
+        {
+            var radice = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+            if (!string.IsNullOrWhiteSpace(radice))
+                return Path.Combine(radice.Trim(), "api", "redist");
+            var suo = System.Environment.GetEnvironmentVariable("SW_REDIST");
+            return string.IsNullOrWhiteSpace(suo) ? null : suo.Trim();
+        }
 
         /// <summary>
         /// LE LIBRERIE DI DASSAULT NON SI COPIANO NEL REPOSITORY.
@@ -104,7 +137,7 @@ namespace Oce.Solid.Agent.Ponte
                     return null;
 
                 var posti = new List<string>();
-                var suo = System.Environment.GetEnvironmentVariable("SW_REDIST");
+                var suo = RedistChiesto();
                 if (!string.IsNullOrWhiteSpace(suo)) posti.Add(suo);
                 posti.AddRange(PostiDelRedist);
 
@@ -119,8 +152,9 @@ namespace Oce.Solid.Agent.Ponte
                     }
                 }
                 Mcp.Protocollo.Nota(
-                    "[ponte] non trovo " + nome + ": indica la cartella redist " +
-                    "di SolidWorks nella variabile SW_REDIST.");
+                    "[ponte] non trovo " + nome + ": indica dove e' installato " +
+                    "SolidWorks nella variabile SW_INSTALL_PATH (la radice, " +
+                    "quella che finisce con «\\SOLIDWORKS»).");
                 return null;
             };
         }

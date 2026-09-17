@@ -33,7 +33,21 @@ namespace Oce.Solid.Agent.Strumenti
 
         public Catalogo()
         {
-            Percorso = Environment.GetEnvironmentVariable("OPENPDM_CATALOGO");
+            // ── DUE NOMI, E UNO SOLO E' QUELLO DI QUESTO PRODOTTO ───────
+            //
+            // `RISCONTRO_CATALOGO` e' il nome nuovo. `OPENPDM_CATALOGO` era il
+            // vecchio, e **resta letto**: chi l'ha impostata su una macchina
+            // installata non deve accorgersi di niente, e una variabile che
+            // smette di funzionare senza dirlo e' il difetto che non da'
+            // errore — il catalogo non si carica, il ponte esegue lo stesso, e
+            // nessuno sa piu' dire cosa si puo' chiedere.
+            //
+            // L'ordine conta: se sono impostate tutte e due vince la nuova.
+            // Chi ne imposta due diverse ha gia' un guaio, e almeno sa quale
+            // delle due comanda.
+            Percorso = Environment.GetEnvironmentVariable("RISCONTRO_CATALOGO");
+            if (string.IsNullOrWhiteSpace(Percorso))
+                Percorso = Environment.GetEnvironmentVariable("OPENPDM_CATALOGO");
             if (string.IsNullOrWhiteSpace(Percorso))
                 Percorso = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",

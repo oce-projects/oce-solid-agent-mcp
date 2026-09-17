@@ -99,6 +99,7 @@
     <Compile Include="EsecutorePiano.cs" />
     <Compile Include="OperazioniSw.cs" />
     <Compile Include="OperazioniSaldatura.cs" />
+    <Compile Include="OperazioniCentrini.cs" />
     <Compile Include="OperazioniTavola.cs" />
     <Compile Include="OperazioniFori.cs" />
     <Compile Include="OperazioniMateriale.cs" />
@@ -117,6 +118,7 @@
     <Compile Include="StatoDocumento.cs" />
     <Compile Include="OperazioniAccoppia.cs" />
     <Compile Include="OperazioniAssieme.cs" />
+    <Compile Include="OperazioniSostituisci.cs" />
     <Compile Include="StatoAssieme.cs" />
     <Compile Include="StatoTavola.cs" />
     <Compile Include="Riferimenti.cs" />

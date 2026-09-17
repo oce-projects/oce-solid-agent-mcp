@@ -150,6 +150,8 @@ namespace Prove.Contratti
 
             NessunInterop();
             OgniSorgenteStaNelSuoProgetto();
+            OgniVariabileDAmbienteStaNelLeggimi();
+            IlLeggimiDelBancoContaIFileGiusti();
             ProveAttese.Tutte();
             ProveCatalogo.Tutte();
             ProveSessione.Tutte();
@@ -293,6 +295,157 @@ namespace Prove.Contratti
                       ? "tutti e " + guardati
                       : "FUORI DAL PROGETTO (non vengono compilati): " +
                         string.Join("; ", fuori));
+        }
+
+        /// <summary>
+        /// OGNI VARIABILE D'AMBIENTE CHE IL PONTE LEGGE STA NEL README.
+        ///
+        /// ── PERCHE' ESISTE QUESTA PROVA ──────────────────────────────────
+        ///
+        /// Trovate il 17/9/2026 leggendo il README per un'altra ragione:
+        /// **tre variabili su otto non c'erano**, e due delle tre erano
+        /// `RISCONTRO_RADICE` e `RISCONTRO_SOLA_LETTURA` — cioe' le uniche due
+        /// con cui si dice al ponte dove NON deve scrivere. Chi installa legge
+        /// la tabella, non i sorgenti: una difesa che c'e' nel codice e non nel
+        /// README **e' una difesa che nessuno accende**, e il pezzo lo scopre
+        /// riscrivendo una libreria condivisa.
+        ///
+        /// Non e' pignoleria documentale: e' lo stesso difetto delle altre
+        /// prove di contratto qui dentro — due elenchi scritti in due posti
+        /// divergono, e il momento in cui divergono nessuno lo vede.
+        ///
+        /// ── COSA GUARDA, E COSA NO ───────────────────────────────────────
+        ///
+        /// Solo i sorgenti del PONTE e della LIBRERIA: `Banco\` e `Prove\`
+        /// leggono variabili che servono a chi sviluppa, non a chi installa, e
+        /// pretenderle nel README vorrebbe dire riempirlo di roba che a chi
+        /// legge non serve.
+        ///
+        /// Il nome si cerca **in tutto il README**, non solo nella tabella: una
+        /// variabile spiegata per esteso in un paragrafo e' documentata. Il
+        /// controllo non pretende una forma, pretende che il nome ci sia.
+        /// </summary>
+        private static void OgniVariabileDAmbienteStaNelLeggimi()
+        {
+            Gruppo("le variabili d'ambiente stanno nel README");
+
+            var readme = Path.Combine(Radice(), "README.md");
+            if (!File.Exists(readme)) { Segna("il README c'e'", false, readme); return; }
+            string testo;
+            try { testo = File.ReadAllText(readme); }
+            catch (Exception ex) { Segna("il README si legge", false, ex.Message); return; }
+
+            // `GetEnvironmentVariable("X")` e la scorciatoia `Variabile("X")`
+            // di `Ponte\Percorsi.cs`. La seconda e' proprio quella che nascondeva
+            // `RISCONTRO_RADICE` e `RISCONTRO_SOLA_LETTURA` a un grep fatto sul
+            // nome lungo: **cercare una sola forma vuol dire trovarne una sola.**
+            var forma = new System.Text.RegularExpressions.Regex(
+                @"(?:GetEnvironmentVariable|Variabile)\(""([A-Z][A-Z_0-9]+)""\)");
+
+            var trovate = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var cartella in new[] { "Ponte", "Strumenti", "Mcp", "Riscontro.Disegno" })
+            {
+                var piena = Path.Combine(Radice(), cartella);
+                if (!Directory.Exists(piena)) continue;
+                foreach (var f in Directory.GetFiles(piena, "*.cs", SearchOption.AllDirectories))
+                {
+                    if (f.IndexOf(@"\obj\", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        f.IndexOf(@"\bin\", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                    string sorgente;
+                    try { sorgente = File.ReadAllText(f); } catch { continue; }
+                    foreach (System.Text.RegularExpressions.Match m in forma.Matches(sorgente))
+                        trovate.Add(m.Groups[1].Value);
+                }
+            }
+
+            // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE, e non prova niente.
+            // Se un giorno le cartelle cambiano nome, questa riga diventa rossa
+            // invece di lasciare che il controllo si spenga in silenzio.
+            Segna("ci sono variabili da controllare", trovate.Count >= 6,
+                  trovate.Count + ": " + string.Join(", ", trovate));
+
+            var assenti = trovate.Where(v => testo.IndexOf(v, StringComparison.Ordinal) < 0).ToList();
+            Segna("ogni variabile letta dal ponte e' nominata nel README",
+                  assenti.Count == 0,
+                  assenti.Count == 0
+                      ? "tutte e " + trovate.Count
+                      : "NEL CODICE E NON NEL README: " + string.Join(", ", assenti));
+        }
+
+        /// <summary>
+        /// I NUMERI IN `Banco\LEGGIMI.md` SONO QUANTI SONO I FILE DAVVERO.
+        ///
+        /// ── PERCHE' ESISTE ───────────────────────────────────────────────
+        ///
+        /// Il LEGGIMI del banco ha una tabella «cartella / quanti casi / cosa
+        /// provano». Guardata il 17/9/2026: **quattro numeri su venti erano
+        /// sbagliati** — `lavorazioni` diceva 2 e ne aveva 7, `ripeti` 3 e ne
+        /// aveva 6. Nessuno se n'era accorto, perche' un numero in un documento
+        /// non fallisce: invecchia.
+        ///
+        /// E' lo stesso difetto che il README aveva sul conto delle operazioni
+        /// («trentotto» quando erano sessanta), riparato allo stesso modo: non
+        /// ricontando a mano — *un conteggio fatto a mano invecchia mentre lo si
+        /// scrive* — ma facendolo ricontare a ogni giro.
+        ///
+        /// ── LA SOMMA, E NON LA RIGA ──────────────────────────────────────
+        ///
+        /// Una cartella puo' comparire **due volte** nella tabella, e adesso ce
+        /// n'e' una: `casi/tavola/` contiene sia i piani a mano sia i casi
+        /// dichiarati, ed e' elencata in tutt'e due i blocchi con due numeri
+        /// diversi. Si sommano le righe della stessa cartella e si confronta la
+        /// somma: 7 + 1 = 8 file. Pretendere che ogni riga da sola combaci
+        /// renderebbe rossa una tabella giusta.
+        /// </summary>
+        private static void IlLeggimiDelBancoContaIFileGiusti()
+        {
+            Gruppo("il LEGGIMI del banco conta i file giusti");
+
+            var leggimi = Path.Combine(Radice(), "Banco", "LEGGIMI.md");
+            if (!File.Exists(leggimi)) { Segna("il LEGGIMI del banco c'e'", false, leggimi); return; }
+            string testo;
+            try { testo = File.ReadAllText(leggimi); }
+            catch (Exception ex) { Segna("il LEGGIMI del banco si legge", false, ex.Message); return; }
+
+            // `casi/<nome>/` seguito da spazi e da un numero. Le righe di
+            // continuazione (la descrizione che va a capo) non hanno il numero
+            // e non corrispondono: e' voluto.
+            var forma = new System.Text.RegularExpressions.Regex(
+                @"casi/([a-z]+)/\s+(\d+)");
+
+            var dichiarati = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            foreach (System.Text.RegularExpressions.Match m in forma.Matches(testo))
+            {
+                var nome = m.Groups[1].Value;
+                int n = Convert.ToInt32(m.Groups[2].Value);
+                dichiarati[nome] = (dichiarati.ContainsKey(nome) ? dichiarati[nome] : 0) + n;
+            }
+
+            // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE. Se la tabella cambia
+            // forma, questa riga diventa rossa invece di spegnersi in silenzio.
+            Segna("ci sono cartelle da controllare", dichiarati.Count >= 15,
+                  dichiarati.Count + " righe «casi/<nome>/ N»");
+
+            var sbagliate = new List<string>();
+            var assenti = new List<string>();
+            foreach (var v in dichiarati)
+            {
+                var cartella = Path.Combine(Radice(), "Banco", "casi", v.Key);
+                if (!Directory.Exists(cartella)) { assenti.Add(v.Key); continue; }
+                int veri = Directory.GetFiles(cartella, "*.json", SearchOption.TopDirectoryOnly).Length;
+                if (veri != v.Value)
+                    sbagliate.Add(v.Key + ": dice " + v.Value + ", ne ha " + veri);
+            }
+
+            Segna("ogni cartella nominata nel LEGGIMI esiste",
+                  assenti.Count == 0,
+                  assenti.Count == 0 ? dichiarati.Count + " cartelle"
+                                     : "nominate e non esistenti: " + string.Join(", ", assenti));
+            Segna("i numeri del LEGGIMI sono quanti sono i file",
+                  sbagliate.Count == 0,
+                  sbagliate.Count == 0
+                      ? "tutte e " + dichiarati.Count
+                      : string.Join("; ", sbagliate));
         }
 
         /// <summary>

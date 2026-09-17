@@ -153,7 +153,7 @@ namespace Riscontro.Disegno
             // Chi lo dimentica descrive un foglio come se fosse una vista, e
             // poi quota un oggetto che non ha geometria.
             var viste = new List<Dictionary<string, object>>();
-            int quoteTotali = 0, visteTotali = 0;
+            int quoteTotali = 0, visteTotali = 0, crociTotali = 0;
             try
             {
                 var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
@@ -163,6 +163,16 @@ namespace Riscontro.Disegno
                     int quote = 0;
                     try { quote = v.GetDimensionCount(); } catch { }
                     quoteTotali += quote;
+
+                    // LE CROCI DI CENTRO SI CONTANO QUI, e non solo dentro
+                    // l'operazione che le mette (voce W2.11). E' la regola di
+                    // GA5: **lo stato e l'operazione devono raccontare la stessa
+                    // cosa, leggendola per conto proprio.** Se un giorno
+                    // divergessero, una delle due mentirebbe e non si saprebbe
+                    // quale.
+                    int croci = 0;
+                    try { croci = v.GetCenterMarkCount(); } catch { }
+                    crociTotali += croci;
 
                     if (viste.Count < MaxViste)
                     {
@@ -186,6 +196,12 @@ namespace Riscontro.Disegno
                         // Zero quote non e' un dettaglio: e' la differenza fra
                         // una tavola e un disegnino. Si scrive sempre.
                         voce["quote"] = quote;
+                        // E zero croci non e' un dettaglio nemmeno lui: e' la
+                        // differenza fra una tavola che si puo' forare e una
+                        // che si puo' solo guardare. Si scrive sempre, per lo
+                        // stesso motivo — **un campo che compare solo quando ha
+                        // un valore interessante insegna a non cercarlo.**
+                        voce["croci_di_centro"] = croci;
 
                         try
                         {
@@ -205,6 +221,7 @@ namespace Riscontro.Disegno
             if (viste.Count > 0) dati["viste"] = viste;
             dati["viste_totali"] = visteTotali;
             dati["quote_totali"] = quoteTotali;
+            dati["croci_di_centro_totali"] = crociTotali;
             if (visteTotali > viste.Count) dati["viste_troncate"] = true;
 
             // LA TAVOLA VUOTA VA DETTA, non lasciata dedurre da un elenco che

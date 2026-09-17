@@ -314,7 +314,10 @@ Non e' versionato: e' il registro di **questa** macchina.
 `Private=False`, quindi non finiscono nemmeno in `bin\`; a tempo di esecuzione
 si prende quella INSTALLATA sulla macchina, che e' per definizione la stessa che
 sta girando. Se SOLIDWORKS e' in un posto non standard:
-`set SW_REDIST=D:\...\api\redist`.
+`set SW_INSTALL_PATH=D:\...\SOLIDWORKS` — **la radice, non `api\redist`**. Vale
+per compilare e per far girare, e la legge anche `build.ps1`. Il vecchio
+`SW_REDIST` (che voleva la sottocartella) resta letto dopo, per chi ce l'ha
+gia'.
 
 **Il nome dice meno di quello che fa.** Si chiamava cosi' quando provava solo le
 saldature; adesso prova sezioni, materiali, telai, fori, stato e le operazioni
@@ -399,22 +402,28 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/  2   il guscio, e da che parte toglie
+casi/lavorazioni/  7   il guscio, e da che parte toglie
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       15   ogni faccia, non una sola
 casi/smusso/       3   dove un raccordo toglierebbe un altro volume
 casi/rivoluzione/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
-casi/piano/        3   DOVE finisce il piano, non la distanza chiesta
+casi/piano/        5   DOVE finisce il piano, non la distanza chiesta
 casi/specchia/     2   il foro deve comparire dall'altra parte
-casi/ripeti/       3   la direzione, che e' il dubbio vero
+casi/ripeti/       6   la direzione, che e' il dubbio vero
 casi/asse/         2   l'asse dalla parete di un foro
 casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
-casi/verifica/     3   com'e' venuto: solido, chiuso, sano
+casi/verifica/     5   com'e' venuto: solido, chiuso, sano
 casi/misura/      10   quanto pesa, in che scatola ci sta, quanto dista
 casi/corpi/       11   le booleane, il raccordo variabile, il filetto cosmetico
 casi/esporta/     10   STL, STEP e IGES: il file riletto byte per byte,
                        e il volume riaperto in SOLIDWORKS
+casi/proprieta/    9   i due cassetti, e il codice che va in distinta
+casi/testo/        6   incidere, e la scritta che esce dalla faccia
+casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
+casi/assiemi/      3   inserire non e' accoppiare; un vincolo solo non basta;
+                       il coperchio rifatto tiene i vincoli e li rompe
+casi/tavola/       1   il primo caso che arriva in TAVOLA (voce GT0)
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 
@@ -423,12 +432,32 @@ casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--re
 
 ```
 casi/limiti/    8   dove le operazioni si rompono
-casi/tavola/    7   viste, quote, PDF
+casi/tavola/    7   viste, quote, PDF  (+ i casi dichiarati, vedi sotto)
 casi/pezzi/    10   pezzi interi: coperchio, vasca, cupola
 casi/viste/     5   pezzi di cui si sa tutto, per le prove sulle immagini
 casi/forma/     5   materiale per la forma a parole
 casi/ponte/   107   i piani del ponte MCP, per voce del TODO
 ```
+
+**`casi/tavola/` contiene tutt'e due le cose, dal 17/9/2026** (voce GT0), ed e'
+l'unica cartella cosi'. I sette `tav_*.json` sono piani; i casi dichiarati della
+famiglia `tavola` stanno li' accanto. **Non si distinguono dal nome, si
+distinguono dalla FORMA**: un piano e' un array di passi, un caso e' un oggetto
+con `nome`, `perche` e `passi`. Il caricatore guarda la radice del JSON, salta
+gli array, e **dice a ogni giro quanti ne ha saltati e quali**:
+
+```
+OK   i piani a mano si riconoscono e si saltano   7 saltati (sono array, non casi):
+     tav_1_salva_pezzo.json, tav_2_crea_disegno.json, tav_3_foglio.json, ...
+```
+
+Un file **illeggibile** non conta come piano: resta un errore di banco col motivo
+giusto. *Un riconoscimento che inghiotte anche i guasti smette di riconoscere.*
+
+E attenzione al segnaposto, che **non e' lo stesso nelle due forme**: i casi
+dichiarati usano `{LAVORO}` e `{PROFILI}` (li risolve `Banco\Attese.cs`), i piani
+usano `{BANCO}` (lo risolve `corri_piani.js`). Scambiarli non da' nessun errore:
+il percorso resta letterale, e il caso si lamenta che un file non esiste.
 
 I nomi in `casi/ponte/` cominciano con la voce che li ha fatti nascere —
 `c4r_*` la ruota dentata, `d3_*` le quote sui tagli, `b8_*` i riferimenti fra

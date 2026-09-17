@@ -21,7 +21,7 @@
           "perche": "l'avvertimento viaggia con la risposta, non solo nel catalogo: chi legge questa risposta potrebbe non aver mai letto la descrizione dell'operazione" } ] },
     { "operazione": "membro_strutturale",
       "argomenti": { "piano": "superiore",
-                     "profilo_percorso": "<impostazioni SOLIDWORKS>\\ELEMENTI SALDATURA\\NORMATI\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configurazione": "80X80X5",
                      "segmenti": [ { "da": [0, 0, 0], "a": [600, 0, 0] } ] },
       "attese": [

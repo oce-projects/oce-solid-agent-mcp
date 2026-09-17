@@ -66,7 +66,7 @@ namespace ProvaSaldatura
             "lavorazioni", "coppie", "asola", "smusso", "rivoluzione", "piano",
             "specchia", "ripeti", "asse", "togliere", "frase", "verifica",
             "esporta", "misura", "corpi", "proprieta", "testo", "telai",
-            "assiemi",
+            "assiemi", "tavola",
         };
 
         private static void ProvaCasiDichiarati()
@@ -115,11 +115,35 @@ namespace ProvaSaldatura
             var daControllare = new List<Gemellaggio>();
             var doveSta = new Dictionary<string, string>(StringComparer.Ordinal);
 
+            // ── DUE FORME DI FILE NELLA STESSA CARTELLA, E SI DISTINGUONO ──
+            //
+            // `casi/tavola/` conteneva gia' i PIANI dei giri a mano — quelli
+            // che si lanciano con `corri_piani.js` — e sono file di forma
+            // diversa: un ARRAY di passi, senza nome, senza «perche» e senza
+            // attese. Un caso dichiarato e' un OGGETTO.
+            //
+            // La differenza e' STRUTTURALE, non un indizio: si guarda se la
+            // radice del JSON e' un array. Un caso scritto male resta un
+            // oggetto e continua a dare errore di banco come prima — **non si
+            // sta allargando la maglia**, si sta distinguendo fra due cose che
+            // non si somigliano.
+            //
+            // E QUANTI NE SALTA SI DICE. Un file saltato in silenzio e' come un
+            // controllo che non scatta: il giorno in cui un caso vero viene
+            // scritto come array, sparisce senza che nessuno se ne accorga, e
+            // «tutto verde» conta un caso in meno.
+            var piani = new List<string>();
             foreach (var f in file)
             {
+                if (EUnPianoENonUnCaso(f)) { piani.Add(Path.GetFileName(f)); continue; }
                 doveSta[Path.GetFileNameWithoutExtension(f)] = f;
                 comeEAndata[Path.GetFileNameWithoutExtension(f)] = CorriUnCaso(f, daControllare);
             }
+            Segna("i piani a mano si riconoscono e si saltano", true,
+                  piani.Count == 0
+                      ? "nessuno: tutti i file sono casi dichiarati"
+                      : piani.Count + " saltati (sono array, non casi): " +
+                        string.Join(", ", piani.Take(4)) + (piani.Count > 4 ? " ..." : ""));
 
             GuardaLeGemelle(daControllare, comeEAndata, doveSta);
         }
@@ -1098,6 +1122,26 @@ namespace ProvaSaldatura
         // ==================================================================
         // UN CASO
         // ==================================================================
+        /// <summary>
+        /// `true` se il file e' un PIANO a mano e non un caso dichiarato.
+        ///
+        /// La radice di un piano e' un array di passi; quella di un caso e' un
+        /// oggetto con `nome`, `perche` e `passi`. **Un file illeggibile NON e'
+        /// un piano**: si torna `false` e lo si lascia arrivare a `CorriUnCaso`,
+        /// che lo dichiarera' errore di banco con il motivo giusto. *Un
+        /// riconoscimento che inghiotte anche i guasti smette di riconoscere.*
+        /// </summary>
+        private static bool EUnPianoENonUnCaso(string percorso)
+        {
+            try
+            {
+                var s = new System.Web.Script.Serialization.JavaScriptSerializer();
+                s.MaxJsonLength = int.MaxValue;
+                return s.DeserializeObject(File.ReadAllText(percorso)) is object[];
+            }
+            catch { return false; }
+        }
+
         private static bool CorriUnCaso(string percorso, List<Gemellaggio> gemelle)
         {
             string nome = Path.GetFileNameWithoutExtension(percorso);
@@ -1143,7 +1187,7 @@ namespace ProvaSaldatura
             {
                 preparato = PreparaIlDocumento(nome, caso);
                 if (preparato == null || preparato.Documento == null) return false;
-                verde = EseguiIPassi(nome, caso, preparato.Documento, gemelle, percorso);
+                verde = EseguiIPassi(nome, caso, preparato.Documento, gemelle, percorso, preparato);
             }
             catch (Exception ex) { Segna(nome, false, Perche(ex)); return false; }
             finally { ButtaViaLaPreparazione(preparato); }
@@ -1198,13 +1242,29 @@ namespace ProvaSaldatura
         /// </summary>
         private static bool EseguiIPassi(
             string nome, Dictionary<string, object> caso, IModelDoc2 doc,
-            List<Gemellaggio> gemelle, string percorso)
+            List<Gemellaggio> gemelle, string percorso,
+            Preparazione daRipulire = null)
         {
             var passi = Elenco(caso, "passi");
             if (passi == null || passi.Count == 0) { ErroreDiBanco(nome, "manca «passi»"); return false; }
 
             {
-                var stato = LeggiStato(doc);
+                // IL DOCUMENTO PUO' CAMBIARE A META' CASO (voce GT0).
+                //
+                // `crea_disegno` apre una tavola, e da li' in poi i passi
+                // lavorano su quella. Finche' questo era `doc` e basta, un caso
+                // che creava una tavola metteva le viste dentro il pezzo — o
+                // piu' spesso si fermava su «il documento attivo non e' una
+                // tavola». E' il motivo per cui **nessuna delle dieci voci GT
+                // ha mai avuto un caso di banco**: non e' mancata la voglia, e'
+                // che il banco non sapeva seguire il secondo documento.
+                //
+                // Si segue solo cio' che l'operazione **dichiara**
+                // (`Esito.DocumentoNuovo`), mai il documento attivo di
+                // SOLIDWORKS: su questa macchina SOLIDWORKS e' condiviso, e
+                // «attivo» e' cio' che ha davanti chiunque.
+                var attuale = doc;
+                var stato = LeggiStato(attuale);
 
                 for (int i = 0; i < passi.Count; i++)
                 {
@@ -1226,12 +1286,45 @@ namespace ProvaSaldatura
                     catch (Exception ex) { Segna(etichetta, false, ex.Message); return false; }
                     if (argomenti == null) argomenti = new Dictionary<string, object>();
 
-                    double volumePrima = VolumeDelDocumento(doc);
+                    double volumePrima = VolumeDelDocumento(attuale);
                     int featurePrima = QuanteFeature(stato);
 
                     string errore;
-                    var misure = Esegui(doc, operazione, argomenti, out errore, stato);
-                    stato = LeggiStato(doc);
+                    IModelDoc2 nato;
+                    var misure = Esegui(attuale, operazione, argomenti, out errore, out nato, stato);
+
+                    // SI CAMBIA SOLO SE IL PASSO E' RIUSCITO. Un `crea_disegno`
+                    // fallito a meta' puo' aver lasciato un documento a monitor
+                    // e non e' quello su cui si continua: seguire un documento
+                    // nato da un passo rosso vorrebbe dire misurare il relitto.
+                    if (misure != null && nato != null && !ReferenceEquals(nato, attuale))
+                    {
+                        attuale = nato;
+                        string comeSiChiama = null;
+                        try { comeSiChiama = attuale.GetTitle(); } catch { }
+                        // Lo si DICE. Un cambio di documento silenzioso e' la
+                        // cosa che rende illeggibile un caso rosso tre passi
+                        // piu' avanti: si legge «la vista non c'e'» e si va a
+                        // cercare il difetto nell'operazione sbagliata.
+                        Console.WriteLine("       | da qui si lavora su «" +
+                                          (comeSiChiama ?? "(senza titolo)") + "»");
+
+                        // E SI SEGNA PER CHIUDERLO DOPO.
+                        //
+                        // «Il banco sa seguire il secondo documento» non e'
+                        // finito finche' non sa anche **richiuderlo**. Una
+                        // tavola lasciata aperta resta li' per tutti i casi
+                        // successivi, e non e' un fastidio estetico: sei
+                        // documenti di troppo sono ~650 caratteri in piu' nello
+                        // stato, e la prova «lo stato sta sotto i 16 KB» passa
+                        // da 15.6k a 16.2k e **diventa rossa senza che il
+                        // codice sia cambiato**. Mezz'ora a cercare una
+                        // regressione che non c'e'.
+                        if (daRipulire != null && !string.IsNullOrWhiteSpace(comeSiChiama))
+                            daRipulire.TitoliDaChiudere.Add(comeSiChiama);
+                    }
+
+                    stato = LeggiStato(attuale);
 
                     var deveFallire = passo.ContainsKey("deve_fallire")
                         ? passo["deve_fallire"] as Dictionary<string, object> : null;
@@ -1239,7 +1332,7 @@ namespace ProvaSaldatura
                     if (deveFallire != null)
                     {
                         if (!GuardaIlRifiuto(etichetta, deveFallire, misure, errore,
-                                             doc, stato, volumePrima, featurePrima, percorso))
+                                             attuale, stato, volumePrima, featurePrima, percorso))
                             return false;
                         // LA COPPIA SI REGISTRA QUI E SI GUARDA ALLA FINE:
                         // «la gemella e' verde in questo giro» si sa solo dopo
@@ -1283,7 +1376,7 @@ namespace ProvaSaldatura
                         // documento ce l'ha: il valutatore non sa cosa sia un
                         // `IModelDoc2`, ed e' quello che lo rende provabile
                         // senza SOLIDWORKS (voce F7).
-                        var qui = doc;
+                        var qui = attuale;
                         try { ok = Combacia(attesa, c => DalDocumento(c, qui, stato), stato, misure, out dettaglio); }
                         catch (NonHoPotutoMisurare ex)
                         { ErroreDiBanco(etichetta + " · " + Testo(attesa, "cosa"), ex.Message); return false; }

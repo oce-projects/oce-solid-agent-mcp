@@ -119,6 +119,15 @@ namespace Oce.Solid.Agent
                         ["capabilities"] = new Dictionary<string, object>
                         {
                             ["tools"] = new Dictionary<string, object>(),
+                            // Il catalogo si puo' anche ATTACCARE invece che
+                            // chiedere (W2.12). Senza questa riga un client non
+                            // prova nemmeno `resources/list`, e la porta c'e'
+                            // ma nessuno la vede. `subscribe` e `listChanged`
+                            // restano fuori apposta: **il catalogo non cambia
+                            // mentre il ponte gira** — e' un file letto
+                            // all'avvio — e dichiarare una capacita' che non si
+                            // esercita e' una promessa che qualcuno aspettera'.
+                            ["resources"] = new Dictionary<string, object>(),
                             // Il ponte racconta cosa fa, e lo dichiara: senza
                             // questa riga un client non sa che puo' chiedere
                             // `logging/setLevel`, e le notifiche gli arrivano
@@ -175,6 +184,52 @@ namespace Oce.Solid.Agent
                     {
                         ["tools"] = attrezzi.Elenco(),
                     });
+
+                // ── LE RISORSE (voce W2.12) ─────────────────────────────
+                //
+                // Stesso catalogo degli strumenti, presa da un'altra porta:
+                // `Risorse` riceve l'oggetto `Catalogo` che e' gia' in mano e
+                // non ne costruisce un altro. Costruirne un altro vorrebbe dire
+                // rileggere il file, e due letture dello stesso file in momenti
+                // diversi sono due cataloghi che possono differire.
+                case "resources/list":
+                    return Protocollo.Risposta(id, new Dictionary<string, object>
+                    {
+                        ["resources"] = new Risorse(catalogo).Elenco(),
+                    });
+
+                case "resources/templates/list":
+                    return Protocollo.Risposta(id, new Dictionary<string, object>
+                    {
+                        ["resourceTemplates"] = new Risorse(catalogo).Modelli(),
+                    });
+
+                case "resources/read":
+                {
+                    var uri = parametri != null && parametri.TryGetValue("uri", out var u)
+                        ? Convert.ToString(u) : null;
+                    if (string.IsNullOrWhiteSpace(uri))
+                        return Protocollo.Errore(
+                            id, Protocollo.ParametriNonValidi, "manca «uri»");
+
+                    var risorse = new Risorse(catalogo);
+                    var contenuto = risorse.Leggi(uri);
+                    if (contenuto != null)
+                        return Protocollo.Risposta(id, contenuto);
+
+                    // UN URI CHE NON ESISTE DICE COSA ESISTE. Un «non trovato»
+                    // nudo lascia a chi chiede l'unico rimedio che non
+                    // funziona: riprovare uguale.
+                    var simili = risorse.Simili(uri);
+                    return Protocollo.Errore(
+                        id, Protocollo.ParametriNonValidi,
+                        "Non conosco la risorsa «" + uri + "». C'e' «" +
+                        Risorse.UriElenco + "» (tutte le operazioni in breve) e " +
+                        "«" + Risorse.PrefissoOperazione + "<nome>» per una sola." +
+                        (simili.Count == 0
+                            ? ""
+                            : " Forse cercavi: " + string.Join(", ", simili) + "."));
+                }
 
                 case "tools/call":
                 {

@@ -106,6 +106,14 @@ namespace ProvaSaldatura
                 if (!nome.StartsWith("SolidWorks.Interop", StringComparison.OrdinalIgnoreCase))
                     return null;
                 var posti = new List<string>();
+                // VOCE H10: una variabile sola, e il suo significato e' LA
+                // RADICE. `SW_REDIST` resta letta dopo, per chi ce l'ha gia'.
+                // Il banco e il ponte devono cercare NEGLI STESSI POSTI e
+                // nello stesso ordine: due ricerche diverse dello stesso file
+                // sono due programmi che un giorno usano due interop diverse.
+                var radice = System.Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+                if (!string.IsNullOrWhiteSpace(radice))
+                    posti.Add(Path.Combine(radice.Trim(), "api", "redist"));
                 var suo = System.Environment.GetEnvironmentVariable("SW_REDIST");
                 if (!string.IsNullOrWhiteSpace(suo)) posti.Add(suo);
                 posti.Add(@"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist");
@@ -118,8 +126,9 @@ namespace ProvaSaldatura
                         try { return Assembly.LoadFrom(file); } catch { }
                     }
                 }
-                Console.WriteLine("non trovo " + nome + ": indica la cartella redist di " +
-                                  "SOLIDWORKS nella variabile SW_REDIST.");
+                Console.WriteLine("non trovo " + nome + ": indica dove e' installato " +
+                                  "SOLIDWORKS nella variabile SW_INSTALL_PATH (la radice, " +
+                                  "quella che finisce con \\SOLIDWORKS).");
                 return null;
             };
             return Avvio(argomentiRiga);
@@ -581,6 +590,25 @@ namespace ProvaSaldatura
                    "prima di committare.";
         }
 
+        /// <summary>
+        /// Il nome, incolonnato, **e sempre almeno uno spazio dopo**.
+        ///
+        /// `PadRight(52)` da solo non aggiunge niente quando il nome e' gia'
+        /// lungo 52, e il diario usciva cosi':
+        ///
+        ///     OK   ...misure.copie_fattemisure.copie_fatte 3 (atteso 3)
+        ///
+        /// Due parole attaccate che sembrano una parola sola. Non e' un
+        /// dettaglio estetico: il diario e' cio' che si legge quando il banco
+        /// e' rosso, e una riga che si legge male si legge sbagliata — quel
+        /// nome doppio sembra un difetto del banco, e si va a cercarlo.
+        /// </summary>
+        private static string InColonna(string nome)
+        {
+            if (nome == null) nome = "";
+            return nome.Length >= 52 ? nome + "  " : nome.PadRight(52);
+        }
+
         private static void Segna(string nome, bool ok, string dettaglio = "")
         {
             // ZITTO: il modo `--muta` riesegue lo stesso caso decine di volte e
@@ -590,7 +618,7 @@ namespace ProvaSaldatura
             if (_zitto) { if (!ok) _zittoRosso = true; return; }
 
             if (!ok) _falliti++;
-            var riga = (ok ? "  OK   " : "  NO   ") + nome.PadRight(52) + dettaglio;
+            var riga = (ok ? "  OK   " : "  NO   ") + InColonna(nome) + dettaglio;
             _esiti.Add(riga);
             Console.WriteLine(riga);
             Diario(riga);
@@ -785,7 +813,7 @@ namespace ProvaSaldatura
         private static void Saltata(string nome, string perche)
         {
             _saltate++;
-            var riga = "  --   " + nome.PadRight(52) + "SALTATA: " + perche;
+            var riga = "  --   " + InColonna(nome) + "SALTATA: " + perche;
             _esiti.Add(riga);
             Console.WriteLine(riga);
             Diario(riga);
@@ -812,7 +840,7 @@ namespace ProvaSaldatura
             if (_zitto) { _zittoRosso = true; return; }
 
             _erroriDiBanco++;
-            var riga = "  !!   " + nome.PadRight(52) + "ERRORE DI BANCO: " + cosa;
+            var riga = "  !!   " + InColonna(nome) + "ERRORE DI BANCO: " + cosa;
             _esiti.Add(riga);
             Console.WriteLine(riga);
             Diario(riga);
@@ -1593,7 +1621,40 @@ namespace ProvaSaldatura
             IModelDoc2 doc, string operazione, Dictionary<string, object> argomenti,
             out string errore, object stato = null)
         {
+            IModelDoc2 ignorato;
+            return Esegui(doc, operazione, argomenti, out errore, out ignorato, stato);
+        }
+
+        /// <summary>
+        /// Come sopra, ma dice anche **se l'operazione ha aperto un documento
+        /// nuovo** (voce GT0).
+        ///
+        /// ── PERCHE' SERVE, E PERCHE' NON SI GUARDA IL DOCUMENTO ATTIVO ───
+        ///
+        /// `crea_disegno` apre una tavola e da li' in poi si lavora su quella:
+        /// e' l'unico cambio di documento legittimo del catalogo. Finche' il
+        /// banco eseguiva ogni passo sempre sullo STESSO documento, un caso che
+        /// creava una tavola metteva le viste **dentro il pezzo** — o piu'
+        /// probabilmente falliva dicendo «il documento attivo non e' una
+        /// tavola», che e' il motivo per cui nessuna voce GT ha mai avuto un
+        /// caso di banco.
+        ///
+        /// **Non si chiede a SOLIDWORKS qual e' il documento attivo.** La
+        /// regola di questo progetto e' tenere il riferimento, non
+        /// `ActiveDoc`: su una macchina dove SOLIDWORKS e' condiviso, «attivo»
+        /// e' cio' che ha davanti *chiunque*, e basta che qualcuno apra una
+        /// finestra perche' il banco misuri il documento di un altro.
+        ///
+        /// L'operazione lo **dichiara**: `Esito.DocumentoNuovo`, che
+        /// `crea_disegno` riempie apposta. Un cambio dichiarato si puo'
+        /// seguire; uno dedotto si puo' solo subire.
+        /// </summary>
+        private static Dictionary<string, object> Esegui(
+            IModelDoc2 doc, string operazione, Dictionary<string, object> argomenti,
+            out string errore, out IModelDoc2 documentoNuovo, object stato = null)
+        {
             errore = null;
+            documentoNuovo = null;
             var costruttore = _tOperazioni.GetConstructors(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)[0];
             // QUELLO CHE L'ADD-IN RACCONTA SI LEGGE.
@@ -1619,6 +1680,19 @@ namespace ProvaSaldatura
                 errore = _tEsito.GetField("Errore").GetValue(esito) as string;
                 return null;
             }
+            // IL CAMPO PUO' NON ESSERCI, e non e' un guasto: il banco carica la
+            // libreria per riflessione, e una libreria piu' vecchia di questa
+            // riga non ha `DocumentoNuovo`. In quel caso si torna `null` e si
+            // continua come prima — **quello che non si fa e' esplodere**,
+            // perche' una prova che muore per un campo assente non misura
+            // niente di cio' che doveva misurare.
+            try
+            {
+                var campo = _tEsito.GetField("DocumentoNuovo");
+                if (campo != null) documentoNuovo = campo.GetValue(esito) as IModelDoc2;
+            }
+            catch { }
+
             try { doc.EditRebuild3(); } catch { }
             return _tEsito.GetField("Misure").GetValue(esito) as Dictionary<string, object>;
         }

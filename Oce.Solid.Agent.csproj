@@ -70,6 +70,7 @@
   <ItemGroup>
     <Compile Include="Programma.cs" />
     <Compile Include="Mcp\Protocollo.cs" />
+    <Compile Include="Mcp\Risorse.cs" />
     <Compile Include="Ponte\PianoInMemoria.cs" />
     <Compile Include="Ponte\Sessione.cs" />
     <Compile Include="Ponte\TurnoSulDocumento.cs" />

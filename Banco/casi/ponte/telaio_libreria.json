@@ -2,7 +2,7 @@
  {
   "operazione": "telaio_rettangolare",
   "argomenti": {
-   "profilo_percorso": "<impostazioni SOLIDWORKS>\\ELEMENTI SALDATURA\\NORMATI\\TUBO STRUTTURALE QUADRO.SLDLFP",
+   "profilo_percorso": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
    "configurazione": "80X80X5",
    "lunghezza_mm": 1000,
    "larghezza_mm": 800,

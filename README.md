@@ -1,6 +1,6 @@
 # OCE Solid Agent
 
-Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti sessantadue
+Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti sessantatre
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -52,7 +52,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sei, non sessantadue. Le operazioni di disegno sono sessantadue, ma esporne
+Sei, non sessantatre. Le operazioni di disegno sono sessantatre, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
@@ -248,8 +248,13 @@ operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
 |---|---|
 | `RISCONTRO_DISEGNO` | quale `Riscontro.Disegno.dll` ci si aspetta di usare. **Non la sceglie**: .NET carica quella accanto all'eseguibile. Serve a farsi dire se le due non coincidono |
 | `OPENPDM_ADDIN` | il vecchio nome di `RISCONTRO_DISEGNO`, ancora letto |
-| `OPENPDM_CATALOGO` | dove sta `catalogo.json`; se manca, accanto all'eseguibile |
-| `SW_REDIST` | la cartella `api\redist` di SolidWorks, se non e' in `C:\Program Files\SOLIDWORKS Corp` |
+| `RISCONTRO_CATALOGO` | dove sta `catalogo.json`; se manca, accanto all'eseguibile |
+| `OPENPDM_CATALOGO` | il vecchio nome di `RISCONTRO_CATALOGO`, ancora letto |
+| `SW_INSTALL_PATH` | dove e' installato SolidWorks: la **radice**, quella che finisce con `\SOLIDWORKS`. Vale sia per compilare che per far girare — da qui si ricava `api\redist` |
+| `SW_REDIST` | il vecchio nome, ancora letto. Voleva la sottocartella `api\redist` e non la radice: se sono impostate tutte e due vince `SW_INSTALL_PATH` |
+| `RISCONTRO_RADICE` | l'unica cartella dentro cui il ponte puo' scrivere. Se e' impostata, tutto il resto del disco e' fuori |
+| `RISCONTRO_SOLA_LETTURA` | cartelle che il ponte non deve scrivere, separate da `;` — esempio `S:\CAD;S:\_LIBRERIE`. Si aggiungono a quelle di sistema, non le sostituiscono |
+| `PROFILI_SALDATURA` | la libreria dei profili saldati (`.SLDLFP`), se non e' dove la mette questa installazione |
 
 `RISCONTRO_DISEGNO` non decide piu' quale libreria caricare, e resta letta
 apposta: se punta altrove, il ponte lo **dice**. Una variabile d'ambiente che

@@ -330,10 +330,29 @@ namespace ProvaSaldatura
         internal static void ButtaViaLaPreparazione(Preparazione p)
         {
             if (p == null) return;
-            Chiudi(p.Documento);
-            foreach (var t in p.TitoliDaChiudere)
+
+            // ── DUE GIRI, E L'ORDINE NON SI PRETENDE DI SAPERLO (voce GT0) ──
+            //
+            // Prima di GT0 la lista conteneva solo i componenti di un assieme,
+            // e l'assieme era `Documento`: si chiudeva l'assieme e poi i pezzi,
+            // cioe' dall'alto. Adesso la lista puo' contenere anche una TAVOLA,
+            // e li' il sopra e il sotto sono rovesciati — la tavola sta sopra il
+            // pezzo, che e' `Documento`.
+            //
+            // **Non si sceglie un ordine buono per tutti e due**, perche' non
+            // c'e': si prova, e si riprova. `CloseDoc` su un documento che ha
+            // gia' chiuso non fa niente, quindi il secondo giro costa un
+            // tentativo a vuoto e raccoglie quello che il primo ha lasciato.
+            // *Quando non si sa in che ordine vanno smontate due cose, si
+            // smontano due volte — e' meno codice che dedurre l'ordine, e non
+            // sbaglia quando la deduzione era sbagliata.*
+            for (int giro = 0; giro < 2; giro++)
             {
-                try { _sw.CloseDoc(t); } catch { }
+                Chiudi(p.Documento);
+                foreach (var t in p.TitoliDaChiudere)
+                {
+                    try { _sw.CloseDoc(t); } catch { }
+                }
             }
             ButtaViaIFile(p);
         }
