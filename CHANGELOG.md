@@ -1,5 +1,13 @@
 # SolidWorks MCP — versioni
 
+> **LINGUA DI QUESTO FILE — deciso il 16 settembre 2026 (voci W3.1 / W3.2).**
+> Il repository passa all'inglese. **Questo file no, non all'indietro.** Le voci
+> storiche restano in italiano e **non si traducono**: raccontano cosa si
+> chiamavano le cose *allora*, e *un changelog riscritto e' un changelog che
+> mente* (regola della voce I1, che resta in piedi). Le voci **nuove** si
+> scrivono in inglese, a partire dalla prima successiva a questa riga. Il
+> confine e' qui, ed e' dichiarato invece che implicito.
+
 **REGOLA, non consuetudine: ogni modifica al codice alza la versione in
 `VERSION.txt` e aggiunge una voce qui.**
 
@@ -13,6 +21,522 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 - **MINOR +1** quando il ponte guadagna strumenti o capacita' visibili;
 - **PATCH +1** per correzioni;
 - **MAJOR** resta 0 finche' il protocollo degli strumenti non e' stabile.
+
+---
+
+## 0.58.0 — 16 September 2026 · library 0.92.0
+
+### Assemblies: the bench can build one, the state can read one, and one operation can touch one
+
+Zero of sixty operations worked on assemblies. Three things landed together,
+because each is useless without the others.
+
+**GA0 — the bench can prepare an assembly.** Until today `NuovaParte()` was the
+only way the bench produced a document, and it used the part template. That meant
+**no assembly operation could ever have a test case**: all nine assembly entries
+could have been written, made to work by hand, and left with nothing to notice
+when they broke. *An operation without a case is not an operation, it is a
+demonstration.*
+
+A case can now declare `"assieme": { "componenti": [...] }`. Each component is
+built with **the same operations the cases use** — no separate little language to
+keep in sync — then saved into `Banco\lavoro`, reopened, and inserted.
+`AddComponent5` takes a path, so a component has to exist on disk first; that is
+seven steps, and each one fails its own way. All of them report through
+`ErroreDiBanco`, never `Segna(false)`: a failed *preparation* is not a failed
+*test*, and calling it one would suggest something had been measured.
+
+A component marked `"da_inserire": false` is built and opened but **not**
+inserted — that is how a case can test the insertion itself instead of measuring
+the preparation's work.
+
+Three self-checks guard it, and the third is the one nobody writes: after the
+case, `lavoro` must be empty again. *A case that passes because a file from the
+previous run was still there is not a case, it is a memory.*
+
+**GA1 — `guarda_il_pezzo` describes assemblies.** It used to answer, for any
+assembly, one line: *"documento di assieme: l'assistente non lo modifica
+ancora"*. True, and blinding: the state is the only thing the model sees, so it
+could not know how many components there were, what they were called, which were
+suppressed. It could not even refuse with any understanding of what it was
+looking at.
+
+Now: component list (uid, name, path, configuration, suppression state, fixed),
+counts of components/suppressed/lightweight/fixed, and the active configuration.
+
+**The component uids are stable, and not by accident.** Face and edge uids are
+*positional* — they renumber by area on every read, and that is the most
+expensive trap in this project. Components are different: `Name2` is unique
+within an assembly, so the list is **sorted by name** and `C1..Cn` stays put
+between reads. Trusting `GetComponents`' own ordering, which is documented
+nowhere, would have repeated the face trap where it was avoidable.
+
+`GetComponents(false)`, not `true`: with `true` a subassembly shows up as *one*
+component with nothing inside, and the model would read "2 components" on an
+assembly of thirty — every conclusion after that plausible and wrong. The
+top-level count is reported separately, because that is the other real question.
+
+The note did not disappear, it changed kind: `cosa_non_so_ancora_fare` now says
+**what** is missing. A model reading "I can see four components but I cannot mate
+them" knows what it may ask; one reading "I do not modify this" can only stop.
+
+**GA3 — `inserisci_componente`.** Sixty-one operations now. The thing it does
+beyond inserting is the point, and the API census wrote it down long before
+anyone measured it: *"AddComponent5 places without mating — four loose bodies
+that look like an assembly."* Inserting almost always succeeds. The part appears,
+the tree fills, the rebuild is clean, and **nothing is constrained.**
+
+So the operation reports whether the component is `fisso`, how many
+`accoppiamenti` it has, and — the conclusion — whether it is `appoggiato`: not
+fixed and with zero mates means it is just sitting there. The warning travels in
+the answer, not only in the catalogue description, because whoever reads the
+answer may never have read the description.
+
+**Fixed components are excluded from the "is it assembled?" count** (GA5), and
+that is not an edge case: **SOLIDWORKS® fixes the first component inserted into
+an assembly** — measured, `base-1 fixed=True` against `coperchio-1 fixed=False`.
+Every assembly that exists has at least one nailed-down part, so counting them as
+constrained would have been wrong *always*, not occasionally, and in the
+comfortable direction. A fixed part does not move because someone nailed it, not
+because anyone mated it: two different things, and the state keeps them apart.
+
+**What it does NOT report, and says so.** How *much* freedom is left. The first
+version reported `gradi_di_liberta_residui` from
+`IComponent2.GetRemainingDOFs`, believing the return value was a count and that
+a freshly inserted component would give six. The bench case caught it on its
+first run: it measured **2**.
+
+**That return value is not a count. It is a status** — `swRemainingDofs_e`:
+`Restricted=0`, `Unrestricted=1`, **`Unavailable=2`**, `Failed=3`,
+`RootComponent=4`. The 2 meant *unavailable*. Six was never a possible return.
+Meanwhile the bridge was telling the model *"it still has 2 degrees of freedom
+out of 6"* — invented number, invented unit, entirely plausible sentence.
+
+What actually exposed it was not the wrong value but the **comparison**: the same
+2 comes back for a **fixed** component and for a **free** one. The number did not
+distinguish the two things it was there to distinguish.
+
+Four conditions were tried and all return *unavailable*: freshly built assembly,
+component selected first, assembly saved to disk, and **after a real coincident
+mate** — `AddMate5` answered `swAddMateError_NoError`, so that last condition
+genuinely holds. (A trap in passing: in `swAddMateError_e`, **`NoError` is 1**
+and `ErrorUknown` is 0. `if (err != 0)` would have called a successful mate a
+failure.)
+
+So the count is not obtainable here, and rather than wait for it the bridge
+stopped publishing a false one. `IsFixed()` works and genuinely separates the
+nailed-down first component from the rest; `GetMates()` counts. The state also
+carries `cosa_non_so_dei_vincoli`, which warns that "constrained" here means
+*"has at least one mate"*, not *"cannot move"* — one mate still leaves five
+degrees of freedom out of six.
+
+*A measurement you cannot have must be declared absent, not approximated. Saying
+"I don't know" costs one line; a plausible number costs whatever someone builds
+on top of it.*
+
+It refuses before it acts, twice: not an assembly (says which type it found), and
+component not open (says which documents *are* open — `AddComponent5` answers
+`null` on a closed file without saying why, and a refusal that does not name the
+alternative forces guessing).
+
+And it does not believe the return value: it counts components before and after.
+
+**Where the component actually ends up, and a third trap.** The position is read
+from `GetTotalTransform`, and the index layout was not assumed: the case inserts
+at z = 30 mm and reads the translation back. It found more than it was looking
+for. The **Z matched** — so indices 9, 10, 11 are the translation, question
+answered — but Y came back **-2**:
+
+> **`AddComponent5(x, y, z)` positions the component's bounding-box CENTRE, not
+> its origin.**
+
+A part extruded in one direction — which is what `estrudi_rettangolo` does, and
+what any ordinary extrusion does — has its origin on a face, not at mid
+thickness. Ask for the centre at z = 30 and the origin lands at y = -2: half the
+4 mm thickness. **Confirmed by prediction, not by fitting**: a second part 10 mm
+thick, requested at zero, was predicted to read (0, -5, 0) *before* the probe ran,
+and read (0, -5, 0).
+
+The fix is in the **name**, not the code. The field was `posizione_mm`, which
+invited comparison with the point that was *asked for*, and the two almost never
+coincide. It is now **`origine_mm`**, and `x_mm`/`y_mm`/`z_mm` say "bounding-box
+centre" in the catalogue. Neither number was wrong; they were two different
+things and nothing said so — the defect that raises no error in its subtlest
+form: not a false value, but **a name promising a meaning the value does not
+carry**.
+
+**This has now run against SOLIDWORKS®, and the first run was worth it.** The
+assembly case found three things in one go: a status read as a count, an empty
+collection returned as null, and a field name that promised the wrong meaning.
+All three were written by the same person who wrote the case — which is the
+argument for writing the case.
+
+### A source file that isn't in its `.csproj` doesn't exist
+
+`OperazioniAssieme.cs` was written, compiled fine in a scratch check, and failed
+the real build: it was not listed in `Riscontro.Disegno.csproj`. Two errors,
+thirty seconds to fix — because something referenced it.
+
+**The dangerous case is the other one.** A new class nobody references yet — an
+operation written but not yet wired to the dispatcher — is simply **not
+compiled**, and the build stays green. You write a file, everything passes, and
+that file is not in the program. No error, anywhere. It is the defect that raises
+no error, applied to the *project* instead of the part.
+
+A contract test now walks `Riscontro.Disegno`, `Ponte`, `Strumenti`, `Mcp`,
+`Banco`, `Prove` and `Installer` and checks every `.cs` appears in its project
+file. Sixty-eight files, all present. Seen firing: a throwaway file dropped in
+`Riscontro.Disegno` turns it red and names the file and the project.
+
+It is a test and not a script on purpose. A script has to be remembered, and that
+is exactly how the `pre-push` hook came about: the check existed, running it
+didn't.
+
+### The data comes out machine-readable too — and no `outputSchema`, deliberately
+
+Everything came out as **text**: document state, plan measurements, the
+catalogue. A language model reads that fine; a program has to re-parse JSON that
+was JSON before being put inside a string. `structuredContent` is the field MCP
+provides for exactly this, and it costs one line. The text stays — clients that
+read only `content` are the majority — and the data comes out **even when the
+plan failed**, which is when a program most needs it.
+
+**`outputSchema` is not declared, and that is the decision, not an omission.**
+The spec is firm: a tool declaring `outputSchema` **must** return conforming
+`structuredContent`. The shape of the state changes with the document — an
+assembly has `componenti`, a drawing has `fogli`, a part has `facce` — and every
+new field (eight were added to assemblies today) would become a promise to keep.
+**A partial schema is worse than none**: a validating client would reject correct
+answers. So: the data without a promise about its shape, and a contract test that
+fails if any tool ever declares an `outputSchema` before that shape is actually
+settled.
+
+### The same plan twice
+
+A client that never receives the answer — network, timeout, restart — resends the
+request. That is what every client does, and this bridge's own annotations
+already said `disegna` is **not** idempotent: re-running does not restore the
+part, it **makes a second hole**. They said it, and nothing stopped it.
+
+The bridge now remembers the fingerprint of the last successful plan, which
+document it ran on, and how the part looked **right after**. It refuses only when
+all three match.
+
+**Both conditions are needed.** The plan alone is not enough: identical plans on
+documents in different states do different things and may both be wanted. The
+state alone is not enough either: a document that has not changed is no reason to
+refuse. Together they describe exactly one situation — the resend.
+
+**No flag to bypass it.** *An argument that disables a defence is an invitation to
+disable it*, and whoever hits it has every incentive to retry with it on — so the
+defence disappears precisely when it was needed. The refusal says what to do
+instead: if the answer never arrived, call `guarda_il_pezzo` (the current state
+**is** the result); if you really want it again, change something or use
+`annulla`, so it is a choice.
+
+**The state summary is deliberately not a hash of everything.** The full state
+changes even when the part does not — a uid renumbering, a face crossing the
+display cap — and comparing all of it would report "different" every time,
+**switching the check off without anyone noticing**. Volume, bodies, feature
+count and title change when the *part* changes, not when the way it was read
+changes. *The most common way to disable a check is to make it too sensitive.*
+
+**And a bug found while writing it:** `misura` runs through the same body. But
+measuring twice is legitimate — it is the normal case — and since a measurement
+does not change the document, the state after equals the state before, so the
+guard would have **refused the second measurement**. Worse than inconvenient:
+`misura` declares `idempotentHint: true`, and a client reads that line to decide
+whether it may retry on its own. Refusing would have made that declaration **a
+lie in the protocol** — the very category of defect `misura` exists to avoid. The
+guard now applies to `disegna` only.
+
+### The bridge tells the client what it is doing
+
+`stderr` stays — it is the only place that works **before** a client exists
+(attaching to SOLIDWORKS®, a catalogue that will not load, `--prova`), and it is
+what you read when nothing starts. What is added is `notifications/message`, with
+the `logging` capability declared and `logging/setLevel` served.
+
+What this gains: the agent's own lines — *"I re-anchored face F3, moved 2 mm"* —
+are exactly what explains why a part came out the way it did, and they were going
+to a terminal nobody watches.
+
+The channel only opens once the message loop is running; before that, a line on
+stdout with nobody reading JSON is just noise that breaks whoever connects next.
+And sending the notification is wrapped in a `try` that never rethrows: *a report
+that makes the reported thing fail is worse than silence.*
+
+**An unknown level is an error, not a shrug.** Accepting and ignoring it would
+leave the client believing it had raised the threshold while messages keep
+arriving — or, worse, believing it hears everything while hearing nothing.
+
+One existing test was made **robust, not loosened**: "a notification gets no
+reply" read whatever line came first; it now skips **only**
+`notifications/message`, which is ours and recognisable. Widening it to "ignore
+anything without an id" would have switched it off.
+
+### One bridge at a time on a document
+
+Two MCP clients open at once is ordinary, and until now nothing stopped two
+bridge processes from executing plans on the same document. The precedent is
+already paid for: on 14 September a 314×274×52 block was extruded **into someone
+else's part** — no error, no warning, the plan succeeded on the wrong thing. That
+was fixed by holding the `IModelDoc2` reference instead of asking for the active
+document. Within one process that is enough. Between two processes it protects
+nothing: two different COM objects looking at the same file, each believing it is
+alone.
+
+A system mutex, keyed by the document, now decides whose turn it is. The refusal
+says which document and why.
+
+**A mutex, not a lock file**: a file outlives whoever made it, so a bridge that
+dies leaves the document unusable until someone deletes it by hand. Windows
+releases a mutex however the process ends. *A lock that stays shut after the one
+who shut it has died is not a protection, it is a fault.* `AbandonedMutexException`
+is not an error either — it is Windows saying the previous holder did not close
+the door, and the turn is ours.
+
+**Zero wait, deliberately.** Waiting would hang the client with no explanation,
+and the bridge already has a problem with calls that never return. An immediate
+refusal that explains lets the reader decide whether to wait.
+
+**The key is a SHA-1, not the path.** Mutex names reject backslashes and have a
+length limit, and a truncated path would make two documents in the same deep
+folder collide — two different parts blocking each other, a defect that only
+shows up once someone is actually working. Seven contract tests cover the keying,
+including that case; that two processes exclude each other is Windows' job, not
+something to test here.
+
+**The limit, written down rather than discovered**: the name lives in `Local\`,
+the current Windows session. It covers the real case — two MCP clients on one
+desktop — and not two different users or a service. `Global\` would, but it needs
+privileges a bridge launched by an MCP client does not have, and a lock that
+sometimes cannot be taken is worse than one whose reach is known.
+
+---
+
+## 0.57.0 — 16 September 2026 · library 0.91.0
+
+*First entry in English, per the decision recorded at the top of this file.*
+
+### `misura` — a sixth tool, so the client stops asking for confirmation to read
+
+MCP annotations travel on `tools/list`: they sit on the **tool**, and they are
+sent before any call exists. With only `disegna`, a client read
+`destructiveHint: true` and asked for confirmation even for
+`proprieta_di_massa`, which does not move a single cubic millimetre. **Someone
+who confirms ten times in a row stops reading what they are confirming**, and a
+confirmation that has become a click no longer protects anything.
+
+This could not be fixed inside `disegna`: at annotation time nobody knows which
+of the sixty operations will arrive. So `misura` takes the same plan shape and
+accepts **only** the `verifiche` family — the six operations that read and
+nothing else — and declares `readOnlyHint: true`, `destructiveHint: false`,
+`idempotentHint: true`. Idempotent for real, not out of politeness: measuring
+twice gives the same answer twice because nothing changed in between.
+
+**The gate runs before the plan starts, not during it.** A plan of three
+measurements plus one extrusion, stopped at the fourth step, would already have
+measured three times: whoever read the answer would see three good measurements
+and an error, with no way to know the part survived only by luck. Every step is
+checked first; if one is not a `verifiche` operation, nothing runs at all.
+
+**`identita` is deliberately not read-only.** `scrivi_proprieta`,
+`crea_configurazione` and `attiva_configurazione` write to the document.
+Declaring them harmless is the direction in which being wrong costs most.
+
+Four contract tests guard this, including the red one: `misura` must **refuse**
+`estrudi_rettangolo`, and the refusal must name the tool that does do it. A tool
+that declares itself read-only and then accepts an extrusion is not a
+convenience — it is a lie in the protocol, and the client has already decided
+not to ask for confirmation on the strength of that declaration.
+
+### `title` where new clients look, and an error that says what does exist
+
+`title` sat only inside `annotations`, where older revisions of the spec put it.
+It is now **also** on the tool itself, where a newer client looks — written in
+both places, because choosing one would mean half the clients showing
+`guarda_il_pezzo` to a person instead of "Guarda il pezzo aperto".
+
+The unknown-tool error now lists the tools that exist, and says the thing the
+model actually gets wrong: **the sixty operations are not tools** — they go to
+`disegna` (or `misura`). Before, it said only "I don't know x", and a model that
+had guessed a name could only guess again.
+
+The names in that message are written by hand — rebuilding sixty JSON schemas to
+print six words makes no sense — so they can drift. A contract test asks for a
+tool that does not exist and checks the message names **every** tool
+`tools/list` just declared. *An incomplete list is worse than no list.*
+
+### SOLIDWORKS® going away mid-plan now says so
+
+`Aggancia()` records the PID (`ISldWorks.GetProcessID`, verified by reflection
+against this installation's interop: zero parameters, returns `Int32`), and it is
+checked before a plan and again when one stops.
+
+**Not `Process.GetProcessesByName("SLDWORKS")`**: more than one session runs on
+this machine, and searching by name finds *a* process, not *the* process this
+bridge is talking to. A check that watches the wrong process answers "alive"
+while its own is dead — the defect that raises no error, inside a check written
+to catch it.
+
+**The half that matters is the one after, not before.** Before catches "it was
+already closed". After catches **closed mid-plan**, where the error that surfaces
+is whatever the first call to find a dead reference said — a null reference, an
+HRESULT — sending the reader to look for a fault inside the operation that was
+running. The message now says SOLIDWORKS® closed, after how many steps, that the
+document was not saved, **and keeps the original message**: if the two ever
+disagree — SOLIDWORKS alive and a real error — discarding the original would hide
+the thing to fix.
+
+If the PID cannot be read, the check stays quiet and the bridge works as before.
+A new defence that becomes a new cause of refusal is a regression, not a defence.
+
+### `pre-push` hook: the publishability check now runs when it matters
+
+`controlla-pubblicabilita.ps1` already existed and was already correct. On
+14 September it reported "clean" on the working tree one minute before the first
+push, while the **history** still carried a network path in 155 places across 41
+commits. The control did not fail — **nobody ran it**.
+
+Now git runs it. `Controlli/ganci/pre-push` blocks the push on a non-zero exit;
+`Controlli\installa-ganci.ps1` points `core.hooksPath` at the versioned folder
+(once per clone), so a hook fixed tomorrow applies to everyone immediately
+instead of rotting as a copy inside each clone. Override with
+`git push --no-verify` — done by hand, and known to have been done.
+
+Seen firing: a file carrying a private-network address, staged on purpose, makes
+it exit 1; removed, it exits 0.
+
+*(And writing this entry set it off again — the first draft quoted the address
+itself. The check caught its own description. Left as a note rather than an
+anecdote: **a document about what must not leak is a place where it leaks**, and
+that is why `CHANGELOG.md` is exempt for drive letters only, never for
+addresses.)*
+
+**Two real false positives, fixed narrowly.** `CHANGELOG.md` and
+`Prove/ProveCatalogo.cs` name `O:\` because their job is to explain this very
+check. The exception is a **separate list** that applies only to the `O:`/`W:`
+patterns and leaves usernames, session paths and private addresses forbidden on
+those same files. Putting them in the general exemption list would have been the
+hole that the script's own comments warn against.
+
+### The README claimed thirty-eight operations. There are sixty.
+
+Nothing could notice: documents do not compile and nobody rereads them until
+they matter to someone who was not there. **This is the defect that raises no
+error, applied to documentation** — the README looks right, reads well, and is
+false, and its reader has no other source.
+
+Fixed, and a contract test now reads the number back out of the README and
+compares it against the catalogue. It only recognises two shapes
+(`<number> operazioni`, `operazioni di disegno sono <number>`) so that "five,
+not sixty" — which is about *tools* — does not set it off: a control that shouts
+at a correct sentence is one people learn to ignore.
+
+### `QUICKSTART.md`, `CONTRIBUTING.md`
+
+A six-step guide for the person who has to *use* this, with **"what it does not
+cover" as a list of names** — assemblies, sheet metal, surfaces, sweep along a
+free path, loft between arbitrary profiles, DXF/DWG to 3D, fill and table
+patterns — so the limit is found by reading rather than by drawing something and
+getting a part that is quietly not what was asked for.
+
+Writing it surfaced one defect: step 2 told the reader to verify
+`Installa.exe.sha256`, **and nothing produced that file**. An instruction that
+cannot be carried out is worse than no instruction, because whoever follows it
+concludes they have verified. `build.ps1` now writes it, in `sha256sum` format.
+
+`CONTRIBUTING.md` records the policy *before* the first pull request arrives:
+issues open, pull requests not merged until a CLA exists, and no support
+commitment. Written afterwards it would not be a policy — it would be a personal
+answer to one person, and it would read like one.
+
+---
+
+## 0.56.0 — 16 settembre 2026 · libreria 0.91.0
+
+### `profili_saldatura` — l'operazione che il catalogo chiedeva e che non c'era
+
+Catalogo a **60 operazioni**. Trovata da un audit del TODO fatto con sette agenti
+in parallelo, e verificata a mano prima di crederci.
+
+`membro_strutturale` e `telaio_rettangolare` dicono, nella loro stessa
+descrizione: *«PRIMA CHIAMA "profili_saldatura" e copia da lì "profilo_percorso"
+e "configurazione" ALLA LETTERA»*.
+
+**Quell'operazione non esisteva.** Il nome compariva quattro volte in
+`catalogo.json` — tutte e quattro *dentro il testo* di chi la chiedeva — e zero
+volte fra i nomi eseguibili. Gli strumenti MCP sono cinque e nessuno elenca i
+profili. Quindi il modello leggeva un'istruzione che non portava da nessuna
+parte, e l'unica cosa che poteva fare era **inventarsi** un percorso `.sldlfp` e
+un nome di misura.
+
+E inventarsi la misura non dà errore — lo dice il commento di
+`OperazioniSaldatura`, scritto molto prima di questo audit: *«se la misura non
+c'è, SOLIDWORKS NON fallisce: usa la configurazione attiva del profilo. Il pezzo
+esce con una parete diversa da quella confermata, il rebuild è pulito, e nessuno
+se ne accorge fino all'officina»*. Un controllo che lo prende **c'era già**, ed è
+buono; ma può scattare solo *dopo* che qualcuno ha indovinato.
+
+Ora l'operazione c'è: elenca i profili della libreria e, per ognuno, le misure
+scritte esattamente come vanno copiate. Legge i `.sldlfp` con
+`ISldWorks.GetConfigurationNames(percorso)`, **senza aprire documenti**. La
+cartella si scavalca con `PROFILI_SALDATURA`, la stessa variabile che usa già il
+banco.
+
+Il caso di banco chiude il cerchio: legge la misura al primo passo e la ricopia
+dentro `membro_strutturale` al secondo. Prova che i due pezzi del catalogo si
+*parlano*, non che si citano.
+
+---
+
+## 0.55.0 — 16 settembre 2026 · libreria 0.90.0
+
+### GP17 — `sweep_circolare` e `loft_fra_due_cerchi`, e il loft che non è un cono
+
+Catalogo a **59 operazioni**. Le prime due che fanno una forma **non dritta**: un
+bocchettone passacavo, un manico, un riduttore fra due sezioni.
+
+**Il profilo è un numero, non uno schizzo.** `InsertProtrusionSwept4` ha
+`CircularProfile` + `CircularProfileDiameter`: con quelli lo schizzo del profilo
+non serve. E il percorso è **un elenco di punti**, disegnato dall'operazione in
+uno schizzo 3D — non uno schizzo da nominare, perché nello stato del documento
+gli schizzi non hanno un identificativo e nessuna operazione ne lascia in giro
+uno riutilizzabile. Se il percorso dovesse essere «uno schizzo», l'operazione non
+sarebbe chiamabile da nessuno. È la stessa ragione per cui
+`piano_per_tre_punti` prende coordinate e non vertici.
+
+**Le marche, misurate:**
+
+| | 0 | 1 | 2 | 4 |
+|---|---|---|---|---|
+| sweep, percorso | ok | null | null | **ok** |
+| loft, profili | ok | **ok** | — | null |
+
+Si usa 4 per il percorso e 1 per i profili. Lo zero funziona in tutti e due
+perché vuol dire «nessuna marca», ma appoggiarcisi renderebbe indistinguibili
+due selezioni con ruoli diversi il giorno che se ne aggiunge una terza.
+
+**Lo sweep dritto è esatto.** Ø20 su 100 mm di percorso: **31415,927 mm³** contro
+π·10²·100 = 31415,9265. Non «vicino»: uguale alla settima cifra. L'operazione fa
+il conto e si rifiuta se non torna. Su un percorso con gomiti il conto **non**
+vale — nei gomiti il materiale si sovrappone — e allora il teorico si dichiara
+come *limite superiore*, non come risposta.
+
+**E un loft fra due cerchi non è un cono.** Ø40 e Ø20 a 50 mm:
+
+    formula del tronco di cono   36.651,91 mm3
+    loft misurato                36.650,61 mm3
+    differenza                        1,30 mm3   (0,0035%)
+
+La superficie di un loft è un'**approssimazione a spline** della conica. È poco
+ed è sistematico, sempre in difetto: chi confronta un loft con la formula e non
+lo sa insegue un difetto che non c'è. Il caso di banco costruisce **lo stesso
+tronco di cono con `rivoluzione`** accanto al loft e pretende che la somma dei
+due corpi sia 73302,53 — cioè 36650,61 + 36651,91. Se fosse la formula a
+sbagliare, i due corpi peserebbero uguale e la somma sarebbe un altro numero. È
+la differenza fra «i miei numeri non tornano» e «so quale dei due è approssimato».
 
 ---
 

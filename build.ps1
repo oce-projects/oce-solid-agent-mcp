@@ -237,6 +237,23 @@ if ($grandeExe -le $grandePonte) {
 Ok ("Installa.exe  " + [math]::Round($grandeExe / 1KB) + " kB  (ponte incorporato)")
 Nota $finale
 
+# IL CHECKSUM ACCANTO AL FILE, SEMPRE.
+#
+# La distribuzione decisa (voce H8) e' "il file piu' il suo checksum, consegnato
+# a mano". Finche' il checksum si calcolava a mano non esisteva quasi mai, e
+# QUICKSTART.md diceva di confrontarlo con un file che nessuno produceva: una
+# istruzione che non si puo' eseguire e' peggio di nessuna istruzione, perche'
+# chi la segue conclude di aver verificato.
+#
+# Il formato e' quello di `sha256sum`: "<hash minuscolo>  <nome file>". Due
+# spazi, e il solo NOME e non il percorso, cosi' vale su qualunque macchina.
+$impronta = (Get-FileHash $finale -Algorithm SHA256).Hash.ToLowerInvariant()
+$fileImpronta = $finale + ".sha256"
+Set-Content -Path $fileImpronta -Encoding ascii -NoNewline `
+    -Value ($impronta + "  Installa.exe`n")
+Ok ("Installa.exe.sha256  " + $impronta.Substring(0, 16) + "...")
+Nota $fileImpronta
+
 Write-Host ""
 # ADESSO SI PUO' DIRE, PERCHE' E' VERO.
 # Questa riga ha detto per una versione «installabile da chiunque, usabile da

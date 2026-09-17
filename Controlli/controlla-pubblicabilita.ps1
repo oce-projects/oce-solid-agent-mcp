@@ -92,6 +92,28 @@ function PuoNominarli($percorso) {
 # non e' fra questi, e se compare nel TODO e' una fuga come le altre.
 $loDiceIlTodo = @('TODO.md')
 
+# CHI PARLA DELLE LETTERE DI UNITA' PERCHE' STA SPIEGANDO QUESTO CONTROLLO.
+#
+# Eccezione SEPARATA e piu' stretta di `$possonoNominarli`: vale SOLO per i
+# pattern `O:` e `W:`, e non tocca il nome utente, i percorsi di sessione e gli
+# indirizzi privati, che su questi stessi file restano vietati come su tutti.
+# Mettere un file in `$possonoNominarli` lo esenterebbe da TUTTO: sarebbe il
+# buco che il commento qui sopra dice di non aprire.
+#
+#   TODO.md            la voce A1 elenca cosa non deve uscire, e per elencarlo
+#                      lo deve scrivere.
+#   CHANGELOG.md       la voce che racconta il falso positivo del 14/9 deve
+#                      citare il pattern che lo causava.
+#   ProveCatalogo.cs   e' il controllo che cerca i percorsi locali dentro le
+#                      descrizioni del catalogo: il suo mestiere e' nominarli.
+#
+# Perche' il buco e' accettabile qui e non altrove: nessuno dei tre e' un file
+# GENERATO. Un percorso di rete vero ci arriva solo se qualcuno lo scrive a
+# mano, e chi lo scrive a mano in un documento che spiega perche' non si scrive
+# lo sta facendo apposta. I file generati - il catalogo, i casi del banco -
+# restano coperti.
+$parlanoDeiDischi = @('TODO.md', 'CHANGELOG.md', 'ProveCatalogo.cs')
+
 # NON si puo' chiamare questa funzione `Git`: PowerShell non distingue maiuscole
 # e minuscole nei nomi di comando, quindi `& git` qui dentro risolverebbe alla
 # funzione stessa invece che all'eseguibile - ricorsione infinita, e l'errore che
@@ -159,8 +181,8 @@ Write-Host "=== Nell'albero di lavoro"
 Guarda 'il nome utente' 'oscar' 'il nome di chi lavora' $true
 Guarda 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false
 Guarda 'un indirizzo interno' '192\.168\.' 'una rete privata' $false $loDiceIlTodo
-Guarda 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $loDiceIlTodo
-Guarda 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $loDiceIlTodo
+Guarda 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
+Guarda 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
 
 # ==============================================================================
 # 2. La storia che si sta per spingere
@@ -222,8 +244,8 @@ if ($daSpingere.Count -eq 0) {
     GuardaStoria 'il nome utente' 'oscar' 'il nome di chi lavora' $true
     GuardaStoria 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false
     GuardaStoria 'un indirizzo interno' '192\.168\.' 'una rete privata' $false $loDiceIlTodo
-    GuardaStoria 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $loDiceIlTodo
-    GuardaStoria 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $loDiceIlTodo
+    GuardaStoria 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
+    GuardaStoria 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
 }
 
 # ==============================================================================

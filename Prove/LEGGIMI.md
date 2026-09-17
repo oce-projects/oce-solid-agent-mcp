@@ -9,7 +9,14 @@ Esce **0** se non fallisce niente, **1** altrimenti, e scrive
 `Prove\bin\prove.xml` in formato JUnit — quello che ogni CI sa leggere senza
 che nessuno le insegni niente.
 
-**54 controlli, qualche secondo, nessuna licenza.**
+**128 controlli, qualche secondo, nessuna licenza.**
+
+Quel numero non e' decorativo: **c'e' un controllo che lo rilegge da questo file
+e lo confronta con quanti ne girano davvero**, ed e' l'ultimo del giro (si conta
+anche da solo). Diceva `54` mentre ne giravano `113` — giusto quando fu scritto,
+invecchiato da solo mentre la suite cresceva. Chi aggiunge un controllo cambia
+anche questa riga, oppure il giro diventa rosso e gli dice di che numero si
+tratta.
 
 ---
 
@@ -33,10 +40,11 @@ parlandoci **su stdio**, come farebbe un cliente qualunque.
 
 | gruppo | |
 |---|---|
+| **i sorgenti stanno nei progetti** | ogni `.cs` di `Riscontro.Disegno`, `Ponte`, `Strumenti`, `Mcp`, `Banco`, `Prove` e `Installer` compare fra i `<Compile Include>` del suo `.csproj`. **Un file che non c'e' non viene compilato**, e se nessuno lo referenzia ancora la build resta VERDE e il codice non esiste: il difetto che non da' errore, applicato al progetto invece che al pezzo |
 | **il valutatore delle attese** | numero giusto/sbagliato, tolleranze assolute, campo assente, elenchi, indici, selettori. E' lo **stesso file** che compila il banco (`..\Banco\Attese.cs`), non una copia |
 | **il catalogo** | ogni operazione ha nome, famiglia, sommario, descrizione, schema; ogni famiglia usata e' dichiarata; **nessun percorso di questa macchina**; `Simili()` che su «asole» trova «asola» |
 | **`Sessione.StessoDocumento`** | la guardia contro il blocco estruso nel pezzo di qualcun altro, che fino al 15/9/2026 **non aveva nemmeno una prova** |
-| **il protocollo MCP** | `initialize` rimanda la versione ricevuta, una notifica non riceve risposta, `tools/list` da' cinque strumenti, uno strumento sconosciuto da' `isError` **nel contenuto** e non un errore JSON-RPC, JSON malformato da' `-32700` con id nullo, e **su stdout non c'e' niente che non sia JSON** |
+| **il protocollo MCP** | `initialize` rimanda la versione ricevuta, una notifica non riceve risposta, `tools/list` da' **sei** strumenti e ognuno porta un `title` di primo livello, le annotazioni dicono la verita' (`misura` di sola lettura, `disegna` distruttivo e non idempotente), `misura` **rifiuta** `estrudi_rettangolo` nominando lo strumento con cui si fa, uno strumento sconosciuto da' `isError` **nel contenuto** e non un errore JSON-RPC **ed elenca tutti quelli che esistono**, JSON malformato da' `-32700` con id nullo, e **su stdout non c'e' niente che non sia JSON** |
 | **il banco e' stato lanciato** | legge `Banco/resoconto/ultimo.json` e **rifiuta una consegna in cui nessuno ha lanciato il banco**: piu' di zero prove, nessuna rossa, non un giro parziale, la libreria di adesso, e **posteriore all'ultima modifica a `Riscontro.Disegno`** |
 
 L'ultima riga e' la ragione per cui esiste la CI (voce F9): nessun runner ha una

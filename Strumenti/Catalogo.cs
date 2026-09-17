@@ -90,6 +90,22 @@ namespace Oce.Solid.Agent.Strumenti
                     StringComparison.OrdinalIgnoreCase));
         }
 
+        /// <summary>
+        /// La famiglia di un'operazione, o `null` se l'operazione non c'e'.
+        ///
+        /// Serve allo strumento `misura`, che deve poter dire di NO a
+        /// un'operazione che tocca il pezzo — e per dirlo deve sapere di che
+        /// famiglia e'. E' un METODO NUOVO e non un parametro in piu' su
+        /// `Trova`: il banco e le prove chiamano questa classe per riflessione,
+        /// e cambiare l'insieme delle firme rompe chi chiama anche quando il
+        /// compilatore tace.
+        /// </summary>
+        public string Famiglia(string nome)
+        {
+            var op = Trova(nome);
+            return op == null ? null : Convert.ToString(Prendi(op, "famiglia"));
+        }
+
         public IEnumerable<string> Nomi =>
             _operazioni.Select(o => Convert.ToString(Prendi(o, "nome")));
 

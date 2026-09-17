@@ -488,6 +488,10 @@ namespace ProvaSaldatura
                              } },
                 new Gruppo { Nome = "il-null-ha-un-nome", Cosa = "il banco dice dove non e' riuscito (F12)",
                              Azioni = una(ProvaCheIlNullHaUnNome) },
+                // La capacita' che apre tutta la sezione G-A: senza, nessuna
+                // operazione di assieme potrebbe avere un caso.
+                new Gruppo { Nome = "assieme-di-prova", Cosa = "il banco sa preparare un assieme (GA0)",
+                             Azioni = una(ProvaLAssiemeDiProva) },
                 new Gruppo { Nome = "tabella",      Cosa = "la tabella dei gruppi copre tutto (F13)",
                              Azioni = una(ProvaCheLaTabellaCopreTutto) },
             };

@@ -1,0 +1,36 @@
+{
+  "nome": "tubo_dritto_area_per_lunghezza",
+  "famiglia": "lavorazioni",
+  "perche": "Il criterio della voce alla lettera: «sweep -- profilo circolare noto lungo un percorso rettilineo di lunghezza nota, volume calcolabile a mano (area x lunghezza)». Qui il conto e' pi*10^2*100 = 31415,93, e viene alla settima cifra: uno sweep dritto non e' un'approssimazione di niente.",
+  "perche_il_percorso_e_un_elenco_di_punti": "`InsertProtrusionSwept4` ha `CircularProfile` e `CircularProfileDiameter`: con quelli lo schizzo del profilo non serve. Il percorso invece uno schizzo lo vuole -- e lo disegna l'operazione, da un elenco di punti. Non poteva essere altrimenti: nello stato del documento gli schizzi non hanno identificativo, quindi «lo schizzo numero tre» e' una cosa che il modello non ha modo di dire.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "sweep_circolare",
+      "argomenti": { "percorso_mm": [[0, 0, 0], [100, 0, 0]], "diametro_mm": 20 },
+      "attese": [
+        { "cosa": "misure.percorso_dritto", "uguale": true },
+        { "cosa": "misure.lunghezza_percorso_mm", "uguale": 100 },
+        { "cosa": "misure.volume_teorico_mm3", "uguale": 31415.927, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "e' pi*10^2*100: il conto ha pi dentro e la tolleranza copre l'arrotondamento a tre decimali" },
+        { "cosa": "misure.materiale_aggiunto_mm3", "uguale": 31415.927, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "come sopra",
+          "perche": "IL VOLUME VERO E QUELLO TEORICO SONO LO STESSO NUMERO. Non «vicini»: uguali alla settima cifra. Un tubo dritto e' un cilindro esatto, e questo caso esiste per poterlo dire -- e per fare da termine di paragone al loft, che esatto non e'." },
+        { "cosa": "misure.scarto_dal_teorico", "uguale": 0, "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "lo scarto relativo: sotto il decimillesimo e' zero" },
+        { "cosa": "corpi", "uguale": 1 },
+        { "cosa": "volume_mm3", "uguale": 31415.927, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "lo stesso numero letto dallo stato invece che dalla risposta" },
+        { "cosa": "diametri_mm", "uguale": [20], "tolleranza": 0.02,
+          "perche_questa_tolleranza": "il diametro della faccia cilindrica si legge da CylinderParams",
+          "perche": "e la faccia del tubo ha davvero il diametro chiesto: il volume da solo tornerebbe anche con un diametro sbagliato e una lunghezza sbagliata che si compensano" } ] },
+    { "operazione": "sweep_circolare",
+      "argomenti": { "percorso_mm": [[0, 0, 40], [100, 0, 40], [100, 60, 40]], "diametro_mm": 20 },
+      "attese": [
+        { "cosa": "misure.percorso_dritto", "uguale": false },
+        { "cosa": "misure.lunghezza_percorso_mm", "uguale": 160 },
+        { "cosa": "misure.nota_sul_volume", "contiene": ["gomiti", "MINORE"],
+          "perche": "SUL GOMITO IL CONTO NON TORNA, E SI DICE. Nel gomito il materiale si sovrappone: il volume vero e' minore di area per lunghezza. Un'operazione che desse il teorico e basta starebbe mentendo di qualche centinaio di millimetri cubi." },
+        { "cosa": "corpi", "uguale": 2,
+          "perche": "il secondo tubo e' staccato dal primo: due corpi" } ] }
+  ]
+}

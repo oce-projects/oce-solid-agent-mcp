@@ -1,0 +1,33 @@
+# I GANCI DI GIT DEVONO RESTARE A FINE RIGA UNIX, SEMPRE.
+#
+# Su Windows `core.autocrlf` e' `true` di serie (verificato su questa macchina):
+# git converte i file di testo in CRLF quando li tira fuori. Un `pre-push` con
+# CRLF viene passato a `sh`, che legge la prima riga come «/bin/sh\r» e risponde
+#
+#     bad interpreter: /bin/sh^M: no such file or directory
+#
+# Il gancio non parte, il push parte lo stesso, e **non c'e' nessun messaggio che
+# dica che il controllo e' saltato**: il push riesce, che e' esattamente quello
+# che sarebbe successo senza gancio. E' il difetto che non da' errore, applicato
+# a una difesa — la difesa sparisce e il sintomo e' «tutto bene».
+#
+# Non e' ipotetico: succede al primo clone su una macchina Windows qualunque,
+# cioe' su tutte quelle su cui gira questo progetto.
+Controlli/ganci/* text eol=lf
+
+# Gli script di shell in generale, per la stessa ragione.
+*.sh text eol=lf
+
+# NON si dichiara niente per i `.ps1`: con `core.autocrlf=true` arrivano gia'
+# in CRLF, che e' quello che serve, e aggiungere una riga qui vorrebbe dire
+# rinormalizzare file che stanno bene — un diff enorme in cambio di niente.
+# Una regola che ripete il comportamento predefinito e' solo un modo di
+# rompere qualcosa il giorno che il predefinito cambia.
+
+# I file di SOLIDWORKS sono binari e non vanno toccati da nessuna conversione:
+# un `.sldprt` con le fine riga «riparate» e' un file rotto.
+*.sldprt binary
+*.slddrw binary
+*.sldasm binary
+*.sldlfp binary
+*.sldmat binary

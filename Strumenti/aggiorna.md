@@ -78,8 +78,14 @@ Da qui in avanti la stessa forma serve a un'altra cosa: tenere il `diff` di
 Il ponte scrive all'avvio, su stderr:
 
 ```
-[ponte] catalogo: 36 operazioni provate
+[ponte] catalogo: 60 operazioni provate
 ```
+
+Il numero qui sopra e' quello del 16 settembre 2026 ed e' solo un **esempio di
+come si legge la riga**: quello che conta e' confrontarlo con quante ne dichiara
+il `catalogo.json` che si sta usando, non con questo. *Un numero scritto dentro
+un documento invecchia da solo* — era `36` fino a oggi, mentre le operazioni
+erano gia' sessanta, e nessuno poteva accorgersene leggendo.
 
 E `build.ps1` rigenera il file a ogni pacchetto, quindi non puo' restare
 indietro senza che qualcuno cancelli quel passo.

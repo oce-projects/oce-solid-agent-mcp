@@ -72,6 +72,7 @@
     <Compile Include="Mcp\Protocollo.cs" />
     <Compile Include="Ponte\PianoInMemoria.cs" />
     <Compile Include="Ponte\Sessione.cs" />
+    <Compile Include="Ponte\TurnoSulDocumento.cs" />
     <Compile Include="Ponte\Percorsi.cs" />
     <Compile Include="Ponte\Forma.cs" />
     <Compile Include="Strumenti\Catalogo.cs" />

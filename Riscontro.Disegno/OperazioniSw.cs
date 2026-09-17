@@ -238,19 +238,21 @@ namespace Riscontro.Disegno
             "combina_corpi",
             "cordone_saldatura", "crea_asse", "crea_configurazione",
             "crea_disegno", "crea_piano", "distinta_taglio",
-            "piano_per_tre_punti",
+            "piano_per_tre_punti", "profili_saldatura",
             "distanza_minima", "elimina_lavorazione",
             "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
             "estrudi_sezione", "ruota_dentata",
             "estrudi_su_faccia", "fazzoletto", "filettatura_cosmetica",
-            "foro_guidato", "guscio",
+            "foro_guidato", "guscio", "inserisci_componente",
             "imposta_foglio", "incidi_testo", "ingombro_corpo", "membro_strutturale",
             "misura_fra_entita", "modifica_quota", "proprieta_di_massa",
+            "loft_fra_due_cerchi",
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
             "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
+            "sweep_circolare",
             "specchia",
             "sposta_corpi", "taglia_membri",
             "taglio_cilindrico", "taglio_rettangolare", "tappo_estremita",
@@ -329,8 +331,30 @@ namespace Riscontro.Disegno
                     // Il piano obliquo, in OperazioniPiani.cs. `crea_piano` sa
                     // fare solo lo sfalsato dai tre standard: per una faccia
                     // inclinata non c'era niente su cui disegnare.
+                    // L'operazione che il catalogo chiedeva e che non c'era:
+                    // sta in OperazioniProfili.cs. Senza, «membro_strutturale»
+                    // diceva al modello di copiare da una cosa inesistente.
+                    case "profili_saldatura":
+                        return ProfiliSaldatura(modello, argomenti, stato);
+
+                    // ── assiemi ─────────────────────────────────────────
+                    // La prima. Sta in OperazioniAssieme.cs, e la cosa che fa
+                    // oltre a inserire e' contare i gradi di liberta' residui:
+                    // «AddComponent5 piazza senza accoppiare», e quattro corpi
+                    // liberi sembrano un assieme.
+                    case "inserisci_componente":
+                        return InserisciComponente(modello, argomenti, stato);
                     case "piano_per_tre_punti":
                         return PianoPerTrePunti(modello, argomenti, stato);
+
+                    // ── tubi e transizioni ──────────────
+                    // Stanno in OperazioniPercorso.cs. Le uniche due operazioni
+                    // che fanno una forma non dritta, e le uniche in cui il
+                    // profilo e' un NUMERO e non uno schizzo da nominare.
+                    case "sweep_circolare":
+                        return SweepCircolare(modello, argomenti, stato);
+                    case "loft_fra_due_cerchi":
+                        return LoftFraDueCerchi(modello, argomenti, stato);
                     case "crea_asse": return CreaAsse(modello, argomenti, stato);
                     case "ripeti_lineare": return RipetiLineare(modello, argomenti, stato);
                     case "specchia": return Specchia(modello, argomenti);

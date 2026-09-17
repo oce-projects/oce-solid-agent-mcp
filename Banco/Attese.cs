@@ -235,19 +235,41 @@ namespace ProvaSaldatura
                 dettaglio = cosa + " non c'e': una frase assente non e' una frase vuota";
                 return false;
             }
-            string frase = Convert.ToString(misurato, CultureInfo.InvariantCulture);
+
+            // ── UN ELENCO NON E' «System.String[]» ───────────────────────
+            //
+            // `misure.profili[0].misure` e' un elenco di misure: «80X80X5»,
+            // «100X100X6». Chiedere che CONTENGA una voce e' la cosa piu'
+            // naturale che ci sia, e fino alla 0.91.0 falliva con
+            //
+            //     non dice «80X80X5»: System.String[]
+            //
+            // — un messaggio vero e inutile, perche' `Convert.ToString` su un
+            // array da' il nome del tipo. Per `uguale` gli elenchi di testo
+            // erano gia' stati insegnati (voce 0.81.0); per `contiene` no, e il
+            // difetto e' rimasto finche' un caso non l'ha ripreso.
+            //
+            // Su un elenco «contiene» vuol dire **una delle voci lo contiene**,
+            // non «la scrittura dell'elenco lo contiene»: cosi' cercare
+            // «80X80X5» trova la voce, e cercare «80X80» trova la stessa voce
+            // per prefisso, che e' quello che chi scrive il caso si aspetta.
+            var voci = Elenco(misurato);
+            bool eUnElenco = voci != null;
+            string frase = eUnElenco
+                ? string.Join(", ", voci)
+                : Convert.ToString(misurato, CultureInfo.InvariantCulture);
 
             var mancano = new List<string>();
             foreach (var p in Pezzi(attesa, "contiene"))
-                if (frase.IndexOf(p, StringComparison.Ordinal) < 0) mancano.Add("«" + p + "»");
+                if (!Dentro(voci, frase, p)) mancano.Add("«" + p + "»");
 
             var diTroppo = new List<string>();
             foreach (var p in Pezzi(attesa, "non_contiene"))
-                if (frase.IndexOf(p, StringComparison.Ordinal) >= 0) diTroppo.Add("«" + p + "»");
+                if (Dentro(voci, frase, p)) diTroppo.Add("«" + p + "»");
 
             if (mancano.Count == 0 && diTroppo.Count == 0)
             {
-                dettaglio = cosa + ": " + Breve(frase);
+                dettaglio = cosa + (eUnElenco ? " [" + Breve(frase) + "]" : ": " + Breve(frase));
                 return true;
             }
             dettaglio = cosa +
@@ -256,6 +278,32 @@ namespace ProvaSaldatura
                 (diTroppo.Count > 0 ? " dice ancora " + string.Join(", ", diTroppo) : "") +
                 ": " + Breve(frase);
             return false;
+        }
+
+        /// <summary>
+        /// Le voci di un elenco, gia' scritte. Null quando cio' che si e'
+        /// misurato non e' un elenco — e una stringa NON e' un elenco, anche
+        /// se in C# e' enumerabile carattere per carattere.
+        /// </summary>
+        private static List<string> Elenco(object misurato)
+        {
+            if (misurato == null || misurato is string) return null;
+            var e = misurato as System.Collections.IEnumerable;
+            if (e == null) return null;
+            var fuori = new List<string>();
+            foreach (var x in e) fuori.Add(ComeSiScrive(x));
+            return fuori;
+        }
+
+        /// <summary>
+        /// Il pezzo cercato c'e'? Su un elenco basta che lo contenga UNA voce;
+        /// su una frase, la frase.
+        /// </summary>
+        private static bool Dentro(List<string> voci, string frase, string pezzo)
+        {
+            if (voci != null)
+                return voci.Any(v => v.IndexOf(pezzo, StringComparison.Ordinal) >= 0);
+            return frase.IndexOf(pezzo, StringComparison.Ordinal) >= 0;
         }
 
         /// <summary>I pezzi di frase di un campo: una stringa sola o un elenco.</summary>

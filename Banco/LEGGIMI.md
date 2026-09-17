@@ -132,6 +132,43 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 | segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Banco\lavoro\`, ignorata da git). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
 | `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella` |
 
+### Un caso che gira su un ASSIEME — `casi/assiemi/` (voce GA0)
+
+Al posto di `"parte": { "nuova": true }` un caso puo' chiedere un assieme, e il
+banco se lo costruisce: ogni componente e' una parte fatta **con le stesse
+operazioni dei casi**, salvata in `Banco\lavoro`, riaperta e inserita.
+
+```json
+"assieme": {
+  "componenti": [
+    { "nome": "base",
+      "passi": [ { "operazione": "estrudi_rettangolo", "argomenti": { … } } ] },
+    { "nome": "coperchio", "da_inserire": false,
+      "posizione_mm": [0, 0, 30],
+      "passi": [ … ] }
+  ]
+}
+```
+
+| | |
+|---|---|
+| `nome` | entra nel nome del file: `<caso>_<nome>.sldprt` in `Banco\lavoro`. Il caso lo nomina con `{LAVORO}\<caso>_<nome>.sldprt` |
+| `posizione_mm` | dove va il **centro dell'ingombro**, non l'origine. Assente = nell'origine dell'assieme. **Non e' un accoppiamento**. `AddComponent5` posiziona il centro: un pezzo con l'origine su una faccia — qualunque cosa estrusa a una direzione sola — si ritrova l'origine spostata di meta' ingombro, e nello stato lo si rilegge come `origine_mm`. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a `[0, -2, 30]` |
+| `da_inserire` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `inserisci_componente`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
+
+**`AddComponent5` vuole un documento gia' aperto**: la preparazione riapre
+**tutti** i componenti, anche quelli che non inserisce. Su un file chiuso
+l'inserimento risponde `null` senza dire perche'.
+
+Alla fine i file vengono **cancellati**, e c'e' un controllo che lo verifica
+(`--gruppo assieme-di-prova`): *un caso che riesce perche' un file del giro prima
+era rimasto non e' un caso, e' un ricordo.*
+
+Quello che non riesce durante la preparazione e' un **errore di banco** (uscita
+2), non una prova rossa: il caso voleva misurare un assieme e l'assieme non e'
+mai esistito — dirlo «fallito» manderebbe a cercare il difetto nell'operazione di
+assieme, che non e' nemmeno stata chiamata.
+
 **`non_contiene` non e' la comodita' simmetrica di `contiene`: e' il motivo per
 cui esiste.** Una frase che dichiara «il profilo Ø30 per 40» su un pezzo che
 quel profilo non ce l'ha piu' non fallisce niente — e' la descrizione giusta di

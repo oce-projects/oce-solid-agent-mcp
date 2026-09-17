@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Oce.Solid.Agent.Mcp;
@@ -221,6 +222,72 @@ namespace Oce.Solid.Agent.Strumenti
                     // errore di rete.
                     soloLettura: false, distruttivo: true, idempotente: false),
 
+                // MISURA E' DISEGNA SENZA IL PERMESSO DI TOCCARE.
+                //
+                // Non e' una comodita' ed e' l'unico modo di dire la verita' nel
+                // protocollo: le annotazioni MCP viaggiano su `tools/list`,
+                // cioe' stanno sullo STRUMENTO e partono prima che esista una
+                // chiamata. Finche' c'era solo `disegna`, il client leggeva
+                // «distruttivo» e chiedeva conferma anche per
+                // `proprieta_di_massa`, che non muove un millimetro cubo — e chi
+                // conferma dieci volte di fila smette di leggere cosa conferma.
+                // Non si poteva riparare dentro `disegna`: al momento
+                // dell'annotazione non si sa ancora quale operazione arrivera'.
+                // Serviva uno strumento in piu', e questo e' quello.
+                Strumento(
+                    "misura",
+                    "MISURA il pezzo senza toccarlo. Prende le stesse " +
+                    "operazioni di «disegna», ma accetta SOLO quelle della " +
+                    "famiglia «verifiche» — quelle che leggono e basta.\n\n" +
+                    "Se hai solo bisogno di sapere com'e' fatto il pezzo, usa " +
+                    "questo: il tuo client sa che non cambia niente e non ti " +
+                    "chiede conferma.\n\n" +
+                    "Un'operazione che tocca il pezzo qui viene RIFIUTATA, e la " +
+                    "risposta dice con quale strumento si fa. Il piano non " +
+                    "parte: non si misura meta' pezzo e poi ci si ferma.",
+                    Oggetto(
+                        new Dictionary<string, object>
+                        {
+                            ["passi"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "array",
+                                ["description"] =
+                                    "le misure da prendere, in ordine — solo " +
+                                    "operazioni della famiglia «verifiche»",
+                                ["items"] = Oggetto(
+                                    new Dictionary<string, object>
+                                    {
+                                        ["operazione"] = new Dictionary<string, object>
+                                        {
+                                            ["type"] = "string",
+                                            ["description"] =
+                                                "il nome dell'operazione di verifica",
+                                        },
+                                        ["argomenti"] = new Dictionary<string, object>
+                                        {
+                                            ["type"] = "object",
+                                            ["description"] =
+                                                "gli argomenti, come da «descrivi_operazione»",
+                                        },
+                                    },
+                                    new[] { "operazione" }),
+                            },
+                            ["documento"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["description"] =
+                                    "Su quale documento misurare: il titolo o il " +
+                                    "percorso, copiato da «guarda_il_pezzo». " +
+                                    "Normalmente si omette.",
+                            },
+                        },
+                        new[] { "passi" }),
+                    // Idempotente sul serio, e non per cortesia: misurare due
+                    // volte da' due volte la stessa risposta perche' non
+                    // cambia niente in mezzo. E' la differenza con `disegna`,
+                    // che al secondo giro fa un SECONDO foro.
+                    soloLettura: true, distruttivo: false, idempotente: true),
+
                 Strumento(
                     "annulla",
                     "RITIRA l'ultimo piano eseguito da «disegna», tutto intero. " +
@@ -253,10 +320,24 @@ namespace Oce.Solid.Agent.Strumenti
                 case "elenco_operazioni": return ElencoOperazioni(argomenti);
                 case "descrivi_operazione": return DescriviOperazione(argomenti);
                 case "disegna": return Disegna(argomenti);
+                case "misura": return Misura(argomenti);
                 case "annulla": return Annulla();
                 default:
+                    // SI DICE QUALI CI SONO, non solo che questo non c'e'.
+                    //
+                    // Un modello che ha sbagliato nome non ha modo di
+                    // correggersi leggendo «non conosco x»: puo' solo
+                    // riprovare a indovinare, ed e' il modo in cui si finisce
+                    // per chiamare tre volte la stessa cosa sbagliata. I nomi
+                    // sono sei: stanno in una riga, e costano meno di un giro
+                    // in piu'. E' la stessa regola dei rifiuti delle
+                    // operazioni — il criterio, non il verdetto.
                     return Protocollo.Contenuto(
-                        "Non conosco lo strumento «" + nome + "».", true);
+                        "Non conosco lo strumento «" + nome + "». Ci sono " +
+                        "questi: " + string.Join(", ", NomiDegliStrumenti) + ". " +
+                        "Le sessanta OPERAZIONI di disegno non sono strumenti: " +
+                        "si chiedono a «disegna» (o a «misura», se leggono e " +
+                        "basta) e si elencano con «elenco_operazioni».", true);
             }
         }
 
@@ -299,6 +380,18 @@ namespace Oce.Solid.Agent.Strumenti
         private Dictionary<string, object> _firmeViste;
 
         /// <summary>
+        /// L'ultimo piano eseguito, il documento su cui e' andato, e com'era il
+        /// documento subito dopo (voce W2.7).
+        ///
+        /// Servono tutti e tre INSIEME: il piano da solo non distingue un
+        /// rinvio da una ripetizione voluta su un documento diverso, e lo stato
+        /// da solo non dice niente su cosa si stia richiedendo.
+        /// </summary>
+        private string _ultimoPianoFatto;
+        private Dictionary<string, object> _documentoDelPiano;
+        private string _riepilogoDopoIlPiano;
+
+        /// <summary>
         /// Quante viste al massimo in una sola risposta.
         ///
         /// Tre bastano a definire una forma — isometrica piu' due — e sono
@@ -324,7 +417,8 @@ namespace Oce.Solid.Agent.Strumenti
             var chieste = VisteChieste(argomenti);
             var sezione = Prendi(argomenti, "sezione") as Dictionary<string, object>;
             if (chieste.Count == 0 && sezione == null)
-                return Protocollo.Contenuto(Protocollo.InJson(stato));
+                // Il testo per chi legge, i dati per chi li deve usare (W2.4).
+                return Protocollo.ContenutoConDati(Protocollo.InJson(stato), stato);
 
             // LO STATO ESCE COMUNQUE, anche se nessuna fotografia riesce.
             // Un `guarda_il_pezzo` che fallisce perche' non si e' potuto
@@ -691,7 +785,8 @@ namespace Oce.Solid.Agent.Strumenti
             if (_catalogo.ErroreDiCaricamento != null)
                 return Protocollo.Contenuto(_catalogo.ErroreDiCaricamento, true);
             var famiglia = Testo(argomenti, "famiglia");
-            return Protocollo.Contenuto(Protocollo.InJson(_catalogo.Elenco(famiglia)));
+            var elenco = _catalogo.Elenco(famiglia);
+            return Protocollo.ContenutoConDati(Protocollo.InJson(elenco), elenco);
         }
 
         private Dictionary<string, object> DescriviOperazione(
@@ -714,7 +809,7 @@ namespace Oce.Solid.Agent.Strumenti
                         : " Chiedi «elenco_operazioni» per vedere quali ci sono."),
                     true);
             }
-            return Protocollo.Contenuto(Protocollo.InJson(descrizione));
+            return Protocollo.ContenutoConDati(Protocollo.InJson(descrizione), descrizione);
         }
 
         /// <summary>
@@ -738,7 +833,180 @@ namespace Oce.Solid.Agent.Strumenti
             " Il piano non e' stato eseguito per niente: il documento e' rimasto " +
             "com'era. Correggi questo passo e rimanda il piano intero.";
 
+        /// <summary>
+        /// `misura` — `disegna` senza il permesso di toccare.
+        ///
+        /// IL CANCELLO STA QUI E NON DENTRO `Disegna`, e il motivo e' che deve
+        /// scattare PRIMA che il piano cominci. Un piano di tre misure e
+        /// un'estrusione, fermato al quarto passo, avrebbe gia' misurato tre
+        /// volte e poi rifiutato: chi legge la risposta vede tre misure buone e
+        /// un errore, e non ha modo di sapere che il pezzo e' ancora intatto
+        /// solo per fortuna. Qui si guardano TUTTI i passi, e se uno solo non e'
+        /// una verifica non parte niente.
+        ///
+        /// SI DICE CON QUALE STRUMENTO SI FA, non solo che qui non si fa. Un
+        /// rifiuto che non porta da nessuna parte costringe chi legge a
+        /// indovinare, e indovinare e' il modo in cui si sbaglia in silenzio.
+        /// </summary>
+        /// <summary>
+        /// L'impronta di un piano: le operazioni e i loro argomenti, in ordine.
+        ///
+        /// SI SERIALIZZA IN JSON e si passa per uno SHA-1 invece di confrontare
+        /// le strutture: due dizionari con le stesse chiavi in ordine diverso
+        /// sono lo stesso piano, e `InJson` li scrive nello stesso modo. Un
+        /// confronto fatto a mano sui dizionari avrebbe dovuto decidere cosa
+        /// conta e cosa no, e ogni decisione di quel genere e' un posto dove
+        /// due piani diversi diventano uguali.
+        /// </summary>
+        private static string ImprontaDelPiano(object[] passi)
+        {
+            try
+            {
+                var testo = Protocollo.InJson(passi);
+                using (var sha = System.Security.Cryptography.SHA1.Create())
+                {
+                    var b = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(testo));
+                    var s = new System.Text.StringBuilder(b.Length * 2);
+                    foreach (var x in b) s.Append(x.ToString("x2", CultureInfo.InvariantCulture));
+                    return s.ToString();
+                }
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Com'e' messo il documento, in poche misure: volume, corpi, quante
+        /// lavorazioni.
+        ///
+        /// NON e' una firma crittografica dello stato intero, ed e' voluto. Lo
+        /// stato completo cambia anche quando il pezzo non cambia — un uid che
+        /// si rinumera, una faccia che entra o esce dal tetto — e un confronto
+        /// su tutto direbbe «diverso» ogni volta, spegnendo il controllo senza
+        /// che nessuno se ne accorga. **Un controllo che non scatta mai e' un
+        /// controllo spento**, e questo e' il modo piu' comune di spegnerne uno:
+        /// renderlo troppo sensibile.
+        ///
+        /// Le tre misure qui prese cambiano quando il PEZZO cambia, e non
+        /// cambiano quando cambia solo come lo si e' guardato.
+        /// </summary>
+        private static string RiepilogoDelloStato(Dictionary<string, object> stato)
+        {
+            if (stato == null) return null;
+            Func<string, string> campo = k =>
+            {
+                object v;
+                return stato.TryGetValue(k, out v) && v != null
+                    ? Convert.ToString(v, CultureInfo.InvariantCulture)
+                    : "-";
+            };
+            return campo("volume_mm3") + "|" + campo("corpi") + "|" +
+                   campo("quante_lavorazioni") + "|" + campo("titolo");
+        }
+
+        private Dictionary<string, object> Misura(Dictionary<string, object> argomenti)
+        {
+            var passi = Prendi(argomenti, "passi") as object[];
+            if (passi == null || passi.Length == 0)
+                return Protocollo.Contenuto(
+                    "Non c'e' niente da misurare: «passi» deve essere un elenco " +
+                    "di {operazione, argomenti}.", true);
+
+            // UN CANCELLO CHE NON SA NIENTE DEVE CHIUDERE, NON APRIRE.
+            //
+            // Il cancello qui sotto decide guardando la FAMIGLIA, e la famiglia
+            // la sa solo il catalogo. Se il catalogo non si e' caricato,
+            // `Famiglia()` risponde null per tutto, ogni passo passa il
+            // controllo, e `misura` — che si e' dichiarata di sola lettura nel
+            // protocollo, e per cui il client ha gia' deciso di NON chiedere
+            // conferma — eseguirebbe un'estrusione.
+            //
+            // Sarebbe un difetto che non da' errore nella sua forma peggiore:
+            // la difesa sparisce esattamente quando qualcosa e' gia' andato
+            // storto, e il sintomo e' che tutto funziona.
+            if (_catalogo.ErroreDiCaricamento != null)
+                return Protocollo.Contenuto(
+                    "Non posso misurare: il catalogo non si e' caricato (" +
+                    _catalogo.ErroreDiCaricamento + "). Senza catalogo non so " +
+                    "quali operazioni leggono e quali toccano il pezzo, e " +
+                    "«misura» non esegue niente di cui non sappia rispondere. " +
+                    "Con «disegna» lo stesso piano parte, ma il tuo client sa " +
+                    "che quello puo' modificare.", true);
+
+            var fuoriPosto = new List<string>();
+            for (int i = 0; i < passi.Length; i++)
+            {
+                var passo = passi[i] as Dictionary<string, object>;
+                string nome = passo == null ? null : Testo(passo, "operazione");
+                if (string.IsNullOrWhiteSpace(nome)) continue;   // lo dira' Disegna
+
+                string famiglia = _catalogo.Famiglia(nome);
+                // Un'operazione che il catalogo non conosce NON e' un problema
+                // di questo cancello: lo dice `Disegna`, con i suggerimenti di
+                // `Simili`. Qui si tace, altrimenti lo stesso sbaglio darebbe
+                // due messaggi diversi a seconda dello strumento.
+                if (famiglia == null) continue;
+                if (!string.Equals(famiglia, FamigliaDiSolaLettura, StringComparison.OrdinalIgnoreCase))
+                    fuoriPosto.Add("il passo " + (i + 1) + ", «" + nome +
+                                   "» (famiglia «" + famiglia + "»)");
+            }
+
+            if (fuoriPosto.Count > 0)
+                return Protocollo.Contenuto(
+                    "«misura» legge e basta, e " +
+                    (fuoriPosto.Count == 1 ? "questo passo tocca" : "questi passi toccano") +
+                    " il pezzo: " + string.Join("; ", fuoriPosto) + ". " +
+                    "Non ho eseguito niente — nemmeno le misure che venivano " +
+                    "prima, perche' meta' piano e' un risultato che non si sa " +
+                    "leggere. Per fare queste operazioni usa «disegna», che il " +
+                    "tuo client sa essere distruttivo. Per sapere cosa sa " +
+                    "leggere «misura»: «elenco_operazioni» con famiglia «" +
+                    FamigliaDiSolaLettura + "».", true);
+
+            // SENZA la guardia sulla ripetizione: misurare due volte la stessa
+            // cosa e' legittimo, e `misura` si dichiara idempotente.
+            return EseguiIlPiano(argomenti, guardaSeERipetuto: false);
+        }
+
+        /// <summary>
+        /// L'unica famiglia che non tocca il pezzo.
+        ///
+        /// NON c'e' anche «identita» qui, e va detto perche' e' il verso in cui
+        /// sbagliare costa di piu': `scrivi_proprieta`, `crea_configurazione` e
+        /// `attiva_configurazione` SCRIVONO nel documento. Dichiararle di sola
+        /// lettura vorrebbe dire un client che non chiede conferma mentre
+        /// qualcuno cambia la configurazione attiva di un pezzo confermato.
+        /// </summary>
+        private const string FamigliaDiSolaLettura = "verifiche";
+
         private Dictionary<string, object> Disegna(Dictionary<string, object> argomenti)
+        {
+            return EseguiIlPiano(argomenti, guardaSeERipetuto: true);
+        }
+
+        /// <summary>
+        /// Il corpo di `disegna`, con o senza la guardia sulla ripetizione.
+        ///
+        /// ── PERCHE' `misura` NON LA VUOLE, ED E' UN BUG TROVATO SCRIVENDOLA ──
+        ///
+        /// `misura` passa di qui: sono le stesse operazioni, con un cancello
+        /// davanti. Ma **misurare due volte la stessa cosa e' legittimo** — anzi,
+        /// e' il caso normale: si guarda, si pensa, si riguarda. E siccome una
+        /// misura non cambia il documento, lo stato dopo e' identico allo stato
+        /// prima: la guardia sulla ripetizione avrebbe visto un piano identico
+        /// su un documento identico e **avrebbe rifiutato la seconda misura.**
+        ///
+        /// Non sarebbe stato solo scomodo: `misura` si dichiara
+        /// `idempotentHint: true` nelle annotazioni, e un client legge quella
+        /// riga per decidere se puo' riprovare da solo. Rifiutare il secondo
+        /// tentativo avrebbe reso quella dichiarazione **una bugia nel
+        /// protocollo** — la stessa categoria di difetto che `misura` esiste per
+        /// non avere.
+        ///
+        /// Un parametro con valore predefinito su `Disegna` sarebbe bastato, ma
+        /// qui si tiene la regola di casa: metodo nuovo, nome diverso.
+        /// </summary>
+        private Dictionary<string, object> EseguiIlPiano(
+            Dictionary<string, object> argomenti, bool guardaSeERipetuto)
         {
             if (!_sessione.Agganciata)
                 return Protocollo.Contenuto("Il ponte non e' agganciato a SolidWorks.", true);
@@ -830,6 +1098,45 @@ namespace Oce.Solid.Agent.Strumenti
                     : null;
 
             _guardato = adesso;
+
+            // ── LO STESSO PIANO, DUE VOLTE (voce W2.7) ──────────────────
+            //
+            // Un client che non riceve la risposta — rete, timeout, riavvio —
+            // rimanda la stessa richiesta. E' il comportamento normale di
+            // qualunque client, ed e' documentato nelle annotazioni di questo
+            // ponte: `disegna` **non** e' idempotente, rieseguire lo stesso
+            // piano non rimette il pezzo com'era, **fa un secondo foro**.
+            //
+            // Finora niente lo fermava. Adesso si', e il criterio e' stretto
+            // apposta: si rifiuta **solo** se il piano e' identico a quello di
+            // prima **e** il documento e' ancora esattamente come quel piano
+            // l'ha lasciato. Le due condizioni insieme descrivono un caso solo:
+            // il rinvio.
+            //
+            // Non basta la prima. Due piani identici su documenti in stati
+            // diversi fanno cose diverse e possono essere tutti e due voluti.
+            // E non basta la seconda: un documento che non e' cambiato non e'
+            // di per se' un motivo per rifiutare.
+            string improntaPiano = ImprontaDelPiano(passi);
+            if (guardaSeERipetuto &&
+                _ultimoPianoFatto != null &&
+                _ultimoPianoFatto == improntaPiano &&
+                Ponte.Sessione.StessoDocumento(_documentoDelPiano, adesso) &&
+                _riepilogoDopoIlPiano != null &&
+                _riepilogoDopoIlPiano == RiepilogoDelloStato(prima))
+            {
+                return Protocollo.Contenuto(
+                    "Questo piano l'ho gia' eseguito, e il documento e' ancora " +
+                    "esattamente come l'ho lasciato. Non lo rifaccio: «disegna» " +
+                    "non e' ripetibile — rieseguirlo non rimette il pezzo com'era, " +
+                    "farebbe un SECONDO foro.\n\n" +
+                    "Se la risposta di prima non ti e' arrivata, chiama " +
+                    "«guarda_il_pezzo»: lo stato di adesso e' il risultato di " +
+                    "quel piano.\n\n" +
+                    "Se invece vuoi davvero rifarlo, cambia qualcosa nel piano " +
+                    "oppure usa «annulla» e poi rilancialo: cosi' e' una scelta, " +
+                    "non un rinvio.", true);
+            }
 
             // IL PIANO SI CONTROLLA TUTTO PRIMA DI TOCCARE IL DOCUMENTO.
             //
@@ -1087,7 +1394,27 @@ namespace Oce.Solid.Agent.Strumenti
                 }
                 : null;
 
-            return Protocollo.Contenuto(Protocollo.InJson(risultato), !tuttoBene);
+            // SI RICORDA COSA SI E' FATTO, e solo se qualcosa si e' fatto
+            // davvero (voce W2.7). Un piano rifiutato in blocco non ha toccato
+            // niente: ricordarlo farebbe rifiutare il secondo tentativo di chi
+            // ha appena corretto l'errore — cioe' la difesa scatterebbe contro
+            // il caso che deve lasciar passare.
+            // E non si ricorda niente di una MISURA: non ha cambiato il pezzo,
+            // e ricordarla farebbe rifiutare un `disegna` successivo che per
+            // caso avesse la stessa impronta.
+            if (tuttoBene && guardaSeERipetuto)
+            {
+                _ultimoPianoFatto = improntaPiano;
+                _documentoDelPiano = adesso;
+                _riepilogoDopoIlPiano = RiepilogoDelloStato(dopo);
+            }
+
+            // I dati escono anche quando il piano e' andato male (W2.4): e'
+            // proprio allora che un programma ha piu' bisogno di leggerli senza
+            // ri-analizzare una stringa — quale passo, quale misura, quale
+            // rifiuto.
+            return Protocollo.ContenutoConDati(
+                Protocollo.InJson(risultato), risultato, !tuttoBene);
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -1659,6 +1986,16 @@ namespace Oce.Solid.Agent.Strumenti
             return new Dictionary<string, object>
             {
                 ["name"] = nome,
+                // IL TITOLO STA IN DUE POSTI, E NON E' UNA RIPETIZIONE.
+                //
+                // Nelle revisioni recenti dello spec MCP `title` e' un campo di
+                // PRIMO LIVELLO dello strumento; prima stava solo dentro
+                // `annotations`, dove resta per compatibilita'. Un client nuovo
+                // legge quello di sopra, uno vecchio quello di sotto, e
+                // scriverne uno solo vuol dire che meta' dei client mostra il
+                // nome tecnico `guarda_il_pezzo` a chi sta lavorando.
+                // Scriverli tutti e due costa due righe e nessuna scelta.
+                ["title"] = TitoloUmano(nome),
                 ["description"] = descrizione,
                 ["inputSchema"] = schema,
                 ["annotations"] = new Dictionary<string, object>
@@ -1674,6 +2011,21 @@ namespace Oce.Solid.Agent.Strumenti
             };
         }
 
+        /// <summary>
+        /// I nomi degli strumenti, per il messaggio di «non lo conosco».
+        ///
+        /// Scritti a mano e non ricavati da `Elenco()`: costruire l'elenco vero
+        /// per rispondere a un errore vorrebbe dire ricostruire sessanta schemi
+        /// JSON per stampare sei parole. Il prezzo di averli scritti due volte
+        /// e' che possono divergere — e infatti c'e' un controllo di contratto
+        /// che confronta questo elenco con quello che esce da `tools/list`.
+        /// </summary>
+        internal static readonly string[] NomiDegliStrumenti =
+        {
+            "guarda_il_pezzo", "elenco_operazioni", "descrivi_operazione",
+            "disegna", "misura", "annulla",
+        };
+
         private static string TitoloUmano(string nome)
         {
             switch (nome)
@@ -1682,6 +2034,7 @@ namespace Oce.Solid.Agent.Strumenti
                 case "elenco_operazioni": return "Elenco delle operazioni";
                 case "descrivi_operazione": return "Descrivi una operazione";
                 case "disegna": return "Disegna nel pezzo";
+                case "misura": return "Misura il pezzo, senza toccarlo";
                 case "annulla": return "Ritira l'ultimo piano";
                 default: return nome;
             }

@@ -86,6 +86,100 @@ namespace Prove.Contratti
             // ── UNO SALVATO E UNO NO: diversi ────────────────────────────
             Segna("uno salvato e uno mai salvato, stesso titolo: diversi",
                   !uguali(id(@"S:\a\Parte1.SLDPRT", "Parte1"), id("", "Parte1")));
+
+            LaChiaveDelTurno(ponte);
+        }
+
+        /// <summary>
+        /// LA CHIAVE DEL LUCCHETTO FRA PROCESSI (voce W2.9).
+        ///
+        /// Che due processi si escludano a vicenda lo garantisce Windows: non
+        /// c'e' niente da provare li'. **Quello che si puo' sbagliare e' la
+        /// chiave**, e sbagliarla ha due facce, tutt'e due silenziose:
+        ///
+        ///   - due documenti DIVERSI con la stessa chiave si bloccano a vicenda
+        ///     senza motivo, e chi lavora vede un rifiuto che non capisce;
+        ///   - lo stesso documento con due chiavi diverse **non si blocca**, e
+        ///     il lucchetto non serve a niente pur sembrando esserci.
+        ///
+        /// La seconda e' quella pericolosa: la difesa c'e', si vede nel codice,
+        /// e non protegge. E' il difetto che non da' errore applicato a un
+        /// lucchetto.
+        ///
+        /// Si prova per riflessione su `ChiaveDi`, che e' privata: i documenti
+        /// sono finti — basta che rispondano a `GetPathName` e `GetTitle`,
+        /// perche' il ponte li interroga cosi'.
+        /// </summary>
+        private static void LaChiaveDelTurno(string ponte)
+        {
+            Gruppo("TurnoSulDocumento: la chiave");
+
+            MethodInfo chiaveDi;
+            try
+            {
+                var asm = Carica.Ponte(ponte);
+                var tipo = Carica.Classe(asm, "TurnoSulDocumento");
+                if (tipo == null) { Segna("la classe TurnoSulDocumento c'e'", false, ""); return; }
+                chiaveDi = tipo.GetMethod("ChiaveDi",
+                    BindingFlags.NonPublic | BindingFlags.Static);
+                if (chiaveDi == null) { Segna("ChiaveDi c'e'", false, ""); return; }
+            }
+            catch (Exception ex) { Segna("TurnoSulDocumento si carica", false, ex.ToString()); return; }
+
+            Func<string, string, string> chiave = (percorso, titolo) =>
+            {
+                var arg = new object[] { new DocumentoFinto(percorso, titolo), null };
+                return chiaveDi.Invoke(null, arg) as string;
+            };
+
+            Segna("lo stesso percorso da' la stessa chiave",
+                  chiave(@"S:\a\b.sldprt", "b") == chiave(@"S:\a\b.sldprt", "altro"),
+                  "e il titolo non c'entra: conta il file");
+            Segna("maiuscole diverse, stessa chiave",
+                  chiave(@"S:\A\B.SLDPRT", "") == chiave(@"s:\a\b.sldprt", ""),
+                  "su Windows due percorsi che differiscono per il caso sono lo stesso file");
+            Segna("percorsi diversi, chiavi diverse",
+                  chiave(@"S:\a\b.sldprt", "") != chiave(@"S:\a\c.sldprt", ""));
+
+            // IL CASO CHE UN TRONCAMENTO AVREBBE ROTTO: due file nella stessa
+            // cartella profondissima, diversi solo per l'ultima lettera. Con la
+            // chiave ricavata dal percorso troncato sarebbero la stessa cosa, e
+            // due pezzi diversi si bloccherebbero a vicenda.
+            string lungo = @"S:\" + new string('x', 200) + @"\";
+            Segna("due file in una cartella profondissima restano distinti",
+                  chiave(lungo + "uno.sldprt", "") != chiave(lungo + "due.sldprt", ""),
+                  "e' il caso che un troncamento del percorso avrebbe fuso");
+
+            Segna("senza percorso si usa il titolo",
+                  chiave("", "Parte286") != null &&
+                  chiave("", "Parte286") == chiave("", "Parte286"));
+            Segna("titoli diversi, chiavi diverse",
+                  chiave("", "Parte286") != chiave("", "Parte287"));
+
+            // NIENTE DI NIENTE: nessuna chiave, e quindi nessun lucchetto.
+            // Bloccare su una chiave inventata unirebbe documenti diversi e
+            // lascerebbe passare quelli uguali: farebbe l'opposto di cio' che
+            // serve.
+            Segna("senza percorso NE titolo non c'e' chiave", chiave("", "") == null,
+                  "un lucchetto su una chiave inventata e' peggio di nessun lucchetto");
+        }
+
+        /// <summary>
+        /// Un documento finto: risponde solo alle due domande che il ponte fa.
+        ///
+        /// `TurnoSulDocumento` interroga per riflessione (`InvokeMember`), quindi
+        /// non serve implementare `IModelDoc2` — cosa che qui, senza SOLIDWORKS,
+        /// non si potrebbe nemmeno fare.
+        /// </summary>
+        private sealed class DocumentoFinto
+        {
+            private readonly string _percorso, _titolo;
+            public DocumentoFinto(string percorso, string titolo)
+            {
+                _percorso = percorso; _titolo = titolo;
+            }
+            public string GetPathName() { return _percorso; }
+            public string GetTitle() { return _titolo; }
         }
     }
 }

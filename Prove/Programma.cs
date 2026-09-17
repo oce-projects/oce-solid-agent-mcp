@@ -82,6 +82,64 @@ namespace Prove.Contratti
             return Directory.GetParent(Directory.GetParent(bin).FullName).FullName;
         }
 
+        /// <summary>
+        /// `Prove/LEGGIMI.md` dice quanti controlli ci sono. Deve essere vero.
+        ///
+        /// Il 16/9/2026 diceva **54** mentre ne giravano **99**: un numero
+        /// giusto quando fu scritto, invecchiato da solo mentre la suite
+        /// cresceva. Chi legge quel file non ha modo di accorgersene — e' la
+        /// sua unica fonte. E' lo stesso difetto del README che prometteva
+        /// trentotto operazioni su sessanta, e la difesa e' la stessa: far
+        /// leggere il documento a un controllo.
+        ///
+        /// SI CONTA ANCHE QUESTO CONTROLLO. Gira per ultimo, quindi quando
+        /// guarda `Esiti.Count` se stesso non c'e' ancora: il numero scritto
+        /// nel documento deve valere `Esiti.Count + 1`. Non e' una furbizia,
+        /// e' l'unico conto che torna — e il documento deve dire il totale che
+        /// l'utente legge a schermo, non quello meno uno.
+        /// </summary>
+        private static void IlLeggimiDiceQuantiSono()
+        {
+            Gruppo("il LEGGIMI delle prove");
+            int veri = Esiti.Count + 1;
+
+            var leggimi = Path.Combine(Radice(), "Prove", "LEGGIMI.md");
+            if (!File.Exists(leggimi))
+            {
+                Segna("il LEGGIMI c'e'", false, leggimi);
+                return;
+            }
+
+            string testo;
+            try { testo = File.ReadAllText(leggimi); }
+            catch (Exception ex) { Segna("il LEGGIMI si legge", false, ex.Message); return; }
+
+            // Si cerca SOLO la forma «<numero> controlli»: il file parla anche
+            // di secondi e di licenze, e una regola larga griderebbe su una
+            // frase giusta.
+            var trovati = System.Text.RegularExpressions.Regex.Matches(
+                testo, @"(\d+)\s+controlli");
+            if (trovati.Count == 0)
+            {
+                Segna("il LEGGIMI dice quanti controlli ci sono", false,
+                      "non trovo nessun «N controlli»: se il numero sparisce, " +
+                      "sparisce anche questo controllo");
+                return;
+            }
+
+            var sbagliati = new List<string>();
+            foreach (System.Text.RegularExpressions.Match m in trovati)
+                if (Convert.ToInt32(m.Groups[1].Value) != veri)
+                    sbagliati.Add("«" + m.Value + "»");
+
+            Segna("il LEGGIMI dice quanti controlli ci sono, e sono quelli veri",
+                  sbagliati.Count == 0,
+                  sbagliati.Count == 0
+                      ? veri + " controlli"
+                      : "ne girano " + veri + ", il LEGGIMI dice " +
+                        string.Join(" e ", sbagliati));
+        }
+
         private static int Main(string[] argomenti)
         {
             System.Threading.Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
@@ -91,11 +149,13 @@ namespace Prove.Contratti
             Console.WriteLine("radice: " + Radice());
 
             NessunInterop();
+            OgniSorgenteStaNelSuoProgetto();
             ProveAttese.Tutte();
             ProveCatalogo.Tutte();
             ProveSessione.Tutte();
             ProveProtocollo.Tutte();
             ProveIlBanco.Tutte();
+            IlLeggimiDiceQuantiSono();
 
             Console.WriteLine();
             Console.WriteLine(new string('=', 76));
@@ -142,6 +202,97 @@ namespace Prove.Contratti
                   dassault.Count == 0
                       ? mio.GetReferencedAssemblies().Length + " riferimenti, nessuno di Dassault"
                       : "trovati: " + string.Join(", ", dassault));
+        }
+
+        /// <summary>
+        /// OGNI SORGENTE STA NEL SUO `.csproj`.
+        ///
+        /// ── IL DIFETTO CHE QUESTO CONTROLLO PRENDE ───────────────────────
+        ///
+        /// Un file `.cs` che non compare fra i `<Compile Include>` **non viene
+        /// compilato**. Se qualcuno lo referenzia, MSBuild lo dice subito ed e'
+        /// successo davvero il 16/9/2026 con `OperazioniAssieme.cs`: due errori,
+        /// riparato in trenta secondi.
+        ///
+        /// **Il caso pericoloso e' l'altro.** Se nessuno lo referenzia ancora —
+        /// una classe nuova, un'operazione appena scritta e non ancora
+        /// collegata al dispatcher — **la build resta verde e il codice non
+        /// esiste**. Si scrive un file, si compila, tutto passa, e quel file non
+        /// e' nel programma. Nessun errore, da nessuna parte.
+        ///
+        /// E' il difetto che non da' errore applicato al PROGETTO invece che al
+        /// pezzo, e non c'era nessun controllo che lo prendesse.
+        ///
+        /// ── PERCHE' STA QUI E NON IN UNO SCRIPT ──────────────────────────
+        ///
+        /// Uno script bisogna ricordarsi di lanciarlo, ed e' esattamente il
+        /// modo in cui il gancio `pre-push` e' nato (voce W2.10): il controllo
+        /// c'era, mancava che qualcuno lo eseguisse. Qui gira a ogni giro.
+        /// </summary>
+        private static void OgniSorgenteStaNelSuoProgetto()
+        {
+            Gruppo("i sorgenti stanno nei progetti");
+
+            // cartella (relativa alla radice) -> csproj che la deve elencare.
+            // I `Controlli\<attrezzo>\` hanno un csproj per attrezzo e stanno
+            // fuori dalla soluzione apposta: non si controllano qui.
+            var mappa = new[]
+            {
+                new { Dove = new[] { @"Riscontro.Disegno", @"Riscontro.Disegno\Catalogo",
+                                     @"Riscontro.Disegno\Properties" },
+                      Progetto = @"Riscontro.Disegno\Riscontro.Disegno.csproj" },
+                new { Dove = new[] { @"Ponte", @"Strumenti", @"Mcp" },
+                      Progetto = @"Oce.Solid.Agent.csproj" },
+                new { Dove = new[] { @"Banco" }, Progetto = @"Banco\ProvaSaldatura.csproj" },
+                new { Dove = new[] { @"Prove" }, Progetto = @"Prove\Prove.Contratti.csproj" },
+                new { Dove = new[] { @"Installer" }, Progetto = @"Installer\Installa.csproj" },
+            };
+
+            int guardati = 0;
+            var fuori = new List<string>();
+
+            foreach (var m in mappa)
+            {
+                var csproj = Path.Combine(Radice(), m.Progetto);
+                if (!File.Exists(csproj))
+                {
+                    Segna("il progetto «" + m.Progetto + "» c'e'", false, csproj);
+                    continue;
+                }
+                string testo;
+                try { testo = File.ReadAllText(csproj); }
+                catch (Exception ex) { Segna("«" + m.Progetto + "» si legge", false, ex.Message); continue; }
+
+                foreach (var cartella in m.Dove)
+                {
+                    var piena = Path.Combine(Radice(), cartella);
+                    if (!Directory.Exists(piena)) continue;
+                    // SOLO il primo livello: `obj\` e `bin\` sono pieni di
+                    // sorgenti generati che nessun csproj elenca, e che non
+                    // devono entrare nel conto.
+                    foreach (var f in Directory.GetFiles(piena, "*.cs", SearchOption.TopDirectoryOnly))
+                    {
+                        var nome = Path.GetFileName(f);
+                        // Generati dal compilatore, mai elencati a mano.
+                        if (nome.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
+                            nome.IndexOf("AssemblyAttributes", StringComparison.OrdinalIgnoreCase) >= 0)
+                            continue;
+                        guardati++;
+                        // Si cerca il NOME fra virgolette: copre sia
+                        // `Include="Pippo.cs"` sia `Include="Ponte\Pippo.cs"`.
+                        if (testo.IndexOf(nome + "\"", StringComparison.OrdinalIgnoreCase) < 0)
+                            fuori.Add(cartella + "\\" + nome + " → " + m.Progetto);
+                    }
+                }
+            }
+
+            Segna("ci sono sorgenti da controllare", guardati > 10, guardati + " file .cs");
+            Segna("ogni sorgente e' elencato nel suo .csproj",
+                  fuori.Count == 0,
+                  fuori.Count == 0
+                      ? "tutti e " + guardati
+                      : "FUORI DAL PROGETTO (non vengono compilati): " +
+                        string.Join("; ", fuori));
         }
 
         /// <summary>

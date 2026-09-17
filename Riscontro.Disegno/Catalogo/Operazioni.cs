@@ -42,6 +42,16 @@ namespace Riscontro.Disegno.Catalogo
                 new KeyValuePair<string, string>(
                     "riferimenti",
                     "piani e assi su cui costruire"),
+                // LA FAMIGLIA CHE NON E' UN PEZZO. Tutte le altre lavorano
+                // dentro un documento di parte; questa mette insieme parti che
+                // esistono gia', e la cosa che la distingue non e' cosa fa ma
+                // cosa NON basta: inserire non e' accoppiare, e un assieme di
+                // componenti liberi sembra montato senza esserlo. La riga qui
+                // sotto lo dice al modello prima che chieda l'elenco.
+                new KeyValuePair<string, string>(
+                    "assiemi",
+                    "mettere insieme pezzi che esistono gia'. Inserire NON e' " +
+                    "accoppiare: guarda sempre «appoggiato»"),
                 new KeyValuePair<string, string>(
                     "proprieta",
                     "cio' che il pezzo E', non la sua forma"),
@@ -2582,6 +2592,196 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "riapre il file appena scritto e confronta il volume col pezzo. "
                                     + "Predefinito: falso.")),
                         "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "profili_saldatura",
+                    Famiglia = "saldature",
+                    Provata = true,
+                    Sommario =
+                        "Elenca i profili della libreria e le loro misure, scritte come vanno "
+                        + "copiate. Non tocca niente.",
+                    Descrizione =
+                        "Dice quali profili ci sono -- tubolari, IPE, angolari, piatti -- e "
+                        + "per ognuno quali misure, scritte esattamente come vanno copiate."
+                        + "\n\nCHIAMAMI PRIMA di «membro_strutturale» e «telaio_rettangolare». "
+                        + "Loro vogliono «profilo_percorso» e «configurazione» ALLA LETTERA, e "
+                        + "alla lettera vuol dire davvero: maiuscole, spazi e virgole contano. "
+                        + "Una misura scritta quasi giusta NON DA' ERRORE -- SOLIDWORKS usa la "
+                        + "configurazione attiva del profilo, il pezzo esce con una parete "
+                        + "diversa da quella che credi, la ricostruzione e' pulita, e te ne "
+                        + "accorgi in officina.\n\nLeggo i file senza aprirli: non apro "
+                        + "documenti e non lascio niente in giro.\n\nSe la libreria e' grande "
+                        + "te ne do i primi quaranta e te lo dico: con «cerca» e un pezzo del "
+                        + "nome li restringi.",
+                    Precondizione = null,
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "cerca", O(
+                                "type", "string",
+                                "description", "un pezzo del nome del profilo, per restringere: per esempio "
+                                    + "«tubo», «IPE», «angolare». Senza, li elenca tutti."),
+                            "con_misure", O(
+                                "type", "boolean",
+                                "description", "vero (predefinito) per avere anche le misure di ogni profilo. "
+                                    + "Falso se ti basta sapere quali profili esistono: costa meno.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "inserisci_componente",
+                    Famiglia = "assiemi",
+                    Provata = true,
+                    Sommario =
+                        "Mette un pezzo gia' aperto dentro l'assieme aperto, e ti dice "
+                        + "se e' vincolato o solo appoggiato li'.",
+                    Descrizione =
+                        "Inserisce un componente in un assieme.\n\nQUELLO CHE DEVI SAPERE "
+                        + "PRIMA DI TUTTO IL RESTO: inserire NON e' accoppiare. Il pezzo "
+                        + "appare, l'albero si riempie, la ricostruzione e' pulita -- e il "
+                        + "componente e' appoggiato li', libero. Quattro componenti liberi "
+                        + "sembrano un assieme, si aprono, si ruotano, si esportano, e si "
+                        + "montano sbagliati.\n\nPercio' ti rispondo con «fisso», "
+                        + "«accoppiamenti» e «appoggiato». Non fisso piu' zero "
+                        + "accoppiamenti vuol dire APPOGGIATO: il pezzo sta li' e basta, e "
+                        + "finche' e' cosi' l'assieme non e' montato, e' un mucchio "
+                        + "ordinato.\n\nQUELLO CHE NON TI SO DIRE, e te lo dico: **di "
+                        + "quanto** un componente sia ancora libero. SOLIDWORKS non mi da' i "
+                        + "gradi di liberta' residui da qui -- risponde «non disponibile» su "
+                        + "ogni componente, fisso o libero che sia -- e un numero inventato "
+                        + "sarebbe peggio di nessun numero. Quindi «appoggiato: false» vuol "
+                        + "dire «ha almeno un accoppiamento», NON «non si muove piu'»: un "
+                        + "accoppiamento solo ne lascia liberi cinque su sei.\n\nIL "
+                        + "COMPONENTE DEV'ESSERE GIA' APERTO in SOLIDWORKS: io lo cerco per "
+                        + "percorso, e su un file chiuso l'inserimento risponde «non fatto» "
+                        + "senza dire perche'. I percorsi che puoi usare sono quelli in "
+                        + "«documenti_aperti» dello stato: copiali da li'.\n\nE «configurazione» "
+                        + "va scritta esatta o lasciata vuota: una configurazione che non "
+                        + "esiste NON DA' ERRORE, prende quella attiva del componente, e ti "
+                        + "ritrovi montato un pezzo di un'altra misura.\n\nATTENZIONE SULLE "
+                        + "COORDINATE, perche' i due numeri non tornano e non e' un errore: "
+                        + "«x_mm, y_mm, z_mm» posizionano il **centro dell'ingombro**; "
+                        + "«origine_mm», che ti rispondo io e che rileggerai nello stato, e' "
+                        + "dove e' finita l'**origine** del pezzo. Se il pezzo ha l'origine su "
+                        + "una faccia -- cioe' quasi sempre -- i due punti distano meta' "
+                        + "ingombro. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a "
+                        + "z=30 ma y=-2: nessuno dei due numeri e' sbagliato, sono due cose "
+                        + "diverse.\n\nNon conto sulla "
+                        + "risposta dell'inserimento: conto i componenti prima e dopo, e se "
+                        + "non sono aumentati di uno te lo dico invece di dichiarare fatto.",
+                    Precondizione = "un assieme aperto, e il componente da inserire gia' aperto",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "percorso", O(
+                                "type", "string",
+                                "description", "percorso completo del file da inserire, copiato da "
+                                    + "«documenti_aperti». Dev'essere gia' aperto in SOLIDWORKS."),
+                            "x_mm", O(
+                                "type", "number",
+                                "description", "dove va il CENTRO dell'ingombro del componente, in mm. "
+                                    + "Predefinito 0. Non e' un accoppiamento: e' solo dove "
+                                    + "appoggiarlo. E NON e' dove finisce la sua origine: se il "
+                                    + "pezzo ha l'origine su una faccia, l'origine si sposta di "
+                                    + "meta' ingombro. Ti rispondo con «origine_mm» per questo."),
+                            "y_mm", O(
+                                "type", "number",
+                                "description", "dove va il CENTRO dell'ingombro, in mm. Predefinito 0."),
+                            "z_mm", O(
+                                "type", "number",
+                                "description", "dove va il CENTRO dell'ingombro, in mm. Predefinito 0."),
+                            "configurazione", O(
+                                "type", "string",
+                                "description", "quale configurazione del componente usare, scritta "
+                                    + "ESATTA. Vuota o assente = quella attiva del componente. Un "
+                                    + "nome sbagliato non da' errore: prende l'attiva.")),
+                        "required", A("percorso")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "sweep_circolare",
+                    Famiglia = "estrusioni",
+                    Provata = true,
+                    Sommario =
+                        "Un tubo pieno di diametro dato lungo un percorso di punti. Su un "
+                        + "percorso dritto controllo che il volume sia area per lunghezza.",
+                    Descrizione =
+                        "Fa una forma che segue una strada: un bocchettone passacavo, un "
+                        + "manico, un tubo piegato. E' la prima operazione del catalogo che "
+                        + "fa qualcosa che non e' dritto.\n\nIL PROFILO E' UN NUMERO, non uno "
+                        + "schizzo: dai il diametro e basta. Il percorso e' un elenco di "
+                        + "punti nello spazio, e lo disegno io: non ti chiedo uno schizzo "
+                        + "perche' nello stato del documento gli schizzi non hanno un "
+                        + "identificativo, e non avresti modo di indicarmelo.\n\nSU UN "
+                        + "PERCORSO DRITTO IL CONTO SI FA A MANO, e lo faccio: il volume "
+                        + "dev'essere l'area del cerchio per la lunghezza, e se non lo e' mi "
+                        + "rifiuto. Su un percorso con dei gomiti no -- nei gomiti il "
+                        + "materiale si sovrappone e il volume vero e' minore -- e allora ti "
+                        + "do il teorico dicendoti che e' un limite superiore, non la "
+                        + "risposta.\n\nUNA CURVA PIU' STRETTA DEL RAGGIO DEL TUBO non si "
+                        + "puo' fare: la superficie si attraverserebbe. SOLIDWORKS in quel "
+                        + "caso non crea niente e non dice perche'; io te lo dico.",
+                    Precondizione = null,
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "percorso_mm", O(
+                                "type", "array",
+                                "items", O("type", "array", "items", O("type", "number")),
+                                "description", "i punti della strada, almeno due, ognuno [x, y, z] in mm. "
+                                    + "Per esempio [[0,0,0], [100,0,0]] fa un tubo dritto lungo 100."),
+                            "diametro_mm", O(
+                                "type", "number",
+                                "description", "il diametro del tubo, in mm.")),
+                        "required", A("percorso_mm", "diametro_mm")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "loft_fra_due_cerchi",
+                    Famiglia = "estrusioni",
+                    Provata = true,
+                    Sommario =
+                        "Una transizione fra due cerchi di diametro diverso, e ti dico di "
+                        + "quanto si scosta dal tronco di cono.",
+                    Descrizione =
+                        "Raccorda due sezioni tonde diverse: un riduttore, un imbocco, una "
+                        + "transizione da un tubo grosso a uno sottile.\n\nUN LOFT FRA DUE "
+                        + "CERCHI NON E' UN CONO, ed e' la cosa che vale la pena sapere. La "
+                        + "sua superficie e' un'approssimazione a spline della conica: il "
+                        + "volume si scosta dalla formula del tronco di cono di qualche "
+                        + "millesimo di per cento, sempre in difetto. Ti do tutti e due i "
+                        + "numeri e lo scarto, cosi' non insegui un difetto che non c'e'. Se "
+                        + "ti serve il cono esatto, «rivoluzione» su un trapezio lo fa."
+                        + "\n\nI due cerchi stanno su piani paralleli a quello che scegli, "
+                        + "alla distanza che dici. Puoi sfalsarli uno rispetto all'altro per "
+                        + "fare una transizione obliqua.",
+                    Precondizione = null,
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "piano", O(
+                                "type", "string",
+                                "enum", A("frontale", "superiore", "destro"),
+                                "description", "il piano del primo cerchio. Predefinito «frontale»."),
+                            "diametro1_mm", O(
+                                "type", "number",
+                                "description", "il diametro del primo cerchio, sul piano scelto."),
+                            "diametro2_mm", O(
+                                "type", "number",
+                                "description", "il diametro del secondo."),
+                            "distanza_mm", O(
+                                "type", "number",
+                                "description", "quanto dista il secondo cerchio dal primo. Negativo per "
+                                    + "andare dall'altra parte."),
+                            "sfalsa1_mm", O(
+                                "type", "number",
+                                "description", "di quanto spostare di lato il primo cerchio. Predefinito 0."),
+                            "sfalsa2_mm", O(
+                                "type", "number",
+                                "description", "di quanto spostare di lato il secondo: serve per una "
+                                    + "transizione obliqua. Predefinito 0.")),
+                        "required", A("diametro1_mm", "diametro2_mm", "distanza_mm")),
                 },
                 new OperazioneDisegno
                 {

@@ -198,7 +198,118 @@ namespace Oce.Solid.Agent.Ponte
                 return "Non riesco ad agganciarmi a SolidWorks: " + ex.Message;
             }
 
+            RicordaIlProcesso();
             return null;
+        }
+
+        /// <summary>
+        /// Il PID del processo `SLDWORKS.exe` a cui ci si e' agganciati.
+        /// `0` quando non si e' riusciti a saperlo.
+        /// </summary>
+        private int _pid;
+
+        /// <summary>
+        /// Si chiede a SOLIDWORKS qual e' il suo processo, e si tiene il numero.
+        ///
+        /// PERCHE' NON `Process.GetProcessesByName("SLDWORKS")`. Su questa
+        /// macchina di sessioni SOLIDWORKS ce n'e' piu' di una — e' scritto fra
+        /// i vincoli del progetto e ci si e' gia' sbagliati una volta: cercare
+        /// per nome trova *un* processo, non *il* processo a cui questo ponte
+        /// parla, e un controllo che guarda il processo sbagliato risponde
+        /// «vivo» mentre il proprio e' morto. E' il difetto che non da' errore,
+        /// in un controllo scritto per prenderlo.
+        ///
+        /// SI FA A RIFLESSIONE e si accetta di non riuscirci: `_sw` e' tenuto
+        /// come `object` apposta, e se `GetProcessID` non c'e' su questa
+        /// versione dell'interfaccia il ponte deve funzionare **come prima**,
+        /// non rifiutare. Un controllo nuovo che diventa una nuova causa di
+        /// rifiuto e' un peggioramento, non una difesa.
+        /// </summary>
+        private void RicordaIlProcesso()
+        {
+            _pid = 0;
+            // Un nuovo aggancio cancella il ricordo del vecchio: e' proprio la
+            // cosa che si fa dopo aver riavviato SOLIDWORKS.
+            _motivoDellaPerdita = null;
+            if (_sw == null) return;
+            try
+            {
+                var v = Chiama(_sw, "GetProcessID");
+                if (v != null) _pid = Convert.ToInt32(v);
+            }
+            catch
+            {
+                // Volutamente muto: si dice una volta sola, e piu' sotto, che
+                // il controllo non e' disponibile. Gridarlo a ogni aggancio
+                // insegnerebbe a ignorarlo.
+            }
+            if (_pid <= 0)
+                Mcp.Protocollo.Nota(
+                    "[ponte] non sono riuscito a sapere il processo di SolidWorks: " +
+                    "se si chiude a meta' di un piano, me ne accorgero' dall'errore " +
+                    "della chiamata e non prima.");
+        }
+
+        /// <summary>
+        /// SOLIDWORKS e' ancora li'? Torna `null` se si', il motivo se no.
+        ///
+        /// Va chiamata PRIMA di un piano e FRA un passo e l'altro. Senza, un
+        /// SOLIDWORKS che si chiude a meta' si manifesta come un riferimento
+        /// nullo tre chiamate dopo, in un punto che non ha niente a che vedere
+        /// con la causa — e chi legge l'errore cerca il difetto dove non e'.
+        ///
+        /// **Quando il PID non si e' potuto sapere, questa risponde `null`**,
+        /// cioe' «per quanto ne so, vivo». Non e' una svista: il controllo che
+        /// non c'e' non deve diventare un rifiuto. Che non ci sia e' gia' stato
+        /// detto all'aggancio.
+        /// </summary>
+        public string SolidWorksECheSeNeEAndato()
+        {
+            // UNA VOLTA CHE SE N'E' ANDATO, RESTA ANDATO.
+            // Il motivo si tiene e si ripete: dalla seconda chiamata in poi non
+            // si va a ricontrollare un processo che non c'e', e soprattutto non
+            // si degrada il messaggio.
+            if (_motivoDellaPerdita != null) return _motivoDellaPerdita;
+            if (_pid <= 0) return null;
+            try
+            {
+                var p = System.Diagnostics.Process.GetProcessById(_pid);
+                if (p == null || p.HasExited) return Sparito();
+                return null;
+            }
+            catch (ArgumentException)
+            {
+                // Process.GetProcessById alza ArgumentException quando il
+                // processo non esiste piu'. E' il caso che stiamo cercando.
+                return Sparito();
+            }
+            catch
+            {
+                // Qualunque altro guaio (permessi, WMI che non risponde) NON e'
+                // una prova che SOLIDWORKS sia morto: si tace.
+                return null;
+            }
+        }
+
+        private string _motivoDellaPerdita;
+
+        /// <summary>
+        /// NON si azzera `_sw` qui, ed e' una scelta.
+        ///
+        /// Azzerarlo sembrava igiene — l'oggetto COM e' morto comunque — ma
+        /// rende `Agganciata` falsa, e allora `disegna` risponde «Il ponte non
+        /// e' agganciato a SolidWorks»: vero, generico, e **peggiore** del
+        /// messaggio che questa funzione ha appena costruito. Si sarebbe
+        /// sostituita la causa con un sintomo, un giro dopo averla trovata.
+        /// </summary>
+        private string Sparito()
+        {
+            _motivoDellaPerdita =
+                "SolidWorks si e' chiuso: il processo a cui ero agganciato " +
+                "(PID " + _pid + ") non c'e' piu'. Quello che era gia' stato " +
+                "costruito e' rimasto nel documento e NON e' stato salvato. " +
+                "Riapri SolidWorks, riapri il pezzo, e rilancia il ponte.";
+            return _motivoDellaPerdita;
         }
 
         public string VersioneSolidWorks()
@@ -525,6 +636,17 @@ namespace Oce.Solid.Agent.Ponte
             List<PassoDelPiano> passi, out string errore)
         {
             errore = null;
+
+            // PRIMA DI TUTTO: c'e' ancora qualcuno dall'altra parte?
+            //
+            // Senza questa riga, un SOLIDWORKS chiuso dopo l'aggancio si
+            // manifesta come `DocumentoAttivo()` che torna null, e il ponte
+            // risponde «non c'e' nessun documento aperto» — che e' vero e manda
+            // a cercare la cosa sbagliata: si va ad aprire un pezzo dentro un
+            // SOLIDWORKS che non esiste piu'.
+            errore = SolidWorksECheSeNeEAndato();
+            if (errore != null) return null;
+
             var doc = DocumentoAttivo();
             if (doc == null)
             {
@@ -532,6 +654,46 @@ namespace Oce.Solid.Agent.Ponte
                 return null;
             }
 
+            // ── UN PONTE ALLA VOLTA SU UN DOCUMENTO (voce W2.9) ─────────
+            //
+            // Il precedente e' gia' costato: due sessioni sullo stesso
+            // SOLIDWORKS, e una prova finita dentro il pezzo dell'altra — un
+            // blocco 314x274x52 estruso nel documento di qualcun altro, senza
+            // un errore e senza un avviso. Li' si e' riparato tenendo il
+            // riferimento `IModelDoc2` invece dell'attivo, e basta **dentro un
+            // processo**. Fra due PROCESSI-ponte quel riferimento non dice
+            // niente: sono due oggetti COM diversi che guardano lo stesso file.
+            //
+            // Qui il turno se lo prendono a vicenda con un mutex di sistema.
+            using (var turno = TurnoSulDocumento.Prendi(doc, out string diChiE))
+            {
+                if (turno == null)
+                {
+                    errore =
+                        "Un altro ponte sta gia' lavorando su questo documento (" +
+                        diChiE + "). Non eseguo: due piani sullo stesso pezzo, " +
+                        "uno sopra l'altro, danno un pezzo che non e' nessuno dei " +
+                        "due e nessuno dei due se ne accorge. Aspetta che finisca, " +
+                        "oppure lavora su un altro documento.";
+                    return null;
+                }
+                return EseguiIlPiano(passi, out errore);
+            }
+        }
+
+        /// <summary>
+        /// Il piano vero e proprio, una volta che il turno sul documento e'
+        /// nostro.
+        ///
+        /// NON prende `doc`: `EsecutorePiano` lavora attraverso `_sw` e trova il
+        /// documento da se'. Passarglielo sarebbe un parametro che dice il falso
+        /// su cosa serve a questo metodo — e il primo che lo legge penserebbe
+        /// che il documento arrivi di qui.
+        /// </summary>
+        private List<Dictionary<string, object>> EseguiIlPiano(
+            List<PassoDelPiano> passi, out string errore)
+        {
+            errore = null;
             var fonte = new PianoInMemoria(passi);
             var esecutore = new EsecutorePiano(
                 _sw as ISldWorks,
@@ -567,19 +729,51 @@ namespace Oce.Solid.Agent.Ponte
                 // controlli preliminari — non lascia nessun esito, e senza
                 // questo il ponte risponderebbe «nessun passo, tutto bene».
                 if (!esito.Completato && !string.IsNullOrEmpty(esito.Errore))
-                    errore = esito.Errore;
+                    errore = NominaLaCausaVera(esito.Errore, fonte.Esiti);
                 return fonte.Esiti;
             }
             catch (TargetInvocationException ex)
             {
-                errore = (ex.InnerException ?? ex).Message;
+                errore = NominaLaCausaVera((ex.InnerException ?? ex).Message, fonte.Esiti);
                 return fonte.Esiti;
             }
             catch (Exception ex)
             {
-                errore = ex.Message;
+                errore = NominaLaCausaVera(ex.Message, fonte.Esiti);
                 return fonte.Esiti;
             }
+        }
+
+        /// <summary>
+        /// Se il piano si e' fermato E nel frattempo SOLIDWORKS e' sparito, la
+        /// causa e' quella — non il messaggio della chiamata che ha trovato il
+        /// vuoto.
+        ///
+        /// PERCHE' SI GUARDA DOPO E NON SOLO PRIMA. Il controllo all'inizio
+        /// prende il caso «era gia' chiuso»; questo prende quello che conta di
+        /// piu': **chiuso a meta' piano**. Li' l'errore che arriva su e' quello
+        /// della prima chiamata che ha trovato il riferimento morto — un
+        /// «Riferimento a un oggetto non impostato», o un HRESULT — e chi lo
+        /// legge va a cercare un difetto nell'operazione che stava girando.
+        ///
+        /// Il messaggio originale NON si butta: si dice tutt'e due le cose,
+        /// perche' se un giorno le due non combaciassero — SOLIDWORKS vivo e
+        /// un errore vero — buttare l'originale avrebbe nascosto la cosa da
+        /// riparare. E si dice **quanti passi erano gia' andati**, che e' cio'
+        /// che serve per sapere com'e' rimasto il documento.
+        /// </summary>
+        private string NominaLaCausaVera(
+            string originale, List<Dictionary<string, object>> esiti)
+        {
+            var sparito = SolidWorksECheSeNeEAndato();
+            if (sparito == null) return originale;
+
+            int fatti = esiti == null ? 0 : esiti.Count;
+            return sparito +
+                   " Si e' fermato dopo " + fatti +
+                   (fatti == 1 ? " passo" : " passi") +
+                   ". Quello che SolidWorks aveva risposto per ultimo: «" +
+                   originale + "».";
         }
     }
 }

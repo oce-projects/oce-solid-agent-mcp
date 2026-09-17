@@ -1,0 +1,64 @@
+{
+  "nome": "inserire_non_e_accoppiare",
+  "famiglia": "assiemi",
+  "perche": "IL PRIMO CASO DI ASSIEME DEL PROGETTO, e prova la cosa che il censimento delle API (nota 80q) aveva gia' scritto e che nessuno aveva mai misurato: «AddComponent5 piazza senza accoppiare -- quattro corpi liberi che sembrano un assieme». Inserire riesce quasi sempre: il pezzo appare, l'albero si riempie, la ricostruzione e' pulita. E il componente e' appoggiato li'. Un assieme di pezzi liberi si apre, si ruota, si esporta e si monta sbagliato, senza che nessun errore lo dica.",
+  "com_era_scritto_prima_e_perche_era_falso": "La prima stesura diceva: «i gradi di liberta' residui sono l'UNICA misura di questa famiglia che puo' fallire nel modo giusto -- sei e' il numero atteso su un componente appena inserito: tre spostamenti e tre rotazioni». Era falso in tre punti, e il caso l'ha scoperto al primo giro. (1) Sei non era un ritorno possibile: GetRemainingDOFs torna uno STATO di swRemainingDofs_e, non un conteggio. (2) Il valore misurato, 2, e' swRemainingDofs_Unavailable. (3) Lo stesso 2 esce su un componente FISSO e su uno libero, quindi quel numero non distingue le due cose che il caso voleva distinguere. Si tiene scritto qui perche' l'errore non era nella misura: era nell'aver deciso il numero atteso PRIMA di misurarlo, calcolandolo da come ci si immagina che funzioni un'API.",
+  "cosa_misura_adesso": "Le due cose che funzionano davvero: IsFixed (distingue il primo componente, inchiodato, dagli altri) e il conteggio di GetMates. Non fisso piu' zero accoppiamenti vuol dire APPOGGIATO, e quello si sa per certo. Di quanto sia libero non si sa, e il caso pretende che il ponte lo DICA invece di inventarselo.",
+  "assieme": {
+    "componenti": [
+      { "nome": "base",
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+        ] },
+      { "nome": "coperchio",
+        "da_inserire": false,
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+        ] }
+    ]
+  },
+  "passi": [
+    { "operazione": "inserisci_componente",
+      "argomenti": {
+        "percorso": "{LAVORO}\\inserire_non_e_accoppiare_coperchio.sldprt",
+        "x_mm": 0, "y_mm": 0, "z_mm": 30
+      },
+      "attese": [
+        { "cosa": "misure.componenti_prima", "uguale": 1,
+          "perche": "la preparazione ne ha inserito uno solo: «coperchio» ha «da_inserire: false» apposta, altrimenti misurerei il lavoro della preparazione credendo di misurare l'operazione" },
+        { "cosa": "misure.componenti_dopo", "uguale": 2 },
+
+        { "cosa": "stato.quanti_componenti", "uguale": 2,
+          "perche": "E IL CERCHIO SI CHIUDE SU GA1: lo stato dell'assieme adesso esiste e conta i componenti. Fino alla 0.91.0 rispondeva «documento di assieme: l'assistente non lo modifica ancora» e basta." },
+        { "cosa": "stato.componenti[1].origine_mm", "uguale": [0, -2, 30], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "La posizione passa da metri a millimetri e viene arrotondata a tre decimali: 0,05 mm copre quell'arrotondamento e il rumore della ricostruzione. E' larghissima rispetto a cio' che deve discriminare -- se gli indici della matrice fossero altri, il numero che esce non sarebbe 30,04: sarebbe 0, oppure un elemento di rotazione fra -1 e 1. Non serve stringere: serve che sbagliando si veda.",
+          "perche": "QUESTA ATTESA PROVA IL FORMATO DELLA MATRICE. Gli indici 9, 10, 11 di ArrayData sono la traslazione: la Z lo conferma, 30 chiesto e 30 letto. Se fossero altri uscirebbe uno zero o un elemento di rotazione fra -1 e 1.",
+          "e_il_MENO_DUE_e_la_scoperta": "Il primo giro pretendeva [0, 0, 30] e ha letto [0, -2, 30]. Non e' un errore di lettura: **AddComponent5(x,y,z) posiziona il CENTRO dell'ingombro, non l'origine.** Il coperchio e' estruso a una direzione sola -- come fa sempre `estrudi_rettangolo` -- quindi la sua origine sta su una faccia e non a meta' spessore: chiedendo il centro a z=30, l'origine finisce a -2 in Y, meta' dei 4 mm. Verificato per PREDIZIONE, non per adattamento: con un secondo pezzo spesso 10 chiesto a zero era previsto -5 prima di lanciare la sonda, ed e' uscito -5. Da qui il campo si chiama `origine_mm` e non piu' `posizione_mm`: chiamarlo «posizione» invitava a confrontarlo col punto CHIESTO, e i due non coincidono quasi mai. Nessuno dei due numeri e' sbagliato -- sono due cose diverse, e niente lo diceva." },
+        { "cosa": "stato.componenti[1].accoppiamenti", "uguale": 0,
+          "perche": "zero accoppiamenti su un componente non fisso: e' il conteggio che dice «appoggiato», e regge anche senza sapere che forma abbia quello che GetMates restituisce" },
+        { "cosa": "stato.componenti_fissi", "uguale": 1,
+          "perche": "UNO, NON ZERO: **SOLIDWORKS fissa da solo il primo componente inserito** in un assieme. La «base» e' arrivata dalla preparazione ed e' inchiodata; il «coperchio», inserito dall'operazione, no. La prima stesura di questo caso pretendeva 0 -- e la sonda lo aveva gia' mostrato (base-1 fisso=True, coperchio-1 fisso=False) prima che il caso fosse scritto: il fatto c'era e non era stato portato dentro.",
+          "perche_conta": "E' proprio la distinzione che GA5 esiste per fare. Un componente fisso non si muove perche' qualcuno l'ha INCHIODATO, non perche' sia accoppiato: se i fissi entrassero nel conto dei vincolati, ogni assieme sembrerebbe montato a partire dal primo pezzo. Qui il conto li esclude, ed e' per questo che «assieme_vincolato» resta false con un fisso e un appoggiato." },
+
+        { "cosa": "stato.assieme_vincolato", "uguale": false,
+          "perche": "GA5: la sintesi. Due pezzi appoggiati non sono un assieme montato, e lo stato deve dirlo in una riga senza che chi legge debba sommare i gradi a mano." },
+        { "cosa": "stato.giudizio_vincoli", "contiene": ["NON e' montato"],
+          "perche": "la frase, non il numero: chi conferma legge questa" },
+        { "cosa": "misure.fisso", "uguale": false,
+          "perche": "IsFixed FUNZIONA, ed e' la meta' utile della domanda «e' vincolato?». Il primo componente inserito e' fisso, questo no." },
+        { "cosa": "misure.accoppiamenti", "uguale": 0 },
+        { "cosa": "misure.appoggiato", "uguale": true,
+          "perche": "LA CONCLUSIONE VERA: non fisso e senza accoppiamenti vuol dire appoggiato li'. Non si sa DI QUANTO sia libero, e infatti non si dice." },
+
+        { "cosa": "misure.stato_gradi_di_liberta", "uguale": "non disponibile",
+          "perche": "QUESTA ATTESA CUSTODISCE UN ERRORE CHE E' STATO FATTO DAVVERO. Il primo giro pretendeva «gradi_di_liberta_residui uguale 6» e ha misurato 2 -- e 2 non era un conteggio: era `swRemainingDofs_Unavailable`. Il ritorno di GetRemainingDOFs e' uno STATO, non un numero, e su questo assieme dice «non disponibile» su OGNI componente, fisso o libero che sia. Il ponte intanto stampava «ha ancora 2 gradi di liberta' su 6»: numero inventato, unita' inventata, e identico per un pezzo inchiodato e uno che ballava. Se un giorno questo campo smettesse di dire «non disponibile», vorrebbe dire che SOLIDWORKS ha cominciato a fornire l'informazione -- e allora il conteggio si puo' pubblicare. Finche' dice questo, non si puo'.",
+          "misurato_come": "sonda DofProva2, quattro condizioni: assieme appena costruito, componente selezionato, assieme salvato su disco, e dopo un accoppiamento coincidente vero (AddMate5 con swAddMateError_NoError). Sempre «non disponibile», sempre con tutti e sei gli status a swDofStatus_Unused." },
+        { "cosa": "stato.cosa_non_so_dei_vincoli", "contiene": ["non disponibile", "cinque su sei"],
+          "perche": "chi legge «assieme_vincolato: true» deve sapere che vuol dire «ogni componente ha almeno un accoppiamento», NON «non si muove piu'». Un accoppiamento solo ne lascia liberi cinque su sei, e questo stato non li vede. La cosa che non si sa va detta, non sottintesa." },
+        { "cosa": "misure.giudizio", "contiene": ["appoggiato"],
+          "perche": "l'avvertimento viaggia con la risposta, non solo nel catalogo: chi legge questa risposta potrebbe non aver mai letto la descrizione dell'operazione" }
+      ] }
+  ]
+}

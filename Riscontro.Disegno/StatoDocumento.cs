@@ -525,14 +525,37 @@ namespace Riscontro.Disegno
                 return stato;
             }
 
+            // L'ASSIEME SI DESCRIVE, NON SI RIFIUTA (voce GA1).
+            //
+            // Fino alla 0.91.0 qui c'era una riga sola — «documento di assieme:
+            // l'assistente non lo modifica ancora» — e si tornava. Era vera e
+            // rendeva il modello cieco: lo stato e' l'unica cosa che vede, e da
+            // quella riga non poteva sapere quanti componenti ci fossero, come
+            // si chiamassero, quali fossero soppressi. Non poteva nemmeno
+            // rifiutare con cognizione.
+            //
+            // Adesso si descrive (`StatoAssieme.cs`), e cosa NON si sa ancora
+            // fare si dice li' dentro, per esteso. Il ramo sta PRIMA del cast a
+            // `IPartDoc` perche' un assieme non e' una parte e cadrebbe nel
+            // `parte == null` qui sotto.
+            if (tipoDoc == (int)swDocumentTypes_e.swDocASSEMBLY)
+            {
+                DescriviAssieme(modello as IAssemblyDoc, dati);
+                stato.Dati = dati;
+                return stato;
+            }
+
             var parte = modello as IPartDoc;
             if (parte == null)
             {
-                // Gli assiemi non si toccano ancora, e va detto qui: cosi' il
-                // server non dichiara al modello operazioni che poi
-                // fallirebbero.
+                // Non e' ne' una parte, ne' una tavola, ne' un assieme: qui non
+                // si indovina. Dire «di assieme» come faceva la versione
+                // precedente sarebbe una diagnosi sbagliata su un documento che
+                // nessuno ha guardato.
                 dati["corpo_solido"] = false;
-                dati["nota"] = "documento di assieme: l'assistente non lo modifica ancora";
+                dati["nota"] =
+                    "documento di tipo «" + OperazioniSw.NomeTipoDocumento(tipoDoc) +
+                    "»: non lo so leggere.";
                 stato.Dati = dati;
                 return stato;
             }

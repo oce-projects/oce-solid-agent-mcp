@@ -112,7 +112,11 @@
     <Compile Include="OperazioniSformo.cs" />
     <Compile Include="OperazioniSporgenze.cs" />
     <Compile Include="OperazioniPiani.cs" />
+    <Compile Include="OperazioniPercorso.cs" />
+    <Compile Include="OperazioniProfili.cs" />
     <Compile Include="StatoDocumento.cs" />
+    <Compile Include="OperazioniAssieme.cs" />
+    <Compile Include="StatoAssieme.cs" />
     <Compile Include="StatoTavola.cs" />
     <Compile Include="Riferimenti.cs" />
     <Compile Include="ErroriFeature.cs" />

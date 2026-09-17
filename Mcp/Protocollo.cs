@@ -49,10 +49,88 @@ namespace Oce.Solid.Agent.Mcp
             uscita.Flush();
         }
 
+        /// <summary>
+        /// DOVE VA A FINIRE QUELLO CHE IL PONTE RACCONTA (voce W2.8).
+        ///
+        /// `stderr` resta e non si tocca: e' l'unico posto che funziona **prima**
+        /// che un client esista — l'aggancio a SOLIDWORKS, il catalogo che non
+        /// si carica, `--prova` — ed e' quello che si guarda quando qualcosa non
+        /// parte. Toglierlo per «fare le cose per bene nel protocollo» vorrebbe
+        /// dire perdere le uniche righe che spiegano un avvio fallito.
+        ///
+        /// Quello che si AGGIUNGE e' `notifications/message`, che MCP prevede
+        /// apposta: cosi' le stesse righe arrivano anche a chi sta dall'altra
+        /// parte del tubo, che oggi non le vede **affatto**. Quando l'operazione
+        /// dice «ho ritrovato la faccia F3 spostata di 2 mm», quella riga
+        /// spiega perche' il pezzo e' venuto cosi', e finiva in un terminale che
+        /// nessuno guarda.
+        ///
+        /// Il canale si accende solo quando il ciclo dei messaggi e' partito:
+        /// prima di allora scrivere su stdout sarebbe scrivere a nessuno, e
+        /// **una riga non-JSON su stdout rompe il client** (e' la trappola
+        /// numero uno dei server MCP su stdio, gia' sorvegliata da una prova).
+        /// </summary>
+        private static TextWriter _canale;
+        private static string _livello = "info";
+
+        /// <summary>
+        /// I livelli in ordine, come li elenca lo spec (syslog). Un messaggio
+        /// esce se il suo livello e' **almeno** quello chiesto dal client.
+        /// </summary>
+        private static readonly string[] Livelli =
+        {
+            "debug", "info", "notice", "warning", "error", "critical", "alert", "emergency",
+        };
+
+        public static void AccendiIlCanale(TextWriter uscita) { _canale = uscita; }
+
+        /// <summary>
+        /// `logging/setLevel`. Un livello che non si riconosce **non si
+        /// applica**: cambiarlo a caso vorrebbe dire far sparire messaggi senza
+        /// che nessuno l'abbia chiesto. Torna `true` se e' stato accettato.
+        /// </summary>
+        public static bool ImpostaIlLivello(string livello)
+        {
+            if (string.IsNullOrWhiteSpace(livello)) return false;
+            var l = livello.Trim().ToLowerInvariant();
+            if (Array.IndexOf(Livelli, l) < 0) return false;
+            _livello = l;
+            return true;
+        }
+
         public static void Nota(string testo)
         {
             Console.Error.WriteLine(testo);
             Console.Error.Flush();
+            MandaComeNotifica(testo, "info");
+        }
+
+        private static void MandaComeNotifica(string testo, string livello)
+        {
+            var canale = _canale;
+            if (canale == null) return;
+            if (Array.IndexOf(Livelli, livello) < Array.IndexOf(Livelli, _livello)) return;
+
+            // TUTTO DENTRO UN try CHE NON RILANCIA, e non e' pigrizia: se
+            // scrivere la notifica fallisse e l'errore risalisse, si
+            // perderebbe la RISPOSTA a cui la notifica era accessoria. Un
+            // racconto che fa fallire la cosa raccontata e' peggio del silenzio.
+            // E non si chiama `Nota` qui dentro: sarebbe ricorsione infinita.
+            try
+            {
+                Manda(canale, new Dictionary<string, object>
+                {
+                    ["jsonrpc"] = "2.0",
+                    ["method"] = "notifications/message",
+                    ["params"] = new Dictionary<string, object>
+                    {
+                        ["level"] = livello,
+                        ["logger"] = "oce-solid-agent",
+                        ["data"] = testo,
+                    },
+                });
+            }
+            catch { }
         }
 
         public static Dictionary<string, object> Risposta(object id, object risultato)
@@ -97,6 +175,55 @@ namespace Oce.Solid.Agent.Mcp
                 },
                 ["isError"] = eUnErrore,
             };
+        }
+
+        /// <summary>
+        /// Lo stesso contenuto, PIU' i dati in forma leggibile da un programma
+        /// (voce W2.4).
+        ///
+        /// ── COSA CAMBIA PER CHI LEGGE ───────────────────────────────────
+        ///
+        /// Fino alla 0.57.0 tutto usciva come **testo**: lo stato del documento,
+        /// le misure di un piano, il catalogo. Un modello linguistico lo legge
+        /// benissimo; un programma no — deve ri-analizzare del JSON che era gia'
+        /// JSON prima di essere messo dentro una stringa. `structuredContent` e'
+        /// il campo che MCP prevede apposta, e costa una riga.
+        ///
+        /// ── PERCHE' IL TESTO RESTA ──────────────────────────────────────
+        ///
+        /// Non si sostituisce: si affianca. I client che leggono solo `content`
+        /// sono la maggioranza, e togliergli il testo vorrebbe dire rompere
+        /// tutti per far comodo a qualcuno. Lo dice anche lo spec: i due campi
+        /// convivono, e il testo e' quello che si mostra a una persona.
+        ///
+        /// ── E PERCHE' NON SI DICHIARA UN `outputSchema` ─────────────────
+        ///
+        /// Lo spec e' netto: uno strumento che dichiara `outputSchema` **deve**
+        /// restituire uno `structuredContent` conforme. Lo stato di un documento
+        /// cambia forma con quello che c'e' dentro — un assieme ha
+        /// `componenti`, una tavola ha `fogli`, una parte ha `facce` — e ogni
+        /// campo nuovo aggiunto qui diventerebbe una promessa da mantenere.
+        ///
+        /// Uno schema **parziale e' peggio di nessuno schema**: un client che
+        /// valida rifiuterebbe risposte giuste. Quindi qui si da' il dato senza
+        /// promettere la forma, e lo schema si dichiara il giorno in cui la
+        /// forma e' stabile per davvero — che e' una decisione, non una riga di
+        /// codice. Scritto qui perche' il prossimo che passa non lo aggiunga
+        /// «perche' mancava».
+        ///
+        /// UN NOME DIVERSO invece di un parametro in piu' su `Contenuto`: la
+        /// stessa lezione gia' pagata due volte, l'ultima con
+        /// `ContenutoConImmagini`.
+        /// </summary>
+        public static Dictionary<string, object> ContenutoConDati(
+            string testo, object dati, bool eUnErrore = false)
+        {
+            var fuori = Contenuto(testo, eUnErrore);
+            // NON si scrive il campo quando non c'e' niente da metterci: un
+            // `structuredContent: null` e' una promessa disattesa, e un client
+            // che lo trova puo' solo dedurre che qualcosa e' andato storto.
+            if (dati != null) fuori["structuredContent"] = dati;
+            return fuori;
         }
 
         /// <summary>

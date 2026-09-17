@@ -1,6 +1,6 @@
 # OCE Solid Agent
 
-Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti trentotto
+Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti sessantuno
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -52,9 +52,11 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Cinque, non trentotto. Le operazioni di disegno sono trentotto, ma esporne
+Sei, non sessantuno. Le operazioni di disegno sono sessantuno, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
+(Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
+scritta sotto la tabella, non per coprire di piu'.)
 
 | strumento | a cosa serve |
 |---|---|
@@ -62,7 +64,15 @@ ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 | `elenco_operazioni` | l'elenco corto per famiglia: un nome e una riga |
 | `descrivi_operazione` | lo schema completo di una |
 | `disegna` | esegue una sequenza e **riporta cos'e' venuto**: le misure di ogni passo e lo stato dopo |
+| `misura` | le stesse operazioni, ma **solo quelle che leggono** (famiglia `verifiche`). Si dichiara di sola lettura, cosi' il client non chiede conferma per una misura |
 | `annulla` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `disegna` l'aveva lasciato |
+
+**`misura` esiste perche' le annotazioni stanno sullo strumento.** Il client MCP
+legge `readOnlyHint` e `destructiveHint` in `tools/list`, cioe' **prima** che
+esista una chiamata: con il solo `disegna` chiedeva conferma anche per
+`proprieta_di_massa`, che non muove un millimetro cubo. Chi conferma dieci volte
+di fila smette di leggere cosa conferma. Un'operazione che tocca il pezzo,
+dentro `misura`, viene rifiutata **prima** che il piano parta — mai meta' piano.
 
 **`guarda_il_pezzo` non e' un accessorio.** Gli identificativi che gli altri
 strumenti vogliono — `F1`, `E4`, `Corpo1` — nascono li' e valgono per quella
@@ -179,6 +189,18 @@ Serve MSBuild (i **Build Tools for Visual Studio 2022**, gratis, bastano) e
 SOLIDWORKS installato sulla macchina: le librerie di interoperabilita' non
 stanno in questo repository e si prendono da li'.
 
+Subito dopo il clone, una volta sola:
+
+```
+.\Controlli\installa-ganci.ps1
+```
+
+Accende il gancio `pre-push`, che lancia `controlla-pubblicabilita.ps1` e
+**ferma il push** se dall'albero o dalla storia uscirebbe un percorso di questa
+macchina, un nome utente o un indirizzo di rete privato. Git non versiona
+`.git\hooks`: finche' non si lancia quella riga, il gancio sta nel repository e
+non e' acceso. Per saltarlo una volta, sapendo di farlo: `git push --no-verify`.
+
 Se SOLIDWORKS non e' nel posto di serie, la cartella si dice — ed e' la
 **radice** dell'installazione, non `api\redist`:
 
@@ -237,6 +259,24 @@ credere che conti.
 Le librerie di interoperabilita' di Dassault **non stanno in questo
 repository**: si prendono dall'installazione, cosi' la versione e' sempre
 quella che sta girando.
+
+## La lingua, che non e' mezza per caso
+
+Il repository sta passando all'inglese: commenti, messaggi, descrizioni e
+documenti. **I NOMI no, e non e' lavoro lasciato a meta'.**
+
+| cosa | lingua | perche' |
+|---|---|---|
+| nomi delle operazioni (`estrudi_rettangolo`, `profili_saldatura`) | **italiano, e restano** | sono **il protocollo**: cambiarli rompe i piani salvati, i 270 casi di prova e ogni client che li abbia gia' visti |
+| nomi degli argomenti (`diametro_mm`, `facce_uid`) | **italiano, e restano** | idem |
+| namespace, classi, file, metodi | **italiano, e restano** | il banco e le prove chiamano **per riflessione, per nome** (`Carica.Classe(asm, "Catalogo")`). Rinominare una classe rompe chi la chiama **senza che il compilatore dica niente** |
+| commenti, messaggi di rifiuto, descrizioni del catalogo | → inglese | li legge chi lavora, e il modello |
+| README, guide, `CONTRIBUTING` | → inglese | li legge chiunque |
+| voci storiche del `CHANGELOG` | **italiano, e restano** | raccontano come si chiamavano le cose **allora**. *Un changelog riscritto e' un changelog che mente* |
+
+Quindi un lettore inglese che apre `OperazioniSformo.cs` e trova un file dal
+nome italiano **non ha trovato un residuo**: ha trovato un confine, e il confine
+passa fra **cio' che qualcuno cerca per nome a runtime** e tutto il resto.
 
 ## Il catalogo
 

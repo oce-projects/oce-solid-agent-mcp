@@ -65,7 +65,8 @@ namespace ProvaSaldatura
         {
             "lavorazioni", "coppie", "asola", "smusso", "rivoluzione", "piano",
             "specchia", "ripeti", "asse", "togliere", "frase", "verifica",
-            "esporta", "misura", "corpi", "proprieta", "testo",
+            "esporta", "misura", "corpi", "proprieta", "testo", "telai",
+            "assiemi",
         };
 
         private static void ProvaCasiDichiarati()
@@ -692,16 +693,23 @@ namespace ProvaSaldatura
         /// <summary>Esegue un caso mutato in silenzio. True se e' diventato rosso.</summary>
         private static bool ProvaUnaMutazione(Dictionary<string, object> caso)
         {
-            IModelDoc2 doc = null;
+            // ANCHE LA MUTAZIONE PASSA DA `PreparaIlDocumento`: se il caso e'
+            // un assieme, mutarlo su una parte vuota lo farebbe fallire per il
+            // motivo sbagliato — e una mutazione che diventa rossa perche' il
+            // documento non era quello giusto **non prova che il caso custodisca
+            // il suo difetto**. Direbbe di si' mentendo, che e' peggio del
+            // silenzio.
+            Preparazione preparato = null;
             _zitto = true;
             _zittoRosso = false;
             try
             {
-                doc = NuovaParte();
-                EseguiIPassi(Testo(caso, "nome") ?? "?", caso, doc, null, null);
+                preparato = PreparaIlDocumento(Testo(caso, "nome") ?? "?", caso);
+                if (preparato == null || preparato.Documento == null) return false;
+                EseguiIPassi(Testo(caso, "nome") ?? "?", caso, preparato.Documento, null, null);
             }
             catch { _zittoRosso = true; }
-            finally { Chiudi(doc); _zitto = false; }
+            finally { ButtaViaLaPreparazione(preparato); _zitto = false; }
             return _zittoRosso;
         }
 
@@ -1123,15 +1131,22 @@ namespace ProvaSaldatura
                 return false;
             }
 
-            IModelDoc2 doc = null;
+            // LA PREPARAZIONE NON E' PIU' SOLO «UNA PARTE NUOVA» (voce GA0).
+            // Un caso puo' chiedere un ASSIEME, e allora prepararlo vuol dire
+            // costruire i componenti, salvarli su disco, riaprirli e inserirli.
+            // `PreparaIlDocumento` torna null quando non ci e' riuscita, e ha
+            // gia' detto perche' con `ErroreDiBanco`: qui non si aggiunge un
+            // secondo messaggio che direbbe la stessa cosa peggio.
+            Preparazione preparato = null;
             bool verde;
             try
             {
-                doc = NuovaParte();
-                verde = EseguiIPassi(nome, caso, doc, gemelle, percorso);
+                preparato = PreparaIlDocumento(nome, caso);
+                if (preparato == null || preparato.Documento == null) return false;
+                verde = EseguiIPassi(nome, caso, preparato.Documento, gemelle, percorso);
             }
             catch (Exception ex) { Segna(nome, false, Perche(ex)); return false; }
-            finally { Chiudi(doc); }
+            finally { ButtaViaLaPreparazione(preparato); }
 
             return SuQuestaLibreria(nome, caso, verde);
         }

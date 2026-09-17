@@ -284,6 +284,58 @@ namespace Prove.Contratti
                                   null, conForma, misure, out d), d);
             Segna("frase: una stringa sola vale come elenco di uno",
                   Attese.Combacia(frase("rivoluzione", null), null, conForma, misure, out d), d);
+
+            // ── E UN ELENCO NON E' «System.String[]» ─────────────────────
+            //
+            // `misure.profili[0].misure` e' un elenco: chiedere che CONTENGA
+            // una voce e' la cosa piu' naturale del mondo, e fino alla 0.91.0
+            // falliva con «non dice "80X80X5": System.String[]» — un messaggio
+            // vero e inutile. Per «uguale» gli elenchi di testo erano gia'
+            // stati insegnati; per «contiene» no, e nessuno se n'era accorto
+            // perche' nessun caso lo chiedeva.
+            var conElenco = new Dictionary<string, object>
+            {
+                ["misure"] = new[] { "80X80X5", "100X100X6", "40X40X3" },
+                ["vuoto"] = new string[0],
+            };
+            Func<string, object, object, Dictionary<string, object>> elenco = (campo, c, n) =>
+            {
+                var a = new Dictionary<string, object> { ["cosa"] = "misure." + campo };
+                if (c != null) a["contiene"] = c;
+                if (n != null) a["non_contiene"] = n;
+                return a;
+            };
+
+            Segna("elenco: «contiene» trova una voce intera",
+                  Attese.Combacia(elenco("misure", new List<object> { "80X80X5" }, null),
+                                  null, stato, conElenco, out d), d);
+            Segna("elenco: «contiene» trova anche un pezzo di voce",
+                  Attese.Combacia(elenco("misure", new List<object> { "100X100" }, null),
+                                  null, stato, conElenco, out d), d);
+            Segna("elenco ROSSO: una voce che non c'e' fa fallire",
+                  !Attese.Combacia(elenco("misure", new List<object> { "999X999X9" }, null),
+                                   null, stato, conElenco, out d) &&
+                  d.IndexOf("non dice", StringComparison.Ordinal) >= 0, d);
+            // IL MESSAGGIO NON DEVE PIU' DIRE IL NOME DEL TIPO. E' la meta'
+            // che conta: il rosso c'era anche prima, ma diceva una cosa da cui
+            // non si poteva ripartire.
+            Segna("elenco ROSSO: il messaggio mostra le voci, non «System.String[]»",
+                  !Attese.Combacia(elenco("misure", new List<object> { "999X999X9" }, null),
+                                   null, stato, conElenco, out d) &&
+                  d.IndexOf("System.String[]", StringComparison.Ordinal) < 0 &&
+                  d.IndexOf("80X80X5", StringComparison.Ordinal) >= 0, d);
+            Segna("elenco: «non_contiene» passa se nessuna voce lo dice",
+                  Attese.Combacia(elenco("misure", null, new List<object> { "999X999X9" }),
+                                  null, stato, conElenco, out d), d);
+            Segna("elenco ROSSO: «non_contiene» fallisce se una voce lo dice",
+                  !Attese.Combacia(elenco("misure", null, new List<object> { "40X40X3" }),
+                                   null, stato, conElenco, out d) &&
+                  d.IndexOf("dice ancora", StringComparison.Ordinal) >= 0, d);
+            // UN ELENCO VUOTO NON CONTIENE NIENTE, e non e' un campo assente:
+            // e' un elenco che c'e' ed e' vuoto. Le due cose si distinguono.
+            Segna("elenco ROSSO: un elenco vuoto non contiene niente",
+                  !Attese.Combacia(elenco("vuoto", new List<object> { "qualunque" }, null),
+                                   null, stato, conElenco, out d), d);
             // UN CAMPO ASSENTE NON E' UNA FRASE VUOTA, e non e' nemmeno un
             // rosso: e' un errore di banco, come per ogni altra misura. Il
             // caso chiede una cosa che nello stato non c'e', e va detto.

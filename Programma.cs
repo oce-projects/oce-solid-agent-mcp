@@ -49,6 +49,12 @@ namespace Oce.Solid.Agent
             var attrezzi = new Attrezzi(sessione, catalogo);
             var uscita = Console.Out;
 
+            // DA QUI IN POI IL PONTE RACCONTA ANCHE AL CLIENT (voce W2.8).
+            // Non prima: il ciclo dei messaggi non e' ancora partito, e una riga
+            // su stdout senza nessuno che legga righe JSON e' solo rumore che
+            // rompe chi arrivera' dopo.
+            Protocollo.AccendiIlCanale(uscita);
+
             string riga;
             while ((riga = Console.In.ReadLine()) != null)
             {
@@ -113,6 +119,11 @@ namespace Oce.Solid.Agent
                         ["capabilities"] = new Dictionary<string, object>
                         {
                             ["tools"] = new Dictionary<string, object>(),
+                            // Il ponte racconta cosa fa, e lo dichiara: senza
+                            // questa riga un client non sa che puo' chiedere
+                            // `logging/setLevel`, e le notifiche gli arrivano
+                            // senza che le abbia mai potute regolare (W2.8).
+                            ["logging"] = new Dictionary<string, object>(),
                         },
                         ["serverInfo"] = new Dictionary<string, object>
                         {
@@ -139,6 +150,25 @@ namespace Oce.Solid.Agent
 
                 case "ping":
                     return Protocollo.Risposta(id, new Dictionary<string, object>());
+
+                // Il client decide quanto vuole sentire (voce W2.8).
+                //
+                // UN LIVELLO CHE NON SI RICONOSCE E' UN ERRORE, non un silenzio:
+                // accettarlo e ignorarlo lascerebbe il client convinto di aver
+                // alzato la soglia mentre i messaggi continuano ad arrivare —
+                // oppure, peggio, convinto di sentire tutto mentre non sente
+                // niente.
+                case "logging/setLevel":
+                {
+                    var voluto = parametri != null && parametri.TryGetValue("level", out var lv)
+                        ? Convert.ToString(lv) : null;
+                    if (!Protocollo.ImpostaIlLivello(voluto))
+                        return Protocollo.Errore(
+                            id, Protocollo.ParametriNonValidi,
+                            "Livello «" + (voluto ?? "") + "» sconosciuto. Ci sono: " +
+                            "debug, info, notice, warning, error, critical, alert, emergency.");
+                    return Protocollo.Risposta(id, new Dictionary<string, object>());
+                }
 
                 case "tools/list":
                     return Protocollo.Risposta(id, new Dictionary<string, object>

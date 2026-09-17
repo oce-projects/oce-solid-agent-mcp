@@ -1,0 +1,57 @@
+#!/bin/sh
+# Quello che non deve uscire da questa macchina, controllato NEL MOMENTO in cui
+# starebbe per uscire.
+#
+# PERCHE' UN GANCIO E NON UNA RIGA IN UNA LISTA.
+#
+# Il 14 settembre 2026 `controlla-pubblicabilita.ps1` esisteva gia', era gia'
+# giusto, e un minuto prima del primo push diceva «Pulito» sull'albero mentre la
+# storia portava ancora un percorso di rete in 155 punti su 41 commit. Il
+# controllo non manco': manco' il fatto che qualcuno lo lanciasse.
+#
+# Un controllo che si lancia quando ci si ricorda e' un controllo che non si
+# lancia il giorno che conta - che e' sempre il giorno in cui si ha fretta.
+# Qui lo lancia git, e se e' rosso il push non parte.
+#
+# COME SI ACCENDE (una volta per clone, git non versiona .git/hooks):
+#
+#     .\Controlli\installa-ganci.ps1
+#
+# COME SI SCAVALCA, quando serve davvero:
+#
+#     git push --no-verify
+#
+# Si scavalca a mano e si sa di averlo fatto. E' diverso dal non averlo mai
+# acceso.
+
+# Il gancio sta in Controlli/ganci/, il controllo un livello sopra in Controlli/.
+# Si ricava da $0 e non dalla cartella corrente: git lancia i ganci dalla radice
+# del lavoro, ma un `sh Controlli/ganci/pre-push` lanciato a mano no, e un
+# gancio che funziona solo quando lo chiama git non si puo' provare.
+qui=$(dirname "$0")
+controllo="$qui/../controlla-pubblicabilita.ps1"
+
+if [ ! -f "$controllo" ]; then
+    echo "pre-push: non trovo $controllo - il gancio non sa cosa lanciare." >&2
+    exit 1
+fi
+
+# -NoProfile: il profilo di chi lavora non deve poter cambiare l'esito.
+# -ExecutionPolicy Bypass: il gancio deve funzionare anche su una macchina che
+# non ha mai sbloccato gli script, altrimenti il primo che clona lo spegne.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$controllo"
+esito=$?
+
+if [ $esito -ne 0 ]; then
+    echo "" >&2
+    echo "pre-push: FERMO. Sopra c'e' scritto cosa uscirebbe e da dove." >&2
+    echo "  albero:  si ripara e si rifa' il commit." >&2
+    echo "  storia:  Controlli\\bonifica-storia.js, PRIMA del push." >&2
+    echo "           Dopo diventa un force-push." >&2
+    echo "" >&2
+    echo "Se e' un falso positivo, si allarga l'eccezione nel controllo e si" >&2
+    echo "scrive perche'. Non si usa --no-verify per farlo tacere." >&2
+    exit 1
+fi
+
+exit 0
