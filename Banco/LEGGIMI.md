@@ -421,9 +421,11 @@ casi/esporta/     10   STL, STEP e IGES: il file riletto byte per byte,
 casi/proprieta/    9   i due cassetti, e il codice che va in distinta
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-casi/assiemi/      3   inserire non e' accoppiare; un vincolo solo non basta;
-                       il coperchio rifatto tiene i vincoli e li rompe
-casi/tavola/       1   il primo caso che arriva in TAVOLA (voce GT0)
+casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
+                       il coperchio rifatto tiene i vincoli e li rompe;
+                       il coperchio DENTRO la base; toccarsi non e' compenetrarsi
+casi/tavola/       2   il primo caso che arriva in TAVOLA (voce GT0);
+                       due fogli e lo stesso diedro (voce GT1)
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 

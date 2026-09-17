@@ -2136,6 +2136,155 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "verifica_interferenze",
+                    Famiglia = "verifiche",
+                    Provata = true,
+                    Sommario =
+                        "Dice se i componenti dell'assieme si compenetrano, e di quanto "
+                        + "volume. Non tocca niente.",
+                    Descrizione =
+                        "Cerca le INTERFERENZE fra i componenti dell'assieme aperto: i "
+                        + "punti in cui due pezzi occupano lo stesso spazio.\n\n"
+                        + "PERCHE' CONTA. Due pezzi compenetrati si aprono, si "
+                        + "ricostruiscono, si esportano e si stampano: **non c'e' nessun "
+                        + "errore da nessuna parte**, e in officina non entrano. E' il "
+                        + "difetto che si scopre a pezzo fatto.\n\nTI DICO IL VOLUME, non "
+                        + "solo quante sono. Due interferenze possono essere due decimi di "
+                        + "millimetro cubo — due facce che si sfiorano — oppure migliaia, "
+                        + "cioe' mezzo coperchio dentro la base. **Il conteggio da solo non "
+                        + "distingue un problema da un dettaglio.**\n\nLE FACCE CHE SI "
+                        + "TOCCANO, di serie, NON contano come interferenza: altrimenti "
+                        + "ogni assieme montato bene risulterebbe rotto, perche' un "
+                        + "coperchio appoggiato condivide una faccia con la base. Ma un "
+                        + "albero in un foro dello stesso diametro condivide la superficie "
+                        + "cilindrica, e li' e' proprio il problema: quel pezzo non entra. "
+                        + "Se e' quello che ti interessa, chiedimelo con «toccarsi_conta», "
+                        + "e ti dico sempre quale delle due ho usato.\n\nNon modifica "
+                        + "niente: si puo' chiedere anche con «misura».",
+                    Precondizione = "un assieme aperto con almeno due componenti",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "toccarsi_conta", O(
+                                "type", "boolean",
+                                "description", "vero: due facce che si toccano esattamente contano come "
+                                    + "interferenza. Serve per «questo albero entra in questo foro?». "
+                                    + "Falso (predefinito): un coperchio appoggiato non e' un errore."),
+                            "dentro_le_parti", O(
+                                "type", "boolean",
+                                "description", "vero: cerca anche fra i corpi DENTRO lo stesso "
+                                    + "componente multicorpo. Falso (predefinito): solo fra componenti "
+                                    + "diversi.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "distinta_taglio_in_tavola",
+                    Famiglia = "tavola",
+                    Provata = true,
+                    Sommario =
+                        "Mette in tavola la distinta di taglio del saldato, e la confronta "
+                        + "con quella del pezzo.",
+                    Descrizione =
+                        "Inserisce nella tavola la DISTINTA DI TAGLIO del saldato che sta "
+                        + "dietro una vista: l'elenco delle barre con lunghezze e "
+                        + "quantita'.\n\nE LA CONFRONTO. Il pezzo sa gia', per conto suo, "
+                        + "quanti corpi ha in distinta; la tabella in tavola dice la sua. "
+                        + "Sono **due letture indipendenti dello stesso fatto**: se non "
+                        + "combaciano te lo dico e non scelgo a quale credere. Una tavola "
+                        + "che dichiara una quantita' diversa dal modello manda in officina "
+                        + "il numero sbagliato di barre, e nessuno dei due lati da' "
+                        + "errore.\n\nDi solito vuol dire che il pezzo e' cambiato dopo "
+                        + "l'ultimo «distinta_taglio»: si rifa' quello e si rimette la "
+                        + "tabella.\n\nLa colonna delle quantita' non la indovino per "
+                        + "posizione: la chiedo al modello di tabella.",
+                    Precondizione = "una tavola con una vista di un saldato che ha gia' la distinta di taglio",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O(
+                                "type", "string",
+                                "description", "quale vista. Vuoto = la prima della tavola."),
+                            "x_mm", O(
+                                "type", "number",
+                                "description", "dove mettere l'angolo in alto a sinistra della tabella."),
+                            "y_mm", O(
+                                "type", "number",
+                                "description", "idem, in verticale."),
+                            "configurazione", O(
+                                "type", "string",
+                                "description", "quale configurazione del pezzo. Vuota = quella della vista."),
+                            "template", O(
+                                "type", "string",
+                                "description", "il modello di tabella. Vuoto = quello dell'installazione.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "nuovo_foglio",
+                    Famiglia = "tavola",
+                    Provata = true,
+                    Sommario =
+                        "Aggiunge un foglio alla tavola, con lo stesso diedro del primo.",
+                    Descrizione =
+                        "Aggiunge un FOGLIO alla tavola aperta e lo attiva.\n\n"
+                        + "IL DIEDRO NON TE LO CHIEDO, e non e' una semplificazione: lo "
+                        + "leggo dal foglio corrente e lo ripasso uguale. Se il foglio 2 "
+                        + "nascesse in un diedro diverso dal foglio 1, la stessa tavola "
+                        + "avrebbe due fogli specchiati in modo diverso -- **nessuno dei "
+                        + "due da' errore**, e chi taglia il pezzo del foglio 2 lo taglia "
+                        + "rovesciato.\n\nE lo rileggo dal foglio nuovo dopo averlo "
+                        + "creato: passarlo non e' averlo. Se non combacia mi fermo.\n\n"
+                        + "Anche formato e scala, se non li dici, sono quelli del foglio "
+                        + "corrente: due fogli a scale diverse si possono volere, ma non "
+                        + "per distrazione.\n\nIl nome, se non lo dici, e' il primo "
+                        + "«FoglioN» libero. Un nome gia' usato lo rifiuto: due fogli con "
+                        + "lo stesso nome e non si sa piu' quale si sta guardando.",
+                    Precondizione = "una tavola aperta",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "nome", O(
+                                "type", "string",
+                                "description", "come chiamarlo. Vuoto = il primo «FoglioN» libero."),
+                            "formato", O(
+                                "type", "string",
+                                "description", "A0, A1, A2, A3, A4, A4V. Vuoto = quello del foglio corrente."),
+                            "scala_numeratore", O(
+                                "type", "number",
+                                "description", "il primo numero della scala. Vuoto = quella del foglio corrente."),
+                            "scala_denominatore", O(
+                                "type", "number",
+                                "description", "il secondo numero della scala. 1:2 si scrive 1 e 2.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "attiva_foglio",
+                    Famiglia = "tavola",
+                    Provata = true,
+                    Sommario =
+                        "Mette davanti un foglio della tavola, per nome.",
+                    Descrizione =
+                        "Attiva un FOGLIO della tavola: da li' in poi le viste e le "
+                        + "annotazioni vanno su quello.\n\nSI CHIEDE PER NOME, non per "
+                        + "numero. Un indice sarebbe l'occasione perfetta per lavorare sul "
+                        + "foglio sbagliato senza nessun errore.\n\nNon credo alla "
+                        + "risposta: dopo averlo attivato richiedo alla tavola quale "
+                        + "foglio ha davanti, e se non e' quello che hai chiesto mi fermo "
+                        + "-- altrimenti i passi dopo lavorerebbero altrove.\n\nI nomi "
+                        + "dei fogli stanno in «guarda_il_pezzo», sotto «fogli».",
+                    Precondizione = "una tavola aperta con piu' di un foglio",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "nome", O(
+                                "type", "string",
+                                "description", "il nome esatto del foglio, come lo riporta lo stato")),
+                        "required", A("nome")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "salva_documento",
                     Famiglia = "tavola",
                     Provata = true,

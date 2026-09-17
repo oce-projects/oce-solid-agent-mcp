@@ -1752,6 +1752,54 @@
    "precondizione": "una tavola con almeno una vista"
   },
   {
+   "nome": "nuovo_foglio",
+   "famiglia": "tavola",
+   "sommario": "Aggiunge un foglio alla tavola, con lo stesso diedro del primo.",
+   "descrizione": "Aggiunge un FOGLIO alla tavola aperta e lo attiva.\n\nIL DIEDRO NON TE LO CHIEDO, e non e' una semplificazione: lo leggo dal foglio corrente e lo ripasso uguale. Se il foglio 2 nascesse in un diedro diverso dal foglio 1, la stessa tavola avrebbe due fogli specchiati in modo diverso -- **nessuno dei due da' errore**, e chi taglia il pezzo del foglio 2 lo taglia rovesciato.\n\nE lo rileggo dal foglio nuovo dopo averlo creato: passarlo non e' averlo. Se non combacia mi fermo.\n\nAnche formato e scala, se non li dici, sono quelli del foglio corrente: due fogli a scale diverse si possono volere, ma non per distrazione.\n\nIl nome, se non lo dici, e' il primo «FoglioN» libero. Un nome gia' usato lo rifiuto: due fogli con lo stesso nome e non si sa piu' quale si sta guardando.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "nome": {
+      "type": "string",
+      "description": "come chiamarlo. Vuoto = il primo «FoglioN» libero."
+     },
+     "formato": {
+      "type": "string",
+      "description": "A0, A1, A2, A3, A4, A4V. Vuoto = quello del foglio corrente."
+     },
+     "scala_numeratore": {
+      "type": "number",
+      "description": "il primo numero della scala. Vuoto = quella del foglio corrente."
+     },
+     "scala_denominatore": {
+      "type": "number",
+      "description": "il secondo numero della scala. 1:2 si scrive 1 e 2."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "una tavola aperta"
+  },
+  {
+   "nome": "attiva_foglio",
+   "famiglia": "tavola",
+   "sommario": "Mette davanti un foglio della tavola, per nome.",
+   "descrizione": "Attiva un FOGLIO della tavola: da li' in poi le viste e le annotazioni vanno su quello.\n\nSI CHIEDE PER NOME, non per numero. Un indice sarebbe l'occasione perfetta per lavorare sul foglio sbagliato senza nessun errore.\n\nNon credo alla risposta: dopo averlo attivato richiedo alla tavola quale foglio ha davanti, e se non e' quello che hai chiesto mi fermo -- altrimenti i passi dopo lavorerebbero altrove.\n\nI nomi dei fogli stanno in «guarda_il_pezzo», sotto «fogli».",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "nome": {
+      "type": "string",
+      "description": "il nome esatto del foglio, come lo riporta lo stato"
+     }
+    },
+    "required": [
+     "nome"
+    ]
+   },
+   "precondizione": "una tavola aperta con piu' di un foglio"
+  },
+  {
    "nome": "salva_documento",
    "famiglia": "tavola",
    "sommario": "Salva il documento aperto.",

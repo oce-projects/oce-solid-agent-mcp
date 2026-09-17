@@ -254,6 +254,8 @@ namespace Riscontro.Disegno
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
             "sostituisci_componente",
             "croci_di_centro",
+            "nuovo_foglio", "attiva_foglio", "distinta_taglio_in_tavola",
+            "verifica_interferenze",
             "sweep_circolare",
             "specchia",
             "sposta_corpi", "taglia_membri",
@@ -387,6 +389,20 @@ namespace Riscontro.Disegno
                     // con dodici fori e nessun centro si stampa e sembra
                     // completa: in officina manca dove forare.
                     case "croci_di_centro": return CrociDiCentro(modello, argomenti);
+                    // I fogli, in OperazioniFogli.cs. `esporta_pdf` conta gia'
+                    // le pagine del PDF, e quel conteggio valeva sempre 1
+                    // perche' non c'era modo di fare un secondo foglio.
+                    case "nuovo_foglio": return NuovoFoglio(modello, argomenti);
+                    case "attiva_foglio": return AttivaFoglio(modello, argomenti);
+                    // La distinta di taglio portata in tavola, e CONFRONTATA
+                    // con quella del pezzo: la seconda lettura esisteva gia'.
+                    case "distinta_taglio_in_tavola":
+                        return DistintaTaglioInTavola(modello, argomenti);
+                    // «Il coperchio tocca la base?» — in OperazioniInterferenze.cs.
+                    // Due pezzi compenetrati non danno nessun errore: si aprono,
+                    // si esportano, si stampano, e in officina non entrano.
+                    case "verifica_interferenze":
+                        return VerificaInterferenze(modello, argomenti, stato);
                     case "esporta_pdf": return EsportaPdf(modello, argomenti);
                     case "salva_documento": return SalvaDocumento(modello, argomenti);
 

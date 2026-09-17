@@ -24,6 +24,45 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.64.0 — 17 September 2026 · library 0.97.0
+
+### Two sheets, and the guard that could never fire
+
+Sixty-five operations. `nuovo_foglio` and `attiva_foglio` — GT1, the first GT
+entry that GT0 made testable.
+
+`esporta_pdf` has always counted the pages of the PDF it writes: the guard exists
+because a one-page PDF of a three-sheet drawing comes out with no error at all and
+arrives in the workshop incomplete. That count was **always 1**, because there was
+no way to make a second sheet.
+
+> A guard that can never fire is not a guard: it is a line of code that consoles.
+
+**The difficulty is not the sheet, it is the projection angle.** `NewSheet4` takes
+`FirstAngle` as a mandatory sixth parameter — there is nothing to inherit.
+Writing `false` because it is the default would give one drawing with **two
+sheets mirrored differently**; neither gives an error, and whoever cuts the part
+on sheet 2 cuts it reversed.
+
+So the angle is read from the current sheet, passed through, **and then read back
+from the new sheet**: passing it is not having it. If the two disagree, the
+operation refuses rather than reporting done. Format and scale follow the same
+rule — two sheets at different scales can be wanted, but not by accident.
+
+`ActivateSheet` takes **the name**, not an index; an index would be the perfect
+opportunity to work on the wrong sheet with no error. And after activating,
+`attiva_foglio` asks the drawing which sheet it now has in front, because the
+answer to the call is not the state of the document.
+
+**What the bench case had to teach me.** I wanted both sheets' angles asserted in
+one instant. That is not possible, and the reason is good: the state writes
+`diedro` **only for the active sheet**, because reading a non-active sheet's
+properties would mean switching sheets — a read that modifies. So the case reads
+one sheet at a time, and the comparison between the two angles closes on the last
+step. It is more honest than what I had planned.
+
+---
+
 ## 0.63.0 — 17 September 2026 · library 0.96.0
 
 ### An exploded view that explodes nothing, and the millimetre next to the boolean

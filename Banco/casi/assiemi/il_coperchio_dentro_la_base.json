@@ -1,0 +1,39 @@
+{
+  "nome": "il_coperchio_dentro_la_base",
+  "famiglia": "assiemi",
+  "perche": "VOCE GA10, ed e' IL CASO ROSSO COSTRUITO PER PRIMO. Due pezzi che occupano lo stesso spazio: l'assieme si apre, si ricostruisce, si esporta e si stampa -- **nessun errore da nessuna parte** -- e in officina non entrano. Lo scopo dichiarato del progetto e' una scatola stagna in due meta', da montare all'aperto: «il coperchio tocca la base?» e' la domanda che decide se il pezzo si puo' fare, e fino a questa voce il ponte non sapeva rispondere.",
+  "perche_non_basta_contarle": "«Due interferenze» possono essere due decimi di millimetro cubo -- due facce che si sfiorano -- oppure migliaia, cioe' mezzo coperchio dentro la base. Il conteggio da solo non distingue un problema da un dettaglio. Percio' il caso pretende IL VOLUME, e un volume calcolato prima di misurarlo.",
+  "il_conto_fatto_prima": "La base e' 120x80x10 chiesta a y=0: `AddComponent5` piazza il CENTRO dell'ingombro, quindi occupa y da -5 a +5. Il coperchio e' 120x80x4 chiesto a y=5, quindi occupa y da +3 a +7. La sovrapposizione e' da +3 a +5, cioe' **2 mm** su tutta la faccia: 120 x 80 x 2 = **19200 mm3**. Se il banco dicesse un altro numero, il conto sbagliato e' il mio e va riscritto qui accanto -- non la tolleranza ad allargarsi.",
+  "assieme": {
+    "componenti": [
+      { "nome": "base",
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+        ] },
+      { "nome": "coperchio",
+        "posizione_mm": [0, 5, 0],
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+        ] }
+    ]
+  },
+  "passi": [
+    { "operazione": "verifica_interferenze",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.quante", "uguale": 1,
+          "perche": "una compenetrazione, fra due pezzi. Il numero esatto e non «maggiore di zero»: una soglia lascerebbe passare una seconda interferenza comparsa per un'altra ragione, e il caso smetterebbe di misurare quello che dice di misurare." },
+        { "cosa": "misure.volume_totale_mm3", "uguale": 19200, "tolleranza": 1,
+          "perche_questa_tolleranza": "120 x 80 x 2 = 19200 mm3 esatti, il conto e' su facce piane e paralleli: 1 mm3 copre l'arrotondamento di `GetMassProperties`, non un errore di geometria. **E' questa attesa che distingue «si sfiorano» da «uno e' dentro l'altro»**, ed e' la ragione per cui la voce vale." },
+        { "cosa": "misure.toccarsi_conta", "uguale": false,
+          "perche": "l'impostazione che cambia il verdetto compare NEL verdetto. Un'interferenza trovata con le coincidenze contate e una trovata senza sono due fatti diversi, e chi rilegge la risposta fra un mese deve poterli distinguere senza indovinare." },
+        { "cosa": "misure.componenti_guardati", "uguale": 2,
+          "perche": "su quanti componenti e' calcolato il conto. Un totale che copre in silenzio solo una parte e' peggio di nessun totale." },
+        { "cosa": "misure.giudizio", "contiene": ["ATTENZIONE", "non entrano"],
+          "perche": "IL PUNTO DELL'OPERAZIONE. Il numero da solo non basta: chi legge deve sapere che quei pezzi non si possono fare cosi'. Un avvertimento che non dice la conseguenza si impara a ignorare." },
+        { "cosa": "stato.quanti_componenti", "uguale": 2,
+          "perche": "la verifica NON tocca il pezzo: e' della famiglia «verifiche», e dopo averla chiamata l'assieme dev'essere quello di prima. Un controllo che modifica cio' che controlla non e' un controllo." } ] }
+  ]
+}

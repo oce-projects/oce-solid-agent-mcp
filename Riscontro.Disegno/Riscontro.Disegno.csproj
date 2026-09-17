@@ -100,6 +100,9 @@
     <Compile Include="OperazioniSw.cs" />
     <Compile Include="OperazioniSaldatura.cs" />
     <Compile Include="OperazioniCentrini.cs" />
+    <Compile Include="OperazioniDistintaTavola.cs" />
+    <Compile Include="OperazioniFogli.cs" />
+    <Compile Include="OperazioniInterferenze.cs" />
     <Compile Include="OperazioniTavola.cs" />
     <Compile Include="OperazioniFori.cs" />
     <Compile Include="OperazioniMateriale.cs" />
