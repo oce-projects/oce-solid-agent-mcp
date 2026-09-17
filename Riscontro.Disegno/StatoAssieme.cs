@@ -340,6 +340,18 @@ namespace Riscontro.Disegno
                     "«vincolato» qui vuol dire «ha almeno un accoppiamento», non «non si " +
                     "muove piu'»: un accoppiamento solo ne lascia liberi cinque su sei.";
 
+            // ── L'ESPLOSO, E NON E' UN VEZZO (voce GA8) ──────────────────
+            //
+            // `IComponent2.GetTotalTransform(true)` **include la trasformazione
+            // di esploso**. Se l'assieme e' mostrato esploso, una posizione
+            // letta con `true` e' la posizione NELLA VISTA ESPLOSA: plausibile,
+            // e sbagliata di dieci centimetri. Senza questo campo non c'e' modo
+            // di accorgersene — ne' per chi legge, ne' per un caso di banco.
+            //
+            // Si scrive SEMPRE, anche quando e' falso: *un campo che compare
+            // solo quando la cosa e' andata storta insegna a non cercarlo.*
+            DescriviLEsploso(assieme, dati);
+
             // ── LA CONFIGURAZIONE ATTIVA ─────────────────────────────────
             // Un assieme ne ha come una parte, e sbagliarla vuol dire misurare
             // una variante diversa da quella confermata.
@@ -501,6 +513,114 @@ namespace Riscontro.Disegno
                     return "sconosciuto (" +
                            stato.ToString(CultureInfo.InvariantCulture) + ")";
             }
+        }
+
+        /// <summary>
+        /// L'ESPLOSO: se c'e', se e' MOSTRATO, e quanto muove davvero (GA8).
+        ///
+        /// ── PERCHE' STA NELLO STATO E NON SOLO IN UN'OPERAZIONE ─────────
+        ///
+        /// `IComponent2.GetTotalTransform(true)` include la trasformazione di
+        /// esploso. Un assieme mostrato esploso risponde, a quella chiamata,
+        /// **la posizione nella vista esplosa**: plausibile e sbagliata di
+        /// dieci centimetri, senza nessun errore. Chi legge lo stato deve
+        /// poterlo sapere prima di credere a una posizione.
+        ///
+        /// ── E `esploso` DA SOLO NON BASTA ───────────────────────────────
+        ///
+        /// Misurato il 17/9/2026, quattro sonde: `CreateExplodedView()` risponde
+        /// `True`, `IsExploded` diventa `si'`, e **niente si muove** — il passo
+        /// che nasce si chiama «Catena1» e ha distanza 0 mm. Un esploso in cui
+        /// nessun componente si sposta e' un esploso che non serve a niente, e
+        /// `esploso: true` da solo lo farebbe sembrare fatto.
+        ///
+        /// Percio' si scrive anche **quanto si e' spostato il componente che si
+        /// e' spostato di piu'**, in millimetri: e' la differenza fra le due
+        /// trasformazioni, e zero vuol dire zero. *Un campo booleano che puo'
+        /// essere vero mentre la cosa non e' successa non e' una misura: e' una
+        /// promessa.*
+        /// </summary>
+        private static void DescriviLEsploso(
+            IAssemblyDoc assieme, Dictionary<string, object> dati)
+        {
+            var doc = assieme as IModelDoc2;
+            if (doc == null) return;
+
+            bool esploso = false;
+            string quale = null;
+            try { esploso = doc.Extension.IsExploded(out quale); }
+            catch { return; }   // se non si puo' leggere non si inventa un falso
+
+            dati["esploso"] = esploso;
+            if (esploso && !string.IsNullOrWhiteSpace(quale)) dati["vista_esplosa"] = quale;
+
+            try
+            {
+                var cfg = doc.ConfigurationManager.ActiveConfiguration as IConfiguration;
+                if (cfg != null)
+                {
+                    int viste = assieme.GetExplodedViewCount2(cfg.Name);
+                    if (viste > 0) dati["viste_esplose"] = viste;
+                    int passi = cfg.GetNumberOfExplodeSteps();
+                    if (passi > 0) dati["passi_di_esploso"] = passi;
+                }
+            }
+            catch { }
+
+            if (!esploso) return;
+
+            // QUANTO MUOVE DAVVERO. Si guarda il massimo su tutti i componenti:
+            // basta che UNO si sia spostato perche' una posizione letta con
+            // `true` sia diversa da quella vera.
+            double massimo = 0;
+            bool letto = false;
+            try
+            {
+                var tutti = assieme.GetComponents(true) as object[];
+                if (tutti != null)
+                    foreach (var o in tutti)
+                    {
+                        var c = o as IComponent2;
+                        if (c == null) continue;
+                        double d;
+                        if (!ScostamentoDiEsplosoMm(c, out d)) continue;
+                        letto = true;
+                        if (d > massimo) massimo = d;
+                    }
+            }
+            catch { }
+
+            if (!letto) return;
+            dati["esploso_sposta_al_massimo_mm"] = Math.Round(massimo, 3);
+            if (massimo < 0.001)
+                dati["cosa_non_so_dell_esploso"] =
+                    "La vista esplosa c'e' ed e' mostrata, ma NESSUN componente si " +
+                    "sposta: lo scostamento massimo e' zero. Un esploso che non " +
+                    "separa niente non serve a una tavola di montaggio. Su questa " +
+                    "installazione non si e' trovato il modo di aggiungere passi di " +
+                    "esploso da codice (voce GA8).";
+        }
+
+        /// <summary>
+        /// Di quanto l'esploso sposta questo componente, in mm. `false` se non
+        /// si e' potuto leggere — che **non** e' la stessa cosa di zero.
+        /// </summary>
+        private static bool ScostamentoDiEsplosoMm(IComponent2 c, out double mm)
+        {
+            mm = 0;
+            try
+            {
+                var conE = c.GetTotalTransform(true) as IMathTransform;
+                var senza = c.GetTotalTransform(false) as IMathTransform;
+                if (conE == null || senza == null) return false;
+                var a = conE.ArrayData as double[];
+                var b = senza.ArrayData as double[];
+                if (a == null || b == null || a.Length < 12 || b.Length < 12) return false;
+                double dx = a[9] - b[9], dy = a[10] - b[10], dz = a[11] - b[11];
+                mm = Unita.Mm(Math.Sqrt(dx * dx + dy * dy + dz * dz));
+                return true;
+            }
+            catch { return false; }
         }
     }
 }

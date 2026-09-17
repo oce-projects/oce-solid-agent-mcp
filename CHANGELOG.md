@@ -24,6 +24,59 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.63.0 — 17 September 2026 · library 0.96.0
+
+### An exploded view that explodes nothing, and the millimetre next to the boolean
+
+GA8 is blocked, and the block is worth more than the entry was.
+
+What works: `CreateExplodedView()` returns True and creates the view,
+`ShowExploded2(show, realName)` shows and hides it, `IsExploded(out name)`
+follows, and the steps read back. What does not: the step that appears on its own
+has **distance 0 mm**, and the real displacement — `GetTotalTransform(true)`
+minus `GetTotalTransform(false)` — is **[0, 0, 0] mm**. Nothing separates.
+`AddExplodeStep2` answers `NoComponents` with a component selected, in five
+different ways of selecting it, and `AutoExplode()` answers True and adds
+nothing.
+
+**I had excluded `CreateExplodedView()` for a reason that sounded solid**: zero
+arguments, and an exploded view has distances and components, so it must be the
+button. The hole in it: an **empty** exploded view has nothing to configure. The
+steps come afterwards.
+
+> The good criterion is not "zero arguments": it is **whether it answers**.
+> `EditExplodeParameters` and `ViewExplodeAssembly` return `Void` — those stay
+> buttons. `CreateExplodedView` and `AutoExplode` return `Boolean`.
+
+And the API said what was missing, because the `out` was read:
+`AddExplodeStep2` without a view answers `Error = 2 =
+swCreateExplodeStepError_NoExplodeView`. Not a silent `False` — the exact name of
+the thing that was absent.
+
+**Four probes, and the first three were the same probe.** They all worked on two
+plates inserted and **never mated** — the very thing the
+`inserire_non_e_accoppiare` case exists to shout about. `AutoExplode` explodes
+along mates. The fourth mated first, and the result did not change.
+
+> Three attempts that share the same defect are one attempt made three times, and
+> the only way to notice is to write down what they have in common, not what they
+> have that differs.
+
+**Shipped anyway, and it earns its place on its own.** The assembly state now
+carries `esploso`, `vista_esplosa`, `viste_esplose`, `passi_di_esploso` and
+`esploso_sposta_al_massimo_mm`. `GetTotalTransform(true)` includes the explode
+transform, so on an assembly shown exploded `origine_mm` would be the position
+*in the exploded view* — plausible and wrong by ten centimetres, with no error.
+The `inserire_non_e_accoppiare` case reads `origine_mm`, and now also requires
+`stato.esploso = false`: **it is that false which makes the other reading
+trustworthy.**
+
+And `esploso: true` alone would have been a lie, because here it is true while
+nothing moves. Hence the millimetre beside it: *a boolean that can be true while
+the thing has not happened is not a measurement, it is a promise.*
+
+---
+
 ## 0.62.0 — 17 September 2026 · library 0.95.0
 
 ### The bench could not turn the page, and that is why ten entries were stuck

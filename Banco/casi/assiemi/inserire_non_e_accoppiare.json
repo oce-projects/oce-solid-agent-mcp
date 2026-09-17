@@ -46,6 +46,8 @@
           "perche": "GA5: la sintesi. Due pezzi appoggiati non sono un assieme montato, e lo stato deve dirlo in una riga senza che chi legge debba sommare i gradi a mano." },
         { "cosa": "stato.giudizio_vincoli", "contiene": ["NON e' montato"],
           "perche": "la frase, non il numero: chi conferma legge questa" },
+        { "cosa": "stato.esploso", "uguale": false,
+          "perche": "VOCE GA8, ed e' una difesa e non una curiosita'. `GetTotalTransform(true)` include la trasformazione di esploso: su un assieme mostrato esploso, `origine_mm` sarebbe la posizione NELLA VISTA ESPLOSA -- plausibile e sbagliata di dieci centimetri, senza nessun errore. Questo caso legge `origine_mm` due attese piu' su: **questo `false` e' cio' che rende quella lettura affidabile.** Si scrive sempre, anche falso: un campo che compare solo quando la cosa e' andata storta insegna a non cercarlo." },
         { "cosa": "misure.fisso", "uguale": false,
           "perche": "IsFixed FUNZIONA, ed e' la meta' utile della domanda «e' vincolato?». Il primo componente inserito e' fisso, questo no." },
         { "cosa": "misure.accoppiamenti", "uguale": 0 },
