@@ -597,9 +597,17 @@ namespace Riscontro.Disegno
                         ? "Il pezzo non ha nessuna quota da portare in tavola: e' stato " +
                           "costruito senza quotare gli schizzi. Le quote vanno messe sul " +
                           "MODELLO, non sulla tavola."
-                        : "Il pezzo ha " + nomiQuote.Count + " quote (" +
-                          string.Join(", ", nomiQuote) + ") e nessuna arriva in tavola. " +
-                          "Ho provato: " + string.Join(", ", provati) + "."));
+                        : "Il pezzo ha " + nomiQuote.Count + " quote, di cui " +
+                          nomiQuote.Count(n => n.EndsWith("[marcata]")) +
+                          " marcate per il disegno (" +
+                          string.Join(", ", nomiQuote) + "), e nessuna arriva in tavola. " +
+                          "Ho provato: " + string.Join(", ", provati) + ". " +
+                          "MISURATO IL 18/9/2026, fuori processo, su un pezzo costruito dal " +
+                          "ponte con 7 quote tutte marcate: cinque strade di import ne " +
+                          "portano zero, mentre nello stesso istante `InsertNote` sulla " +
+                          "stessa tavola aggiunge un'annotazione (67 -> 68). Non e' la " +
+                          "sessione: e' l'import delle quote. La strada che resta e' " +
+                          "dentro processo, nell'add-in (voce Z-E7)."));
             }
 
             var misure = new Dictionary<string, object>
@@ -941,7 +949,27 @@ namespace Riscontro.Disegno
                             try
                             {
                                 var vera = q.GetDimension2(0) as IDimension;
-                                fuori.Add(vera != null ? vera.FullName : "?");
+                                string nome = vera != null ? vera.FullName : "?";
+
+                                // MARCATA O NO, ACCANTO AL NOME, ed e' la
+                                // differenza che divide la diagnosi in due.
+                                // `quote_dal_modello` di serie importa SOLO le
+                                // marcate: senza questo dato, «il pezzo ha 7
+                                // quote e nessuna arriva» lascia aperte due
+                                // spiegazioni opposte — che nessuna sia
+                                // marcata (guasto a monte, in chi doveva
+                                // marcarle) o che siano marcate e l'import non
+                                // le prenda (guasto nell'import).
+                                // Il 18/9/2026 ci e' voluta una sonda apposta
+                                // per sapere quale delle due: il dato c'era,
+                                // e la risposta non lo diceva.
+                                try
+                                {
+                                    nome += q.MarkedForDrawing ? " [marcata]" : " [NON marcata]";
+                                }
+                                catch { nome += " [marcatura non leggibile]"; }
+
+                                fuori.Add(nome);
                             }
                             catch { fuori.Add("?"); }
                             q = f.GetNextDisplayDimension(q) as IDisplayDimension;

@@ -33,8 +33,11 @@ using System.Runtime.InteropServices;
 // 0.98.0: `cartiglio` (voce GT3) e `verifica_interferenze` (GA10); e
 //         `AncheSuAssiemi`, perche' l'esecutore rifiutava ogni assieme mentre
 //         il catalogo ne prometteva quattro operazioni.
-[assembly: AssemblyVersion("0.98.0.0")]
-[assembly: AssemblyFileVersion("0.98.0.0")]
+// 0.98.1: il rifiuto di `quote_dal_modello` dice quante quote sono MARCATE,
+//         non solo quante ce ne sono: senza quel dato la diagnosi resta divisa
+//         in due, e il 18/9 c'e' voluta una sonda apposta per dividerla.
+[assembly: AssemblyVersion("0.98.1.0")]
+[assembly: AssemblyFileVersion("0.98.1.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.

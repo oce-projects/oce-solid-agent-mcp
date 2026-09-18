@@ -24,6 +24,69 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.65.1 — 18 September 2026 · library 0.98.1
+
+### The drawing that does everything except take a dimension
+
+`Z-C1` asked for `quote_dal_modello` to be re-measured today. It was, and the
+answer is **no** — but the value is not "it doesn't work", which was known since
+14 September. The value is **where**.
+
+Four measurements, each narrowing the last:
+
+| | question | answer |
+|---|---|---|
+| 1 | on a part built **by hand**? | 1 dimension in the model, 0 in the drawing |
+| 2 | on a part built **by the bridge**? | **7** in the model, **0** in the drawing, 13 routes tried |
+| 3 | are those 7 **marked for drawing**? | **all 7**, `MarkedForDrawing = True` |
+| 4 | is it the import or the session? | **the import** |
+
+Measurement 1 counted for nothing, and understanding why is half the lesson: a
+part built by hand has no sketch dimensions, while the library's own operations
+dimension **and mark** them. Two different objects, and the difference was the
+thing under examination.
+
+Measurement 3 is what moved the diagnosis. `quote_dal_modello` imports only
+marked dimensions, so "the part has 7 and none arrive" left two **opposite**
+causes open — none are marked (the fault is upstream, in whoever should mark
+them) or they are marked and the import will not take them. Two repairs, two
+files. The data existed and the message did not carry it, so a probe was needed
+to split what the answer could have split. Fixed: the refusal now writes
+`[marcata]` / `[NON marcata]` beside every name and the count of marked ones up
+front.
+
+Measurement 4 is a positive control in the same run, on the same drawing. Five
+import routes — `AllViews=true` with nothing selected (what the library does),
+the view selected by name, the view activated, the view selected with
+`AllViews=true`, and plain `InsertModelDimensions(0)` — all zero. And then, on
+that same drawing in the same instant, `InsertNote` returns an object and the
+annotation count goes 67 → 68. **It is not the session and not the document: it
+is the dimension import, and only that.**
+
+Two of the first four attempts had not actually been attempts: they did
+`((IEntity)view).Select4(...)` and took `E_NOINTERFACE`, because a drawing view
+is not an `IEntity` — it is selected by name with type `"DRAWINGVIEW"`. Without
+reading the exception they would have gone into the list as "tried, doesn't
+work". A list of routes tried is persuasive in proportion to its length, which
+is exactly why each line has to be checked for having arrived where it says.
+
+One hypothesis survives all four: the import works **in process**, inside an
+add-in. That is now the only road to a dimensioned drawing.
+
+### A contract check that admits what it is not
+
+While the import is broken, that refusal message is everything a model gets when
+it asks for dimensions — and it is the part that works. A new contract check
+requires it to still name how many dimensions are marked and the list of routes
+tried. It reads the **source**, not the run, and says so: the behavioural test
+would be a bench case with `deve_fallire`, and it cannot be written today,
+because the bench requires a **green twin** with the same operation and
+`quote_dal_modello` never succeeds. The rule is right — a test that only checks
+the refusal cannot tell "the guard works" from "nothing works" — and the check
+does not pretend to be that test.
+
+The contract suite goes from 145 to 147 checks.
+
 ## 0.65.0 — 18 September 2026 · library 0.98.0
 
 ### The title block says what it wants, and a door that was locked

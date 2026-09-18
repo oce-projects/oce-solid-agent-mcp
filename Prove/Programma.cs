@@ -154,6 +154,7 @@ namespace Prove.Contratti
             IlLeggimiDelBancoContaIFileGiusti();
             OgniFamigliaDelCatalogoHaUnDocumentoAmmesso();
             NessunaVoceDelTodoSiChiamaComeUnAltra();
+            IlRifiutoDelleQuoteDiceAncoraQuelloCheServe();
             ProveAttese.Tutte();
             ProveCatalogo.Tutte();
             ProveSessione.Tutte();
@@ -673,6 +674,87 @@ namespace Prove.Contratti
                   doppie.Count == 0
                       ? totali + " intestazioni, nessun nome usato due volte per due cose"
                       : "STESSO NOME, VOCI DIVERSE: " + string.Join("; ", doppie));
+        }
+
+        /// <summary>
+        /// IL RIFIUTO DI `quote_dal_modello` DICE ANCORA QUELLO CHE SERVE.
+        ///
+        /// ── PERCHE' ESISTE, E COSA NON E' ────────────────────────────────
+        ///
+        /// Misurato il 18/9/2026: su un pezzo costruito dal ponte, con **sette
+        /// quote tutte marcate per il disegno**, cinque strade di import ne
+        /// portano **zero** — mentre nello stesso istante, sulla stessa tavola,
+        /// `InsertNote` aggiunge un'annotazione. Non e' la sessione: e' l'import
+        /// delle quote, e resta rotto finche' non si prova in processo (Z-E7).
+        ///
+        /// Finche' dura, **quel messaggio e' tutto cio' che un modello riceve
+        /// quando chiede le quote**, ed e' la parte che funziona: dice quante
+        /// quote ha il pezzo, **quante sono marcate** — il dato che divide in
+        /// due le cause possibili — e l'elenco delle strade provate. Se qualcuno
+        /// lo accorcia «perche' era lungo», non se ne accorge nessuno.
+        ///
+        /// ── COSA GUARDA, E COSA NON PUO' GUARDARE ────────────────────────
+        ///
+        /// Guarda il **sorgente**, non l'esecuzione: qui SOLIDWORKS non c'e'.
+        /// Quindi prova che le frasi ci sono ancora, **non** che il rifiuto
+        /// scatta e nemmeno che dice il vero. La prova di comportamento sarebbe
+        /// un caso di banco con `deve_fallire`, e **oggi non si puo' scrivere**:
+        /// il banco pretende una gemella VERDE con la stessa operazione (voce
+        /// F5), e per `quote_dal_modello` una gemella verde non esiste, perche'
+        /// l'operazione non riesce mai. La regola ha ragione — *una prova che
+        /// verifica solo il rifiuto non distingue «il controllo funziona» da
+        /// «non funziona niente»* — e questo controllo non finge di essere
+        /// quella prova. E' meno, e lo dice.
+        /// </summary>
+        private static void IlRifiutoDelleQuoteDiceAncoraQuelloCheServe()
+        {
+            Gruppo("il rifiuto delle quote dice ancora quello che serve");
+
+            var file = Path.Combine(Radice(), "Riscontro.Disegno", "OperazioniTavola.cs");
+            if (!File.Exists(file)) { Segna("il sorgente c'e'", false, file); return; }
+            string codice;
+            try { codice = File.ReadAllText(file); }
+            catch (Exception ex) { Segna("il sorgente si legge", false, ex.Message); return; }
+
+            // L'ANCORA. Se sparisce, questo controllo non ha piu' un soggetto e
+            // deve diventare ROSSO: una prova che non trova cio' che cerca e
+            // passa e' peggio di nessuna prova.
+            const string ancora = "Non e' arrivata nessuna quota";
+            if (codice.IndexOf(ancora, StringComparison.Ordinal) < 0)
+            {
+                Segna("trovo il rifiuto di quote_dal_modello", false,
+                      "«" + ancora + "» non c'e' piu' in OperazioniTavola.cs: " +
+                      "se l'import e' stato riparato questa prova va RISCRITTA, non tolta");
+                return;
+            }
+            Segna("trovo il rifiuto di quote_dal_modello", true, "");
+
+            // Ogni pezzo, e accanto PERCHE' quel pezzo: un elenco di stringhe
+            // senza il motivo e' la prima cosa che qualcuno taglia.
+            var pezzi = new[]
+            {
+                new[] { "marcate per il disegno",
+                        "e' il dato che divide in due le cause: marcate e non importate " +
+                        "(guasto nell'import) contro non marcate (guasto a monte)" },
+                new[] { "[marcata]",
+                        "la qualifica accanto a OGNI nome, non solo il totale" },
+                new[] { "[NON marcata]",
+                        "senza il contrario, «marcata» non e' un'informazione" },
+                new[] { "Ho provato: ",
+                        "l'elenco delle strade tentate: e' cio' che rende il " +
+                        "fallimento un fatto invece di un mistero" },
+            };
+
+            var mancanti = new List<string>();
+            foreach (var p in pezzi)
+                if (codice.IndexOf(p[0], StringComparison.Ordinal) < 0)
+                    mancanti.Add("«" + p[0] + "» (" + p[1] + ")");
+
+            Segna("il rifiuto nomina ancora quante quote sono marcate e cosa ha provato",
+                  mancanti.Count == 0,
+                  mancanti.Count == 0
+                      ? "tutti e " + pezzi.Length + " i pezzi ci sono"
+                      : "TOLTO DAL MESSAGGIO: " + string.Join("; ", mancanti));
         }
 
         /// <summary>
