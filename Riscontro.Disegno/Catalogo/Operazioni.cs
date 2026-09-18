@@ -2136,6 +2136,41 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "cartiglio",
+                    Famiglia = "verifiche",
+                    Provata = true,
+                    Sommario =
+                        "Dice quali proprieta' il cartiglio CHIEDE e quali MOSTRA. "
+                        + "Non tocca niente.",
+                    Descrizione =
+                        "Legge il CARTIGLIO del foglio attivo e ti dice due cose "
+                        + "diverse: **quali proprieta' personalizzate chiede** e **quali "
+                        + "sta mostrando**.\n\nPERCHE' SONO DUE COSE. Un cartiglio non "
+                        + "contiene testo: contiene collegamenti, scritti "
+                        + "`$PRP:\"Descrizione\"`. Riempirlo vuol dire scrivere quelle "
+                        + "proprieta' con «scrivi_proprieta».\n\n**IL NOME VA COPIATO "
+                        + "ALLA LETTERA.** Se lo scrivi con una maiuscola o uno spazio "
+                        + "diversi da quelli che il cartiglio referenzia, **non succede "
+                        + "niente di visibile**: SOLIDWORKS scrive la proprieta', il "
+                        + "cartiglio non la mostra, e il PDF esce con la casella vuota. "
+                        + "Nessun errore, da nessuna parte. Per questo ti do i nomi "
+                        + "esatti invece di lasciarteli indovinare.\n\nSe una proprieta' "
+                        + "e' chiesta e non mostrata te lo dico: o non e' ancora scritta, "
+                        + "o e' scritta con un'altra grafia.\n\nAttento a "
+                        + "`$PRPSHEET`: quella prende la proprieta' dal PEZZO in vista, "
+                        + "non dal disegno. Sono due cassetti diversi, e sbagliarli vuol "
+                        + "dire scrivere sul documento sbagliato.\n\nSe il cartiglio non "
+                        + "ha nessuna nota collegata te lo dico invece di lasciarti "
+                        + "riempire proprieta' che non comparirebbero: quel testo e' "
+                        + "disegnato dentro il formato, non alimentato.",
+                    Precondizione = "una tavola aperta",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "verifica_interferenze",
                     Famiglia = "verifiche",
                     Provata = true,
@@ -2181,7 +2216,27 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "distinta_taglio_in_tavola",
                     Famiglia = "tavola",
-                    Provata = true,
+                    // ── NON PROVATA: la tabella non nasce ───────────────
+                    //
+                    // `IView.InsertWeldmentTable` torna `null`, e non e' un
+                    // problema di questa operazione: **su questa installazione
+                    // non nasce NESSUNA tabella in tavola.** Misurato il
+                    // 17/9/2026 — anche `IDrawingDoc.InsertTableAnnotation2`
+                    // con tre righe, tre colonne e nessun modello torna null.
+                    //
+                    // Provati e tutti negativi: modello di tabella vuoto e
+                    // modello vero (`cut list.sldwldtbt`); ancoraggio 0 e
+                    // TopLeft; `UseAnchorPoint` vero e falso; configurazione
+                    // vuota e quella esatta della vista; tutte e tre le viste;
+                    // vista attivata e selezionata; **quattro modelli di tavola
+                    // diversi, tre dei quali di serie** (iso, din, ansi);
+                    // documento gia' attivo e riattivato con `ActivateDoc3`.
+                    //
+                    // E' lo stesso blocco di `croci_di_centro` (voce W2.11):
+                    // due API di annotazione che non c'entrano niente fra loro,
+                    // tutte e due mute sulla stessa tavola. Vedi la voce GT2
+                    // del TODO per dove ripartire.
+                    Provata = false,
                     Sommario =
                         "Mette in tavola la distinta di taglio del saldato, e la confronta "
                         + "con quella del pezzo.",

@@ -152,6 +152,8 @@ namespace Prove.Contratti
             OgniSorgenteStaNelSuoProgetto();
             OgniVariabileDAmbienteStaNelLeggimi();
             IlLeggimiDelBancoContaIFileGiusti();
+            OgniFamigliaDelCatalogoHaUnDocumentoAmmesso();
+            NessunaVoceDelTodoSiChiamaComeUnAltra();
             ProveAttese.Tutte();
             ProveCatalogo.Tutte();
             ProveSessione.Tutte();
@@ -446,6 +448,231 @@ namespace Prove.Contratti
                   sbagliate.Count == 0
                       ? "tutte e " + dichiarati.Count
                       : string.Join("; ", sbagliate));
+        }
+
+        /// <summary>
+        /// OGNI FAMIGLIA DEL CATALOGO HA UN TIPO DI DOCUMENTO SU CUI PUO' GIRARE.
+        ///
+        /// ── PERCHE' ESISTE QUESTA PROVA ──────────────────────────────────
+        ///
+        /// Trovato il 18/9/2026 leggendo `EsecutorePiano.cs` per un'altra
+        /// ragione: `ControlliPreliminari()` — che gira **prima del primo
+        /// passo di ogni piano**, e per tutti e quattro gli strumenti del ponte
+        /// — ammette solo `swDocPART` e, se `AncheSuTavole`, `swDocDRAWING`.
+        /// Gli assiemi no. Intanto il catalogo servito ai client elencava tre
+        /// operazioni di famiglia `assiemi`.
+        ///
+        /// **Il ponte prometteva operazioni che avrebbe rifiutato prima di
+        /// cominciare, e nessuna delle 710 prove del banco poteva vederlo: il
+        /// banco chiama la LIBRERIA, non il ponte.** Due misure vere di due
+        /// cose diverse, e chi legge il numero grande crede che copra anche
+        /// l'altra.
+        ///
+        /// ── COME LO GUARDA ───────────────────────────────────────────────
+        ///
+        /// Dal sorgente, non da un elenco scritto a mano: i tipi ammessi si
+        /// leggono da `ControlliPreliminari` con una regex sui token
+        /// `swDoc...`, cosi' il giorno che qualcuno ne aggiunge o ne toglie uno
+        /// questa prova se ne accorge invece di restare d'accordo con se stessa.
+        ///
+        /// ── COSA **NON** PRENDE, e va detto ──────────────────────────────
+        ///
+        /// Guarda le FAMIGLIE, non le singole operazioni. `verifica_interferenze`
+        /// sta in famiglia `verifiche` e vuole un assieme: questa prova la
+        /// classifica come «parte» e la lascia passare. Il rimedio vero e' un
+        /// campo `DocumentoRichiesto` su `OperazioneDisegno` — voce a se',
+        /// perche' tocca la libreria. Finche' non c'e', **questa prova copre la
+        /// famiglia e non il caso singolo**, ed e' scritto qui perche' chi la
+        /// vede verde non creda che copra di piu'.
+        /// </summary>
+        private static void OgniFamigliaDelCatalogoHaUnDocumentoAmmesso()
+        {
+            Gruppo("il catalogo promette solo documenti che l'esecutore ammette");
+
+            // ── 1. i tipi che l'esecutore ammette, letti dal suo sorgente ──
+            var sorgente = Path.Combine(Radice(), "Riscontro.Disegno", "EsecutorePiano.cs");
+            if (!File.Exists(sorgente))
+            {
+                Segna("il sorgente dell'esecutore c'e'", false, sorgente);
+                return;
+            }
+            string codice;
+            try { codice = File.ReadAllText(sorgente); }
+            catch (Exception ex) { Segna("il sorgente si legge", false, ex.Message); return; }
+
+            int da = codice.IndexOf("bool ammesso", StringComparison.Ordinal);
+            if (da < 0)
+            {
+                // Se la riga cambia forma questa prova NON deve passare in
+                // silenzio: una prova che non trova cio' che cerca e passa e'
+                // peggio di nessuna prova.
+                Segna("trovo la riga che decide i tipi ammessi", false,
+                      "«bool ammesso» non c'e' piu' in EsecutorePiano.cs: " +
+                      "la prova va riscritta, non tolta");
+                return;
+            }
+            int a = codice.IndexOf(';', da);
+            var espressione = a > da ? codice.Substring(da, a - da) : codice.Substring(da);
+
+            var ammessi = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (System.Text.RegularExpressions.Match m in
+                     System.Text.RegularExpressions.Regex.Matches(espressione, @"swDoc[A-Z]+"))
+                ammessi.Add(m.Value);
+
+            Segna("l'esecutore ammette almeno un tipo di documento", ammessi.Count >= 1,
+                  string.Join(", ", ammessi));
+
+            // ── 2. le famiglie che il catalogo SERVE ai client ─────────────
+            var json = Path.Combine(Radice(), "bin", "catalogo.json");
+            if (!File.Exists(json))
+            {
+                Segna("il catalogo c'e'", false, "non trovo " + json + " — si produce con .\\build.ps1");
+                return;
+            }
+            Dictionary<string, object> radice;
+            try
+            {
+                var s = new System.Web.Script.Serialization.JavaScriptSerializer();
+                s.MaxJsonLength = 40 * 1024 * 1024;
+                radice = s.DeserializeObject(File.ReadAllText(json)) as Dictionary<string, object>;
+            }
+            catch (Exception ex) { Segna("il catalogo si legge", false, ex.Message); return; }
+
+            var elenco = (radice != null && radice.ContainsKey("operazioni")
+                ? radice["operazioni"] : null) as object[];
+            if (elenco == null) { Segna("il catalogo ha «operazioni»", false, ""); return; }
+
+            var famiglie = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var o in elenco)
+            {
+                var v = o as Dictionary<string, object>;
+                if (v != null && v.ContainsKey("famiglia") && v["famiglia"] != null)
+                    famiglie.Add(Convert.ToString(v["famiglia"]));
+            }
+            Segna("ci sono famiglie da controllare", famiglie.Count >= 5,
+                  famiglie.Count + ": " + string.Join(", ", famiglie));
+
+            // ── 3. su che tipo di documento ha senso ognuna ────────────────
+            // Tre righe scritte a mano, e il loro compito e' proprio di NON
+            // sapere tutto: una famiglia che non conoscono e' ROSSA, non verde.
+            // Cosi' l'elenco non puo' invecchiare in silenzio — chi ne aggiunge
+            // una deve dire su cosa gira.
+            var serve = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                { "assiemi",      "swDocASSEMBLY" },
+                { "tavola",       "swDocDRAWING"  },
+                { "estrusioni",   "swDocPART"     },
+                { "lavorazioni",  "swDocPART"     },
+                { "saldature",    "swDocPART"     },
+                { "riferimenti",  "swDocPART"     },
+                { "proprieta",    "swDocPART"     },
+                { "verifiche",    "swDocPART"     },
+                { "esportazioni", "swDocPART"     },
+                { "identita",     "swDocPART"     },
+                { "documento",    "swDocPART"     },
+                { "annullare",    "swDocPART"     },
+            };
+
+            var sconosciute = famiglie.Where(f => !serve.ContainsKey(f)).ToList();
+            Segna("ogni famiglia del catalogo e' classificata qui dentro",
+                  sconosciute.Count == 0,
+                  sconosciute.Count == 0
+                      ? "tutte e " + famiglie.Count
+                      : "FAMIGLIA NUOVA E NON CLASSIFICATA: " + string.Join(", ", sconosciute) +
+                        " — dire su che tipo di documento gira, in Prove\\Programma.cs");
+
+            var promesse = famiglie
+                .Where(f => serve.ContainsKey(f) && !ammessi.Contains(serve[f]))
+                .Select(f => f + " (vuole " + serve[f] + ")")
+                .ToList();
+
+            Segna("nessuna famiglia servita e' rifiutata prima del primo passo",
+                  promesse.Count == 0,
+                  promesse.Count == 0
+                      ? famiglie.Count + " famiglie, tutte su un tipo ammesso (" +
+                        string.Join(", ", ammessi) + ")"
+                      : "PROMESSE E IRRAGGIUNGIBILI: " + string.Join("; ", promesse) +
+                        " — l'esecutore ammette solo " + string.Join(", ", ammessi));
+        }
+
+        /// <summary>
+        /// DUE VOCI DEL TODO NON SI CHIAMANO ALLO STESSO MODO.
+        ///
+        /// ── PERCHE' ESISTE QUESTA PROVA ──────────────────────────────────
+        ///
+        /// Il 17/9/2026 sono state innestate 65 voci nuove (la «sezione Z»),
+        /// chiamate `A1`, `B3`, `C3`… **Trentasette di quei nomi erano gia'
+        /// usati, nello stesso file, da voci diverse — e trentatre' di quelle
+        /// erano chiuse.** «Fai C3» portava a una voce verde del 14/9 che non
+        /// c'entrava niente: chi ci arrivava concludeva che il lavoro era
+        /// fatto, e la voce vera restava invisibile.
+        ///
+        /// Nessun errore da nessuna parte, che e' la firma di questa famiglia
+        /// di difetti — la stessa di `40x40x3` contro `40X40X3` e di `.sldprt`
+        /// contro `.SLDPRT`, applicata all'indice del lavoro invece che ai dati.
+        ///
+        /// ── L'ECCEZIONE, ED E' UNA CONVENZIONE VERA ──────────────────────
+        ///
+        /// Quando una voce viene rifatta, l'originale si tiene sotto col nome
+        /// di prima e la dicitura «traccia originale, tenuta per riferimento»:
+        /// li' il nome doppio e' voluto e dice qualcosa. Quindi il doppione si
+        /// accetta **solo** se una delle due e' una traccia.
+        ///
+        /// Non si pretende che il TODO sia in un formato: si pretende che due
+        /// cose diverse non si chiamino uguale.
+        /// </summary>
+        private static void NessunaVoceDelTodoSiChiamaComeUnAltra()
+        {
+            Gruppo("nel TODO due voci non si chiamano allo stesso modo");
+
+            var todo = Path.Combine(Radice(), "TODO.md");
+            if (!File.Exists(todo)) { Segna("il TODO c'e'", false, todo); return; }
+            string[] righe;
+            try { righe = File.ReadAllLines(todo); }
+            catch (Exception ex) { Segna("il TODO si legge", false, ex.Message); return; }
+
+            var intestazione = new System.Text.RegularExpressions.Regex(
+                @"^#### \[(.)\] (\S+)\s*(.*)$");
+            var traccia = new System.Text.RegularExpressions.Regex(
+                @"traccia originale|progetto originale|tenut[ao] per|per riferimento|com'era scritta",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            // nome -> quante volte, e quante di quelle erano tracce
+            var quante = new Dictionary<string, int>(StringComparer.Ordinal);
+            var tracce = new Dictionary<string, int>(StringComparer.Ordinal);
+            int totali = 0;
+
+            foreach (var r in righe)
+            {
+                var m = intestazione.Match(r);
+                if (!m.Success) continue;
+                totali++;
+                var nome = m.Groups[2].Value;
+                quante[nome] = (quante.ContainsKey(nome) ? quante[nome] : 0) + 1;
+                if (traccia.IsMatch(m.Groups[3].Value))
+                    tracce[nome] = (tracce.ContainsKey(nome) ? tracce[nome] : 0) + 1;
+            }
+
+            // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE. Se un giorno le
+            // intestazioni cambiano forma, questa riga diventa rossa invece di
+            // lasciare che il controllo si spenga in silenzio.
+            Segna("ci sono voci da controllare", totali >= 100, totali + " intestazioni");
+
+            var doppie = new List<string>();
+            foreach (var v in quante)
+            {
+                int t = tracce.ContainsKey(v.Key) ? tracce[v.Key] : 0;
+                // una voce viva piu' le sue tracce: va bene. Due vive no.
+                if (v.Value - t > 1)
+                    doppie.Add(v.Key + " (×" + v.Value + ", di cui tracce: " + t + ")");
+            }
+            doppie.Sort(StringComparer.Ordinal);
+
+            Segna("due voci diverse non si chiamano allo stesso modo",
+                  doppie.Count == 0,
+                  doppie.Count == 0
+                      ? totali + " intestazioni, nessun nome usato due volte per due cose"
+                      : "STESSO NOME, VOCI DIVERSE: " + string.Join("; ", doppie));
         }
 
         /// <summary>

@@ -749,6 +749,17 @@ namespace Oce.Solid.Agent.Ponte
                 // proprio quelle. L'assistente dell'add-in disegna pezzi, e li'
                 // resta falso.
                 AncheSuTavole = true,
+
+                // E il terzo, per la stessa ragione esatta. Il catalogo del
+                // ponte porta `inserisci_componente`, `accoppia`,
+                // `sostituisci_componente` e `verifica_interferenze`: fino al
+                // 18/9/2026 le ELENCAVA e l'esecutore le avrebbe rifiutate
+                // prima del primo passo, senza che niente lo dicesse.
+                // Il banco non poteva accorgersene: chiama la libreria, non il
+                // ponte. Adesso c'e' un controllo che confronta le famiglie del
+                // catalogo coi tipi ammessi — `Prove\Programma.cs` →
+                // `OgniFamigliaDelCatalogoHaUnDocumentoAmmesso`.
+                AncheSuAssiemi = true,
             };
 
             try

@@ -100,16 +100,46 @@ namespace Riscontro.Disegno
         ///     `quote_dal_modello`, `esporta_pdf`). Rifiutare le tavole
         ///     renderebbe inutili proprio quelle.
         ///
-        /// GLI ASSIEMI RESTANO FUORI in tutti e due i casi, e non per
-        /// dimenticanza: nessuna operazione della libreria sa lavorare su un
-        /// assieme, quindi permetterlo vorrebbe dire far arrivare il piano fino
-        /// a un rifiuto piu' oscuro invece di fermarlo qui con un motivo
-        /// chiaro.
-        ///
         /// Sorvegliata da `Controlli\controlla-documenti-senza-file.ps1`
         /// insieme all'altra.
+        ///
+        /// QUI C'ERA SCRITTO CHE GLI ASSIEMI RESTAVANO FUORI «non per
+        /// dimenticanza: nessuna operazione della libreria sa lavorare su un
+        /// assieme». Era vero fino al 16/9/2026. Il 17 sono nate le voci
+        /// GA0-GA10 e adesso di operazioni di assieme ce ne sono quattro:
+        /// vedi <see cref="AncheSuAssiemi"/>, e la lezione scritta li'.
         /// </summary>
         public bool AncheSuTavole { get; set; }
+
+        /// <summary>
+        /// Lascia lavorare anche su un ASSIEME.
+        ///
+        /// Terzo interruttore, stessa forma dei due sopra: **acceso solo dal
+        /// ponte MCP, spento nell'add-in**, dove l'assistente disegna pezzi e
+        /// un assieme e' quasi sempre la finestra sbagliata.
+        ///
+        /// ── PERCHE' ESISTE, E PERCHE' NON C'ERA ──────────────────────────
+        ///
+        /// Fino al 18/9/2026 `ControlliPreliminari` rifiutava **ogni** assieme,
+        /// e la riga di commento che difendeva quella scelta diceva: *«nessuna
+        /// operazione della libreria sa lavorare su un assieme»*. Era vero
+        /// quando fu scritta. Il 17/9 sono arrivate `inserisci_componente`,
+        /// `accoppia`, `sostituisci_componente` e `verifica_interferenze` — e
+        /// **il catalogo servito ai client le elencava tutte e quattro**.
+        ///
+        /// Il ponte prometteva quattro operazioni che avrebbe rifiutato prima
+        /// del primo passo. Nessuna delle 781 prove del banco poteva vederlo:
+        /// il banco chiama la LIBRERIA, non il ponte.
+        ///
+        /// **Un commento che spiega una scelta e' anche cio' che impedisce di
+        /// rivederla**: chi lo legge trova una ragione, e trovare una ragione
+        /// e' come smettere di cercare. Per questo la difesa adesso non e' una
+        /// frase ma un controllo —
+        /// `Prove\Programma.cs` → `OgniFamigliaDelCatalogoHaUnDocumentoAmmesso`
+        /// confronta le famiglie del catalogo coi tipi ammessi qui sotto, gira
+        /// senza SOLIDWORKS, ed e' nata rossa su questo difetto.
+        /// </summary>
+        public bool AncheSuAssiemi { get; set; }
 
         public EsecutorePiano(
             ISldWorks sw,
@@ -483,11 +513,21 @@ namespace Riscontro.Disegno
             if (modello == null) return "Non c'e' nessun documento aperto.";
             int tipo = modello.GetType();
             bool ammesso = tipo == (int)swDocumentTypes_e.swDocPART
-                || (AncheSuTavole && tipo == (int)swDocumentTypes_e.swDocDRAWING);
+                || (AncheSuTavole && tipo == (int)swDocumentTypes_e.swDocDRAWING)
+                || (AncheSuAssiemi && tipo == (int)swDocumentTypes_e.swDocASSEMBLY);
             if (!ammesso)
-                return AncheSuTavole
-                    ? "Si lavora su una parte o su una tavola, non su un assieme."
-                    : "L'assistente lavora solo su una parte, non su assiemi o disegni.";
+            {
+                // IL RIFIUTO DICE COSA E' AMMESSO ADESSO, non una frase fissa.
+                // La vecchia diceva «una parte o una tavola, non un assieme»
+                // anche quando gli assiemi erano ammessi e il documento era
+                // qualcos'altro: un messaggio che elenca il mondo di ieri manda
+                // chi legge a cercare il problema dove non e'.
+                var vanno = new System.Collections.Generic.List<string> { "una parte" };
+                if (AncheSuTavole) vanno.Add("una tavola");
+                if (AncheSuAssiemi) vanno.Add("un assieme");
+                return "Si lavora su " + string.Join(" o ", vanno) +
+                       ": questo documento non e' niente di tutto cio'.";
+            }
 
             var percorso = modello.GetPathName();
             if (string.IsNullOrEmpty(percorso) && !DocumentoSenzaFile)

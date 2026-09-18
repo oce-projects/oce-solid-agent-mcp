@@ -1,6 +1,6 @@
 # Sorveglia le proprieta' di EsecutorePiano che il PONTE accende e l'ADD-IN no.
 #
-# Sono due, e hanno la stessa forma: aprono una strada che nell'add-in deve
+# Sono tre, e hanno la stessa forma: aprono una strada che nell'add-in deve
 # restare chiusa.
 #
 #   DocumentoSenzaFile  lascia lavorare su un documento mai salvato su disco.
@@ -15,6 +15,12 @@
 #                       dell'add-in disegna pezzi, e un piano che gli arriva su
 #                       una tavola e' quasi sempre un errore di chi ha cambiato
 #                       finestra.
+#
+#   AncheSuAssiemi      lascia lavorare su un assieme. Aggiunta il 18/9/2026:
+#                       fino a quel giorno l'esecutore rifiutava ogni assieme
+#                       mentre il catalogo servito ne prometteva quattro
+#                       operazioni. Il banco non poteva vederlo, perche' chiama
+#                       la libreria e non il ponte.
 #
 # Il pericolo e' scritto nella voce B8 del TODO ed e' preciso: che qualcuno le
 # metta a vero anche nell'add-in "perche' davano fastidio". Un booleano che
@@ -41,7 +47,7 @@
 
 $ErrorActionPreference = 'Stop'
 $radice = Split-Path -Parent $PSScriptRoot
-$nomi = @('DocumentoSenzaFile', 'AncheSuTavole')
+$nomi = @('DocumentoSenzaFile', 'AncheSuTavole', 'AncheSuAssiemi')
 $guai = 0
 
 function Male($riga) { Write-Host "  XX $riga"; $script:guai++ }

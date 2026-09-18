@@ -99,6 +99,7 @@
     <Compile Include="EsecutorePiano.cs" />
     <Compile Include="OperazioniSw.cs" />
     <Compile Include="OperazioniSaldatura.cs" />
+    <Compile Include="OperazioniCartiglio.cs" />
     <Compile Include="OperazioniCentrini.cs" />
     <Compile Include="OperazioniDistintaTavola.cs" />
     <Compile Include="OperazioniFogli.cs" />

@@ -255,7 +255,7 @@ namespace Riscontro.Disegno
             "sostituisci_componente",
             "croci_di_centro",
             "nuovo_foglio", "attiva_foglio", "distinta_taglio_in_tavola",
-            "verifica_interferenze",
+            "verifica_interferenze", "cartiglio",
             "sweep_circolare",
             "specchia",
             "sposta_corpi", "taglia_membri",
@@ -403,6 +403,10 @@ namespace Riscontro.Disegno
                     // si esportano, si stampano, e in officina non entrano.
                     case "verifica_interferenze":
                         return VerificaInterferenze(modello, argomenti, stato);
+                    // Il cartiglio, in OperazioniCartiglio.cs. Non lo riempie:
+                    // dice quali proprieta' CHIEDE e quali MOSTRA, cosi' il
+                    // nome da scrivere si copia invece di indovinarlo.
+                    case "cartiglio": return Cartiglio(modello, argomenti);
                     case "esporta_pdf": return EsportaPdf(modello, argomenti);
                     case "salva_documento": return SalvaDocumento(modello, argomenti);
 

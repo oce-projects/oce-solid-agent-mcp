@@ -24,6 +24,91 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.65.0 — 18 September 2026 · library 0.98.0
+
+### The title block says what it wants, and a door that was locked
+
+Sixty-seven operations. `cartiglio` (GT3) and `verifica_interferenze` (GA10).
+
+**A title block holds no text: it holds links.** `cartiglio` reads which custom
+properties this drawing's title block actually references, with their exact
+spelling, because they cannot be guessed. Measured on this workshop's own
+template: **39 notes, 26 properties referenced, 19 of them empty.**
+
+Three things nobody would have guessed, and each one is a defect that gives no
+error:
+
+- They are almost all `$PRPSHEET`, not `$PRP` — they are read **from the part
+  shown in a view**, not from the drawing. Write them on the drawing and every
+  box stays blank, and neither side complains. The answer marks those names
+  "(from the part, not the drawing)" rather than just listing them.
+- **The spelling is mixed inside one title block**: `TRATTAMENTO` uppercase
+  beside `Descrizione` capitalised, `Peso` and `MASSA` in the same note. There is
+  no rule to derive — there is what someone typed. That is exactly why the list
+  is **asked for** instead of deduced.
+- `ISheet.get_TitleBlock()` returns **null** here and the title block still
+  exists, made of sheet-format notes. An operation that tried only the first road
+  would answer "no title block" about a drawing that has one — wrong, and
+  confident. `cartiglio` tries both and declares which one answered.
+
+The bench case closes the circle across two documents: it writes
+`Descrizione = PROVA123` **on the part**, creates the drawing, and requires
+`Descrizione` in `chieste_e_mostrate`. That field was added on purpose: with only
+the list of empty ones, the case could have asserted at most "it is not among the
+broken". **Not being among the broken is not working.** The red lives in the same
+run — `Materiale` is asked for and was never written, so it must appear among the
+empty ones; if that list were empty, the positive assertion would prove nothing.
+
+**`verifica_interferenze` gives a volume, not a count.** 19200 mm³ predicted
+before measuring and found to ±1 — a tolerance kept tight on purpose, because a
+tolerance chosen for peace of mind stops measuring. Touching faces count as
+interference or not depending on the job, so it is an argument, it defaults to
+`false`, **and the answer states which way it was used**. The detection manager
+is switched off in a `finally`, always: the exception arrives precisely when the
+analysis goes wrong.
+
+### The bridge was refusing the assemblies its own catalogue promised
+
+`ControlliPreliminari` runs before the first step of every plan and admitted only
+parts and drawings. Meanwhile the catalogue served to clients listed
+`inserisci_componente`, `accoppia`, `sostituisci_componente` — and
+`verifica_interferenze` needs an assembly too.
+
+**None of the bench's 781 checks could see it: the bench calls the library, not
+the bridge.** Two true measurements of two different things, and the large number
+looks like it covers both.
+
+The comment defending the old choice read *"no operation in the library knows how
+to work on an assembly"*. True until 16 September; four of them existed by the
+17th. **A comment that explains a choice is also what prevents it being
+revisited** — whoever reads it finds a reason, and finding a reason feels like
+being done looking.
+
+So the defence is no longer a sentence. `OgniFamigliaDelCatalogoHaUnDocumentoAmmesso`
+compares the catalogue's families against the document types the executor admits,
+runs with no SOLIDWORKS and no licence, and **was born red on this defect**. It
+reads the admitted types **from the source**, fails loudly if the line it parses
+disappears, and treats an unclassified new family as **red, not green**.
+
+Fixed with a third switch, `AncheSuAssiemi`, on in the bridge and off in the
+add-in — same shape as `DocumentoSenzaFile` and `AncheSuTavole`, and watched by
+the same script. The refusal message is now built from what is actually admitted
+instead of naming yesterday's world.
+
+### Also
+
+- Section Z's 65 entries are renamed `Z-A1`, `Z-C3`…: **37 of their names were
+  already in use** by other entries in the same TODO, 33 of them closed. "Do C3"
+  led to a green entry from 14 September about something else. A new contract
+  check refuses two different entries sharing a name — the exception being an
+  entry's own "original trace, kept for reference", where the repeated name says
+  something. It was watched going red on a duplicate put there on purpose.
+- The refusal for a wrong document type is now **built from what is actually
+  admitted** instead of a fixed sentence. The old one named parts and drawings
+  even once assemblies were allowed: a message listing yesterday's world sends
+  the reader looking for the problem where it is not.
+- The contract suite goes from 139 to 145 checks.
+
 ## 0.64.0 — 17 September 2026 · library 0.97.0
 
 ### Two sheets, and the guard that could never fire

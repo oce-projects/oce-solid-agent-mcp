@@ -1,0 +1,58 @@
+{
+  "nome": "il_cartiglio_dice_cosa_vuole",
+  "famiglia": "tavola",
+  "perche": "VOCE GT3. Un cartiglio non contiene testo: contiene COLLEGAMENTI a proprieta' personalizzate, scritti `$PRP:\"Nome\"`. Riempirlo vuol dire scrivere quelle proprieta' -- e `scrivi_proprieta` lo sapeva gia' fare. Mancava la meta' che la voce stessa chiamava due ore di lavoro a mano: **leggere quali variabili il cartiglio referenzia davvero, perche' non si indovinano.**",
+  "il_difetto_che_questo_caso_prende": "Il nome della proprieta' scritto con una grafia diversa da quella che il cartiglio referenzia -- una maiuscola, uno spazio, la lingua -- **non da' nessun errore**: SOLIDWORKS scrive la proprieta', il cartiglio non la mostra, e il PDF esce con la casella vuota. E' il terzo caso della stessa famiglia in due giorni: `40x40x3` contro `40X40X3` sui profili, `.sldprt` contro `.SLDPRT` sui percorsi, e adesso il nome di una proprieta'. **Stesso nome, due grafie, nessun errore.**",
+  "cosa_ha_detto_la_sonda_sul_cartiglio_di_questa_officina": "Misurato il 18/9/2026 su `<impostazioni SOLIDWORKS>\\IMPOSTAZIONI FORMATI\\Disegno.drwdot`: 39 note, di cui sette collegate. Chiede TRATTAMENTO, REVISIONE, CREAZIONE_DATA (maiuscole), Descrizione, Materiale, Peso, MASSA. **La grafia e' mista dentro lo stesso cartiglio**, e non c'e' una regola: c'e' quello che qualcuno ha scritto quando l'ha fatto. Ecco perche' l'elenco si chiede invece di dedurlo.",
+  "e_sono_quasi_tutte_PRPSHEET": "Cioe' vanno scritte sul PEZZO, non sul disegno: `$PRPSHEET` prende la proprieta' dal modello mostrato nella vista. Scriverle sul disegno le lascerebbe tutte vuote, e nessuno direbbe niente. E' per questo che l'operazione marca quelle voci con «(dal pezzo, non dal disegno)» invece di elencarle e basta.",
+  "e_il_TitleBlock_non_c_e": "`ISheet.get_TitleBlock()` torna null su questo modello di tavola: il cartiglio e' fatto di note del FORMATO, non di un blocco cartiglio vero. L'operazione prova tutte e due le strade e dice quale ha risposto -- se avesse provato solo la prima, avrebbe detto «nessun cartiglio» su una tavola che ce l'ha.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 96000,
+          "perche": "il pezzo su cui si fa la tavola" } ] },
+
+    { "operazione": "scrivi_proprieta",
+      "argomenti": { "nome": "Descrizione", "valore": "PROVA123" },
+      "attese": [
+        { "cosa": "stato.proprieta.Descrizione", "uguale": "PROVA123",
+          "perche": "**SI SCRIVE SUL PEZZO, non sulla tavola**, e il caso lo fa prima di creare la tavola apposta: il cartiglio la chiede con `$PRPSHEET`, cioe' dal modello mostrato nella vista. Scritta sul disegno resterebbe vuota nel cartiglio, e nessuna delle due parti direbbe niente." },
+        { "cosa": "misure.valore", "uguale": "PROVA123",
+          "perche": "`Add3` risponde un codice, non il valore: l'operazione RILEGGE dopo aver scritto, e questo campo e' quello che ha riletto -- non quello che ha passato" } ] },
+
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\il_cartiglio_dice_cosa_vuole.sldprt" },
+      "attese": [
+        { "cosa": "misure.avvisi", "uguale": 0,
+          "perche": "una vista si aggancia al percorso del pezzo" } ] },
+
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [
+        { "cosa": "stato.tipo", "uguale": "tavola",
+          "perche": "il banco segue il documento nuovo (voce GT0)" } ] },
+
+    { "operazione": "viste_standard",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.viste_create", "uguale": 3,
+          "perche": "`$PRPSHEET` prende la proprieta' dal modello **mostrato in una vista**: senza viste il cartiglio non saprebbe da quale pezzo leggere" } ] },
+
+    { "operazione": "cartiglio",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.proprieta_che_il_cartiglio_vuole", "contiene": ["Descrizione", "Materiale", "TRATTAMENTO"],
+          "perche": "**IL PEZZO CHE VALE LA VOCE.** Sono i nomi ESATTI che questo cartiglio referenzia, con la loro grafia -- `TRATTAMENTO` maiuscolo e `Descrizione` capitalizzato, dentro lo stesso cartiglio. Il modello li copia invece di indovinarli, e la categoria di errore sparisce." },
+        { "cosa": "misure.chieste_e_mostrate", "contiene": ["Descrizione"],
+          "perche": "**IL CERCHIO SI CHIUDE QUI, ed e' un'affermazione positiva, non l'assenza di un guasto.** La proprieta' e' stata scritta sul PEZZO al passo 2; il cartiglio della TAVOLA la mostra adesso. Due documenti diversi, e il collegamento `$PRPSHEET` che li unisce ha funzionato davvero. «Non e' nell'elenco delle vuote» non avrebbe provato la stessa cosa: non essere fra i rotti non e' funzionare." },
+        { "cosa": "misure.chieste_ma_vuote", "contiene": ["Materiale"],
+          "perche": "IL CASO ROSSO CHE VIVE NELLO STESSO GIRO. `Materiale` e' chiesta dal cartiglio e nessuno l'ha scritta: dev'essere elencata fra le vuote. Se questo elenco fosse vuoto, l'attesa qui sopra non proverebbe niente -- proverebbe solo che l'operazione dice «tutto mostrato» sempre." },
+        { "cosa": "misure.cercate_in", "contiene": ["formato"],
+          "perche": "su questo modello di tavola `get_TitleBlock()` torna null, e le note stanno nel FORMATO del foglio. L'operazione prova tutte e due le strade e dice quale ha risposto: se un giorno il modello di tavola cambiasse e nascesse un blocco cartiglio vero, questa attesa diventerebbe rossa e lo direbbe, invece di lasciare che la strada cambi in silenzio." },
+        { "cosa": "misure.giudizio", "contiene": ["copiali alla lettera"],
+          "perche": "l'avvertimento viaggia con la risposta, non solo nella descrizione dell'operazione: chi legge questa risposta potrebbe non aver mai letto il catalogo" } ] }
+  ]
+}
