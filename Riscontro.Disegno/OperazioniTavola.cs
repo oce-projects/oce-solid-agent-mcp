@@ -264,11 +264,11 @@ namespace Riscontro.Disegno
 
             string percorsoModello = Str(a, "modello", null);
             if (string.IsNullOrWhiteSpace(percorsoModello))
-                percorsoModello = PrimoModelloAperto();
-            if (string.IsNullOrWhiteSpace(percorsoModello))
-                return Fallito(
-                    "Non c'e' nessun pezzo aperto da mettere in vista: una vista di " +
-                    "tavola si aggancia a un documento APERTO, non a un file su disco.");
+            {
+                string perche;
+                percorsoModello = ModelloDaMettereInVista(out perche);
+                if (percorsoModello == null) return Fallito(perche);
+            }
             var percorsoSw = PercorsoCanonico(percorsoModello);
             if (percorsoSw == null)
                 return Fallito(
@@ -313,10 +313,14 @@ namespace Riscontro.Disegno
 
             string percorsoModello = Str(a, "modello", null);
             if (string.IsNullOrWhiteSpace(percorsoModello))
-                percorsoModello = PrimoModelloAperto();
+            {
+                string perche;
+                percorsoModello = ModelloDaMettereInVista(out perche);
+                if (percorsoModello == null) return Fallito(perche);
+            }
             var percorsoSw = PercorsoCanonico(percorsoModello);
             if (percorsoSw == null)
-                return Fallito("Non c'e' nessun pezzo aperto da mettere in vista.");
+                return Fallito("«" + percorsoModello + "» non risulta aperto.");
 
             // I NOMI DELLE VISTE SONO QUELLI DI SOLIDWORKS, NON QUELLI DEL
             // PROGETTISTA. Si accetta l'italiano e si traduce: chiedere a chi
@@ -589,7 +593,16 @@ namespace Riscontro.Disegno
                 // «non e' arrivata nessuna quota» non distingue fra «la
                 // chiamata non funziona» e «non c'era niente da portare»:
                 // sono due difetti diversi e si riparano in due posti diversi.
-                var nomiQuote = NomiDelleQuoteDelModello(PrimoModelloAperto());
+                // QUI IL PEZZO SI CHIEDE ALLA VISTA, non all'elenco dei
+                // documenti aperti. E' un messaggio d'errore: deve dire quante
+                // quote ha **il pezzo di QUESTA tavola**, e prendere il primo
+                // aperto vorrebbe dire contare le quote di un altro pezzo e
+                // stamparle dentro una spiegazione. Un messaggio d'errore che
+                // cita il documento sbagliato manda a cercare piu' lontano di
+                // dove si era partiti.
+                string _ignora;
+                var nomiQuote = NomiDelleQuoteDelModello(
+                    PercorsoDelModelloInVista(disegno) ?? ModelloDaMettereInVista(out _ignora));
                 return Fallito(
                     "Non e' arrivata nessuna quota (erano " + prima + ", sono " + dopo +
                     "; l'ultimo tentativo ne ha restituite " + restituite + "). " +
@@ -747,7 +760,39 @@ namespace Riscontro.Disegno
             catch (Exception ex) { return Fallito("Non salvato: " + ex.Message); }
 
             if (!ok || !File.Exists(dove))
+            {
+                // IL CODICE DA SOLO NON SI PUO' USARE. `SaveAs` risponde un
+                // numero, e il numero non dice cosa fare: la causa piu' comune
+                // — misurata il 18/9/2026 mentre si provava un'altra cosa — e'
+                // che **la cartella non esiste**, e quella si guarda da qui in
+                // un millisecondo invece di farla indovinare a chi legge.
+                //
+                // *Un messaggio d'errore che riporta un codice e si ferma
+                // sposta il lavoro su chi lo riceve.*
+                string cartella = null;
+                try { cartella = Path.GetDirectoryName(dove); } catch { }
+                if (!string.IsNullOrWhiteSpace(cartella) && !Directory.Exists(cartella))
+                    return Fallito(
+                        "Il documento non e' stato salvato: **la cartella non esiste** — «" +
+                        cartella + "». SOLIDWORKS non la crea, e il suo codice di errore " +
+                        "(" + errori + ") non lo dice. Creala, o dammi un percorso dentro " +
+                        "una cartella che c'e'.");
+
+                bool solaLettura = false;
+                try
+                {
+                    solaLettura = File.Exists(dove) &&
+                                  new FileInfo(dove).IsReadOnly;
+                }
+                catch { }
+                if (solaLettura)
+                    return Fallito(
+                        "Il documento non e' stato salvato: il file esiste gia' ed e' in " +
+                        "SOLA LETTURA — «" + dove + "». Toglila, o fai il check-out se " +
+                        "sta in un PDM.");
+
                 return Fallito("Il documento non e' stato salvato (codice " + errori + ").");
+            }
 
             var misure = new Dictionary<string, object>
             {
@@ -1111,15 +1156,98 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>Il primo pezzo o assieme aperto: quello che va in tavola.</summary>
-        private string PrimoModelloAperto()
+        /// <summary>
+        /// Il modello da mettere in vista quando il piano non lo dice.
+        ///
+        /// ── PERCHE' NON SI CHIAMA PIU' «IL PRIMO» ────────────────────────
+        ///
+        /// Fino al 18/9/2026 tornava **il primo** documento aperto di tipo
+        /// parte o assieme, nell'ordine in cui SOLIDWORKS li elenca — un
+        /// ordine che **nessuno dichiara** e che cambia con quello che e'
+        /// rimasto aperto da prima.
+        ///
+        /// Il difetto che ne e' uscito, misurato dal banco:
+        /// `crea_disegno` faceva la tavola del pezzo GIUSTO — quello che gli
+        /// viene passato — e subito dopo `viste_standard`, che gira **sulla
+        /// tavola** e il pezzo non ce l'ha piu' in mano, ci metteva dentro le
+        /// viste di **un altro pezzo**, rimasto aperto dal caso precedente.
+        ///
+        /// **Tre viste, nessun errore, e la tavola di un pezzo che non
+        /// c'entra.** Il cartiglio leggeva i `$PRPSHEET` da quel pezzo li' e
+        /// mostrava caselle vuote; il PDF sarebbe uscito e sarebbe andato in
+        /// officina. E' esattamente il difetto che questo progetto esiste per
+        /// non avere, applicato alla strada di consegna.
+        ///
+        /// ── COSA FA ADESSO ───────────────────────────────────────────────
+        ///
+        /// Se ne e' aperto **uno solo**, quello e' — non c'e' niente da
+        /// indovinare. Se ce ne sono **due o piu'**, si RIFIUTA e si dice
+        /// quali sono, perche' scegliere fra loro vorrebbe dire decidere al
+        /// posto di chi disegna su una cosa che poi non da' nessun errore.
+        ///
+        /// *Un ordine che nessuno dichiara non e' una scelta: e' un sorteggio
+        /// che sembra una scelta.*
+        /// </summary>
+        /// <summary>
+        /// Il percorso del modello che questa tavola mostra davvero, chiesto
+        /// alla prima vista vera. E' l'unica risposta che non dipende da cosa
+        /// c'e' aperto attorno: la vista sa a quale documento e' agganciata.
+        /// Torna `null` se la tavola non ha ancora viste.
+        /// </summary>
+        private static string PercorsoDelModelloInVista(IDrawingDoc disegno)
         {
+            try
+            {
+                // La prima «vista» e' il FOGLIO: le viste vere cominciano dopo.
+                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
+                while (v != null)
+                {
+                    try
+                    {
+                        var rif = v.ReferencedDocument as IModelDoc2;
+                        var p = rif?.GetPathName();
+                        if (!string.IsNullOrWhiteSpace(p)) return p;
+                    }
+                    catch { }
+                    v = v.GetNextView() as IView;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private string ModelloDaMettereInVista(out string perche)
+        {
+            perche = null;
+            var candidati = new List<string>();
             foreach (var d in DocumentiAperti())
             {
                 var tipo = Convert.ToString(d["tipo"]);
                 if (tipo != "parte" && tipo != "assieme") continue;
                 var p = Convert.ToString(d["percorso"]);
-                if (!string.IsNullOrWhiteSpace(p)) return p;
+                if (!string.IsNullOrWhiteSpace(p) &&
+                    !candidati.Contains(p, StringComparer.OrdinalIgnoreCase))
+                    candidati.Add(p);
             }
+
+            if (candidati.Count == 1) return candidati[0];
+
+            if (candidati.Count == 0)
+            {
+                perche =
+                    "Non c'e' nessun pezzo aperto da mettere in vista: una vista di " +
+                    "tavola si aggancia a un documento APERTO, non a un file su disco.";
+                return null;
+            }
+
+            perche =
+                "Ci sono " + candidati.Count + " documenti aperti che potrei mettere in " +
+                "vista, e sceglierne uno sarebbe un sorteggio: " +
+                string.Join(", ", candidati) +
+                ". Dimmi quale con l'argomento «modello», scrivendo il percorso. " +
+                "NON e' pignoleria: fino al 18/9/2026 qui si prendeva il primo " +
+                "dell'elenco, e una tavola e' uscita con le viste del pezzo sbagliato " +
+                "senza che niente desse errore.";
             return null;
         }
 

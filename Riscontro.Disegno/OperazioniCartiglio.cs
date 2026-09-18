@@ -151,8 +151,78 @@ namespace Riscontro.Disegno
                     "proprieta' viene scritta, il cartiglio non la mostra, e il PDF " +
                     "esce con la casella vuota.";
             }
-            if (vuote.Count > 0) misure["chieste_ma_vuote"] = vuote.ToArray();
-            if (mostrate.Count > 0) misure["chieste_e_mostrate"] = mostrate.ToArray();
+            // Anche questo sempre, per la stessa ragione: e' l'affermazione
+            // positiva, e un'affermazione che sparisce quando e' falsa non e'
+            // un'affermazione.
+            misure["chieste_e_mostrate"] = mostrate.ToArray();
+
+            // ── VUOTE PERCHE' NON SCRITTE, O VUOTE PERCHE' NON RISOLTE? ──
+            //
+            // ── PERCHE' QUESTA DIVISIONE ESISTE ──────────────────────────
+            //
+            // Il 18/9/2026 il caso `il_cartiglio_dice_cosa_vuole` e' stato
+            // **verde due volte e rosso la terza**, sulla stessa libreria:
+            // `Descrizione`, scritta sul pezzo e riletta, non compariva piu'
+            // fra le mostrate. Riprovato dal ponte, **non si e' riprodotto**.
+            //
+            // Con i campi di prima quel rosso diceva soltanto «non dice
+            // Descrizione», e non distingueva due cose opposte:
+            //
+            //   * la proprieta' NON C'E' sul modello   -> chi disegna deve
+            //     scriverla, ed e' il difetto che l'operazione esiste per
+            //     prendere;
+            //   * la proprieta' C'E' sul modello e il cartiglio la mostra
+            //     vuota -> il collegamento non ha risolto: o non ancora, o
+            //     e' rotto. Non e' colpa di chi disegna, e scrivere di nuovo
+            //     la proprieta' non cambierebbe niente.
+            //
+            // Sono due diagnosi e due rimedi. **Un elenco che le mette
+            // insieme manda a riparare la cosa sbagliata**, ed e' la stessa
+            // forma del difetto che l'operazione denuncia: una risposta che
+            // sembra completa e non lo e'.
+            //
+            // Si guarda nel modello referenziato dalla prima vista vera —
+            // quello da cui `$PRPSHEET` prende — in tutti e due i cassetti,
+            // perche' documento e configurazione sono elenchi separati.
+            // E PRIMA DI TUTTO: HO POTUTO GUARDARE?
+            //
+            // `ProprietaDelModelloInVista` torna `null` quando non ci arriva.
+            // Senza dirlo, l'elenco qui sotto resterebbe vuoto **per ignoranza**
+            // e non per misura — e un elenco vuoto per ignoranza passa
+            // qualunque controllo che chieda «non c'e' dentro X».
+            //
+            // Il 18/9/2026 e' successo esattamente questo, ed e' costato un
+            // giro di banco: la distinzione era scritta nel commento di quella
+            // funzione e **non era visibile a chi legge la risposta**.
+            // *Una distinzione che vive solo in un commento non e' una
+            // distinzione: e' un'intenzione.*
+            string chiGuardato;
+            var suDisco = ProprietaDelModelloInVista(disegno, out chiGuardato);
+            misure["modello_guardato_per_le_proprieta"] = chiGuardato ??
+                "NON SONO ARRIVATO AL MODELLO: i due elenchi qui sotto sono vuoti " +
+                "perche' non ho potuto guardare, non perche' non ci fosse niente.";
+
+            var presentiMaMute = new List<string>();
+            if (suDisco != null)
+                foreach (var x in vuote)
+                    if (suDisco.Contains(NomeNudo(x), StringComparer.OrdinalIgnoreCase))
+                        presentiMaMute.Add(x);
+
+            misure["chieste_ma_vuote"] = vuote.ToArray();
+
+            // SEMPRE, ANCHE VUOTO, e non e' pignoleria: il banco tratta un
+            // campo ASSENTE come prova rossa (voce F4), quindi un campo che
+            // compare solo quando ha qualcosa dentro **non si puo' nemmeno
+            // pretendere vuoto**. E chi legge la risposta, non trovandolo,
+            // conclude che l'operazione non sappia rispondere invece che
+            // l'elenco sia vuoto.
+            misure["chieste_presenti_sul_modello_ma_mostrate_vuote"] = presentiMaMute.ToArray();
+            if (presentiMaMute.Count > 0)
+                misure["e_questo_non_e_colpa_di_chi_disegna"] =
+                    "Queste proprieta' CI SONO sul modello mostrato nella vista, e il " +
+                    "cartiglio le mostra vuote lo stesso: il collegamento non ha " +
+                    "risolto. Riscriverle non cambia niente. Prova a ricostruire la " +
+                    "tavola e a rileggere; se restano vuote, il collegamento e' rotto.";
 
             string vistaPerProprieta = ProvaTesto(() => foglio.CustomPropertyView);
             if (!string.IsNullOrWhiteSpace(vistaPerProprieta))
@@ -250,6 +320,88 @@ namespace Riscontro.Disegno
         /// vorrebbe dire restituire una grafia che il cartiglio non usa, cioe'
         /// esattamente l'errore che questa operazione esiste per prevenire.
         /// </summary>
+        /// <summary>
+        /// Il nome della proprieta' senza il suffisso che l'operazione ci
+        /// appiccica per dire DA DOVE viene: «Descrizione  (dal pezzo, non dal
+        /// disegno)» torna «Descrizione».
+        ///
+        /// Sta qui e non scritto due volte perche' il suffisso e' una scelta
+        /// di presentazione, e chi confronta due elenchi deve confrontare i
+        /// nomi veri — non quelli vestiti per essere letti.
+        /// </summary>
+        private static string NomeNudo(string nome)
+        {
+            if (string.IsNullOrEmpty(nome)) return nome;
+            int i = nome.IndexOf("  (", StringComparison.Ordinal);
+            return i < 0 ? nome.Trim() : nome.Substring(0, i).Trim();
+        }
+
+        /// <summary>
+        /// I nomi delle proprieta' che esistono sul MODELLO mostrato nella
+        /// prima vista vera — che e' quello da cui `$PRPSHEET` prende.
+        ///
+        /// Si guardano TUTTI E DUE I CASSETTI: le proprieta' del documento e
+        /// quelle della configurazione attiva sono elenchi separati, non si
+        /// ereditano e non si vedono a vicenda. Misurato il 18/9/2026: una
+        /// proprieta' scritta sul documento **non** si vede dalla
+        /// configurazione, e il cartiglio la mostra lo stesso — quindi
+        /// guardarne uno solo direbbe il falso in un verso o nell'altro.
+        ///
+        /// Torna `null` — non un elenco vuoto — quando non si e' potuto
+        /// guardare: «non ho trovato niente» e «non ho potuto guardare» sono
+        /// due risposte diverse, e chi legge deve poterle distinguere.
+        /// </summary>
+        private static List<string> ProprietaDelModelloInVista(
+            IDrawingDoc disegno, out string chiHoGuardato)
+        {
+            chiHoGuardato = null;
+            try
+            {
+                // La prima «vista» e' il FOGLIO: le viste vere cominciano dopo.
+                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
+                IModelDoc2 rif = null;
+                while (v != null && rif == null)
+                {
+                    try { rif = v.ReferencedDocument as IModelDoc2; } catch { }
+                    v = v.GetNextView() as IView;
+                }
+                if (rif == null) return null;
+
+                // IL PERCORSO, non il titolo: e' l'unico indirizzo che non
+                // mente quando due documenti si chiamano uguale.
+                try { chiHoGuardato = rif.GetPathName(); } catch { }
+                if (string.IsNullOrWhiteSpace(chiHoGuardato))
+                    try { chiHoGuardato = "senza percorso, titolo «" + rif.GetTitle() + "»"; } catch { }
+
+                var fuori = new List<string>();
+                var dove = new List<string> { "" };
+                try
+                {
+                    var g = rif.ConfigurationManager as IConfigurationManager;
+                    var att = g?.ActiveConfiguration?.Name;
+                    if (!string.IsNullOrWhiteSpace(att)) dove.Add(att);
+                }
+                catch { }
+
+                foreach (var cassetto in dove)
+                {
+                    try
+                    {
+                        var gp = rif.Extension.get_CustomPropertyManager(cassetto)
+                                 as ICustomPropertyManager;
+                        var nomi = gp?.GetNames() as string[];
+                        if (nomi != null)
+                            foreach (var n in nomi)
+                                if (!fuori.Contains(n, StringComparer.OrdinalIgnoreCase))
+                                    fuori.Add(n);
+                    }
+                    catch { }
+                }
+                return fuori;
+            }
+            catch { return null; }
+        }
+
         private static List<string> NomiCollegati(string testo)
         {
             var fuori = new List<string>();

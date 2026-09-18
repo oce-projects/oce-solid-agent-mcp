@@ -36,7 +36,8 @@
           "perche": "il banco segue il documento nuovo (voce GT0)" } ] },
 
     { "operazione": "viste_standard",
-      "argomenti": {},
+      "argomenti": { "modello": "{LAVORO}\\il_cartiglio_dice_cosa_vuole.sldprt" },
+      "e_il_pezzo_si_dice_per_nome": "**IL 18/9/2026 QUESTA RIGA NON C'ERA, E LA TAVOLA E' USCITA DEL PEZZO SBAGLIATO.** Senza «modello», `viste_standard` ripiegava sul PRIMO documento aperto — un ordine che nessuno dichiara — e il pezzo dell'altro caso di tavola, ancora aperto, veniva prima. Tre viste, nessun errore, e il cartiglio che leggeva i `$PRPSHEET` da un pezzo che non c'entrava. Adesso l'operazione rifiuta invece di sorteggiare, e il caso dice quale pezzo vuole invece di sperare che ce ne sia uno solo.",
       "attese": [
         { "cosa": "misure.viste_create", "uguale": 3,
           "perche": "`$PRPSHEET` prende la proprieta' dal modello **mostrato in una vista**: senza viste il cartiglio non saprebbe da quale pezzo leggere" } ] },
@@ -46,6 +47,12 @@
       "attese": [
         { "cosa": "misure.proprieta_che_il_cartiglio_vuole", "contiene": ["Descrizione", "Materiale", "TRATTAMENTO"],
           "perche": "**IL PEZZO CHE VALE LA VOCE.** Sono i nomi ESATTI che questo cartiglio referenzia, con la loro grafia -- `TRATTAMENTO` maiuscolo e `Descrizione` capitalizzato, dentro lo stesso cartiglio. Il modello li copia invece di indovinarli, e la categoria di errore sparisce." },
+        { "cosa": "misure.modello_guardato_per_le_proprieta", "contiene": ["il_cartiglio_dice_cosa_vuole"],
+          "perche": "**PRIMA DI TUTTO: HO POTUTO GUARDARE?** Se l'operazione non riesce ad arrivare al modello referenziato dalla vista, i due elenchi qui sotto sono vuoti per ignoranza e non per misura — e un elenco vuoto per ignoranza passa qualunque `non_contiene`. Qui si pretende il PERCORSO del pezzo, cosi' «non ho trovato niente» e «non ho potuto guardare» restano due risposte diverse." },
+
+        { "cosa": "misure.chieste_presenti_sul_modello_ma_mostrate_vuote", "non_contiene": ["Descrizione"],
+          "perche": "**STA PRIMA DELL'ATTESA CHE SPIEGA, E DEVE.** Il banco ferma il caso alla PRIMA attesa rossa (`CasiDichiarati.cs`, `if (!ok) return false`): una riga diagnostica messa DOPO quella che fallisce non viene mai eseguita — costruita il 18/9/2026 e messa in coda, non ha parlato. *Un testimone messo in fila dietro l'imputato non testimonia.* Qui dice quale dei due guasti e': se questa e' rossa, la proprieta' C'E' sul modello e il collegamento non l'ha risolta (e riscriverla non serve); se e' verde e la prossima e' rossa, la proprieta' non e' arrivata sul modello." },
+
         { "cosa": "misure.chieste_e_mostrate", "contiene": ["Descrizione"],
           "perche": "**IL CERCHIO SI CHIUDE QUI, ed e' un'affermazione positiva, non l'assenza di un guasto.** La proprieta' e' stata scritta sul PEZZO al passo 2; il cartiglio della TAVOLA la mostra adesso. Due documenti diversi, e il collegamento `$PRPSHEET` che li unisce ha funzionato davvero. «Non e' nell'elenco delle vuote» non avrebbe provato la stessa cosa: non essere fra i rotti non e' funzionare." },
         { "cosa": "misure.chieste_ma_vuote", "contiene": ["Materiale"],

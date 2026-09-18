@@ -24,6 +24,78 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.66.0 — 18 September 2026 · library 0.98.5
+
+### The drawing of the wrong part
+
+Bench 796 checks, 0 red, 628/628 expectations. Contract suite 151, 0 red.
+
+**`viste_standard` was putting views of a part that had nothing to do with it
+into the drawing, and nothing gave an error.** Three views, a PDF that exports,
+and a drawing of somebody else's part arriving in the workshop.
+
+`crea_disegno` takes the right part — it is handed to it. But `viste_standard`
+runs **on the drawing**, where it no longer holds the part, and fell back to
+"the first open part or assembly", in the order SOLIDWORKS happens to list them.
+
+> An order nobody declares is not a choice: it is a draw that looks like a
+> choice. And a draw with one ticket looks like an algorithm.
+
+Fixed: one part open, that one — there is nothing to guess. Two or more, it
+**refuses and lists them**, asking for the `modello` argument. Watched refusing.
+
+**Why it was invisible for months.** There was always exactly one part open, so
+the draw always won. It surfaced the day a second drawing case was added, whose
+part sorts first alphabetically and stays open. And the drawing cases could not
+have caught it anyway: they counted **three views** and never asked which part
+they were of.
+
+> A test that counts the objects and never looks at what they are is green even
+> when the part is a different one.
+
+So `la_tavola_e_un_secondo_documento` now asserts `misure.modello`, and all three
+drawing cases name the part they want instead of hoping there is only one.
+
+### Four broken instruments, and none of them was the product
+
+Finding this took a day, and the day is worth more than the defect.
+
+- **The witness queued behind the defendant.** A diagnostic expectation that
+  tells two opposite diagnoses apart was written *after* the expectation that
+  could fail — in a bench that stops a case at the first red. It never spoke:
+  the report had the red and not its reason.
+- **Empty out of ignorance.** The lookup returns `null` when it cannot reach the
+  model; without saying so, the list stays empty **out of ignorance rather than
+  measurement**, and an empty list passes any "does not contain". The
+  distinction lived only in a comment. *A distinction that lives only in a
+  comment is not a distinction: it is an intention.* Now there is a field
+  carrying the **path** of the model actually read — and it was that field that
+  named the wrong part and ended the hunt.
+- **The wrong binary, and it cost the most.** There are two copies of the
+  library: the one the bench measures and the one the bridge loads, put there by
+  `build.ps1`. Building **only the project** — the most natural thing while
+  iterating — updates the first and not the second. They had drifted four
+  versions apart for nine hours: the fix was tried three times from the bridge
+  without ever being in that binary, and the symptom was perfect ("the operation
+  does not refuse"). A new contract check compares the two versions.
+- **A wrong verifier.** The script judging one probe printed "refuses but does
+  not list the alternatives" — false; it was looking for a part name I had
+  renamed. *A wrong verifier delivers a wrong verdict with the same confidence
+  as a right one.*
+
+### Also
+
+- `cartiglio` separates "the property is not on the model" from "it **is** on the
+  model and the title block shows it empty": two opposite diagnoses that used to
+  land in the same list, sending you to repair the wrong thing.
+- `salva_documento` looks at **why** it did not save instead of reporting a code:
+  a missing folder and a read-only file are visible from here, and `SaveAs`'s
+  number says neither.
+- Six annotation counters per view in the drawing state, always written even at
+  zero — plus six for the **sheet**, because `InsertNote` writes there and
+  counting only views would make `note` a field that cannot become true.
+- The contract suite goes from 147 to 151 checks.
+
 ## 0.65.1 — 18 September 2026 · library 0.98.1
 
 ### The drawing that does everything except take a dimension

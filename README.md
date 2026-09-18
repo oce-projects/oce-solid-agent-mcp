@@ -330,6 +330,26 @@ la libreria, non il ponte.**
 Vedi [CHANGELOG.md](CHANGELOG.md). La versione sta in `VERSION.txt` e sale a
 ogni modifica: e' una regola, non una consuetudine.
 
+### Cosa la CI prova, e cosa NON prova
+
+La CI (`.github/workflows/prove.yml`) compila, lancia i controlli di contratto —
+che parlano col ponte sullo stdio, senza SOLIDWORKS — e **rifiuta una consegna
+in cui nessuno ha lanciato il banco**.
+
+> **Quel terzo punto non e' una verifica indipendente, e vale dirlo qui.**
+> Nessun runner ha una licenza SOLIDWORKS, quindi **il banco in CI non gira**.
+> Cio' che la CI legge e' `Banco/resoconto/ultimo.json`: un file che
+> **produciamo e committiamo noi**. Controlla che dichiari un giro intero,
+> coerente con la libreria di adesso e posteriore all'ultima modifica alle
+> operazioni.
+>
+> E' una guardia contro la **nostra** distrazione — il commit fatto senza aver
+> rilanciato il banco — non contro un resoconto che dicesse il falso. Se il
+> resoconto mentisse, la CI lo crederebbe.
+>
+> *Una difesa raccontata piu' forte di com'e' indebolisce anche quelle vere,
+> perche' insegna a non fidarsi dell'etichetta.*
+
 ### Quanto reggono i riferimenti quando il pezzo cambia
 
 Sedici pezzi costruiti, **una sola quota a monte cambiata**, e la geometria a

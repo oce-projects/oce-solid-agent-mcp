@@ -57,8 +57,11 @@
           "perche": "un foglio: se ne nascessero due, il conto delle viste al passo dopo sarebbe di un'altra cosa" } ] },
 
     { "operazione": "viste_standard",
-      "argomenti": {},
+      "argomenti": { "modello": "{LAVORO}\\la_tavola_e_un_secondo_documento.sldprt" },
+      "e_il_pezzo_si_dice_per_nome": "Aggiunto il 18/9/2026. Questo caso era verde **per sorteggio**: contava le viste e il diedro, non da quale pezzo venissero. Con un altro pezzo aperto sarebbe stato verde lo stesso su una tavola sbagliata — *una prova che conta gli oggetti e non guarda di che cosa sono e' verde anche quando il pezzo e' un altro.*",
       "attese": [
+        { "cosa": "misure.modello", "contiene": ["la_tavola_e_un_secondo_documento"],
+          "perche": "**E ADESSO SI GUARDA ANCHE DI CHE COSA SONO, LE VISTE.** E' la riga che mancava a tutte e tre le prove di tavola: contavano tre viste e non chiedevano mai di quale pezzo. Il 18/9 una tavola e' uscita del pezzo sbagliato e nessuna di loro se n'e' accorta." },
         { "cosa": "misure.diedro", "uguale": "primo",
           "perche": "l'Italia disegna in primo diedro, e la gemella `Create3rdAngleViews2` non fallisce mai: produce una tavola con destra e sinistra scambiate che nessuna misura di volume vedrebbe" },
         { "cosa": "misure.viste_create", "uguale": 3,

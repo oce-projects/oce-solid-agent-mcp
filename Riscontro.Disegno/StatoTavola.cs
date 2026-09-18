@@ -154,6 +154,28 @@ namespace Riscontro.Disegno
             // poi quota un oggetto che non ha geometria.
             var viste = new List<Dictionary<string, object>>();
             int quoteTotali = 0, visteTotali = 0, crociTotali = 0;
+            int gtolTot = 0, datumTot = 0, saldTot = 0, rugTot = 0, noteTot = 0, annTot = 0;
+            // ── IL FOGLIO SI CONTA A PARTE, E NON E' UNA RIFINITURA ────────
+            //
+            // Misurato il 18/9/2026: le note del cartiglio — trentanove su
+            // questo modello di tavola, sessantasette in tutto — stanno sul
+            // FOGLIO, non su una vista. E `InsertNote`, che oggi e' **l'unica**
+            // API di annotazione che funziona fuori processo (voce E2), mette
+            // la nota sul FOGLIO: 67 -> 68, mentre tutte e tre le viste restano
+            // a zero.
+            //
+            // Contando solo le viste, `note` sarebbe un campo che NON PUO'
+            // diventare vero con gli strumenti di oggi. **Un campo che non puo'
+            // cambiare non e' una misura: e' una promessa.** Quindi il foglio
+            // ha i suoi sei numeri, con lo stesso nome e in un cassetto suo.
+            try
+            {
+                var foglioVista = disegno.GetFirstView() as IView;
+                if (foglioVista != null)
+                    dati["annotazioni_del_foglio"] = Annotazioni(foglioVista);
+            }
+            catch { }
+
             try
             {
                 var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
@@ -173,6 +195,33 @@ namespace Riscontro.Disegno
                     int croci = 0;
                     try { croci = v.GetCenterMarkCount(); } catch { }
                     crociTotali += croci;
+
+                    // ── LE ANNOTAZIONI, UNA FAMIGLIA PER VOLTA (voce Z-E1) ──
+                    //
+                    // PERCHE' SERVONO PRIMA delle voci che le mettono, e non
+                    // dopo. Dieci voci di tavola aspettano di scrivere
+                    // rugosita', datum, simboli di saldatura, GD&T. Ognuna
+                    // chiamerebbe un'API che **risponde di si' senza garantire
+                    // niente** — e quattro di quelle API tornano `Void`, che e'
+                    // un bottone e non un'API. Senza un contatore INDIPENDENTE
+                    // letto dallo stato, ogni voce sarebbe verde per la parola
+                    // dell'operazione stessa.
+                    //
+                    // E' la regola di GA5, applicata prima del bisogno: **lo
+                    // stato e l'operazione devono raccontare la stessa cosa,
+                    // leggendola per conto proprio.**
+                    int gtol = 0, datum = 0, saldature = 0, rugosita = 0, note = 0, annotazioni = 0;
+                    try { gtol = v.GetGTolCount(); } catch { }
+                    try { datum = v.GetDatumTagCount(); } catch { }
+                    try { saldature = v.GetWeldSymbolCount(); } catch { }
+                    // `GetSFSymbolCount`, NON `GetSurfaceFinishSymbolCount`:
+                    // il secondo e' il nome per simmetria con
+                    // `InsertSurfaceFinishSymbol`, e non esiste.
+                    try { rugosita = v.GetSFSymbolCount(); } catch { }
+                    try { note = v.GetNoteCount(); } catch { }
+                    try { annotazioni = v.GetAnnotationCount(); } catch { }
+                    gtolTot += gtol; datumTot += datum; saldTot += saldature;
+                    rugTot += rugosita; noteTot += note; annTot += annotazioni;
 
                     if (viste.Count < MaxViste)
                     {
@@ -203,6 +252,13 @@ namespace Riscontro.Disegno
                         // un valore interessante insegna a non cercarlo.**
                         voce["croci_di_centro"] = croci;
 
+                        // SEMPRE, ANCHE TUTTE A ZERO, e per la stessa ragione
+                        // delle due righe qui sopra: un campo che compare solo
+                        // quando ha un valore interessante insegna a non
+                        // cercarlo, e chi non lo trova conclude che l'API non
+                        // sappia rispondere invece che il numero sia zero.
+                        voce["annotazioni"] = Sei(gtol, datum, saldature, rugosita, note, annotazioni);
+
                         try
                         {
                             var rif = v.ReferencedDocument as IModelDoc2;
@@ -222,6 +278,24 @@ namespace Riscontro.Disegno
             dati["viste_totali"] = visteTotali;
             dati["quote_totali"] = quoteTotali;
             dati["croci_di_centro_totali"] = crociTotali;
+            dati["annotazioni_totali"] = Sei(gtolTot, datumTot, saldTot, rugTot, noteTot, annTot);
+
+            // DUE CECITA' DICHIARATE, e tutte e due porterebbero a conclusioni
+            // sbagliate se restassero implicite.
+            dati["cosa_non_so_delle_annotazioni"] =
+                // 1. IL CARTIGLIO NON E' QUI DENTRO. Questi conteggi girano
+                //    sulle VISTE VERE; le note del formato del foglio stanno
+                //    sulla prima «vista», che e' il foglio, e sono decine — su
+                //    questo modello di tavola, trentanove. Chi somma le viste e
+                //    confronta col totale del documento trova una differenza
+                //    grande e conclude che si sia perso qualcosa.
+                "«annotazioni_totali» somma le VISTE; le note del cartiglio " +
+                "stanno sul FOGLIO e si contano a parte, in " +
+                "«annotazioni_del_foglio» — su questo modello di tavola sono " +
+                "sessantasette, e sommarle alle viste farebbe sembrare quotata " +
+                "una tavola vuota. E un'annotazione su un layer non stampabile " +
+                "esiste, viene contata, e nel PDF non c'e': il conteggio dice " +
+                "cosa c'e' nel documento, non cosa esce dalla stampante.";
             if (visteTotali > viste.Count) dati["viste_troncate"] = true;
 
             // LA TAVOLA VUOTA VA DETTA, non lasciata dedurre da un elenco che
@@ -231,6 +305,42 @@ namespace Riscontro.Disegno
                 dati["nota"] = "la tavola non ha ancora nessuna vista";
             else if (quoteTotali == 0)
                 dati["nota"] = "le viste ci sono ma non c'e' nessuna quota";
+        }
+
+        /// <summary>
+        /// I sei numeri di una vista (o del foglio), sempre tutti e sei.
+        ///
+        /// `tutte` si chiama cosi' e non «totale»: `GetAnnotationCount` **non
+        /// e' la somma** delle altre cinque — conta anche le quote e cio' che
+        /// nessuna delle cinque famiglie nomina. Chiamarlo «totale» farebbe
+        /// aspettare una somma che non torna, e chi la vede non tornare cerca
+        /// un difetto dove non c'e'.
+        /// </summary>
+        private static Dictionary<string, object> Sei(
+            int gtol, int datum, int saldature, int rugosita, int note, int tutte)
+        {
+            return new Dictionary<string, object>
+            {
+                ["gtol"] = gtol,
+                ["datum"] = datum,
+                ["saldature"] = saldature,
+                ["rugosita"] = rugosita,
+                ["note"] = note,
+                ["tutte"] = tutte,
+            };
+        }
+
+        /// <summary>I sei numeri letti da una vista, ognuno per conto suo.</summary>
+        private static Dictionary<string, object> Annotazioni(IView v)
+        {
+            int gtol = 0, datum = 0, saldature = 0, rugosita = 0, note = 0, tutte = 0;
+            try { gtol = v.GetGTolCount(); } catch { }
+            try { datum = v.GetDatumTagCount(); } catch { }
+            try { saldature = v.GetWeldSymbolCount(); } catch { }
+            try { rugosita = v.GetSFSymbolCount(); } catch { }
+            try { note = v.GetNoteCount(); } catch { }
+            try { tutte = v.GetAnnotationCount(); } catch { }
+            return Sei(gtol, datum, saldature, rugosita, note, tutte);
         }
 
         private static double[] ProprietaFoglio(IDrawingDoc disegno)

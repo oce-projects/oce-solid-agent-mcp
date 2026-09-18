@@ -1,0 +1,59 @@
+{
+  "nome": "i_contatori_ci_sono_anche_a_zero",
+  "famiglia": "tavola",
+  "perche": "VOCE Z-E1. Dieci voci di tavola aspettano di scrivere rugosita', riferimenti di datum, simboli di saldatura e GD&T. **Quattro delle API che le inseriscono tornano `Void`** — un bottone, non un'API: non hanno modo di dire che non hanno fatto niente, e infatti non lo dicono. Senza un contatore INDIPENDENTE letto dallo stato, ognuna di quelle dieci voci sarebbe verde sulla parola dell'operazione stessa. Questo caso mette i contatori PRIMA del bisogno.",
+
+  "il_difetto_che_questo_caso_prende": "Un campo che compare solo quando ha un valore interessante insegna a non cercarlo: chi non trova `rugosita` conclude che l'API non sappia rispondere, non che il numero sia zero. Qui i sei numeri si pretendono **tutti e sei, anche tutti a zero** — e il banco tratta un campo assente come prova ROSSA (voce F4), quindi l'attesa e' vera.",
+
+  "e_il_foglio_si_conta_a_parte": "Misurato il 18/9/2026 e ha cambiato il progetto del campo: le note del cartiglio stanno sul FOGLIO, non su una vista, e sono **sessantasette** su questo modello di tavola. `InsertNote` — oggi l'unica API di annotazione che funziona fuori processo — mette la nota **sul foglio**: 67 -> 68, con tutte e tre le viste ferme a zero. Contando solo le viste, `note` sarebbe un campo che **non puo' diventare vero**, cioe' una promessa e non una misura. Per questo il foglio ha i suoi sei numeri in un cassetto suo.",
+
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 96000,
+          "perche": "il pezzo su cui si fa la tavola" } ] },
+
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\i_contatori_ci_sono_anche_a_zero.sldprt" },
+      "attese": [
+        { "cosa": "misure.avvisi", "uguale": 0,
+          "perche": "una vista si aggancia al percorso del pezzo" } ] },
+
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [
+        { "cosa": "stato.tipo", "uguale": "tavola",
+          "perche": "il banco segue il documento nuovo (voce GT0)" } ] },
+
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\i_contatori_ci_sono_anche_a_zero.sldprt" },
+      "e_il_pezzo_si_dice_per_nome": "Vedi `il_cartiglio_dice_cosa_vuole`: senza questa riga la tavola si faceva del primo pezzo aperto, e nessuno dava errore. Da questo caso e' partito il guaio — e' il suo pezzo quello che finiva nella tavola dell'altro.",
+      "attese": [
+        { "cosa": "misure.viste_create", "uguale": 3,
+          "perche": "servono viste vere: i contatori stanno su `IView`, e senza viste non ci sarebbe niente su cui chiederli" },
+
+        { "cosa": "stato.annotazioni_totali.gtol", "uguale": 0,
+          "perche": "**IL PEZZO CHE VALE LA VOCE, ed e' lo zero.** Il campo dev'esserci anche quando non c'e' niente da contare: il banco tratta un campo assente come prova rossa (F4), quindi questa attesa distingue «zero» da «non lo so»" },
+        { "cosa": "stato.annotazioni_totali.datum", "uguale": 0,
+          "perche": "idem: `InsertDatumTag()` torna `Void` e non dira' mai se ha inserito. Questo numero e' l'unico modo di saperlo, e dev'esistere prima della voce che lo usa" },
+        { "cosa": "stato.annotazioni_totali.saldature", "uguale": 0,
+          "perche": "idem: anche `InsertWeldSymbol(...)` torna `Void`" },
+        { "cosa": "stato.annotazioni_totali.rugosita", "uguale": 0,
+          "perche": "letto con `GetSFSymbolCount`, **non** `GetSurfaceFinishSymbolCount` — il nome per simmetria con `InsertSurfaceFinishSymbol`, che non esiste" },
+
+        { "cosa": "stato.annotazioni_totali.note", "uguale": 0,
+          "perche": "**LE VISTE SONO VUOTE, E QUI SI VEDE SE QUALCUNO HA SOMMATO IL FOGLIO.** Se questo numero fosse sessantasette invece di zero, vorrebbe dire che le note del cartiglio sono finite nel conto delle viste — e una tavola senza una sola annotazione sembrerebbe piena" },
+
+        { "cosa": "stato.annotazioni_del_foglio.note", "uguale": 67,
+          "perche": "IL CONTRALTARE, e senza di lui lo zero qui sopra non proverebbe niente: proverebbe solo che i contatori tornano zero sempre. Sessantasette e' il cartiglio di QUESTA officina (`Disegno.drwdot`): se il modello di tavola cambia, questa attesa diventa rossa **e deve** — il numero di note del cartiglio non e' un dettaglio di forma, e' cio' che il cartiglio chiede" },
+
+        { "cosa": "stato.viste[0].annotazioni.tutte", "uguale": 0,
+          "perche": "il campo c'e' anche per vista, non solo nel totale. Si chiama «tutte» e non «totale» perche' `GetAnnotationCount` **non e' la somma** delle altre cinque: conta anche le quote" },
+
+        { "cosa": "stato.cosa_non_so_delle_annotazioni", "contiene": "layer non stampabile",
+          "perche": "la cecita' viaggia con la risposta: un'annotazione su un layer non stampabile esiste, viene contata, e nel PDF non c'e'. Chi legge questi numeri sta leggendo il documento, non cio' che esce dalla stampante" } ] }
+  ]
+}

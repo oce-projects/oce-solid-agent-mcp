@@ -36,8 +36,22 @@ using System.Runtime.InteropServices;
 // 0.98.1: il rifiuto di `quote_dal_modello` dice quante quote sono MARCATE,
 //         non solo quante ce ne sono: senza quel dato la diagnosi resta divisa
 //         in due, e il 18/9 c'e' voluta una sonda apposta per dividerla.
-[assembly: AssemblyVersion("0.98.1.0")]
-[assembly: AssemblyFileVersion("0.98.1.0")]
+// 0.98.2: i sei contatori di annotazione per vista (voce Z-E1), piu' i sei del
+//         FOGLIO a parte — perche' `InsertNote` scrive li', e contando solo le
+//         viste `note` sarebbe un campo che non puo' diventare vero.
+// 0.98.3: `cartiglio` distingue «la proprieta' non c'e'» da «c'e' sul modello e
+//         il cartiglio la mostra vuota» — due diagnosi opposte che prima
+//         finivano nello stesso elenco, e mandavano a riparare la cosa
+//         sbagliata.
+// 0.98.4: `viste_standard` non sorteggia piu' il pezzo. Metteva in tavola le
+//         viste del PRIMO documento aperto — un ordine che nessuno dichiara — e
+//         con piu' di un pezzo aperto faceva la tavola di un altro pezzo senza
+//         dare nessun errore. Adesso: uno solo, quello; due o piu', rifiuta.
+// 0.98.5: `salva_documento` guarda PERCHE' non ha salvato invece di riportare
+//         un codice: la cartella che non esiste e il file in sola lettura si
+//         vedono da qui, e il codice di `SaveAs` non li dice.
+[assembly: AssemblyVersion("0.98.5.0")]
+[assembly: AssemblyFileVersion("0.98.5.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.

@@ -155,6 +155,7 @@ namespace Prove.Contratti
             OgniFamigliaDelCatalogoHaUnDocumentoAmmesso();
             NessunaVoceDelTodoSiChiamaComeUnAltra();
             IlRifiutoDelleQuoteDiceAncoraQuelloCheServe();
+            LaLibreriaDelPonteELaSTESSADelBanco();
             ProveAttese.Tutte();
             ProveCatalogo.Tutte();
             ProveSessione.Tutte();
@@ -755,6 +756,76 @@ namespace Prove.Contratti
                   mancanti.Count == 0
                       ? "tutti e " + pezzi.Length + " i pezzi ci sono"
                       : "TOLTO DAL MESSAGGIO: " + string.Join("; ", mancanti));
+        }
+
+        /// <summary>
+        /// LA LIBRERIA CHE CARICA IL PONTE E' LA STESSA CHE MISURA IL BANCO.
+        ///
+        /// ── PERCHE' ESISTE, E QUANTO E' COSTATA ──────────────────────────
+        ///
+        /// Ce ne sono **due copie**, e vivono in due posti:
+        ///
+        ///   Riscontro.Disegno\bin\Release\Riscontro.Disegno.dll   <- il banco
+        ///   bin\Riscontro.Disegno.dll                             <- il ponte
+        ///
+        /// La seconda la mette `build.ps1`. Chi compila **il solo progetto**
+        /// della libreria — che e' la cosa piu' naturale del mondo mentre si
+        /// itera — aggiorna la prima e **non** la seconda.
+        ///
+        /// Il 18/9/2026 sono divergute di quattro versioni per nove ore.
+        /// Il banco misurava 0.98.4 e il ponte girava 0.98.1: una riparazione
+        /// e' stata provata tre volte dal ponte e **non e' mai stata provata**,
+        /// perche' in quel binario non c'era. Il sintomo era perfetto —
+        /// l'operazione «non rifiutava» — e la causa non era nel codice.
+        ///
+        /// *Due copie della stessa cosa in due posti divergono, e il giorno in
+        /// cui divergono nessuno lo vede: si vede il sintomo, mesi dopo,
+        /// travestito da difetto del codice.*
+        ///
+        /// ── COSA GUARDA ─────────────────────────────────────────────────
+        ///
+        /// Le due versioni, e basta. Non i byte: un rebuild senza modifiche
+        /// cambia i byte e non cambia niente di cio' che conta.
+        /// Se una delle due manca lo dice e **non passa**: una prova che non
+        /// trova cio' che cerca e passa e' peggio di nessuna prova.
+        /// </summary>
+        private static void LaLibreriaDelPonteELaSTESSADelBanco()
+        {
+            Gruppo("il ponte e il banco caricano la stessa libreria");
+
+            var delBanco = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release",
+                                        "Riscontro.Disegno.dll");
+            var delPonte = Path.Combine(Radice(), "bin", "Riscontro.Disegno.dll");
+
+            bool c1 = File.Exists(delBanco), c2 = File.Exists(delPonte);
+            Segna("la libreria che misura il banco c'e'", c1, delBanco);
+            Segna("la libreria che carica il ponte c'e'", c2,
+                  c2 ? delPonte : delPonte + " — si produce con .\\build.ps1");
+            if (!c1 || !c2) return;
+
+            string v1 = Versione(delBanco), v2 = Versione(delPonte);
+            Segna("le due versioni si leggono", v1 != null && v2 != null,
+                  (v1 ?? "?") + " / " + (v2 ?? "?"));
+            if (v1 == null || v2 == null) return;
+
+            Segna("il ponte e il banco hanno la STESSA versione della libreria",
+                  string.Equals(v1, v2, StringComparison.Ordinal),
+                  string.Equals(v1, v2, StringComparison.Ordinal)
+                      ? "tutti e due " + v1
+                      : "BANCO " + v1 + " contro PONTE " + v2 +
+                        " — chi ha compilato il solo progetto ha aggiornato il primo e " +
+                        "non il secondo: si rilancia .\\build.ps1, che li allinea");
+        }
+
+        /// <summary>
+        /// La versione di un assembly, letta senza caricarlo nel processo:
+        /// caricarlo vorrebbe dire tenerselo, e questa suite gira anche dove
+        /// l'interop di Dassault non c'e'.
+        /// </summary>
+        private static string Versione(string dll)
+        {
+            try { return System.Reflection.AssemblyName.GetAssemblyName(dll).Version.ToString(); }
+            catch { return null; }
         }
 
         /// <summary>

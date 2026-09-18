@@ -55,6 +55,28 @@ misura, un errore di banco e' una misura **mancata**. E il 2 vince sull'1: se il
 banco non ha potuto misurare, quante prove siano fallite e' una domanda a cui
 non si e' risposto.
 
+> ### ⚠ NON LANCIARLO DENTRO UNA PIPELINE POWERSHELL
+>
+> `.\Banco\banco.ps1 ... | Select-Object -First 25` **uccide il giro a meta'**.
+> `Select-Object -First N` lancia `StopUpstreamCommandsException` appena ha N
+> oggetti e **termina il comando a monte**: il banco muore, esce **255** — che
+> non e' nessuno dei tre codici qui sopra — e **non scrive il resoconto**.
+> Stesso esito con `Tee-Object` su un giro lungo, che sbatte contro
+> «Periodo di timeout del semaforo scaduto».
+>
+> Costato due volte: un giro pieno morto a **8469 s** (644 prove passate, zero
+> fallite) e un `-Gruppo casi` morto a **1132 s**. In tutti e due i casi **zero
+> rossi**: e' tempo buttato, non informazione.
+>
+> **Il segnale che li distingue e' semplice: un giro vero scrive SEMPRE un file
+> in `Banco\resoconto\`.** Se il resoconto non c'e', il giro non c'e' stato —
+> qualunque cosa dica l'ultima riga a schermo.
+>
+> Si lancia **nudo**, e si legge dopo: `Banco\resoconto\ultimo.json`, oppure
+> `Banco\ultimo-giro.txt` — che e' **UTF-16LE**, quindi un `grep` fatto a mano
+> non ci trova niente e sembra che il caso non sia mai girato. *Un log che non
+> si lascia leggere e' un log che fa concludere il falso.*
+
 L'ultima riga del giro dice **«attese verificate N su M»**, sempre, anche quando
 i due numeri combaciano. Se divergono, qualcosa sta misurando il nulla.
 
@@ -73,10 +95,44 @@ Banco\bin\ProvaSaldatura.exe --libreria Riscontro.Disegno\bin\Release\Riscontro.
 Senza `--libreria` cerca `Riscontro.Disegno.dll` accanto all'eseguibile. Esce 0
 se non fallisce niente.
 
+### Un'attesa che SPIEGA un rosso va messa PRIMA di quel rosso
+
+Il banco ferma il caso alla **prima** attesa rossa (`CasiDichiarati.cs`:
+`if (!ok) return false`). Non e' un difetto: un passo che ha gia' sbagliato non
+ha piu' uno stato su cui misurare, e continuare produrrebbe rossi derivati che
+sembrano difetti nuovi.
+
+**La conseguenza sorprende, e il 18/9/2026 e' costata un giro.** Un caso aveva
+un'attesa diagnostica — «di quale dei due guasti si tratta?» — scritta **dopo**
+l'attesa che poteva fallire. Quella e' fallita, il caso si e' fermato, e la
+diagnosi **non ha parlato**: nel resoconto c'era il rosso e non la sua ragione.
+
+> *Un testimone messo in fila dietro l'imputato non testimonia.*
+
+Quindi, quando un'attesa serve a spiegare perche' un'altra potrebbe fallire, va
+messa **sopra**. E la prima di tutte e' sempre la stessa domanda: **ho potuto
+guardare?** Un elenco vuoto perche' non si e' potuto leggere passa qualunque
+`non_contiene`, e sembra una misura.
+
 ### Un gruppo solo, mentre si lavora
 
-Un giro intero dura **13-17 minuti**. Mentre si sta scrivendo qualcosa non si
-possono aspettare quindici minuti per sapere di aver sbagliato una riga:
+Un giro intero dura **da un'ora e tre quarti a due ore** — misurato il
+18/9/2026: **6774 s** per 781 prove, e 7017 s per il solo gruppo `casi`.
+Mentre si sta scrivendo qualcosa non si possono aspettare due ore per sapere di
+aver sbagliato una riga:
+
+> **Questa riga diceva «13-17 minuti» fino al 18/9/2026, ed era vera quando fu
+> scritta: 88 prove.** Adesso sono 781, e nessuno aveva ricontrollato il numero
+> mentre la suite cresceva — lo ha trovato un agente di ricognizione, notando
+> che il resoconto e il LEGGIMI **non erano d'accordo**.
+>
+> E' lo stesso difetto che il LEGGIMI delle prove si e' gia' preso una volta
+> («diceva 54 mentre ne giravano 113»), e la' e' stato chiuso con un controllo
+> che rilegge il numero. **Qui il controllo non c'e'**: la durata non e'
+> facilmente sorvegliabile, perche' cambia con la macchina.
+> Quello che si puo' fare, ed e' scritto qui perche' valga: **il numero che conta
+> sta in `resoconto\ultimo.json`, campo `durata_s`, e quello non invecchia** —
+> questa riga e' un'indicazione, quel campo e' una misura.
 
 ```
 Banco\bin\ProvaSaldatura.exe --gruppi                  quali gruppi ci sono
@@ -425,9 +481,10 @@ casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella)
-casi/tavola/       3   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/       4   il primo caso che arriva in TAVOLA (voce GT0);
                        due fogli e lo stesso diedro (voce GT1);
-                       il cartiglio dice cosa vuole (voce GT3)
+                       il cartiglio dice cosa vuole (voce GT3);
+                       i contatori ci sono anche a zero (voce Z-E1)
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 

@@ -13,6 +13,24 @@
 #       `Banco/resoconto/ultimo.json` -- l'unico file di `resoconto/` che sta
 #       in repository, e sta li' apposta.
 #
+#  E COSA QUESTO NON PROVA, detto qui perche' e' il posto dove qualcuno legge
+#  prima di fidarsi (voce K4, 18/9/2026).
+#
+#  Il punto 3 NON e' una verifica indipendente. `ultimo.json` e' un file che
+#  **produciamo e committiamo noi**: la CI controlla che dichiari un giro
+#  intero, coerente con la libreria di adesso e posteriore all'ultima modifica
+#  alle operazioni. E' una guardia contro la NOSTRA distrazione -- contro il
+#  commit fatto senza aver rilanciato il banco -- non contro un banco che
+#  mentisse. Se il resoconto dicesse il falso, la CI lo crederebbe.
+#
+#  Chiamarla «la consegna e' sbarrata da un controllo, non da una promessa»
+#  sarebbe esattamente il salto che questo progetto rimprovera agli altri: una
+#  difesa raccontata piu' forte di com'e' indebolisce anche quelle vere, perche'
+#  insegna a non fidarsi dell'etichetta.
+#
+#  L'unica cosa che renderebbe il punto 3 una verifica vera e' un runner con
+#  SOLIDWORKS, e non c'e'.
+#
 #  IL DIFETTO SILENZIOSO DA TEMERE e' una CI che compila un progetto vuoto e
 #  resta verde per mesi. Per questo si controlla che l'eseguibile ESISTA prima
 #  di lanciarlo, e le prove stesse pretendono almeno venticinque controlli.
