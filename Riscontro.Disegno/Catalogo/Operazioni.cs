@@ -2200,6 +2200,58 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "nota_in_tavola",
+                    Famiglia = "tavola",
+                    // ── PROVATA, E SU COSA ─────────────────────────────
+                    //
+                    // Che la nota NASCA, che finisca sul FOGLIO e non dentro
+                    // una vista, e che il testo riletto sia quello chiesto.
+                    //
+                    // Non e' provata — e non puo' esserlo — sul fatto che
+                    // quello che c'e' scritto sia giusto: una nota e' testo
+                    // libero, e «materiale S355» su un pezzo S275 passa ogni
+                    // conteggio e ogni rilettura.
+                    Provata = true,
+                    Sommario =
+                        "Scrive una nota di testo sul foglio della tavola, e RILEGGE "
+                        + "quello che c'e' scritto.",
+                    Descrizione =
+                        "Mette una nota di testo sul foglio di una tavola — le note "
+                        + "generali: «smussare tutti gli spigoli vivi», «zincare dopo "
+                        + "saldatura», «tolleranze non indicate ISO 2768-mK».\n\n"
+                        + "TI DICO SE E' NATA, non che ho chiamato l'API: le note si "
+                        + "contano prima e dopo. E te le conto in DUE posti separati — "
+                        + "sul foglio e dentro le viste — perche' sono due cose diverse "
+                        + "e sommarle farebbe sembrare piena una tavola vuota.\n\n"
+                        + "IL TESTO TORNA RILETTO da SOLIDWORKS, non ricopiato da quello "
+                        + "che hai chiesto: una nota che compare con un testo diverso si "
+                        + "legge come una nota giusta finche' nessuno la confronta.\n\n"
+                        + "DOVE FINISCE: coordinate del FOGLIO, in millimetri, di serie "
+                        + "in alto a sinistra. Se chiedi un punto fuori dal foglio mi "
+                        + "rifiuto — fuori dal foglio la nota c'e' davvero e si conta, ma "
+                        + "stampando non compare, e nessun errore lo direbbe.\n\n"
+                        + "QUELLO CHE NON POSSO SAPERE e' se quello che scrivi e' VERO. "
+                        + "Garantisco che la nota c'e' e dice quello che hai scritto.",
+                    Precondizione = "una tavola aperta, con un foglio attivo",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "testo", O(
+                                "type", "string",
+                                "description", "il testo della nota. Obbligatorio: una nota vuota "
+                                    + "occupa un posto sul foglio e non dice niente."),
+                            "x_mm", O(
+                                "type", "number",
+                                "description", "distanza dal bordo sinistro del foglio, in "
+                                    + "millimetri. Predefinito 20."),
+                            "y_mm", O(
+                                "type", "number",
+                                "description", "altezza dal bordo inferiore del foglio, in "
+                                    + "millimetri. Predefinito 20 mm sotto il bordo alto.")),
+                        "required", A("testo")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "cartiglio",
                     Famiglia = "verifiche",
                     Provata = true,

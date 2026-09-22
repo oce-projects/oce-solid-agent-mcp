@@ -111,8 +111,123 @@ namespace Prove.Contratti
                   brutti.Count == 0 ? "" : "trovati: " + string.Join(" | ", brutti.Take(3)));
 
             OgniEseguibileEDichiarata(nomiCatalogo);
+            IlCatalogoNonERimastoIndietro();
 
             Simili();
+        }
+
+        // ================================================================
+        // IL JSON E' UN PRODOTTO, E UN PRODOTTO PUO' ESSERE VECCHIO
+        // ================================================================
+
+        /// <summary>
+        /// `catalogo.json` combacia ancora con il catalogo C# che lo genera?
+        ///
+        /// COSTATO UN GIRO IL 22/9/2026. Scritta l'operazione
+        /// `nota_in_tavola`, compilata, il ponte l'ha rifiutata con «non
+        /// esiste nessuna operazione «nota_in_tavola». Forse cercavi:
+        /// quota_in_tavola» — mentre esisteva, era nel dispatcher ed era
+        /// dentro la DLL che il ponte aveva appena caricato. Mancava solo dal
+        /// JSON, che e' l'unica cosa che il ponte guarda per sapere cosa
+        /// esiste.
+        ///
+        /// E `Strumenti/aggiorna.md` diceva: *«`build.ps1` rigenera il file a
+        /// ogni pacchetto, quindi non puo' restare indietro senza che qualcuno
+        /// cancelli quel passo»*. **Non e' vero con `-SoloPonte`**, che e' il
+        /// modo in cui si compila mentre si itera. Una garanzia scritta in un
+        /// documento non e' una garanzia: e' una speranza con una fonte.
+        ///
+        /// Lo strumento per accorgersene c'era gia' — `--controlla` esce 1 se
+        /// non combacia, e dice DOVE — e nessuno lo chiamava.
+        ///
+        /// SI GUARDANO DUE COPPIE, e sono difetti diversi:
+        /// il C# contro `Strumenti/catalogo.json` (qualcuno ha toccato le
+        /// operazioni e non ha riesportato), e `Strumenti/` contro `bin/`
+        /// (qualcuno ha riesportato e non ha rifatto il pacchetto, quindi il
+        /// ponte carica ancora quello vecchio — ed e' esattamente il caso di
+        /// oggi).
+        /// </summary>
+        private static void IlCatalogoNonERimastoIndietro()
+        {
+            var strumento = Path.Combine(Radice(), "bin", "Riscontro.Catalogo.exe");
+            var sorgente = Path.Combine(Radice(), "Strumenti", "catalogo.json");
+            var pacchetto = Path.Combine(Radice(), "bin", "catalogo.json");
+
+            if (!File.Exists(strumento))
+            {
+                Segna("l'esportatore del catalogo c'e'", false,
+                      "non trovo " + strumento + " — si produce con .\\build.ps1");
+                return;
+            }
+
+            // 1. IL C# CONTRO IL JSON ESPORTATO.
+            string detto = "";
+            int uscita = -1;
+            try
+            {
+                var p = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo(strumento,
+                        "--controlla \"" + sorgente + "\"")
+                    {
+                        WorkingDirectory = Radice(),
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    },
+                };
+                p.Start();
+                detto = (p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd()).Trim();
+                p.WaitForExit(30000);
+                uscita = p.ExitCode;
+            }
+            catch (Exception ex)
+            {
+                Segna("il catalogo esportato combacia col C#", false, ex.Message);
+                return;
+            }
+
+            // La riga utile e' quella che dice DOVE differiscono: un «sono
+            // diversi» su settantamila caratteri manda a cercare a occhio.
+            string riga = detto.Replace("\r", " ").Replace("\n", " ");
+            if (riga.Length > 160) riga = riga.Substring(0, 160) + "...";
+
+            Segna("il catalogo esportato combacia col C#", uscita == 0,
+                  uscita == 0 ? "Strumenti\\catalogo.json e' aggiornato"
+                              : "NON combacia: si rigenera con "
+                                + ".\\bin\\Riscontro.Catalogo.exe Strumenti\\catalogo.json — " + riga);
+
+            // 2. E QUELLO CHE CARICA IL PONTE E' LO STESSO?
+            if (!File.Exists(pacchetto))
+            {
+                Segna("il ponte carica il catalogo di adesso", false,
+                      "non trovo " + pacchetto + " — si produce con .\\build.ps1");
+                return;
+            }
+
+            string a = null, b = null;
+            try { a = Impronta(sorgente); b = Impronta(pacchetto); }
+            catch (Exception ex)
+            {
+                Segna("il ponte carica il catalogo di adesso", false, ex.Message);
+                return;
+            }
+
+            Segna("il ponte carica il catalogo di adesso",
+                  string.Equals(a, b, StringComparison.Ordinal),
+                  string.Equals(a, b, StringComparison.Ordinal)
+                      ? "Strumenti\\ e bin\\ sono lo stesso file"
+                      : "bin\\catalogo.json e' rimasto indietro rispetto a Strumenti\\: "
+                        + "si rilancia .\\build.ps1, che lo ricopia. Finche' non lo si fa, "
+                        + "il ponte RIFIUTA le operazioni nuove dicendo che non esistono");
+        }
+
+        private static string Impronta(string percorso)
+        {
+            using (var h = System.Security.Cryptography.MD5.Create())
+            using (var f = File.OpenRead(percorso))
+                return BitConverter.ToString(h.ComputeHash(f));
         }
 
         // ================================================================

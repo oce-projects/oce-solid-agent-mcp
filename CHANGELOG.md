@@ -24,6 +24,94 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.68.0 — 22 September 2026 · library 0.100.0
+
+### A note on the drawing, and the counter that would have closed four entries
+
+Bench 831 checks, 0 red, 659/659 expectations, full run, 71 minutes. Contract suite 158, 0 red.
+
+**`nota_in_tavola` (entry E2-bis).** A workshop drawing is not only geometry and
+dimensions: it carries the general notes — "break all sharp edges", "galvanise
+after welding", "unspecified tolerances ISO 2768-mK". Until today the bridge
+could not write one.
+
+Measured on the real drawing, first through the bridge and then by the bench:
+
+```
+note_foglio_prima: 67  ->  note_foglio_dopo: 68
+note_viste_prima:   0  ->  note_viste_dopo:   0
+dove_mm: [20, 250]         testo_combacia: true
+```
+
+**The second line is the one that earns the entry.** `InsertNote` writes on the
+SHEET, but `GetNoteCount()` lives on `IView` — and a drawing's real views start
+*after* the first one, because the first "view" **is** the sheet.
+
+Counting only the real views would have read `0 -> 0` with the note sitting
+exactly where it belongs, and the conclusion would have been "notes do not get
+created either: this is systemic". That false negative would have wrongly closed
+four entries of this TODO — surface finish, datums, welding symbols, GD&T — all
+of which are open precisely *because* a note is born.
+
+So the two counters come back separately, and the bench case asserts that **the
+views stay at zero**. Without that line, `note_messe: 1` would be green even
+with the note inside a view — and a note inside a view travels with the view.
+
+### Two things that went into the code because they were measured
+
+- **`InsertNewNote3` is `Void`** — a button, not an API: it has no way of saying
+  it did nothing, and it does not. `InsertNote` answers, so that is the one.
+  (The entry named `InsertNewNote2`; this installation exposes the `3`, equally
+  mute.) Written in the source so nobody tries the other one again.
+- **The position does not read back on the first call.** `GetTextPoint2()`
+  returns an object whose `ArrayData` is null. Without a second route this would
+  have been written down as "on this version the position cannot be read", as if
+  it were a property of SOLIDWORKS instead of a property of the first call
+  tried. Three routes; the first that answers wins.
+
+A position outside the sheet is refused **before** anything is written, naming
+the number asked for and the sheet size. Outside the sheet a note exists, gets
+counted, and is not on the paper — and no error would say so.
+
+### The catalogue can be stale, and nothing was checking
+
+Writing the operation, compiling it, and calling it produced: *"there is no
+operation «nota_in_tavola». Did you mean: quota_in_tavola"* — while it existed,
+was in the dispatcher, and was inside the DLL the bridge had just loaded. It was
+missing only from `catalogo.json`, which is the only thing the bridge looks at to
+know what exists.
+
+And `Strumenti/aggiorna.md` said: *"`build.ps1` regenerates the file with every
+package, so it cannot fall behind unless somebody deletes that step"*. **Not true
+with `-SoloPonte`**, which is how you compile while iterating.
+
+> A guarantee written in a document is not a guarantee: it is a hope with a
+> source.
+
+The tool to notice already existed — `--controlla` exits 1 and says *where* — and
+nobody was calling it. Two new contract checks now do: the C# against
+`Strumenti/catalogo.json`, and `Strumenti/` against `bin/`. They are different
+defects: the first means somebody edited the operations and did not re-export,
+the second that the bridge is still loading the old one. Both watched failing.
+
+### And a red worth keeping on the record
+
+The first full run came back with three reds, all from one mistake of mine: the
+answer says "sia VERO" in capitals and the expectation looked for `vero` in
+lower case. `contiene` is case-sensitive.
+
+The interesting part is the second and third red. The bench **refused to count
+the twin's refusal as proof** — *"the twin «la_nota_finisce_sul_foglio» is not
+green in this run"* — and that is exactly right:
+
+> A call that refuses proves something only if the same call with a valid
+> argument works.
+
+The defect was in the expectation, not in the operation. From the outside the
+two are written the same way.
+
+---
+
 ## 0.67.0 — 22 September 2026 · library 0.99.0
 
 ### The dimensions in a drawing are CREATED, not imported

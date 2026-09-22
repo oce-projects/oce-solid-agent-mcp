@@ -253,7 +253,7 @@ namespace Riscontro.Disegno
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
             "sostituisci_componente",
-            "croci_di_centro", "quota_in_tavola",
+            "croci_di_centro", "quota_in_tavola", "nota_in_tavola",
             "nuovo_foglio", "attiva_foglio", "distinta_taglio_in_tavola",
             "verifica_interferenze", "cartiglio",
             "sweep_circolare",
@@ -390,6 +390,10 @@ namespace Riscontro.Disegno
                     // completa: in officina manca dove forare.
                     case "croci_di_centro": return CrociDiCentro(modello, argomenti);
                     case "quota_in_tavola": return QuotaInTavola(modello, argomenti);
+                    // La nota va sul FOGLIO, non dentro una vista: vedi
+                    // `OperazioniNotaTavola.cs`, dove c'e' anche perche'
+                    // contarla nel posto sbagliato avrebbe chiuso quattro voci.
+                    case "nota_in_tavola": return NotaInTavola(modello, argomenti);
                     // I fogli, in OperazioniFogli.cs. `esporta_pdf` conta gia'
                     // le pagine del PDF, e quel conteggio valeva sempre 1
                     // perche' non c'era modo di fare un secondo foglio.

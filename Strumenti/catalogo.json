@@ -1788,6 +1788,33 @@
    "precondizione": "una tavola con almeno una vista che mostri spigoli"
   },
   {
+   "nome": "nota_in_tavola",
+   "famiglia": "tavola",
+   "sommario": "Scrive una nota di testo sul foglio della tavola, e RILEGGE quello che c'e' scritto.",
+   "descrizione": "Mette una nota di testo sul foglio di una tavola — le note generali: «smussare tutti gli spigoli vivi», «zincare dopo saldatura», «tolleranze non indicate ISO 2768-mK».\n\nTI DICO SE E' NATA, non che ho chiamato l'API: le note si contano prima e dopo. E te le conto in DUE posti separati — sul foglio e dentro le viste — perche' sono due cose diverse e sommarle farebbe sembrare piena una tavola vuota.\n\nIL TESTO TORNA RILETTO da SOLIDWORKS, non ricopiato da quello che hai chiesto: una nota che compare con un testo diverso si legge come una nota giusta finche' nessuno la confronta.\n\nDOVE FINISCE: coordinate del FOGLIO, in millimetri, di serie in alto a sinistra. Se chiedi un punto fuori dal foglio mi rifiuto — fuori dal foglio la nota c'e' davvero e si conta, ma stampando non compare, e nessun errore lo direbbe.\n\nQUELLO CHE NON POSSO SAPERE e' se quello che scrivi e' VERO. Garantisco che la nota c'e' e dice quello che hai scritto.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "testo": {
+      "type": "string",
+      "description": "il testo della nota. Obbligatorio: una nota vuota occupa un posto sul foglio e non dice niente."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "distanza dal bordo sinistro del foglio, in millimetri. Predefinito 20."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "altezza dal bordo inferiore del foglio, in millimetri. Predefinito 20 mm sotto il bordo alto."
+     }
+    },
+    "required": [
+     "testo"
+    ]
+   },
+   "precondizione": "una tavola aperta, con un foglio attivo"
+  },
+  {
    "nome": "cartiglio",
    "famiglia": "verifiche",
    "sommario": "Dice quali proprieta' il cartiglio CHIEDE e quali MOSTRA. Non tocca niente.",

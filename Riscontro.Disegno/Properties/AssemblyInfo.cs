@@ -54,8 +54,13 @@ using System.Runtime.InteropServices;
 //         `InsertModelAnnotations*` non ne porta nessuna fuori processo, ma
 //         `AddDimension` sugli spigoli della vista si', e coi valori giusti.
 //         Ogni quota viene RILETTA: risponde quanto misura, non «fatto».
-[assembly: AssemblyVersion("0.99.0.0")]
-[assembly: AssemblyFileVersion("0.99.0.0")]
+// 0.100.0: `nota_in_tavola` (voce E2-bis) — una nota di testo sul foglio.
+//          `InsertNote` risponde, `InsertNewNote3` e' `Void` e non fa niente.
+//          Le note si contano SUL FOGLIO e non nelle viste: contarle nel posto
+//          sbagliato avrebbe letto 0 con la nota al suo posto, e quel falso
+//          negativo avrebbe chiuso per sbaglio quattro voci del TODO.
+[assembly: AssemblyVersion("0.100.0.0")]
+[assembly: AssemblyFileVersion("0.100.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -65,4 +70,4 @@ using System.Runtime.InteropServices;
 // impedito — perche' un commento non e' un controllo. Finche' nessuna prova
 // confronta i due numeri, questo terzo lo si allinea a mano e prima o poi
 // invecchia di nuovo.
-[assembly: AssemblyInformationalVersion("0.99.0")]
+[assembly: AssemblyInformationalVersion("0.100.0")]

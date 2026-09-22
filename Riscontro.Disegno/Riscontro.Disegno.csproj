@@ -102,6 +102,7 @@
     <Compile Include="OperazioniCartiglio.cs" />
     <Compile Include="OperazioniCentrini.cs" />
     <Compile Include="OperazioniQuoteTavola.cs" />
+    <Compile Include="OperazioniNotaTavola.cs" />
     <Compile Include="OperazioniDistintaTavola.cs" />
     <Compile Include="OperazioniFogli.cs" />
     <Compile Include="OperazioniInterferenze.cs" />
