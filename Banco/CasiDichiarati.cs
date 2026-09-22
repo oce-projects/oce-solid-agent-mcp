@@ -1384,7 +1384,7 @@ namespace ProvaSaldatura
                         // VERIFICATA vuol dire «ho misurato e ho confrontato»,
                         // non «e' andata bene»: una rossa e' verificata eccome.
                         _atteseVerificate++;
-                        Segna(etichetta + " · " + Testo(attesa, "cosa"), ok, dettaglio);
+                        SegnaAttesa(etichetta + " · " + Testo(attesa, "cosa"), ok, dettaglio);
                         if (!ok) return false;
                     }
                 }

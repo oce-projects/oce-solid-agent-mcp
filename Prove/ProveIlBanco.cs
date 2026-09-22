@@ -141,28 +141,83 @@ namespace Prove.Contratti
         /// Null se git non c'e' o non risponde — e in quel caso il controllo
         /// lo DICE invece di passare.
         /// </summary>
+        /// <summary>
+        /// Quando la libreria e' stata toccata l'ultima volta SENZA che nello
+        /// stesso commit entrasse anche un resoconto del banco.
+        ///
+        /// ── PRIMA QUESTO CONTROLLO NON POTEVA PASSARE MAI ─────────────────
+        ///
+        /// Chiedeva `git log -1 -- Riscontro.Disegno` e confrontava quella data
+        /// con l'ora del giro. Ma il giro si lancia, scrive `ultimo.json`, e
+        /// POI si committa tutto insieme — libreria e resoconto nello stesso
+        /// commit. La data del commit e' quindi per costruzione posteriore
+        /// all'ora del giro che contiene. Misurato su b35550d: giro 21:12:13,
+        /// commit 21:13:52, novantanove secondi dopo contro una tolleranza di
+        /// sessanta.
+        ///
+        /// Non mancava per poco: mancava sempre. *Un controllo che non puo'
+        /// diventare verde e' peggio di nessun controllo — si legge come una
+        /// difesa, fallisce a ogni giro, e chi lo guarda impara a non
+        /// guardarlo.*
+        ///
+        /// ── LA DOMANDA VERA, E COME SI RISPONDE ───────────────────────────
+        ///
+        /// Non «quand'e' l'ultimo commit sulla libreria», ma **la libreria e'
+        /// stata toccata dopo l'ultimo giro?**. Un commit che porta con se' un
+        /// resoconto nuovo E' il giro: e' la consegna, e il resoconto che
+        /// contiene la valida. Un commit che tocca la libreria e NON porta un
+        /// resoconto nuovo e' invece esattamente il caso da prendere —
+        /// qualcuno ha cambiato il codice e non ha rilanciato.
+        ///
+        /// Quindi si scorrono i commit sulla libreria e ci si ferma al primo
+        /// che non tocca anche `Banco/resoconto/ultimo.json`.
+        /// </summary>
         private static DateTime? UltimaModificaAlleOperazioni()
         {
             try
             {
-                var p = new Process
+                foreach (var riga in Git("log -30 --format=%H|%cI -- Riscontro.Disegno"))
                 {
-                    StartInfo = new ProcessStartInfo("git",
-                        "log -1 --format=%cI -- Riscontro.Disegno")
-                    {
-                        WorkingDirectory = Radice(),
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    },
-                };
-                p.Start();
-                string riga = p.StandardOutput.ReadLine();
-                p.WaitForExit(10000);
-                return Data(riga);
+                    var pezzi = riga.Split('|');
+                    if (pezzi.Length < 2) continue;
+                    if (CommitPortaIlResoconto(pezzi[0])) continue;
+                    return Data(pezzi[1]);
+                }
+                // Nessun commit sulla libreria senza resoconto: e' il caso di
+                // un repository giovane, e non c'e' niente di non provato.
+                return null;
             }
             catch { return null; }
+        }
+
+        /// <summary>Questo commit porta anche `Banco/resoconto/ultimo.json`?</summary>
+        private static bool CommitPortaIlResoconto(string sha)
+        {
+            foreach (var r in Git("show --name-only --format= " + sha +
+                                  " -- Banco/resoconto/ultimo.json"))
+                if (!string.IsNullOrWhiteSpace(r)) return true;
+            return false;
+        }
+
+        private static List<string> Git(string argomenti)
+        {
+            var fuori = new List<string>();
+            var p = new Process
+            {
+                StartInfo = new ProcessStartInfo("git", argomenti)
+                {
+                    WorkingDirectory = Radice(),
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                },
+            };
+            p.Start();
+            string riga;
+            while ((riga = p.StandardOutput.ReadLine()) != null) fuori.Add(riga.Trim());
+            p.WaitForExit(10000);
+            return fuori;
         }
     }
 }

@@ -24,6 +24,46 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.69.0 — 23 September 2026 · library 0.100.0
+
+### How much the suite actually measures, and a check that could never pass
+
+Bench 832 checks, 0 red, 659/659 expectations, full run, 77 minutes. Contract
+suite 158, 0 red.
+
+**What the number covers (K2).** 760 of 832 checks sit in one group. «832 checks
+on real SOLIDWORKS» covers far less ground than the number suggests, and putting
+it in front of anyone counts in the same figure checks that never open a CAD
+document. Not a lie: *a big number reassures in proportion to how big it is, not
+to how relevant it is.* The report now carries the per-group count, and goes red
+if the sum stops matching the total.
+
+**What it asserts, and what it only survives (K3).** `659 with a declared
+expectation, 173 without`, and the names of the second group go to
+`Banco/resoconto/senza-attesa.txt`. The list also shows the entry overstated
+it: 43 are twin checks, 42 are refusal steps asserting the message, 26 are the
+bench checking itself, 16 are lookup tables. Most assert — in C# instead of in a
+case file.
+
+**A check that could never pass.** «the run is later than the last change to the
+operations» compared the run with the commit date, but the report is written
+before it is committed and lands in the same commit. On b35550d: run 21:12:13,
+commit 21:13:52. It missed always. Now it walks the library commits and stops at
+the first that does not carry a fresh report — a commit that carries one *is* the
+run.
+
+**Two documents described this machine instead of the repository.** The bench
+LEGGIMI counted `casi/forma/ 5`, which git does not track: the check «every
+folder named in the LEGGIMI exists» was green here and red for anyone cloning.
+Found by cloning. And TODO.md pointed at `scratchpad/conta_todo.js`, which is
+not versioned — the tool meant to keep the counts honest could not be run by
+anyone. `Controlli/conta-todo.js` now exists, and the counts are 108 open of
+300, not 104.
+
+Plus: the README carries the trademark line it was missing.
+
+---
+
 ## 0.68.0 — 22 September 2026 · library 0.100.0
 
 ### A note on the drawing, and the counter that would have closed four entries

@@ -360,7 +360,15 @@ namespace ProvaSaldatura
                     Saltata(gruppo.Cosa, gruppo.PerchePesa ?? "si lancia con --lento");
                     continue;
                 }
-                gruppo.Corri();
+                // DA QUI IN POI LE PROVE SONO DI QUESTO GRUPPO (voce K2).
+                // Si alza qui e non dentro `Corri()` perche' i gruppi sono
+                // diciotto metodi diversi e chiedere a ognuno di ricordarsene
+                // vuol dire che prima o poi uno se ne dimentica — e un gruppo
+                // che non si dichiara finisce in «(fuori gruppo)», che e'
+                // visibile, ma dopo.
+                _gruppoInCorso = gruppo.Nome;
+                try { gruppo.Corri(); }
+                finally { _gruppoInCorso = null; }
             }
 
             Console.WriteLine();
@@ -386,6 +394,16 @@ namespace ProvaSaldatura
             // LE SALTATE SI CONTANO A PARTE E SI DICONO. «88 prove, 0 fallite»
             // su un giro in cui una prova non e' stata lanciata e' una frase
             // vera che fa credere una cosa falsa.
+            //
+            // IL CONTO PER GRUPPO SI CONTROLLA PRIMA DEL RIEPILOGO, e non
+            // dopo: quel controllo puo' alzare un rosso, e un rosso alzato
+            // dopo che il riepilogo ha gia' contato i rossi non finisce nel
+            // riepilogo ne' nel codice d'uscita. La prima stesura lo chiamava
+            // in fondo, e sarebbe stato un controllo che non poteva far
+            // fallire niente: la forma peggiore, perche' si legge come un
+            // controllo.
+            ControllaIlContoPerGruppo();
+
             var riepilogo =
                 (nonLanciati.Count > 0
                     ? "GIRO PARZIALE (solo " + string.Join(", ", scelti) + ", " +
@@ -402,6 +420,24 @@ namespace ProvaSaldatura
             // non lo guarda nessuno finche' non e' troppo tardi.
             var conto = "attese verificate " + _atteseVerificate + " su " + _attese;
             Console.WriteLine(conto);
+
+            // ── E QUANTE PROVE NON HANNO NESSUNA ATTESA (voce K3) ────────
+            //
+            // Finche' i due numeri stavano in colonne diverse — 831 passate,
+            // 659 attese verificate — la differenza era leggibile solo
+            // sottraendo a mano, e nessuno la sottraeva. Scritta qui, con i
+            // NOMI, diventa un elenco su cui si puo' decidere.
+            //
+            // NON E' UN ELENCO DI COLPEVOLI. Ci finiscono anche prove severe,
+            // che confrontano nel codice invece che in un file di caso; e ci
+            // finiscono le righe di servizio del banco, che non provano il
+            // prodotto ma se stesse. Il punto e' poterle guardare una per una
+            // invece di crederle tutte equivalenti a un'attesa misurata.
+            Console.WriteLine("prove con un'attesa dichiarata: " + _conAttesa +
+                              " — senza: " + _senzaAttesa.Count);
+            ScriviLeSenzaAttesa();
+            ScriviIlContoPerGruppo();
+
             ChiudiIlDiario(riepilogo + " · " + conto);
 
             // TRE USCITE, E IL 2 VINCE SULL'1. Se il banco non ha potuto
@@ -618,10 +654,174 @@ namespace ProvaSaldatura
             if (_zitto) { if (!ok) _zittoRosso = true; return; }
 
             if (!ok) _falliti++;
+
+            // ── CON O SENZA UN'ATTESA DICHIARATA (voce K3) ───────────────
+            //
+            // `_attesaInCorso` lo alza chi ha appena MISURATO E CONFRONTATO
+            // una grandezza dichiarata in un caso: il valutatore delle attese
+            // e quello della regressione. Tutte le altre prove — quelle
+            // scritte in C# — passano di qui con il segno abbassato.
+            //
+            // LA DIFFERENZA NON E' «BUONE E CATTIVE». Molte prove in C#
+            // confrontano eccome, e alcune sono le piu' severe della suite.
+            // Ma una parte non confronta niente: chiama, non esplode, e
+            // finisce verde. *Una prova che passa senza asserzione non
+            // dimostra un comportamento: dimostra che non e' esplosa*, e
+            // finche' le due cose si sommano in un numero solo — 831 passate
+            // contro 659 attese verificate — quel numero non dice quanto la
+            // suite stia misurando.
+            //
+            // Qui si separano e si scrivono i NOMI di quelle senza. Poi si
+            // decide, voce per voce, se chiuderle o dichiararle: e' una
+            // decisione che si puo' prendere solo avendo l'elenco davanti.
+            if (_attesaInCorso) _conAttesa++;
+            else _senzaAttesa.Add(nome);
+
+            // ── DI QUALE GRUPPO E' QUESTA PROVA (voce K2) ────────────────
+            //
+            // «831 prove su SOLIDWORKS vero» e' un numero che copre meno
+            // terreno di quanto sembri, e contrapporlo a qualcuno mette nello
+            // stesso conto prove che un documento CAD non lo aprono nemmeno.
+            // Non e' una bugia: e' un numero grande che rassicura in
+            // proporzione a quanto e' grande, non a quanto e' pertinente.
+            //
+            // Il conto per gruppo si scrive accanto al totale. Il totale
+            // resta — serve a vedere se la suite cresce — ma smette di essere
+            // l'unico numero che si legge.
+            var chiave = _gruppoInCorso ?? "(fuori gruppo)";
+            int quante;
+            _perGruppo.TryGetValue(chiave, out quante);
+            _perGruppo[chiave] = quante + 1;
+
             var riga = (ok ? "  OK   " : "  NO   ") + InColonna(nome) + dettaglio;
             _esiti.Add(riga);
             Console.WriteLine(riga);
             Diario(riga);
+        }
+
+        /// <summary>
+        /// Alzato da chi sta registrando l'esito di un'attesa DICHIARATA, per
+        /// il tempo di quella sola chiamata a `Segna`. Vedi la voce K3.
+        /// </summary>
+        internal static bool _attesaInCorso;
+
+        internal static int _conAttesa;
+        internal static readonly List<string> _senzaAttesa = new List<string>();
+
+        /// <summary>Il gruppo che sta girando adesso (voce K2).</summary>
+        internal static string _gruppoInCorso;
+
+        /// <summary>
+        /// Quante prove per gruppo. LA SOMMA DEVE FARE IL TOTALE, e se non lo
+        /// fa il resoconto lo dice: un conto per gruppo che non torna col
+        /// totale e' peggio di nessun conto per gruppo, perche' si legge come
+        /// una ripartizione mentre e' una ripartizione incompleta.
+        /// </summary>
+        internal static readonly Dictionary<string, int> _perGruppo =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Registra l'esito di un'attesa dichiarata: come `Segna`, ma conta
+        /// nella colonna giusta. Sta qui e non nei chiamanti perche' un flag
+        /// alzato a mano e dimenticato abbassato falsa tutto il conteggio da
+        /// li' in avanti — e lo falserebbe in silenzio.
+        /// </summary>
+        internal static void SegnaAttesa(string nome, bool ok, string dettaglio = "")
+        {
+            _attesaInCorso = true;
+            try { Segna(nome, ok, dettaglio); }
+            finally { _attesaInCorso = false; }
+        }
+
+        /// <summary>
+        /// Scrive in un file l'elenco delle prove senza attesa dichiarata, e a
+        /// schermo le prime venti.
+        ///
+        /// IN UN FILE E NON SOLO A SCHERMO: sono centosettanta righe in fondo
+        /// a un giro da ottocento, cioe' esattamente il posto in cui nessuno
+        /// guarda. Il file invece si apre quando si ha voglia di decidere, e
+        /// si puo' confrontare con quello del giro prima per vedere se
+        /// l'elenco si sta accorciando.
+        /// </summary>
+        /// <summary>
+        /// Il conto per gruppo, e il controllo che la somma faccia il totale.
+        ///
+        /// PERCHE' IL TOTALE DA SOLO DICE MENO DI QUANTO SEMBRI (voce K2).
+        /// «831 prove su SOLIDWORKS vero» mette nello stesso numero prove che
+        /// un documento CAD non lo aprono nemmeno — il protocollo MCP, il
+        /// valutatore delle attese, i controlli sul banco stesso. Non e' una
+        /// bugia: e' un numero che copre meno terreno di quanto sembri, ed e'
+        /// la forma di difetto che questo progetto insegue.
+        ///
+        /// *Un numero grande rassicura in proporzione a quanto e' grande, non
+        /// a quanto e' pertinente.*
+        ///
+        /// E SE LA SOMMA NON TORNA, SI DICE. Una ripartizione che non fa il
+        /// totale si legge come una ripartizione e non lo e': manderebbe a
+        /// credere che il resto non esista, invece di far cercare dove e'
+        /// finito.
+        /// </summary>
+        private static void ControllaIlContoPerGruppo()
+        {
+            if (_perGruppo.Count == 0) return;
+            int somma = 0;
+            foreach (var v in _perGruppo.Values) somma += v;
+            int totale = _conAttesa + _senzaAttesa.Count;
+            Segna("il conto per gruppo fa il totale", somma == totale,
+                  somma == totale
+                      ? somma + " prove in " + _perGruppo.Count + " gruppi"
+                      : "la somma per gruppo e' " + somma + ", le prove sono " + totale +
+                        ": " + Math.Abs(totale - somma) + " non sono attribuite a nessun " +
+                        "gruppo, e una ripartizione che non fa il totale si legge come " +
+                        "una ripartizione completa");
+        }
+
+        /// <summary>Le righe «gruppo: quante», in ordine di quantita'.</summary>
+        private static void ScriviIlContoPerGruppo()
+        {
+            if (_perGruppo.Count == 0) return;
+            var righe = new List<KeyValuePair<string, int>>(_perGruppo);
+            righe.Sort((a, b) => b.Value != a.Value
+                ? b.Value.CompareTo(a.Value)
+                : string.CompareOrdinal(a.Key, b.Key));
+            var pezzi = new List<string>();
+            foreach (var r in righe) pezzi.Add(r.Key + " " + r.Value);
+            Console.WriteLine("per gruppo: " + string.Join(", ", pezzi));
+        }
+
+        private static void ScriviLeSenzaAttesa()
+        {
+            if (_senzaAttesa.Count == 0) return;
+            try
+            {
+                // La cartella del banco si ricava come per il diario: il
+                // binario sta in `Banco/bin/`, quindi il padre e' `Banco/`.
+                var bin = AppDomain.CurrentDomain.BaseDirectory;
+                var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
+                var dove = Path.Combine(banco != null ? banco.FullName : bin,
+                                        "resoconto", "senza-attesa.txt");
+                var righe = new List<string>
+                {
+                    "# Le prove che passano senza un'attesa DICHIARATA (voce K3).",
+                    "#",
+                    "# Non e' un elenco di colpevoli: molte confrontano nel codice invece",
+                    "# che in un file di caso, e alcune sono fra le piu' severe della suite.",
+                    "# Altre pero' chiamano, non esplodono, e finiscono verdi — e una prova",
+                    "# che passa senza asserzione non dimostra un comportamento: dimostra",
+                    "# che non e' esplosa.",
+                    "#",
+                    "# " + _senzaAttesa.Count + " righe, su " + (_conAttesa + _senzaAttesa.Count) +
+                    " prove in tutto. Il giro e' del " + DateTime.Now.ToString("s") + ".",
+                    "",
+                };
+                righe.AddRange(_senzaAttesa);
+                File.WriteAllLines(dove, righe);
+                Console.WriteLine("   l'elenco: " + dove);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("   (l'elenco non si e' potuto scrivere: " + ex.Message + ")");
+            }
         }
 
         private static bool _zitto;

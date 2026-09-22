@@ -1,10 +1,19 @@
 # OCE Solid Agent
 
-Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti sessantanove
+*Un progetto indipendente, non affiliato a Dassault Systèmes.*
+
+Un ponte MCP per **disegnare in SOLIDWORKS®**: espone come strumenti sessantanove
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
-Si installa con un file solo e non chiede altro che SOLIDWORKS.
+Si installa con un file solo e non chiede altro che SOLIDWORKS®.
+
+> SOLIDWORKS® e' un marchio registrato di Dassault Systèmes SolidWorks
+> Corporation. Questo progetto e' indipendente e non e' affiliato, sponsorizzato
+> ne' approvato da Dassault Systèmes. Non contiene e non ridistribuisce codice o
+> materiale di Dassault Systèmes: le librerie di interoperabilita' si caricano
+> all'avvio dalla **tua** installazione di SOLIDWORKS®, che richiede una licenza
+> tua.
 
 ## Perche' esiste
 

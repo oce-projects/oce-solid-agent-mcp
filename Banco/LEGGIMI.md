@@ -500,9 +500,22 @@ casi/limiti/    8   dove le operazioni si rompono
 casi/tavola/    7   viste, quote, PDF  (+ i casi dichiarati, vedi sotto)
 casi/pezzi/    10   pezzi interi: coperchio, vasca, cupola
 casi/viste/     5   pezzi di cui si sa tutto, per le prove sulle immagini
-casi/forma/     5   materiale per la forma a parole
 casi/ponte/   107   i piani del ponte MCP, per voce del TODO
 ```
+
+**`casi/forma/` NON E' NEL REPOSITORY, ed e' voluto.** La cartella compare su
+questa macchina e contiene i cinque piani che un modello isolato scrive durante
+la misura V3 — li riscrive a ogni giro, e versionarli vorrebbe dire congelare
+la risposta di **un** modello di **un** giorno come se fosse la misura. La
+misura e' il numero, e sta nel README (`.gitignore`, riga 59).
+
+*Questa riga prima la contava insieme alle altre, «casi/forma/ 5», e il conto
+era vero solo qui:* su un clone pulito quella cartella non esiste, e il
+controllo di contratto «ogni cartella nominata nel LEGGIMI esiste» diventava
+rosso per chiunque tranne che per chi l'aveva scritta. **Un documento che
+descrive la macchina di chi lo scrive invece del repository e' il difetto che
+si scopre solo dal di fuori** — e dal di fuori lo scopre uno sconosciuto, al
+primo tentativo.
 
 **`casi/tavola/` contiene tutt'e due le cose, dal 17/9/2026** (voce GT0), ed e'
 l'unica cartella cosi'. I sette `tav_*.json` sono piani; i casi dichiarati della
