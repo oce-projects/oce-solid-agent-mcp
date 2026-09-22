@@ -63,3 +63,9 @@ Banco/casi/forma/
 # referenzia con Private=False, quindi in bin/ non vengono copiate.
 # Due difese per lo stesso guaio, perche' ridistribuire un binario Dassault
 # e' il tipo di errore che si scopre il giorno della pubblicazione.
+
+# Gli schemi di bonifica specifici di un impianto: nominano cose interne
+# (nomi di server, cartelle di rete), e uno strumento versionato che le nomina
+# pubblica proprio cio che serviva a togliere. Il meccanismo sta in
+# Controlli/bonifica-storia.js ed e pubblico; i nomi restano su ogni macchina.
+Controlli/bonifica-schemi.local.js

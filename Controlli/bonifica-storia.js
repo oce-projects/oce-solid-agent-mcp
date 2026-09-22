@@ -13,33 +13,32 @@
 var fs = require('fs');
 var path = require('path');
 
-// {BANCO}
-// nelle tre grafie in cui compare: separatore singolo (stringhe verbatim C#),
-// doppio (JSON con escape) e barra dritta.
+// Il percorso di una cartella temporanea di sessione, nelle tre grafie in cui
+// compare: separatore singolo (stringhe verbatim C#), doppio (JSON con escape)
+// e barra dritta. Questo schema non nomina niente di aziendale, quindi sta
+// qui.
 var PERCORSO = /C:[\\\/]+Users[\\\/]+[^\\\/"\s]+[\\\/]+AppData[\\\/]+Local[\\\/]+Temp[\\\/]+claude[\\\/]+[^\\\/"\s]+[\\\/]+[^\\\/"\s]+[\\\/]+scratchpad/gi;
 
-// ── AGGIUNTE IL 23/9/2026: due cose interne che erano GIA' SU origin/main ──
+// ── GLI SCHEMI DI QUESTO IMPIANTO STANNO FUORI DAL REPOSITORY ─────────────
 //
-// Trovate dall'audit di pubblicabilita' e verificate una per una. Finche' il
-// repository e' privato si riscrive e si force-pusha; un minuto dopo essere
-// diventato pubblico quei commit sono clonabili da chiunque e riscrivere non
-// serve piu' a niente.
+// UNO STRUMENTO CHE TOGLIE UNA STRINGA DEVE NOMINARLA, ed e' un cortocircuito:
+// il 23/9/2026 questa bonifica ha ripulito 140 commit da due cose interne — il
+// nome di un server GPU aziendale e una cartella di rete — e a riscrittura
+// finita la ricerca su tutta la storia ne trovava ancora una occorrenza per
+// ciascuna, in un posto solo: **qui dentro**. La cura portava la malattia.
 //
-// 1. IL NOME DI UN SERVER GPU AZIENDALE, dentro un commento che spiega perche'
-//    una prova e' scritta cosi'. Il commento serve; il nome della macchina no.
-//    Si sostituisce la FRASE, non la parola: «<server>» da sola e' un nome comune
-//    e cancellarlo ovunque rovinerebbe testi che non c'entrano.
-var SERVER_GPU = /\bsu un server GPU interno \(([^)]*)\)/g;
-
-// 2. UNA CARTELLA DI RETE INTERNA, con dentro il nome del grafo RAG. Compare
-//    in due righe del TODO: una nota di flusso di lavoro e una citazione
-//    bibliografica. Il segnaposto tiene in piedi la frase — si capisce ancora
-//    che c'e' un archivio di note — senza dire dove.
-//    Il separatore finale NON si mangia: lasciandolo, «...\archivio\reference\»
-//    diventa «<archivio di note interno>\reference\» e la riga resta leggibile
-//    come un percorso. Mangiandolo diventava «...internoreference\», che si
-//    legge come un refuso e manda a cercare un errore di battitura.
-var CARTELLA_RAG = /O:[\\\/]+CARTELLA_INTERNA[\\\/]+archivio/gi;
+// Quindi gli schemi specifici di un impianto si mettono in
+// `Controlli/bonifica-schemi.local.js`, che NON e' versionato (.gitignore).
+// Il meccanismo resta pubblico e utile a chiunque; i nomi di casa no.
+//
+// Il file locale esporta un elenco di coppie:
+//     module.exports = [ { schema: /.../g, con: 'testo di ricambio' }, ... ];
+// Se non c'e', si applica il solo PERCORSO e non e' un errore: un clone pulito
+// non ha niente di aziendale da togliere.
+var LOCALI = [];
+try {
+    LOCALI = require(path.join(__dirname, 'bonifica-schemi.local.js')) || [];
+} catch (e) { /* non c'e': va bene cosi' */ }
 
 var ESTENSIONI = ['.cs', '.json', '.md', '.ps1', '.js', '.csproj', '.txt', '.config', '.manifest'];
 var SALTA = ['.git', 'bin', 'obj', 'node_modules'];
@@ -63,19 +62,14 @@ function giro(cartella) {
         var testo;
         try { testo = fs.readFileSync(pieno, 'utf8'); } catch (e) { continue; }
 
-        // IL FILTRO VELOCE DEVE NOMINARE TUTTE E TRE LE COSE. La prima
-        // stesura usciva subito se il file non conteneva «AppData», e con
-        // l'aggiunta dei due schemi nuovi avrebbe saltato proprio i file da
-        // riparare — un filtro di velocita' che diventa un filtro di
-        // correttezza, in silenzio.
-        if (testo.indexOf('AppData') < 0 &&
-            testo.indexOf('<server>') < 0 &&
-            testo.indexOf('CARTELLA_INTERNA') < 0) continue;
-
-        var nuovo = testo
-            .replace(PERCORSO, '{BANCO}')
-            .replace(SERVER_GPU, 'su un server GPU interno ($1)')
-            .replace(CARTELLA_RAG, '<archivio di note interno>');
+        // NESSUN FILTRO VELOCE. La prima stesura usciva subito se il file non
+        // conteneva «AppData»: con l'aggiunta di schemi nuovi avrebbe saltato
+        // proprio i file da riparare — un filtro di velocita' che diventa un
+        // filtro di correttezza, in silenzio. Su qualche centinaio di file la
+        // differenza non si misura; su un difetto che non da' errore si'.
+        var nuovo = testo.replace(PERCORSO, '{BANCO}');
+        for (var k = 0; k < LOCALI.length; k++)
+            nuovo = nuovo.replace(LOCALI[k].schema, LOCALI[k].con);
         if (nuovo === testo) continue;
 
         fs.writeFileSync(pieno, nuovo, 'utf8');
