@@ -53,11 +53,13 @@ namespace Prove.Contratti
             // ── OGNI OPERAZIONE HA I CAMPI CHE SERVONO ───────────────────
             var senza = new List<string>();
             var famiglie = new HashSet<string>(StringComparer.Ordinal);
+            var nomiCatalogo = new HashSet<string>(StringComparer.Ordinal);
             foreach (var o in operazioni)
             {
                 var v = o as Dictionary<string, object>;
                 if (v == null) { senza.Add("(una voce non e' un oggetto)"); continue; }
                 string nome = v.ContainsKey("nome") ? Convert.ToString(v["nome"]) : null;
+                if (nome != null) nomiCatalogo.Add(nome);
                 foreach (var campo in new[] { "nome", "famiglia", "sommario", "descrizione", "schema" })
                     if (!v.ContainsKey(campo) || v[campo] == null)
                         senza.Add((nome ?? "?") + " senza «" + campo + "»");
@@ -108,7 +110,127 @@ namespace Prove.Contratti
                   brutti.Count == 0,
                   brutti.Count == 0 ? "" : "trovati: " + string.Join(" | ", brutti.Take(3)));
 
+            OgniEseguibileEDichiarata(nomiCatalogo);
+
             Simili();
+        }
+
+        // ================================================================
+        // QUELLO CHE SI ESEGUE E QUELLO CHE SI VEDE
+        // ================================================================
+
+        /// <summary>
+        /// Ogni operazione che il dispatcher sa eseguire deve stare o nel
+        /// catalogo, o nell'elenco delle non provate. In nessun altro posto.
+        ///
+        /// IL BUCO CHE QUESTO CONTROLLO PRENDE, misurato il 22/9/2026.
+        /// `NomiEseguibili` ne contava **70**, `catalogo.json` ne dichiarava
+        /// **68**, e le due che mancavano — `croci_di_centro` e
+        /// `distinta_taglio_in_tavola` — erano fuori **per una buona ragione**
+        /// (`Provata=false`: le API dicono di si' e non creano niente, 0 -> 0).
+        ///
+        /// Ma fino a qui nessuno confrontava i due elenchi, e la stessa
+        /// differenza l'avrebbe prodotta un'operazione **dimenticata**:
+        /// scritta, funzionante, mai aggiunta a `Operazioni.cs`. Quella non
+        /// darebbe nessun errore da nessuna parte — il banco la proverebbe
+        /// (legge `NomiEseguibili`), il catalogo non la direbbe, e nessun
+        /// modello potrebbe chiamarla. **Il difetto che non da' errore**,
+        /// applicato all'unica cosa che il modello usa per sapere cosa esiste.
+        ///
+        /// SI LEGGE `NomiEseguibili` DAL SORGENTE, e non per riflessione:
+        /// quella costante vive in `OperazioniSw`, che tocca l'interop di
+        /// Dassault — caricarne il tipo qui dentro vorrebbe dire pretendere
+        /// SOLIDWORKS in un giro che deve girare senza. Le non provate invece
+        /// si chiedono a `Esporta.NonProvate()`, che e' esattamente cio' che
+        /// l'esportatore usa per decidere: non una seconda copia della regola.
+        ///
+        /// Leggerne ZERO e' un fallimento, non un successo: un elenco vuoto
+        /// farebbe passare ogni confronto.
+        /// </summary>
+        private static void OgniEseguibileEDichiarata(HashSet<string> nelCatalogo)
+        {
+            var sorgente = Path.Combine(Radice(), "Riscontro.Disegno", "OperazioniSw.cs");
+            if (!File.Exists(sorgente))
+            {
+                Segna("il sorgente del dispatcher si legge", false, "non trovo " + sorgente);
+                return;
+            }
+
+            var testo = File.ReadAllText(sorgente);
+            var blocco = System.Text.RegularExpressions.Regex.Match(
+                testo, @"NomiEseguibili\s*=\s*\{(.*?)\};",
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+            var eseguibili = new HashSet<string>(StringComparer.Ordinal);
+            if (blocco.Success)
+                foreach (System.Text.RegularExpressions.Match m in
+                         System.Text.RegularExpressions.Regex.Matches(blocco.Groups[1].Value, "\"([a-z0-9_]+)\""))
+                    eseguibili.Add(m.Groups[1].Value);
+
+            Segna("l'elenco delle operazioni eseguibili si legge",
+                  eseguibili.Count >= 30,
+                  eseguibili.Count + " nomi in NomiEseguibili");
+            if (eseguibili.Count < 30) return;
+
+            // Le non provate, chieste a chi decide chi resta fuori dal file.
+            List<string> nonProvate;
+            try
+            {
+                var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
+                Carica.Ponte(ponte);   // installa il risolutore per bin\
+                var dll = Path.Combine(Radice(), "bin", "Riscontro.Disegno.dll");
+                var libreria = Assembly.Load(File.ReadAllBytes(dll));
+                var esporta = Carica.Classe(libreria, "Esporta");
+                if (esporta == null)
+                {
+                    Segna("l'elenco delle non provate si chiede all'esportatore", false,
+                          "non trovo la classe Esporta");
+                    return;
+                }
+                nonProvate = (esporta.GetMethod("NonProvate",
+                                  BindingFlags.Public | BindingFlags.Static)
+                                  ?.Invoke(null, null) as System.Collections.IEnumerable)
+                             ?.Cast<object>().Select(Convert.ToString).ToList();
+                if (nonProvate == null)
+                {
+                    Segna("l'elenco delle non provate si chiede all'esportatore", false,
+                          "NonProvate() non ha risposto");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Segna("l'elenco delle non provate si chiede all'esportatore", false, ex.Message);
+                return;
+            }
+
+            var fuori = new HashSet<string>(nonProvate, StringComparer.Ordinal);
+
+            // 1. Eseguibile e invisibile: il difetto che questo controllo esiste per prendere.
+            var invisibili = eseguibili.Where(n => !nelCatalogo.Contains(n) && !fuori.Contains(n))
+                                       .OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Segna("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
+                  invisibili.Count == 0,
+                  invisibili.Count == 0
+                      ? eseguibili.Count + " eseguibili = " + nelCatalogo.Count +
+                        " nel catalogo + " + fuori.Count + " non provate"
+                      : "eseguibili e invisibili al modello: " + string.Join(", ", invisibili));
+
+            // 2. Il verso opposto: una voce di catalogo che il dispatcher non sa eseguire
+            //    e' una promessa che si scopre falsa solo chiamandola.
+            var promesse = nelCatalogo.Where(n => !eseguibili.Contains(n))
+                                      .OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Segna("ogni operazione del catalogo e' davvero eseguibile",
+                  promesse.Count == 0,
+                  promesse.Count == 0 ? "" : "nel catalogo e non nel dispatcher: " +
+                                             string.Join(", ", promesse));
+
+            // 3. E una non provata non deve essere finita nel file lo stesso.
+            var sfuggite = fuori.Where(nelCatalogo.Contains)
+                                .OrderBy(n => n, StringComparer.Ordinal).ToList();
+            Segna("nessuna operazione non provata e' finita nel catalogo",
+                  sfuggite.Count == 0,
+                  sfuggite.Count == 0 ? fuori.Count + " fuori: " + string.Join(", ", fuori)
+                                      : "non provate ma esposte: " + string.Join(", ", sfuggite));
         }
 
         /// <summary>

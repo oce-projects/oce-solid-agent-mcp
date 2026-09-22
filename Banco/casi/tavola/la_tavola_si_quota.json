@@ -1,0 +1,73 @@
+{
+  "nome": "la_tavola_si_quota",
+  "famiglia": "tavola",
+  "perche": "VOCE K10, ed e' il pezzo che chiude il ciclo. Fino al 18/9/2026 il ponte sapeva costruire il pezzo, salvarlo, fare la tavola, metterci tre viste, leggere il cartiglio ed esportare il PDF — e **non sapeva metterci una quota**. Una tavola senza quote non e' una tavola d'officina: e' geometria stampata.",
+
+  "perche_CREARE_e_non_importare": "`quote_dal_modello` IMPORTA le quote che il pezzo ha gia', con `InsertModelAnnotations*`, e su questa installazione ne porta **zero** — misurato su un pezzo con sette quote tutte marcate per il disegno, su **otto** modelli di tavola (sette di serie piu' quello dell'officina), con cinque strade diverse, e col controllo positivo verde nello stesso giro (`InsertNote` sulla stessa tavola funziona). Quella strada e' chiusa. Ma il fine non e' «le quote del modello in tavola»: e' **una tavola quotata**, e `AddDimension` le CREA — fuori processo, quattro su quattro. *Un nome che descrive il mezzo invece del fine restringe le soluzioni prima che qualcuno le cerchi*, e per due giorni il nome dell'altra operazione ha deciso la strada.",
+
+  "il_difetto_che_questo_caso_prende": "Una quota che **compare** e misura un'altra cosa. Sulla carta si legge uguale a una giusta, e in officina si taglia sul numero sbagliato. Per questo il caso non si accontenta di `quote_messe`: pretende i **millimetri**, e sono quelli del pezzo — **120 la lunghezza e 10 lo spessore**, le due dimensioni della sagoma che questa vista mostra.",
+
+  "questa_riga_diceva_5_ed_era_sbagliata": "Fino al 22/9/2026 la riga qui sopra diceva «120 la piastra, 5 lo smusso». Il 5 veniva da una sonda fatta su un ALTRO pezzo, e l'attesa del passo 6 era gia' stata corretta a 10 con la spiegazione scritta accanto — ma questa frase no. Quindi il caso CONTROLLAVA 10 e DICHIARAVA 5: verde tutte le volte, e chiunque lo leggesse senza arrivare in fondo imparava un numero falso. E' il difetto dei documenti (nota RAG `82c_il_difetto_che_non_da_errore_nei_documenti`) dentro il file che quel difetto lo insegna.",
+
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 96000,
+          "perche": "la piastra che poi si quota" } ] },
+
+    { "operazione": "smusso_spigoli",
+      "argomenti": { "spigoli_uid": ["@spigolo(asse=X,lungo~=120,n=1)"], "lato_mm": 5, "angolo_gradi": 45 },
+      "gli_spigoli_si_prendono_col_selettore": "La prima stesura usava `spigoli_rif: { passo: 1 }`, che funziona nei PIANI del ponte e **non** nei casi dichiarati: il banco ha risposto «di quel passo non ho la geometria». Due formati per la stessa cosa, e uno solo vale qui. Col selettore lo spigolo si nomina per **cosa e'** — asse X, lungo 120, il primo — invece che per da dove viene.",
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 94500, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "il conto e' esatto (96000 meno 5*5/2*120 = 94500): il mezzo millimetro cubo copre l'arrotondamento di SOLIDWORKS e non un raccordo, che ne toglierebbe 644 invece di 1500. **La prima stesura diceva 95400 — due cifre invertite — e la tolleranza NON l'avrebbe nascosto: 900 di scarto. E' la ragione per cui si sceglie stretta.**",
+          "perche": "lo smusso serve a dare al caso una seconda misura DIVERSA dalla prima: con soli 120 non si distinguerebbe una quota giusta da una quota che ripete sempre lo stesso numero. E il volume dice che lo smusso c'e' davvero, prima ancora di andare in tavola" } ] },
+
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\la_tavola_si_quota.sldprt" },
+      "attese": [
+        { "cosa": "misure.avvisi", "uguale": 0,
+          "perche": "una vista si aggancia al percorso del pezzo" } ] },
+
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [
+        { "cosa": "stato.tipo", "uguale": "tavola",
+          "perche": "il banco segue il documento nuovo (voce GT0)" } ] },
+
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\la_tavola_si_quota.sldprt" },
+      "attese": [
+        { "cosa": "misure.viste_create", "uguale": 3,
+          "perche": "le quote stanno sugli spigoli di una VISTA: senza viste non c'e' niente da quotare" },
+        { "cosa": "misure.modello", "contiene": ["la_tavola_si_quota"],
+          "perche": "**DI QUALE PEZZO SONO LE VISTE.** Il 18/9/2026 una tavola e' uscita con le viste del pezzo sbagliato perche' nessuna prova lo chiedeva mai: contavano tre viste e basta. Qui si dice quale pezzo, e si verifica che sia quello" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "spigoli": [0, 1, 2, 3] },
+      "si_dicono_gli_spigoli_e_non_quanti": "La prima stesura passava `quante: 4`, e il banco ha alzato **errore di banco** sulla gemella: «non ha nemmeno un argomento in comune col rifiuto, sono due operazioni che non si parlano» (voce F5). Aveva ragione. La gemella chiede lo spigolo **999**: se qui si dicesse `quante`, le due chiamate differirebbero per **quale argomento** e non per il suo **valore** — e una coppia cosi' non prova che il controllo distingue, prova che due chiamate diverse fanno cose diverse. Adesso e' la stessa chiamata con dentro un numero che esiste invece di uno che non esiste.",
+      "attese": [
+        { "cosa": "misure.spigoli_disponibili", "uguale": 4,
+          "il_sette_veniva_da_un_altro_pezzo": "La prima stesura diceva SETTE, preso dalla sonda del 18/9 — che pero' smussava QUATTRO spigoli, mentre questo caso ne smussa uno. **Un numero misurato su un'altra geometria non e' una misura di questa**, ed e' lo stesso difetto delle tre sonde che costruivano il pezzo a mano (nota RAG 82h): misurare un oggetto che non e' quello in esame.",
+          "perche": "gli spigoli si CHIEDONO alla vista, non si indovinano. Quattro e' quello che questa vista mostra, e se cambiasse cambierebbe anche cosa si puo' quotare" },
+        { "cosa": "misure.quote_prima", "uguale": 0,
+          "perche": "si parte da zero, ed e' il contraltare di «quote_dopo»: senza, quattro quote potrebbero essere quattro quote che c'erano gia'" },
+        { "cosa": "misure.quote_messe", "uguale": 4,
+          "perche": "quante ne sono NATE, contate prima e dopo — non quante volte ho chiamato l'API. Il valore che torna da chi ha fatto la cosa non e' la misura della cosa" },
+
+        { "cosa": "misure.quote_mm", "contiene": ["120"],
+          "perche": "**IL PEZZO CHE VALE LA VOCE.** Non «e' comparsa una quota»: **quanto misura**. 120 e' la lunghezza della piastra, riletta da SOLIDWORKS con `GetSystemValue2` DOPO averla messa — non il numero che credevo di aver chiesto. Una quota che compare e misura un'altra cosa e' peggio di una quota che manca: sulla carta si legge uguale." },
+        { "cosa": "misure.quote_mm", "contiene": ["10"],
+          "misurato_qui_e_non_altrove": "La stesura precedente pretendeva **5**, lo smusso — preso di nuovo dalla sonda, dove lo smusso era su quattro spigoli e si vedeva in quella vista. Qui lo smusso e' su UNO solo e non e' fra i quattro spigoli di questa vista. Misurato: `[120, 10, 120, 10]`. **Terza volta in un giorno che un numero arriva da una geometria diversa da quella in esame** — e le prime due le avevo gia' scritte come lezione.",
+          "perche": "LA SECONDA MISURA, diversa dalla prima: 10 e' lo SPESSORE. La vista frontale mostra la sagoma 120 x 10, e queste sono le sue due dimensioni vere. Se l'operazione ripetesse sempre lo stesso valore, l'attesa qui sopra sarebbe verde lo stesso e questa no." },
+
+        { "cosa": "misure.quote_mm", "non_contiene": ["80"],
+          "perche": "IL CONTRALTARE, ed e' quello che dice **su quale vista** ha quotato. 80 e' la larghezza della piastra: si vede nella vista dall'alto, non in questa. Se comparisse, l'operazione avrebbe quotato **un'altra vista** — e le due attese qui sopra sarebbero verdi lo stesso, perche' anche li' c'e' un 120. Senza questa riga, «contiene 120» non dice dove." },
+
+        { "cosa": "misure.cosa_non_guarda", "contiene": ["accavallano"],
+          "perche": "la cecita' viaggia con la risposta: l'operazione mette quote GIUSTE, non una tavola BELLA, e non guarda se si sovrappongono al disegno. Chi legge questa risposta potrebbe non aver letto il catalogo" } ] }
+  ]
+}

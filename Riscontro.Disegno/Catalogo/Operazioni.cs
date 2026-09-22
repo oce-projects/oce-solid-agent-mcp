@@ -2136,6 +2136,70 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "quota_in_tavola",
+                    Famiglia = "tavola",
+                    // ── PROVATA, E COSA VUOL DIRE QUI ──────────────────
+                    //
+                    // Misurato il 18/9/2026 fuori processo: quattro quote su
+                    // quattro spigoli, e i VALORI RILETTI con
+                    // `GetSystemValue2` — 120 mm la piastra, 5 mm lo smusso, su
+                    // un pezzo 120 x 80 x 10 con smusso 5.
+                    //
+                    // Non basta che compaiano: una quota che misura un'altra
+                    // cosa e' peggio di una quota che manca, perche' sulla
+                    // carta si legge uguale. Per questo l'operazione rilegge
+                    // ogni quota e restituisce il millimetro, e per questo il
+                    // primo giro della sonda — che rispondeva `?` al valore —
+                    // NON sarebbe bastato a marcarla provata.
+                    Provata = true,
+                    Sommario =
+                        "Mette le quote sugli spigoli di una vista, e RILEGGE quanto misurano.",
+                    Descrizione =
+                        "Mette quote di riferimento sugli spigoli di una vista di tavola, e "
+                        + "per ognuna ti dice **quanti millimetri misura**, riletti da "
+                        + "SOLIDWORKS dopo averla messa.\n\nQUESTA E' L'OPERAZIONE CHE "
+                        + "QUOTA. «quote_dal_modello» fa un'altra cosa: IMPORTA le quote "
+                        + "che il pezzo ha gia', e su questa installazione non ne porta "
+                        + "nessuna (misurato su otto modelli di tavola diversi). Se ti "
+                        + "serve una tavola quotata, usa questa.\n\nGLI SPIGOLI HANNO UN "
+                        + "NUMERO, e te lo dico io: la vista espone il suo elenco, e senza "
+                        + "«spigoli» quoto i primi «quante». Chiedimi uno spigolo che non "
+                        + "c'e' e ti rispondo quanti ne ha la vista, invece di quotarne un "
+                        + "altro.\n\nTI DICO QUANTE NE SONO NATE, non che ho chiamato "
+                        + "l'API: le quote si contano prima e dopo, una per una. Se non ne "
+                        + "nasce nessuna te lo dico, e ti dico quali spigoli ho provato."
+                        + "\n\nDOVE FINISCONO: sotto l'ingombro della vista, in fila. Non "
+                        + "so se si accavallano col disegno — quotare BENE e' un mestiere, "
+                        + "e questa operazione mette quote giuste, non una tavola bella.",
+                    Precondizione = "una tavola con almeno una vista che mostri spigoli",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O(
+                                "type", "string",
+                                "description", "il nome di UNA vista, come lo riporta lo stato della "
+                                    + "tavola. Vuoto = la prima vista vera."),
+                            "spigoli", O(
+                                "type", "array",
+                                "items", O("type", "integer"),
+                                "description", "i numeri degli spigoli da quotare, dall'elenco che la "
+                                    + "vista espone (il primo e' 0). Vuoto = i primi «quante»."),
+                            "quante", O(
+                                "type", "integer",
+                                "description", "quante quote mettere quando non dici quali spigoli. "
+                                    + "Predefinito 4."),
+                            "distacco_mm", O(
+                                "type", "number",
+                                "description", "quanto sotto l'ingombro della vista mettere la prima "
+                                    + "quota. Predefinito 12."),
+                            "passo_mm", O(
+                                "type", "number",
+                                "description", "la distanza fra una quota e la successiva. "
+                                    + "Predefinito 10.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "cartiglio",
                     Famiglia = "verifiche",
                     Provata = true,

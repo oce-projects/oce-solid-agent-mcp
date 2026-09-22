@@ -815,6 +815,48 @@ namespace Prove.Contratti
                       : "BANCO " + v1 + " contro PONTE " + v2 +
                         " — chi ha compilato il solo progetto ha aggiornato il primo e " +
                         "non il secondo: si rilancia .\\build.ps1, che li allinea");
+
+            // ── E IL TERZO NUMERO, QUELLO CHE NESSUNO GUARDA ─────────────
+            //
+            // `AssemblyInformationalVersion` e' la versione che Windows mostra
+            // nelle proprieta' del file. Nessun codice la legge, e per questo
+            // invecchia da sola: il 18/9/2026 diceva 0.61.0 con l'assembly a
+            // 0.66.0, e' stata corretta, e il 22/9/2026 diceva **0.94.0 con
+            // l'assembly a 0.99.0** — cinque versioni indietro, di nuovo.
+            //
+            // Sopra quella riga c'era gia' un commento che raccontava il
+            // difetto per esteso. Non e' servito, e non poteva servire: **un
+            // commento non e' un controllo**. Chi allinea il numero a mano lo
+            // riallinea finche' se ne ricorda, e poi smette.
+            //
+            // Si guarda il binario e non il sorgente: quello che finisce nel
+            // pacchetto e' il binario.
+            string informativa = InformazioneDiVersione(delBanco);
+            Segna("la versione mostrata da Windows e' quella vera",
+                  informativa != null &&
+                  v1.StartsWith(informativa, StringComparison.Ordinal),
+                  informativa == null
+                      ? "non si legge"
+                      : "assembly " + v1 + ", proprieta' del file " + informativa +
+                        (v1.StartsWith(informativa, StringComparison.Ordinal)
+                            ? ""
+                            : " — si allinea AssemblyInformationalVersion in " +
+                              "Riscontro.Disegno\\Properties\\AssemblyInfo.cs"));
+        }
+
+        /// <summary>
+        /// `AssemblyInformationalVersion` del file, cioe' quella che si legge
+        /// in Proprieta' → Dettagli → Versione prodotto. `null` se non c'e'.
+        /// </summary>
+        private static string InformazioneDiVersione(string percorso)
+        {
+            try
+            {
+                var v = System.Diagnostics.FileVersionInfo.GetVersionInfo(percorso)
+                                                          .ProductVersion;
+                return string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+            }
+            catch { return null; }
         }
 
         /// <summary>

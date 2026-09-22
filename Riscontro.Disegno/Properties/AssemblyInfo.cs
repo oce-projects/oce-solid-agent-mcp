@@ -50,9 +50,19 @@ using System.Runtime.InteropServices;
 // 0.98.5: `salva_documento` guarda PERCHE' non ha salvato invece di riportare
 //         un codice: la cartella che non esiste e il file in sola lettura si
 //         vedono da qui, e il codice di `SaveAs` non li dice.
-[assembly: AssemblyVersion("0.98.5.0")]
-[assembly: AssemblyFileVersion("0.98.5.0")]
+// 0.99.0: `quota_in_tavola` (voce K10) — LE QUOTE IN TAVOLA SI CREANO.
+//         `InsertModelAnnotations*` non ne porta nessuna fuori processo, ma
+//         `AddDimension` sugli spigoli della vista si', e coi valori giusti.
+//         Ogni quota viene RILETTA: risponde quanto misura, non «fatto».
+[assembly: AssemblyVersion("0.99.0.0")]
+[assembly: AssemblyFileVersion("0.99.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
-[assembly: AssemblyInformationalVersion("0.94.0")]
+//
+// ED E' RISUCCESSO: il 22/9/2026 diceva 0.94.0 con l'assembly a 0.99.0, cioe'
+// cinque versioni indietro. La riga sopra racconta il difetto e non lo ha
+// impedito — perche' un commento non e' un controllo. Finche' nessuna prova
+// confronta i due numeri, questo terzo lo si allinea a mano e prima o poi
+// invecchia di nuovo.
+[assembly: AssemblyInformationalVersion("0.99.0")]

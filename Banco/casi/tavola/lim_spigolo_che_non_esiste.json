@@ -1,0 +1,43 @@
+{
+  "nome": "lim_spigolo_che_non_esiste",
+  "famiglia": "tavola",
+  "perche": "LA GEMELLA DI `la_tavola_si_quota` (voce F5): un rifiuto non sta mai da solo. Una prova che verifica solo il rifiuto non distingue «il controllo funziona» da «l'operazione rifiuta tutto» — e qui la gemella verde esiste davvero, cosa che a `quote_dal_modello` manca e che ha impedito di scrivere il suo caso sul rifiuto.",
+
+  "cosa_cambia_rispetto_alla_gemella": "Un argomento: `spigoli`. La gemella non lo dice e quota i primi quattro; questo chiede lo spigolo **999**, che non c'e'. Stessa operazione, stessa tavola, stesso pezzo.",
+
+  "il_difetto_che_questo_caso_prende": "Un'operazione che, chiesto uno spigolo che non esiste, ne quota **un altro** e risponde «fatto». La tavola uscirebbe quotata, con la quota attaccata alla cosa sbagliata, e nessuno direbbe niente. Il rifiuto deve dire **quanti spigoli ha la vista**, perche' e' l'informazione che serve a chiedere quello giusto: *un rifiuto che non dice l'alternativa lascia chi legge a indovinare esattamente cio' che l'operazione ha smesso di indovinare.*",
+
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 96000,
+          "perche": "lo stesso pezzo della gemella" } ] },
+
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\lim_spigolo_che_non_esiste.sldprt" },
+      "attese": [
+        { "cosa": "misure.avvisi", "uguale": 0,
+          "perche": "una vista si aggancia al percorso del pezzo" } ] },
+
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [
+        { "cosa": "stato.tipo", "uguale": "tavola",
+          "perche": "il banco segue il documento nuovo (voce GT0)" } ] },
+
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\lim_spigolo_che_non_esiste.sldprt" },
+      "attese": [
+        { "cosa": "misure.viste_create", "uguale": 3,
+          "perche": "serve una vista vera: il rifiuto deve dire quanti spigoli ha, e senza vista non ne avrebbe nessuno" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "spigoli": [999] },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["999", "ne mostra"],
+        "gemella": "la_tavola_si_quota" } }
+  ]
+}

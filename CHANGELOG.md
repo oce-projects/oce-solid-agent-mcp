@@ -24,6 +24,93 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.67.0 — 22 September 2026 · library 0.99.0
+
+### The dimensions in a drawing are CREATED, not imported
+
+Bench 815 checks, 0 red, 645/645 expectations, full run. Contract suite 156,
+0 red.
+
+**`quota_in_tavola` (entry K10).** Until today the bridge could build the part,
+save it, make the drawing, put three views on it, read the title block and
+export the PDF — and could not put a single dimension on it. A drawing without
+dimensions is not a workshop drawing: it is printed geometry.
+
+The other operation, `quote_dal_modello`, **imports** the dimensions the part
+already carries, with `InsertModelAnnotations*`. Measured on 18 September: a
+part with seven dimensions all marked for drawing, on **eight** drawing
+templates (seven stock plus the workshop's own), through five different routes,
+brings **zero** of them across — with a positive control green in the same run
+(`InsertNote` works on that same drawing). That route is closed.
+
+But the goal was never "the model's dimensions in the drawing". The goal is **a
+dimensioned drawing**, and `AddDimension` creates them.
+
+> A name that describes the means instead of the end narrows the solutions
+> before anyone looks for them. For two days the other operation's name decided
+> the road.
+
+**Every dimension is read back.** `GetSystemValue2` after placing it, so the
+operation answers *how much it measures*, not "done". A dimension that appears
+and measures something else is worse than one that is missing: on paper it reads
+the same, and in the workshop the cut is made on the wrong number.
+
+The bench case asserts the millimetres — 120 the length, 10 the thickness — and
+also asserts that **80 is absent**: 80 is the width, visible in the top view and
+not in this one. Without that line, "contains 120" would not say *which view*
+was dimensioned, because there is a 120 there too.
+
+### Three numbers for the same thing, and a check that was missing
+
+The bench prints **70** operations, the catalogue declares **68**, the README
+said **67**.
+
+The first two are both right and measure different things: 70 is what the
+dispatcher can **execute**, 68 is what a model can **see**. The two missing ones
+— `croci_di_centro` and `distinta_taglio_in_tavola` — are out on purpose, both
+`Provata=false`: the API answers "yes" and creates nothing, 0 → 0 on every
+combination probed.
+
+**Nobody was comparing the two lists.** The same difference would be produced by
+a *forgotten* operation: written, working, never added to the catalogue. That
+would give no error anywhere — the bench would test it (it reads
+`NomiEseguibili`), the catalogue would not mention it, and no model could ever
+call it.
+
+New check: every executable operation is either in the catalogue or declared
+unproven, and the reverse — every catalogued operation is really executable.
+Watched failing, with `quota_in_tavola` removed from the catalogue by hand:
+*"executable and invisible to the model: quota_in_tavola"*.
+
+### The third version number, and a comment that was not a check
+
+`AssemblyInformationalVersion` is the one Windows shows in the file properties.
+No code reads it, so it ages on its own: on 18 September it said 0.61.0 with the
+assembly at 0.66.0, it was corrected, and today it said **0.94.0 with the
+assembly at 0.99.0** — five versions behind, again.
+
+Right above that line there was already a comment explaining the defect at
+length. It did not help, and it could not:
+
+> A comment is not a check. Whoever aligns the number by hand keeps aligning it
+> for as long as they remember, and then stops.
+
+Now a check compares the two, on the binary and not on the source — the binary
+is what ships. Watched failing by putting 0.94.0 back.
+
+### Also
+
+The two library copies had drifted again (bench 0.99.0.0, bridge 0.98.5.0):
+`build.ps1` realigns them, and the check written on 18 September caught it
+without anyone looking for it.
+
+And a line in the K10 bench case declared "120 the plate, 5 the chamfer" while
+the assertion checked **10**. The 5 came from a probe run on a different part;
+the assertion had been corrected and the prose had not. Green every time, and
+anyone reading without getting to the bottom learned a false number.
+
+---
+
 ## 0.66.0 — 18 September 2026 · library 0.98.5
 
 ### The drawing of the wrong part

@@ -1,6 +1,6 @@
 # OCE Solid Agent
 
-Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti sessantasette
+Un ponte MCP per **disegnare in SOLIDWORKS**: espone come strumenti sessantotto
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -52,7 +52,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sei, non sessantasette. Le operazioni di disegno sono sessantasette, ma esporne
+Sei, non sessantotto. Le operazioni di disegno sono sessantotto, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
@@ -289,10 +289,12 @@ passa fra **cio' che qualcuno cerca per nome a runtime** e tutto il resto.
 seconda scrittura: vedi [Strumenti/aggiorna.md](Strumenti/aggiorna.md).
 Contiene solo le operazioni **misurate dentro SolidWorks**.
 
-Sessantasette provate, e due che esistono nella libreria ma **restano fuori dal
-file**: `croci_di_centro` e `distinta_taglio_in_tavola`. Il numero che il banco
-stampa in intestazione e' sessantanove, cioe' quante ne sa eseguire il
-dispatcher; quello del catalogo e' sessantasette, cioe' quante ne vede un
+Sessantotto provate, e due che esistono nella libreria ma **restano fuori dal
+file**: `croci_di_centro` e `distinta_taglio_in_tavola` — tutte e due
+`Provata=false` con «0 → 0», cioe' non creano niente, e un client non deve
+poterle chiamare. Il numero che il banco stampa in intestazione e' settanta,
+cioe' quante ne sa eseguire il
+dispatcher; quello del catalogo e' sessantotto, cioe' quante ne vede un
 client. **Due numeri, due cose diverse, e tutti e due giusti** — l'esportatore
 dice a voce alta quali lascia fuori mentre scrive il file.
 
