@@ -55,7 +55,50 @@ namespace Riscontro.Disegno
     public partial class StatoDocumento
     {
         public const int MaxFacce = 60;
-        public const int MaxSpigoli = 60;
+
+        /// <summary>
+        /// TRENTA, NON SESSANTA, E IL NUMERO VIENE DA UNA MISURA (voce K13).
+        ///
+        /// ── IL TETTO DEI 16 KB ERA GIA' SUPERATO ─────────────────────
+        ///
+        /// La prova del banco «stato: sotto i 16 KB su un telaio da quattro
+        /// barre» passava a **15.922** caratteri contro 16.000: settantotto di
+        /// margine. Ma il banco gira con **un solo documento aperto**, perche'
+        /// si rifiuta di partire altrimenti (voce K12). Con due documenti —
+        /// la situazione normale di chi lavora — lo stesso telaio misura
+        /// **16.089**. *Il tetto non aveva un margine sottile: era gia'
+        /// superato, e la prova non lo vedeva perche' il banco si pulisce la
+        /// scrivania.*
+        ///
+        /// ── DOVE STANNO I CARATTERI, misurato il 23/9/2026 ──────────
+        ///
+        ///     8.718  facce      60 voci   (145 l'una)
+        ///     5.572  spigoli    60 voci   ( 93 l'uno)
+        ///     1.799  tutto il resto
+        ///
+        /// L'ottantanove per cento sono due elenchi. Le voci sono gia'
+        /// asciutte — uno spigolo e' `{"uid":"E1","lunghezza_mm":1000,
+        /// "punto_mm":[...],"lungo":"X","fra":["F36","F1"],"corpo":"C3"}` —
+        /// quindi accorciare i campi non sposta niente: **si puo' solo
+        /// cambiare QUANTE**. E' la domanda che il commento della prova
+        /// poneva gia': *«servono davvero sessanta spigoli?»*.
+        ///
+        /// ── PERCHE' GLI SPIGOLI E NON LE FACCE ──────────────────────
+        ///
+        /// Le facce sono la superficie di aggancio delle operazioni: quasi
+        /// tutte prendono una `faccia_uid`. Gli spigoli li usano in poche —
+        /// raccordi, smussi, quote in tavola — e su un saldato a quattro barre
+        /// sono rumore: trecento e passa spigoli di cui se ne mandano sessanta
+        /// sono un campione su cui non si puo' contare comunque.
+        ///
+        /// Trenta portano lo stato dello stesso telaio a ~13.300: **il 17 per
+        /// cento di margine**, che e' la soglia che la voce K13 si era data.
+        ///
+        /// E il tetto continua a dichiararsi: `spigoli_totali` dice quanti ce
+        /// n'erano e `troncato` diventa vero. *Un tetto che non dice di essere
+        /// scattato non e' un tetto.*
+        /// </summary>
+        public const int MaxSpigoli = 30;
         public const int MaxFeature = 80;
         public const int MaxCorpi = 24;
 

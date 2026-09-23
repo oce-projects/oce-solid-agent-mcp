@@ -24,6 +24,53 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.73.0 — 23 September 2026 · library 0.103.0
+
+### The 16 KB ceiling was already broken, and the bench could not see it
+
+Bench 835 checks, 0 red, 662/662 expectations, full run. Contract suite 168,
+0 red. The check now reads: `13216 caratteri, margine 2784 (17%)`.
+
+The bench check «stato: sotto i 16 KB su un telaio da quattro barre» passed at
+**15,922** characters against 16,000 — seventy-eight to spare. But the bench
+runs with **exactly one document open**, because it refuses to start otherwise.
+The same frame with two documents open — what anyone working actually has —
+measures **16,089**.
+
+*The ceiling did not have a thin margin: it was already over, and the check
+could not see it because the bench cleans its own desk.* Two correct defences
+which, together, hide a third.
+
+**Where the characters are, measured rather than imagined:**
+
+```
+    8,718  facce      60 entries   (145 each)
+    5,572  spigoli    60 entries   ( 93 each)
+    1,799  everything else
+```
+
+Eighty-nine per cent is two lists, and the entries are already lean — an edge is
+`{"uid":"E1","lunghezza_mm":1000,"punto_mm":[...],"lungo":"X","fra":["F36","F1"],
+"corpo":"C3"}`. There is no fat to trim: **the only lever is how many**. Which
+is the question the check's own comment had been asking for days — *"do we
+really need sixty edges?"* — and the answer is no.
+
+**Edges, not faces.** Faces are the attachment surface: almost every operation
+takes a `faccia_uid`. Edges are used by few — fillets, chamfers, drawing
+dimensions — and on a four-bar weldment they are noise: sixty out of three
+hundred–odd is a sample you cannot rely on anyway. `MaxSpigoli` goes from 60 to
+30, and the ceiling still declares itself: `spigoli_totali` says how many there
+were, `troncato` goes true.
+
+Measured after: **13,378 with two documents open**, a 16% margin.
+
+**And the check now demands the margin, not the ceiling.** It is called «stato:
+sotto i 16 KB con almeno il 15% di margine», and it prints the margin **always**,
+including on green — the only moment you can see the wall coming. *A check that
+says "passed" seventy-eight characters from the wall is not warning anyone.*
+
+---
+
 ## 0.72.0 — 23 September 2026 · library unchanged (0.102.0)
 
 ### The same document, with something else inside it (entry X2)

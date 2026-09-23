@@ -1667,8 +1667,30 @@ namespace ProvaSaldatura
                 }
                 catch { }
 
-                Segna("stato: sotto i 16 KB su un telaio da quattro barre", caratteri < 16000,
-                      caratteri + " caratteri, " + aperti +
+                // ── IL MARGINE SI DICE, E SI PRETENDE (voce K13) ─────────
+                //
+                // «Passata» a settantotto caratteri dal muro non sta
+                // avvisando nessuno: la prossima aggiunta qualunque la fa
+                // rossa, e arrivera' come se fosse una regressione. Il 23/9
+                // il tetto era gia' superato nella configurazione normale di
+                // chi lavora — 16.089 con due documenti aperti — e questa
+                // prova non lo vedeva perche' il banco gira su una scrivania
+                // pulita.
+                //
+                // Quindi il criterio non e' piu' «sotto il tetto», e' «sotto
+                // il tetto CON MARGINE», e il margine si stampa sempre: anche
+                // sui verdi, che e' l'unico momento in cui si puo' vedere
+                // arrivare il muro.
+                const int Tetto = 16000;
+                const int MargineMinimoPerCento = 15;
+                int soglia = Tetto - Tetto * MargineMinimoPerCento / 100;
+                int margine = Tetto - caratteri;
+                int perCento = (int)Math.Round(margine * 100.0 / Tetto);
+
+                Segna("stato: sotto i 16 KB con almeno il 15% di margine",
+                      caratteri <= soglia,
+                      caratteri + " caratteri, margine " + margine + " (" + perCento +
+                      "%), " + aperti +
                       (aperti == 1 ? " documento aperto" : " documenti aperti") +
                       (aperti > 1 ? " (piu' di uno gonfia la misura: vedi qui sopra)" : ""));
             }
