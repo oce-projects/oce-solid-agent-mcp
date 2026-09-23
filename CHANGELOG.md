@@ -24,6 +24,78 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.74.0 — 23 September 2026 · library unchanged (0.103.0)
+
+### A group of checks that comes in through the client's door (entry F14)
+
+Bench 843 checks, 0 red, 662/662 expectations, full run — eight of them new,
+from the client's door. Contract suite 168, 0 red.
+
+Everything else in this bench calls **the library**. On 18 September the bridge
+was refusing every assembly while its own catalogue promised a whole family of
+them, and the bench had 781 green checks — five of them on assemblies — and
+**not one could see it**: `EsecutorePiano` appears in no file under `Banco/`.
+
+*Two true measurements of two different things, and whoever reads the big number
+believes it covers the other one too.*
+
+The new group does not call the library. It starts
+`oce-solid-agent-mcp.exe` as a subprocess and talks to it over stdio, the way
+any MCP client would — with SOLIDWORKS running and a document the bench opened
+itself. That is exactly the difference from `Prove.Contratti`, which has been
+speaking the protocol for days **without** SOLIDWORKS: there every plan dies on
+"there is no open document", which is a true refusal and proves nothing about
+the rest.
+
+**What it proves that nothing else proves:** everything *between* the client and
+the library — preliminary checks, the JSON-to-arguments translation, refusals on
+operations the open document does not allow, and `guarda_il_pezzo`, which does
+not go through the executor at all.
+
+```
+OK   porta: guarda_il_pezzo nomina il documento del banco   Parte1241
+OK   porta: il piano riesce
+OK   porta: e il pezzo e' cambiato davvero, misurato dal banco  0 -> 96000 mm3
+OK   porta: un'operazione di assieme su una PARTE e' rifiutata
+OK   porta: e il rifiuto dice su cosa sta lavorando
+OK   porta: il ponte e' ancora vivo dopo una notifica
+```
+
+**The bridge says "riuscita"; the bench does not take its word.** It reads the
+volume back from SOLIDWORKS over COM: 0 → 96,000 mm³ for a 120×80×10 plate.
+That is the one thing this group can do and the contract suite cannot.
+
+### Red by construction, and watched going red
+
+An `assiemi` operation with a **part** open must be refused, and the refusal
+must say *what it is working on* — not a fixed sentence. Proven by temporarily
+pointing that case at an operation that does work on a part: both refusal checks
+go red, and the detail shows `"riuscita":true` where it should have been false.
+
+Two assertions were too loose on the first pass, and loose in the worse
+direction — they passed in cases that should have failed. One accepted any
+answer containing the word «assieme», which a *successful* plan could contain;
+*a `||` added for safety is a `||` that one day holds on its own.* The other
+accepted the word «parte», which sits in any fixed sentence about document
+types — exactly the answer the check exists to reject. Both now demand the
+document's own title.
+
+### One transport, not two
+
+`Prove.Contratti` already had the plumbing, so it moved to
+`Condiviso/ClienteMcp.cs` and both projects compile it. Copying would have been
+quicker and wrong: inside it is something that cost an afternoon — the UTF-8 BOM
+that `AutoFlush = true` writes in front of the first line, three bytes that made
+the bridge answer «Primitiva JSON non valida» while the symptom looked like
+«initialize does not answer». *A defect paid for once gets fixed in one place,
+or it gets paid again in the copy.*
+
+`Condiviso\` is now in the folder-to-project map of the check that verifies every
+source belongs to a project — otherwise it would have been the one source folder
+nobody looks at, where a file could sit uncompiled and unmentioned.
+
+---
+
 ## 0.73.0 — 23 September 2026 · library 0.103.0
 
 ### The 16 KB ceiling was already broken, and the bench could not see it

@@ -51,6 +51,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Condiviso\ClienteMcp.cs" />
     <Compile Include="Carica.cs" />
     <Compile Include="Programma.cs" />
     <Compile Include="ProveCatalogo.cs" />

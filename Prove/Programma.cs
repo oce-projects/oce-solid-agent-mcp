@@ -448,6 +448,21 @@ namespace Prove.Contratti
                       Progetto = @"Oce.Solid.Agent.csproj" },
                 new { Dove = new[] { @"Banco" }, Progetto = @"Banco\ProvaSaldatura.csproj" },
                 new { Dove = new[] { @"Prove" }, Progetto = @"Prove\Prove.Contratti.csproj" },
+
+                // `Condiviso\` LA COMPILANO IN DUE, e qui basta nominarne uno.
+                //
+                // Il controllo e' a senso unico: «ogni sorgente sotto questa
+                // cartella compare in quel progetto». Che il banco compili gli
+                // stessi file non lo rende falso, e chiedere che una cartella
+                // stia in un progetto SOLO renderebbe rosso proprio il modo in
+                // cui `Attese.cs` e' condiviso da giorni.
+                //
+                // Senza questa riga `Condiviso\` sarebbe l'unica cartella di
+                // sorgenti che nessuno guarda: un file messo li' e dimenticato
+                // fuori dai csproj non verrebbe compilato e non lo direbbe
+                // nessuno — il difetto per cui questo controllo esiste.
+                new { Dove = new[] { @"Condiviso" },
+                      Progetto = @"Prove\Prove.Contratti.csproj" },
                 new { Dove = new[] { @"Installer" }, Progetto = @"Installer\Installa.csproj" },
             };
 

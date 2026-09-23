@@ -525,6 +525,11 @@ namespace ProvaSaldatura
                 // COM e non un'operazione del catalogo. Tutto il resto della
                 // famiglia sta in `casi/asse/`.
                 new Gruppo { Nome = "crea-asse",    Cosa = "l'asse si ritrova per nome", Azioni = una(ProvaCreaAsse) },
+                // LA PORTA DEL CLIENTE (voce F14): non chiama la libreria,
+                // parla al ponte sullo stdio come farebbe un client MCP.
+                new Gruppo { Nome = "porta-del-cliente",
+                             Cosa = "i casi che passano dal ponte (F14)",
+                             Azioni = una(LaPortaDelCliente) },
                 // «ripeti», «specchia» e «togliere» non ci sono piu': sono
                 // diventati `casi/ripeti/`, `casi/specchia/` e
                 // `casi/togliere/`, e si lanciano con `--gruppo casi`.
