@@ -419,6 +419,22 @@ uscito diverso da quello che il disegno dichiarava, SOLIDWORKS ha ricostruito
 pulito e non ha detto niente. E' la ragione per cui questa suite misura **la
 posizione della geometria** e non il fatto che la ricostruzione sia andata.
 
+**E i quattro silenzi hanno due cause, non quattro** (misurato il 23/9/2026,
+libreria 0.103.0 — gli stessi quattro casi e gli stessi numeri di otto giorni
+e ventotto versioni prima).
+
+Tre su quattro sono la stessa cosa: *un'operazione agganciata a una **faccia**
+segue la geometria; le coordinate `x_mm`/`y_mm` dentro il piano di schizzo di
+quella faccia no.* Lo dimostrano i due casi che **reggono**, dove il foro sul
+fondo di una scatola alzata di 28 mm ci resta sopra perche' e' agganciato alla
+faccia. Sono una sola riparazione, non tre.
+
+Il quarto non e' riparabile da qui, e vale la pena dirlo: uno smusso piu'
+grande del materiale **non fallisce**. SOLIDWORKS ricostruisce pulito e si
+mangia un millimetro di larghezza. Non si previene ancorando meglio — si
+prende solo rileggendo il pezzo dopo, che e' cio' che questo ponte fa a ogni
+passo.
+
 La terza riga si scrive **anche quando vale zero**: un conteggio che sparisce
 quando e' zero e' un conteggio che nessuno controlla.
 

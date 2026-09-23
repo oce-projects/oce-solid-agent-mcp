@@ -24,6 +24,67 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.74.1 — 23 September 2026 · library unchanged (0.103.0)
+
+### The four silences have two causes, not four (entry K5)
+
+Reference regression re-run on library 0.103.0: the same four cases, the same
+numbers as 15 September. Twenty-eight library versions later,
+`Banco/resoconto/regressione.md` is **byte-identical**. No code changed in this
+release — only the measurement, and what it is written down as.
+
+**Three of the four are one repair.** The half that settles it is that two
+`ancorato_a_bordo` cases **hold**: raise a box by 28 mm and the hole in its
+floor stays on the floor, because it is anchored to a **face** and the face
+moves with the part. So the cause is narrower, and more useful, than "absolute
+anchoring":
+
+*an operation anchored to a **face** follows the geometry; the `x_mm`/`y_mm`
+coordinates inside that face's sketch plane do not.*
+
+Four edge-anchored cases, two each way.
+
+**The number that proves it is not an approximation.** In `r03` the plate grows
+from 200 to 260 and the expected centre of mass is x = 30:
+
+```
+if the pocket follows the centre    x = 30.000   (what the case expects)
+if the pocket stays at x = 0        x = 30.588   <- measured 30.588
+```
+
+**And `r16` turned out to be the same cause, which took two readings to see.**
+The case asserts only the volume, and the 3,141.597 mm³ difference fits two
+different geometries — an uncut rounded end, or a slot shortened by 7.854 mm.
+*Volume says how much material is left, not where.* Reproduced by hand through
+the bridge, looking at the faces: 2 curved faces before, **1 after**. A
+shortened slot would still have two.
+
+The reason is the same one: the plate shrinks **from one side only**, so x goes
+from [-100,+100] to [-100,+50] while the slot stays centred on 0. The right edge
+lands exactly on the arc centre, so the right half-disc is never cut:
+360,000 − 43,141.593 = **316,858.407** against a measured 316,858.4. The slot
+does break out of the side, exactly as the case feared — silently.
+
+**The fourth is not ours, and that belongs where people read it.** A 2×45°
+chamfer on a plate that becomes 1 mm thick does not fail: SOLIDWORKS rebuilds
+clean and eats a millimetre of width, `[200, 119, 1]` instead of
+`[200, 120, 1]`. It cannot be prevented by anchoring better — only caught by
+reading the part back afterwards, which is what this bridge does at every step.
+
+The README now says this under the 12/0/4 table, because "four detach silently"
+without the causes is a number nobody can act on.
+
+### And one thing this measurement did not do
+
+The cases still assert only what they asserted. For `r16` the faces were
+inspected **by hand**, and next run that diagnosis is gone — the volume remains,
+and on its own it does not tell two geometries apart. Putting it in an
+expectation would mean writing the **wrong** geometry into the case, which is
+fitting the test to the defect. The right path is that the case goes green when
+E6/E7 is done; until then the diagnosis lives in the entry.
+
+---
+
 ## 0.74.0 — 23 September 2026 · library unchanged (0.103.0)
 
 ### A group of checks that comes in through the client's door (entry F14)
