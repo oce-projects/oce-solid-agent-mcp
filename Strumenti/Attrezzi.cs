@@ -1458,6 +1458,29 @@ namespace Oce.Solid.Agent.Strumenti
             {
                 _firmeViste = FirmeDelloStato(dopo);
                 _firmaGuardata = FirmaLeggera(dopo);
+
+                // ── E ANCHE CHI E', NON SOLO COM'E' FATTO ────────────────
+                //
+                // `_guardato` veniva riportato all'identita' letta PRIMA di
+                // eseguire, e un piano che contiene `salva_documento` cambia
+                // l'identita' del documento mentre gira: prima del salvataggio
+                // e' «Parte1597» senza percorso, dopo e' un percorso su disco.
+                //
+                // **Il `disegna` seguente veniva rifiutato**, con un messaggio
+                // giusto e una causa sbagliata: «il documento e' cambiato,
+                // avevi guardato Parte1597». Era cambiato, si' — l'aveva
+                // cambiato il ponte facendo quello che gli era stato chiesto.
+                //
+                // Trovato il 23/9/2026 con una sonda che preparava una tavola:
+                // estrudi -> taglia -> salva -> crea_disegno, che e' la
+                // sequenza piu' normale che esista, e il quarto passo non
+                // partiva. Il banco non poteva vederlo: chiama la libreria,
+                // non il ponte. L'ha visto il gruppo che passa dalla porta del
+                // cliente (voce F14), il giorno dopo essere nato.
+                //
+                // `annulla` faceva gia' cosi' tre metodi piu' sotto. Qui no.
+                _guardato = IdentitaDelloStato(dopo);
+
                 TogliLeAncore(dopo);
             }
 

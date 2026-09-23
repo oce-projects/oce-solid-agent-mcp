@@ -85,8 +85,16 @@ using System.Runtime.InteropServices;
 //          vedeva perche' il banco gira su una scrivania pulita. Facce e
 //          spigoli sono l'89% del carico e le voci sono gia' asciutte:
 //          l'unica leva e' QUANTE. Adesso ~13.300, il 17% di margine.
-[assembly: AssemblyVersion("0.103.0.0")]
-[assembly: AssemblyFileVersion("0.103.0.0")]
+// 0.104.0: `sezione_in_tavola` (voce GT4) — la prima vista di sezione. La
+//          linea di taglio non si passa in firma: si disegna sul foglio e si
+//          lascia selezionata, e `CreateSectionViewAt5` prende quella.
+//          IL CONTATORE DEL TRATTEGGIO NON E' QUELLO CHE LA VOCE
+//          PRESCRIVEVA: `GetSolidHatchCount` risponde ZERO su una sezione
+//          vera, prima e dopo il ricalcolo. Si legge `GetFaceHatchCount`, e
+//          l'altro si riporta lo stesso nella risposta perche' nessuno
+//          ripercorra la strada gia' misurata.
+[assembly: AssemblyVersion("0.104.0.0")]
+[assembly: AssemblyFileVersion("0.104.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -101,4 +109,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.103.0")]
+[assembly: AssemblyInformationalVersion("0.104.0")]

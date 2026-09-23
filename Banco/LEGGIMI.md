@@ -481,14 +481,18 @@ casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella)
-casi/tavola/       8   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      10   il primo caso che arriva in TAVOLA (voce GT0);
                        due fogli e lo stesso diedro (voce GT1);
                        il cartiglio dice cosa vuole (voce GT3);
                        i contatori ci sono anche a zero (voce Z-E1);
                        la tavola si quota, e le quote dicono 120 e 10 (voce K10);
                        lo spigolo che non esiste (la gemella del rifiuto);
                        la nota finisce sul FOGLIO e non in una vista (voce E2-bis);
-                       la nota fuori dal foglio (la gemella del rifiuto)
+                       la nota fuori dal foglio (la gemella del rifiuto);
+                       la sezione taglia il pezzo, e ha il TRATTEGGIO (voce GT4);
+                       il taglio fuori dalla vista (la gemella del rifiuto)
+casi/saldature/    1   la distinta conta le barre, e i due numeri vengono da
+                       due posti diversi (voce Z-C6)
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 

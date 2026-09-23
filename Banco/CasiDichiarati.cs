@@ -67,6 +67,18 @@ namespace ProvaSaldatura
             "specchia", "ripeti", "asse", "togliere", "frase", "verifica",
             "esporta", "misura", "corpi", "proprieta", "testo", "telai",
             "assiemi", "tavola",
+            // «saldature» e' entrata il 23/9/2026 con la voce Z-C6: cinque
+            // operazioni a catalogo non erano esercitate da NIENTE — ne' da un
+            // caso, ne' dal C#, ne' da un piano — e quattro delle cinque sono
+            // di questa famiglia.
+            //
+            // QUESTO ELENCO E' ESPLICITO, ed e' un difetto in agguato: una
+            // cartella di casi che non ci sta dentro e' un insieme di file che
+            // sembrano prove e non girano mai. Misurato lo stesso giorno: le
+            // altre cartelle fuori elenco (`ponte`, `limiti`, `viste`, `pezzi`,
+            // `forma`) contengono solo PIANI, che e' giusto — ma e' un fatto
+            // misurato, non una garanzia del meccanismo.
+            "saldature",
         };
 
         private static void ProvaCasiDichiarati()

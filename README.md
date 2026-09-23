@@ -2,7 +2,7 @@
 
 *Un progetto indipendente, non affiliato a Dassault Systèmes.*
 
-Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti sessantanove
+Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settanta
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -62,7 +62,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sei, non sessantanove. Le operazioni di disegno sono sessantanove, ma esporne
+Sei, non settanta. Le operazioni di disegno sono settanta, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
@@ -299,14 +299,14 @@ passa fra **cio' che qualcuno cerca per nome a runtime** e tutto il resto.
 seconda scrittura: vedi [Strumenti/aggiorna.md](Strumenti/aggiorna.md).
 Contiene solo le operazioni **misurate dentro il software SOLIDWORKS**.
 
-Sessantanove provate, e due che esistono nella libreria ma **restano fuori dal
+Settanta provate, e due che esistono nella libreria ma **restano fuori dal
 file**: `croci_di_centro` e `distinta_taglio_in_tavola` — tutte e due
 `Provata=false` con «0 → 0», cioe' non creano niente, e un client non deve
-poterle chiamare. Il numero che il banco stampa in intestazione e' settantuno,
-cioe' quante ne sa eseguire il
-dispatcher; quello del catalogo e' sessantanove, cioe' quante ne vede un
-client. **Due numeri, due cose diverse, e tutti e due giusti** — l'esportatore
-dice a voce alta quali lascia fuori mentre scrive il file.
+poterle chiamare. Il numero che il banco stampa in intestazione e'
+settantadue, cioe' quante ne sa eseguire il dispatcher; quello del catalogo e'
+settanta, cioe' quante ne vede un client. **Due numeri, due cose diverse, e
+tutti e due giusti** — l'esportatore dice a voce alta quali lascia fuori
+mentre scrive il file.
 
 ### Su che documento gira cosa
 

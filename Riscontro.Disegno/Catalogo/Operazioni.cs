@@ -2252,6 +2252,77 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "sezione_in_tavola",
+                    Famiglia = "tavola",
+                    // ── PROVATA, E SU COSA ─────────────────────────────
+                    //
+                    // Che la vista di sezione NASCA (il conto delle viste
+                    // sale), che sia del tipo giusto, e che abbia del
+                    // TRATTEGGIO — che e' l'unica cosa che distingue una
+                    // sezione dentro il materiale da una linea di taglio
+                    // caduta fuori, che produce una vista valida e vuota.
+                    //
+                    // Non e' provata — e non puo' esserlo — sul fatto che
+                    // il taglio passi dove serviva: dieci millimetri piu' in
+                    // la' e' altrettanto valido e non fa vedere il foro.
+                    Provata = true,
+                    Sommario =
+                        "Crea una vista di sezione su una tavola, e controlla che "
+                        + "il taglio abbia incontrato materiale.",
+                    Descrizione =
+                        "Taglia una vista della tavola e mette la sezione a fianco. "
+                        + "E' la prima cosa che manca per una tavola d'officina vera: "
+                        + "un pezzo con una cavita' interna, senza sezione, non si "
+                        + "legge — le linee nascoste dicono che c'e' un vuoto, non che "
+                        + "forma ha.\n\n"
+                        + "LA LINEA DI TAGLIO LA TRACCIO IO, da parte a parte della "
+                        + "vista: una linea che la sfiora da' una sezione vuota senza "
+                        + "dire niente. Di serie taglio in mezzo; con «a_mm» sposti il "
+                        + "taglio, in millimetri **di foglio** — non del modello, "
+                        + "perche' sul foglio la vista e' in scala.\n\n"
+                        + "TI DICO SE E' NATA contando le viste prima e dopo, non "
+                        + "perche' l'API ha risposto un oggetto: puo' rispondere senza "
+                        + "aver fatto niente.\n\n"
+                        + "E MI RIFIUTO SE NON C'E' TRATTEGGIO. Una sezione senza "
+                        + "tratteggio e' una linea di taglio caduta fuori dal "
+                        + "materiale: sul foglio resta una vista che sembra buona e non "
+                        + "mostra niente, e nessun errore lo direbbe. Preferisco "
+                        + "fallire e dirti dove ho tagliato.\n\n"
+                        + "QUELLO CHE NON POSSO SAPERE e' se quella e' la sezione che "
+                        + "serviva. So dirti che il taglio ha incontrato materiale, non "
+                        + "che passa per la cavita' che volevi mostrare.",
+                    Precondizione = "una tavola aperta con almeno una vista di modello",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O(
+                                "type", "string",
+                                "description", "quale vista sezionare, per nome. Senza, "
+                                    + "la prima vista di modello del foglio."),
+                            "verso", O(
+                                "type", "string",
+                                "enum", A("verticale", "orizzontale"),
+                                "description", "come corre la linea di taglio. "
+                                    + "Predefinito «verticale»."),
+                            "a_mm", O(
+                                "type", "number",
+                                "description", "di quanto spostare il taglio dal centro "
+                                    + "della vista, in millimetri DI FOGLIO. Positivo "
+                                    + "verso destra (o verso l'alto). Predefinito 0, "
+                                    + "cioe' in mezzo."),
+                            "etichetta", O(
+                                "type", "string",
+                                "description", "la lettera della sezione: «A» da' "
+                                    + "«Vista in sezione A-A». Predefinito «A»."),
+                            "profondita_mm", O(
+                                "type", "number",
+                                "description", "profondita' del taglio per una sezione "
+                                    + "parziale. Predefinito 0, che taglia da parte a "
+                                    + "parte.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "cartiglio",
                     Famiglia = "verifiche",
                     Provata = true,

@@ -24,6 +24,185 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.75.0 — 23 September 2026 · library 0.104.0
+
+### The first section view, and a guard that was right about the wrong number
+
+Bench 864 checks, 0 red, 681/681 expectations, full run. Contract suite 170,
+0 red.
+
+`sezione_in_tavola` (entry GT4). A part with an internal cavity, without a
+section, **cannot be read on the shop floor**: hidden lines say there is a void,
+not what shape it has.
+
+`CreateSectionViewAt5` takes no entity in its signature. The cut line has to be
+**drawn on the sheet and left selected** — the API takes that. Five steps that
+all have to work, each able to fail in silence. The 0.6 measurement had mapped
+them: `Select4(false, null)`, sketch closed with `InsertSketch(true)` *before*
+asking for the view, and a line that **crosses** the view — one that grazes it
+gives an empty section without saying anything.
+
+```
+"vista_sezione":"Vista in sezione A-A", "tipo_vista":2, "e_una_sezione":true,
+"viste_prima":4, "viste_dopo":5, "tratteggi":1, "tratteggi_solidi":0
+```
+
+**And the check the entry prescribed was on the wrong counter.** GT4 said
+*"mandatory check afterwards: `GetSolidHatchCount() > 0` — a section without
+crosshatch is a cut line that fell outside the material, and the operation must
+fail"*. The criterion is right and it saved the entry; the counter is not.
+
+The operation refused **on its first real use**, inside the first case written
+for it, on a vertical cut through the middle of a solid plate. Both could not be
+true, so it was measured:
+
+```
+hatch BEFORE rebuild: return=0  out=0
+hatch AFTER  rebuild: return=0  out=0
+face hatch:           1
+view type: 2 (swDrawingSectionView)   GetSection(): an object
+```
+
+`GetSolidHatchCount` answers **zero on a real section**, before and after the
+rebuild — and it has two outputs, a return value and an `out`, both zero. The
+counter for a section's crosshatch is **`GetFaceHatchCount`**, which reads 1.
+
+*A right criterion resting on the wrong counter is a guard that always says no,
+and it is indistinguishable from one that works until you use it.* Both numbers
+come out in the answer: `tratteggi_solidi: 0` is there so nobody walks the
+measured road again.
+
+### The bridge could not save and then draw
+
+Preparing the drawing for that measurement, the most ordinary sequence there
+is — **extrude, cut, save, create drawing** — stopped at the fourth step:
+
+```
+Mi fermo: il documento e' cambiato. Avevi guardato «Parte1597», adesso
+davanti c'e' «...\sonda_sezione.SLDPRT».
+```
+
+True, and our fault. `salva_documento` changes the document's identity while the
+plan runs — before the save it is "Parte1597" with no path, after it is a path
+on disk — and `disegna` restored `_guardato` to the identity read *before*
+executing. The next `disegna` was refused with a correct message and a wrong
+cause. `annulla` already did the right thing three methods further down.
+
+**The bench could not see it**: it calls the library, not the bridge. The group
+that comes in through the client's door (entry F14) saw it, the day after it was
+born.
+
+### The check on the two library copies, seen going red at last
+
+Entry K9 left one residue, written down as a promise: *"I have not seen it go
+red yet, and I say so instead of letting it be believed. At the next library
+change, compile the single project on purpose, watch the red, then run
+`build.ps1`."*
+
+Done, by taking the library to 0.104.0 and building only its project:
+
+```
+0.104.0.0   Riscontro.Disegno\bin\Release\...   (what the bench measures)
+0.103.0.0   bin\...                             (what the bridge loads)
+
+NO   il ponte e il banco hanno la STESSA versione della libreria
+     BANCO 0.104.0.0 contro PONTE 0.103.0.0 — chi ha compilato il solo
+     progetto ha aggiornato il primo e non il secondo: si rilancia
+     .\build.ps1, che li allinea
+```
+
+That is the defect which on 18 September cost nine hours disguised as "the
+operation does not refuse". The cause was not in the code, it was in a file
+path.
+
+### `Provata = true` does not mean anything checks it (entry Z-C6)
+
+Measured by crossing the catalogue with every declared case, the bench's C#, and
+the hand plans:
+
+| | |
+|---|---|
+| operations in the catalogue | **70** |
+| with at least one declared case | 57 |
+| named only by a hand plan — never runs, asserts nothing | 7 |
+| **exercised by nothing at all** | **5** |
+
+`cordone_saldatura`, `distinta_taglio`, `fazzoletto`, `taglia_membri`,
+`tappo_estremita`: in the catalogue, visible to any client, and no round touches
+them. The first of the five now has a declared case; the guard that would make
+this permanent is deliberately **not** written yet — *a guard born with twelve
+reds is a list somebody silences the next day.*
+
+`Controlli\conta-provate.js` is in the repository so the number can be redone
+instead of believed.
+
+### And a folder of cases nobody was reading
+
+Writing that first case created `Banco\casi\saldature\`, and `Famiglie` in
+`CasiDichiarati.cs` is an **explicit list**: the folder was not in it, so its
+case would have stayed mute. There is now a contract check for exactly that, and
+it was watched going red by removing `saldature` on purpose:
+
+```
+NO   ogni cartella con dei casi dentro e' nell'elenco
+     MUTE, i loro casi non girano mai: saldature
+```
+
+Also measured: the other folders outside the list (`ponte`, `limiti`, `viste`,
+`pezzi`, `forma`) hold **only plans** — which is correct, but it is a measured
+fact, not a guarantee of the mechanism.
+
+### Three times in two days, an expectation broke on capital letters
+
+```
+21/9  it looked for «vero»,        the text said «VERO»
+23/9  it looked for «accavallano», the text says «si accavalla»
+23/9  it looked for «che serviva», the text says «CHE SERVIVA»
+```
+
+The second was a verb ending, repaired by matching the stem. The first and the
+third are the same thing, and they were not defects in the cases: `contiene`
+compared with `StringComparison.Ordinal`, but what it reads is **prose written
+for a person**, and in this repository emphasis is made by raising the voice —
+that is, by changing the case.
+
+*Three incidents from one cause are not three cases to repair: they are an
+operator to repair.* `contiene` and `non_contiene` no longer look at case.
+
+**And `non_contiene` became stricter**, which is the uncomfortable direction: a
+"does not say X" that passed only because the text wrote "x" now goes red. It
+should — that green was luck, not a measurement — and it is why the change was
+made with a full bench run against it rather than by eye. The run says none was
+relying on it.
+
+### A twin that was not one, and the case said so itself
+
+The refusal case for the section passed `a_mm: 9999` while its green twin
+passed `etichetta: "A"` — **no argument in common**:
+
+```
+!!  lim_sezione_fuori_dalla_vista · passo 6
+    ERRORE DI BANCO: gemella finta: non ha nemmeno un argomento in comune
+    col rifiuto: sono due operazioni che non si parlano
+```
+
+The rule was already written, in a sentence copied into that very file from
+the note twin: *"what changes is the VALUE of an argument, not which argument
+is passed."* Two calls that share nothing do not prove the check on `a_mm`
+works; they prove two different calls do different things. The pair now shares
+both arguments and differs only in the value — 0 against 9999. Zero is the
+default, so the twin behaves exactly as before; what changed is that it now
+**says so**.
+
+### Three runs on one version, and none of them wasted
+
+The first found the wrong hatch counter, the second the case-sensitive
+`contiene`, the third the fake twin. An hour each, and each removed something
+nothing else would have seen — the first two were defects in code that had
+just been written and read twice.
+
+---
+
 ## 0.74.1 — 23 September 2026 · library unchanged (0.103.0)
 
 ### The four silences have two causes, not four (entry K5)

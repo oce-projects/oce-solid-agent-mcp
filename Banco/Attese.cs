@@ -299,11 +299,48 @@ namespace ProvaSaldatura
         /// Il pezzo cercato c'e'? Su un elenco basta che lo contenga UNA voce;
         /// su una frase, la frase.
         /// </summary>
+        /// <summary>
+        /// SENZA GUARDARE LE MAIUSCOLE, e il perche' e' costato tre volte.
+        ///
+        /// ── I TRE INCIDENTI ──────────────────────────────────────────────
+        ///
+        ///   21/9  un'attesa cercava «vero», il testo diceva «VERO»
+        ///   23/9  cercava «accavallano», il testo dice «si accavalla»
+        ///   23/9  cercava «che serviva», il testo dice «CHE SERVIVA»
+        ///
+        /// Il secondo era una desinenza, e si e' riparato cercando la radice.
+        /// Il primo e il terzo sono la stessa cosa, e non erano difetti dei
+        /// casi: `contiene` guarda PROSA, scritta per una persona, e in questo
+        /// repository l'enfasi si fa alzando la voce — cioe' cambiando le
+        /// maiuscole. Un'attesa che si rompe quando una frase viene riscritta
+        /// con piu' enfasi non sta misurando cio' che dice: sta misurando come
+        /// e' scritta.
+        ///
+        /// *Tre incidenti dalla stessa causa non sono tre casi da riparare: e'
+        /// un operatore da riparare.*
+        ///
+        /// ── E `non_contiene` DIVENTA PIU' SEVERO ─────────────────────────
+        ///
+        /// Cambiano insieme, ed e' il verso scomodo: un «non dice X» che
+        /// passava solo perche' il testo scriveva «x» adesso diventa rosso. E'
+        /// giusto che lo diventi — quel verde era un caso fortunato, non una
+        /// misura — ed e' il motivo per cui questa modifica si e' fatta con un
+        /// giro di banco intero addosso invece che a occhio.
+        ///
+        /// ── CHI VUOLE DAVVERO LE MAIUSCOLE ───────────────────────────────
+        ///
+        /// Non ha un operatore, e va detto invece di lasciarlo scoprire.
+        /// Nessun caso oggi ne ha bisogno: si e' guardato prima di togliere il
+        /// confronto esatto. Il giorno che servisse, si aggiunge
+        /// `contiene_esatto` — un nome diverso, non un booleano in piu' su
+        /// questo, perche' un interruttore che cambia il senso di un operatore
+        /// e' un operatore travestito.
+        /// </summary>
         private static bool Dentro(List<string> voci, string frase, string pezzo)
         {
             if (voci != null)
-                return voci.Any(v => v.IndexOf(pezzo, StringComparison.Ordinal) >= 0);
-            return frase.IndexOf(pezzo, StringComparison.Ordinal) >= 0;
+                return voci.Any(v => v.IndexOf(pezzo, StringComparison.OrdinalIgnoreCase) >= 0);
+            return frase.IndexOf(pezzo, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         /// <summary>I pezzi di frase di un campo: una stringa sola o un elenco.</summary>

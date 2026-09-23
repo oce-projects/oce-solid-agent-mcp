@@ -141,11 +141,13 @@ namespace Controlli.SezioneInTavola
             // IL RISCONTRO VERO: quante viste ci sono adesso.
             int dopo = 0;
             string ultima = "";
+            IView vistaUltima = null;
             var w = tavola.GetFirstView() as IView;
             while (w != null)
             {
                 dopo++;
                 ultima = w.GetName2();
+                vistaUltima = w;
                 w = w.GetNextView() as IView;
                 if (dopo > 50) break;
             }
@@ -154,7 +156,62 @@ namespace Controlli.SezioneInTavola
                 ? "  -> LA SEZIONE C'E'. Ultima vista: «" + ultima + "»"
                 : "  -> nessuna vista in piu': la sezione NON e' nata");
 
+            // ── IL TRATTEGGIO: DUE NUMERI, E PRIMA E DOPO IL RICALCOLO ──
+            //
+            // Misurato il 23/9/2026 perche' l'operazione `sezione_in_tavola`
+            // si e' rifiutata al primo uso vero dicendo «non ha tratteggio»
+            // su un taglio che attraversa una piastra piena. Delle due l'una:
+            // o il tratteggio non c'e' finche' la tavola non si ricalcola, o
+            // il numero che leggevo non e' quello che credevo.
+            //
+            // `GetSolidHatchCount(out int ArraySize)` ha DUE uscite — il valore
+            // di ritorno e l'`out` — e finora ne ho usata una sola, scegliendo
+            // a occhio. Qui si stampano tutte e due, prima e dopo
+            // `EditRebuild3`, e si smette di indovinare.
+            if (vistaUltima != null)
+            {
+                int quante1 = -1, reso1 = -1;
+                try { reso1 = vistaUltima.GetSolidHatchCount(out quante1); } catch (Exception e)
+                { Console.WriteLine("  GetSolidHatchCount (prima): " + e.Message); }
+                Console.WriteLine("tratteggio PRIMA del ricalcolo: ritorno=" + reso1 +
+                                  "  out=" + quante1);
+            }
+
             try { doc.EditRebuild3(); } catch { }
+
+            if (vistaUltima != null)
+            {
+                int quante2 = -1, reso2 = -1;
+                try { reso2 = vistaUltima.GetSolidHatchCount(out quante2); } catch (Exception e)
+                { Console.WriteLine("  GetSolidHatchCount (dopo): " + e.Message); }
+                Console.WriteLine("tratteggio DOPO  il ricalcolo: ritorno=" + reso2 +
+                                  "  out=" + quante2);
+
+                // ── E SE IL CONTATORE FOSSE UN ALTRO ────────────────────
+                //
+                // `GetSolidHatchCount` risponde zero prima e dopo il ricalcolo
+                // su una sezione che taglia una piastra piena. O il tratteggio
+                // di una sezione non e' un «solid hatch» per questa API, o si
+                // conta altrove. `IView` ne ha un secondo, `GetFaceHatchCount`,
+                // e finche' non si guardano tutti e due si sta indovinando.
+                int facce = -1;
+                try { facce = vistaUltima.GetFaceHatchCount(); } catch (Exception e)
+                { Console.WriteLine("  GetFaceHatchCount: " + e.Message); }
+                Console.WriteLine("tratteggio di FACCIA:          " + facce);
+
+                int tipo = -1;
+                try { tipo = vistaUltima.Type; } catch { }
+                bool haSezione = false;
+                try { haSezione = vistaUltima.GetSection() != null; } catch { }
+                int righeDiTaglio = -1;
+                try { int rt; vistaUltima.GetSectionLineCount2(out rt); righeDiTaglio = rt; } catch { }
+                Console.WriteLine("tipo vista: " + tipo +
+                                  "  (swDrawingSectionView = " +
+                                  (int)swDrawingViewTypes_e.swDrawingSectionView + ")");
+                Console.WriteLine("GetSection() risponde: " + (haSezione ? "un oggetto" : "null") +
+                                  "   righe di taglio sulla vista di partenza: " + righeDiTaglio);
+            }
+
             return dopo > viste ? 0 : 1;
         }
     }

@@ -1,0 +1,36 @@
+{
+  "nome": "la_distinta_conta_le_barre",
+  "famiglia": "saldature",
+  "perche": "VOCE Z-C6. `distinta_taglio` e' a catalogo con `Provata = true` da sempre, e fino al 23/9/2026 **nessun giro di banco la toccava**: ne' un caso dichiarato, ne' il C# del banco, ne' un piano a mano. «Provata» li' voleva dire «qualcuno l'ha misurata una volta», non «qualcosa la controlla ogni volta» — e le due cose si leggono uguali nel file.",
+
+  "perche_conta": "E' il documento con cui si va in officina, ed e' il motivo per cui un telaio si fa con i membri strutturali invece che con le estrusioni. Una distinta che conta le barre sbagliate manda a tagliare il ferro sbagliato, e non da' nessun errore.",
+
+  "il_difetto_che_questo_caso_prende": "Una distinta che nasce vuota, o che conta un numero di barre diverso da quelle che ci sono. `corpi_in_distinta` si legge CHIEDENDO alle cartelle della distinta quanti corpi hanno — non ricopiando il numero dei corpi del pezzo — quindi i due numeri possono divergere, ed e' proprio quando divergono che serve saperlo.",
+
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "telaio_rettangolare",
+      "argomenti": {
+        "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configurazione": "80X80X5",
+        "lunghezza_mm": 1000,
+        "larghezza_mm": 800,
+        "piano": "frontale",
+        "trattamento_angolo": "quartabuono",
+        "centrato": true
+      },
+      "attese": [
+        { "cosa": "corpi", "uguale": 4,
+          "perche": "quattro barre: e' il numero con cui si confronta la distinta due passi piu' sotto. Senza questa riga, «la distinta ne conta quattro» sarebbe vero anche su un telaio venuto male" } ] },
+
+    { "operazione": "distinta_taglio",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.corpi_in_distinta", "uguale": 4,
+          "e_questo_e_il_confronto": "**I DUE NUMERI ARRIVANO DA DUE POSTI DIVERSI.** `corpi` lo conta lo stato del pezzo; `corpi_in_distinta` lo si chiede alle cartelle della distinta, una per una. Sono uguali quando la distinta e' giusta, e quando divergono e' esattamente il momento in cui qualcuno andrebbe in officina col foglio sbagliato.",
+          "perche": "quattro barre nel pezzo, quattro voci nella distinta" },
+
+        { "cosa": "misure.gia_esisteva", "uguale": false,
+          "perche": "la distinta e' NATA in questo passo, non trovata gia' fatta: senza questa riga il caso sarebbe verde anche se l'operazione non avesse fatto niente e si fosse limitata a leggere una distinta preesistente" } ] }
+  ]
+}

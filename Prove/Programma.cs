@@ -326,6 +326,7 @@ namespace Prove.Contratti
             OgniVariabileDAmbienteStaNelLeggimi();
             IlLeggimiDelBancoContaIFileGiusti();
             OgniFamigliaDelCatalogoHaUnDocumentoAmmesso();
+            OgniCartellaDiCasiEDentroLElenco();
             NessunaVoceDelTodoSiChiamaComeUnAltra();
             IlRifiutoDelleQuoteDiceAncoraQuelloCheServe();
             LaLibreriaDelPonteELaSTESSADelBanco();
@@ -845,6 +846,106 @@ namespace Prove.Contratti
         /// Non si pretende che il TODO sia in un formato: si pretende che due
         /// cose diverse non si chiamino uguale.
         /// </summary>
+        /// <summary>
+        /// OGNI CARTELLA DI CASI STA NELL'ELENCO CHE IL BANCO SCORRE.
+        ///
+        /// ── IL DIFETTO CHE QUESTO CONTROLLO PRENDE ───────────────────────
+        ///
+        /// `Banco\CasiDichiarati.cs` ha un elenco ESPLICITO di famiglie, e
+        /// scorre solo quelle. Una cartella nuova sotto `Banco\casi\` che non
+        /// finisca in quell'elenco contiene file che **sembrano prove e non
+        /// girano mai**: nessun errore, nessun avviso, e il conto delle prove
+        /// non se ne accorge perche' quei casi non sono mai esistiti per lui.
+        ///
+        /// E' successo il 23/9/2026 scrivendo la voce Z-C6: la cartella
+        /// `saldature\` e' nata col suo primo caso dentro, e sarebbe rimasta
+        /// muta. *Un elenco scritto a mano e' una cosa che un giorno qualcuno
+        /// dimentica di allungare, e il modo in cui lo dimentica e' non
+        /// accorgersene.*
+        ///
+        /// ── PERCHE' SI GUARDA LA FORMA DEI FILE, NON IL NOME ─────────────
+        ///
+        /// Sotto `casi\` ci sono due cose diverse: i CASI (oggetti con dei
+        /// passi e delle attese, che il banco esegue) e i PIANI (array, che
+        /// lancia `corri_piani.js` a mano). Le cartelle di soli piani —
+        /// `ponte\`, `limiti\`, `viste\`, `pezzi\`, `forma\` — stanno fuori
+        /// dall'elenco ed e' giusto cosi'.
+        ///
+        /// Quindi il controllo non chiede «ogni cartella e' nell'elenco»:
+        /// chiede «ogni cartella che contiene almeno un CASO e' nell'elenco».
+        /// La differenza e' fra un controllo che descrive la realta' e uno che
+        /// pretende un ordine che non c'e'.
+        /// </summary>
+        private static void OgniCartellaDiCasiEDentroLElenco()
+        {
+            Gruppo("le cartelle di casi stanno nell'elenco che il banco scorre");
+
+            var sorgente = Path.Combine(Radice(), "Banco", "CasiDichiarati.cs");
+            var radiceCasi = Path.Combine(Radice(), "Banco", "casi");
+            if (!File.Exists(sorgente) || !Directory.Exists(radiceCasi))
+            {
+                Segna("il banco e i suoi casi ci sono", false,
+                      sorgente + " / " + radiceCasi);
+                return;
+            }
+
+            var testo = File.ReadAllText(sorgente);
+            var blocco = System.Text.RegularExpressions.Regex.Match(testo, @"Famiglie\s*=\s*\{([\s\S]*?)\};");
+            if (!blocco.Success)
+            {
+                // SE L'ELENCO SPARISCE, SPARISCE ANCHE QUESTO CONTROLLO: e
+                // un controllo che sparisce in silenzio e' peggio di uno che
+                // non c'e' mai stato.
+                Segna("trovo l'elenco delle famiglie", false,
+                      "non c'e' nessun «Famiglie = { ... }» in CasiDichiarati.cs");
+                return;
+            }
+
+            var elencate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(blocco.Groups[1].Value, "\"([a-z0-9_-]+)\""))
+                elencate.Add(m.Groups[1].Value);
+
+            Segna("l'elenco delle famiglie si legge", elencate.Count >= 10,
+                  elencate.Count + " famiglie");
+            if (elencate.Count < 10) return;
+
+            // `regressione` NON sta nell'elenco, e non e' un difetto: ha un
+            // giro suo (`--regressione`), con un valutatore suo. Sta scritto
+            // qui e non in un elenco di eccezioni generico, perche' e' una
+            // sola e ha un motivo.
+            var fuoriPerDisegno = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regressione" };
+
+            var mute = new List<string>();
+            int guardate = 0, conCasi = 0;
+            foreach (var cartella in Directory.GetDirectories(radiceCasi))
+            {
+                guardate++;
+                var nome = Path.GetFileName(cartella);
+                bool haCasi = false;
+                foreach (var f in Directory.GetFiles(cartella, "*.json"))
+                {
+                    string grezzo;
+                    try { grezzo = File.ReadAllText(f); } catch { continue; }
+                    // UN CASO E' UN OGGETTO, UN PIANO E' UN ARRAY. Stessa
+                    // distinzione strutturale che fa il banco.
+                    var t = grezzo.TrimStart();
+                    if (t.StartsWith("{") && t.IndexOf("\"passi\"", StringComparison.Ordinal) >= 0)
+                    { haCasi = true; break; }
+                }
+                if (!haCasi) continue;
+                conCasi++;
+                if (!elencate.Contains(nome) && !fuoriPerDisegno.Contains(nome))
+                    mute.Add(nome);
+            }
+
+            Segna("ogni cartella con dei casi dentro e' nell'elenco",
+                  mute.Count == 0,
+                  mute.Count == 0
+                      ? conCasi + " cartelle con casi su " + guardate + ", tutte scorse"
+                      : "MUTE, i loro casi non girano mai: " + string.Join(", ", mute) +
+                        " — si aggiungono a «Famiglie» in Banco\\CasiDichiarati.cs");
+        }
+
         private static void NessunaVoceDelTodoSiChiamaComeUnAltra()
         {
             Gruppo("nel TODO due voci non si chiamano allo stesso modo");
