@@ -171,7 +171,33 @@ namespace ProvaSaldatura
         {
             public IModelDoc2 Documento;
             public readonly List<string> FileDaCancellare = new List<string>();
+
+            /// <summary>
+            /// Documenti da chiudere indicati per NOME. Va bene per i
+            /// componenti di un assieme: sono salvati su disco prima di
+            /// essere aperti, e il loro nome non cambia piu'.
+            /// </summary>
             public readonly List<string> TitoliDaChiudere = new List<string>();
+
+            /// <summary>
+            /// Documenti da chiudere indicati per RIFERIMENTO (voce K12-bis).
+            ///
+            /// ── PERCHE' NON BASTA IL NOME ───────────────────────────────
+            ///
+            /// Una tavola nasce come `Disegno38 - Foglio1` e viene salvata
+            /// dopo, diventando `la_tavola_si_quota - Foglio1`. Il banco
+            /// segnava il titolo **nel momento in cui il documento
+            /// compariva**, cioe' quello vecchio, e a fine caso
+            /// `CloseDoc("Disegno38 - Foglio1")` non chiudeva niente **e non
+            /// lo diceva**. La tavola restava aperta, e una tavola aperta
+            /// tiene aperto il suo pezzo: due documenti per caso, quattordici
+            /// a fine giro.
+            ///
+            /// **L'identita' di un documento non e' il suo titolo.** E' la
+            /// stessa lezione del documento attivo: si tiene il riferimento,
+            /// e il titolo si chiede nel momento in cui serve.
+            /// </summary>
+            public readonly List<IModelDoc2> DocumentiDaChiudere = new List<IModelDoc2>();
         }
 
         /// <summary>
@@ -349,11 +375,35 @@ namespace ProvaSaldatura
             for (int giro = 0; giro < 2; giro++)
             {
                 Chiudi(p.Documento);
+                // Per riferimento PRIMA: e' la tavola, e finche' e' aperta
+                // tiene aperto il pezzo. Vedi `DocumentiDaChiudere`.
+                foreach (var d in p.DocumentiDaChiudere) Chiudi(d);
                 foreach (var t in p.TitoliDaChiudere)
                 {
                     try { _sw.CloseDoc(t); } catch { }
                 }
             }
+
+            // E SI GUARDA SE SONO ANDATI VIA DAVVERO (voce K12-bis).
+            //
+            // `CloseDoc` non torna niente: il difetto di K12-bis e' vissuto
+            // sette giorni proprio perche' chiudere un documento che non
+            // esiste con quel nome **non e' un errore**. Qui non si puo'
+            // fare un rosso — lo smontaggio gira anche dentro un caso
+            // fallito, e un secondo rosso coprirebbe il primo — ma si puo'
+            // DIRE, e una riga che compare solo quando qualcosa non e'
+            // andato e' il minimo per non riscoprirlo fra una settimana.
+            int restano = 0;
+            try
+            {
+                var d = (IModelDoc2)_sw.GetFirstDocument();
+                while (d != null) { restano++; d = (IModelDoc2)d.GetNext(); }
+            }
+            catch { restano = -1; }
+            if (restano > 0)
+                Console.WriteLine("       | smontaggio: restano " + restano +
+                                  " documenti aperti");
+
             ButtaViaIFile(p);
         }
 

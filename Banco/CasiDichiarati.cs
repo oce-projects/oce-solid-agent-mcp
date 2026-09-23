@@ -1320,8 +1320,17 @@ namespace ProvaSaldatura
                         // da 15.6k a 16.2k e **diventa rossa senza che il
                         // codice sia cambiato**. Mezz'ora a cercare una
                         // regressione che non c'e'.
-                        if (daRipulire != null && !string.IsNullOrWhiteSpace(comeSiChiama))
-                            daRipulire.TitoliDaChiudere.Add(comeSiChiama);
+                        // SI SEGNA IL RIFERIMENTO, NON IL NOME (voce K12-bis).
+                        //
+                        // Qui la tavola si chiama ancora `Disegno38 -
+                        // Foglio1`; due passi dopo il caso la salva e diventa
+                        // `la_tavola_si_quota - Foglio1`. Segnando il nome di
+                        // adesso, a fine caso si chiedeva a SOLIDWORKS di
+                        // chiudere un documento che non esisteva piu' con quel
+                        // nome — e `CloseDoc` su un nome sconosciuto non e' un
+                        // errore, quindi non lo diceva nessuno.
+                        if (daRipulire != null)
+                            daRipulire.DocumentiDaChiudere.Add(attuale);
                     }
 
                     stato = LeggiStato(attuale);

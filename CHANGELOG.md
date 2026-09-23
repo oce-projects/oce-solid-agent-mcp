@@ -24,6 +24,75 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.71.0 — 23 September 2026 · library 0.102.0
+
+### A drawing that would not close, because its name had changed
+
+Bench 835 checks, 0 red, 662/662 expectations, full run, 67 minutes. Contract
+suite 158, 0 red. **Zero documents left open afterwards**, which is this
+entry's own closing criterion.
+
+**Fourteen documents were left open after every full run**, seven parts and
+seven drawings, one pair for each drawing case. The mechanism that should have
+closed them existed, was correct, and carried a comment explaining exactly why
+it mattered — the ~650 characters of extra state and the 16 KB check that turns
+red without any code having changed.
+
+**The title was captured at the wrong moment.** When a step produces a new
+document the bench records it for later closing. At that instant the drawing is
+called `Disegno38 - Foglio1`. Two steps later the case saves it and it becomes
+`la_tavola_si_quota - Foglio1`. At teardown the bench asked SOLIDWORKS to close
+`Disegno38 - Foglio1` — **and `CloseDoc` on a name that does not exist is not an
+error**, so nothing said anything. An open drawing then holds its part open, so
+each case leaked two.
+
+**A document's identity is not its title.** The same lesson as the active
+document: hold the reference, ask for the name when you need it.
+`Preparazione` now carries `DocumentiDaChiudere`, a list of `IModelDoc2`, and
+teardown closes those before the names — the drawing holds the part, not the
+other way round.
+
+**And teardown counts again.** It cannot go red — it also runs inside a case
+that already failed, and a second red would bury the first — but if documents
+remain it says so. A line that appears only when something did not work is the
+least that stops a silent defect from living another seven days.
+
+**How it was found is worth as much as the fix.** Not by reading the code, but
+by reading the run's own diary: the line `| da qui si lavora su «Disegno38 -
+Foglio1»` says the name the bench saw, and comparing it with what
+`ChiudiScarti` listed after the run closes the diagnosis in a minute. *The bench
+had been saying it all along; nobody had put the two lists side by side.*
+
+### And it moved a number that was not supposed to be a measurement
+
+The K2-bis count — how many checks run with a CAD document open — went from
+**806 with / 29 without** to **750 with / 85 without**. Fifty-six checks were
+counted as *with a document* only because seven leaked drawings were still
+sitting there. The entry had declared the figure a ceiling rather than a
+measurement precisely because of this leak; the leak is gone, and the ceiling
+came down by fifty-six.
+
+*A declared blind spot is worth what it costs to close it* — here it cost one
+line of diagnosis and produced a number that is fifty-six units less
+flattering.
+
+### Smaller
+
+- **`soprattutto` counted the band that goes below.** The horizontal-dimension
+  counter was named "above all" and its next line subtracts. Renamed to `sotto`;
+  no behaviour change. It had already produced two wrong *descriptions* in one
+  day — the 0.101.0 version note and a spoken summary — which is exactly how a
+  misleading name costs.
+- **The 0.101.0 note said «orizzontali sopra».** It is wrong, and it is not
+  corrected in place: *a version note rewritten backwards is a note that lies.*
+  The 0.102.0 note contradicts it where someone reading in order will find it.
+- **The comment about `AssemblyInformationalVersion` said no check compared the
+  two numbers.** One does now, and it fired the same day. *Between a comment
+  that warns and a test that goes red there is no difference of degree: the
+  first is read after you have already made the mistake.*
+
+---
+
 ## 0.70.0 — 23 September 2026 · library 0.101.0
 
 ### Dimensions land where they belong, and a CI that had never once been green

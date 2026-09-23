@@ -69,15 +69,30 @@ using System.Runtime.InteropServices;
 //          12 mm e passo 10 mm. Doppioni tolti per GEOMETRIA e non per
 //          valore: due gradini da 10 mm sono due elementi, e vanno quotati
 //          tutti e due.
-[assembly: AssemblyVersion("0.101.0.0")]
-[assembly: AssemblyFileVersion("0.101.0.0")]
+// 0.102.0: il contatore della fascia orizzontale si chiamava `soprattutto`
+//          e le quote le metteva SOTTO (voce K15). Nient'altro cambia nel
+//          comportamento: e' un nome che diceva il contrario di quello che
+//          faceva, ed e' una trappola per chi legge fra sei mesi.
+//          E LA RIGA DELLA 0.101.0 QUI SOPRA DICE «orizzontali sopra»: e'
+//          sbagliata, e il nome del contatore e' il motivo per cui e' stata
+//          scritta cosi'. Non la si corregge in silenzio — una nota di
+//          versione riscritta all'indietro e' una nota che mente — la si
+//          smentisce qui: **sotto**, come dice il codice e come ha sempre
+//          fatto.
+[assembly: AssemblyVersion("0.102.0.0")]
+[assembly: AssemblyFileVersion("0.102.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
 //
 // ED E' RISUCCESSO: il 22/9/2026 diceva 0.94.0 con l'assembly a 0.99.0, cioe'
 // cinque versioni indietro. La riga sopra racconta il difetto e non lo ha
-// impedito — perche' un commento non e' un controllo. Finche' nessuna prova
-// confronta i due numeri, questo terzo lo si allinea a mano e prima o poi
-// invecchia di nuovo.
-[assembly: AssemblyInformationalVersion("0.101.0")]
+// impedito — perche' un commento non e' un controllo.
+//
+// ADESSO IL CONTROLLO C'E', e il 23/9/2026 ha parlato: «assembly 0.101.0.0,
+// proprieta' del file 0.100.0». Il difetto era ricapitato per la terza volta,
+// e stavolta non l'ha trovato nessuno leggendo — l'ha detto la suite di
+// contratto, prima del commit. *Fra un commento che avvisa e una prova che
+// si fa rossa non c'e' una differenza di grado: la prima si legge quando si
+// e' gia' sbagliato, la seconda impedisce di sbagliare.*
+[assembly: AssemblyInformationalVersion("0.102.0")]

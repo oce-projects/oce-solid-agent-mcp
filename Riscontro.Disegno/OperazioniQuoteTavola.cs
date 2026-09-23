@@ -228,7 +228,7 @@ namespace Riscontro.Disegno
                 // UN CONTATORE PER FASCIA, non uno solo per tutte. La stesura
                 // precedente ne aveva uno globale, e cosi' la seconda quota
                 // scendeva di un passo anche se andava a destra.
-                int soprattutto = 0, diLato = 0, oblique = 0;
+                int sotto = 0, diLato = 0, oblique = 0;
 
                 foreach (var s in misurati)
                 {
@@ -256,8 +256,8 @@ namespace Riscontro.Disegno
                         if (s.Verso == "orizzontale")
                         {
                             x = s.Mezzo;
-                            y = contorno[1] - distacco - soprattutto * passo;
-                            soprattutto++;
+                            y = contorno[1] - distacco - sotto * passo;
+                            sotto++;
                         }
                         else if (s.Verso == "verticale")
                         {
