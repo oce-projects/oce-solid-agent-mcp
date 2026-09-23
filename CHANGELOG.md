@@ -24,6 +24,42 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.71.1 — 23 September 2026 · library unchanged (0.102.0)
+
+### The guard checked the library, not the bench
+
+Contract suite 159, 0 red. The bench was not re-run: nothing in the library
+changed.
+
+`Prove.Contratti` refuses a delivery where nobody ran the bench — it reads
+`Banco/resoconto/ultimo.json` and checks the run is whole, exited 0, on the
+current library, and later than the last change to `Riscontro.Disegno`.
+
+**It watched one half.** The bench is two things: the library that measures
+and the bench code that decides what to measure. A new check, a new counter, a
+stricter expectation — none of it triggered anything, because the library had
+not changed.
+
+Not hypothetical: earlier today the clean-desk guard and the CAD-document
+count went into the bench *after* a run had started, and the committed report
+described a bench that was no longer in the repository. Not false — that run
+happened — but answering a different question from the one it appears to
+answer: not "this bench is green" but "a bench from a few hours ago was".
+
+**Watched firing, on a real commit, in a throwaway clone.** One line added to
+`Banco\Program.cs`, committed without re-running: the library check stays
+green, the bench check goes red. In a separate clone because proving it here
+would have meant dirtying the history to clean it up again — *a test you run
+by undoing a commit is a test you will eventually skip.*
+
+**And a `null` that meant two things was untangled.** "Git did not answer" and
+"there is nothing to find" both returned `null`, and the first was printed with
+the second's message. A repository with no unproven commits is now a green that
+says so; git not answering is a red, because a check that could not look is not
+a check that found nothing.
+
+---
+
 ## 0.71.0 — 23 September 2026 · library 0.102.0
 
 ### A drawing that would not close, because its name had changed

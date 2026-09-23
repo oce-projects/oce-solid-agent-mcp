@@ -92,16 +92,32 @@ namespace Prove.Contratti
             // e' una libreria non provata, anche se il numero di versione
             // combacia perche' qualcuno si e' dimenticato di alzarlo.
             DateTime? quando = Data(Convert.ToString(giro.ContainsKey("quando") ? giro["quando"] : ""));
-            DateTime? ultimoTocco = UltimaModificaAlleOperazioni();
-            if (quando == null) Segna("il giro dice quando", false, "«quando» illeggibile");
-            else if (ultimoTocco == null)
-                Segna("so quando le operazioni sono state toccate", false,
-                      "git non risponde: senza, questo controllo non esiste");
+            if (quando == null)
+            {
+                Segna("il giro dice quando", false, "«quando» illeggibile");
+            }
             else
-                Segna("il giro e' posteriore all'ultima modifica alle operazioni",
-                      quando.Value >= ultimoTocco.Value.AddMinutes(-1),
-                      "giro " + quando.Value.ToString("s") +
-                      ", ultima modifica " + ultimoTocco.Value.ToString("s"));
+            {
+                // ── DUE META', E PRIMA SE NE GUARDAVA UNA (voce K14) ─────
+                //
+                // Il banco e' fatto di due cose: la LIBRERIA che misura e il
+                // CODICE DEL BANCO che decide cosa misurare. Questa guardia
+                // guardava solo la prima, quindi una prova nuova, un
+                // contatore nuovo o un'attesa piu' severa entravano in
+                // repository senza che niente chiedesse «e l'hai fatto
+                // girare?».
+                //
+                // Non e' teoria: il 23/9/2026 sono entrati nel banco la
+                // scrivania pulita (K12) e il conto dei documenti CAD
+                // (K2-bis) mentre un giro era gia' partito, e il resoconto
+                // committato raccontava un banco che nel repository non
+                // c'era piu'. Non era falso — quel giro c'e' stato — ma
+                // rispondeva a una domanda diversa da quella che sembrava:
+                // non «questo banco e' verde» ma «un banco di qualche ora fa
+                // lo era».
+                GuardaIlTocco("le operazioni", "Riscontro.Disegno", quando.Value);
+                GuardaIlTocco("il banco", "Banco", quando.Value);
+            }
         }
 
         private static int Intero(Dictionary<string, object> d, string chiave)
@@ -172,22 +188,73 @@ namespace Prove.Contratti
         /// Quindi si scorrono i commit sulla libreria e ci si ferma al primo
         /// che non tocca anche `Banco/resoconto/ultimo.json`.
         /// </summary>
-        private static DateTime? UltimaModificaAlleOperazioni()
+        /// <summary>
+        /// «Git non ha risposto» e «non c'e' niente da trovare» erano lo
+        /// stesso `null`, e il primo dei due si stampava col messaggio
+        /// dell'altro.
+        ///
+        /// Un repository giovane — nessun commit sulla libreria senza
+        /// resoconto accanto — non ha niente di non provato, ed e' un VERDE.
+        /// Git che non risponde e' un ROSSO: senza di lui il controllo non
+        /// esiste, e un controllo che non esiste non va scambiato per uno che
+        /// non ha trovato niente.
+        /// </summary>
+        private sealed class Tocco
         {
+            public bool GitHaRisposto;
+            public DateTime? Quando;
+        }
+
+        private static Tocco UltimaModificaSenzaResoconto(string percorso)
+        {
+            var fuori = new Tocco();
             try
             {
-                foreach (var riga in Git("log -30 --format=%H|%cI -- Riscontro.Disegno"))
+                var righe = Git("log -30 --format=%H|%cI -- " + percorso);
+                fuori.GitHaRisposto = true;
+                foreach (var riga in righe)
                 {
                     var pezzi = riga.Split('|');
                     if (pezzi.Length < 2) continue;
                     if (CommitPortaIlResoconto(pezzi[0])) continue;
-                    return Data(pezzi[1]);
+                    fuori.Quando = Data(pezzi[1]);
+                    return fuori;
                 }
-                // Nessun commit sulla libreria senza resoconto: e' il caso di
-                // un repository giovane, e non c'e' niente di non provato.
-                return null;
+                return fuori;
             }
-            catch { return null; }
+            catch { return new Tocco(); }
+        }
+
+        /// <summary>
+        /// Il giro e' posteriore all'ultima modifica a `percorso`?
+        ///
+        /// LA TOLLERANZA DI UN MINUTO NON E' UN ARROTONDAMENTO: il giro
+        /// scrive `ultimo.json` e POI si committa, quindi la data del commit
+        /// e' per costruzione posteriore all'ora del giro che contiene. I
+        /// commit che portano il resoconto si saltano apposta; il minuto
+        /// copre il caso in cui l'orologio del commit e quello del giro
+        /// differiscano di poco.
+        /// </summary>
+        private static void GuardaIlTocco(string cosa, string percorso, DateTime quando)
+        {
+            var t = UltimaModificaSenzaResoconto(percorso);
+            if (!t.GitHaRisposto)
+            {
+                Segna("so quando " + cosa + " e' stato toccato", false,
+                      "git non risponde: senza, questo controllo non esiste");
+                return;
+            }
+            if (t.Quando == null)
+            {
+                Segna("il giro e' posteriore all'ultima modifica a " + cosa, true,
+                      "nessun commit su " + percorso + " senza il resoconto accanto: " +
+                      "non c'e' niente di non provato");
+                return;
+            }
+            Segna("il giro e' posteriore all'ultima modifica a " + cosa,
+                  quando >= t.Quando.Value.AddMinutes(-1),
+                  "giro " + quando.ToString("s") +
+                  ", ultima modifica " + t.Quando.Value.ToString("s"));
         }
 
         /// <summary>Questo commit porta anche `Banco/resoconto/ultimo.json`?</summary>
