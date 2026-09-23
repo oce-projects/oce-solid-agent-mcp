@@ -84,6 +84,113 @@ namespace Prove.Contratti
                   !uguali(id(@"S:\a\Parte1.SLDPRT", "Parte1"), id("", "Parte1")));
 
             LaChiaveDelTurno(ponte);
+            IlPezzoECambiato(ponte);
+        }
+
+        /// <summary>
+        /// «E' lo stesso documento?» e «e' ancora lo stesso pezzo?» (voce X2).
+        ///
+        /// `StessoDocumento` risponde alla prima e basta: titolo e percorso
+        /// combaciano benissimo mentre qualcuno tira una quota a mano nella
+        /// finestra di SOLIDWORKS. `CosaECambiato` risponde alla seconda,
+        /// confrontando due firme leggere — volume, numero di lavorazioni,
+        /// data di scrittura del file.
+        ///
+        /// SI PROVA QUI E NON SUL CAD perche' e' una funzione pura su due
+        /// dizionari: metterla dietro a un documento vero vorrebbe dire una
+        /// prova che gira solo su questa macchina, per misurare del confronto
+        /// di stringhe.
+        /// </summary>
+        private static void IlPezzoECambiato(string ponte)
+        {
+            Gruppo("Attrezzi.CosaECambiato");
+
+            MethodInfo cambiato;
+            try
+            {
+                var asm = Carica.Ponte(ponte);
+                var tipo = Carica.Classe(asm, "Attrezzi");
+                if (tipo == null) { Segna("la classe Attrezzi c'e'", false, ""); return; }
+                cambiato = tipo.GetMethod("CosaECambiato",
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                if (cambiato == null) { Segna("CosaECambiato c'e'", false, ""); return; }
+            }
+            catch (Exception ex) { Segna("il ponte si carica", false, ex.ToString()); return; }
+
+            Func<Dictionary<string, object>, Dictionary<string, object>, string> che =
+                (a, b) => (string)cambiato.Invoke(null, new object[] { a, b });
+
+            Func<object, object, Dictionary<string, object>> firma = (vol, lav) =>
+            {
+                var d = new Dictionary<string, object>(StringComparer.Ordinal);
+                if (vol != null) d["volume_mm3"] = vol;
+                if (lav != null) d["lavorazioni"] = lav;
+                return d;
+            };
+
+            // ── NIENTE DI CAMBIATO E' `null`, NON UNA FRASE VUOTA ────────
+            //
+            // Il chiamante scrive `if (cambiato != null)`. Una stringa vuota
+            // passerebbe quel controllo e fermerebbe «disegna» dicendo niente:
+            // il peggiore dei due modi di sbagliare, perche' l'avviso c'e' e
+            // non si capisce di cosa parli.
+            Segna("due firme uguali: non e' cambiato niente",
+                  che(firma(96000.0, 3), firma(96000.0, 3)) == null,
+                  Convert.ToString(che(firma(96000.0, 3), firma(96000.0, 3)) ?? "(null)"));
+
+            // ── IL VOLUME, COL NUMERO DI PRIMA E QUELLO DI ADESSO ────────
+            //
+            // «Il volume e' cambiato» obbliga a fidarsi; «da 96000 a 94500» si
+            // controlla. E' il criterio scritto nella voce X2, ed e' la
+            // differenza fra un avviso che si legge e uno che si impara a
+            // ignorare.
+            var v = che(firma(96000.0, 3), firma(94500.0, 3));
+            Segna("il volume cambiato si dice, con i due numeri",
+                  v != null && v.Contains("96000") && v.Contains("94500"), v ?? "(null)");
+
+            var l = che(firma(96000.0, 3), firma(96000.0, 4));
+            Segna("una lavorazione in piu' si dice, con i due conti",
+                  l != null && l.Contains("3") && l.Contains("4"), l ?? "(null)");
+
+            // ── DUE COSE CAMBIATE SI DICONO TUTTE E DUE ──────────────────
+            //
+            // Fermarsi alla prima differenza farebbe leggere «il volume e'
+            // cambiato» a chi ha anche una lavorazione in piu', e la seconda
+            // verrebbe fuori solo al giro dopo.
+            var due = che(firma(96000.0, 3), firma(94500.0, 4));
+            Segna("due differenze si dicono tutte e due",
+                  due != null && due.Contains("volume") && due.Contains("lavorazioni"),
+                  due ?? "(null)");
+
+            // ── «NON C'ERA» E «ADESSO C'E'» E' UNA DIFFERENZA ───────────
+            //
+            // Un documento vuoto non ha volume. Trattare la chiave mancante
+            // come zero direbbe «il volume e' passato da 0 a 96000», che e' una
+            // frase su un pezzo che non e' mai esistito.
+            var nato = che(firma(null, 0), firma(96000.0, 1));
+            Segna("da «nessun volume» a un volume: e' una differenza",
+                  nato != null && nato.Contains("nessuno"), nato ?? "(null)");
+
+            // ── SENZA UN TERMINE NON SI CONFRONTA ────────────────────────
+            //
+            // `null` vuol dire «non ho guardato niente», e non e' «e' tutto
+            // uguale» ne' «e' cambiato tutto»: e' l'assenza della domanda. Se
+            // rispondesse «cambiato», «disegna» si fermerebbe sempre alla prima
+            // chiamata dopo un ponte appena partito.
+            Segna("senza la firma di prima non si dice niente",
+                  che(null, firma(96000.0, 3)) == null);
+            Segna("senza la firma di adesso non si dice niente",
+                  che(firma(96000.0, 3), null) == null);
+
+            // ── LA DATA DEL FILE ─────────────────────────────────────────
+            var scritto1 = new Dictionary<string, object>(StringComparer.Ordinal)
+                { ["file_scritto"] = "2026-09-23T05:00:00.0000000Z" };
+            var scritto2 = new Dictionary<string, object>(StringComparer.Ordinal)
+                { ["file_scritto"] = "2026-09-23T07:00:00.0000000Z" };
+            var riscritto = che(scritto1, scritto2);
+            Segna("un file riscritto si dice", riscritto != null && riscritto.Contains("riscritto"),
+                  riscritto ?? "(null)");
+            Segna("stessa data: non e' cambiato niente", che(scritto1, scritto1) == null);
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Oce.Solid.Agent.Mcp;
@@ -352,6 +353,41 @@ namespace Oce.Solid.Agent.Strumenti
         private Dictionary<string, object> _guardato;
 
         /// <summary>
+        /// COM'ERA FATTO IL PEZZO quando «guarda_il_pezzo» l'ha guardato
+        /// (voce X2) — non QUALE pezzo era, che e' `_guardato`.
+        ///
+        /// ── DUE DOMANDE CHE SEMBRANO UNA ─────────────────────────────
+        ///
+        /// «E' lo stesso documento?» e «e' ancora lo stesso pezzo?» hanno
+        /// risposte diverse, e finora se ne guardava una sola. Titolo e
+        /// percorso combaciano benissimo mentre qualcuno, nel frattempo, ha
+        /// tirato una quota a mano nella finestra di SOLIDWORKS: il
+        /// documento e' quello, il pezzo no.
+        ///
+        /// Conta perche' **gli uid delle facce sono posizionali**. Un piano
+        /// nasce da una lettura e i suoi `F1`, `F2` parlano di quel momento;
+        /// se la geometria e' cambiata, «F1» indica un'altra faccia e
+        /// l'operazione riesce sul posto sbagliato — che e' il difetto gia'
+        /// misurato il 14 settembre con le due tasche, tutte e due
+        /// «riuscita: true».
+        ///
+        /// ── COSA CI SI METTE, E PERCHE' SOLO QUESTO ──────────────────
+        ///
+        /// Volume, numero di lavorazioni, data di scrittura del file. Tre
+        /// cose **gia' tutte in mano**: non costano una lettura in piu' e
+        /// non chiedono niente a SOLIDWORKS che non sia gia' stato chiesto.
+        /// Non e' un'impronta forte e non vuole esserlo — *un confronto che
+        /// costa quanto la cosa che protegge non lo fa nessuno.*
+        ///
+        /// **Cosa NON prende, detto qui invece che scoperto:** una modifica
+        /// che lascia il volume identico e non tocca il conto delle
+        /// lavorazioni — spostare un foro senza cambiarne il diametro, per
+        /// dire. Quella passa, e per prenderla servirebbe un'impronta della
+        /// geometria che questa non e'.
+        /// </summary>
+        private Dictionary<string, object> _firmaGuardata;
+
+        /// <summary>
         /// Com'erano fatte le entita' quando «guarda_il_pezzo» le ha
         /// descritte: uid -> punto, normale, area, lunghezza.
         ///
@@ -411,6 +447,7 @@ namespace Oce.Solid.Agent.Strumenti
             var stato = _sessione.Stato(out var errore);
             if (stato == null) return Protocollo.Contenuto(errore, true);
             _guardato = IdentitaDelloStato(stato);
+            _firmaGuardata = FirmaLeggera(stato);
             _firmeViste = FirmeDelloStato(stato);
             TogliLeAncore(stato);
 
@@ -770,6 +807,88 @@ namespace Oce.Solid.Agent.Strumenti
             };
         }
 
+        /// <summary>
+        /// La firma leggera di uno stato: volume, quante lavorazioni, quando
+        /// il file e' stato scritto (voce X2). Vedi <see cref="_firmaGuardata"/>.
+        ///
+        /// Le chiavi che mancano NON diventano zero. Un pezzo senza volume —
+        /// un documento vuoto — ha una firma senza `volume_mm3`, e un
+        /// confronto fra «non c'era» e «adesso c'e'» e' una differenza vera
+        /// che va detta; metterci uno zero la trasformerebbe in «il volume e'
+        /// passato da 0 a 96000», che e' un'altra frase e racconta un'altra
+        /// cosa.
+        /// </summary>
+        private static Dictionary<string, object> FirmaLeggera(
+            Dictionary<string, object> stato)
+        {
+            if (stato == null) return null;
+            var f = new Dictionary<string, object>(StringComparer.Ordinal);
+
+            if (stato.TryGetValue("volume_mm3", out var v) && v != null)
+                f["volume_mm3"] = v;
+
+            if (stato.TryGetValue("feature", out var e) &&
+                e is System.Collections.IList elenco)
+                f["lavorazioni"] = elenco.Count;
+
+            // LA DATA DEL FILE PRENDE CIO' CHE IL VOLUME NON VEDE: un salvataggio
+            // fatto da fuori. Un pezzo mai salvato non ha un file, e non avere la
+            // chiave e' la risposta giusta — non «data zero».
+            var percorso = Convert.ToString(
+                stato.TryGetValue("percorso", out var p) ? p : "");
+            if (!string.IsNullOrWhiteSpace(percorso))
+            {
+                try
+                {
+                    if (File.Exists(percorso))
+                        f["file_scritto"] = File.GetLastWriteTimeUtc(percorso)
+                            .ToString("o", CultureInfo.InvariantCulture);
+                }
+                catch { }
+            }
+            return f;
+        }
+
+        /// <summary>
+        /// Cosa e' cambiato fra due firme, in italiano, oppure `null` se non
+        /// e' cambiato niente (voce X2).
+        ///
+        /// **SI FERMA COL CRITERIO, NON CON UN VERDETTO.** «Il volume e'
+        /// passato da 96.000 a 94.500 da quando l'hai guardato» si puo'
+        /// controllare; «lo stato e' cambiato» obbliga a fidarsi. La
+        /// differenza conta perche' un avviso che non si puo' verificare si
+        /// impara a ignorare, ed e' il rischio scritto nella voce.
+        /// </summary>
+        internal static string CosaECambiato(
+            Dictionary<string, object> prima, Dictionary<string, object> adesso)
+        {
+            if (prima == null || adesso == null) return null;
+
+            var detti = new List<string>();
+            foreach (var chiave in new[] { "volume_mm3", "lavorazioni", "file_scritto" })
+            {
+                bool cePrima = prima.TryGetValue(chiave, out var a);
+                bool ceAdesso = adesso.TryGetValue(chiave, out var b);
+                if (!cePrima && !ceAdesso) continue;
+
+                string testoA = cePrima ? Convert.ToString(a, CultureInfo.InvariantCulture) : null;
+                string testoB = ceAdesso ? Convert.ToString(b, CultureInfo.InvariantCulture) : null;
+                if (string.Equals(testoA, testoB, StringComparison.Ordinal)) continue;
+
+                if (chiave == "volume_mm3")
+                    detti.Add("il volume e' passato da " + (testoA ?? "(nessuno)") +
+                              " a " + (testoB ?? "(nessuno)") + " mm3");
+                else if (chiave == "lavorazioni")
+                    detti.Add("le lavorazioni sono passate da " + (testoA ?? "(nessuna)") +
+                              " a " + (testoB ?? "(nessuna)"));
+                else
+                    detti.Add("il file e' stato riscritto (" + (testoA ?? "(mai)") +
+                              " -> " + (testoB ?? "(mai)") + ")");
+            }
+
+            return detti.Count == 0 ? null : string.Join("; ", detti);
+        }
+
         private static string NomeLeggibile(Dictionary<string, object> identita)
         {
             if (identita == null) return "(nessuno)";
@@ -1087,15 +1206,42 @@ namespace Oce.Solid.Agent.Strumenti
                         "quello che c'e' adesso, ripeti passando «documento»: \"" +
                         NomeLeggibile(adesso) + "\".", true);
             }
+            // ── LO STESSO DOCUMENTO, CON DENTRO UN'ALTRA COSA (voce X2) ──
+            //
+            // Il controllo qui sopra chiede «e' lo stesso documento?». Questo
+            // chiede «e' ancora lo stesso pezzo?», e sono due domande diverse:
+            // titolo e percorso combaciano anche mentre qualcuno tira una
+            // quota a mano nella finestra di SOLIDWORKS.
+            //
+            // Si guarda SOLO se il documento davanti e' quello guardato. Se il
+            // piano ne nomina un altro, la firma vecchia parla di un pezzo
+            // diverso e confrontarla produrrebbe una frase vera su due cose
+            // che non c'entrano niente.
+            bool quelloGuardato =
+                _guardato != null && Ponte.Sessione.StessoDocumento(_guardato, adesso);
+
+            if (quelloGuardato)
+            {
+                var cambiato = CosaECambiato(_firmaGuardata, FirmaLeggera(prima));
+                if (cambiato != null)
+                    return Protocollo.Contenuto(
+                        "Mi fermo: il pezzo e' cambiato da quando l'hai guardato — " +
+                        cambiato + ".\n\n" +
+                        "Il documento e' giusto, il contenuto no. Gli identificativi " +
+                        "delle facce («F1», «F2», ...) sono POSIZIONALI: nascono da una " +
+                        "lettura e valgono per quella. Su una geometria cambiata «F1» " +
+                        "puo' indicare un'altra faccia, e l'operazione riuscirebbe nel " +
+                        "posto sbagliato senza dare nessun errore.\n\n" +
+                        "Rileggi con «guarda_il_pezzo» e rifa' il piano sugli " +
+                        "identificativi nuovi.", true);
+            }
+
             // LE FIRME VALGONO SOLO SUL DOCUMENTO CHE LE HA PRODOTTE.
             // Se il piano nomina un altro documento, gli uid del piano non
             // parlano di questo e allegare le firme vecchie produrrebbe
             // rifiuti che non c'entrano niente. Meglio nessun confronto che
             // un confronto fra due pezzi diversi.
-            var firme =
-                _guardato != null && Ponte.Sessione.StessoDocumento(_guardato, adesso)
-                    ? _firmeViste
-                    : null;
+            var firme = quelloGuardato ? _firmeViste : null;
 
             _guardato = adesso;
 
@@ -1301,7 +1447,19 @@ namespace Oce.Solid.Agent.Strumenti
             // scritto giusto — verrebbe rifiutato perche' confrontato con una
             // lettura che il suo autore non ha mai visto. Sarebbe un rifiuto
             // di cio' che e' corretto, che e' il difetto peggiore dei due.
-            if (dopo != null) { _firmeViste = FirmeDelloStato(dopo); TogliLeAncore(dopo); }
+            // E LA FIRMA SEGUE LA STESSA REGOLA (voce X2). Il pezzo e'
+            // cambiato, ma l'ha cambiato il ponte facendo quello che gli e'
+            // stato chiesto: se la firma restasse quella di
+            // «guarda_il_pezzo», il `disegna` seguente si fermerebbe
+            // dicendo «qualcuno ha toccato il pezzo a mano». Sarebbe il
+            // falso positivo che la voce X2 metteva fra i rischi, e sarebbe
+            // fastidioso al punto giusto per insegnare a ignorare l'avviso.
+            if (dopo != null)
+            {
+                _firmeViste = FirmeDelloStato(dopo);
+                _firmaGuardata = FirmaLeggera(dopo);
+                TogliLeAncore(dopo);
+            }
 
             var risultato = new Dictionary<string, object>
             {
@@ -1558,6 +1716,7 @@ namespace Oce.Solid.Agent.Strumenti
 
                 _guardato = IdentitaDelloStato(riletto);
                 _firmeViste = FirmeDelloStato(riletto);
+                _firmaGuardata = FirmaLeggera(riletto);
                 if (riletto != null) TogliLeAncore(riletto);
 
                 return Protocollo.Contenuto(Protocollo.InJson(
@@ -1594,6 +1753,7 @@ namespace Oce.Solid.Agent.Strumenti
             // lettura. Si firma questa lettura, esattamente come fa `disegna`.
             _guardato = IdentitaDelloStato(dopo);
             _firmeViste = FirmeDelloStato(dopo);
+            _firmaGuardata = FirmaLeggera(dopo);
             TogliLeAncore(dopo);
 
             return Protocollo.Contenuto(Protocollo.InJson(

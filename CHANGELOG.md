@@ -24,6 +24,86 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.72.0 — 23 September 2026 · library unchanged (0.102.0)
+
+### The same document, with something else inside it (entry X2)
+
+Contract suite 168, 0 red. The bench was not re-run: the library did not
+change — only the bridge did.
+
+The bridge already refused to draw on a document that was not the one you
+looked at. It did not notice **the same document with something else inside**:
+title and path match perfectly while someone drags a dimension in the
+SOLIDWORKS window.
+
+That matters because **face identifiers are positional**. A plan is born from
+one reading and its `F1`, `F2` speak of that moment; on changed geometry `F1`
+may be a different face and the operation succeeds in the wrong place — the
+defect already measured on 14 September with the two pockets, both of them
+"riuscita: true".
+
+`guarda_il_pezzo` now keeps a light signature — volume, number of features,
+file write time — and `disegna` compares it before executing. All three are
+already in hand: no extra reading, nothing new asked of SOLIDWORKS. *A check
+that costs as much as the thing it protects does not get run.*
+
+**It stops with the criterion, not with a verdict.** «il volume e' passato da
+96000 a 97125 mm3; le lavorazioni sono passate da 1 a 2» can be checked; «lo
+stato e' cambiato» has to be believed. The difference is the risk the entry
+itself named: an unverifiable warning is one you learn to ignore.
+
+**What it does not catch, said here rather than discovered:** a change that
+leaves the volume identical and the feature count unchanged — moving a hole
+without resizing it. Catching that needs a geometric fingerprint, which this
+is not.
+
+### The false positive the entry warned about, written and then found
+
+The signature was taken in `guarda_il_pezzo` and never refreshed, so
+`guarda -> disegna -> disegna` stopped at the second: the first `disegna`
+changes the volume, and the comparison read that as someone editing by hand.
+The rule was already there three lines further down, for the uid signatures:
+after the bridge itself changes the part, the new reading is the base for the
+next plan. The signature now follows it in the same three places — after
+`disegna`, after undo, after redo.
+
+**No contract test could have seen that**, and that is the point of the probe.
+
+### `Controlli\prova-x2.js`, and a second actor
+
+Nine contract checks cover `CosaECambiato`, a pure function on two
+dictionaries. They do not cover the wiring, and the wiring is where the bug
+was. The probe drives the bridge over stdio and proves both halves:
+
+```
+=== 1. guarda -> disegna -> disegna, senza falsi positivi
+  OK   il secondo disegna passa (nessun falso positivo)
+=== 2. qualcuno cambia il pezzo da fuori, e il disegna dopo si ferma
+  OK   qualcuno ha cambiato il pezzo da fuori    volume: 96000 -> 97125 mm3
+  OK   il disegna dopo si ferma                  Mi fermo: il pezzo e' cambiato...
+  OK   e dopo aver riletto si riparte
+```
+
+The change has to come from **outside the bridge** — while it comes through
+the bridge, the bridge knows and refreshes its signature — so there is a new
+tool, `Controlli\CambiaAMano`, which attaches to SOLIDWORKS and extrudes a
+block into the active document. Compiled C#, like every COM probe here:
+PowerShell 5.1 cannot resolve methods on the SOLIDWORKS IDispatch.
+
+**Two things the probe got wrong first, both worth keeping written.**
+
+It moved the file's write time instead of changing geometry — and after
+`salva_documento` the open document still answers `percorso: ""`, so there was
+no date in the signature to compare. *A probe testing the wrong thing is worse
+than no probe: it gives a red that sends you looking where the defect is not.*
+
+And it paired replies to requests **by arrival order** instead of by `id`. One
+extra line on stdout and everything shifts by one: it was reading the previous
+call's answer and judging it. That is not a random error — it is a systematic
+off-by-one, and it is why the protocol has an `id` at all.
+
+---
+
 ## 0.71.1 — 23 September 2026 · library unchanged (0.102.0)
 
 ### The guard checked the library, not the bench
