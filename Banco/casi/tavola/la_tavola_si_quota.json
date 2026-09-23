@@ -55,8 +55,19 @@
           "perche": "gli spigoli si CHIEDONO alla vista, non si indovinano. Quattro e' quello che questa vista mostra, e se cambiasse cambierebbe anche cosa si puo' quotare" },
         { "cosa": "misure.quote_prima", "uguale": 0,
           "perche": "si parte da zero, ed e' il contraltare di «quote_dopo»: senza, quattro quote potrebbero essere quattro quote che c'erano gia'" },
-        { "cosa": "misure.quote_messe", "uguale": 4,
+        { "cosa": "misure.quote_messe", "uguale": 2,
+          "diceva_4_ed_era_quotatura_ripetuta": "Fino al 23/9/2026 questa attesa pretendeva **4**, e passava: si chiedevano quattro spigoli e nascevano quattro quote, 120/10/120/10. E' quotatura ripetuta — «ciascun elemento dell'oggetto deve essere quotato non piu' di una volta» (UNI ISO 129-1, nella scheda Sammarone per Zanichelli), e la figura corrispondente della fonte e' didascalizzata **«quindi errata»**. Il caso era verde su un difetto di disegno: *un'attesa verifica quello che le si chiede di verificare, non quello che sarebbe giusto*.",
           "perche": "quante ne sono NATE, contate prima e dopo — non quante volte ho chiamato l'API. Il valore che torna da chi ha fatto la cosa non e' la misura della cosa" },
+
+        { "cosa": "misure.spigoli_scartati_doppioni", "contiene": ["stessa misura"],
+          "perche": "IL CONTRALTARE DI «2». Senza, `quote_messe` uguale 2 sarebbe verde anche se due spigoli non fossero stati quotati per un guasto. Qui si pretende che l'operazione DICA di averli scartati, e perche': chiedere quattro spigoli e vederne quotare due e' sorprendente finche' non si sa che e' una regola" },
+
+        { "cosa": "misure.quote[0].orientamento", "contiene": ["verticale"],
+          "perche": "la prima quota e' la piu' piccola — 10 mm, lo spessore — e va messa per prima: «le linee di misura andranno disegnate in ordine progressivo, dalle minori alle maggiori, allontanandosi dal contorno delle figure». Su questo pezzo la piu' piccola e' quella verticale, quindi questa attesa prova l'ordine E la classificazione insieme" },
+
+        { "cosa": "misure.contorno_cresciuto", "uguale": "no",
+          "il_confronto_lo_fa_il_codice": "La prima stesura di questa attesa usava un operatore `uguale_a_campo` per paragonare `contorno_vista_dopo_mm` con `contorno_vista_mm`. **Quell'operatore non esiste**: il valutatore del banco confronta una misura con un valore dichiarato, non due misure fra loro. Un'attesa scritta con un operatore inventato non e' un'attesa piu' debole: e' una riga che il banco non sa leggere. Il paragone e' stato spostato dentro l'operazione, che risponde «si», «no» o «sconosciuto» — e «sconosciuto» quando una delle due letture manca, perche' un confronto che non si e' potuto fare non e' un confronto andato bene.",
+          "perche": "IL CONTORNO NON CRESCE con le quote attaccate alla vista. Se crescesse, ogni quota successiva scapperebbe piu' lontano della precedente e nessuno collegherebbe le due cose al piazzamento. Misurato il 23/9: [28.56, 218.55, 160.44, 240.43] prima e dopo" },
 
         { "cosa": "misure.quote_mm", "contiene": ["120"],
           "perche": "**IL PEZZO CHE VALE LA VOCE.** Non «e' comparsa una quota»: **quanto misura**. 120 e' la lunghezza della piastra, riletta da SOLIDWORKS con `GetSystemValue2` DOPO averla messa — non il numero che credevo di aver chiesto. Una quota che compare e misura un'altra cosa e' peggio di una quota che manca: sulla carta si legge uguale." },
@@ -67,7 +78,8 @@
         { "cosa": "misure.quote_mm", "non_contiene": ["80"],
           "perche": "IL CONTRALTARE, ed e' quello che dice **su quale vista** ha quotato. 80 e' la larghezza della piastra: si vede nella vista dall'alto, non in questa. Se comparisse, l'operazione avrebbe quotato **un'altra vista** — e le due attese qui sopra sarebbero verdi lo stesso, perche' anche li' c'e' un 120. Senza questa riga, «contiene 120» non dice dove." },
 
-        { "cosa": "misure.cosa_non_guarda", "contiene": ["accavallano"],
+        { "cosa": "misure.cosa_non_guarda", "contiene": ["accavall"],
+          "la_radice_e_non_la_parola_intera": "Questa attesa cercava «accavallano» ed e' diventata rossa il 23/9 riscrivendo `cosa_non_guarda`: il testo nuovo dice «si accavalla», singolare. L'operazione non era cambiata in nulla che conti — era cambiata una desinenza. E' la seconda volta in due giorni che un'attesa si appende a una forma di parola (la prima cercava «vero» dove il testo diceva «VERO»). Si cerca la RADICE: quello che l'attesa vuole davvero sapere e' che la cecita' sull'accavallamento resti dichiarata, non come e' coniugata.",
           "perche": "la cecita' viaggia con la risposta: l'operazione mette quote GIUSTE, non una tavola BELLA, e non guarda se si sovrappongono al disegno. Chi legge questa risposta potrebbe non aver letto il catalogo" } ] }
   ]
 }

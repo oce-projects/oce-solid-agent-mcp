@@ -309,6 +309,9 @@ namespace ProvaSaldatura
                 return Sessione(argomentiRiga[1], daAprire);
             }
 
+            // ── LA SOLIDWORKS DEV'ESSERE PULITA PRIMA, NON DOPO ──────────
+            if (!LaScrivaniaEPulita(argomentiRiga)) return 3;
+
             // Il diario si apre QUI e non prima: l'aggancio a SOLIDWORKS e il
             // caricamento della libreria possono far uscire dal programma, e un
             // diario aperto per un giro che non e' mai cominciato direbbe
@@ -435,6 +438,13 @@ namespace ProvaSaldatura
             // invece di crederle tutte equivalenti a un'attesa misurata.
             Console.WriteLine("prove con un'attesa dichiarata: " + _conAttesa +
                               " — senza: " + _senzaAttesa.Count);
+
+            // Voce K2-bis. Sta accanto al totale come il conto per gruppo,
+            // perche' e' la stessa domanda: di quel numero grande, quanto
+            // riguarda davvero SOLIDWORKS?
+            Console.WriteLine("prove con un documento CAD aperto: " + _conDocumento +
+                              " — senza: " + _senzaDocumento +
+                              "   (tetto, non misura, finche' la K12-bis e' aperta)");
             ScriviLeSenzaAttesa();
             ScriviIlContoPerGruppo();
 
@@ -693,6 +703,34 @@ namespace ProvaSaldatura
             _perGruppo.TryGetValue(chiave, out quante);
             _perGruppo[chiave] = quante + 1;
 
+            // ── E QUANTE HANNO UN DOCUMENTO CAD SOTTO (voce K2-bis) ──────
+            //
+            // Il conto per gruppo diceva DOVE stanno le prove; questo dice
+            // quante di loro hanno SOLIDWORKS davvero in mezzo. Dentro il
+            // gruppo `casi` — che da solo ne raccoglie la grande maggioranza —
+            // stanno sia i casi dichiarati, che un documento lo aprono, sia i
+            // controlli sul valutatore delle attese, che confrontano dizionari
+            // e non aprono niente.
+            //
+            // SI CHIEDE A SOLIDWORKS, NON AL BANCO. La prima stesura contava
+            // le aperture e le chiusure con un contatore interno, e sarebbe
+            // stata sbagliata: i documenti si aprono in almeno quattro punti
+            // (`NuovaParte`, `NuovoAssieme`, `Apri`, la sessione) e si chiudono
+            // in tre, uno dei quali prova DUE VOLTE apposta. Un contatore con
+            // sette guardiani e' un contatore che un giorno dira' -1.
+            // `GetDocumentCount()` e' la stessa domanda fatta a chi la
+            // risposta ce l'ha.
+            //
+            // COSA MISURA DAVVERO, detto qui e non scoperto dopo: «c'era un
+            // documento aperto quando questa prova e' stata registrata». Da
+            // quando il banco parte solo su una scrivania pulita (voce K12)
+            // quel documento e' per forza uno che ha aperto lui. Ma se un caso
+            // si dimentica di chiudere (voce K12-bis), le prove successive
+            // risultano «con documento» anche se il CAD non l'hanno toccato.
+            // **E' un limite, e va letto insieme alla K12-bis**: finche'
+            // quella e' aperta, questo numero e' un tetto, non una misura.
+            if (DocumentiAperti() > 0) _conDocumento++; else _senzaDocumento++;
+
             var riga = (ok ? "  OK   " : "  NO   ") + InColonna(nome) + dettaglio;
             _esiti.Add(riga);
             Console.WriteLine(riga);
@@ -710,6 +748,24 @@ namespace ProvaSaldatura
 
         /// <summary>Il gruppo che sta girando adesso (voce K2).</summary>
         internal static string _gruppoInCorso;
+
+        /// <summary>Prove registrate con un documento CAD aperto (voce K2-bis).</summary>
+        internal static int _conDocumento;
+        internal static int _senzaDocumento;
+
+        /// <summary>
+        /// Quanti documenti ha aperti SOLIDWORKS adesso, o -1 se non si sa.
+        ///
+        /// Il -1 non e' zero travestito: «non ho potuto chiedere» e «non ce
+        /// n'e'» sono due cose diverse, e confonderle qui vorrebbe dire
+        /// contare come «senza documento» un giro in cui la domanda non e'
+        /// passata. Chi legge il numero tratta il -1 come «non lo so».
+        /// </summary>
+        internal static int DocumentiAperti()
+        {
+            try { return _sw.GetDocumentCount(); }
+            catch { return -1; }
+        }
 
         /// <summary>
         /// Quante prove per gruppo. LA SOMMA DEVE FARE IL TOTALE, e se non lo
@@ -1069,6 +1125,129 @@ namespace ProvaSaldatura
         private static bool _lento;
         private static bool _muta;
         private static bool _regressione;
+
+        /// <summary>
+        /// SOLIDWORKS NON DEVE AVERE NIENTE APERTO QUANDO IL GIRO COMINCIA.
+        ///
+        /// ── IL DIFETTO, PAGATO DUE VOLTE ─────────────────────────────────
+        ///
+        /// Lo stato di un documento elenca `documenti_aperti`, quindi la prova
+        /// «stato: sotto i 16 KB su un telaio da quattro barre» misura anche
+        /// cio' che c'e' aperto oltre al telaio. Il 14/9/2026 sei parti
+        /// rimaste aperte da un giro di `corri_piani.js` valevano ~650
+        /// caratteri e portavano la prova da 15.628 a 16.280: **rossa senza
+        /// che il codice fosse cambiato**, e mezz'ora spesa a cercare una
+        /// regressione che non c'era.
+        ///
+        /// Il 23/9/2026 e' successo di nuovo, con quindici documenti aperti e
+        /// un giro intero — un'ora e un quarto — buttato.
+        ///
+        /// **E il rimedio c'era, e girava.** `banco.ps1` chiama
+        /// `ChiudiScarti.exe --chiudi Banco\lavoro` al passo 3 di cinque, da
+        /// sempre, e lo dice in testa al file. A scavalcarlo e' stato un
+        /// `ProvaSaldatura.exe` lanciato a mano per passargli `--libreria`.
+        ///
+        /// **LA PROTEZIONE STAVA NEL GUSCIO.** Fuori da `banco.ps1` non c'era
+        /// niente, e fuori da `banco.ps1` ci si va esattamente quando si sta
+        /// facendo qualcosa di particolare — una libreria diversa, un gruppo
+        /// solo, un binario che c'e' gia'. *Una protezione che vive nel guscio
+        /// si perde nel momento in cui si esce dal guscio, che e' il momento in
+        /// cui serve di piu'.*
+        ///
+        /// Adesso il passo 3 di `banco.ps1` e questo controllo dicono la stessa
+        /// cosa due volte, e va bene: il primo chiude in silenzio quel che sa
+        /// essere scarto, il secondo si rifiuta di cominciare se e' rimasto
+        /// qualcosa.
+        ///
+        /// ── PERCHE' SI FERMA INVECE DI CHIUDERE ──────────────────────────
+        ///
+        /// `CloseDoc` scarta le modifiche non salvate. Se su questa macchina
+        /// c'e' un progettista con un pezzo aperto, chiudergli il documento
+        /// per far girare le prove sarebbe un danno vero per far sparire un
+        /// falso rosso. Quindi il banco si ferma e dice cosa ha trovato;
+        /// `--chiudi-gli-scarti` e' la richiesta esplicita di chi sa che sono
+        /// scarti.
+        ///
+        /// Esce 3, non 1: un giro che non e' cominciato non e' un giro rosso,
+        /// e chiamarlo rosso vorrebbe dire scrivere un resoconto di un giro
+        /// che non c'e' stato.
+        /// </summary>
+        private static bool LaScrivaniaEPulita(string[] argomentiRiga)
+        {
+            bool chiudiTu = argomentiRiga != null &&
+                            Array.IndexOf(argomentiRiga, "--chiudi-gli-scarti") >= 0;
+
+            var nomi = new List<string>();
+            try
+            {
+                var d = (IModelDoc2)_sw.GetFirstDocument();
+                while (d != null)
+                {
+                    nomi.Add(d.GetTitle() ?? "(senza titolo)");
+                    d = (IModelDoc2)d.GetNext();
+                }
+            }
+            catch (Exception ex)
+            {
+                // NON SI FERMA IL GIRO PER UN CONTROLLO CHE NON HA SAPUTO
+                // GUARDARE. Si dice, e si va avanti: la prova dei 16 KB
+                // resta li' a prendere il caso peggiore.
+                Console.WriteLine("non ho potuto contare i documenti aperti: " + ex.Message);
+                return true;
+            }
+
+            if (nomi.Count == 0) return true;
+
+            if (!chiudiTu)
+            {
+                Console.WriteLine();
+                Console.WriteLine("SOLIDWORKS ha gia' " + nomi.Count +
+                                  (nomi.Count == 1 ? " documento aperto" : " documenti aperti") + ":");
+                foreach (var n in nomi.Take(20)) Console.WriteLine("    " + n);
+                if (nomi.Count > 20) Console.WriteLine("    ... e altri " + (nomi.Count - 20));
+                Console.WriteLine();
+                Console.WriteLine("Il giro NON parte. Lo stato di un documento elenca i documenti");
+                Console.WriteLine("aperti, quindi questi farebbero fallire «stato: sotto i 16 KB»");
+                Console.WriteLine("dopo un'ora di prove, senza che niente sia cambiato nel codice.");
+                Console.WriteLine();
+                Console.WriteLine("  .\\Banco\\bin\\ProvaSaldatura.exe --chiudi-gli-scarti");
+                Console.WriteLine();
+                Console.WriteLine("li chiude e parte. CloseDoc SCARTA le modifiche non salvate:");
+                Console.WriteLine("guarda l'elenco qui sopra prima di chiederlo.");
+                return false;
+            }
+
+            int chiusi = 0;
+            foreach (var n in nomi)
+            {
+                try { _sw.CloseDoc(n); chiusi++; }
+                catch { }
+            }
+
+            // SI RICONTA. `CloseDoc` non torna niente, e «ho chiamato la
+            // chiusura quindici volte» non e' «sono chiusi».
+            int restano = 0;
+            try
+            {
+                var d = (IModelDoc2)_sw.GetFirstDocument();
+                while (d != null)
+                {
+                    restano++;
+                    d = (IModelDoc2)d.GetNext();
+                }
+            }
+            catch { }
+
+            Console.WriteLine("scrivania: chiusi " + chiusi + " documenti su " + nomi.Count +
+                              ", ne restano " + restano);
+            if (restano > 0)
+            {
+                Console.WriteLine("Non e' partito lo stesso: quelli che restano farebbero fallire");
+                Console.WriteLine("«stato: sotto i 16 KB». Chiudili a mano e rilancia.");
+                return false;
+            }
+            return true;
+        }
 
         // ==================================================================
         // 1. il misuratore di sezione dell'add-in

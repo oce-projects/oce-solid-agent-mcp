@@ -16,6 +16,20 @@ sponsorizzato ne' avallato da Dassault Systemes. Il nome SOLIDWORKS e' usato
 solo per indicare con quale programma questo software e' interoperabile, cioe'
 nel modo descrittivo e nominativo consentito dall'uso corretto dei marchi.
 
+In inglese, che e' la lingua in cui questa formula viene letta:
+
+    This project is not affiliated with, authorized by, sponsored by or
+    endorsed by Dassault Systemes SolidWorks Corporation. SOLIDWORKS is a
+    registered trademark of Dassault Systemes SolidWorks Corporation.
+
+LA LICENZA NON CONCEDE DIRITTI SUI MARCHI. La Apache License 2.0, con cui
+questo progetto e' distribuito, lo dice alla SEZIONE 6 ("Trademarks"):
+la licenza non da' il permesso di usare nomi commerciali, marchi, marchi di
+servizio o nomi di prodotto del concedente. Vale per il nome di questo
+progetto e a maggior ragione per SOLIDWORKS, che non e' nostro da concedere.
+Si scrive qui perche' una licenza permissiva si legge in fretta come se
+permettesse tutto.
+
 Questo progetto NON ridistribuisce alcun componente di Dassault Systemes. Le
 librerie di interoperabilita' (SolidWorks.Interop.*.dll) vengono caricate a
 tempo di esecuzione dall'installazione di SOLIDWORKS presente sulla macchina di

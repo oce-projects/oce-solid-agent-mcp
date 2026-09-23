@@ -202,8 +202,49 @@ $aMonte = (EseguiGit @('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u
 if (-not $aMonte) { $aMonte = 'origin/main' }
 $esiste = (EseguiGit @('rev-parse', '--verify', '--quiet', $aMonte))
 
+# ── IL RIFERIMENTO LOCALE PUO' ESSERE UNA BUGIA, E LO E' STATO ────────────
+#
+# `git filter-branch -- --all` riscrive anche i riferimenti remoti LOCALI.
+# Dopo la bonifica del 23/9/2026 `origin/main` qui puntava a un commit
+# riscritto: `origin/main..HEAD` dava 29 commit su 104, e questo controllo
+# ha detto «Pulito» dopo averne guardato meno di un terzo.
+#
+# Il remoto vero, intanto, aveva ancora la storia di prima. Al force-push
+# partiranno tutti e 104 — cioe' il controllo misurava una cosa diversa da
+# quella che sta per succedere, ed e' il modo in cui una difesa vera si
+# trasforma in un timbro.
+#
+# Si chiede al remoto dove sta DAVVERO. Se non combacia, il riferimento
+# locale non vale niente e si guarda tutta la storia. Se il remoto non
+# risponde, si guarda tutta la storia lo stesso: fra sbagliare per eccesso e
+# spingere un nome utente, la scelta non e' difficile.
+$tuttaLaStoria = $false
+$perche = ""
+
 if (-not $esiste) {
-    Write-Host "  .. nessun ramo a monte ($aMonte): si guarda TUTTA la storia"
+    $tuttaLaStoria = $true
+    $perche = "nessun ramo a monte ($aMonte)"
+} else {
+    $remoto = ($aMonte -split '/')[0]
+    $ramo   = ($aMonte -split '/', 2)[1]
+    $la = (EseguiGit @('ls-remote', '--heads', $remoto, $ramo))
+    if (-not $la) {
+        $tuttaLaStoria = $true
+        $perche = "il remoto non risponde, e un riferimento locale non basta"
+    } else {
+        $shaRemoto = ($la -split "\s+")[0]
+        $shaLocale = (EseguiGit @('rev-parse', $aMonte))
+        if ($shaRemoto -ne $shaLocale) {
+            $tuttaLaStoria = $true
+            $perche = "$aMonte qui dice $($shaLocale.Substring(0,7)) ma il remoto " +
+                      "dice $($shaRemoto.Substring(0,7)): la storia e' stata riscritta"
+        }
+    }
+}
+
+if ($tuttaLaStoria) {
+    Write-Host "  .. $perche"
+    Write-Host "  .. si guarda TUTTA la storia"
     $daSpingere = @(EseguiGit @('rev-list', 'HEAD'))
 } else {
     $daSpingere = @(EseguiGit @('rev-list', "$aMonte..HEAD"))

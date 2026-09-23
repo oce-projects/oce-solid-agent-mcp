@@ -2,11 +2,12 @@
 
 *Un progetto indipendente, non affiliato a Dassault Systèmes.*
 
-Un ponte MCP per **disegnare in SOLIDWORKS®**: espone come strumenti sessantanove
+Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti sessantanove
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
-Si installa con un file solo e non chiede altro che SOLIDWORKS®.
+Si installa con un file solo e non chiede altro che un'installazione
+SOLIDWORKS® con licenza tua.
 
 > SOLIDWORKS® e' un marchio registrato di Dassault Systèmes SolidWorks
 > Corporation. Questo progetto e' indipendente e non e' affiliato, sponsorizzato
@@ -18,7 +19,7 @@ Si installa con un file solo e non chiede altro che SOLIDWORKS®.
 ## Perche' esiste
 
 OpenPDM ha un assistente che disegna: un modello locale propone un piano, il
-server lo valida, l'add-in lo esegue dentro SolidWorks, e un progettista
+server lo valida, l'add-in lo esegue dentro il software SOLIDWORKS, e un progettista
 conferma prima che il pezzo esista. Quella catena e' il prodotto e resta il
 prodotto.
 
@@ -51,7 +52,7 @@ mano.
 ```
 modello  <--MCP/stdio-->  oce-solid-agent-mcp.exe  ---->  Riscontro.Disegno.dll
                                                              |
-                                                         SolidWorks
+                                                         SOLIDWORKS
 ```
 
 Fino alla 0.5.0 la libreria era `OpenPDM.SwAddin.dll` — l'add-in intero,
@@ -259,7 +260,7 @@ operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
 | `OPENPDM_ADDIN` | il vecchio nome di `RISCONTRO_DISEGNO`, ancora letto |
 | `RISCONTRO_CATALOGO` | dove sta `catalogo.json`; se manca, accanto all'eseguibile |
 | `OPENPDM_CATALOGO` | il vecchio nome di `RISCONTRO_CATALOGO`, ancora letto |
-| `SW_INSTALL_PATH` | dove e' installato SolidWorks: la **radice**, quella che finisce con `\SOLIDWORKS`. Vale sia per compilare che per far girare — da qui si ricava `api\redist` |
+| `SW_INSTALL_PATH` | dove e' installato il software SOLIDWORKS: la **radice**, quella che finisce con `\SOLIDWORKS`. Vale sia per compilare che per far girare — da qui si ricava `api\redist` |
 | `SW_REDIST` | il vecchio nome, ancora letto. Voleva la sottocartella `api\redist` e non la radice: se sono impostate tutte e due vince `SW_INSTALL_PATH` |
 | `RISCONTRO_RADICE` | l'unica cartella dentro cui il ponte puo' scrivere. Se e' impostata, tutto il resto del disco e' fuori |
 | `RISCONTRO_SOLA_LETTURA` | cartelle che il ponte non deve scrivere, separate da `;` — esempio `S:\CAD;S:\_LIBRERIE`. Si aggiungono a quelle di sistema, non le sostituiscono |
@@ -296,7 +297,7 @@ passa fra **cio' che qualcuno cerca per nome a runtime** e tutto il resto.
 
 `Strumenti/catalogo.json` e' una copia ESPORTATA dal server, non una
 seconda scrittura: vedi [Strumenti/aggiorna.md](Strumenti/aggiorna.md).
-Contiene solo le operazioni **misurate dentro SolidWorks**.
+Contiene solo le operazioni **misurate dentro il software SOLIDWORKS**.
 
 Sessantanove provate, e due che esistono nella libreria ma **restano fuori dal
 file**: `croci_di_centro` e `distinta_taglio_in_tavola` — tutte e due
@@ -343,11 +344,47 @@ ogni modifica: e' una regola, non una consuetudine.
 
 ### Cosa la CI prova, e cosa NON prova
 
-La CI (`.github/workflows/prove.yml`) compila, lancia i controlli di contratto —
-che parlano col ponte sullo stdio, senza SOLIDWORKS — e **rifiuta una consegna
-in cui nessuno ha lanciato il banco**.
+> **Questa sezione e' stata riscritta il 23/9/2026, e prima diceva il falso.**
+> Diceva «la CI compila, lancia i controlli di contratto — che parlano col
+> ponte sullo stdio, senza SOLIDWORKS — e rifiuta una consegna in cui nessuno
+> ha lanciato il banco». **Nessuna delle prime due cose poteva succedere su un
+> runner di GitHub**, e la CI non e' mai diventata verde. Il perche' sta sotto,
+> perche' e' il genere di cosa che chi legge un README ha il diritto di sapere
+> prima di fidarsi di un distintivo.
 
-> **Quel terzo punto non e' una verifica indipendente, e vale dirlo qui.**
+**Il ponte, in CI, non si compila.** `Oce.Solid.Agent.csproj` e
+`Riscontro.Disegno.csproj` referenziano `SolidWorks.Interop.sldworks` e
+`SolidWorks.Interop.swconst` con un `HintPath` dentro l'installazione di
+SOLIDWORKS. Quelle DLL sono di Dassault: non stanno in repository, non si
+scaricano, e su un runner di GitHub non ci sono. Misurato, non dedotto —
+compilando con `/p:SwInstallPath=Z:\non-esiste` escono duecento e passa
+`CS0246: il nome di tipo o di spazio dei nomi 'IModelDoc2' non e' stato
+trovato`.
+
+Di conseguenza **nemmeno i controlli che parlano col ponte** possono girare:
+senza eseguibile non c'e' nessuno stdio a cui scrivere.
+
+Quello che la CI fa davvero:
+
+| | gira su un runner di GitHub |
+|---|---|
+| compila `Prove.Contratti` (di interop non ne ha, e c'e' un controllo che lo verifica) | **si** |
+| il valutatore delle attese, i sorgenti nei loro `.csproj`, i documenti che contano i file giusti | **si** |
+| il contenuto del catalogo, letto da `Strumenti\catalogo.json` che sta in repository | **si** |
+| **rifiuta una consegna in cui nessuno ha lanciato il banco** | **si** |
+| compila il ponte | solo dove l'interop c'e' (un runner self-hosted con SOLIDWORKS) |
+| il protocollo MCP, `Sessione.StessoDocumento`, l'esportatore del catalogo | solo li' |
+
+**E cio' che non gira non diventa verde.** I gruppi che hanno bisogno del
+ponte scrivono una voce **«non eseguibile qui»**: si conta a parte, si stampa,
+finisce in `prove.xml` come `<skipped>` e nel riepilogo della corsa. Il
+riepilogo dice `N controlli, 0 falliti, M non eseguibili qui (K fatti
+davvero)`, e il minimo dichiarato si misura sui **fatti** — una suite tutta
+saltata non supera la soglia. *Saltare in silenzio sarebbe stato il modo piu'
+comodo di far diventare verde questo file, ed e' il difetto che il file
+stesso esiste per non avere.*
+
+> **Il punto sul banco non e' una verifica indipendente, e vale dirlo qui.**
 > Nessun runner ha una licenza SOLIDWORKS, quindi **il banco in CI non gira**.
 > Cio' che la CI legge e' `Banco/resoconto/ultimo.json`: un file che
 > **produciamo e committiamo noi**. Controlla che dichiari un giro intero,
@@ -387,10 +424,27 @@ quando e' zero e' un conteggio che nessuno controlla.
 
 ## Vincoli che non si negoziano
 
-- **Serve SolidWorks aperto.** Il ponte si aggancia a una sessione che c'e',
+- **Serve una sessione SOLIDWORKS aperta.** Il ponte si aggancia a una sessione che c'e',
   non ne avvia una.
 - **Niente scritture fuori dal documento aperto.** Il ponte non salva nel
   vault, non tocca librerie, non installa niente.
 - **Nessuna operazione non misurata.** Se un'operazione non e' stata costruita
-  dentro SolidWorks e verificata con un numero, non si espone. E' la regola
+  dentro il software SOLIDWORKS e verificata con un numero, non si espone. E' la regola
   che regge tutto OpenPDM e vale anche qui.
+
+## Marchi
+
+SOLIDWORKS e 3DEXPERIENCE sono marchi registrati di Dassault Systèmes
+SolidWorks Corporation. Questo progetto e' indipendente e **non e' affiliato,
+autorizzato, sponsorizzato ne' approvato da Dassault Systèmes SolidWorks
+Corporation** — in inglese, che e' la lingua in cui la formula conta: *not
+affiliated with, authorized by, sponsored by or endorsed by Dassault Systemes
+SolidWorks Corporation.*
+
+La licenza Apache-2.0 di questo progetto **non concede alcun diritto sui
+marchi**: lo dice la sua sezione 6, e vale la pena dirlo qui perche' una
+licenza permissiva si legge in fretta come se permettesse tutto.
+
+Il nome SOLIDWORKS compare solo come qualifica del software con cui questo
+ponte parla. Vedi [NOTICE](NOTICE), che dice la stessa cosa piu' per esteso —
+ed e' ripetuta qui perche' **il NOTICE quasi nessuno lo apre**.

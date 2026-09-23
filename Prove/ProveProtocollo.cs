@@ -42,8 +42,8 @@ namespace Prove.Contratti
         {
             Gruppo("il protocollo MCP");
 
-            var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
-            if (!File.Exists(ponte)) { Segna("il ponte c'e'", false, "non trovo " + ponte); return; }
+            var ponte = PonteOppureNonQui("il protocollo MCP, per intero");
+            if (ponte == null) return;
 
             using (var p = Apri(ponte))
             {

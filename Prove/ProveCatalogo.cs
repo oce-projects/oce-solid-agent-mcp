@@ -25,13 +25,39 @@ namespace Prove.Contratti
             Gruppo("il catalogo");
 
             var json = Path.Combine(Radice(), "bin", "catalogo.json");
-            if (!File.Exists(json))
+
+            // IL CONTENUTO DEL CATALOGO SI PUO' LEGGERE ANCHE QUI (voce F9-bis).
+            //
+            // `bin\\catalogo.json` lo produce `build.ps1`, che senza interop non
+            // gira: su un runner senza SOLIDWORKS questo gruppo si fermava alla
+            // prima riga e trentadue controlli sul CONTENUTO — famiglie, campi
+            // obbligatori, nomi doppi — non venivano fatti benche' non
+            // c'entrino niente con SOLIDWORKS. Leggono un JSON.
+            //
+            // `Strumenti\\catalogo.json` e' lo stesso file, sta in repository ed
+            // e' quello che `build.ps1` COPIA in `bin\\`. Si ripiega li', e si dice.
+            // Il confronto fra i due resta impossibile, e piu' sotto lo dichiara.
+            bool dalRepository = false;
+            if (!ProdottoDaBuild(json))
             {
-                Segna("il catalogo c'e'", false,
-                      "non trovo " + json + " — si produce con .\\build.ps1");
-                return;
+                var inRepository = Path.Combine(Radice(), "Strumenti", "catalogo.json");
+                if (!IlPonteSiPotevaCompilare() && File.Exists(inRepository))
+                {
+                    json = inRepository;
+                    dalRepository = true;
+                }
+                else
+                {
+                    Segna("il catalogo c'e'", false,
+                          "non trovo " + json + " — si produce con .\\build.ps1");
+                    return;
+                }
             }
-            Segna("il catalogo c'e'", true, json);
+            Segna("il catalogo c'e'", true,
+                  dalRepository
+                      ? json + " (quello in repository: qui SOLIDWORKS non c'e', " +
+                        "quindi bin\\catalogo.json non si poteva produrre)"
+                      : json);
 
             Dictionary<string, object> radice;
             try
@@ -153,8 +179,15 @@ namespace Prove.Contratti
             var sorgente = Path.Combine(Radice(), "Strumenti", "catalogo.json");
             var pacchetto = Path.Combine(Radice(), "bin", "catalogo.json");
 
-            if (!File.Exists(strumento))
+            if (!ProdottoDaBuild(strumento))
             {
+                if (!IlPonteSiPotevaCompilare())
+                {
+                    NonQui("il catalogo esportato combacia col C#",
+                           "qui SOLIDWORKS non c'e': Riscontro.Catalogo.exe dipende da " +
+                           "Riscontro.Disegno, che senza interop non si compila.");
+                    return;
+                }
                 Segna("l'esportatore del catalogo c'e'", false,
                       "non trovo " + strumento + " — si produce con .\\build.ps1");
                 return;
@@ -201,6 +234,14 @@ namespace Prove.Contratti
             // 2. E QUELLO CHE CARICA IL PONTE E' LO STESSO?
             if (!File.Exists(pacchetto))
             {
+                if (!IlPonteSiPotevaCompilare())
+                {
+                    NonQui("il ponte carica il catalogo di adesso",
+                           "qui SOLIDWORKS non c'e': bin\\catalogo.json non esiste " +
+                           "perche' build.ps1 non poteva girare, e un file si confronta " +
+                           "con un altro file, non con la sua assenza.");
+                    return;
+                }
                 Segna("il ponte carica il catalogo di adesso", false,
                       "non trovo " + pacchetto + " — si produce con .\\build.ps1");
                 return;
@@ -287,6 +328,20 @@ namespace Prove.Contratti
             if (eseguibili.Count < 30) return;
 
             // Le non provate, chieste a chi decide chi resta fuori dal file.
+            //
+            // Si chiedono ALLA LIBRERIA COMPILATA, e li' la macchina conta: senza
+            // interop non esiste nessuna DLL da interrogare. Il conto
+            // «eseguibili = nel catalogo + non provate» non si puo' fare, e un
+            // conto che non si puo' fare non si finge riuscito.
+            if (!ProdottoDaBuild(Path.Combine(Radice(), "bin", "Riscontro.Disegno.dll")) &&
+                !IlPonteSiPotevaCompilare())
+            {
+                NonQui("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
+                       "qui SOLIDWORKS non c'e': l'elenco delle non provate si chiede a " +
+                       "Riscontro.Disegno.dll, che senza interop non si compila.");
+                return;
+            }
+
             List<string> nonProvate;
             try
             {

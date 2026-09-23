@@ -1,39 +1,75 @@
 # =============================================================================
-#  Le prove che una macchina senza SOLIDWORKS puo' davvero fare  (voce F9)
+#  Le prove che una macchina senza SOLIDWORKS puo' davvero fare  (voci F9, F9-bis)
 # =============================================================================
 #
-#  COSA PUO' E COSA NON PUO'. Nessun runner di GitHub ha una licenza
-#  SOLIDWORKS, quindi il banco vero qui non gira e non girera'. Quello che
-#  questa CI fa e' altro, e vale quasi altrettanto:
+#  QUESTO FILE E' STATO RISCRITTO IL 23/9/2026 PERCHE' NON POTEVA DIVENTARE
+#  VERDE, E NON L'AVEVA MAI FATTO.
 #
-#    1. compila il ponte e il progetto delle prove;
-#    2. lancia `Prove.Contratti.exe`, che prova il valutatore delle attese, il
-#       catalogo, `StessoDocumento` e il protocollo MCP parlando col ponte;
-#    3. **rifiuta una consegna in cui nessuno ha lanciato il banco**, leggendo
-#       `Banco/resoconto/ultimo.json` -- l'unico file di `resoconto/` che sta
-#       in repository, e sta li' apposta.
+#  La stesura precedente cominciava con `msbuild Oce.Solid.Agent.csproj`. Quel
+#  progetto — e `Riscontro.Disegno`, che gli sta sotto — referenzia
+#  `SolidWorks.Interop.sldworks` e `SolidWorks.Interop.swconst` con un
+#  `HintPath` dentro l'installazione di SOLIDWORKS. Nessun runner di GitHub ha
+#  quella cartella, e le interop sono di Dassault: non si possono mettere in
+#  repository ne' scaricare.
 #
-#  E COSA QUESTO NON PROVA, detto qui perche' e' il posto dove qualcuno legge
-#  prima di fidarsi (voce K4, 18/9/2026).
+#  MISURATO, NON DEDOTTO. Compilando in locale con
+#  `/p:SwInstallPath=Z:\non-esiste` escono duecento e passa errori
+#  `CS0246: il nome di tipo o di spazio dei nomi 'IModelDoc2' non e' stato
+#  trovato`. Il primo passo falliva sempre, quindi i due passi utili — le prove
+#  di contratto e il rifiuto di una consegna senza banco — non venivano
+#  raggiunti mai.
 #
-#  Il punto 3 NON e' una verifica indipendente. `ultimo.json` e' un file che
-#  **produciamo e committiamo noi**: la CI controlla che dichiari un giro
-#  intero, coerente con la libreria di adesso e posteriore all'ultima modifica
-#  alle operazioni. E' una guardia contro la NOSTRA distrazione -- contro il
-#  commit fatto senza aver rilanciato il banco -- non contro un banco che
-#  mentisse. Se il resoconto dicesse il falso, la CI lo crederebbe.
+#  Il README intanto diceva «la CI compila, lancia i controlli di contratto e
+#  rifiuta una consegna in cui nessuno ha lanciato il banco». Vero sulla carta,
+#  irraggiungibile in pratica. **Una CI che non e' mai girata e' un distintivo,
+#  non una prova** — ed e' esattamente il difetto che questo repository
+#  rimprovera altrove.
 #
-#  Chiamarla «la consegna e' sbarrata da un controllo, non da una promessa»
-#  sarebbe esattamente il salto che questo progetto rimprovera agli altri: una
-#  difesa raccontata piu' forte di com'e' indebolisce anche quelle vere, perche'
-#  insegna a non fidarsi dell'etichetta.
+#  ── E IL POWERSHELL STA IN FILE, NON QUI DENTRO ────────────────────────────
 #
-#  L'unica cosa che renderebbe il punto 3 una verifica vera e' un runner con
+#  I passi in `pwsh` chiamano `.github\passi\*.ps1`. Codice dentro un YAML che
+#  nessuno esegue e' lo stesso difetto di questa voce spostato di un livello:
+#  un errore di sintassi si scoprirebbe alla prima corsa, cioe' mai. In un
+#  `.ps1` lo prende `Controlli\controlla-workflow.ps1`, che gira in locale, e
+#  ogni passo si puo' lanciare a mano.
+#
+#  ── COSA FA ADESSO ─────────────────────────────────────────────────────────
+#
+#    1. guarda se l'interop di Dassault c'e' su questo runner;
+#    2. compila il ponte SOLO se c'e' (su GitHub non c'e'; su un runner
+#       self-hosted con SOLIDWORKS installato si', e allora lo compila davvero);
+#    3. compila `Prove\Prove.Contratti.csproj`, che di interop non ne ha —
+#       e c'e' un controllo dentro la suite che verifica proprio questo;
+#    4. lancia `Prove.Contratti.exe`.
+#
+#  ── E COSA LA SUITE FA, QUANDO IL PONTE NON C'E' ───────────────────────────
+#
+#  Non salta in silenzio. I gruppi che hanno bisogno dell'eseguibile del ponte
+#  — il protocollo MCP, `Sessione.StessoDocumento`, l'esportatore del catalogo,
+#  il confronto fra le due librerie — scrivono una voce **«non eseguibile
+#  qui»**, che si conta a parte, si stampa e finisce in `prove.xml` come
+#  `<skipped>`. Il riepilogo dice `N controlli, 0 falliti, M non eseguibili qui
+#  (K fatti davvero)`, e il minimo dichiarato si misura sui **fatti**: una
+#  suite tutta saltata non supera la soglia.
+#
+#  Quello che invece si puo' fare senza SOLIDWORKS si fa lo stesso, e non e'
+#  poco: il valutatore delle attese, i sorgenti che stanno nei loro `.csproj`,
+#  i documenti che contano i file giusti, il contenuto del catalogo (letto da
+#  `Strumenti\catalogo.json`, che sta in repository), e il rifiuto di una
+#  consegna in cui nessuno ha lanciato il banco.
+#
+#  ── E COSA QUESTO NON PROVA (voce K4, 18/9/2026, ancora valida) ────────────
+#
+#  Il controllo sul banco NON e' una verifica indipendente.
+#  `Banco/resoconto/ultimo.json` e' un file che **produciamo e committiamo
+#  noi**: la CI controlla che dichiari un giro intero, coerente con la libreria
+#  di adesso e posteriore all'ultima modifica alle operazioni. E' una guardia
+#  contro la NOSTRA distrazione — il commit fatto senza aver rilanciato il
+#  banco — non contro un banco che mentisse. Se il resoconto dicesse il falso,
+#  la CI lo crederebbe.
+#
+#  L'unica cosa che renderebbe quel punto una verifica vera e' un runner con
 #  SOLIDWORKS, e non c'e'.
-#
-#  IL DIFETTO SILENZIOSO DA TEMERE e' una CI che compila un progetto vuoto e
-#  resta verde per mesi. Per questo si controlla che l'eseguibile ESISTA prima
-#  di lanciarlo, e le prove stesse pretendono almeno venticinque controlli.
 # =============================================================================
 
 name: prove
@@ -49,6 +85,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
+
       - name: Prendi il codice
         uses: actions/checkout@v4
         with:
@@ -60,29 +97,29 @@ jobs:
       - name: MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Compila il ponte
+      - name: C'e' l'interop di Dassault su questo runner?
+        id: interop
+        shell: pwsh
+        run: .\.github\passi\interop-ce.ps1
+
+      - name: Compila il ponte (solo dove l'interop c'e')
+        if: steps.interop.outputs.ce == 'si'
         run: msbuild Oce.Solid.Agent.csproj -p:Configuration=Release -v:m
 
-      - name: Compila le prove
+      - name: Compila le prove di contratto
         run: msbuild Prove\Prove.Contratti.csproj -p:Configuration=Release -v:m
 
       - name: Gli eseguibili esistono davvero
         shell: pwsh
-        run: |
-          # UNA CI CHE COMPILA IL VUOTO RESTA VERDE PER MESI. Si guarda che i
-          # due file ci siano, prima di credere a un esito.
-          $mancano = @()
-          foreach ($f in @('bin\oce-solid-agent-mcp.exe', 'Prove\bin\Prove.Contratti.exe')) {
-            if (-not (Test-Path $f)) { $mancano += $f }
-          }
-          if ($mancano.Count -gt 0) {
-            Write-Output ("NON COMPILATI: " + ($mancano -join ', '))
-            exit 1
-          }
-          Write-Output "ci sono tutti e due"
+        run: .\.github\passi\gli-eseguibili-ci-sono.ps1 -InteropCe '${{ steps.interop.outputs.ce }}'
 
       - name: Lancia le prove di contratto
         run: Prove\bin\Prove.Contratti.exe
+
+      - name: Quanto di questo giro non ha potuto girare
+        if: always()
+        shell: pwsh
+        run: .\.github\passi\quanto-non-ha-girato.ps1
 
       - name: Pubblica prove.xml
         if: always()

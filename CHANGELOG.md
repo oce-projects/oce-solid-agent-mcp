@@ -24,6 +24,182 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.70.0 — 23 September 2026 · library 0.101.0
+
+### Dimensions land where they belong, and a CI that had never once been green
+
+Bench 835 checks, 0 red, 662/662 expectations, full run, 77 minutes. Contract
+suite 158, 0 red.
+
+**Dimensions are no longer left in a heap on top of the view.** `quota_in_tavola`
+created them and dropped them all at the same spot, so a drawing came out with
+four labels stacked over the part. The placement is now computed from the edge
+itself: `IEdge.GetCurveParams3()` gives the two endpoints in the model,
+`IView.ModelToViewTransform` maps them onto the sheet, and **only then**
+`IView.Position` is added — without that last term every dimension landed at
+x = 0, which is exactly what the first attempt did.
+
+Horizontal edges get their dimension below the view, vertical ones to the right,
+oblique ones off to the left on their own, and the three bands are stepped
+independently: 12 mm clear of the outline, 10 mm apart. Shortest nearest the
+part. Those are not invented numbers — UNI ISO
+129-1, as reported by the Zanichelli sheet (7–12 mm between parallel dimension
+lines on A3/A4) and the Università del Salento lecture notes (more than 10 mm
+from the outline, more than 6 mm between lines). The two values the code
+already used satisfy all four constraints: *the defect was never the numbers,
+it was the direction.*
+
+**Duplicates are removed by geometry, not by value.** The first version
+deduplicated on the measured length, and that is wrong in a way that only
+shows up on a real part: two different 10 mm steps are two different features
+and both have to be dimensioned. The key is direction on the sheet plus the
+interval of the projection onto the measuring axis.
+
+**And the operation says what it did not look at.** Which dimensions a drawing
+actually needs, whether the dimensioning is complete, which view shows a
+feature most clearly, whether the text overlaps the geometry — none of that is
+decidable here, and the answer carries the list instead of implying it did
+everything.
+
+### The CI had never compiled, and the README said it did
+
+`.github/workflows/prove.yml` began with `msbuild Oce.Solid.Agent.csproj`. That
+project — and `Riscontro.Disegno` under it — resolves `SolidWorks.Interop.*`
+through a `HintPath` inside the SOLIDWORKS installation. No GitHub runner has
+that folder, and the interop belongs to Dassault: it cannot be committed and it
+cannot be downloaded.
+
+Measured rather than assumed: building with `/p:SwInstallPath=Z:\non-esiste`
+produces two hundred–odd `CS0246: the type or namespace name 'IModelDoc2' could
+not be found`. The first step failed every time, so the two steps that were
+worth something — the contract suite and the refusal to ship without a bench
+run — were never reached. **A CI that has never run is a badge, not a test.**
+
+The bridge is now compiled **only where the interop is present**: a step looks
+in the same three places msbuild looks, and on a self-hosted runner with
+SOLIDWORKS the bridge really is built (and a missing executable there is a red,
+not an excuse).
+
+**What cannot run does not turn green.** The suite has a third verdict beside
+OK and NO: `--`, *not runnable here*. It is counted separately, printed, written
+to `prove.xml` as `<skipped>` with `skipped=` on both the suite and the total,
+and summarised on the run page. The declared minimum is now measured against
+what actually ran — twenty-five rows of "not runnable here" used to satisfy it.
+
+**The distinction that holds it together** is between *cannot here* and *you
+forgot to build*. Same symptom — no executable — opposite defects. They are
+told apart by looking at the interop, not at the executable.
+
+**And what could run anyway, now does.** The catalogue group stopped at its
+first line because `bin\catalogo.json` is produced by `build.ps1`: thirty-odd
+checks on the catalogue's *content* were skipped although they read a JSON file
+and have nothing to ask SOLIDWORKS. They now fall back to
+`Strumenti\catalogo.json`, which is in the repository, and say so.
+
+**The new verdict was watched firing.** `PROVE_SENZA_INTEROP=1` makes the suite
+behave like a bare runner on a machine that has SOLIDWORKS — otherwise the code
+that writes those rows would have stayed untested until the first CI run, which
+is another way of saying *believed*.
+
+### The bench now refuses to start on a dirty SOLIDWORKS
+
+A full run — an hour and a quarter — went red on `stato: sotto i 16 KB su un
+telaio da quattro barre: 17435 caratteri, 15 documenti aperti`. Nothing in the
+code had changed; fifteen documents had been left open by an earlier session,
+and a document's state lists `documenti_aperti`.
+
+It had happened before, on 14 September, and the remedy was already written in
+the comment next to that very check. The first version of this entry concluded
+that the remedy was documented and never executed. **That was wrong, and worth
+saying so:** `banco.ps1` runs it, step 3 of five, before every run. What
+bypassed it was a `ProvaSaldatura.exe` launched by hand to pass `--libreria`.
+
+The real finding is less comfortable. **The protection lived in the wrapper**,
+and you step outside the wrapper precisely when you are doing something
+unusual — a different library, one group, an existing binary — which is when it
+matters most.
+
+The bench now looks first **however it is launched**, lists what it found, and
+exits 3 — a run that never started is not a red run, and calling it red would
+mean writing the report of a run that did not happen. `--chiudi-gli-scarti`
+closes them and goes; it is not the default because `CloseDoc` discards unsaved
+changes, and on this machine that could be someone's work. It also counts again
+afterwards: "I called close fifteen times" is not "they are closed".
+
+`banco.ps1` step 3 and this check now say the same thing twice, and that is
+fine: the first quietly closes what it knows is scrap, the second refuses to
+begin if anything is left.
+
+Measured both ways on the real dirty desk: without the flag, exit 3 and fifteen
+names; with it, `chiusi 15 documenti su 15, ne restano 0`, and then the check
+above passes at 15922 characters.
+
+### How much of that 835 actually has SOLIDWORKS in it
+
+The per-group count (entry K2) said *where* the checks are. The other half of
+that entry asked *how many of them have a CAD document under them* — and the
+answer is now printed beside the total:
+
+```
+prove con un documento CAD aperto: 806 - senza: 29
+```
+
+**It is asked of SOLIDWORKS, not of the bench.** The first draft kept an
+internal counter, incremented on open and decremented on close, and it would
+have been wrong: documents are opened in at least four places and closed in
+three, one of which deliberately tries twice (entry GT0, the teardown order
+nobody claims to know). *A counter with seven keepers is a counter that will one
+day say -1.* `GetDocumentCount()` asks the one who knows.
+
+**And it says what it really measures**, which is not what the entry's title
+promises: "a document was open when this check was recorded". Since the bench
+only starts on a clean desk, that document is necessarily one it opened itself —
+but while the drawing cases leak documents (entry K12-bis), later checks count
+as *with document* even when they never touched CAD. **It is a ceiling, not a
+measurement, and the summary line says so** rather than leaving it to be
+discovered.
+
+### Smaller things, all of them found by something other than reading
+
+- **The publishability check was looking at 29 commits out of 104, and the
+  history rewrite was the reason.** `git filter-branch -- --all` rewrites the
+  *local* remote-tracking refs too, so `origin/main..HEAD` collapsed to 29 while
+  the real remote still held the old history. It now asks the remote where it
+  actually is, and looks at everything when the answer differs — or when the
+  remote does not answer at all.
+- **Two TODO entries were both called K11.** Caught by the contract check that
+  exists for exactly that, not by rereading.
+- **A bench expectation was pinned to a verb ending.** It wanted «accavallano»
+  and the rewritten text says «si accavalla». Second time in two days that an
+  expectation hung on a word form — the first wanted «vero» where the text said
+  «VERO». It now matches the stem.
+- **`CONFRONTO.md` exists** (entry K6), with the (D)/(M) rule and a column the
+  entry did not ask for: the date of each measurement. Rewriting it found one
+  figure that was simply wrong — "~100 commits in 9 days" is 104 in 13 — and
+  nobody would ever have contested it.
+- **The six trademark conditions** of entry I4 are applied: SOLIDWORKS® is an
+  adjective everywhere in the README, the English non-affiliation formula and
+  the explicit reference to Apache-2.0 section 6 are in `NOTICE`, and the short
+  declaration is repeated at the foot of the README, because almost nobody
+  opens a NOTICE.
+- **`AssemblyInformationalVersion` was two versions behind again**, and this
+  time a check said so instead of a comment: `assembly 0.101.0.0, proprietà del
+  file 0.100.0`. The comment warning about exactly this has been in
+  `AssemblyInfo.cs` since the last occurrence — *a comment is not a check*. The
+  fix landed after the bench run; it changes one metadata string and no
+  behaviour, and `AssemblyVersion` — the number the report is checked against —
+  is the same 0.101.0 the bench measured.
+- **The PowerShell of the CI now lives in `.github\passi\*.ps1`**, not inside
+  the YAML, and `Controlli\controlla-workflow.ps1` parses every one of them and
+  checks the workflow actually invokes them; the `pre-push` hook runs it. Code
+  inside a YAML nobody executes is this entry's own defect moved up one level.
+  Twenty minutes after being written it caught a real break: converting those
+  scripts to pure ASCII (house rule — PowerShell 5.1 reads a BOM-less file as
+  ANSI) turned one line into `$r += ""Non eseguibile qui" ..."`, quotes inside
+  quotes. `riga 48: Token 'Non' imprevisto`, first try.
+
+---
+
 ## 0.69.0 — 23 September 2026 · library 0.100.0
 
 ### How much the suite actually measures, and a check that could never pass

@@ -59,8 +59,18 @@ using System.Runtime.InteropServices;
 //          Le note si contano SUL FOGLIO e non nelle viste: contarle nel posto
 //          sbagliato avrebbe letto 0 con la nota al suo posto, e quel falso
 //          negativo avrebbe chiuso per sbaglio quattro voci del TODO.
-[assembly: AssemblyVersion("0.100.0.0")]
-[assembly: AssemblyFileVersion("0.100.0.0")]
+// 0.101.0: le quote non si lasciano piu' ammucchiate sulla vista. Il punto in
+//          cui una quota finisce si calcola dallo spigolo: `GetCurveParams3`
+//          da' i due estremi nel modello, `ModelToViewTransform` li porta sul
+//          foglio, e SOLO ALLORA si somma `IView.Position` -- senza quella
+//          somma le quote cadevano tutte a x=0. Orizzontali sopra, verticali
+//          di lato (UNI ISO 129-1: linee di misura fuori dalle figure), in
+//          ordine di lunghezza crescente allontanandosi dal pezzo, distacco
+//          12 mm e passo 10 mm. Doppioni tolti per GEOMETRIA e non per
+//          valore: due gradini da 10 mm sono due elementi, e vanno quotati
+//          tutti e due.
+[assembly: AssemblyVersion("0.101.0.0")]
+[assembly: AssemblyFileVersion("0.101.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -70,4 +80,4 @@ using System.Runtime.InteropServices;
 // impedito — perche' un commento non e' un controllo. Finche' nessuna prova
 // confronta i due numeri, questo terzo lo si allinea a mano e prima o poi
 // invecchia di nuovo.
-[assembly: AssemblyInformationalVersion("0.100.0")]
+[assembly: AssemblyInformationalVersion("0.101.0")]

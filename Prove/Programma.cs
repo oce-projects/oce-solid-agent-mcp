@@ -38,6 +38,13 @@ namespace Prove.Contratti
     internal static class Programma
     {
         internal static int Falliti;
+
+        /// <summary>
+        /// Quanti controlli NON hanno potuto girare su questa macchina.
+        /// Non sono verdi e non sono rossi: vedi <see cref="NonQui"/>.
+        /// </summary>
+        internal static int NonEseguibiliQui;
+
         internal static readonly List<Esito> Esiti = new List<Esito>();
 
         internal sealed class Esito
@@ -45,6 +52,7 @@ namespace Prove.Contratti
             public string Gruppo;
             public string Nome;
             public bool Ok;
+            public bool NonQui;
             public string Dettaglio;
         }
 
@@ -66,6 +74,147 @@ namespace Prove.Contratti
             // centodieci caratteri vuol dire rilanciare per vedere il resto.
             Console.WriteLine((ok ? "  OK   " : "  NO   ") + nome.PadRight(58) +
                               (ok ? Breve(dettaglio) : dettaglio));
+        }
+
+        /// <summary>
+        /// UN CONTROLLO CHE **NON POTEVA** GIRARE QUI NON E' VERDE E NON E' ROSSO.
+        ///
+        /// ── IL DIFETTO CHE HA FATTO NASCERE QUESTA TERZA VOCE ─────────────
+        ///
+        /// 23/9/2026, voce F9-bis. La CI di questo repository non e' MAI
+        /// diventata verde, e il motivo non era un difetto del codice: il suo
+        /// primo passo era `msbuild Oce.Solid.Agent.csproj`, e quel progetto
+        /// referenzia `SolidWorks.Interop.*` con un `HintPath` sull'installazione
+        /// di SOLIDWORKS. Su un runner di GitHub quella cartella non c'e' e non
+        /// ci sara'. **Misurato, non dedotto**: compilando con
+        /// `/p:SwInstallPath=Z:\non-esiste` escono duecento e passa
+        /// `CS0246: il nome di tipo IModelDoc2 non e' stato trovato`.
+        ///
+        /// Il README intanto diceva «la CI compila, lancia i controlli di
+        /// contratto e rifiuta una consegna in cui nessuno ha lanciato il
+        /// banco». Le ultime due erano vere in teoria e irraggiungibili in
+        /// pratica, perche' la prima non arrivava mai in fondo. **Una CI che
+        /// non e' mai girata e' un distintivo, non una prova.**
+        ///
+        /// ── PERCHE' NON BASTA SALTARE ─────────────────────────────────────
+        ///
+        /// La tentazione e' `if (!File.Exists(ponte)) return;`: la suite
+        /// diventa verde e nessuno sa piu' che meta' dei controlli non e'
+        /// stata fatta. E' il difetto che questo repository rimprovera
+        /// altrove, applicato alla propria CI.
+        ///
+        /// Quindi: la voce c'e' lo stesso, si stampa `--`, si conta a parte, e
+        /// finisce in `prove.xml` come `<skipped>` — che ogni CI sa mostrare.
+        ///
+        /// ── E «NON POTEVA» SI DIMOSTRA, NON SI DICHIARA ───────────────────
+        ///
+        /// La distinzione che conta e' fra **non si puo' qui** e **ti sei
+        /// dimenticato di compilare**. Danno lo stesso sintomo — l'eseguibile
+        /// non c'e' — e sono due difetti opposti. Si separano guardando
+        /// l'interop: se sulla macchina non c'e', il ponte NON POTEVA esistere;
+        /// se c'e', l'eseguibile manca perche' qualcuno non ha lanciato
+        /// `build.ps1`, e quello **resta rosso**.
+        /// </summary>
+        internal static void NonQui(string nome, string perche)
+        {
+            NonEseguibiliQui++;
+            Esiti.Add(new Esito { Gruppo = _gruppo, Nome = nome, Ok = true,
+                                  NonQui = true, Dettaglio = perche });
+            Console.WriteLine("  --   " + nome.PadRight(58) + perche);
+        }
+
+        /// <summary>
+        /// Dove sta l'interop di Dassault su QUESTA macchina, o `null`.
+        ///
+        /// Stesso ordine dei `.csproj` — `SW_INSTALL_PATH`, poi `SW_REDIST`,
+        /// poi il posto di serie — perche' la domanda e' esattamente «msbuild
+        /// l'avrebbe trovata?», e cercarla con un ordine diverso da quello
+        /// della build risponderebbe a un'altra domanda.
+        /// </summary>
+        /// <summary>
+        /// «Comportati come un runner senza SOLIDWORKS», qui e adesso.
+        ///
+        /// Le voci «non eseguibile qui» le vedrebbe solo una macchina nuda, e
+        /// questa non lo e': senza questo interruttore il codice che le scrive
+        /// resterebbe non provato fino alla prima corsa di CI — cioe' si
+        /// dovrebbe credere che funzioni. **Un controllo mai visto scattare non
+        /// e' un controllo.**
+        ///
+        /// Non e' una scorciatoia per far passare qualcosa: sotto simulazione il
+        /// riepilogo lo grida e i saltati si contano lo stesso, quindi usarla
+        /// per «diventare verdi» renderebbe il buco piu' visibile, non meno.
+        /// </summary>
+        internal static bool FingiSenzaInterop
+        {
+            get { return Environment.GetEnvironmentVariable("PROVE_SENZA_INTEROP") == "1"; }
+        }
+
+        /// <summary>
+        /// Un file che lo produce `build.ps1`, e quindi che su una macchina
+        /// senza interop non puo' esistere. Sotto simulazione non esiste mai.
+        /// </summary>
+        internal static bool ProdottoDaBuild(string percorso)
+        {
+            return !FingiSenzaInterop && File.Exists(percorso);
+        }
+
+        internal static string DoveStaLInterop()
+        {
+            if (FingiSenzaInterop) return null;
+            var candidati = new List<string>();
+            var radiceSw = Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+            if (!string.IsNullOrEmpty(radiceSw))
+                candidati.Add(Path.Combine(radiceSw, "api", "redist"));
+            var redist = Environment.GetEnvironmentVariable("SW_REDIST");
+            if (!string.IsNullOrEmpty(redist)) candidati.Add(redist);
+            candidati.Add(@"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist");
+            foreach (var c in candidati)
+            {
+                try
+                {
+                    if (File.Exists(Path.Combine(c, "SolidWorks.Interop.sldworks.dll")))
+                        return c;
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Vero se su questa macchina il ponte SI SAREBBE POTUTO compilare.
+        /// Non dice che sia stato compilato: dice che, se manca, la colpa e'
+        /// di chi non ha lanciato `build.ps1` e non della macchina.
+        /// </summary>
+        internal static bool IlPonteSiPotevaCompilare()
+        {
+            return DoveStaLInterop() != null;
+        }
+
+        /// <summary>
+        /// L'eseguibile del ponte, oppure una voce «non qui» e `null`.
+        ///
+        /// Tre gruppi facevano la stessa cosa in tre modi leggermente diversi
+        /// (`ProveProtocollo`, `ProveSessione`, `ProveCatalogo`): la regola su
+        /// quando un ponte mancante e' colpa della macchina stava scritta tre
+        /// volte, ed e' il modo in cui due delle tre restano indietro.
+        /// </summary>
+        internal static string PonteOppureNonQui(string cosaNonGira)
+        {
+            var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
+            if (ProdottoDaBuild(ponte)) return ponte;
+            if (!IlPonteSiPotevaCompilare())
+            {
+                NonQui(cosaNonGira,
+                       "qui SOLIDWORKS non c'e': senza api\\redist\\SolidWorks.Interop.* il " +
+                       "ponte non si compila, quindi non esiste nessun eseguibile a cui " +
+                       "parlare. Non e' un difetto del ponte, e fingere di averlo provato " +
+                       "sarebbe peggio del non averlo provato.");
+                return null;
+            }
+            Segna("il ponte c'e'", false,
+                  "non trovo " + ponte + " — ma SOLIDWORKS su questa macchina c'e' (" +
+                  DoveStaLInterop() + "), quindi manca solo .\\build.ps1");
+            return null;
         }
 
         internal static string Breve(string s)
@@ -101,6 +250,21 @@ namespace Prove.Contratti
         private static void IlLeggimiDiceQuantiSono()
         {
             Gruppo("il LEGGIMI delle prove");
+
+            // IL CONTO VALE PER UN GIRO INTERO (voce F9-bis). Dove SOLIDWORKS
+            // non c'e', un gruppo da quaranta controlli diventa UNA riga «non
+            // eseguibile qui»: il totale crolla, il LEGGIMI ha ancora ragione, e
+            // questo controllo diventerebbe rosso accusando il documento giusto.
+            // Un controllo che sa di non poter rispondere lo dice.
+            if (NonEseguibiliQui > 0)
+            {
+                NonQui("il LEGGIMI dice quanti controlli ci sono, e sono quelli veri",
+                       "su questa macchina " + NonEseguibiliQui + " controlli non hanno " +
+                       "potuto girare: il numero scritto nel LEGGIMI e' quello di un giro " +
+                       "intero e qui non e' confrontabile.");
+                return;
+            }
+
             int veri = Esiti.Count + 1;
 
             var leggimi = Path.Combine(Radice(), "Prove", "LEGGIMI.md");
@@ -148,6 +312,15 @@ namespace Prove.Contratti
             Console.WriteLine("Prove.Contratti — senza SOLIDWORKS, su questa macchina qualunque");
             Console.WriteLine("radice: " + Radice());
 
+            if (FingiSenzaInterop)
+            {
+                Console.WriteLine();
+                Console.WriteLine("### PROVE_SENZA_INTEROP=1 — GIRO SIMULATO ###");
+                Console.WriteLine("Questa macchina fa finta di non avere SOLIDWORKS, per far");
+                Console.WriteLine("vedere come si comporta la suite su un runner nudo. I");
+                Console.WriteLine("risultati di questo giro NON valgono come collaudo.");
+            }
+
             NessunInterop();
             OgniSorgenteStaNelSuoProgetto();
             OgniVariabileDAmbienteStaNelLeggimi();
@@ -165,16 +338,40 @@ namespace Prove.Contratti
 
             Console.WriteLine();
             Console.WriteLine(new string('=', 76));
+            int fatti = Esiti.Count - NonEseguibiliQui;
             var riepilogo = Esiti.Count + " controlli, " + Falliti + " falliti";
+            if (NonEseguibiliQui > 0)
+                riepilogo += ", " + NonEseguibiliQui + " non eseguibili qui (" +
+                             fatti + " fatti davvero)";
             Console.WriteLine(riepilogo);
+
+            // IL NUMERO DA SOLO SI LEGGEREBBE COME UN VERDE. Chi guarda una CI
+            // legge «0 falliti» e va avanti: se meta' dei controlli non ha
+            // girato, quel numero e' vero e ingannevole insieme, ed e'
+            // esattamente il difetto che questo repository rimprovera altrove.
+            if (NonEseguibiliQui > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("  «NON ESEGUIBILI QUI» non vuol dire passati.");
+                Console.WriteLine("  Su questa macchina SOLIDWORKS non c'e', quindi il ponte non si");
+                Console.WriteLine("  poteva nemmeno COMPILARE e i controlli che gli parlano non hanno");
+                Console.WriteLine("  girato. Questo numero e' l'unico posto in cui la differenza fra");
+                Console.WriteLine("  «provato e passa» e «non provato» resta visibile.");
+            }
 
             // IL MINIMO E' DICHIARATO E SI CONTROLLA. Una suite che si svuota
             // — un file di prove tolto, un gruppo che esce prima — resterebbe
             // verde con tre controlli, e «0 falliti» suonerebbe uguale.
+            //
+            // SI CONTANO I FATTI, NON LE VOCI (voce F9-bis). Contando
+            // `Esiti.Count` la soglia l'avrebbero superata anche venticinque
+            // righe «non eseguibile qui»: un minimo che si lascia soddisfare
+            // da cio' che non ha girato non e' un minimo.
             const int MinimoDichiarato = 25;
-            if (Esiti.Count < MinimoDichiarato)
+            if (fatti < MinimoDichiarato)
             {
                 Console.WriteLine("TROPPO POCHI: ne erano dichiarati almeno " + MinimoDichiarato +
+                                  " davvero eseguiti, e ne risultano " + fatti +
                                   ". Una suite che si svuota resta verde, ed e' il modo piu' " +
                                   "silenzioso di smettere di provare.");
                 Falliti++;
@@ -526,6 +723,16 @@ namespace Prove.Contratti
 
             // ── 2. le famiglie che il catalogo SERVE ai client ─────────────
             var json = Path.Combine(Radice(), "bin", "catalogo.json");
+            // Come nel gruppo «il catalogo» (voce F9-bis): dove il ponte non si
+            // poteva compilare, `bin\\` e' vuota e il file buono e' quello in
+            // repository. Questo controllo legge un JSON e un sorgente C#: non ha
+            // niente da chiedere a SOLIDWORKS, e fermarsi qui vorrebbe dire non
+            // fare una verifica che si poteva fare.
+            if (!ProdottoDaBuild(json) && !IlPonteSiPotevaCompilare())
+            {
+                var inRepository = Path.Combine(Radice(), "Strumenti", "catalogo.json");
+                if (File.Exists(inRepository)) json = inRepository;
+            }
             if (!File.Exists(json))
             {
                 Segna("il catalogo c'e'", false, "non trovo " + json + " — si produce con .\\build.ps1");
@@ -797,7 +1004,19 @@ namespace Prove.Contratti
                                         "Riscontro.Disegno.dll");
             var delPonte = Path.Combine(Radice(), "bin", "Riscontro.Disegno.dll");
 
-            bool c1 = File.Exists(delBanco), c2 = File.Exists(delPonte);
+            bool c1 = ProdottoDaBuild(delBanco), c2 = ProdottoDaBuild(delPonte);
+
+            // Senza interop la libreria non si poteva compilare: mancano tutte e
+            // due perche' la macchina non ce la fa, non perche' qualcuno abbia
+            // sbagliato. Vedi `NonQui`.
+            if (!c1 && !c2 && !IlPonteSiPotevaCompilare())
+            {
+                NonQui("il ponte e il banco caricano la stessa libreria",
+                       "qui SOLIDWORKS non c'e': Riscontro.Disegno.dll non si compila, " +
+                       "e due file che non esistono non si possono confrontare.");
+                return;
+            }
+
             Segna("la libreria che misura il banco c'e'", c1, delBanco);
             Segna("la libreria che carica il ponte c'e'", c2,
                   c2 ? delPonte : delPonte + " — si produce con .\\build.ps1");
@@ -882,16 +1101,29 @@ namespace Prove.Contratti
                 var x = new StringBuilder();
                 x.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 x.AppendLine("<testsuites name=\"Prove.Contratti\" tests=\"" + Esiti.Count +
-                             "\" failures=\"" + Falliti + "\">");
+                             "\" failures=\"" + Falliti +
+                             "\" skipped=\"" + NonEseguibiliQui + "\">");
                 foreach (var g in Esiti.GroupBy(e => e.Gruppo))
                 {
                     x.AppendLine("  <testsuite name=\"" + Xml(g.Key) + "\" tests=\"" + g.Count() +
-                                 "\" failures=\"" + g.Count(e => !e.Ok) + "\">");
+                                 "\" failures=\"" + g.Count(e => !e.Ok) +
+                                 "\" skipped=\"" + g.Count(e => e.NonQui) + "\">");
                     foreach (var e in g)
                     {
                         x.Append("    <testcase classname=\"" + Xml(g.Key) +
                                  "\" name=\"" + Xml(e.Nome) + "\"");
-                        if (e.Ok) x.AppendLine(" />");
+                        // UN SALTATO NON E' UN PASSATO, nemmeno nell'XML: un
+                        // `<testcase />` nudo e' un verde per chiunque legga il
+                        // file, e il file lo legge una CI che poi mostra un segno
+                        // di spunta. `<skipped>` e' la voce che JUnit ha proprio
+                        // per questo, e ogni interfaccia la sa disegnare diversa.
+                        if (e.NonQui)
+                        {
+                            x.AppendLine(">");
+                            x.AppendLine("      <skipped message=\"" + Xml(e.Dettaglio) + "\" />");
+                            x.AppendLine("    </testcase>");
+                        }
+                        else if (e.Ok) x.AppendLine(" />");
                         else
                         {
                             x.AppendLine(">");

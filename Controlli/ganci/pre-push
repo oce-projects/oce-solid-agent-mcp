@@ -30,15 +30,32 @@
 # gancio che funziona solo quando lo chiama git non si puo' provare.
 qui=$(dirname "$0")
 controllo="$qui/../controlla-pubblicabilita.ps1"
+workflow="$qui/../controlla-workflow.ps1"
 
 if [ ! -f "$controllo" ]; then
     echo "pre-push: non trovo $controllo - il gancio non sa cosa lanciare." >&2
+    exit 1
+fi
+if [ ! -f "$workflow" ]; then
+    echo "pre-push: non trovo $workflow - il gancio non sa cosa lanciare." >&2
     exit 1
 fi
 
 # -NoProfile: il profilo di chi lavora non deve poter cambiare l'esito.
 # -ExecutionPolicy Bypass: il gancio deve funzionare anche su una macchina che
 # non ha mai sbloccato gli script, altrimenti il primo che clona lo spegne.
+# IL POWERSHELL DELLA CI, PRIMA (voce F9-bis). Costa un decimo di secondo e
+# prende la cosa che la CI, per anni, non ha potuto prendere da sola: un
+# passo che non si legge. Il push e' il momento giusto perche' e' li' che la
+# CI comincia a esistere.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$workflow"
+if [ $? -ne 0 ]; then
+    echo "" >&2
+    echo "pre-push: FERMO. Un passo della CI non si legge, o non lo chiama" >&2
+    echo "nessuno. Sopra c'e' scritto quale." >&2
+    exit 1
+fi
+
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$controllo"
 esito=$?
 

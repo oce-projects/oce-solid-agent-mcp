@@ -24,12 +24,8 @@ namespace Prove.Contratti
         {
             Gruppo("Sessione.StessoDocumento");
 
-            var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
-            if (!File.Exists(ponte))
-            {
-                Segna("il ponte c'e'", false, "non trovo " + ponte);
-                return;
-            }
+            var ponte = PonteOppureNonQui("Sessione.StessoDocumento, per intero");
+            if (ponte == null) return;
 
             MethodInfo stesso;
             try
