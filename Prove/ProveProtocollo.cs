@@ -67,6 +67,26 @@ namespace Prove.Contratti
                       Convert.ToString(Dentro(risultato, "protocolVersion")) == "2024-11-05",
                       Convert.ToString(Dentro(risultato, "protocolVersion")));
 
+                // ── E LA VERSIONE CHE ANNUNCIA E' QUELLA VERA ─────────────
+                //
+                // Non lo era: `Programma.cs` teneva `const Versione =
+                // "0.2.0"` mentre `VERSION.txt` diceva 0.80.0, e ci e'
+                // rimasto per settantotto versioni minori. Non c'era niente
+                // di sbagliato nel codice — c'erano DUE posti dove scrivere
+                // lo stesso numero, e uno dei due nessuno lo rileggeva.
+                //
+                // Il rimedio e' una fonte sola (`VERSION.txt` dentro
+                // l'eseguibile). Questa riga e' cio' che impedisce che
+                // tornino a essere due.
+                var atteso = VersioneDelRepository();
+                var info = Dentro(risultato, "serverInfo") as Dictionary<string, object>;
+                var detta = Convert.ToString(Dentro(info, "version"));
+                Segna("e la versione che il ponte annuncia e' quella di VERSION.txt",
+                      atteso != null && detta == atteso,
+                      atteso == null
+                          ? "VERSION.txt non si legge"
+                          : "annunciata «" + detta + "», VERSION.txt dice «" + atteso + "»");
+
                 // ── UNA NOTIFICA NON RICEVE RISPOSTA ──────────────────────
                 //
                 // Una riga senza `id` e' una notifica, e rispondere a una

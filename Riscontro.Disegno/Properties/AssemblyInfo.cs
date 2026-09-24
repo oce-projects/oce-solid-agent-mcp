@@ -93,8 +93,60 @@ using System.Runtime.InteropServices;
 //          vera, prima e dopo il ricalcolo. Si legge `GetFaceHatchCount`, e
 //          l'altro si riporta lo stesso nella risposta perche' nessuno
 //          ripercorra la strada gia' misurata.
-[assembly: AssemblyVersion("0.104.0.0")]
-[assembly: AssemblyFileVersion("0.104.0.0")]
+// 0.105.0: `dettaglio_in_tavola` (voce GT4, l'altra meta'). E qui 'per
+//          analogia' sarebbe stato sbagliato due volte su tre: 'Showtype'
+//          vuole swDetCircleShowType_e, e il conto delle circonferenze di
+//          dettaglio e' il VALORE DI RITORNO di GetDetailCircleCount2, non
+//          il suo 'out' -- che passa da 1 a 35 per UNA circonferenza.
+//          E il controllo non e' il tratteggio: un dettaglio non taglia
+//          niente e la campitura li' e' zero. La prova che il cerchio e'
+//          diventato un dettaglio e' la circonferenza in piu' sulla vista
+//          di partenza: 0 -> 1.
+// 0.106.0: i controlli preliminari RICEVONO il documento invece di
+//          ripescarsi `_sw.IActiveDoc2` (voce Z-C5). Erano due letture
+//          dello stesso globale a poche righe di distanza, con una
+//          finestra in mezzo: potevano approvare il documento A -- e' una
+//          parte, e' salvato, non e' in sola lettura -- e il piano
+//          prendere il B. Nessun errore lo avrebbe detto, perche'
+//          tutt'e due le letture erano legittime: sbagliato era che
+//          fossero DUE. Restano cinque letture in EsecutorePiano, e adesso
+//          un controllo di contratto le conta a ogni giro.
+// 0.107.0: dodici operazioni dichiarano il limite che gia' rifiutavano
+//          (voce Z-G5). Ognuna aveva un caso di banco che pretende un
+//          messaggio di rifiuto, e una descrizione che non ne diceva
+//          niente: il modello poteva scoprire quel limite solo
+//          sbattendoci contro, e un rifiuto costa un giro mentre un
+//          limite dichiarato costa zero. Le frasi non sono inventate:
+//          sono il messaggio del caso, girato al futuro. Il conto delle
+//          descrizioni mute e' un tetto in Prove/ProveILimiti.cs, ed e'
+//          passato da 12 a ZERO.
+// 0.108.0: `DocumentoRichiesto` su ogni operazione del catalogo (voce
+//          Z-D0-ter): «parte», «assieme», «tavola», o piu' d'uno. La
+//          famiglia era un'approssimazione, e `verifiche` lo dimostrava
+//          da sola -- `cartiglio` vuole una tavola, `verifica_interferenze`
+//          un assieme, le altre sei una parte. Quel fatto viveva nella
+//          testa di chi aveva scritto l'operazione e in una frase di prosa
+//          che nessun controllo legge. Adesso sta nel JSON, e un modello
+//          che lo legge NON prova un'operazione sul documento sbagliato.
+// 0.109.0: `Esempio` su 24 operazioni (voce Z-G1): una chiamata vera,
+//          copiata da un passo che il banco ha ESEGUITO e misurato. Uno
+//          schema dice quali campi sono leciti, non quale combinazione
+//          costruisce un pezzo.
+//          Sono 24 e non 71 apposta: gli altri casi usano selettori che
+//          vivono solo nel banco (@faccia, @spigolo) o i segnaposto
+//          {LAVORO}/{PROFILI}. Copiarli avrebbe dato 24 esempi buoni e 47
+//          TRAPPOLE -- un modello che copia @faccia(verso=alto) riceve un
+//          rifiuto che non capisce, e poi non si fida piu' del catalogo.
+// 0.110.0: il guinzaglio anche nella libreria (voce Z-C4), la STESSA
+//          classe che usa il banco -- due meccanismi di scadenza che si
+//          comportano diversamente sono peggio di uno solo.
+//          Due differenze volute rispetto al banco: il referto va su
+//          **stderr**, perche' su stdio stdout e' il canale JSON-RPC e una
+//          riga non-JSON lo rompe; e **non uccide il processo**, perche'
+//          il ponte e' un servizio di qualcun altro mentre il banco e' un
+//          giro che o finisce o non serve.
+[assembly: AssemblyVersion("0.111.0.0")]
+[assembly: AssemblyFileVersion("0.111.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -109,4 +161,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.104.0")]
+[assembly: AssemblyInformationalVersion("0.111.0")]

@@ -89,6 +89,13 @@ namespace Riscontro.Disegno
     /// </summary>
     public partial class OperazioniSw
     {
+        /// <summary>
+        /// La booleana che si fa salvo avviso contrario (voce Z-G3).
+        /// Stesso ragionamento di `MaterialePredefinito`: lo schema lo
+        /// annuncia, questo lo applica, e il valore sta in un posto solo.
+        /// </summary>
+        private const string OperazionePredefinita = "unisci";
+
         private Esito CombinaCorpi(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
@@ -96,7 +103,19 @@ namespace Riscontro.Disegno
             if (parte == null)
                 return Fallito("Questo documento non e' un pezzo: le booleane si fanno fra corpi.");
 
+            // ── IL PREDEFINITO (voce Z-G3) ───────────────────────────────
+            //
+            // «unisci» e' di gran lunga il caso piu' comune: «sottrai» e
+            // «interseca» si chiedono apposta. Qui il predefinito e' piu'
+            // pericoloso che altrove — sbagliare verso non lascia un pezzo
+            // del materiale sbagliato, lascia **un pezzo con dentro un buco
+            // che nessuno ha chiesto** — e per questo si dichiara, e per
+            // questo il caso di banco misura il VOLUME invece di guardare
+            // che sia riuscito: fra le tre booleane i tre volumi sono
+            // inconfondibili, e «riuscita: true» li darebbe tutti e tre.
             string comeChiesta = (Str(a, "operazione", "") ?? "").Trim().ToLowerInvariant();
+            bool assunta = comeChiesta.Length == 0;
+            if (assunta) comeChiesta = OperazionePredefinita;
             int tipo;
             // `swBodyOperationType_e`, NON `swCombineBodiesOperationType_e`:
             // vedi il commento in testa al file.
@@ -222,6 +241,11 @@ namespace Riscontro.Disegno
             var misure = new Dictionary<string, object>
             {
                 ["operazione"] = comeChiesta,
+                ["nota_assunto"] = assunta
+                    ? "operazione: «" + OperazionePredefinita + "» — PREDEFINITO, " +
+                      "non l'hai chiesto tu. «sottrai» e «interseca» si chiedono " +
+                      "per nome."
+                    : "operazione: «" + comeChiesta + "» — l'hai chiesto tu.",
                 ["corpo_principale"] = "C" + (indicePrincipale + 1),
                 ["corpi_utensile"] = nomiUtensili.ToArray(),
                 ["corpi_prima"] = corpiPrima,

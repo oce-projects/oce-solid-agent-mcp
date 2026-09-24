@@ -22,7 +22,45 @@ namespace Oce.Solid.Agent
     /// </summary>
     internal static class Programma
     {
-        private const string Versione = "0.2.0";
+        /// <summary>
+        /// LA VERSIONE SI LEGGE DA `VERSION.txt`, CHE VIAGGIA DENTRO
+        /// L'ESEGUIBILE COME RISORSA.
+        ///
+        /// Qui c'era `const string Versione = "0.2.0"`, e c'e' rimasta
+        /// **per settantotto versioni minori**: il ponte diceva 0.2.0
+        /// nell'`initialize` mentre `VERSION.txt` era a 0.80.0. Chi
+        /// registra la conversazione MCP si portava dietro un numero falso,
+        /// e nessuno poteva accorgersene perche' non c'era niente con cui
+        /// confrontarlo.
+        ///
+        /// E' la stessa marcescenza che il TODO si era gia' curata in
+        /// testa il 16/9/2026 — quella riga diceva «Ponte 0.2.0» ed era
+        /// vera il 14 — ma nel codice, dove si vede ancora meno.
+        ///
+        /// Se la risorsa non si legge si risponde **«sconosciuta»**, non
+        /// un numero di ripiego: *un numero sbagliato e' peggio di un
+        /// numero mancante*, perche' chi lo legge non ha modo di sapere
+        /// che e' sbagliato.
+        /// </summary>
+        private static readonly string Versione = VersioneDallaRisorsa();
+
+        private static string VersioneDallaRisorsa()
+        {
+            try
+            {
+                var asm = System.Reflection.Assembly.GetExecutingAssembly();
+                foreach (var nome in asm.GetManifestResourceNames())
+                {
+                    if (!nome.EndsWith("VERSION.txt",
+                                       StringComparison.OrdinalIgnoreCase)) continue;
+                    using (var flusso = asm.GetManifestResourceStream(nome))
+                    using (var lettore = new StreamReader(flusso))
+                        return lettore.ReadToEnd().Trim();
+                }
+            }
+            catch { }
+            return "sconosciuta";
+        }
 
         private static int Main(string[] argomenti)
         {
@@ -55,8 +93,15 @@ namespace Oce.Solid.Agent
             // rompe chi arrivera' dopo.
             Protocollo.AccendiIlCanale(uscita);
 
+            // GLI ARRETRATI PRIMA DI STDIN (voce W2.5).
+            //
+            // Mentre il ponte aspetta la risposta a una conferma, il client
+            // puo' mandare altro. Quelle righe vengono messe da parte
+            // invece che buttate — buttarle lascerebbe il client ad
+            // aspettare per sempre una risposta che nessuno gli dara' — e
+            // il giro le serve qui, appena puo'.
             string riga;
-            while ((riga = Console.In.ReadLine()) != null)
+            while ((riga = Elicitazione.Arretrato() ?? Console.In.ReadLine()) != null)
             {
                 if (string.IsNullOrWhiteSpace(riga)) continue;
 
@@ -110,6 +155,12 @@ namespace Oce.Solid.Agent
             switch (metodo)
             {
                 case "initialize":
+                    // COSA SA FARE IL CLIENT si legge QUI e una volta sola
+                    // (voce W2.5): `capabilities.elicitation` dice se sa
+                    // chiedere una conferma all'utente. Presumerlo vorrebbe
+                    // dire appendere una chiamata aspettando una risposta
+                    // che non arrivera' mai.
+                    Elicitazione.LeggiLeCapacita(parametri);
                     return Protocollo.Risposta(id, new Dictionary<string, object>
                     {
                         // La versione del protocollo si rimanda com'e' arrivata
@@ -240,14 +291,72 @@ namespace Oce.Solid.Agent
                     if (string.IsNullOrWhiteSpace(nome))
                         return Protocollo.Errore(
                             id, Protocollo.ParametriNonValidi, "manca «name»");
-                    return Protocollo.Risposta(id, attrezzi.Chiama(nome, suoi));
+                    // IL GETTONE DELL'AVANZAMENTO (voce W2.2). Sta su
+                    // `params._meta`, cioe' accanto a `name` e non dentro
+                    // `arguments`: e' del PROTOCOLLO, non dello strumento,
+                    // e un client generico lo mette li' senza sapere niente
+                    // di cosa fa questo ponte.
+                    return Protocollo.Risposta(
+                        id, attrezzi.Chiama(nome, suoi, Avanzamento.Gettone(parametri)));
                 }
+
+                // ── L'ANNULLAMENTO, E UN NO DETTO (voce W2.2) ─────────────
+                //
+                // Prima cadeva qui sotto, nel `default`. Ed essendo una
+                // NOTIFICA, il giro principale scartava la risposta d'errore:
+                // **un no-op silenzioso**. Il client restava convinto di aver
+                // annullato qualcosa.
+                //
+                // Questo ponte NON puo' interrompere una chiamata in corso, e
+                // non e' una mancanza da riparare con piu' codice: serve una
+                // richiesta alla volta sullo stesso thread perche' SOLIDWORKS
+                // vuole STA. Mentre una chiamata gira, stdin non viene letto —
+                // quindi quando questa riga arriva, la richiesta che nomina e'
+                // gia' finita.
+                //
+                // La specifica dice che una `cancelled` si puo' ignorare. Qui
+                // non si ignora: si DICE. *Un no dichiarato si puo' leggere;
+                // un silenzio no.*
+                case "notifications/cancelled":
+                    Protocollo.Nota(AnnullamentoNonPossibile(parametri));
+                    return null;
 
                 default:
                     return Protocollo.Errore(
                         id, Protocollo.MetodoSconosciuto,
                         "Metodo non gestito: " + metodo);
             }
+        }
+
+        /// <summary>
+        /// Cosa si risponde a `notifications/cancelled` (voce W2.2).
+        ///
+        /// Sta da sola per poterla leggere in una prova senza far partire un
+        /// ponte: la cosa che conta di questa risposta e' **che dica il
+        /// numero della richiesta e il perche'**, e quello si guarda qui.
+        /// </summary>
+        internal static string AnnullamentoNonPossibile(
+            Dictionary<string, object> parametri)
+        {
+            object quale = null;
+            string motivo = null;
+            if (parametri != null)
+            {
+                parametri.TryGetValue("requestId", out quale);
+                object m;
+                if (parametri.TryGetValue("reason", out m)) motivo = Convert.ToString(m);
+            }
+
+            return "[ponte] annullamento chiesto per la richiesta " +
+                   (quale == null ? "(senza requestId)" : "«" + Convert.ToString(quale) + "»") +
+                   (string.IsNullOrWhiteSpace(motivo) ? "" : ", motivo: " + motivo) +
+                   ". NON l'ho interrotta: questo ponte serve una richiesta " +
+                   "alla volta sullo stesso thread, perche' SOLIDWORKS lo " +
+                   "pretende, e mentre lavora non legge stdin. Quando questa " +
+                   "riga e' arrivata, quella richiesta era gia' finita. Se la " +
+                   "risposta non ti serve piu', buttala: il documento e' nello " +
+                   "stato in cui quel piano l'ha lasciato, e «guarda_il_pezzo» " +
+                   "te lo dice.";
         }
 
         private static string VersioneProtocollo(Dictionary<string, object> parametri)

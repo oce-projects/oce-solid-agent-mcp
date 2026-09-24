@@ -1,0 +1,20 @@
+{
+  "compito": "Fammi un telaio saldato di tubo quadro, un metro per ottanta, tagliato a quartabuono agli angoli. Poi mettici la distinta di taglio.",
+
+  "perche_questo_compito": "Mette alla prova la cosa che un modello di solito NON sa fare: **scegliere un profilo dalla libreria di questa officina**. Il compito non dice quale tubo — dice «tubo quadro» — e la misura del profilo sta in un file `.SLDLFP` su un disco che il modello non ha mai visto. Per arrivarci deve chiedere l'elenco (`profili_saldatura`), leggerlo, e copiare la misura **alla lettera**: «80X80X5» con la X maiuscola, perche' SOLIDWORKS li' e' letterale.\n\nE' anche l'unico compito della cartella che chiede DUE cose in sequenza, dove la seconda («mettici la distinta») ha senso solo se la prima e' andata.",
+
+  "cosa_NON_dice_apposta": "Non dice la sezione del tubo, e non dice il percorso della libreria. Un compito che li desse misurerebbe la capacita' di copiare due stringhe. **Sbagliare qui e' il caso interessante**, non un incidente: il rifiuto che il modello riceve nomina le misure vere, e la domanda vera e' se al secondo tentativo ci arriva — ma quello e' un numero diverso, e va contato a parte.",
+
+  "come_si_misura": [
+    { "cosa": "corpi", "uguale": 4,
+      "perche": "quattro barre. Tre vuol dire un lato mancante, otto vuol dire che il telaio e' stato fatto due volte" },
+
+    { "cosa": "misure.corpi_in_distinta", "uguale": 4,
+      "perche": "**e questo numero viene da un altro posto**: `corpi` lo conta lo stato del pezzo, `corpi_in_distinta` lo si chiede alle cartelle della distinta, una per una. Sono uguali quando la distinta e' giusta, e quando divergono e' esattamente il momento in cui qualcuno andrebbe in officina col foglio sbagliato" },
+
+    { "cosa": "misure.gia_esisteva", "uguale": false,
+      "perche": "la distinta dev'essere NATA in questo piano. Senza questa riga il compito sarebbe verde anche se l'operazione non avesse fatto niente e si fosse limitata a leggere una distinta che c'era gia'" }
+  ],
+
+  "cosa_questa_misura_NON_vede": "**Che il quartabuono ci sia.** Quattro barre e quattro voci in distinta si ottengono anche con gli angoli a testa dritta, e il telaio si salda lo stesso — male. Per vederlo serve leggere il trattamento d'angolo o la lunghezza delle barre: 1000 e 800 col quartabuono, diverse a testa dritta. Va aggiunto quando il giro esistera'.\n\nE non vede **quale** profilo ha scelto: un tubo 40x40x3 supera tutte e tre le attese. Il compito dice «tubo quadro» e non quale, quindi e' coerente — ma chi legge il risultato non deve credere che sia stato verificato."
+}

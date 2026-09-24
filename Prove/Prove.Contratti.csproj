@@ -52,6 +52,9 @@
 
   <ItemGroup>
     <Compile Include="..\Condiviso\ClienteMcp.cs" />
+    <Compile Include="..\Condiviso\SentinellaSolidWorks.cs" />
+    <Compile Include="..\Condiviso\PreparazioneFallita.cs" />
+    <Compile Include="..\Condiviso\Guinzaglio.cs" />
     <Compile Include="Carica.cs" />
     <Compile Include="Programma.cs" />
     <Compile Include="ProveCatalogo.cs" />
@@ -59,6 +62,22 @@
     <Compile Include="ProveProtocollo.cs" />
     <Compile Include="ProveAttese.cs" />
     <Compile Include="ProveIlBanco.cs" />
+    <Compile Include="ProveLaSentinella.cs" />
+    <Compile Include="ProveIlDocumento.cs" />
+    <Compile Include="ProveEnumDiErrore.cs" />
+    <Compile Include="ProveILimiti.cs" />
+    <Compile Include="ProveIRifiuti.cs" />
+    <Compile Include="ProveIlDocumentoRichiesto.cs" />
+    <Compile Include="ProveICampiObbligatori.cs" />
+    <Compile Include="ProveGliEsempi.cs" />
+    <Compile Include="ProveLeImmagini.cs" />
+    <Compile Include="ProveIlGuinzaglio.cs" />
+    <Compile Include="ProveLaProvaAVuoto.cs" />
+    <Compile Include="ProveLaConferma.cs" />
+    <Compile Include="ProveLeFirmeVietate.cs" />
+    <Compile Include="ProveLeFirmeDelDocumento.cs" />
+    <Compile Include="ProveIlRegistro.cs" />
+    <Compile Include="ProveLAvanzamento.cs" />
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.
          Non una copia: una copia diverge, e il giorno che diverge la suite
          col CAD comincia a passare per ragioni che qui non si vedono. -->

@@ -51,10 +51,29 @@ namespace Oce.Solid.Agent.Strumenti
         private readonly Sessione _sessione;
         private readonly Catalogo _catalogo;
 
+        /// <summary>
+        /// Cosa e' stato chiesto e non c'era (voce Z-G7). Non e' un log:
+        /// e' l'unico posto da cui si puo' sapere quale operazione
+        /// costruire dopo, invece di sceglierla come abbiamo scelto le
+        /// cinque senza casi di banco — a intuito.
+        ///
+        /// Non e' mai null: se non c'e' dove scrivere, tace da solo. Un
+        /// `if (_registro != null)` sparso in quattro punti e' il modo in
+        /// cui il quinto punto se lo dimentica.
+        /// </summary>
+        private readonly RegistroDelleDomande _registro;
+
         public Attrezzi(Sessione sessione, Catalogo catalogo)
+            : this(sessione, catalogo, new RegistroDelleDomande()) { }
+
+        /// <summary>Con un registro dato: lo usano le prove, che non
+        /// vogliono scrivere accanto all'eseguibile.</summary>
+        public Attrezzi(Sessione sessione, Catalogo catalogo,
+                        RegistroDelleDomande registro)
         {
             _sessione = sessione;
             _catalogo = catalogo;
+            _registro = registro ?? new RegistroDelleDomande(null);
         }
 
         public object Elenco()
@@ -174,6 +193,10 @@ namespace Oce.Solid.Agent.Strumenti
                     "il passo fallito avrebbe dovuto creare. Quello che era gia' " +
                     "stato costruito resta, e «annulla» lo toglie tutto in una " +
                     "volta.\n\n" +
+                    "Con «prova: true» il piano viene SOLO controllato: non " +
+                    "viene toccato niente, e la risposta dice cosa e' stato " +
+                    "guardato e cosa no. Serve a sbagliare prima, invece che " +
+                    "a meta' pezzo.\n\n" +
                     "Un passo puo' nominare la geometria creata da un passo " +
                     "PRECEDENTE dello stesso piano (per esempio faccia_rif: " +
                     "{passo: 1, genere: \"faccia_superiore\"}): e' l'unico modo, " +
@@ -214,6 +237,22 @@ namespace Oce.Solid.Agent.Strumenti
                                     "Nominarlo vuol dire «so quale pezzo sto " +
                                     "toccando», e un nome che non corrisponde viene " +
                                     "rifiutato.",
+                            },
+                            ["prova"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "boolean",
+                                ["description"] =
+                                    "PROVA A VUOTO: controlla il piano e NON " +
+                                    "tocca niente. Dice quali operazioni non " +
+                                    "esistono, quali argomenti obbligatori " +
+                                    "mancano, quali argomenti verrebbero " +
+                                    "IGNORATI perche' scritti male, e quali " +
+                                    "rimandi puntano a un passo che non c'e'. " +
+                                    "Dice anche cosa NON ha potuto guardare: " +
+                                    "se gli «uid» sono ancora validi e se il " +
+                                    "documento e' quello giusto lo sa solo " +
+                                    "leggendo il documento. Funziona anche con " +
+                                    "SOLIDWORKS chiuso.",
                             },
                         },
                         new[] { "passi" }),
@@ -312,9 +351,23 @@ namespace Oce.Solid.Agent.Strumenti
             };
         }
 
+        /// <summary>
+        /// Il filo dell'avanzamento della chiamata in corso (voce W2.2).
+        ///
+        /// Non e' mai null: spento quando il client non ha messo un gettone.
+        /// Cosi' i punti che lo usano non hanno un `if` ciascuno.
+        /// </summary>
+        private Mcp.Avanzamento.Filo _filo = new Mcp.Avanzamento.Filo(null);
+
         public Dictionary<string, object> Chiama(
-            string nome, Dictionary<string, object> argomenti)
+            string nome, Dictionary<string, object> argomenti, object gettone = null)
         {
+            // UN FILO NUOVO A OGNI CHIAMATA. Il contatore di `progress` deve
+            // crescere DENTRO una richiesta; fra richieste diverse ricomincia,
+            // e tenerne uno solo vorrebbe dire che la seconda chiamata parte
+            // da dove era arrivata la prima.
+            _filo = new Mcp.Avanzamento.Filo(gettone);
+
             switch (nome)
             {
                 case "guarda_il_pezzo": return GuardaIlPezzo(argomenti);
@@ -324,6 +377,10 @@ namespace Oce.Solid.Agent.Strumenti
                 case "misura": return Misura(argomenti);
                 case "annulla": return Annulla();
                 default:
+                    // E PRIMA DI RISPONDERE, SI SCRIVE (voce Z-G7): questo
+                    // e' il punto che sapeva e taceva.
+                    _registro.StrumentoCheNonCe(nome);
+
                     // SI DICE QUALI CI SONO, non solo che questo non c'e'.
                     //
                     // Un modello che ha sbagliato nome non ha modo di
@@ -574,9 +631,34 @@ namespace Oce.Solid.Agent.Strumenti
                     ? "Qui sotto la vista " + riuscite[0] + " del pezzo."
                     : "Qui sotto " + riuscite.Count + " viste del pezzo, in " +
                       "quest'ordine: " + string.Join(", ", riuscite) + ".");
-                testo.Append(" Le fotografie mostrano la FORMA; le misure sono " +
-                             "nello stato qui di seguito, ed e' li' che stanno " +
-                             "gli identificativi.\n\n");
+                // ── UN NUMERO LETTO DA UN'IMMAGINE NON E' AUTOREVOLE ──────
+                //
+                // La didascalia diceva gia' dove stanno le misure. Non
+                // diceva la cosa che conta: che leggerle DALLA FOTOGRAFIA
+                // sbaglia, e di quanto. Su questo progetto e' successo due
+                // volte, misurato tutt'e due:
+                //
+                //   - una corona di fori **90 letta 79** dalla sola
+                //     isometrica, con confidenza piena;
+                //   - una parete di **12,5 letta «6»** e un fondo di 12,5
+                //     letto «8», sbagliati del 40-50%, perche' in
+                //     isometrica uno spessore sottile e' scorciato.
+                //
+                // Nessuno dei due errori si accorge di se': il numero che
+                // esce e' plausibile, e viene usato per il passo dopo.
+                // **Dire "le misure sono nello stato" non basta** — va
+                // detto che quelle dell'immagine sono SBAGLIATE, e come si
+                // prende quella vera (voce Z-C10).
+                testo.Append(" Le fotografie mostrano la FORMA. **I numeri " +
+                             "letti da un'immagine non sono autorevoli**: su " +
+                             "queste stesse viste un diametro di 90 e' stato " +
+                             "letto 79, e una parete di 12,5 e' stata letta 6 " +
+                             "— in isometrica gli spessori sono scorciati e " +
+                             "sembrano piu' grossi. Prima di usare una misura " +
+                             "in un passo, prendila dallo stato qui di seguito " +
+                             "oppure chiedila con «misura_fra_entita», " +
+                             "«distanza_minima» o «ingombro_corpo». Nello stato " +
+                             "stanno anche gli identificativi.\n\n");
             }
             if (mancate.Count > 0)
                 testo.Append("Viste non riuscite — " +
@@ -921,6 +1003,7 @@ namespace Oce.Solid.Agent.Strumenti
                 // UN ERRORE CHE AIUTA invece di uno che constata: chi ha
                 // sbagliato nome quasi sempre ne ha in mente uno vicino.
                 var simili = _catalogo.Simili(nome);
+                _registro.OperazioneCheNonCe(nome, simili);
                 return Protocollo.Contenuto(
                     "Non c'e' nessuna operazione che si chiama «" + nome + "»." +
                     (simili.Count > 0
@@ -1097,8 +1180,159 @@ namespace Oce.Solid.Agent.Strumenti
         /// </summary>
         private const string FamigliaDiSolaLettura = "verifiche";
 
+        /// <summary>
+        /// LA PROVA A VUOTO: sbagliare senza toccare il pezzo (voce Z-G6).
+        ///
+        /// ── PERCHE' SERVE ────────────────────────────────────────────
+        ///
+        /// `disegna` controlla gia' tutto il piano prima di cominciare, ed
+        /// e' il pezzo piu' prezioso del ponte: un piano sbagliato non tocca
+        /// niente. Ma quel controllo **non era raggiungibile senza eseguire**:
+        /// per sapere se un piano regge bisognava lanciarlo, e un piano che
+        /// regge a meta' lascia meta' pezzo fatto.
+        ///
+        /// ── COSA GUARDA, E SOPRATTUTTO COSA NO ───────────────────────
+        ///
+        /// Senza SOLIDWORKS si puo' dire molto: che l'operazione esista, che
+        /// gli argomenti obbligatori ci siano, che non ce ne siano di
+        /// **sconosciuti** — un argomento scritto male viene ignorato in
+        /// silenzio, ed e' il difetto che non da' errore — e che un
+        /// riferimento a un passo precedente punti a un passo che esiste.
+        ///
+        /// Non si puo' dire se un `uid` e' ancora valido, se il documento e'
+        /// del tipo giusto, se la faccia c'e' ancora: per quello va letto il
+        /// documento. **La risposta lo dice a chiare lettere**, perche' una
+        /// prova a vuoto che tace su cio' che non ha guardato e' peggio di
+        /// nessuna prova: fa credere che il piano sia a posto.
+        /// </summary>
+        private Dictionary<string, object> ProvaIlPiano(Dictionary<string, object> argomenti)
+        {
+            if (_catalogo.ErroreDiCaricamento != null)
+                return Protocollo.Contenuto(_catalogo.ErroreDiCaricamento, true);
+
+            var passi = Prendi(argomenti, "passi") as object[];
+            if (passi == null || passi.Length == 0)
+                return Protocollo.Contenuto(
+                    "Il piano e' vuoto: «passi» deve essere un elenco di " +
+                    "{operazione, argomenti}.", true);
+
+            var guai = new List<string>();
+
+            // L'AVANZAMENTO DELLA PROVA A VUOTO (voce W2.2). Qui non si
+            // esegue niente, quindi il totale e' il numero dei passi e basta:
+            // non c'e' nessuna seconda meta' da aspettare.
+            _filo.Totale = passi.Length;
+
+            for (int i = 0; i < passi.Length; i++)
+            {
+                var passo = passi[i] as Dictionary<string, object>;
+                string dove = "passo " + (i + 1);
+                _filo.Passo(i + 1, "controllo il " + dove + " di " + passi.Length);
+                if (passo == null) { guai.Add(dove + ": non e' un oggetto"); continue; }
+
+                var nome = Testo(passo, "operazione");
+                if (string.IsNullOrWhiteSpace(nome))
+                { guai.Add(dove + ": manca «operazione»"); continue; }
+
+                if (!_catalogo.Conosce(nome))
+                {
+                    var simili = _catalogo.Simili(nome);
+                    _registro.OperazioneCheNonCe(nome, simili);
+                    guai.Add(dove + ": «" + nome + "» non esiste" +
+                             (simili != null && simili.Count > 0
+                                 ? ". Forse: " + string.Join(", ", simili)
+                                 : ""));
+                    continue;
+                }
+
+                var schema = _catalogo.Schema(nome);
+                var dati = Prendi(passo, "argomenti") as Dictionary<string, object>
+                           ?? new Dictionary<string, object>();
+                if (schema == null) continue;
+
+                var proprieta = Prendi(schema, "properties") as Dictionary<string, object>;
+                var richiesti = Prendi(schema, "required") as object[];
+
+                if (richiesti != null)
+                    foreach (var r in richiesti)
+                    {
+                        var campo = Convert.ToString(r);
+                        if (string.IsNullOrEmpty(campo)) continue;
+                        // `x_rif` vale per `x_uid` e viceversa: il catalogo
+                        // dichiara obbligatorio uno dei due, e chiederli
+                        // tutti e due sarebbe un rifiuto sbagliato.
+                        var gemello = campo.EndsWith("_uid", StringComparison.Ordinal)
+                            ? campo.Substring(0, campo.Length - 4) + "_rif"
+                            : campo.EndsWith("_rif", StringComparison.Ordinal)
+                                ? campo.Substring(0, campo.Length - 4) + "_uid"
+                                : null;
+                        if (dati.ContainsKey(campo)) continue;
+                        if (gemello != null && dati.ContainsKey(gemello)) continue;
+                        guai.Add(dove + " («" + nome + "»): manca «" + campo + "»");
+                    }
+
+                if (proprieta != null)
+                    foreach (var campo in dati.Keys)
+                    {
+                        if (proprieta.ContainsKey(campo)) continue;
+                        // UN ARGOMENTO SCONOSCIUTO NON E' UN DETTAGLIO: viene
+                        // ignorato in silenzio, e il pezzo esce diverso da
+                        // come lo si e' chiesto senza nessun errore.
+                        guai.Add(dove + " («" + nome + "»): «" + campo +
+                                 "» non e' un argomento di questa operazione, " +
+                                 "e verrebbe IGNORATO");
+                    }
+
+                // I riferimenti a un passo precedente: `{passo: N, genere: ...}`.
+                foreach (var coppia in dati)
+                {
+                    if (!coppia.Key.EndsWith("_rif", StringComparison.Ordinal)) continue;
+                    var rif = coppia.Value as Dictionary<string, object>;
+                    if (rif == null) continue;
+                    var n = Prendi(rif, "passo");
+                    int quale;
+                    if (n == null || !int.TryParse(Convert.ToString(n), out quale)) continue;
+                    if (quale >= 1 && quale <= i) continue;
+                    guai.Add(dove + " («" + nome + "»): «" + coppia.Key +
+                             "» rimanda al passo " + quale + ", che " +
+                             (quale > i ? "non e' ancora stato fatto" : "non esiste"));
+                }
+            }
+
+            var testo = new StringBuilder();
+            testo.Append(guai.Count == 0
+                ? "PROVA A VUOTO: il piano regge, per quello che si puo' " +
+                  "sapere senza guardare il documento.\n\n"
+                : "PROVA A VUOTO: " + guai.Count + " cose da sistemare.\n\n");
+            foreach (var g in guai) testo.Append("  - " + g + "\n");
+            if (guai.Count > 0) testo.Append("\n");
+
+            // COSA NON E' STATO GUARDATO. Questa parte c'e' SEMPRE, anche
+            // quando il piano regge -- soprattutto quando regge.
+            testo.Append("Controllati: i nomi delle operazioni, gli argomenti " +
+                         "obbligatori, quelli sconosciuti (che verrebbero " +
+                         "ignorati in silenzio) e i rimandi a passi " +
+                         "precedenti.\n\n");
+            testo.Append("NON controllati, e per questi serve leggere il " +
+                         "documento: che gli «uid» siano ancora validi, che il " +
+                         "documento sia del tipo giusto per queste operazioni, " +
+                         "che le facce e gli spigoli nominati esistano ancora, " +
+                         "e se la geometria che chiedi sia possibile. " +
+                         (_sessione.Agganciata
+                             ? "SOLIDWORKS e' agganciato: «disegna» senza «prova» " +
+                               "li controlla tutti prima di toccare qualunque cosa."
+                             : "SOLIDWORKS NON e' agganciato adesso.") + "\n");
+
+            return Protocollo.Contenuto(testo.ToString(), guai.Count > 0);
+        }
         private Dictionary<string, object> Disegna(Dictionary<string, object> argomenti)
         {
+            // LA PROVA A VUOTO NON TOCCA NIENTE, e non vuole nemmeno che
+            // SOLIDWORKS sia agganciato: serve proprio a sbagliare prima.
+            var chiesta = Prendi(argomenti, "prova");
+            bool prova = false;
+            if (chiesta != null) { try { prova = Convert.ToBoolean(chiesta); } catch { } }
+            if (prova) return ProvaIlPiano(argomenti);
             return EseguiIlPiano(argomenti, guardaSeERipetuto: true);
         }
 
@@ -1124,17 +1358,90 @@ namespace Oce.Solid.Agent.Strumenti
         /// Un parametro con valore predefinito su `Disegna` sarebbe bastato, ma
         /// qui si tiene la regola di casa: metodo nuovo, nome diverso.
         /// </summary>
+        /// <summary>
+        /// LE OPERAZIONI CHE NON SI ANNULLANO (voce W2.5).
+        ///
+        /// **Una sola, e il criterio conta piu' dell'elenco**: ci finisce
+        /// cio' che toglie qualcosa che non si puo' rimettere con
+        /// un'operazione del catalogo. `sopprimi_lavorazione` non c'e',
+        /// perche' esiste `riattiva`; `elimina_lavorazione` si', perche' una
+        /// lavorazione eliminata non torna.
+        ///
+        /// Un elenco lungo sarebbe peggio: chi conferma dieci volte di fila
+        /// smette di leggere cosa conferma, ed e' la stessa ragione per cui
+        /// `misura` esiste separata da `disegna`.
+        /// </summary>
+        private static readonly string[] NonSiAnnullano = { "elimina_lavorazione" };
+
         private Dictionary<string, object> EseguiIlPiano(
             Dictionary<string, object> argomenti, bool guardaSeERipetuto)
         {
-            if (!_sessione.Agganciata)
-                return Protocollo.Contenuto("Il ponte non e' agganciato a SolidWorks.", true);
-
             var passi = Prendi(argomenti, "passi") as object[];
             if (passi == null || passi.Length == 0)
                 return Protocollo.Contenuto(
                     "Il piano e' vuoto: «passi» deve essere un elenco di " +
                     "{operazione, argomenti}.", true);
+
+            // ── SI CHIEDE PRIMA DI TOCCARE QUALUNQUE COSA (voce W2.5) ──
+            //
+            // Prima anche di guardare se SOLIDWORKS e' agganciato, e non e'
+            // un dettaglio d'ordine: leggere lo stato del documento e' gia'
+            // una conversazione con SOLIDWORKS, e una conversazione con
+            // SOLIDWORKS puo' non tornare (voce Z-C4). La domanda riguarda
+            // l'intenzione, e l'intenzione si puo' chiedere a costo zero.
+            //
+            // `misura` non passa di qui con `guardaSeERipetuto` falso? Passa,
+            // ma non puo' eseguire operazioni distruttive: il cancello e'
+            // prima. Chiedere conferma li' sarebbe chiedere il permesso di
+            // fare una cosa che verra' rifiutata comunque.
+            if (guardaSeERipetuto)
+            {
+                var daConfermare = new List<string>();
+                foreach (var x in passi)
+                {
+                    var passo = x as Dictionary<string, object>;
+                    if (passo == null) continue;
+                    var nome = Testo(passo, "operazione");
+                    if (string.IsNullOrEmpty(nome)) continue;
+                    foreach (var brutta in NonSiAnnullano)
+                        if (string.Equals(nome, brutta, StringComparison.OrdinalIgnoreCase) &&
+                            !daConfermare.Contains(nome))
+                            daConfermare.Add(nome);
+                }
+
+                if (daConfermare.Count > 0)
+                {
+                    var domanda =
+                        "Questo piano contiene " +
+                        (daConfermare.Count == 1 ? "un'operazione che NON si annulla"
+                                                 : "operazioni che NON si annullano") +
+                        ": " + string.Join(", ", daConfermare) +
+                        ". Quello che toglie non si rimette con nessuna " +
+                        "operazione del catalogo. Vuoi che proceda?";
+
+                    if (Oce.Solid.Agent.Mcp.Elicitazione.IlClientSaChiedere)
+                    {
+                        if (!Oce.Solid.Agent.Mcp.Elicitazione.Conferma(Console.Out, Console.In, domanda))
+                            return Protocollo.Contenuto(
+                                "Fermato: la conferma non e' arrivata, e non ho " +
+                                "toccato niente. " + domanda, true);
+                    }
+                    else
+                    {
+                        // IL RIPIEGO SI DICHIARA (voce W2.5). Andare avanti
+                        // in silenzio sarebbe il modo in cui una difesa
+                        // sparisce senza che nessuno se ne accorga.
+                        Protocollo.Nota(
+                            "[ponte] " + string.Join(", ", daConfermare) +
+                            ": non ho potuto chiedere conferma all'utente — " +
+                            "questo client non dichiara «elicitation». Vado " +
+                            "avanti come prima.");
+                    }
+                }
+            }
+
+            if (!_sessione.Agganciata)
+                return Protocollo.Contenuto("Il ponte non e' agganciato a SolidWorks.", true);
 
             // SENZA ANCORA: questa lettura serve a sapere su QUALE documento si
             // lavora, quanto volume c'era e quante lavorazioni erano gia' in
@@ -1243,6 +1550,31 @@ namespace Oce.Solid.Agent.Strumenti
             // un confronto fra due pezzi diversi.
             var firme = quelloGuardato ? _firmeViste : null;
 
+            // ── TRE CAMPI CHE DEVONO PARLARE DELLO STESSO PEZZO (Z-A1) ──
+            //
+            // `_guardato` dice QUALE documento, `_firmaGuardata` e
+            // `_firmeViste` dicono COM'ERA. Finche' questa riga spostava
+            // solo il primo, bastava un piano che nominasse un altro
+            // documento — `documento: "..."`, la strada legittima — perche'
+            // da quel momento `_guardato` indicasse il pezzo nuovo e le
+            // firme il pezzo vecchio.
+            //
+            // Il guaio non si vede subito: si vede alla chiamata DOPO, dove
+            // `quelloGuardato` torna vero e il confronto gira contro le
+            // firme di un altro pezzo. O rifiuta un piano buono dicendo «il
+            // pezzo e' cambiato», o — peggio — lascia passare un piano su
+            // uid che non valgono piu'.
+            //
+            // Il principio giusto e' scritto nel commento qui sopra, per la
+            // variabile locale: **meglio nessun confronto che un confronto
+            // fra due pezzi diversi.** Qui lo si applica anche ai campi che
+            // restano: se il documento cambia, le firme vecchie si buttano.
+            // Le rifara' `guarda_il_pezzo`, oppure la fine di questo piano.
+            if (!quelloGuardato)
+            {
+                _firmeViste = null;
+                _firmaGuardata = null;
+            }
             _guardato = adesso;
 
             // ── LO STESSO PIANO, DUE VOLTE (voce W2.7) ──────────────────
@@ -1298,6 +1630,17 @@ namespace Oce.Solid.Agent.Strumenti
             bool tuttoBene = true;
             int ordine = 0;
 
+            // L'AVANZAMENTO DI UN PIANO VERO SI RACCONTA IN DUE META'
+            // (voce W2.2): prima lo si controlla tutto a documento intatto,
+            // poi lo si esegue. Il totale le tiene insieme — la seconda meta'
+            // la manda `PianoInMemoria`, che riprende il conto da dove questo
+            // giro l'ha lasciato invece di ricalcolarselo.
+            //
+            // Dire «passo 3 di 5» durante il controllo e poi ricominciare da
+            // «1 di 5» all'esecuzione farebbe tornare indietro la barra di chi
+            // legge, e la specifica pretende che `progress` cresca.
+            _filo.Totale = passi.Length * 2;
+
             foreach (var p in passi)
             {
                 var passo = p as Dictionary<string, object>;
@@ -1305,6 +1648,8 @@ namespace Oce.Solid.Agent.Strumenti
                 ordine++;
 
                 var nome = Testo(passo, "operazione");
+                _filo.Passo(ordine, "controllo il passo " + ordine + " di " +
+                                    passi.Length + ": " + nome);
                 var suoi = Prendi(passo, "argomenti") as Dictionary<string, object>
                            ?? new Dictionary<string, object>();
 
@@ -1316,6 +1661,7 @@ namespace Oce.Solid.Agent.Strumenti
                 if (!_catalogo.Conosce(nome))
                 {
                     var simili = _catalogo.Simili(nome);
+                    _registro.OperazioneCheNonCe(nome, simili);
                     esiti.Add(new Dictionary<string, object>
                     {
                         ["operazione"] = nome,
@@ -1418,7 +1764,7 @@ namespace Oce.Solid.Agent.Strumenti
             // unica: un solo Ctrl+Z disfa il piano intero.
             if (tuttoBene)
             {
-                var fatti = _sessione.EseguiPiano(daFare, out var erroreGiro);
+                var fatti = _sessione.EseguiPiano(daFare, out var erroreGiro, _filo);
                 if (fatti != null) foreach (var e in fatti) esiti.Add(e);
                 if (!string.IsNullOrEmpty(erroreGiro))
                 {

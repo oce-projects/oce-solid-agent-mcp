@@ -669,6 +669,13 @@ namespace Oce.Solid.Agent.Ponte
         public List<Dictionary<string, object>> EseguiPiano(
             List<PassoDelPiano> passi, out string errore)
         {
+            return EseguiPiano(passi, out errore, null);
+        }
+
+        public List<Dictionary<string, object>> EseguiPiano(
+            List<PassoDelPiano> passi, out string errore,
+            Mcp.Avanzamento.Filo filo)
+        {
             errore = null;
 
             // PRIMA DI TUTTO: c'e' ancora qualcuno dall'altra parte?
@@ -711,7 +718,7 @@ namespace Oce.Solid.Agent.Ponte
                         "oppure lavora su un altro documento.";
                     return null;
                 }
-                return EseguiIlPiano(passi, out errore);
+                return EseguiIlPiano(passi, out errore, filo);
             }
         }
 
@@ -725,10 +732,11 @@ namespace Oce.Solid.Agent.Ponte
         /// che il documento arrivi di qui.
         /// </summary>
         private List<Dictionary<string, object>> EseguiIlPiano(
-            List<PassoDelPiano> passi, out string errore)
+            List<PassoDelPiano> passi, out string errore,
+            Mcp.Avanzamento.Filo filo)
         {
             errore = null;
-            var fonte = new PianoInMemoria(passi);
+            var fonte = new PianoInMemoria(passi, filo);
             var esecutore = new EsecutorePiano(
                 _sw as ISldWorks,
                 fonte,

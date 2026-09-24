@@ -48,7 +48,9 @@ namespace Riscontro.Disegno.Catalogo
                     "sommario", o.Sommario,
                     "descrizione", o.Descrizione,
                     "schema", o.Schema,
-                    "precondizione", o.Precondizione));
+                    "precondizione", o.Precondizione,
+                    "documento", o.DocumentoRichiesto,
+                    "esempio", o.Esempio));
             }
 
             return O(

@@ -56,6 +56,30 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# IL TODO CONTRO LA REALTA' (23/9/2026).
+#
+# Due sonde che leggono solo file del repository: i percorsi che il TODO cita
+# esistono ancora? i rimandi interni («vedi K17») puntano a una voce vera?
+#
+# Sono nate perche' un file di 16.000 righe marcisce in silenzio, e il giorno
+# in cui le ho scritte hanno trovato **un rimando rotto e quattro firme di API
+# sbagliate**. Ma una sonda che si lancia quando ci si ricorda e' una sonda
+# che non si lancia: qui la lancia git, come il resto.
+#
+# NON ci sono le due sonde sulle interop (`firme-del-todo.ps1`,
+# `firme-api.ps1`): vogliono SOLIDWORKS installato, e un gancio che fallisce
+# su una macchina senza CAD e' un gancio che il primo che clona disattiva.
+for sonda in percorsi-del-todo.js rimandi-del-todo.js righe-del-todo.js; do
+    if [ -f "$qui/../$sonda" ]; then
+        node "$qui/../$sonda"
+        if [ $? -ne 0 ]; then
+            echo "" >&2
+            echo "pre-push: FERMO. $sonda ha trovato qualcosa nel TODO." >&2
+            exit 1
+        fi
+    fi
+done
+
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$controllo"
 esito=$?
 

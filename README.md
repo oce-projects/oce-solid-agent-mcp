@@ -2,7 +2,7 @@
 
 *Un progetto indipendente, non affiliato a Dassault Systèmes.*
 
-Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settanta
+Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settantuno
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -62,7 +62,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sei, non settanta. Le operazioni di disegno sono settanta, ma esporne
+Sei, non settantuno. Le operazioni di disegno sono settantuno, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
@@ -260,6 +260,7 @@ operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
 | `OPENPDM_ADDIN` | il vecchio nome di `RISCONTRO_DISEGNO`, ancora letto |
 | `RISCONTRO_CATALOGO` | dove sta `catalogo.json`; se manca, accanto all'eseguibile |
 | `OPENPDM_CATALOGO` | il vecchio nome di `RISCONTRO_CATALOGO`, ancora letto |
+| `RISCONTRO_REGISTRO` | dove il ponte scrive **cosa gli e' stato chiesto e non c'era** (voce Z-G7): una riga JSON per domanda, solo il nome e i nomi vicini, mai gli argomenti. Se manca, accanto all'eseguibile; **impostata a stringa vuota vuol dire «non registrare niente»**. Se non si puo' scrivere, il ponte tace e va avanti: il registro non fa mai fallire la chiamata che osserva |
 | `SW_INSTALL_PATH` | dove e' installato il software SOLIDWORKS: la **radice**, quella che finisce con `\SOLIDWORKS`. Vale sia per compilare che per far girare — da qui si ricava `api\redist` |
 | `SW_REDIST` | il vecchio nome, ancora letto. Voleva la sottocartella `api\redist` e non la radice: se sono impostate tutte e due vince `SW_INSTALL_PATH` |
 | `RISCONTRO_RADICE` | l'unica cartella dentro cui il ponte puo' scrivere. Se e' impostata, tutto il resto del disco e' fuori |
@@ -299,12 +300,12 @@ passa fra **cio' che qualcuno cerca per nome a runtime** e tutto il resto.
 seconda scrittura: vedi [Strumenti/aggiorna.md](Strumenti/aggiorna.md).
 Contiene solo le operazioni **misurate dentro il software SOLIDWORKS**.
 
-Settanta provate, e due che esistono nella libreria ma **restano fuori dal
+Settantuno provate, e due che esistono nella libreria ma **restano fuori dal
 file**: `croci_di_centro` e `distinta_taglio_in_tavola` — tutte e due
 `Provata=false` con «0 → 0», cioe' non creano niente, e un client non deve
 poterle chiamare. Il numero che il banco stampa in intestazione e'
-settantadue, cioe' quante ne sa eseguire il dispatcher; quello del catalogo e'
-settanta, cioe' quante ne vede un client. **Due numeri, due cose diverse, e
+settantatre, cioe' quante ne sa eseguire il dispatcher; quello del catalogo e'
+settantuno, cioe' quante ne vede un client. **Due numeri, due cose diverse, e
 tutti e due giusti** — l'esportatore dice a voce alta quali lascia fuori
 mentre scrive il file.
 

@@ -87,10 +87,12 @@ namespace Controlli.DettaglioInTavola
                 "vista «{0}» (tipo {1}), ingombro x {2:0.####}..{3:0.####} y {4:0.####}..{5:0.####} m",
                 bersaglio.GetName2(), bersaglio.Type, sagoma[0], sagoma[2], sagoma[1], sagoma[3]));
 
-            int cerchiPrima = -1;
-            try { int q; bersaglio.GetDetailCircleCount2(out q); cerchiPrima = q; } catch (Exception e)
-            { Console.WriteLine("  GetDetailCircleCount2: " + e.Message); }
-            Console.WriteLine("circonferenze di dettaglio sulla vista, prima: " + cerchiPrima);
+            // DUE USCITE, E NESSUNA E' OVVIA. Vedi il commento in testa al
+            // file: si stampano tutte e due invece di sceglierne una.
+            int cerchiPrima = -1, resoPrima = -1;
+            try { resoPrima = bersaglio.GetDetailCircleCount2(out cerchiPrima); }
+            catch (Exception e) { Console.WriteLine("  GetDetailCircleCount2: " + e.Message); }
+            Console.WriteLine("circonferenze PRIMA: ritorno=" + resoPrima + "  out=" + cerchiPrima);
 
             // 2. IL CERCHIO, DENTRO LA VISTA.
             //
@@ -165,9 +167,31 @@ namespace Controlli.DettaglioInTavola
             }
             Console.WriteLine("viste sul foglio, dopo:  " + dopo);
 
-            int cerchiDopo = -1;
-            try { int q2; bersaglio.GetDetailCircleCount2(out q2); cerchiDopo = q2; } catch { }
-            Console.WriteLine("circonferenze di dettaglio sulla vista, dopo:  " + cerchiDopo);
+            int cerchiDopo = -1, resoDopo = -1;
+            try { resoDopo = bersaglio.GetDetailCircleCount2(out cerchiDopo); } catch { }
+            Console.WriteLine("circonferenze DOPO : ritorno=" + resoDopo + "  out=" + cerchiDopo);
+
+            // E LA VERSIONE SENZA IL «2», che e' l'altra strada che non si
+            // e' provata. Se rispondesse un conto pulito, il «2» sarebbe una
+            // complicazione gratuita e va scritto.
+            try
+            {
+                int vecchio = bersaglio.GetDetailCircleCount();
+                Console.WriteLine("GetDetailCircleCount (senza il 2): " + vecchio);
+            }
+            catch (Exception e)
+            { Console.WriteLine("GetDetailCircleCount (senza il 2): " + e.Message); }
+
+            // E il tratteggio anche qui: un dettaglio mostra la stessa
+            // geometria ingrandita, quindi se la vista di partenza non e'
+            // una sezione non ci si aspetta campitura. Si guarda lo stesso,
+            // perche' «non me lo aspetto» non e' una misura.
+            if (ultima != null)
+            {
+                int facce = -1;
+                try { facce = ultima.GetFaceHatchCount(); } catch { }
+                Console.WriteLine("tratteggio di faccia sul dettaglio: " + facce);
+            }
 
             if (dopo > viste)
             {

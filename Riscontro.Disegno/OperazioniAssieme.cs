@@ -393,6 +393,14 @@ namespace Riscontro.Disegno
         /// «appoggiato», che e' un **avvertimento**; `-1` porta a «non lo so»,
         /// che e' un'altra cosa. Confonderle vorrebbe dire o tacere un pericolo
         /// o gridarne uno che non c'e'.
+        ///
+        /// ZERO-E-ZERO: il `m == null ? 0` qui sotto e' uno zero VERO, non un
+        /// ripiego, e il motivo e' le sei righe qui sopra — a quel punto la
+        /// maniglia ha gia' risposto, quindi `null` vuol dire zero. E' l'unico
+        /// punto del repository che la regola di Z-C8 la rispettava gia', ed e'
+        /// il modello per gli altri venti: **`-1` per «non lo so», `0` solo
+        /// quando lo zero e' un'affermazione che si puo' fare.**
+        /// (`Controlli/zero-o-non-lo-so.js` legge questo marcatore.)
         /// </summary>
         private static int ContaGliAccoppiamenti(IComponent2 componente)
         {

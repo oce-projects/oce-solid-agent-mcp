@@ -85,6 +85,27 @@ namespace Oce.Solid.Agent.Mcp
         public static void AccendiIlCanale(TextWriter uscita) { _canale = uscita; }
 
         /// <summary>
+        /// Una notifica sul canale registrato, e **non solleva mai**.
+        ///
+        /// Stessa ragione di `MandaComeNotifica`, scritta li' e valida
+        /// qui: se scrivere la notifica fallisse e l'errore risalisse, si
+        /// perderebbe la RISPOSTA a cui la notifica era accessoria. *Un
+        /// racconto che fa fallire la cosa raccontata e' peggio del
+        /// silenzio.*
+        ///
+        /// Senza canale non fa niente: e' il caso del ponte lanciato con
+        /// `--prova`, e di ogni prova che costruisce il messaggio senza
+        /// avere nessuno a cui mandarlo.
+        /// </summary>
+        internal static void NotificaSulCanale(object messaggio)
+        {
+            var canale = _canale;
+            if (canale == null) return;
+            try { Manda(canale, messaggio); }
+            catch { }
+        }
+
+        /// <summary>
         /// `logging/setLevel`. Un livello che non si riconosce **non si
         /// applica**: cambiarlo a caso vorrebbe dire far sparire messaggi senza
         /// che nessuno l'abbia chiesto. Torna `true` se e' stato accettato.

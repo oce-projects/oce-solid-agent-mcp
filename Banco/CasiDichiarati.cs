@@ -148,6 +148,17 @@ namespace ProvaSaldatura
             foreach (var f in file)
             {
                 if (EUnPianoENonUnCaso(f)) { piani.Add(Path.GetFileName(f)); continue; }
+
+                // SOLIDWORKS SE N'E' ANDATO: da qui in poi si dice cosa
+                // non si e' misurato, non si finge di averlo misurato
+                // (voce K17). `Saltata` non conta ne' come verde ne' come
+                // rosso, ed e' esattamente cio' che questi casi sono.
+                if (Sentinella.SeNEAndato)
+                {
+                    Saltata(Path.GetFileNameWithoutExtension(f), Sentinella.Referto());
+                    continue;
+                }
+
                 doveSta[Path.GetFileNameWithoutExtension(f)] = f;
                 comeEAndata[Path.GetFileNameWithoutExtension(f)] = CorriUnCaso(f, daControllare);
             }
@@ -1200,6 +1211,19 @@ namespace ProvaSaldatura
                 preparato = PreparaIlDocumento(nome, caso);
                 if (preparato == null || preparato.Documento == null) return false;
                 verde = EseguiIPassi(nome, caso, preparato.Documento, gemelle, percorso, preparato);
+            }
+            // NON HO POTUTO MISURARE NON E' UNA PROVA ROSSA (voce K17).
+            //
+            // Prima questo `catch` segnava rosso qualunque cosa fosse
+            // successa, e il 23/9/2026 ha dipinto di rosso nove casi
+            // scritti bene mentre SOLIDWORKS non apriva piu' documenti.
+            // Adesso la preparazione ha un tipo suo: se e' fallita, si
+            // dice cosa NON si e' misurato.
+            catch (Condiviso.PreparazioneFallita ex)
+            {
+                if (Sentinella.SeNEAndato) Saltata(nome, Perche(ex));
+                else ErroreDiBanco(nome, Perche(ex));
+                return false;
             }
             catch (Exception ex) { Segna(nome, false, Perche(ex)); return false; }
             finally { ButtaViaLaPreparazione(preparato); }

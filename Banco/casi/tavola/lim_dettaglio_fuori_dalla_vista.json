@@ -1,0 +1,46 @@
+{
+  "nome": "lim_dettaglio_fuori_dalla_vista",
+  "famiglia": "tavola",
+  "perche": "VOCE GT4, il limite del dettaglio. Un cerchio piu' grande della vista ingrandisce del VUOTO, e il vuoto ingrandito e' comunque una vista valida: si conta, ha un'etichetta, e in officina arriva un riquadro con dentro niente.",
+
+  "cosa_cambia_rispetto_alla_gemella": "Un argomento: `raggio_mm`. La gemella lo passa a **8**, che su una vista alta una trentina di millimetri di foglio ci sta; qui vale **9999**. Stessa operazione, stessi argomenti, stessa tavola, stesso pezzo — cambia il VALORE, non quale argomento si passa.",
+
+  "perche_la_gemella_passa_raggio_mm_anche_se_ha_un_predefinito": "Perche' altrimenti non sarebbero una coppia. Il 23/9/2026 la coppia della sezione e' nata senza nessun argomento in comune e il banco ha risposto **gemella finta: non ha nemmeno un argomento in comune col rifiuto, sono due operazioni che non si parlano**. Due chiamate che non condividono niente non dimostrano che il controllo su `raggio_mm` funziona: dimostrano che due chiamate diverse fanno cose diverse.",
+
+  "il_difetto_che_questo_caso_prende": "Che il controllo sul cerchio sparisca. E' una guardia che si scrive una volta e non si vede mai scattare, quindi nessuno si accorge il giorno in cui smette: da quel giorno i dettagli sul vuoto tornerebbero «fatti». Il messaggio deve anche portare i numeri — il raggio chiesto e la misura della vista — altrimenti chi lo legge non sa di quanto ha sbagliato.",
+
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 192000,
+          "perche": "stesso pezzo della gemella fino al passo che cambia" } ] },
+
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\lim_dettaglio_fuori_dalla_vista.sldprt" },
+      "attese": [
+        { "cosa": "misure.avvisi", "uguale": 0,
+          "perche": "il pezzo dev'essere su disco prima che la vista lo nomini" } ] },
+
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [
+        { "cosa": "stato.tipo", "uguale": "tavola",
+          "perche": "il rifiuto dev'essere quello sul CERCHIO, non quello su «non e' una tavola»" } ] },
+
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\lim_dettaglio_fuori_dalla_vista.sldprt" },
+      "attese": [
+        { "cosa": "misure.viste_create", "uguale": 3,
+          "perche": "e nemmeno quello su «non c'e' niente da dettagliare»: la vista c'e', ed e' il cerchio a essere sbagliato" } ] },
+
+    { "operazione": "dettaglio_in_tavola",
+      "argomenti": { "etichetta": "B", "scala": 2, "raggio_mm": 9999 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non sta dentro la vista", "9999"],
+        "gemella": "il_dettaglio_ingrandisce"
+      } }
+  ]
+}

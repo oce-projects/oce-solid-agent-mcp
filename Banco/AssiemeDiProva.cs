@@ -499,9 +499,21 @@ namespace ProvaSaldatura
 
         private static IModelDoc2 NuovoAssieme()
         {
-            string tpl = _sw.GetUserPreferenceStringValue(
-                (int)swUserPreferenceStringValue_e.swDefaultTemplateAssembly);
-            return OppureDillo(_sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2,
+            // Voce K19: la copia in locale vale anche per l'assieme.
+            string tpl = Program.ModelloInLocale(_sw.GetUserPreferenceStringValue(
+                (int)swUserPreferenceStringValue_e.swDefaultTemplateAssembly));
+            // La sentinella (voce K17) vale anche qui: un assieme di prova
+            // comincia da componenti che sono parti nuove, e se non nascono
+            // piu' non e' il caso a essere sbagliato.
+            if (Program.Sentinella.SeNEAndato)
+                throw new Condiviso.PreparazioneFallita(Program.Sentinella.Referto());
+
+            var nata = _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
+            if (nata != null) Program.Sentinella.Riuscita();
+            else if (Program.Sentinella.Fallita())
+                throw new Condiviso.PreparazioneFallita(Program.Sentinella.Referto());
+
+            return OppureDillo(nata,
                                "l'assieme nuovo su cui provare");
         }
 

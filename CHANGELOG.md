@@ -24,6 +24,932 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.84.0 — 24 September 2026 · library 0.111.0
+
+### Two fields stop being asked for, and start saying who chose (entry Z-G3)
+
+**A contract change**, which in this repository is delivered with a green bench
+run beside it — and at 02:15 there was one: 880 checks, 0 failures, against
+library 0.110.0. That is what unblocked this entry, and nothing else did.
+
+`applica_materiale.materiale` now defaults to **`S235JR`** and
+`combina_corpi.operazione` to **`unisci`**. Both leave `required`, both gain a
+`default` in the schema and a sentence in the description.
+
+#### The sentinel promised exit 4 and delivered a stack trace (entry K17)
+
+K17 says the bench *"stops **saying so** and exits 4"* when SOLIDWORKS dies
+mid-run. On one path it did not: it **died**.
+
+```
+Eccezione non gestita: Condiviso.PreparazioneFallita: SOLIDWORKS NON
+  PRODUCE PIU' DOCUMENTI: 3 tentativi di fila andati a vuoto...
+   in ProvaSaldatura.Program.ProvaFotografia()
+   in ProvaSaldatura.Program.Gruppo.Corri()
+   in ProvaSaldatura.Program.Main(String[])
+
+exit 0xE0434352
+```
+
+The group loop was `try { gruppo.Corri(); } finally { ... }` — **a
+`try/finally` with no `catch`**. Most groups catch `PreparazioneFallita`
+per check and mark it red; a group that throws while **preparing** —
+`VistaDelPezzo`, which builds its part before measuring — went straight
+through, and `Main` with it. The block that produces the 4 sits *after* the
+group loop, so it was never reached.
+
+The cost is the exact opposite of what the entry promised: instead of *"I am
+stopping, here is why, exit 4"* — a stack trace, a dead process, **no report
+written to disk** (so no evidence of what happened), and an exit code that
+means nothing to anybody. In precisely the situation the guard exists for.
+
+Found by running `--fingi-senza-solidworks`: **exercising the guard** rather
+than trusting that it had worked once. The entry already said "seen firing" —
+and that was true, on a different path. *A guard never seen firing all the way
+through is half proven, and the missing half is always the one that matters.*
+
+Fixed and seen in both directions; the groups that never ran are now named
+one by one, because "14 skipped" without saying which is the same defect K2
+had already corrected elsewhere.
+
+#### A default is not one field fewer: it is a choice somebody else made
+
+The entry exists because *"nobody thought about it"* and *"somebody thought
+about it and decided to ask"* read identically in JSON, and only one of them
+can be improved. **The same holds in reverse, and that is the dangerous
+direction:** if the bridge applies S235JR and says nothing, the model believes
+it chose it, next time it will not even ask, and then a part that needed
+stainless ships with nobody able to say where the decision was made.
+
+So every answer now carries `misure.nota_assunto`:
+
+```
+materiale: «S235JR» — PREDEFINITO di questa officina, non l'hai chiesto tu.
+materiale: «AISI 304» — l'hai chiesto tu.
+```
+
+**Written always**, including when the value was asked for. A field that only
+appears in the odd case is a field readers never learn to look at.
+
+#### The guard would have gone red by finishing the work
+
+`ProveICampiObbligatori` demanded `candidati > 0`. It counted **promised**
+work, and that was right while there was some. With both candidates done the
+counter goes to zero — *a check that demands the existence of work to do turns
+red exactly when the work finishes.* It now reports instead of demanding, and
+in its place is a check on **delivered** work: the `default` must be in the
+**served** catalogue, with the right value, and the field must be out of
+`required` — all three together, because a field removed from `required`
+*without* a default is worse than before: the model does not know it may omit
+it, and if it does it cannot know what it got.
+
+The neighbouring guard — *"a decision about a field that no longer exists is
+noise"* — fired by itself on the two now-obsolete entries the moment the
+catalogue was regenerated. Nobody had to remember it.
+
+#### Two mistakes in the bench cases, both caught by reading the operation
+
+The four cases (in pairs: default and twin) were written the night before,
+against the **schema**. Both errors came from not reading the **description**.
+
+- The two bodies for `combina_corpi` were placed **120 mm apart**, to make the
+  three outcomes unmistakable. But the operation declares it *fails* when after
+  a union the bodies are still two: *"usually they do not really touch, and I
+  fail rather than confirm a part different from the one you think you have"*.
+  The union would have failed and **the red case would have accused the default
+  instead of the geometry** — sending someone to hunt in the wrong place. They
+  overlap by 40 mm now: 80000 / 30000 / 20000, still three distinct numbers.
+- `sposta_corpi` was called without `corpi_uid`. Its schema says
+  `required: []` — correctly, because it is an either/or between `corpi_uid`
+  and `corpi_rif` that a flat `required` cannot express — and its description
+  says so in plain words. Caught by the bench going red.
+
+*A schema says what an operation accepts; the description says what it demands
+and what it refuses.* Writing a case against only the first is how you produce
+a red that blames the wrong thing.
+
+---
+
+## 0.83.0 — 24 September 2026 · library unchanged (0.110.0)
+
+### The elapsed time next to the step, and Section S is unblocked (entry S0)
+
+**The bench ran green on 24/9/2026 at 02:15**, after the handle on the network
+document template was released: **880 checks, 0 failures, 695 of 695
+expectations verified**, 67 minutes, against library **0.110.0.0** — the one
+this entry ships. The contract suite is **339 checks, 0 red**.
+
+#### Reading the criterion again, after building, found the gap
+
+Entry S0 asks for *"a trace readable from outside **with the time next to
+it** — and the caller can tell 'working' from 'stuck' without watching the
+CPU"*. Yesterday's progress notifications carried the step number.
+
+**The step number alone does not say it.** "Step 3 of 5" is identical
+whether that step started two seconds ago or eleven minutes ago — and the
+whole point of the criterion is exactly that difference. *The criterion asked
+for two things and I had heard one.*
+
+Every notification now carries the elapsed time written the way a person
+reads it (`eseguo il passo 3 di 5: guscio — 2m14s`), not raw seconds: the
+`message` field is the only one a human reads, and putting seconds there
+would make them do the division.
+
+The clock is **passed** to the `Filo` rather than read inside it — same
+choice as `Guinzaglio` and `SentinellaSolidWorks`. Seven checks freeze it and
+compare the exact string, including the case that matters: eleven minutes on
+one step.
+
+#### S0's "to be decided" is decided, and by neither of its two options
+
+The entry weighed *"start and return an id immediately"* (needs an extra
+"where are you up to" tool) against *"block with a declared ceiling"* (which
+lies to whoever exceeds it). **The third road was already in the MCP spec.**
+The bridge stays synchronous — which SOLIDWORKS imposes, it is not a choice —
+and talks while it works. No extra tool, and a generic client reads it
+knowing nothing about this bridge.
+
+S0 and S1 are no longer blocked.
+
+#### Two probes that were lying, both found by using them
+
+`conta-todo.js --blocchi` listed **Y2**, **W2.6** and **Z-B7** under "CAN BE
+DONE NOW". None of them could: Y2 declares *"depends on Y1"*, Z-B7 *"depends
+entirely on B1 and B3"*, and W2.6's criterion is a measured volume. Two new
+rules — and the dependency one is not a regex, it is a lookup: the entry
+names its own blocker, and the probe checks how that entry is doing.
+
+It went wrong immediately, and instructively. The TODO keeps, beside a closed
+entry, its *"original trace kept for reference"* — **same code**, and at `~`
+forever because it is a memory, not work. There are dozens. The map took the
+last one written, so `B1` read as open although the real B1 closed on 14/9,
+and Z-B7 was declared blocked by something finished ten days earlier. *A
+warning light that accuses a finished thing sends you looking in the wrong
+place, which is worse than staying quiet.* With traces skipped, Y2 and S1
+stay blocked and Z-B7 comes back out — the rule exercised in both directions
+on real data.
+
+#### The bench cases for Z-G3, written before the thing they measure
+
+Entry Z-G3 closes when two fields have their `default`, the sentence that
+declares it, **and a green bench case exercising it**. The default itself
+cannot ship — the entry forbids it in writing: *a contract change is delivered
+with a green bench run beside it*, and the bench is down. The cases can be
+written, and now are: `Banco/casi-in-attesa/`, a folder the bench does not
+scan (it reads `Banco/casi/` and nothing else).
+
+A case that must fail, placed in `casi/`, turns the bench red for a known
+reason — and *a red for a known reason is a red people learn to skip*, so the
+day it goes red for a different reason nobody notices. Same shape as
+`Banco/compiti/` (Z-G9): the input is born before the thing that runs it.
+
+They come **in pairs, and that is not symmetry**. Without the twin that names
+the value explicitly, the default case proves nothing: a declaration that
+appeared *always* would pass it and be noise — and a sentence that always
+appears stops being read exactly when it says something.
+
+Writing them turned up three things the plan did not have:
+
+- **The dangerous direction is the other one.** The entry worries the model
+  won't know it omitted a field. The real risk is the reverse: if the bridge
+  applies S235JR and **says nothing**, the model believes it chose it, next
+  time it won't even ask, and then a part that needed stainless goes out with
+  nobody able to say where the decision was made.
+- **The two bodies must be far apart**, and making them needs `sposta_corpi`
+  with `copia` — the catalogue says so itself: *"separate bodies are born from
+  `sposta_corpi` and the copy"*. Far apart so the three outcomes are
+  unmistakable: `unisci` = 100000, `sottrai` = 50000, `interseca` = 0.
+  **`riuscita: true` would give all three.**
+- **The first draft invented two arguments** — `corpo_separato`,
+  `scostamento_x_mm` — that are not in the catalogue, and the wrong enum value
+  (`unione` instead of `unisci`). Caught by checking against the served
+  catalogue before saving. *A case with invented names is worse than no case:
+  it fails, and sends you hunting for the defect in the wrong place.*
+
+The field the cases watch, `misure.assunto`, **does not exist yet**: it is a
+proposal, and the README says so. Whoever implements may name it otherwise —
+that is one line in four files. What does not move is the demand: the answer
+must distinguish "I chose it" from "the bridge chose it for me".
+
+#### A false positive inside the pre-push hook, found by using it
+
+`righe-del-todo.js` resolved a cited file **by basename** across the known
+folders. The repository has two `Sessione.cs` — `Banco/` and `Ponte/` — and
+`Banco` comes first in the list. So the citation `Ponte/Sessione.cs:824`
+landed on `Banco/Sessione.cs`, which has 392 lines instead of 832, and the
+probe declared a correct citation dead. **In the pre-push hook**: it would
+have stopped a delivery over its own mistake.
+
+The folder written in a citation is an address, not a hint. It is honoured
+now, and where a citation gives no folder and the basename exists in more
+than one, the probe **abstains and says so** instead of picking — two
+same-named files are exactly the case where guessing produces the wrong red.
+It also prints the unresolvable names rather than just counting them: a bare
+`7` cannot be checked without redoing the probe's work by hand. The six that
+remain are all genuinely external — three files from the add-in repository,
+three RAG notes.
+
+Two TODO citations were wrong behind that fog. One said the per-operation
+state re-read lives in `Sessione.cs` — it is in
+`Riscontro.Disegno/EsecutorePiano.cs:354`, **wrong file before wrong line**;
+the entry rests a real warning on it (*"comparing the reading of now with the
+reading of now always returns true, and you believe you have a protection you
+do not have"*). The other was 23 lines off from `EseguiIlPiano`.
+
+And writing the correction, the dead addresses went back in as citations —
+the same mistake made six hours earlier and written down as *"a corpse gets
+named, not cited"*. The probe caught it again. A lesson written down is not a
+lesson learned; a probe that keeps checking is.
+
+#### Counting the places where zero means "I don't know" (entry Z-C8)
+
+The entry asked that *"every enumeration declares **zero** against **I don't
+know**"*. Before declaring anything you have to know how many there are.
+`Controlli/zero-o-non-lo-so.js` finds **21**, and exactly **one** already
+followed the rule.
+
+The swap runs both ways, and the second way is worse. The one the entry
+describes — `GetMates()` returning `null` for zero and the bridge answering
+*"couldn't read"* — is the **cautious** direction: it alarms the reader for
+nothing. The other is a function that **reads from the CAD and answers `0`
+from its `catch`**. Zero is not "I don't know": zero is an **assertion**.
+*"This part has zero bodies"*, *"this hole removed zero mm³"*. The reader has
+no way to notice the read failed.
+
+And the two opposite rules live in the same file, two thousand lines apart:
+
+```
+OperazioniSw.cs:2122  "A volume that could not be read does not become a
+                       zero: a zero would say 'it removed nothing', which is
+                       an assertion."
+OperazioniSw.cs:4837  "The volume of all solid bodies, in mm3. Zero if it
+                       cannot be read."
+```
+
+The first is the comment of whoever **found** the defect; the second is the
+function that **produces** it. The call site defended itself — in twenty lines
+— and the root stayed. *A patch on the caller leaves the hole for the next
+caller.*
+
+The model to copy already exists, and there is one:
+`OperazioniAssieme.ContaGliAccoppiamenti` first checks whether the handle
+**still answers** (reads `Name2`), and only then does a `null` from `GetMates`
+count as zero; otherwise it returns **`-1`**. It now carries the
+`ZERO-E-ZERO:` marker with its reason, and the probe leaves it alone. **The
+rule in one line: `-1` (or nullable) for "I don't know", `0` only when zero is
+an assertion you can make.**
+
+The probe does not exit 1 and is not in the hook: fixing these changes library
+signatures and every caller, and doing it now would stack twenty unverified
+changes **on a library the bench has not yet run against** — if the run went
+red, nobody could say whose fault it was. It is a work list, not a ban.
+
+It got its own window wrong first, and instructively: it counted fourteen
+lines above the site, and the comment carrying the reason is twenty long — the
+marker was there, in the right place, and the probe could not see it. **Second
+time in two days**: the Z-A1 guard was born with exactly the same defect.
+*Counting raw lines punishes whoever explains*, in a repository where
+explaining is the rule. It now walks up to the member's `<summary>` instead of
+counting, and the self-test puts the marker twenty lines away on purpose.
+
+#### Four "to be ascertained" ascertained, none of which wanted the CAD
+
+Four entries carried an open question — *"unverified"*, *"to be ascertained
+which"*. **None of the four needed SOLIDWORKS running**; they needed somebody
+to read the interop. Thirteen more expectations in `Controlli/firme-api.ps1`,
+which now pins thirty.
+
+- **GT5.** The `TableTemplate` preference index — *"33, per an unverified note
+  in 80r"* — **is right**: `swUserPreferenceStringValue_e` has 131 members and
+  33 is `swFileLocationsHoleTableTemplates`. The note was true. The rule it
+  guards does not change, though: knowing 33 is correct does not say where
+  *this* installation keeps its files, and that is the data needed. The
+  constant is for **asking** the question, not skipping it.
+- **GT2.** Its `Cosa` line still asked *"or `IWeldmentCutListAnnotation`, if it
+  exposes a direct insertion — to be verified which"*. The answer had been
+  written further down **in the same entry** since 17/9: it is
+  `IView.InsertWeldmentTable`, and the annotation interface exposes accessors
+  only. *A question left open next to its own answer sends someone to redo the
+  work* — and on 24/9 I did redo it. Reflection returned the same answer, which
+  is good news about reflection and bad news about that line.
+- **GA6.** *"`GetTotalTransform(false)`, not `GetXform`, format unverified"* now
+  has a measured reason instead of a suspicion: `GetTotalTransform` returns a
+  typed `MathTransform`, `GetXform` returns a bare `Object`. *Between two roads
+  to the same place, take the one you can read without guessing.* And
+  `GetMates()` returns a bare `Object` too — so reflection gets far enough to
+  prove the format **cannot** be known without an open assembly. "To be
+  ascertained first" stands, now on a measured limit rather than on inertia.
+- **X2.** A reference row said the real helical thread is *"`InsertHelix` +
+  `InsertCutSwept5`, a five-step composite with a **void** return and 21
+  parameters"*. It said three things and two were wrong. `InsertHelix` **is not
+  on `IFeatureManager`** — it is on `IModelDoc2`, 10 arguments, returning
+  `Void`; fifth time in a week a member sits on a different interface from the
+  one its name suggests. And `InsertCutSwept5` **does not return void**: it
+  returns a `Feature`, with 22 arguments. So the blind step is **one**, not the
+  whole procedure — the cut can be checked from what it hands back. A road
+  nobody had looked at also turned up: `InsertVariablePitchHelix` +
+  `AddVariablePitchHelixSegment` + **`EndVariablePitchHelix()`, which returns a
+  `Feature`**. Whether a variable-pitch helix with equal segments is the same
+  thing as a constant one is **not measured** and needs the CAD — but if it is,
+  the last blind step disappears.
+
+#### Simulation: the census S3 asked for (entry S3, first half)
+
+S3 says *"survey first, build second"*. The surveying never needed SOLIDWORKS
+**running** — only installed. Seventeen expectations now live in
+`Controlli/firme-api.ps1`, which exits 1 if one changes.
+
+The entry's two numbers were right: `cosworks` has **589 types and 160
+interfaces** (plus 349 enums). Three findings the plan did not have:
+
+- **`MeshAndRun()` returns `Void`.** It is the most inviting name in the
+  interface and the only one of the two that **cannot say whether it worked**.
+  `RunAnalysis()` returns an `Int32`. Same rule this project has already paid
+  for elsewhere — *the value returned by whoever did the thing is not the
+  measure of the thing* — except here there is no value at all.
+- **Material sits on the BODY, not the study**, three hops down, and
+  `ICWSolidBody` has `SetLibraryMaterial` and **no `GetMaterial`**: a setter
+  with no reader. Fourth time a property can be written and not read back.
+- **`AddRestraint` and `AddForce` take `Object DispArray` and `Object
+  RefGeom`.** The signature does not say what goes inside, and no amount of
+  reflection will. *The census did not remove the risk: it put it in one place
+  and gave it a name.*
+
+---
+
+## 0.82.0 — 24 September 2026 · library unchanged (0.110.0)
+
+### Progress and cancellation, with the protocol's own mechanisms (entry W2.2)
+
+**The bench ran green on 24/9/2026 at 02:15**, after the handle on the network
+document template was released: **880 checks, 0 failures, 695 of 695
+expectations verified**, 67 minutes, against library **0.110.0.0** — the one
+this entry ships. The contract suite is **339 checks, 0 red**.
+
+Entry W2.2 was marked **blocking for the whole of Section S**. It is not any
+more.
+
+#### Why not a second "where are you up to" tool
+
+Because it already exists in MCP 2025-06-18, and reinventing it would cost
+more to be understood by fewer: a generic client can read
+`notifications/progress`, and will never read a tool invented here. There
+were **zero** occurrences of `progress` or `cancelled` in the repository.
+
+The token is read from `params._meta.progressToken` — next to `name`, not
+inside `arguments`: it belongs to the *protocol*, and a generic client puts
+it there knowing nothing about this bridge.
+
+Three decisions carry the design:
+
+- **The token is copied, not read.** The spec allows a string or an integer.
+  A `42` coming back as `"42"` matches nothing on the client side, *and the
+  client has no way to say why*. So it stays an `object` and is never
+  inspected. A check demands that an integer comes back an integer.
+- **`progress` must increase, and here it cannot fail to.** That rule belongs
+  to the spec. Left to callers, it would be discovered broken inside a client
+  — which is to say never. It lives in the `Filo`, which keeps the last value
+  and **discards** a step that does not grow; a non-growing step is fed to it
+  on purpose to watch it discard.
+- **The total lives in the `Filo`, not in the callers.** A plan is narrated in
+  two halves — validated whole against an untouched document, then executed —
+  and the two points sit in **different files**. If each computed the total
+  itself, sooner or later they would disagree and the reader's bar would run
+  backwards. Execution resumes the count from `Filo.Ultimo` instead of
+  recomputing it.
+
+#### The library did not need touching, and that is the instructive part
+
+The progress that matters is the one *during* execution: validating a plan
+takes milliseconds, a real step can take minutes. It looked like a callback
+would have to be threaded through `EsecutorePiano` — inside the library.
+
+It did not. The executor asks `IFontePiano` for the next step, and the
+implementation — `Ponte/PianoInMemoria.cs` — **is in the bridge**. The
+notification goes out from `ProssimoAsync`, that is *before* the step starts:
+saying "about to do step 3 of 5" is useful, saying it afterwards much less.
+*The right seam was already drawn; all that was missing was someone using it.*
+
+#### `notifications/cancelled` no longer falls into silence
+
+The entry was right: it fell into the `case default`, and since it is a
+**notification**, the main loop discarded the error response. A silent no-op,
+with the client convinced it had cancelled something.
+
+This bridge cannot interrupt a call in flight, and that is not a gap to fix
+with more code: it serves one request at a time on one thread because
+SOLIDWORKS requires STA, so while it works it does not read stdin — and by
+the time the line arrives, the request it names has finished. The spec allows
+ignoring a `cancelled`. Here it is not ignored, it is **answered**, with the
+request number and the reason. *A stated no can be read; silence cannot.*
+
+#### What is measured, and what is not
+
+Thirty contract checks, six of them end-to-end over stdio against the real
+bridge — possible because `prova: true` (entry Z-G6) walks a plan step by
+step with SOLIDWORKS closed. Among them the half that is usually forgotten:
+**a client that sends no token receives nothing**.
+
+Not measured: the three-minute operation the entry's criterion names. The
+wiring is exercised — `PianoInMemoria` is driven directly and what it emits
+is inspected — but *driving the class is not the same as watching the
+notification arrive during a real extrusion*, and in this repository that
+difference is the rule, not a detail. The entry stays at half.
+
+---
+
+## 0.81.0 — 23 September 2026 · library unchanged (0.110.0)
+
+### The bridge starts writing down what it was asked for and did not have
+
+**The bench ran green on 24/9/2026 at 02:15**, after the handle on the network
+document template was released: **880 checks, 0 failures, 695 of 695
+expectations verified**, 67 minutes, against library **0.110.0.0** — the one
+this entry ships. The contract suite is **339 checks, 0 red**.
+
+Everything below was built and measured **without** the CAD, because none of
+it needs one — the run afterwards confirms it did not break what does.
+
+#### What was asked for and wasn't there (entry Z-G7)
+
+The five catalogue operations with no bench case — `ripeti_circolare`,
+`cordone_saldatura`, `fazzoletto`, `taglia_membri`, `tappo_estremita` — **we
+picked ourselves**. Which ones are actually needed, nobody knows, and asking
+people does not find out: whoever uses the bridge has no list of what is
+missing.
+
+The bridge had that data in hand four times over and threw it away. The
+`default` branch of `Attrezzi.Chiama` *knows* it was asked for a tool that
+does not exist, answers well, and writes it down nowhere.
+
+`Strumenti/RegistroDelleDomande.cs` now appends one JSON line per unmet
+request, wired into all four sites, and `Controlli/domande-senza-risposta.js`
+reads it back. Three decisions matter more than the code:
+
+- **It does not record arguments.** Only the name asked, its kind, and the
+  near names the catalogue offered. A ledger that copies call arguments
+  becomes, in one afternoon, a file full of network paths and job numbers —
+  and this repository already has a personal-data problem that blocks
+  publication. *A name a model invented is nobody's data; the path the part
+  sits at is.*
+- **It can never fail the call it observes.** It does not name `Console`
+  anywhere — that is where the JSON-RPC goes, and one extra line there is not
+  a dirty log, it is a broken protocol — and it never throws. Installed under
+  `Program Files` the folder is not writable, and then it simply goes quiet.
+  The reason for the last silence stays in `PercheHaTaciuto`, which nothing
+  prints: it exists so a test can tell an empty `catch` from a `catch` that
+  never ran.
+- **The report is split in two.** A name asked ten times **with a near match**
+  is a synonym to add and costs one line. The same name **with nothing near**
+  is an operation to build. One combined count would hide the difference.
+
+The guard watches the *fifth* site, not the four. The predictable failure is
+not getting one of them wrong — it is adding a fifth and forgetting to
+record it. So the test demands that **every** line calling
+`_catalogo.Simili(` also writes to the ledger, and is made to fail on
+purpose in both directions on fabricated lines.
+
+The entry stays open at half, and deliberately: it did not promise a file,
+it promised to know which operation to build next. That number does not
+exist yet — the ledger is empty. *What is missing is not work, it is
+traffic.*
+
+#### The version the bridge announced had been wrong for 78 minor releases
+
+`Programma.cs` carried `const string Versione = "0.2.0"`. `VERSION.txt` said
+`0.80.0`. Every MCP `initialize` reply has been announcing 0.2.0, and anyone
+logging the conversation recorded a false number.
+
+Nothing in the code was wrong. There were **two places to write the same
+number, and nobody ever re-read one of them.** It is the same rot the TODO
+had already cured in its own header on 16/9 — that line said *«Ponte 0.2.0»*
+and had been true on the 14th — but in code, where it shows even less.
+
+`VERSION.txt` now travels inside the executable as an embedded resource and
+is the single source. If the resource cannot be read the bridge answers
+**`sconosciuta`** rather than a fallback number: *a wrong number is worse
+than a missing one*, because whoever reads it has no way to know it is wrong.
+A contract check pins the announced version to `VERSION.txt`, which is what
+stops the two places from becoming two again.
+
+#### And a guard already in place caught the new environment variable
+
+`RISCONTRO_REGISTRO` was in the code and not in the README, and the check
+that reads every variable the bridge looks up went red within a minute of
+the ledger compiling. Nothing to fix in the guard — it is reported here
+because a guard that fires on its author on the day it is needed is the
+cheapest evidence that it still works.
+
+---
+
+## 0.80.0 — 23 September 2026 · library unchanged (0.110.0)
+
+### One real defect in the bridge, and two guards that were green for the wrong reason
+
+**The bench ran green on 24/9/2026 at 02:15**, after the handle on the network
+document template was released: **880 checks, 0 failures, 695 of 695
+expectations verified**, 67 minutes, against library **0.110.0.0** — the one
+this entry ships. The contract suite is **339 checks, 0 red**.
+
+Everything here was found without the CAD — by reflection over the installed
+interop assemblies, by reading the TODO against the code, and by asking one
+guard what it actually measures.
+
+#### A plan that names another document left the signatures behind (entry Z-A1)
+
+The bridge keeps three things about the part it is looking at: `_guardato`
+(*which* document) and `_firmaGuardata` / `_firmeViste` (*what it looked
+like*). In `EseguiIlPiano` there was `_guardato = adesso;` **on its own**.
+
+A plan naming a different document — `documento: "..."`, the legitimate,
+documented route — was enough: from that moment `_guardato` pointed at the new
+part and the signatures at the old one.
+
+**The damage does not land there.** It lands on the *next* call: the document
+in front is the new one, so the "same part?" test passes, and the comparison
+then runs against another part's signatures. Two outcomes, both wrong — reject
+a good plan saying *«the part changed»*, or **let a plan through on uids that
+no longer mean anything**. The second is the failure this project has been
+chasing for weeks: a plan that succeeds in the wrong place, silently.
+
+The principle was already written two lines above, on the local variable:
+*«better no comparison than a comparison between two different parts»*. It was
+right, it was there, and it was scoped to the local. **A rule written for half
+the code is a rule somebody will apply to half the code.**
+
+How it surfaced is the instructive part: not by reading the code, but by
+**reading the TODO**. The entry already quoted the offending line as
+background. It had been sitting there for days, described accurately, and
+nobody had read it as a defect.
+
+`Prove/ProveLeFirmeDelDocumento.cs` now demands that no `_guardato =` travels
+alone. It was born red on a correct piece of code — it counted raw lines, and
+the three legitimate assignments sat in one block separated by twenty-five
+lines of comment. Counting raw lines there means **punishing whoever explains**,
+in a repository where explaining is the rule. It counts code lines now, and
+it is exercised in both directions.
+
+#### The guard that asked git when it should have asked the disk
+
+`ProveIlBanco` refuses a delivery where nobody ran the bench. Part of that is:
+*is the run newer than the last change to `Riscontro.Disegno`?* It answered by
+calling **`git log`** — committed history, and nothing else.
+
+But code does not live in git while you are writing it. It lives in the
+working tree, and **that is where `build.ps1` builds the DLL from**. Between
+the edit and the commit there was a window where the guard reported *«there is
+nothing unproven»* over a tree full of code the bench had never seen.
+
+Measured on 23/9/2026: `Riscontro.Disegno/Catalogo/Operazioni.cs` touched at
+19:18, last bench run at 15:23, guard **green** — because the last *commit*
+under that folder was from 15/9. Green for the wrong reason, which is how a
+guard stops working without anyone noticing. The window was not narrow either:
+at that moment the tree held **29 modified files and 31 new ones**.
+
+The verdict now lives in a function that takes two dates and no I/O, so it can
+be made to fail on purpose. Four checks drive it: a dirty file newer than the
+commit wins; a clean tree changes nothing; a dirty file *older* than the commit
+moves nothing; and — the one that matters — **"no unproven commit" no longer
+covers a full working tree**. That last case *is* the false green.
+
+It reads the tree with three commands that print bare paths
+(`diff --name-only`, the same `--cached`, `ls-files --others`) rather than
+`status --porcelain`, because the repository's own `Git()` helper trims every
+line and `--porcelain` puts the status in fixed columns that the trim eats.
+
+With the fix in place the guard immediately went red twice. That is correct.
+
+#### A citation that lands in the right method under the wrong name (entry Z-A7)
+
+The entry sent the reader to `` `OperazioniSw.cs:6186` `` for
+`GetPersistReference3`. **That method is not in that file at all** — it is in
+`StatoDocumento.cs:392`. Line 6186 falls twelve lines short of
+`GetObjectByPersistReference3`, which is to say *inside the right method*: a
+reader who follows it finds plausible persist-ID code and never notices that
+the named API isn't there.
+
+*A citation that sends you out of the file is caught immediately; one that
+sends you into the right method under the wrong name is never caught.* The
+entry now names both halves of the round trip and where each lives.
+
+#### Internal cross-references rot the same way (entry Z-C14)
+
+Entry Z-C14 pointed at `TODO.md:7497-7530` and `TODO.md:~7753` to talk about
+`GetRemainingDOFs`. Both lines exist — the file has sixteen thousand — and both
+talk about something else entirely: `IFace2.Normal` and undercuts in the first
+case, the origin of a single-direction extrusion in the second. The real
+addresses were three hundred and four hundred lines further down.
+
+`Controlli/righe-del-todo.js` could not see this, and says so: its first pass
+only checks whether the line **exists**. It has a second pass now, and it does
+not guess what an entry is about — it takes **the subject the sentence wrote
+for itself**: the backticked identifiers on the citing line. If none of them
+appears in the cited range, the reference is broken. Same technique that
+resolved `vedi C8` into `Z-C8`.
+
+It fired twice on its author, and both times it was right. First on the
+sentence *documenting* the two dead addresses — which had written them in
+citation form. But `TODO.md:N` is an imperative, it means *«go here»*, and
+using it for an address you are declaring wrong is a contradiction before it
+is a false positive. **A corpse gets named, not cited.** Then on the corrected
+sentence, which cited two addresses with two different subjects and named
+neither — the reader had to infer the topic from context exactly as the probe
+did. It names `GetRemainingDOFs` now.
+
+Neither time was the rule narrowed to shut it up.
+
+#### Entry GT2 needed nothing, and that is also a result
+
+Reflection over `IWeldmentCutListAnnotation` re-derived, independently, a fact
+the entry had already recorded on 17/9: the insertion is
+`IView.InsertWeldmentTable`, the annotation interface is an accessor and not an
+inserter, and `swTableAnnotation_WeldmentCutList = 4`. No change. A probe that
+confirms what is written is worth as much as one that contradicts it.
+
+---
+
+## 0.79.0 — 23 September 2026 · library 0.110.0
+
+### The other half of GT4, and a bench that kept testing against a dead SOLIDWORKS
+
+**The bench ran green on 24/9/2026 at 02:15**, after the handle on the network
+document template was released: **880 checks, 0 failures, 695 of 695
+expectations verified**, 67 minutes, against library **0.110.0.0** — the one
+this entry ships. The contract suite is **339 checks, 0 red**.
+
+For about eleven hours it had not. SOLIDWORKS was unusable on 23/9/2026: a
+handle left on the document template, on a network share, made every new
+document hang (entries K17, K19). Everything in this entry was written,
+compiled and structurally checked in that window — **and the run afterwards
+measured it on a part, which is the only thing that settles it.**
+
+**And the local model copy (K19) was finally seen to *succeed*, not fail:**
+`Parte.prtdot` 45955 bytes and `Assieme.asmdot` 25895 bytes copied into
+`%TEMP%\banco-modelli`, one network read instead of eight hundred. Until now
+that code had only ever been watched failing.
+
+#### `dettaglio_in_tavola`
+
+A section shows what is inside; a detail shows what is too small to read at
+the drawing's scale — a groove, a chamfer, a fillet with its dimension.
+Without it, on a real shop drawing those get dimensioned by eye.
+
+```
+"vista_dettaglio":"Vista dettagliata B (2 : 1)", "tipo_vista":3,
+"e_un_dettaglio":true, "circonferenze_prima":0, "circonferenze_dopo":1
+```
+
+**Three things "by analogy" would have got wrong, and two of them were.**
+
+1. **The crosshatch has nothing to do with it.** On a section the hatch is
+   the check that matters. A detail cuts nothing: it shows the same geometry
+   enlarged, and `GetFaceHatchCount` on a detail view answers **0**. Copying
+   the section's guard would have produced an operation that **always
+   refuses** — the exact defect the section had on its first real use, one
+   day after it was corrected.
+2. **`GetDetailCircleCount2` has two outputs, and the obvious one lies.** The
+   count is the **return value**; its `out` goes from **1 to 35** for a
+   single circle — it is an array size, not a count. Read as a count it
+   would say the view already had one before it had any.
+3. **`Showtype` wants `swDetCircleShowType_e`**, not `swDetViewShowType_e`,
+   which does not exist.
+
+So the guard is that the circle **became** a detail: the source view gains a
+detail circle, 0 → 1. `viste_dopo` goes up either way — one more view on the
+sheet does not say it is tied to that circle. Without this check the sheet
+can keep **a hand-drawn circle next to an unrelated extra view**, and no
+error would say so.
+
+And it refuses a circle larger than the view: that enlarges emptiness, and
+**enlarged emptiness is still a valid view** — it counts, it has a label, and
+it reaches the shop floor as a frame with nothing in it.
+
+What neither half can tell you is whether that is the feature you needed. A
+circle moved ten millimetres enlarges a patch of flat surface, and is just as
+valid. It says so, under `cosa_non_guarda`.
+
+#### The bench now notices when SOLIDWORKS is gone (entry K17)
+
+A full run died after 312 green checks: `NewDocument` started answering
+`null` and never stopped. The report said
+
+```
+NO   il_dettaglio_ingrandisce   SOLIDWORKS non ha prodotto la parte nuova
+NO   il_loft_non_e_un_cono      SOLIDWORKS non ha prodotto la parte nuova
+```
+
+on nine cases that were written correctly, and then hung inside the next COM
+call for as long as nobody looked.
+
+Two defects, not one. **`NO` was the wrong word** — it means "I measured and
+the part came out different", and the fact was "I did not measure"; whoever
+reads it goes and inspects the case, which is the wrong place. And **the run
+carried on**, forty minutes of testing against a dead program.
+
+Three new-document failures **in a row** now mean the program is gone: the
+rest of the run is skipped **saying so**, and the exit code is **4**, which
+wins over 2 and 1 — a run that did not happen is not a run with errors. "In a
+row" is the word that matters: three scattered failures across eight hundred
+checks are normal noise, and a guard that stopped healthy runs would be
+switched off by the first person who saw it do that.
+
+`--fingi-senza-solidworks` makes `NewDocument` answer `null` on demand, so the
+guard can be **watched firing** on the real bench instead of believed: two
+`!!`, then 127 cases skipped, exit 4. Seventeen more checks run it where
+SOLIDWORKS does not exist at all.
+
+**And one of those checks was green for the wrong reason.** It looked for the
+digit `3` in the report while the report said "**0** attempts in a row" — the
+`3` it found was the *threshold*, in the same sentence. The defect was in the
+sentinel: it read the live counter instead of the one at the moment it
+tripped. *A right number in the wrong place hides a wrong number.*
+
+#### And the cause was not SOLIDWORKS (entry K19)
+
+This station's default document template lives on a **network share**. Every
+new part is an SMB read, and a run makes eight hundred of them. When
+SOLIDWORKS hangs while opening that file it keeps the handle, and from then
+on the file cannot be read **by anyone** — including the next SOLIDWORKS,
+which is why three runs in a row died in the same place.
+
+Measured while it was stuck: the profile folder **on the same share**
+answered, the server replied to ping in 0 ms, and `Get-Item` on that
+`.prtdot` did not return within twenty seconds. Killing SOLIDWORKS: 45,955
+bytes, instantly. **It looked like the network, and it was a handle.**
+
+The bench now copies the template locally once per run and says so, with the
+source and destination paths; if the copy fails it uses the network one and
+**says that too**. It does not cover everything — SOLIDWORKS also reads the
+weldment profiles and the material libraries from the share — but it removes
+the most frequent read, and the README says which ones remain.
+
+#### Twelve operations now declare the limit they were already refusing (Z-G5)
+
+Forty-five refusal steps across 146 declared cases, on 31 distinct operations.
+Twelve of those 31 said **nothing** about their limit in the catalogue
+description — and the model does not read bench cases, it reads the
+catalogue. For those twelve the only way to discover an already-measured
+limit was to hit it. *A declared limit costs zero turns; the same limit
+found by a refusal costs one.*
+
+The new sentences are not invented: each one is the message its bench case
+already demands, turned to the future tense. Inventing them would have meant
+promising a limit different from the one the code enforces — worse than
+silence.
+
+The count is a ceiling, not a note, and it was watched moving in both
+directions: born at 12 with 12 mute (green), then red with **"there are 0:
+lower the ceiling"** once the descriptions were written. It is 0 now, and a
+new guard without the sentence that declares it turns the check red **on the
+day it is written** — the only day anyone is looking at it.
+
+Alongside it: every `deve_fallire` must name a `gemella`, that twin must
+exist, and it must demand a message (entry Z-C11). The bench already checked
+twins — after an hour of running, with SOLIDWORKS on. A case written without
+a twin is a writing mistake, not a measurement one: it now shows in a tenth
+of a second.
+
+#### Every operation now says which document it runs on (entry Z-D0-ter)
+
+All 71 served operations declare `parte`, `assieme`, `tavola` — or more than
+one — next to `precondizione`, with a closed vocabulary. The family was an
+approximation and `verifiche` proved it alone: `cartiglio` wants a DRAWING,
+`verifica_interferenze` an ASSEMBLY, the other six a PART. Three documents
+under one label, a fact that lived in the head of whoever wrote the operation.
+
+The values are not guessed: where the precondition says it, it was taken from
+there; the twelve without one are in a hand-written table, decided one by one.
+The script **stops without writing anything** if it meets an operation it
+cannot classify — better unfinished than guessed.
+
+And the check verifies the field was *needed*: if no family were mixed, it
+would be a duplicate of the family and should be removed.
+
+#### An example copied from a green case (entry Z-G1)
+
+24 operations out of 71 now carry a real call, copied from a step the bench
+**executed and measured**. A schema says which fields are legal; it does not
+say which combination builds a part.
+
+24 and not 71 on purpose: the other cases use things that live only in the
+bench — the `@faccia(verso=alto)` selectors, the `{LAVORO}` placeholders.
+Copying them would have produced 24 good examples and 47 **traps**: a model
+that copies a bench selector gets a refusal it cannot understand, and next
+time it does not trust the catalogue. That is worse than no example.
+
+#### Every required field is a decision taken (entry Z-G3)
+
+92 required fields, 58 of them dimensions that are genuinely asked for, **34
+with a written decision**. "Nobody thought about it" and "somebody decided to
+ask for it" read identically in the JSON, and only one of the two can be
+improved.
+
+Two have a real shop default and are **not done**: `applica_materiale.materiale`
+and `combina_corpi.operazione`. Removing a field from `required` changes the
+contract, and a contract change ships with a green bench beside it.
+
+#### Numbers read off an image are not authoritative (entry Z-C10)
+
+The caption next to the views said where the measurements are. It did not say
+the ones in the image are **wrong**. It now carries the two measured errors —
+a Ø90 bolt circle read as 79, a 12.5 wall read as 6 — says **why** (in
+isometric, thin walls are foreshortened) and names the operations that give
+the authoritative number.
+
+What cannot be done is stated rather than implied: the bridge cannot know
+where a model got a number from. A 79 in an argument is identical to a
+measured 79.
+
+#### A leash on calls that never return (entries K18 and Z-C4)
+
+Three bench runs died hung: the process alive, SOLIDWORKS `Responding=False`,
+**zero CPU on both**, no modal dialog. The sentinel could not help — it counts
+*answers*, and no answer was coming.
+
+It does **not** rescue the call: a wedged COM call cannot be cancelled, and
+promising a "timeout that retries" would be another guard that does not do
+what it says. It turns an infinite silent wait into a report: **which**
+operation, **for how long**.
+
+A heartbeat, not a worker thread — the interop is single-threaded, and moving
+calls onto another thread would add a new way to hang instead of removing
+one. The working thread announces what it is about to do and says when it is
+done; a watchdog outside watches the clock. *It does not touch the work: it
+watches it.*
+
+Two callers, two reactions, and the difference is the point: the bench **dies**
+with exit code 5 — a run that did not happen is not a run with errors — while
+the bridge **says and carries on**, because it is somebody else's service. Its
+report goes to **stderr**, never stdout: on stdio, stdout is the JSON-RPC
+channel.
+
+#### A dry run: being wrong without touching the part (entry Z-G6)
+
+`disegna` with `prova: true` checks the plan and touches nothing — and works
+**with SOLIDWORKS closed**. On a plan wrong in four ways it finds six defects,
+including the most valuable one: an argument spelled wrong, which today is
+**silently ignored** so the part comes out different from what was asked with
+no error at all.
+
+And it always states what it could *not* check — that the uids are still
+valid, that the document is of the right type. *A dry run that keeps quiet
+about its limits makes you believe the plan is fine*, and then the trouble
+arrives one step later with the added confidence of whoever asked.
+
+#### Confirmations reach the USER, not the model (entry W2.5)
+
+This bridge's confirmations were sentences the model re-reads. *A confirmation
+that goes through the model is one the model can interpret* — and interpreting
+a request for permission means, sooner or later, granting it to yourself.
+
+The bridge now sends `elicitation/create` before an operation that cannot be
+undone, and on a `decline` it **stops and says it touched nothing**. Three
+decisions worth more than the code: it asks **before anything else**, even
+before checking that SOLIDWORKS is attached; **doubt counts as no** (decline,
+cancel, an unparseable answer, an error, a timeout); and the list has **one**
+entry, because *whoever confirms ten times in a row stops reading what they
+confirm*.
+
+The fallback is declared, not silent: a client that does not support
+elicitation gets the previous behaviour, and the bridge writes on stderr that
+it could not ask.
+
+#### Five tools that check the TODO against reality
+
+A 16,000-line file rots silently. Five probes now check it, and between them
+they found, in one day:
+
+- **five wrong API signatures** out of 181 cited — including one the entry
+  itself rested a decision on (`MirrorComponents3` has fourteen arguments, the
+  entry said thirteen);
+- **one broken cross-reference** out of 73 (`vedi C8` meant `Z-C8` — the
+  sentence's own subject proved which);
+- **two dead `file:line` citations** out of 96 — one of which pointed at C#
+  that no longer exists at all, because that test became a set of declared
+  cases. *A citation does not move, it breaks, and whoever follows it
+  concludes the entry is stale;*
+- three distinct categories of unresolvable path — another repository's, a
+  closed entry's historical name, and a transient working file.
+
+Every one of those probes **over-reported on its first draft**: 33 paths, 23
+signatures, 12 folders belonging to the other repo. None of those were defects
+in the TODO — they were the boundary of what the rule could see. *A probe that
+shouts is a probe nobody reads*, and narrowing it to shut it up is worse: the
+exception gets declared with its reason, and the probe stays wide.
+
+And the three that need nothing but the repository now run **from the pre-push
+hook**, because a probe that runs when you remember is a probe that does not
+run on the day it matters. They were watched firing both ways first — exit 1
+on a deliberately broken copy of the TODO, exit 0 on the real one — which is
+why they take the file as an argument: a guard you cannot make fail is a guard
+you cannot believe.
+
+The other two stay out of the hook on purpose: they read the SOLIDWORKS
+interop, and a hook that fails on a machine without the CAD is a hook the
+first person to clone switches off.
+
+---
+
 ## 0.75.0 — 23 September 2026 · library 0.104.0
 
 ### The first section view, and a guard that was right about the wrong number

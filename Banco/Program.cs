@@ -40,10 +40,48 @@ namespace ProvaSaldatura
         /// puo' lanciare solo dalla macchina e dalla settimana in cui e' stato
         /// scritto non e' una misura ripetibile: e' un aneddoto.
         /// </summary>
-        private static string _libreria =
-            Path.Combine(
-                Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".",
-                "Riscontro.Disegno.dll");
+        /// <remarks>
+        /// E IL PREDEFINITO E' STATO CAMBIATO il 24/9/2026, perche' era una
+        /// trappola.
+        ///
+        /// Puntava alla DLL **accanto all'eseguibile**. Ma il banco vero e'
+        /// `banco.ps1`, che compila e poi passa `--libreria` puntando a
+        /// `Riscontro.Disegno\bin\Release\` — quindi la copia accanto
+        /// all'eseguibile non viene aggiornata da nessuno, e resta ferma
+        /// all'ultima volta che qualcosa ce l'ha messa.
+        ///
+        /// Il 24/9/2026 era a **0.105.0.0**, sei versioni indietro. Lanciato
+        /// l'eseguibile a mano per iterare in fretta su due casi nuovi, ha
+        /// detto che due predefiniti appena implementati **non esistevano**:
+        /// «Manca il nome del materiale», «campo assente: misure.nota_assunto».
+        /// Erano nel sorgente e nelle altre due copie. *Il sintomo era
+        /// perfetto e la causa non era nel codice.*
+        ///
+        /// Adesso il predefinito e' lo STESSO percorso che usa `banco.ps1`,
+        /// e la copia accanto all'eseguibile resta solo come ripiego — se
+        /// quella buona non c'e'. Cosi' lanciare l'eseguibile a mano misura
+        /// il codice di adesso, che e' quello che chi lo lancia crede di
+        /// star misurando.
+        ///
+        /// **In tutt'e due i casi la riga «libreria X.Y.Z (percorso)» esce
+        /// in testa al giro**, ed e' quella che ha permesso di capirlo.
+        /// </remarks>
+        private static string _libreria = LibreriaPredefinita();
+
+        private static string LibreriaPredefinita()
+        {
+            var accanto = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".";
+            // `Banco\bin\` -> due su -> la radice del repository.
+            try
+            {
+                var radice = Path.GetFullPath(Path.Combine(accanto, "..", ".."));
+                var buona = Path.Combine(radice, "Riscontro.Disegno", "bin", "Release",
+                                         "Riscontro.Disegno.dll");
+                if (File.Exists(buona)) return buona;
+            }
+            catch { }
+            return Path.Combine(accanto, "Riscontro.Disegno.dll");
+        }
 
         /// <summary>I nomi dei tipi, dopo lo spostamento in libreria.</summary>
         /// <remarks>
@@ -173,6 +211,21 @@ namespace ProvaSaldatura
             // `--muta`, e' un altro giro: produce tre numeri, non prove verdi
             // e rosse, e mescolarli non direbbe niente a nessuno.
             _regressione = argomenti.Remove("--regressione");
+
+            // `--fingi-senza-solidworks`: far MORIRE SOLIDWORKS a comando.
+            //
+            // La sentinella (voce K17) si accende quando tre parti nuove
+            // di fila non nascono — una condizione che, nella vita vera,
+            // capita dopo ore e non si sa riprodurre. Senza un modo di
+            // provocarla, sarebbe una guardia scritta e mai vista
+            // scattare: la si crede e basta.
+            //
+            // Con questa bandiera `NewDocument` risponde `null` comunque,
+            // il banco deve accorgersene entro tre tentativi, saltare
+            // tutto il resto DICENDOLO, e uscire 4. Si lancia a mano,
+            // dura pochi secondi, e serve a guardare con gli occhi cio'
+            // che le prove di contratto verificano in astratto.
+            _fingiSenzaSolidWorks = argomenti.Remove("--fingi-senza-solidworks");
 
             // `--gruppo <nomi>`: una famiglia di prove sola, mentre si lavora.
             //
@@ -317,6 +370,15 @@ namespace ProvaSaldatura
             // diario aperto per un giro che non e' mai cominciato direbbe
             // «piantato al primo passo» quando invece non e' partito affatto.
             ApriIlDiario();
+
+            // IL GUARDIANO SI ACCENDE QUI, e non prima: prima di questa riga
+            // il banco puo' ancora uscire da solo (libreria assente, SOLIDWORKS
+            // non agganciabile, scrivania sporca) e un guardiano acceso su un
+            // giro mai cominciato non sorveglia niente.
+            //
+            // E si accende SEMPRE, anche con `--gruppo`: la chiamata che non
+            // torna non guarda quale sottoinsieme si e' scelto.
+            AccendiIlGuardiano();
             Diario("SolidWorks " + _sw.RevisionNumber() +
                    ", libreria " + _addin.GetName().Version +
                    (_lento ? ", con --lento" : "") +
@@ -350,6 +412,8 @@ namespace ProvaSaldatura
             }
 
             var nonLanciati = new List<string>();
+            var gruppiFatti = new List<string>();
+            bool fermatoDallaSentinella = false;
             foreach (var gruppo in Gruppi())
             {
                 if (scelti != null &&
@@ -371,7 +435,45 @@ namespace ProvaSaldatura
                 // visibile, ma dopo.
                 _gruppoInCorso = gruppo.Nome;
                 try { gruppo.Corri(); }
+                catch (Condiviso.PreparazioneFallita ex)
+                {
+                    // ── IL BUCO DI K17, TROVATO IL 24/9/2026 ─────────────
+                    //
+                    // Qui c'era un `try/finally` **senza `catch`**. La
+                    // maggior parte dei gruppi cattura `PreparazioneFallita`
+                    // per singola prova e la segna rossa; ma un gruppo che
+                    // la alza PREPARANDOSI — `VistaDelPezzo`, che si fa il
+                    // pezzo prima di misurare — la lasciava passare di qui,
+                    // e moriva `Main`.
+                    //
+                    // Il risultato era l'opposto esatto di cio' che K17
+                    // prometteva: invece di «mi fermo, ecco perche', esco 4»,
+                    // uno **stack trace** e un processo morto. Nessun
+                    // resoconto su disco, quindi nessuna prova di cos'era
+                    // successo — e il codice d'uscita era 0xE0434352, che non
+                    // vuol dire niente per nessuno.
+                    //
+                    // Trovato lanciando `--fingi-senza-solidworks`, cioe'
+                    // esercitando apposta la guardia. *Una guardia che non si
+                    // e' mai vista scattare FINO IN FONDO e' provata a meta',
+                    // e la meta' che manca e' sempre quella che serve.*
+                    Saltata(gruppo.Cosa, "PreparazioneFallita: " + ex.Message);
+                    _gruppoInCorso = null;
+
+                    // Il resto non si prova nemmeno: SOLIDWORKS non produce
+                    // piu' documenti, e ogni gruppo che segue chiederebbe un
+                    // pezzo nuovo. Si dicono per nome, come i non lanciati.
+                    foreach (var g in Gruppi())
+                        if (!ReferenceEquals(g, gruppo) &&
+                            !nonLanciati.Contains(g.Nome) &&
+                            Array.IndexOf(gruppiFatti.ToArray(), g.Nome) < 0)
+                            Saltata(g.Cosa, "SOLIDWORKS se n'e' andato prima di questo gruppo");
+
+                    fermatoDallaSentinella = true;
+                    break;
+                }
                 finally { _gruppoInCorso = null; }
+                gruppiFatti.Add(gruppo.Nome);
             }
 
             Console.WriteLine();
@@ -442,14 +544,41 @@ namespace ProvaSaldatura
             // Voce K2-bis. Sta accanto al totale come il conto per gruppo,
             // perche' e' la stessa domanda: di quel numero grande, quanto
             // riguarda davvero SOLIDWORKS?
+            // LA POSTILLA DICEVA «finche' la K12-bis e' aperta», e la K12-bis
+            // e' chiusa dal 23/9/2026: era una riga che raccontava il mondo di
+            // ieri, cioe' esattamente cio' che questo banco rimprovera ai
+            // numeri scritti a mano. Il conto adesso e' una misura —
+            // `DocumentiAperti()` chiede a SOLIDWORKS quanti documenti ci sono
+            // durante ogni prova — e non ha piu' bisogno di scuse.
             Console.WriteLine("prove con un documento CAD aperto: " + _conDocumento +
-                              " — senza: " + _senzaDocumento +
-                              "   (tetto, non misura, finche' la K12-bis e' aperta)");
+                              " — senza: " + _senzaDocumento);
             ScriviLeSenzaAttesa();
             ScriviIlContoPerGruppo();
 
             ChiudiIlDiario(riepilogo + " · " + conto);
 
+            // ── QUATTRO USCITE, E LA 4 VINCE SU TUTTE (voce K17) ─────
+            //
+            // Se SOLIDWORKS se n'e' andato a meta' giro, «quante prove
+            // sono fallite» e «quante non ho potuto misurare» sono tutt'e
+            // due la domanda sbagliata: il giro NON E' STATO FATTO. Dirlo
+            // con un codice suo evita che chi legge un 1 si metta a
+            // cercare cosa ha rotto.
+            if (Sentinella.SeNEAndato)
+            {
+                Console.WriteLine();
+                Console.WriteLine(new string('!', 76));
+                if (fermatoDallaSentinella)
+                    Console.WriteLine(
+                        "IL GIRO E' STATO INTERROTTO A META': un gruppo non e' " +
+                        "riuscito nemmeno a prepararsi, e i seguenti non sono " +
+                        "stati provati.");
+                Console.WriteLine(Sentinella.Referto());
+                Console.WriteLine("GIRO NON VALIDO: i " + _saltate +
+                                  " casi saltati non sono ne' verdi ne' rossi.");
+                Console.WriteLine(new string('!', 76));
+                return 4;
+            }
             // TRE USCITE, E IL 2 VINCE SULL'1. Se il banco non ha potuto
             // misurare, quante prove siano fallite e' una domanda a cui non si
             // e' risposto.
@@ -2076,10 +2205,18 @@ namespace ProvaSaldatura
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             object statoOggetto = stato is Dictionary<string, object> ? LeggiStatoOggetto(doc) : stato;
 
-            var esito = esegui.Invoke(op, new object[]
+            // IL GUINZAGLIO (voce K18): si annuncia cosa si sta per fare,
+            // e si dice quando e' tornata. Il guardiano guarda da fuori.
+            Guinzaglio.Comincia(operazione, DateTime.Now);
+            object esito;
+            try
             {
-                doc, operazione, argomenti, statoOggetto, null,
-            });
+                esito = esegui.Invoke(op, new object[]
+                {
+                    doc, operazione, argomenti, statoOggetto, null,
+                });
+            }
+            finally { Guinzaglio.Finita(); }
             bool riuscito = (bool)_tEsito.GetField("Riuscito").GetValue(esito);
             if (!riuscito)
             {
@@ -2247,14 +2384,244 @@ namespace ProvaSaldatura
             return s.Length > 110 ? s.Substring(0, 110) + "..." : s;
         }
 
+        // ══════════════════════════════════════════════════════════════
+        // LA SENTINELLA (voce K17)
+        //
+        // Tre parti nuove che non nascono DI FILA non sono tre prove
+        // rosse: sono SOLIDWORKS che non c'e' piu'. Il perche', e il giro
+        // di un'ora e mezza che e' costata la sua mancanza, stanno in
+        // `Condiviso/SentinellaSolidWorks.cs`.
+        // ══════════════════════════════════════════════════════════════
+        internal static readonly Condiviso.SentinellaSolidWorks Sentinella =
+            new Condiviso.SentinellaSolidWorks(3);
+
+        /// <summary>
+        /// `--fingi-senza-solidworks`: NewDocument risponde null comunque.
+        ///
+        /// Serve a VEDERE la sentinella scattare sul banco vero, non solo
+        /// nelle prove di contratto. Una guardia che nessuno ha mai visto
+        /// scattare e' una riga di codice, non una guardia — e questa in
+        /// particolare si accende in una condizione che non si sa
+        /// riprodurre a comando.
+        /// </summary>
+        private static bool _fingiSenzaSolidWorks;
+
+        // ══════════════════════════════════════════════════════════════
+        // IL MODELLO DI DOCUMENTO SI COPIA IN LOCALE (voce K19)
+        //
+        // ── COSA E' COSTATO NON FARLO ────────────────────────────────
+        //
+        // Il 23/9/2026 tre giri di fila sono morti qui. Il modello
+        // predefinito di questa postazione sta su
+        // `<impostazioni SOLIDWORKS>\...\Parte.prtdot`, e `S:` e' una
+        // condivisione di rete: **ogni parte nuova e' una lettura SMB**, e
+        // un giro ne fa ottocento.
+        //
+        // Quando SOLIDWORKS si pianta mentre apre quel file, tiene la
+        // presa: da quel momento il file non si legge piu' NEMMENO da
+        // fuori. Misurato mentre era appeso — la cartella dei profili
+        // sulla stessa condivisione rispondeva (13 file), il server
+        // rispondeva al ping in 0 ms, e `Get-Item` su quel `.prtdot` non
+        // tornava entro venti secondi. Ucciso SOLIDWORKS: 45.955 byte,
+        // immediati. **Sembrava la rete, ed era una presa.**
+        //
+        // E il giro dopo ricadeva nella stessa trappola, perche' il
+        // SOLIDWORKS nuovo riapriva lo stesso file sullo stesso server.
+        //
+        // ── PERCHE' UNA COPIA, E NON UNA SCADENZA ────────────────────
+        //
+        // Una scadenza sulla chiamata (voce K18) dice «mi sono stancato di
+        // aspettare»: e' giusta e serve lo stesso, ma qui la domanda e'
+        // un'altra — **perche' il banco legge ottocento volte dalla rete
+        // un file che non cambia mai durante il giro?** Una copia sola,
+        // all'inizio, e la domanda non si pone piu'.
+        //
+        // ── E SI DICE COSA SI E' FATTO ───────────────────────────────
+        //
+        // Un banco che silenziosamente usa un modello diverso da quello
+        // della postazione e' un banco che misura un'altra cosa. La copia
+        // si annuncia, col percorso di partenza e quello d'arrivo; se non
+        // riesce, si usa l'originale e **lo si dice** — non si finge.
+        //
+        // NON COPRE TUTTO: SOLIDWORKS legge dalla rete anche i profili di
+        // carpenteria e gli archivi dei materiali. Questa e' la lettura
+        // piu' frequente, non l'unica.
+        // ══════════════════════════════════════════════════════════════
+        private static readonly Dictionary<string, string> _modelliInLocale =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        internal static string ModelloInLocale(string suo)
+        {
+            if (string.IsNullOrWhiteSpace(suo)) return suo;
+
+            string gia;
+            if (_modelliInLocale.TryGetValue(suo, out gia)) return gia;
+
+            string arrivo = suo;
+            try
+            {
+                if (DaLontano(suo))
+                {
+                    var cartella = Path.Combine(Path.GetTempPath(), "banco-modelli");
+                    Directory.CreateDirectory(cartella);
+                    var copia = Path.Combine(cartella, Path.GetFileName(suo));
+                    File.Copy(suo, copia, true);
+                    arrivo = copia;
+                    Console.WriteLine("  modello copiato in locale: " +
+                                      Path.GetFileName(suo) + " -> " + cartella);
+                }
+            }
+            catch (Exception ex)
+            {
+                // LA COPIA DI IERI VALE PIU' DELL'ORIGINALE IRRAGGIUNGIBILE.
+                //
+                // Il caso in cui la copia fallisce e' proprio quello in cui
+                // l'originale non si puo' leggere: il 23/9/2026 il `.prtdot`
+                // era tenuto da una presa rimasta sul server, e ricadere sul
+                // percorso di rete voleva dire ripiantarsi allo stesso modo.
+                // Se in locale c'e' la copia di un giro precedente, si usa
+                // quella — e si dice **di quando e'**, perche' un modello
+                // vecchio che si spaccia per quello di adesso sarebbe la
+                // stessa specie di silenzio che questo banco insegue.
+                string vecchia = null;
+                try
+                {
+                    var c = Path.Combine(Path.GetTempPath(), "banco-modelli",
+                                         Path.GetFileName(suo));
+                    if (File.Exists(c)) vecchia = c;
+                }
+                catch { }
+
+                if (vecchia != null)
+                {
+                    Console.WriteLine("  non ho potuto rinfrescare il modello (" +
+                                      ex.Message + "): uso la copia locale del " +
+                                      File.GetLastWriteTime(vecchia)
+                                          .ToString("d/M/yyyy HH:mm"));
+                    arrivo = vecchia;
+                }
+                else
+                {
+                    // NON SI TACE. Un giro che legge dalla rete e non lo dice
+                    // e' un giro che domani si piantera' senza spiegazioni.
+                    Console.WriteLine("  NON ho potuto copiare il modello in locale (" +
+                                      ex.Message + "): uso quello di rete, " + suo);
+                    arrivo = suo;
+                }
+            }
+
+            _modelliInLocale[suo] = arrivo;
+            return arrivo;
+        }
+
+        /// <summary>Vero se il percorso sta su una condivisione di rete —
+        /// UNC oppure un'unita' mappata. Un'unita' mappata non si vede dal
+        /// percorso: `S:\...` sembra locale, e non lo e'.</summary>
+        private static bool DaLontano(string percorso)
+        {
+            try
+            {
+                if (percorso.StartsWith("\\\\", StringComparison.Ordinal)) return true;
+                var radice = Path.GetPathRoot(percorso);
+                if (string.IsNullOrEmpty(radice)) return false;
+                return new DriveInfo(radice).DriveType == DriveType.Network;
+            }
+            catch { return false; }
+        }
+        // ══════════════════════════════════════════════════════════════
+        // IL GUINZAGLIO E IL GUARDIANO (voce K18)
+        //
+        // Il 23/9/2026 tre giri sono morti appesi dentro una chiamata che
+        // non tornava, e il banco non aveva modo di accorgersene: non ha
+        // nessuna scadenza sulle chiamate alla libreria, solo sul ponte.
+        //
+        // NOVANTA SECONDI, e non e' «quanto dovrebbe durare»: e' quanto
+        // oltre ogni dubbio. La prova piu' lenta di questo banco — 85
+        // lavorazioni su un pezzo, con `--lento` — impiega ~26 secondi per
+        // taglio, e nessuna SINGOLA chiamata ci arriva vicino. Un valore
+        // stretto trasformerebbe una prova lenta in un falso allarme, e un
+        // falso allarme spegne il guardiano il giorno dopo.
+        // ══════════════════════════════════════════════════════════════
+        internal static readonly Condiviso.Guinzaglio Guinzaglio =
+            new Condiviso.Guinzaglio(90000);
+
+        private static System.Threading.Thread _guardiano;
+
+        /// <summary>
+        /// Il guardiano guarda l'orologio e NON tocca il lavoro.
+        ///
+        /// Non prova a interrompere la chiamata: una chiamata COM piantata
+        /// non si annulla, e il thread che la fa resta li' per sempre.
+        /// Quello che fa e' stampare QUALE era e **uccidere il processo**,
+        /// perche' con SOLIDWORKS piantato le prove che seguono non
+        /// misurerebbero niente — e un giro appeso a tempo indeterminato e'
+        /// peggio di un giro finito male: nessuno lo guarda.
+        ///
+        /// `Environment.Exit` e non un'eccezione: l'eccezione andrebbe
+        /// alzata sul thread del guardiano, dove non la prenderebbe nessuno,
+        /// e il thread appeso terrebbe vivo il processo comunque.
+        /// </summary>
+        private static void AccendiIlGuardiano()
+        {
+            if (_guardiano != null) return;
+            _guardiano = new System.Threading.Thread(() =>
+            {
+                while (true)
+                {
+                    System.Threading.Thread.Sleep(5000);
+                    var referto = Guinzaglio.Appesa(DateTime.Now);
+                    if (referto == null) continue;
+                    Console.WriteLine();
+                    Console.WriteLine(new string('!', 76));
+                    Console.WriteLine(referto);
+                    Console.WriteLine("GIRO NON VALIDO: si e' fermato qui, e " +
+                                      "quello che viene dopo non e' stato provato.");
+                    Console.WriteLine(new string('!', 76));
+                    Console.Out.Flush();
+                    Diario(referto);
+                    // `System.Environment` per esteso: l'interop di SOLIDWORKS
+                    // ha una sua `Environment`, e senza il nome intero il
+                    // compilatore non sa quale delle due.
+                    System.Environment.Exit(5);
+                }
+            });
+            _guardiano.IsBackground = true;
+            _guardiano.Start();
+        }
         private static IModelDoc2 NuovaParte()
         {
-            string tpl = _sw.GetUserPreferenceStringValue(
-                (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
+            // GIA' MORTO: non si chiama nemmeno. Ogni chiamata a un
+            // SOLIDWORKS che non risponde puo' piantarsi per sempre — e'
+            // cosi' che il giro delle 15:36 e' rimasto appeso invece di
+            // finire male in fretta.
+            if (Sentinella.SeNEAndato)
+                throw new Condiviso.PreparazioneFallita(Sentinella.Referto());
+
+            string tpl = ModelloInLocale(_sw.GetUserPreferenceStringValue(
+                (int)swUserPreferenceStringValue_e.swDefaultTemplatePart));
+
+            // E' QUI CHE SI E' PIANTATO IL 23/9/2026, non dentro una
+            // operazione: `NewDocument` che legge il modello da una
+            // condivisione di rete. Il guinzaglio serve soprattutto qui.
+            Guinzaglio.Comincia("NewDocument (il modello di documento)", DateTime.Now);
+            IModelDoc2 nata;
+            try
+            {
+                nata = _fingiSenzaSolidWorks
+                    ? null
+                    : _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
+            }
+            finally { Guinzaglio.Finita(); }
+
+            if (nata != null) { Sentinella.Riuscita(); return nata; }
+
+            if (Sentinella.Fallita())
+                throw new Condiviso.PreparazioneFallita(Sentinella.Referto());
+
+            // Uno o due di fila: puo' ancora essere il pezzo, non il
+            // programma. Il messaggio resta quello della F12.
             // NON TORNA NULL: se SOLIDWORKS non apre il documento, lo DICE.
-            // Vedi OppureDillo, e la voce F12 per il perche' e' costato.
-            return OppureDillo(_sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2,
-                               "la parte nuova su cui provare");
+            return OppureDillo(nata, "la parte nuova su cui provare");
         }
 
         /// <summary>
@@ -2283,7 +2650,7 @@ namespace ProvaSaldatura
         private static T OppureDillo<T>(T cosa, string quale) where T : class
         {
             if (cosa != null) return cosa;
-            throw new InvalidOperationException(
+            throw new Condiviso.PreparazioneFallita(
                 "SOLIDWORKS non ha prodotto " + quale + " (ha risposto null). " +
                 "Non e' la prova a essere fallita: e' il banco che non e' " +
                 "riuscito a preparare il pezzo. Guarda quanti documenti sono " +

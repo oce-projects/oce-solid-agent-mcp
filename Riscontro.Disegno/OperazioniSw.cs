@@ -254,7 +254,7 @@ namespace Riscontro.Disegno
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
             "sostituisci_componente",
             "croci_di_centro", "quota_in_tavola", "nota_in_tavola",
-            "sezione_in_tavola",
+            "sezione_in_tavola", "dettaglio_in_tavola",
             "nuovo_foglio", "attiva_foglio", "distinta_taglio_in_tavola",
             "verifica_interferenze", "cartiglio",
             "sweep_circolare",
@@ -396,6 +396,7 @@ namespace Riscontro.Disegno
                     // contarla nel posto sbagliato avrebbe chiuso quattro voci.
                     case "nota_in_tavola": return NotaInTavola(modello, argomenti);
                     case "sezione_in_tavola": return SezioneInTavola(modello, argomenti);
+                    case "dettaglio_in_tavola": return DettaglioInTavola(modello, argomenti);
                     // I fogli, in OperazioniFogli.cs. `esporta_pdf` conta gia'
                     // le pagine del PDF, e quel conteggio valeva sempre 1
                     // perche' non c'era modo di fare un secondo foglio.

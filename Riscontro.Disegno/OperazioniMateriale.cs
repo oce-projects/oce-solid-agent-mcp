@@ -30,15 +30,37 @@ namespace Riscontro.Disegno
     /// </summary>
     public partial class OperazioniSw
     {
+        /// <summary>
+        /// Il materiale che questa officina usa salvo avviso contrario
+        /// (voce Z-G3). Sta qui e non nello schema perche' lo schema lo
+        /// ANNUNCIA e questo lo APPLICA: due posti per lo stesso valore
+        /// divergerebbero, e il catalogo si rigenera da `Operazioni.cs`.
+        /// </summary>
+        private const string MaterialePredefinito = "S235JR";
+
         private Esito ApplicaMateriale(IModelDoc2 modello, Dictionary<string, object> a)
         {
             var parte = modello as IPartDoc;
             if (parte == null)
                 return Fallito("Il materiale si applica a una parte, e questo non e' un documento di parte.");
 
+            // ── IL PREDEFINITO DI QUESTA OFFICINA (voce Z-G3) ────────────
+            //
+            // Un'officina di carpenteria lavora S235JR salvo avviso
+            // contrario, e chiedere ogni volta un campo di cui la risposta
+            // e' sempre la stessa fa scrivere al modello una riga che non
+            // e' una scelta.
+            //
+            // MA IL PREDEFINITO SI DICHIARA, SEMPRE. Se il ponte mettesse
+            // S235JR e tacesse, il modello crederebbe di averlo scelto lui,
+            // la volta dopo non lo chiederebbe nemmeno, e poi arriverebbe un
+            // pezzo che andava in inox senza che nessuno sappia dove sia
+            // stata presa la decisione. *«Nessuno ci ha pensato» e «qualcuno
+            // ci ha pensato e ha deciso» si leggono uguali, e solo una delle
+            // due si puo' migliorare.*
             string chiesto = Str(a, "materiale", "");
-            if (string.IsNullOrWhiteSpace(chiesto))
-                return Fallito("Manca il nome del materiale.");
+            bool assunto = string.IsNullOrWhiteSpace(chiesto);
+            if (assunto) chiesto = MaterialePredefinito;
             string archivioChiesto = Str(a, "archivio", "");
 
             // La grafia esatta la trova la postazione che esegue, non il
@@ -85,6 +107,14 @@ namespace Riscontro.Disegno
                 ["materiale"] = materiale.Nome,
                 ["archivio"] = archivioDopo,
                 ["classe"] = materiale.Classe,
+                // SI SCRIVE SEMPRE, anche quando il materiale e' stato
+                // chiesto: un campo che compare solo nel caso strano e' un
+                // campo che chi legge non impara a guardare.
+                ["nota_assunto"] = assunto
+                    ? "materiale: «" + MaterialePredefinito + "» — PREDEFINITO di " +
+                      "questa officina, non l'hai chiesto tu. Se ti serve altro, " +
+                      "scrivi «materiale» nel passo."
+                    : "materiale: «" + chiesto + "» — l'hai chiesto tu.",
             };
             if (!string.IsNullOrEmpty(prima) && prima != materiale.Nome)
                 misure["sostituisce"] = prima;

@@ -169,14 +169,6 @@ namespace Riscontro.Disegno
         {
             var risultato = new Risultato();
 
-            // Prima di toccare qualsiasi cosa: il documento e' nostro?
-            var controllo = (string)await _sulThreadSw(() => ControlliPreliminari());
-            if (controllo != null)
-            {
-                risultato.Errore = controllo;
-                return risultato;
-            }
-
             // Se il piano non dice su quale documento vale, si prende quello
             // attivo adesso — ma UNA volta sola, e da qui in poi e' quello.
             // Prima non si confrontava mai niente: fra la lettura dello stato e
@@ -201,9 +193,31 @@ namespace Riscontro.Disegno
             // Il nome resta, ma solo per i MESSAGGI: chi legge vuole sapere
             // come si chiama il pezzo, non il suo puntatore.
             var documentoAtteso = (IModelDoc2)await _sulThreadSw(() => _sw.IActiveDoc2);
-            if (documentoAtteso == null)
+
+            // ── E I CONTROLLI GUARDANO **QUESTO**, NON QUELLO DI ADESSO ──
+            //
+            // Fino al 23/9/2026 `ControlliPreliminari()` girava PRIMA di
+            // questa riga e si ripescava `_sw.IActiveDoc2` da solo: due
+            // letture diverse dello stesso globale, con una finestra in
+            // mezzo. I controlli potevano dire «va bene» del documento A —
+            // e' una parte, e' salvato, non e' in sola lettura — e il piano
+            // prendere il documento B, che magari e' un assieme in sola
+            // lettura. **Nessun errore lo avrebbe detto**: tutt'e due le
+            // letture erano legittime, ed e' il fatto che fossero DUE a
+            // essere sbagliato (voce Z-C5).
+            //
+            // Il documento si tiene per mano, non per nome — e nemmeno
+            // chiedendolo due volte.
+            //
+            // Il caso «nessun documento aperto» lo dice `ControlliPreliminari`
+            // con la sua frase, come prima: il controllo del null che stava
+            // qui era il SECONDO, e diceva la stessa cosa con parole
+            // leggermente diverse a seconda di quale scattava per primo.
+            var controllo = (string)await _sulThreadSw(
+                () => ControlliPreliminari(documentoAtteso));
+            if (controllo != null)
             {
-                risultato.Errore = "Non c'e' nessun documento aperto su cui lavorare.";
+                risultato.Errore = controllo;
                 return risultato;
             }
 
@@ -339,8 +353,23 @@ namespace Riscontro.Disegno
 
                         var lettura = StatoDocumento.Leggi(modello);
                         var operazioni = new OperazioniSw(_sw, _log);
-                        var e = operazioni.Esegui(
-                            modello, passo.Operazione, passo.Argomenti, lettura, passiFatti);
+
+                        // Voce Z-C4: si annuncia cosa si sta per fare. Il
+                        // `finally` e' obbligatorio -- senza, un passo che
+                        // alza lascerebbe il guinzaglio teso e il guardiano
+                        // segnalerebbe appesa una chiamata gia' finita.
+                        AccendiIlGuardiano();
+                        _guinzaglio.Comincia(passo.Operazione, DateTime.Now);
+                        // `OperazioniSw.Esito` col nome intero: `Esito` e' una
+                        // classe annidata, e senza il prefisso il compilatore
+                        // non la trova.
+                        OperazioniSw.Esito e;
+                        try
+                        {
+                            e = operazioni.Esegui(
+                                modello, passo.Operazione, passo.Argomenti, lettura, passiFatti);
+                        }
+                        finally { _guinzaglio.Finita(); }
                         if (e.Riuscito)
                         {
                             // Cio' che questo passo ha creato resta a
@@ -506,10 +535,82 @@ namespace Riscontro.Disegno
         /// <summary>
         /// I controlli che vanno fatti PRIMA di scrivere nel documento.
         /// Ritorna null se e' tutto a posto, altrimenti il motivo del rifiuto.
+        ///
+        /// ── IL DOCUMENTO ARRIVA, NON SI RIPESCA (voce Z-C5) ─────────────
+        ///
+        /// Prima questo metodo leggeva `_sw.IActiveDoc2` per conto suo, e il
+        /// piano lo rileggeva subito dopo: due letture dello stesso globale
+        /// con una finestra in mezzo, cioe' la possibilita' di approvare un
+        /// documento e lavorarne un altro **senza che niente lo dica**.
+        ///
+        /// Un metodo che si ripesca da solo cio' su cui deve decidere e' un
+        /// metodo che decide su qualcos'altro, prima o poi. Adesso lo
+        /// riceve: se e' `null`, il chiamante non aveva niente da darci.
         /// </summary>
-        private string ControlliPreliminari()
+        // ══════════════════════════════════════════════════════════════
+        // IL GUINZAGLIO, PER CHI USA IL PONTE (voce Z-C4)
+        //
+        // Il gemello di K18: quella protegge il GIRO del banco, questa
+        // protegge il CLIENTE. Stessa classe, `Condiviso/Guinzaglio.cs`,
+        // perche' due meccanismi di scadenza che si comportano diversamente
+        // sono peggio di uno solo.
+        //
+        // ── E LA PREMESSA DELLA VOCE ERA PIU' STRETTA DEL VERO ────────
+        //
+        // Z-C4 diceva «chiamate a rischio MODALE». Il 23/9/2026 la chiamata
+        // che non e' tornata non aveva nessun modale: era `NewDocument`
+        // ferma dentro SMB su un file tenuto da una presa. Una scadenza non
+        // deve presumere che ci sia una finestra da chiudere: deve solo
+        // **smettere di aspettare e dire su cosa**.
+        //
+        // ── DOVE SCRIVE, E PERCHE' NON E' UN DETTAGLIO ───────────────
+        //
+        // **MAI SU STDOUT.** Su stdio, stdout e' il canale JSON-RPC: una
+        // riga che non sia JSON lo rompe, e il client risponde -32700 a una
+        // richiesta che non c'entra niente. Il referto va su **stderr**,
+        // che i client MCP raccolgono nei loro log.
+        //
+        // E NON UCCIDE IL PROCESSO, al contrario del banco: il banco e' un
+        // giro che o finisce o non serve, il ponte e' un servizio di
+        // qualcun altro. Quello che puo' fare e' **dire** che una chiamata
+        // e' appesa e quale — cosi' chi legge i log sa cosa e' successo
+        // invece di vedere un ponte che non risponde piu'.
+        // ══════════════════════════════════════════════════════════════
+        private static readonly Condiviso.Guinzaglio _guinzaglio =
+            new Condiviso.Guinzaglio(120000);
+
+        private static System.Threading.Thread _guardiano;
+        private static readonly object _chiaveGuardiano = new object();
+
+        private static void AccendiIlGuardiano()
         {
-            var modello = _sw.IActiveDoc2;
+            lock (_chiaveGuardiano)
+            {
+                if (_guardiano != null) return;
+                _guardiano = new System.Threading.Thread(() =>
+                {
+                    string detto = null;
+                    while (true)
+                    {
+                        System.Threading.Thread.Sleep(10000);
+                        var referto = _guinzaglio.Appesa(DateTime.Now);
+                        if (referto == null) { detto = null; continue; }
+                        // UNA VOLTA SOLA PER CHIAMATA: un guardiano che
+                        // ripete la stessa riga ogni dieci secondi riempie
+                        // il log di chi ci lavora, e un log pieno non si
+                        // legge piu'.
+                        if (referto == detto) continue;
+                        detto = referto;
+                        try { Console.Error.WriteLine("[ponte] " + referto); }
+                        catch { }
+                    }
+                });
+                _guardiano.IsBackground = true;
+                _guardiano.Start();
+            }
+        }
+        private string ControlliPreliminari(IModelDoc2 modello)
+        {
             if (modello == null) return "Non c'e' nessun documento aperto.";
             int tipo = modello.GetType();
             bool ammesso = tipo == (int)swDocumentTypes_e.swDocPART

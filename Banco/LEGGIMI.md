@@ -246,6 +246,55 @@ perche', una `gemella` che non esiste, un selettore che non risolve.
 Un `null` **dichiarato** invece si misura: `materiale: null` vuol dire «quel
 posto esiste ed e' vuoto», ed e' una cosa diversa da un campo che manca.
 
+### E quando SOLIDWORKS se ne va a meta' giro (uscita 4)
+
+Tre documenti nuovi che non nascono **di fila** non sono tre prove rosse: sono
+SOLIDWORKS che non c'e' piu'. Il banco se ne accorge, **salta** tutto il resto
+dicendo per ognuno che non e' stato misurato, ed esce **4** — che vince sul 2
+e sull'1, perche' un giro non fatto non e' un giro con errori.
+
+«Di fila» e' la parola che conta: tre fallimenti sparsi in ottocento controlli
+sono rumore normale, e una guardia che fermasse i giri sani verrebbe
+disattivata dal primo che la vede fermarne uno.
+
+Per **vederla scattare** — che e' l'unico modo di crederle — c'e'
+`--fingi-senza-solidworks`: fa rispondere `null` a `NewDocument`, e in pochi
+secondi si legge il giro che si interrompe da solo. La condizione vera capita
+dopo ore e non si sa riprodurre a comando (voce K17, il 23/9/2026 e' costata
+un'ora e mezza di giro e nove casi giusti dipinti di rosso).
+
+Quello che **non** copre: un SOLIDWORKS che si pianta *dentro* una chiamata
+invece di rispondere `null`. Li' non torna nessuna risposta da contare, e il
+giro resta appeso — e' la voce K18, non fatta.
+
+### Cosa il giro legge dalla RETE, e cosa no (voce K19)
+
+Su questa postazione `S:` e' una condivisione di rete, e il modello di
+documento predefinito sta li' sopra. **Ogni parte nuova sarebbe una lettura
+SMB, e un giro ne fa ottocento.** Il 23/9/2026 tre giri di fila sono morti
+proprio li': SOLIDWORKS si e' piantato mentre apriva il `.prtdot` e ha tenuto
+la presa, e da quel momento **quel file non si leggeva piu' nemmeno da fuori**
+— ne' per il giro dopo, ne' per il SOLIDWORKS dopo. Sembrava la rete: il server
+rispondeva al ping in 0 ms e la cartella dei profili, sulla stessa
+condivisione, si elencava senza esitare.
+
+Dal 23/9/2026 il banco **copia il modello in locale una volta per giro** e lo
+dice, col percorso di partenza e quello d'arrivo. Se la copia non riesce usa
+quello di rete e **dice anche quello**: un banco che in silenzio usa un modello
+diverso da quello della postazione sta misurando un'altra cosa.
+
+**Restano letture di rete**, e vanno sapute perche' la prossima volta non si
+cerchi di nuovo nel posto sbagliato:
+
+```
+i profili di carpenteria   <impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\...
+                           (si cambia con PROFILI_SALDATURA)
+gli archivi dei materiali  dove li tiene SOLIDWORKS di suo
+i casi e i binari          il repository sta su S: anche lui
+```
+
+Quella tolta e' la **piu' frequente**, non l'unica.
+
 ### Le coppie — `casi/coppie/`
 
 Ogni caso con `deve_fallire` **deve** nominare in `gemella` un caso che riesce,
@@ -471,17 +520,17 @@ casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
 casi/verifica/     5   com'e' venuto: solido, chiuso, sano
 casi/misura/      10   quanto pesa, in che scatola ci sta, quanto dista
-casi/corpi/       11   le booleane, il raccordo variabile, il filetto cosmetico
+casi/corpi/       13   le booleane, il raccordo variabile, il filetto cosmetico
 casi/esporta/     10   STL, STEP e IGES: il file riletto byte per byte,
                        e il volume riaperto in SOLIDWORKS
-casi/proprieta/    9   i due cassetti, e il codice che va in distinta
+casi/proprieta/   11   i due cassetti, e il codice che va in distinta
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
 casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella)
-casi/tavola/      10   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      12   il primo caso che arriva in TAVOLA (voce GT0);
                        due fogli e lo stesso diedro (voce GT1);
                        il cartiglio dice cosa vuole (voce GT3);
                        i contatori ci sono anche a zero (voce Z-E1);
@@ -490,7 +539,11 @@ casi/tavola/      10   il primo caso che arriva in TAVOLA (voce GT0);
                        la nota finisce sul FOGLIO e non in una vista (voce E2-bis);
                        la nota fuori dal foglio (la gemella del rifiuto);
                        la sezione taglia il pezzo, e ha il TRATTEGGIO (voce GT4);
-                       il taglio fuori dalla vista (la gemella del rifiuto)
+                       il taglio fuori dalla vista (la gemella del rifiuto);
+                       il dettaglio INGRANDISCE, e il cerchio e' DIVENTATO un
+                       dettaglio -- non il tratteggio, che su un dettaglio
+                       vale zero (voce GT4, l'altra meta');
+                       il cerchio piu' grande della vista (la gemella)
 casi/saldature/    1   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi (voce Z-C6)
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)

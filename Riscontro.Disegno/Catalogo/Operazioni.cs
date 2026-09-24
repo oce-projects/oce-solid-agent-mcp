@@ -86,6 +86,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "estrudi_cerchio",
                     Famiglia = "estrusioni",
+                    Esempio = "{\"piano\":\"frontale\",\"diametro_mm\":6,\"altezza_mm\":10}",   // da `filetto_su_un_perno`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un cilindro pieno centrato sull'origine.",
@@ -116,6 +118,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "estrudi_profilo",
                     Famiglia = "estrusioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Una sagoma qualunque, data per contorni, estrusa: il modo "
@@ -175,6 +178,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "estrudi_rettangolo",
                     Famiglia = "estrusioni",
+                    Esempio = "{\"piano\":\"frontale\",\"lunghezza_mm\":200,\"larghezza_mm\":120,\"spessore_mm\":20,\"centrato\":true}",   // da `asola_cieca`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Una piastra rettangolare piena, il primo corpo del pezzo.",
@@ -217,6 +222,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "estrudi_sezione",
                     Famiglia = "estrusioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Una barra da sezione normalizzata (tubolare, tondo, angolare, U, "
@@ -301,6 +307,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "rivoluzione",
                     Famiglia = "estrusioni",
+                    Esempio = "{\"piano\":\"frontale\",\"angolo_gradi\":360,\"asse\":[[0,0],[90,0]],\"contorni\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // da `albero_forato_non_dichiara_piu_il_profilo`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un solido a simmetria di rotazione: boccole, distanziali, alberi "
@@ -322,7 +330,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "[[0,0],[70,0]]\nIl lato da (70,0) a (0,0), che chiude la spezzata, "
                         + "giace SULL'asse: e' il caso normale, non un errore.\n\nSolo il "
                         + "corpo pieno: per una parete sottile disegna il vuoto interno come "
-                        + "secondo contorno.",
+                        + "secondo contorno."
+                        + "\n\nMI RIFIUTO SE L'ASSE NON STA SUL PIANO DEL PROFILO, e se il profilo "
+                        + "ATTRAVERSA l'asse. Un profilo a cavallo dell'asse genera un solido che "
+                        + "si compenetra con se stesso: SOLIDWORKS a volte lo fa lo stesso, e il "
+                        + "pezzo che ne esce non e' quello che volevi.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -365,6 +377,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "ruota_dentata",
                     Famiglia = "estrusioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Una ruota dentata a evolvente, con foro e cava per linguetta.",
@@ -413,6 +426,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "asola",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un foro allungato: il fissaggio che si registra in montaggio.",
@@ -428,7 +442,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "faccia: 0 e' orizzontale, 90 verticale. Serve quando la "
                         + "registrazione va in una direzione precisa.\n\nNon e' una tasca "
                         + "rettangolare. «taglio_rettangolare» ci somiglia ma ha gli spigoli "
-                        + "vivi, e la vite ci balla dentro invece di scorrere.",
+                        + "vivi, e la vite ci balla dentro invece di scorrere."
+                        + "\n\nMI RIFIUTO IN QUATTRO CASI, e li dico prima perche' provarli costa un giro: "
+                        + "se l'asola non e' passante e non mi dai la profondita'; se cade tutta "
+                        + "fuori dal materiale (ti dico fra quali coordinate sta la faccia); se e' "
+                        + "piu' grande della faccia e la coprirebbe tutta; e se lunghezza e "
+                        + "larghezza sono uguali -- quella e' una circonferenza, e la lunghezza qui "
+                        + "si misura da fuori a fuori.",
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -497,6 +517,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "estrudi_su_faccia",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Fa CRESCERE materiale da una faccia: un rialzo, un labbro, un "
@@ -567,6 +588,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "foro_guidato",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un foro come si fa un foro: creazione guidata, norma ISO, "
@@ -675,6 +697,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "guscio",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Svuota un corpo pieno lasciando una parete di spessore costante: "
@@ -743,6 +766,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "modifica_quota",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Cambia una quota di una lavorazione che c'e' gia', senza rifare niente.",
@@ -779,6 +803,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sopprimi_lavorazione",
                     Famiglia = "lavorazioni",
+                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione2\"}",   // da `lim_sopprimere_due_volte`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "SPEGNE una lavorazione dell'albero, senza cancellarla. Si riaccende.",
@@ -794,7 +820,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "un foro spegne anche i suoi raccordi. La risposta dice quali sono "
                         + "stati.\n\nDOPO, GLI IDENTIFICATIVI NON VALGONO PIU'. Sopprimere fa "
                         + "sparire delle facce, e gli identificativi (F1, E4) si rinumerano "
-                        + "per area a ogni lettura: rileggi il pezzo prima del passo seguente.",
+                        + "per area a ogni lettura: rileggi il pezzo prima del passo seguente."
+                        + "\n\nMI RIFIUTO SE LA LAVORAZIONE E' GIA' SOPPRESSA, e ti dico di usare "
+                        + "l'operazione che la riattiva. Sopprimere due volte non fa niente e non "
+                        + "da' errore: e' il modo piu' facile di credere di aver cambiato il pezzo "
+                        + "senza averlo toccato.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -813,6 +843,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "elimina_lavorazione",
                     Famiglia = "lavorazioni",
+                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione1\"}",   // da `elimina_il_primo_foro`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "CANCELLA una lavorazione dall'albero. Non si disfa con un'altra operazione.",
@@ -844,6 +876,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "raccordo_spigoli",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Raccordo a raggio costante su uno o piu' spigoli.",
@@ -894,6 +927,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "ripeti_circolare",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Ripete una lavorazione in circolo attorno a un asse o a uno spigolo dritto.",
@@ -967,6 +1001,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "ripeti_lineare",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Ripete una lavorazione in fila, o in griglia su due direzioni: "
@@ -989,7 +1024,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "matrice; per una fila sola omettilo insieme a passo2 e "
                         + "numero_istanze2.\n\nIl verso lo decide l'asse, non un segno nei "
                         + "parametri: se la ripetizione esce dalla parte sbagliata usa "
-                        + "«capovolgi_1».",
+                        + "«capovolgi_1»."
+                        + "\n\nMI RIFIUTO SE LA DIREZIONE ARRIVA DA UNO SPIGOLO CURVO: serve uno "
+                        + "spigolo rettilineo. Un arco non ha una direzione sola, e prenderne una "
+                        + "a caso vorrebbe dire una ripetizione storta che sembra giusta.",
                     Precondizione = "feature_e_direzione",
                     Schema = O(
                         "type", "object",
@@ -1066,6 +1104,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "smusso_spigoli",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Smussa uno o piu' spigoli: bava, invito di montaggio, cianfrino da saldare.",
@@ -1077,7 +1116,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "— metti «secondo_lato_mm» e l'angolo viene ignorato.\n\nSmusso o "
                         + "raccordo non e' una preferenza estetica: uno smusso si fa con una "
                         + "fresa o una lima, un raccordo vuole un utensile di raggio. Se "
-                        + "l'utente dice «smussa», non arrotondare.",
+                        + "l'utente dice «smussa», non arrotondare."
+                        + "\n\nMI RIFIUTO SE LO SMUSSO E' TROPPO GRANDE PER LO SPIGOLO -- non ci sta "
+                        + "nemmeno meta'. Un valore oltre il limite non da' sempre errore: a volte "
+                        + "esce una geometria degenere che passa il ricalcolo.",
                     Precondizione = "corpo_solido_e_spigolo",
                     Schema = O(
                         "type", "object",
@@ -1127,6 +1169,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "specchia",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Specchia una lavorazione rispetto a uno dei tre piani base.",
@@ -1137,7 +1180,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "detto: sbagliarlo non sposta la geometria di poco, la mette da "
                         + "un'altra parte del pezzo, e la costruzione riesce lo stesso.\n\nSi "
                         + "specchia la LAVORAZIONE, non il corpo intero: per un pezzo "
-                        + "simmetrico specchia il foro o la tasca che manca da un lato.",
+                        + "simmetrico specchia il foro o la tasca che manca da un lato."
+                        + "\n\nMI RIFIUTO SE IL PIANO NON ESISTE, e ti dico quali ci sono. I nomi "
+                        + "inventati -- diagonale, obliquo -- non li interpreto: specchiare sul "
+                        + "piano sbagliato produce un pezzo plausibile e sbagliato.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -1177,6 +1223,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sposta_corpi",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Sposta o COPIA dei corpi gia' fatti, di una distanza data.",
@@ -1244,13 +1291,17 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "taglio_cilindrico",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un taglio tondo su una faccia: per un passaggio che NON e' un "
                         + "foro da viteria.",
                     Descrizione =
                         "Fa un foro su una faccia gia' esistente, alle coordinate indicate "
-                        + "nel piano di quella faccia. Passante o cieco.",
+                        + "nel piano di quella faccia. Passante o cieco."
+                        + "\n\nMI RIFIUTO SE IL FORO CADE TUTTO FUORI DAL MATERIALE (ti dico fra quali "
+                        + "coordinate sta la faccia) e se e' cosi' largo da coprire tutta la "
+                        + "faccia: quello non e' un foro, e' un pezzo che sparisce.",
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -1313,11 +1364,15 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "taglio_rettangolare",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Una tasca rettangolare su una faccia.",
                     Descrizione =
-                        "Scava una tasca rettangolare su una faccia esistente.",
+                        "Scava una tasca rettangolare su una faccia esistente."
+                        + "\n\nMI RIFIUTO SE LA TASCA COPRE TUTTA LA FACCIA, e ti dico quanto misura. "
+                        + "Una tasca grande quanto il pezzo non e' una tasca: e' il pezzo che non "
+                        + "c'e' piu'.",
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -1379,6 +1434,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "applica_materiale",
                     Famiglia = "proprieta",
+                    Esempio = "{\"materiale\":\"AISI 304\"}",   // da `massa_di_un_cubo_di_acciaio`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Assegna il materiale al pezzo: senza, non c'e' peso ne' distinta utile.",
@@ -1392,25 +1449,35 @@ namespace Riscontro.Disegno.Catalogo
                         + "librerie vere. Se il nome corrisponde a piu' materiali o a "
                         + "nessuno, l'operazione fallisce elencandoti quelli che ci sono, e "
                         + "allora si chiede all'utente: fra 1.0037 e 1.0116 non si sceglie a "
-                        + "caso.",
+                        + "caso.\n\nSE NON DICI IL MATERIALE uso «S235JR», che e' "
+                        + "quello che questa officina lavora salvo avviso contrario, "
+                        + "e te lo scrivo nella risposta: cosi' sai che l'ho scelto io "
+                        + "e non tu.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "materiale", O(
                                 "type", "string",
-                                "description", "per esempio «S235JR», «AISI 304», «Lega 6061»"),
+                                "default", "S235JR",
+                                "description", "per esempio «S235JR», «AISI 304», «Lega 6061». "
+                                    + "Se non lo dici uso S235JR, e te lo scrivo nella risposta."),
                             "archivio", O(
                                 "type", "string",
                                 "description", "opzionale: il nome dell'archivio, se sai in quale cercare. "
                                     + "Lascialo stare se non lo sai.")),
-                        "required", A(
-                            "materiale")),
+                        // Z-G3: `materiale` NON e' piu' obbligatorio — c'e' un
+                        // predefinito d'officina, e la risposta dichiara di averlo
+                        // usato. Un campo che si chiede sempre e la cui risposta e'
+                        // sempre la stessa fa scrivere al modello una riga che non
+                        // e' una scelta.
+                        "required", A()),
                 },
                 new OperazioneDisegno
                 {
                     Nome = "crea_asse",
                     Famiglia = "riferimenti",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un asse lungo il centro di un foro o di un albero: serve per "
@@ -1463,6 +1530,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "crea_piano",
                     Famiglia = "riferimenti",
+                    Esempio = "{\"piano\":\"frontale\",\"distanza_mm\":-250}",   // da `piano_frontale_meno_250`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un piano di riferimento nuovo, parallelo a un piano base e "
@@ -1498,6 +1567,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "cordone_saldatura",
                     Famiglia = "saldature",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Cordone di saldatura cosmetico fra due gruppi di corpi.",
@@ -1574,6 +1644,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "distinta_taglio",
                     Famiglia = "saldature",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Crea o aggiorna la distinta di taglio del pezzo saldato. Va per ultima.",
@@ -1599,6 +1670,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "fazzoletto",
                     Famiglia = "saldature",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Fazzoletto di irrigidimento fra due facce di un nodo.",
@@ -1645,6 +1717,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "membro_strutturale",
                     Famiglia = "saldature",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Barre vere di carpenteria lungo i segmenti che dai: e' cio' che "
@@ -1729,6 +1802,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "taglia_membri",
                     Famiglia = "saldature",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Taglia o estende le barre dove si incontrano.",
@@ -1807,6 +1881,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "tappo_estremita",
                     Famiglia = "saldature",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Chiude con un tappo le estremita' aperte delle barre cave.",
@@ -1864,6 +1939,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "telaio_rettangolare",
                     Famiglia = "saldature",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un telaio rettangolare di quattro barre, dato con due quote "
@@ -1930,6 +2006,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "crea_disegno",
                     Famiglia = "tavola",
+                    Esempio = "{\"formato\":\"A3\"}",   // da `due_fogli_e_lo_stesso_diedro`
+                    DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
                         "Apre la tavola del pezzo che stai guardando.",
@@ -1963,6 +2041,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "esporta_pdf",
                     Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
                         "Il PDF di TUTTI i fogli, con le pagine contate.",
@@ -1987,6 +2066,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "imposta_foglio",
                     Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
                         "Formato e scala del foglio.",
@@ -2024,6 +2104,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "quote_dal_modello",
                     Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
                         "Porta in tavola le quote che il pezzo ha gia'.",
@@ -2058,6 +2139,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "croci_di_centro",
                     Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
                     // ── NON PROVATA, E NON PERCHE' MANCHI IL TEMPO ──────
                     //
                     // Il codice c'e' ed e' giusto; e' l'API che dice di si' e
@@ -2138,6 +2220,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "quota_in_tavola",
                     Famiglia = "tavola",
+                    Esempio = "{\"spigoli\":[0,1,2,3]}",   // da `la_tavola_si_quota`
+                    DocumentoRichiesto = "tavola",
                     // ── PROVATA, E COSA VUOL DIRE QUI ──────────────────
                     //
                     // Misurato il 18/9/2026 fuori processo: quattro quote su
@@ -2170,7 +2254,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "nasce nessuna te lo dico, e ti dico quali spigoli ho provato."
                         + "\n\nDOVE FINISCONO: sotto l'ingombro della vista, in fila. Non "
                         + "so se si accavallano col disegno — quotare BENE e' un mestiere, "
-                        + "e questa operazione mette quote giuste, non una tavola bella.",
+                        + "e questa operazione mette quote giuste, non una tavola bella."
+                        + "\n\nMI RIFIUTO SE LO SPIGOLO CHIESTO NON ESISTE nella vista, e ti dico "
+                        + "quanti ne mostra. Un indice che non c'e' e' l'errore piu' facile da "
+                        + "fare quotando alla cieca.",
                     Precondizione = "una tavola con almeno una vista che mostri spigoli",
                     Schema = O(
                         "type", "object",
@@ -2202,6 +2289,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "nota_in_tavola",
                     Famiglia = "tavola",
+                    Esempio = "{\"testo\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `la_nota_finisce_sul_foglio`
+                    DocumentoRichiesto = "tavola",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
                     // Che la nota NASCA, che finisca sul FOGLIO e non dentro
@@ -2254,6 +2343,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sezione_in_tavola",
                     Famiglia = "tavola",
+                    Esempio = "{\"etichetta\":\"A\",\"a_mm\":0}",   // da `la_sezione_taglia_il_pezzo`
+                    DocumentoRichiesto = "tavola",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
                     // Che la vista di sezione NASCA (il conto delle viste
@@ -2323,8 +2414,85 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "dettaglio_in_tavola",
+                    Famiglia = "tavola",
+                    Esempio = "{\"etichetta\":\"B\",\"scala\":2,\"raggio_mm\":8}",   // da `il_dettaglio_ingrandisce`
+                    DocumentoRichiesto = "tavola",
+                    // ── PROVATA, E SU COSA ─────────────────────────────
+                    //
+                    // Che la vista di dettaglio NASCA, che sia del tipo
+                    // giusto, e che il cerchio sia DIVENTATO una
+                    // circonferenza di dettaglio sulla vista di partenza —
+                    // che e' cio' che distingue un dettaglio vero da un
+                    // cerchio disegnato a mano accanto a una vista in piu'.
+                    //
+                    // NON si guarda il tratteggio: un dettaglio non taglia
+                    // niente, e la campitura li' e' zero (misurato). Copiare
+                    // il controllo della sezione darebbe un'operazione che
+                    // rifiuta sempre.
+                    Provata = true,
+                    Sommario =
+                        "Crea una vista di dettaglio ingrandita su una tavola, e "
+                        + "controlla che il cerchio sia diventato un dettaglio.",
+                    Descrizione =
+                        "Ingrandisce un pezzo di una vista. E' l'altra meta' di cio' "
+                        + "che manca a una tavola d'officina: la sezione fa vedere cosa "
+                        + "c'e' dentro, il dettaglio fa vedere cio' che e' troppo "
+                        + "piccolo per leggersi alla scala del disegno — una gola, uno "
+                        + "smusso, un raccordo con la sua quota.\n\n"
+                        + "IL CERCHIO LO TRACCIO IO, dentro la vista. Di serie al centro "
+                        + "con raggio un quarto del lato minore; con «x_mm» e «y_mm» lo "
+                        + "sposti e con «raggio_mm» lo cambi, in millimetri **di foglio** "
+                        + "— non del modello, perche' sul foglio la vista e' in scala.\n\n"
+                        + "MI RIFIUTO SE IL CERCHIO SBORDA dalla vista: un cerchio fuori "
+                        + "ingrandisce del vuoto, e il vuoto ingrandito e' comunque una "
+                        + "vista che sembra buona.\n\n"
+                        + "E TI DICO SE IL CERCHIO E' DIVENTATO UN DETTAGLIO, contando le "
+                        + "circonferenze di dettaglio sulla vista di partenza prima e "
+                        + "dopo. Se non sale, sul foglio resta un cerchio disegnato a mano "
+                        + "accanto a una vista che non gli e' legata — e nessun errore lo "
+                        + "direbbe.\n\n"
+                        + "QUELLO CHE NON POSSO SAPERE e' se quello e' il particolare che "
+                        + "serviva: un cerchio spostato di dieci millimetri ingrandisce un "
+                        + "pezzo di piano liscio, ed e' altrettanto valido.",
+                    Precondizione = "una tavola aperta con almeno una vista di modello",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O(
+                                "type", "string",
+                                "description", "quale vista dettagliare, per nome. Senza, "
+                                    + "la prima vista di modello del foglio."),
+                            "x_mm", O(
+                                "type", "number",
+                                "description", "di quanto spostare il centro del cerchio "
+                                    + "dal centro della vista, in millimetri DI FOGLIO. "
+                                    + "Positivo verso destra. Predefinito 0."),
+                            "y_mm", O(
+                                "type", "number",
+                                "description", "di quanto spostarlo in verticale, in "
+                                    + "millimetri DI FOGLIO. Positivo verso l'alto. "
+                                    + "Predefinito 0."),
+                            "raggio_mm", O(
+                                "type", "number",
+                                "description", "il raggio del cerchio, in millimetri di "
+                                    + "foglio. Predefinito: un quarto del lato minore "
+                                    + "della vista."),
+                            "scala", O(
+                                "type", "number",
+                                "description", "quante volte ingrandire. Predefinito 2, "
+                                    + "cioe' 2:1."),
+                            "etichetta", O(
+                                "type", "string",
+                                "description", "la lettera del dettaglio. Predefinito «B», "
+                                    + "perche' «A» di solito se la prende la sezione.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "cartiglio",
                     Famiglia = "verifiche",
+                    DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
                         "Dice quali proprieta' il cartiglio CHIEDE e quali MOSTRA. "
@@ -2360,6 +2528,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "verifica_interferenze",
                     Famiglia = "verifiche",
+                    Esempio = "{\"toccarsi_conta\":true}",   // da `toccarsi_non_e_compenetrarsi`
+                    DocumentoRichiesto = "assieme",
                     Provata = true,
                     Sommario =
                         "Dice se i componenti dell'assieme si compenetrano, e di quanto "
@@ -2403,6 +2573,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "distinta_taglio_in_tavola",
                     Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
                     // ── NON PROVATA: la tabella non nasce ───────────────
                     //
                     // `IView.InsertWeldmentTable` torna `null`, e non e' un
@@ -2465,6 +2636,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "nuovo_foglio",
                     Famiglia = "tavola",
+                    Esempio = "{\"nome\":\"Montaggio\"}",   // da `due_fogli_e_lo_stesso_diedro`
+                    DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
                         "Aggiunge un foglio alla tavola, con lo stesso diedro del primo.",
@@ -2504,6 +2677,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "attiva_foglio",
                     Famiglia = "tavola",
+                    Esempio = "{\"nome\":\"Foglio1\"}",   // da `due_fogli_e_lo_stesso_diedro`
+                    DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
                         "Mette davanti un foglio della tavola, per nome.",
@@ -2515,7 +2690,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "risposta: dopo averlo attivato richiedo alla tavola quale "
                         + "foglio ha davanti, e se non e' quello che hai chiesto mi fermo "
                         + "-- altrimenti i passi dopo lavorerebbero altrove.\n\nI nomi "
-                        + "dei fogli stanno in «guarda_il_pezzo», sotto «fogli».",
+                        + "dei fogli stanno in «guarda_il_pezzo», sotto «fogli»."
+                        + "\n\nMI RIFIUTO SE IL FOGLIO NON C'E', e ti elenco quelli che ci sono col "
+                        + "loro nome. Su una tavola a piu' fogli sbagliare foglio non da' nessun "
+                        + "errore: le viste finiscono su quello attivo, e in officina arriva un "
+                        + "foglio con sopra roba di un altro.",
                     Precondizione = "una tavola aperta con piu' di un foglio",
                     Schema = O(
                         "type", "object",
@@ -2529,6 +2708,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "salva_documento",
                     Famiglia = "tavola",
+                    DocumentoRichiesto = "qualunque",
                     Provata = true,
                     Sommario =
                         "Salva il documento aperto.",
@@ -2552,6 +2732,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "vista_modello",
                     Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
                         "Una vista con nome: isometrica, fronte, sopra...",
@@ -2594,6 +2775,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "viste_standard",
                     Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
                         "Le tre viste standard, in primo diedro.",
@@ -2620,6 +2802,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "verifica_geometria_corpo",
                     Famiglia = "verifiche",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Dice se i corpi sono solidi chiusi e sani. Non tocca il pezzo.",
@@ -2652,6 +2835,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "verifica_sovrasporgenze",
                     Famiglia = "verifiche",
+                    Esempio = "{\"soglia_gradi\":70}",   // da `pareti_a_sessanta_gradi_non_si_stampano`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Dice cosa non si stampa senza supporti, e di quanto. Non tocca il "
@@ -2701,6 +2886,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "proprieta_di_massa",
                     Famiglia = "verifiche",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
@@ -2731,6 +2917,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "ingombro_corpo",
                     Famiglia = "verifiche",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "La scatola del pezzo in mm, corpo per corpo e tutta insieme.",
@@ -2758,6 +2945,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "filettatura_cosmetica",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Dice «qui c'e' un filetto» su un perno o un foro gia' fatto. Non "
@@ -2804,6 +2992,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "raccordo_variabile",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un raccordo che cambia raggio da un capo all'altro dello spigolo.",
@@ -2840,6 +3029,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "combina_corpi",
                     Famiglia = "lavorazioni",
+                    Esempio = "{\"operazione\":\"interseca\"}",   // da `interseca_due_cubi`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Unisce, sottrae o interseca due o piu' corpi dello stesso pezzo.",
@@ -2855,7 +3046,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "l'unione conto i corpi: se sono ancora due, non si sono fusi -- di "
                         + "solito non si toccano davvero -- e fallisco invece di confermarti "
                         + "un pezzo diverso da quello che credi.\n\nDopo una booleana gli "
-                        + "identificativi di corpi e facce NON valgono piu': rileggi il pezzo.",
+                        + "identificativi di corpi e facce NON valgono piu': rileggi il pezzo."
+                        + "\n\nSE NON DICI QUALE BOOLEANA faccio «unisci», ed e' scritto "
+                        + "nella risposta. «sottrai» e «interseca» si chiedono per nome, "
+                        + "perche' cambiano il pezzo in modo opposto.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -2863,7 +3057,9 @@ namespace Riscontro.Disegno.Catalogo
                             "operazione", O(
                                 "type", "string",
                                 "enum", A("unisci", "sottrai", "interseca"),
-                                "description", "che booleana fare."),
+                                "default", "unisci",
+                                "description", "che booleana fare. Se non lo dici e' «unisci», "
+                                    + "e te lo scrivo nella risposta."),
                             "corpo_principale_uid", O(
                                 "type", "string",
                                 "description", "il corpo che RESTA (per esempio «C1»). Se non lo dici e' il "
@@ -2873,12 +3069,14 @@ namespace Riscontro.Disegno.Catalogo
                                 "items", O("type", "string"),
                                 "description", "i corpi da unire, sottrarre o intersecare col principale. Se "
                                     + "non li dici, tutti gli altri.")),
-                        "required", A("operazione")),
+                        // Z-G3: predefinito «unisci», dichiarato nella risposta.
+                        "required", A()),
                 },
                 new OperazioneDisegno
                 {
                     Nome = "distanza_minima",
                     Famiglia = "verifiche",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Quanto distano due facce o due spigoli, col controllo che il "
@@ -2910,6 +3108,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "misura_fra_entita",
                     Famiglia = "verifiche",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Lo strumento di misura: area, perimetro, distanza, angolo, "
@@ -2941,6 +3140,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "esporta_stl",
                     Famiglia = "esportazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Scrive lo STL per la stampa 3D, in millimetri. Verifica il pezzo "
@@ -2988,6 +3188,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "esporta_step",
                     Famiglia = "esportazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Scrive lo STEP per chi deve lavorare il pezzo, e rilegge dal file "
@@ -3033,6 +3234,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "esporta_iges",
                     Famiglia = "esportazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Scrive l'IGES, per i CAD e le macchine che lo STEP non lo leggono.",
@@ -3068,6 +3270,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "profili_saldatura",
                     Famiglia = "saldature",
+                    Esempio = "{\"cerca\":\"TUBO STRUTTURALE QUADRO\"}",   // da `i_profili_si_leggono_prima`
+                    DocumentoRichiesto = "nessuno",
                     Provata = true,
                     Sommario =
                         "Elenca i profili della libreria e le loro misure, scritte come vanno "
@@ -3103,6 +3307,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "accoppia",
                     Famiglia = "assiemi",
+                    DocumentoRichiesto = "assieme",
                     Provata = true,
                     Sommario =
                         "Vincola due componenti fra loro prendendo una faccia per uno. "
@@ -3164,6 +3369,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sostituisci_componente",
                     Famiglia = "assiemi",
+                    DocumentoRichiesto = "assieme",
                     Provata = true,
                     Sommario =
                         "Cambia il file di un componente gia' montato, e ti dice se i "
@@ -3214,6 +3420,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "inserisci_componente",
                     Famiglia = "assiemi",
+                    DocumentoRichiesto = "assieme",
                     Provata = true,
                     Sommario =
                         "Mette un pezzo gia' aperto dentro l'assieme aperto, e ti dice "
@@ -3284,6 +3491,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sweep_circolare",
                     Famiglia = "estrusioni",
+                    Esempio = "{\"percorso_mm\":[[0,0,0],[100,0,0]],\"diametro_mm\":20}",   // da `tubo_dritto_area_per_lunghezza`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un tubo pieno di diametro dato lungo un percorso di punti. Su un "
@@ -3322,6 +3531,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "loft_fra_due_cerchi",
                     Famiglia = "estrusioni",
+                    Esempio = "{\"piano\":\"frontale\",\"diametro1_mm\":40,\"diametro2_mm\":20,\"distanza_mm\":50}",   // da `il_loft_non_e_un_cono`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Una transizione fra due cerchi di diametro diverso, e ti dico di "
@@ -3369,6 +3580,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "piano_per_tre_punti",
                     Famiglia = "riferimenti",
+                    Esempio = "{\"punto1_mm\":[0,0,0],\"punto2_mm\":[50,0,0],\"punto3_mm\":[100,10,0]}",   // da `lim_tre_punti_in_fila`
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Un piano obliquo, dato per tre punti, e rileggo la sua normale per "
@@ -3410,6 +3623,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sformo",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Inclina delle facce di un angolo, rispetto a una faccia che resta "
@@ -3460,6 +3674,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sopprimi_istanza",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Toglie una o piu' copie da una ripetizione gia' fatta, e si "
@@ -3507,6 +3722,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "incidi_testo",
                     Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Incide (o fa in rilievo) una scritta su una faccia piana, e si "
@@ -3575,6 +3791,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "scrivi_proprieta",
                     Famiglia = "identita",
+                    Esempio = "{\"nome\":\"NumeroDisegno\",\"valore\":\"DIS-1234\"}",   // da `i_due_cassetti_non_si_vedono`
+                    DocumentoRichiesto = "qualunque",
                     Provata = true,
                     Sommario =
                         "Scrive una proprieta' personalizzata -- numero disegno, revisione, "
@@ -3618,6 +3836,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "crea_configurazione",
                     Famiglia = "identita",
+                    Esempio = "{\"nome\":\"Sinistra\",\"descrizione\":\"staffa sinistra\"}",   // da `i_due_cassetti_non_si_vedono`
+                    DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
                         "Fa una variante del pezzo -- sinistra e destra, con e senza foro -- "
@@ -3633,7 +3853,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nIL NOME CHE TI RISPONDO E' QUELLO DA USARE, e non e' detto che "
                         + "sia quello che mi hai chiesto: i nomi di SOLIDWORKS possono avere "
                         + "delle parentesi angolari dentro, e quelle fanno parte del nome. "
-                        + "Riportalo com'e'.",
+                        + "Riportalo com'e'."
+                        + "\n\nMI RIFIUTO SE UNA CONFIGURAZIONE CON QUEL NOME C'E' GIA'. Due "
+                        + "configurazioni omonime non sono un doppione innocuo: le lavorazioni "
+                        + "soppresse in una e attive nell'altra fanno due pezzi diversi con lo "
+                        + "stesso nome, e la distinta ne conta uno.",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",
@@ -3655,6 +3879,8 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "attiva_configurazione",
                     Famiglia = "identita",
+                    Esempio = "{\"nome\":\"Sinistra\"}",   // da `lim_configurazione_gia_esistente`
+                    DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
                         "Passa a una configurazione gia' esistente, e verifica che ci sia "
@@ -3673,7 +3899,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "CHIESTO CONTROLLO QUALE E' ATTIVA "
                         + "ADESSO: non mi basta che il comando abbia detto di si', perche' "
                         + "lavorare per mezz'ora sulla variante sbagliata non da' nessun "
-                        + "errore.",
+                        + "errore."
+                        + "\n\nMI RIFIUTO SE LA CONFIGURAZIONE NON C'E', e ti elenco quelle che ci "
+                        + "sono. E il nome dev'essere INTERO: Default non basta se si chiama "
+                        + "Default<Come lavorata>. Un nome parziale non lo indovino, perche' "
+                        + "indovinare vorrebbe dire attivare la configurazione sbagliata in "
+                        + "silenzio.",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",

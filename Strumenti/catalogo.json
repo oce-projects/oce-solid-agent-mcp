@@ -42,7 +42,9 @@
      "altezza_mm"
     ]
    },
-   "precondizione": "documento_senza_corpo"
+   "precondizione": "documento_senza_corpo",
+   "documento": "parte",
+   "esempio": "{\"piano\":\"frontale\",\"diametro_mm\":6,\"altezza_mm\":10}"
   },
   {
    "nome": "estrudi_profilo",
@@ -82,7 +84,9 @@
      "spessore_mm"
     ]
    },
-   "precondizione": "documento_senza_corpo"
+   "precondizione": "documento_senza_corpo",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "estrudi_rettangolo",
@@ -124,7 +128,9 @@
      "spessore_mm"
     ]
    },
-   "precondizione": "documento_senza_corpo"
+   "precondizione": "documento_senza_corpo",
+   "documento": "parte",
+   "esempio": "{\"piano\":\"frontale\",\"lunghezza_mm\":200,\"larghezza_mm\":120,\"spessore_mm\":20,\"centrato\":true}"
   },
   {
    "nome": "estrudi_sezione",
@@ -193,13 +199,15 @@
      "lunghezza_mm"
     ]
    },
-   "precondizione": "documento_senza_corpo"
+   "precondizione": "documento_senza_corpo",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "rivoluzione",
    "famiglia": "estrusioni",
    "sommario": "Un solido a simmetria di rotazione: boccole, distanziali, alberi a gradini, flange, pulegge, volantini.",
-   "descrizione": "Ruota un profilo attorno a un asse e ottiene un corpo a simmetria di rotazione. E' l'operazione per tutto cio' che si fa al tornio quando la forma VARIA lungo l'asse: alberi a gradini, boccole con gole, flange, pulegge. Per un cilindro costante bastano «estrudi_cerchio» o «estrudi_sezione», piu' semplici.\n\nIl profilo si da' con gli stessi CONTORNI di «estrudi_profilo»: il primo e' il bordo, i successivi sono vuoti.\n\nLA DIFFERENZA E' L'ASSE. Il profilo e' una MEZZA SEZIONE, vista di fianco come al tornio: sta tutto da un lato dell'asse, al piu' toccandolo. NON deve attraversarlo — un profilo che attraversa l'asse produce un solido che si autointerseca.\n\nEsempio, albero a gradini: diametro 30 per 40 mm, poi diametro 20 per altri 30, asse lungo y=0:\n  contorni: [[[0,0],[0,15],[40,15],[40,10],[70,10],[70,0]]]\n  asse: [[0,0],[70,0]]\nIl lato da (70,0) a (0,0), che chiude la spezzata, giace SULL'asse: e' il caso normale, non un errore.\n\nSolo il corpo pieno: per una parete sottile disegna il vuoto interno come secondo contorno.",
+   "descrizione": "Ruota un profilo attorno a un asse e ottiene un corpo a simmetria di rotazione. E' l'operazione per tutto cio' che si fa al tornio quando la forma VARIA lungo l'asse: alberi a gradini, boccole con gole, flange, pulegge. Per un cilindro costante bastano «estrudi_cerchio» o «estrudi_sezione», piu' semplici.\n\nIl profilo si da' con gli stessi CONTORNI di «estrudi_profilo»: il primo e' il bordo, i successivi sono vuoti.\n\nLA DIFFERENZA E' L'ASSE. Il profilo e' una MEZZA SEZIONE, vista di fianco come al tornio: sta tutto da un lato dell'asse, al piu' toccandolo. NON deve attraversarlo — un profilo che attraversa l'asse produce un solido che si autointerseca.\n\nEsempio, albero a gradini: diametro 30 per 40 mm, poi diametro 20 per altri 30, asse lungo y=0:\n  contorni: [[[0,0],[0,15],[40,15],[40,10],[70,10],[70,0]]]\n  asse: [[0,0],[70,0]]\nIl lato da (70,0) a (0,0), che chiude la spezzata, giace SULL'asse: e' il caso normale, non un errore.\n\nSolo il corpo pieno: per una parete sottile disegna il vuoto interno come secondo contorno.\n\nMI RIFIUTO SE L'ASSE NON STA SUL PIANO DEL PROFILO, e se il profilo ATTRAVERSA l'asse. Un profilo a cavallo dell'asse genera un solido che si compenetra con se stesso: SOLIDWORKS a volte lo fa lo stesso, e il pezzo che ne esce non e' quello che volevi.",
    "schema": {
     "type": "object",
     "properties": {
@@ -239,7 +247,9 @@
      "asse"
     ]
    },
-   "precondizione": "documento_senza_corpo"
+   "precondizione": "documento_senza_corpo",
+   "documento": "parte",
+   "esempio": "{\"piano\":\"frontale\",\"angolo_gradi\":360,\"asse\":[[0,0],[90,0]],\"contorni\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}"
   },
   {
    "nome": "ruota_dentata",
@@ -289,13 +299,15 @@
      "spessore_mm"
     ]
    },
-   "precondizione": "documento_senza_corpo"
+   "precondizione": "documento_senza_corpo",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "asola",
    "famiglia": "lavorazioni",
    "sommario": "Un foro allungato: il fissaggio che si registra in montaggio.",
-   "descrizione": "Taglia un'ASOLA su una faccia: un foro allungato, con le estremita' tonde. E' quello che permette di REGISTRARE in opera — una staffa con due asole si allinea, una con due fori tondi o entra o si rifa'.\n\nLA LUNGHEZZA E' DA FUORI A FUORI, come la si misura sul pezzo e come si scrive a disegno; la LARGHEZZA e' il diametro delle estremita', cioe' il diametro della vite piu' il gioco. Per una M10 che deve scorrere 40 mm: larghezza 11, lunghezza 51.\n\n«angolo_gradi» ruota l'asola nel piano della faccia: 0 e' orizzontale, 90 verticale. Serve quando la registrazione va in una direzione precisa.\n\nNon e' una tasca rettangolare. «taglio_rettangolare» ci somiglia ma ha gli spigoli vivi, e la vite ci balla dentro invece di scorrere.",
+   "descrizione": "Taglia un'ASOLA su una faccia: un foro allungato, con le estremita' tonde. E' quello che permette di REGISTRARE in opera — una staffa con due asole si allinea, una con due fori tondi o entra o si rifa'.\n\nLA LUNGHEZZA E' DA FUORI A FUORI, come la si misura sul pezzo e come si scrive a disegno; la LARGHEZZA e' il diametro delle estremita', cioe' il diametro della vite piu' il gioco. Per una M10 che deve scorrere 40 mm: larghezza 11, lunghezza 51.\n\n«angolo_gradi» ruota l'asola nel piano della faccia: 0 e' orizzontale, 90 verticale. Serve quando la registrazione va in una direzione precisa.\n\nNon e' una tasca rettangolare. «taglio_rettangolare» ci somiglia ma ha gli spigoli vivi, e la vite ci balla dentro invece di scorrere.\n\nMI RIFIUTO IN QUATTRO CASI, e li dico prima perche' provarli costa un giro: se l'asola non e' passante e non mi dai la profondita'; se cade tutta fuori dal materiale (ti dico fra quali coordinate sta la faccia); se e' piu' grande della faccia e la coprirebbe tutta; e se lunghezza e larghezza sono uguali -- quella e' una circonferenza, e la lunghezza qui si misura da fuori a fuori.",
    "schema": {
     "type": "object",
     "properties": {
@@ -361,7 +373,9 @@
      "larghezza_mm"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "estrudi_su_faccia",
@@ -418,7 +432,9 @@
      "altezza_mm"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "foro_guidato",
@@ -516,7 +532,9 @@
      "posizioni"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "guscio",
@@ -576,7 +594,9 @@
      "spessore_mm"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "modifica_quota",
@@ -600,13 +620,15 @@
      "valore_mm"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "sopprimi_lavorazione",
    "famiglia": "lavorazioni",
    "sommario": "SPEGNE una lavorazione dell'albero, senza cancellarla. Si riaccende.",
-   "descrizione": "Spegne una lavorazione: il pezzo torna com'era senza di lei, ma lei resta nell'albero e si puo' riaccendere con «riattiva».\n\nE' la strada da prendere quando vuoi VEDERE il pezzo senza una lavorazione senza impegnarti. Per toglierla davvero c'e' «elimina_lavorazione», che non si disfa.\n\nIL NOME DELLA LAVORAZIONE STA NELLO STATO DEL DOCUMENTO, dentro «feature» (per esempio «Taglio-Estrusione2»). Copialo cosi' com'e'.\n\nI FIGLI SI SPENGONO CON LEI, ed e' quasi sempre cio' che si vuole: sopprimere un foro spegne anche i suoi raccordi. La risposta dice quali sono stati.\n\nDOPO, GLI IDENTIFICATIVI NON VALGONO PIU'. Sopprimere fa sparire delle facce, e gli identificativi (F1, E4) si rinumerano per area a ogni lettura: rileggi il pezzo prima del passo seguente.",
+   "descrizione": "Spegne una lavorazione: il pezzo torna com'era senza di lei, ma lei resta nell'albero e si puo' riaccendere con «riattiva».\n\nE' la strada da prendere quando vuoi VEDERE il pezzo senza una lavorazione senza impegnarti. Per toglierla davvero c'e' «elimina_lavorazione», che non si disfa.\n\nIL NOME DELLA LAVORAZIONE STA NELLO STATO DEL DOCUMENTO, dentro «feature» (per esempio «Taglio-Estrusione2»). Copialo cosi' com'e'.\n\nI FIGLI SI SPENGONO CON LEI, ed e' quasi sempre cio' che si vuole: sopprimere un foro spegne anche i suoi raccordi. La risposta dice quali sono stati.\n\nDOPO, GLI IDENTIFICATIVI NON VALGONO PIU'. Sopprimere fa sparire delle facce, e gli identificativi (F1, E4) si rinumerano per area a ogni lettura: rileggi il pezzo prima del passo seguente.\n\nMI RIFIUTO SE LA LAVORAZIONE E' GIA' SOPPRESSA, e ti dico di usare l'operazione che la riattiva. Sopprimere due volte non fa niente e non da' errore: e' il modo piu' facile di credere di aver cambiato il pezzo senza averlo toccato.",
    "schema": {
     "type": "object",
     "properties": {
@@ -623,7 +645,9 @@
      "feature_uid"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": "{\"feature_uid\":\"Taglio-Estrusione2\"}"
   },
   {
    "nome": "elimina_lavorazione",
@@ -642,7 +666,9 @@
      "feature_uid"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": "{\"feature_uid\":\"Taglio-Estrusione1\"}"
   },
   {
    "nome": "raccordo_spigoli",
@@ -690,7 +716,9 @@
      "raggio_mm"
     ]
    },
-   "precondizione": "corpo_solido_e_spigolo"
+   "precondizione": "corpo_solido_e_spigolo",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "ripeti_circolare",
@@ -760,13 +788,15 @@
      "numero_istanze"
     ]
    },
-   "precondizione": "feature_e_direzione"
+   "precondizione": "feature_e_direzione",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "ripeti_lineare",
    "famiglia": "lavorazioni",
    "sommario": "Ripete una lavorazione in fila, o in griglia su due direzioni: otto fori in fila si fanno cosi'.",
-   "descrizione": "Ripete una lavorazione gia' fatta, in fila lungo un asse — o in griglia, lungo due assi insieme. E' il gemello di «ripeti_circolare» e si indica allo stesso modo.\n\nOtto fori in fila si fanno COSI', non chiamando otto volte il foro con otto coordinate: il pezzo finito dichiara che quei fori sono una serie, e cambiarne il passo diventa una quota sola.\n\nLA DIREZIONE SI PRENDE DA UNO SPIGOLO DRITTO del pezzo: quelli che lo stato del documento elenca come «E1», «E2»... Per una fila lungo la piastra si indica lo spigolo lungo; per una griglia, due spigoli perpendicolari fra loro.\n\nVa bene anche un asse fatto con «crea_asse», ma quello nasce dal centro di un foro ed e' perpendicolare alla faccia forata: serve per ripetere NELLO SPESSORE, quasi mai per una fila.\n\n«asse1_uid» e' obbligatorio. «asse2_uid» serve solo per una griglia — una piastra forata a matrice; per una fila sola omettilo insieme a passo2 e numero_istanze2.\n\nIl verso lo decide l'asse, non un segno nei parametri: se la ripetizione esce dalla parte sbagliata usa «capovolgi_1».",
+   "descrizione": "Ripete una lavorazione gia' fatta, in fila lungo un asse — o in griglia, lungo due assi insieme. E' il gemello di «ripeti_circolare» e si indica allo stesso modo.\n\nOtto fori in fila si fanno COSI', non chiamando otto volte il foro con otto coordinate: il pezzo finito dichiara che quei fori sono una serie, e cambiarne il passo diventa una quota sola.\n\nLA DIREZIONE SI PRENDE DA UNO SPIGOLO DRITTO del pezzo: quelli che lo stato del documento elenca come «E1», «E2»... Per una fila lungo la piastra si indica lo spigolo lungo; per una griglia, due spigoli perpendicolari fra loro.\n\nVa bene anche un asse fatto con «crea_asse», ma quello nasce dal centro di un foro ed e' perpendicolare alla faccia forata: serve per ripetere NELLO SPESSORE, quasi mai per una fila.\n\n«asse1_uid» e' obbligatorio. «asse2_uid» serve solo per una griglia — una piastra forata a matrice; per una fila sola omettilo insieme a passo2 e numero_istanze2.\n\nIl verso lo decide l'asse, non un segno nei parametri: se la ripetizione esce dalla parte sbagliata usa «capovolgi_1».\n\nMI RIFIUTO SE LA DIREZIONE ARRIVA DA UNO SPIGOLO CURVO: serve uno spigolo rettilineo. Un arco non ha una direzione sola, e prenderne una a caso vorrebbe dire una ripetizione storta che sembra giusta.",
    "schema": {
     "type": "object",
     "properties": {
@@ -852,13 +882,15 @@
      "numero_istanze1"
     ]
    },
-   "precondizione": "feature_e_direzione"
+   "precondizione": "feature_e_direzione",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "smusso_spigoli",
    "famiglia": "lavorazioni",
    "sommario": "Smussa uno o piu' spigoli: bava, invito di montaggio, cianfrino da saldare.",
-   "descrizione": "Smusso su uno o piu' spigoli. E' il gemello di «raccordo_spigoli» e si indica allo stesso modo.\n\nPredefinito 45 gradi, che e' lo smusso di gran lunga piu' comune. Per uno smusso non simmetrico — un cianfrino di saldatura, un invito che deve entrare in una sede — metti «secondo_lato_mm» e l'angolo viene ignorato.\n\nSmusso o raccordo non e' una preferenza estetica: uno smusso si fa con una fresa o una lima, un raccordo vuole un utensile di raggio. Se l'utente dice «smussa», non arrotondare.",
+   "descrizione": "Smusso su uno o piu' spigoli. E' il gemello di «raccordo_spigoli» e si indica allo stesso modo.\n\nPredefinito 45 gradi, che e' lo smusso di gran lunga piu' comune. Per uno smusso non simmetrico — un cianfrino di saldatura, un invito che deve entrare in una sede — metti «secondo_lato_mm» e l'angolo viene ignorato.\n\nSmusso o raccordo non e' una preferenza estetica: uno smusso si fa con una fresa o una lima, un raccordo vuole un utensile di raggio. Se l'utente dice «smussa», non arrotondare.\n\nMI RIFIUTO SE LO SMUSSO E' TROPPO GRANDE PER LO SPIGOLO -- non ci sta nemmeno meta'. Un valore oltre il limite non da' sempre errore: a volte esce una geometria degenere che passa il ricalcolo.",
    "schema": {
     "type": "object",
     "properties": {
@@ -909,13 +941,15 @@
      "lato_mm"
     ]
    },
-   "precondizione": "corpo_solido_e_spigolo"
+   "precondizione": "corpo_solido_e_spigolo",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "specchia",
    "famiglia": "lavorazioni",
    "sommario": "Specchia una lavorazione rispetto a uno dei tre piani base.",
-   "descrizione": "Specchia una lavorazione gia' fatta rispetto a un piano di simmetria. La lavorazione si indica come per «ripeti_circolare».\n\nIl piano e' sempre uno dei tre base, e va detto: sbagliarlo non sposta la geometria di poco, la mette da un'altra parte del pezzo, e la costruzione riesce lo stesso.\n\nSi specchia la LAVORAZIONE, non il corpo intero: per un pezzo simmetrico specchia il foro o la tasca che manca da un lato.",
+   "descrizione": "Specchia una lavorazione gia' fatta rispetto a un piano di simmetria. La lavorazione si indica come per «ripeti_circolare».\n\nIl piano e' sempre uno dei tre base, e va detto: sbagliarlo non sposta la geometria di poco, la mette da un'altra parte del pezzo, e la costruzione riesce lo stesso.\n\nSi specchia la LAVORAZIONE, non il corpo intero: per un pezzo simmetrico specchia il foro o la tasca che manca da un lato.\n\nMI RIFIUTO SE IL PIANO NON ESISTE, e ti dico quali ci sono. I nomi inventati -- diagonale, obliquo -- non li interpreto: specchiare sul piano sbagliato produce un pezzo plausibile e sbagliato.",
    "schema": {
     "type": "object",
     "properties": {
@@ -957,7 +991,9 @@
      "piano"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "sposta_corpi",
@@ -1017,13 +1053,15 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "taglio_cilindrico",
    "famiglia": "lavorazioni",
    "sommario": "Un taglio tondo su una faccia: per un passaggio che NON e' un foro da viteria.",
-   "descrizione": "Fa un foro su una faccia gia' esistente, alle coordinate indicate nel piano di quella faccia. Passante o cieco.",
+   "descrizione": "Fa un foro su una faccia gia' esistente, alle coordinate indicate nel piano di quella faccia. Passante o cieco.\n\nMI RIFIUTO SE IL FORO CADE TUTTO FUORI DAL MATERIALE (ti dico fra quali coordinate sta la faccia) e se e' cosi' largo da coprire tutta la faccia: quello non e' un foro, e' un pezzo che sparisce.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1079,13 +1117,15 @@
      "diametro_mm"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "taglio_rettangolare",
    "famiglia": "lavorazioni",
    "sommario": "Una tasca rettangolare su una faccia.",
-   "descrizione": "Scava una tasca rettangolare su una faccia esistente.",
+   "descrizione": "Scava una tasca rettangolare su una faccia esistente.\n\nMI RIFIUTO SE LA TASCA COPRE TUTTA LA FACCIA, e ti dico quanto misura. Una tasca grande quanto il pezzo non e' una tasca: e' il pezzo che non c'e' piu'.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1144,30 +1184,33 @@
      "larghezza_mm"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "applica_materiale",
    "famiglia": "proprieta",
    "sommario": "Assegna il materiale al pezzo: senza, non c'e' peso ne' distinta utile.",
-   "descrizione": "Assegna il materiale al pezzo. VA FATTO SEMPRE, su ogni pezzo che disegni: senza materiale non c'e' densita', senza densita' non c'e' peso, e la distinta di taglio esce con la colonna del materiale vuota — cioe' non serve a comprare l'acciaio.\n\nScrivi il nome come lo direbbe un progettista («S235JR», «AISI 304», «Lega 6061»): la grafia esatta la trova la postazione, che ha le librerie vere. Se il nome corrisponde a piu' materiali o a nessuno, l'operazione fallisce elencandoti quelli che ci sono, e allora si chiede all'utente: fra 1.0037 e 1.0116 non si sceglie a caso.",
+   "descrizione": "Assegna il materiale al pezzo. VA FATTO SEMPRE, su ogni pezzo che disegni: senza materiale non c'e' densita', senza densita' non c'e' peso, e la distinta di taglio esce con la colonna del materiale vuota — cioe' non serve a comprare l'acciaio.\n\nScrivi il nome come lo direbbe un progettista («S235JR», «AISI 304», «Lega 6061»): la grafia esatta la trova la postazione, che ha le librerie vere. Se il nome corrisponde a piu' materiali o a nessuno, l'operazione fallisce elencandoti quelli che ci sono, e allora si chiede all'utente: fra 1.0037 e 1.0116 non si sceglie a caso.\n\nSE NON DICI IL MATERIALE uso «S235JR», che e' quello che questa officina lavora salvo avviso contrario, e te lo scrivo nella risposta: cosi' sai che l'ho scelto io e non tu.",
    "schema": {
     "type": "object",
     "properties": {
      "materiale": {
       "type": "string",
-      "description": "per esempio «S235JR», «AISI 304», «Lega 6061»"
+      "default": "S235JR",
+      "description": "per esempio «S235JR», «AISI 304», «Lega 6061». Se non lo dici uso S235JR, e te lo scrivo nella risposta."
      },
      "archivio": {
       "type": "string",
       "description": "opzionale: il nome dell'archivio, se sai in quale cercare. Lascialo stare se non lo sai."
      }
     },
-    "required": [
-     "materiale"
-    ]
+    "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": "{\"materiale\":\"AISI 304\"}"
   },
   {
    "nome": "crea_asse",
@@ -1206,7 +1249,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "crea_piano",
@@ -1234,7 +1279,9 @@
      "distanza_mm"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "parte",
+   "esempio": "{\"piano\":\"frontale\",\"distanza_mm\":-250}"
   },
   {
    "nome": "cordone_saldatura",
@@ -1316,7 +1363,9 @@
      "lato_mm"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "distinta_taglio",
@@ -1333,7 +1382,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "fazzoletto",
@@ -1379,7 +1430,9 @@
      "lato2_mm"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "membro_strutturale",
@@ -1449,7 +1502,9 @@
      "segmenti"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "taglia_membri",
@@ -1530,7 +1585,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "tappo_estremita",
@@ -1584,7 +1641,9 @@
      "spessore_mm"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "telaio_rettangolare",
@@ -1653,7 +1712,9 @@
      "larghezza_mm"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "crea_disegno",
@@ -1678,7 +1739,9 @@
     },
     "required": []
    },
-   "precondizione": "un pezzo o un assieme SALVATO su disco"
+   "precondizione": "un pezzo o un assieme SALVATO su disco",
+   "documento": "parte/assieme",
+   "esempio": "{\"formato\":\"A3\"}"
   },
   {
    "nome": "esporta_pdf",
@@ -1695,7 +1758,9 @@
     },
     "required": []
    },
-   "precondizione": "una tavola aperta"
+   "precondizione": "una tavola aperta",
+   "documento": "tavola",
+   "esempio": null
   },
   {
    "nome": "imposta_foglio",
@@ -1728,7 +1793,9 @@
     },
     "required": []
    },
-   "precondizione": "una tavola aperta"
+   "precondizione": "una tavola aperta",
+   "documento": "tavola",
+   "esempio": null
   },
   {
    "nome": "quote_dal_modello",
@@ -1749,13 +1816,15 @@
     },
     "required": []
    },
-   "precondizione": "una tavola con almeno una vista"
+   "precondizione": "una tavola con almeno una vista",
+   "documento": "tavola",
+   "esempio": null
   },
   {
    "nome": "quota_in_tavola",
    "famiglia": "tavola",
    "sommario": "Mette le quote sugli spigoli di una vista, e RILEGGE quanto misurano.",
-   "descrizione": "Mette quote di riferimento sugli spigoli di una vista di tavola, e per ognuna ti dice **quanti millimetri misura**, riletti da SOLIDWORKS dopo averla messa.\n\nQUESTA E' L'OPERAZIONE CHE QUOTA. «quote_dal_modello» fa un'altra cosa: IMPORTA le quote che il pezzo ha gia', e su questa installazione non ne porta nessuna (misurato su otto modelli di tavola diversi). Se ti serve una tavola quotata, usa questa.\n\nGLI SPIGOLI HANNO UN NUMERO, e te lo dico io: la vista espone il suo elenco, e senza «spigoli» quoto i primi «quante». Chiedimi uno spigolo che non c'e' e ti rispondo quanti ne ha la vista, invece di quotarne un altro.\n\nTI DICO QUANTE NE SONO NATE, non che ho chiamato l'API: le quote si contano prima e dopo, una per una. Se non ne nasce nessuna te lo dico, e ti dico quali spigoli ho provato.\n\nDOVE FINISCONO: sotto l'ingombro della vista, in fila. Non so se si accavallano col disegno — quotare BENE e' un mestiere, e questa operazione mette quote giuste, non una tavola bella.",
+   "descrizione": "Mette quote di riferimento sugli spigoli di una vista di tavola, e per ognuna ti dice **quanti millimetri misura**, riletti da SOLIDWORKS dopo averla messa.\n\nQUESTA E' L'OPERAZIONE CHE QUOTA. «quote_dal_modello» fa un'altra cosa: IMPORTA le quote che il pezzo ha gia', e su questa installazione non ne porta nessuna (misurato su otto modelli di tavola diversi). Se ti serve una tavola quotata, usa questa.\n\nGLI SPIGOLI HANNO UN NUMERO, e te lo dico io: la vista espone il suo elenco, e senza «spigoli» quoto i primi «quante». Chiedimi uno spigolo che non c'e' e ti rispondo quanti ne ha la vista, invece di quotarne un altro.\n\nTI DICO QUANTE NE SONO NATE, non che ho chiamato l'API: le quote si contano prima e dopo, una per una. Se non ne nasce nessuna te lo dico, e ti dico quali spigoli ho provato.\n\nDOVE FINISCONO: sotto l'ingombro della vista, in fila. Non so se si accavallano col disegno — quotare BENE e' un mestiere, e questa operazione mette quote giuste, non una tavola bella.\n\nMI RIFIUTO SE LO SPIGOLO CHIESTO NON ESISTE nella vista, e ti dico quanti ne mostra. Un indice che non c'e' e' l'errore piu' facile da fare quotando alla cieca.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1785,7 +1854,9 @@
     },
     "required": []
    },
-   "precondizione": "una tavola con almeno una vista che mostri spigoli"
+   "precondizione": "una tavola con almeno una vista che mostri spigoli",
+   "documento": "tavola",
+   "esempio": "{\"spigoli\":[0,1,2,3]}"
   },
   {
    "nome": "nota_in_tavola",
@@ -1812,7 +1883,9 @@
      "testo"
     ]
    },
-   "precondizione": "una tavola aperta, con un foglio attivo"
+   "precondizione": "una tavola aperta, con un foglio attivo",
+   "documento": "tavola",
+   "esempio": "{\"testo\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}"
   },
   {
    "nome": "sezione_in_tavola",
@@ -1849,7 +1922,48 @@
     },
     "required": []
    },
-   "precondizione": "una tavola aperta con almeno una vista di modello"
+   "precondizione": "una tavola aperta con almeno una vista di modello",
+   "documento": "tavola",
+   "esempio": "{\"etichetta\":\"A\",\"a_mm\":0}"
+  },
+  {
+   "nome": "dettaglio_in_tavola",
+   "famiglia": "tavola",
+   "sommario": "Crea una vista di dettaglio ingrandita su una tavola, e controlla che il cerchio sia diventato un dettaglio.",
+   "descrizione": "Ingrandisce un pezzo di una vista. E' l'altra meta' di cio' che manca a una tavola d'officina: la sezione fa vedere cosa c'e' dentro, il dettaglio fa vedere cio' che e' troppo piccolo per leggersi alla scala del disegno — una gola, uno smusso, un raccordo con la sua quota.\n\nIL CERCHIO LO TRACCIO IO, dentro la vista. Di serie al centro con raggio un quarto del lato minore; con «x_mm» e «y_mm» lo sposti e con «raggio_mm» lo cambi, in millimetri **di foglio** — non del modello, perche' sul foglio la vista e' in scala.\n\nMI RIFIUTO SE IL CERCHIO SBORDA dalla vista: un cerchio fuori ingrandisce del vuoto, e il vuoto ingrandito e' comunque una vista che sembra buona.\n\nE TI DICO SE IL CERCHIO E' DIVENTATO UN DETTAGLIO, contando le circonferenze di dettaglio sulla vista di partenza prima e dopo. Se non sale, sul foglio resta un cerchio disegnato a mano accanto a una vista che non gli e' legata — e nessun errore lo direbbe.\n\nQUELLO CHE NON POSSO SAPERE e' se quello e' il particolare che serviva: un cerchio spostato di dieci millimetri ingrandisce un pezzo di piano liscio, ed e' altrettanto valido.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "vista": {
+      "type": "string",
+      "description": "quale vista dettagliare, per nome. Senza, la prima vista di modello del foglio."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "di quanto spostare il centro del cerchio dal centro della vista, in millimetri DI FOGLIO. Positivo verso destra. Predefinito 0."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "di quanto spostarlo in verticale, in millimetri DI FOGLIO. Positivo verso l'alto. Predefinito 0."
+     },
+     "raggio_mm": {
+      "type": "number",
+      "description": "il raggio del cerchio, in millimetri di foglio. Predefinito: un quarto del lato minore della vista."
+     },
+     "scala": {
+      "type": "number",
+      "description": "quante volte ingrandire. Predefinito 2, cioe' 2:1."
+     },
+     "etichetta": {
+      "type": "string",
+      "description": "la lettera del dettaglio. Predefinito «B», perche' «A» di solito se la prende la sezione."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "una tavola aperta con almeno una vista di modello",
+   "documento": "tavola",
+   "esempio": "{\"etichetta\":\"B\",\"scala\":2,\"raggio_mm\":8}"
   },
   {
    "nome": "cartiglio",
@@ -1861,7 +1975,9 @@
     "properties": {},
     "required": []
    },
-   "precondizione": "una tavola aperta"
+   "precondizione": "una tavola aperta",
+   "documento": "tavola",
+   "esempio": null
   },
   {
    "nome": "verifica_interferenze",
@@ -1882,7 +1998,9 @@
     },
     "required": []
    },
-   "precondizione": "un assieme aperto con almeno due componenti"
+   "precondizione": "un assieme aperto con almeno due componenti",
+   "documento": "assieme",
+   "esempio": "{\"toccarsi_conta\":true}"
   },
   {
    "nome": "nuovo_foglio",
@@ -1911,13 +2029,15 @@
     },
     "required": []
    },
-   "precondizione": "una tavola aperta"
+   "precondizione": "una tavola aperta",
+   "documento": "tavola",
+   "esempio": "{\"nome\":\"Montaggio\"}"
   },
   {
    "nome": "attiva_foglio",
    "famiglia": "tavola",
    "sommario": "Mette davanti un foglio della tavola, per nome.",
-   "descrizione": "Attiva un FOGLIO della tavola: da li' in poi le viste e le annotazioni vanno su quello.\n\nSI CHIEDE PER NOME, non per numero. Un indice sarebbe l'occasione perfetta per lavorare sul foglio sbagliato senza nessun errore.\n\nNon credo alla risposta: dopo averlo attivato richiedo alla tavola quale foglio ha davanti, e se non e' quello che hai chiesto mi fermo -- altrimenti i passi dopo lavorerebbero altrove.\n\nI nomi dei fogli stanno in «guarda_il_pezzo», sotto «fogli».",
+   "descrizione": "Attiva un FOGLIO della tavola: da li' in poi le viste e le annotazioni vanno su quello.\n\nSI CHIEDE PER NOME, non per numero. Un indice sarebbe l'occasione perfetta per lavorare sul foglio sbagliato senza nessun errore.\n\nNon credo alla risposta: dopo averlo attivato richiedo alla tavola quale foglio ha davanti, e se non e' quello che hai chiesto mi fermo -- altrimenti i passi dopo lavorerebbero altrove.\n\nI nomi dei fogli stanno in «guarda_il_pezzo», sotto «fogli».\n\nMI RIFIUTO SE IL FOGLIO NON C'E', e ti elenco quelli che ci sono col loro nome. Su una tavola a piu' fogli sbagliare foglio non da' nessun errore: le viste finiscono su quello attivo, e in officina arriva un foglio con sopra roba di un altro.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1930,7 +2050,9 @@
      "nome"
     ]
    },
-   "precondizione": "una tavola aperta con piu' di un foglio"
+   "precondizione": "una tavola aperta con piu' di un foglio",
+   "documento": "tavola",
+   "esempio": "{\"nome\":\"Foglio1\"}"
   },
   {
    "nome": "salva_documento",
@@ -1947,7 +2069,9 @@
     },
     "required": []
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "qualunque",
+   "esempio": null
   },
   {
    "nome": "vista_modello",
@@ -1987,7 +2111,9 @@
     },
     "required": []
    },
-   "precondizione": "una tavola aperta e il pezzo aperto accanto"
+   "precondizione": "una tavola aperta e il pezzo aperto accanto",
+   "documento": "tavola",
+   "esempio": null
   },
   {
    "nome": "viste_standard",
@@ -2004,7 +2130,9 @@
     },
     "required": []
    },
-   "precondizione": "una tavola aperta e il pezzo aperto accanto"
+   "precondizione": "una tavola aperta e il pezzo aperto accanto",
+   "documento": "tavola",
+   "esempio": null
   },
   {
    "nome": "verifica_geometria_corpo",
@@ -2021,7 +2149,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "verifica_sovrasporgenze",
@@ -2049,7 +2179,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": "{\"soglia_gradi\":70}"
   },
   {
    "nome": "proprieta_di_massa",
@@ -2066,7 +2198,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "ingombro_corpo",
@@ -2083,7 +2217,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "filettatura_cosmetica",
@@ -2119,7 +2255,9 @@
      "denominazione"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "raccordo_variabile",
@@ -2148,13 +2286,15 @@
      "raggio_fine_mm"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "combina_corpi",
    "famiglia": "lavorazioni",
    "sommario": "Unisce, sottrae o interseca due o piu' corpi dello stesso pezzo.",
-   "descrizione": "La booleana fra CORPI dello stesso pezzo: «unisci» li fonde in uno, «sottrai» toglie gli altri dal principale, «interseca» tiene solo quello che hanno in comune.\n\nServe agli stampi e alle dime, e ai pezzi disegnati come piu' corpi e poi messi insieme. I corpi separati nascono con «sposta_corpi» e la copia.\n\nNELLA SOTTRAZIONE L'ORDINE CAMBIA IL PEZZO: il corpo principale e' quello che RESTA, gli altri sono quelli che gli vanno addosso. Se non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nDopo l'unione conto i corpi: se sono ancora due, non si sono fusi -- di solito non si toccano davvero -- e fallisco invece di confermarti un pezzo diverso da quello che credi.\n\nDopo una booleana gli identificativi di corpi e facce NON valgono piu': rileggi il pezzo.",
+   "descrizione": "La booleana fra CORPI dello stesso pezzo: «unisci» li fonde in uno, «sottrai» toglie gli altri dal principale, «interseca» tiene solo quello che hanno in comune.\n\nServe agli stampi e alle dime, e ai pezzi disegnati come piu' corpi e poi messi insieme. I corpi separati nascono con «sposta_corpi» e la copia.\n\nNELLA SOTTRAZIONE L'ORDINE CAMBIA IL PEZZO: il corpo principale e' quello che RESTA, gli altri sono quelli che gli vanno addosso. Se non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nDopo l'unione conto i corpi: se sono ancora due, non si sono fusi -- di solito non si toccano davvero -- e fallisco invece di confermarti un pezzo diverso da quello che credi.\n\nDopo una booleana gli identificativi di corpi e facce NON valgono piu': rileggi il pezzo.\n\nSE NON DICI QUALE BOOLEANA faccio «unisci», ed e' scritto nella risposta. «sottrai» e «interseca» si chiedono per nome, perche' cambiano il pezzo in modo opposto.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2165,7 +2305,8 @@
        "sottrai",
        "interseca"
       ],
-      "description": "che booleana fare."
+      "default": "unisci",
+      "description": "che booleana fare. Se non lo dici e' «unisci», e te lo scrivo nella risposta."
      },
      "corpo_principale_uid": {
       "type": "string",
@@ -2179,11 +2320,11 @@
       "description": "i corpi da unire, sottrarre o intersecare col principale. Se non li dici, tutti gli altri."
      }
     },
-    "required": [
-     "operazione"
-    ]
+    "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": "{\"operazione\":\"interseca\"}"
   },
   {
    "nome": "distanza_minima",
@@ -2207,7 +2348,9 @@
      "a_uid"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "misura_fra_entita",
@@ -2230,7 +2373,9 @@
      "uid"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "esporta_stl",
@@ -2263,7 +2408,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "esporta_step",
@@ -2293,7 +2440,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "esporta_iges",
@@ -2322,7 +2471,9 @@
     },
     "required": []
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "profili_saldatura",
@@ -2343,7 +2494,9 @@
     },
     "required": []
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "nessuno",
+   "esempio": "{\"cerca\":\"TUBO STRUTTURALE QUADRO\"}"
   },
   {
    "nome": "accoppia",
@@ -2389,7 +2542,9 @@
      "faccia_b"
     ]
    },
-   "precondizione": "un assieme aperto con almeno due componenti"
+   "precondizione": "un assieme aperto con almeno due componenti",
+   "documento": "assieme",
+   "esempio": null
   },
   {
    "nome": "sostituisci_componente",
@@ -2421,7 +2576,9 @@
      "percorso"
     ]
    },
-   "precondizione": "un assieme aperto, e il file nuovo gia' aperto"
+   "precondizione": "un assieme aperto, e il file nuovo gia' aperto",
+   "documento": "assieme",
+   "esempio": null
   },
   {
    "nome": "inserisci_componente",
@@ -2456,7 +2613,9 @@
      "percorso"
     ]
    },
-   "precondizione": "un assieme aperto, e il componente da inserire gia' aperto"
+   "precondizione": "un assieme aperto, e il componente da inserire gia' aperto",
+   "documento": "assieme",
+   "esempio": null
   },
   {
    "nome": "sweep_circolare",
@@ -2486,7 +2645,9 @@
      "diametro_mm"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "parte",
+   "esempio": "{\"percorso_mm\":[[0,0,0],[100,0,0]],\"diametro_mm\":20}"
   },
   {
    "nome": "loft_fra_due_cerchi",
@@ -2532,7 +2693,9 @@
      "distanza_mm"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "parte",
+   "esempio": "{\"piano\":\"frontale\",\"diametro1_mm\":40,\"diametro2_mm\":20,\"distanza_mm\":50}"
   },
   {
    "nome": "piano_per_tre_punti",
@@ -2570,7 +2733,9 @@
      "punto3_mm"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "parte",
+   "esempio": "{\"punto1_mm\":[0,0,0],\"punto2_mm\":[50,0,0],\"punto3_mm\":[100,10,0]}"
   },
   {
    "nome": "sformo",
@@ -2606,7 +2771,9 @@
      "angolo_gradi"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "sopprimi_istanza",
@@ -2637,7 +2804,9 @@
      "copie"
     ]
    },
-   "precondizione": "corpo_solido"
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "incidi_testo",
@@ -2689,7 +2858,9 @@
      "faccia_uid"
     ]
    },
-   "precondizione": "corpo_solido_e_faccia"
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "scrivi_proprieta",
@@ -2717,13 +2888,15 @@
      "valore"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "qualunque",
+   "esempio": "{\"nome\":\"NumeroDisegno\",\"valore\":\"DIS-1234\"}"
   },
   {
    "nome": "crea_configurazione",
    "famiglia": "identita",
    "sommario": "Fa una variante del pezzo -- sinistra e destra, con e senza foro -- e la attiva subito.",
-   "descrizione": "Crea una configurazione: la stessa staffa sinistra e destra, con e senza foro, dentro un file solo. E' come un'officina a disegno chiede una famiglia di pezzi.\n\nLA CREA E LA ATTIVA. SOLIDWORKS sposta subito il documento sulla configurazione nuova, senza che glielo si chieda: tutto quello che disegni dopo, e tutto quello che lo stato ti racconta dopo, riguarda QUELLA. Te lo dico nella risposta. Per tornare a un'altra c'e' «attiva_configurazione».\n\nIL NOME CHE TI RISPONDO E' QUELLO DA USARE, e non e' detto che sia quello che mi hai chiesto: i nomi di SOLIDWORKS possono avere delle parentesi angolari dentro, e quelle fanno parte del nome. Riportalo com'e'.",
+   "descrizione": "Crea una configurazione: la stessa staffa sinistra e destra, con e senza foro, dentro un file solo. E' come un'officina a disegno chiede una famiglia di pezzi.\n\nLA CREA E LA ATTIVA. SOLIDWORKS sposta subito il documento sulla configurazione nuova, senza che glielo si chieda: tutto quello che disegni dopo, e tutto quello che lo stato ti racconta dopo, riguarda QUELLA. Te lo dico nella risposta. Per tornare a un'altra c'e' «attiva_configurazione».\n\nIL NOME CHE TI RISPONDO E' QUELLO DA USARE, e non e' detto che sia quello che mi hai chiesto: i nomi di SOLIDWORKS possono avere delle parentesi angolari dentro, e quelle fanno parte del nome. Riportalo com'e'.\n\nMI RIFIUTO SE UNA CONFIGURAZIONE CON QUEL NOME C'E' GIA'. Due configurazioni omonime non sono un doppione innocuo: le lavorazioni soppresse in una e attive nell'altra fanno due pezzi diversi con lo stesso nome, e la distinta ne conta uno.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2744,13 +2917,15 @@
      "nome"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "parte/assieme",
+   "esempio": "{\"nome\":\"Sinistra\",\"descrizione\":\"staffa sinistra\"}"
   },
   {
    "nome": "attiva_configurazione",
    "famiglia": "identita",
    "sommario": "Passa a una configurazione gia' esistente, e verifica che ci sia davvero passato.",
-   "descrizione": "Sposta il documento su un'altra configurazione. Da qui in poi quello che disegni e quello che lo stato ti racconta riguardano quella.\n\nIL NOME NON E' QUELLO CHE SEMBRA. La configurazione predefinita si chiama spesso «Default<A macchina>» e NON «Default»: quello fra parentesi angolari fa parte del nome. Chiedendo «Default» SOLIDWORKS risponde di no, in silenzio -- e spesso di configurazioni che cominciano per «Default» ce n'e' piu' d'una (la coppia dei saldati: «<A macchina>» e «<Saldato>»), per cui non c'e' nemmeno un modo giusto di indovinare. NON INDOVINO: copia il nome intero da «configurazioni» nello stato del documento.\n\nDOPO AVER CHIESTO CONTROLLO QUALE E' ATTIVA ADESSO: non mi basta che il comando abbia detto di si', perche' lavorare per mezz'ora sulla variante sbagliata non da' nessun errore.",
+   "descrizione": "Sposta il documento su un'altra configurazione. Da qui in poi quello che disegni e quello che lo stato ti racconta riguardano quella.\n\nIL NOME NON E' QUELLO CHE SEMBRA. La configurazione predefinita si chiama spesso «Default<A macchina>» e NON «Default»: quello fra parentesi angolari fa parte del nome. Chiedendo «Default» SOLIDWORKS risponde di no, in silenzio -- e spesso di configurazioni che cominciano per «Default» ce n'e' piu' d'una (la coppia dei saldati: «<A macchina>» e «<Saldato>»), per cui non c'e' nemmeno un modo giusto di indovinare. NON INDOVINO: copia il nome intero da «configurazioni» nello stato del documento.\n\nDOPO AVER CHIESTO CONTROLLO QUALE E' ATTIVA ADESSO: non mi basta che il comando abbia detto di si', perche' lavorare per mezz'ora sulla variante sbagliata non da' nessun errore.\n\nMI RIFIUTO SE LA CONFIGURAZIONE NON C'E', e ti elenco quelle che ci sono. E il nome dev'essere INTERO: Default non basta se si chiama Default<Come lavorata>. Un nome parziale non lo indovino, perche' indovinare vorrebbe dire attivare la configurazione sbagliata in silenzio.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2763,7 +2938,9 @@
      "nome"
     ]
    },
-   "precondizione": null
+   "precondizione": null,
+   "documento": "parte/assieme",
+   "esempio": "{\"nome\":\"Sinistra\"}"
   }
  ]
 }

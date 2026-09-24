@@ -232,6 +232,25 @@ namespace Prove.Contratti
         }
 
         /// <summary>
+        /// La versione del prodotto, letta da `VERSION.txt` nel repository.
+        ///
+        /// Null se non si legge: chi la usa deve poter dire «non lo so»
+        /// invece di confrontare con una stringa vuota e trovarla diversa
+        /// da tutto.
+        /// </summary>
+        internal static string VersioneDelRepository()
+        {
+            try
+            {
+                var f = Path.Combine(Radice(), "VERSION.txt");
+                if (!File.Exists(f)) return null;
+                var s = File.ReadAllText(f).Trim();
+                return s.Length == 0 ? null : s;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
         /// `Prove/LEGGIMI.md` dice quanti controlli ci sono. Deve essere vero.
         ///
         /// Il 16/9/2026 diceva **54** mentre ne giravano **99**: un numero
@@ -335,6 +354,22 @@ namespace Prove.Contratti
             ProveSessione.Tutte();
             ProveProtocollo.Tutte();
             ProveIlBanco.Tutte();
+            ProveLaSentinella.Tutte();
+            ProveIlDocumento.Tutte();
+            ProveEnumDiErrore.Tutte();
+            ProveILimiti.Tutte();
+            ProveIRifiuti.Tutte();
+            ProveIlDocumentoRichiesto.Tutte();
+            ProveICampiObbligatori.Tutte();
+            ProveGliEsempi.Tutte();
+            ProveLeImmagini.Tutte();
+            ProveIlGuinzaglio.Tutte();
+            ProveLaProvaAVuoto.Tutte();
+            ProveLaConferma.Tutte();
+            ProveLeFirmeVietate.Tutte();
+            ProveLeFirmeDelDocumento.Tutte();
+            ProveIlRegistro.Tutte();
+            ProveLAvanzamento.Tutte();
             IlLeggimiDiceQuantiSono();
 
             Console.WriteLine();
@@ -1114,11 +1149,32 @@ namespace Prove.Contratti
         /// </summary>
         private static void LaLibreriaDelPonteELaSTESSADelBanco()
         {
-            Gruppo("il ponte e il banco caricano la stessa libreria");
+            Gruppo("le TRE copie della libreria sono la stessa");
 
             var delBanco = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release",
                                         "Riscontro.Disegno.dll");
             var delPonte = Path.Combine(Radice(), "bin", "Riscontro.Disegno.dll");
+
+            // ── LA TERZA, CHE QUESTO CONTROLLO NON GUARDAVA ──────────────
+            //
+            // `Banco\bin\Riscontro.Disegno.dll` e' quella che
+            // `ProvaSaldatura.exe` carica DAVVERO, e per due giorni questo
+            // gruppo si e' chiamato «il ponte e il banco caricano la stessa
+            // libreria» confrontando due copie di cui **nessuna delle due
+            // era quella del banco in esecuzione**. La prima e' la sorgente
+            // da cui `banco.ps1` la copia compilando.
+            //
+            // Il 24/9/2026 e' costato un giro: lanciato `ProvaSaldatura.exe`
+            // a mano per iterare in fretta, ha caricato la copia del giorno
+            // prima e ha detto che due predefiniti appena implementati **non
+            // esistevano**. Erano nel sorgente e nelle altre due DLL.
+            //
+            // Questo controllo non impedisce di lanciare l'eseguibile a mano
+            // — niente lo impedisce — ma dice **subito** che le copie sono
+            // divergute, invece di lasciarlo scoprire a un resoconto che
+            // accusa il codice sbagliato.
+            var accantoAlBanco = Path.Combine(Radice(), "Banco", "bin",
+                                              "Riscontro.Disegno.dll");
 
             bool c1 = ProdottoDaBuild(delBanco), c2 = ProdottoDaBuild(delPonte);
 
@@ -1143,13 +1199,60 @@ namespace Prove.Contratti
                   (v1 ?? "?") + " / " + (v2 ?? "?"));
             if (v1 == null || v2 == null) return;
 
-            Segna("il ponte e il banco hanno la STESSA versione della libreria",
+            Segna("la sorgente e il ponte hanno la STESSA versione della libreria",
                   string.Equals(v1, v2, StringComparison.Ordinal),
                   string.Equals(v1, v2, StringComparison.Ordinal)
                       ? "tutti e due " + v1
-                      : "BANCO " + v1 + " contro PONTE " + v2 +
+                      : "SORGENTE " + v1 + " contro PONTE " + v2 +
                         " — chi ha compilato il solo progetto ha aggiornato il primo e " +
                         "non il secondo: si rilancia .\\build.ps1, che li allinea");
+
+            // ── E LA TERZA COPIA: SI GUARDA LA RADICE, NON IL SINTOMO ────
+            //
+            // `Banco\bin\Riscontro.Disegno.dll` e' un RESIDUO: `banco.ps1`
+            // passa `--libreria` puntando alla sorgente, e nessuno aggiorna
+            // quella copia. Pretendere che combaci sarebbe un rosso perenne
+            // su un file che il giro vero non guarda mai.
+            //
+            // Cio' che conta e' il PREDEFINITO: cosa carica
+            // `ProvaSaldatura.exe` se qualcuno lo lancia a mano senza
+            // `--libreria`. Fino al 24/9/2026 era la copia accanto a se', e
+            // mi ha fatto misurare per un giro il codice di sei versioni
+            // prima dicendo che due predefiniti appena scritti «non
+            // esistevano». Adesso e' la stessa che usa `banco.ps1`.
+            //
+            // Si legge dal SORGENTE, perche' e' li' che la scelta vive, e
+            // perche' un controllo che leggesse il residuo tornerebbe a
+            // sorvegliare il sintomo.
+            var sorgenteBanco = Path.Combine(Radice(), "Banco", "Program.cs");
+            if (File.Exists(sorgenteBanco))
+            {
+                var testo = File.ReadAllText(sorgenteBanco);
+                bool cercaLaBuona =
+                    testo.IndexOf("LibreriaPredefinita", StringComparison.Ordinal) >= 0 &&
+                    testo.IndexOf("\"Riscontro.Disegno\", \"bin\", \"Release\"",
+                                  StringComparison.Ordinal) >= 0;
+                Segna("senza «--libreria» il banco cerca PRIMA la libreria appena compilata",
+                      cercaLaBuona,
+                      cercaLaBuona
+                          ? "il ripiego accanto all'eseguibile resta, ma viene dopo"
+                          : "il predefinito punta accanto all'eseguibile: chi lancia " +
+                            "`ProvaSaldatura.exe` a mano misura una copia che nessuno " +
+                            "aggiorna");
+
+                // E se il residuo c'e', lo si DICE — senza accusare: sapere
+                // che e' vecchio spiega un log confuso di sei mesi fa.
+                if (ProdottoDaBuild(accantoAlBanco))
+                {
+                    string v3 = Versione(accantoAlBanco);
+                    Segna("e si sa se accanto all'eseguibile c'e' un residuo vecchio", true,
+                          string.Equals(v1, v3, StringComparison.Ordinal)
+                              ? "ce n'e' una, ed e' allineata (" + v3 + ")"
+                              : "ce n'e' una FERMA A " + v3 + " contro " + v1 +
+                                ": non la usa piu' nessuno, ma se un log vecchio " +
+                                "non torna, e' lei");
+                }
+            }
 
             // ── E IL TERZO NUMERO, QUELLO CHE NESSUNO GUARDA ─────────────
             //

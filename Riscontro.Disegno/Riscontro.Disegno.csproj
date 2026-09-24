@@ -104,6 +104,10 @@
     <Compile Include="OperazioniQuoteTavola.cs" />
     <Compile Include="OperazioniNotaTavola.cs" />
     <Compile Include="OperazioniSezioneTavola.cs" />
+    <Compile Include="OperazioniDettaglioTavola.cs" />
+    <Compile Include="..\Condiviso\Guinzaglio.cs">
+      <Link>Guinzaglio.cs</Link>
+    </Compile>
     <Compile Include="OperazioniDistintaTavola.cs" />
     <Compile Include="OperazioniFogli.cs" />
     <Compile Include="OperazioniInterferenze.cs" />

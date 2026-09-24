@@ -36,6 +36,12 @@
 #       campo assente, un selettore che non risolve, una gemella che non c'e').
 #       NON e' la stessa cosa di una prova rossa e non va contata insieme: una
 #       prova rossa e' una misura, un errore di banco e' una misura MANCATA.
+#    3  la scrivania non era pulita: documenti gia' aperti in SOLIDWORKS che
+#       non sono del banco (voce K12). Il giro non parte affatto.
+#    4  SOLIDWORKS se n'e' andato a meta' giro: tre documenti nuovi non nati
+#       DI FILA (voce K17). Le prove rimaste NON sono rosse, sono saltate, e
+#       il giro non e' valido. Vince sul 2 e sull'1: chi legge un 1 si mette
+#       a cercare cosa ha rotto, e non ha rotto niente.
 #
 #      .\Banco\banco.ps1
 #      .\Banco\banco.ps1 -Gruppo viste          una famiglia sola (voce F13)

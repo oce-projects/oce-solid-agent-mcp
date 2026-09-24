@@ -74,9 +74,14 @@ namespace ProvaSaldatura
 
             // `Perche` tronca a 110 caratteri: si guarda l'inizio, che e' dove
             // sta il nome del passo, e il tipo dell'eccezione.
+            // IL TIPO E' CAMBIATO, E IL CAMBIO E' IL PUNTO (voce K17):
+            // `PreparazioneFallita` e' cio' che permette al giro dei casi
+            // di non chiamare rossa una prova che non ha fatto. Resta un
+            // `InvalidOperationException`, quindi chi lo cattura cosi'
+            // continua a catturarlo.
             Segna("F12: il racconto dell'eccezione porta tipo e passo",
                   raccontato != null &&
-                  raccontato.StartsWith("InvalidOperationException:", StringComparison.Ordinal) &&
+                  raccontato.StartsWith("PreparazioneFallita:", StringComparison.Ordinal) &&
                   raccontato.Contains("la parte nuova"),
                   Corto(raccontato));
 

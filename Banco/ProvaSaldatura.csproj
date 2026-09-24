@@ -51,6 +51,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Condiviso\ClienteMcp.cs" />
+    <Compile Include="..\Condiviso\SentinellaSolidWorks.cs" />
+    <Compile Include="..\Condiviso\PreparazioneFallita.cs" />
+    <Compile Include="..\Condiviso\Guinzaglio.cs" />
     <Compile Include="Attese.cs" />
     <Compile Include="AssiemeDiProva.cs" />
     <Compile Include="CasiDichiarati.cs" />

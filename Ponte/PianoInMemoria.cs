@@ -38,6 +38,22 @@ namespace Oce.Solid.Agent.Ponte
         private int _prossimo;
 
         /// <summary>
+        /// Il filo dell'avanzamento (voce W2.2), e da che numero riprendere.
+        ///
+        /// QUESTO E' IL PUNTO CHE CONTA, e non il controllo del piano: il
+        /// controllo dura millisecondi, l'esecuzione puo' durare minuti. La
+        /// notifica parte da `ProssimoAsync`, cioe' **prima** che il passo
+        /// cominci — dire «sto per fare il passo 3 di 5» serve; dirlo dopo che
+        /// e' finito serve molto meno.
+        ///
+        /// E non e' servito toccare la libreria: l'esecutore chiede il passo
+        /// successivo a questa classe, che sta nel ponte. L'aggancio c'era
+        /// gia', mancava solo chi lo usasse.
+        /// </summary>
+        private readonly Mcp.Avanzamento.Filo _filo;
+        private readonly double _partenza;
+
+        /// <summary>
         /// Com'e' andato ogni passo, nell'ordine in cui sono stati eseguiti.
         /// E' la risposta che il ponte manda indietro.
         /// </summary>
@@ -45,8 +61,17 @@ namespace Oce.Solid.Agent.Ponte
             new List<Dictionary<string, object>>();
 
         public PianoInMemoria(List<PassoDelPiano> passi)
+            : this(passi, null) { }
+
+        public PianoInMemoria(List<PassoDelPiano> passi, Mcp.Avanzamento.Filo filo)
         {
             _passi = passi;
+            _filo = filo ?? new Mcp.Avanzamento.Filo(null);
+            // Da dove riprendere: se il controllo del piano ha gia' raccontato
+            // cinque passi, l'esecuzione comincia a sei. Chiederlo al filo
+            // invece di calcolarlo vuol dire che i due punti non possono
+            // dire numeri che si sovrappongono.
+            _partenza = _filo.Ultimo;
         }
 
         public Task<ProssimoPasso> ProssimoAsync(Dictionary<string, object> stato)
@@ -55,7 +80,11 @@ namespace Oce.Solid.Agent.Ponte
             // d'identita' del documento — lo fa l'esecutore, sul documento
             // vero e non su una fotografia.
             if (_prossimo >= _passi.Count) return Task.FromResult(ProssimoPasso.Fine());
-            return Task.FromResult(ProssimoPasso.Questo(_passi[_prossimo++]));
+            var questo = _passi[_prossimo++];
+            _filo.Passo(_partenza + _prossimo,
+                        "eseguo il passo " + _prossimo + " di " + _passi.Count +
+                        ": " + questo.Operazione);
+            return Task.FromResult(ProssimoPasso.Questo(questo));
         }
 
         public Task EsitoAsync(
