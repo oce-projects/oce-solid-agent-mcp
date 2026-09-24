@@ -145,8 +145,26 @@ using System.Runtime.InteropServices;
 //          riga non-JSON lo rompe; e **non uccide il processo**, perche'
 //          il ponte e' un servizio di qualcun altro mentre il banco e' un
 //          giro che o finisce o non serve.
-[assembly: AssemblyVersion("0.111.0.0")]
-[assembly: AssemblyFileVersion("0.111.0.0")]
+// 0.111.0: `applica_materiale.materiale` vale S235JR se non detto e
+//          `combina_corpi.operazione` vale unisci (voce Z-G3), e la
+//          risposta DICE che l'ha scelto il ponte. Questa nota mancava:
+//          la versione era stata alzata e raccontata solo nel CHANGELOG
+//          del ponte (0.84.0). Scritta il 24/9/2026 con la 0.112.0.
+// 0.112.0: la cartella dei profili di saldatura non ha piu' un percorso
+//          predefinito. `CartellaDeiProfili()` torna null senza
+//          PROFILI_SALDATURA, e `profili_saldatura` distingue «non so dove
+//          sia» da «li' non c'e'»: prima i due casi davano lo stesso
+//          messaggio, con un percorso vuoto fra virgolette. Il ripiego era
+//          il disco di una postazione sola: non aiutava nessun altro e
+//          pubblicava com'e' fatto quel disco.
+//          Il resto sono commenti riscritti senza nomi di pezzi veri.
+//          ALZATA APPOSTA ANCHE SE IL CAMBIO E' PICCOLO: i sorgenti erano
+//          cambiati sotto la 0.111.0, e un banco verde su quei byte avrebbe
+//          descritto una libreria diversa con lo stesso numero addosso --
+//          il difetto della voce K14. Se n'e' accorto il critico della
+//          rilettura, non una prova.
+[assembly: AssemblyVersion("0.112.0.0")]
+[assembly: AssemblyFileVersion("0.112.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -161,4 +179,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.111.0")]
+[assembly: AssemblyInformationalVersion("0.112.0")]

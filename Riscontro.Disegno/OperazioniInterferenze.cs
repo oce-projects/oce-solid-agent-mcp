@@ -12,10 +12,10 @@ namespace Riscontro.Disegno
     ///
     /// ── PERCHE' QUESTA VOCE E' ALTA ─────────────────────────────────────
     ///
-    /// Lo scopo dichiarato del progetto e' una scatola stagna in due meta',
-    /// da montare all'aperto. **«Il coperchio tocca la base?»** e **«la
-    /// vite passa dentro la parete?»** sono le domande che decidono se il pezzo
-    /// si puo' fare.
+    /// Il primo pezzo per cui questo ponte e' stato scritto e' una scatola
+    /// stagna in due meta', da montare all'aperto. **«Il coperchio tocca la
+    /// base?»** e **«la vite passa dentro la parete?»** sono le domande che
+    /// decidono se il pezzo si puo' fare.
     ///
     /// Fino a qui il ponte non sapeva rispondere: lo stato dell'assieme dice
     /// quanti componenti ci sono, se sono fissi, se sono vincolati — **non se

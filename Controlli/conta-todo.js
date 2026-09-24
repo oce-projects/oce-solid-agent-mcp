@@ -46,8 +46,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const file = process.argv.find((a) => a.endsWith(".md")) ||
-  path.join(__dirname, "..", "TODO.md");
+const { trovaIlTodo } = require("./dov-e-il-todo.js");
+const file = trovaIlTodo(path.join(__dirname, ".."), process.argv);
+if (!file) process.exit(0);
 const mostraRighe = process.argv.includes("--righe");
 
 const righe = fs.readFileSync(file, "utf8").split(/\r?\n/);
@@ -77,10 +78,31 @@ const piene = voci.filter((v) => v.stato === "x");
 const meta = voci.filter((v) => v.stato === "~");
 const aperte = voci.filter((v) => v.stato === " ");
 
-// Una traccia tenuta per riferimento si riconosce dal titolo: il TODO le
-// scrive cosi' per non perdere il perche' di una voce riscritta.
-const tracce = aperte.filter((v) => /traccia originale|tenuta per riferimento/i.test(v.titolo));
-const lavoroVero = aperte.length - tracce.length;
+// UNA TRACCIA NON HA LA CASELLA, E QUESTO SCRIPT ADESSO LO PRETENDE.
+//
+// Qui si cercavano le tracce solo fra le `[ ]`, e se ne trovava UNA. La
+// rilettura del 24/9/2026 ne ha contate 54: 49 stavano a `[~]`, dove questo
+// filtro non guardava, e contavano come lavoro «a meta'». Il conto diceva 87
+// voci a meta' e le vere erano 36; il totale diceva 312 e le voci vere erano
+// 258. *Il numero che doveva impedire di gonfiare il lavoro lo gonfiava, e lo
+// faceva con la regola giusta applicata a un quinto dei casi.*
+//
+// La regola del TODO (in testa al file) e': una traccia perde la casella e
+// diventa `(com'era)`. Quindi una traccia CON la casella non e' da contare
+// a parte: e' un difetto del file, e lo script esce 1. Lo stesso
+// riconoscimento di Prove/Programma.cs, perche' due regole per la stessa
+// cosa divergono.
+const TRACCIA = /traccia originale|progetto originale|tenut[ao] per|per riferimento|com'era scritta/i;
+const tracce = voci.filter((v) => TRACCIA.test(v.titolo) && !/FATTO il/.test(v.titolo));
+const lavoroVero = aperte.length - tracce.filter((v) => v.stato === " ").length;
+
+// E UNA CASELLA FUORI DAI `####` NON LA VEDE NESSUNO. W3.1 — 30-50 ore,
+// prerequisito della pubblicazione — stava a `###` ed era invisibile a questo
+// conto, al controllo sui nomi doppi e al grep che la testa del file indica.
+const fuoriLivello = [];
+for (let i = 0; i < righe.length; i++) {
+  if (/^(#{1,3}|#{5,6}) \[[ x~]\] /.test(righe[i])) fuoriLivello.push(i + 1);
+}
 
 const totale = voci.length;
 const soloPiene = (piene.length / totale) * 100;
@@ -92,9 +114,19 @@ console.log(`voci con casella: ${totale}`);
 console.log(`  [x] chiuse   ${piene.length}`);
 console.log(`  [~] a meta'  ${meta.length}`);
 console.log(`  [ ] aperte   ${aperte.length}`);
+let difetti = 0;
 if (tracce.length) {
-  console.log(`      di cui tracce tenute per riferimento: ${tracce.length}`);
-  console.log(`      LAVORO VERO: ${lavoroVero} aperte su ${totale}`);
+  difetti++;
+  console.log();
+  console.log(`  XX  ${tracce.length} tracce hanno ancora la casella, e contano come lavoro:`);
+  for (const v of tracce) console.log(`        [${v.stato}] ${v.titolo.slice(0, 70)}`);
+  console.log(`      La regola in testa al TODO: una traccia diventa «(com'era)».`);
+  console.log(`      Al netto: ${lavoroVero} aperte vere.`);
+}
+if (fuoriLivello.length) {
+  difetti++;
+  console.log();
+  console.log(`  XX  caselle fuori dal livello ####, invisibili a ogni conto: righe ${fuoriLivello.join(", ")}`);
 }
 console.log();
 console.log("completamento, e la forchetta e' il numero onesto:");
@@ -102,12 +134,12 @@ console.log(`  solo [x]                      ${soloPiene.toFixed(1)} %`);
 console.log(`  [x] piene, [~] per meta'      ${conMeta.toFixed(1)} %`);
 console.log(`  [~] contate per intere        ${metaPerIntere.toFixed(1)} %`);
 console.log();
-console.log("la riga da riscrivere nel TODO:");
+console.log("la riga da riscrivere nel §1 del TODO:");
 console.log(
-  `  Delle ${aperte.length} aperte, ${tracce.length === 1 ? "**una**" : `**${tracce.length}**`} ` +
-    `e' una «traccia originale tenuta per riferimento»... ` +
-    `Il lavoro vero e' quindi **${lavoroVero} aperte su ${totale}**.`
+  `  **${totale} voci**: ${piene.length} chiuse, ${meta.length} a meta', ${aperte.length} aperte ` +
+    `(${soloPiene.toFixed(1)}% / ${conMeta.toFixed(1)}% / ${metaPerIntere.toFixed(1)}%).`
 );
+if (difetti) process.exitCode = 1;
 
 if (process.argv.includes("--blocchi")) {
   // Le spie, in ordine di forza: una decisione del proprietario batte

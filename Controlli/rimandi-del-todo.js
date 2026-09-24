@@ -29,8 +29,9 @@ const radice = path.join(__dirname, '..');
 const tutti = process.argv.includes('--tutti');
 // IL FILE SI PUO' PASSARE, come in `conta-todo.js`: serve a far scattare
 // questa sonda su una copia rotta, che e' l'unico modo di crederle.
-const fileTodo = process.argv.find(a => a.endsWith('.md')) ||
-                 path.join(radice, 'TODO.md');
+const { trovaIlTodo } = require('./dov-e-il-todo.js');
+const fileTodo = trovaIlTodo(radice, process.argv);
+if (!fileTodo) process.exit(0);
 const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // ── I NOMI CHE ESISTONO ────────────────────────────────────────────────

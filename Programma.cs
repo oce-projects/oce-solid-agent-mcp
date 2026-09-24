@@ -394,6 +394,27 @@ namespace Oce.Solid.Agent
 
             if (!sessione.Agganciata) return 1;
 
+            // AGGANCIATO E SENZA DOCUMENTI E' UN PONTE IN PIEDI (voce H6-bis).
+            //
+            // Qui prima si chiedeva lo stato e, senza un documento aperto, lo
+            // stato torna null: il giro secco usciva 1, e l'installatore diceva
+            // «Installato, ma il giro secco non ha confermato» — con SOLIDWORKS
+            // acceso e vuoto, che e' lo stato normale di chi ha appena acceso il
+            // computer. Trovato il 14/9, rimasto senza casella fino al 24/9, e
+            // visto di nuovo quella sera: il banco aveva chiuso tutto e il caso 2
+            // di `Controlli/prova-installatore.js` e' diventato rosso.
+            //
+            // Tre esiti e non due: agganciato con un documento (lo misura),
+            // agganciato senza documenti (lo dice, ed e' in piedi), non agganciato
+            // (esce 1, sopra). Che abbia parlato con SOLIDWORKS lo dice gia' la
+            // riga col numero di versione, stampata all'aggancio.
+            if (sessione.DocumentoAttivo() == null)
+            {
+                Protocollo.Nota("[prova] nessun documento aperto: agganciato, niente da misurare.");
+                Protocollo.Nota("[prova] il ponte sta in piedi.");
+                return 0;
+            }
+
             var stato = sessione.Stato(out var errore);
             if (stato == null) { Protocollo.Nota("[prova] " + errore); return 1; }
 

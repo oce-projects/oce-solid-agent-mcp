@@ -24,6 +24,210 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.86.0 — 24 September 2026 · library 0.112.0
+
+### The library number moves, because its bytes did
+
+The fallback removal below changed `OperazioniProfili.cs` — behaviour, not
+just comments — while `AssemblyVersion` still said 0.111.0. A green bench on
+those bytes would have described a different library under the same number,
+which is exactly entry K14. It went to **0.112.0**, and the bench ran again.
+Nothing caught it: the critic of the RAG re-read did. The note for 0.111.0 was
+missing from `AssemblyInfo.cs` too, and is now there.
+
+### The module probe could not tell a working module from a missing one (entry K20)
+
+`Controlli/moduli-di-solidworks.ps1` decided "installed but cannot be created"
+by counting the registered coclasses of a module's interop and by listing
+`HKLM\SOFTWARE\SolidWorks\AddIns`. On the day Simulation ran end to end (S3),
+the same criterion said about Simulation exactly what it said about Utilities
+and DimXpert: 80 coclasses, 0 registered, and absent from every add-in key it
+read. Four TODO entries rested on that line. A check that gives the same
+answer for a module that works and one that does not measures nothing, and
+nobody had ever seen it tell the truth about a known case.
+
+It now resolves each module the way Windows does — ProgID → CLSID →
+`InprocServer32` → file — looking in `HKCU\Software\Classes` **before** HKLM,
+reading `CodeBase` for .NET add-ins, and resolving paths relative to the
+SOLIDWORKS root. It carries **two positive controls**: Simulation (a Dassault
+module listed under no add-in key) and the OpenPDM add-in (.NET, registered
+under HKCU). If either fails to resolve, the script declares its own criterion
+blind and exits 1. Seen firing: a copy with the Simulation ProgID misspelled
+exits 1; the real one exits 0.
+
+The first draft of the probe got wrong exactly what the positive control is
+for: it reported "file missing" for the OpenPDM add-in, which is installed and
+loads at startup, because it read HKLM first and took `mscoree.dll` for the
+file. Without the positive control that line would have gone into the TODO as
+a measurement.
+
+What it then said changes a decision: **SOLIDWORKS Utilities is registered and
+reachable** — `Utilities.UtilitiesApp` resolves to `sldUtils\SwLoaderSw.dll`,
+with the thickness checker `ThickChkswu.dll` beside it. The conclusion of 22
+September ("no tick box, needs the Installation Manager") is refuted at the
+registry level. Whether it actually loads is still for SOLIDWORKS to say.
+
+### A successful install reported as unconfirmed, whenever SOLIDWORKS was empty (entry H6-bis)
+
+The dry run (`--prova`) asked for the state of the open document, and with
+SOLIDWORKS running and nothing open the state is null: it exited 1, and the
+installer said "installed, but the dry run did not confirm" — on the most
+ordinary machine there is, one where SOLIDWORKS has just been started. Found on
+14 September, left without its own entry until the 24th, and seen again that
+evening by accident: the bench had just closed every document and case 2 of
+`Controlli/prova-installatore.js` went red. In the morning it had been green
+only because a part happened to be open.
+
+The dry run now has three outcomes, not two: attached with a document (it
+measures it), attached with none (it says so and exits 0), not attached (exits
+1). Red before, green after, with SOLIDWORKS open and empty: 11 of 11.
+
+### The lock between two bridges, seen firing without SOLIDWORKS (entry W2.9)
+
+The per-document lock (`Ponte/TurnoSulDocumento.cs`) had been "written, to be
+seen firing" since 16 September, on the premise that seeing it needed two
+bridges on a real document. For the lock itself it did not: it is a named mutex
+in `Local\`, and any process in the session can hold it. A new contract group
+has a child PowerShell hold the mutex and checks four things: free, it is
+taken; held by another process, `Prendi` returns null — the bridge's refusal;
+the holder killed without releasing, it is taken again (abandoned means free);
+a different document does not wait. Four green, 350 checks in the suite.
+
+What it does not prove is that `Sessione.cs` wraps the plan with the lock on
+the *right* document; that half still wants two bridges and SOLIDWORKS.
+
+### A release rite, since no runner can build the bridge
+
+No GitHub-hosted runner has the SOLIDWORKS interop, so none can compile the
+bridge; the owner chose a manual rite over a self-hosted runner. `RELEASE.md`
+describes it, and `Controlli/prepara-release.ps1` checks every step that can
+be checked — version and CHANGELOG entry, clean tree, `HEAD` pushed, tag not
+yet taken, build, the SHA-256 **recomputed** rather than trusted, the contract
+suite green (which includes bench freshness) — and then prints the three
+publishing commands without running them. Publishing leaves this machine, and
+a person decides it.
+
+### The counter that was meant to stop inflation was inflating
+
+`Controlli/conta-todo.js` excluded "traces kept for reference" — the original
+text of an entry that has since been rewritten — only among open entries, and
+found one. There were 54, and 49 of them sat among the half-done ones, where
+the filter did not look: the diary claimed 87 entries half done when 36 were.
+The rule was right and applied to one case in fifty. The script now **exits 1**
+when a trace carries a status box, or when a boxed entry sits outside the
+heading level every other tool reads (one 30-50-hour entry, a prerequisite of
+publication, was invisible that way). Seen firing on the file as it was, silent
+on the file as it is.
+
+### The working diary leaves the repository, and the probes that read it survive
+
+`TODO.md` — 17.117 lines, 1 MB — is now in `note-interne/`, which `.gitignore`
+excludes. It names the author nineteen times, the workstations, the decisions
+not yet taken, and it judges someone else's project by name. None of that
+teaches a reader anything about installing, using or contributing here.
+
+**Five probes exist only to check it, and three of them run in the pre-push
+hook.** Removing the file without touching them would have killed them with
+`ENOENT` on every machine that is not this one — which is to say it would have
+broken `git push` for anyone who cloned, over a file they do not have and
+should not have. So `Controlli/dov-e-il-todo.js` looks in `note-interne/`, then
+in the root, then at `TODO_MD`, and when it finds nothing it **says it checked
+nothing and exits 0**. Same shape in `firme-del-todo.ps1` and in the contract
+suite, where the check used to be a red.
+
+*A test that fails for everyone except the person who wrote it does not measure
+the code. It measures who is running it.*
+
+### The name pattern was case-sensitive, and the capital letter walked past it
+
+The username check ran `-CaseSensitive` against the lowercase spelling only. The
+capitalised form was sitting in a comment in `Banco/ProveSenzaIlPezzo.cs:185`,
+and the check said "ok". It is now case-insensitive — no Italian word contains
+that string, so the change costs not one false positive — and it fired on 24
+points across four files the moment it was made.
+
+*And it fired a third time on this very entry:* the first draft of the
+paragraph you are reading spelled the name out twice, to explain the bug. The
+check refused the commit. **The rule about writing an incident by its shape and
+not by its value applies to the sentence that explains the rule.**
+
+`LICENSE` and `NOTICE` are exempt **from this pattern only**: there the name is
+the copyright line and the attribution that Apache-2.0 requires. Two texts that
+do not grow, three fixed lines.
+
+### An exemption that named three files was the widest one in the file
+
+`$possonoNominarli` listed `controlla-catalogo.ps1`,
+`controlla-pubblicabilita.ps1` and `bonifica-storia.js`, and it was applied
+inside `Righe()` — so it exempted those three from **every** pattern at once. It
+looked narrow. It was not: it never said *what* it exempted from.
+
+**The bill arrived inside the file itself.** While repairing the TODO exemption
+in 0.85.0 I wrote the two real addresses into the comment that explains it —
+inside the file that exists to forbid them, which exempted itself. They sat
+there for three hours. No probe found them; a census done by hand did.
+
+Every pattern now carries its own list, and every name on a list has its reason
+written beside it. The internal-address pattern carries **no list at all**: the
+regex `192\.168\.\d` does not match its own text, so nobody needs a pass, and
+anyone who did would be writing a real address.
+
+### A new guard: the inside of somebody else's repository
+
+There is not one Python file in this repository (`git ls-files '*.py'`: empty).
+So a `.py` with a **folder in front** or a **line number behind** can only be
+talking about another project — and three of them were, naming directories,
+files and line numbers of a private repository in `Strumenti/aggiorna.md` and in
+the CHANGELOG entry that had copied them. A bare filename still passes: that is
+where the catalogue came from, and it is context.
+
+Seen firing: it caught the one occurrence I had not yet fixed, then went quiet.
+
+### The census, and three decisions taken on it
+
+A sweep over the 481 tracked files, looking for what identifies the company, the
+people, the real parts or the machines. What came out:
+
+- **The real product is no longer named.** The comment that opened
+  `OperazioniInterferenze` said what the box is for, by brand. It now says what
+  it is — a two-part weatherproof box — which is the part the reasoning actually
+  needs. Four bench cases lose the product name from a file path.
+- **`Banco/casi/pezzi/` leaves the repository.** Ten plans carrying non-round,
+  mutually consistent dimensions — copied from a real drawing, not invented.
+  They were plans and not declared cases, so the bench never ran them.
+- **The hard-coded network paths are gone.** The weldment library is named by
+  `PROFILI_SALDATURA` and the document templates by `MODELLI_SOLIDWORKS`, with
+  **no fallback**. The old fallback was one workstation's drive: on every other
+  machine it did not exist, so it helped nobody, and meanwhile it published how
+  that drive is laid out.
+
+  Removing a fallback without adding the sentence that explains what is missing
+  is not a repair, it is moving the damage — so the bench now stops at line one
+  with exit 2 and says which variable to set. Verified both ways: exit 2 with
+  the message when it is unset, a full run when it is set.
+
+### For the person — or the assistant — who has to install this
+
+- **`INSTALL-FOR-AI.md`**, new. Written for an AI assistant installing on
+  someone else's machine: the flags, what each exit code means, what the
+  installer changed on disk, how to verify with `--prova` (whose last line is
+  `[prova] il ponte sta in piedi.` — quoted in Italian because that is what the
+  program prints), and five named traps. Every fact in it was run or read
+  against the installer's own code, not summarised from a description.
+- **`SECURITY.md`**, new. `CONTRIBUTING.md` promised private vulnerability
+  reporting and there was no file where GitHub looks for one. It also says what
+  is in scope for something that has no server and no account.
+- **`README.md` now links to `QUICKSTART.md`** in its first screen. It did not,
+  at all: a stranger landing on the default GitHub page had no way to discover
+  that a prebuilt installer exists.
+- **`QUICKSTART.md` says where `Installa.exe` comes from.** It used to call it
+  "the single file you were given", which is written for someone who already
+  knows the maintainer. It now says to check Releases, says plainly that an
+  empty Releases page is a gap and not a search failure, and gives the
+  `build.ps1` route with the hash check.
+
+---
+
 ## 0.85.0 — 24 September 2026 · library 0.111.0
 
 ### Simulation, measured end to end: 54.3 MPa against 60.0 by hand (entry S3)
@@ -81,6 +285,11 @@ line. Between one revision and the next, TODO.md grew by sixteen thousand lines,
 and three real addresses went in with it — one server, and a network share named
 twice. The check ran, reported "ok, no internal address", and was right
 according to the rule it had been given.
+
+They were pushed, not published: this repository is still private (checked with
+`gh repo view`: visibility PRIVATE), so no stranger has ever been able to read
+them. But they sat in a history that would have gone public all at once on the
+day the switch is flipped, and that day is the only day this check exists for.
 
 The repair is not a narrower exemption. The pattern is now `192\.168\.\d`: a
 real address has a digit after the third dot, a rule being quoted writes the
@@ -4087,7 +4296,7 @@ uno dei `lim_*.json` il comando esce **2** e nomina il caso.
 > da «il controllo rifiuta tutto».
 
 Le quattro coppie canoniche di 80v sono nel repository, tutte sullo stesso
-blocco 314 x 274 x 52 (**4.473.872 mm³**), con i numeri rimisurati oggi:
+blocco rettangolare, con i numeri rimisurati oggi:
 
 ```
 foro 270 passante                tolti 2.977.287,36   (pi*135^2*52)
@@ -4443,8 +4652,8 @@ correggi*, e il file aveva solo le prime due.
 
 ### B6 — la libreria entra nel monorepo come sottomodulo
 
-Il commit sta in `OpenPDM` (`<commit del monorepo>`), non in questo repository: qui non
-cambia una riga. Lo si racconta qui perche' la voce B6 vive in questo TODO, e
+Il commit sta nel monorepo dell'altro progetto, non in questo repository: qui
+non cambia una riga. Lo si racconta qui perche' la voce B6 vive in questo TODO, e
 perche' il clone di prova ha scoperto una cosa che valeva la pena sapere.
 
 `OpenPDMSwAddin.csproj` puntava alla libreria con un percorso **assoluto**,
@@ -6405,7 +6614,7 @@ segue soltanto se e' dichiarato.
 
 ```
 [agente] passo 3: crea_disegno
-[agente] tavola creata da <impostazioni SOLIDWORKS>\...
+[agente] tavola creata da <il modello di tavola dell'officina>
 [agente] da qui in poi si lavora su «titolo:Disegno3 - Foglio1»
 [agente] passo 4: viste_standard        -> viste_totali: 3
 ```
@@ -6925,9 +7134,10 @@ in silenzio non si nota.
 legge questo JSON, le fonti sono due.
 
 Accertato con un grep, che la voce chiedeva: `CATALOGO_DISEGNO` ha **tre**
-consumatori fuori da `ai_disegno.py` — `<un file del server>`,
-`<un file del server>` e `:252` — e usano `.nome`, `.provata`,
-`.precondizione`, tutti campi che il record C# ha. Ma `ai_disegno.py` tiene
+consumatori oltre a quello che lo definisce, e usano `.nome`, `.provata`,
+`.precondizione`, tutti campi che il record C# ha. *(I percorsi e le righe
+stavano qui per esteso, e sono di un altro repository, privato: tolti il
+24/9/2026 con il censimento.)* Ma `ai_disegno.py` tiene
 anche `limiti` e `riassunto`, che non sono fra i sei esportati e servono a
 `valida()`: l'inversione e' uno **spacco** del record, non una sostituzione. E'
 lavoro sul server in produzione, che la voce C3 aveva gia' dichiarato fuori

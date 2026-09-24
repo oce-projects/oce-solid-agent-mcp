@@ -68,11 +68,17 @@ namespace Controlli.NuovaParte
 
         private static string CercatoSulDisco()
         {
-            var cartelle = new[]
+            // `C:\ProgramData\SolidWorks` e' dove SOLIDWORKS mette i suoi
+            // modelli su qualunque installazione. Accanto c'era il percorso di
+            // un disco di rete di UNA postazione: non serviva a nessun altro e
+            // diceva com'e' fatto quel disco. Adesso e' una variabile, e chi
+            // tiene i modelli altrove lo dice.
+            var cartelle = new System.Collections.Generic.List<string>
             {
                 @"C:\ProgramData\SolidWorks",
-                @"<impostazioni SOLIDWORKS>",
             };
+            var sua = Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
+            if (!string.IsNullOrWhiteSpace(sua)) cartelle.Add(sua);
             foreach (var c in cartelle)
             {
                 if (!Directory.Exists(c)) continue;

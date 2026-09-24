@@ -9,6 +9,11 @@ remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 Si installa con un file solo e non chiede altro che un'installazione
 SOLIDWORKS® con licenza tua.
 
+> **Vuoi solo usarlo, non compilarlo?** → **[QUICKSTART.md](QUICKSTART.md)**,
+> sei passi, in inglese. Questa pagina e' per chi vuole costruirlo.
+> Se invece sei un assistente AI che installa per conto di qualcuno, la pagina
+> scritta per te e' **[INSTALL-FOR-AI.md](INSTALL-FOR-AI.md)**.
+
 > SOLIDWORKS® e' un marchio registrato di Dassault Systèmes SolidWorks
 > Corporation. Questo progetto e' indipendente e non e' affiliato, sponsorizzato
 > ne' approvato da Dassault Systèmes. Non contiene e non ridistribuisce codice o
@@ -227,8 +232,8 @@ build senza motivo:
 ```
 
 Qui la cartella si chiama `-SwRedist` ed e' `api\redist`, non la radice: sono
-due script diversi nati in due momenti diversi, e uniformarli e' una voce del
-`TODO.md` e non una cosa da indovinare.
+due script diversi nati in due momenti diversi, e uniformarli e' una cosa
+gia' segnata e non una da indovinare.
 
 ### Poi si collega
 

@@ -37,17 +37,20 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Dove sta la libreria dei profili saldati su QUESTA installazione.
-        /// Si cambia con `PROFILI_SALDATURA`, come nel banco.
+        /// Dove sta la libreria dei profili saldati. Si dice con
+        /// `PROFILI_SALDATURA`, come nel banco e come nella libreria.
+        ///
+        /// QUI C'ERA IL PERCORSO DI UNA POSTAZIONE SOLA, come ripiego. Non ha
+        /// mai aiutato nessun altro - su ogni altra macchina quella cartella
+        /// non esiste - e intanto raccontava com'e' fatto quel disco. Adesso
+        /// vuoto e' vuoto, e chi chiama lo deve dire.
         /// </summary>
         internal static string Profili
         {
             get
             {
                 var suo = Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
-                return string.IsNullOrWhiteSpace(suo)
-                    ? @"<impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\NORMATI"
-                    : suo;
+                return string.IsNullOrWhiteSpace(suo) ? null : suo;
             }
         }
 
@@ -570,7 +573,17 @@ namespace ProvaSaldatura
             // sta dove la mette ogni installazione, e il caso dice «{PROFILI}»
             // invece di sapere dov'e'.
             if (testo != null && testo.Contains("{PROFILI}"))
+            {
+                // `String.Replace(a, null)` solleva `ArgumentNullException`, e
+                // da qui uscirebbe come un guasto del banco invece che come la
+                // cosa che e': una precondizione che manca. Si dice.
+                if (Profili == null)
+                    throw new NonHoPotutoMisurare(
+                        "Questo caso nomina {PROFILI}, ma PROFILI_SALDATURA non e' " +
+                        "impostata e non c'e' un percorso predefinito. La libreria " +
+                        "dei profili e' di chi lavora, non del repository: dille dov'e'.");
                 return testo.Replace("{PROFILI}", Profili);
+            }
             // `{LAVORO}`: dove un caso puo' scrivere un file senza sporcare
             // ne' il repository ne' il disco di chi lavora.
             if (testo != null && testo.Contains("{LAVORO}"))

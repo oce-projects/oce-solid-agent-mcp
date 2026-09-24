@@ -150,7 +150,7 @@ $uscita = Join-Path $Banco "ultimo-giro.txt"
 # quello che si vedeva era:
 #
 #     ProvaSaldatura.exe :
-#     In S:\PDM\SolidWorksMcp\Banco\banco.ps1:138 car:1
+#     In <la cartella del clone>\Banco\banco.ps1:138 car:1
 #     + & $eseguibile $argomenti 2>&1 | Tee-Object -FilePath $uscita
 #
 # senza una parola sull'eccezione, e con `ultimo-giro.txt` fermo al giro

@@ -67,8 +67,14 @@ namespace Prove.Contratti
         /// Scriverlo qui e' il punto — un pavimento che sale senza che nessuno
         /// abbia scritto un messaggio migliore insegna a leggere quel numero
         /// come un risultato, e la volta dopo nessuno controlla.
+        ///
+        /// **84 dal 24/9/2026, e stavolta e' lavoro vero.** Togliendo il
+        /// ripiego cablato alla libreria dei profili, `profili_saldatura` ha
+        /// guadagnato un rifiuto che distingue «non so dove sia» da «non c'e'»
+        /// e dice quale variabile impostare. Prima i due casi davano lo stesso
+        /// messaggio, con un percorso vuoto fra virgolette.
         /// </summary>
-        private const int Pavimento = 83;
+        private const int Pavimento = 84;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.
@@ -170,7 +176,7 @@ namespace Prove.Contratti
 
             Segna("e il pavimento e' quello vero", conStrada == Pavimento,
                   conStrada == Pavimento
-                      ? "ottantatre, come misurati"
+                      ? "ottantaquattro, come misurati"
                       : "sono " + conStrada + ": alza il pavimento a questo numero");
 
             // DOVE STANNO I MUTI, perche' un numero senza un indirizzo non fa

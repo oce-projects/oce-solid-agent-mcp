@@ -75,11 +75,17 @@ Banco/casi/forma/
 # giorno dopo averlo pubblicato.
 Controlli/*.local.js
 
-# Le note che servono solo a noi. Non sono segrete: sono di lavoro, e a chi
-# clona non insegnano niente. Ci stanno CONFRONTO.md (il confronto con un
-# progetto altrui, nominato) e PROVE-INSTALLATORE.md (gli esiti di UNA sessione
-# di collaudo del 14/9/2026, ferma a Installa.exe 0.7.1 mentre VERSION.txt dice
-# 0.84.0).
+# Le note che servono solo a noi. Ci stanno:
+#
+#   TODO.md                 il diario di lavoro: diciassettemila righe che
+#                           nominano l'autore, le postazioni, le decisioni
+#                           ancora da prendere e i giudizi su progetti altrui.
+#                           Cinque sonde lo controllano e continuano a farlo da
+#                           qui; su un clone che non ce l'ha si fermano dicendo
+#                           che non hanno controllato (Controlli/dov-e-il-todo.js).
+#   CONFRONTO.md            il confronto con un progetto altrui, nominato.
+#   PROVE-INSTALLATORE.md   gli esiti di UNA sessione di collaudo del
+#                           14/9/2026, ferma a Installa.exe 0.7.1.
 #
 # SENZA QUESTA RIGA IL PRIMO `git add -A` LI RIMETTE DENTRO. Ed e' esattamente
 # cosi' che c'erano finiti la prima volta: nessuno li aveva mai esclusi.

@@ -74,7 +74,8 @@ is exactly why the temptation is to not measure.
 ## Security
 
 Do not open a public issue for a security problem. Use GitHub's private
-vulnerability reporting on this repository instead.
+vulnerability reporting on this repository instead — [SECURITY.md](SECURITY.md)
+says where the button is, what is in scope, and what to expect back.
 
 ## Trademark
 

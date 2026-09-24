@@ -79,7 +79,11 @@ $attrezzi = @(
     @{ nome = 'DettaglioInTavola'; sw = $true; lib = $false },
     # La mensola di S3 vuole ANCHE l'interop di Simulation: e' l'unica
     # sonda che esce da sldworks+swconst.
-    @{ nome = 'Mensola'; sw = $true; lib = $false; sim = $true }
+    @{ nome = 'Mensola'; sw = $true; lib = $false; sim = $true },
+    # Lo spessore minimo di parete (voce Z-H1) vuole l'interop di Utilities,
+    # che si chiama `gtswutilities` (il prefisso e' di Geometric, che scrisse
+    # il modulo). Stessa regola di Simulation: se manca, si salta dicendolo.
+    @{ nome = 'Spessore'; sw = $true; lib = $false; util = $true }
 )
 
 foreach ($a in $attrezzi) {
@@ -125,6 +129,18 @@ foreach ($a in $attrezzi) {
         }
         Copy-Item $p $bin -Force
         $rif += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.cosworks.dll')
+    }
+
+    # `util = $true`: l'interop di SOLIDWORKS Utilities, per la stessa ragione
+    # e con la stessa regola di `sim`.
+    if ($a.util) {
+        $p = Join-Path $interop 'SolidWorks.Interop.gtswutilities.dll'
+        if (-not (Test-Path $p)) {
+            Write-Warning "$($a.nome): manca $p -- Utilities non e' installato qui, salto questa sonda"
+            continue
+        }
+        Copy-Item $p $bin -Force
+        $rif += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.gtswutilities.dll')
     }
 
     # `disegno = $true` aggiunge System.Drawing: serve a chi guarda i PIXEL di

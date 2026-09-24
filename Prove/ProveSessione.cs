@@ -84,7 +84,116 @@ namespace Prove.Contratti
                   !uguali(id(@"S:\a\Parte1.SLDPRT", "Parte1"), id("", "Parte1")));
 
             LaChiaveDelTurno(ponte);
+            IlTurnoScatta(ponte);
             IlPezzoECambiato(ponte);
+        }
+
+        /// <summary>
+        /// IL LUCCHETTO FRA DUE PONTI, VISTO SCATTARE (voce W2.9).
+        ///
+        /// La voce era «scritta il 16/9/2026, da vedere scattare» da otto
+        /// giorni, e diceva che per vederla servivano due ponti veri su un
+        /// documento vero — cioe' SOLIDWORKS. Non e' cosi': il lucchetto e' un
+        /// mutex con nome in `Local\`, e un mutex con nome lo tiene qualunque
+        /// processo della stessa sessione. Qui lo tiene un SECONDO PROCESSO
+        /// (una PowerShell figlia), e `Prendi` deve rispondere `null` — che e'
+        /// il rifiuto del ponte. Poi il processo muore senza rilasciarlo, e
+        /// `Prendi` deve riuscire: Windows dice «abbandonato», e il ponte lo
+        /// tratta come libero.
+        ///
+        /// *Un controllo mai visto scattare non e' un controllo* — e questo si
+        /// poteva vedere da sempre, senza il CAD.
+        ///
+        /// COSA NON PROVA: che il ponte, in `Sessione.cs`, chiami `Prendi` sul
+        /// documento giusto. Quella meta' vuole due ponti e SOLIDWORKS.
+        /// </summary>
+        private static void IlTurnoScatta(string ponte)
+        {
+            Gruppo("TurnoSulDocumento: il lucchetto scatta fra due processi (W2.9)");
+
+            MethodInfo prendi, chiaveDi;
+            try
+            {
+                var asm = Carica.Ponte(ponte);
+                var tipo = Carica.Classe(asm, "TurnoSulDocumento");
+                if (tipo == null) { Segna("la classe TurnoSulDocumento c'e'", false, ""); return; }
+                prendi = tipo.GetMethod("Prendi", BindingFlags.Public | BindingFlags.Static);
+                chiaveDi = tipo.GetMethod("ChiaveDi", BindingFlags.NonPublic | BindingFlags.Static);
+                if (prendi == null || chiaveDi == null) { Segna("Prendi e ChiaveDi ci sono", false, ""); return; }
+            }
+            catch (Exception ex) { Segna("TurnoSulDocumento si carica", false, ex.ToString()); return; }
+
+            // Un percorso che non esiste e che nessun ponte vero sta usando:
+            // il lucchetto e' suo e basta.
+            var finto = new DocumentoFinto(
+                @"C:\prova-turno\" + Guid.NewGuid().ToString("N") + ".sldprt", "prova");
+            var chiave = chiaveDi.Invoke(null, new object[] { finto, null }) as string;
+            if (string.IsNullOrEmpty(chiave)) { Segna("la chiave di prova c'e'", false, ""); return; }
+            string nome = @"Local\OceSolidAgent_" + chiave;
+
+            Func<IDisposable> prova = () =>
+                prendi.Invoke(null, new object[] { finto, null }) as IDisposable;
+
+            // 1. libero: si prende, e rilasciandolo torna libero.
+            var t1 = prova();
+            Segna("libero: il turno si prende", t1 != null);
+            if (t1 != null) t1.Dispose();
+
+            // 2. lo tiene UN ALTRO PROCESSO: il ponte deve rifiutare.
+            //    La figlia prende il mutex, scrive «preso» e aspetta.
+            string pronto = Path.Combine(Path.GetTempPath(), "turno-" + chiave.Substring(0, 12) + ".txt");
+            try { File.Delete(pronto); } catch { }
+            string comando =
+                "$m = New-Object System.Threading.Mutex($false, '" + nome + "'); " +
+                "[void]$m.WaitOne(); Set-Content -Path '" + pronto + "' -Value preso; " +
+                "Start-Sleep -Seconds 20";
+            System.Diagnostics.Process figlia = null;
+            try
+            {
+                figlia = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = "-NoProfile -NonInteractive -Command \"" + comando + "\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+                var entro = DateTime.UtcNow.AddSeconds(15);
+                while (!File.Exists(pronto) && DateTime.UtcNow < entro && !figlia.HasExited)
+                    System.Threading.Thread.Sleep(100);
+                if (!File.Exists(pronto))
+                {
+                    Segna("un secondo processo tiene il lucchetto", false,
+                          "la PowerShell figlia non ha preso il mutex entro 15 s");
+                    return;
+                }
+
+                var t2 = prova();
+                Segna("lo tiene un ALTRO processo: il ponte rifiuta", t2 == null,
+                      t2 == null ? "Prendi -> null, cioe' «il documento e' in uso da un altro ponte»"
+                                 : "Prendi ha dato il turno anche se un altro processo lo teneva");
+                if (t2 != null) t2.Dispose();
+
+                // 3. il processo MUORE senza rilasciare: il turno torna libero.
+                figlia.Kill();
+                figlia.WaitForExit(5000);
+                var t3 = prova();
+                Segna("chi lo teneva e' morto senza rilasciarlo: il turno si riprende", t3 != null,
+                      "un lucchetto che resta chiuso dopo che chi l'ha chiuso e' morto non e' un lucchetto, e' un guasto");
+                if (t3 != null) t3.Dispose();
+            }
+            finally
+            {
+                try { if (figlia != null && !figlia.HasExited) figlia.Kill(); } catch { }
+                try { File.Delete(pronto); } catch { }
+            }
+
+            // 4. un altro documento non e' toccato dal lucchetto del primo.
+            var tA = prova();
+            var altro = new DocumentoFinto(@"C:\prova-turno\altro-" + Guid.NewGuid().ToString("N") + ".sldprt", "altro");
+            var tB = prendi.Invoke(null, new object[] { altro, null }) as IDisposable;
+            Segna("un documento diverso non aspetta il lucchetto del primo", tA != null && tB != null);
+            if (tA != null) tA.Dispose();
+            if (tB != null) tB.Dispose();
         }
 
         /// <summary>

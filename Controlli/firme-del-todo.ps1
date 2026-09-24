@@ -64,8 +64,28 @@ Write-Output ""
 Write-Output ("interop caricate: " + (Get-ChildItem $redist -Filter 'SolidWorks.Interop.*.dll').Count +
               ",  tipi visti: " + $tipi.Count)
 
-$todo = Join-Path (Split-Path $PSScriptRoot -Parent) "TODO.md"
-if (-not (Test-Path $todo)) { Write-Output "non trovo $todo"; exit 2 }
+# IL TODO NON E' PIU' NEL REPOSITORY PUBBLICO: e' un diario di lavoro, vive in
+# `note-interne/` e il .gitignore lo esclude. Si cerca dove sta oggi, dove
+# stava prima, e dove lo dice chi lo tiene altrove. Se non c'e', questa sonda
+# NON e' passata: non ha controllato, e lo dice uscendo 0 - perche' tre sonde
+# del TODO girano nel gancio di pre-push, e farle morire qui romperebbe il push
+# a chiunque cloni, per un file che non ha e non deve avere.
+$radiceRepo = Split-Path $PSScriptRoot -Parent
+$todo = $env:TODO_MD
+if (-not $todo -or -not (Test-Path $todo)) {
+    $todo = $null
+    foreach ($c in @((Join-Path $radiceRepo 'note-interne\TODO.md'),
+                     (Join-Path $radiceRepo 'TODO.md'))) {
+        if (Test-Path $c) { $todo = $c; break }
+    }
+}
+if (-not $todo) {
+    Write-Output ""
+    Write-Output "Il TODO non c'e' in questo clone: e' un documento interno e non"
+    Write-Output "viene pubblicato. QUESTA SONDA NON HA CONTROLLATO NIENTE."
+    Write-Output "Se ne hai una copia, indicala con TODO_MD."
+    exit 0
+}
 $testo = Get-Content $todo -Raw
 
 # `ITipo::Membro` oppure `ITipo.Membro`. Si prende solo cio' che comincia con

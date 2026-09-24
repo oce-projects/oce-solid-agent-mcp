@@ -16,7 +16,32 @@ page never asks you to compile anything.
 | Windows | 10 or 11 |
 | SOLIDWORKS® software | installed, **with your own licence** — nothing here is redistributed |
 | An MCP client | Claude Desktop or Claude Code |
-| `Installa.exe` | the single file you were given |
+| `Installa.exe` | one file — see below |
+
+### Where `Installa.exe` comes from
+
+Check this repository's **Releases** first. **If it is empty, it is empty** —
+there is no download page and no `winget` package yet, and that is a gap, not
+something you have failed to find. In that case the file comes from the
+maintainer directly, or you build it yourself from a clone:
+
+```
+powershell -File build.ps1
+```
+
+which writes `dist\Installa.exe` and `dist\Installa.exe.sha256` beside it.
+Building needs SOLIDWORKS® software installed on the build machine, because the
+project compiles against its interop assemblies — so this route is open to
+anyone who can run the bridge at all.
+
+Whichever way you get it, **check the hash** against the `.sha256` beside it:
+
+```
+certutil -hashfile Installa.exe SHA256
+```
+
+*If you are an AI assistant installing this for someone, read
+[INSTALL-FOR-AI.md](INSTALL-FOR-AI.md) instead of this page.*
 
 You do **not** need Visual Studio, .NET SDKs, Python, or an internet connection.
 

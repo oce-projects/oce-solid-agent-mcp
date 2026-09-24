@@ -287,10 +287,12 @@ diverso da quello della postazione sta misurando un'altra cosa.
 cerchi di nuovo nel posto sbagliato:
 
 ```
-i profili di carpenteria   <impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\...
-                           (si cambia con PROFILI_SALDATURA)
+i profili di carpenteria   la cartella che dice PROFILI_SALDATURA. Senza
+                           la variabile il banco si ferma subito e lo dice:
+                           non c'e' un percorso predefinito, perche' ogni
+                           officina tiene la propria libreria dove vuole.
 gli archivi dei materiali  dove li tiene SOLIDWORKS di suo
-i casi e i binari          il repository sta su S: anche lui
+i casi e i binari          dove sta il clone, che puo' essere di rete
 ```
 
 Quella tolta e' la **piu' frequente**, non l'unica.
@@ -555,7 +557,6 @@ casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--re
 ```
 casi/limiti/    8   dove le operazioni si rompono
 casi/tavola/    7   viste, quote, PDF  (+ i casi dichiarati, vedi sotto)
-casi/pezzi/    10   pezzi interi: coperchio, vasca, cupola
 casi/viste/     5   pezzi di cui si sa tutto, per le prove sulle immagini
 casi/ponte/   107   i piani del ponte MCP, per voce del TODO
 ```

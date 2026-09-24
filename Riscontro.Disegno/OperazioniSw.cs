@@ -1396,9 +1396,9 @@ namespace Riscontro.Disegno
             //   fuori      e' una REGIONE A SE'. E' legittimo: quattro alette
             //              su una faccia sono quattro contorni staccati.
             //
-            // Misurato il 14/9/2026: il piano delle quattro alette del coperchio
-            // (`Banco/casi/pezzi/coperchio_5.json`) veniva rifiutato da questo
-            // controllo, ed era un piano giusto. **Un rifiuto di cio' che e'
+            // Misurato il 14/9/2026: il piano di un coperchio con quattro
+            // alette veniva rifiutato da questo controllo, ed era un piano
+            // giusto. **Un rifiuto di cio' che e'
             // corretto e' il peggiore dei due modi di sbagliare** — e' la
             // lezione del guscio, e questo controllo l'aveva dimenticata.
             //
@@ -5207,8 +5207,8 @@ namespace Riscontro.Disegno
         /// TOGLIE LO SCHIZZO QUANDO LA FEATURE NON E' NATA.
         ///
         /// IL DIFETTO DA CUI NASCE. L'11 settembre 2026, otto richieste oltre i
-        /// limiti sulla scatola rettangolare: sette rifiuti giusti, zero fallimenti
-        /// silenziosi — e sette schizzi orfani nel pezzo. Ogni rifiuto diceva
+        /// limiti su una scatola rettangolare: sette rifiuti giusti, zero
+        /// fallimenti silenziosi — e sette schizzi orfani nel pezzo. Ogni rifiuto diceva
         /// «puoi toglierlo con Ctrl+Z», che e' onesto e non e' una riparazione:
         /// e' un compito dato a chi legge, e si moltiplica per il numero di
         /// tentativi.

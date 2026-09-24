@@ -37,8 +37,9 @@ const radice = path.join(__dirname, '..');
 const tutti = process.argv.includes('--tutti');
 // IL FILE SI PUO' PASSARE, come in `conta-todo.js`: serve a far scattare
 // questa sonda su una copia rotta, che e' l'unico modo di crederle.
-const fileTodo = process.argv.find(a => a.endsWith('.md')) ||
-                 path.join(radice, 'TODO.md');
+const { trovaIlTodo } = require('./dov-e-il-todo.js');
+const fileTodo = trovaIlTodo(radice, process.argv);
+if (!fileTodo) process.exit(0);
 const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // Le cartelle da cui il TODO scrive i percorsi.
@@ -61,7 +62,11 @@ const BASI = ['', 'Banco', 'Banco/casi', 'Riscontro.Disegno', 'Strumenti',
 // Banco/LEGGIMI.md): un file citato di li' non e' un riferimento rotto, e'
 // una traccia di come fu misurato. Segnalarlo ogni volta insegnerebbe a
 // ignorare l'elenco.
-const ALTROVE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad\//];
+// E `docs/` e' di OpenPDM, dove vivono le note di integrazione (per esempio
+// l'inventario dei moduli della licenza SOLIDWORKS): in questo repository una
+// cartella `docs/` non c'e'. Aggiunta il 24/9/2026, quando il TODO ha
+// cominciato a citare quell'inventario.
+const ALTROVE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad\//, /^docs\//];
 // ── FILE TRANSITORI, e sono una terza categoria ────────────────────────────
 //
 // I piani a mano di una sessione passata (`piani/...`) non sono mai stati

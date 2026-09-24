@@ -56,11 +56,25 @@ namespace Riscontro.Disegno
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
             string cartella = CartellaDeiProfili();
+
+            // DUE MESSAGGI E NON UNO. `Directory.Exists(null)` risponde `false`
+            // senza sollevare niente, quindi con la variabile non impostata il
+            // rifiuto diceva «Non trovo la cartella dei profili: ««»» — un
+            // percorso vuoto fra virgolette, che si legge come un guasto e non
+            // come una cosa da fare. *Non impostata e sbagliata sono due
+            // problemi diversi e chiedono due azioni diverse.*
+            if (cartella == null)
+                return Fallito(
+                    "Non so dove sia la libreria dei profili. E' una cartella di file " +
+                    ".sldlfp, uno per forma: dimmi dov'e' con la variabile d'ambiente " +
+                    "PROFILI_SALDATURA. Non c'e' un percorso predefinito, perche' " +
+                    "ogni officina tiene la propria libreria dove vuole.");
+
             if (!Directory.Exists(cartella))
                 return Fallito(
-                    "Non trovo la cartella dei profili: «" + cartella + "». La libreria e' " +
-                    "una cartella di file .sldlfp; se sta altrove, dillo con la variabile " +
-                    "d'ambiente PROFILI_SALDATURA.");
+                    "Non trovo la cartella dei profili: «" + cartella + "», che e' quello " +
+                    "che dice PROFILI_SALDATURA. La libreria e' una cartella di file " +
+                    ".sldlfp; controlla il percorso.");
 
             string cercato = Str(a, "cerca", null);
             bool conMisure = Bool(a, "con_misure", true);
@@ -165,16 +179,23 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// La cartella della libreria dei profili. Si scavalca con
+        /// La cartella della libreria dei profili. Si dice con
         /// `PROFILI_SALDATURA`, la stessa variabile che usa il banco: due nomi
         /// diversi per la stessa cosa sono due cose che un giorno divergono.
+        ///
+        /// NON C'E' PIU' UN RIPIEGO, e prima c'era: il percorso della libreria
+        /// normata di chi ha scritto questo codice, su un disco di rete che
+        /// esiste su una postazione sola. Su ogni altra macchina non esisteva e
+        /// l'operazione falliva comunque - cioe' il ripiego non ha mai aiutato
+        /// nessuno tranne chi l'aveva scritto, e intanto pubblicava com'e'
+        /// fatto quel disco.
+        ///
+        /// Vuoto vuol dire vuoto, e chi chiama lo dice.
         /// </summary>
         private static string CartellaDeiProfili()
         {
             var suo = System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
-            return string.IsNullOrWhiteSpace(suo)
-                ? @"<impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\NORMATI"
-                : suo;
+            return string.IsNullOrWhiteSpace(suo) ? null : suo;
         }
     }
 }

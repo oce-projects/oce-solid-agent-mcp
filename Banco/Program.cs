@@ -97,22 +97,26 @@ namespace ProvaSaldatura
         /// I PROFILI NORMATI, che sono di chi lavora e non del repository.
         ///
         /// Le prove sulle saldature hanno bisogno dei file di libreria veri:
-        /// un `.SLDLFP` inventato non misura niente. Il percorso predefinito e'
-        /// quello di questa installazione, e si scavalca con
+        /// un `.SLDLFP` inventato non misura niente. Si dice dov'e' con
         /// `PROFILI_SALDATURA`.
         ///
         /// Era una costante. Chi clona il repository non ha quel disco, e con
         /// una costante scopriva di non averlo quando il banco falliva senza
-        /// dire perche'.
+        /// dire perche'. Poi e' diventata una variabile CON RIPIEGO, che e' la
+        /// stessa cosa scritta meglio: il ripiego era il percorso di una
+        /// postazione sola, non aiutava nessun altro, e pubblicava com'e'
+        /// fatto quel disco.
+        ///
+        /// Adesso il ripiego non c'e': vuoto e' vuoto, e `Path.Combine` non lo
+        /// vede mai perche' il banco si ferma prima, dicendolo.
         /// </summary>
         private static readonly string ProfiliSaldatura =
-            System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA")
-            ?? @"<impostazioni SOLIDWORKS>\ELEMENTI SALDATURA\NORMATI";
+            System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
 
-        private static readonly string QUADRO =
-            System.IO.Path.Combine(ProfiliSaldatura, "TUBO STRUTTURALE QUADRO.SLDLFP");
-        private static readonly string RETT =
-            System.IO.Path.Combine(ProfiliSaldatura, "TUBO STRUTTURALE RETTANGOLARE.SLDLFP");
+        private static readonly string QUADRO = string.IsNullOrWhiteSpace(ProfiliSaldatura)
+            ? null : System.IO.Path.Combine(ProfiliSaldatura, "TUBO STRUTTURALE QUADRO.SLDLFP");
+        private static readonly string RETT = string.IsNullOrWhiteSpace(ProfiliSaldatura)
+            ? null : System.IO.Path.Combine(ProfiliSaldatura, "TUBO STRUTTURALE RETTANGOLARE.SLDLFP");
 
         private static ISldWorks _sw;
         private static Assembly _addin;
@@ -177,6 +181,35 @@ namespace ProvaSaldatura
         private static int Avvio(string[] argomentiRiga)
         {
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
+            // ── LA PRECONDIZIONE SI DICE PRIMA, NON A META' GIRO ────────────
+            //
+            // Il banco vuole la libreria dei profili normati, che e' di chi
+            // lavora e non del repository. Finche' c'era un ripiego cablato -
+            // il percorso di una postazione sola - chi clonava se ne accorgeva
+            // dopo trecento controlli, con un rifiuto che nominava un disco che
+            // non aveva mai visto.
+            //
+            // Adesso il ripiego non c'e', e questo controllo esiste perche'
+            // senza di lui il sintomo sarebbe PEGGIORATO: un `null` in
+            // `Path.Combine` a meta' giro, cioe' un'eccezione al posto di una
+            // frase. *Togliere un ripiego senza mettere la frase che spiega
+            // cosa manca non e' una riparazione, e' spostare il danno.*
+            if (string.IsNullOrWhiteSpace(ProfiliSaldatura))
+            {
+                Console.WriteLine();
+                Console.WriteLine("PROFILI_SALDATURA non e' impostata, e il banco non puo' girare.");
+                Console.WriteLine();
+                Console.WriteLine("  Le prove sulle saldature aprono i file `.SLDLFP` veri della");
+                Console.WriteLine("  libreria normata: un profilo inventato non misura niente, e");
+                Console.WriteLine("  non c'e' un percorso predefinito perche' ogni officina tiene");
+                Console.WriteLine("  la propria libreria dove vuole.");
+                Console.WriteLine();
+                Console.WriteLine("      setx PROFILI_SALDATURA \"<la cartella dei .SLDLFP>\"");
+                Console.WriteLine();
+                Console.WriteLine("  Poi riapri il terminale: `setx` non tocca quello aperto.");
+                return 2;   // errore di banco, non una prova rossa
+            }
 
             // `--libreria <percorso>` prima di tutto il resto: se la libreria
             // e' un'altra, e' un'altra anche la misura, e va detto in testa.
@@ -2411,11 +2444,12 @@ namespace ProvaSaldatura
         //
         // ── COSA E' COSTATO NON FARLO ────────────────────────────────
         //
-        // Il 23/9/2026 tre giri di fila sono morti qui. Il modello
-        // predefinito di questa postazione sta su
-        // `<impostazioni SOLIDWORKS>\...\Parte.prtdot`, e `S:` e' una
-        // condivisione di rete: **ogni parte nuova e' una lettura SMB**, e
-        // un giro ne fa ottocento.
+        // Il 23/9/2026 tre giri di fila sono morti qui. Il modello di
+        // documento predefinito di questa postazione sta su un disco
+        // MAPPATO SU UNA CONDIVISIONE DI RETE: **ogni parte nuova e' una
+        // lettura SMB**, e un giro ne fa ottocento. Non e' una stranezza
+        // di qui: e' la configurazione di chiunque tenga i modelli
+        // aziendali in un posto solo.
         //
         // Quando SOLIDWORKS si pianta mentre apre quel file, tiene la
         // presa: da quel momento il file non si legge piu' NEMMENO da

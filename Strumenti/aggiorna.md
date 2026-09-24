@@ -26,7 +26,7 @@ cercare a occhio.
 
 ## Perche' sta in C# e non nel server
 
-Prima il catalogo viveva in `<un file del server>`, e questo file lo
+Prima il catalogo viveva nel server, in `ai_disegno.py`, e questo file lo
 copiava. Rigenerarlo voleva dire: impacchettare i sorgenti del server, mandarli
 via `scp`, farli girare dentro un container usa-e-getta, e riportarsi indietro
 il risultato. Tre passi, due macchine, e docker.
@@ -95,13 +95,14 @@ indietro senza che qualcuno cancelli quel passo.
 `ai_disegno.py` e' ancora la fonte del catalogo **per il server**: finche' non
 legge questo JSON, le fonti sono due e divergeranno.
 
-Accertato con un grep su `server/app/`: `CATALOGO_DISEGNO` ha **tre**
-consumatori fuori da `ai_disegno.py` — `<un file del server>`,
-`<un file del server>` e `:252` — e usano `.nome`, `.provata` e
-`.precondizione`, tutti campi che il record C# ha.
+Accertato con un grep dalla parte del server: `CATALOGO_DISEGNO` ha **tre**
+consumatori oltre a quello che lo definisce, e usano `.nome`, `.provata` e
+`.precondizione`, tutti campi che il record C# ha. *(Percorsi e righe stavano
+qui per esteso: sono di un altro repository, che e' privato, e la sua struttura
+non e' una cosa che questo debba raccontare.)*
 
 Ma `ai_disegno.py` tiene anche `limiti` e `riassunto`, che **non** sono fra i sei
 campi esportati e servono a `valida()` e a costruire il piano da confermare.
 Quindi l'inversione lascia in Python una parte del record: non e' una
-sostituzione, e' uno spacco. E' il lavoro che la voce C3 del `TODO.md` aveva
-gia' dichiarato fuori dalla propria stima.
+sostituzione, e' uno spacco. E' il lavoro che la voce C3 aveva gia' dichiarato
+fuori dalla propria stima.

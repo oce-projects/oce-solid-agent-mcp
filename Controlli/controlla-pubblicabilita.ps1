@@ -66,25 +66,39 @@ $binari = @(
     '.sldprt', '.slddrw', '.sldasm', '.sldlfp', '.sldmat', '.step', '.stp', '.igs'
 )
 
-# I file che possono NOMINARE i vietati, perche' il loro mestiere e' cercarli.
+# ==============================================================================
+# LE ECCEZIONI, UNA PER PATTERN E MAI UNA PER FILE
+# ==============================================================================
 #
-# Si elencano per NOME e non per percorso, e il motivo e' misurato: nella storia
+# QUI STAVA `$possonoNominarli`, tre nomi di file applicati dentro `Righe()` e
+# quindi validi per OGNI pattern: chi era in quell'elenco non veniva controllato
+# per niente. Sembrava stretto - tre nomi soli - e invece era la piu' larga
+# delle eccezioni, perche' non diceva DA COSA esentava.
+#
+# **Il conto e' arrivato dentro questo stesso file.** Riparando l'eccezione del
+# TODO ho scritto i due indirizzi veri nel commento che la racconta, e sono
+# rimasti li' senza che niente li segnalasse: il controllo non guardava il
+# controllo. Non l'ha trovato una sonda, l'ha trovato un censimento fatto a
+# mano tre ore dopo.
+#
+# Adesso ogni pattern porta il PROPRIO elenco, e ogni nome in un elenco deve
+# avere un motivo che si legge accanto:
+#
+#   $soloIlNome        chi deve scrivere «oscar» perche' lo cerca (i due
+#                      controlli) o perche' lo attribuisce (LICENSE, NOTICE).
+#   $soloLaSessione    chi deve scrivere il percorso di scratchpad perche' lo
+#                      sostituisce.
+#   $parlanoDeiDischi  chi deve scrivere `O:` e `W:` perche' li elenca.
+#   l'indirizzo        NESSUNO. Il pattern non nomina se stesso, quindi non
+#                      serve a nessuno un lasciapassare - e chi ne avesse
+#                      bisogno starebbe scrivendo un indirizzo vero.
+#
+# I nomi restano NOMI e non percorsi, e il motivo e' misurato: nella storia
 # `controlla-catalogo.ps1` sta in `Strumenti\`, perche' e' stato spostato in
 # `Controlli\` solo dopo. Un'eccezione legata al percorso avrebbe segnalato come
-# fuga il controllo stesso, a ogni commit precedente allo spostamento.
-# I file si spostano, il loro mestiere no.
-#
-# Resta comunque un elenco di tre nomi precisi: una regola larga qui sarebbe un
-# buco, e infatti nel TODO il nome utente c'era davvero.
-$possonoNominarli = @(
-    'controlla-catalogo.ps1',
-    'controlla-pubblicabilita.ps1',
-    'bonifica-storia.js'
-)
-
-function PuoNominarli($percorso) {
-    $possonoNominarli -contains (Split-Path -Leaf ($percorso -replace '/', '\'))
-}
+# fuga il controllo stesso a ogni commit precedente allo spostamento. I file si
+# spostano, il loro mestiere no.
+$iDueControlli = @('controlla-catalogo.ps1', 'controlla-pubblicabilita.ps1')
 
 # L'ECCEZIONE ERA SUL FILE, E DOVEVA ESSERE SULLA FORMA. TRE INDIRIZZI VERI
 # SONO USCITI DA QUI.
@@ -96,34 +110,94 @@ function PuoNominarli($percorso) {
 # file, non la riga. Fra una stesura e l'altra il TODO e' cresciuto di
 # sedicimila righe, e dentro ci sono finiti tre indirizzi VERI:
 #
-#   TODO.md:12107   `192.168.x.y`, il server di un altro progetto
-#   TODO.md:16569   `\\SERVER\solidworks`, la condivisione dietro S:
+#   TODO.md:12107   l'indirizzo del server di un altro progetto
+#   TODO.md:16569   il percorso UNC della condivisione dietro S:
 #   TODO.md:16750   la stessa, un'altra volta
 #
-# Erano gia' pubblicati. Il controllo girava, diceva «ok nessun indirizzo
-# interno», e aveva ragione secondo la regola che gli era stata data.
+# E NON SI SCRIVONO QUI. La prima stesura di questo commento li riportava per
+# esteso, tutti e due, «per chiarezza» - dentro il file che esiste per vietarli,
+# e che si esentava da solo. E' il cortocircuito che `bonifica-storia.js` aveva
+# gia' pagato e scritto in cima a se stesso: *uno strumento che toglie una
+# stringa deve nominarla, e cosi' la cura porta la malattia.* Un incidente si
+# racconta con la sua forma, non con il suo valore.
+#
+# Erano gia' spinti su GitHub. NON erano pubblici: il repository e' ancora
+# privato (verificato con `gh repo view`: visibility PRIVATE), quindi nessun
+# estraneo li ha mai potuti leggere. Ma erano dentro la storia che il giorno
+# della pubblicazione sarebbe uscita tutta insieme, e questo controllo esiste
+# esattamente per quel giorno: girava, diceva «ok nessun indirizzo interno», e
+# aveva ragione secondo la regola che gli era stata data.
 #
 # LA RIPARAZIONE NON E' UN'ECCEZIONE PIU' STRETTA, e' una regola che guarda la
 # cosa invece di chi l'ha scritta: un indirizzo vero ha una CIFRA dopo il terzo
-# punto, un elenco di regole scrive il jolly. `192.168.*` passa ovunque,
-# `192.168.x.y` e' vietato ovunque, TODO compreso. Nessun file ha piu' un
-# lasciapassare su questo pattern, e la riga 957 - quella che elenca davvero la
-# regola - continua a passare perche' scrive il jolly e non un indirizzo.
+# punto, un elenco di regole scrive il jolly. `192.168.*` passa ovunque, un
+# indirizzo con le cifre e' vietato ovunque, TODO compreso. NESSUN FILE HA PIU'
+# UN LASCIAPASSARE SU QUESTO PATTERN - nemmeno questo, e il motivo sta qui
+# sotto, in `$soloIlNome`.
+#
+# Nota che il pattern non nomina se stesso: `192\.168\.\d` come TESTO non
+# combacia con `192\.168\.\d` come REGOLA, perche' dopo il «192» la regola
+# pretende un punto e il testo ha una barra rovescia. E' per questo che questo
+# file puo' scrivere la regola e restare sotto la regola.
 #
 # *Un'eccezione che nomina un file si allarga da sola ogni volta che il file
 # cresce. Una che descrive la forma no.*
 $IndirizzoVero = '192\.168\.\d'
 
+# I DUE FILE IL CUI MESTIERE E' NOMINARE L'AUTORE.
+#
+# La regola del nome utente e' passata da `-CaseSensitive` a insensibile,
+# perche' cercava il nome tutto minuscolo e quello con la maiuscola le passava
+# davanti:
+# `Banco\ProveSenzaIlPezzo.cs:185` lo portava in un commento, e il controllo
+# diceva «ok». Nessuna parola italiana contiene «oscar», quindi togliere la
+# sensibilita' non costa un solo falso positivo... tranne questi due, dove il
+# nome NON e' una fuga: e' cio' che il file deve dire.
+#
+#   LICENSE:189   «Copyright 2026 <autore>» - la riga che la Apache-2.0
+#                 richiede, e senza la quale la licenza non e' concessa a
+#                 nessuno.
+#   NOTICE:2,4    l'attribuzione, che la Apache-2.0 impone di ridistribuire.
+#
+# PERCHE' QUESTA ECCEZIONE NON E' QUELLA CHE HA FATTO USCIRE TRE INDIRIZZI.
+# Quella esentava un diario di diciassettemila righe che cresce ogni giorno: si
+# allargava da sola, e nessuno rileggeva cosa ci era finito dentro. Questi sono
+# due testi di licenza che non crescono, in cui il nome sta in tre righe fisse
+# e messe li' apposta. L'eccezione vale SOLO per il pattern del nome: percorsi,
+# indirizzi e lettere di unita' su questi due file restano vietati come altrove.
+$soloIlNome = @('LICENSE', 'NOTICE') + $iDueControlli
+
+# Chi sostituisce il percorso di scratchpad lo deve scrivere per trovarlo:
+# `bonifica-storia.js` ha lo schema, questo controllo ha il pattern.
+$soloLaSessione = @('bonifica-storia.js', 'controlla-pubblicabilita.ps1')
+
+# LA STRUTTURA DI UN ALTRO REPOSITORY, CHE E' PRIVATO.
+#
+# Questo ponte nasce da un progetto piu' grande e ci dialoga: nominarlo e
+# raccontare da dove viene il catalogo e' giusto, e il nome nudo di un file
+# (`ai_disegno.py`) e' contesto, non una fuga.
+#
+# Ma il 24/9/2026 un censimento a mano ha trovato scritto per esteso
+# `api/<file>.py:283`, `services/<file>.py:104` e `:252` - cioe' CARTELLE,
+# FILE e NUMERI DI RIGA di un repository privato, che permettono di
+# ricostruire com'e' fatto dentro senza averlo mai visto. Erano in due posti
+# (`Strumenti\aggiorna.md` e la voce di CHANGELOG che la ricopiava), e nessun
+# controllo li guardava: cercavamo percorsi di QUESTA macchina e indirizzi di
+# QUESTA rete, e non ci era venuto in mente che si potesse pubblicare l'interno
+# di un progetto vicino.
+#
+# LA FORMA, e non il nome del progetto: in questo repository NON C'E' UN SOLO
+# FILE PYTHON (verificato con `git ls-files '*.py'`: vuoto). Quindi un `.py`
+# con una CARTELLA davanti, o con un NUMERO DI RIGA dietro, parla per forza di
+# casa d'altri. Il nome nudo continua a passare.
+$DentroUnAltroRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
+
 # CHI PARLA DELLE LETTERE DI UNITA' PERCHE' STA SPIEGANDO QUESTO CONTROLLO.
 #
-# Eccezione SEPARATA e piu' stretta di `$possonoNominarli`: vale SOLO per i
-# pattern `O:` e `W:`, e non tocca il nome utente, i percorsi di sessione e gli
-# indirizzi privati, che su questi stessi file restano vietati come su tutti.
-# Mettere un file in `$possonoNominarli` lo esenterebbe da TUTTO: sarebbe il
-# buco che il commento qui sopra dice di non aprire.
+# Vale SOLO per i pattern `O:` e `W:`, e non tocca il nome utente, i percorsi
+# di sessione e gli indirizzi privati, che su questi stessi file restano
+# vietati come su tutti.
 #
-#   TODO.md            la voce A1 elenca cosa non deve uscire, e per elencarlo
-#                      lo deve scrivere.
 #   CHANGELOG.md       la voce che racconta il falso positivo del 14/9 deve
 #                      citare il pattern che lo causava.
 #   ProveCatalogo.cs   e' il controllo che cerca i percorsi locali dentro le
@@ -134,7 +208,7 @@ $IndirizzoVero = '192\.168\.\d'
 # mano, e chi lo scrive a mano in un documento che spiega perche' non si scrive
 # lo sta facendo apposta. I file generati - il catalogo, i casi del banco -
 # restano coperti.
-$parlanoDeiDischi = @('TODO.md', 'CHANGELOG.md', 'ProveCatalogo.cs')
+$parlanoDeiDischi = @('CHANGELOG.md', 'ProveCatalogo.cs') + $iDueControlli
 
 # NON si puo' chiamare questa funzione `Git`: PowerShell non distingue maiuscole
 # e minuscole nei nomi di comando, quindi `& git` qui dentro risolverebbe alla
@@ -177,9 +251,7 @@ function Righe($pattern, $caseSensitive) {
     # assoluto di questo disco e ha fatto scoppiare la riga qui sotto.
     if ($caseSensitive) { $trovate = Select-String -LiteralPath $script:elenco -Pattern $pattern -CaseSensitive }
     else { $trovate = Select-String -LiteralPath $script:elenco -Pattern $pattern }
-    @($trovate | Where-Object {
-        -not (PuoNominarli $_.Path)
-    })
+    @($trovate)
 }
 
 function Guarda($nome, $pattern, $perche, $caseSensitive, $eccetto = @()) {
@@ -200,9 +272,10 @@ function Guarda($nome, $pattern, $perche, $caseSensitive, $eccetto = @()) {
 }
 
 Write-Host "=== Nell'albero di lavoro"
-Guarda 'il nome utente' 'oscar' 'il nome di chi lavora' $true
-Guarda 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false
+Guarda 'il nome utente' 'oscar' 'il nome di chi lavora' $false $soloIlNome
+Guarda 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false $soloLaSessione
 Guarda 'un indirizzo interno' $IndirizzoVero 'una rete privata' $false
+Guarda 'l''interno di un altro repository' $DentroUnAltroRepo 'cartelle e righe di casa d''altri' $false $iDueControlli
 Guarda 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
 Guarda 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
 
@@ -286,7 +359,10 @@ if ($daSpingere.Count -eq 0) {
         $fughe = @($trovati | Where-Object {
             if ($_ -notmatch '^([0-9a-f]{7,40}):([^:]+):(\d+):') { return $false }
             $percorso = $Matches[2] -replace '/', '\'
-            if (PuoNominarli $percorso) { return $false }
+            # Solo `$eccetto`, cioe' l'eccezione DEL PATTERN. Qui stava anche
+            # `PuoNominarli`, la lista valida per tutti i pattern insieme: e'
+            # sparita, e con lei il lasciapassare che i due controlli avevano
+            # sull'indirizzo interno.
             if ($eccetto -contains (Split-Path -Leaf $percorso)) { return $false }
             $true
         })
@@ -304,9 +380,10 @@ if ($daSpingere.Count -eq 0) {
         Write-Host "        fatto PRIMA del push - dopo diventa un force-push."
     }
 
-    GuardaStoria 'il nome utente' 'oscar' 'il nome di chi lavora' $true
-    GuardaStoria 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false
+    GuardaStoria 'il nome utente' 'oscar' 'il nome di chi lavora' $false $soloIlNome
+    GuardaStoria 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false $soloLaSessione
     GuardaStoria 'un indirizzo interno' $IndirizzoVero 'una rete privata' $false
+    GuardaStoria 'l''interno di un altro repository' $DentroUnAltroRepo 'cartelle e righe di casa d''altri' $false $iDueControlli
     GuardaStoria 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
     GuardaStoria 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
 }
@@ -315,10 +392,18 @@ if ($daSpingere.Count -eq 0) {
 # 3. Il disco S:, che si dice invece di nascondere
 # ==============================================================================
 #
-# `<impostazioni SOLIDWORKS>` e' dove stanno i profili normati di chi lavora,
-# e il banco ci punta davvero per provare le saldature. Non e' un segreto ed e'
-# una precondizione vera: ma chi clona il repository non ce l'ha, e deve saperlo
-# prima di lanciare il banco, non dopo.
+# Il 24/9/2026 i RIPIEGHI CABLATI sono spariti: la libreria dei profili si dice
+# con `PROFILI_SALDATURA` e i modelli di documento con `MODELLI_SOLIDWORKS`, e
+# senza quelle variabili il banco si ferma subito dicendo cosa manca invece di
+# cercare un disco che su quella macchina non esiste. Un ripiego che funziona su
+# una postazione sola non aiuta nessuno, e intanto pubblica com'e' fatto quel
+# disco.
+#
+# QUESTO ELENCO PERO' RESTA, e non e' diventato inutile: `S:` continua a
+# comparire negli ESEMPI (README, descrizioni del catalogo) e nelle prove che
+# usano percorsi finti. Quelli vanno bene. Cio' che non deve tornare e' una
+# COSTANTE da cui dipende un comportamento - ed e' esattamente quello che
+# questo elenco fa vedere, file per file, a chi legge prima di pubblicare.
 
 Write-Host ""
 Write-Host "=== Percorsi di questa installazione (non vietati, ma da sapere)"

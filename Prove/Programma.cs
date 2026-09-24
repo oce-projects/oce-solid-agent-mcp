@@ -981,12 +981,51 @@ namespace Prove.Contratti
                         " — si aggiungono a «Famiglie» in Banco\\CasiDichiarati.cs");
         }
 
+        /// <summary>
+        /// Dove sta il TODO, o `null` se in questo clone non c'e'.
+        ///
+        /// Stesso ordine di `Controlli\dov-e-il-todo.js`, e per lo stesso
+        /// motivo: la variabile `TODO_MD` per chi lo tiene altrove,
+        /// `note-interne\TODO.md` dove sta oggi, e la radice dov'era prima —
+        /// cosi' un clone vecchio continua a funzionare senza accorgersene.
+        /// </summary>
+        private static string DoveStaIlTodo()
+        {
+            var suo = Environment.GetEnvironmentVariable("TODO_MD");
+            if (!string.IsNullOrEmpty(suo) && File.Exists(suo)) return suo;
+
+            foreach (var c in new[] {
+                Path.Combine(Radice(), "note-interne", "TODO.md"),
+                Path.Combine(Radice(), "TODO.md") })
+            {
+                if (File.Exists(c)) return c;
+            }
+            return null;
+        }
+
         private static void NessunaVoceDelTodoSiChiamaComeUnAltra()
         {
             Gruppo("nel TODO due voci non si chiamano allo stesso modo");
 
-            var todo = Path.Combine(Radice(), "TODO.md");
-            if (!File.Exists(todo)) { Segna("il TODO c'e'", false, todo); return; }
+            // IL TODO NON E' PIU' NEL REPOSITORY PUBBLICO: e' un diario di
+            // lavoro e vive in `note-interne\`, che il .gitignore esclude.
+            //
+            // QUI PRIMA C'ERA `Segna(..., false, ...)`, cioe' un ROSSO. Su
+            // questa macchina non sarebbe mai scattato; su ogni clone sarebbe
+            // stato rosso sempre, per un file che chi clona non ha e non deve
+            // avere - una prova che fallisce per tutti tranne chi l'ha scritta
+            // non misura il codice, misura chi lo esegue.
+            //
+            // Adesso la prova si SALTA dicendolo. Il conto dei controlli
+            // scende di uno invece di salire di un rosso, che e' la differenza
+            // fra «non l'ho controllato» e «l'ho controllato e va male».
+            var todo = DoveStaIlTodo();
+            if (todo == null)
+            {
+                Console.WriteLine("  --   il TODO non c'e' in questo clone: e' interno e non si pubblica.");
+                Console.WriteLine("       QUESTO CONTROLLO NON E' STATO FATTO. Con TODO_MD si indica una copia.");
+                return;
+            }
             string[] righe;
             try { righe = File.ReadAllLines(todo); }
             catch (Exception ex) { Segna("il TODO si legge", false, ex.Message); return; }

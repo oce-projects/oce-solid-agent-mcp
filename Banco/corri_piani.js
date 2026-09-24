@@ -71,8 +71,17 @@ function risolviSegnaposto(testo) {
 // PERCHE' UNA COPIA E NON L'ORIGINALE. Inserire un profilo APRE il suo
 // `.SLDLFP` e lo lascia sporco: il banco lavorerebbe sulla libreria normata
 // vera dell'officina. Si copia, e si lavora sulla copia.
-const PROFILI = process.env.PROFILI_SALDATURA ||
-  "<impostazioni SOLIDWORKS>\\ELEMENTI SALDATURA\\NORMATI";
+// NESSUN RIPIEGO. Qui c'era il percorso della libreria di una postazione
+// sola: su ogni altra macchina non esisteva, quindi non aiutava nessuno, e
+// intanto raccontava com'e' fatto quel disco. Chi non ha la variabile lo
+// scopre adesso con una frase, invece che fra dieci minuti con un errore.
+const PROFILI = process.env.PROFILI_SALDATURA;
+if (!PROFILI) {
+  console.error("PROFILI_SALDATURA non e' impostata: non so dove sia la libreria");
+  console.error("dei profili normati, e non c'e' un percorso predefinito.");
+  console.error('    setx PROFILI_SALDATURA "<la cartella dei .SLDLFP>"');
+  process.exit(2);
+}
 
 // nome nella libreria -> nome della copia che i casi nominano
 const DA_COPIARE = {

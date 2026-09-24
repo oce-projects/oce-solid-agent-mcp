@@ -56,8 +56,9 @@ const path = require('path');
 
 const radice = path.join(__dirname, '..');
 const tutti = process.argv.includes('--tutti');
-const fileTodo = process.argv.find(a => a.endsWith('.md')) ||
-                 path.join(radice, 'TODO.md');
+const { trovaIlTodo } = require('./dov-e-il-todo.js');
+const fileTodo = trovaIlTodo(radice, process.argv);
+if (!fileTodo) process.exit(0);
 const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // Le stesse cartelle di `percorsi-del-todo.js`: il TODO scrive i nomi da dove
