@@ -89,13 +89,23 @@ foreach ($nome in $nomi) {
 Write-Host ""
 Write-Host "=== Dentro l'add-in"
 
-# L'add-in vive in un altro repository. Il percorso si puo' passare con
-# RISCONTRO_ADDIN; altrimenti si prova quello di questa macchina.
+# L'add-in vive in un altro repository. Il percorso si dice con RISCONTRO_ADDIN.
+#
+# QUI C'ERA UN RIPIEGO, e il ripiego era il percorso di QUESTA macchina verso
+# un ALTRO repository che non e' pubblicabile. Su ogni altra macchina non
+# esisteva e il controllo saltava questa meta' dicendolo - cioe' il ripiego non
+# serviva a nessuno tranne che a chi l'aveva scritto, e intanto pubblicava dove
+# tiene le cose. Senza, il messaggio qui sotto spiega gia' cosa fare.
 $addin = $env:RISCONTRO_ADDIN
-if (-not $addin) { $addin = 'S:\PDM\OpenPDM\client-windows' }
 
-if (-not (Test-Path $addin)) {
-    Write-Host "  -- sorgenti dell'add-in non raggiungibili da qui ($addin)."
+# `-not $addin` PRIMA di `Test-Path`, e non e' un dettaglio di stile: tolto il
+# ripiego la variabile puo' essere vuota, e `Test-Path $null` in PowerShell 5.1
+# non risponde `$false` - solleva «Impossibile associare l'argomento al
+# parametro Path perche' e' null», che e' un errore non terminante. Lo script
+# proseguirebbe nel ramo sbagliato dopo averlo stampato.
+if (-not $addin -or -not (Test-Path $addin)) {
+    if ($addin) { Write-Host "  -- sorgenti dell'add-in non raggiungibili da qui ($addin)." }
+    else        { Write-Host "  -- RISCONTRO_ADDIN non e' impostata." }
     Write-Host "     QUESTA META' NON E' STATA CONTROLLATA."
     Write-Host "     Indica dove sono con RISCONTRO_ADDIN per controllarla."
 } else {

@@ -55,6 +55,22 @@ Include, where you can:
 
 A report without the last point is still welcome. It is just harder to act on.
 
+## Declared is not measured
+
+The same rule applies when this project is compared with another one — in an
+issue, in a benchmark, in a README table. Mark every claim:
+
+| mark | meaning |
+|---|---|
+| **(D)** | **declared**: their README, their documentation or their code says so. Nobody here ran it. |
+| **(M)** | **measured**: a number came out of a run, on a named machine, with a date. |
+
+**Comparing their (D) against our (M) and calling it an advantage is not
+allowed.** "They claim it, we measured it" does not mean ours works better; it
+means we know more about ours. The reverse holds just as hard, and it happens
+more often than it sounds: **a bad (M) loses to a good (D) every time** — which
+is exactly why the temptation is to not measure.
+
 ## Security
 
 Do not open a public issue for a security problem. Use GitHub's private

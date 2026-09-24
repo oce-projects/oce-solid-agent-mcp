@@ -86,11 +86,33 @@ function PuoNominarli($percorso) {
     $possonoNominarli -contains (Split-Path -Leaf ($percorso -replace '/', '\'))
 }
 
-# IL TODO NOMINA I VIETATI PERCHE' E' LI' CHE SONO SCRITTI.
-# La voce A1 elenca cosa non deve uscire, e per elencarlo lo deve scrivere.
-# L'eccezione vale SOLO per i pattern che quella voce discute: il nome utente
-# non e' fra questi, e se compare nel TODO e' una fuga come le altre.
-$loDiceIlTodo = @('TODO.md')
+# L'ECCEZIONE ERA SUL FILE, E DOVEVA ESSERE SULLA FORMA. TRE INDIRIZZI VERI
+# SONO USCITI DA QUI.
+#
+# Qui stava `$loDiceIlTodo = @('TODO.md')`, passato al pattern `192\.168\.`
+# perche' la voce A1 elenca cosa non deve uscire e per elencarlo lo deve
+# scrivere. Il commento diceva «vale SOLO per i pattern che quella voce
+# discute»; il codice esentava il FILE INTERO, e `Guarda` confronta il nome del
+# file, non la riga. Fra una stesura e l'altra il TODO e' cresciuto di
+# sedicimila righe, e dentro ci sono finiti tre indirizzi VERI:
+#
+#   TODO.md:12107   `192.168.x.y`, il server di un altro progetto
+#   TODO.md:16569   `\\SERVER\solidworks`, la condivisione dietro S:
+#   TODO.md:16750   la stessa, un'altra volta
+#
+# Erano gia' pubblicati. Il controllo girava, diceva «ok nessun indirizzo
+# interno», e aveva ragione secondo la regola che gli era stata data.
+#
+# LA RIPARAZIONE NON E' UN'ECCEZIONE PIU' STRETTA, e' una regola che guarda la
+# cosa invece di chi l'ha scritta: un indirizzo vero ha una CIFRA dopo il terzo
+# punto, un elenco di regole scrive il jolly. `192.168.*` passa ovunque,
+# `192.168.x.y` e' vietato ovunque, TODO compreso. Nessun file ha piu' un
+# lasciapassare su questo pattern, e la riga 957 - quella che elenca davvero la
+# regola - continua a passare perche' scrive il jolly e non un indirizzo.
+#
+# *Un'eccezione che nomina un file si allarga da sola ogni volta che il file
+# cresce. Una che descrive la forma no.*
+$IndirizzoVero = '192\.168\.\d'
 
 # CHI PARLA DELLE LETTERE DI UNITA' PERCHE' STA SPIEGANDO QUESTO CONTROLLO.
 #
@@ -180,7 +202,7 @@ function Guarda($nome, $pattern, $perche, $caseSensitive, $eccetto = @()) {
 Write-Host "=== Nell'albero di lavoro"
 Guarda 'il nome utente' 'oscar' 'il nome di chi lavora' $true
 Guarda 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false
-Guarda 'un indirizzo interno' '192\.168\.' 'una rete privata' $false $loDiceIlTodo
+Guarda 'un indirizzo interno' $IndirizzoVero 'una rete privata' $false
 Guarda 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
 Guarda 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
 
@@ -284,7 +306,7 @@ if ($daSpingere.Count -eq 0) {
 
     GuardaStoria 'il nome utente' 'oscar' 'il nome di chi lavora' $true
     GuardaStoria 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false
-    GuardaStoria 'un indirizzo interno' '192\.168\.' 'una rete privata' $false $loDiceIlTodo
+    GuardaStoria 'un indirizzo interno' $IndirizzoVero 'una rete privata' $false
     GuardaStoria 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
     GuardaStoria 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $parlanoDeiDischi
 }

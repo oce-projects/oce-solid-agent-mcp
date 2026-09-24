@@ -68,4 +68,25 @@ Banco/casi/forma/
 # (nomi di server, cartelle di rete), e uno strumento versionato che le nomina
 # pubblica proprio cio che serviva a togliere. Il meccanismo sta in
 # Controlli/bonifica-storia.js ed e pubblico; i nomi restano su ogni macchina.
-Controlli/bonifica-schemi.local.js
+#
+# LA REGOLA E' LARGA APPOSTA, e prima era il nome di quel file soltanto. La
+# convenzione `.local.js` era gia' nata e funzionava: allargarla adesso esclude
+# il PROSSIMO file con dentro nomi di impianto prima che esista, invece che il
+# giorno dopo averlo pubblicato.
+Controlli/*.local.js
+
+# Le note che servono solo a noi. Non sono segrete: sono di lavoro, e a chi
+# clona non insegnano niente. Ci stanno CONFRONTO.md (il confronto con un
+# progetto altrui, nominato) e PROVE-INSTALLATORE.md (gli esiti di UNA sessione
+# di collaudo del 14/9/2026, ferma a Installa.exe 0.7.1 mentre VERSION.txt dice
+# 0.84.0).
+#
+# SENZA QUESTA RIGA IL PRIMO `git add -A` LI RIMETTE DENTRO. Ed e' esattamente
+# cosi' che c'erano finiti la prima volta: nessuno li aveva mai esclusi.
+note-interne/
+
+# I backup che l'installatore fa della configurazione del client prima di
+# toccarla: hanno il timestamp nel nome e nascono nella cartella dove si
+# collauda. Oggi non ne e' tracciato nessuno; costa una riga tenerli fuori
+# prima che uno nasca durante una prova e finisca in un commit.
+*.bak

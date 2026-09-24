@@ -24,6 +24,115 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.85.0 — 24 September 2026 · library 0.111.0
+
+### Simulation, measured end to end: 54.3 MPa against 60.0 by hand (entry S3)
+
+Entry S3 is **closed**. A cantilever 200 × 20 × 10 mm in 1.0037 (S235JR), fixed
+at one end, 100 N at the tip: by hand σ = M·c / I = **60.0 MPa** exactly. The
+full API chain — study, material, restraint, load, mesh, solve, read — was run
+from `Controlli/Mensola/Programma.cs`, a standalone probe that does not touch
+the bench.
+
+```
+  element    sigma max    off 60.0 MPa
+  -------    ---------    ------------
+   4.0 mm       29.85       -50.2 %
+   2.0 mm       35.86       -40.2 %
+   1.0 mm       45.44       -24.3 %
+   0.6 mm       54.28        -9.5 %
+```
+
+**9.5%, inside the 10% the entry required** — and the criterion is met by the
+whole column, not by its last row. The error shrinks monotonically as the
+element does, which is what mesh convergence looks like. A single run would
+have proved nothing in either direction.
+
+Five facts reflection could not have given, each of which cost time:
+`DispArray` is an `object[]` of `IFace2`; `AddForce` demands a `RefGeom` while
+`AddRestraint` accepts `null`; the force value is set afterwards between
+`ForceBeginEdit` and `ForceEndEdit`; the material must be applied **before the
+study is created**, or `RunAnalysis` answers `19 = MaterialNotDefined` even
+though a read-back confirms the material is on the part; and `CreateMesh(u,0,0)`
+answers `5 = SpecifyPositiveValue`, because zero does not mean "default".
+
+One prediction from the reflection half was **wrong**, and is corrected here:
+the material does not go on the body through Simulation's `SetLibraryMaterial`.
+That call **returns 0 and does nothing**. It goes on the part with
+`IPartDoc.SetMaterialPropertyName2` and reads back with
+`GetMaterialPropertyName2` — the getter the census reported missing existed,
+on a different interface.
+
+And one reading error worth recording: `GetMinMaxStress` returns
+`[minNode, minValue, maxNode, maxValue]`, and the first version took the
+maximum of all four. It read node number `11875` and printed it as MPa — off by
+19,691%. **It was lucky that it was absurd.** Had the peak node been numbered
+58, the probe would have reported "58 against 60, off by 3%" and declared the
+chain sound. A wrong number that is plausible is indistinguishable from a
+measurement.
+
+### The exemption named a file when it should have described a shape
+
+`controlla-pubblicabilita.ps1` exempted `TODO.md` from the `192\.168\.` pattern,
+because entry A1 lists what must not ship and has to write it down to list it.
+The comment said the exemption covered only the patterns that entry discusses;
+the code exempted **the whole file**, and `Guarda` matches on filename, not on
+line. Between one revision and the next, TODO.md grew by sixteen thousand lines,
+and three real addresses went in with it — one server, and a network share named
+twice. The check ran, reported "ok, no internal address", and was right
+according to the rule it had been given.
+
+The repair is not a narrower exemption. The pattern is now `192\.168\.\d`: a
+real address has a digit after the third dot, a rule being quoted writes the
+wildcard. `192.168.*` passes everywhere, a real address is refused everywhere,
+TODO.md included, and **no file holds a pass on this pattern any more**. Seen
+firing in both directions: three hits before the redaction, silent after.
+
+And then a fourth, on the way here: the first draft of this very entry spelled a
+real address out as an example, and the check refused it. *It caught the person
+who had just written it, in a file that used to hold a pass.* That is the whole
+difference between the two rules, and it cost nothing to see.
+
+*An exemption that names a file widens itself every time the file grows. One
+that describes a shape does not.*
+
+### Three files leave the repository, two halves of them stay
+
+`CONFRONTO.md` (a competitive comparison against a named third-party project)
+and `PROVE-INSTALLATORE.md` (the results of one test session, stuck at
+Installa.exe 0.7.1 of 14/9/2026 while VERSION.txt says 0.84.0) are working
+notes: they teach a reader nothing about installing, using or contributing.
+`Controlli/voce-0.76.0.js` is a single-use scaffold that rewrites a CHANGELOG
+entry already written; it was the only one of the 24 scripts in `Controlli/`
+with zero references anywhere in the repository.
+
+What was worth keeping did not leave with them. The **(D)/(M) rule** — declared
+is not measured, and comparing their (D) with our (M) is not an advantage — is
+now a section of `CONTRIBUTING.md`, next to the one that already asks
+contributors what they measured. The **six installer scenarios**, and which
+three run on any machine, are now the header of
+`Controlli/prova-installatore.js`, which is the script that runs them: its
+line 11 used to point at the file being removed, and now points at nothing
+because it needs to point at nothing.
+
+`.gitignore` gains `note-interne/` (without it the next `git add -A` puts them
+straight back, which is how they got in), `Controlli/*.local.js` in place of the
+single named file, and `*.bak`.
+
+### A fallback path that only helped the machine it named
+
+`controlla-documenti-senza-file.ps1` fell back to `S:\PDM\OpenPDM\client-windows`
+when `RISCONTRO_ADDIN` was unset — this machine's path into **another**
+repository, one that is not publishable. On every other machine the path did not
+exist and the check skipped that half while saying so, which means the fallback
+helped nobody and published where things are kept. Removed. The guard is now
+`-not $addin -or -not (Test-Path $addin)`, in that order: with the fallback gone
+the variable can be empty, and `Test-Path $null` in PowerShell 5.1 does not
+answer `$false` — it raises a non-terminating error and carries on into the
+wrong branch.
+
+---
+
 ## 0.84.0 — 24 September 2026 · library 0.111.0
 
 ### Two fields stop being asked for, and start saying who chose (entry Z-G3)

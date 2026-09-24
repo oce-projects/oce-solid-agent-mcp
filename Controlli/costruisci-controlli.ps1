@@ -76,7 +76,10 @@ $attrezzi = @(
     @{ nome = 'ForoOppureRaccordo'; sw = $true; lib = $false },
     @{ nome = 'CorpoRotto'; sw = $true; lib = $false },
     @{ nome = 'CambiaAMano'; sw = $true; lib = $false },
-    @{ nome = 'DettaglioInTavola'; sw = $true; lib = $false }
+    @{ nome = 'DettaglioInTavola'; sw = $true; lib = $false },
+    # La mensola di S3 vuole ANCHE l'interop di Simulation: e' l'unica
+    # sonda che esce da sldworks+swconst.
+    @{ nome = 'Mensola'; sw = $true; lib = $false; sim = $true }
 )
 
 foreach ($a in $attrezzi) {
@@ -104,6 +107,24 @@ foreach ($a in $attrezzi) {
             Copy-Item $p $bin -Force
             $rif += '-reference:' + (Join-Path $bin $d)
         }
+    }
+
+    # `sim = $true`: l'interop di SIMULATION, che sta a parte.
+    #
+    # Una sola sonda lo usa (Mensola, voce S3) e non si referenzia per tutte:
+    # `cosworks.dll` pesa 467 kB e su una macchina senza Simulation non c'e'
+    # affatto. Chi non lo chiede continua a compilare anche li'.
+    #
+    # Se manca, la sonda NON si compila e si dice perche': una sonda che
+    # compila senza l'interop e poi muore al primo uso e' peggio.
+    if ($a.sim) {
+        $p = Join-Path $interop 'SolidWorks.Interop.cosworks.dll'
+        if (-not (Test-Path $p)) {
+            Write-Warning "$($a.nome): manca $p -- Simulation non e' installato qui, salto questa sonda"
+            continue
+        }
+        Copy-Item $p $bin -Force
+        $rif += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.cosworks.dll')
     }
 
     # `disegno = $true` aggiunge System.Drawing: serve a chi guarda i PIXEL di

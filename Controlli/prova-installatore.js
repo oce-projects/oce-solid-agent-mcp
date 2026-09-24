@@ -4,11 +4,23 @@
 //
 // Esce 0 se passano tutte, 1 se no.
 //
-// NON SONO TUTTE E SEI, E LE ALTRE TRE SONO ELENCATE ALLA FINE invece di
-// essere dichiarate passate. Il caso «SOLIDWORKS assente» vuole una macchina
-// senza SOLIDWORKS; «installazione pulita» nella sua forma piena ne vuole una
-// senza il ponte; «client aperto» vuole Claude Desktop che tiene il file.
-// Quelle si fanno a mano, e il loro esito va scritto in PROVE-INSTALLATORE.md.
+// Lavora in una cartella temporanea: LA CONFIGURAZIONE VERA DI CHI PROVA NON
+// SI TOCCA, e non ci si affida al fatto di ricordarsene.
+//
+// GLI SCENARI SONO SEI, E QUESTO NE ESEGUE TRE.
+//
+//   | # | prova                                   | qui        |
+//   |---|-----------------------------------------|------------|
+//   | 1 | installazione su macchina pulita        | no: VM con SOLIDWORKS e senza il ponte |
+//   | 2 | installazione sopra una precedente      | **si'**    |
+//   | 3 | disinstallazione                        | **si'**    |
+//   | 4 | client aperto durante l'installazione   | no: serve Claude Desktop che tiene il file |
+//   | 5 | SOLIDWORKS assente                      | no: serve una macchina senza SOLIDWORKS |
+//   | 6 | config con altri server MCP gia' presenti | **si'**  |
+//
+// Le altre tre si fanno a mano su una macchina che qui non c'e'. Vanno
+// elencate come NON ESEGUITE ovunque se ne riporti l'esito: *una prova non
+// fatta si scrive, non si dichiara passata.*
 //
 // IL CASO 6 E' IL PIU' IMPORTANTE, e si puo' fare tutto qui: «ci sono gia'
 // altri server MCP, restano intatti?». Non produce nessun sintomo subito — il
