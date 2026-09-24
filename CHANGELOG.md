@@ -24,6 +24,43 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.86.1 — 24 September 2026 · library unchanged (0.112.0)
+
+### Minimum wall thickness, measured end to end: 2.00 mm against 2.00 by hand (entry Z-H1)
+
+Same method as the cantilever for Simulation: a part whose answer is known
+without a computer. A plate 100 × 60 × 2 mm with, on half its length, a block
+10 mm high — two extrusions from the top plane, no face to pick. Minimum wall:
+2.0 mm. `Controlli/Spessore/`, run on a free SOLIDWORKS after the bench.
+
+Utilities was not loaded; `LoadAddIn` on `sldUtils\SwLoaderSw.dll` loaded it
+for the session (answer 0), with the owner's go-ahead. Then
+`IUtilities.GetToolInterface(7)` → `IThicknessAnalysis`:
+
+```
+  threshold   answer   minimum   maximum   critical faces
+  0.003 m        0     0.0020    0.1000         2
+  0.012 m        0     0.0020    0.1000         3
+  0.0015 m   12009       -         -            -
+```
+
+Five things reflection could not have said. **The API works in metres**, in
+and out. **A threshold below the minimum does not give "zero critical faces"**:
+the analysis does not run and answers 12009,
+`gtWarningTckThinAnalRangeBelowMaxThick` — a warning meaning "nothing below this
+threshold". The probe's first draft had written its criterion as "zero faces"
+and went red, which was the right thing to do: it stopped instead of closing on
+a guess. **Right on the minimum** (2.00, 2.01 mm) it answers 15. **An absurd
+threshold poisons the next call**: after a 3-metre threshold, the next call at
+3 mm answered 15 instead of 0. **Critical faces grow with the threshold**, which
+the probe keeps as a monotonicity check. A thirteen-threshold sweep is behind
+`Spessore.exe --esplora`.
+
+What remains is the operation itself, in the library, with its bench case on
+this very part.
+
+---
+
 ## 0.86.0 — 24 September 2026 · library 0.112.0
 
 ### The library number moves, because its bytes did

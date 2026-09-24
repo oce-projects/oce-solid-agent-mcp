@@ -153,46 +153,77 @@ internal static class Programma
             Console.WriteLine();
             Console.WriteLine("  soglia       risposta  minimo      massimo     facce critiche");
             Console.WriteLine("  ----------   --------  ----------  ----------  --------------");
-            var mm3 = Analizza(utilita, corpo, 3.0, "3,0 (mm?)");
-            var m3 = Analizza(utilita, corpo, 0.003, "0,003 (m?)");
 
-            Esito giusta = null;
-            string unita = null;
-            if (mm3 != null && mm3.Critiche > 0 && Vicino(mm3.Minimo, 2.0, 0.2)) { giusta = mm3; unita = "mm"; }
-            else if (m3 != null && m3.Critiche > 0 && Vicino(m3.Minimo * 1000.0, 2.0, 0.2)) { giusta = m3; unita = "m"; }
-
-            if (giusta == null)
+            // --esplora: una scansione di soglie, per sapere come risponde
+            // l'API quando la soglia scende sotto lo spessore minimo. Il primo
+            // giro vero ha dato «15» con la soglia a 1,5 mm, senza analizzare:
+            // prima di chiamarlo «sotto non c'e' niente» o «errore» lo si guarda
+            // per soglie vicine, sopra e sotto i 2 mm.
+            // `System.Environment` per esteso: l'interop di SOLIDWORKS ha un suo
+            // `Environment`, e il nome nudo non compila (e' gia' successo alla
+            // sonda della mensola).
+            if (Array.IndexOf(System.Environment.GetCommandLineArgs(), "--esplora") >= 0)
             {
-                Console.WriteLine();
-                Console.WriteLine("NESSUNA DELLE DUE UNITA' DA' UN MINIMO VICINO A 2 mm CON FACCE CRITICHE.");
-                Console.WriteLine("  La catena gira ma il numero non si riconosce: leggere la tabella sopra");
-                Console.WriteLine("  prima di concludere qualunque cosa. NON si costruisce l'operazione.");
-                return 6;
+                foreach (double s in new[] { 0.0010, 0.0015, 0.0019, 0.00199, 0.0020, 0.00201, 0.0021, 0.0025, 0.0030, 0.0050, 0.0099, 0.0101, 0.0150 })
+                    Analizza(utilita, corpo, s, s.ToString("0.00000") + " m");
+                return 0;
             }
 
-            // L'altro verso: una soglia sotto lo spessore minimo non deve
-            // trovare niente.
-            double soglia15 = unita == "mm" ? 1.5 : 0.0015;
-            var sotto = Analizza(utilita, corpo, soglia15, unita == "mm" ? "1,5 (mm)" : "0,0015 (m)");
+            // ── QUELLO CHE L'API FA DAVVERO, misurato il 24/9/2026 ─────────
+            //
+            // Il primo giro provava la soglia in millimetri E in metri. La
+            // risposta: **metri**, in ingresso e in uscita (soglia 0,003 -> 2
+            // facce critiche, minimo 0,0020). E la soglia «3,0» — cioe' 3 METRI,
+            // piu' del pezzo intero — non e' innocua: la chiamata dopo ha
+            // risposto 15. Tolta.
+            //
+            // E il verso opposto non ha la forma che la sonda si aspettava. Una
+            // soglia SOTTO lo spessore minimo non da' «zero facce critiche»:
+            // l'analisi non parte e risponde **12009**,
+            // gtWarningTckThinAnalRangeBelowMaxThick — un AVVISO che dice
+            // «sotto questa soglia non c'e' niente». E a cavallo del minimo
+            // (2,00 e 2,01 mm) risponde 15. Misurato con --esplora su tredici
+            // soglie: sotto 2 mm sempre 12009; da 2,1 a 9,9 mm sempre 2 facce e
+            // minimo 2,00; sopra 10 mm, 3 facce. *La sonda aveva scritto il
+            // criterio prima di sapere come l'API dice «niente», e lo ha
+            // scambiato per un fallimento: e' il caso in cui ha fatto bene a
+            // fermarsi invece di chiudere.*
+            const double Metri = 1000.0;
+            var sopra = Analizza(utilita, corpo, 0.003, "0,003 m");
+            var alto = Analizza(utilita, corpo, 0.012, "0,012 m");
+            var sotto = Analizza(utilita, corpo, 0.0015, "0,0015 m");
             Console.WriteLine();
 
-            double minimoMm = unita == "mm" ? giusta.Minimo : giusta.Minimo * 1000.0;
-            Console.WriteLine("  unita' della soglia: " + unita);
-            Console.WriteLine("  a mano:              " + PiastraMm.ToString("0.00") + " mm");
-            Console.WriteLine("  l'API:               " + minimoMm.ToString("0.00") + " mm");
+            if (sopra == null || sopra.Giro != 0 || sopra.Critiche <= 0 || !Vicino(sopra.Minimo * Metri, PiastraMm, 0.2))
+            {
+                Console.WriteLine("SOGLIA SOPRA IL MINIMO: nessun minimo vicino a " + PiastraMm + " mm con facce critiche.");
+                Console.WriteLine("  NON si costruisce l'operazione finche' non si sa perche'.");
+                return 6;
+            }
+            Console.WriteLine("  a mano:  " + PiastraMm.ToString("0.00") + " mm");
+            Console.WriteLine("  l'API:   " + (sopra.Minimo * Metri).ToString("0.00") + " mm   (risponde in metri)");
 
-            if (sotto == null || sotto.Critiche != 0)
+            const int NienteSottoLaSoglia = 12009;   // gtWarningTckThinAnalRangeBelowMaxThick
+            if (sotto == null || sotto.Giro != NienteSottoLaSoglia)
             {
                 Console.WriteLine();
-                Console.WriteLine("L'ALTRO VERSO NON TORNA: con la soglia sotto lo spessore minimo le");
-                Console.WriteLine("facce critiche dovevano essere zero. Il minimo sopra potrebbe essere");
-                Console.WriteLine("una coincidenza.");
+                Console.WriteLine("L'ALTRO VERSO NON TORNA: con la soglia sotto lo spessore minimo l'API");
+                Console.WriteLine("doveva dire 12009 (niente sotto la soglia). Ha detto " +
+                                  (sotto == null ? "niente" : sotto.Giro.ToString()) + ".");
+                return 7;
+            }
+            if (alto == null || alto.Giro != 0 || alto.Critiche < sopra.Critiche)
+            {
+                Console.WriteLine();
+                Console.WriteLine("LA SOGLIA PIU' ALTA HA MENO FACCE CRITICHE DI QUELLA BASSA: le facce sotto");
+                Console.WriteLine("una soglia devono crescere con la soglia, non calare.");
                 return 7;
             }
 
             Console.WriteLine();
-            Console.WriteLine("REGGE NEI DUE VERSI: soglia sopra -> facce critiche; soglia sotto -> nessuna;");
-            Console.WriteLine("minimo entro 0,2 mm dal calcolato. La voce Z-H1 si puo' costruire.");
+            Console.WriteLine("REGGE NEI DUE VERSI: sopra il minimo trova le facce sottili e il minimo giusto;");
+            Console.WriteLine("sotto il minimo dice che non c'e' niente (12009); piu' alta la soglia, piu'");
+            Console.WriteLine("facce (" + sopra.Critiche + " -> " + alto.Critiche + "). La voce Z-H1 si puo' costruire.");
             return 0;
         }
         catch (Exception ex)
@@ -212,8 +243,9 @@ internal static class Programma
 
     private sealed class Esito
     {
-        public double Minimo, Massimo;
-        public int Critiche;
+        public int Giro;                 // la risposta di RunThinAnalysis2
+        public double Minimo = double.NaN, Massimo = double.NaN;   // in METRI
+        public int Critiche = -1;
     }
 
     /// <summary>Un'analisi dello spessore sottile, con tutti gli esiti stampati.</summary>
@@ -233,13 +265,17 @@ internal static class Programma
             int giro = t.RunThinAnalysis2(soglia, RisoluzioneAlta, SenzaFinestra, "", false, false, true);
             if (giro != 0)
             {
+                // Una risposta non zero NON e' per forza un errore: 12009 vuol
+                // dire «sotto la soglia non c'e' niente». Si restituisce, e
+                // decide chi chiama.
                 Console.WriteLine("  " + etichetta.PadRight(12) + " " + giro.ToString().PadLeft(8) +
                                   "  (Init " + init + ", corpo " + corpoOk + ")");
-                return null;
+                return new Esito { Giro = giro };
             }
             int e1, e2, e3;
             var r = new Esito
             {
+                Giro = 0,
                 Minimo = t.GetMinTckOnAnalArea(out e1),
                 Massimo = t.GetMaxTckOnAnalArea(out e2),
                 Critiche = t.GetNumCriticalFaces(out e3),
