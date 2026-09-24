@@ -83,7 +83,21 @@ $attrezzi = @(
     # Lo spessore minimo di parete (voce Z-H1) vuole l'interop di Utilities,
     # che si chiama `gtswutilities` (il prefisso e' di Geometric, che scrisse
     # il modulo). Stessa regola di Simulation: se manca, si salta dicendolo.
-    @{ nome = 'Spessore'; sw = $true; lib = $false; util = $true }
+    @{ nome = 'Spessore'; sw = $true; lib = $false; util = $true },
+    # Lo sviluppo della lamiera (voce GP18): solo il nucleo.
+    @{ nome = 'Lamiera'; sw = $true; lib = $false },
+    # DimXpert dal nucleo (voce Z-H3): l'interop `swdimxpert` sta nello stesso
+    # api\redist del nucleo e c'e' su ogni installazione, ma si referenzia solo
+    # per chi la chiede.
+    @{ nome = 'DimXpert'; sw = $true; lib = $false; dimx = $true },
+    # Una quota in tavola che perde il suo spigolo (voce Z-A2).
+    @{ nome = 'Orfana'; sw = $true; lib = $false },
+    # Il testo di una tavola esce dal PDF come testo? (voce GT3-bis)
+    @{ nome = 'TestoNelPdf'; sw = $true; lib = $false },
+    # La guardia contro il modale scatta? (voce Z-C3)
+    @{ nome = 'Modale'; sw = $true; lib = $false },
+    # Un foro quotato contro lo spigolo lo segue? (voce E18, pezzi a e b)
+    @{ nome = 'SeguiIlBordo'; sw = $true; lib = $false }
 )
 
 foreach ($a in $attrezzi) {
@@ -141,6 +155,13 @@ foreach ($a in $attrezzi) {
         }
         Copy-Item $p $bin -Force
         $rif += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.gtswutilities.dll')
+    }
+
+    if ($a.dimx) {
+        $p = Join-Path $interop 'SolidWorks.Interop.swdimxpert.dll'
+        if (-not (Test-Path $p)) { throw "manca $p" }
+        Copy-Item $p $bin -Force
+        $rif += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.swdimxpert.dll')
     }
 
     # `disegno = $true` aggiunge System.Drawing: serve a chi guarda i PIXEL di

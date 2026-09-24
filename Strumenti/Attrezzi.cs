@@ -348,7 +348,128 @@ namespace Oce.Solid.Agent.Strumenti
                     // dichiararlo idempotente inviterebbe un client a
                     // riprovare da solo dopo un errore di rete.
                     soloLettura: false, distruttivo: true, idempotente: false),
+
+                Strumento(
+                    "documento",
+                    "Il DOCUMENTO su cui si lavora: crearne uno, aprirne uno dal " +
+                    "disco, sapere quali sono aperti, portarne uno davanti.\n\n" +
+                    "Senza documenti aperti gli altri strumenti non hanno niente " +
+                    "da guardare: si comincia con «nuovo» (una parte vuota dal " +
+                    "modello predefinito) o con «apri».\n\n" +
+                    "Ogni volta che il documento davanti cambia, quello che avevi " +
+                    "guardato non vale piu': prima di disegnare, «guarda_il_pezzo». " +
+                    "Il ponte lo pretende.\n\n" +
+                    "Un file aperto in SOLA LETTURA lo dico sempre: di solito vuol " +
+                    "dire che un collega lo ha aperto, e «disegna» non ci scrive.",
+                    Oggetto(
+                        new Dictionary<string, object>
+                        {
+                            ["azione"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new[] { "nuovo", "apri", "elenca", "attiva" },
+                                ["description"] =
+                                    "«nuovo»: crea un documento vuoto e lo porta davanti. " +
+                                    "«apri»: apre un file dal disco. «elenca»: i documenti " +
+                                    "aperti, e quale e' davanti. «attiva»: porta davanti uno " +
+                                    "gia' aperto.",
+                            },
+                            ["tipo"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new[] { "parte", "assieme" },
+                                ["description"] =
+                                    "solo con «nuovo». Predefinito «parte». Una tavola " +
+                                    "nasce da un pezzo: «crea_disegno», dentro un piano.",
+                            },
+                            ["percorso"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["description"] =
+                                    "con «apri»: il file .sldprt, .sldasm o .slddrw, col " +
+                                    "percorso intero. Con «attiva»: il percorso o, per un " +
+                                    "documento mai salvato, il titolo che «elenca» ha dato.",
+                            },
+                        },
+                        new[] { "azione" }),
+                    // NON e' di sola lettura: «nuovo», «apri» e «attiva» cambiano
+                    // il documento davanti. NON e' distruttivo: non chiude niente
+                    // e non butta modifiche. NON e' idempotente: «nuovo» due volte
+                    // fa due documenti.
+                    soloLettura: false, distruttivo: false, idempotente: false),
             };
+        }
+
+        /// <summary>
+        /// Lo strumento «documento» (voci Z-B1, Z-B2, Z-B5, Z-B6).
+        ///
+        /// Tutto il lavoro sta in `Ponte/Documenti.cs`; qui c'e' la parte che
+        /// solo il ponte sa fare: quando il documento davanti cambia, quello
+        /// che era stato guardato non vale piu', e le firme con lui. E' la
+        /// regola di Z-A1 — i tre campi che parlano dello stesso pezzo si
+        /// buttano insieme — applicata al punto in cui il ponte stesso cambia
+        /// documento. La voce Z-B6 lo aveva scritto prima che esistesse.
+        /// </summary>
+        private Dictionary<string, object> Documento(Dictionary<string, object> argomenti)
+        {
+            if (!_sessione.Agganciata)
+                return Protocollo.Contenuto("Il ponte non e' agganciato a SolidWorks.", true);
+
+            string azione = TestoDi(argomenti, "azione");
+            string errore;
+            Dictionary<string, object> scheda;
+            switch (azione)
+            {
+                case "elenca":
+                {
+                    var elenco = _sessione.Documenti(out int nascosti, out errore);
+                    if (elenco == null) return Protocollo.Contenuto(errore, true);
+                    var fuori = new Dictionary<string, object>
+                    {
+                        ["documenti"] = elenco,
+                        ["quanti"] = elenco.Count,
+                        ["caricati_dentro_un_assieme"] = nascosti,
+                    };
+                    if (elenco.Count == 0)
+                        fuori["nota"] = "Nessun documento aperto: comincia con «nuovo» o «apri».";
+                    return Protocollo.ContenutoConDati(Protocollo.InJson(fuori), fuori);
+                }
+                case "nuovo":
+                    string tipo = TestoDi(argomenti, "tipo");
+                    scheda = _sessione.NuovoDocumento(string.IsNullOrWhiteSpace(tipo) ? "parte" : tipo, out errore);
+                    break;
+                case "apri":
+                    scheda = _sessione.ApriDocumento(TestoDi(argomenti, "percorso"), out errore);
+                    break;
+                case "attiva":
+                    scheda = _sessione.AttivaDocumento(TestoDi(argomenti, "percorso"), out errore);
+                    break;
+                default:
+                    return Protocollo.Contenuto(
+                        "«azione» vale «nuovo», «apri», «elenca» o «attiva». Ho ricevuto «" +
+                        (azione ?? "") + "».", true);
+            }
+            if (scheda == null) return Protocollo.Contenuto(errore, true);
+
+            // IL DOCUMENTO DAVANTI E' CAMBIATO (o potrebbe esserlo): quello che
+            // era stato guardato e le sue firme si buttano INSIEME. «disegna» a
+            // questo punto risponde «non ho ancora guardato nessun pezzo», che
+            // e' la verita'.
+            _guardato = null;
+            _firmaGuardata = null;
+            _firmeViste = null;
+
+            scheda["prossimo_passo"] =
+                "Davanti adesso c'e' «" + Convert.ToString(scheda["titolo"]) + "». " +
+                "Prima di disegnare, «guarda_il_pezzo»: quello che avevi guardato " +
+                "prima non vale piu'.";
+            return Protocollo.ContenutoConDati(Protocollo.InJson(scheda), scheda);
+        }
+
+        private static string TestoDi(Dictionary<string, object> argomenti, string chiave)
+        {
+            if (argomenti == null || !argomenti.TryGetValue(chiave, out var v) || v == null) return null;
+            return Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture)?.Trim();
         }
 
         /// <summary>
@@ -376,6 +497,7 @@ namespace Oce.Solid.Agent.Strumenti
                 case "disegna": return Disegna(argomenti);
                 case "misura": return Misura(argomenti);
                 case "annulla": return Annulla();
+                case "documento": return Documento(argomenti);
                 default:
                     // E PRIMA DI RISPONDERE, SI SCRIVE (voce Z-G7): questo
                     // e' il punto che sapeva e taceva.
@@ -387,7 +509,7 @@ namespace Oce.Solid.Agent.Strumenti
                     // correggersi leggendo «non conosco x»: puo' solo
                     // riprovare a indovinare, ed e' il modo in cui si finisce
                     // per chiamare tre volte la stessa cosa sbagliata. I nomi
-                    // sono sei: stanno in una riga, e costano meno di un giro
+                    // sono sette: stanno in una riga, e costano meno di un giro
                     // in piu'. E' la stessa regola dei rifiuti delle
                     // operazioni — il criterio, non il verdetto.
                     return Protocollo.Contenuto(
@@ -2552,7 +2674,7 @@ namespace Oce.Solid.Agent.Strumenti
         internal static readonly string[] NomiDegliStrumenti =
         {
             "guarda_il_pezzo", "elenco_operazioni", "descrivi_operazione",
-            "disegna", "misura", "annulla",
+            "disegna", "misura", "annulla", "documento",
         };
 
         private static string TitoloUmano(string nome)
@@ -2565,6 +2687,7 @@ namespace Oce.Solid.Agent.Strumenti
                 case "disegna": return "Disegna nel pezzo";
                 case "misura": return "Misura il pezzo, senza toccarlo";
                 case "annulla": return "Ritira l'ultimo piano";
+                case "documento": return "Apri, crea o scegli il documento";
                 default: return nome;
             }
         }

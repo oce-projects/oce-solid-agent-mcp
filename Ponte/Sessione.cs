@@ -40,7 +40,9 @@ namespace Oce.Solid.Agent.Ponte
     /// versione, quale licenza e quale documento: se non e' aperto, si dice e
     /// ci si ferma.
     /// </summary>
-    internal sealed class Sessione
+    // `partial`: il ciclo di vita del documento (nuovo, apri, elenca, attiva)
+    // sta in Ponte/Documenti.cs, voci Z-B1, Z-B2, Z-B5, Z-B6.
+    internal sealed partial class Sessione
     {
         private object _sw;                 // ISldWorks, tenuto come object
 

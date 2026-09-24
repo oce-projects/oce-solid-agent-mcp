@@ -61,6 +61,7 @@ namespace ProvaSaldatura
             // niente aperto, e ogni piano muore sul primo controllo.
             IModelDoc2 doc = null;
             Mcp.Ponte p = null;
+            string nuovoTitolo = null, salvato = null;
             try
             {
                 doc = NuovaParte();
@@ -172,6 +173,8 @@ namespace ProvaSaldatura
                 Segna("porta: il ponte e' ancora vivo dopo una notifica",
                       dopoLaNotifica != null,
                       dopoLaNotifica != null ? "" : "niente risposta alla domanda dopo la notifica");
+
+                IlCicloDelDocumento(p, titolo, ref nuovoTitolo, ref salvato);
             }
             catch (Exception ex)
             {
@@ -181,7 +184,140 @@ namespace ProvaSaldatura
             {
                 if (p != null) { Mcp.Chiudi(p); p.Dispose(); }
                 Chiudi(doc);
+                // Quello che il ciclo del documento ha aperto o creato si chiude
+                // qui, qualunque cosa sia successa: la scrivania del banco deve
+                // restare pulita (voce K12), o il giro dopo rifiuta di partire.
+                try { if (!string.IsNullOrEmpty(nuovoTitolo)) _sw.CloseDoc(nuovoTitolo); } catch { }
+                try
+                {
+                    if (!string.IsNullOrEmpty(salvato))
+                    {
+                        _sw.CloseDoc(Path.GetFileName(salvato));
+                        if (File.Exists(salvato))
+                        {
+                            File.SetAttributes(salvato, FileAttributes.Normal);
+                            File.Delete(salvato);
+                        }
+                    }
+                }
+                catch { }
             }
+        }
+
+        /// <summary>
+        /// LO STRUMENTO «documento», DALLA PORTA DEL CLIENTE (voci Z-B1, Z-B2,
+        /// Z-B5, Z-B6).
+        ///
+        /// Il ponte ha smesso di aver bisogno di una persona per cominciare:
+        /// crea, apre, elenca, porta davanti. Qui si guarda che lo faccia DAVVERO
+        /// — il banco rilegge dalla COM quale documento c'e' davanti, invece di
+        /// credere alla risposta — e due rossi per costruzione: un file che non
+        /// esiste non cambia il documento davanti, e dopo un cambio di documento
+        /// «disegna» si rifiuta finche' non si e' guardato di nuovo.
+        /// </summary>
+        private static void IlCicloDelDocumento(Mcp.Ponte p, string titolo,
+                                                ref string nuovoTitolo, ref string salvato)
+        {
+            Func<string> davanti = () =>
+            {
+                try { var d = _sw.IActiveDoc2; return d == null ? "(niente)" : d.GetTitle(); }
+                catch { return "(non leggibile)"; }
+            };
+
+            // ── elenca: c'e' il documento del banco, ed e' davanti ─────────
+            var elenco = TestoDiRisposta(Mcp.Chiedi(p, 6, Chiamata(6, "documento", "{\"azione\":\"elenca\"}")));
+            Segna("documento: «elenca» nomina il documento del banco",
+                  elenco.IndexOf(titolo, StringComparison.OrdinalIgnoreCase) >= 0, Corto(elenco));
+
+            // ── nuovo: una parte vuota, davanti, e il banco lo verifica ────
+            var nuovo = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 7, Chiamata(7, "documento",
+                "{\"azione\":\"nuovo\",\"tipo\":\"parte\"}"))));
+            nuovoTitolo = Convert.ToString(Mcp.Dentro(nuovo, "titolo"));
+            var attivo = _sw.IActiveDoc2;
+            Segna("documento: «nuovo» crea una parte e la porta davanti, riletto dalla COM",
+                  !string.IsNullOrEmpty(nuovoTitolo) && attivo != null &&
+                  attivo.GetTitle() == nuovoTitolo &&
+                  attivo.GetType() == (int)SolidWorks.Interop.swconst.swDocumentTypes_e.swDocPART,
+                  "risposta «" + nuovoTitolo + "», davanti «" + davanti() + "»");
+            Segna("documento: e la parte nuova e' vuota",
+                  attivo != null && VolumeDiProva(attivo) < 0.001,
+                  attivo == null ? "(niente davanti)" : VolumeDiProva(attivo).ToString("0.###") + " mm3");
+
+            // ── ROSSO PER COSTRUZIONE: disegna subito dopo, senza guardare ─
+            //
+            // Il documento davanti e' cambiato per mano del ponte stesso. Quello
+            // che era stato guardato non vale piu', e «disegna» deve dirlo invece
+            // di scrivere in un pezzo che il modello non ha mai visto.
+            var subito = TestoDiRisposta(Mcp.Chiedi(p, 8, Chiamata(8, "disegna",
+                "{\"passi\":[{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":" +
+                "{\"lunghezza_mm\":10,\"larghezza_mm\":10,\"spessore_mm\":10}}]}")));
+            Segna("documento: dopo un cambio di documento «disegna» pretende di guardare prima",
+                  subito.IndexOf("non ho ancora guardato", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                  (attivo == null || VolumeDiProva(attivo) < 0.001),
+                  Corto(subito));
+
+            // ── attiva: si torna al documento del banco ───────────────────
+            var torna = TestoDiRisposta(Mcp.Chiedi(p, 9, Chiamata(9, "documento",
+                "{\"azione\":\"attiva\",\"percorso\":\"" + titolo + "\"}")));
+            Segna("documento: «attiva» riporta davanti il documento del banco",
+                  davanti() == titolo, "davanti «" + davanti() + "» — " + Corto(torna));
+
+            // ── ROSSO: un file che non esiste non cambia niente ───────────
+            var inesistente = Path.Combine(Attese.Lavoro, "non-esiste-" + Guid.NewGuid().ToString("N") + ".sldprt");
+            var no = TestoDiRisposta(Mcp.Chiedi(p, 10, Chiamata(10, "documento",
+                "{\"azione\":\"apri\",\"percorso\":\"" + inesistente.Replace("\\", "\\\\") + "\"}")));
+            Segna("documento: «apri» su un file che non esiste rifiuta, e davanti resta quello di prima",
+                  no.IndexOf("non esiste", StringComparison.OrdinalIgnoreCase) >= 0 && davanti() == titolo,
+                  "davanti «" + davanti() + "» — " + Corto(no));
+
+            // ── apri un file vero: si salva la parte nuova, la si chiude, la si
+            //    riapre dal ponte, e il percorso deve essere quello chiesto ─
+            salvato = Path.Combine(Attese.Lavoro, "porta_documento.sldprt");
+            try { if (File.Exists(salvato)) { File.SetAttributes(salvato, FileAttributes.Normal); File.Delete(salvato); } } catch { }
+            // IL RIFERIMENTO PRESO DOPO «nuovo», non una ricerca per nome.
+            // `GetOpenDocumentByName` con il titolo di un documento MAI SALVATO
+            // torna null — misurato: la prima stesura salvava cosi', riceveva
+            // e=0 w=0 da una chiamata mai fatta, e il file non c'era.
+            var daSalvare = attivo;
+            int e = 0, w = 0;
+            if (daSalvare != null) daSalvare.Extension.SaveAs(salvato, 0, 1, null, ref e, ref w);
+            if (daSalvare == null || !File.Exists(salvato))
+            {
+                ErroreDiBanco("documento: apri", "non sono riuscito a salvare «" + salvato + "» (e=" + e + ", w=" + w +
+                              (daSalvare == null ? ", nessun documento in mano" : "") + ")");
+                return;
+            }
+            _sw.CloseDoc(daSalvare.GetTitle());
+            nuovoTitolo = null;
+
+            var aperto = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 11, Chiamata(11, "documento",
+                "{\"azione\":\"apri\",\"percorso\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
+            var percorsoAperto = Convert.ToString(Mcp.Dentro(aperto, "percorso"));
+            var att = _sw.IActiveDoc2;
+            Segna("documento: «apri» apre il file chiesto e lo porta davanti, riletto dalla COM",
+                  string.Equals(percorsoAperto, salvato, StringComparison.OrdinalIgnoreCase) &&
+                  att != null && string.Equals(att.GetPathName(), salvato, StringComparison.OrdinalIgnoreCase),
+                  "risposta «" + percorsoAperto + "», davanti «" + (att == null ? "(niente)" : att.GetPathName()) + "»");
+            Segna("documento: e un file scrivibile non e' dichiarato in sola lettura",
+                  Convert.ToString(Mcp.Dentro(aperto, "sola_lettura")).Equals("False", StringComparison.OrdinalIgnoreCase),
+                  Convert.ToString(Mcp.Dentro(aperto, "sola_lettura")));
+
+            // ── Z-B2: lo stesso file con l'attributo di sola lettura ───────
+            //
+            // Il caso vero e' un collega che ha il file aperto su una cartella di
+            // rete; dentro una sola sessione di SOLIDWORKS non si costruisce. Il
+            // rosso economico e' l'attributo del file: SOLIDWORKS lo apre lo
+            // stesso, in sola lettura, SENZA chiedere niente — che e' esattamente
+            // il silenzio che la voce vuole vedere detto.
+            _sw.CloseDoc(Path.GetFileName(salvato));
+            File.SetAttributes(salvato, FileAttributes.ReadOnly);
+            var soloLettura = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 12, Chiamata(12, "documento",
+                "{\"azione\":\"apri\",\"percorso\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
+            Segna("documento: un file in sola lettura si apre e il ponte LO DICE",
+                  Convert.ToString(Mcp.Dentro(soloLettura, "sola_lettura")).Equals("True", StringComparison.OrdinalIgnoreCase) &&
+                  Mcp.Dentro(soloLettura, "attenzione") != null,
+                  Corto(Convert.ToString(Mcp.Dentro(soloLettura, "attenzione")) + " | sola_lettura=" +
+                        Convert.ToString(Mcp.Dentro(soloLettura, "sola_lettura"))));
         }
 
         /// <summary>L'eseguibile del ponte, o `null`.</summary>

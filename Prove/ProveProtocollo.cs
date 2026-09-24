@@ -139,12 +139,14 @@ namespace Prove.Contratti
                         "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}"));
                 var strumenti = Dentro(Dentro(lista, "result"), "tools") as object[];
                 // SEI DALLA 0.57.0, non cinque: e' nato `misura` (voce W2.3).
+                // SETTE DALLA 0.87.0: e' nato `documento` (voci Z-B1/B2/B5/B6),
+                // e questa riga e' stata cambiata apposta, non trovata rossa.
                 // Il numero si assertisce ESATTO e non «almeno»: uno strumento
                 // in piu' che appare senza che nessuno l'abbia voluto e' un
                 // pezzo di superficie pubblica comparso per sbaglio, e questo e'
                 // il solo posto che se ne accorge.
-                Segna("tools/list da' esattamente sei strumenti",
-                      strumenti != null && strumenti.Length == 6,
+                Segna("tools/list da' esattamente sette strumenti",
+                      strumenti != null && strumenti.Length == 7,
                       strumenti == null ? "(niente)" : strumenti.Length + " strumenti: " +
                           string.Join(", ", strumenti.Select(s => Convert.ToString(Dentro(s, "name")))));
 
@@ -178,6 +180,25 @@ namespace Prove.Contratti
                       string.Equals(ann("disegna", "idempotentHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
                       ann("disegna", "idempotentHint") ?? "(manca)");
+
+                // «documento» cambia il documento davanti: NON e' di sola
+                // lettura, anche se non tocca la geometria. Un client che lo
+                // credesse di sola lettura lo chiamerebbe senza chiedere, e il
+                // piano successivo scriverebbe in un pezzo diverso da quello
+                // che chi lavora ha davanti. E NON e' idempotente: «nuovo» due
+                // volte fa due documenti.
+                Segna("«documento» NON si dichiara di sola lettura",
+                      string.Equals(ann("documento", "readOnlyHint"), "False",
+                                    StringComparison.OrdinalIgnoreCase),
+                      ann("documento", "readOnlyHint") ?? "(manca)");
+                Segna("«documento» NON si dichiara idempotente",
+                      string.Equals(ann("documento", "idempotentHint"), "False",
+                                    StringComparison.OrdinalIgnoreCase),
+                      ann("documento", "idempotentHint") ?? "(manca)");
+                Segna("«documento» NON si dichiara distruttivo: non chiude e non butta niente",
+                      string.Equals(ann("documento", "destructiveHint"), "False",
+                                    StringComparison.OrdinalIgnoreCase),
+                      ann("documento", "destructiveHint") ?? "(manca)");
 
                 bool schemiOk = strumenti != null && strumenti.All(s =>
                 {

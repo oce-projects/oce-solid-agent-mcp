@@ -103,7 +103,9 @@ started" and "it works", and it is the whole reason this flag exists.
 
 With SOLIDWORKS open and **no document**, it says
 `[prova] nessun documento aperto: agganciato, niente da misurare.` and still
-exits 0 — attached and nothing to measure is a working bridge. (Before 0.86.0
+exits 0 — attached and nothing to measure is a working bridge. From 0.87.0 the
+model can start a part itself, with the `documento` tool (`azione: "nuovo"`),
+instead of asking the user to click File > New. (Before 0.86.0
 this case exited 1, and the installer reported a successful install as
 unconfirmed.)
 

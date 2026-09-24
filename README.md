@@ -67,11 +67,13 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sei, non settantuno. Le operazioni di disegno sono settantuno, ma esporne
+Sette, non settantuno. Le operazioni di disegno sono settantuno, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
-scritta sotto la tabella, non per coprire di piu'.)
+scritta sotto la tabella, non per coprire di piu'. Il settimo, `documento`,
+dalla 0.87.0: senza, per cominciare un pezzo da zero serviva una persona che
+cliccasse File > Nuovo.)
 
 | strumento | a cosa serve |
 |---|---|
@@ -81,6 +83,7 @@ scritta sotto la tabella, non per coprire di piu'.)
 | `disegna` | esegue una sequenza e **riporta cos'e' venuto**: le misure di ogni passo e lo stato dopo |
 | `misura` | le stesse operazioni, ma **solo quelle che leggono** (famiglia `verifiche`). Si dichiara di sola lettura, cosi' il client non chiede conferma per una misura |
 | `annulla` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `disegna` l'aveva lasciato |
+| `documento` | crea una parte o un assieme vuoti, apre un file dal disco, elenca i documenti aperti, ne porta uno davanti. Dice sempre se un file e' aperto in **sola lettura**; e dopo ogni cambio di documento `disegna` pretende un nuovo `guarda_il_pezzo` |
 
 **`misura` esiste perche' le annotazioni stanno sullo strumento.** Il client MCP
 legge `readOnlyHint` e `destructiveHint` in `tools/list`, cioe' **prima** che

@@ -24,6 +24,77 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.87.0 — 24 September 2026 · library unchanged (0.112.0)
+
+### A seventh tool: the document itself (entries Z-B1, Z-B2, Z-B5, Z-B6)
+
+With no document open the bridge answered "there is no open document" and
+stopped there: starting a part from scratch needed a person to click File >
+New. The acceptance test of the whole project — a model drawing a real part
+from a workshop request — could not even begin on its own.
+
+`documento` creates an empty part or assembly from the default template,
+opens a SOLIDWORKS file from disk, lists the open documents and which one is in
+front, and brings one to the front. It is a **tool of the bridge**, not an
+operation of the catalogue, on purpose: catalogue operations are steps of a
+plan that works *on* one document, held from start to finish and wrapped in one
+undo record. Changing the document is not such a step — and what was looked at
+lives in the bridge. Every time `documento` changes the document in front, the
+bridge drops what had been looked at and its signatures together (the rule of
+entry Z-A1), and `disegna` answers "I have not looked at any part yet".
+
+The traps written in the entries are handled where they bite: a wrong template
+does not fail, it creates a document of the wrong **type**, so the type is read
+back after creation; `OpenDoc6` succeeding does not mean the requested file was
+opened, so the path is read back; `ActivateDoc3` succeeding does not mean it is
+in front, so the active document is read back; and a file opened read-only —
+usually a colleague has it open on a network share — is opened by SOLIDWORKS
+**without asking**, so the bridge always says so.
+
+Seen through the client's door, with a real SOLIDWORKS: ten new checks in the
+bench's `porta-del-cliente` group, all green, the bench re-reading from COM
+what is actually in front instead of trusting the answer. Two are red by
+construction and fire: right after `nuovo`, `disegna` refuses until the part
+has been looked at; `apri` on a file that does not exist refuses, and the
+document in front does not change. The read-only case uses the file attribute:
+the colleague-on-the-share case cannot be built inside one SOLIDWORKS session.
+
+The first draft of that bench case saved the new part through
+`GetOpenDocumentByName(title)`, which returns null for a document that was
+never saved: the save was never attempted, and it reported `e=0 w=0`. It now
+keeps the reference it got when the part was created.
+
+`tools/list` now returns **seven** tools, asserted exactly; `documento`
+declares itself neither read-only nor idempotent (`nuovo` twice makes two
+documents) and not destructive (it closes nothing). 353 contract checks.
+
+Bench on this version: 909 checks, 0 failed, 715 of 715 expectations verified.
+
+### Six probes written while the bench held SOLIDWORKS — not run yet
+
+Each asks one question and carries its red side in the same run; each is built
+by `Controlli/costruisci-controlli.ps1`. They run on a free SOLIDWORKS, after
+this commit, and their answers decide what the next library version contains.
+
+- `Controlli/Lamiera` (GP18) — does the flat pattern of an L-shaped base flange
+  match the length computed by hand from T, R and K read back from the part,
+  within 0.5 mm; is the volume conserved; does the DXF come out?
+- `Controlli/DimXpert` (Z-H3) — reached from the core interop, without any
+  add-in, does an auto-dimension scheme add annotations and recognise the hole?
+- `Controlli/Orfana` (Z-A2) — does `IAnnotation.IsDangling` turn true when the
+  edge a drawing dimension sits on is suppressed in the part?
+- `Controlli/TestoNelPdf` (GT3-bis) — does drawing text, typed and linked to a
+  custom property, come out of the PDF as text: raw bytes, inflated streams,
+  and `pdftotext`, with a string that is not there as the red?
+- `Controlli/Modale` (Z-C3) — with a real modal open, do `CommandInProgress`
+  (the guard in use today) and `IsWindowEnabled` of the main window tell the
+  truth, and does the COM read come back at all?
+- `Controlli/SeguiIlBordo` (E18 a, b) — does a hole dimensioned to two model
+  edges follow the corner, and does a point at the middle of a construction
+  line between two edge midpoints stay centred, when the plate grows?
+
+---
+
 ## 0.86.1 — 24 September 2026 · library unchanged (0.112.0)
 
 ### Minimum wall thickness, measured end to end: 2.00 mm against 2.00 by hand (entry Z-H1)
