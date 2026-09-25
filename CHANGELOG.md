@@ -24,6 +24,42 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.95.0 — 25 September 2026 · library 0.120.0
+
+Edges are found again by signature (entry E19). Faces have had this since
+10 September (and the persist ID since E6); edges had only the refusal: a
+plan read once — «two holes, then fillet the front right corner» — stopped
+at the fillet, because edge uids are ranked by length and the fillet carried
+the uid read before the holes. Now, when the uid no longer matches, the
+library looks for the ONE edge with the same length at the same point, uses
+it, and says so in `riancoraggi` («E11 adesso si chiama E15»). Never the
+nearest: an edge shortened by a chamfer has another length and another
+midpoint, and the plan is refused. Two candidates are an ambiguity, and it
+is said. It applies wherever an edge is taken by uid: fillet, chamfer,
+variable fillet, cosmetic thread, the direction of a linear pattern, the
+anchor.
+
+**What writing the case found.** With library 0.119.0 the case PASSED
+without finding anything: `LunghezzaMm` measured the chord between the
+endpoints, and the rim of a hole — a closed edge — was «0 mm long» in the
+state. Holes always ranked last and never renumbered anything; a reader of
+the state saw a 37.7 mm circle described as an edge of length zero. The
+length is now the real one (`ICurve.GetLength3`, already measured in the
+weld perimeter), -1/null when unreadable. And `FirmaCombacia` now compares
+an edge's length too, not only its midpoint.
+
+The bench learns `-Famiglia <name>` (one folder of declared cases, so a new
+case can be seen failing before the code is written) and `uid_dal_passo` in
+a step (selectors and signatures from the state before step N, as the
+bridge does). New family `ritrovare`, two cases: the fillet that finds E15
+and lands on the right corner (the centre of mass says which), and its
+twin refused on an edge shortened by a chamfer.
+
+Full bench: 1180 tests, 0 failed, 929 of 929 expectations verified — the
+real length changes the order of curved edges, and no existing case moved.
+
+---
+
 ## 0.94.0 — 25 September 2026 · library 0.119.0
 
 The anchor on `estrudi_su_faccia` (entry E18). There are no `x_mm`/`y_mm`

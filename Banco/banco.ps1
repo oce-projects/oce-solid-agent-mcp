@@ -45,6 +45,7 @@
 #
 #      .\Banco\banco.ps1
 #      .\Banco\banco.ps1 -Gruppo viste          una famiglia sola (voce F13)
+#      .\Banco\banco.ps1 -Famiglia ritrovare    solo quella cartella di casi (E19)
 #      .\Banco\banco.ps1 -Lento                 anche le prove che costano minuti
 #      .\Banco\banco.ps1 -Muta                  perturba i casi (voce F6)
 #      .\Banco\banco.ps1 -Regressione           i riferimenti sotto modifica (F8)
@@ -53,6 +54,7 @@
 
 param(
     [string] $Gruppo = "",
+    [string] $Famiglia = "",
     [switch] $Lento,
     [switch] $Muta,
     [switch] $Regressione,
@@ -135,6 +137,9 @@ if ($Muta) { $argomenti += "--muta" }
 # silenzio -- e il terzo e' l'unico che conta.
 if ($Regressione) { $argomenti += "--regressione" }
 if (-not [string]::IsNullOrWhiteSpace($Gruppo)) { $argomenti += @("--gruppo", $Gruppo) }
+# -Famiglia: dentro i casi dichiarati, solo quelle cartelle; implica il gruppo
+# «casi». Parziale come -Gruppo, e scritto nel riepilogo.
+if (-not [string]::IsNullOrWhiteSpace($Famiglia)) { $argomenti += @("--famiglia", $Famiglia) }
 
 $eseguibile = Join-Path $Banco "bin\ProvaSaldatura.exe"
 if (-not (Test-Path $eseguibile)) { Muori 2 ("non trovo " + $eseguibile) }
@@ -276,6 +281,7 @@ $md.Add("| operazioni | " + $eseguibili + " eseguibili, " + $aCatalogo + " a cat
 $md.Add("| commit | " + $commit + " |")
 $md.Add("| durata | " + [int]$durata.TotalSeconds + " s |")
 if (-not [string]::IsNullOrWhiteSpace($Gruppo)) { $md.Add("| gruppo | " + $Gruppo + " |") }
+if (-not [string]::IsNullOrWhiteSpace($Famiglia)) { $md.Add("| famiglia | " + $Famiglia + " |") }
 $md.Add("")
 $md.Add("**" + $fine + "**")
 $md.Add("")
@@ -346,6 +352,7 @@ $oggetto = [ordered]@{
     a_catalogo = $(if ($aCatalogo -match "^[0-9]+$") { [int]$aCatalogo } else { $aCatalogo })
     commit     = $commit
     gruppo     = $Gruppo
+    famiglia   = $Famiglia
     lento      = [bool]$Lento
     durata_s   = [int]$durata.TotalSeconds
     riepilogo  = $fine

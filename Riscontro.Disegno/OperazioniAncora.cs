@@ -260,13 +260,6 @@ namespace Riscontro.Disegno
             double offsetM, double[] assi, double[] normaleFaccia, out string motivo)
         {
             motivo = null;
-            StatoDocumento.FirmaEntita firma;
-            if (stato == null || !stato.Firme.TryGetValue(uid, out firma) || firma.Tipo != "EDGE")
-            {
-                motivo = "Lo spigolo «" + uid + "» non c'e' in questo documento: gli spigoli dell'ancora si " +
-                         "prendono dallo stato (E1, E2...).";
-                return null;
-            }
             // LA FIRMA E' OBBLIGATORIA QUANDO IL PIANO NE PORTA (rischio 2 del
             // critico): `FirmaCombacia` senza firma risponde si', e fra spigoli
             // uguali l'ordine dello stato non e' garantito — un foro a meta'
@@ -279,7 +272,13 @@ namespace Riscontro.Disegno
                          "senza, non so se «" + uid + "» e' ancora lo spigolo che avevi visto.";
                 return null;
             }
-            if (!FirmaCombacia(a, uid, firma, out motivo)) return null;
+            // Se l'uid e' cambiato fra la lettura e adesso, lo spigolo si
+            // ritrova per firma (voce E19): stessa lunghezza, stesso punto.
+            var firma = FirmaDelloSpigolo(
+                a, stato, uid,
+                "Lo spigolo «" + uid + "» non c'e' in questo documento: gli spigoli dell'ancora si " +
+                "prendono dallo stato (E1, E2...).", out motivo);
+            if (firma == null) return null;
             var spigolo = firma.Entita as IEdge;
             ICurve curva = null;
             ICurveParamData par = null;

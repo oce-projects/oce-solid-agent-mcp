@@ -4220,11 +4220,19 @@ namespace Riscontro.Disegno
             // DEVE ESSERE DRITTO, E SI CONTROLLA. Uno spigolo curvo non da'
             // errore: da' la direzione della tangente in un punto che nessuno
             // ha scelto, cioe' un pezzo che sembra giusto.
+            // UNO SPIGOLO ANCHE SE ADESSO QUELL'UID NON LO E' PIU' (voce E19): se
+            // il piano porta una firma con la lunghezza, quando l'ha letto era
+            // uno spigolo, e si cerca come spigolo — non si ripiega sugli assi.
             StatoDocumento.FirmaEntita firma;
-            if (stato != null && stato.Firme.TryGetValue(uid, out firma) && firma.Tipo == "EDGE")
+            var firmaNelPiano = FirmaAttesa(a, uid);
+            bool eraUnoSpigolo = firmaNelPiano != null && firmaNelPiano.ContainsKey("lunghezza_mm");
+            if ((stato != null && stato.Firme.TryGetValue(uid, out firma) && firma.Tipo == "EDGE") ||
+                eraUnoSpigolo)
             {
-                string scostamento;
-                if (!FirmaCombacia(a, uid, firma, out scostamento)) { motivo = scostamento; return false; }
+                firma = FirmaDelloSpigolo(
+                    a, stato, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                    out motivo);
+                if (firma == null) return false;
 
                 var spigolo = firma.Entita as IEdge;
                 bool dritto = false;
@@ -5418,16 +5426,14 @@ namespace Riscontro.Disegno
             int selezionati = 0;
             foreach (var u in uid)
             {
-                if (stato == null || !stato.Firme.TryGetValue(u, out var firma) ||
-                    firma.Tipo != "EDGE")
-                {
-                    motivo = "Lo spigolo «" + u + "» non c'e' piu' in questo documento.";
-                    return false;
-                }
                 // Anche gli spigoli sono numerati per posizione, ordinati per
                 // lunghezza: dopo un passo che cambia il corpo, «E7» e' un
-                // altro spigolo. Stesso controllo delle facce.
-                if (!FirmaCombacia(a, u, firma, out motivo)) return false;
+                // altro spigolo. Stesso controllo delle facce, e dalla voce E19
+                // la stessa ricerca per firma.
+                var firma = FirmaDelloSpigolo(
+                    a, stato, u, "Lo spigolo «" + u + "» non c'e' piu' in questo documento.",
+                    out motivo);
+                if (firma == null) return false;
                 var spigolo = firma.Entita as IEntity;
                 if (spigolo == null)
                 {
@@ -6324,6 +6330,13 @@ namespace Riscontro.Disegno
         /// parti accetta cio' che l'altra rifiuta.
         /// </summary>
         private const double TolleranzaPuntoMm = 0.05;
+
+        /// <summary>
+        /// Le lunghezze degli spigoli, nello stato e nelle firme, sono
+        /// arrotondate al centesimo: cinque centesimi coprono due arrotondamenti
+        /// e restano mille volte sotto la lunghezza di qualunque spigolo vero.
+        /// </summary>
+        private const double TolleranzaLunghezzaMm = 0.05;
         private const double TolleranzaNormale = 0.01;
 
         /// <summary>
@@ -6805,6 +6818,88 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// Lo spigolo che il piano chiama «uid»: quello dello stato se la firma
+        /// combacia, altrimenti RITROVATO PER FIRMA — e solo se e' uno (voce E19).
+        ///
+        /// Gli uid degli spigoli sono posizionali, in ordine di lunghezza: un
+        /// foro aggiunge due circonferenze e «E9» diventa un altro spigolo. Per
+        /// le facce la ricerca c'e' dal 10/9/2026 (piu' su, con il persist ID
+        /// della voce E6); per gli spigoli fino alla libreria 0.119.0 si
+        /// rifiutava e basta, e un piano di due passi — fora, poi raccorda lo
+        /// spigolo che hai visto — si fermava al secondo.
+        ///
+        /// LA STESSA LUNGHEZZA NELLO STESSO PUNTO, E NIENT'ALTRO. Il punto e' il
+        /// medio degli estremi: uno spigolo accorciato (uno smusso sulla sua
+        /// cima) ha un altro punto e un'altra lunghezza, e NON e' lo stesso
+        /// spigolo anche se sta nello stesso angolo. Il piu' vicino non si
+        /// prende mai: sarebbe il successo sul pezzo sbagliato, il caso B di E2.
+        /// Due candidati uguali — due corpi che si toccano lungo uno spigolo —
+        /// sono un'ambiguita' vera, e si dice.
+        ///
+        /// Senza firma nel piano resta tutto com'era: si usa l'uid, o si
+        /// rifiuta con `sparito` se lo stato non ce l'ha.
+        /// </summary>
+        private StatoDocumento.FirmaEntita FirmaDelloSpigolo(
+            Dictionary<string, object> a, StatoDocumento stato, string uid,
+            string sparito, out string motivo)
+        {
+            motivo = null;
+            StatoDocumento.FirmaEntita firma = null;
+            bool presente = stato != null && stato.Firme.TryGetValue(uid, out firma) &&
+                            firma.Tipo == "EDGE";
+            if (presente && FirmaCombacia(a, uid, firma, out motivo)) return firma;
+            string rifiuto = presente ? motivo : sparito;
+            motivo = rifiuto;
+
+            var attesa = FirmaAttesa(a, uid);
+            var punto = Terna(attesa, "punto_mm");
+            double lunghezza = Num(attesa, "lunghezza_mm");
+            if (stato == null || punto == null || lunghezza <= 0) return null;
+
+            string trovato = null;
+            StatoDocumento.FirmaEntita ritrovata = null;
+            int quanti = 0;
+            foreach (var voce in stato.Firme)
+            {
+                var candidato = voce.Value;
+                if (candidato.Tipo != "EDGE" || candidato.Entita == null) continue;
+                if (Math.Abs(candidato.Misura - lunghezza) > TolleranzaLunghezzaMm) continue;
+                string perche;
+                if (!FirmaCombacia(a, uid, candidato, out perche)) continue;
+                quanti++;
+                trovato = voce.Key;
+                ritrovata = candidato;
+            }
+
+            if (quanti == 1)
+            {
+                // SI DICE, come per le facce: il piano ha nominato «E9» e il
+                // raccordo e' finito su «E11». Chi legge la risposta deve poter
+                // controllare che sia lo stesso spigolo, e i numeri per farlo
+                // sono questi.
+                Riancorata(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "lo spigolo «{0}» adesso si chiama «{1}»: stessa lunghezza ({2:0.##} mm), " +
+                    "stesso punto [{3:0.##}, {4:0.##}, {5:0.##}]. Gli spigoli si rinumerano per " +
+                    "lunghezza quando il pezzo cambia: ho lavorato su quello che avevi visto.",
+                    uid, trovato, lunghezza, punto[0], punto[1], punto[2]));
+                motivo = null;
+                return ritrovata;
+            }
+            if (quanti > 1)
+            {
+                motivo = "Lo spigolo «" + uid + "» ha cambiato numero, e ce ne sono " + quanti +
+                         " con la sua lunghezza nel suo punto: non scelgo io. Rileggi lo stato " +
+                         "del documento e nominalo di nuovo.";
+                return null;
+            }
+            motivo = rifiuto + string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                " E fra gli spigoli di adesso nessuno e' lungo {0:0.##} mm in [{1:0.##}, " +
+                "{2:0.##}, {3:0.##}] come quello che avevi visto: non scelgo il piu' vicino.",
+                lunghezza, punto[0], punto[1], punto[2]);
+            return null;
+        }
+
+        /// <summary>
         /// La firma portata dal piano combacia con quella letta adesso?
         /// True anche quando il piano non porta nessuna firma: in quel caso non
         /// c'e' niente da confrontare e non si puo' inventare un rifiuto.
@@ -6860,6 +6955,24 @@ namespace Riscontro.Disegno
             // Chiamarle allo stesso modo nello stato sarebbe stato peggio (il
             // centro di un corpo non sta sul corpo, se il corpo e' a ferro di
             // cavallo), quindi qui si accettano tutti e due.
+            // UNO SPIGOLO DEV'ESSERE ANCHE LUNGO QUANTO ERA (voce E19). Il punto
+            // medio da solo non basta: uno spigolo accorciato alle DUE estremita'
+            // — due smussi uguali — ha lo stesso punto medio e un'altra
+            // lunghezza. Si confronta solo con due lunghezze lette.
+            if (adesso.Tipo == "EDGE")
+            {
+                double lunghezzaAttesa = Num(attesa, "lunghezza_mm");
+                if (lunghezzaAttesa > 0 && adesso.Misura > 0 &&
+                    Math.Abs(adesso.Misura - lunghezzaAttesa) > TolleranzaLunghezzaMm)
+                {
+                    motivo = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "«{0}» adesso e' lungo {1:0.##} mm invece di {2:0.##}. Il pezzo e' " +
+                        "cambiato da quando hai confermato: {3}",
+                        uid, adesso.Misura, lunghezzaAttesa, NonLavoroSu(adesso));
+                    return false;
+                }
+            }
+
             var puntoAtteso = Terna(attesa, "punto_mm") ?? Terna(attesa, "centro_mm");
             if (puntoAtteso != null && adesso.PuntoMm != null && adesso.PuntoMm.Length == 3)
             {

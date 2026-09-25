@@ -36,6 +36,7 @@ usa e getta e la chiude.
 ```
 .\Banco\banco.ps1                        tutto, e scrive il resoconto
 .\Banco\banco.ps1 -Gruppo viste          una famiglia sola
+.\Banco\banco.ps1 -Famiglia ritrovare    una cartella sola di casi dichiarati
 .\Banco\banco.ps1 -Lento                 anche quelle che costano minuti
 .\Banco\banco.ps1 -SaltaCompilazione     il binario che c'e' gia'
 ```
@@ -583,7 +584,19 @@ casi/lamiera/      4   la L si sviluppa lunga quanto il conto a mano; data al
 casi/quote/        2   la piastra si quota da sola con DimXpert, coi valori
                        giusti; con due riferimenti rifiuta (voce Z-H3)
 casi/regressione/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
+casi/ritrovare/    2   lo spigolo nominato con l'uid letto PRIMA di due fori si
+                       ritrova per firma (stessa lunghezza, stesso punto) e il
+                       baricentro dice quale angolo; accorciato da uno smusso
+                       si rifiuta, mai il piu' vicino (voce E19, `uid_dal_passo`)
 ```
+
+`-Famiglia` (voce E19) fa girare solo quelle cartelle dei casi dichiarati: il
+gruppo `casi` da solo sono tre quarti d'ora, e un caso nuovo si vede fallire
+PRIMA di scrivere il codice. Il giro e' parziale come con `-Gruppo`, e riscrive
+`ultimo.json` come lui: si rimette con `git checkout` prima del giro intero.
+
+`"uid_dal_passo": N` in un passo prende selettori e firme dallo stato di PRIMA
+del passo N, come fa il ponte con un piano scritto guardando lo stato una volta.
 
 **Gli altri** — piani per il ponte MCP e materiale di lavoro, non li esegue
 `--gruppo casi`:

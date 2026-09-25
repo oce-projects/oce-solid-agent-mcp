@@ -8,8 +8,10 @@ using SolidWorks.Interop.swconst;
 // =============================================================================
 //
 //  `InsertSheetMetalEdgeFlange2` vuole un elenco di spigoli E un elenco di
-//  schizzi di profilo, e NON HA un parametro di lunghezza: la lunghezza sta in
-//  `IEdgeFlangeFeatureData.OffsetDistance`. Quello che non si sa:
+//  schizzi di profilo. La lunghezza c'e': e' il settimo parametro,
+//  `FlangeOffsetDist` (per riflessione, 25/9/2026 notte), la stessa grandezza
+//  di `IEdgeFlangeFeatureData.OffsetDistance` — la prima stesura di questa
+//  sonda lo leggeva come uno spostamento e passava 0. Quello che non si sa:
 //    1. se con gli schizzi a null la flangia nasce, e lunga quanto;
 //    2. se cambiare OffsetDistance e poi ModifyDefinition la allunga davvero;
 //    3. di quanto cresce lo sviluppo, e con quale convenzione di quota
@@ -84,12 +86,18 @@ internal static class Programma
             // a null e non dice perche'.
             int opzioni = (int)(swInsertEdgeFlangeOptions_e.swInsertEdgeFlangeUseDefaultRadius |
                                 swInsertEdgeFlangeOptions_e.swInsertEdgeFlangeUseDefaultRelief);
+            // TENTATIVI 5 E 6 (25/9/2026 notte). Per riflessione il settimo
+            // parametro si chiama `FlangeOffsetDist`, ed e' la stessa grandezza
+            // di `IEdgeFlangeFeatureData.OffsetDistance`: la LUNGHEZZA della
+            // flangia. I primi quattro tentativi passavano 0 — una flangia lunga
+            // zero, che non nasce senza dire perche'. Qui 20 mm.
             IFeature flangia = null;
-            for (int t = 1; t <= 4 && flangia == null; t++)
+            for (int t = 1; t <= 6 && flangia == null; t++)
             {
                 doc.ClearSelection2(true);
                 if (t >= 2) (scelto as IEntity).Select4(false, null);
-                object schizzi = t == 3 ? (object)new object[] { null } : null;
+                object schizzi = t == 3 || t == 6 ? (object)new object[] { null } : null;
+                double lunghezza = t >= 5 ? 0.020 : 0;
                 try
                 {
                     flangia = t == 4
@@ -98,14 +106,16 @@ internal static class Programma
                             (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature
                         : doc.FeatureManager.InsertSheetMetalEdgeFlange2(new object[] { scelto }, schizzi, opzioni,
-                            Math.PI / 2, 0.002, (int)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside, 0,
+                            Math.PI / 2, 0.002, (int)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside, lunghezza,
                             (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
                 }
                 catch (Exception ex) { Console.WriteLine("      tentativo " + t + " alza: " + ex.Message); }
                 Console.WriteLine("      tentativo " + t + " (" + (t == 1 ? "niente selezionato, schizzi null"
                     : t == 2 ? "spigolo selezionato, schizzi null" : t == 3 ? "spigolo selezionato, schizzi [null]"
-                    : "InsertSheetMetalEdgeFlange, la vecchia") + "): " + (flangia == null ? "null" : flangia.Name));
+                    : t == 4 ? "InsertSheetMetalEdgeFlange, la vecchia"
+                    : t == 5 ? "spigolo selezionato, schizzi null, LUNGA 20"
+                    : "spigolo selezionato, schizzi [null], LUNGA 20") + "): " + (flangia == null ? "null" : flangia.Name));
             }
             doc.EditRebuild3();
             if (flangia == null) { Console.WriteLine("  nessuno dei quattro tentativi fa nascere la flangia"); return 5; }

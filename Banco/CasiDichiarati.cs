@@ -89,6 +89,11 @@ namespace ProvaSaldatura
             // nate da una sonda che ha girato la sera stessa: la misura prima,
             // l'operazione dopo.
             "lamiera", "quote",
+            // «ritrovare» (voce E19, 25/9/2026): entita' che il piano nomina
+            // con un uid letto PRIMA di un passo che le rinumera. I casi usano
+            // «uid_dal_passo», l'unico modo di far fare al banco la strada del
+            // ponte.
+            "ritrovare",
         };
 
         private static void ProvaCasiDichiarati()
@@ -112,6 +117,7 @@ namespace ProvaSaldatura
             var file = new List<string>();
             foreach (var famiglia in Famiglie)
             {
+                if (_soloFamiglie != null && !_soloFamiglie.Contains(famiglia)) continue;
                 var cartella = Path.Combine(radiceCasi, famiglia);
                 if (!Directory.Exists(cartella))
                 {
@@ -1347,12 +1353,42 @@ namespace ProvaSaldatura
                 // «attivo» e' cio' che ha davanti chiunque.
                 var attuale = doc;
                 var stato = LeggiStato(attuale);
+                // Lo stato com'era PRIMA di ogni passo: serve a «uid_dal_passo».
+                var statiPrima = new List<Dictionary<string, object>>();
 
                 for (int i = 0; i < passi.Count; i++)
                 {
+                    statiPrima.Add(stato);
                     var passo = passi[i] as Dictionary<string, object>;
                     if (passo == null) { ErroreDiBanco(nome, "il passo " + (i + 1) + " non e' un oggetto"); return false; }
                     string etichetta = nome + " · passo " + (i + 1);
+
+                    // GLI UID LETTI PRIMA, COME FA IL PONTE (voce E19).
+                    //
+                    // Un caso normale risolve i selettori sullo stato di ADESSO,
+                    // cioe' con gli uid gia' aggiornati: e' comodo, ed e' una
+                    // strada che in produzione non percorre nessuno. Chi scrive
+                    // un piano legge lo stato UNA volta e poi scrive tre passi;
+                    // dal secondo in poi gli uid che porta sono quelli di prima,
+                    // e il ponte ci attacca le firme di prima. «uid_dal_passo: 2»
+                    // fa lo stesso: selettori e firme dallo stato di PRIMA del
+                    // passo 2. Senza questo la ricerca per firma degli spigoli
+                    // non si poteva nemmeno scrivere come prova.
+                    var statoDegliUid = stato;
+                    object dalPasso;
+                    if (passo.TryGetValue("uid_dal_passo", out dalPasso) && dalPasso != null)
+                    {
+                        int k;
+                        if (!int.TryParse(Convert.ToString(dalPasso, CultureInfo.InvariantCulture),
+                                          NumberStyles.Integer, CultureInfo.InvariantCulture, out k) ||
+                            k < 1 || k > i + 1)
+                        {
+                            ErroreDiBanco(etichetta, "«uid_dal_passo» dev'essere il numero di un passo " +
+                                          "fino a questo (1.." + (i + 1) + "), non «" + dalPasso + "»");
+                            return false;
+                        }
+                        statoDegliUid = statiPrima[k - 1];
+                    }
 
                     string operazione = Testo(passo, "operazione");
                     if (operazione == null) { ErroreDiBanco(etichetta, "manca «operazione»"); return false; }
@@ -1363,10 +1399,11 @@ namespace ProvaSaldatura
                     // UN SELETTORE CHE NON RISOLVE NON E' UNA PROVA ROSSA:
                     // il caso non si e' potuto ESEGUIRE, e dirlo «fallito»
                     // farebbe credere che si sia misurato qualcosa (voce F4).
-                    try { argomenti = Risolvi(grezziArg, stato) as Dictionary<string, object>; }
+                    try { argomenti = Risolvi(grezziArg, statoDegliUid) as Dictionary<string, object>; }
                     catch (NonHoPotutoMisurare ex) { ErroreDiBanco(etichetta, ex.Message); return false; }
                     catch (Exception ex) { Segna(etichetta, false, ex.Message); return false; }
                     if (argomenti == null) argomenti = new Dictionary<string, object>();
+                    if (!ReferenceEquals(statoDegliUid, stato)) AttaccaFirme(argomenti, statoDegliUid);
 
                     double volumePrima = VolumeDelDocumento(attuale);
                     int featurePrima = QuanteFeature(stato);

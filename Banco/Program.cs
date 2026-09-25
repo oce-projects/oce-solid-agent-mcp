@@ -303,6 +303,34 @@ namespace ProvaSaldatura
                 return 0;
             }
 
+            // `--famiglia <nomi>`: dentro il gruppo «casi», solo quelle
+            // cartelle (25/9/2026, voce E19). «casi» da solo sono i mille casi
+            // dichiarati, tre quarti d'ora: per vedere fallire DUE casi nuovi
+            // prima di scrivere il codice — la regola di ogni controllo nuovo —
+            // era il giro intero o niente. Implica `--gruppo casi`.
+            int doveF = argomenti.IndexOf("--famiglia");
+            if (doveF >= 0)
+            {
+                if (doveF + 1 >= argomenti.Count)
+                {
+                    Console.WriteLine("«--famiglia» vuole un nome: " + string.Join(", ", Famiglie));
+                    return 2;
+                }
+                _soloFamiglie = new List<string>(
+                    argomenti[doveF + 1].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                        .Select(n => n.Trim().ToLowerInvariant()));
+                argomenti.RemoveRange(doveF, 2);
+                var ignote = _soloFamiglie.Where(n => !Famiglie.Contains(n)).ToList();
+                if (ignote.Count > 0)
+                {
+                    Console.WriteLine("non conosco la famiglia " +
+                                      string.Join(", ", ignote.Select(n => "«" + n + "»")) +
+                                      ". Le famiglie sono: " + string.Join(", ", Famiglie));
+                    return 2;
+                }
+                if (scelti == null) scelti = new List<string> { "casi" };
+            }
+
             argomentiRiga = argomenti.ToArray();
 
             // UN NOME SBAGLIATO SI DICE SUBITO, prima di agganciare SOLIDWORKS.
@@ -2465,6 +2493,13 @@ namespace ProvaSaldatura
         /// riprodurre a comando.
         /// </summary>
         private static bool _fingiSenzaSolidWorks;
+
+        /// <summary>
+        /// Le famiglie di casi dichiarati da far girare, o null per tutte
+        /// (`--famiglia`). Un giro con questa bandiera e' parziale come uno con
+        /// `--gruppo`, e il riepilogo lo scrive.
+        /// </summary>
+        private static List<string> _soloFamiglie;
 
         // ══════════════════════════════════════════════════════════════
         // IL MODELLO DI DOCUMENTO SI COPIA IN LOCALE (voce K19)

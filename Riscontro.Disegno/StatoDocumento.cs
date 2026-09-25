@@ -1321,7 +1321,9 @@ namespace Riscontro.Disegno
                     var voce = new Dictionary<string, object>
                     {
                         ["uid"] = uid,
-                        ["lunghezza_mm"] = Math.Round(lung, 2),
+                        // null quando non si e' potuta leggere: -1 e' il «non lo
+                        // so» di chi la usa qui dentro, non una lunghezza.
+                        ["lunghezza_mm"] = lung >= 0 ? (object)Math.Round(lung, 2) : null,
                         ["punto_mm"] = punto,
                     };
                     // UNO SPIGOLO SENZA RUOLO NON SI PUO' NOMINARE.
@@ -2077,14 +2079,39 @@ namespace Riscontro.Disegno
         /// </summary>
         internal static double LunghezzaMm(IEdge spigolo)
         {
-            if (spigolo == null) return 0;
-            // Distanza fra gli estremi: per uno spigolo curvo NON e' la
-            // lunghezza vera, ed e' voluto. Serve solo a ordinare gli spigoli
-            // per grandezza e a fare da firma per ritrovarli: una misura
-            // approssimata ma stabile va bene per tutte e due le cose, e non
-            // viene mai mostrata come quota.
+            if (spigolo == null) return -1;
+            // LA LUNGHEZZA VERA, NON LA CORDA (voce E19, 25/9/2026).
+            //
+            // Fino alla libreria 0.119.0 qui c'era la distanza fra gli estremi,
+            // «approssimata ma stabile, mai mostrata come quota». Era mostrata
+            // eccome: finisce in `lunghezza_mm` nello stato, e per uno spigolo
+            // CHIUSO — il bordo di un foro — gli estremi coincidono e la corda
+            // vale ZERO. Misurato col banchetto: una piastra con due fori O12
+            // pubblicava quattro spigoli «lunghi 0», e chi legge lo stato vedeva
+            // una circonferenza da 37,7 descritta come uno spigolo che non c'e'.
+            // Per un arco la corda e' meno dell'arco. E la classifica degli uid,
+            // che e' per lunghezza, metteva i fori sempre in fondo: un foro non
+            // rinumerava mai niente, e il ritrovamento per firma degli spigoli
+            // non si poteva nemmeno provare.
+            //
+            // `ICurve.GetLength3` fra i due parametri dello spigolo: e' gia'
+            // usata e misurata in `OperazioniSaldatura` per il perimetro. Se non
+            // risponde si torna alla corda, che per un segmento e' la stessa
+            // cosa; se non si leggono nemmeno gli estremi, -1: «non lo so», non
+            // «lungo zero» (voce Z-C8).
+            try
+            {
+                var curva = spigolo.GetCurve() as ICurve;
+                var parametri = spigolo.GetCurveParams3() as ICurveParamData;
+                if (curva != null && parametri != null)
+                {
+                    double vera = curva.GetLength3(parametri.UMinValue, parametri.UMaxValue);
+                    if (vera > 0) return Unita.Mm(vera);
+                }
+            }
+            catch { }
             double[] a, b;
-            if (!Estremi(spigolo, out a, out b)) return 0;
+            if (!Estremi(spigolo, out a, out b)) return -1;
             double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
             return Unita.Mm(Math.Sqrt(dx * dx + dy * dy + dz * dz));
         }

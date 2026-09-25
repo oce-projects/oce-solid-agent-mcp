@@ -332,11 +332,11 @@ namespace Riscontro.Disegno
                     r1.ToString("0.##") + " e " + r2.ToString("0.##") + ". Per un raccordo " +
                     "uguale da capo a fondo c'e' «raccordo_spigoli».");
 
-            StatoDocumento.FirmaEntita firma;
-            if (stato == null || !stato.Firme.TryGetValue(uid, out firma) || firma.Tipo != "EDGE")
-                return Fallito("Lo spigolo «" + uid + "» non c'e' piu' in questo documento.");
             string scostamento;
-            if (!FirmaCombacia(a, uid, firma, out scostamento)) return Fallito(scostamento);
+            var firma = FirmaDelloSpigolo(
+                a, stato, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                out scostamento);
+            if (firma == null) return Fallito(scostamento);
 
             var spigolo = firma.Entita as IEdge;
             if (spigolo == null)
@@ -499,11 +499,11 @@ namespace Riscontro.Disegno
                     "indovinarla. Il testo lo scrivo come me lo dai: SOLIDWORKS non lo " +
                     "ricava da una tabella.");
 
-            StatoDocumento.FirmaEntita firma;
-            if (stato == null || !stato.Firme.TryGetValue(uid, out firma) || firma.Tipo != "EDGE")
-                return Fallito("Lo spigolo «" + uid + "» non c'e' piu' in questo documento.");
             string scostamento;
-            if (!FirmaCombacia(a, uid, firma, out scostamento)) return Fallito(scostamento);
+            var firma = FirmaDelloSpigolo(
+                a, stato, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                out scostamento);
+            if (firma == null) return Fallito(scostamento);
 
             var spigolo = firma.Entita as IEdge;
             if (spigolo == null)

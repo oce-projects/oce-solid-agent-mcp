@@ -928,7 +928,13 @@ namespace Riscontro.Disegno.Catalogo
                         "Raccordo a raggio costante su uno o piu' spigoli.",
                     Descrizione =
                         "Arrotonda uno o piu' spigoli con lo stesso raggio. Gli spigoli si "
-                        + "indicano con gli identificativi presi dallo stato del documento.",
+                        + "indicano con gli identificativi presi dallo stato del documento."
+                        + "\n\nSe fra la lettura dello stato e adesso gli spigoli hanno cambiato "
+                        + "numero (un foro fatto prima li rinumera), li ritrovo per firma: stessa "
+                        + "lunghezza nello stesso punto, e lo dico nella risposta. MI RIFIUTO se "
+                        + "lo spigolo che avevi visto non c'e' piu' com'era — accorciato, spezzato "
+                        + "— invece di prendere il piu' vicino, e se il raggio non ci sta in meta' "
+                        + "dello spigolo.",
                     Precondizione = "corpo_solido_e_spigolo",
                     Schema = O(
                         "type", "object",

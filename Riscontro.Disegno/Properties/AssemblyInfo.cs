@@ -261,8 +261,15 @@ using System.Runtime.InteropServices;
 //          nessuna), messa nello schizzo dei punti di HoleWizard dopo il
 //          posizionamento; definito si guarda dopo l'ultimo punto, lo
 //          scavalcamento col raggio vero a foro nato.
-[assembly: AssemblyVersion("0.119.0.0")]
-[assembly: AssemblyFileVersion("0.119.0.0")]
+// 0.120.0: GLI SPIGOLI SI RITROVANO PER FIRMA (voce E19). Raccordo, smusso,
+//          raccordo variabile, filetto cosmetico, direzione di una ripetizione
+//          e ancora: se l'uid e' cambiato fra la lettura e adesso, si cerca lo
+//          spigolo con la stessa lunghezza nello stesso punto — uno solo, mai
+//          il piu' vicino — e si dice in `riancoraggi`. `LunghezzaMm` da' la
+//          lunghezza VERA (GetLength3), non la corda: il bordo di un foro era
+//          «lungo 0» nello stato. FirmaCombacia confronta anche la lunghezza.
+[assembly: AssemblyVersion("0.120.0.0")]
+[assembly: AssemblyFileVersion("0.120.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -277,4 +284,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.119.0")]
+[assembly: AssemblyInformationalVersion("0.120.0")]
