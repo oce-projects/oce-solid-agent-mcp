@@ -1,0 +1,19 @@
+{
+  "nome": "il_tubo_ha_il_buco",
+  "famiglia": "estrusioni",
+  "perche": "VOCE Z-C6. `estrudi_profilo` e' a catalogo con `Provata = true`, e fino al 24/9/2026 la toccavano solo tre piani a mano (`ponte/c2_*`) che non pretendono niente. Il caso e' quello del piano `c2_tubo_dal_catalogo`: due cerchi concentrici, e il secondo dev'essere un BUCO.",
+  "il_difetto_che_questo_caso_prende": "Due contorni uno dentro l'altro si possono leggere in due modi: una corona (il secondo toglie) o due cilindri sovrapposti (il secondo aggiunge, e sparisce dentro il primo). Nel secondo caso il pezzo esce PIENO, la ricostruzione e' pulita, e un tubo da 60x5 diventa una barra tonda da 60. Il volume lo distingue di tre volte.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_profilo",
+      "argomenti": { "piano": "superiore", "spessore_mm": 100,
+                     "contorni": [ { "cerchio": [0, 0], "diametro_mm": 60 },
+                                   { "cerchio": [0, 0], "diametro_mm": 50 } ] },
+      "attese": [
+        { "cosa": "corpi", "uguale": 1 },
+        { "cosa": "volume_mm3", "uguale": 86393.8, "tolleranza": 0.1,
+          "perche_questa_tolleranza": "pi/4 * (60^2 - 50^2) * 100 = pi/4 * 1100 * 100 = 86393,798. Il decimo copre l'arrotondamento; un tubo PIENO darebbe 282743,3 e un tubo da 60x4 (Ø52 dentro) 70371,7: la misura sbagliata piu' vicina sta a sedicimila mm3." },
+        { "cosa": "ingombro_mm", "uguale": [60, 100, 60], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "estruso dal piano superiore, quindi lungo Y. Simmetrico in X e Z, quindi l'ordine non dipende dal verso" } ] }
+  ]
+}

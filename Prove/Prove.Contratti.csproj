@@ -66,6 +66,7 @@
     <Compile Include="ProveIlDocumento.cs" />
     <Compile Include="ProveEnumDiErrore.cs" />
     <Compile Include="ProveILimiti.cs" />
+    <Compile Include="ProveLeDescrizioni.cs" />
     <Compile Include="ProveIRifiuti.cs" />
     <Compile Include="ProveIlDocumentoRichiesto.cs" />
     <Compile Include="ProveICampiObbligatori.cs" />

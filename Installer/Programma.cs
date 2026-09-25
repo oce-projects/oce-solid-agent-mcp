@@ -148,7 +148,16 @@ namespace Oce.Solid.Agent.Installer
 
                 foreach (var client in clienti)
                 {
-                    try { Configurazione.Collega(client, eseguibile, redist, racconta); }
+                    try
+                    {
+                        Configurazione.Collega(client, eseguibile, redist, racconta);
+                        // La finestra lo diceva, il modo silenzioso no (voce
+                        // H15): un client aperto legge la configurazione solo
+                        // all'avvio, e chi installa da script non lo vede.
+                        if (Configurazione.EAperto(client))
+                            racconta("ATTENZIONE: " + client.Nome + " e' aperto adesso: chiudilo e " +
+                                     "riaprilo, se no non legge la configurazione nuova.");
+                    }
                     catch (Exception ex) { Console.WriteLine("  " + client.Nome + ": " + ex.Message); }
                 }
             }

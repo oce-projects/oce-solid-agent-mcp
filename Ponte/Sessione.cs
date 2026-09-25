@@ -224,10 +224,9 @@ namespace Oce.Solid.Agent.Ponte
             {
                 _sw = Marshal.GetActiveObject("SldWorks.Application");
             }
-            catch (COMException)
+            catch (COMException ex)
             {
-                return "SolidWorks non risulta aperto. Questo ponte si aggancia a " +
-                       "una sessione che c'e' gia': aprilo, apri un pezzo, e riprova.";
+                return MessaggioDiAggancio(ex.ErrorCode);
             }
             catch (Exception ex)
             {
@@ -236,6 +235,38 @@ namespace Oce.Solid.Agent.Ponte
 
             RicordaIlProcesso();
             return null;
+        }
+
+        /// <summary>
+        /// Cosa dire quando `GetActiveObject("SldWorks.Application")` fallisce
+        /// (voce H16). Sono DUE mancanze diverse con due azioni diverse, e fino
+        /// alla 0.87.0 avevano un messaggio solo:
+        ///
+        ///   MK_E_UNAVAILABLE    0x800401E3   installato, non aperto  -> aprilo
+        ///   CO_E_CLASSSTRING    0x800401F3   il ProgID non c'e'      -> non e' installato
+        ///   REGDB_E_CLASSNOTREG 0x80040154   classe non registrata   -> idem
+        ///
+        /// «non risulta aperto» resta PAROLA PER PAROLA: l'installatore la cerca
+        /// nell'uscita di `--prova` per dire «installato, manca solo SOLIDWORKS
+        /// aperto». Il messaggio di «non installato» NON deve contenerla, se no
+        /// un'installazione su una macchina senza SOLIDWORKS uscirebbe 0.
+        /// </summary>
+        internal static string MessaggioDiAggancio(int hresult)
+        {
+            switch (unchecked((uint)hresult))
+            {
+                case 0x800401E3:
+                    return "SolidWorks non risulta aperto. Questo ponte si aggancia a " +
+                           "una sessione che c'e' gia': aprilo, apri un pezzo, e riprova.";
+                case 0x800401F3:
+                case 0x80040154:
+                    return "SolidWorks non e' installato su questa macchina, o non e' " +
+                           "registrato: Windows non conosce «SldWorks.Application». " +
+                           "Aprirlo non basta — va installato, o riparato dall'Installation Manager.";
+                default:
+                    return "Non riesco ad agganciarmi a SolidWorks (codice 0x" +
+                           unchecked((uint)hresult).ToString("X8") + ").";
+            }
         }
 
         /// <summary>

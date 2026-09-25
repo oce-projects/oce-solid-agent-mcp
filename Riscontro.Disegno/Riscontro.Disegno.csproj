@@ -87,6 +87,14 @@
       <EmbedInteropTypes>False</EmbedInteropTypes>
       <Private>False</Private>
     </Reference>
+    <!-- DimXpert (voce Z-H3): sta nello stesso api\redist del nucleo e c'e' su
+         ogni installazione. `IModelDocExtension.get_DimXpertManager` la
+         restituisce, quindi l'interop del nucleo la richiede gia'. -->
+    <Reference Include="SolidWorks.Interop.swdimxpert">
+      <HintPath>$(SwInstallPath)\api\redist\SolidWorks.Interop.swdimxpert.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -122,6 +130,9 @@
     <Compile Include="OperazioniTesto.cs" />
     <Compile Include="OperazioniIstanze.cs" />
     <Compile Include="OperazioniSformo.cs" />
+    <Compile Include="OperazioniLamiera.cs" />
+    <Compile Include="OperazioniDimXpert.cs" />
+    <Compile Include="TestoDelPdf.cs" />
     <Compile Include="OperazioniSporgenze.cs" />
     <Compile Include="OperazioniPiani.cs" />
     <Compile Include="OperazioniPercorso.cs" />

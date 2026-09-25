@@ -50,14 +50,18 @@ internal static class Programma
     }
 
     private static ISldWorks _sw;
+    private static string _variante = "bordi";
+    private static ISketch _schizzoTaglio;
+    private static bool _elencaRelazioni = true;
     private static IModelDoc2 _doc;
     private static IMathUtility _mu;
 
     private static int Main(string[] argomenti)
     {
         bool tieni = Array.IndexOf(argomenti, "--tieni") >= 0;
+        if (Array.IndexOf(argomenti, "--b=convertiti") >= 0) _variante = "convertiti";
         Console.WriteLine();
-        Console.WriteLine("SEGUI IL BORDO — un foro quotato contro lo spigolo lo segue? (voce E18)");
+        Console.WriteLine("SEGUI IL BORDO — un foro quotato contro lo spigolo lo segue? (voce E18, variante B: " + _variante + ")");
         Console.WriteLine();
 
         try { _sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
@@ -113,33 +117,67 @@ internal static class Programma
             var schizzo = _doc.SketchManager.ActiveSketch;
             var tr = schizzo.ModelToSketchTransform;
 
-            // A: foro a (80, 40), quotato a 20 dallo spigolo destro e da quello alto
-            var cA = Cerchio(tr, 0.080, 0.040, zDavanti);
-            var pA = (ISketchPoint)((ISketchArc)cA).GetCenterPoint2();
-            var qA1 = QuotaAlloSpigolo(pA, 0.100, 0.0, zDavanti, 0.115, 0.045, zDavanti);   // spigolo destro
-            var qA2 = QuotaAlloSpigolo(pA, 0.0, 0.060, zDavanti, 0.085, 0.075, zDavanti);   // spigolo alto
-            Dice("A: quote allo spigolo " + (qA1 == null ? "NON NATA" : Mm(qA1.SystemValue)) + " (destro), " +
-                 (qA2 == null ? "NON NATA" : Mm(qA2.SystemValue)) + " (alto)");
+            // MISURATO il primo giro (24/9 sera): la piastra cresce a SINISTRA e
+            // in BASSO (X -160..100, Y -120..60), e l'angolo in alto a destra
+            // resta fermo. Un foro quotato solo all'angolo che non si muove
+            // passa senza provare niente. Quindi due fori quotati, uno per
+            // angolo, e ognuno si giudica contro i SUOI spigoli: da qualunque
+            // parte cresca, uno dei due deve muoversi davvero.
+            //
+            // I FORI SI RICONOSCONO DAL DIAMETRO: A 6, D 8, B 10, C 12. Il primo
+            // giro li riconosceva dalla vicinanza al punto atteso, e un foro
+            // rimasto fermo poteva essere scambiato per un altro.
 
-            // B: al centro, sulla mezzeria di una costruzione fra i due fianchi
-            var linea = _doc.SketchManager.CreateCenterLine(
-                Sk(tr, -0.100, 0, zDavanti)[0], Sk(tr, -0.100, 0, zDavanti)[1], 0,
-                Sk(tr, 0.100, 0, zDavanti)[0], Sk(tr, 0.100, 0, zDavanti)[1], 0);
-            var ls = linea as ISketchLine;
-            bool rB1 = Relazione((ISketchPoint)ls.GetStartPoint2(), -0.100, 0.0, zDavanti, "sgATMIDDLE");
-            bool rB2 = Relazione((ISketchPoint)ls.GetEndPoint2(), 0.100, 0.0, zDavanti, "sgATMIDDLE");
-            var cB = Cerchio(tr, 0.0, 0.0, zDavanti);
+            // A: in basso a sinistra, a 20 dallo spigolo sinistro e da quello basso
+            var cA = Cerchio(tr, -0.080, -0.040, zDavanti, 0.003);
+            var pA = (ISketchPoint)((ISketchArc)cA).GetCenterPoint2();
+            var qA1 = QuotaAlloSpigolo(pA, -0.100, 0.0, zDavanti, -0.115, -0.045, zDavanti);
+            var qA2 = QuotaAlloSpigolo(pA, 0.0, -0.060, zDavanti, -0.085, -0.075, zDavanti);
+            Dice("A (Ø6): quote allo spigolo " + (qA1 == null ? "NON NATA" : Mm(qA1.SystemValue)) + " (sinistro), " +
+                 (qA2 == null ? "NON NATA" : Mm(qA2.SystemValue)) + " (basso)");
+
+            // D: in alto a destra, a 20 dallo spigolo destro e da quello alto
+            var cD = Cerchio(tr, 0.080, 0.040, zDavanti, 0.004);
+            var pD = (ISketchPoint)((ISketchArc)cD).GetCenterPoint2();
+            var qD1 = QuotaAlloSpigolo(pD, 0.100, 0.0, zDavanti, 0.115, 0.045, zDavanti);
+            var qD2 = QuotaAlloSpigolo(pD, 0.0, 0.060, zDavanti, 0.085, 0.075, zDavanti);
+            Dice("D (Ø8): quote allo spigolo " + (qD1 == null ? "NON NATA" : Mm(qD1.SystemValue)) + " (destro), " +
+                 (qD2 == null ? "NON NATA" : Mm(qD2.SystemValue)) + " (alto)");
+
+            // B: al centro. Due varianti, una per giro (--b=bordi | --b=convertiti).
+            var cB = Cerchio(tr, 0.0, 0.0, zDavanti, 0.005);
             var pB = (ISketchPoint)((ISketchArc)cB).GetCenterPoint2();
-            _doc.ClearSelection2(true);
-            pB.Select4(false, null);
-            linea.Select4(true, null);
-            _doc.SketchAddConstraints("sgATMIDDLE");
-            _doc.ClearSelection2(true);
-            Dice("B: estremi della costruzione a meta' dei fianchi " + rB1 + "/" + rB2 + ", centro a meta' della costruzione");
+            ISketchSegment linea = null;
+            if (_variante == "convertiti")
+            {
+                // Gli spigoli sinistro e destro CONVERTITI nello schizzo (seguono
+                // il modello da soli) e messi a COSTRUZIONE, se no entrerebbero
+                // nel profilo del taglio. La mezzeria si appoggia a loro: sono
+                // entita' dello schizzo, non spigoli del modello.
+                var sx = Converti(-0.100, 0.0, zDavanti);
+                var dx = Converti(0.100, 0.0, zDavanti);
+                linea = Mezzeria(tr, zDavanti);
+
+                var ls = linea as ISketchLine;
+                bool r1 = sx != null && RelazioneFraSchizzi((ISketchPoint)ls.GetStartPoint2(), sx, "sgATMIDDLE");
+                bool r2 = dx != null && RelazioneFraSchizzi((ISketchPoint)ls.GetEndPoint2(), dx, "sgATMIDDLE");
+                Dice("B (Ø10), variante convertiti: fianchi convertiti " + (sx != null) + "/" + (dx != null) +
+                     ", estremi della mezzeria a meta' " + r1 + "/" + r2);
+            }
+            else
+            {
+                linea = Mezzeria(tr, zDavanti);
+
+                var ls = linea as ISketchLine;
+                bool rB1 = Relazione((ISketchPoint)ls.GetStartPoint2(), -0.100, 0.0, zDavanti, "sgATMIDDLE");
+                bool rB2 = Relazione((ISketchPoint)ls.GetEndPoint2(), 0.100, 0.0, zDavanti, "sgATMIDDLE");
+                Dice("B (Ø10), variante bordi: estremi della mezzeria a meta' degli spigoli del modello " + rB1 + "/" + rB2);
+            }
+            RelazioneFraSchizzi(pB, linea, "sgATMIDDLE");
 
             // C: il gemello, a coordinate assolute
-            Cerchio(tr, -0.060, -0.030, zDavanti);
-            Dice("C: a (-60, -30), senza relazioni");
+            Cerchio(tr, -0.040, 0.030, zDavanti, 0.006);
+            Dice("C (Ø12): a (-40, 30), senza relazioni");
 
             _doc.SketchManager.InsertSketch(true);
             var taglio = _doc.FeatureManager.FeatureCut4(
@@ -149,18 +187,33 @@ internal static class Programma
             if (taglio == null) { Console.WriteLine("  il taglio non e' venuto"); return 4; }
             _doc.EditRebuild3();
 
+            _schizzoTaglio = (taglio.GetFirstSubFeature() as IFeature)?.GetSpecificFeature2() as ISketch;
             int sbagli = 0;
-            sbagli += Verifica("dopo il taglio");
+            var primaC = Foro(Fori(), 0.006);
+            sbagli += Verifica("dopo il taglio", primaC);
 
             // ── LA PIASTRA CAMBIA ────────────────────────────────────────
-            var primaC = Fori().Find(f => f[0] < -0.03);
             qLung.SetSystemValue3(0.260, (int)swSetValueInConfiguration_e.swSetValue_InAllConfigurations, null);
             _doc.EditRebuild3();
-            sbagli += Verifica("lunghezza 200 -> 260", primaC);
+            int s1 = Verifica("lunghezza 200 -> 260", primaC);
+            if (s1 > 0)
+            {
+                // Una ricostruzione PIENA risolve i riferimenti che quella
+                // normale lascia rotti? Se si', e' un problema d'ordine.
+                _doc.ForceRebuild3(false);
+                s1 = Verifica("lunghezza 200 -> 260, dopo ForceRebuild3", primaC);
+            }
+            sbagli += s1;
 
             qAlt.SetSystemValue3(0.180, (int)swSetValueInConfiguration_e.swSetValue_InAllConfigurations, null);
             _doc.EditRebuild3();
-            sbagli += Verifica("altezza 120 -> 180", primaC);
+            int s2 = Verifica("altezza 120 -> 180", primaC);
+            if (s2 > 0)
+            {
+                _doc.ForceRebuild3(false);
+                s2 = Verifica("altezza 120 -> 180, dopo ForceRebuild3", primaC);
+            }
+            sbagli += s2;
 
             Console.WriteLine();
             if (sbagli == 0)
@@ -191,7 +244,7 @@ internal static class Programma
 
     // ── misure ───────────────────────────────────────────────────────────
 
-    private static int Verifica(string quando, double[] cPrima = null)
+    private static int Verifica(string quando, double[] cPrima)
     {
         var box = Ingombro();
         var fori = Fori();
@@ -199,25 +252,63 @@ internal static class Programma
         try { errori = _doc.Extension.GetWhatsWrongCount(); } catch { }
         Console.WriteLine();
         Console.WriteLine("      " + quando + ": ingombro " + Box(box) + ", fori " + fori.Count + ", cose che non vanno " + errori);
+        if (errori > 0)
+        {
+            // QUALE lavorazione, e con che codice: il primo giro diceva solo «1».
+            try
+            {
+                object feats, codici, avvisi;
+                _doc.Extension.GetWhatsWrong(out feats, out codici, out avvisi);
+                var f = feats as object[]; var c = codici as int[]; var w = avvisi as bool[];
+                for (int i = 0; f != null && i < f.Length; i++)
+                    Console.WriteLine("        «" + ((IFeature)f[i]).Name + "» codice " + (c != null ? c[i].ToString() : "?") +
+                                      (w != null && w[i] ? " (avviso)" : " (ERRORE)"));
+            }
+            catch (Exception ex) { Console.WriteLine("        GetWhatsWrong: " + ex.Message); }
+        }
         int sbagli = errori > 0 ? 1 : 0;
-        if (fori.Count != 3) { Console.WriteLine("      tre fori attesi, ne trovo " + fori.Count); return sbagli + 1; }
+        try
+        {
+            var rm = _schizzoTaglio?.RelationManager;
+            if (rm != null)
+            {
+                Console.WriteLine("        relazioni dello schizzo del taglio: tutte " + rm.GetRelationsCount(0) +
+                                  ", esterne " + rm.GetRelationsCount(3) + ", penzolanti " + rm.GetRelationsCount(1) +
+                                  ", rotte " + rm.GetRelationsCount(6) + ", sovravincolanti " + rm.GetRelationsCount(2));
+                if (_elencaRelazioni)
+                {
+                    _elencaRelazioni = false;
+                    foreach (var o in (rm.GetRelations(0) as object[]) ?? new object[0])
+                    {
+                        var r = (ISketchRelation)o;
+                        var tipi = r.GetEntitiesType() as int[];
+                        Console.WriteLine("          tipo " + r.GetRelationType() + " su " + r.GetEntitiesCount() +
+                                          " entita' (" + (tipi == null ? "-" : string.Join(",", tipi)) + ")" +
+                                          (r.GetDisplayDimension() != null ? " [quota]" : ""));
+                    }
+                }
+            }
+        }
+        catch (Exception ex) { Console.WriteLine("        relazioni: " + ex.Message); }
 
+        double xmin = Math.Min(box[0], box[3]), ymin = Math.Min(box[1], box[4]);
         double xmax = Math.Max(box[0], box[3]), ymax = Math.Max(box[1], box[4]);
         double xc = (box[0] + box[3]) / 2, yc = (box[1] + box[4]) / 2;
-        var A = Vicino(fori, xmax - 0.020, ymax - 0.020);
-        var B = Vicino(fori, xc, yc);
-        sbagli += Riga("A a 20 dall'angolo", A, xmax - 0.020, ymax - 0.020);
-        sbagli += Riga("B al centro       ", B, xc, yc);
-        if (cPrima != null)
-        {
-            var C = Vicino(fori, cPrima[0], cPrima[1]);
-            sbagli += Riga("C dov'era         ", C, cPrima[0], cPrima[1]);
-        }
+        sbagli += Riga("A (Ø6)  a 20 dal basso-sinistra", Foro(fori, 0.003), xmin + 0.020, ymin + 0.020);
+        sbagli += Riga("D (Ø8)  a 20 dall'alto-destra  ", Foro(fori, 0.004), xmax - 0.020, ymax - 0.020);
+        sbagli += Riga("B (Ø10) al centro              ", Foro(fori, 0.005), xc, yc);
+        if (cPrima != null) sbagli += Riga("C (Ø12) dov'era                ", Foro(fori, 0.006), cPrima[0], cPrima[1]);
         return sbagli;
+    }
+
+    private static double[] Foro(List<double[]> fori, double raggio)
+    {
+        return fori.Find(f => Math.Abs(f[2] - raggio) < 1e-6);
     }
 
     private static int Riga(string nome, double[] f, double x, double y)
     {
+        if (f == null) { Console.WriteLine("      NO  " + nome + ": il foro non c'e'"); return 1; }
         double d = Math.Sqrt(Math.Pow(f[0] - x, 2) + Math.Pow(f[1] - y, 2));
         bool ok = d < 0.00005;
         Console.WriteLine("      " + (ok ? "ok  " : "NO  ") + nome + " (" + Mm(f[0]) + ", " + Mm(f[1]) + ")  atteso (" +
@@ -251,7 +342,7 @@ internal static class Programma
                 if (s != null && s.IsCylinder())
                 {
                     var p = s.CylinderParams as double[];
-                    if (p != null && Math.Abs(p[6] - 0.005) < 1e-6) fuori.Add(new[] { p[0], p[1] });
+                    if (p != null) fuori.Add(new[] { p[0], p[1], p[6] });
                 }
                 f = f.GetNextFace() as IFace2;
             }
@@ -273,10 +364,62 @@ internal static class Programma
         return (double[])((IMathPoint)p.MultiplyTransform(tr)).ArrayData;
     }
 
-    private static ISketchSegment Cerchio(MathTransform tr, double x, double y, double z)
+    // AddToDB a vero mentre si disegna: senza, SOLIDWORKS aggiunge da solo le
+    // relazioni che «indovina» (coincidenze con gli spigoli, orizzontali), e
+    // sommate a quelle messe apposta sovravincolano lo schizzo appena il pezzo
+    // cambia. Misurato il 24/9 sera: 5 sovravincolanti dopo la prima modifica.
+    private static bool _senzaInferenze = System.Environment.GetCommandLineArgs().Length > 0 &&
+        Array.IndexOf(System.Environment.GetCommandLineArgs(), "--con-inferenze") < 0;
+
+    private static ISketchSegment Cerchio(MathTransform tr, double x, double y, double z, double raggio)
     {
         var c = Sk(tr, x, y, z);
-        return _doc.SketchManager.CreateCircleByRadius(c[0], c[1], 0, 0.005);
+        _doc.SketchManager.AddToDB = _senzaInferenze;
+        var s = _doc.SketchManager.CreateCircleByRadius(c[0], c[1], 0, raggio);
+        _doc.SketchManager.AddToDB = false;
+        return s;
+    }
+
+    private static ISketchSegment Mezzeria(MathTransform tr, double z)
+    {
+        _doc.SketchManager.AddToDB = _senzaInferenze;
+        var s = _doc.SketchManager.CreateCenterLine(
+            Sk(tr, -0.100, 0, z)[0], Sk(tr, -0.100, 0, z)[1], 0,
+            Sk(tr, 0.100, 0, z)[0], Sk(tr, 0.100, 0, z)[1], 0);
+        _doc.SketchManager.AddToDB = false;
+        return s;
+    }
+
+    /// <summary>
+    /// Converte nello schizzo lo spigolo del modello che passa per (x, y, z) e
+    /// lo mette a costruzione. Il segmento nuovo e' quello che prima non c'era.
+    /// </summary>
+    private static ISketchSegment Converti(double x, double y, double z)
+    {
+        var schizzo = _doc.SketchManager.ActiveSketch;
+        var prima = new List<ISketchSegment>();
+        foreach (var o in (schizzo.GetSketchSegments() as object[]) ?? new object[0]) prima.Add((ISketchSegment)o);
+        _doc.ClearSelection2(true);
+        if (!_doc.Extension.SelectByID2("", "EDGE", x, y, z, false, 0, null, 0)) return null;
+        _doc.SketchManager.SketchUseEdge3(false, false);
+        _doc.ClearSelection2(true);
+        foreach (var o in (schizzo.GetSketchSegments() as object[]) ?? new object[0])
+        {
+            var s = (ISketchSegment)o;
+            bool nuovo = true;
+            foreach (var p in prima) if (_sw.IsSame(p, s) == (int)swObjectEquality.swObjectSame) { nuovo = false; break; }
+            if (nuovo) { s.ConstructionGeometry = true; return s; }
+        }
+        return null;
+    }
+
+    private static bool RelazioneFraSchizzi(ISketchPoint p, ISketchSegment s, string quale)
+    {
+        _doc.ClearSelection2(true);
+        if (!p.Select4(false, null) || !s.Select4(true, null)) return false;
+        _doc.SketchAddConstraints(quale);
+        _doc.ClearSelection2(true);
+        return true;
     }
 
     /// <summary>

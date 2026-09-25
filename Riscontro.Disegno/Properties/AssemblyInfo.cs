@@ -163,8 +163,32 @@ using System.Runtime.InteropServices;
 //          descritto una libreria diversa con lo stesso numero addosso --
 //          il difetto della voce K14. Se n'e' accorto il critico della
 //          rilettura, non una prova.
-[assembly: AssemblyVersion("0.112.0.0")]
-[assembly: AssemblyFileVersion("0.112.0.0")]
+// 0.113.0: tre cose misurate dalle sonde del 24/9/2026, tutte e tre senza
+//          errore da nessuna parte prima di oggi.
+//          - `modifica_quota` RIFIUTA se la quota nuova fa uscire
+//            un'apertura dal materiale (voce E18, pezzo c): contate le
+//            aperture chiuse delle facce piane prima e dopo, se calano
+//            rimette il valore di prima e rilegge il volume. Era il caso
+//            r16 della regressione, un'asola che sbordava in silenzio.
+//          - La guardia contro il modale guarda se la finestra principale
+//            e' ABILITATA (voce Z-C3): `CommandInProgress` resta falso con
+//            un modale aperto, misurato con `Controlli/Modale`.
+//          - Due descrizioni del catalogo che si proclamavano sole
+//            (`quote_dal_modello`, `estrudi_su_faccia`) dicono il vero
+//            (voce Z-C15): le ha trovate il controllo di contratto nuovo.
+//          E prima del primo banco verde, sulla stessa versione mai
+//          committata (il giro del 24/9 sera e' morto per un singhiozzo di
+//          S:, e un giro nuovo serviva comunque):
+//          - la famiglia LAMIERA: `flangia_base`, `sviluppo_dxf` (voce GP18),
+//            dalla sonda che ha misurato lo sviluppo al centesimo;
+//          - `schema_di_quote`, DimXpert dal nucleo (voce Z-H3);
+//          - `esporta_pdf` con «cerca»: il PDF si rilegge, decodificando le
+//            /ToUnicode (voci GT3-bis, Z-C9);
+//          - lo stato della tavola conta le quote senza spigolo (voce Z-A2);
+//          - la descrizione di `estrudi_sezione` dice che l'asola e' un
+//            poligono circoscritto: il primo giro lo ha scoperto col caso nuovo.
+[assembly: AssemblyVersion("0.113.0.0")]
+[assembly: AssemblyFileVersion("0.113.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -179,4 +203,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.112.0")]
+[assembly: AssemblyInformationalVersion("0.113.0")]

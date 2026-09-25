@@ -648,6 +648,27 @@ namespace Riscontro.Disegno
             }
             catch { /* se non riusciamo a leggerlo, lo diranno le API dopo */ }
 
+            // IL MODALE SI VEDE DALLA FINESTRA, NON DA SOLIDWORKS (voce Z-C3).
+            //
+            // Misurato il 24/9/2026 con `Controlli/Modale`: con una finestra
+            // modale di SOLIDWORKS aperta, `CommandInProgress` resta FALSO in
+            // tre giri su tre. La guardia qui sotto non era mai scattata perche'
+            // non poteva. La finestra principale invece e' DISABILITATA — un
+            // proprietario con un modale aperto lo e' sempre — e
+            // `IsWindowEnabled` lo dice in zero millisecondi, da User32, senza
+            // passare da una chiamata COM che col modale aperto potrebbe anche
+            // non tornare.
+            //
+            // `CommandInProgress` resta accanto: non costa niente, e copre un
+            // comando interattivo che non disabilita la finestra.
+            try
+            {
+                int cornice = (_sw.Frame() as IFrame)?.GetHWnd() ?? 0;
+                if (cornice != 0 && !IsWindowEnabled(new IntPtr(cornice)))
+                    return FraseDelModale;
+            }
+            catch { }
+
             try
             {
                 if (_sw.CommandInProgress)
@@ -657,5 +678,18 @@ namespace Riscontro.Disegno
 
             return null;
         }
+
+        /// <summary>
+        /// La frase del rifiuto quando SOLIDWORKS ha una finestra aperta che
+        /// aspetta una risposta. Pubblica perche' il banco la pretende parola
+        /// per parola: una frase scritta in due posti diverge.
+        /// </summary>
+        public const string FraseDelModale =
+            "SOLIDWORKS ha una finestra aperta che aspetta una risposta (la sua finestra " +
+            "principale e' disabilitata): chiudila e riprova. Lavorarci sopra adesso " +
+            "vorrebbe dire restare appesi finche' qualcuno non clicca.";
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowEnabled(IntPtr finestra);
     }
 }

@@ -1,0 +1,26 @@
+{
+  "nome": "la_piastra_si_quota_da_sola",
+  "famiglia": "quote",
+  "perche": "VOCE Z-H3. La piastra di `Controlli/DimXpert` (24/9/2026): 100 x 60 x 10 con un foro passante da 20 al centro. Uno schema DimXpert, dal nucleo e senza add-in, con tre riferimenti — fondo, fianco sinistro, retro — deve mettere le quote che un disegnatore metterebbe, coi valori giusti.",
+  "perche_i_valori_e_non_il_conto": "Sei quote qualunque sarebbero sei quote. `valori_mm` e' l'elenco ordinato dei numeri che le quote portano, ed e' quello che distingue uno schema giusto da uno che ha quotato altro: 10 lo spessore, 20 il foro, 30 e 50 la posizione del foro dai due fianchi di riferimento, 60 e 100 i lati.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 60,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 60000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 0, "y_mm": 0,
+                     "diametro_mm": 20, "passante": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 56858.41, "tolleranza": 0.1,
+          "perche_questa_tolleranza": "60000 meno pi * 10^2 * 10 = 3141,59" } ] },
+    { "operazione": "schema_di_quote",
+      "argomenti": { "riferimenti_uid": ["@faccia(verso=basso)", "@faccia(verso=sinistra)",
+                                          "@faccia(verso=dietro)"] },
+      "attese": [
+        { "cosa": "misure.annotazioni_prima", "uguale": 0 },
+        { "cosa": "misure.valori_mm", "uguale": [10, 20, 30, 50, 60, 100], "tolleranza": 0.001,
+          "perche_questa_tolleranza": "i valori li scrive DimXpert nel nome della quota, arrotondati al millesimo" } ] }
+  ]
+}

@@ -86,6 +86,81 @@ namespace Prove.Contratti
             LaChiaveDelTurno(ponte);
             IlTurnoScatta(ponte);
             IlPezzoECambiato(ponte);
+            NonInstallatoONonAperto(ponte);
+            LaVersioneDelFile(ponte);
+        }
+
+        /// <summary>
+        /// LE PROPRIETA' DEL FILE DICONO LA VERSIONE (voce H14).
+        ///
+        /// Tasto destro -> Proprieta' -> Dettagli sul ponte e sull'installatore
+        /// diceva 0.0.0.0: la versione vera era solo una risorsa letta a run
+        /// time. Adesso un bersaglio di MSBuild la scrive da VERSION.txt, e qui
+        /// si rilegge dal FILE, come la legge chi guarda — non dalla risorsa.
+        /// L'installatore si controlla solo se e' stato costruito; se non c'e'
+        /// lo si dice, e non si da' verde.
+        /// </summary>
+        private static void LaVersioneDelFile(string ponte)
+        {
+            Gruppo("le proprieta' del file dicono la versione (H14)");
+            string attesa;
+            try { attesa = File.ReadAllText(Path.Combine(Radice(), "VERSION.txt")).Trim(); }
+            catch (Exception ex) { Segna("VERSION.txt si legge", false, ex.Message); return; }
+
+            var vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(ponte);
+            Segna("il ponte: versione del file = VERSION.txt",
+                  vi.FileVersion == attesa + ".0", "file " + vi.FileVersion + ", VERSION.txt " + attesa);
+            Segna("il ponte: versione del prodotto = VERSION.txt",
+                  vi.ProductVersion == attesa, "prodotto " + vi.ProductVersion);
+
+            var installa = Path.Combine(Radice(), "dist", "Installa.exe");
+            if (!File.Exists(installa))
+            {
+                Segna("l'installatore c'e' (dist\\Installa.exe) per controllarne la versione", false,
+                      "non costruito: .\\build.ps1");
+                return;
+            }
+            var vj = System.Diagnostics.FileVersionInfo.GetVersionInfo(installa);
+            Segna("l'installatore: versione del file = VERSION.txt",
+                  vj.FileVersion == attesa + ".0", "file " + vj.FileVersion + ", VERSION.txt " + attesa);
+        }
+
+        /// <summary>
+        /// «NON INSTALLATO» E «NON APERTO» SONO DUE COSE (voce H16).
+        ///
+        /// Un solo `catch (COMException)` dava la stessa frase per tutte e due,
+        /// e chi installa per conto di qualcuno faceva aprire un programma che
+        /// non c'era. Le tre risposte si provano per codice, senza SOLIDWORKS: e
+        /// la regola che conta e' che la frase del «non installato» NON contenga
+        /// «non risulta aperto», che l'installatore legge come «tutto a posto».
+        /// </summary>
+        private static void NonInstallatoONonAperto(string ponte)
+        {
+            Gruppo("Sessione.MessaggioDiAggancio: non installato o non aperto (H16)");
+            MethodInfo m;
+            try
+            {
+                var tipo = Carica.Classe(Carica.Ponte(ponte), "Sessione");
+                m = tipo?.GetMethod("MessaggioDiAggancio", BindingFlags.NonPublic | BindingFlags.Static);
+                if (m == null) { Segna("MessaggioDiAggancio c'e'", false, ""); return; }
+            }
+            catch (Exception ex) { Segna("il ponte si carica", false, ex.ToString()); return; }
+
+            Func<uint, string> frase = c => (string)m.Invoke(null, new object[] { unchecked((int)c) });
+
+            var aperto = frase(0x800401E3);
+            Segna("MK_E_UNAVAILABLE: «non risulta aperto», come l'installatore la cerca",
+                  aperto.IndexOf("non risulta aperto", StringComparison.Ordinal) >= 0, aperto);
+            foreach (var c in new uint[] { 0x800401F3, 0x80040154 })
+            {
+                var t = frase(c);
+                Segna("0x" + c.ToString("X8") + ": dice «non e' installato»",
+                      t.IndexOf("non e' installato", StringComparison.Ordinal) >= 0, t);
+                Segna("0x" + c.ToString("X8") + ": e NON dice «non risulta aperto», se no l'installatore esce 0",
+                      t.IndexOf("non risulta aperto", StringComparison.Ordinal) < 0, t);
+            }
+            var altro = frase(0x80004005);
+            Segna("un codice qualunque si dice in esadecimale", altro.Contains("0x80004005"), altro);
         }
 
         /// <summary>

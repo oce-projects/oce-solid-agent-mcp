@@ -85,7 +85,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>Fogli, viste e conteggi di una tavola.</summary>
-        private static void DescriviTavola(IDrawingDoc disegno, Dictionary<string, object> dati)
+        private static void DescriviTavola(IDrawingDoc disegno, Dictionary<string, object> dati, ISldWorks sw)
         {
             if (disegno == null)
             {
@@ -155,6 +155,8 @@ namespace Riscontro.Disegno
             var viste = new List<Dictionary<string, object>>();
             int quoteTotali = 0, visteTotali = 0, crociTotali = 0;
             int gtolTot = 0, datumTot = 0, saldTot = 0, rugTot = 0, noteTot = 0, annTot = 0;
+            int orfaneTot = 0;
+            bool orfaneSconosciute = false;
             // ── IL FOGLIO SI CONTA A PARTE, E NON E' UNA RIFINITURA ────────
             //
             // Misurato il 18/9/2026: le note del cartiglio — trentanove su
@@ -223,6 +225,19 @@ namespace Riscontro.Disegno
                     gtolTot += gtol; datumTot += datum; saldTot += saldature;
                     rugTot += rugosita; noteTot += note; annTot += annotazioni;
 
+                    // LE QUOTE RIMASTE SENZA SPIGOLO (voce Z-A2).
+                    //
+                    // `IAnnotation.IsDangling` e' MORTO per le quote in tavola
+                    // fuori processo: misurato il 24/9/2026 con
+                    // `Controlli/Orfana`, resta falso su una quota il cui
+                    // spigolo e' stato soppresso, mentre la quota continua a
+                    // dire 20 mm. Quello che lo vede e' chiedersi se lo spigolo
+                    // a cui e' attaccata e' ancora fra quelli che la vista
+                    // MOSTRA (1 prima, 0 dopo). null vuol dire «non lo so»
+                    // (voce Z-C8), non zero.
+                    int? orfane = QuoteSenzaSpigolo(sw, v);
+                    if (orfane.HasValue) orfaneTot += orfane.Value; else orfaneSconosciute = true;
+
                     if (viste.Count < MaxViste)
                     {
                         var voce = new Dictionary<string, object>
@@ -251,6 +266,7 @@ namespace Riscontro.Disegno
                         // stesso motivo — **un campo che compare solo quando ha
                         // un valore interessante insegna a non cercarlo.**
                         voce["croci_di_centro"] = croci;
+                        voce["quote_orfane"] = orfane;
 
                         // SEMPRE, ANCHE TUTTE A ZERO, e per la stessa ragione
                         // delle due righe qui sopra: un campo che compare solo
@@ -279,6 +295,11 @@ namespace Riscontro.Disegno
             dati["quote_totali"] = quoteTotali;
             dati["croci_di_centro_totali"] = crociTotali;
             dati["annotazioni_totali"] = Sei(gtolTot, datumTot, saldTot, rugTot, noteTot, annTot);
+            dati["quote_orfane_totali"] = orfaneSconosciute && orfaneTot == 0 ? (object)null : orfaneTot;
+            if (orfaneTot > 0)
+                dati["attenzione_quote"] = orfaneTot + " quote sono attaccate a spigoli che le viste non " +
+                    "mostrano piu': sul foglio si stampano col numero di prima, appese al niente. Di " +
+                    "solito il pezzo e' cambiato dopo che la tavola e' stata quotata.";
 
             // DUE CECITA' DICHIARATE, e tutte e due porterebbero a conclusioni
             // sbagliate se restassero implicite.
@@ -295,7 +316,12 @@ namespace Riscontro.Disegno
                 "sessantasette, e sommarle alle viste farebbe sembrare quotata " +
                 "una tavola vuota. E un'annotazione su un layer non stampabile " +
                 "esiste, viene contata, e nel PDF non c'e': il conteggio dice " +
-                "cosa c'e' nel documento, non cosa esce dalla stampante.";
+                "cosa c'e' nel documento, non cosa esce dalla stampante. " +
+                "«quote_orfane» guarda se gli spigoli e i vertici a cui ogni quota e' " +
+                "attaccata sono fra quelli che la vista mostra: una quota attaccata a una " +
+                "SILHOUETTE (il contorno apparente di un cilindro) o a uno spigolo nascosto " +
+                "risulterebbe orfana senza esserlo. Quelle messe da «quota_in_tavola» stanno " +
+                "sempre su spigoli visibili.";
             if (visteTotali > viste.Count) dati["viste_troncate"] = true;
 
             // LA TAVOLA VUOTA VA DETTA, non lasciata dedurre da un elenco che
@@ -305,6 +331,51 @@ namespace Riscontro.Disegno
                 dati["nota"] = "la tavola non ha ancora nessuna vista";
             else if (quoteTotali == 0)
                 dati["nota"] = "le viste ci sono ma non c'e' nessuna quota";
+        }
+
+        /// <summary>
+        /// Quante quote della vista sono attaccate SOLO a spigoli o vertici che
+        /// la vista non mostra piu' (voce Z-A2). null se non si puo' sapere:
+        /// senza SOLIDWORKS in mano per `IsSame`, o su una vista troppo carica
+        /// per confrontare tutto con tutto in un tempo ragionevole.
+        ///
+        /// Una quota senza nessun aggancio (una quota libera) non e' orfana: e'
+        /// libera, e non si conta.
+        /// </summary>
+        private static int? QuoteSenzaSpigolo(ISldWorks sw, IView v)
+        {
+            if (sw == null) return null;
+            try
+            {
+                var dims = v.GetDisplayDimensions() as object[];
+                if (dims == null || dims.Length == 0) return 0;
+                if (dims.Length > 60) return null;
+                var visibili = new List<object>();
+                foreach (int tipo in new[] { (int)swViewEntityType_e.swViewEntityType_Edge,
+                                             (int)swViewEntityType_e.swViewEntityType_Vertex })
+                {
+                    var e = v.GetVisibleEntities2(null, tipo) as object[];
+                    if (e != null) visibili.AddRange(e);
+                }
+                if (visibili.Count > 800) return null;
+                int orfane = 0;
+                foreach (var o in dims)
+                {
+                    var ann = (o as IDisplayDimension)?.GetAnnotation() as IAnnotation;
+                    var attaccati = ann?.GetAttachedEntities3() as object[];
+                    if (attaccati == null || attaccati.Length == 0) continue;
+                    bool visto = false;
+                    foreach (var a in attaccati)
+                    {
+                        foreach (var vv in visibili)
+                            if (sw.IsSame(a, vv) == (int)swObjectEquality.swObjectSame) { visto = true; break; }
+                        if (visto) break;
+                    }
+                    if (!visto) orfane++;
+                }
+                return orfane;
+            }
+            catch { return null; }
         }
 
         /// <summary>

@@ -724,6 +724,29 @@ namespace Riscontro.Disegno
                 ["pagine"] = pagine > 0 ? (object)pagine : null,
                 ["byte"] = new FileInfo(dove).Length,
             };
+
+            // IL PDF SI RILEGGE, SE SI CHIEDE COSA DEVE CONTENERE (voci GT3-bis,
+            // Z-C9). Misurato il 24/9/2026: il testo della tavola esce come
+            // testo, ma scritto come indici di glifo dietro le tabelle
+            // /ToUnicode — una ricerca nei byte non lo trova. `TestoDelPdf` lo
+            // decodifica. Si dice cosa c'e' e cosa no, senza rifiutare: un
+            // numero di disegno mancante nel PDF e' una cosa da sapere, non un
+            // PDF da buttare.
+            var cercati = Lista(a, "cerca");
+            if (cercati.Count > 0)
+            {
+                string testo = "";
+                try { testo = TestoDelPdf.Leggi(dove); } catch { }
+                var trovati = new List<object>();
+                var mancanti = new List<object>();
+                foreach (var c in cercati)
+                    (testo.IndexOf(c, StringComparison.Ordinal) >= 0 ? trovati : mancanti).Add(c);
+                misure["trovati"] = trovati.ToArray();
+                misure["non_trovati"] = mancanti.ToArray();
+                if (mancanti.Count > 0)
+                    misure["attenzione"] = "Nel PDF scritto non trovo: «" + string.Join("», «", mancanti) +
+                        "». Se dovevano esserci, controlla la tavola prima di mandarla.";
+            }
             _log("[agente] PDF: " + fogli + " fogli, " + pagine + " pagine, " + dove);
             return SenzaFeature(misure);
         }

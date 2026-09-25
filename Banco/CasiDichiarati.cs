@@ -79,6 +79,16 @@ namespace ProvaSaldatura
             // `forma`) contengono solo PIANI, che e' giusto — ma e' un fatto
             // misurato, non una garanzia del meccanismo.
             "saldature",
+            // «estrusioni» e' entrata il 24/9/2026, ancora Z-C6: `estrudi_profilo`
+            // ed `estrudi_sezione` avevano solo piani a mano. Il controllo di
+            // contratto che guarda questo elenco l'ha detta MUTA prima che il
+            // banco girasse: e' il difetto in agguato del commento qui sopra,
+            // preso stavolta da una prova e non da una lettura.
+            "estrusioni",
+            // «lamiera» (voce GP18) e «quote» (voce Z-H3), le prime due famiglie
+            // nate da una sonda che ha girato la sera stessa: la misura prima,
+            // l'operazione dopo.
+            "lamiera", "quote",
         };
 
         private static void ProvaCasiDichiarati()

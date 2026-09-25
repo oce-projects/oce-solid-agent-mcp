@@ -371,16 +371,36 @@ namespace ProvaSaldatura
                 return 2;
             }
 
-            // QUANTE OPERAZIONI HA IL CATALOGO, detto qui e non altrove.
-            // Il resoconto (voce F2) lo vuole in intestazione, e questo e'
-            // l'unico punto in cui la libreria da misurare e' gia' in mano:
-            // farlo leggere allo script vorrebbe dire contarle da un file
-            // costruito da un'altra compilazione, cioe' da un'altra libreria.
+            // QUANTE OPERAZIONI, detto qui e non altrove: il resoconto (voce F2)
+            // lo vuole in intestazione, e questo e' l'unico punto in cui la
+            // libreria da misurare e' gia' in mano.
+            //
+            // E SONO DUE NUMERI (voce F15). `NomiEseguibili` sono tutte quelle
+            // che la libreria sa eseguire, comprese le `Provata = false` che
+            // `build.ps1` tiene fuori da `catalogo.json`. Fino alla 0.112.0 si
+            // stampava «catalogo: 73» e il catalogo servito ne aveva 71: il 24/9
+            // un agente ha spiegato la differenza con «le due copie della
+            // libreria divergono» — un tema vero del progetto, applicato al
+            // posto sbagliato. Un'etichetta che dice una cosa che il numero non
+            // e' produce spiegazioni plausibili e false. Adesso escono tutti e
+            // due col loro nome, contati tutti e due dalla libreria caricata.
             try
             {
                 var nomi = _tOperazioni.GetField("NomiEseguibili",
                     BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string[];
-                if (nomi != null) Console.WriteLine("catalogo: " + nomi.Length + " operazioni");
+                int aCatalogo = -1;
+                var tutte = _addin.GetType("Riscontro.Disegno.Catalogo.Operazioni", false)?
+                    .GetField("Tutte", BindingFlags.Public | BindingFlags.Static)?
+                    .GetValue(null) as System.Collections.IEnumerable;
+                if (tutte != null)
+                {
+                    aCatalogo = 0;
+                    foreach (var o in tutte)
+                        if (o.GetType().GetField("Provata")?.GetValue(o) as bool? == true) aCatalogo++;
+                }
+                if (nomi != null)
+                    Console.WriteLine("eseguibili: " + nomi.Length + " operazioni (a catalogo: " +
+                                      (aCatalogo < 0 ? "?" : aCatalogo.ToString()) + ")");
             }
             catch { }
 
@@ -687,6 +707,10 @@ namespace ProvaSaldatura
                 // COM e non un'operazione del catalogo. Tutto il resto della
                 // famiglia sta in `casi/asse/`.
                 new Gruppo { Nome = "crea-asse",    Cosa = "l'asse si ritrova per nome", Azioni = una(ProvaCreaAsse) },
+                // LA QUOTA SENZA SPIGOLO (voce Z-A2): il rosso che un caso
+                // dichiarato non sa costruire, perche' dopo `crea_disegno` non
+                // torna al pezzo per sopprimere.
+                new Gruppo { Nome = "orfane",       Cosa = "la quota che resta senza spigolo (Z-A2)", Azioni = una(ProvaLeQuoteOrfane) },
                 // LA PORTA DEL CLIENTE (voce F14): non chiama la libreria,
                 // parla al ponte sullo stdio come farebbe un client MCP.
                 new Gruppo { Nome = "porta-del-cliente",

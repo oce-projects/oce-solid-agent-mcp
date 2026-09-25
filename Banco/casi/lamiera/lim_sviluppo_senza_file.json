@@ -1,0 +1,20 @@
+{
+  "nome": "lim_sviluppo_senza_file",
+  "famiglia": "lamiera",
+  "perche": "VOCE GP18, la trappola 2 della famiglia: `ExportFlatPatternView` su un pezzo MAI SALVATO apre «Salva con nome» e la chiamata COM non torna — misurato con la sonda, che e' rimasta appesa finche' la finestra non e' stata chiusa da fuori. L'operazione deve rifiutare PRIMA di chiamare.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "flangia_base",
+      "argomenti": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
+                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+      "attese": [ { "cosa": "corpi", "uguale": 1 } ] },
+    { "operazione": "sviluppo_dxf",
+      "argomenti": { "percorso": "{LAVORO}\\lim_sviluppo_senza_file.dxf" },
+      "la_gemella_differisce_per_il_percorso_e_non_e_quello_che_conta": "Il banco pretende che rifiuto e gemella differiscano per UN argomento (voce F5), e la prima stesura non ne aveva nessuno: «gemella finta, identica al rifiuto». Qui il rifiuto dipende dallo STATO — il pezzo mai salvato — e non da un argomento. `percorso` e' l'unico che l'operazione prende, e differisce per rispettare la regola; la differenza che decide e' il salvataggio, che la gemella fa due passi prima. Scritto perche' chi legge non creda che sia il percorso a far rifiutare.",
+      "deve_fallire": {
+        "il_messaggio_contiene": ["mai stato salvato"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "la_L_si_sviluppa" } }
+  ]
+}

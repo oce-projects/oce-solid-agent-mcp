@@ -563,7 +563,7 @@ namespace Riscontro.Disegno
 
             if (tipoDoc == (int)swDocumentTypes_e.swDocDRAWING)
             {
-                DescriviTavola(modello as IDrawingDoc, dati);
+                DescriviTavola(modello as IDrawingDoc, dati, sw);
                 stato.Dati = dati;
                 return stato;
             }

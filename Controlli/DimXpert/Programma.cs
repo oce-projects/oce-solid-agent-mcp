@@ -89,11 +89,41 @@ internal static class Programma
             int carPrima = parte.GetFeatureCount();
             Dice("prima dello schema: " + carPrima + " caratteristiche, " + annPrima + " annotazioni");
 
+            // MISURATO il 24/9 sera: con le opzioni di serie e niente
+            // selezionato, `AutoDimensionScheme` risponde False e non fa niente.
+            // Le opzioni non hanno campi per i riferimenti: i riferimenti si
+            // SELEZIONANO prima, con un marchio per il primario, il secondario
+            // e il terziario. Quali marchi, non si sa: si provano.
+            //
+            // La piastra sta in X 0..100, Y 0..10, Z -60..0 (lo schizzo sul
+            // piano superiore ha la Y dello schizzo verso -Z del modello).
             var opzioni = parte.GetAutoDimSchemeOption();
-            bool fatto = opzioni != null && parte.AutoDimensionScheme(opzioni);
-            int annDopo = parte.GetAnnotationCount();
-            int carDopo = parte.GetFeatureCount();
-            Dice("AutoDimensionScheme -> " + fatto + ": " + carDopo + " caratteristiche, " + annDopo + " annotazioni");
+            bool fatto = false;
+            int annDopo = annPrima, carDopo = carPrima;
+            if (opzioni != null)
+            {
+                opzioni.PartType = (int)swDimXpertAutoDimSchemePartType_e.swDimXpertAutoDimSchemePartType_Prismatic;
+                opzioni.ToleranceType = (int)swDimXpertAutoDimSchemeToleranceType_e.swDimXpertAutoDimSchemeToleranceType_PlusMinus;
+                opzioni.ScopeAllFeature = true;
+                opzioni.FeatureFilters = 0xFFFF;
+                foreach (var marchi in new[] { new[] { 0, 0, 0 }, new[] { 1, 2, 4 }, new[] { 1, 2, 3 } })
+                {
+                    doc.ClearSelection2(true);
+                    bool s1 = marchi[0] == 0 || doc.Extension.SelectByID2("", "FACE", 0.020, 0.0, -0.010, true, marchi[0], null, 0);
+                    bool s2 = marchi[1] == 0 || doc.Extension.SelectByID2("", "FACE", 0.0, 0.005, -0.010, true, marchi[1], null, 0);
+                    bool s3 = marchi[2] == 0 || doc.Extension.SelectByID2("", "FACE", 0.020, 0.005, 0.0, true, marchi[2], null, 0);
+                    try { fatto = parte.AutoDimensionScheme(opzioni); } catch (Exception ex) { Console.WriteLine("      alza: " + ex.Message); }
+                    annDopo = parte.GetAnnotationCount();
+                    carDopo = parte.GetFeatureCount();
+                    Dice("marchi " + string.Join("/", marchi) + " (selezioni " + s1 + "/" + s2 + "/" + s3 +
+                         "): AutoDimensionScheme -> " + fatto + ", " + carDopo + " caratteristiche, " + annDopo + " annotazioni");
+                    // NON SI GUARDA `fatto`: misurato il 24/9 sera, risponde
+                    // False anche quando ha messo sei quote giuste. Si guarda
+                    // se le annotazioni ci sono.
+                    if (annDopo > 3) break;
+                }
+                doc.ClearSelection2(true);
+            }
 
             // Che cosa ha riconosciuto: i tipi delle caratteristiche.
             bool unForo = false;
@@ -108,16 +138,32 @@ internal static class Programma
                     if (tipo.IndexOf("Hole", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         tipo.IndexOf("Cylinder", StringComparison.OrdinalIgnoreCase) >= 0) unForo = true;
                 }
+            // I VALORI, non solo il conteggio: il nome porta il valore fra
+            // parentesi («DistanzaTra2@Piano10(60)»). Sei quote con numeri a
+            // caso sarebbero sei quote, e nessuna giusta.
+            var attesi = new System.Collections.Generic.List<double> { 20, 10, 60, 100, 50, 30 };
             var ann = parte.GetAnnotations() as object[];
             if (ann != null)
                 foreach (var o in ann)
                 {
                     var a = o as IDimXpertAnnotation;
-                    if (a != null) Console.WriteLine("      annotazione «" + a.Name + "»: " + a.Type);
+                    if (a == null) continue;
+                    Console.WriteLine("      annotazione «" + a.Name + "»: " + a.Type);
+                    int ap = a.Name.LastIndexOf('('), ch = a.Name.LastIndexOf(')');
+                    double v;
+                    if (ap > 0 && ch > ap && double.TryParse(a.Name.Substring(ap + 1, ch - ap - 1),
+                            System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out v))
+                        attesi.RemoveAll(x => Math.Abs(x - v) < 1e-6);
                 }
+            Console.WriteLine("      valori attesi non trovati: " + (attesi.Count == 0 ? "nessuno" : string.Join(", ", attesi)));
 
             Console.WriteLine();
-            if (!fatto || annDopo <= annPrima)
+            if (attesi.Count > 0)
+            {
+                Console.WriteLine("LO SCHEMA HA QUOTATO, MA NON TUTTO: mancano " + string.Join(", ", attesi) + ".");
+                return 8;
+            }
+            if (annDopo <= annPrima)
             {
                 Console.WriteLine("LO SCHEMA NON HA AGGIUNTO NIENTE: " + annPrima + " -> " + annDopo +
                                   " annotazioni. DimXpert dal nucleo risponde ma non quota.");
@@ -130,7 +176,8 @@ internal static class Programma
                 return 7;
             }
             Console.WriteLine("REGGE: dal nucleo, senza add-in, uno schema DimXpert riconosce il foro e aggiunge");
-            Console.WriteLine(annDopo + " annotazioni dove prima ce n'erano " + annPrima + ". Z-H3 non aspetta nessuna spunta.");
+            Console.WriteLine(annDopo + " annotazioni dove prima ce n'erano " + annPrima + ", coi valori giusti — e");
+            Console.WriteLine("AutoDimensionScheme ha risposto " + fatto + ". Z-H3 non aspetta nessuna spunta.");
             return 0;
         }
         catch (Exception ex)

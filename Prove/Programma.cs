@@ -358,6 +358,7 @@ namespace Prove.Contratti
             ProveIlDocumento.Tutte();
             ProveEnumDiErrore.Tutte();
             ProveILimiti.Tutte();
+            ProveLeDescrizioni.Tutte();
             ProveIRifiuti.Tutte();
             ProveIlDocumentoRichiesto.Tutte();
             ProveICampiObbligatori.Tutte();
@@ -831,6 +832,8 @@ namespace Prove.Contratti
                 { "identita",     "swDocPART"     },
                 { "documento",    "swDocPART"     },
                 { "annullare",    "swDocPART"     },
+                { "lamiera",      "swDocPART"     },
+                { "quote",        "swDocPART"     },
             };
 
             var sconosciute = famiglie.Where(f => !serve.ContainsKey(f)).ToList();

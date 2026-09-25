@@ -74,8 +74,16 @@ of them.
   - Claude Desktop → `%APPDATA%\Claude\claude_desktop_config.json`
   - Claude Code → `%USERPROFILE%\.claude.json`
 - **A backup of each config it touched**, beside the original, named
-  `<original>.prima-di-oce-solid-agent-<yyyyMMdd-HHmmss>.bak`. These are never
-  cleaned up. If you install several times, say so — they accumulate.
+  `<original>.prima-di-oce-solid-agent-<yyyyMMdd-HHmmss>.bak`. From 0.88.0
+  only the **last three** per file are kept; older ones with that exact prefix
+  are removed, and the output says how many. Copies anyone made by hand are
+  never touched.
+- **A line saying which version replaced which**: `installo la X` on a fresh
+  install, `aggiorno dalla X alla Y` over an older one, `reinstallo la X` over
+  the same. Read it back to the user.
+- **If the client config is locked by another program** (usually the client
+  itself, open), nothing is touched and the message says `bloccato da un altro
+  programma`: ask the user to close the client and run the installer again.
 - **Nothing in the registry, and nothing outside the user's profile.**
 
 ## 4. Verifying — and this is the step that is actually worth something
@@ -105,7 +113,9 @@ With SOLIDWORKS open and **no document**, it says
 `[prova] nessun documento aperto: agganciato, niente da misurare.` and still
 exits 0 — attached and nothing to measure is a working bridge. From 0.87.0 the
 model can start a part itself, with the `documento` tool (`azione: "nuovo"`),
-instead of asking the user to click File > New. (Before 0.86.0
+instead of asking the user to click File > New; from 0.88.0 it can also close
+one (`azione: "chiudi"`), and it refuses to close a document with unsaved
+changes. (Before 0.86.0
 this case exited 1, and the installer reported a successful install as
 unconfirmed.)
 
@@ -120,6 +130,13 @@ installer treats the phrase `non risulta aperto` in the self-check as success,
 because a bridge that cannot attach to a session it does not have is not a
 broken install. Ask the user to open SOLIDWORKS with a part, then run `--prova`
 again.
+
+From 0.88.0 the bridge tells the two absences apart. `non risulta aperto`
+means installed and not running. `non e' installato su questa macchina, o non
+e' registrato` means Windows does not know `SldWorks.Application` at all:
+opening it will not help, it has to be installed or repaired from the
+Installation Manager — and the installer does **not** treat that one as
+success.
 
 **2. Claude Code's file is `.claude.json`, not `.mcp.json`.** In the user's
 profile root, with a leading dot. Writing the wrong one produces no error and
@@ -156,7 +173,7 @@ someone uninstalling may be about to reinstall, and quietly editing their config
 would be doing more than was asked. If the user wants the entry gone too, tell
 them it is there and let them say so.
 
-The `.bak` files from step 3 also stay. They are theirs.
+The `.bak` files from step 3 also stay (the last three). They are theirs.
 
 ---
 

@@ -88,6 +88,7 @@ namespace Prove.Contratti
                 { "sostituisci_componente.componente", "quale componente si sostituisce" },
                 { "sostituisci_componente.percorso", "e con quale file" },
                 { "inserisci_componente.percorso", "quale file si inserisce" },
+                { "flangia_base.punti", "il profilo della lamiera: e' la lamiera stessa, e da che parte va lo spessore dipende dal verso" },
 
                 // ── DIPENDONO DALL'OFFICINA, NON DA NOI (voce Z-G8) ───────
                 { "membro_strutturale.profilo_percorso",

@@ -73,8 +73,16 @@ namespace Prove.Contratti
         /// guadagnato un rifiuto che distingue «non so dove sia» da «non c'e'»
         /// e dice quale variabile impostare. Prima i due casi davano lo stesso
         /// messaggio, con un percorso vuoto fra virgolette.
+        ///
+        /// **85 dal 24/9/2026 sera (libreria 0.113.0).** `modifica_quota` ha un
+        /// rifiuto nuovo — l'apertura che esce dal materiale (voce E18 c) — e
+        /// dice la strada: «sposta prima l'apertura, poi cambia la quota».
+        ///
+        /// **87 con le operazioni nuove della stessa versione**: `flangia_base`
+        /// («allunga il tratto o stringi il raggio») e `sviluppo_dxf` («salvalo
+        /// prima»).
         /// </summary>
-        private const int Pavimento = 84;
+        private const int Pavimento = 87;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

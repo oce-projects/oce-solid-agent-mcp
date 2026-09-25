@@ -80,6 +80,9 @@
 
         { "cosa": "misure.cosa_non_guarda", "contiene": ["accavall"],
           "la_radice_e_non_la_parola_intera": "Questa attesa cercava «accavallano» ed e' diventata rossa il 23/9 riscrivendo `cosa_non_guarda`: il testo nuovo dice «si accavalla», singolare. L'operazione non era cambiata in nulla che conti — era cambiata una desinenza. E' la seconda volta in due giorni che un'attesa si appende a una forma di parola (la prima cercava «vero» dove il testo diceva «VERO»). Si cerca la RADICE: quello che l'attesa vuole davvero sapere e' che la cecita' sull'accavallamento resti dichiarata, non come e' coniugata.",
-          "perche": "la cecita' viaggia con la risposta: l'operazione mette quote GIUSTE, non una tavola BELLA, e non guarda se si sovrappongono al disegno. Chi legge questa risposta potrebbe non aver letto il catalogo" } ] }
+          "perche": "la cecita' viaggia con la risposta: l'operazione mette quote GIUSTE, non una tavola BELLA, e non guarda se si sovrappongono al disegno. Chi legge questa risposta potrebbe non aver letto il catalogo" },
+
+        { "cosa": "stato.quote_orfane_totali", "uguale": 0,
+          "perche": "VOCE Z-A2, IL VERDE SU UN CASO VERO: due quote appena messe su spigoli che la vista mostra, e lo stato riletto da capo le dice agganciate. Il rosso — la quota che resta senza spigolo quando il pezzo cambia — lo prova il gruppo C# «orfane», perche' un caso dichiarato non sa tornare al pezzo dopo aver aperto la tavola. Zero qui e' un'affermazione: null vorrebbe dire «non lo so» (voce Z-C8)" } ] }
   ]
 }

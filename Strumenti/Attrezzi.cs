@@ -360,19 +360,22 @@ namespace Oce.Solid.Agent.Strumenti
                     "guardato non vale piu': prima di disegnare, «guarda_il_pezzo». " +
                     "Il ponte lo pretende.\n\n" +
                     "Un file aperto in SOLA LETTURA lo dico sempre: di solito vuol " +
-                    "dire che un collega lo ha aperto, e «disegna» non ci scrive.",
+                    "dire che un collega lo ha aperto, e «disegna» non ci scrive.\n\n" +
+                    "«chiudi» RIFIUTA un documento con modifiche non salvate: non " +
+                    "butto il lavoro di nessuno. Salvalo prima, o chiudilo a mano.",
                     Oggetto(
                         new Dictionary<string, object>
                         {
                             ["azione"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
-                                ["enum"] = new[] { "nuovo", "apri", "elenca", "attiva" },
+                                ["enum"] = new[] { "nuovo", "apri", "elenca", "attiva", "chiudi" },
                                 ["description"] =
                                     "«nuovo»: crea un documento vuoto e lo porta davanti. " +
                                     "«apri»: apre un file dal disco. «elenca»: i documenti " +
                                     "aperti, e quale e' davanti. «attiva»: porta davanti uno " +
-                                    "gia' aperto.",
+                                    "gia' aperto. «chiudi»: chiude uno aperto, solo se non ha " +
+                                    "modifiche da salvare.",
                             },
                             ["tipo"] = new Dictionary<string, object>
                             {
@@ -387,15 +390,18 @@ namespace Oce.Solid.Agent.Strumenti
                                 ["type"] = "string",
                                 ["description"] =
                                     "con «apri»: il file .sldprt, .sldasm o .slddrw, col " +
-                                    "percorso intero. Con «attiva»: il percorso o, per un " +
-                                    "documento mai salvato, il titolo che «elenca» ha dato.",
+                                    "percorso intero. Con «attiva» e «chiudi»: il percorso " +
+                                    "o, per un documento mai salvato, il titolo che " +
+                                    "«elenca» ha dato.",
                             },
                         },
                         new[] { "azione" }),
-                    // NON e' di sola lettura: «nuovo», «apri» e «attiva» cambiano
-                    // il documento davanti. NON e' distruttivo: non chiude niente
-                    // e non butta modifiche. NON e' idempotente: «nuovo» due volte
-                    // fa due documenti.
+                    // NON e' di sola lettura: «nuovo», «apri», «attiva» e
+                    // «chiudi» cambiano il documento davanti. NON e' distruttivo:
+                    // «chiudi» rifiuta un documento con modifiche non salvate,
+                    // quindi chiude solo cio' che e' gia' tutto su disco, e non
+                    // butta niente. NON e' idempotente: «nuovo» due volte fa due
+                    // documenti.
                     soloLettura: false, distruttivo: false, idempotente: false),
             };
         }
@@ -444,9 +450,24 @@ namespace Oce.Solid.Agent.Strumenti
                 case "attiva":
                     scheda = _sessione.AttivaDocumento(TestoDi(argomenti, "percorso"), out errore);
                     break;
+                case "chiudi":
+                {
+                    var chiuso = _sessione.ChiudiDocumento(TestoDi(argomenti, "percorso"), out errore);
+                    if (chiuso == null) return Protocollo.Contenuto(errore, true);
+                    // Il documento guardato potrebbe essere proprio quello chiuso:
+                    // si butta lo sguardo come per ogni cambio di documento.
+                    _guardato = null;
+                    _firmaGuardata = null;
+                    _firmeViste = null;
+                    chiuso["prossimo_passo"] = chiuso["davanti_adesso"] == null
+                        ? "Non c'e' piu' nessun documento aperto: «nuovo» o «apri» per continuare."
+                        : "Davanti adesso c'e' «" + Convert.ToString(chiuso["davanti_adesso"]) + "». " +
+                          "Prima di disegnare, «guarda_il_pezzo».";
+                    return Protocollo.ContenutoConDati(Protocollo.InJson(chiuso), chiuso);
+                }
                 default:
                     return Protocollo.Contenuto(
-                        "«azione» vale «nuovo», «apri», «elenca» o «attiva». Ho ricevuto «" +
+                        "«azione» vale «nuovo», «apri», «elenca», «attiva» o «chiudi». Ho ricevuto «" +
                         (azione ?? "") + "».", true);
             }
             if (scheda == null) return Protocollo.Contenuto(errore, true);

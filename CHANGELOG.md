@@ -24,6 +24,187 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.88.0 — 25 September 2026 · library 0.113.0
+
+The six probes committed with 0.87.0 ran on a free SOLIDWORKS the same night,
+and all six turned into code in this version. 76 runnable operations, 74 in
+the served catalogue (three new: `flangia_base`, `sviluppo_dxf`,
+`schema_di_quote`); two new families, `lamiera` and `quote`.
+
+### `modifica_quota` refuses an opening that breaks out of the material (entry E18, part c)
+
+Regression case r16: a centred 200 mm plate shortened to 150 shrinks **from one
+side only**, and a 120 mm slot in the middle comes out through the flank. Clean
+rebuild, one body, no error — and a closed slot has become an open notch, which
+is a different part. `modifica_quota` now counts the closed openings of planar
+faces (inner loops) before and after; if they drop, it **writes the old value
+back**, rebuilds, re-reads the volume, and refuses with "esce dal materiale".
+Two new bench cases: the refusal, which also requires the volume to be exactly
+what it was, and its twin at 180 mm, where the slot stays inside.
+
+### The busy-SOLIDWORKS guard could never fire (entry Z-C3)
+
+The executor refused a plan when `ISldWorks.CommandInProgress` was true. With a
+real modal open — a SOLIDWORKS message box, opened from another thread and
+closed by the probe — `CommandInProgress` stayed **false** in three rounds out of
+three. The main window, instead, is disabled, and `IsWindowEnabled` says so six
+times out of six in zero milliseconds, without going through COM. The guard now
+checks that; a new check in the bench's `porta-del-cliente` group opens a real
+message box, asks the bridge for a plan, requires the refusal and an unchanged
+part, closes the box, and requires the same bridge to work again.
+
+### Two catalogue descriptions that claimed to be the only one (entry Z-C15)
+
+A new contract check fails when a description says "the only way to", "the only
+operation" and its family has other operations. It went red on two before the
+fix: `quote_dal_modello` ("the only way to dimension", while `quota_in_tavola`
+dimensions) and `estrudi_su_faccia` ("the only operation that adds", while
+`incidi_testo` embosses and `combina_corpi` unites) — the second found by the
+check, not looked for. Both now say what is true; `quote_dal_modello` says it
+imports nothing out of process on this installation (measured 18/9) and points
+to `quota_in_tavola`.
+
+### `documento` can close (entry Z-B1)
+
+`azione: "chiudi"` closes an open document by path or title, and **refuses one
+with unsaved changes** — there is no discard option on purpose. `CloseDoc`
+returns void, so the bridge reads back that the document is gone. Two bench
+checks: the bench's own unsaved part is refused and stays open; a freshly
+opened file closes.
+
+### Not installed is not "not open" (entry H16)
+
+One `catch (COMException)` gave the same sentence for both. Now
+`MK_E_UNAVAILABLE` says "non risulta aperto" (unchanged, word for word: the
+installer looks for it), while `CO_E_CLASSSTRING` and `REGDB_E_CLASSNOTREG` say
+SOLIDWORKS is not installed or not registered — and **must not** contain "non
+risulta aperto", or an install on a machine without SOLIDWORKS would exit 0.
+Six contract checks, by HRESULT, without SOLIDWORKS.
+
+### File properties show the version (entry H14)
+
+Right-click → Properties → Details on the bridge and on `Installa.exe` said
+0.0.0.0. An MSBuild target now writes the version from `VERSION.txt` before
+compiling, for every way of building the project; a contract check reads it
+back from the file.
+
+### Four installer defects (entry H15)
+
+- The uninstaller removed an `Oce.Solid.Agent.pdb` that no version ever
+  installed (checked in git history). Install and uninstall now share one list.
+- A client config locked by another program was reported as "not valid JSON",
+  and a failed write left a `.parziale` next to the real file. The lock is now
+  detected before anything is touched, and the temporary file never stays.
+- Silent mode now warns when the client is open, like the window did.
+- Backups are pruned to the last three per file; reinstalling says "aggiorno
+  dalla X alla Y" or "reinstallo la X", reading the version embedded in the old
+  executable from its bytes (loading the file would lock it).
+
+`Controlli/prova-installatore.js`: 17 checks, 0 failed, including half of the
+"client open" scenario (a child process holding the file exclusively).
+
+### The bench says two numbers (entry F15)
+
+It printed "catalogo: 73" while the served catalogue has 71; the difference
+was once explained, plausibly and wrongly, as the two library copies diverging.
+It now prints `eseguibili: 73 operazioni (a catalogo: 71)`, and the report
+carries both (`eseguibili`, `a_catalogo`; `catalogo` kept for readers).
+
+### Operations that no bench run touched (entry Z-C6)
+
+New declared cases for `estrudi_profilo` (a tube must have its hole: 86 393.8
+mm³, not 282 743), `estrudi_sezione` (a slot's length is its overall length),
+and `imposta_foglio` + `vista_modello` + `esporta_pdf` in one drawing (scale read
+back from the sheet, one view counted two ways, pages counted in the written
+PDF). New family folder `casi/estrusioni/`, registered — a contract check had
+flagged it as mute before the bench ran.
+
+### Sheet metal, from a measurement (entry GP18)
+
+The probe measured the flat pattern of an L-flange to the hundredth — 80.712
+mm, the hand calculation with the sketch on the inner faces — and found three
+traps: `SetBendState` returns 0 and `GetBendState` reports flattened while the
+body stays folded (flattening means unsuppressing the flat-pattern feature);
+and `ExportFlatPatternView` on a never-saved part opens a Save As dialog and
+the COM call never returns. Two operations are built on that:
+
+- `flangia_base`: an open profile on a base plane, thickness, bend radius,
+  depth. The answer carries T, R and K **read back** from the part, the flat
+  length measured by SOLIDWORKS next to the one computed by hand in both
+  conventions, and **which convention matched** (`i_punti_sono_le_facce`):
+  the side the thickness goes to follows the direction of the points, and the
+  two differ by twice the thickness per bend. A straight run shorter than the
+  bends that eat it is refused with the number.
+- `sviluppo_dxf`: refuses a part without a file before calling, writes the DXF,
+  **reads it back**, and refuses if its long side is not the measured flat
+  length.
+
+Four bench cases, among them the same L given in reverse order, which must say
+"esterne" and 76.712.
+
+Two defects of the first draft, both found before they could ship. The second
+bench run went red on all four cases with "«punti» wants at least two points":
+arguments arrive as the caller's serializer lists, and an `as object[]` cast
+gave null on a correct L — the library already had the rule (`HaElenco` reads
+any `IEnumerable`). And a direct harness run before the third bench found that
+the DXF header lies: `$EXTMIN/$EXTMAX` said 279.4 mm — eleven inches, the DXF
+template's sheet — for an 80.712 mm flat pattern. The extents are now computed
+from the entities, and come out [40, 80.712].
+
+### Dimensions on the model from DimXpert (entry Z-H3)
+
+`schema_di_quote`: three planar datum faces by uid (primary, secondary,
+tertiary), selected with marks 1/2/4, and DimXpert's auto-dimension scheme
+from the core interop — no add-in. The answer lists the values the new
+dimensions carry; `AutoDimensionScheme`'s own answer is reported under its
+name, because it is false even when it dimensioned. Bench: a plate with a hole
+must come out with exactly 10, 20, 30, 50, 60, 100; two datums are refused.
+
+### The PDF is read back (entries GT3-bis, Z-C9)
+
+`esporta_pdf` takes `cerca`, a list of strings the PDF must contain, and says
+which are there (`trovati`) and which are not (`non_trovati`). SOLIDWORKS
+writes drawing text as glyph indices behind `/ToUnicode` maps; a search in the
+bytes finds nothing. `TestoDelPdf` inflates the streams and decodes the maps —
+checked on a real export against `pdftotext`: same text, and a string that is
+not on the drawing is never found. The bench case writes a note and requires
+it found and an absent string not found, in the same run.
+
+### Dimensions left hanging (entry Z-A2)
+
+`IsDangling` stays false on a drawing dimension whose edge was suppressed. The
+drawing state now counts, per view and in total, dimensions attached only to
+edges or vertices the view no longer shows (`quote_orfane`,
+`quote_orfane_totali`, and `attenzione_quote` when there are any); null means
+"cannot tell", not zero. A bench group builds the probe's part, dimensions the
+block with `quota_in_tavola` (0 hanging), suppresses the block and requires
+exactly 1 plus the warning.
+
+### A slot is a polygon, and now the catalogue says so
+
+The first bench run of this version went red on a new case: a 60 × 20 slot from
+`estrudi_sezione` measured 11163.281 mm³ against 11141.59 computed by hand.
+The part was right: the round ends are 24-sided polygons on the circumscribed
+circle, on purpose, so the slot is never narrower than asked (it comes out
+20.043 wide). The expected value was wrong, and the description did not say
+it; now it does.
+
+That run died at 535 checks for a reason outside the code: the bench's own
+`Tee-Object` to `Banco\ultimo-giro.txt` on the network drive failed with a
+semaphore timeout. It was also the run that showed a missing
+`perche_questa_tolleranza` in a new case as a bench error — after an hour. A
+contract check now catches that in a tenth of a second, before the bench.
+
+The third run found one more bench error of the same kind: the refusal
+"sviluppo_dxf on a never-saved part" and its twin called the operation with
+identical arguments ("gemella finta": the refusal depends on the save state,
+not on an argument). The pair now differs by `percorso`, with a note saying
+that is not what decides; and a second contract check compares every refusal
+with its twin before the bench — seen red on the copy, then refined when it
+flagged a case that is legitimately its own twin. 365 contract checks.
+
+---
+
 ## 0.87.0 — 24 September 2026 · library unchanged (0.112.0)
 
 ### A seventh tool: the document itself (entries Z-B1, Z-B2, Z-B5, Z-B6)

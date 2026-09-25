@@ -264,6 +264,7 @@ namespace Riscontro.Disegno
             "telaio_rettangolare", "verifica_geometria_corpo",
             "verifica_sovrasporgenze",
             "vista_modello", "viste_standard",
+            "flangia_base", "sviluppo_dxf", "schema_di_quote",
         };
 
         /// <summary>
@@ -368,6 +369,12 @@ namespace Riscontro.Disegno
                         return SweepCircolare(modello, argomenti, stato);
                     case "loft_fra_due_cerchi":
                         return LoftFraDueCerchi(modello, argomenti, stato);
+                    // ── lamiera (voce GP18) e quote nel modello (voce Z-H3) ──
+                    // In OperazioniLamiera.cs e OperazioniDimXpert.cs, ognuna
+                    // con la misura che l'ha resa costruibile scritta in testa.
+                    case "flangia_base": return FlangiaBase(modello, argomenti);
+                    case "sviluppo_dxf": return SviluppoDxf(modello, argomenti);
+                    case "schema_di_quote": return SchemaDiQuote(modello, argomenti, stato);
                     case "crea_asse": return CreaAsse(modello, argomenti, stato);
                     case "ripeti_lineare": return RipetiLineare(modello, argomenti, stato);
                     case "specchia": return Specchia(modello, argomenti);
@@ -3148,6 +3155,7 @@ namespace Riscontro.Disegno
             const int inTutteLeConfigurazioni = 2;
             int esito;
             var lavorazioniPrima = FaccePerLavorazione(modello);
+            int apertePrima = ApertureChiuse(modello);
 
             try
             {
@@ -3196,6 +3204,55 @@ namespace Riscontro.Disegno
                     "di " + corpiPrima + ": la quota nuova ha spezzato o unito " +
                     "qualcosa." + RestaNelPezzo);
 
+            // UN'APERTURA CHE ESCE DAL MATERIALE (voce E18, pezzo c).
+            //
+            // Misurato nella regressione, caso r16: una piastra centrata da
+            // 200 portata a 150 cala DA UNA PARTE SOLA, e l'asola lunga 120
+            // al centro esce dal fianco. Ricostruzione pulita, un corpo,
+            // nessun errore, il volume cambia di poco — e un'asola chiusa e'
+            // diventata una tacca aperta sul bordo: un altro pezzo.
+            //
+            // Si guarda la TOPOLOGIA, non la geometria: le aperture chiuse
+            // delle facce piane (gli anelli interni) erano N e adesso sono di
+            // meno. Vuol dire che un foro o un'asola che stava dentro una
+            // faccia adesso ne tocca il bordo — o che due aperture si sono
+            // fuse in una. Tutte e due le cose cambiano il pezzo, e nessuna
+            // delle due la voleva chi ha chiesto di cambiare una misura.
+            //
+            // IL RIFIUTO RIMETTE IL VALORE DI PRIMA. La quota a questo punto
+            // e' gia' scritta: dire «no» e lasciarla sarebbe dire la verita' e
+            // tenersi il danno. Si riscrive `prima`, si ricostruisce, e si
+            // RILEGGE il volume: se non torna, lo si dice.
+            int aperteDopo = ApertureChiuse(modello);
+            if (apertePrima >= 0 && aperteDopo >= 0 && aperteDopo < apertePrima)
+            {
+                string rimesso;
+                try
+                {
+                    quota.SetSystemValue3(Unita.M(prima), inTutteLeConfigurazioni, null);
+                    modello.EditRebuild3();
+                    double tornato = VolumeMm3(modello);
+                    rimesso = Math.Abs(tornato - volumePrima) < 0.01
+                        ? " Non l'ho lasciato cosi': ho rimesso " + prima.ToString("0.###") +
+                          " mm e il pezzo e' com'era."
+                        : " Ho provato a rimettere " + prima.ToString("0.###") + " mm, ma il " +
+                          "volume adesso e' " + tornato.ToString("0.##") + " mm3 invece di " +
+                          volumePrima.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
+                }
+                catch (Exception ex)
+                {
+                    rimesso = " E non sono riuscito a rimettere " + prima.ToString("0.###") +
+                              " mm (" + ex.Message + "): il pezzo e' rimasto col valore nuovo.";
+                }
+                return Fallito(
+                    "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " mm un'apertura " +
+                    "esce dal materiale: le aperture chiuse sulle facce piane passano da " +
+                    apertePrima + " a " + aperteDopo + ". Un foro o un'asola che stava dentro " +
+                    "il pezzo adesso ne apre il bordo, oppure due aperture si sono fuse in una." +
+                    rimesso + " Se e' proprio quello che vuoi, sposta prima l'apertura, poi " +
+                    "cambia la quota.");
+            }
+
             var misure = new Dictionary<string, object>
             {
                 ["quota"] = nomeQuota,
@@ -3225,6 +3282,49 @@ namespace Riscontro.Disegno
                 : cambiate;
 
             return Riuscito(null, misure);
+        }
+
+        /// <summary>
+        /// Quante aperture CHIUSE ha il pezzo: gli anelli interni delle facce
+        /// PIANE, contati su tutti i corpi solidi. -1 se non si riesce a
+        /// contare, e allora la guardia di E18 tace invece di inventare.
+        ///
+        /// SOLO LE FACCE PIANE. Una faccia cilindrica di un foro passante ha
+        /// due anelli, uno per bocca, e quale dei due SOLIDWORKS chiami
+        /// «esterno» su una superficie periodica non e' una cosa su cui
+        /// appoggiare una guardia. Su una faccia piana un anello interno e' un
+        /// buco in quella faccia, e basta.
+        /// </summary>
+        private static int ApertureChiuse(IModelDoc2 modello)
+        {
+            int n = 0;
+            try
+            {
+                var corpi = (modello as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+                if (corpi == null) return -1;
+                foreach (var c in corpi)
+                {
+                    var faccia = (c as IBody2)?.GetFirstFace() as IFace2;
+                    while (faccia != null)
+                    {
+                        bool piana = false;
+                        try { piana = (faccia.GetSurface() as ISurface)?.IsPlane() == true; } catch { }
+                        if (piana)
+                        {
+                            var anelli = faccia.GetLoops() as object[];
+                            if (anelli != null)
+                                foreach (var o in anelli)
+                                {
+                                    var anello = o as ILoop2;
+                                    if (anello != null && !anello.IsOuter()) n++;
+                                }
+                        }
+                        faccia = faccia.GetNextFace() as IFace2;
+                    }
+                }
+            }
+            catch { return -1; }
+            return n;
         }
 
         /// <summary>

@@ -2,7 +2,7 @@
 
 *Un progetto indipendente, non affiliato a Dassault Systèmes.*
 
-Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settantuno
+Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settantaquattro
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -67,7 +67,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sette, non settantuno. Le operazioni di disegno sono settantuno, ma esporne
+Sette, non settantaquattro. Le operazioni di disegno sono settantaquattro, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
@@ -83,7 +83,7 @@ cliccasse File > Nuovo.)
 | `disegna` | esegue una sequenza e **riporta cos'e' venuto**: le misure di ogni passo e lo stato dopo |
 | `misura` | le stesse operazioni, ma **solo quelle che leggono** (famiglia `verifiche`). Si dichiara di sola lettura, cosi' il client non chiede conferma per una misura |
 | `annulla` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `disegna` l'aveva lasciato |
-| `documento` | crea una parte o un assieme vuoti, apre un file dal disco, elenca i documenti aperti, ne porta uno davanti. Dice sempre se un file e' aperto in **sola lettura**; e dopo ogni cambio di documento `disegna` pretende un nuovo `guarda_il_pezzo` |
+| `documento` | crea una parte o un assieme vuoti, apre un file dal disco, elenca i documenti aperti, ne porta uno davanti, ne chiude uno — e **rifiuta di chiudere** un documento con modifiche non salvate. Dice sempre se un file e' aperto in **sola lettura**; e dopo ogni cambio di documento `disegna` pretende un nuovo `guarda_il_pezzo` |
 
 **`misura` esiste perche' le annotazioni stanno sullo strumento.** Il client MCP
 legge `readOnlyHint` e `destructiveHint` in `tools/list`, cioe' **prima** che
@@ -308,20 +308,20 @@ passa fra **cio' che qualcuno cerca per nome a runtime** e tutto il resto.
 seconda scrittura: vedi [Strumenti/aggiorna.md](Strumenti/aggiorna.md).
 Contiene solo le operazioni **misurate dentro il software SOLIDWORKS**.
 
-Settantuno provate, e due che esistono nella libreria ma **restano fuori dal
-file**: `croci_di_centro` e `distinta_taglio_in_tavola` — tutte e due
+Settantaquattro provate, e due che esistono nella libreria ma **restano fuori
+dal file**: `croci_di_centro` e `distinta_taglio_in_tavola` — tutte e due
 `Provata=false` con «0 → 0», cioe' non creano niente, e un client non deve
-poterle chiamare. Il numero che il banco stampa in intestazione e'
-settantatre, cioe' quante ne sa eseguire il dispatcher; quello del catalogo e'
-settantuno, cioe' quante ne vede un client. **Due numeri, due cose diverse, e
-tutti e due giusti** — l'esportatore dice a voce alta quali lascia fuori
-mentre scrive il file.
+poterle chiamare. Il banco stampa in intestazione **tutti e due i numeri col
+loro nome** — «eseguibili: 76 operazioni (a catalogo: 74)» — dal 24/9/2026
+(voce F15): prima stampava «catalogo: 73» e il catalogo ne aveva 71, e la
+differenza e' stata spiegata una volta, in modo plausibile e sbagliato, con due
+copie della libreria che divergevano.
 
 ### Su che documento gira cosa
 
 | famiglia | documento |
 |---|---|
-| `estrusioni`, `lavorazioni`, `saldature`, `riferimenti`, `proprieta`, `esportazioni`, `identita` | una **parte** |
+| `estrusioni`, `lavorazioni`, `saldature`, `riferimenti`, `proprieta`, `esportazioni`, `identita`, `lamiera`, `quote` | una **parte** |
 | `tavola` | una **tavola** |
 | `assiemi` — `inserisci_componente`, `accoppia`, `sostituisci_componente` | un **assieme** |
 | `verifiche` | quasi tutte su una parte; `verifica_interferenze` vuole un **assieme** |

@@ -8,7 +8,8 @@ namespace Oce.Solid.Agent.Ponte
 {
     /// <summary>
     /// IL CICLO DI VITA DEL DOCUMENTO: crearne uno, aprirne uno, sapere quali
-    /// sono aperti, portarne uno davanti (voci Z-B6, Z-B1, Z-B5, Z-B2).
+    /// sono aperti, portarne uno davanti, chiuderne uno che non ha niente da
+    /// salvare (voci Z-B6, Z-B1, Z-B5, Z-B2).
     ///
     /// ── PERCHE' STA NEL PONTE E NON NEL CATALOGO ────────────────────────────
     ///
@@ -226,8 +227,92 @@ namespace Oce.Solid.Agent.Ponte
             }
             quale = quale.Trim().Trim('"');
 
+            List<string> titoli;
+            var trovato = TrovaAperto(sw, quale, out titoli);
+            if (trovato == null)
+            {
+                errore = "«" + quale + "» non e' fra i documenti aperti. Aperti adesso: " +
+                         (titoli.Count == 0 ? "nessuno" : "«" + string.Join("», «", titoli) + "»") +
+                         ". Il documento davanti non e' cambiato.";
+                return null;
+            }
+            return PortaDavanti(sw, trovato, out errore);
+        }
+
+        /// <summary>
+        /// Chiude un documento aperto, per percorso o titolo, e RIFIUTA se ha
+        /// modifiche non salvate (voce Z-B1).
+        ///
+        /// Non c'e' un «chiudi buttando le modifiche»: chi lavora per conto di
+        /// qualcuno non decide di buttare il suo lavoro, e un'opzione che lo fa
+        /// e' un'opzione che prima o poi si passa per sbaglio. Chi vuole
+        /// buttarle chiude a mano, e la finestra di SOLIDWORKS glielo chiede.
+        ///
+        /// SI RILEGGE che sia chiuso davvero: `CloseDoc` torna `void`.
+        /// </summary>
+        public Dictionary<string, object> ChiudiDocumento(string quale, out string errore)
+        {
+            errore = null;
+            var sw = _sw as ISldWorks;
+            if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
+            if (string.IsNullOrWhiteSpace(quale))
+            {
+                errore = "«percorso» e' obbligatorio: il percorso o il titolo del documento da chiudere.";
+                return null;
+            }
+            quale = quale.Trim().Trim('"');
+
+            List<string> titoli;
+            var doc = TrovaAperto(sw, quale, out titoli);
+            if (doc == null)
+            {
+                errore = "«" + quale + "» non e' fra i documenti aperti. Aperti adesso: " +
+                         (titoli.Count == 0 ? "nessuno" : "«" + string.Join("», «", titoli) + "»") + ".";
+                return null;
+            }
+
+            bool sporco = false;
+            try { sporco = doc.GetSaveFlag(); } catch { }
+            string titolo = doc.GetTitle() ?? "";
+            if (sporco)
+            {
+                errore = "«" + titolo + "» ha modifiche non salvate: non lo chiudo, le butterei. " +
+                         "Salvalo prima («salva_documento», dentro un piano), oppure chiudilo a " +
+                         "mano se quelle modifiche sono da buttare.";
+                return null;
+            }
+
+            var id = Identita(doc);
+            string percorso = Convert.ToString(id["percorso"] ?? "");
+            try { sw.CloseDoc(titolo); }
+            catch (Exception ex) { errore = "CloseDoc ha sollevato: " + ex.Message; return null; }
+
+            // RILETTO: non c'e' piu'?
+            List<string> dopo;
+            if (TrovaAperto(sw, string.IsNullOrEmpty(percorso) ? titolo : percorso, out dopo) != null)
+            {
+                errore = "Ho chiesto di chiudere «" + titolo + "» ed e' ancora aperto.";
+                return null;
+            }
+            var davanti = DocumentoAttivo();
+            return new Dictionary<string, object>
+            {
+                ["chiuso"] = titolo,
+                ["percorso"] = string.IsNullOrEmpty(percorso) ? null : percorso,
+                ["aperti_adesso"] = dopo.Count,
+                ["davanti_adesso"] = davanti == null ? null : Identita(davanti)["titolo"],
+            };
+        }
+
+        /// <summary>
+        /// Un documento aperto e visibile, per percorso o — se non e' mai stato
+        /// salvato — per titolo. `titoli` riporta cosa c'era, per dirlo in un
+        /// rifiuto.
+        /// </summary>
+        private IModelDoc2 TrovaAperto(ISldWorks sw, string quale, out List<string> titoli)
+        {
             IModelDoc2 trovato = null;
-            var titoli = new List<string>();
+            titoli = new List<string>();
             var doc = sw.GetFirstDocument() as IModelDoc2;
             int giro = 0;
             while (doc != null && giro++ < 500)
@@ -245,14 +330,7 @@ namespace Oce.Solid.Agent.Ponte
                 }
                 doc = doc.GetNext() as IModelDoc2;
             }
-            if (trovato == null)
-            {
-                errore = "«" + quale + "» non e' fra i documenti aperti. Aperti adesso: " +
-                         (titoli.Count == 0 ? "nessuno" : "«" + string.Join("», «", titoli) + "»") +
-                         ". Il documento davanti non e' cambiato.";
-                return null;
-            }
-            return PortaDavanti(sw, trovato, out errore);
+            return trovato;
         }
 
         // ── attrezzi ────────────────────────────────────────────────────────

@@ -58,4 +58,22 @@
     <EmbeddedResource Include="Payload\**\*" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
+  <!-- LA VERSIONE WIN32 DA VERSION.txt (voce H14): stessa regola del ponte.
+       Tasto destro -> Proprieta' -> Dettagli su Installa.exe diceva 0.0.0.0. -->
+  <Target Name="VersioneDaFile" BeforeTargets="CoreCompile">
+    <ReadLinesFromFile File="$(MSBuildThisFileDirectory)..\VERSION.txt">
+      <Output TaskParameter="Lines" PropertyName="VersionePonte" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <VersionePonte>$(VersionePonte.Trim())</VersionePonte>
+      <FileVersione>$(IntermediateOutputPath)Versione.g.cs</FileVersione>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(FileVersione)" Overwrite="true" WriteOnlyWhenDifferent="true"
+      Lines="[assembly: System.Reflection.AssemblyVersion(&quot;$(VersionePonte).0&quot;)];[assembly: System.Reflection.AssemblyFileVersion(&quot;$(VersionePonte).0&quot;)];[assembly: System.Reflection.AssemblyInformationalVersion(&quot;$(VersionePonte)&quot;)]" />
+    <ItemGroup>
+      <Compile Include="$(FileVersione)" />
+      <FileWrites Include="$(FileVersione)" />
+    </ItemGroup>
+  </Target>
 </Project>

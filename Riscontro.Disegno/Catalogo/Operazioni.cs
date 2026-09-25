@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using static Riscontro.Disegno.Catalogo.Nodo;
 
@@ -77,6 +77,17 @@ namespace Riscontro.Disegno.Catalogo
                     "identita",
                     "quello che il pezzo dice di se': numero disegno, revisione, "
                     + "cliente, e le sue varianti"),
+                // LA LAMIERA (voce GP18). La famiglia che produce il file che va
+                // alla macchina di taglio: un difetto silenzioso qui costa
+                // lamiera vera, e lo sviluppo si confronta sempre col conto a mano.
+                new KeyValuePair<string, string>(
+                    "lamiera",
+                    "lamiera piegata e il suo sviluppo in DXF per il taglio"),
+                // LE QUOTE NEL MODELLO (voce Z-H3): DimXpert dal nucleo. Non e'
+                // la tavola: le quote stanno sul pezzo.
+                new KeyValuePair<string, string>(
+                    "quote",
+                    "quote e tolleranze messe sul PEZZO (DimXpert), non su una tavola"),
             };
 
         public static readonly List<OperazioneDisegno> Tutte =
@@ -253,7 +264,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "viene 1.500.000 mm3 contro i circa 1.443.000 del profilo vero, "
                         + "cioe' il 4% in piu'. Per la forma non cambia niente; se il "
                         + "numero che ti serve e' il PESO, prendi il profilo dalla "
-                        + "libreria con «membro_strutturale».",
+                        + "libreria con «membro_strutturale».\n\nL'ASOLA E' UN POLIGONO: le "
+                        + "due estremita' sono 24 lati ciascuna, coi vertici sul cerchio "
+                        + "circoscritto, cosi' che l'asola non sia mai piu' stretta del "
+                        + "nominale. Esce larga lo 0,2% in piu' (20,043 per 20) e con lo 0,2% "
+                        + "di area in piu'. Tondo e tubo sono cerchi veri.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -524,9 +539,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "distanziale, un'aletta.",
                     Descrizione =
                         "Disegna un contorno su una faccia che c'e' gia' e lo estrude in "
-                        + "FUORI, aggiungendo materiale al pezzo.\n\nE' L'UNICA OPERAZIONE CHE "
-                        + "AGGIUNGE. Tutte le altre su un pezzo esistente tolgono (fori, "
-                        + "tagli, asole), svuotano (guscio) o spostano. Senza questa non si "
+                        + "FUORI, aggiungendo materiale al pezzo.\n\nE' L'OPERAZIONE CHE FA "
+                        + "CRESCERE UN RIALZO. Le altre su un pezzo esistente tolgono (fori, "
+                        + "tagli, asole), svuotano (guscio) o spostano; aggiungono materiale "
+                        + "anche «incidi_testo» in rilievo, ma solo una scritta, e "
+                        + "«combina_corpi», che unisce corpi che ci sono gia'. Senza questa non si "
                         + "possono fare: il labbro di tenuta di un coperchio, i distanziali "
                         + "su cui appoggia qualcosa, un'aletta di fissaggio, una torretta "
                         + "per una vite, un rialzo attorno a un foro.\n\nI CONTORNI SONO NELLE "
@@ -784,7 +801,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "lascerebbe il pezzo diverso a seconda di come lo si guarda.\n\nSe "
                         + "la quota cambia ma il volume del pezzo no, viene detto: quasi "
                         + "sempre vuol dire che quella quota non comanda la geometria che "
-                        + "avevi in mente.",
+                        + "avevi in mente.\n\nRIFIUTA se la quota nuova fa uscire un'apertura "
+                        + "dal materiale — un foro o un'asola che stava dentro il pezzo e ne "
+                        + "aprirebbe il bordo, o due aperture che si fonderebbero in una: "
+                        + "rimette il valore di prima, e lo dice. Succede piu' spesso di quanto "
+                        + "sembri, perche' una piastra disegnata centrata cresce e cala DA UNA "
+                        + "PARTE SOLA: accorciarla di 50 sposta un fianco di 50, non due di 25.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -2051,7 +2073,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "corrente, e una tavola da tre fogli esce in officina come una "
                         + "pagina sola senza dare nessun errore. Dopo aver scritto il file "
                         + "si CONTANO le pagine e si confrontano con i fogli: se non "
-                        + "tornano, te lo dico.",
+                        + "tornano, te lo dico.\n\nCon «cerca» il PDF si RILEGGE: dimmi le "
+                        + "scritte che devono esserci (il numero di disegno, il nome del "
+                        + "pezzo) e ti dico quali ci sono («trovati») e quali no "
+                        + "(«non_trovati»). Il testo nel PDF e' scritto come indici di "
+                        + "glifo, e una ricerca nei byte non lo trova: qui si decodifica.",
                     Precondizione = "una tavola aperta",
                     Schema = O(
                         "type", "object",
@@ -2059,7 +2085,11 @@ namespace Riscontro.Disegno.Catalogo
                             "percorso", O(
                                 "type", "string",
                                 "description", "dove scrivere il PDF. Se non lo dici, accanto alla tavola con lo "
-                                    + "stesso nome.")),
+                                    + "stesso nome."),
+                            "cerca", O(
+                                "type", "array",
+                                "items", O("type", "string"),
+                                "description", "scritte che il PDF deve contenere: si rilegge il file e si dice quali ci sono")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -2109,15 +2139,20 @@ namespace Riscontro.Disegno.Catalogo
                     Sommario =
                         "Porta in tavola le quote che il pezzo ha gia'.",
                     Descrizione =
-                        "Prende le quote dal MODELLO e le mette sulle viste.\n\nE' l'unico "
-                        + "modo di quotare che questo catalogo offre, e la ragione e' di "
-                        + "sicurezza: l'API di SolidWorks permette di scrivere in tavola un "
-                        + "numero diverso dalla geometria, e una tavola con una quota falsa "
-                        + "passa ogni controllo e manda in officina un pezzo sbagliato. Una "
-                        + "quota che viene dal modello non puo' mentire.\n\nSE NON ARRIVA "
-                        + "NIENTE, quasi sempre il pezzo non ha quote: succede quando gli "
-                        + "schizzi sono stati fatti per coordinate. Non si ripara sulla "
-                        + "tavola — si ripara sul pezzo.\n\nDi serie arrivano solo le quote "
+                        "Prende le quote dal MODELLO e le mette sulle viste.\n\nFUORI "
+                        + "PROCESSO, SU QUESTA INSTALLAZIONE, NON PORTA NIENTE: misurato il "
+                        + "18/9/2026 su un pezzo con sette quote tutte marcate per il disegno, "
+                        + "cinque strade di import, zero quote in tavola. In processo, dentro "
+                        + "un add-in, l'11/9/2026 ne erano arrivate undici — mai rimisurato. "
+                        + "Per mettere quote in tavola da qui c'e' «quota_in_tavola», che le "
+                        + "CREA sugli spigoli che la vista mostra.\n\nSE NON ARRIVA NIENTE NON "
+                        + "VUOL DIRE che il pezzo non ha quote: fuori processo e' il risultato "
+                        + "normale. Prima di concludere che il pezzo va riquotato, guarda "
+                        + "nello stato del pezzo se le sue lavorazioni hanno quote.\n\nPerche' "
+                        + "esiste lo stesso: una quota che viene dal modello non puo' portare "
+                        + "un numero diverso dalla geometria, mentre l'API di SolidWorks "
+                        + "permette di scrivere in tavola un testo che la geometria non ha."
+                        + "\n\nDi serie arrivano solo le quote "
                         + "MARCATE per il disegno, cioe' quelle scelte per essere mostrate: "
                         + "con «tutte_le_quote» arrivano anche le altre, e la tavola diventa "
                         + "parecchio piu' fitta.",
@@ -3618,6 +3653,108 @@ namespace Riscontro.Disegno.Catalogo
                                 "items", O("type", "number"),
                                 "description", "il terzo punto. Non dev'essere sulla retta degli altri due.")),
                         "required", A("punto1_mm", "punto2_mm", "punto3_mm")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "flangia_base",
+                    Famiglia = "lamiera",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "Una lamiera piegata da un profilo aperto: spessore, raggio di piega, profondita'.",
+                    Descrizione =
+                        "Fa una LAMIERA da un profilo aperto disegnato su un piano base: una L, "
+                        + "una U, uno zeta. Ogni angolo del profilo diventa una piega col raggio "
+                        + "chiesto.\n\nI PUNTI SONO LE FACCE INTERNE quando il profilo va nel verso "
+                        + "in cui lo spessore resta a DESTRA: misurato su una L da 50 + 30 data "
+                        + "dall'alto verso destra, lo sviluppo esce 80,712 mm, uguale al conto a "
+                        + "mano sulle facce interne. Dato al contrario, lo spessore va dall'altra "
+                        + "parte e i punti diventano le facce ESTERNE: la risposta dice sempre "
+                        + "quale delle due («i_punti_sono_le_facce»), perche' fra le due passano "
+                        + "2 volte lo spessore per piega.\n\nLa risposta porta anche lo SVILUPPO: "
+                        + "la lunghezza del pezzo spianato misurata da SOLIDWORKS, accanto a "
+                        + "quella calcolata a mano col fattore K riletto dal pezzo. Se non "
+                        + "combaciano lo dice, prima che il DXF vada al taglio.\n\nRifiuta un "
+                        + "tratto piu' corto delle pieghe che lo mangiano (un lato da 1 mm con un "
+                        + "raggio da 2): SOLIDWORKS darebbe una lavorazione rossa senza dire quale "
+                        + "lato.",
+                    Precondizione = "una parte senza corpi, o a cui aggiungere una lamiera",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "piano", O(
+                                "type", "string",
+                                "enum", A("frontale", "superiore", "destro"),
+                                "description", "il piano base su cui sta il profilo. Predefinito «frontale»."),
+                            "punti", O(
+                                "type", "array",
+                                "items", O("type", "array", "items", O("type", "number")),
+                                "description", "il profilo APERTO, almeno due punti [x, y] in mm sul piano. "
+                                    + "Una L: [[0,30],[0,0],[50,0]]."),
+                            "spessore_mm", O("type", "number", "description", "lo spessore della lamiera"),
+                            "raggio_mm", O("type", "number", "description", "il raggio INTERNO delle pieghe"),
+                            "profondita_mm", O("type", "number", "description", "quanto e' profonda la lamiera, perpendicolare al piano")),
+                        "required", A("punti", "spessore_mm", "raggio_mm", "profondita_mm")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "sviluppo_dxf",
+                    Famiglia = "lamiera",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "Il DXF dello sviluppo di una lamiera, per il taglio.",
+                    Descrizione =
+                        "Scrive il pezzo di lamiera SPIANATO in un DXF: il disegno che va alla "
+                        + "macchina di taglio.\n\nIL PEZZO DEV'ESSERE SALVATO: su un pezzo senza "
+                        + "file SOLIDWORKS apre «Salva con nome» e resta ad aspettare che qualcuno "
+                        + "clicchi — misurato. Si rifiuta prima di chiamare.\n\nIl DXF si RILEGGE: "
+                        + "il suo ingombro deve avere per lato lungo lo sviluppo misurato sul "
+                        + "pezzo, se no si rifiuta — un DXF di un'altra cosa si apre uguale. Senza "
+                        + "«percorso» va accanto al pezzo, col suo nome.",
+                    Precondizione = "una parte di lamiera, salvata",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "percorso", O(
+                                "type", "string",
+                                "description", "dove scrivere il .dxf. Predefinito: accanto al pezzo, col suo nome.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "schema_di_quote",
+                    Famiglia = "quote",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "Quota il pezzo nel modello con DimXpert, da tre facce di riferimento.",
+                    Descrizione =
+                        "Mette sul PEZZO (non su una tavola) le quote che un disegnatore "
+                        + "metterebbe: spessori, lati, diametri dei fori e la loro posizione "
+                        + "dai riferimenti. E' DimXpert di SOLIDWORKS, dal nucleo, senza "
+                        + "componenti aggiuntivi.\n\nI RIFERIMENTI SONO TRE FACCE PIANE, in "
+                        + "ordine: la primaria (di solito quella d'appoggio), la secondaria e la "
+                        + "terziaria (due fianchi perpendicolari). Da loro partono le quote di "
+                        + "posizione. Con meno di tre rifiuta: DimXpert non rifiuterebbe, "
+                        + "metterebbe una quota sola.\n\nLa risposta porta i VALORI delle quote "
+                        + "(«valori_mm»), letti dalle quote nate: e' il modo di vedere se ha "
+                        + "quotato quello che serviva. La risposta di SOLIDWORKS alla chiamata "
+                        + "(«risposta_di_auto_dimension_scheme») vale False anche quando ha "
+                        + "quotato — misurato: non la si guarda.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "riferimenti_uid", O(
+                                "type", "array",
+                                "items", O("type", "string"),
+                                "description", "TRE facce piane dallo stato del documento: primaria, secondaria, terziaria"),
+                            "tolleranza", O(
+                                "type", "string",
+                                "enum", A("piu_meno", "geometrica"),
+                                "description", "piu'/meno sulle quote (predefinito) o tolleranze geometriche")),
+                        "required", A("riferimenti_uid")),
                 },
                 new OperazioneDisegno
                 {

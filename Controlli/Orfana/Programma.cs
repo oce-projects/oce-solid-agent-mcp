@@ -38,6 +38,7 @@ using SolidWorks.Interop.swconst;
 internal static class Programma
 {
     private static int _passo;
+    private static bool _orfanaPerSpigolo;
     private static void Dice(string cosa)
     {
         _passo++;
@@ -152,6 +153,20 @@ internal static class Programma
             // ── VERDE: prima di sopprimere ──────────────────────────────
             var primaStato = Leggi(tavola);
             Dice("PRIMA  — " + primaStato.Riassunto);
+            // Il verso verde del rivelatore indipendente: prima di sopprimere,
+            // lo spigolo attaccato DEVE essere fra i visibili.
+            int vistiPrima = 0;
+            try
+            {
+                var ents0 = (nata.GetAnnotation() as IAnnotation)?.GetAttachedEntities3() as object[];
+                var vis0 = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
+                foreach (var e in ents0 ?? new object[0])
+                    foreach (var v in vis0 ?? new object[0])
+                        if (sw.IsSame(e, v) == (int)swObjectEquality.swObjectSame) { vistiPrima++; break; }
+            }
+            catch (Exception ex) { Console.WriteLine("      confronto degli attaccati, prima: " + ex.Message); }
+            Dice("rivelatore indipendente, PRIMA: attaccati ancora fra i visibili " + vistiPrima + " (atteso 1)");
+            if (vistiPrima != 1) { Console.WriteLine("  il rivelatore non vede nemmeno lo spigolo giusto: non misura niente"); return 7; }
 
             // ── IL ROSSO: si sopprime il blocco, e si ricostruisce ──────
             bool soppresso = blocco.SetSuppression2(
@@ -163,8 +178,45 @@ internal static class Programma
             tavolaDoc.ForceRebuild3(false);
             tavolaDoc.EditRebuild3();
 
+            // LA VISTA SI E' AGGIORNATA? Senza questo, «IsDangling falso»
+            // potrebbe voler dire solo che la tavola mostra ancora il blocco.
+            // Misurato il primo giro (24/9 sera): falso, e non si sapeva perche'.
+            int spigoliPrima = n;
+            var sp1 = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
             var dopoStato = Leggi(tavola);
-            Dice("DOPO   — " + dopoStato.Riassunto);
+            Dice("DOPO   — spigoli visibili " + spigoliPrima + " -> " + (sp1 == null ? 0 : sp1.Length) + "; " + dopoStato.Riassunto);
+
+            // Secondo tentativo: la tavola DAVANTI e ricostruita tutta.
+            int errAtt = 0;
+            sw.ActivateDoc3(tavolaDoc.GetTitle(), false, (int)swRebuildOnActivation_e.swRebuildActiveDoc, ref errAtt);
+            tavolaDoc.ForceRebuild3(false);
+            var sp2 = vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
+            var dopo2 = Leggi(tavola);
+            Dice("DOPO, tavola davanti e ricostruita — spigoli visibili " + (sp2 == null ? 0 : sp2.Length) + "; " + dopo2.Riassunto);
+            if (dopo2.Orfane > dopoStato.Orfane) dopoStato = dopo2;
+
+            // UN RIVELATORE CHE NON CHIEDE A SOLIDWORKS SE E' ORFANA: lo
+            // spigolo a cui la quota e' attaccata e' ancora fra quelli che la
+            // vista mostra? Se IsDangling e' morto, questo e' quello che resta.
+            int attaccatiVisti = 0, attaccati = 0;
+            string valoreDopo = "-";
+            try { valoreDopo = (nata.GetDimension2(0).SystemValue * 1000).ToString("0.###") + " mm"; } catch { }
+            try
+            {
+                var ents = (nata.GetAnnotation() as IAnnotation)?.GetAttachedEntities3() as object[];
+                foreach (var e in ents ?? new object[0])
+                {
+                    attaccati++;
+                    foreach (var v in sp2 ?? new object[0])
+                        if (sw.IsSame(e, v) == (int)swObjectEquality.swObjectSame) { attaccatiVisti++; break; }
+                }
+            }
+            catch (Exception ex) { Console.WriteLine("      confronto degli attaccati: " + ex.Message); }
+            // E il verso verde dello stesso rivelatore, sul PRIMA: lo spigolo
+            // scelto era fra i visibili per costruzione.
+            Dice("rivelatore indipendente: attaccati " + attaccati + ", di cui ancora fra i visibili " + attaccatiVisti +
+                 "; valore della quota adesso " + valoreDopo);
+            _orfanaPerSpigolo = attaccati > 0 && attaccatiVisti == 0;
 
             Console.WriteLine();
             if (Math.Abs(volDopo - 60000) > 1)
@@ -183,8 +235,13 @@ internal static class Programma
                 return 0;
             }
             Console.WriteLine("IsDangling resta FALSE anche su una quota senza spigolo: il campo e' morto per le quote in tavola.");
-            Console.WriteLine("Entita' agganciate: " + primaStato.Agganciate + " prima, " + dopoStato.Agganciate +
-                              " dopo" + (dopoStato.Agganciate < primaStato.Agganciate ? " — QUESTO si', dice qualcosa." : "."));
+            Console.WriteLine("Entita' agganciate: " + primaStato.Agganciate + " prima, " + dopoStato.Agganciate + " dopo.");
+            if (_orfanaPerSpigolo)
+            {
+                Console.WriteLine("MA IL RIVELATORE INDIPENDENTE LA VEDE: lo spigolo a cui e' attaccata non e' piu' fra quelli");
+                Console.WriteLine("che la vista mostra. Z-A2 si costruisce su questo, non su IsDangling.");
+                return 3;
+            }
             return 6;
         }
         catch (Exception ex)

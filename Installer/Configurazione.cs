@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Web.Script.Serialization;
 
@@ -192,6 +193,16 @@ namespace Oce.Solid.Agent.Installer
                 var d = Json().DeserializeObject(testo) as Dictionary<string, object>;
                 return d ?? new Dictionary<string, object>();
             }
+            catch (IOException ex)
+            {
+                // Un file che NON SI LEGGE non e' un file rotto: prima finiva
+                // nel ramo sotto, e a chi aveva il client aperto si diceva che
+                // il suo JSON non era valido.
+                throw new Exception(
+                    "Non riesco a leggere «" + file + "»: e' bloccato da un altro " +
+                    "programma, e non l'ho toccato. Di solito e' il client stesso " +
+                    "aperto: chiudilo e riprova. (" + ex.Message + ")");
+            }
             catch (Exception ex)
             {
                 // Un file rotto NON si sostituisce in silenzio con uno nuovo:
@@ -223,26 +234,94 @@ namespace Oce.Solid.Agent.Installer
             var cartella = Path.GetDirectoryName(file);
             if (!string.IsNullOrEmpty(cartella)) Directory.CreateDirectory(cartella);
 
+            // UN FILE TENUTO DA UN ALTRO PROGRAMMA SI SCOPRE PRIMA (voce H15).
+            // Prima lo si scopriva a meta': copia fatta, `.parziale` scritto,
+            // poi `File.Delete` che solleva — e il `.parziale` restava accanto
+            // al file vero per sempre. Adesso si prova ad aprirlo in scrittura
+            // esclusiva: se non si lascia, ci si ferma senza aver toccato
+            // niente, e lo si dice con parole che fanno sapere cosa fare.
+            if (File.Exists(file))
+            {
+                try { using (File.Open(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { } }
+                catch (IOException ex)
+                {
+                    throw new Exception(
+                        "Il file «" + file + "» e' bloccato da un altro programma, e non " +
+                        "l'ho toccato. Di solito e' il client stesso aperto: chiudilo e " +
+                        "riprova. (" + ex.Message + ")");
+                }
+            }
+
             string copia = null;
             if (File.Exists(file))
             {
-                // Il nome della copia porta la data: cosi' se ne accumulano
-                // poche e si capisce quale e' quale.
-                copia = file + ".prima-di-oce-solid-agent-" +
+                // Il nome della copia porta la data: cosi' si capisce quale e'
+                // quale.
+                copia = file + PrefissoCopia +
                         DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
                 File.Copy(file, copia, true);
                 racconta("copia di sicurezza: " + Path.GetFileName(copia));
+                PotaLeCopie(file, racconta);
             }
 
             var testo = Indenta(Json().Serialize(radice));
 
             var temporaneo = file + ".parziale";
-            using (var w = new StreamWriter(temporaneo, false, new UTF8Encoding(false)))
-                w.Write(testo);
-            if (File.Exists(file)) File.Delete(file);
-            File.Move(temporaneo, file);
+            try
+            {
+                using (var w = new StreamWriter(temporaneo, false, new UTF8Encoding(false)))
+                    w.Write(testo);
+                if (File.Exists(file)) File.Delete(file);
+                File.Move(temporaneo, file);
+            }
+            catch
+            {
+                // Qualunque cosa sia andata storta, il `.parziale` non resta:
+                // un file a meta' accanto a quello vero e' la cosa che fa
+                // pensare a chi apre la cartella che si puo' usare quello.
+                try { if (File.Exists(temporaneo)) File.Delete(temporaneo); } catch { }
+                throw;
+            }
 
             return copia;
+        }
+
+        private const string PrefissoCopia = ".prima-di-oce-solid-agent-";
+
+        /// <summary>
+        /// Quante copie di sicurezza per file si tengono. Tre bastano a tornare
+        /// indietro di due installazioni sbagliate di fila; oltre e' solo roba
+        /// che si accumula in %APPDATA% e che nessuno guarda.
+        /// </summary>
+        public const int CopieTenute = 3;
+
+        /// <summary>
+        /// Toglie le copie di sicurezza piu' vecchie, tenendo le ultime
+        /// <see cref="CopieTenute"/> (voce H15: prima non si ripulivano mai, e
+        /// dieci installazioni lasciavano dieci `.bak`).
+        ///
+        /// Tocca SOLO i file con il nostro prefisso accanto a quel file: una
+        /// copia fatta a mano da chi usa il client non e' nostra.
+        /// </summary>
+        private static void PotaLeCopie(string file, Action<string> racconta)
+        {
+            try
+            {
+                var cartella = Path.GetDirectoryName(file);
+                var nome = Path.GetFileName(file) + PrefissoCopia;
+                var nostre = Directory.GetFiles(cartella, nome + "*.bak")
+                    .OrderByDescending(f => Path.GetFileName(f), StringComparer.Ordinal)
+                    .Skip(CopieTenute)
+                    .ToList();
+                foreach (var vecchia in nostre)
+                {
+                    try { File.Delete(vecchia); }
+                    catch { }
+                }
+                if (nostre.Count > 0)
+                    racconta("tolte " + nostre.Count + " copie di sicurezza vecchie (ne tengo " + CopieTenute + ")");
+            }
+            catch { /* non poter pulire non e' un motivo per non installare */ }
         }
 
         /// <summary>

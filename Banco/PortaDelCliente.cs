@@ -174,6 +174,7 @@ namespace ProvaSaldatura
                       dopoLaNotifica != null,
                       dopoLaNotifica != null ? "" : "niente risposta alla domanda dopo la notifica");
 
+                IlModale(p, doc);
                 IlCicloDelDocumento(p, titolo, ref nuovoTitolo, ref salvato);
             }
             catch (Exception ex)
@@ -318,6 +319,165 @@ namespace ProvaSaldatura
                   Mcp.Dentro(soloLettura, "attenzione") != null,
                   Corto(Convert.ToString(Mcp.Dentro(soloLettura, "attenzione")) + " | sola_lettura=" +
                         Convert.ToString(Mcp.Dentro(soloLettura, "sola_lettura"))));
+
+            // ── chiudi (voce Z-B1): il ROSSO prima, su un documento sporco ──
+            //
+            // Il documento del banco ha l'estrusione del passo 2 e non e' mai
+            // stato salvato: chiuderlo butterebbe lavoro. Il ponte deve
+            // rifiutare, e il banco rilegge dalla COM che sia ancora aperto.
+            Func<string, bool> aperto2 = t =>
+            {
+                var d = _sw.GetFirstDocument() as IModelDoc2;
+                for (int i = 0; d != null && i < 500; i++)
+                {
+                    if (string.Equals(d.GetTitle(), t, StringComparison.OrdinalIgnoreCase)) return true;
+                    d = d.GetNext() as IModelDoc2;
+                }
+                return false;
+            };
+            var sporco = TestoDiRisposta(Mcp.Chiedi(p, 13, Chiamata(13, "documento",
+                "{\"azione\":\"chiudi\",\"percorso\":\"" + titolo + "\"}")));
+            Segna("documento: «chiudi» su un documento con modifiche non salvate rifiuta, e resta aperto",
+                  sporco.IndexOf("modifiche non salvate", StringComparison.OrdinalIgnoreCase) >= 0 && aperto2(titolo),
+                  "ancora aperto " + aperto2(titolo) + " — " + Corto(sporco));
+
+            // ── e la GEMELLA: un documento appena aperto, senza modifiche ──
+            // Il titolo porta l'estensione o no a seconda di come Windows mostra
+            // i file: si confronta il gambo del nome.
+            string gambo = Path.GetFileNameWithoutExtension(salvato);
+            var chiuso = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 14, Chiamata(14, "documento",
+                "{\"azione\":\"chiudi\",\"percorso\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
+            bool sparito = _sw.GetOpenDocumentByName(salvato) == null;
+            Segna("documento: «chiudi» su un documento senza modifiche lo chiude, riletto dalla COM",
+                  sparito && Convert.ToString(Mcp.Dentro(chiuso, "chiuso"))
+                                 .StartsWith(gambo, StringComparison.OrdinalIgnoreCase),
+                  "sparito dalla COM " + sparito + " — chiuso «" + Convert.ToString(Mcp.Dentro(chiuso, "chiuso")) + "»");
+        }
+
+        /// <summary>
+        /// LA GUARDIA CONTRO IL MODALE, VISTA SCATTARE (voce Z-C3).
+        ///
+        /// Fino alla libreria 0.112.0 la guardia era `CommandInProgress`, e la
+        /// frase del rifiuto compariva in un solo posto del repository: la riga
+        /// che la produceva. `Controlli/Modale` ha misurato che con un modale
+        /// aperto `CommandInProgress` resta FALSO: la guardia non poteva
+        /// scattare. Dalla 0.113.0 si guarda se la finestra principale e'
+        /// abilitata.
+        ///
+        /// Qui un modale vero — una finestra di messaggio di SOLIDWORKS, aperta
+        /// da un altro filo perche' la chiamata non torna finche' e' aperta —
+        /// e un piano chiesto al ponte in quel momento: dev'essere rifiutato con
+        /// la frase della guardia, e il pezzo non deve cambiare. Poi il modale si
+        /// chiude e LO STESSO ponte deve tornare a lavorare: e' la gemella, senza
+        /// la quale una guardia che rifiuta sempre passerebbe questa prova.
+        /// </summary>
+        private static void IlModale(Mcp.Ponte p, IModelDoc2 doc)
+        {
+            IntPtr cornice = IntPtr.Zero;
+            try { cornice = new IntPtr(((IFrame)_sw.Frame()).GetHWnd()); } catch { }
+            uint pid = 0;
+            if (cornice != IntPtr.Zero) GetWindowThreadProcessId(cornice, out pid);
+            if (pid == 0)
+            {
+                ErroreDiBanco("il modale", "non leggo la finestra principale di SOLIDWORKS");
+                return;
+            }
+
+            var filo = new System.Threading.Thread(() =>
+            {
+                try
+                {
+                    var suo = (ISldWorks)System.Runtime.InteropServices.Marshal.GetActiveObject("SldWorks.Application");
+                    suo.SendMsgToUser2("Banco, voce Z-C3: questa finestra si chiude da sola.",
+                        (int)SolidWorks.Interop.swconst.swMessageBoxIcon_e.swMbInformation,
+                        (int)SolidWorks.Interop.swconst.swMessageBoxBtn_e.swMbOk);
+                }
+                catch { }
+            });
+            filo.SetApartmentState(System.Threading.ApartmentState.STA);
+            filo.IsBackground = true;
+            filo.Start();
+
+            IntPtr dialogo = IntPtr.Zero;
+            var t0 = System.Diagnostics.Stopwatch.StartNew();
+            while (dialogo == IntPtr.Zero && t0.ElapsedMilliseconds < 8000)
+            {
+                System.Threading.Thread.Sleep(100);
+                dialogo = DialogoDi(pid);
+            }
+            if (dialogo == IntPtr.Zero)
+            {
+                ErroreDiBanco("il modale", "la finestra di messaggio non si e' vista entro 8 s: la guardia non si puo' provare");
+                return;
+            }
+
+            string conModale;
+            double volumePrima = VolumeDiProva(doc), volumeDopo;
+            try
+            {
+                conModale = TestoDiRisposta(Mcp.Chiedi(p, 30, Chiamata(30, "disegna",
+                    "{\"passi\":[{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":" +
+                    "{\"lunghezza_mm\":20,\"larghezza_mm\":20,\"spessore_mm\":5}}]}")));
+            }
+            finally
+            {
+                // IL MODALE SI CHIUDE IN OGNI CASO: lasciato aperto, pianta il
+                // resto del giro e quello dopo.
+                PostMessage(dialogo, 0x0010, IntPtr.Zero, IntPtr.Zero);
+                filo.Join(8000);
+                System.Threading.Thread.Sleep(300);
+            }
+            volumeDopo = VolumeDiProva(doc);
+
+            Segna("modale: con una finestra modale aperta il piano e' rifiutato con la frase della guardia",
+                  conModale.IndexOf("finestra aperta che aspetta una risposta", StringComparison.OrdinalIgnoreCase) >= 0,
+                  Corto(conModale));
+            Segna("modale: e il pezzo non e' cambiato",
+                  Math.Abs(volumeDopo - volumePrima) < 0.01,
+                  volumePrima.ToString("0.#") + " -> " + volumeDopo.ToString("0.#") + " mm3");
+
+            // LA GEMELLA: modale chiuso, finestra abilitata, e lo stesso ponte
+            // lavora. Un'operazione che legge soltanto, per non cambiare il pezzo
+            // su cui il resto del gruppo conta.
+            bool abilitata = IsWindowEnabled(cornice);
+            var senza = TestoDiRisposta(Mcp.Chiedi(p, 31, Chiamata(31, "disegna",
+                "{\"passi\":[{\"operazione\":\"proprieta_di_massa\",\"argomenti\":{}}]}")));
+            Segna("modale: chiuso il modale, lo stesso ponte torna a lavorare",
+                  abilitata && senza.IndexOf("finestra aperta", StringComparison.OrdinalIgnoreCase) < 0 &&
+                  (senza.IndexOf("\"riuscita\":true", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   senza.IndexOf("\"riuscita\": true", StringComparison.OrdinalIgnoreCase) >= 0),
+                  "finestra abilitata " + abilitata + " — " + Corto(senza));
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool IsWindowEnabled(IntPtr h);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr h);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int GetClassName(IntPtr h, System.Text.StringBuilder s, int n);
+        private delegate bool EnumProc(IntPtr h, IntPtr l);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumProc f, IntPtr l);
+
+        /// <summary>Una finestra di dialogo (#32770) visibile del processo dato.</summary>
+        private static IntPtr DialogoDi(uint pid)
+        {
+            IntPtr trovato = IntPtr.Zero;
+            EnumWindows((h, l) =>
+            {
+                uint suo;
+                GetWindowThreadProcessId(h, out suo);
+                if (suo != pid || !IsWindowVisible(h)) return true;
+                var nome = new System.Text.StringBuilder(64);
+                GetClassName(h, nome, nome.Capacity);
+                if (nome.ToString() == "#32770") { trovato = h; return false; }
+                return true;
+            }, IntPtr.Zero);
+            return trovato;
         }
 
         /// <summary>L'eseguibile del ponte, o `null`.</summary>

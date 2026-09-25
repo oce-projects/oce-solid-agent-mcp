@@ -46,6 +46,23 @@ namespace Oce.Solid.Agent.Installer
         /// </summary>
         public const string NomeLibreria = "Riscontro.Disegno.dll";
 
+        /// <summary>
+        /// I file che l'installazione mette nella cartella, e quindi gli UNICI
+        /// che la disinstallazione toglie.
+        ///
+        /// UNA LISTA SOLA PER I DUE VERSI (voce H15). Prima la disinstallazione
+        /// aveva la sua, e ci cercava `Oce.Solid.Agent.pdb` — un file che
+        /// nessuna versione ha mai installato: fino alla 0.27.0 si chiamava
+        /// `SolidWorksMcp.pdb`, e in tutti e due i casi `Installa` non l'ha mai
+        /// estratto. Due liste che dovrebbero dire la stessa cosa si separano
+        /// il giorno in cui se ne tocca una.
+        /// </summary>
+        public static readonly string[] FileInstallati =
+        {
+            NomeEseguibile, NomeEseguibile + ".config", NomeCatalogo, NomeLibreria,
+            "LICENSE", "NOTICE",
+        };
+
         /// <summary>Dove va installato, se chi installa non dice altro.</summary>
         public static string CartellaPredefinita =>
             Path.Combine(
@@ -344,8 +361,19 @@ namespace Oce.Solid.Agent.Installer
             racconta("cartella: " + cartella);
 
             // 1. il ponte e il catalogo
+            //
+            // DA QUALE VERSIONE A QUALE (voce H15). Chi reinstalla vuole sapere
+            // se sta aggiornando o rimettendo la stessa: si legge `VERSION.txt`
+            // dentro l'eseguibile che c'e' PRIMA di sovrascriverlo, e dentro
+            // quello nuovo DOPO. Nessuna delle due letture e' una promessa: se
+            // una non riesce, si dice «versione non leggibile».
             var eseguibile = Path.Combine(cartella, NomeEseguibile);
+            string vecchia = File.Exists(eseguibile) ? VersioneDi(eseguibile) ?? "versione non leggibile" : null;
             Payload.Estrai(NomeEseguibile, eseguibile, racconta);
+            string nuova = VersioneDi(eseguibile) ?? "versione non leggibile";
+            if (vecchia == null) racconta("installo la " + nuova);
+            else if (vecchia == nuova) racconta("reinstallo la " + nuova + " (era gia' questa)");
+            else racconta("aggiorno dalla " + vecchia + " alla " + nuova);
             Payload.Estrai(NomeCatalogo, Path.Combine(cartella, NomeCatalogo), racconta);
             Payload.EstraiSePresente(
                 NomeEseguibile + ".config",
@@ -364,6 +392,9 @@ namespace Oce.Solid.Agent.Installer
             Payload.Estrai(NomeLibreria, libreria, racconta);
 
             // 3. le note legali viaggiano con il programma
+            //
+            // Un file nuovo estratto qui va anche in `FileInstallati`, se no la
+            // disinstallazione lo lascia li' per sempre.
             foreach (var nome in new[] { "LICENSE", "NOTICE" })
                 Payload.EstraiSePresente(nome, Path.Combine(cartella, nome), racconta);
 
@@ -373,6 +404,35 @@ namespace Oce.Solid.Agent.Installer
                     "Non lo chiamo riuscito.");
 
             return eseguibile;
+        }
+
+        /// <summary>
+        /// La versione scritta in `VERSION.txt` dentro un eseguibile del
+        /// ponte, o null se non si legge.
+        ///
+        /// Si carica dai BYTE, non dal file: `LoadFrom` e `ReflectionOnlyLoadFrom`
+        /// tengono il file aperto fino all'uscita, e l'eseguibile appena letto
+        /// e' proprio quello da sovrascrivere. La versione del file Win32 non
+        /// serve: dice 0.0.0.0 (voce H14).
+        /// </summary>
+        public static string VersioneDi(string eseguibile)
+        {
+            try
+            {
+                var a = Assembly.Load(File.ReadAllBytes(eseguibile));
+                foreach (var nome in a.GetManifestResourceNames())
+                {
+                    if (!nome.EndsWith("VERSION.txt", StringComparison.OrdinalIgnoreCase)) continue;
+                    using (var s = a.GetManifestResourceStream(nome))
+                    using (var r = new StreamReader(s))
+                    {
+                        var v = r.ReadToEnd().Trim();
+                        return v.Length == 0 ? null : v;
+                    }
+                }
+            }
+            catch { }
+            return null;
         }
 
         public static bool PercorsiUguali(string a, string b)
@@ -443,11 +503,7 @@ namespace Oce.Solid.Agent.Installer
             // `Directory.Delete(recursive)` su una cartella scelta da chi
             // installa e' il modo classico di cancellare il desktop di
             // qualcuno per un percorso incollato male.
-            foreach (var nome in new[]
-            {
-                NomeEseguibile, NomeEseguibile + ".config", "Oce.Solid.Agent.pdb",
-                NomeCatalogo, NomeLibreria, "LICENSE", "NOTICE",
-            })
+            foreach (var nome in FileInstallati)
             {
                 var f = Path.Combine(cartella, nome);
                 try

@@ -110,11 +110,39 @@ internal static class Programma
             Dice("volume piegato " + volPiegato.ToString("0.0") + " mm^3");
 
             // ── SVILUPPATA ───────────────────────────────────────────────
+            //
+            // MISURATO il 24/9 sera: `SetBendState(sviluppata)` risponde 0 e il
+            // corpo resta PIEGATO (ingombro 32 x 40 x 52 prima e dopo). Nella
+            // lamiera di oggi lo sviluppo e' una LAVORAZIONE in fondo all'albero,
+            // soppressa: si sviluppa togliendole la soppressione. Si prova
+            // SetBendState lo stesso e si dice cosa ha fatto, poi la lavorazione.
+            int statoPrima = doc.GetBendState();
             int esito = doc.SetBendState((int)swSMBendState_e.swSMBendStateFlattened);
+            doc.EditRebuild3();
+            var dopoSet = Ingombro(doc);
+            Dice("GetBendState " + statoPrima + ", SetBendState(sviluppata) -> " + esito + ", GetBendState " +
+                 doc.GetBendState() + ", ingombro " + Tre(dopoSet));
+            doc.SetBendState((int)swSMBendState_e.swSMBendStateFolded);
+            doc.EditRebuild3();
+
+            IFeature sviluppo = null;
+            var g = doc.FirstFeature() as IFeature;
+            while (g != null && sviluppo == null)
+            {
+                if (g.GetTypeName2() == "FlatPattern") sviluppo = g;
+                g = g.GetNextFeature() as IFeature;
+            }
+            if (sviluppo == null) { Console.WriteLine("  nessuna lavorazione «FlatPattern» nell'albero"); return 5; }
+            bool tolta = sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swUnSuppressFeature,
+                (int)swInConfigurationOpts_e.swThisConfiguration, null);
             doc.EditRebuild3();
             double[] ingombro = Ingombro(doc);
             double volPiatto = Volume(doc);
-            Dice("SetBendState(sviluppata) -> " + esito + ", volume sviluppato " + volPiatto.ToString("0.0") + " mm^3");
+            Dice("«" + sviluppo.Name + "» senza soppressione: " + tolta + ", volume sviluppato " +
+                 volPiatto.ToString("0.0") + " mm^3");
+            sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swSuppressFeature,
+                (int)swInConfigurationOpts_e.swThisConfiguration, null);
+            doc.EditRebuild3();
             if (ingombro == null) { Console.WriteLine("  nessun ingombro leggibile"); return 6; }
             Array.Sort(ingombro);
             double lunghezza = ingombro[2];
@@ -133,19 +161,41 @@ internal static class Programma
                               (lunghezza - esterne).ToString("+0.###;-0.###") + ")");
             Console.WriteLine("  l'API, sviluppata:        " + lunghezza.ToString("0.###") + " mm");
 
-            // ── il ritorno, e il DXF ─────────────────────────────────────
-            doc.SetBendState((int)swSMBendState_e.swSMBendStateFolded);
-            doc.EditRebuild3();
+            // ── il DXF ───────────────────────────────────────────────────
+            //
+            // MISURATO il 24/9 sera: `ExportFlatPatternView` su un pezzo MAI
+            // SALVATO apre «Salva con nome» e la chiamata COM non torna finche'
+            // qualcuno non chiude la finestra. Si salva prima; e la chiamata si
+            // fa lo stesso da un altro filo, con un tempo massimo, perche' un
+            // secondo modale non ancora conosciuto non pianti la sonda.
+            string pezzoSalvato = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");
+            try { if (File.Exists(pezzoSalvato)) File.Delete(pezzoSalvato); } catch { }
+            int se = 0, sa = 0;
+            bool salvato = doc.Extension.SaveAs(pezzoSalvato, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref se, ref sa);
+            Dice("pezzo salvato prima del DXF: " + salvato + " (errori " + se + ")");
 
             string dxf = Path.Combine(Path.GetTempPath(), "lamiera-sonda.dxf");
             try { if (File.Exists(dxf)) File.Delete(dxf); } catch { }
             bool esportato = false;
-            try
+            string eccezione = null;
+            var filo = new System.Threading.Thread(() =>
             {
-                esportato = ((IPartDoc)doc).ExportFlatPatternView(dxf,
-                    (int)swExportFlatPatternViewOptions_e.swExportFlatPatternOption_RemoveBends);
+                try
+                {
+                    esportato = ((IPartDoc)doc).ExportFlatPatternView(dxf,
+                        (int)swExportFlatPatternViewOptions_e.swExportFlatPatternOption_RemoveBends);
+                }
+                catch (Exception ex) { eccezione = ex.Message; }
+            });
+            filo.IsBackground = true;
+            filo.Start();
+            if (!filo.Join(60000))
+            {
+                Console.WriteLine("  ExportFlatPatternView NON E' TORNATA in 60 s: quasi certamente un modale aperto.");
+                Console.WriteLine("  Chiudilo a mano. Mi fermo senza chiudere il pezzo.");
+                return 10;
             }
-            catch (Exception ex) { Console.WriteLine("      ExportFlatPatternView alza: " + ex.Message); }
+            if (eccezione != null) Console.WriteLine("      ExportFlatPatternView alza: " + eccezione);
             long peso = File.Exists(dxf) ? new FileInfo(dxf).Length : 0;
             Dice("ExportFlatPatternView -> " + esportato + ", DXF " + peso + " byte");
 
@@ -188,8 +238,19 @@ internal static class Programma
             if (doc != null && !tieni)
             {
                 try { sw.CloseDoc(doc.GetTitle()); Dice("pezzo chiuso senza salvare"); } catch { }
+                try
+                {
+                    var f = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");
+                    if (File.Exists(f)) File.Delete(f);
+                }
+                catch { }
             }
         }
+    }
+
+    private static string Tre(double[] b)
+    {
+        return b == null ? "-" : b[0].ToString("0.###") + " x " + b[1].ToString("0.###") + " x " + b[2].ToString("0.###");
     }
 
     private static double Volume(IModelDoc2 doc)

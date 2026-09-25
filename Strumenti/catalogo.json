@@ -9,7 +9,9 @@
   "tavola": "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF",
   "verifiche": "dire com'e' venuto, senza toccarlo",
   "esportazioni": "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D, STEP e IGES per chi lo deve lavorare",
-  "identita": "quello che il pezzo dice di se': numero disegno, revisione, cliente, e le sue varianti"
+  "identita": "quello che il pezzo dice di se': numero disegno, revisione, cliente, e le sue varianti",
+  "lamiera": "lamiera piegata e il suo sviluppo in DXF per il taglio",
+  "quote": "quote e tolleranze messe sul PEZZO (DimXpert), non su una tavola"
  },
  "operazioni": [
   {
@@ -136,7 +138,7 @@
    "nome": "estrudi_sezione",
    "famiglia": "estrusioni",
    "sommario": "Una barra da sezione normalizzata (tubolare, tondo, angolare, U, T, piatto, esagono, asola) NON di carpenteria.",
-   "descrizione": "Estrude una sezione normalizzata — tubolare, tondo, tubo, angolare a L, profilato a U o a T, piatto, esagono, asola — e ottiene un CORPO SOLIDO con quella forma.\n\nNON E' L'OPERAZIONE DELLA CARPENTERIA. Per un elemento di telaio usa «membro_strutturale»: un corpo estruso ha la stessa forma di una barra, ma non e' un membro strutturale, quindi NON genera la distinta di taglio, non porta il nome del profilo, e non si lascia tagliare a 45 gradi agli incroci. Chi va in officina con un pezzo cosi' non ha l'elenco delle barre da tagliare.\n\nQuesta operazione serve quando la sezione NON e' un elemento di telaio: un distanziale ricavato da barra, una piastrina sagomata, un pezzo tornito da tondo, o un profilo che nella libreria aziendale non esiste.\n\nLe quote da dare cambiano con il tipo:\n• tubolare  larghezza, altezza, parete\n• tubo      diametro, parete\n• tondo     diametro\n• angolare / u / t   larghezza, altezza, spessore\n• piatto / asola     larghezza, altezza\n• esagono   chiave (l'apertura in chiave, non il diametro circoscritto)\n\n«lunghezza_mm» e' quanto e' lunga la barra: per un tubolare 80x80x5 lungo 1000 sono larghezza 80, altezza 80, parete 5, lunghezza 1000.\n\nGLI SPIGOLI SONO VIVI, e sul peso si vede. Un profilo commerciale ha gli angoli raggiati, quindi questa sezione pesa di piu': un tubolare 80x80x5 lungo 1000 viene 1.500.000 mm3 contro i circa 1.443.000 del profilo vero, cioe' il 4% in piu'. Per la forma non cambia niente; se il numero che ti serve e' il PESO, prendi il profilo dalla libreria con «membro_strutturale».",
+   "descrizione": "Estrude una sezione normalizzata — tubolare, tondo, tubo, angolare a L, profilato a U o a T, piatto, esagono, asola — e ottiene un CORPO SOLIDO con quella forma.\n\nNON E' L'OPERAZIONE DELLA CARPENTERIA. Per un elemento di telaio usa «membro_strutturale»: un corpo estruso ha la stessa forma di una barra, ma non e' un membro strutturale, quindi NON genera la distinta di taglio, non porta il nome del profilo, e non si lascia tagliare a 45 gradi agli incroci. Chi va in officina con un pezzo cosi' non ha l'elenco delle barre da tagliare.\n\nQuesta operazione serve quando la sezione NON e' un elemento di telaio: un distanziale ricavato da barra, una piastrina sagomata, un pezzo tornito da tondo, o un profilo che nella libreria aziendale non esiste.\n\nLe quote da dare cambiano con il tipo:\n• tubolare  larghezza, altezza, parete\n• tubo      diametro, parete\n• tondo     diametro\n• angolare / u / t   larghezza, altezza, spessore\n• piatto / asola     larghezza, altezza\n• esagono   chiave (l'apertura in chiave, non il diametro circoscritto)\n\n«lunghezza_mm» e' quanto e' lunga la barra: per un tubolare 80x80x5 lungo 1000 sono larghezza 80, altezza 80, parete 5, lunghezza 1000.\n\nGLI SPIGOLI SONO VIVI, e sul peso si vede. Un profilo commerciale ha gli angoli raggiati, quindi questa sezione pesa di piu': un tubolare 80x80x5 lungo 1000 viene 1.500.000 mm3 contro i circa 1.443.000 del profilo vero, cioe' il 4% in piu'. Per la forma non cambia niente; se il numero che ti serve e' il PESO, prendi il profilo dalla libreria con «membro_strutturale».\n\nL'ASOLA E' UN POLIGONO: le due estremita' sono 24 lati ciascuna, coi vertici sul cerchio circoscritto, cosi' che l'asola non sia mai piu' stretta del nominale. Esce larga lo 0,2% in piu' (20,043 per 20) e con lo 0,2% di area in piu'. Tondo e tubo sono cerchi veri.",
    "schema": {
     "type": "object",
     "properties": {
@@ -381,7 +383,7 @@
    "nome": "estrudi_su_faccia",
    "famiglia": "lavorazioni",
    "sommario": "Fa CRESCERE materiale da una faccia: un rialzo, un labbro, un distanziale, un'aletta.",
-   "descrizione": "Disegna un contorno su una faccia che c'e' gia' e lo estrude in FUORI, aggiungendo materiale al pezzo.\n\nE' L'UNICA OPERAZIONE CHE AGGIUNGE. Tutte le altre su un pezzo esistente tolgono (fori, tagli, asole), svuotano (guscio) o spostano. Senza questa non si possono fare: il labbro di tenuta di un coperchio, i distanziali su cui appoggia qualcosa, un'aletta di fissaggio, una torretta per una vite, un rialzo attorno a un foro.\n\nI CONTORNI SONO NELLE COORDINATE DELLA FACCIA, come per «taglio_rettangolare»: (0, 0) e' il centro della faccia. Piu' contorni annidati fanno una cornice — quello fuori e quello dentro — ed e' cosi' che si fa un labbro attorno a un bordo invece di un blocco pieno.\n\n«unisci» a vero (predefinito) fonde il rialzo con il pezzo. A falso nasce un CORPO SEPARATO: quasi mai quello che si vuole, e l'albero cresce uguale, quindi lo si nota solo contando i corpi.",
+   "descrizione": "Disegna un contorno su una faccia che c'e' gia' e lo estrude in FUORI, aggiungendo materiale al pezzo.\n\nE' L'OPERAZIONE CHE FA CRESCERE UN RIALZO. Le altre su un pezzo esistente tolgono (fori, tagli, asole), svuotano (guscio) o spostano; aggiungono materiale anche «incidi_testo» in rilievo, ma solo una scritta, e «combina_corpi», che unisce corpi che ci sono gia'. Senza questa non si possono fare: il labbro di tenuta di un coperchio, i distanziali su cui appoggia qualcosa, un'aletta di fissaggio, una torretta per una vite, un rialzo attorno a un foro.\n\nI CONTORNI SONO NELLE COORDINATE DELLA FACCIA, come per «taglio_rettangolare»: (0, 0) e' il centro della faccia. Piu' contorni annidati fanno una cornice — quello fuori e quello dentro — ed e' cosi' che si fa un labbro attorno a un bordo invece di un blocco pieno.\n\n«unisci» a vero (predefinito) fonde il rialzo con il pezzo. A falso nasce un CORPO SEPARATO: quasi mai quello che si vuole, e l'albero cresce uguale, quindi lo si nota solo contando i corpi.",
    "schema": {
     "type": "object",
     "properties": {
@@ -602,7 +604,7 @@
    "nome": "modifica_quota",
    "famiglia": "lavorazioni",
    "sommario": "Cambia una quota di una lavorazione che c'e' gia', senza rifare niente.",
-   "descrizione": "Cambia il VALORE di una quota — uno spessore, una profondita', un diametro, un raggio — su una lavorazione che il pezzo ha gia'.\n\nE' LA RICHIESTA PIU' FREQUENTE IN OFFICINA: «quel foro portalo a M10», «lo spessore fallo 3». Prima l'unico modo era cancellare e rifare, cioe' perdere tutto quello che veniva dopo — fori, raccordi, nervature costruite su quella geometria.\n\nIL NOME DELLA QUOTA LO TROVI NELLO STATO DEL DOCUMENTO: ogni lavorazione porta le sue, con nome e valore in mm (per esempio «D1@Svuota1@Parte3.Part» = 6). Copia il nome cosi' com'e'.\n\nIl valore cambia in TUTTE le configurazioni: cambiarne una sola lascerebbe il pezzo diverso a seconda di come lo si guarda.\n\nSe la quota cambia ma il volume del pezzo no, viene detto: quasi sempre vuol dire che quella quota non comanda la geometria che avevi in mente.",
+   "descrizione": "Cambia il VALORE di una quota — uno spessore, una profondita', un diametro, un raggio — su una lavorazione che il pezzo ha gia'.\n\nE' LA RICHIESTA PIU' FREQUENTE IN OFFICINA: «quel foro portalo a M10», «lo spessore fallo 3». Prima l'unico modo era cancellare e rifare, cioe' perdere tutto quello che veniva dopo — fori, raccordi, nervature costruite su quella geometria.\n\nIL NOME DELLA QUOTA LO TROVI NELLO STATO DEL DOCUMENTO: ogni lavorazione porta le sue, con nome e valore in mm (per esempio «D1@Svuota1@Parte3.Part» = 6). Copia il nome cosi' com'e'.\n\nIl valore cambia in TUTTE le configurazioni: cambiarne una sola lascerebbe il pezzo diverso a seconda di come lo si guarda.\n\nSe la quota cambia ma il volume del pezzo no, viene detto: quasi sempre vuol dire che quella quota non comanda la geometria che avevi in mente.\n\nRIFIUTA se la quota nuova fa uscire un'apertura dal materiale — un foro o un'asola che stava dentro il pezzo e ne aprirebbe il bordo, o due aperture che si fonderebbero in una: rimette il valore di prima, e lo dice. Succede piu' spesso di quanto sembri, perche' una piastra disegnata centrata cresce e cala DA UNA PARTE SOLA: accorciarla di 50 sposta un fianco di 50, non due di 25.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1747,13 +1749,20 @@
    "nome": "esporta_pdf",
    "famiglia": "tavola",
    "sommario": "Il PDF di TUTTI i fogli, con le pagine contate.",
-   "descrizione": "Scrive il PDF della tavola.\n\nTUTTI i fogli, non solo quello che stai guardando: l'esportazione di serie prende il foglio corrente, e una tavola da tre fogli esce in officina come una pagina sola senza dare nessun errore. Dopo aver scritto il file si CONTANO le pagine e si confrontano con i fogli: se non tornano, te lo dico.",
+   "descrizione": "Scrive il PDF della tavola.\n\nTUTTI i fogli, non solo quello che stai guardando: l'esportazione di serie prende il foglio corrente, e una tavola da tre fogli esce in officina come una pagina sola senza dare nessun errore. Dopo aver scritto il file si CONTANO le pagine e si confrontano con i fogli: se non tornano, te lo dico.\n\nCon «cerca» il PDF si RILEGGE: dimmi le scritte che devono esserci (il numero di disegno, il nome del pezzo) e ti dico quali ci sono («trovati») e quali no («non_trovati»). Il testo nel PDF e' scritto come indici di glifo, e una ricerca nei byte non lo trova: qui si decodifica.",
    "schema": {
     "type": "object",
     "properties": {
      "percorso": {
       "type": "string",
       "description": "dove scrivere il PDF. Se non lo dici, accanto alla tavola con lo stesso nome."
+     },
+     "cerca": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "scritte che il PDF deve contenere: si rilegge il file e si dice quali ci sono"
      }
     },
     "required": []
@@ -1801,7 +1810,7 @@
    "nome": "quote_dal_modello",
    "famiglia": "tavola",
    "sommario": "Porta in tavola le quote che il pezzo ha gia'.",
-   "descrizione": "Prende le quote dal MODELLO e le mette sulle viste.\n\nE' l'unico modo di quotare che questo catalogo offre, e la ragione e' di sicurezza: l'API di SolidWorks permette di scrivere in tavola un numero diverso dalla geometria, e una tavola con una quota falsa passa ogni controllo e manda in officina un pezzo sbagliato. Una quota che viene dal modello non puo' mentire.\n\nSE NON ARRIVA NIENTE, quasi sempre il pezzo non ha quote: succede quando gli schizzi sono stati fatti per coordinate. Non si ripara sulla tavola — si ripara sul pezzo.\n\nDi serie arrivano solo le quote MARCATE per il disegno, cioe' quelle scelte per essere mostrate: con «tutte_le_quote» arrivano anche le altre, e la tavola diventa parecchio piu' fitta.",
+   "descrizione": "Prende le quote dal MODELLO e le mette sulle viste.\n\nFUORI PROCESSO, SU QUESTA INSTALLAZIONE, NON PORTA NIENTE: misurato il 18/9/2026 su un pezzo con sette quote tutte marcate per il disegno, cinque strade di import, zero quote in tavola. In processo, dentro un add-in, l'11/9/2026 ne erano arrivate undici — mai rimisurato. Per mettere quote in tavola da qui c'e' «quota_in_tavola», che le CREA sugli spigoli che la vista mostra.\n\nSE NON ARRIVA NIENTE NON VUOL DIRE che il pezzo non ha quote: fuori processo e' il risultato normale. Prima di concludere che il pezzo va riquotato, guarda nello stato del pezzo se le sue lavorazioni hanno quote.\n\nPerche' esiste lo stesso: una quota che viene dal modello non puo' portare un numero diverso dalla geometria, mentre l'API di SolidWorks permette di scrivere in tavola un testo che la geometria non ha.\n\nDi serie arrivano solo le quote MARCATE per il disegno, cioe' quelle scelte per essere mostrate: con «tutte_le_quote» arrivano anche le altre, e la tavola diventa parecchio piu' fitta.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2736,6 +2745,108 @@
    "precondizione": null,
    "documento": "parte",
    "esempio": "{\"punto1_mm\":[0,0,0],\"punto2_mm\":[50,0,0],\"punto3_mm\":[100,10,0]}"
+  },
+  {
+   "nome": "flangia_base",
+   "famiglia": "lamiera",
+   "sommario": "Una lamiera piegata da un profilo aperto: spessore, raggio di piega, profondita'.",
+   "descrizione": "Fa una LAMIERA da un profilo aperto disegnato su un piano base: una L, una U, uno zeta. Ogni angolo del profilo diventa una piega col raggio chiesto.\n\nI PUNTI SONO LE FACCE INTERNE quando il profilo va nel verso in cui lo spessore resta a DESTRA: misurato su una L da 50 + 30 data dall'alto verso destra, lo sviluppo esce 80,712 mm, uguale al conto a mano sulle facce interne. Dato al contrario, lo spessore va dall'altra parte e i punti diventano le facce ESTERNE: la risposta dice sempre quale delle due («i_punti_sono_le_facce»), perche' fra le due passano 2 volte lo spessore per piega.\n\nLa risposta porta anche lo SVILUPPO: la lunghezza del pezzo spianato misurata da SOLIDWORKS, accanto a quella calcolata a mano col fattore K riletto dal pezzo. Se non combaciano lo dice, prima che il DXF vada al taglio.\n\nRifiuta un tratto piu' corto delle pieghe che lo mangiano (un lato da 1 mm con un raggio da 2): SOLIDWORKS darebbe una lavorazione rossa senza dire quale lato.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "piano": {
+      "type": "string",
+      "enum": [
+       "frontale",
+       "superiore",
+       "destro"
+      ],
+      "description": "il piano base su cui sta il profilo. Predefinito «frontale»."
+     },
+     "punti": {
+      "type": "array",
+      "items": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       }
+      },
+      "description": "il profilo APERTO, almeno due punti [x, y] in mm sul piano. Una L: [[0,30],[0,0],[50,0]]."
+     },
+     "spessore_mm": {
+      "type": "number",
+      "description": "lo spessore della lamiera"
+     },
+     "raggio_mm": {
+      "type": "number",
+      "description": "il raggio INTERNO delle pieghe"
+     },
+     "profondita_mm": {
+      "type": "number",
+      "description": "quanto e' profonda la lamiera, perpendicolare al piano"
+     }
+    },
+    "required": [
+     "punti",
+     "spessore_mm",
+     "raggio_mm",
+     "profondita_mm"
+    ]
+   },
+   "precondizione": "una parte senza corpi, o a cui aggiungere una lamiera",
+   "documento": "parte",
+   "esempio": null
+  },
+  {
+   "nome": "sviluppo_dxf",
+   "famiglia": "lamiera",
+   "sommario": "Il DXF dello sviluppo di una lamiera, per il taglio.",
+   "descrizione": "Scrive il pezzo di lamiera SPIANATO in un DXF: il disegno che va alla macchina di taglio.\n\nIL PEZZO DEV'ESSERE SALVATO: su un pezzo senza file SOLIDWORKS apre «Salva con nome» e resta ad aspettare che qualcuno clicchi — misurato. Si rifiuta prima di chiamare.\n\nIl DXF si RILEGGE: il suo ingombro deve avere per lato lungo lo sviluppo misurato sul pezzo, se no si rifiuta — un DXF di un'altra cosa si apre uguale. Senza «percorso» va accanto al pezzo, col suo nome.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "percorso": {
+      "type": "string",
+      "description": "dove scrivere il .dxf. Predefinito: accanto al pezzo, col suo nome."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "una parte di lamiera, salvata",
+   "documento": "parte",
+   "esempio": null
+  },
+  {
+   "nome": "schema_di_quote",
+   "famiglia": "quote",
+   "sommario": "Quota il pezzo nel modello con DimXpert, da tre facce di riferimento.",
+   "descrizione": "Mette sul PEZZO (non su una tavola) le quote che un disegnatore metterebbe: spessori, lati, diametri dei fori e la loro posizione dai riferimenti. E' DimXpert di SOLIDWORKS, dal nucleo, senza componenti aggiuntivi.\n\nI RIFERIMENTI SONO TRE FACCE PIANE, in ordine: la primaria (di solito quella d'appoggio), la secondaria e la terziaria (due fianchi perpendicolari). Da loro partono le quote di posizione. Con meno di tre rifiuta: DimXpert non rifiuterebbe, metterebbe una quota sola.\n\nLa risposta porta i VALORI delle quote («valori_mm»), letti dalle quote nate: e' il modo di vedere se ha quotato quello che serviva. La risposta di SOLIDWORKS alla chiamata («risposta_di_auto_dimension_scheme») vale False anche quando ha quotato — misurato: non la si guarda.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "riferimenti_uid": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "TRE facce piane dallo stato del documento: primaria, secondaria, terziaria"
+     },
+     "tolleranza": {
+      "type": "string",
+      "enum": [
+       "piu_meno",
+       "geometrica"
+      ],
+      "description": "piu'/meno sulle quote (predefinito) o tolleranze geometriche"
+     }
+    },
+    "required": [
+     "riferimenti_uid"
+    ]
+   },
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
   },
   {
    "nome": "sformo",

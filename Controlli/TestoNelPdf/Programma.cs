@@ -108,13 +108,15 @@ internal static class Programma
             int blocchiDiTesto = Conta(dentro, "BT\n") + Conta(dentro, "BT\r") + Conta(dentro, "BT ");
             int toUnicode = Conta(crudo, "/ToUnicode") + Conta(dentro, "/ToUnicode");
             string estratto = PdfToText(pdf);
+            string decodificato = DecodificaConLeCMap(dentro);
 
             Console.WriteLine();
             Console.WriteLine("      flussi compressi " + flussi + ", decompressi " + decompressi +
                               ", blocchi di testo (BT) " + blocchiDiTesto + ", /ToUnicode " + toUnicode);
             Console.WriteLine("      pdftotext: " + (estratto == null ? "non disponibile" : estratto.Length + " caratteri estratti"));
+            Console.WriteLine("      decodificato con le CMap: " + decodificato.Length + " caratteri");
             Console.WriteLine();
-            Console.WriteLine("      cerca          grezzo  flussi  pdftotext");
+            Console.WriteLine("      cerca          grezzo  flussi  cmap    pdftotext");
             var esiti = new Dictionary<string, bool[]>();
             foreach (var s in new[] { Scritta, Proprieta, Assente })
             {
@@ -123,12 +125,25 @@ internal static class Programma
                     crudo.Contains(s),
                     dentro.Contains(s) || dentro.Contains(Esadecimale(s)),
                     estratto != null && estratto.Contains(s),
+                    decodificato.Contains(s),
                 };
                 esiti[s] = r;
                 Console.WriteLine("      " + s.PadRight(14) + " " + Si(r[0]).PadRight(7) + " " + Si(r[1]).PadRight(7) + " " +
-                                  (estratto == null ? "-" : Si(r[2])));
+                                  Si(r[3]).PadRight(7) + " " + (estratto == null ? "-" : Si(r[2])));
             }
             Console.WriteLine();
+
+            if (esiti[Assente][3])
+            {
+                Console.WriteLine("IL ROSSO DELLA DECODIFICA NON REGGE: " + Assente + " esce dalle CMap. Il decodificatore inventa.");
+                return 7;
+            }
+            if (esiti[Scritta][3] && esiti[Proprieta][3] && estratto != null && esiti[Scritta][2])
+            {
+                Console.WriteLine("REGGE SENZA ATTREZZI: le CMap /ToUnicode, lette qui, danno lo stesso testo di pdftotext.");
+                Console.WriteLine("Il caso di banco di GT3-bis si scrive con questo decodificatore, senza dipendere da Git.");
+                return 0;
+            }
 
             if (esiti[Assente][0] || esiti[Assente][1] || esiti[Assente][2])
             {
@@ -236,6 +251,80 @@ internal static class Programma
             i = fine + 9;
         }
         return fuori.ToString();
+    }
+
+    /// <summary>
+    /// Il testo dei flussi di contenuto, DECODIFICATO con le tabelle
+    /// /ToUnicode (voce GT3-bis). E' la quarta lettura, e quella che un caso di
+    /// banco puo' fare senza `pdftotext`.
+    ///
+    /// Misurato il 24/9 tardi: SOLIDWORKS scrive il testo come indici di glifo
+    /// (stringhe esadecimali in Tj/TJ), e la corrispondenza con le lettere sta
+    /// nelle CMap /ToUnicode (`bfchar`, `bfrange`). Non si ricostruisce quale
+    /// carattere usa quale CMap: si decodifica ogni stringa con ognuna, e si
+    /// tiene tutto. Una stringa decodificata con la tabella sbagliata da'
+    /// spazzatura, non PROVA123 — e il rosso ASSENTE987 e' li' per dirlo se
+    /// non fosse cosi'.
+    /// </summary>
+    internal static string DecodificaConLeCMap(string flussi)
+    {
+        // 1. le tabelle: da ogni blocco begincmap..endcmap
+        var tabelle = new List<Dictionary<int, string>>();
+        int i = 0;
+        while ((i = flussi.IndexOf("begincmap", i, StringComparison.Ordinal)) >= 0)
+        {
+            int fine = flussi.IndexOf("endcmap", i, StringComparison.Ordinal);
+            if (fine < 0) break;
+            var blocco = flussi.Substring(i, fine - i);
+            var t = new Dictionary<int, string>();
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(
+                         blocco, @"beginbfchar(.*?)endbfchar", System.Text.RegularExpressions.RegexOptions.Singleline))
+                foreach (System.Text.RegularExpressions.Match c in System.Text.RegularExpressions.Regex.Matches(
+                             m.Groups[1].Value, @"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>"))
+                    t[Convert.ToInt32(c.Groups[1].Value, 16)] = Utf16(c.Groups[2].Value);
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(
+                         blocco, @"beginbfrange(.*?)endbfrange", System.Text.RegularExpressions.RegexOptions.Singleline))
+                foreach (System.Text.RegularExpressions.Match c in System.Text.RegularExpressions.Regex.Matches(
+                             m.Groups[1].Value, @"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>"))
+                {
+                    int da = Convert.ToInt32(c.Groups[1].Value, 16), a = Convert.ToInt32(c.Groups[2].Value, 16);
+                    int base0 = Convert.ToInt32(c.Groups[3].Value, 16);
+                    for (int k = da; k <= a && k - da < 65536; k++) t[k] = char.ConvertFromUtf32(base0 + (k - da));
+                }
+            if (t.Count > 0) tabelle.Add(t);
+            i = fine + 7;
+        }
+
+        // 2. le stringhe esadecimali dei blocchi di testo, decodificate con
+        //    ogni tabella, a due byte per codice (Identity-H) e a uno.
+        var fuori = new StringBuilder();
+        foreach (System.Text.RegularExpressions.Match s in System.Text.RegularExpressions.Regex.Matches(
+                     flussi, @"<([0-9A-Fa-f\s]{2,})>"))
+        {
+            var esa = System.Text.RegularExpressions.Regex.Replace(s.Groups[1].Value, @"\s", "");
+            foreach (var t in tabelle)
+                foreach (int passo in new[] { 4, 2 })
+                {
+                    if (esa.Length % passo != 0) continue;
+                    var sb = new StringBuilder();
+                    bool tutto = true;
+                    for (int k = 0; k < esa.Length; k += passo)
+                    {
+                        string c;
+                        if (t.TryGetValue(Convert.ToInt32(esa.Substring(k, passo), 16), out c)) sb.Append(c);
+                        else { tutto = false; break; }
+                    }
+                    if (tutto && sb.Length > 0) fuori.Append(sb).Append('\n');
+                }
+        }
+        return fuori.ToString();
+    }
+
+    private static string Utf16(string esa)
+    {
+        var sb = new StringBuilder();
+        for (int k = 0; k + 4 <= esa.Length; k += 4) sb.Append((char)Convert.ToInt32(esa.Substring(k, 4), 16));
+        return sb.ToString();
     }
 
     private static string PdfToText(string pdf)

@@ -509,7 +509,9 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/  7   il guscio, e da che parte toglie
+casi/lavorazioni/  9   il guscio, e da che parte toglie;
+                       la quota che fa uscire l'asola dal materiale, rifiutata
+                       e rimessa com'era (voce E18 c), e la sua gemella
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       15   ogni faccia, non una sola
 casi/smusso/       3   dove un raccordo toglierebbe un altro volume
@@ -532,7 +534,8 @@ casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella)
-casi/tavola/      12   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      13   il primo caso che arriva in TAVOLA (voce GT0);
+                       foglio, isometrica e PDF di un foglio in fila (voce Z-C6);
                        due fogli e lo stesso diedro (voce GT1);
                        il cartiglio dice cosa vuole (voce GT3);
                        i contatori ci sono anche a zero (voce Z-E1);
@@ -548,6 +551,14 @@ casi/tavola/      12   il primo caso che arriva in TAVOLA (voce GT0);
                        il cerchio piu' grande della vista (la gemella)
 casi/saldature/    1   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi (voce Z-C6)
+casi/estrusioni/   2   il tubo ha il buco; l'asola estrusa e' lunga quanto
+                       l'ingombro, estremita' comprese, ed e' un poligono (voce Z-C6)
+casi/lamiera/      4   la L si sviluppa lunga quanto il conto a mano; data al
+                       contrario, i punti diventano le facce esterne; lo
+                       sviluppo senza file rifiutato; il tratto piu' corto
+                       delle pieghe rifiutato (voce GP18)
+casi/quote/        2   la piastra si quota da sola con DimXpert, coi valori
+                       giusti; con due riferimenti rifiuta (voce Z-H3)
 casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 

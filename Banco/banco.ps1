@@ -218,7 +218,11 @@ function Prendi($regex) {
 
 $sw_ver  = Prendi "^SolidWorks (.+)$"
 $lib_ver = Prendi "^libreria ([0-9.]+)"
-$catalogo = Prendi "^catalogo: ([0-9]+) operazioni"
+# DUE NUMERI, col loro nome (voce F15): le eseguibili dalla libreria e quelle
+# servite a catalogo. Il campo «catalogo» del JSON resta, con lo stesso valore
+# di prima (le eseguibili), per chi lo leggeva.
+$eseguibili = Prendi "^eseguibili: ([0-9]+) operazioni"
+$aCatalogo  = Prendi "^eseguibili: [0-9]+ operazioni \(a catalogo: ([0-9]+)\)"
 # ATTESE VERIFICATE N SU M: se i due numeri divergono, qualcosa sta misurando
 # il nulla. Lo scrive il banco, non si ricalcola qui.
 $attese = ($righe | Where-Object { $_ -match "^attese verificate " } | Select-Object -Last 1)
@@ -257,7 +261,7 @@ $md.Add("| | |")
 $md.Add("|---|---|")
 $md.Add("| SOLIDWORKS | " + $sw_ver + " |")
 $md.Add("| libreria | " + $lib_ver + " |")
-$md.Add("| catalogo | " + $catalogo + " operazioni |")
+$md.Add("| operazioni | " + $eseguibili + " eseguibili, " + $aCatalogo + " a catalogo |")
 $md.Add("| commit | " + $commit + " |")
 $md.Add("| durata | " + [int]$durata.TotalSeconds + " s |")
 if (-not [string]::IsNullOrWhiteSpace($Gruppo)) { $md.Add("| gruppo | " + $Gruppo + " |") }
@@ -326,7 +330,9 @@ $oggetto = [ordered]@{
     quando     = $quando.ToString("s")
     solidworks = $sw_ver
     libreria   = $lib_ver
-    catalogo   = $(if ($catalogo -match "^[0-9]+$") { [int]$catalogo } else { $catalogo })
+    catalogo   = $(if ($eseguibili -match "^[0-9]+$") { [int]$eseguibili } else { $eseguibili })
+    eseguibili = $(if ($eseguibili -match "^[0-9]+$") { [int]$eseguibili } else { $eseguibili })
+    a_catalogo = $(if ($aCatalogo -match "^[0-9]+$") { [int]$aCatalogo } else { $aCatalogo })
     commit     = $commit
     gruppo     = $Gruppo
     lento      = [bool]$Lento

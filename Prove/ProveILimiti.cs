@@ -94,6 +94,18 @@ namespace Prove.Contratti
             var file = Directory.GetFiles(cartella, "*.json", SearchOption.AllDirectories);
             var nomi = new HashSet<string>(
                 file.Select(f => Path.GetFileNameWithoutExtension(f)), StringComparer.Ordinal);
+            // LA TOLLERANZA SENZA IL PERCHE'. Il banco la ferma come errore di
+            // banco — ma dopo un'ora di giro. Il 24/9/2026 sera un caso nuovo
+            // l'ha fatto: un giro intero perso per una riga che si vede leggendo
+            // il JSON. Qui si vede prima di lanciare.
+            var senzaPerche = new List<string>();
+            // LA GEMELLA FINTA: stessa operazione e argomenti IDENTICI al rifiuto.
+            // Il banco la ferma come errore di banco (voce F5) — dopo un'ora. Il
+            // 25/9/2026 e' successo con `sviluppo_dxf`, dove il rifiuto dipende
+            // dallo stato e non da un argomento. Qui si confronta prima.
+            var rifiutiDaConfrontare = new List<Tuple<string, string, string, string>>(); // caso, operazione, argomenti, gemella
+            var argomentiPerCaso = new Dictionary<string, List<Tuple<string, string>>>(StringComparer.Ordinal);
+            var js = new JavaScriptSerializer();
 
             foreach (var f in file)
             {
@@ -106,15 +118,48 @@ namespace Prove.Contratti
                 if (caso == null) { piani++; continue; }
                 dichiarati++;
 
+                // Le attese stanno nei passi («attese») e, per la regressione,
+                // in «dopo». Si guardano tutte e due.
+                Action<object, string> guardaLeAttese = (elenco, dove) =>
+                {
+                    foreach (var at in (elenco as object[]) ?? new object[0])
+                    {
+                        var attesa = at as Dictionary<string, object>;
+                        if (attesa == null || !attesa.ContainsKey("tolleranza")) continue;
+                        if (!attesa.ContainsKey("perche_questa_tolleranza"))
+                            senzaPerche.Add(nome + " / " + dove + " / " +
+                                            (attesa.ContainsKey("cosa") ? Convert.ToString(attesa["cosa"]) : "?"));
+                    }
+                };
+                object dopoGrezzo;
+                if (caso.TryGetValue("dopo", out dopoGrezzo)) guardaLeAttese(dopoGrezzo, "dopo");
+
                 object grezzo;
                 if (!caso.TryGetValue("passi", out grezzo)) continue;
                 var passi = grezzo as object[];
                 if (passi == null) continue;
 
+                int numero = 0;
                 foreach (var p in passi)
                 {
                     var passo = p as Dictionary<string, object>;
+                    numero++;
                     if (passo == null) continue;
+                    object at0;
+                    if (passo.TryGetValue("attese", out at0)) guardaLeAttese(at0, "passo " + numero);
+                    object opN, argN;
+                    string opNome = passo.TryGetValue("operazione", out opN) ? Convert.ToString(opN) : "";
+                    string argTesto = passo.TryGetValue("argomenti", out argN) ? js.Serialize(argN) : "{}";
+                    List<Tuple<string, string>> suoi;
+                    if (!argomentiPerCaso.TryGetValue(nome, out suoi)) argomentiPerCaso[nome] = suoi = new List<Tuple<string, string>>();
+                    suoi.Add(Tuple.Create(opNome, argTesto));
+                    object dv0;
+                    if (passo.TryGetValue("deve_fallire", out dv0) && dv0 is Dictionary<string, object>)
+                    {
+                        object g0;
+                        var gem = ((Dictionary<string, object>)dv0).TryGetValue("gemella", out g0) ? Convert.ToString(g0) : null;
+                        if (!string.IsNullOrEmpty(gem)) rifiutiDaConfrontare.Add(Tuple.Create(nome, opNome, argTesto, gem));
+                    }
                     object dv;
                     if (!passo.TryGetValue("deve_fallire", out dv)) continue;
                     var rifiuto = dv as Dictionary<string, object>;
@@ -152,6 +197,31 @@ namespace Prove.Contratti
                   illeggibili.Count == 0
                       ? file.Length + " file (" + dichiarati + " casi, " + piani + " piani)"
                       : string.Join(" | ", illeggibili));
+
+            var finte = new List<string>();
+            foreach (var r in rifiutiDaConfrontare)
+            {
+                List<Tuple<string, string>> passiGemella;
+                if (!argomentiPerCaso.TryGetValue(r.Item4, out passiGemella)) continue;
+                // UN CASO PUO' ESSERE GEMELLA DI SE STESSO (il passo verde e il
+                // rifiuto nello stesso file): li' il rifiuto si trova da solo fra
+                // i passi, e va contato una volta di piu'. Visto al primo giro di
+                // questo controllo, su `due_fogli_e_lo_stesso_diedro`.
+                int uguali = 0;
+                foreach (var p in passiGemella)
+                    if (p.Item1 == r.Item2 && p.Item2 == r.Item3) uguali++;
+                if (uguali > (r.Item4 == r.Item1 ? 1 : 0))
+                    finte.Add(r.Item1 + " -> " + r.Item4 + " (" + r.Item2 + " " + r.Item3 + ")");
+            }
+            Segna("nessuna gemella e' identica al suo rifiuto (voce F5, vista prima del giro)",
+                  finte.Count == 0,
+                  finte.Count == 0 ? rifiutiDaConfrontare.Count + " rifiuti con gemella confrontati" : string.Join(" | ", finte));
+
+            Segna("ogni tolleranza dice perche' (la regola del banco, vista prima del giro)",
+                  senzaPerche.Count == 0,
+                  senzaPerche.Count == 0
+                      ? "nessuna tolleranza muta"
+                      : string.Join(" | ", senzaPerche));
 
             Segna("ogni rifiuto dichiara la sua gemella", senzaGemella.Count == 0,
                   senzaGemella.Count == 0
