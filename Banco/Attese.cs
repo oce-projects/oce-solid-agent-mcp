@@ -670,6 +670,33 @@ namespace ProvaSaldatura
             }
         }
 
+        /// <summary>
+        /// Il valore che una condizione del selettore confronta.
+        ///
+        /// `x`, `y`, `z` SONO LE COORDINATE DI `punto_mm` (25/9/2026, voce E18).
+        /// Fra i quattro spigoli lunghi 120 di una piastra nessun campo dello
+        /// stato distingueva il fianco sinistro davanti da quello dietro, e
+        /// `n=` sceglie per ORDINE — lo stesso ordine che per i corpi si e'
+        /// visto cambiare fra un giro e l'altro (voce Z-C16). Con le
+        /// coordinate lo spigolo si nomina per DOVE sta:
+        /// `@spigolo(asse=Y,x~=-100,z~=20)`.
+        /// </summary>
+        internal static bool ValoreDelCampo(Dictionary<string, object> voce, string campo, out object valore)
+        {
+            int indice = campo == "x" ? 0 : campo == "y" ? 1 : campo == "z" ? 2 : -1;
+            if (indice >= 0)
+            {
+                valore = null;
+                object punto;
+                if (!voce.TryGetValue("punto_mm", out punto)) return false;
+                var elenco = punto as System.Collections.IList;
+                if (elenco == null || elenco.Count < 3) return false;
+                valore = elenco[indice];
+                return true;
+            }
+            return voce.TryGetValue(CampoDelloStato(campo), out valore);
+        }
+
         internal static string UnoSolo(
             string espressione, string famiglia, Dictionary<string, object> stato,
             List<Condizione> condizioni, string campoDaTornare, int? ennesimo)
@@ -689,7 +716,7 @@ namespace ProvaSaldatura
                 {
                     if (c.Campo == "n") continue;
                     object valore;
-                    if (!voce.TryGetValue(CampoDelloStato(c.Campo), out valore) || valore == null)
+                    if (!ValoreDelCampo(voce, c.Campo, out valore) || valore == null)
                     { va = false; break; }
                     if (c.Circa)
                     {

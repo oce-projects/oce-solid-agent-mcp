@@ -179,6 +179,21 @@ namespace ProvaSaldatura
                         string.Join(", ", piani.Take(4)) + (piani.Count > 4 ? " ..." : ""));
 
             GuardaLeGemelle(daControllare, comeEAndata, doveSta);
+
+            // QUALI CASI SONO VERDI, PER NOME (voce Z-C6, la seconda meta').
+            //
+            // `ultimo.json` portava i totali e basta: «972 prove, 0 fallite» non
+            // dice QUALI casi hanno girato, e quindi nessuno poteva controllare
+            // che ogni `Provata = true` puntasse a un caso che gira davvero. Il
+            // 25/9/2026, scrivendo i casi mancanti, due operazioni a catalogo si
+            // sono scoperte mai funzionanti. Questa riga la raccoglie `banco.ps1`
+            // in `casi_verdi`, e la suite di contratto la incrocia col catalogo.
+            //
+            // Esce PRIMA della riga di ====, e non comincia con uno spazio: non
+            // e' una riga di esito, e non va contata come tale.
+            Console.WriteLine("casi verdi: " + string.Join(" ",
+                comeEAndata.Where(kv => kv.Value).Select(kv => kv.Key)
+                           .OrderBy(k => k, StringComparer.Ordinal)));
         }
 
         /// <summary>

@@ -131,14 +131,21 @@ namespace Prove.Contratti
             // l'ha fatto: un giro intero perso per una riga che si vede leggendo
             // il JSON. Qui si vede prima di lanciare.
             var senzaPerche = new List<string>();
+            var passiMuti = new List<string>();
             // LA GEMELLA FINTA: stessa operazione e argomenti IDENTICI al rifiuto.
             // Il banco la ferma come errore di banco (voce F5) — dopo un'ora. Il
             // 25/9/2026 e' successo con `sviluppo_dxf`, dove il rifiuto dipende
             // dallo stato e non da un argomento. Qui si confronta prima.
             var rifiutiDaConfrontare = new List<Tuple<string, string, string, string>>(); // caso, operazione, argomenti, gemella
             var argomentiPerCaso = new Dictionary<string, List<Tuple<string, string>>>(StringComparer.Ordinal);
+            // LA GEMELLA COME LA GUARDA IL BANCO (25/9/2026): il primo passo
+            // RIUSCITO della stessa operazione, e almeno un argomento in comune.
+            var passiDelCaso = new Dictionary<string, List<Tuple<string, Dictionary<string, object>, bool>>>(StringComparer.Ordinal);
+            var rifiutiConGemella = new List<Tuple<string, string, Dictionary<string, object>, string>>();
             var js = new JavaScriptSerializer();
             var casiCoiNumeri = new SortedSet<string>(StringComparer.Ordinal);
+            // Z-C6: operazione -> casi dichiarati che la usano in un passo.
+            var casiPerOp = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
             foreach (var f in file)
             {
@@ -180,12 +187,28 @@ namespace Prove.Contratti
                     if (passo == null) continue;
                     object at0;
                     if (passo.TryGetValue("attese", out at0)) guardaLeAttese(at0, "passo " + numero);
+                    // UN PASSO CHE NON MISURA NIENTE (25/9/2026): il banco lo
+                    // ferma come errore di banco — dopo un'ora e mezza di giro, e
+                    // fermando tutto il caso li'. E' successo col caso della
+                    // tavola guardata: tre fori senza attese, e le attese della
+                    // tavola non sono mai girate. Si vede leggendo il JSON.
+                    else if (!passo.ContainsKey("deve_fallire")) passiMuti.Add(nome + " / passo " + numero);
                     object opN, argN;
                     string opNome = passo.TryGetValue("operazione", out opN) ? Convert.ToString(opN) : "";
                     string argTesto = passo.TryGetValue("argomenti", out argN) ? js.Serialize(argN) : "{}";
                     List<Tuple<string, string>> suoi;
                     if (!argomentiPerCaso.TryGetValue(nome, out suoi)) argomentiPerCaso[nome] = suoi = new List<Tuple<string, string>>();
                     suoi.Add(Tuple.Create(opNome, argTesto));
+                    List<Tuple<string, Dictionary<string, object>, bool>> passiQui;
+                    if (!passiDelCaso.TryGetValue(nome, out passiQui))
+                        passiDelCaso[nome] = passiQui = new List<Tuple<string, Dictionary<string, object>, bool>>();
+                    passiQui.Add(Tuple.Create(opNome,
+                        argN as Dictionary<string, object> ?? new Dictionary<string, object>(),
+                        passo.ContainsKey("deve_fallire")));
+                    HashSet<string> casiDellOp;
+                    if (!casiPerOp.TryGetValue(opNome, out casiDellOp))
+                        casiPerOp[opNome] = casiDellOp = new HashSet<string>(StringComparer.Ordinal);
+                    casiDellOp.Add(nome);
                     // IL CORPO PER NUMERO (Z-C16). Un «C2» scritto a mano in un
                     // campo `_uid`: si esclude solo il numero che il rifiuto
                     // stesso nomina nel messaggio atteso (`C9` che non esiste
@@ -203,7 +226,12 @@ namespace Prove.Contratti
                     {
                         object g0;
                         var gem = ((Dictionary<string, object>)dv0).TryGetValue("gemella", out g0) ? Convert.ToString(g0) : null;
-                        if (!string.IsNullOrEmpty(gem)) rifiutiDaConfrontare.Add(Tuple.Create(nome, opNome, argTesto, gem));
+                        if (!string.IsNullOrEmpty(gem))
+                        {
+                            rifiutiDaConfrontare.Add(Tuple.Create(nome, opNome, argTesto, gem));
+                            rifiutiConGemella.Add(Tuple.Create(nome, opNome,
+                                argN as Dictionary<string, object> ?? new Dictionary<string, object>(), gem));
+                        }
                     }
                     object dv;
                     if (!passo.TryGetValue("deve_fallire", out dv)) continue;
@@ -252,6 +280,9 @@ namespace Prove.Contratti
                       ? "tetto " + CorpiPerNumeroTetto
                       : "sono " + casiCoiNumeri.Count + ": abbassa il tetto a questo numero");
 
+            Segna("ogni passo di un caso misura qualcosa (come pretende il banco)", passiMuti.Count == 0,
+                  passiMuti.Count == 0 ? "nessun passo senza attese" : string.Join(" | ", passiMuti));
+
             Segna("tutti i file di caso si leggono", illeggibili.Count == 0,
                   illeggibili.Count == 0
                       ? file.Length + " file (" + dichiarati + " casi, " + piani + " piani)"
@@ -272,6 +303,33 @@ namespace Prove.Contratti
                 if (uguali > (r.Item4 == r.Item1 ? 1 : 0))
                     finte.Add(r.Item1 + " -> " + r.Item4 + " (" + r.Item2 + " " + r.Item3 + ")");
             }
+            // E NON BASTA CHE NON SIA IDENTICA: il banco la confronta col PRIMO
+            // passo riuscito della stessa operazione e pretende almeno un
+            // argomento in comune con lo stesso valore (`Attese.SiSomigliano`,
+            // la stessa funzione che usa lui). Il 25/9/2026 il rifiuto su «V9»
+            // aveva in comune «quante» col SECONDO passo della gemella e niente
+            // col primo: errore di banco dopo cento minuti di giro.
+            var lontane = new List<string>();
+            foreach (var r in rifiutiConGemella)
+            {
+                List<Tuple<string, Dictionary<string, object>, bool>> passiG;
+                if (!passiDelCaso.TryGetValue(r.Item4, out passiG)) continue;   // gemella assente: si dice qui sotto
+                Dictionary<string, object> suoi = null;
+                foreach (var p in passiG)
+                    if (p.Item1 == r.Item2 && !p.Item3) { suoi = p.Item2; break; }
+                if (suoi == null)
+                {
+                    lontane.Add(r.Item1 + " -> " + r.Item4 + ": nessun passo «" + r.Item2 + "» che riesce");
+                    continue;
+                }
+                string perche;
+                if (!ProvaSaldatura.Attese.SiSomigliano(r.Item3, suoi, out perche))
+                    lontane.Add(r.Item1 + " -> " + r.Item4 + ": " + perche);
+            }
+            Segna("ogni gemella somiglia al suo rifiuto come la vuole il banco (F5, vista prima del giro)",
+                  lontane.Count == 0,
+                  lontane.Count == 0 ? rifiutiConGemella.Count + " coppie guardate col criterio del banco" : string.Join(" | ", lontane));
+
             Segna("nessuna gemella e' identica al suo rifiuto (voce F5, vista prima del giro)",
                   finte.Count == 0,
                   finte.Count == 0 ? rifiutiDaConfrontare.Count + " rifiuti con gemella confrontati" : string.Join(" | ", finte));
@@ -358,6 +416,86 @@ namespace Prove.Contratti
                   mute.Count == Mute
                       ? "zero: ogni operazione col rifiuto provato lo dichiara"
                       : "sono " + mute.Count + ": abbassa il tetto a questo numero");
+
+            OgniOperazioneHaUnCasoVerde(
+                new HashSet<string>(testoDi.Keys, StringComparer.Ordinal), casiPerOp,
+                Path.Combine(Radice(), "Banco", "resoconto", "ultimo.json"));
+        }
+
+        /// <summary>
+        /// Le operazioni a catalogo che oggi NON possono avere un caso verde, e
+        /// perche'. Ognuna si ricontrolla: se esce dal catalogo o trova un caso
+        /// che la usa, il permesso va tolto — come in Z-C7, dove un'eccezione per
+        /// una riga che non c'e' piu' e' un buco che resta aperto.
+        /// </summary>
+        private static readonly Dictionary<string, string> SenzaCasoVerde =
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["quote_dal_modello"] =
+                    "voce Z-E7: fuori processo porta zero quote (Z-C1, 0 su 7); in " +
+                    "processo c'e' una misura di undici, mai ripetuta. Un caso verde " +
+                    "non si scrive finche' non la si rifa' dentro un add-in.",
+            };
+
+        /// <summary>
+        /// LA SECONDA META' DI Z-C6: `Provata = true` deve puntare a un caso che
+        /// ha GIRATO, verde, nell'ultimo giro — non a un caso che esiste.
+        ///
+        /// Il 25/9/2026, scrivendo i casi che mancavano, due operazioni «provate»
+        /// si sono scoperte mai funzionanti (`taglia_membri`, `cordone_saldatura`)
+        /// e una e' uscita dal catalogo (`fazzoletto`). «Provata» voleva dire che
+        /// qualcuno ci aveva scritto true. Adesso lo dice il banco: scrive i nomi
+        /// dei casi verdi in `ultimo.json` («casi_verdi»), e qui si incrociano
+        /// col catalogo servito.
+        /// </summary>
+        private static void OgniOperazioneHaUnCasoVerde(
+            HashSet<string> aCatalogo, Dictionary<string, HashSet<string>> casiPerOp, string ultimoJson)
+        {
+            if (!File.Exists(ultimoJson))
+            {
+                Segna("il banco dice quali casi sono verdi (Z-C6)", false, "manca " + ultimoJson);
+                return;
+            }
+            var ultimo = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(ultimoJson))
+                         as Dictionary<string, object>;
+            object grezzi;
+            var elenco = ultimo != null && ultimo.TryGetValue("casi_verdi", out grezzi) ? grezzi as object[] : null;
+            if (elenco == null)
+            {
+                Segna("il banco dice quali casi sono verdi (Z-C6)", false,
+                      "`ultimo.json` non ha «casi_verdi»: l'ultimo giro e' di un banco che non " +
+                      "li scriveva ancora. Rilancia il banco.");
+                return;
+            }
+            var verdi = new HashSet<string>(elenco.Select(x => Convert.ToString(x)), StringComparer.Ordinal);
+            Segna("il banco dice quali casi sono verdi (Z-C6)", verdi.Count > 0,
+                  verdi.Count + " casi verdi nell'ultimo giro");
+
+            var senza = new List<string>();
+            foreach (var op in aCatalogo.OrderBy(x => x, StringComparer.Ordinal))
+            {
+                if (SenzaCasoVerde.ContainsKey(op)) continue;
+                HashSet<string> suoi;
+                if (!casiPerOp.TryGetValue(op, out suoi)) { senza.Add(op + " (nessun caso)"); continue; }
+                if (!suoi.Any(verdi.Contains))
+                    senza.Add(op + " (" + string.Join(", ", suoi.OrderBy(x => x, StringComparer.Ordinal)) +
+                              ": nessuno verde nell'ultimo giro)");
+            }
+            Segna("ogni operazione a catalogo ha un caso VERDE nell'ultimo giro (Z-C6)",
+                  senza.Count == 0,
+                  senza.Count == 0
+                      ? (aCatalogo.Count - SenzaCasoVerde.Count) + " su " + aCatalogo.Count + ", piu' " +
+                        SenzaCasoVerde.Count + " eccezioni dichiarate col perche'"
+                      : string.Join(" | ", senza));
+
+            var scadute = new List<string>();
+            foreach (var kv in SenzaCasoVerde)
+            {
+                if (!aCatalogo.Contains(kv.Key)) scadute.Add(kv.Key + ": non e' piu' a catalogo, togli l'eccezione");
+                else if (casiPerOp.ContainsKey(kv.Key)) scadute.Add(kv.Key + ": adesso ha un caso, togli l'eccezione");
+            }
+            Segna("e le eccezioni valgono ancora (Z-C6)", scadute.Count == 0,
+                  scadute.Count == 0 ? string.Join(", ", SenzaCasoVerde.Keys) : string.Join(" | ", scadute));
         }
     }
 }

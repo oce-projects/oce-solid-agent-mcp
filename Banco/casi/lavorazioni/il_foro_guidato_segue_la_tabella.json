@@ -1,0 +1,30 @@
+{
+  "nome": "il_foro_guidato_segue_la_tabella",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE Z-C6, la seconda meta'. `foro_guidato` era a catalogo con casi solo nella REGRESSIONE (r01, r02, r07, r14), che gira soltanto con `-Regressione`, e nel C# del banco: nessun caso dichiarato di un giro normale la toccava. L'ha trovato il controllo di contratto nuovo, il 25/9/2026.",
+  "il_difetto_che_questo_caso_prende": "Il foro che esce della misura sbagliata per il TIPO: un M8 filettato vuole il preforo da 6,8 (il filetto e' cosmetico), un M8 di passaggio il foro da 9. Scambiarli fa un pezzo in cui la vite o non entra o non tiene, e la ricostruzione e' pulita lo stesso. `diametro_lavorato_mm` lo dice l'operazione; il volume lo conferma il pezzo.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000, "perche": "200 x 120 x 20" } ] },
+    { "operazione": "foro_guidato",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "taglia": "M8", "tipo": "filettato",
+                     "passante": true, "posizioni": [ { "x_mm": 0, "y_mm": 0 } ] },
+      "attese": [
+        { "cosa": "misure.diametro_lavorato_mm", "uguale": 6.8, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "il preforo dell'M8 dalla tabella ISO di SOLIDWORKS, riletto: il millesimo e' l'arrotondamento",
+          "perche": "FILETTATO = preforo, non il diametro della vite" },
+        { "cosa": "volume_mm3", "uguale": 479273.664, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "480000 meno pi x 3,4^2 x 20 = 726,336: pi dentro, il centesimo e' l'arrotondamento. Un foro da 8 ne toglierebbe 1005,3" } ] },
+    { "operazione": "foro_guidato",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "taglia": "M8", "tipo": "passaggio",
+                     "passante": true, "posizioni": [ { "x_mm": 60, "y_mm": 0 } ] },
+      "attese": [
+        { "cosa": "misure.diametro_lavorato_mm", "uguale": 9, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "il foro di passaggio dell'M8 (serie media ISO 273) dalla tabella, riletto",
+          "perche": "PASSAGGIO = la vite ci passa, quindi piu' largo della vite" },
+        { "cosa": "volume_mm3", "uguale": 478001.319, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "meno pi x 4,5^2 x 20 = 1272,345: pi dentro" } ] }
+  ]
+}

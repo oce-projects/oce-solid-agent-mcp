@@ -229,6 +229,17 @@ $attese = ($righe | Where-Object { $_ -match "^attese verificate " } | Select-Ob
 $attese = [string]$attese
 if ([string]::IsNullOrWhiteSpace($attese)) { $attese = "attese verificate: (non dichiarate)" }
 
+# I CASI VERDI, PER NOME (voce Z-C6). Il banco li scrive su una riga sola; qui
+# diventano un elenco in `ultimo.json`, che la suite di contratto incrocia col
+# catalogo: ogni operazione servita deve avere un caso verde nell'ultimo giro.
+# [string] per la stessa ragione di $fine: niente note di PowerShell nel JSON.
+$rigaVerdi = [string]($righe | Where-Object { $_ -match "^casi verdi: " } | Select-Object -Last 1)
+$casiVerdi = @()
+if (-not [string]::IsNullOrWhiteSpace($rigaVerdi)) {
+    $casiVerdi = @($rigaVerdi.Substring("casi verdi: ".Length).Split(
+        [char[]]@(' '), [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { [string]$_ })
+}
+
 $commit = "(non in un repository)"
 try {
     Push-Location $Radice
@@ -346,6 +357,7 @@ $oggetto = [ordered]@{
     uscita     = $codice
     rosse      = @($fallite | ForEach-Object { $_.TrimEnd() })
     di_banco   = @($errori | ForEach-Object { $_.TrimEnd() })
+    casi_verdi = $casiVerdi
 }
 $json = $oggetto | ConvertTo-Json -Depth 4
 $fileJson = Join-Path $cartella ($nome + ".json")

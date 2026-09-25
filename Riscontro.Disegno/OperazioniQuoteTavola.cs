@@ -78,6 +78,27 @@ namespace Riscontro.Disegno
                     "Metti prima le viste con «viste_standard» o «vista_modello».");
 
             string voluta = Str(a, "vista", null);
+
+            // «V2», COME LO SCRIVE LO STATO DELLA TAVOLA (25/9/2026). I NOMI delle
+            // viste dipendono dalla lingua di SOLIDWORKS — «Vista del disegno2»
+            // qui, «Drawing View2» in inglese — e un piano che li copia vale su
+            // una sola installazione. L'identificativo dello stato no: V1 e' la
+            // prima vista del foglio, nello stesso ordine in cui lo stato le
+            // elenca. Un nome vero vince sempre: se una vista si chiama «V2», e'
+            // quella.
+            if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
+            {
+                var uid = System.Text.RegularExpressions.Regex.Match(voluta.Trim(), @"^[Vv](\d+)$");
+                if (uid.Success)
+                {
+                    int k = int.Parse(uid.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                    if (k < 1 || k > nomi.Count)
+                        return Fallito(
+                            "Non c'e' la vista «" + voluta + "»: la tavola ne ha " + nomi.Count +
+                            " (da V1 a V" + nomi.Count + ").");
+                    voluta = nomi[k - 1];
+                }
+            }
             if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
                 return Fallito(
                     "Non c'e' nessuna vista che si chiami «" + voluta + "». Ci sono: " +
@@ -162,14 +183,65 @@ namespace Riscontro.Disegno
             // ognuna: per uno spigolo verticale SOLIDWORKS costruisce allora
             // una quota la cui linea di misura passa per quella X, cioe' **in
             // mezzo al disegno**. E' il difetto che si vedeva a occhio.
+            IMathUtility mu = null;
+            MathTransform tr = null;
+            try { mu = _sw.GetMathUtility() as IMathUtility; tr = vista.ModelToViewTransform; } catch { }
+            if (mu == null || tr == null)
+                return Fallito(
+                    "Non riesco a leggere come la vista porta il modello sul foglio: senza, le " +
+                    "quote finirebbero nel punto sbagliato, e senza nessun errore.");
+            double scala = 1;
+            try { scala = vista.ScaleDecimal; } catch { }
+            if (scala <= 0) scala = 1;
+
+            // TUTTI GLI SPIGOLI DELLA VISTA, UNA VOLTA SOLA (voce GT11). I fori e
+            // gli smussi si cercano su tutti, non sui primi «quante»: una
+            // piastra con quattro fori non smette di averli perche' si sono
+            // chiesti quattro spigoli.
+            var tutti = new List<Spigolo>();
+            var cerchi = new List<Cerchio>();
+            for (int i = 0; i < disponibili; i++)
+            {
+                var c = CerchioSulFoglio(spigoli[i] as IEdge, i, mu, tr);
+                if (c != null) { cerchi.Add(c); continue; }
+                var s = LeggiSpigolo(vista, spigoli[i], i, mu, tr);
+                if (s != null) tutti.Add(s);
+            }
+
+            // LE QUOTE CHE LA TAVOLA HA GIA', IN TUTTE LE VISTE (voce GT11). «Ciascun
+            // elemento dell'oggetto deve essere quotato non piu' di una volta»
+            // vale per la TAVOLA, non per la vista: il 25/9/2026 la tavola della
+            // piastra portava il 10 nella vista frontale e in quella laterale, e
+            // il 120 nella frontale e in quella dall'alto.
+            var gia = ChiaviGiaQuotate(disegno);
+
             var falliti = new List<string>();
             var misurati = new List<Spigolo>();
             var doppioni = new List<string>();
+            var altrove = new List<string>();
+            var diSmusso = new List<string>();
             var visti = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var i in scelti)
             {
-                var s = LeggiSpigolo(vista, spigoli[i], i);
+                if (cerchi.Exists(c => c.Indice == i)) continue;   // i fori hanno la loro strada, qui sotto
+                var s = tutti.Find(t => t.Indice == i);
                 if (s == null) { falliti.Add(i + " (non riesco a misurarlo sul foglio)"); continue; }
+
+                // LO SMUSSO NON SI QUOTA COI SUOI SPIGOLI. La prima tavola
+                // guardata aveva lo smusso quotato 7,071 in obliquo (l'ipotenusa)
+                // e la catena 5 + 75 accanto all'80: si scrive 5 x 45°, con la
+                // quota da smusso, e le «gambe» — i tratti accorciati dallo
+                // smusso — le dicono la quota da smusso e l'ingombro insieme.
+                if (s.DiSmusso != null)
+                {
+                    diSmusso.Add(i + " (spigolo dello smusso «" + s.DiSmusso + "»: va con la quota da smusso)");
+                    continue;
+                }
+                if (EGambaDiSmusso(s, tutti))
+                {
+                    diSmusso.Add(i + " (accorciato dallo smusso: lo dicono la quota da smusso e l'ingombro)");
+                    continue;
+                }
 
                 // UNA QUOTA PER ELEMENTO, E LA CHIAVE NON E' IL VALORE.
                 //
@@ -190,17 +262,16 @@ namespace Riscontro.Disegno
                     doppioni.Add(i + " (stessa misura dello spigolo " + visti[s.Chiave] + ")");
                     continue;
                 }
+                if (s.NelModello != null && gia.Contains(s.NelModello))
+                {
+                    altrove.Add(i + " (" + Math.Round(s.Lunghezza * 1000.0 / scala, 2).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                                " mm: la stessa estensione e' gia' quotata in un'altra vista)");
+                    continue;
+                }
                 visti[s.Chiave] = i;
+                if (s.NelModello != null) gia.Add(s.NelModello);
                 misurati.Add(s);
             }
-
-            if (misurati.Count == 0)
-                return Fallito(
-                    "Nessuno spigolo da quotare e' rimasto: " + scelti.Count + " provati, " +
-                    doppioni.Count + " erano doppioni di altri" +
-                    (falliti.Count == 0 ? "" : ", " + falliti.Count + " non misurabili") +
-                    ". Su un rettangolo bastano due quote, e chiederne quattro ne " +
-                    "lascia due sole: e' la regola, non un difetto.");
 
             // DALLE PICCOLE ALLE GRANDI, allontanandosi dal pezzo: «le linee di
             // misura andranno disegnate in ordine progressivo, dalle minori
@@ -213,6 +284,8 @@ namespace Riscontro.Disegno
             bool chiedevaIlValore = true;
             bool spenta = false;
             var nate = new List<Dictionary<string, object>>();
+            var fori = new List<Dictionary<string, object>>();
+            var smussi = new List<Dictionary<string, object>>();
             try
             {
                 try
@@ -228,7 +301,26 @@ namespace Riscontro.Disegno
                 // UN CONTATORE PER FASCIA, non uno solo per tutte. La stesura
                 // precedente ne aveva uno globale, e cosi' la seconda quota
                 // scendeva di un passo anche se andava a destra.
-                int sotto = 0, diLato = 0, oblique = 0;
+                int sotto = 0, diLato = 0, aSinistra = 0;
+
+                // ── I FORI, PRIMA DI TUTTO (voce GT11) ──────────────────
+                //
+                // La prima tavola guardata non quotava i fori: ne' il diametro
+                // ne' la posizione, cioe' proprio cio' che in officina serve di
+                // piu'. Il diametro con il RICHIAMO DEL FORO (`AddHoleCallout2`,
+                // «Ø8 PASSANTE»), uno per diametro, col numero dei fori uguali
+                // davanti («4× »: il prefisso si aggiunge a quello che c'e', che
+                // e' il simbolo del diametro — sostituirlo lo cancellava,
+                // misurato). La posizione con quote dai due spigoli di
+                // riferimento, il sinistro e quello in basso: in parallelo,
+                // quindi senza catene e senza quote sovrabbondanti. Misurato il
+                // 25/9/2026: cerchio + spigolo con `AddHorizontalDimension2`
+                // misura dal CENTRO (15 sulla piastra), con `AddDimension` non
+                // nasce niente.
+                var dimensioniFoglio = DimensioniDelFoglio(disegno);
+                if (cerchi.Count > 0)
+                    QuotaIFori(modello, disegno, cerchi, tutti, gia, contorno, distacco, passo, scala,
+                               ref sotto, ref diLato, ref aSinistra, dimensioniFoglio, nate, fori, altrove, falliti);
 
                 foreach (var s in misurati)
                 {
@@ -247,11 +339,6 @@ namespace Riscontro.Disegno
                         // disposte all'esterno delle figure» (scheda
                         // Zanichelli, DISPOSIZIONE DELLE LINEE DI MISURA).
                         // Quindi: orizzontali SOTTO, verticali DI LATO.
-                        //
-                        // La frase «orizzontali sotto, verticali di lato» non
-                        // sta testualmente in nessuna fonte: e' la conseguenza
-                        // obbligata dei due criteri, e si dice qui perche' chi
-                        // legge non debba dedurla di nuovo.
                         double x, y;
                         if (s.Verso == "orizzontale")
                         {
@@ -264,15 +351,24 @@ namespace Riscontro.Disegno
                             x = contorno[2] + distacco + diLato * passo;
                             y = s.Mezzo;
                             diLato++;
+                            // DENTRO LA CORNICE: una vista sul bordo destro del
+                            // foglio manda la fascia fuori dal disegno. Allora a
+                            // sinistra — stessa regola dei fori.
+                            if (dimensioniFoglio != null && x > dimensioniFoglio[0] - 0.015)
+                            {
+                                diLato--;
+                                x = contorno[0] - distacco - aSinistra * passo;
+                                aSinistra++;
+                            }
                         }
                         else
                         {
                             // OBLIQUO: non c'e' una fascia giusta, e metterlo
                             // con le orizzontali lo farebbe sembrare tale. Va
-                            // a sinistra, da solo, e la risposta lo dice.
-                            x = contorno[0] - distacco - oblique * passo;
+                            // a sinistra, e la risposta lo dice.
+                            x = contorno[0] - distacco - aSinistra * passo;
                             y = (contorno[1] + contorno[3]) / 2;
-                            oblique++;
+                            aSinistra++;
                         }
 
                         var natura = modello.Extension.AddDimension(x, y, 0, 0)
@@ -300,6 +396,9 @@ namespace Riscontro.Disegno
                         falliti.Add(s.Indice + " (" + (m.Length > 90 ? m.Substring(0, 90) + "..." : m) + ")");
                     }
                 }
+
+                // ── GLI SMUSSI, CON LA QUOTA DA SMUSSO (voce GT11) ─────
+                QuotaGliSmussi(modello, disegno, spigoli, tutti, gia, contorno, distacco, nate, smussi, altrove, falliti);
             }
             finally
             {
@@ -317,6 +416,17 @@ namespace Riscontro.Disegno
             int messe = dopo - prima;
 
             if (messe <= 0)
+            {
+                // NIENTE DA QUOTARE NON E' LA STESSA COSA DI «NON SONO RIUSCITO».
+                // Se tutto cio' che la vista mostra e' gia' quotato altrove, o e'
+                // un doppione, o sta nello smusso, si dice cosi' — e resta un
+                // rifiuto, perche' zero quote non sono una risposta «fatto».
+                if (falliti.Count == 0 && (doppioni.Count + altrove.Count + diSmusso.Count) > 0)
+                    return Fallito(
+                        "Nella vista «" + nomeVista + "» non c'e' niente da quotare che non lo sia " +
+                        "gia': " + doppioni.Count + " doppioni nella vista, " + altrove.Count +
+                        " gia' quotati in un'altra vista, " + diSmusso.Count + " dello smusso. " +
+                        "Ciascun elemento si quota una volta sola in tutta la tavola (UNI ISO 129-1).");
                 return Fallito(
                     "Nessuna quota e' nata (erano " + prima + ", sono " + dopo + "). " +
                     "La vista «" + nomeVista + "» mostra " + disponibili + " spigoli e ne " +
@@ -324,6 +434,7 @@ namespace Riscontro.Disegno
                     (falliti.Count == 0 ? "" : ": " + string.Join(", ", falliti)) + ". " +
                     "Se la finestra «Modifica» e' rimasta accesa, la chiamata si appende " +
                     "invece di fallire: qui non e' successo, quindi e' altro.");
+            }
 
             double[] dopoContorno = ContornoDi(vista);
 
@@ -354,6 +465,18 @@ namespace Riscontro.Disegno
                 // l'ordine, non la cosa.*
                 ["quote_mm"] = MillimetriInFila(nate),
                 ["spigoli_non_quotati"] = falliti.ToArray(),
+
+                // ── FORI, SMUSSI, E CIO' CHE ERA GIA' QUOTATO (voce GT11) ──
+                //
+                // Nati il 25/9/2026 da una tavola GUARDATA: i fori non erano
+                // quotati, lo smusso era un 7,071 obliquo, il 10 e il 120
+                // comparivano in due viste. Le attese del banco erano tutte
+                // verdi, perche' chiedevano i millimetri delle quote messe —
+                // non se la tavola basta a fare il pezzo.
+                ["fori"] = fori.ToArray(),
+                ["smussi"] = smussi.ToArray(),
+                ["gia_quotate_altrove"] = altrove.ToArray(),
+                ["spigoli_dello_smusso"] = diSmusso.ToArray(),
 
                 // ── I DOPPIONI SI DICONO, NON SI NASCONDONO ─────────────
                 //
@@ -387,7 +510,11 @@ namespace Riscontro.Disegno
                     "dimensione a cui si riferisce, e sta per quanto possibile " +
                     "all'esterno delle figure (UNI ISO 129-1, nella scheda " +
                     "Sammarone/Zanichelli) — piu' la distanza: oltre 10 mm dal " +
-                    "contorno e passo costante fra 7 e 12 su A3/A4.",
+                    "contorno e passo costante fra 7 e 12 su A3/A4. Dentro la cornice " +
+                    "del foglio: se da un lato non c'e' posto, dall'altro. I fori col " +
+                    "richiamo e la posizione dai bordi di riferimento (sinistro e in " +
+                    "basso), attaccata al foro piu' vicino al lato della quota; gli " +
+                    "smussi con la quota da smusso, fuori dal pezzo dalla parte dello smusso.",
 
                 ["cosa_non_guarda"] =
                     "QUALI quote servono, e se bastano. La norma distingue quote " +
@@ -396,8 +523,11 @@ namespace Riscontro.Disegno
                     "dire quante ne ho messe, non se il pezzo e' definito.\n" +
                     "E non guardo: se il TESTO di una quota si sovrappone alle linee " +
                     "del disegno (l'ingombro del riquadro di testo non si legge da " +
-                    "una quota, solo da una nota); se si accavalla con quote messe da " +
-                    "qualcun altro, col cartiglio o con un'altra vista; quale sistema " +
+                    "una quota, solo da una nota — il testo lo metto a meta' del tratto " +
+                    "quotato, calcolato con la trasformazione intera della vista); se si " +
+                    "accavalla con quote messe da qualcun altro, col cartiglio o con " +
+                    "un'altra vista; se una quota di posizione dei fori andava presa da un " +
+                    "altro riferimento funzionale (prendo i bordi); quale sistema " +
                     "adottare fra in serie, in parallelo e a quote sovrapposte; se una " +
                     "quota andava fra parentesi come ausiliaria. Tolleranze, rugosita' " +
                     "e riferimenti geometrici non li metto.\n" +
@@ -432,6 +562,14 @@ namespace Riscontro.Disegno
             /// in posti diversi hanno chiavi diverse, e si quotano tutti e due.
             /// </summary>
             public string Chiave;
+            /// <summary>Gli estremi sul foglio e nel modello, in metri.</summary>
+            public double[] DaFoglio, AFoglio, DaModello, AModello;
+            /// <summary>Asse e intervallo nel MODELLO: la chiave fra viste. Null se obliquo.</summary>
+            public string NelModello;
+            /// <summary>La lavorazione di smusso a cui appartiene, o null.</summary>
+            public string DiSmusso;
+            /// <summary>L'entita' come la espone la vista, per selezionarla.</summary>
+            public object Entita;
         }
 
         /// <summary>
@@ -455,7 +593,7 @@ namespace Riscontro.Disegno
         /// foglio, e da qui esce solo il centro RELATIVO lungo l'asse di
         /// misura, riportato dentro l'ingombro.
         /// </summary>
-        private static Spigolo LeggiSpigolo(IView vista, object entita, int indice)
+        private static Spigolo LeggiSpigolo(IView vista, object entita, int indice, IMathUtility mu, MathTransform tr)
         {
             try
             {
@@ -467,25 +605,28 @@ namespace Riscontro.Disegno
                 var a = p.EndPoint as double[];
                 if (da == null || a == null || da.Length < 3 || a.Length < 3) return null;
 
-                double[] m = null;
-                try { m = vista.ModelToViewTransform?.ArrayData as double[]; } catch { }
-                if (m == null || m.Length < 13) return null;
-
-                // LA POSIZIONE DELLA VISTA SUL FOGLIO VA SOMMATA, e non e' una
-                // rifinitura: senza, la prima prova ha messo la quota
-                // orizzontale a x=0 e la verticale a y=5 mm, cioe' nell'angolo
-                // in basso a sinistra del foglio, mentre la vista stava a
-                // x 28..160, y 218..240. `ModelToViewTransform` porta il punto
-                // nel sistema della VISTA, dove l'origine e' il centro della
-                // vista; il foglio non lo sa.
-                double[] pos = null;
-                try { pos = vista.Position as double[]; } catch { }
-                double ox = pos != null && pos.Length > 0 ? pos[0] : 0;
-                double oy = pos != null && pos.Length > 1 ? pos[1] : 0;
-
-                double[] daV = InVista(da, m), aV = InVista(a, m);
-                daV[0] += ox; daV[1] += oy;
-                aV[0] += ox; aV[1] += oy;
+                // SUL FOGLIO CON LA TRASFORMAZIONE INTERA, e la stesura di prima
+                // sbagliava due volte (misurato il 25/9/2026, quando la tavola e'
+                // stata GUARDATA e si sono visti i numeri sopra le linee):
+                //
+                //   1. usava la matrice TRASPOSTA: per una vista ruotata la Y
+                //      usciva specchiata attorno al centro — nella vista
+                //      dall'alto la striscia dello smusso cadeva a y 70,7
+                //      invece di 145,7, e il «5» si scriveva in fondo alla
+                //      vista, con una linea di misura lunga quanto il pezzo;
+                //   2. sommava `IView.Position` al posto della traslazione della
+                //      matrice. Sono uguali solo se il pezzo e' centrato
+                //      sull'origine: per una piastra alta 10 estrusa da 0, la
+                //      vista frontale la metteva fra 229,5 e 239,5 mentre sta
+                //      fra 224,5 e 234,5 (il contorno della vista e' simmetrico
+                //      di 5,94 mm). Il testo dei «10» verticali finiva 5 mm piu'
+                //      su, SOPRA la linea di richiamo.
+                //
+                // Le orizzontali si salvavano perche' la piastra era centrata in
+                // X. `MultiplyTransform` fa il conto come lo fa SOLIDWORKS, e il
+                // punto esce gia' in coordinate foglio.
+                double[] daV = SulFoglio(da, mu, tr), aV = SulFoglio(a, mu, tr);
+                if (daV == null || aV == null) return null;
                 double dx = aV[0] - daV[0], dy = aV[1] - daV[1];
                 double lung = Math.Sqrt(dx * dx + dy * dy);
                 if (lung < 1e-9) return null;
@@ -515,23 +656,512 @@ namespace Riscontro.Disegno
                 }
                 s.Mezzo = (a0 + a1) / 2;
                 s.Chiave = s.Verso + "|" + Math.Round(a0 * 100000) + "|" + Math.Round(a1 * 100000);
+                s.DaFoglio = daV;
+                s.AFoglio = aV;
+                s.DaModello = da;
+                s.AModello = a;
+                s.NelModello = ChiaveNelModello(da, a);
+                s.DiSmusso = TocCaUnoSmusso(spigolo);
+                s.Entita = entita;
                 return s;
             }
             catch { return null; }
         }
 
-        /// <summary>Un punto del modello, ruotato e scalato come lo vede la vista.</summary>
-        private static double[] InVista(double[] p, double[] m)
+        /// <summary>Un foro visto lungo il suo asse: un cerchio intero nella vista.</summary>
+        private sealed class Cerchio
         {
-            // `ArrayData` di una MathTransform: [0..8] la rotazione per righe,
-            // [9..11] la traslazione, [12] la scala.
-            double sc = m.Length > 12 && Math.Abs(m[12]) > 1e-12 ? m[12] : 1.0;
-            return new[]
+            public int Indice;
+            public IEdge Spigolo;
+            public double[] CentroFoglio;   // metri
+            public double DiametroMm;
+        }
+
+        private static readonly System.Globalization.CultureInfo Ci = System.Globalization.CultureInfo.InvariantCulture;
+
+        /// <summary>Il cerchio sul foglio, se lo spigolo e' un cerchio intero; null altrimenti.</summary>
+        private static Cerchio CerchioSulFoglio(IEdge e, int indice, IMathUtility mu, MathTransform tr)
+        {
+            try
             {
-                (m[0] * p[0] + m[1] * p[1] + m[2] * p[2]) * sc,
-                (m[3] * p[0] + m[4] * p[1] + m[5] * p[2]) * sc,
-                (m[6] * p[0] + m[7] * p[1] + m[8] * p[2]) * sc,
-            };
+                var curva = e?.GetCurve() as ICurve;
+                if (curva == null || !curva.IsCircle()) return null;
+                var p = e.GetCurveParams3() as ICurveParamData;
+                var da = p?.StartPoint as double[];
+                var a = p?.EndPoint as double[];
+                // UN CERCHIO INTERO ha inizio e fine nello stesso punto: un arco
+                // (un raccordo, una asola) non e' un foro da richiamare.
+                if (da == null || a == null ||
+                    Math.Abs(da[0] - a[0]) + Math.Abs(da[1] - a[1]) + Math.Abs(da[2] - a[2]) > 1e-8) return null;
+                var cp = curva.CircleParams as double[];
+                if (cp == null || cp.Length < 7) return null;
+                var centro = SulFoglio(new[] { cp[0], cp[1], cp[2] }, mu, tr);
+                if (centro == null) return null;
+                return new Cerchio { Indice = indice, Spigolo = e, CentroFoglio = centro, DiametroMm = Math.Round(cp[6] * 2000.0, 3) };
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Lo spigolo tocca uno spigolo di smusso con un estremo (nel modello)?
+        /// Allora e' un tratto ACCORCIATO dallo smusso — il 75 accanto all'80,
+        /// il 5 accanto al 10 — e la sua misura la dicono la quota da smusso e
+        /// l'ingombro insieme: quotarlo e' una quota in piu'.
+        /// </summary>
+        private static bool EGambaDiSmusso(Spigolo s, List<Spigolo> tutti)
+        {
+            foreach (var t in tutti)
+            {
+                if (t.DiSmusso == null || ReferenceEquals(t, s)) continue;
+                foreach (var p in new[] { s.DaModello, s.AModello })
+                    foreach (var q in new[] { t.DaModello, t.AModello })
+                        if (Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) + Math.Abs(p[2] - q[2]) < 1e-7) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Cosa e' GIA' quotato nella tavola, in tutte le viste: le estensioni
+        /// del modello (asse e intervallo) delle quote su uno spigolo solo, i
+        /// fori per diametro, gli smussi per lavorazione. Si legge dagli
+        /// spigoli a cui le quote sono attaccate, non dai numeri: due 10
+        /// diversi sono due elementi.
+        /// </summary>
+        private static HashSet<string> ChiaviGiaQuotate(IDrawingDoc disegno)
+        {
+            var fuori = new HashSet<string>(StringComparer.Ordinal);
+            try
+            {
+                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
+                while (v != null)
+                {
+                    var d = v.GetFirstDisplayDimension5();
+                    while (d != null)
+                    {
+                        try
+                        {
+                            var ann = d.GetAnnotation() as IAnnotation;
+                            var ents = ann?.GetAttachedEntities3() as object[];
+                            var dritti = new List<IEdge>();
+                            if (ents != null)
+                                foreach (var o in ents)
+                                {
+                                    var e = o as IEdge;
+                                    if (e == null) continue;
+                                    var c = e.GetCurve() as ICurve;
+                                    if (c != null && c.IsCircle())
+                                    {
+                                        var cp = c.CircleParams as double[];
+                                        if (cp != null && cp.Length >= 7)
+                                            fuori.Add("foro|" + Math.Round(cp[6] * 2000.0, 2).ToString("0.00", Ci));
+                                        continue;
+                                    }
+                                    var sm = TocCaUnoSmusso(e);
+                                    if (sm != null) fuori.Add("smusso|" + sm);
+                                    if (c != null && c.IsLine()) dritti.Add(e);
+                                }
+                            if (dritti.Count == 1)
+                            {
+                                var p = dritti[0].GetCurveParams3() as ICurveParamData;
+                                var k = ChiaveNelModello(p.StartPoint as double[], p.EndPoint as double[]);
+                                if (k != null) fuori.Add(k);
+                            }
+                        }
+                        catch { }
+                        d = d.GetNext5();
+                    }
+                    v = v.GetNextView() as IView;
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        /// <summary>
+        /// I FORI: un richiamo per diametro (col numero dei fori uguali davanti)
+        /// e le quote di posizione dai due spigoli di riferimento, in parallelo.
+        /// </summary>
+        private void QuotaIFori(
+            IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> cerchi, List<Spigolo> tutti,
+            HashSet<string> gia, double[] contorno, double distacco, double passo, double scala,
+            ref int sotto, ref int diLato, ref int aSinistra, double[] foglio,
+            List<Dictionary<string, object>> nate, List<Dictionary<string, object>> fori,
+            List<string> altrove, List<string> falliti)
+        {
+            var gruppi = new SortedDictionary<double, List<Cerchio>>();
+            foreach (var c in cerchi)
+            {
+                double k = Math.Round(c.DiametroMm, 2);
+                if (!gruppi.ContainsKey(k)) gruppi[k] = new List<Cerchio>();
+                gruppi[k].Add(c);
+            }
+
+            var daPosizionare = new List<Cerchio>();
+            foreach (var g in gruppi)
+            {
+                string chiave = "foro|" + g.Key.ToString("0.00", Ci);
+                if (gia.Contains(chiave))
+                {
+                    altrove.Add("fori Ø" + g.Key.ToString("0.##", Ci) + " (gia' quotati in questa tavola)");
+                    continue;
+                }
+                // Il richiamo va sul foro in alto a sinistra: e' il primo che si
+                // legge, e la linea di richiamo esce verso l'alto, fuori dal pezzo.
+                Cerchio capo = g.Value[0];
+                foreach (var c in g.Value)
+                    if (c.CentroFoglio[1] > capo.CentroFoglio[1] + 1e-6 ||
+                        (Math.Abs(c.CentroFoglio[1] - capo.CentroFoglio[1]) < 1e-6 && c.CentroFoglio[0] < capo.CentroFoglio[0]))
+                        capo = c;
+
+                int quotePrima = ContaQuote(disegno);
+                IDisplayDimension richiamo = null;
+                try
+                {
+                    modello.ClearSelection2(true);
+                    if ((capo.Spigolo as IEntity).Select4(false, null))
+                        richiamo = disegno.AddHoleCallout2(
+                            capo.CentroFoglio[0] - 0.015, contorno[3] + distacco * 0.8, 0) as IDisplayDimension;
+                }
+                catch { }
+                string come = "richiamo del foro";
+                if (richiamo == null || ContaQuote(disegno) <= quotePrima)
+                {
+                    // Senza richiamo (un foro che non viene da un taglio
+                    // riconoscibile), il diametro semplice.
+                    try
+                    {
+                        modello.ClearSelection2(true);
+                        if ((capo.Spigolo as IEntity).Select4(false, null))
+                            richiamo = modello.AddDiameterDimension2(
+                                capo.CentroFoglio[0] - 0.015, contorno[3] + distacco * 0.8, 0) as IDisplayDimension;
+                        come = "quota di diametro";
+                    }
+                    catch { }
+                }
+                if (richiamo == null || ContaQuote(disegno) <= quotePrima)
+                {
+                    falliti.Add("fori Ø" + g.Key.ToString("0.##", Ci) + " (il richiamo non e' nato)");
+                    continue;
+                }
+                if (g.Value.Count > 1)
+                {
+                    // «4× » DAVANTI a cio' che c'e': il prefisso di un richiamo e'
+                    // gia' il simbolo del diametro (<MOD-DIAM>), e sostituirlo lo
+                    // cancellava — misurato, usciva «4× 8».
+                    try
+                    {
+                        string prefisso = richiamo.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? "";
+                        richiamo.SetText((int)swDimensionTextParts_e.swDimensionTextPrefix,
+                                         g.Value.Count.ToString(Ci) + "× " + prefisso);
+                    }
+                    catch { }
+                }
+                var descritto = DescriviQuota(richiamo, capo.Indice);
+                descritto["orientamento"] = come;
+                descritto["posizione_mm"] = DovEFinita(richiamo);
+                nate.Add(descritto);
+                fori.Add(new Dictionary<string, object>
+                {
+                    ["diametro_mm"] = g.Key,
+                    ["quanti"] = g.Value.Count,
+                    ["come"] = come,
+                    ["diametro_riletto_mm"] = descritto.ContainsKey("mm") ? descritto["mm"] : null,
+                });
+                gia.Add(chiave);
+                daPosizionare.AddRange(g.Value);
+            }
+            if (daPosizionare.Count == 0) return;
+
+            // ── LE POSIZIONI, DAI DUE SPIGOLI DI RIFERIMENTO ─────────────
+            //
+            // Quello piu' a sinistra fra i verticali e quello piu' in basso fra
+            // gli orizzontali (a parita', il piu' lungo): sono i bordi del pezzo
+            // in questa vista. Uno smusso non fa da riferimento.
+            Spigolo sx = null, giu = null;
+            foreach (var s in tutti)
+            {
+                if (s.DiSmusso != null) continue;
+                if (s.Verso == "verticale")
+                {
+                    double x = s.DaFoglio[0];
+                    if (sx == null || x < sx.DaFoglio[0] - 1e-6 || (Math.Abs(x - sx.DaFoglio[0]) < 1e-6 && s.Lunghezza > sx.Lunghezza)) sx = s;
+                }
+                else if (s.Verso == "orizzontale")
+                {
+                    double y = s.DaFoglio[1];
+                    if (giu == null || y < giu.DaFoglio[1] - 1e-6 || (Math.Abs(y - giu.DaFoglio[1]) < 1e-6 && s.Lunghezza > giu.Lunghezza)) giu = s;
+                }
+            }
+
+            // Una colonna per ogni X distinta dei centri, una riga per ogni Y:
+            // quattro fori in rettangolo sono due colonne e due righe, quattro
+            // quote. In ordine di distanza, le piu' vicine al pezzo per prime.
+            //
+            // LA QUOTA SI ATTACCA AL FORO PIU' VICINO AL SUO LATO (guardato il
+            // 25/9/2026): la prima stesura prendeva un foro qualunque della
+            // riga, e la linea di richiamo del 15 partiva dal foro in basso a
+            // DESTRA e attraversava tutta la piastra fino alla quota a sinistra.
+            if (sx != null)
+            {
+                var colonne = new SortedDictionary<double, Cerchio>();
+                foreach (var c in daPosizionare)
+                {
+                    double d = Math.Round((c.CentroFoglio[0] - sx.DaFoglio[0]) * 1000.0, 2);
+                    if (d <= 0.01) continue;
+                    Cerchio suo;
+                    // le orizzontali stanno SOTTO: il foro piu' in basso della colonna
+                    if (!colonne.TryGetValue(d, out suo) || c.CentroFoglio[1] < suo.CentroFoglio[1]) colonne[d] = c;
+                }
+                foreach (var col in colonne)
+                    PosizioneDelForo(modello, disegno, col.Value, sx, true, col.Key / scala,
+                                     (col.Value.CentroFoglio[0] + sx.DaFoglio[0]) / 2,
+                                     contorno[1] - distacco - sotto++ * passo, nate, falliti);
+            }
+            if (giu != null)
+            {
+                // DA CHE PARTE: dove c'e' posto DENTRO la cornice. La prima
+                // stesura le metteva sempre a sinistra, e con la vista vicina al
+                // bordo del foglio il 65 e' uscito dalla cornice.
+                var righe = new SortedDictionary<double, List<Cerchio>>();
+                foreach (var c in daPosizionare)
+                {
+                    double d = Math.Round((c.CentroFoglio[1] - giu.DaFoglio[1]) * 1000.0, 2);
+                    if (d <= 0.01) continue;
+                    if (!righe.ContainsKey(d)) righe[d] = new List<Cerchio>();
+                    righe[d].Add(c);
+                }
+                double margine = 0.015;
+                double ultimaDestra = contorno[2] + distacco + (diLato + righe.Count - 1) * passo;
+                double ultimaSinistra = contorno[0] - distacco - (aSinistra + righe.Count - 1) * passo;
+                bool aDestra = foglio == null || foglio.Length < 2 || foglio[0] <= 0
+                    ? false
+                    : ultimaDestra <= foglio[0] - margine || ultimaSinistra < margine;
+                foreach (var riga in righe)
+                {
+                    // il foro della riga piu' vicino al lato della quota
+                    Cerchio scelto = riga.Value[0];
+                    foreach (var c in riga.Value)
+                        if (aDestra ? c.CentroFoglio[0] > scelto.CentroFoglio[0] : c.CentroFoglio[0] < scelto.CentroFoglio[0]) scelto = c;
+                    double x = aDestra
+                        ? contorno[2] + distacco + diLato++ * passo
+                        : contorno[0] - distacco - aSinistra++ * passo;
+                    PosizioneDelForo(modello, disegno, scelto, giu, false, riga.Key / scala,
+                                     x, (scelto.CentroFoglio[1] + giu.DaFoglio[1]) / 2, nate, falliti);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Larghezza e altezza del foglio corrente, in metri, o null. Servono a
+        /// non mettere una quota fuori dalla cornice.
+        /// </summary>
+        private static double[] DimensioniDelFoglio(IDrawingDoc disegno)
+        {
+            try
+            {
+                var foglio = disegno.GetCurrentSheet() as ISheet;
+                var p = foglio?.GetProperties2() as double[];
+                if (p != null && p.Length >= 7 && p[5] > 0 && p[6] > 0) return new[] { p[5], p[6] };
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// Una quota di posizione fra il CENTRO di un foro e uno spigolo di
+        /// riferimento, orizzontale o verticale. Si rilegge: deve valere la
+        /// distanza vista sul foglio divisa per la scala — se misurasse al bordo
+        /// del foro invece che al centro, sarebbe un raggio di troppo.
+        /// </summary>
+        private void PosizioneDelForo(
+            IModelDoc2 modello, IDrawingDoc disegno, Cerchio foro, Spigolo riferimento, bool orizzontale,
+            double attesoMm, double x, double y,
+            List<Dictionary<string, object>> nate, List<string> falliti)
+        {
+            int quotePrima = ContaQuote(disegno);
+            IDisplayDimension quota = null;
+            try
+            {
+                modello.ClearSelection2(true);
+                if ((foro.Spigolo as IEntity).Select4(false, null) && riferimento != null)
+                {
+                    // Lo spigolo di riferimento si prende dalla vista, come gli altri.
+                    var ent = riferimento.Entita as IEntity;
+                    if (ent != null && ent.Select4(true, null))
+                        quota = (orizzontale
+                            ? modello.AddHorizontalDimension2(x, y, 0)
+                            : modello.AddVerticalDimension2(x, y, 0)) as IDisplayDimension;
+                }
+            }
+            catch { }
+            if (quota == null || ContaQuote(disegno) <= quotePrima)
+            {
+                falliti.Add("posizione del foro a " + attesoMm.ToString("0.##", Ci) + " mm (la quota non e' nata)");
+                return;
+            }
+            var descritta = DescriviQuota(quota, foro.Indice);
+            descritta["orientamento"] = orizzontale ? "posizione orizzontale del foro" : "posizione verticale del foro";
+            descritta["posizione_mm"] = DovEFinita(quota);
+            object mm;
+            if (descritta.TryGetValue("mm", out mm) && mm != null &&
+                Math.Abs(Convert.ToDouble(mm, Ci) - attesoMm) > 0.05)
+                descritta["attenzione"] = "vale " + Convert.ToDouble(mm, Ci).ToString("0.##", Ci) + " invece di " +
+                                          attesoMm.ToString("0.##", Ci) + ": forse misura al bordo del foro e non al centro";
+            nate.Add(descritta);
+        }
+
+        /// <summary>
+        /// GLI SMUSSI: uno per lavorazione, con la quota da smusso
+        /// (`IDrawingDoc.AddChamferDim`, «5 x 45°»), dove lo smusso si vede di
+        /// profilo — uno spigolo di smusso obliquo sulla vista. Si seleziona lo
+        /// spigolo dello smusso e una delle sue «gambe», come a mano.
+        /// </summary>
+        private void QuotaGliSmussi(
+            IModelDoc2 modello, IDrawingDoc disegno, object[] spigoli, List<Spigolo> tutti,
+            HashSet<string> gia, double[] contorno, double distacco,
+            List<Dictionary<string, object>> nate, List<Dictionary<string, object>> smussi,
+            List<string> altrove, List<string> falliti)
+        {
+            var fatti = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var s in tutti)
+            {
+                if (s.DiSmusso == null || s.Verso != "obliquo" || fatti.Contains(s.DiSmusso)) continue;
+                fatti.Add(s.DiSmusso);
+                string chiave = "smusso|" + s.DiSmusso;
+                if (gia.Contains(chiave))
+                {
+                    altrove.Add("smusso «" + s.DiSmusso + "» (gia' quotato in questa tavola)");
+                    continue;
+                }
+                Spigolo gamba = null;
+                foreach (var t in tutti)
+                {
+                    if (t.DiSmusso != null || t.Verso == "obliquo") continue;
+                    foreach (var p in new[] { t.DaModello, t.AModello })
+                        foreach (var q in new[] { s.DaModello, s.AModello })
+                            if (Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) + Math.Abs(p[2] - q[2]) < 1e-7) gamba = t;
+                    if (gamba != null) break;
+                }
+                if (gamba == null)
+                {
+                    falliti.Add("smusso «" + s.DiSmusso + "» (nessuno spigolo a cui appoggiare la quota da smusso)");
+                    continue;
+                }
+                // Il testo FUORI dal pezzo, dalla parte dello smusso: dal centro
+                // della vista verso lo smusso, oltre il contorno.
+                double mx = (s.DaFoglio[0] + s.AFoglio[0]) / 2, my = (s.DaFoglio[1] + s.AFoglio[1]) / 2;
+                double cx = (contorno[0] + contorno[2]) / 2, cy = (contorno[1] + contorno[3]) / 2;
+                double vx = mx - cx, vy = my - cy, l = Math.Sqrt(vx * vx + vy * vy);
+                if (l < 1e-9) { vx = -1; vy = 1; l = Math.Sqrt(2); }
+                double x = mx + vx / l * (distacco + 0.006), y = my + vy / l * (distacco + 0.006);
+
+                int quotePrima = ContaQuote(disegno);
+                IDisplayDimension quota = null;
+                try
+                {
+                    modello.ClearSelection2(true);
+                    if ((spigoli[s.Indice] as IEntity).Select4(false, null) &&
+                        (spigoli[gamba.Indice] as IEntity).Select4(true, null))
+                        quota = disegno.AddChamferDim(x, y, 0) as IDisplayDimension;
+                }
+                catch { }
+                if (quota == null || ContaQuote(disegno) <= quotePrima)
+                {
+                    falliti.Add("smusso «" + s.DiSmusso + "» (la quota da smusso non e' nata)");
+                    continue;
+                }
+                var descritta = DescriviQuota(quota, s.Indice);
+                descritta["orientamento"] = "quota da smusso";
+                descritta["posizione_mm"] = DovEFinita(quota);
+
+                // LA QUOTA DA SMUSSO E' FATTA DI DUE QUOTE, e la prima e'
+                // L'ANGOLO. Misurato il 25/9/2026: GetDimension2(0) = 0,785 rad
+                // (45°), GetDimension2(1) = 7,071 mm, la larghezza della faccia
+                // di smusso — e il numero sul foglio e' «5 x 45°». Il lato che si
+                // legge e' quindi larghezza x cos(angolo). Per indice si
+                // riportava 785,398 «mm», cioe' l'angolo in radianti per mille:
+                // si distinguono per TIPO (`swDimensionParamType_e`: lineare 0,
+                // angolare 1), non per posizione.
+                double? angolo = null, larghezza = null;
+                for (int k = 0; k < 2; k++)
+                {
+                    try
+                    {
+                        var dk = quota.GetDimension2(k) as IDimension;
+                        if (dk == null) continue;
+                        int tipo = dk.GetType();
+                        if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angolo = dk.GetSystemValue2("");
+                        else if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) larghezza = dk.GetSystemValue2("");
+                    }
+                    catch { }
+                }
+                object lato = null;
+                if (angolo.HasValue && larghezza.HasValue)
+                    lato = Math.Round(larghezza.Value * Math.Cos(angolo.Value) * 1000.0, 3);
+                descritta["mm"] = lato;
+                var riga = new Dictionary<string, object>
+                {
+                    ["lavorazione"] = s.DiSmusso,
+                    ["lato_mm"] = lato,
+                    ["angolo_gradi"] = angolo.HasValue ? (object)Math.Round(angolo.Value * 180.0 / Math.PI, 2) : null,
+                    ["larghezza_faccia_mm"] = larghezza.HasValue ? (object)Math.Round(larghezza.Value * 1000.0, 3) : null,
+                };
+                smussi.Add(riga);
+                nate.Add(descritta);
+                gia.Add(chiave);
+            }
+        }
+
+        /// <summary>Un punto del modello sul foglio (metri), o null.</summary>
+        private static double[] SulFoglio(double[] p, IMathUtility mu, MathTransform tr)
+        {
+            try
+            {
+                var q = ((IMathPoint)mu.CreatePoint(p)).MultiplyTransform(tr) as IMathPoint;
+                var fuori = q?.ArrayData as double[];
+                return fuori != null && fuori.Length >= 2 ? fuori : null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// L'ELEMENTO NEL MODELLO: l'asse lungo cui corre lo spigolo e il suo
+        /// intervallo, al centesimo di millimetro. Due spigoli con la stessa
+        /// chiave misurano la stessa estensione del pezzo, anche se stanno in
+        /// due viste diverse — ed e' cosi' che si riconosce la quotatura
+        /// ripetuta FRA viste: il 10 della vista frontale e il 10 di quella
+        /// laterale sono lo stesso spessore. Null per uno spigolo obliquo.
+        /// </summary>
+        private static string ChiaveNelModello(double[] da, double[] a)
+        {
+            double dx = a[0] - da[0], dy = a[1] - da[1], dz = a[2] - da[2];
+            double l = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            if (l < 1e-9) return null;
+            int asse = Math.Abs(dx) / l > 0.999 ? 0 : Math.Abs(dy) / l > 0.999 ? 1 : Math.Abs(dz) / l > 0.999 ? 2 : -1;
+            if (asse < 0) return null;
+            double v0 = Math.Min(da[asse], a[asse]) * 1000.0, v1 = Math.Max(da[asse], a[asse]) * 1000.0;
+            return "XYZ"[asse] + "|" + Math.Round(v0, 2).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) +
+                   "|" + Math.Round(v1, 2).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Il nome della lavorazione di smusso a cui lo spigolo appartiene
+        /// (una delle sue due facce viene da uno smusso), o null.
+        /// </summary>
+        private static string TocCaUnoSmusso(IEdge spigolo)
+        {
+            try
+            {
+                var facce = spigolo.GetTwoAdjacentFaces2() as object[];
+                if (facce == null) return null;
+                foreach (var o in facce)
+                {
+                    var f = (o as IFace2)?.GetFeature() as IFeature;
+                    if (f != null && f.GetTypeName2() == "Chamfer") return f.Name;
+                }
+            }
+            catch { }
+            return null;
         }
 
         /// <summary>L'ingombro della vista adesso, o `null` se non si legge.</summary>

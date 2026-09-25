@@ -204,8 +204,23 @@ using System.Runtime.InteropServices;
 //            tocchino ad angolo e rilegge il lato dalla feature.
 //          - `fazzoletto` esce dal catalogo (`Provata = false`): non nasce in
 //            nessuna delle sedici varianti provate.
-[assembly: AssemblyVersion("0.114.0.0")]
-[assembly: AssemblyFileVersion("0.114.0.0")]
+// 0.115.0: LA TAVOLA QUOTATA, GUARDATA (voce GT11). Chiesta una tavola da
+//          vedere, la tavola — col banco verde — aveva quattro difetti:
+//          - i numeri delle quote verticali SOPRA le linee di richiamo: la
+//            trasformazione modello-foglio di `quota_in_tavola` usava la matrice
+//            trasposta (Y specchiata nelle viste ruotate) e sommava la posizione
+//            della vista al posto della traslazione (5 mm di errore). Adesso
+//            `MathPoint.MultiplyTransform`;
+//          - i fori non quotati: richiamo del foro («4× Ø8 PASSANTE») e
+//            posizioni in parallelo dai bordi di riferimento;
+//          - lo smusso quotato 7,071 in obliquo con la catena 5/75: adesso la
+//            quota da smusso «5 x 45°», e gambe e ipotenusa si saltano;
+//          - il 10 e il 120 in due viste: si salta cio' che e' gia' quotato in
+//            un'altra vista, leggendolo dagli spigoli delle quote che ci sono.
+//          E le quote restano dentro la cornice del foglio, e la vista si puo'
+//          dire con l'identificativo dello stato («V2»).
+[assembly: AssemblyVersion("0.115.0.0")]
+[assembly: AssemblyFileVersion("0.115.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -220,4 +235,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.114.0")]
+[assembly: AssemblyInformationalVersion("0.115.0")]

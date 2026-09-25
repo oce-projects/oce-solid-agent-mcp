@@ -24,6 +24,89 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.90.0 — 25 September 2026 · library 0.115.0
+
+The dimensioned drawing, looked at (entry GT11). Asked to see a drawing,
+the bridge produced one — with the bench all green — that had four defects
+nobody's expectations asked about. All four are fixed and have a bench case.
+
+### The numbers sat on the extension lines
+
+`quota_in_tavola` placed the text of each dimension at the middle of the
+edge as computed on the sheet, and that computation was wrong twice: it
+used the transposed rotation (in a rotated view the Y came out mirrored:
+the chamfer strip of the top view at y 70.7 instead of 145.7) and it added
+the view position instead of the transform's translation (the same only
+when the part is centred on the origin: a 10 mm plate extruded from 0 was
+placed 5 mm too high). The vertical texts ended up on or beyond the
+extension lines. Horizontal ones survived because the plate was centred in
+X. Points now go through `MathPoint.MultiplyTransform`.
+
+### Holes are dimensioned
+
+Every view that shows holes along their axis gets one hole callout per
+diameter, with the count in front («4× Ø8 PASSANTE» — prepending to the
+existing prefix, because replacing it erased the diameter symbol), and the
+hole positions from the two reference edges, left and bottom, in parallel:
+15 and 105, 15 and 65 on the demo plate. Each position dimension is
+attached to the hole nearest to its side (the first attempt ran an
+extension line across the whole part) and re-read: it must equal the sheet
+distance divided by the scale, otherwise the answer says it may measure to
+the rim instead of the centre. Measured first: circle plus edge with
+`AddHorizontalDimension2`/`AddVerticalDimension2` measures from the
+centre; with `AddDimension` nothing is created.
+
+### Chamfers get the chamfer dimension
+
+Edges of a chamfer face are no longer dimensioned as lines (the 7.071
+hypotenuse), and neither are the edges shortened by the chamfer (the 75
+next to the 80, the 5 next to the 10). Where the chamfer is seen in
+profile, `IDrawingDoc.AddChamferDim` writes «5 x 45°». Its first dimension
+is the angle, not a length: the answer reads both by type
+(`swDimensionParamType_e`) and reports side 5, angle 45, face width 7.071.
+
+### No dimension twice in the drawing
+
+Before placing anything, the operation reads the dimensions already on the
+sheet and the edges they are attached to, and skips the same model extent
+(axis and interval) in another view: the 10 and the 120 now appear once.
+The answer lists what was skipped and why. A view with nothing left to
+dimension is refused, with the reasons counted.
+
+### Also
+
+- Dimensions stay inside the sheet frame: a band that would leave the
+  border moves to the other side.
+- `vista` accepts the drawing-state identifier (`V2`): view names depend on
+  the SOLIDWORKS language.
+- Bench selector: `x`, `y`, `z` read the coordinates of `punto_mm`, so an
+  edge can be named by where it is (`@spigolo(asse=Y,x~=-100,z~=20)`).
+- Entry Z-C6, second half: the bench writes the names of its green cases
+  into `ultimo.json` (`casi_verdi`), and a contract check requires every
+  catalogue operation to have a green case in the last run, with
+  `quote_dal_modello` as a declared exception (entry Z-E7) that is itself
+  checked for staleness. **On its first run it found three operations with
+  no case in a normal run**: `foro_guidato`, `estrudi_su_faccia` and
+  `raccordo_spigoli` appeared only in regression cases (which run only with
+  `-Regressione`) and in hand-written plans. Yesterday's recount had counted
+  the regression cases as declared cases. Three new cases, with values
+  measured first and equal to the hand calculation (the M8 tapped hole
+  removes the 6.8 pilot, the clearance hole the 9).
+- A contract check for the bench rule "every step measures something": a
+  case step without expectations stops the whole case as a bench error after
+  ninety minutes — it happened to the new drawing case on its first run.
+- And one for the bench's twin rule as the bench applies it: the twin is the
+  FIRST successful step of the same operation, and it must share at least
+  one argument value with the refusal (`Attese.SiSomigliano`, the same
+  function). The second run stopped on it: the refusal on `V9` shared
+  `quante` with the second step and nothing with the first. Seen red on the
+  real case before being trusted.
+- Rule of the house from now on: every change to the drawing commands ends
+  by generating the demo drawing as an image and looking at it against the
+  dimensioning rules.
+
+---
+
 ## 0.89.0 — 25 September 2026 · library 0.114.0
 
 Axes are checked for identity, and writing the missing bench cases for the

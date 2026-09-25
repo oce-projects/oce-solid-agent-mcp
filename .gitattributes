@@ -31,3 +31,11 @@ Controlli/ganci/* text eol=lf
 *.sldasm binary
 *.sldlfp binary
 *.sldmat binary
+
+# IL CATALOGO RESTA A FINE RIGA UNIX, come lo scrive `Riscontro.Catalogo.exe`.
+# Misurato il 25/9/2026 su un clone pulito da GitHub: git lo tirava fuori in
+# CRLF (153.225 byte), il generatore lo riscriveva in LF (150.270), e `build.ps1`
+# diceva a chiunque clonasse «catalogo.json RIGENERATO: era indietro rispetto al
+# C#» — un falso allarme, stesso contenuto riga per riga. Un avviso che scatta
+# sempre si impara a non leggerlo, e il giorno che e' vero passa.
+Strumenti/catalogo.json text eol=lf

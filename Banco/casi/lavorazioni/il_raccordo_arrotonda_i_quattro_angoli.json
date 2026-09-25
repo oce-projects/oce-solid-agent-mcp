@@ -1,0 +1,22 @@
+{
+  "nome": "il_raccordo_arrotonda_i_quattro_angoli",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE Z-C6, la seconda meta'. `raccordo_spigoli` era a catalogo con un caso solo nella REGRESSIONE (r04), che gira soltanto con `-Regressione`: in un giro normale nessun caso la toccava. L'ha trovato il controllo di contratto nuovo, il primo giro in cui il banco ha scritto i suoi casi verdi (25/9/2026).",
+  "il_difetto_che_questo_caso_prende": "Un raccordo che nasce su meno spigoli di quelli chiesti, o col raggio sbagliato: il volume lo distingue al millesimo, perche' il conto a mano e' esatto.",
+  "gli_spigoli_per_dove_stanno": "I quattro spigoli verticali (lungo Y) della piastra, nominati per coordinate: x = ±50, z = ±30. Misurato col banchetto il 25/9/2026.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 120000, "perche": "100 x 60 x 20" } ] },
+    { "operazione": "raccordo_spigoli",
+      "argomenti": {
+        "spigoli_uid": [ "@spigolo(asse=Y,x~=-50,z~=30)", "@spigolo(asse=Y,x~=50,z~=30)",
+                         "@spigolo(asse=Y,x~=50,z~=-30)", "@spigolo(asse=Y,x~=-50,z~=-30)" ],
+        "raggio_mm": 5 },
+      "attese": [
+        { "cosa": "misure.spigoli", "uguale": 4, "perche": "i quattro angoli, non uno di meno" },
+        { "cosa": "volume_mm3", "uguale": 119570.796, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "120000 meno 4 x (1 - pi/4) x 5^2 x 20 = 429,204: il conto ha pi dentro, e il centesimo e' l'arrotondamento. Tre angoli soli darebbero 119678,097, un raggio da 4 darebbe 119725,318" } ] }
+  ]
+}

@@ -62,6 +62,7 @@ const operazioni = (catalogo.operazioni || []).map((o) => o.nome).sort();
 
 // ── CHI LE ESERCITA ──────────────────────────────────────────────────────
 const daCasi = new Map();     // operazione -> [casi]
+const daRegressione = new Map();   // operazione -> [casi di regressione]
 let testoPiani = '';
 let quantiCasi = 0;
 
@@ -82,11 +83,23 @@ function scorri(cartella) {
 
     quantiCasi++;
     const nome = j.nome || path.basename(v.name, '.json');
-    for (const passo of [].concat(j.costruisci || [], j.passi || [])) {
+    // I CASI DI REGRESSIONE NON SONO CASI DI UN GIRO NORMALE (25/9/2026). Il
+    // loro `costruisci` gira solo con `-Regressione`, e questo script li
+    // contava come «caso dichiarato»: il riconteggio del 24/9 diceva 72 su 73,
+    // e il controllo di contratto sui casi VERDI dell'ultimo giro ha trovato
+    // tre operazioni (foro_guidato, estrudi_su_faccia, raccordo_spigoli) che in
+    // un giro normale non toccava nessuno. Adesso stanno in un modo a parte.
+    for (const passo of j.passi || []) {
       const op = passo && passo.operazione;
       if (!op) continue;
       if (!daCasi.has(op)) daCasi.set(op, []);
       if (daCasi.get(op).indexOf(nome) < 0) daCasi.get(op).push(nome);
+    }
+    for (const passo of j.costruisci || []) {
+      const op = passo && passo.operazione;
+      if (!op) continue;
+      if (!daRegressione.has(op)) daRegressione.set(op, []);
+      if (daRegressione.get(op).indexOf(nome) < 0) daRegressione.get(op).push(nome);
     }
   }
 }
@@ -101,13 +114,15 @@ try {
 function comeEProvata(op) {
   const virgolette = '"' + op + '"';
   if (daCasi.has(op)) return { come: 'caso dichiarato', dettaglio: daCasi.get(op).slice(0, 3).join(', ') };
+  if (daRegressione.has(op))
+    return { come: 'solo regressione', dettaglio: 'gira solo con -Regressione: ' + daRegressione.get(op).slice(0, 3).join(', ') };
   if (testoCs.indexOf(virgolette) >= 0) return { come: 'C# del banco', dettaglio: '' };
   if (testoPiani.indexOf(virgolette) >= 0)
     return { come: 'solo piano a mano', dettaglio: 'non gira in nessun giro, non asserisce niente' };
   return { come: 'NIENTE', dettaglio: 'a catalogo, e nessun giro la tocca' };
 }
 
-const perModo = { 'caso dichiarato': [], 'C# del banco': [], 'solo piano a mano': [], 'NIENTE': [] };
+const perModo = { 'caso dichiarato': [], 'solo regressione': [], 'C# del banco': [], 'solo piano a mano': [], 'NIENTE': [] };
 for (const op of operazioni) perModo[comeEProvata(op).come].push(op);
 
 if (!soloOrfane) {
@@ -115,9 +130,17 @@ if (!soloOrfane) {
   console.log('operazioni a catalogo (Provata = true): ' + operazioni.length);
   console.log('casi dichiarati: ' + quantiCasi);
   console.log('');
-  for (const modo of ['caso dichiarato', 'C# del banco', 'solo piano a mano', 'NIENTE']) {
+  for (const modo of ['caso dichiarato', 'solo regressione', 'C# del banco', 'solo piano a mano', 'NIENTE']) {
     console.log(String(perModo[modo].length).padStart(4) + '  ' + modo);
   }
+  console.log('');
+  if (perModo['solo regressione'].length > 0) {
+    console.log('SOLO IN REGRESSIONE — girano solo con -Regressione, non in un giro normale:');
+    for (const o of perModo['solo regressione']) console.log('    ' + o);
+    console.log('');
+  }
+  console.log('(La guardia vera e\' il controllo di contratto «ogni operazione a catalogo ha un');
+  console.log(' caso VERDE nell\'ultimo giro», che legge i casi verdi da Banco\\resoconto\\ultimo.json.)');
   console.log('');
   if (perModo['solo piano a mano'].length > 0) {
     console.log('SOLO UN PIANO A MANO — un appunto di come si e\' misurato, non una prova:');

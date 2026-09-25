@@ -509,9 +509,11 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/  9   il guscio, e da che parte toglie;
+casi/lavorazioni/ 11   il guscio, e da che parte toglie;
                        la quota che fa uscire l'asola dal materiale, rifiutata
-                       e rimessa com'era (voce E18 c), e la sua gemella
+                       e rimessa com'era (voce E18 c), e la sua gemella;
+                       il raccordo sui quattro angoli e il foro guidato che
+                       segue la tabella ISO (Z-C6: prima solo in regressione)
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       15   ogni faccia, non una sola
 casi/smusso/       3   dove un raccordo toglierebbe un altro volume
@@ -535,7 +537,10 @@ casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella)
-casi/tavola/      13   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      14   il primo caso che arriva in TAVOLA (voce GT0);
+                       la tavola della piastra con fori e smusso, GUARDATA:
+                       fori col richiamo e le posizioni, smusso 5 x 45, niente
+                       quote ripetute fra viste (voce GT11);
                        foglio, isometrica e PDF di un foglio in fila (voce Z-C6);
                        due fogli e lo stesso diedro (voce GT1);
                        il cartiglio dice cosa vuole (voce GT3);
@@ -557,9 +562,10 @@ casi/saldature/    4   la distinta conta le barre, e i due numeri vengono da
                        il tubo dentro (voce Z-C6). I corpi per NOME, con
                        @corpo(nome=...): i numeri C1, C2 cambiano fra un giro
                        e l'altro
-casi/estrusioni/   4   il tubo ha il buco; l'asola estrusa e' lunga quanto
+casi/estrusioni/   5   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        l'ingombro, estremita' comprese, ed e' un poligono; la
-                       ruota da 17 denti si fa, quella da 16 rifiuta (voce Z-C6)
+                       ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta
+                       cresce dalla faccia verso fuori (voce Z-C6)
 casi/lamiera/      4   la L si sviluppa lunga quanto il conto a mano; data al
                        contrario, i punti diventano le facce esterne; lo
                        sviluppo senza file rifiutato; il tratto piu' corto

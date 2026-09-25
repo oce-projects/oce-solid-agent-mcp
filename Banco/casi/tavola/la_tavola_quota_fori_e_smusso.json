@@ -1,0 +1,107 @@
+{
+  "nome": "la_tavola_quota_fori_e_smusso",
+  "famiglia": "tavola",
+  "perche": "VOCE GT11. Il 25/9/2026 e' stato chiesto di VEDERE una tavola quotata, e la tavola — fatta solo con le operazioni del ponte, col banco tutto verde — aveva quattro difetti che nessuna attesa chiedeva: i fori non erano quotati, lo smusso era un 7,071 obliquo con la catena 5/75 accanto all'80, il 10 e il 120 comparivano in due viste, e i numeri delle quote verticali stavano SOPRA le linee di richiamo (la trasformazione modello-foglio era trasposta e perdeva la traslazione). Questo caso rifa' la stessa piastra e pretende la tavola giusta, vista per vista.",
+
+  "il_difetto_che_questo_caso_prende": "Una quota che manca, o che c'e' due volte. Le attese di prima chiedevano i millimetri delle quote MESSE — e cosi' una tavola senza i fori e con il 120 ripetuto era verde. Qui si chiede anche cosa NON deve esserci: il 120 nella vista dall'alto, il 10 in quella laterale, l'ipotenusa dello smusso, i tratti accorciati dallo smusso.",
+
+  "le_viste_si_chiamano_per_uid": "V1, V2, V3 come le numera lo stato della tavola: i NOMI dipendono dalla lingua di SOLIDWORKS («Vista del disegno2» qui). `viste_standard` le mette nell'ordine frontale, dall'alto, laterale — misurato sulla tavola dimostrativa, dove la vista con i fori e' la seconda.",
+
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 96000, "perche": "120 x 80 x 10" } ] },
+
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": -45, "y_mm": -25, "diametro_mm": 8, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 95497.35, "tolleranza": 0.05,
+                    "perche_questa_tolleranza": "96000 meno pi x 4^2 x 10 = 502,655: pi dentro",
+                    "perche": "un foro, passante per una parete sola" } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 45, "y_mm": -25, "diametro_mm": 8, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 94994.69, "tolleranza": 0.05,
+                    "perche_questa_tolleranza": "due fori da 502,655: pi dentro",
+                    "perche": "il secondo foro" } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 45, "y_mm": 25, "diametro_mm": 8, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 94492.04, "tolleranza": 0.05,
+                    "perche_questa_tolleranza": "tre fori da 502,655: pi dentro",
+                    "perche": "il terzo foro" } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": -45, "y_mm": 25, "diametro_mm": 8, "passante": true },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 93989.38, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "96000 meno 4 x pi x 4^2 x 10 = 4 x 502,655: il conto ha pi dentro, e il centesimo e' l'arrotondamento. Tre fori soli darebbero 94491,03",
+          "perche": "quattro fori passanti da 8, a 15 mm dai bordi: le misure che la tavola deve quotare" } ] },
+
+    { "operazione": "smusso_spigoli",
+      "argomenti": { "spigoli_uid": ["@spigolo(asse=X,lungo~=120,y~=10,z~=-40)"], "lato_mm": 5, "angolo_gradi": 45 },
+      "lo_spigolo_per_dove_sta": "Lo spigolo alto di dietro, nominato per COORDINATE (y = 10, z = -40): fra i quattro spigoli lunghi 120 nessun altro campo lo distingue, e `n=` sceglierebbe per un ordine che non e' dichiarato.",
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 92489.38, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "93989,38 meno 5 x 5 / 2 x 120 = 1500 esatti: la tolleranza e' quella dei fori, che hanno pi dentro",
+          "perche": "lo smusso c'e', ed e' 5 x 45: e' il numero che la quota da smusso deve scrivere" } ] },
+
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\la_tavola_quota_fori_e_smusso.sldprt" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0, "perche": "una vista si aggancia al FILE del pezzo" } ] },
+
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola", "perche": "da qui si misura la tavola" } ] },
+
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\la_tavola_quota_fori_e_smusso.sldprt" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3, "perche": "frontale, dall'alto, laterale" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V1", "quante": 6 },
+      "quante_6_anche_qui": "La vista frontale mostra 4 spigoli, quindi «quante: 6» li prende tutti e 4 come prima. E' qui perche' questo e' il passo con cui il banco confronta il rifiuto su V9 (la gemella e' il PRIMO passo riuscito della stessa operazione), e una gemella deve avere almeno un argomento in comune col rifiuto — il primo giro l'ha fermato come «gemella finta».",
+      "attese": [
+        { "cosa": "misure.quote_mm", "contiene": ["120"], "perche": "la lunghezza, nella vista che la mostra per prima" },
+        { "cosa": "misure.quote_mm", "contiene": ["10"], "perche": "lo spessore: qui e SOLO qui" },
+        { "cosa": "misure.quote_messe", "uguale": 2,
+          "perche": "due quote per un rettangolo, non quattro (K10): la vista frontale non vede ne' fori ne' smusso di profilo" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V2", "quante": 6 },
+      "attese": [
+        { "cosa": "misure.fori[0].quanti", "uguale": 4,
+          "perche": "UN richiamo per i quattro fori uguali, col «4×» davanti: il difetto era che i fori non c'erano per niente" },
+        { "cosa": "misure.fori[0].diametro_riletto_mm", "uguale": 8,
+          "perche": "il diametro riletto dal richiamo, non quello che credevo di aver chiesto" },
+        { "cosa": "misure.quote_mm", "contiene": ["15", "105", "65"],
+          "perche": "le POSIZIONI dei fori, in parallelo dai bordi di riferimento: 15 e 105 dal bordo sinistro, 15 e 65 da quello in basso. Senza la posizione un foro in tavola non si fa" },
+        { "cosa": "misure.quote_mm", "non_contiene": ["120"],
+          "perche": "QUOTATURA RIPETUTA FRA VISTE: il 120 c'e' gia' nella V1. Prima compariva due volte" },
+        { "cosa": "misure.gia_quotate_altrove", "contiene": ["120"],
+          "perche": "il contraltare: il 120 non manca per un guasto, e' stato saltato e l'operazione lo dice" },
+        { "cosa": "misure.quote_messe", "uguale": 5,
+          "perche": "il richiamo e le quattro posizioni (due colonne, due righe), contate prima e dopo. «contiene 15» da solo lo farebbe passare anche il 105: e' il numero esatto che chiude il buco" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V3" },
+      "attese": [
+        { "cosa": "misure.smussi[0].lato_mm", "uguale": 5, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "lato = larghezza della faccia di smusso (7,071) x cos 45°: il millesimo e' l'arrotondamento del coseno",
+          "perche": "LA QUOTA DA SMUSSO, «5 x 45°»: il difetto era l'ipotenusa 7,071 quotata in obliquo" },
+        { "cosa": "misure.smussi[0].angolo_gradi", "uguale": 45, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "l'angolo si rilegge in radianti (0,7854) e si porta in gradi",
+          "perche": "l'altra meta' della quota da smusso" },
+        { "cosa": "misure.quote_mm", "contiene": ["80"], "perche": "la larghezza, che solo questa vista mostra intera" },
+        { "cosa": "misure.quote_mm", "non_contiene": ["7.071", "75"],
+          "perche": "NE' L'IPOTENUSA NE' LA GAMBA ACCORCIATA: 75 + 5 accanto a 80 e' una quota in piu', e 7,071 e' lo smusso quotato coi suoi spigoli" },
+        { "cosa": "misure.gia_quotate_altrove", "contiene": ["10"],
+          "perche": "lo spessore 10 c'e' gia' nella V1, e qui non si ripete" },
+        { "cosa": "misure.quote_messe", "uguale": 2,
+          "perche": "la larghezza 80 e la quota da smusso: nient'altro, in una vista che prima ne portava cinque (80, 75, 10, 5, 7,071)" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V9", "quante": 6 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["Non c'e' la vista", "V9", "da V1 a V3"],
+        "gemella": "la_tavola_quota_fori_e_smusso" } }
+  ]
+}

@@ -396,6 +396,26 @@ namespace Prove.Contratti
                   Attese.Seleziona("@corpo(nome=TUBO 80X80X5(1))", corpi) == "C2");
             Segna("selettore: @corpo con un nome che non c'e', si rifiuta",
                   Alza(() => Attese.Seleziona("@corpo(nome=TUBO 80X80X5(3))", corpi), "non l'ho trovata"));
+
+            // LO SPIGOLO PER DOVE STA (voce E18): x, y, z leggono punto_mm. I
+            // quattro spigoli lunghi 120 di una piastra si distinguono solo cosi'.
+            Func<string, double, double, Dictionary<string, object>> spigolo = (uid, x, z) =>
+                new Dictionary<string, object>
+                {
+                    ["uid"] = uid, ["lungo"] = "Y", ["lunghezza_mm"] = 120.0,
+                    ["punto_mm"] = new double[] { x, 0, z },
+                };
+            var quattro = new Dictionary<string, object>
+            {
+                ["spigoli"] = new List<object>
+                {
+                    spigolo("E1", -100, 0), spigolo("E2", 100, 0), spigolo("E3", -100, 20), spigolo("E4", 100, 20),
+                },
+            };
+            Segna("selettore: lo spigolo si prende per coordinate (x, z)",
+                  Attese.Seleziona("@spigolo(asse=Y,x~=-100,z~=20)", quattro) == "E3");
+            Segna("selettore: con una coordinata sola i fianchi restano due, e si rifiuta",
+                  Alza(() => Attese.Seleziona("@spigolo(asse=Y,x~=-100)", quattro), "ne ho trovate 2"));
         }
 
         private static Dictionary<string, object> Attesa(string cosa, object uguale)
