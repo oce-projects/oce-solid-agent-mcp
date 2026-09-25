@@ -518,7 +518,8 @@ casi/smusso/       3   dove un raccordo toglierebbe un altro volume
 casi/rivoluzione/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
 casi/piano/        5   DOVE finisce il piano, non la distanza chiesta
 casi/specchia/     2   il foro deve comparire dall'altra parte
-casi/ripeti/       6   la direzione, che e' il dubbio vero
+casi/ripeti/       8   la direzione, che e' il dubbio vero; l'asse riconosciuto
+                       per identita', e rifiutato se si e' spostato (voce E4)
 casi/asse/         2   l'asse dalla parete di un foro
 casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
@@ -549,10 +550,16 @@ casi/tavola/      13   il primo caso che arriva in TAVOLA (voce GT0);
                        dettaglio -- non il tratteggio, che su un dettaglio
                        vale zero (voce GT4, l'altra meta');
                        il cerchio piu' grande della vista (la gemella)
-casi/saldature/    1   la distinta conta le barre, e i due numeri vengono da
-                       due posti diversi (voce Z-C6)
-casi/estrusioni/   2   il tubo ha il buco; l'asola estrusa e' lunga quanto
-                       l'ingombro, estremita' comprese, ed e' un poligono (voce Z-C6)
+casi/saldature/    4   la distinta conta le barre, e i due numeri vengono da
+                       due posti diversi; il taglio accorcia la barra davvero,
+                       e fra barre che non si incontrano rifiuta; il cordone
+                       va fra facce che si toccano ad angolo; il tappo chiude
+                       il tubo dentro (voce Z-C6). I corpi per NOME, con
+                       @corpo(nome=...): i numeri C1, C2 cambiano fra un giro
+                       e l'altro
+casi/estrusioni/   4   il tubo ha il buco; l'asola estrusa e' lunga quanto
+                       l'ingombro, estremita' comprese, ed e' un poligono; la
+                       ruota da 17 denti si fa, quella da 16 rifiuta (voce Z-C6)
 casi/lamiera/      4   la L si sviluppa lunga quanto il conto a mano; data al
                        contrario, i punti diventano le facce esterne; lo
                        sviluppo senza file rifiutato; il tratto piu' corto

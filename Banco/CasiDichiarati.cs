@@ -427,6 +427,27 @@ namespace ProvaSaldatura
                   Prova(() => Seleziona("@quota(feature=Schizzo1,nome=D1)", conQuote))
                       == "D1@Schizzo1@Parte99.Part", "");
 
+            // ── IL CORPO, PER NOME: le parentesi del nome non rompono niente ─
+            //
+            // I numeri C1, C2... dello stato non seguono l'ordine di creazione
+            // e cambiano fra un giro e l'altro (misurato il 25/9/2026); il nome
+            // si'. Qui lo stato e' scritto apposta al contrario: C1 e' la barra
+            // (2). Un selettore che tornasse «il secondo corpo» sbaglierebbe.
+            var corpi = new Dictionary<string, object>
+            {
+                ["corpi"] = new List<object>
+                {
+                    new Dictionary<string, object> { ["uid"] = "C1", ["nome"] = "TUBO 80X80X5(2)" },
+                    new Dictionary<string, object> { ["uid"] = "C2", ["nome"] = "TUBO 80X80X5(1)" },
+                },
+            };
+            Segna("F3: @corpo(nome=...) prende il corpo per nome, parentesi comprese",
+                  Prova(() => Seleziona("@corpo(nome=TUBO 80X80X5(2))", corpi)) == "C1",
+                  Prova(() => Seleziona("@corpo(nome=TUBO 80X80X5(2))", corpi)));
+            Segna("F3 ROSSO: @corpo con un nome che non c'e', si rifiuta",
+                  Perche(() => Seleziona("@corpo(nome=TUBO 80X80X5(3))", corpi)).Contains("non l'ho trovata"),
+                  "");
+
             // ── UNA TOLLERANZA SENZA IL PERCHE' E' UN CASO ROTTO ────────────
             //
             // Non un caso permissivo: rotto. Un campo assente non diventa mai

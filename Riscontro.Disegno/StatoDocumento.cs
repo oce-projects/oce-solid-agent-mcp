@@ -671,7 +671,38 @@ namespace Riscontro.Disegno
                     // niente — e il posto che tolgono e' esattamente quello che
                     // serve ai parametri qui sotto. Resta «uid», che e' il nome
                     // con cui tutto il resto del sistema chiama le entita'.
-                    assi.Add(new Dictionary<string, object> { ["uid"] = nome, ["tipo"] = tipo });
+                    var voceAsse = new Dictionary<string, object> { ["uid"] = nome, ["tipo"] = tipo };
+
+                    // LA FIRMA DELL'ASSE (voce E4, la parte che mancava). Fino
+                    // alla 0.113.0 lo stato di un asse era {uid, tipo} e basta:
+                    // niente da firmare, e `asse_uid` nelle ripetizioni era
+                    // controllato per ESISTENZA e non per IDENTITA'. Un asse
+                    // rifatto altrove col nome di prima passava. Adesso: un punto
+                    // sulla retta, la direzione, l'identificativo della lavorazione.
+                    try
+                    {
+                        var par = (f.GetSpecificFeature2() as IRefAxis)?.GetRefAxisParams() as double[];
+                        if (par != null && par.Length >= 6)
+                        {
+                            double dx = par[3] - par[0], dy = par[4] - par[1], dz = par[5] - par[2];
+                            double lung = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                            if (lung > 1e-12)
+                            {
+                                var punto = new[] { Math.Round(Unita.Mm(par[0]), 3), Math.Round(Unita.Mm(par[1]), 3), Math.Round(Unita.Mm(par[2]), 3) };
+                                var direzione = new[] { Math.Round(dx / lung, 5), Math.Round(dy / lung, 5), Math.Round(dz / lung, 5) };
+                                voceAsse["punto_mm"] = punto;
+                                voceAsse["direzione"] = direzione;
+                                stato.Firme[nome] = new FirmaEntita
+                                {
+                                    Tipo = "AXIS", PuntoMm = punto, Normale = direzione, Entita = f,
+                                    Lavorazione = nome,
+                                };
+                            }
+                        }
+                    }
+                    catch { }
+                    try { voceAsse["feature_id"] = f.GetID(); } catch { }
+                    assi.Add(voceAsse);
                 }
                 else if (FeatureCheContano.Contains(tipo))
                 {

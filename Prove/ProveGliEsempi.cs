@@ -55,7 +55,7 @@ namespace Prove.Contratti
         {
             Gruppo("gli esempi si copiano da un caso verde (Z-G1)");
 
-            var file = Path.Combine(Radice(), "bin", "catalogo.json");
+            var file = CatalogoServito();
             if (!File.Exists(file))
             {
                 Segna("il catalogo servito c'e'", false, "manca " + file);

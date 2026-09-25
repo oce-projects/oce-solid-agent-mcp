@@ -1,0 +1,16 @@
+{
+  "nome": "lim_ruota_da_sedici_denti",
+  "famiglia": "estrusioni",
+  "perche": "VOCE Z-C6. La meta' che rifiuta del bordo di `ruota_dentata`: sotto il limite d'intaglio (17,097 denti a 20 gradi, arrotondato per difetto a 17) l'evolvente entrerebbe nel piede, e questo generatore non fa la correzione di profilo che servirebbe. Deve dirlo — e dire che e' un limite DEL GENERATORE, non della meccanica — e non lasciare niente nel documento.",
+
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "ruota_dentata",
+      "argomenti": { "piano": "superiore", "denti": 16, "modulo_mm": 2, "spessore_mm": 10 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["sotto 17 denti", "correzione di profilo"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "la_ruota_da_diciassette_denti_si_fa" } }
+  ]
+}

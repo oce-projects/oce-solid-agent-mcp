@@ -454,7 +454,9 @@ namespace Controlli.CorpoRotto
             {
                 @"C:\ProgramData\SolidWorks",
             };
-            var sua = Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
+            // `System.` per esteso: l'interop di SOLIDWORKS ha un suo
+            // `Environment`, e con i due `using` il nome nudo non compila.
+            var sua = System.Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
             if (!string.IsNullOrWhiteSpace(sua)) cartelle.Add(sua);
             foreach (var c in cartelle)
             {

@@ -9,7 +9,7 @@ Esce **0** se non fallisce niente, **1** altrimenti, e scrive
 `Prove\bin\prove.xml` in formato JUnit — quello che ogni CI sa leggere senza
 che nessuno le insegni niente.
 
-**365 controlli, qualche secondo, nessuna licenza.**
+**370 controlli, qualche secondo, nessuna licenza.**
 
 Quel numero non e' decorativo: **c'e' un controllo che lo rilegge da questo file
 e lo confronta con quanti ne girano davvero**, ed e' l'ultimo del giro (si conta

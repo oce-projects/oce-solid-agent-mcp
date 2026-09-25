@@ -257,7 +257,7 @@
    "nome": "ruota_dentata",
    "famiglia": "estrusioni",
    "sommario": "Una ruota dentata a evolvente, con foro e cava per linguetta.",
-   "descrizione": "Crea una RUOTA DENTATA cilindrica a denti dritti, dal numero di denti e dal modulo. Il profilo del dente e' a evolvente e lo calcola il server: tu dai solo i dati di progetto.\n\nCon foro_mm si ottiene anche il foro centrale.",
+   "descrizione": "Crea una RUOTA DENTATA cilindrica a denti dritti, dal numero di denti e dal modulo. Il profilo del dente e' a evolvente e lo calcolo io: tu dai solo i dati di progetto.\n\nCon foro_mm si ottiene anche il foro centrale.\n\nIL LIMITE: sotto 17 denti (con l'angolo di pressione standard di 20 gradi) rifiuto, perche' servirebbe la correzione di profilo contro l'intaglio del piede e non la so fare. E' un limite mio, non della meccanica: con un angolo di pressione maggiore il minimo scende (25 gradi: 11 denti).",
    "schema": {
     "type": "object",
     "properties": {
@@ -1288,84 +1288,31 @@
   {
    "nome": "cordone_saldatura",
    "famiglia": "saldature",
-   "sommario": "Cordone di saldatura cosmetico fra due gruppi di corpi.",
-   "descrizione": "Mette un cordone di saldatura cosmetico fra due insiemi di facce. Non toglie ne' aggiunge materiale al modello: documenta la saldatura, e finisce nelle tavole e nella distinta.",
+   "sommario": "Cordone di saldatura cosmetico fra due facce di due barre che si toccano ad angolo.",
+   "descrizione": "Mette un cordone di saldatura d'angolo, cosmetico, fra DUE facce di due corpi che si toccano lungo uno spigolo e formano un angolo: per una barra in battuta su un'altra, la faccia LATERALE della barra e la faccia su cui arriva. Non toglie ne' aggiunge materiale: documenta la saldatura, e finisce nelle tavole e nella distinta.\n\nUNA COPPIA DI FACCE PER CHIAMATA. Un cordone che gira attorno a un tubolare sono piu' chiamate, una per lato: con piu' facce per parte SOLIDWORKS non crea niente. Le facce si indicano per identificativo, prese dallo stato del documento: e' un'operazione che si chiede DOPO aver fatto le barre e i tagli, guardandole.\n\nSe le due facce non si toccano, o sono parallele, rifiuto: SOLIDWORKS il cordone lo creerebbe lo stesso, e in distinta finirebbe una saldatura che non esiste. La lunghezza che ti torno e' quella dello spigolo in comune.",
    "schema": {
     "type": "object",
     "properties": {
-     "da_corpi_uid": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      },
-      "description": "i corpi da cui parte il cordone, per identificativo preso dallo stato del documento (C1, C2...). Usa questo per corpi che ci sono GIA'; l'altro campo per corpi che li crea un passo precedente di questo piano. Uno o l'altro, mai tutti e due."
+     "da_faccia_uid": {
+      "type": "string",
+      "description": "una faccia del primo corpo, presa dallo stato del documento (F1, F2...)"
      },
-     "da_corpi_rif": {
-      "type": "object",
-      "description": "il primo lato della saldatura\n\nGeneri ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
-      "properties": {
-       "passo": {
-        "type": "integer",
-        "description": "il numero d'ordine del passo che crea la geometria, contando da 1. Deve essere un passo PRECEDENTE a questo."
-       },
-       "genere": {
-        "type": "string",
-        "enum": [
-         "corpi"
-        ]
-       }
-      },
-      "required": [
-       "passo",
-       "genere"
-      ]
-     },
-     "a_corpi_uid": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      },
-      "description": "i corpi su cui arriva il cordone, per identificativo preso dallo stato del documento (C1, C2...). Usa questo per corpi che ci sono GIA'; l'altro campo per corpi che li crea un passo precedente di questo piano. Uno o l'altro, mai tutti e due."
-     },
-     "a_corpi_rif": {
-      "type": "object",
-      "description": "il secondo lato della saldatura\n\nGeneri ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
-      "properties": {
-       "passo": {
-        "type": "integer",
-        "description": "il numero d'ordine del passo che crea la geometria, contando da 1. Deve essere un passo PRECEDENTE a questo."
-       },
-       "genere": {
-        "type": "string",
-        "enum": [
-         "corpi"
-        ]
-       }
-      },
-      "required": [
-       "passo",
-       "genere"
-      ]
+     "a_faccia_uid": {
+      "type": "string",
+      "description": "una faccia dell'ALTRO corpo, che tocca la prima lungo uno spigolo e fa angolo con lei"
      },
      "lato_mm": {
       "type": "number",
       "description": "lato del cordone (a)"
-     },
-     "tipo": {
-      "type": "string",
-      "enum": [
-       "continuo",
-       "intermittente",
-       "sfalsato"
-      ],
-      "description": "predefinito: continuo"
      }
     },
     "required": [
+     "da_faccia_uid",
+     "a_faccia_uid",
      "lato_mm"
     ]
    },
-   "precondizione": "corpo_solido",
+   "precondizione": "corpo_solido_e_faccia",
    "documento": "parte",
    "esempio": null
   },
@@ -1385,54 +1332,6 @@
     "required": []
    },
    "precondizione": "corpo_solido",
-   "documento": "parte",
-   "esempio": null
-  },
-  {
-   "nome": "fazzoletto",
-   "famiglia": "saldature",
-   "sommario": "Fazzoletto di irrigidimento fra due facce di un nodo.",
-   "descrizione": "Mette un FAZZOLETTO di rinforzo nell'angolo fra due barre: una piastra triangolare saldata che irrigidisce il nodo.\n\nLe due facce su cui si appoggia si indicano per identificativo, prese dallo stato del documento: e' un'operazione che si chiede DOPO aver fatto il telaio, guardandolo. In un angolo di tubolari le facce candidate sono quattro, e sceglierne due «probabili» vorrebbe dire mettere il rinforzo dalla parte sbagliata.",
-   "schema": {
-    "type": "object",
-    "properties": {
-     "facce_uid": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      },
-      "description": "esattamente DUE facce, una per barra, prese dallo stato del documento"
-     },
-     "spessore_mm": {
-      "type": "number",
-      "description": "spessore della piastra"
-     },
-     "lato1_mm": {
-      "type": "number",
-      "description": "lato sulla prima faccia"
-     },
-     "lato2_mm": {
-      "type": "number",
-      "description": "lato sulla seconda faccia"
-     },
-     "posizione": {
-      "type": "string",
-      "enum": [
-       "inizio",
-       "centro",
-       "fine"
-      ],
-      "description": "dove sta lungo il nodo (predefinito: centro)"
-     }
-    },
-    "required": [
-     "facce_uid",
-     "spessore_mm",
-     "lato1_mm",
-     "lato2_mm"
-    ]
-   },
-   "precondizione": "corpo_solido_e_faccia",
    "documento": "parte",
    "esempio": null
   },
@@ -1512,7 +1411,7 @@
    "nome": "taglia_membri",
    "famiglia": "saldature",
    "sommario": "Taglia o estende le barre dove si incontrano.",
-   "descrizione": "Taglia le barre dove si incontrano, o le estende fino a toccarsi. E' il «taglia/estendi» della barra di saldature.\n\nServe quando due gruppi di barre si incrociano e non sono stati trattati agli angoli: senza, i corpi restano compenetrati e la distinta di taglio riporta lunghezze che in officina non tornano.",
+   "descrizione": "Taglia le barre dove si incontrano, o le estende fino a toccarsi. E' il «taglia/estendi» della barra di saldature.\n\nServe quando due gruppi di barre si incrociano e non sono stati trattati agli angoli: senza, i corpi restano compenetrati e la distinta di taglio riporta lunghezze che in officina non tornano.\n\nTi torno di quanto e' cambiato il volume (negativo = tolto). Se il pezzo non cambia, rifiuto: vuol dire che le barre non si incontrano, e un taglio che non taglia niente non te lo confermo.",
    "schema": {
     "type": "object",
     "properties": {

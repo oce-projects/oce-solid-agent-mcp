@@ -24,6 +24,108 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.89.0 — 25 September 2026 · library 0.114.0
+
+Axes are checked for identity, and writing the missing bench cases for the
+weldment operations (entry Z-C6) found that two of them had never done
+anything. 76 runnable operations, 73 in the served catalogue: `fazzoletto`
+leaves it.
+
+### `asse_uid` is checked for identity, not just existence (entry E4, the axes)
+
+Until library 0.113.0 an axis in the document state was `{uid, tipo}` and
+nothing else. If someone rebuilt it elsewhere under the same name between plan
+confirmation and execution, `ripeti_circolare` patterned around the new one,
+silently. The state now carries a point on the axis line and its direction
+(from `IRefAxis.GetRefAxisParams`), the bridge attaches them to each step as a
+signature, and the step refuses when the axis has moved: parallel within one
+degree and the line within the point tolerance, otherwise «L'asse si e' spostato
+di N mm». It compares the LINE, not the start point, because an axis can be
+redrawn longer without changing. Two bench cases: the twin with a point halfway
+along the axis (six instances), and the refusal with the axis 30 mm away.
+
+### `taglia_membri` never cut anything
+
+It passed the bodies as `object[]`. SOLIDWORKS answered with a feature named
+«Accorcia/Estendi1» that **never entered the tree**; the T stayed identical and
+the operation reported `corpi_tagliati: 1`. Measured on a T of two 80x80x5
+tubes: `object[]` gives the phantom, `Body2[]` and `DispatchWrapper[]` give the
+real trim, −58798.23 mm³ = 40 mm × 1469.956 mm² of tube section, to the
+hundredth. `distinta_taglio` already passed `Body2[]`, which is why it worked.
+
+A guard now requires the returned feature to be in the tree and the volume to
+change. It is not only for the fixed bug: with typed arrays, bars that do not
+meet **still** produce the phantom, and the operation now says so instead of
+confirming. The answer carries `variazione_volume_mm3`.
+
+### `cordone_saldatura` never created a bead, and now takes two faces
+
+It passed every face of two sets of bodies to `InsertCosmeticWeldBead2`, which
+returned null in every combination tried: faces as `object[]`, `Face2[]` or
+`DispatchWrapper[]`, all faces or only the two that touch, geometry mode or
+path mode on the edges. The bead is created only by the old selection-based
+`InsertCosmeticWeldBead`, and only with **one face per side** (three against
+one: null). And SOLIDWORKS does not check contact: between two faces 80 mm
+apart it creates a bead anyway, with the size read back as 40 instead of 4.
+
+So the schema changed: `da_faccia_uid` and `a_faccia_uid` instead of the body
+sets (the old `tipo` field, never read by the code, is gone too). Before the
+call the operation refuses faces of the same body, parallel faces (a bar's end
+resting on another is contact, but not a fillet weld) and faces that do not
+touch: an edge of one must lie on the other at three points. After the call it
+re-reads the bead size from the feature. The length returned is the shared
+edge, measured on the geometry: 68 mm on the T, the flat side of the tube.
+
+### `fazzoletto` leaves the catalogue
+
+`Provata = false`: no gusset was created in sixteen variants over the three
+gusset calls — selection with and without marks, both orders, inner, outer and
+both-sides thickness, triangular and polygonal profile, typed face arrays, on
+the T and in a mitred frame corner. Entry GP20 of the TODO says where to start.
+
+### Bench: bodies by name
+
+Three structural members created in the same order came back as C1 = the short
+bar in one run and C1 = the long bar in the next. A case that writes `C1` means
+a different body depending on the run. The bench has a new selector,
+`@corpo(nome=...)`: the body name («... 80X80X5(2)») follows creation order.
+The parentheses in the name are handled (the selector opens at the first and
+closes at the last). Covered in the bench self-test and in the contract suite.
+
+### Also
+
+- Bench cases for the last orphans of Z-C6: the trim with its refusal, the
+  bead with two refusals, the end cap (+42250 mm³ exactly: two 65×65×5 plates
+  inside the tube), and the gear at the undercut boundary — 17 teeth is made
+  (2/sin²20° = 17.097, rounded down), 16 is refused.
+- The `ruota_dentata` description declares that limit, and no longer says the
+  server computes the profile (the library does).
+- Two probes (`NuovaParte`, `CorpoRotto`) had not compiled since 0.86.0 —
+  `Environment` ambiguous between System and the SOLIDWORKS interop — and
+  nobody noticed for three versions because the probe build is run by hand.
+  `build.ps1` now compiles every probe (13 seconds), and `FlangiaSpigolo` is
+  registered.
+- The README check read numbers written in words, but «settantatré» (with the
+  accent, as it is spelled) came back as "not a number" and was skipped
+  silently. Fixed, with a check that the reader recognises it.
+- **CI had been red for five pushes** (0.85.0 to 0.88.0), always on the same
+  eight checks, none of them a real defect: four looked for the served
+  catalogue only in `bin\` (absent in a clean clone; the committed copy in
+  `Strumenti\` is the same file), three needed the bridge executable and
+  reported red instead of "not runnable here" where SOLIDWORKS is absent,
+  and one counted a sentence in the bench README that *tells* the story of
+  the old `casi/forma/ 5` row, a folder that is not in the repository by
+  design. All eight now read the committed catalogue, use the existing
+  "not here" rule, or anchor the row pattern at the start of the line.
+- A contract ratchet for entry Z-C16: declared cases that cite a body by
+  number in a `_uid` field cannot grow (12 today, seen red at zero first;
+  the two refusals on a `C9` that exists in no order are excluded).
+
+Bench: 1016 checks, 0 failed, 795/795 expectations, first run on this
+library. Contracts: 370. Installer tests: 17/17.
+
+---
+
 ## 0.88.0 — 25 September 2026 · library 0.113.0
 
 The six probes committed with 0.87.0 ran on a free SOLIDWORKS the same night,

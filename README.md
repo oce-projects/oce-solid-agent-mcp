@@ -2,7 +2,7 @@
 
 *Un progetto indipendente, non affiliato a Dassault Systèmes.*
 
-Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settantaquattro
+Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settantatré
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -67,7 +67,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sette, non settantaquattro. Le operazioni di disegno sono settantaquattro, ma esporne
+Sette, non settantatré. Le operazioni di disegno sono settantatré, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
@@ -308,11 +308,12 @@ passa fra **cio' che qualcuno cerca per nome a runtime** e tutto il resto.
 seconda scrittura: vedi [Strumenti/aggiorna.md](Strumenti/aggiorna.md).
 Contiene solo le operazioni **misurate dentro il software SOLIDWORKS**.
 
-Settantaquattro provate, e due che esistono nella libreria ma **restano fuori
-dal file**: `croci_di_centro` e `distinta_taglio_in_tavola` — tutte e due
-`Provata=false` con «0 → 0», cioe' non creano niente, e un client non deve
-poterle chiamare. Il banco stampa in intestazione **tutti e due i numeri col
-loro nome** — «eseguibili: 76 operazioni (a catalogo: 74)» — dal 24/9/2026
+Settantatré provate, e tre che esistono nella libreria ma **restano fuori
+dal file**: `croci_di_centro`, `distinta_taglio_in_tavola` e `fazzoletto` —
+tutte e tre `Provata=false` perche' non creano niente (le prime due «0 → 0»,
+il fazzoletto null in sedici varianti, misurato il 25/9/2026), e un client non
+deve poterle chiamare. Il banco stampa in intestazione **tutti e due i numeri col
+loro nome** — «eseguibili: 76 operazioni (a catalogo: 73)» — dal 24/9/2026
 (voce F15): prima stampava «catalogo: 73» e il catalogo ne aveva 71, e la
 differenza e' stata spiegata una volta, in modo plausibile e sbagliato, con due
 copie della libreria che divergevano.

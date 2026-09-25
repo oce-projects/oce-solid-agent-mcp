@@ -399,8 +399,12 @@ namespace Riscontro.Disegno.Catalogo
                     Descrizione =
                         "Crea una RUOTA DENTATA cilindrica a denti dritti, dal numero di "
                         + "denti e dal modulo. Il profilo del dente e' a evolvente e lo "
-                        + "calcola il server: tu dai solo i dati di progetto.\n\nCon foro_mm "
-                        + "si ottiene anche il foro centrale.",
+                        + "calcolo io: tu dai solo i dati di progetto.\n\nCon foro_mm "
+                        + "si ottiene anche il foro centrale.\n\nIL LIMITE: sotto 17 denti "
+                        + "(con l'angolo di pressione standard di 20 gradi) rifiuto, perche' "
+                        + "servirebbe la correzione di profilo contro l'intaglio del piede e "
+                        + "non la so fare. E' un limite mio, non della meccanica: con un "
+                        + "angolo di pressione maggiore il minimo scende (25 gradi: 11 denti).",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -1592,74 +1596,40 @@ namespace Riscontro.Disegno.Catalogo
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
-                        "Cordone di saldatura cosmetico fra due gruppi di corpi.",
+                        "Cordone di saldatura cosmetico fra due facce di due barre che si toccano ad angolo.",
                     Descrizione =
-                        "Mette un cordone di saldatura cosmetico fra due insiemi di facce. "
-                        + "Non toglie ne' aggiunge materiale al modello: documenta la "
-                        + "saldatura, e finisce nelle tavole e nella distinta.",
-                    Precondizione = "corpo_solido",
+                        "Mette un cordone di saldatura d'angolo, cosmetico, fra DUE facce "
+                        + "di due corpi che si toccano lungo uno spigolo e formano un angolo: "
+                        + "per una barra in battuta su un'altra, la faccia LATERALE della "
+                        + "barra e la faccia su cui arriva. Non toglie ne' aggiunge "
+                        + "materiale: documenta la saldatura, e finisce nelle tavole e nella "
+                        + "distinta.\n\nUNA COPPIA DI FACCE PER CHIAMATA. Un cordone che gira "
+                        + "attorno a un tubolare sono piu' chiamate, una per lato: con piu' "
+                        + "facce per parte SOLIDWORKS non crea niente. Le facce si indicano "
+                        + "per identificativo, prese dallo stato del documento: e' "
+                        + "un'operazione che si chiede DOPO aver fatto le barre e i tagli, "
+                        + "guardandole.\n\nSe le due facce non si toccano, o sono parallele, "
+                        + "rifiuto: SOLIDWORKS il cordone lo creerebbe lo stesso, e in "
+                        + "distinta finirebbe una saldatura che non esiste. La lunghezza che "
+                        + "ti torno e' quella dello spigolo in comune.",
+                    Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "da_corpi_uid", O(
-                                "type", "array",
-                                "items", O(
-                                    "type", "string"),
-                                "description", "i corpi da cui parte il cordone, per identificativo preso dallo "
-                                    + "stato del documento (C1, C2...). Usa questo per corpi che ci sono "
-                                    + "GIA'; l'altro campo per corpi che li crea un passo precedente di "
-                                    + "questo piano. Uno o l'altro, mai tutti e due."),
-                            "da_corpi_rif", O(
-                                "type", "object",
-                                "description", "il primo lato della saldatura\n\nGeneri ammessi:\n- corpi: le barre "
-                                    + "create da quel passo, tutte insieme",
-                                "properties", O(
-                                    "passo", O(
-                                        "type", "integer",
-                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
-                                            + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
-                                        "type", "string",
-                                        "enum", A(
-                                            "corpi"))),
-                                "required", A(
-                                    "passo",
-                                    "genere")),
-                            "a_corpi_uid", O(
-                                "type", "array",
-                                "items", O(
-                                    "type", "string"),
-                                "description", "i corpi su cui arriva il cordone, per identificativo preso dallo "
-                                    + "stato del documento (C1, C2...). Usa questo per corpi che ci sono "
-                                    + "GIA'; l'altro campo per corpi che li crea un passo precedente di "
-                                    + "questo piano. Uno o l'altro, mai tutti e due."),
-                            "a_corpi_rif", O(
-                                "type", "object",
-                                "description", "il secondo lato della saldatura\n\nGeneri ammessi:\n- corpi: le "
-                                    + "barre create da quel passo, tutte insieme",
-                                "properties", O(
-                                    "passo", O(
-                                        "type", "integer",
-                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
-                                            + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
-                                        "type", "string",
-                                        "enum", A(
-                                            "corpi"))),
-                                "required", A(
-                                    "passo",
-                                    "genere")),
+                            "da_faccia_uid", O(
+                                "type", "string",
+                                "description", "una faccia del primo corpo, presa dallo stato del documento "
+                                    + "(F1, F2...)"),
+                            "a_faccia_uid", O(
+                                "type", "string",
+                                "description", "una faccia dell'ALTRO corpo, che tocca la prima lungo uno "
+                                    + "spigolo e fa angolo con lei"),
                             "lato_mm", O(
                                 "type", "number",
-                                "description", "lato del cordone (a)"),
-                            "tipo", O(
-                                "type", "string",
-                                "enum", A(
-                                    "continuo",
-                                    "intermittente",
-                                    "sfalsato"),
-                                "description", "predefinito: continuo")),
+                                "description", "lato del cordone (a)")),
                         "required", A(
+                            "da_faccia_uid",
+                            "a_faccia_uid",
                             "lato_mm")),
                 },
                 new OperazioneDisegno
@@ -1693,7 +1663,33 @@ namespace Riscontro.Disegno.Catalogo
                     Nome = "fazzoletto",
                     Famiglia = "saldature",
                     DocumentoRichiesto = "parte",
-                    Provata = true,
+                    // ── NON PROVATA: il fazzoletto non nasce ────────────
+                    //
+                    // Era `Provata = true` senza nessun caso che la
+                    // esercitasse (voce Z-C6), e quando il caso si e' provato
+                    // a scriverlo, il 25/9/2026, **non e' nato nessun
+                    // fazzoletto**. Su una T di tubolari 80x80x5 tagliata per
+                    // davvero, con la faccia alta della barra lunga e la
+                    // faccia laterale della corta (si toccano lungo uno
+                    // spigolo di 68 mm, ad angolo retto — le stesse su cui
+                    // `cordone_saldatura` nasce):
+                    //
+                    //   - `InsertGussetFeature3` con le due facce selezionate,
+                    //     senza marca, marche 1/1 e 1/2, ordine invertito;
+                    //     spessore interno, esterno e da tutte e due le parti;
+                    //     profilo triangolare e poligonale; lati o angolo;
+                    //     posizione inizio e centro;
+                    //   - `InsertGussetFeature2` con le facce passate come
+                    //     `Face2[]`, come `DispatchWrapper[]`, e per selezione;
+                    //   - `InsertGussetFeature`, la prima, per selezione;
+                    //   - su un telaio 1000x800 a quartabuono, le due facce
+                    //     interne di un angolo.
+                    //
+                    // **null ogni volta, albero e volume invariati.** Lo stesso
+                    // difetto di `taglia_membri` (array non tipizzati) e' stato
+                    // escluso passando gli array tipizzati. Voce GP20 del TODO
+                    // per dove ripartire.
+                    Provata = false,
                     Sommario =
                         "Fazzoletto di irrigidimento fra due facce di un nodo.",
                     Descrizione =
@@ -1833,7 +1829,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "E' il «taglia/estendi» della barra di saldature.\n\nServe quando "
                         + "due gruppi di barre si incrociano e non sono stati trattati agli "
                         + "angoli: senza, i corpi restano compenetrati e la distinta di "
-                        + "taglio riporta lunghezze che in officina non tornano.",
+                        + "taglio riporta lunghezze che in officina non tornano.\n\nTi torno "
+                        + "di quanto e' cambiato il volume (negativo = tolto). Se il pezzo "
+                        + "non cambia, rifiuto: vuol dire che le barre non si incontrano, "
+                        + "e un taglio che non taglia niente non te lo confermo.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",

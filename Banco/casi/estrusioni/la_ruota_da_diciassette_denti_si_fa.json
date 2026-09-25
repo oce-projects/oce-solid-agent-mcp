@@ -1,0 +1,22 @@
+{
+  "nome": "la_ruota_da_diciassette_denti_si_fa",
+  "famiglia": "estrusioni",
+  "perche": "VOCE Z-C6. `ruota_dentata` era a catalogo con `Provata = true` e la toccava solo un piano a mano, che non pretende niente. Diciassette denti e non diciotto perche' e' il BORDO: sotto il limite d'intaglio il generatore rifiuta, e il limite 2/sin²(20°) vale 17,097. La pratica arrotonda per difetto e la ruota da 17 si fa tutti i giorni; arrotondando per eccesso la si rifiuterebbe — dire di no a un pezzo normale, che e' il modo peggiore di sbagliare.",
+
+  "il_difetto_che_questo_caso_prende": "Il limite arrotondato dalla parte sbagliata (questa ruota rifiutata), e le tre misure che definiscono una ruota — primitivo m*z, testa m*(z+2), fondo m*(z-2,5) — sbagliate o scambiate. Il volume e l'ingombro, letti dal pezzo, dicono che il profilo disegnato e' quello dichiarato.",
+
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "ruota_dentata",
+      "argomenti": { "piano": "superiore", "denti": 17, "modulo_mm": 2, "spessore_mm": 10 },
+      "attese": [
+        { "cosa": "corpi", "uguale": 1 },
+        { "cosa": "misure.diametro_primitivo_mm", "uguale": 34, "perche": "m x z = 2 x 17" },
+        { "cosa": "misure.diametro_esterno_mm", "uguale": 38, "perche": "m x (z + 2) = 2 x 19" },
+        { "cosa": "misure.diametro_fondo_mm", "uguale": 29, "perche": "m x (z - 2,5) = 2 x 14,5" },
+        { "cosa": "volume_mm3", "uguale": 8808.59, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "l'evolvente non ha un'area in forma chiusa semplice e il profilo e' fatto di 170 segmenti (10 per dente): il numero e' MISURATO il 25/9/2026, e mezzo mm3 copre l'arrotondamento. La misura sbagliata piu' vicina e' la ruota da 18 denti, 9895,8: mille mm3 piu' in la'" },
+        { "cosa": "ingombro_mm", "uguale": [37.787, 10, 37.938], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "le punte stanno sul cerchio di testa da 38, ma con 17 denti (dispari) sull'asse X c'e' un dente da una parte e un VANO dall'altra, e su Z nessun dente cade in asse: per questo nessuno dei due arriva a 38. Misurato, e il centesimo e' l'arrotondamento di SOLIDWORKS sulla scatola" } ] }
+  ]
+}

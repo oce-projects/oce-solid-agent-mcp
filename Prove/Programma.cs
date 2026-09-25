@@ -217,6 +217,26 @@ namespace Prove.Contratti
             return null;
         }
 
+        /// <summary>
+        /// Il catalogo che il ponte serve: `bin\catalogo.json`, e se non c'e' la
+        /// copia versionata `Strumenti\catalogo.json` — che e' esattamente il
+        /// file che `build.ps1` rigenera e copia in `bin\`.
+        ///
+        /// QUATTRO CONTROLLI TENEVANO ROSSA LA CI DA CINQUE PUSH (misurato il
+        /// 25/9/2026, dalla 0.85.0 alla 0.88.0): cercavano solo `bin\`, che in
+        /// un clone pulito non esiste, e dicevano «il catalogo servito non
+        /// c'e'». Non era un difetto del catalogo, e nemmeno una cosa che la CI
+        /// non potesse fare: il file da leggere c'era, in `Strumenti\`.
+        /// `ProveLeDescrizioni` lo faceva gia' giusto. *Una CI sempre rossa si
+        /// impara a non guardarla, ed e' il modo in cui un rosso vero passa.*
+        /// </summary>
+        internal static string CatalogoServito()
+        {
+            var inBin = Path.Combine(Radice(), "bin", "catalogo.json");
+            if (File.Exists(inBin)) return inBin;
+            return Path.Combine(Radice(), "Strumenti", "catalogo.json");
+        }
+
         internal static string Breve(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
@@ -663,8 +683,15 @@ namespace Prove.Contratti
             // `casi/<nome>/` seguito da spazi e da un numero. Le righe di
             // continuazione (la descrizione che va a capo) non hanno il numero
             // e non corrispondono: e' voluto.
+            //
+            // A INIZIO RIGA, e il perche' e' misurato (25/9/2026): senza `^` il
+            // conto prendeva anche la frase che RACCONTA la vecchia riga
+            // («Questa riga prima la contava ... «casi/forma/ 5»»), e
+            // `casi/forma/` non e' nel repository per scelta. In locale passava,
+            // perche' i cinque file ci sono; in un clone pulito — la CI — era
+            // «nominate e non esistenti: forma», rosso a ogni push dalla 0.85.0.
             var forma = new System.Text.RegularExpressions.Regex(
-                @"casi/([a-z]+)/\s+(\d+)");
+                @"^casi/([a-z]+)/\s+(\d+)", System.Text.RegularExpressions.RegexOptions.Multiline);
 
             var dichiarati = new SortedDictionary<string, int>(StringComparer.Ordinal);
             foreach (System.Text.RegularExpressions.Match m in forma.Matches(testo))

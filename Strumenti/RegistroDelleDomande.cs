@@ -12,11 +12,13 @@ namespace Oce.Solid.Agent.Strumenti
     ///
     /// ── PERCHE' ESISTE ──────────────────────────────────────────────────
     ///
-    /// Le cinque operazioni del catalogo senza nessun caso di banco —
-    /// `ripeti_circolare`, `cordone_saldatura`, `fazzoletto`, `taglia_membri`,
-    /// `tappo_estremita` — **le abbiamo scelte noi**. Quali servano davvero
-    /// non lo sa nessuno, e chiederlo alle persone non lo fa sapere: chi usa
-    /// il ponte non ha l'elenco di cosa non c'e'.
+    /// Le cinque operazioni del catalogo che al 23/9/2026 non avevano nessun
+    /// caso di banco — `ripeti_circolare`, `cordone_saldatura`, `fazzoletto`,
+    /// `taglia_membri`, `tappo_estremita` — **le abbiamo scelte noi**. (Il
+    /// 25/9, scrivendo quei casi, due si sono scoperte mai funzionanti e una
+    /// e' uscita dal catalogo: scelte a tavolino, e nemmeno misurate.) Quali
+    /// servano davvero non lo sa nessuno, e chiederlo alle persone non lo fa
+    /// sapere: chi usa il ponte non ha l'elenco di cosa non c'e'.
     ///
     /// In OpenPDM il registro delle domande e' cio' che ha fatto trovare il
     /// difetto «libreria cartella / libreria stato»: non si e' scoperto

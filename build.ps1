@@ -172,6 +172,25 @@ if ($null -eq $primaDi) {
 Copy-Item $catalogo (Join-Path $radice "bin\catalogo.json") -Force
 
 # -----------------------------------------------------------------------------
+Passo "1c. Le sonde"
+# -----------------------------------------------------------------------------
+# LE SONDE SI COMPILANO A OGNI PACCHETTO, e non per scrupolo.
+#
+# Misurato il 25/9/2026: `Controlli\NuovaParte` e `Controlli\CorpoRotto` non
+# compilavano dalla 0.86.0 — `Environment` ambiguo fra System e l'interop di
+# SOLIDWORKS — e nessuno se n'era accorto per tre versioni, perche'
+# `costruisci-controlli.ps1` si lancia a mano e nessuno lo lanciava. Una sonda
+# che non compila e' una misura che non si puo' rifare il giorno che serve.
+# Costa tredici secondi.
+$vecchiaPreferenza = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $radice "Controlli\costruisci-controlli.ps1") *> $null
+$esitoSonde = $LASTEXITCODE
+$ErrorActionPreference = $vecchiaPreferenza
+if ($esitoSonde -ne 0) { Muori "una sonda non compila: lancia .\Controlli\costruisci-controlli.ps1 per vedere quale" }
+Ok "tutte le sonde compilano"
+
+# -----------------------------------------------------------------------------
 Passo "2. Il carico da incorporare"
 # -----------------------------------------------------------------------------
 $payload = Join-Path $radice "Installer\Payload"

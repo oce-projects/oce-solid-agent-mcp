@@ -609,9 +609,18 @@ namespace ProvaSaldatura
                 case "spigolo": return UnoSolo(espressione, "spigoli", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
                 case "feature": return UnaFeature(espressione, stato, condizioni);
                 case "quota":   return UnaQuota(espressione, stato, condizioni);
+                // I CORPI SI CHIAMANO PER NOME, NON PER NUMERO. Misurato il
+                // 25/9/2026 su tre membri strutturali creati nello stesso
+                // ordine in due giri: una volta lo stato dice C1 = la barra
+                // corta, l'altra C1 = la lunga. «C1» scritto in un caso vuol
+                // dire un corpo diverso a seconda del giro; il nome («... (2)»)
+                // segue invece l'ordine di creazione, ed e' quello che il caso
+                // intende. Il nome ha le parentesi dentro, e il selettore le
+                // regge: si apre alla PRIMA e si chiude all'ULTIMA.
+                case "corpo":   return UnoSolo(espressione, "corpi", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
                 default:
                     throw new NonHoPotutoMisurare("selettore sconosciuto «@" + tipo + "»: ci sono " +
-                                        "@faccia, @spigolo, @feature, @quota");
+                                        "@faccia, @spigolo, @feature, @quota, @corpo");
             }
         }
 

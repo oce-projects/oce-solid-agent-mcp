@@ -121,7 +121,7 @@ namespace Prove.Contratti
         {
             Gruppo("ogni campo obbligatorio e' una decisione presa (Z-G3)");
 
-            var file = Path.Combine(Radice(), "bin", "catalogo.json");
+            var file = CatalogoServito();
             if (!File.Exists(file))
             {
                 Segna("il catalogo servito c'e'", false, "manca " + file);

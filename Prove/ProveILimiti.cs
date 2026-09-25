@@ -72,6 +72,38 @@ namespace Prove.Contratti
             "non copre", "fallisc", "sbord", "piu' grande",
         };
 
+        /// <summary>
+        /// Quanti casi dichiarati citano un corpo PER NUMERO («C1», «C2») in un
+        /// campo `_uid`. Misurato il 25/9/2026: l'ordine dei corpi nello stato
+        /// viene da `GetBodies2`, **non segue la creazione e cambia fra un giro
+        /// e l'altro** (tre membri strutturali: C1 = la corta in un giro, la
+        /// lunga nell'altro). Molti di questi casi hanno un corpo solo quando
+        /// lo citano, e sono innocui; gli altri sono l'elenco della voce Z-C16.
+        /// Il banco ha `@corpo(nome=...)`, che segue l'ordine di creazione.
+        ///
+        /// **12 al 25/9/2026**, visto rosso a tetto zero prima di fissarlo (i due
+        /// rifiuti su `C9`, che non esiste in nessun ordine, restano fuori).
+        /// </summary>
+        private const int CorpiPerNumeroTetto = 12;
+
+        /// <summary>I «C\d+» scritti a mano nei campi `_uid` degli argomenti.</summary>
+        private static IEnumerable<string> CorpiPerNumero(object argomenti)
+        {
+            var d = argomenti as Dictionary<string, object>;
+            if (d == null) yield break;
+            foreach (var kv in d)
+            {
+                if (!kv.Key.EndsWith("_uid", StringComparison.Ordinal)) continue;
+                var valori = kv.Value as object[] ?? new[] { kv.Value };
+                foreach (var v in valori)
+                {
+                    var s = v as string;
+                    if (s != null && System.Text.RegularExpressions.Regex.IsMatch(s, @"^C\d+$"))
+                        yield return s;
+                }
+            }
+        }
+
         internal static void Tutte()
         {
             Gruppo("i limiti misurati e le descrizioni che li dichiarano (Z-G5, Z-C11)");
@@ -106,6 +138,7 @@ namespace Prove.Contratti
             var rifiutiDaConfrontare = new List<Tuple<string, string, string, string>>(); // caso, operazione, argomenti, gemella
             var argomentiPerCaso = new Dictionary<string, List<Tuple<string, string>>>(StringComparer.Ordinal);
             var js = new JavaScriptSerializer();
+            var casiCoiNumeri = new SortedSet<string>(StringComparer.Ordinal);
 
             foreach (var f in file)
             {
@@ -153,6 +186,18 @@ namespace Prove.Contratti
                     List<Tuple<string, string>> suoi;
                     if (!argomentiPerCaso.TryGetValue(nome, out suoi)) argomentiPerCaso[nome] = suoi = new List<Tuple<string, string>>();
                     suoi.Add(Tuple.Create(opNome, argTesto));
+                    // IL CORPO PER NUMERO (Z-C16). Un «C2» scritto a mano in un
+                    // campo `_uid`: si esclude solo il numero che il rifiuto
+                    // stesso nomina nel messaggio atteso (`C9` che non esiste
+                    // e' il punto del caso, e non dipende dall'ordine).
+                    foreach (var citato in CorpiPerNumero(argN))
+                    {
+                        object dvC; string attesoNelMessaggio = "";
+                        if (passo.TryGetValue("deve_fallire", out dvC) && dvC is Dictionary<string, object>)
+                            attesoNelMessaggio = js.Serialize(dvC);
+                        if (attesoNelMessaggio.Contains("\"" + citato + "\"")) continue;
+                        casiCoiNumeri.Add(nome);
+                    }
                     object dv0;
                     if (passo.TryGetValue("deve_fallire", out dv0) && dv0 is Dictionary<string, object>)
                     {
@@ -192,6 +237,20 @@ namespace Prove.Contratti
                         senzaMessaggio.Add(nome + " / " + operazione);
                 }
             }
+
+            // IL TETTO CALA E NON SALE (Z-C16). I casi che li citano ancora
+            // sono l'elenco da guardare uno per uno; un caso NUOVO che cita un
+            // corpo per numero fa diventare rosso questo controllo il giorno in
+            // cui lo si scrive: si usa `@corpo(nome=...)`.
+            Segna("i casi che citano un corpo per numero non aumentano (Z-C16)",
+                  casiCoiNumeri.Count <= CorpiPerNumeroTetto,
+                  casiCoiNumeri.Count + " casi (tetto " + CorpiPerNumeroTetto + "): " +
+                  string.Join(", ", casiCoiNumeri));
+            Segna("e il tetto dei corpi per numero e' quello vero",
+                  casiCoiNumeri.Count == CorpiPerNumeroTetto,
+                  casiCoiNumeri.Count == CorpiPerNumeroTetto
+                      ? "tetto " + CorpiPerNumeroTetto
+                      : "sono " + casiCoiNumeri.Count + ": abbassa il tetto a questo numero");
 
             Segna("tutti i file di caso si leggono", illeggibili.Count == 0,
                   illeggibili.Count == 0
@@ -239,7 +298,7 @@ namespace Prove.Contratti
                       : string.Join(" | ", senzaMessaggio));
 
             // ── E LE DESCRIZIONI? (Z-G5) ────────────────────────────────
-            var catalogo = Path.Combine(Radice(), "bin", "catalogo.json");
+            var catalogo = CatalogoServito();
             if (!File.Exists(catalogo))
             {
                 Segna("il catalogo servito c'e'", false, "manca " + catalogo);

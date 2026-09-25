@@ -80,7 +80,13 @@ namespace Prove.Contratti
         {
             var tipo = Avanzamento();
             if (tipo == null)
-            { Segna("la classe Avanzamento c'e'", false, "il ponte non si carica"); return; }
+            {
+                // Senza ponte: «non qui» in CI, rosso dove SOLIDWORKS c'e' (e
+                // allora manca build.ps1). Col ponte e senza la classe: rosso.
+                if (PonteOppureNonQui("l'avanzamento: il gettone, la notifica, il filo") == null) return;
+                Segna("la classe Avanzamento c'e'", false, "il ponte c'e' ma la classe non si carica");
+                return;
+            }
 
             var metodo = tipo.GetMethod("Gettone", Ovunque);
             if (metodo == null) { Segna("Gettone() c'e'", false, ""); return; }
@@ -395,12 +401,10 @@ namespace Prove.Contratti
 
         private static void LAnnullamentoDiceDiNo()
         {
+            var ponte = PonteOppureNonQui("l'annullamento dice di no");
+            if (ponte == null) return;
             Type prog;
-            try
-            {
-                var ponte = System.IO.Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
-                prog = Carica.Classe(Carica.Ponte(ponte), "Programma");
-            }
+            try { prog = Carica.Classe(Carica.Ponte(ponte), "Programma"); }
             catch { prog = null; }
             if (prog == null) { Segna("la classe Programma c'e'", false, ""); return; }
 

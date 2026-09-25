@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.InteropServices;
 
 // Riscontro.Disegno — le operazioni di disegno per SOLIDWORKS, senza il PDM.
@@ -187,8 +187,25 @@ using System.Runtime.InteropServices;
 //          - lo stato della tavola conta le quote senza spigolo (voce Z-A2);
 //          - la descrizione di `estrudi_sezione` dice che l'asola e' un
 //            poligono circoscritto: il primo giro lo ha scoperto col caso nuovo.
-[assembly: AssemblyVersion("0.113.0.0")]
-[assembly: AssemblyFileVersion("0.113.0.0")]
+// 0.114.0: gli ASSI si controllano per identita' e due operazioni di
+//          saldatura che non avevano mai fatto niente.
+//          - Lo stato di un asse porta un punto sulla retta e la direzione, e
+//            `asse_uid` si confronta con la firma del piano (voce E4, la parte
+//            degli assi): un asse rifatto altrove col nome di prima si
+//            rifiuta, invece di ripetere attorno a quello nuovo.
+//          - `taglia_membri` passava i corpi come `object[]`, e SOLIDWORKS
+//            rispondeva con una feature che nell'albero non entrava: la T
+//            restava identica e l'operazione diceva `corpi_tagliati: 1`. Con
+//            `Body2[]` il taglio nasce, e una guardia pretende che la feature
+//            sia nell'albero e che il volume cambi (voce Z-C6).
+//          - `cordone_saldatura` non aveva mai creato un cordone: prende DUE
+//            facce invece di due insiemi di corpi, usa la chiamata per
+//            selezione (l'unica che lo crea), controlla prima che le facce si
+//            tocchino ad angolo e rilegge il lato dalla feature.
+//          - `fazzoletto` esce dal catalogo (`Provata = false`): non nasce in
+//            nessuna delle sedici varianti provate.
+[assembly: AssemblyVersion("0.114.0.0")]
+[assembly: AssemblyFileVersion("0.114.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -203,4 +220,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.113.0")]
+[assembly: AssemblyInformationalVersion("0.114.0")]

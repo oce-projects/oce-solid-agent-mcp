@@ -983,6 +983,10 @@ namespace Oce.Solid.Agent.Strumenti
                                  "punto_mm", "normale", "area_mm2", "lunghezza_mm",
                                  "lavorazione_id", "centro_mm", "ingombro_mm", "ancora",
                                  "feature_id",
+                                 // LA DIREZIONE DI UN ASSE (voce E4): senza, la
+                                 // firma dell'asse avrebbe solo un punto, e un asse
+                                 // girato attorno a quel punto passerebbe.
+                                 "direzione",
                                  // IL PERSIST ID VIAGGIA QUI E SOLO QUI.
                                  // E' il CANDIDATO del ritrovamento (voce E6):
                                  // ~530 caratteri in base64 per faccia, che

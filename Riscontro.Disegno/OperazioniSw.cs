@@ -4058,6 +4058,18 @@ namespace Riscontro.Disegno
                 return true;
             }
 
+            // L'ASSE PER IDENTITA', NON SOLO PER NOME (voce E4). Se lo stato lo
+            // conosce, la firma che il piano porta deve combaciare con la retta
+            // di adesso, e lo si seleziona per oggetto invece che per nome.
+            StatoDocumento.FirmaEntita firmaAsse;
+            if (stato != null && stato.Firme.TryGetValue(uid, out firmaAsse) && firmaAsse.Tipo == "AXIS")
+            {
+                string scostamentoAsse;
+                if (!FirmaCombacia(a, uid, firmaAsse, out scostamentoAsse)) { motivo = scostamentoAsse; return false; }
+                var featAsse = firmaAsse.Entita as IFeature;
+                if (featAsse != null && featAsse.Select2(mark != 1, mark)) return true;
+            }
+
             if (!modello.Extension.SelectByID2(uid, "AXIS", 0, 0, 0, mark != 1, mark, null, 0))
             {
                 motivo =
@@ -6476,6 +6488,40 @@ namespace Riscontro.Disegno
             var attesa = FirmaAttesa(argomenti, uid);
             if (attesa == null) return true;
 
+            // L'ASSE E' UNA RETTA, non un punto (voce E4). Il punto che lo stato
+            // pubblica e' l'inizio dell'asse, e l'inizio si sposta se il foro da
+            // cui nasce si allunga: la stessa retta con un altro inizio e' lo
+            // stesso asse. Quindi la direzione dev'essere parallela, e il punto
+            // atteso deve stare sulla retta di adesso.
+            if (adesso.Tipo == "AXIS")
+            {
+                var q = Terna(attesa, "punto_mm");
+                var e = Terna(attesa, "direzione");
+                var p = adesso.PuntoMm; var d = adesso.Normale;
+                if (q == null || p == null || d == null || p.Length != 3 || d.Length != 3) return true;
+                if (e != null)
+                {
+                    double dot = Math.Abs(d[0] * e[0] + d[1] * e[1] + d[2] * e[2]);
+                    if (dot < Math.Cos(Math.PI / 180.0))
+                    {
+                        motivo = "L'asse «" + uid + "» adesso e' orientato in un altro modo. Il pezzo " +
+                                 "e' cambiato da quando hai confermato: " + NonLavoroSu(adesso);
+                        return false;
+                    }
+                }
+                double vx = q[0] - p[0], vy = q[1] - p[1], vz = q[2] - p[2];
+                double cx = vy * d[2] - vz * d[1], cy = vz * d[0] - vx * d[2], cz = vx * d[1] - vy * d[0];
+                double dist = Math.Sqrt(cx * cx + cy * cy + cz * cz);
+                if (dist > TolleranzaPuntoMm)
+                {
+                    motivo = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "L'asse «{0}» si e' spostato di {1:0.##} mm. Il pezzo e' cambiato da quando " +
+                        "hai confermato: {2}", uid, dist, NonLavoroSu(adesso));
+                    return false;
+                }
+                return true;
+            }
+
             // DUE NOMI PER LA STESSA COSA, e non e' pigrizia.
             // Una faccia pubblica `punto_mm` — un punto SU di lei; un corpo
             // pubblica `centro_mm` — il centro della sua scatola. Sono due
@@ -6539,6 +6585,7 @@ namespace Riscontro.Disegno
             switch (entita?.Tipo)
             {
                 case "BODY": return "non lavoro sul corpo sbagliato.";
+                case "AXIS": return "non lavoro sull'asse sbagliato.";
                 case "EDGE": return "non lavoro sullo spigolo sbagliato.";
                 default: return "non lavoro sulla faccia sbagliata.";
             }

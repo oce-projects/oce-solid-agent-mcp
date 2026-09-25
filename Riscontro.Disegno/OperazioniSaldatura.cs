@@ -608,6 +608,38 @@ namespace Riscontro.Disegno
             if (gioco > 0) opzioni |= (int)swWeldmentTrimExtendOptionType_e
                 .swWeldmentTrimExtendOption_WeldGap;
 
+            // GLI ARRAY VANNO TIPIZZATI, e non e' pignoleria: e' il difetto per
+            // cui questa operazione ha mentito dalla nascita fino alla libreria
+            // 0.113.0. Misurato il 25/9/2026 su una T di due tubolari 80x80x5
+            // (la seconda barra entra di 40 mm nella prima):
+            //
+            //   object[]         -> torna una feature «Accorcia/Estendi1», che
+            //                       NELL'ALBERO NON C'E'; volume invariato
+            //   Body2[]          -> la feature c'e', volume -58798,23 mm3
+            //   DispatchWrapper[]-> uguale a Body2[]
+            //
+            // 58798,23 = 40 mm x 1469,956 mm2, la sezione del tubo: il taglio
+            // giusto, al centesimo. Con `object[]` l'interop impacchetta un
+            // array di VARIANT e SOLIDWORKS ne fa una feature fantasma senza
+            // dire niente. Anche su `condizione: testa1`, e con le opzioni di
+            // estensione accese: sempre fantasma.
+            //
+            // `distinta_taglio` passava gia' `Body2[]` ed e' per questo che
+            // funzionava.
+            Body2[] daTagliareTipizzati, controTipizzati;
+            try
+            {
+                daTagliareTipizzati = daTagliare.Cast<Body2>().ToArray();
+                controTipizzati = contro.Cast<Body2>().ToArray();
+            }
+            catch (InvalidCastException)
+            {
+                return Fallito("Fra i corpi indicati c'e' qualcosa che non e' un corpo solido.");
+            }
+
+            double volumePrima = VolumeMm3(modello);
+            int featurePrima = ContaFeatureDellAlbero(modello);
+
             IFeature feature;
             try
             {
@@ -615,8 +647,8 @@ namespace Riscontro.Disegno
                     EndCond: codice,
                     Options: opzioni,
                     GapValue: Unita.M(gioco),
-                    BodiesToTrim: daTagliare,
-                    BodiesOrFaces: contro) as IFeature;
+                    BodiesToTrim: daTagliareTipizzati,
+                    BodiesOrFaces: controTipizzati) as IFeature;
             }
             catch (Exception ex)
             {
@@ -627,12 +659,57 @@ namespace Riscontro.Disegno
                     "Il taglio non e' stato creato. Di solito le barre da " +
                     "tagliare e quelle di taglio non si incontrano davvero.");
 
+            // LA FEATURE TORNATA NON BASTA: bisogna che sia nell'albero e che
+            // il pezzo sia cambiato. E' la guardia che avrebbe preso il
+            // difetto qui sopra il primo giorno — l'operazione diceva
+            // «corpi_tagliati: 1» su un pezzo identico a prima.
+            try { modello.EditRebuild3(); } catch { }
+            bool nellAlbero = ContaFeatureDellAlbero(modello) > featurePrima;
+            double volumeDopo = VolumeMm3(modello);
+            double variazione = volumeDopo - volumePrima;
+            if (!nellAlbero)
+                // Con gli array tipizzati succede ancora, e il 25/9/2026 e'
+                // successo sempre e solo quando le barre non si incontrano: due
+                // parallele a 200 mm, o una barra lontana. E' la risposta di
+                // SOLIDWORKS a «non c'e' niente da tagliare».
+                return Fallito(
+                    "SOLIDWORKS ha risposto con una feature «" + feature.Name + "» che " +
+                    "nell'albero non c'e', e il pezzo e' quello di prima: di solito vuol " +
+                    "dire che le barre da tagliare non incontrano quelle di taglio. Non " +
+                    "ti dico che le barre sono tagliate.");
+            if (Math.Abs(variazione) < 0.01)
+                return Fallito(
+                    "Il taglio e' nell'albero ma non ha cambiato niente: volume " +
+                    volumePrima.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+                    " mm3 prima e dopo. Le barre da tagliare non entrano in quelle di " +
+                    "taglio, o gia' ci arrivano esatte. Non ti confermo un pezzo diverso " +
+                    "da quello che ti ho mostrato — " + Frasi.CosiSiRitira + ".");
+
             return Riuscito(feature, new Dictionary<string, object>
             {
                 ["corpi_tagliati"] = nDa,
                 ["corpi_di_taglio"] = nContro,
                 ["gioco_mm"] = gioco,
+                // Negativo = tolto (taglio), positivo = aggiunto (estensione).
+                ["variazione_volume_mm3"] = Math.Round(variazione, 2),
             });
+        }
+
+        /// <summary>
+        /// Quante feature ha l'albero, al primo livello. Serve a una cosa sola:
+        /// sapere se una feature che SOLIDWORKS ha restituito ci e' entrata
+        /// davvero (vedi `TagliaMembri`).
+        /// </summary>
+        private static int ContaFeatureDellAlbero(IModelDoc2 modello)
+        {
+            int n = 0;
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null) { n++; f = f.GetNextFeature() as IFeature; }
+            }
+            catch { }
+            return n;
         }
 
         private Esito DistintaTaglio(IModelDoc2 modello, Dictionary<string, object> a)
@@ -875,45 +952,174 @@ namespace Riscontro.Disegno
             });
         }
 
+        // IL CORDONE, E PERCHE' ADESSO VUOLE DUE FACCE E NON DUE CORPI.
+        //
+        // Fino alla libreria 0.113.0 prendeva due insiemi di corpi, ne passava
+        // TUTTE le facce a `InsertCosmeticWeldBead2`, e non ha mai creato un
+        // cordone. Misurato il 25/9/2026 su una T di tubolari 80x80x5 gia'
+        // tagliata (voce Z-C6):
+        //
+        //   InsertCosmeticWeldBead2, facce come object[], Face2[] o
+        //   DispatchWrapper[], tutte o solo le due che si toccano, modo
+        //   «geometria» o «percorso» sugli spigoli        -> null, sempre
+        //   InsertCosmeticWeldBead (la vecchia, per selezione), UNA faccia
+        //   per parte                                      -> cordone vero,
+        //                                    lunghezza 68 mm = il lato piatto
+        //   la stessa, tutte le facce dei due corpi        -> null
+        //   la stessa, tre facce contro una               -> null
+        //   la stessa, due facce che NON si toccano        -> cordone creato
+        //                                    lo stesso, lato riletto 40 e non 4
+        //
+        // Quindi: una coppia di facce per chiamata, e il contatto si controlla
+        // QUI, prima, perche' SOLIDWORKS non lo controlla — e un cordone fra
+        // facce lontane finirebbe nella distinta come saldatura vera.
         private Esito CordoneSaldatura(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            int nDa, nA;
-            string perche;
-            var daFacce = FacceDiCorpiDalRiferimento(a, "da_corpi_rif", stato, out nDa, out perche);
-            if (daFacce == null) return Fallito(perche);
-            var aFacce = FacceDiCorpiDalRiferimento(a, "a_corpi_rif", stato, out nA, out perche);
-            if (aFacce == null) return Fallito(perche);
-
             double lato = Num(a, "lato_mm", 0);
             if (lato <= 0) return Fallito("Il cordone non ha lato.");
 
-            object risultato;
+            var facce = new IFace2[2];
+            var nomi = new[] { "da_faccia_uid", "a_faccia_uid" };
+            for (int i = 0; i < 2; i++)
+            {
+                string u = Str(a, nomi[i], "");
+                if (u.Length == 0)
+                    return Fallito(
+                        "Manca «" + nomi[i] + "». Il cordone va fra DUE facce, una per " +
+                        "corpo, prese dallo stato del documento (F1, F2...).");
+                StatoDocumento.FirmaEntita firma;
+                if (stato == null || !stato.Firme.TryGetValue(u, out firma) || firma.Tipo != "FACE")
+                    return Fallito("La faccia «" + u + "» non c'e' piu' in questo documento.");
+                string scostamento;
+                if (!FirmaCombacia(a, u, firma, out scostamento)) return Fallito(scostamento);
+                facce[i] = firma.Entita as IFace2;
+                if (facce[i] == null)
+                    return Fallito("La faccia «" + u + "» non si lascia leggere.");
+            }
+
+            string corpoDa = NomeDelCorpo(facce[0]), corpoA = NomeDelCorpo(facce[1]);
+            if (corpoDa != null && corpoDa == corpoA)
+                return Fallito(
+                    "Le due facce sono dello stesso corpo («" + corpoDa + "»). Un " +
+                    "cordone unisce DUE corpi: indica una faccia per parte.");
+
+            var nDa = facce[0].Normal as double[];
+            var nA = facce[1].Normal as double[];
+            if (nDa != null && nA != null && nDa.Length >= 3 && nA.Length >= 3
+                && Math.Abs(nDa[0] * nA[0] + nDa[1] * nA[1] + nDa[2] * nA[2]) > 0.999)
+                return Fallito(
+                    "Le due facce sono parallele: si appoggiano una sull'altra o stanno " +
+                    "affiancate, e non formano un angolo. Il cordone d'angolo va fra due " +
+                    "facce che si incontrano lungo uno spigolo e fanno un angolo — per " +
+                    "una barra in battuta su un'altra, e' la faccia LATERALE della barra " +
+                    "contro la faccia su cui arriva, non la sua testa.");
+
+            double contatto = Math.Max(
+                LunghezzaCheStaSu(facce[0], facce[1]), LunghezzaCheStaSu(facce[1], facce[0]));
+            if (contatto < 0.01)
+                return Fallito(
+                    "Le due facce non si toccano: nessuno spigolo dell'una sta " +
+                    "sull'altra. SOLIDWORKS il cordone lo creerebbe lo stesso (misurato: " +
+                    "fra due facce lontane nasce, con un lato diverso da quello chiesto), " +
+                    "e in distinta finirebbe una saldatura che non esiste.");
+
+            modello.ClearSelection2(true);
+            for (int i = 0; i < 2; i++)
+                if (!(facce[i] as IEntity).Select4(true, null))
+                    return Fallito("La faccia «" + Str(a, nomi[i], "") + "» non si e' lasciata selezionare.");
+
+            IFeature feature;
             try
             {
-                risultato = modello.FeatureManager.InsertCosmeticWeldBead2(
-                    WeldMode: (int)swCosmeticWeldBeadMode_e.swCosmeticWeldBeadMode_WeldGeometry,
-                    WeldFromFaceOrEdgeSet: daFacce,
-                    WeldToFaceOrEdgeSet: aFacce,
-                    WeldSize: Unita.M(lato));
+                feature = modello.FeatureManager.InsertCosmeticWeldBead(Unita.M(lato)) as IFeature;
             }
             catch (Exception ex)
             {
                 return Fallito("Il cordone non e' riuscito: " + ex.Message);
             }
-
-            var feature = risultato as IFeature;
             if (feature == null)
                 return Fallito(
-                    "Il cordone non e' stato creato: le due facce indicate " +
-                    "probabilmente non si toccano.");
+                    "Il cordone non e' stato creato, e SOLIDWORKS non dice perche'. " +
+                    "Le due facce si toccano per " +
+                    contatto.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+                    " mm: il lato potrebbe essere troppo grande per le facce.");
+
+            // RILETTO, NON CREDUTO: e' il lato che SOLIDWORKS ha scritto nella
+            // feature, ed e' la misura che fra facce lontane veniva diversa.
+            double latoLetto = -1;
+            try
+            {
+                var def = feature.GetDefinition() as ICosmeticWeldBeadFeatureData;
+                if (def != null) latoLetto = def.BeadSize * 1000.0;
+            }
+            catch { }
+            if (latoLetto >= 0 && Math.Abs(latoLetto - lato) > 0.001)
+                return Fallito(
+                    "Il cordone e' stato creato con un lato di " +
+                    latoLetto.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                    " mm invece di " + lato.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                    ". Non te lo lascio passare per buono — " + Frasi.CosiSiRitira + ".");
 
             return Riuscito(feature, new Dictionary<string, object>
             {
                 ["lato_mm"] = lato,
-                ["facce_da"] = nDa,
-                ["facce_a"] = nA,
+                ["lato_riletto_mm"] = latoLetto >= 0 ? (object)Math.Round(latoLetto, 3) : null,
+                // La lunghezza e' quella dello spigolo in comune, contata qui
+                // sulla geometria: non dipende dalle unita' del documento.
+                ["lunghezza_mm"] = Math.Round(contatto, 2),
+                ["corpo_da"] = corpoDa,
+                ["corpo_a"] = corpoA,
             });
+        }
+
+        private static string NomeDelCorpo(IFace2 faccia)
+        {
+            try { return (faccia.GetBody() as IBody2)?.Name; }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Quanti millimetri di spigoli di `faccia` stanno sopra `altra`: uno
+        /// spigolo conta se il suo inizio, il suo punto medio e la sua fine
+        /// stanno sull'altra faccia entro un millesimo di millimetro.
+        ///
+        /// E' il contatto che fa un cordone d'angolo: la faccia laterale di
+        /// una barra in battuta tocca la faccia su cui arriva lungo lo
+        /// spigolo di fondo. Tre punti e non uno, perche' uno spigolo che
+        /// sfiora l'altra faccia in un punto solo non e' una linea di
+        /// saldatura.
+        /// </summary>
+        private static double LunghezzaCheStaSu(IFace2 faccia, IFace2 altra)
+        {
+            double totale = 0;
+            object[] spigoli;
+            try { spigoli = faccia.GetEdges() as object[]; }
+            catch { return 0; }
+            if (spigoli == null) return 0;
+            foreach (var o in spigoli)
+            {
+                try
+                {
+                    var spigolo = o as IEdge;
+                    var curva = spigolo?.GetCurve() as ICurve;
+                    var parametri = spigolo?.GetCurveParams3() as ICurveParamData;
+                    if (curva == null || parametri == null) continue;
+                    double u0 = parametri.UMinValue, u1 = parametri.UMaxValue;
+                    bool sta = true;
+                    foreach (double t in new[] { u0, (u0 + u1) / 2, u1 })
+                    {
+                        var p = curva.Evaluate2(t, 0) as double[];
+                        var q = altra.GetClosestPointOn(p[0], p[1], p[2]) as double[];
+                        if (q == null) { sta = false; break; }
+                        double dx = p[0] - q[0], dy = p[1] - q[1], dz = p[2] - q[2];
+                        if (Math.Sqrt(dx * dx + dy * dy + dz * dz) > 1e-6) { sta = false; break; }
+                    }
+                    if (sta) totale += curva.GetLength3(u0, u1) * 1000.0;
+                }
+                catch { }
+            }
+            return totale;
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -1388,34 +1594,6 @@ namespace Riscontro.Disegno
                     "Le barre " + dove + " non hanno estremita' aperte da tappare: " +
                     "o sono di profilo pieno, o le estremita' sono gia' chiuse dal " +
                     "trattamento d'angolo.";
-                return null;
-            }
-            return facce.ToArray();
-        }
-
-        /// <summary>Tutte le facce dei corpi indicati, per passo o per identificativo.</summary>
-        private object[] FacceDiCorpiDalRiferimento(
-            Dictionary<string, object> a, string campo, StatoDocumento stato,
-            out int quante, out string motivo)
-        {
-            quante = 0;
-            int quantiCorpi;
-            var corpi = CorpiDalRiferimento(a, campo, stato, out quantiCorpi, out motivo);
-            if (corpi == null) return null;
-
-            var facce = new List<object>();
-            foreach (var c in corpi)
-            {
-                object[] grezze;
-                try { grezze = (c as IBody2).GetFaces() as object[]; }
-                catch { continue; }
-                if (grezze == null) continue;
-                foreach (var f in grezze) if (f != null) facce.Add(f);
-            }
-            quante = facce.Count;
-            if (quante == 0)
-            {
-                motivo = "I corpi indicati non hanno facce leggibili.";
                 return null;
             }
             return facce.ToArray();

@@ -81,8 +81,12 @@ namespace Prove.Contratti
         /// **87 con le operazioni nuove della stessa versione**: `flangia_base`
         /// («allunga il tratto o stringi il raggio») e `sviluppo_dxf` («salvalo
         /// prima»).
+        ///
+        /// **88 dal 25/9/2026 (libreria 0.114.0)**: `cordone_saldatura`
+        /// riscritto su due facce, coi rifiuti nuovi che dicono quale faccia
+        /// indicare invece.
         /// </summary>
-        private const int Pavimento = 87;
+        private const int Pavimento = 88;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

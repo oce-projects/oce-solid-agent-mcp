@@ -413,13 +413,12 @@ namespace Prove.Contratti
         /// </summary>
         private static void Simili()
         {
-            var ponte = Path.Combine(Radice(), "bin", "oce-solid-agent-mcp.exe");
-            if (!File.Exists(ponte))
-            {
-                Segna("Catalogo.Simili: il ponte c'e'", false,
-                      "non trovo " + ponte + " — si produce con .\\build.ps1");
-                return;
-            }
+            // «NON QUI» SE LA MACCHINA NON PUO' COMPILARE IL PONTE, ROSSO SE PUO'
+            // E NESSUNO HA LANCIATO build.ps1: la regola sta in un posto solo.
+            // Prima qui c'era un rosso secco, e in CI (dove il ponte non si
+            // compila mai) teneva rossa la CI a ogni push.
+            var ponte = PonteOppureNonQui("Catalogo.Simili: i nomi vicini a quello sbagliato");
+            if (ponte == null) return;
 
             object catalogo;
             MethodInfo simili;
@@ -484,6 +483,14 @@ namespace Prove.Contratti
             try { testo = File.ReadAllText(readme); }
             catch (Exception ex) { Segna("il README si legge", false, ex.Message); return; }
 
+            // IL LETTORE DEI NUMERI HA I DENTI? Un numero che non sa leggere lo
+            // salta in silenzio (-1 = «non e' un numero»), quindi ogni forma che
+            // non riconosce e' un buco dove il README puo' mentire.
+            Segna("il lettore dei numeri legge «settantatré» e «trentotto»",
+                  Numero("settantatré") == 73 && Numero("trentotto") == 38 && Numero("ventuno") == 21,
+                  "settantatré=" + Numero("settantatré") + ", trentotto=" + Numero("trentotto") +
+                  ", ventuno=" + Numero("ventuno"));
+
             var trovati = new List<string>();
             foreach (var forma in new[]
             {
@@ -521,6 +528,14 @@ namespace Prove.Contratti
         {
             if (string.IsNullOrWhiteSpace(parola)) return -1;
             var p = parola.Trim().ToLowerInvariant();
+
+            // «TRE» COMPOSTO SI SCRIVE «TRÉ»: ventitré, settantatré. Senza
+            // questa riga il numero scritto come si deve tornava -1, cioe'
+            // «non e' un numero», e il controllo del README TACEVA — il 25/9/2026
+            // il README stava per passare da settantaquattro a settantatré, e
+            // un «settantatré» sbagliato non l'avrebbe preso nessuno.
+            if (p.EndsWith("tré", StringComparison.Ordinal) && p.Length > 3)
+                p = p.Substring(0, p.Length - 1) + "e";
 
             var unita = new[]
             {

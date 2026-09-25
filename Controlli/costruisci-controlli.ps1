@@ -97,7 +97,9 @@ $attrezzi = @(
     # La guardia contro il modale scatta? (voce Z-C3)
     @{ nome = 'Modale'; sw = $true; lib = $false },
     # Un foro quotato contro lo spigolo lo segue? (voce E18, pezzi a e b)
-    @{ nome = 'SeguiIlBordo'; sw = $true; lib = $false }
+    @{ nome = 'SeguiIlBordo'; sw = $true; lib = $false },
+    # La flangia a spigolo nasce senza schizzo di profilo? (voce GP18: no)
+    @{ nome = 'FlangiaSpigolo'; sw = $true; lib = $false }
 )
 
 foreach ($a in $attrezzi) {

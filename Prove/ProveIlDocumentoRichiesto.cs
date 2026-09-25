@@ -44,7 +44,7 @@ namespace Prove.Contratti
         {
             Gruppo("ogni operazione dice su che documento gira (Z-D0-ter)");
 
-            var file = Path.Combine(Radice(), "bin", "catalogo.json");
+            var file = CatalogoServito();
             if (!File.Exists(file))
             {
                 Segna("il catalogo servito c'e'", false, "manca " + file);

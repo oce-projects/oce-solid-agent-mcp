@@ -380,6 +380,22 @@ namespace Prove.Contratti
             };
             Segna("selettore: due facce uguali, si rifiuta invece di indovinare",
                   Alza(() => Attese.Seleziona("@faccia(verso=davanti)", due), "ne ho trovate 2"));
+
+            // IL CORPO PER NOME (25/9/2026): i numeri C1, C2... non seguono
+            // l'ordine di creazione e cambiano fra un giro e l'altro. Lo stato
+            // qui e' scritto al contrario apposta, e il nome ha le parentesi.
+            var corpi = new Dictionary<string, object>
+            {
+                ["corpi"] = new List<object>
+                {
+                    new Dictionary<string, object> { ["uid"] = "C1", ["nome"] = "TUBO 80X80X5(2)" },
+                    new Dictionary<string, object> { ["uid"] = "C2", ["nome"] = "TUBO 80X80X5(1)" },
+                },
+            };
+            Segna("selettore: @corpo prende per nome, parentesi comprese",
+                  Attese.Seleziona("@corpo(nome=TUBO 80X80X5(1))", corpi) == "C2");
+            Segna("selettore: @corpo con un nome che non c'e', si rifiuta",
+                  Alza(() => Attese.Seleziona("@corpo(nome=TUBO 80X80X5(3))", corpi), "non l'ho trovata"));
         }
 
         private static Dictionary<string, object> Attesa(string cosa, object uguale)
