@@ -410,34 +410,39 @@ stesso esiste per non avere.*
 
 ### Quanto reggono i riferimenti quando il pezzo cambia
 
-Sedici pezzi costruiti, **una sola quota a monte cambiata**, e la geometria a
-valle rimisurata. Il risultato e' una di tre cose, non due:
+Diciotto pezzi costruiti, **una sola quota a monte cambiata**, e la geometria
+a valle rimisurata. Il risultato e' una di tre cose, non due:
 
-| | casi su 16 | |
+| | casi su 18 | |
 |---|---|---|
-| **reggono** | **12** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
-| **si staccano e lo dicono** | **0** | la ricostruzione fallisce o una lavorazione porta un errore: il progettista lo vede |
-| **si staccano in silenzio** | **4** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
+| **reggono** | **15** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
+| **si staccano e lo dicono** | **1** | la ricostruzione fallisce, una lavorazione porta un errore, o la modifica viene rifiutata: il progettista lo vede |
+| **si staccano in silenzio** | **2** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
 
-*Misurato il 15/9/2026 su SOLIDWORKS 29.5.1, libreria 0.75.0. Si rifa' con
+*Misurato il 25/9/2026 su SOLIDWORKS 29.5.1, libreria 0.116.0. Si rifa' con
 `.\Banco\banco.ps1 -Regressione`; il dettaglio caso per caso finisce in
 `Banco/resoconto/regressione.md`.*
 
-**Lo zero in mezzo e' il numero piu' interessante dei tre.** Nessuno dei
-sedici casi si e' rotto in modo visibile: le quattro volte che il pezzo e'
-uscito diverso da quello che il disegno dichiarava, SOLIDWORKS ha ricostruito
-pulito e non ha detto niente. E' la ragione per cui questa suite misura **la
-posizione della geometria** e non il fatto che la ricostruzione sia andata.
+**Il 15/9 erano 12, 0 e 4 su sedici**, e lo zero in mezzo era il numero piu'
+interessante: nessun caso si era rotto in modo visibile, le quattro volte che
+il pezzo era uscito diverso SOLIDWORKS aveva ricostruito pulito e taciuto. E'
+la ragione per cui questa suite misura **la posizione della geometria** e non
+il fatto che la ricostruzione sia andata.
 
-**E i quattro silenzi hanno due cause, non quattro** (misurato il 23/9/2026,
-libreria 0.103.0 — gli stessi quattro casi e gli stessi numeri di otto giorni
-e ventotto versioni prima).
+**I quattro silenzi avevano due cause, non quattro** (misurato il 23/9/2026).
+Tre erano la stessa: *un'operazione agganciata a una **faccia** segue la
+geometria; le coordinate `x_mm`/`y_mm` dentro il piano di schizzo di quella
+faccia no.* Dal 25/9 (voce E18) `taglio_cilindrico` e `taglio_rettangolare`
+prendono `ancora` — una quota da uno spigolo, o il centro fra due spigoli, per
+asse — e il profilo segue il bordo:
 
-Tre su quattro sono la stessa cosa: *un'operazione agganciata a una **faccia**
-segue la geometria; le coordinate `x_mm`/`y_mm` dentro il piano di schizzo di
-quella faccia no.* Lo dimostrano i due casi che **reggono**, dove il foro sul
-fondo di una scatola alzata di 28 mm ci resta sopra perche' e' agganciato alla
-faccia. Sono una sola riparazione, non tre.
+- la tasca centrata (`r03`) regge, e il suo gemello senza ancora (`r03b`)
+  resta dov'era, come deve;
+- un foro a 20 dal bordo (`r19`) regge;
+- l'asola che esce dal materiale accorciando la piastra (`r16`) adesso si
+  **rifiuta con criterio**, e la quota torna com'era: e' la riga di mezzo;
+- **resta in silenzio `r01`**: quattro fori fatti con `foro_guidato`, che
+  l'ancora non la sa ancora prendere.
 
 Il quarto non e' riparabile da qui, e vale la pena dirlo: uno smusso piu'
 grande del materiale **non fallisce**. SOLIDWORKS ricostruisce pulito e si
