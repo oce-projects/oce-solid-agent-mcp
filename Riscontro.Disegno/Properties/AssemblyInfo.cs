@@ -252,8 +252,17 @@ using System.Runtime.InteropServices;
 //          verticale — e si corregge con modifica_quota; prende `ancora`, e
 //          obliqua quota l'angolo contro lo spigolo d'ancora con
 //          AddSpecificDimension (Extension.AddDimension torna null li').
-[assembly: AssemblyVersion("0.118.0.0")]
-[assembly: AssemblyFileVersion("0.118.0.0")]
+// 0.119.0: IL RIALZO ANCORATO (voce E18). `estrudi_su_faccia` prende `ancora`:
+//          il punto e' il centro del contorno, e vale per un contorno solo,
+//          tondo (diametro quotato, ancora sul centro) o rettangolare
+//          allineato (orizzontali e verticali, due quote, centro costruito con
+//          la diagonale). Per un contorno qualunque un rifiuto che dice perche'.
+//          E `foro_guidato`, l'ultimo pezzo: un'ancora per posizione (tutte o
+//          nessuna), messa nello schizzo dei punti di HoleWizard dopo il
+//          posizionamento; definito si guarda dopo l'ultimo punto, lo
+//          scavalcamento col raggio vero a foro nato.
+[assembly: AssemblyVersion("0.119.0.0")]
+[assembly: AssemblyFileVersion("0.119.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -268,4 +277,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.118.0")]
+[assembly: AssemblyInformationalVersion("0.119.0")]

@@ -3122,6 +3122,22 @@ namespace Riscontro.Disegno
                 return Fallito("Un rialzo di altezza nulla o negativa non e' un rialzo.");
             bool unisci = Bool(a, "unisci", true);
 
+            // L'ANCORA (voce E18). Qui non ci sono x_mm/y_mm: il punto e' il
+            // CENTRO del contorno, e l'ancora vale per un contorno solo, tondo
+            // o rettangolare allineato alla faccia.
+            var ancora = new Ancoraggio();
+            double centroX = 0, centroY = 0;
+            object ancoraGrezza;
+            if (a.TryGetValue("ancora", out ancoraGrezza) && ancoraGrezza != null)
+            {
+                double mezzoU, mezzoV;
+                if (!CentroDelContornoSolo(contorni, out centroX, out centroY, out mezzoU, out mezzoV, out motivo))
+                    return Fallito(motivo);
+                ancora = LeggiAncora(a, stato, faccia, assi, offsetM, centroX, centroY, mezzoU, mezzoV, out motivo);
+                if (ancora == null) return Fallito(motivo);
+            }
+            var misureAncora = new Dictionary<string, object>();
+
             int corpiPrima = ContaCorpiSolidi(modello);
             double? volumePrima = VolumeMm3(modello);
             if (corpiPrima < 0 || volumePrima == null)
@@ -3142,9 +3158,14 @@ namespace Riscontro.Disegno
                 // I contorni arrivano in coordinate della FACCIA, non del
                 // piano: e' la stessa convenzione di `taglio_rettangolare`, e
                 // il modello non deve sapere dove sta la faccia nello spazio.
+                var creati = new List<ISketchSegment>();
                 segmenti = DisegnaContorniSullaFaccia(
-                    modello, schizzi, contorni, assi, offsetM, out errore);
+                    modello, schizzi, contorni, assi, offsetM, out errore, creati);
                 disegnato = segmenti > 0;
+                if (disegnato && !ancora.Vuoto &&
+                    !AncoraIlContorno(modello, contorni[0], creati, assi, offsetM, centroX, centroY,
+                                      ancora, misureAncora, out errore))
+                    disegnato = false;
             }
             catch (Exception ex) { errore = ex.Message; }
             finally
@@ -3165,6 +3186,9 @@ namespace Riscontro.Disegno
                     SenzaLoSchizzo(modello));
 
             // ── e adesso si conta ────────────────────────────────────────
+            string nonRegge = ProvaDiMovimento(modello, ancora, feature);
+            if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+
             int corpiDopo = ContaCorpiSolidi(modello);
             double? volumeDopo = VolumeMm3(modello);
             if (corpiDopo < 0 || volumeDopo == null)
@@ -3194,7 +3218,7 @@ namespace Riscontro.Disegno
                     "vuol dire che l'estrusione e' andata DENTRO il pezzo " +
                     "invece che in fuori. Ritiralo — " + Frasi.CosiSiRitira + ".");
 
-            return Riuscito(feature, new Dictionary<string, object>
+            var misureRialzo = new Dictionary<string, object>
             {
                 ["altezza_mm"] = altezza,
                 ["unisci"] = unisci,
@@ -3202,7 +3226,9 @@ namespace Riscontro.Disegno
                 ["segmenti"] = segmenti,
                 ["corpi"] = corpiDopo,
                 ["materiale_aggiunto_mm3"] = Math.Round(aggiunto, 2),
-            }, NormaleDellaFaccia(faccia));
+            };
+            foreach (var voce in misureAncora) misureRialzo[voce.Key] = voce.Value;
+            return Riuscito(feature, misureRialzo, NormaleDellaFaccia(faccia));
         }
 
         /// <summary>
@@ -3212,7 +3238,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private int DisegnaContorniSullaFaccia(
             IModelDoc2 modello, ISketchManager schizzi, List<Contorno> contorni,
-            double[] assi, double offsetM, out string errore)
+            double[] assi, double offsetM, out string errore, List<ISketchSegment> creati = null)
         {
             errore = null;
             int fatti = 0;
@@ -3229,8 +3255,8 @@ namespace Riscontro.Disegno
                     // CreateCircle vuole un punto sul bordo, non un raggio:
                     // cosi' il cerchio resta tondo anche se il piano dello
                     // schizzo e' girato rispetto al modello.
-                    if (schizzi.CreateCircle(c[0], c[1], c[2], bordo[0], bordo[1], bordo[2]) != null)
-                        fatti++;
+                    var cerchio = schizzi.CreateCircle(c[0], c[1], c[2], bordo[0], bordo[1], bordo[2]);
+                    if (cerchio != null) { fatti++; if (creati != null) creati.Add(cerchio); }
                     continue;
                 }
                 foreach (var tratto in contorno.Tratti)
@@ -3242,8 +3268,8 @@ namespace Riscontro.Disegno
                         var p2 = PuntoNelloSchizzo(modello, assi, offsetM,
                                                    tratto.Punti[i + 1][0], tratto.Punti[i + 1][1], out errore);
                         if (p1 == null || p2 == null) return 0;
-                        if (schizzi.CreateLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]) != null)
-                            fatti++;
+                        var linea = schizzi.CreateLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
+                        if (linea != null) { fatti++; if (creati != null) creati.Add(linea); }
                     }
                 }
             }

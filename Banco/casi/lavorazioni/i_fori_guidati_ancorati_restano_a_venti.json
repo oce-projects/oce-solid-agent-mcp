@@ -1,0 +1,149 @@
+{
+  "nome": "i_fori_guidati_ancorati_restano_a_venti",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE E18 su `foro_guidato`, l'ultimo pezzo della voce. Lo schizzo dei punti lo fa HoleWizard: la libreria ci rientra dopo averli posizionati, ogni punto riceve la sua ancora, e lo schizzo si pretende completamente definito dopo l'ultimo. Misurato il 25/9/2026 col banchetto: quattro fori M8 a 20 dai bordi, alzata la piastra a 180 e poi allungata a 260, stanno a y -40 -40 100 100 e x -80 -80 140 140.",
+  "parte": {
+    "nuova": true
+  },
+  "passi": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": {
+        "piano": "frontale",
+        "lunghezza_mm": 200,
+        "larghezza_mm": 120,
+        "spessore_mm": 20,
+        "centrato": true
+      },
+      "attese": [
+        {
+          "cosa": "volume_mm3",
+          "uguale": 480000
+        }
+      ]
+    },
+    {
+      "operazione": "foro_guidato",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "taglia": "M8",
+        "passante": true,
+        "posizioni": [
+          {
+            "x_mm": -80,
+            "y_mm": -40,
+            "ancora": {
+              "x": {
+                "spigolo_uid": "@spigolo(asse=Y,x~=-100,z~=20)",
+                "distanza_mm": 20
+              },
+              "y": {
+                "spigolo_uid": "@spigolo(asse=X,y~=-60,z~=20)",
+                "distanza_mm": 20
+              }
+            }
+          },
+          {
+            "x_mm": 80,
+            "y_mm": -40,
+            "ancora": {
+              "x": {
+                "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=20)",
+                "distanza_mm": 20
+              },
+              "y": {
+                "spigolo_uid": "@spigolo(asse=X,y~=-60,z~=20)",
+                "distanza_mm": 20
+              }
+            }
+          },
+          {
+            "x_mm": 80,
+            "y_mm": 40,
+            "ancora": {
+              "x": {
+                "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=20)",
+                "distanza_mm": 20
+              },
+              "y": {
+                "spigolo_uid": "@spigolo(asse=X,y~=60,z~=20)",
+                "distanza_mm": 20
+              }
+            }
+          },
+          {
+            "x_mm": -80,
+            "y_mm": 40,
+            "ancora": {
+              "x": {
+                "spigolo_uid": "@spigolo(asse=Y,x~=-100,z~=20)",
+                "distanza_mm": 20
+              },
+              "y": {
+                "spigolo_uid": "@spigolo(asse=X,y~=60,z~=20)",
+                "distanza_mm": 20
+              }
+            }
+          }
+        ]
+      },
+      "attese": [
+        {
+          "cosa": "centri_y_mm",
+          "uguale": [
+            -40,
+            -40,
+            40,
+            40
+          ],
+          "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'asse del cilindro si legge in metri"
+        },
+        {
+          "cosa": "misure.schizzo_dei_fori",
+          "uguale": "completamente definito"
+        }
+      ]
+    },
+    {
+      "operazione": "modifica_quota",
+      "argomenti": {
+        "quota": "@quota(feature=Schizzo1,nome=D2)",
+        "valore_mm": 180
+      },
+      "attese": [
+        {
+          "cosa": "centri_y_mm",
+          "uguale": [
+            -40,
+            -40,
+            100,
+            100
+          ],
+          "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'alto va a 120: i fori di sopra restano a 20 da lui"
+        }
+      ]
+    },
+    {
+      "operazione": "modifica_quota",
+      "argomenti": {
+        "quota": "@quota(feature=Schizzo1,nome=D1)",
+        "valore_mm": 260
+      },
+      "attese": [
+        {
+          "cosa": "centri_x_mm",
+          "uguale": [
+            -80,
+            -80,
+            140,
+            140
+          ],
+          "tolleranza": 0.05,
+          "perche_questa_tolleranza": "il fianco destro va a 160: i fori di destra restano a 20 da lui"
+        }
+      ]
+    }
+  ]
+}

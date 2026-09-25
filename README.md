@@ -410,16 +410,16 @@ stesso esiste per non avere.*
 
 ### Quanto reggono i riferimenti quando il pezzo cambia
 
-Diciotto pezzi costruiti, **una sola quota a monte cambiata**, e la geometria
+Diciannove pezzi costruiti, **una sola quota a monte cambiata**, e la geometria
 a valle rimisurata. Il risultato e' una di tre cose, non due:
 
-| | casi su 18 | |
+| | casi su 19 | |
 |---|---|---|
-| **reggono** | **15** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
+| **reggono** | **17** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
 | **si staccano e lo dicono** | **1** | la ricostruzione fallisce, una lavorazione porta un errore, o la modifica viene rifiutata: il progettista lo vede |
-| **si staccano in silenzio** | **2** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
+| **si staccano in silenzio** | **1** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
 
-*Misurato il 25/9/2026 su SOLIDWORKS 29.5.1, libreria 0.116.0. Si rifa' con
+*Misurato il 25/9/2026 su SOLIDWORKS 29.5.1, libreria 0.119.0. Si rifa' con
 `.\Banco\banco.ps1 -Regressione`; il dettaglio caso per caso finisce in
 `Banco/resoconto/regressione.md`.*
 
@@ -438,11 +438,11 @@ asse — e il profilo segue il bordo:
 
 - la tasca centrata (`r03`) regge, e il suo gemello senza ancora (`r03b`)
   resta dov'era, come deve;
-- un foro a 20 dal bordo (`r19`) regge;
+- un foro a 20 dal bordo (`r19`) regge, e i quattro fori guidati a 20 dagli
+  angoli (`r01`, dalla libreria 0.119.0) pure — col gemello assoluto `r01b`;
 - l'asola che esce dal materiale accorciando la piastra (`r16`) adesso si
   **rifiuta con criterio**, e la quota torna com'era: e' la riga di mezzo;
-- **resta in silenzio `r01`**: quattro fori fatti con `foro_guidato`, che
-  l'ancora non la sa ancora prendere.
+- anche asole e rialzi prendono l'ancora (0.118.0, 0.119.0).
 
 Il quarto non e' riparabile da qui, e vale la pena dirlo: uno smusso piu'
 grande del materiale **non fallisce**. SOLIDWORKS ricostruisce pulito e si

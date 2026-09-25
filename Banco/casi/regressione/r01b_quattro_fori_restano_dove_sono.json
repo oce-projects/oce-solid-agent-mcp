@@ -1,0 +1,70 @@
+{
+  "nome": "r01b_quattro_fori_restano_dove_sono",
+  "famiglia": "regressione",
+  "perche": "IL GEMELLO ASSOLUTO di `r01_quattro_fori_dal_bordo` (voce E18): gli stessi quattro fori, senza ancora. Prova che il vecchio modo continua a funzionare quando e' quello che si vuole — fori che stanno dove stanno perche' li' c'e' qualcosa che corrisponde, non perche' sono a 20 dal bordo.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "senza ancora x_mm/y_mm sono coordinate del modello: alzando la piastra a 180 (da Y -60..+60 a -60..+120) i fori restano a y = +/-40.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": {
+        "piano": "frontale",
+        "lunghezza_mm": 200,
+        "larghezza_mm": 120,
+        "spessore_mm": 20,
+        "centrato": true
+      }
+    },
+    {
+      "operazione": "foro_guidato",
+      "argomenti": {
+        "faccia_uid": "@faccia(verso=davanti)",
+        "taglia": "M8",
+        "passante": true,
+        "posizioni": [
+          {
+            "x_mm": -80,
+            "y_mm": -40
+          },
+          {
+            "x_mm": 80,
+            "y_mm": -40
+          },
+          {
+            "x_mm": 80,
+            "y_mm": 40
+          },
+          {
+            "x_mm": -80,
+            "y_mm": 40
+          }
+        ]
+      }
+    }
+  ],
+  "modifica": {
+    "quota": "@quota(feature=Schizzo1,nome=D2)",
+    "valore_mm": 180
+  },
+  "dopo": [
+    {
+      "cosa": "ingombro_mm",
+      "uguale": [
+        200,
+        180,
+        20
+      ]
+    },
+    {
+      "cosa": "centri_y_mm",
+      "uguale": [
+        -40,
+        -40,
+        40,
+        40
+      ],
+      "tolleranza": 0.05,
+      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri"
+    }
+  ]
+}

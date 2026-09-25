@@ -1,0 +1,22 @@
+{
+  "nome": "lim_rialzo_ancorato_ne_tondo_ne_rettangolare",
+  "famiglia": "estrusioni",
+  "perche": "VOCE E18: l'ancora di un rialzo tiene il CENTRO del contorno, e quale sia il centro di un triangolo (baricentro? circocentro? il centro della scatola?) lo decide chi disegna. Indovinarlo vorrebbe dire ancorare un punto che non ha scelto nessuno: si rifiuta prima di toccare il pezzo, e si dice per quali contorni vale.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "estrudi_su_faccia",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "altezza_mm": 10,
+                     "contorni": [ { "vertici": [ [-20, -40], [20, -40], [0, -10] ] } ],
+                     "ancora": { "x": { "centrata_fra": [ "@spigolo(asse=Y,x~=-100,z~=20)", "@spigolo(asse=Y,x~=100,z~=20)" ] },
+                                 "y": { "spigolo_uid": "@spigolo(asse=X,y~=-60,z~=20)", "distanza_mm": 30 } } },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["UN contorno solo, tondo o rettangolare", "ne' un cerchio ne' un rettangolo"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "il_rialzo_tondo_ancorato_segue_il_bordo" } }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "nome": "il_rialzo_tondo_ancorato_segue_il_bordo",
+  "famiglia": "estrusioni",
+  "perche": "VOCE E18 su `estrudi_su_faccia`, l'ultima operazione della voce che prende una posizione su una faccia (a parte `foro_guidato`). Qui non ci sono x_mm/y_mm: il punto che l'ancora tiene e' il CENTRO del contorno, e vale per un contorno solo, tondo o rettangolare. Un perno Ø20 alto 10 a 30 dal fianco destro e centrato in altezza: dopo 260 x 180 deve stare a (130, 30). Misurato il 25/9/2026 col banchetto.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "estrudi_su_faccia",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "altezza_mm": 10,
+                     "contorni": [ { "cerchio": [70, 0], "diametro_mm": 20 } ],
+                     "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=20)", "distanza_mm": 30 },
+                                 "y": { "centrata_fra": [ "@spigolo(asse=X,y~=-60,z~=20)", "@spigolo(asse=X,y~=60,z~=20)" ] } } },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 483141.59, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "480000 piu' pi*10^2*10" },
+        { "cosa": "centri_x_mm", "uguale": [70], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'asse del cilindro si legge in metri" },
+        { "cosa": "misure.ancora.schizzo", "uguale": "completamente definito" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+      "attese": [
+        { "cosa": "centri_x_mm", "uguale": [130], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "il fianco destro va a 160, il perno resta a 30: 130" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 180 },
+      "attese": [
+        { "cosa": "centri_y_mm", "uguale": [30], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'altezza va da -60 a 120, a meta' c'e' 30" },
+        { "cosa": "volume_mm3", "uguale": 939141.59, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "260*180*20 piu' il perno" } ] }
+  ]
+}

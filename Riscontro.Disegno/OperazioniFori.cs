@@ -149,6 +149,14 @@ namespace Riscontro.Disegno
             var posizioni = PosizioniDeiFori(a, out errore);
             if (posizioni == null) return Fallito(errore);
 
+            // L'ANCORA (voce E18): una per posizione, O TUTTE O NESSUNA — un
+            // foro senza ancora lascerebbe lo schizzo sottovincolato, e lo
+            // schizzo e' uno solo per tutti. Si legge PRIMA di creare niente.
+            List<Ancoraggio> ancore;
+            if (!LeggiLeAncoreDeiFori(a, stato, faccia, assi, offsetM, posizioni, out ancore, out errore))
+                return Fallito(errore);
+            double? volumePrima = ancore != null ? VolumeMm3(modello) : null;
+
             // ── 1. si crea PASSANTE, sempre ──────────────────────────────
             modello.ClearSelection2(true);
             if (!SelezionaFaccia(faccia))
@@ -200,7 +208,6 @@ namespace Riscontro.Disegno
 
             try { modello.EditRebuild3(); } catch { }
 
-            // ── 7. si controlla che i fori siano dove sono stati chiesti ──
             var misure = new Dictionary<string, object>
             {
                 ["tipo"] = genere.Umano,
@@ -208,6 +215,16 @@ namespace Riscontro.Disegno
                 ["fori"] = posizioni.Count,
                 ["passante"] = passante,
             };
+
+            // ── 6b. l'ancora, a fori posizionati ─────────────────────────
+            if (ancore != null)
+            {
+                if (!AncoraIFori(modello, feature, assi, offsetM, posizioni, ancore, misure, out errore))
+                    return Fallito(errore + TogliIlTaglio(modello, feature, volumePrima));
+                try { modello.EditRebuild3(); } catch { }
+            }
+
+            // ── 7. si controlla che i fori siano dove sono stati chiesti ──
             if (!passante) misure["profondita_mm"] = profondita;
 
             var definizione = feature.GetDefinition() as IWizardHoleFeatureData2;
@@ -234,6 +251,18 @@ namespace Riscontro.Disegno
             //
             // Non verificabile NON e' un rifiuto: la lavorazione e' riuscita, e'
             // il controllo che non c'e' stato. Si dice, e si va avanti.
+            // L'ANCORA COL RAGGIO VERO, e la prova di movimento.
+            if (ancore != null)
+            {
+                string scavalca = diametroForo > 0 ? ScavalcaColRaggio(ancore, diametroForo / 2) : null;
+                if (scavalca != null) return Fallito(scavalca + TogliIlTaglio(modello, feature, volumePrima));
+                foreach (var anc in ancore)
+                {
+                    string nonRegge = ProvaDiMovimento(modello, anc, feature);
+                    if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+                }
+            }
+
             string nonPosso;
             var assiTrovati = AssiDeiFori(feature, diametroForo, out nonPosso);
 
@@ -324,6 +353,60 @@ namespace Riscontro.Disegno
                 try { d.ReleaseSelectionAccess(); } catch { }
                 errore = "SolidWorks non ha applicato le misure di norma al foro.";
                 return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Le ancore dei fori (voce E18), una per posizione nello stesso ordine.
+        /// `ancore` resta null se nessuna posizione ne ha una (il vecchio modo);
+        /// false col motivo se qualcuna ce l'ha e qualcuna no, o se un'ancora e'
+        /// sbagliata. Un foro solo con x_mm/y_mm in cima prende `ancora` in cima.
+        /// </summary>
+        private bool LeggiLeAncoreDeiFori(
+            Dictionary<string, object> a, StatoDocumento stato, IFace2 faccia, double[] assi, double offsetM,
+            List<double[]> posizioni, out List<Ancoraggio> ancore, out string errore)
+        {
+            ancore = null;
+            errore = null;
+            var grezze = new List<object>();
+            object lista;
+            if (a.TryGetValue("posizioni", out lista) && lista is System.Collections.IEnumerable)
+                foreach (var voce in (System.Collections.IEnumerable)lista)
+                {
+                    var m = voce as Dictionary<string, object>;
+                    object anc = null;
+                    if (m != null) m.TryGetValue("ancora", out anc);
+                    grezze.Add(anc);
+                }
+            else
+            {
+                object anc;
+                a.TryGetValue("ancora", out anc);
+                grezze.Add(anc);
+            }
+            int conAncora = grezze.Count(g => g != null);
+            if (conAncora == 0) return true;
+            if (conAncora != posizioni.Count)
+            {
+                errore = "L'ancora dei fori va data a TUTTE le posizioni o a nessuna: qui ce l'hanno " +
+                         conAncora + " su " + posizioni.Count + ". I fori stanno in uno schizzo solo, e un " +
+                         "punto senza ancora lo lascerebbe libero di muoversi alla prima modifica.";
+                return false;
+            }
+            ancore = new List<Ancoraggio>();
+            object firme;
+            a.TryGetValue("_firme", out firme);
+            for (int i = 0; i < posizioni.Count; i++)
+            {
+                var sua = new Dictionary<string, object> { ["ancora"] = grezze[i] };
+                if (firme != null) sua["_firme"] = firme;
+                string motivo;
+                // Il raggio non si sa ancora (lo decide la tabella): 0 qui, e il
+                // controllo dello scavalcamento si rifa' a foro nato.
+                var anc = LeggiAncora(sua, stato, faccia, assi, offsetM, posizioni[i][0], posizioni[i][1], 0, 0, out motivo);
+                if (anc == null) { errore = "Foro " + (i + 1) + ": " + motivo; ancore = null; return false; }
+                ancore.Add(anc);
             }
             return true;
         }

@@ -561,7 +561,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "labbro attorno a un bordo invece di un blocco pieno.\n\n«unisci» a "
                         + "vero (predefinito) fonde il rialzo con il pezzo. A falso nasce un "
                         + "CORPO SEPARATO: quasi mai quello che si vuole, e l'albero cresce "
-                        + "uguale, quindi lo si nota solo contando i corpi.",
+                        + "uguale, quindi lo si nota solo contando i corpi."
+                        + "\n\nMI RIFIUTO se il rialzo non aggiunge materiale (e' cresciuto DENTRO "
+                        + "il pezzo), se con «unisci» i corpi non restano quelli, e se chiedi "
+                        + "l'«ancora» su piu' di un contorno o su un contorno che non e' ne' tondo "
+                        + "ne' un rettangolo allineato: il punto che l'ancora tiene e' il centro, "
+                        + "e il centro di un poligono qualunque non lo indovino.",
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -602,6 +607,7 @@ namespace Riscontro.Disegno.Catalogo
                             "altezza_mm", O(
                                 "type", "number",
                                 "description", "quanto sporge dalla faccia"),
+                            "ancora", SchemaAncora("il rialzo", true),
                             "unisci", O(
                                 "type", "boolean",
                                 "description", "predefinito: si'. A falso fa un corpo separato.")),
@@ -628,7 +634,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "preforo 6.8 e il filetto; uno di passaggio M8 esce 9.\n\nPiu' fori "
                         + "uguali si fanno in UNA SOLA chiamata mettendo piu' «posizioni»: "
                         + "e' cosi' che si disegna una serie di fori, e in officina si legge "
-                        + "come una lavorazione sola.",
+                        + "come una lavorazione sola."
+                        + "\n\nOgni posizione puo' portare un'«ancora» (una quota da uno spigolo, o "
+                        + "il centro fra due spigoli, per asse): allora il foro segue il bordo "
+                        + "quando il pezzo cambia. MI RIFIUTO se l'ancora ce l'hanno solo alcune "
+                        + "posizioni (tutte o nessuna: i fori stanno in uno schizzo solo) e se una "
+                        + "distanza e' meno del raggio del foro — quello lo so solo a foro fatto, "
+                        + "e allora il foro lo tolgo.",
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -688,7 +700,10 @@ namespace Riscontro.Disegno.Catalogo
                             "posizioni", O(
                                 "type", "array",
                                 "description", "dove vanno i fori, sul piano della faccia. Piu' fori uguali "
-                                    + "stanno in una chiamata sola.",
+                                    + "stanno in una chiamata sola. L'«ancora» si da' a TUTTE le posizioni o a "
+                                    + "nessuna: i fori stanno in uno schizzo solo, e un punto senza ancora lo "
+                                    + "lascerebbe libero di muoversi. Mi rifiuto se una distanza e' meno del "
+                                    + "raggio del foro (lo decide la tabella): il foro l'ho gia' fatto, e lo tolgo.",
                                 "items", O(
                                     "type", "object",
                                     "properties", O(
@@ -704,7 +719,8 @@ namespace Riscontro.Disegno.Catalogo
                                                 + "piano della faccia."),
                                         "y_mm", O(
                                             "type", "number",
-                                            "description", "vedi x_mm")),
+                                            "description", "vedi x_mm"),
+                                        "ancora", SchemaAncora("il foro")),
                                     "required", A(
                                         "x_mm",
                                         "y_mm"))),
@@ -4081,8 +4097,12 @@ namespace Riscontro.Disegno.Catalogo
         /// un metodo e non un campo: la lista qui sopra si inizializza prima dei
         /// campi dichiarati dopo di lei, e un campo varrebbe ancora null.
         /// </summary>
-        private static Nodo SchemaAncora(string cosa)
+        private static Nodo SchemaAncora(string cosa, bool dalContorno = false)
         {
+            string punto = dalContorno
+                ? "Il punto e' il CENTRO del contorno, e l'ancora vale per UN contorno solo, " +
+                  "tondo o rettangolare allineato agli assi della faccia."
+                : "x_mm/y_mm restano obbligatori e devono dire lo stesso punto.";
             return O(
                 "type", "object",
                 "description", "COSA TIENE " + cosa.ToUpperInvariant() + " DOV'E' QUANDO IL PEZZO CAMBIA. Senza, "
@@ -4090,8 +4110,7 @@ namespace Riscontro.Disegno.Catalogo
                     + "dov'era. Per OGNI asse, «x» e «y», tutti e due obbligatori, una di due cose: "
                     + "{\"spigolo_uid\": \"E7\", \"distanza_mm\": 20}, la distanza dal CENTRO a uno "
                     + "spigolo dritto della stessa faccia che corre lungo l'altro asse; oppure "
-                    + "{\"centrata_fra\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. x_mm/y_mm "
-                    + "restano obbligatori e devono dire lo stesso punto."
+                    + "{\"centrata_fra\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. " + punto
                     + "\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso "
                     + "punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro "
                     + "asse o sta sul bordo di uno smusso o di un raccordo; se la distanza e' meno di "

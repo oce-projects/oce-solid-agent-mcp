@@ -324,7 +324,7 @@ un argomento in comune (sono due operazioni che non si parlano).
 .\Banco\banco.ps1 -Regressione
 ```
 
-Diciotto pezzi in `casi/regressione/`, ognuno con `costruisci`, **una sola
+Diciannove pezzi in `casi/regressione/`, ognuno con `costruisci`, **una sola
 `modifica`** e un `intento`. Il risultato e' **una di tre cose, non due**:
 
 | | |
@@ -509,7 +509,7 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/ 17   il guscio, e da che parte toglie;
+casi/lavorazioni/ 19   il guscio, e da che parte toglie;
                        la quota che fa uscire l'asola dal materiale, rifiutata
                        e rimessa com'era (voce E18 c), e la sua gemella;
                        il raccordo sui quattro angoli e il foro guidato che
@@ -517,7 +517,8 @@ casi/lavorazioni/ 17   il guscio, e da che parte toglie;
                        l'ANCORA (voce E18): il foro a 20 dal bordo che segue
                        il bordo, la tasca centrata che segue la mezzeria, sul
                        davanti, sul fianco e sul dietro; otto rifiuti e lo
-                       spigolo sul bordo di uno smusso
+                       spigolo sul bordo di uno smusso; i fori guidati
+                       ancorati a 20 dai bordi, e «tutte o nessuna»
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       18   ogni faccia, non una sola; lo schizzo quotato che si
                        corregge con modifica_quota, e l'ancora dritta e obliqua
@@ -569,17 +570,19 @@ casi/saldature/    4   la distinta conta le barre, e i due numeri vengono da
                        il tubo dentro (voce Z-C6). I corpi per NOME, con
                        @corpo(nome=...): i numeri C1, C2 cambiano fra un giro
                        e l'altro
-casi/estrusioni/   5   il tubo ha il buco; l'asola estrusa e' lunga quanto
+casi/estrusioni/   8   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        l'ingombro, estremita' comprese, ed e' un poligono; la
                        ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta
-                       cresce dalla faccia verso fuori (voce Z-C6)
+                       cresce dalla faccia verso fuori (voce Z-C6); il rialzo
+                       tondo e rettangolare ancorati, e il triangolo rifiutato
+                       (voce E18)
 casi/lamiera/      4   la L si sviluppa lunga quanto il conto a mano; data al
                        contrario, i punti diventano le facce esterne; lo
                        sviluppo senza file rifiutato; il tratto piu' corto
                        delle pieghe rifiutato (voce GP18)
 casi/quote/        2   la piastra si quota da sola con DimXpert, coi valori
                        giusti; con due riferimenti rifiuta (voce Z-H3)
-casi/regressione/ 18   una quota a monte cambia: chi regge e chi si stacca (--regressione)
+casi/regressione/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 
 **Gli altri** — piani per il ponte MCP e materiale di lavoro, non li esegue

@@ -435,7 +435,7 @@
    "nome": "estrudi_su_faccia",
    "famiglia": "lavorazioni",
    "sommario": "Fa CRESCERE materiale da una faccia: un rialzo, un labbro, un distanziale, un'aletta.",
-   "descrizione": "Disegna un contorno su una faccia che c'e' gia' e lo estrude in FUORI, aggiungendo materiale al pezzo.\n\nE' L'OPERAZIONE CHE FA CRESCERE UN RIALZO. Le altre su un pezzo esistente tolgono (fori, tagli, asole), svuotano (guscio) o spostano; aggiungono materiale anche «incidi_testo» in rilievo, ma solo una scritta, e «combina_corpi», che unisce corpi che ci sono gia'. Senza questa non si possono fare: il labbro di tenuta di un coperchio, i distanziali su cui appoggia qualcosa, un'aletta di fissaggio, una torretta per una vite, un rialzo attorno a un foro.\n\nI CONTORNI SONO NELLE COORDINATE DELLA FACCIA, come per «taglio_rettangolare»: (0, 0) e' il centro della faccia. Piu' contorni annidati fanno una cornice — quello fuori e quello dentro — ed e' cosi' che si fa un labbro attorno a un bordo invece di un blocco pieno.\n\n«unisci» a vero (predefinito) fonde il rialzo con il pezzo. A falso nasce un CORPO SEPARATO: quasi mai quello che si vuole, e l'albero cresce uguale, quindi lo si nota solo contando i corpi.",
+   "descrizione": "Disegna un contorno su una faccia che c'e' gia' e lo estrude in FUORI, aggiungendo materiale al pezzo.\n\nE' L'OPERAZIONE CHE FA CRESCERE UN RIALZO. Le altre su un pezzo esistente tolgono (fori, tagli, asole), svuotano (guscio) o spostano; aggiungono materiale anche «incidi_testo» in rilievo, ma solo una scritta, e «combina_corpi», che unisce corpi che ci sono gia'. Senza questa non si possono fare: il labbro di tenuta di un coperchio, i distanziali su cui appoggia qualcosa, un'aletta di fissaggio, una torretta per una vite, un rialzo attorno a un foro.\n\nI CONTORNI SONO NELLE COORDINATE DELLA FACCIA, come per «taglio_rettangolare»: (0, 0) e' il centro della faccia. Piu' contorni annidati fanno una cornice — quello fuori e quello dentro — ed e' cosi' che si fa un labbro attorno a un bordo invece di un blocco pieno.\n\n«unisci» a vero (predefinito) fonde il rialzo con il pezzo. A falso nasce un CORPO SEPARATO: quasi mai quello che si vuole, e l'albero cresce uguale, quindi lo si nota solo contando i corpi.\n\nMI RIFIUTO se il rialzo non aggiunge materiale (e' cresciuto DENTRO il pezzo), se con «unisci» i corpi non restano quelli, e se chiedi l'«ancora» su piu' di un contorno o su un contorno che non e' ne' tondo ne' un rettangolo allineato: il punto che l'ancora tiene e' il centro, e il centro di un poligono qualunque non lo indovino.",
    "schema": {
     "type": "object",
     "properties": {
@@ -476,6 +476,58 @@
       "type": "number",
       "description": "quanto sporge dalla faccia"
      },
+     "ancora": {
+      "type": "object",
+      "description": "COSA TIENE IL RIALZO DOV'E' QUANDO IL PEZZO CAMBIA. Senza, x_mm/y_mm sono coordinate assolute: se la piastra si allunga, il rialzo resta dov'era. Per OGNI asse, «x» e «y», tutti e due obbligatori, una di due cose: {\"spigolo_uid\": \"E7\", \"distanza_mm\": 20}, la distanza dal CENTRO a uno spigolo dritto della stessa faccia che corre lungo l'altro asse; oppure {\"centrata_fra\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. Il punto e' il CENTRO del contorno, e l'ancora vale per UN contorno solo, tondo o rettangolare allineato agli assi della faccia.\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro asse o sta sul bordo di uno smusso o di un raccordo; se la distanza e' meno di meta' della larghezza (il profilo scavalcherebbe lo spigolo); se lo schizzo non risulta completamente definito, o non regge una modifica di prova — e allora il taglio lo tolgo.",
+      "properties": {
+       "x": {
+        "type": "object",
+        "description": "l'ancora lungo x_mm: spigolo_uid + distanza_mm, oppure centrata_fra",
+        "properties": {
+         "spigolo_uid": {
+          "type": "string",
+          "description": "uno spigolo dritto della faccia, dallo stato, che corre lungo y_mm"
+         },
+         "distanza_mm": {
+          "type": "number",
+          "description": "dal CENTRO del profilo allo spigolo, misurata lungo x_mm"
+         },
+         "centrata_fra": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "due spigoli opposti della faccia, dallo stato, che corrono lungo y_mm: il centro resta a meta' fra loro"
+         }
+        }
+       },
+       "y": {
+        "type": "object",
+        "description": "l'ancora lungo y_mm: spigolo_uid + distanza_mm, oppure centrata_fra",
+        "properties": {
+         "spigolo_uid": {
+          "type": "string",
+          "description": "uno spigolo dritto della faccia, dallo stato, che corre lungo x_mm"
+         },
+         "distanza_mm": {
+          "type": "number",
+          "description": "dal CENTRO del profilo allo spigolo, misurata lungo y_mm"
+         },
+         "centrata_fra": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "due spigoli opposti della faccia, dallo stato, che corrono lungo x_mm: il centro resta a meta' fra loro"
+         }
+        }
+       }
+      },
+      "required": [
+       "x",
+       "y"
+      ]
+     },
      "unisci": {
       "type": "boolean",
       "description": "predefinito: si'. A falso fa un corpo separato."
@@ -494,7 +546,7 @@
    "nome": "foro_guidato",
    "famiglia": "lavorazioni",
    "sommario": "Un foro come si fa un foro: creazione guidata, norma ISO, filettato o di passaggio, lamato o svasato, anche piu' fori in una volta.",
-   "descrizione": "IL MODO GIUSTO DI FARE UN FORO: la creazione guidata fori di SolidWorks, norma ISO. Da preferire SEMPRE a «taglio_cilindrico» quando il foro alloggia una vite, un perno o una filettatura.\n\nLe misure le prende dalla norma: tu dai la taglia della vite («M8») e il tipo, non i diametri. Un foro filettato M8 esce con il preforo 6.8 e il filetto; uno di passaggio M8 esce 9.\n\nPiu' fori uguali si fanno in UNA SOLA chiamata mettendo piu' «posizioni»: e' cosi' che si disegna una serie di fori, e in officina si legge come una lavorazione sola.",
+   "descrizione": "IL MODO GIUSTO DI FARE UN FORO: la creazione guidata fori di SolidWorks, norma ISO. Da preferire SEMPRE a «taglio_cilindrico» quando il foro alloggia una vite, un perno o una filettatura.\n\nLe misure le prende dalla norma: tu dai la taglia della vite («M8») e il tipo, non i diametri. Un foro filettato M8 esce con il preforo 6.8 e il filetto; uno di passaggio M8 esce 9.\n\nPiu' fori uguali si fanno in UNA SOLA chiamata mettendo piu' «posizioni»: e' cosi' che si disegna una serie di fori, e in officina si legge come una lavorazione sola.\n\nOgni posizione puo' portare un'«ancora» (una quota da uno spigolo, o il centro fra due spigoli, per asse): allora il foro segue il bordo quando il pezzo cambia. MI RIFIUTO se l'ancora ce l'hanno solo alcune posizioni (tutte o nessuna: i fori stanno in uno schizzo solo) e se una distanza e' meno del raggio del foro — quello lo so solo a foro fatto, e allora il foro lo tolgo.",
    "schema": {
     "type": "object",
     "properties": {
@@ -553,7 +605,7 @@
      },
      "posizioni": {
       "type": "array",
-      "description": "dove vanno i fori, sul piano della faccia. Piu' fori uguali stanno in una chiamata sola.",
+      "description": "dove vanno i fori, sul piano della faccia. Piu' fori uguali stanno in una chiamata sola. L'«ancora» si da' a TUTTE le posizioni o a nessuna: i fori stanno in uno schizzo solo, e un punto senza ancora lo lascerebbe libero di muoversi. Mi rifiuto se una distanza e' meno del raggio del foro (lo decide la tabella): il foro l'ho gia' fatto, e lo tolgo.",
       "items": {
        "type": "object",
        "properties": {
@@ -564,6 +616,58 @@
         "y_mm": {
          "type": "number",
          "description": "vedi x_mm"
+        },
+        "ancora": {
+         "type": "object",
+         "description": "COSA TIENE IL FORO DOV'E' QUANDO IL PEZZO CAMBIA. Senza, x_mm/y_mm sono coordinate assolute: se la piastra si allunga, il foro resta dov'era. Per OGNI asse, «x» e «y», tutti e due obbligatori, una di due cose: {\"spigolo_uid\": \"E7\", \"distanza_mm\": 20}, la distanza dal CENTRO a uno spigolo dritto della stessa faccia che corre lungo l'altro asse; oppure {\"centrata_fra\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. x_mm/y_mm restano obbligatori e devono dire lo stesso punto.\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro asse o sta sul bordo di uno smusso o di un raccordo; se la distanza e' meno di meta' della larghezza (il profilo scavalcherebbe lo spigolo); se lo schizzo non risulta completamente definito, o non regge una modifica di prova — e allora il taglio lo tolgo.",
+         "properties": {
+          "x": {
+           "type": "object",
+           "description": "l'ancora lungo x_mm: spigolo_uid + distanza_mm, oppure centrata_fra",
+           "properties": {
+            "spigolo_uid": {
+             "type": "string",
+             "description": "uno spigolo dritto della faccia, dallo stato, che corre lungo y_mm"
+            },
+            "distanza_mm": {
+             "type": "number",
+             "description": "dal CENTRO del profilo allo spigolo, misurata lungo x_mm"
+            },
+            "centrata_fra": {
+             "type": "array",
+             "items": {
+              "type": "string"
+             },
+             "description": "due spigoli opposti della faccia, dallo stato, che corrono lungo y_mm: il centro resta a meta' fra loro"
+            }
+           }
+          },
+          "y": {
+           "type": "object",
+           "description": "l'ancora lungo y_mm: spigolo_uid + distanza_mm, oppure centrata_fra",
+           "properties": {
+            "spigolo_uid": {
+             "type": "string",
+             "description": "uno spigolo dritto della faccia, dallo stato, che corre lungo x_mm"
+            },
+            "distanza_mm": {
+             "type": "number",
+             "description": "dal CENTRO del profilo allo spigolo, misurata lungo y_mm"
+            },
+            "centrata_fra": {
+             "type": "array",
+             "items": {
+              "type": "string"
+             },
+             "description": "due spigoli opposti della faccia, dallo stato, che corrono lungo x_mm: il centro resta a meta' fra loro"
+            }
+           }
+          }
+         },
+         "required": [
+          "x",
+          "y"
+         ]
         }
        },
        "required": [

@@ -130,7 +130,7 @@ if ($Lento) { $argomenti += "--lento" }
 # un argomento alla volta e PRETENDE che diventino rossi (voce F6). Costa un
 # documento di SOLIDWORKS per mutazione: si lancia prima di una consegna.
 if ($Muta) { $argomenti += "--muta" }
-# -Regressione: i diciotto casi dei riferimenti (voce F8). Produce TRE NUMERI
+# -Regressione: i diciannove casi dei riferimenti (voce F8). Produce TRE NUMERI
 # che sommano ai casi -- reggono, si staccano e lo dicono, si staccano in
 # silenzio -- e il terzo e' l'unico che conta.
 if ($Regressione) { $argomenti += "--regressione" }

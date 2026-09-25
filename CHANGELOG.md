@@ -24,6 +24,43 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.94.0 — 25 September 2026 · library 0.119.0
+
+The anchor on `estrudi_su_faccia` (entry E18). There are no `x_mm`/`y_mm`
+here: the point the anchor holds is the CENTRE of the contour, and it
+applies to one contour only, round or an axis-aligned rectangle. A circle
+gets its diameter dimensioned and the anchor on its centre; a rectangle of
+four lines (corners already merged under `AddToDB`, as measured on the
+slot) gets horizontal/vertical relations, two dimensions and a centre built
+with a construction diagonal, like the pocket. Any other contour is refused
+before touching the part, saying which contours the anchor accepts. Measured
+on the harness and in three bench cases: a round boss 30 mm from the right
+side stays 30 mm from it on a plate that grows, a rectangular boss stays
+centred, a triangle is refused.
+
+And `foro_guidato`, the last piece of E18: each position takes its own
+`ancora`, all of them or none (the holes share one sketch, and one free
+point leaves it under-defined). HoleWizard builds the point sketch; after
+the positions are placed the library re-enters it, anchors each point, and
+requires the sketch fully defined after the last one. The hole radius is
+known only from the table, so a distance smaller than the radius is caught
+once the hole exists, and the hole is removed. Measured on the harness:
+four M8 holes 20 mm from the edges go to y -40 -40 100 100 and x -80 -80
+140 140 when the plate grows. Regression `r01` now builds with the anchor
+(same expectations); `r01b` is its absolute twin.
+
+`TogliIlTaglio` now says «l'ho tolto» instead of «il taglio l'ho tolto»,
+since it also removes a boss or a guided hole.
+
+Regression (`banco.ps1 -Regressione`, 19 cases): **17 hold, 1 breaks and
+says so (r16), 1 breaks silently (r05, SOLIDWORKS' own)** — it was 15/1/2 of
+18 with library 0.116.0. The finish line written in E18 («silent down to 1,
+r05 left») is reached, and E11 (rollback as oracle) closes as not done by
+its own criterion: silent + refused without criterion = 0/18 with r05 left
+out. Full bench: 1169 tests, 0 failed, 920 of 920 expectations verified.
+
+---
+
 ## 0.93.0 — 25 September 2026 · library 0.118.0
 
 ### The number on the drawing is the model's? (entry Z-C2)

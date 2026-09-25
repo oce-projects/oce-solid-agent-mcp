@@ -364,7 +364,7 @@ namespace Riscontro.Disegno
         private bool ApplicaAncora(
             IModelDoc2 modello, Ancoraggio anc, ISketchPoint punto,
             double[] assi, double offsetM, double x, double y,
-            Dictionary<string, object> misure, out string motivo)
+            Dictionary<string, object> misure, out string motivo, bool pretendiDefinito = true)
         {
             motivo = null;
             if (anc == null || anc.Vuoto) return true;
@@ -469,8 +469,31 @@ namespace Riscontro.Disegno
                 }
             }
 
-            // COMPLETAMENTE DEFINITO, O NIENTE. Sottovincolato, il profilo va
-            // dove vuole il risolutore; sovravincolato, si rompe alla modifica.
+            // COMPLETAMENTE DEFINITO, O NIENTE — ma con piu' punti nello stesso
+            // schizzo (i fori di `foro_guidato`) lo si guarda dopo l'ultimo.
+            if (pretendiDefinito)
+            {
+                if (!SchizzoDefinitoESano(schizzi, out motivo)) return false;
+                detto["schizzo"] = "completamente definito";
+            }
+            // LA TAVOLA (rischio 15): un asse centrato lo tiene una relazione,
+            // non una quota, e `quote_dal_modello` non ha niente da riportare.
+            if ((anc.X != null && anc.X.Centrata) || (anc.Y != null && anc.Y.Centrata))
+                detto["nota_tavola"] = "Lungo l'asse centrato la posizione la tiene una relazione, non una quota: " +
+                                       "quote_dal_modello non la riporta, quota_in_tavola la misura dai bordi.";
+            misure["ancora"] = detto;
+            return true;
+        }
+
+        /// <summary>
+        /// Lo schizzo aperto e' completamente definito e senza relazioni malate?
+        /// Sottovincolato, il profilo va dove vuole il risolutore; sovravincolato,
+        /// si rompe alla modifica; una relazione penzolante, sovravincolante o
+        /// rotta (rischio 1 del critico) non la esclude lo stato «definito».
+        /// </summary>
+        private static bool SchizzoDefinitoESano(ISketchManager schizzi, out string motivo)
+        {
+            motivo = null;
             int stato = -1;
             try { stato = schizzi.ActiveSketch.GetConstrainedStatus(); } catch { }
             if (stato != (int)swConstrainedStatus_e.swFullyConstrained)
@@ -480,22 +503,101 @@ namespace Riscontro.Disegno
                          "alla prima modifica del pezzo il profilo andrebbe dove lo mette il risolutore.";
                 return false;
             }
-            // E NESSUNA RELAZIONE MALATA (rischio 1 del critico): penzolante,
-            // sovravincolante o rotta. Lo stato «definito» non le esclude tutte.
             string malate = RelazioniMalate(schizzi);
             if (malate != null)
             {
                 motivo = "Lo schizzo dell'ancora ha relazioni " + malate + ": non taglio, si romperebbe alla prima modifica.";
                 return false;
             }
-            detto["schizzo"] = "completamente definito";
-            // LA TAVOLA (rischio 15): un asse centrato lo tiene una relazione,
-            // non una quota, e `quote_dal_modello` non ha niente da riportare.
-            if ((anc.X != null && anc.X.Centrata) || (anc.Y != null && anc.Y.Centrata))
-                detto["nota_tavola"] = "Lungo l'asse centrato la posizione la tiene una relazione, non una quota: " +
-                                       "quote_dal_modello non la riporta, quota_in_tavola la misura dai bordi.";
-            misure["ancora"] = detto;
             return true;
+        }
+
+        /// <summary>
+        /// L'ANCORA DI `foro_guidato` (voce E18, l'ultimo pezzo). Lo schizzo dei
+        /// punti lo fa HoleWizard, e `PosizionaIFori` ci mette i punti: qui ci si
+        /// rientra, e ogni punto riceve la sua ancora. Misurato il 25/9/2026
+        /// (`prova0089 guidato`, il caso r01): lo schizzo di posizionamento e'
+        /// il sotto-schizzo con i punti e senza segmenti, si apre con
+        /// `EditSketch`, otto quote orizzontali/verticali verso gli spigoli lo
+        /// rendono completamente definito, e dopo la modifica i fori stanno a
+        /// y -40 -40 100 100 e x -80 -80 140 140: esattamente l'attesa di r01.
+        ///
+        /// Lo stato di definizione si guarda DOPO l'ultimo punto: un punto non
+        /// ancora ancorato lascia lo schizzo sottovincolato per costruzione.
+        /// </summary>
+        private bool AncoraIFori(
+            IModelDoc2 modello, IFeature foro, double[] assi, double offsetM,
+            List<double[]> posizioni, List<Ancoraggio> ancore,
+            Dictionary<string, object> misure, out string motivo)
+        {
+            motivo = null;
+            var featSchizzo = SchizzoDiPosizionamento(foro);
+            var schizzo = featSchizzo?.GetSpecificFeature2() as ISketch;
+            if (schizzo == null) { motivo = "Non trovo lo schizzo che tiene la posizione dei fori."; return false; }
+            var gestore = modello.SketchManager;
+            var dette = new List<object>();
+            bool inModifica = false;
+            try
+            {
+                modello.ClearSelection2(true);
+                if (!featSchizzo.Select2(false, 0)) { motivo = "Non riesco a selezionare lo schizzo dei fori."; return false; }
+                modello.EditSketch();
+                inModifica = true;
+                var matematica = _sw.GetMathUtility() as IMathUtility;
+                var trasformazione = gestore.ActiveSketch.ModelToSketchTransform;
+                var punti = (gestore.ActiveSketch.GetSketchPoints2() as object[]) ?? new object[0];
+                for (int i = 0; i < posizioni.Count; i++)
+                {
+                    var atteso = NelloSchizzo(matematica, trasformazione, assi, offsetM, posizioni[i]);
+                    ISketchPoint suo = null;
+                    foreach (var o in punti)
+                    {
+                        var p = o as ISketchPoint;
+                        if (p != null && atteso != null && Math.Abs(p.X - atteso[0]) < 1e-7 && Math.Abs(p.Y - atteso[1]) < 1e-7) suo = p;
+                    }
+                    if (suo == null)
+                    {
+                        motivo = "Non ritrovo nello schizzo il punto del foro " + (i + 1) + ".";
+                        return false;
+                    }
+                    var suaMisura = new Dictionary<string, object>();
+                    if (!ApplicaAncora(modello, ancore[i], suo, assi, offsetM, posizioni[i][0], posizioni[i][1],
+                                       suaMisura, out motivo, pretendiDefinito: false))
+                    {
+                        motivo = "Foro " + (i + 1) + ": " + motivo;
+                        return false;
+                    }
+                    dette.Add(suaMisura.ContainsKey("ancora") ? suaMisura["ancora"] : null);
+                }
+                if (!SchizzoDefinitoESano(gestore, out motivo)) return false;
+                misure["ancore"] = dette.ToArray();
+                misure["schizzo_dei_fori"] = "completamente definito";
+                return true;
+            }
+            catch (Exception ex) { motivo = "L'ancora dei fori non e' riuscita: " + ex.Message; return false; }
+            finally
+            {
+                if (inModifica) { try { gestore.InsertSketch(true); } catch { } }
+                try { modello.ClearSelection2(true); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// L'ancora di un foro guidato si legge prima di sapere il diametro (lo
+        /// decide la tabella, dopo): qui si guarda, a foro nato, che nessuna
+        /// distanza scavalchi lo spigolo col raggio vero.
+        /// </summary>
+        private static string ScavalcaColRaggio(List<Ancoraggio> ancore, double raggioMm)
+        {
+            for (int i = 0; i < ancore.Count; i++)
+                foreach (var asse in ancore[i].Assi())
+                {
+                    if (!asse.Centrata && asse.DistanzaMm + 1e-9 < raggioMm)
+                        return string.Format(CultureInfo.InvariantCulture,
+                            "Foro {0}: «distanza_mm» {1:0.##} dallo spigolo «{2}» e' meno del raggio del foro ({3:0.##}): " +
+                            "il foro scavalcherebbe lo spigolo.", i + 1, asse.DistanzaMm, asse.Spigolo.Uid, raggioMm);
+                }
+            return null;
         }
 
         private static string NomeDelloStato(int stato)
@@ -597,15 +699,15 @@ namespace Riscontro.Disegno
             try { modello.EditRebuild3(); } catch { }
             int lavorazioni = ContaFeature(modello);
             if (lavorazioni < 0 || _featureAllInizioDelPasso < 0)
-                return " Il taglio l'ho tolto, con il suo schizzo, ma non ho potuto ricontare " +
+                return " L'ho tolto, con il suo schizzo, ma non ho potuto ricontare " +
                        "l'albero per controllare che il pezzo sia com'era: guardalo.";
             if (lavorazioni > _featureAllInizioDelPasso) return RestaNelPezzo;
             double? volumeDopo = VolumeMm3(modello);
             if (volumePrima == null || volumeDopo == null)
-                return " Il taglio l'ho tolto, con il suo schizzo, ma non ho potuto rimisurare il " +
+                return " L'ho tolto, con il suo schizzo, ma non ho potuto rimisurare il " +
                        "volume per controllare che il pezzo sia com'era: guardalo.";
             if (Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.01) return RestaNelPezzo;
-            return " Il taglio l'ho tolto, con il suo schizzo: il pezzo e' com'era prima di questo passo.";
+            return " L'ho tolto, con il suo schizzo: il pezzo e' com'era prima di questo passo.";
         }
 
         /// <summary>
@@ -799,6 +901,128 @@ namespace Riscontro.Disegno
                     errore = e5;
             }
             return quote;
+        }
+
+        /// <summary>
+        /// Il centro del contorno di `estrudi_su_faccia` a cui si attacca l'ancora
+        /// (voce E18), e il mezzo ingombro per asse. Vale per UN contorno solo:
+        /// un cerchio, o una spezzata di quattro vertici allineata agli assi
+        /// della faccia (un rettangolo). Per tutto il resto un rifiuto che dice
+        /// perche': quale sia «il centro» di un poligono qualunque lo decide chi
+        /// disegna, e indovinarlo vorrebbe dire ancorare un punto che non ha
+        /// scelto nessuno.
+        /// </summary>
+        private static bool CentroDelContornoSolo(
+            List<Contorno> contorni, out double cx, out double cy, out double mezzoU, out double mezzoV,
+            out string motivo)
+        {
+            cx = cy = mezzoU = mezzoV = 0;
+            motivo = null;
+            const string Regola =
+                "L'ancora di un rialzo vale per UN contorno solo, tondo o rettangolare allineato " +
+                "agli assi della faccia: il punto che tiene e' il suo centro. ";
+            int quanti = contorni == null ? -1 : contorni.Count;
+            if (quanti != 1)
+            {
+                motivo = Regola + (quanti < 0 ? "Qui non ci sono contorni." : "Qui i contorni sono " + quanti +
+                         ": fai un rialzo per contorno, e ancora ciascuno.");
+                return false;
+            }
+            var c = contorni[0];
+            if (c.Cerchio)
+            {
+                cx = c.Centro[0]; cy = c.Centro[1];
+                mezzoU = mezzoV = c.Diametro / 2.0;
+                return true;
+            }
+            var punti = new List<double[]>();
+            if (c.Tratti.Count == 1 && !c.Tratti[0].Spline)
+                foreach (var p in c.Tratti[0].Punti)
+                    if (!punti.Any(q => Math.Abs(q[0] - p[0]) < 1e-9 && Math.Abs(q[1] - p[1]) < 1e-9))
+                        punti.Add(p);
+            bool rettangolo = punti.Count == 4;
+            for (int i = 0; rettangolo && i < 4; i++)
+            {
+                var p = punti[i]; var q = punti[(i + 1) % 4];
+                bool orizzontale = Math.Abs(p[1] - q[1]) < 1e-9, verticale = Math.Abs(p[0] - q[0]) < 1e-9;
+                if (orizzontale == verticale) rettangolo = false;
+            }
+            if (!rettangolo)
+            {
+                motivo = Regola + "Questo contorno non e' ne' un cerchio ne' un rettangolo allineato.";
+                return false;
+            }
+            double minX = punti.Min(p => p[0]), maxX = punti.Max(p => p[0]);
+            double minY = punti.Min(p => p[1]), maxY = punti.Max(p => p[1]);
+            cx = (minX + maxX) / 2; cy = (minY + maxY) / 2;
+            mezzoU = (maxX - minX) / 2; mezzoV = (maxY - minY) / 2;
+            return true;
+        }
+
+        /// <summary>
+        /// Definisce il contorno del rialzo e ci attacca l'ancora, a schizzo
+        /// aperto (voce E18). Cerchio: il diametro, e l'ancora sul centro.
+        /// Rettangolo di quattro linee (gli angoli, disegnati sotto AddToDB, sono
+        /// gia' fusi — misurato sull'asola): orizzontali e verticali, due quote,
+        /// e l'ancora sul centro costruito con la diagonale, come la tasca.
+        /// </summary>
+        private bool AncoraIlContorno(
+            IModelDoc2 modello, Contorno contorno, List<ISketchSegment> creati, double[] assi, double offsetM,
+            double cx, double cy, Ancoraggio ancora, Dictionary<string, object> misure, out string errore)
+        {
+            errore = null;
+            ISketchPoint punto;
+            if (contorno.Cerchio)
+            {
+                var cerchio = creati.Count == 1 ? creati[0] as ISketchArc : null;
+                if (cerchio == null) { errore = "Il cerchio del rialzo non e' nato come ci si aspetta."; return false; }
+                var testo = PuntoNelloSchizzo(modello, assi, offsetM,
+                    cx + contorno.Diametro * 0.7 + 5, cy + contorno.Diametro * 0.7 + 5, out errore);
+                if (testo == null || QuotaSegmenti(modello, new List<Quota> { Quota.Su(creati[0], testo) }) < 1)
+                {
+                    errore = errore ?? "Il diametro del rialzo non si e' lasciato quotare.";
+                    return false;
+                }
+                punto = cerchio.GetCenterPoint2() as ISketchPoint;
+            }
+            else
+            {
+                if (creati.Count != 4 || creati.Any(s => !(s is ISketchLine)))
+                {
+                    errore = "Il rettangolo del rialzo non ha i suoi quattro lati.";
+                    return false;
+                }
+                var angoli = new List<double[]>();
+                foreach (var s in creati)
+                {
+                    var l = (ISketchLine)s;
+                    var a0 = (ISketchPoint)l.GetStartPoint2(); var a1 = (ISketchPoint)l.GetEndPoint2();
+                    bool orizzontale = Math.Abs(a0.Y - a1.Y) < 1e-9;
+                    RelazioneSola(modello, s, orizzontale ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
+                    angoli.Add(new[] { a0.X, a0.Y, a0.Z });
+                }
+                // Le due quote: un lato per verso, col testo fuori dal rettangolo.
+                var p0 = (ISketchPoint)((ISketchLine)creati[0]).GetStartPoint2();
+                var p1 = (ISketchPoint)((ISketchLine)creati[0]).GetEndPoint2();
+                var q1 = (ISketchPoint)((ISketchLine)creati[1]).GetEndPoint2();
+                var daQuotare = new List<Quota>
+                {
+                    Quota.Su(creati[0], new[] { (p0.X + p1.X) / 2 + (p1.X - q1.X) * 0.2, (p0.Y + p1.Y) / 2 + (p1.Y - q1.Y) * 0.2, 0.0 }),
+                    Quota.Su(creati[1], new[] { (p1.X + q1.X) / 2 + (p1.X - p0.X) * 0.2, (p1.Y + q1.Y) / 2 + (p1.Y - p0.Y) * 0.2, 0.0 }),
+                };
+                if (QuotaSegmenti(modello, daQuotare) < 2)
+                {
+                    errore = "Le quote del rettangolo del rialzo non sono nate tutte.";
+                    return false;
+                }
+                punto = CentroDelRettangolo(modello, creati.Cast<object>().ToArray(), angoli[0], angoli[2]);
+                if (punto == null)
+                {
+                    errore = "Non sono riuscito a costruire il centro del rettangolo a cui attaccare l'ancora.";
+                    return false;
+                }
+            }
+            return ApplicaAncora(modello, ancora, punto, assi, offsetM, cx, cy, misure, out errore);
         }
 
         /// <summary>
