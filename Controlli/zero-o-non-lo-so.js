@@ -28,10 +28,16 @@
 //
 //  ── COSA PRENDE, E COSA LASCIA STARE ────────────────────────────────────────
 //
-//  Prende due forme, tutt'e due sintattiche e quindi certe:
+//  Prende tre forme, tutte sintattiche:
 //
 //      catch { return 0; }          un errore che diventa un numero
 //      x == null ? 0 : x.Length     un «non c'e'» che diventa un conteggio
+//      int n = 0; try { ... }       un catch MUTO che lascia il conteggio
+//      catch { } return n;          dov'era, cioe' a zero o a meta'
+//
+//  La terza l'ha trovata un agente il 25/9/2026 classificando le prime due:
+//  `ContaFacce`, `ContaQuote`, `ContaViste` avevano lo stesso difetto con
+//  un'altra sintassi, e la sonda non li vedeva.
 //
 //  Lascia stare:
 //
@@ -43,11 +49,13 @@
 //      un modo di zittire la sonda, e questo repository ne ha gia' viste
 //      abbastanza.
 //
-//  ── QUESTO NON E' UN GANCIO ─────────────────────────────────────────────────
+//  ── DAL 25/9/2026 E' UN GANCIO ──────────────────────────────────────────────
 //
-//  Esce sempre 0. Ripararli vuol dire cambiare la firma di funzioni della
-//  libreria e rilanciare il banco: e' lavoro, non un divieto. Questo attrezzo
-//  dice **quanti sono e dove**, che e' cio' che la voce Z-C8 chiama «misura».
+//  Fino alla libreria 0.116.0 usciva sempre 0: ripararli voleva dire cambiare
+//  la firma di funzioni della libreria e rilanciare il banco, ed era lavoro,
+//  non un divieto. Riparati tutti (voce Z-C8), adesso **esce 1 se ne compare
+//  uno nuovo** senza marcatore: e' nel gancio pre-push. Un elenco di lavoro
+//  finito che non diventa una guardia torna a riempirsi.
 //
 //  USO
 //      node Controlli/zero-o-non-lo-so.js
@@ -110,11 +118,27 @@ const FORME = [
 // Le conversioni di ingresso: si sta leggendo un argomento, non il CAD.
 const INGRESSO = /Convert\.To(Int32|Double|Single|Int64)\s*\(/;
 
+// LA TERZA FORMA: un `catch { }` vuoto, e poco dopo `return x;` di una
+// variabile nata a zero nello stesso membro.
+const CATCH_MUTO = /catch\s*\{\s*\}/;
+function contatoreMuto(righe, i) {
+  let variabile = null;
+  for (let k = i; k < Math.min(righe.length, i + 9); k++) {
+    const m = /^\s*return\s+(\w+)\s*;/.exec(righe[k]);
+    if (m) { variabile = m[1]; break; }
+  }
+  if (!variabile) return false;
+  const nata = new RegExp('\\b(int|long|double)\\s+' + variabile + '\\s*=\\s*0(\\.0)?\\s*;');
+  return nata.test(finestraDelMembro(righe, i));
+}
+
 function guarda(righe, nomeFile) {
   const presi = [];
   for (let i = 0; i < righe.length; i++) {
     const r = righe[i];
-    const forma = FORME.find(f => f.re.test(r));
+    let forma = FORME.find(f => f.re.test(r));
+    if (!forma && CATCH_MUTO.test(r) && contatoreMuto(righe, i))
+      forma = { nome: 'un catch muto che lascia il conteggio dov\'era' };
     if (!forma) continue;
     if (INGRESSO.test(r)) continue;
 
@@ -182,6 +206,15 @@ if (process.argv.includes('--provami')) {
     '    catch { return 0; }',
     '}');
   const dettoTesto = detto.join('\n');
+  const muto = [
+    'private static int ContaFacce(IModelDoc2 m)',
+    '{',
+    '    int n = 0;',
+    '    try { n = Leggi(m); }',
+    '    catch { }',
+    '    return n;',
+    '}',
+  ].join('\n');
   const soloIngresso = [
     'private static int Intero(object v)',
     '{',
@@ -192,13 +225,15 @@ if (process.argv.includes('--provami')) {
   const a = giro([{ nome: 'FINTO-nudo', testo: nudo }], 'il punto NUDO');
   const b = giro([{ nome: 'FINTO-detto', testo: dettoTesto }], 'lo stesso punto DICHIARATO, a venti righe di distanza');
   const c = giro([{ nome: 'FINTO-ingresso', testo: soloIngresso }], 'una conversione di INGRESSO');
+  const e = giro([{ nome: 'FINTO-muto', testo: muto }], 'il catch MUTO (la terza forma)');
   console.log('');
-  if (a === 1 && b === 0 && c === 0) {
+  if (a === 1 && b === 0 && c === 0 && e === 1) {
     console.log('IL CONTROLLO prende il punto nudo, TACE su quello dichiarato,');
     console.log('e non confonde una conversione di argomento con una lettura. Provato.');
   } else {
     console.log('IL CONTROLLO NON SI COMPORTA COME DICE: nudo=' + a +
-                ' (atteso 1), dichiarato=' + b + ' (atteso 0), ingresso=' + c + ' (atteso 0)');
+                ' (atteso 1), dichiarato=' + b + ' (atteso 0), ingresso=' + c + ' (atteso 0)' +
+                ', muto=' + e + ' (atteso 1)');
     process.exitCode = 1;
   }
   console.log('');
@@ -207,13 +242,14 @@ if (process.argv.includes('--provami')) {
 const files = [];
 for (const c of CARTELLE) sorgenti(c, files);
 console.log('sorgenti guardati: ' + files.length);
-giro(files, 'nel repository');
+const scoperti = giro(files, 'nel repository');
+if (scoperti > 0) process.exitCode = 1;
 
 console.log('');
 console.log('Zero non e\' «non lo so»: zero e\' un\'AFFERMAZIONE — «questo pezzo ha');
 console.log('zero corpi», «da questo foro sono stati tolti zero mm3». Chi legge non');
 console.log('ha modo di accorgersi che la lettura e\' fallita.');
 console.log('');
-console.log('Ripararli cambia la firma di funzioni della libreria e vuole un giro di');
-console.log('banco: per questo qui non c\'e\' nessun exit 1. Questo attrezzo dice');
-console.log('quanti sono e dove, che e\' cio\' che la voce Z-C8 chiama «misura».');
+console.log('Si ripara con -1 (o null) per «non lo so», oppure col marcatore');
+console.log('ZERO-E-ZERO: e la ragione accanto quando lo zero e\' vero. Esce 1 se');
+console.log('ne resta uno senza: dal 25/9/2026 e\' nel gancio pre-push (voce Z-C8).');

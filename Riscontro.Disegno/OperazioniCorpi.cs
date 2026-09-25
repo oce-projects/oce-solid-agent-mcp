@@ -127,6 +127,8 @@ namespace Riscontro.Disegno
                 "». Ci sono «unisci», «sottrai» e «interseca».");
 
             var grezzi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+            // ZERO-E-ZERO: `GetBodies2` qui sopra non e' in un try — una maniglia
+            // morta solleva e non arriva fin qui — quindi null e' «nessun corpo».
             if (grezzi == null || grezzi.Length < 2)
                 return Fallito(
                     "Per una booleana ci vogliono almeno due corpi, e questo pezzo ne ha " +
@@ -181,8 +183,10 @@ namespace Riscontro.Disegno
             if (utensili.Count == 0)
                 return Fallito("Non e' rimasto nessun corpo da combinare col principale.");
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
+            if (volumePrima == null || corpiPrima < 0)
+                return Fallito(VolumeNonLettoPrima("combinare i corpi"));
 
             IFeature feature;
             try
@@ -219,12 +223,22 @@ namespace Riscontro.Disegno
 
             try { modello.EditRebuild3(); } catch { }
 
-            double volumeDopo = VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
             int corpiDopo = ContaCorpiSolidi(modello);
+            bool riletto = volumeDopo.HasValue && corpiDopo >= 0;
 
             // UN'UNIONE CHE LASCIA DUE CORPI E' FALLITA IN SILENZIO. La
             // feature c'e', l'albero e' cresciuto, e il pezzo e' un altro.
-            if (tipo == (int)swCombineBodiesOperationType_e.swCombineBodiesOperationAdd &&
+            //
+            // `SWBODYADD`, E FINO ALLA 0.116.0 NO (voce Z-C18). Il confronto era
+            // con `swCombineBodiesOperationAdd` (= 0), mentre `tipo` vale 15903:
+            // due enum diversi — proprio quelli che il commento in testa a
+            // questo file distingue — e la guardia non poteva scattare.
+            // Misurato il 25/9/2026: con due corpi lontani SOLIDWORKS non crea
+            // la feature affatto (il rifiuto qui sopra), quindi dal banco questa
+            // guardia non si fa scattare; resta per la feature che nasce e non
+            // fonde, e adesso guarda la cosa giusta.
+            if (riletto && tipo == (int)swBodyOperationType_e.SWBODYADD &&
                 corpiDopo >= corpiPrima)
                 return Fallito(
                     "L'unione ha creato la feature ma i corpi sono passati da " + corpiPrima +
@@ -232,7 +246,7 @@ namespace Riscontro.Disegno
                     "davvero. Non ti confermo un pezzo diverso da quello che ti ho mostrato: " +
                     "ritiralo — " + Frasi.CosiSiRitira + ".");
 
-            if (volumeDopo <= 0)
+            if (riletto && volumeDopo <= 0)
                 return Fallito(
                     "Dopo la booleana il pezzo non ha piu' volume: «" + comeChiesta +
                     "» ha consumato tutto. Di solito e' l'ordine — nella sottrazione il " +
@@ -249,18 +263,19 @@ namespace Riscontro.Disegno
                 ["corpo_principale"] = "C" + (indicePrincipale + 1),
                 ["corpi_utensile"] = nomiUtensili.ToArray(),
                 ["corpi_prima"] = corpiPrima,
-                ["corpi"] = corpiDopo,
-                ["volume_prima_mm3"] = Math.Round(volumePrima, 2),
-                ["volume_mm3"] = Math.Round(volumeDopo, 2),
-                ["volume_cambiato_mm3"] = Math.Round(volumeDopo - volumePrima, 2),
+                ["corpi"] = NumeroOppureNull(corpiDopo),
+                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["volume_cambiato_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2),
                 // GLI IDENTIFICATIVI NON VALGONO PIU', e si dice sempre: una
                 // booleana rifa' le facce da capo.
                 ["nota_identificativi"] =
                     "I corpi e le facce sono cambiati: gli identificativi (C2, F1, E4) di " +
                     "prima non valgono piu'. Rileggi il pezzo prima del passo seguente.",
             };
+            if (!riletto) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
             _log("[agente] " + comeChiesta + ": corpi " + corpiPrima + " -> " + corpiDopo +
-                 ", volume " + volumePrima.ToString("0.#") + " -> " + volumeDopo.ToString("0.#"));
+                 ", volume " + Letto(volumePrima) + " -> " + Letto(volumeDopo));
             return Riuscito(feature, misure);
         }
 
@@ -344,7 +359,8 @@ namespace Riscontro.Disegno
                     "(un cerchio), e un raccordo variabile ha bisogno di due estremi fra " +
                     "cui variare.");
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
+            if (volumePrima == null) return Fallito(VolumeNonLettoPrima("fare il raccordo"));
 
             IFeature feature;
             try
@@ -391,14 +407,16 @@ namespace Riscontro.Disegno
                     "non starci sulle facce che gli stanno intorno.");
 
             try { modello.EditRebuild3(); } catch { }
-            double tolto = volumePrima - VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
+            double? tolto = volumePrima - volumeDopo;
 
             // UN RACCORDO CHE NON TOGLIE NIENTE NON E' UN RACCORDO. La feature
-            // c'e', l'albero e' cresciuto, e lo spigolo e' ancora vivo.
+            // c'e', l'albero e' cresciuto, e lo spigolo e' ancora vivo. Si dice
+            // solo di un volume riletto (voce Z-C8).
             if (tolto <= 0)
                 return Fallito(
                     "Il raccordo e' stato creato ma non ha tolto niente (volume " +
-                    volumePrima.ToString("0.##") + " mm3 prima e dopo). Lo spigolo e' " +
+                    volumePrima.Value.ToString("0.##") + " mm3 prima e dopo). Lo spigolo e' " +
                     "ancora vivo: non ti confermo un pezzo diverso da quello che ti ho " +
                     "mostrato — " + Frasi.CosiSiRitira + ".");
 
@@ -407,7 +425,8 @@ namespace Riscontro.Disegno
                 ["spigolo"] = uid,
                 ["raggio_inizio_mm"] = r1,
                 ["raggio_fine_mm"] = r2,
-                ["materiale_tolto_mm3"] = Math.Round(tolto, 2),
+                ["materiale_tolto_mm3"] = NumeroOppureNull(tolto, 2),
+                ["volume_non_riletto"] = tolto.HasValue ? null : NotaVolumeNonRiletto,
                 // IL CONTO A MANO ACCANTO, e non e' ridondanza: distingue «ha
                 // fatto il variabile» da «ha preso solo il primo raggio».
                 // Il blend non e' esattamente una spazzata lineare, quindi e'
@@ -531,7 +550,8 @@ namespace Riscontro.Disegno
                     "Dimmi quanto e' profondo il filetto («profondita_mm») oppure che e' " +
                     "«passante».");
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
+            if (volumePrima == null) return Fallito(VolumeNonLettoPrima("mettere il filetto"));
 
             IFeature feature;
             try
@@ -565,8 +585,8 @@ namespace Riscontro.Disegno
             try { modello.EditRebuild3(); } catch { }
 
             // E' COSMETICA: se il volume e' cambiato, si e' tagliato davvero.
-            double volumeDopo = VolumeMm3(modello);
-            if (Math.Abs(volumeDopo - volumePrima) > 0.01)
+            double? volumeDopo = VolumeMm3(modello);
+            if (volumeDopo.HasValue && Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.01)
                 return Fallito(string.Format(
                     "Il filetto doveva essere COSMETICO e il volume e' cambiato: {0:0.##} " +
                     "mm3 prima, {1:0.##} dopo. Qualcosa ha tagliato davvero, e non e' " +
@@ -599,10 +619,11 @@ namespace Riscontro.Disegno
                 ["profondita_mm"] = passante ? (object)null : profondita,
                 ["passante"] = passante,
                 ["tipo_feature"] = tipoFeature,
-                ["volume_mm3"] = Math.Round(volumeDopo, 2),
-                ["non_taglia_niente"] =
-                    "E' un'annotazione: il volume del pezzo e' lo stesso di prima. Se ti " +
-                    "serve il filetto VERO, tagliato, questa non e' l'operazione.",
+                ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["non_taglia_niente"] = volumeDopo.HasValue
+                    ? "E' un'annotazione: il volume del pezzo e' lo stesso di prima. Se ti " +
+                      "serve il filetto VERO, tagliato, questa non e' l'operazione."
+                    : NotaVolumeNonRiletto,
                 // SI DICHIARA DA DOVE VIENE IL TESTO. Vedi il commento in testa.
                 ["la_denominazione_e_tua"] =
                     "«" + callout + "» e' il testo che mi hai dato, non uno ricavato da una " +

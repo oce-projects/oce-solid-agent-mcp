@@ -153,8 +153,12 @@ namespace Riscontro.Disegno
             // Chi lo dimentica descrive un foglio come se fosse una vista, e
             // poi quota un oggetto che non ha geometria.
             var viste = new List<Dictionary<string, object>>();
-            int quoteTotali = 0, visteTotali = 0, crociTotali = 0;
-            int gtolTot = 0, datumTot = 0, saldTot = 0, rugTot = 0, noteTot = 0, annTot = 0;
+            // I TOTALI SONO int? (voce Z-C8): una vista che non risponde fa
+            // null il totale, non un totale piu' basso detto come vero. Solo le
+            // viste si contano sempre — si stanno scorrendo.
+            int visteTotali = 0;
+            int? quoteTotali = 0, crociTotali = 0;
+            int? gtolTot = 0, datumTot = 0, saldTot = 0, rugTot = 0, noteTot = 0, annTot = 0;
             int orfaneTot = 0;
             bool orfaneSconosciute = false;
             // ── IL FOGLIO SI CONTA A PARTE, E NON E' UNA RIFINITURA ────────
@@ -184,8 +188,7 @@ namespace Riscontro.Disegno
                 while (v != null)
                 {
                     visteTotali++;
-                    int quote = 0;
-                    try { quote = v.GetDimensionCount(); } catch { }
+                    int? quote = Letto(() => v.GetDimensionCount());
                     quoteTotali += quote;
 
                     // LE CROCI DI CENTRO SI CONTANO QUI, e non solo dentro
@@ -194,8 +197,7 @@ namespace Riscontro.Disegno
                     // cosa, leggendola per conto proprio.** Se un giorno
                     // divergessero, una delle due mentirebbe e non si saprebbe
                     // quale.
-                    int croci = 0;
-                    try { croci = v.GetCenterMarkCount(); } catch { }
+                    int? croci = Letto(() => v.GetCenterMarkCount());
                     crociTotali += croci;
 
                     // ── LE ANNOTAZIONI, UNA FAMIGLIA PER VOLTA (voce Z-E1) ──
@@ -212,16 +214,15 @@ namespace Riscontro.Disegno
                     // E' la regola di GA5, applicata prima del bisogno: **lo
                     // stato e l'operazione devono raccontare la stessa cosa,
                     // leggendola per conto proprio.**
-                    int gtol = 0, datum = 0, saldature = 0, rugosita = 0, note = 0, annotazioni = 0;
-                    try { gtol = v.GetGTolCount(); } catch { }
-                    try { datum = v.GetDatumTagCount(); } catch { }
-                    try { saldature = v.GetWeldSymbolCount(); } catch { }
+                    int? gtol = Letto(() => v.GetGTolCount());
+                    int? datum = Letto(() => v.GetDatumTagCount());
+                    int? saldature = Letto(() => v.GetWeldSymbolCount());
                     // `GetSFSymbolCount`, NON `GetSurfaceFinishSymbolCount`:
                     // il secondo e' il nome per simmetria con
                     // `InsertSurfaceFinishSymbol`, e non esiste.
-                    try { rugosita = v.GetSFSymbolCount(); } catch { }
-                    try { note = v.GetNoteCount(); } catch { }
-                    try { annotazioni = v.GetAnnotationCount(); } catch { }
+                    int? rugosita = Letto(() => v.GetSFSymbolCount());
+                    int? note = Letto(() => v.GetNoteCount());
+                    int? annotazioni = Letto(() => v.GetAnnotationCount());
                     gtolTot += gtol; datumTot += datum; saldTot += saldature;
                     rugTot += rugosita; noteTot += note; annTot += annotazioni;
 
@@ -288,7 +289,14 @@ namespace Riscontro.Disegno
                     v = v.GetNextView() as IView;
                 }
             }
-            catch { }
+            catch
+            {
+                // Il giro si e' interrotto a meta': i totali sono di una parte
+                // delle viste, e nessuno lo saprebbe. Diventano «non lo so».
+                quoteTotali = crociTotali = null;
+                gtolTot = datumTot = saldTot = rugTot = noteTot = annTot = null;
+                dati["viste_lette_a_meta"] = true;
+            }
 
             if (viste.Count > 0) dati["viste"] = viste;
             dati["viste_totali"] = visteTotali;
@@ -329,7 +337,7 @@ namespace Riscontro.Disegno
             // resta se `Create1stAngleViews2` ha detto «si'» senza fare niente.
             if (visteTotali == 0)
                 dati["nota"] = "la tavola non ha ancora nessuna vista";
-            else if (quoteTotali == 0)
+            else if (quoteTotali.HasValue && quoteTotali.Value == 0)
                 dati["nota"] = "le viste ci sono ma non c'e' nessuna quota";
         }
 
@@ -387,8 +395,19 @@ namespace Riscontro.Disegno
         /// aspettare una somma che non torna, e chi la vede non tornare cerca
         /// un difetto dove non c'e'.
         /// </summary>
+        /// <summary>
+        /// Un conteggio letto da una vista, o null se la chiamata non risponde
+        /// (voce Z-C8). Il null si porta dietro nelle somme: `int?` sommato a
+        /// null fa null, ed e' proprio quello che si vuole.
+        /// </summary>
+        private static int? Letto(Func<int> leggi)
+        {
+            try { return leggi(); }
+            catch { return null; }
+        }
+
         private static Dictionary<string, object> Sei(
-            int gtol, int datum, int saldature, int rugosita, int note, int tutte)
+            int? gtol, int? datum, int? saldature, int? rugosita, int? note, int? tutte)
         {
             return new Dictionary<string, object>
             {
@@ -404,14 +423,10 @@ namespace Riscontro.Disegno
         /// <summary>I sei numeri letti da una vista, ognuno per conto suo.</summary>
         private static Dictionary<string, object> Annotazioni(IView v)
         {
-            int gtol = 0, datum = 0, saldature = 0, rugosita = 0, note = 0, tutte = 0;
-            try { gtol = v.GetGTolCount(); } catch { }
-            try { datum = v.GetDatumTagCount(); } catch { }
-            try { saldature = v.GetWeldSymbolCount(); } catch { }
-            try { rugosita = v.GetSFSymbolCount(); } catch { }
-            try { note = v.GetNoteCount(); } catch { }
-            try { tutte = v.GetAnnotationCount(); } catch { }
-            return Sei(gtol, datum, saldature, rugosita, note, tutte);
+            return Sei(
+                Letto(() => v.GetGTolCount()), Letto(() => v.GetDatumTagCount()),
+                Letto(() => v.GetWeldSymbolCount()), Letto(() => v.GetSFSymbolCount()),
+                Letto(() => v.GetNoteCount()), Letto(() => v.GetAnnotationCount()));
         }
 
         private static double[] ProprietaFoglio(IDrawingDoc disegno)

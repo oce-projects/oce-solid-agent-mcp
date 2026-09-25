@@ -231,8 +231,18 @@ using System.Runtime.InteropServices;
 //          malata; una prova di movimento dopo il taglio, e se non regge il
 //          taglio si toglie. La centratura e' PER ASSE: fra i punti medi dei
 //          fianchi faceva saltare il foro in y gia' alla creazione.
-[assembly: AssemblyVersion("0.116.0.0")]
-[assembly: AssemblyFileVersion("0.116.0.0")]
+// 0.117.0: ZERO NON E' «NON LO SO» (voce Z-C8), e due guardie che guardavano
+//          altrove. Ogni conteggio letto dal CAD che rispondeva 0 da un catch
+//          ora risponde -1 o null: VolumeMm3 e' double?, ContaCorpiSolidi,
+//          FacceDellaFeature, ContaFogli, ContaViste, ContaQuote, ContaFeature,
+//          ContaPiani e gli altri tornano -1, e i chiamanti confrontano solo
+//          numeri letti. Prima della modifica un volume illeggibile e' un
+//          rifiuto (non si e' toccato niente); dopo, niente rifiuto e niente
+//          numero: il campo e' null e c'e' la nota. Lo stato scrive null per un
+//          volume o un'area che non si leggono. La guardia dell'unione
+//          confrontava due enum diversi e non scattava mai (voce Z-C18).
+[assembly: AssemblyVersion("0.117.0.0")]
+[assembly: AssemblyFileVersion("0.117.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -247,4 +257,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.116.0")]
+[assembly: AssemblyInformationalVersion("0.117.0")]

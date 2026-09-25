@@ -854,6 +854,7 @@ namespace Oce.Solid.Agent.Ponte
             var sparito = SolidWorksECheSeNeEAndato();
             if (sparito == null) return originale;
 
+            // ZERO-E-ZERO: `esiti` e' la nostra lista, non una lettura dal CAD.
             int fatti = esiti == null ? 0 : esiti.Count;
             return sparito +
                    " Si e' fermato dopo " + fatti +

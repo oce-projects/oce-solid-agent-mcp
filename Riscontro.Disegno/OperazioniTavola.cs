@@ -143,7 +143,7 @@ namespace Riscontro.Disegno
                 ["template"] = template,
                 ["formato"] = Str(a, "formato", "A3"),
                 ["modello_in_tavola"] = percorsoModello,
-                ["fogli"] = ContaFogli(disegno),
+                ["fogli"] = NumeroOppureNull(ContaFogli(disegno)),
                 ["documenti_aperti"] = DocumentiAperti().Count,
             };
             _log("[agente] tavola creata da " + template);
@@ -276,11 +276,17 @@ namespace Riscontro.Disegno
                     "nascerebbero vuote senza dare errore.");
 
             int prima = ContaViste(disegno);
+            if (prima < 0)
+                return Fallito("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
             bool ok;
             try { ok = disegno.Create1stAngleViews2(percorsoSw); }
             catch (Exception ex) { return Fallito("Viste non create: " + ex.Message); }
 
             int dopo = ContaViste(disegno);
+            if (dopo < 0)
+                return Fallito(
+                    "Ho chiesto le viste, ma poi non riesco a ricontarle: non so dirti se sono " +
+                    "nate. Guarda la tavola prima di andare avanti.");
             if (!ok && dopo == prima)
                 return Fallito(
                     "SolidWorks non ha creato nessuna vista e non ha detto perche'. " +
@@ -378,6 +384,8 @@ namespace Riscontro.Disegno
                 if (!daProvare.Contains(noto)) daProvare.Add(noto);
 
             int prima = ContaViste(disegno);
+            if (prima < 0)
+                return Fallito("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
             IView vista = null;
             string nomeSw = null;
             var rifiutati = new List<string>();
@@ -390,7 +398,8 @@ namespace Riscontro.Disegno
             }
 
             int dopo = ContaViste(disegno);
-            if (vista == null || dopo <= prima)
+            // Con un conteggio illeggibile resta la vista restituita (voce Z-C8).
+            if (vista == null || (dopo >= 0 && dopo <= prima))
                 return Fallito(
                     "SolidWorks non ha creato la vista «" + chiesta + "». Ho provato " +
                     "a chiamarla: " + string.Join(", ", rifiutati) + ". " +
@@ -461,6 +470,8 @@ namespace Riscontro.Disegno
             if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
 
             int viste = ContaViste(disegno);
+            if (viste < 0)
+                return Fallito("Non riesco a contare le viste della tavola. Non ho toccato niente.");
             if (viste == 0)
                 return Fallito(
                     "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
@@ -483,6 +494,10 @@ namespace Riscontro.Disegno
                 : new[] { MARCATE, MARCATE | GENERICO };
 
             int prima = ContaQuote(disegno);
+            if (prima < 0)
+                return Fallito(
+                    "Non riesco a contare le quote della tavola prima di cominciare: senza quel " +
+                    "numero non saprei dirti quali sono arrivate. Non ho toccato niente.");
             int dopo = prima;
             string comeFatto = null;
             int restituite = 0;
@@ -503,12 +518,15 @@ namespace Riscontro.Disegno
                             false,   // DuplicateDims: mai. Una quota due volte e' una tavola sporca.
                             false,   // HiddenFeatureDims
                             dalloSchizzo) as object[];
+                        // ZERO-E-ZERO: e' solo quante ne ha restituite l'API; la misura
+                        // vera e' `ContaQuote` prima e dopo, e l'eccezione ha il suo ramo.
                         restituite = tornate == null ? 0 : tornate.Length;
                     }
                     catch (Exception ex) { return Fallito("Quote non inserite: " + ex.Message); }
 
                     provati.Add("v3/" + maschera + (dalloSchizzo ? "/schizzo" : ""));
                     dopo = ContaQuote(disegno);
+                    if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
                     if (dopo > prima)
                     {
                         comeFatto = "InsertModelAnnotations3, bit " + maschera +
@@ -527,6 +545,7 @@ namespace Riscontro.Disegno
                     {
                         provati.Add("v2/" + maschera);
                         dopo = ContaQuote(disegno);
+                        if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
                         if (dopo > prima)
                         {
                             comeFatto = "InsertModelAnnotations2 con AllTypes, bit " + maschera;
@@ -547,6 +566,7 @@ namespace Riscontro.Disegno
                         (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel);
                     provati.Add("InsertModelDimensions");
                     dopo = ContaQuote(disegno);
+                    if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
                     if (dopo > prima) comeFatto = "InsertModelDimensions";
                 }
                 catch { }
@@ -584,6 +604,7 @@ namespace Riscontro.Disegno
                 catch { }
                 provati.Add("vista per vista");
                 dopo = ContaQuote(disegno);
+                if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
                 if (dopo > prima) comeFatto = "una vista alla volta (" + quante + ")";
             }
 
@@ -666,6 +687,11 @@ namespace Riscontro.Disegno
             }
 
             int fogli = ContaFogli(modello);
+            if (fogli < 0)
+                return Fallito(
+                    "Non riesco a contare i fogli della tavola: senza quel numero non " +
+                    "potrei controllare che il PDF li abbia tutti, che e' il motivo per cui " +
+                    "questa operazione esiste. Non ho scritto niente.");
             if (fogli == 0) return Fallito("La tavola non ha fogli.");
 
             object datiPdf;
@@ -906,29 +932,41 @@ namespace Riscontro.Disegno
             return fuori;
         }
 
+        /// <summary>
+        /// Quanti fogli ha la tavola, o **-1 se non si e' potuto leggere**
+        /// (voce Z-C8). Una tavola ha sempre almeno un foglio: un elenco che
+        /// non arriva non e' uno zero, e' una lettura andata male — e con lo
+        /// zero `esporta_pdf` rispondeva «la tavola non ha fogli».
+        /// </summary>
         private int ContaFogli(IModelDoc2 disegno)
         {
             try
             {
                 var d = disegno as IDrawingDoc;
-                if (d == null) return 0;
+                if (d == null) return -1;
                 var nomi = d.GetSheetNames() as string[];
-                return nomi == null ? 0 : nomi.Length;
+                return nomi == null ? -1 : nomi.Length;
             }
-            catch { return 0; }
+            catch { return -1; }
         }
 
+        /// <summary>
+        /// Le viste vere della tavola (il foglio escluso), o **-1 se non si e'
+        /// potuto leggere** (voce Z-C8). Aveva la forma che lo scanner non
+        /// vedeva: `int n = 0; try { ... } catch { }`, e un errore a meta'
+        /// giro dava un numero piu' basso del vero, detto come vero.
+        /// </summary>
         private int ContaViste(IDrawingDoc disegno)
         {
             int n = 0;
             try
             {
                 var foglio = disegno.GetFirstView() as IView;   // il primo e' il FOGLIO
-                if (foglio == null) return 0;
+                if (foglio == null) return -1;
                 var v = foglio.GetNextView() as IView;
                 while (v != null) { n++; v = v.GetNextView() as IView; }
             }
-            catch { }
+            catch { return -1; }
             return n;
         }
 
@@ -950,22 +988,43 @@ namespace Riscontro.Disegno
             return fuori;
         }
 
+        /// <summary>
+        /// Le quote di tutte le viste, o **-1 se non si e' potuto leggere**
+        /// (voce Z-C8): una vista che non risponde non conta zero, perche' la
+        /// somma delle altre sarebbe un numero piu' basso del vero. Chi
+        /// confronta prima e dopo usa `NonCresciuta`.
+        /// </summary>
         private int ContaQuote(IDrawingDoc disegno)
         {
             int n = 0;
             try
             {
                 var foglio = disegno.GetFirstView() as IView;
-                if (foglio == null) return 0;
+                if (foglio == null) return -1;
                 var v = foglio.GetNextView() as IView;
                 while (v != null)
                 {
-                    try { n += v.GetDimensionCount(); } catch { }
+                    n += v.GetDimensionCount();
                     v = v.GetNextView() as IView;
                 }
             }
-            catch { }
+            catch { return -1; }
             return n;
+        }
+
+        /// <summary>
+        /// Il conteggio delle quote NON e' salito da `prima`? Si dice solo di
+        /// due conteggi letti. Se uno dei due non si legge, resta l'unica
+        /// misura che c'e': l'oggetto che la chiamata ha restituito (null =
+        /// non nata). E' meno di quanto vorrebbe la regola di casa — «il
+        /// valore che torna da chi ha fatto la cosa non e' la misura della
+        /// cosa» — ma e' piu' vero di uno zero inventato.
+        /// </summary>
+        private bool NonCresciuta(IDrawingDoc disegno, int prima, object restituita)
+        {
+            int ora = ContaQuote(disegno);
+            if (prima >= 0 && ora >= 0) return ora <= prima;
+            return restituita == null;
         }
 
         private static double[] ProprietaDelFoglio(ISheet foglio)
@@ -1306,6 +1365,9 @@ namespace Riscontro.Disegno
                 }
                 return n;
             }
+            // ZERO-E-ZERO: legge un FILE, non il CAD, e zero qui vuol gia' dire
+            // «non ho potuto contare» (lo dice il commento del metodo): chi
+            // chiama controlla `pagine > 0` e scrive null.
             catch { return 0; }
         }
     }

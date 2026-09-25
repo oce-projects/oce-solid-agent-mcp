@@ -2048,14 +2048,20 @@ namespace Oce.Solid.Agent.Strumenti
             // rilettura e un piano nuovo; un annullamento di troppo cancella il
             // lavoro di una persona, e nessun messaggio lo rimette. Quando i due
             // errori non costano uguale, il criterio si rovescia.
-            double volPrima = NumeroDi(prima, "volume_mm3");
-            double volDopo = NumeroDi(dopo, "volume_mm3");
+            double? volPrima = NumeroDi(prima, "volume_mm3");
+            double? volDopo = NumeroDi(dopo, "volume_mm3");
             int featPrima = QuanteFeature(prima);
             int featDopo = QuanteFeature(dopo);
 
+            // Un volume che non si e' letto non conta come «cambiato» (voce
+            // Z-C8): qui si sbaglia nel verso di NON ricordare, per la ragione
+            // scritta sopra — un annullamento di troppo cancella il lavoro di
+            // una persona.
             bool haCostruito =
                 dopo != null &&
-                (featDopo != featPrima || Math.Abs(volDopo - volPrima) > ScartoVolumeMm3);
+                (featDopo != featPrima ||
+                 (volPrima.HasValue && volDopo.HasValue &&
+                  Math.Abs(volDopo.Value - volPrima.Value) > ScartoVolumeMm3));
 
             _ultimoPiano = haCostruito
                 ? new UltimoPiano
@@ -2106,8 +2112,8 @@ namespace Oce.Solid.Agent.Strumenti
         private sealed class UltimoPiano
         {
             public Dictionary<string, object> Documento;
-            public double VolumePrima;
-            public double VolumeDopo;
+            public double? VolumePrima;
+            public double? VolumeDopo;
             public int FeaturePrima;
             public int FeatureDopo;
         }
@@ -2185,15 +2191,22 @@ namespace Oce.Solid.Agent.Strumenti
                     "toglierebbe l'ultima cosa fatta su un pezzo che non c'entra.\n\n" +
                     "Porta davanti il pezzo giusto e richiamami.", true);
 
-            double volumeOra = NumeroDi(prima, "volume_mm3");
+            double? volumeOra = NumeroDi(prima, "volume_mm3");
             int featureOra = QuanteFeature(prima);
 
-            if (Math.Abs(volumeOra - memoria.VolumeDopo) > ScartoVolumeMm3 ||
+            if (volumeOra == null || memoria.VolumeDopo == null)
+                return Protocollo.Contenuto(
+                    "Mi fermo: non riesco a misurare il volume del pezzo, e senza non so " +
+                    "dirti se dopo il piano l'ha cambiato qualcun altro. Un passo indietro " +
+                    "alla cieca potrebbe disfare il lavoro di chi sta davanti allo schermo: " +
+                    "se vuoi comunque tornare indietro, e' un gesto da fare a mano.", true);
+
+            if (Math.Abs(volumeOra.Value - memoria.VolumeDopo.Value) > ScartoVolumeMm3 ||
                 featureOra != memoria.FeatureDopo)
                 return Protocollo.Contenuto(
                     "Mi fermo: dopo il piano il pezzo e' cambiato, e non l'ho " +
                     "cambiato io.\n\n" +
-                    Confronto("volume", memoria.VolumeDopo, volumeOra, "mm³") +
+                    Confronto("volume", memoria.VolumeDopo.Value, volumeOra.Value, "mm³") +
                     Confronto("lavorazioni", memoria.FeatureDopo, featureOra, "") +
                     "\nUn passo indietro adesso non disferebbe il mio piano: " +
                     "disferebbe l'ultima cosa fatta, che e' di qualcun altro. " +
@@ -2214,10 +2227,21 @@ namespace Oce.Solid.Agent.Strumenti
                     "Non posso dirti se ha funzionato. Guarda il pezzo prima di " +
                     "fare altro.", true);
 
-            double volumeDopo = NumeroDi(dopo, "volume_mm3");
+            double? volumeDopo = NumeroDi(dopo, "volume_mm3");
             int featureDopo = QuanteFeature(dopo);
+            // SE IL VOLUME NON SI LEGGE, NON SI RIFA' ALLA CIECA (voce Z-C8):
+            // «non e' tornato» porterebbe a un passo avanti che potrebbe
+            // rimettere proprio il piano appena tolto.
+            if (volumeDopo == null || memoria.VolumePrima == null)
+            {
+                _ultimoPiano = null;
+                return Protocollo.Contenuto(
+                    "Ho premuto annulla, ma poi non riesco a misurare il volume del pezzo: " +
+                    "non posso dirti se e' tornato com'era. Non ho fatto altro. Guarda il " +
+                    "pezzo prima di andare avanti.", true);
+            }
             bool tornato =
-                Math.Abs(volumeDopo - memoria.VolumePrima) <= ScartoVolumeMm3 &&
+                Math.Abs(volumeDopo.Value - memoria.VolumePrima.Value) <= ScartoVolumeMm3 &&
                 featureDopo == memoria.FeaturePrima;
 
             if (!tornato)
@@ -2242,9 +2266,9 @@ namespace Oce.Solid.Agent.Strumenti
                         ["documento"] = NomeLeggibile(adesso),
                         ["motivo"] =
                             "Ho premuto annulla e il pezzo non e' tornato dov'era: " +
-                            "il volume doveva essere " + Numero(memoria.VolumePrima) +
+                            "il volume doveva essere " + Numero(memoria.VolumePrima.Value) +
                             " mm³ e le lavorazioni " + memoria.FeaturePrima +
-                            ", invece sono " + Numero(volumeDopo) + " mm³ e " +
+                            ", invece sono " + Numero(volumeDopo.Value) + " mm³ e " +
                             featureDopo + ". Vuol dire che in cima alla pila degli " +
                             "annullamenti non c'era il mio piano, ma un gesto fatto " +
                             "dopo che non cambiava ne' il volume ne' il conteggio — " +
@@ -2277,8 +2301,8 @@ namespace Oce.Solid.Agent.Strumenti
                 {
                     ["annullato"] = true,
                     ["documento"] = NomeLeggibile(adesso),
-                    ["volume_prima_mm3"] = Math.Round(volumeOra, 2),
-                    ["volume_dopo_mm3"] = Math.Round(volumeDopo, 2),
+                    ["volume_prima_mm3"] = Math.Round(volumeOra.Value, 2),
+                    ["volume_dopo_mm3"] = Math.Round(volumeDopo.Value, 2),
                     ["lavorazioni_prima"] = featureOra,
                     ["lavorazioni_dopo"] = featureDopo,
                     ["nota"] =
@@ -2304,13 +2328,22 @@ namespace Oce.Solid.Agent.Strumenti
             return v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static double NumeroDi(Dictionary<string, object> stato, string chiave)
+        /// <summary>
+        /// Un numero dello stato, o **null se lo stato dice di non saperlo**
+        /// (voce Z-C8): la chiave c'e' e vale null, cioe' la lettura e' fallita.
+        /// ZERO-E-ZERO: una chiave ASSENTE vale zero — lo stato non scrive il
+        /// volume di una parte senza corpi solidi, ne' di una tavola o di un
+        /// assieme, e li' zero e' vero. Fino al 25/9/2026 assente voleva dire
+        /// anche «non letto», e un annullamento giusto poteva essere rifatto.
+        /// </summary>
+        private static double? NumeroDi(Dictionary<string, object> stato, string chiave)
         {
-            if (stato == null) return 0;
+            if (stato == null) return null;
             object v;
-            if (!stato.TryGetValue(chiave, out v) || v == null) return 0;
+            if (!stato.TryGetValue(chiave, out v)) return 0;
+            if (v == null) return null;
             try { return Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture); }
-            catch { return 0; }
+            catch { return null; }
         }
 
         /// <summary>

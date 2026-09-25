@@ -531,7 +531,8 @@ casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
 casi/verifica/     5   com'e' venuto: solido, chiuso, sano
 casi/misura/      10   quanto pesa, in che scatola ci sta, quanto dista
-casi/corpi/       13   le booleane, il raccordo variabile, il filetto cosmetico
+casi/corpi/       14   le booleane, il raccordo variabile, il filetto cosmetico;
+                       l'unione di corpi che non si toccano rifiutata (Z-C18)
 casi/esporta/     10   STL, STEP e IGES: il file riletto byte per byte,
                        e il volume riaperto in SOLIDWORKS
 casi/proprieta/   11   i due cassetti, e il codice che va in distinta

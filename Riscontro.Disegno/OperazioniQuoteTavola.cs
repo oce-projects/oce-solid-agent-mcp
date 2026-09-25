@@ -123,6 +123,8 @@ namespace Riscontro.Disegno
                 return Fallito("Non riesco a chiedere gli spigoli alla vista: " + ex.Message);
             }
 
+            // ZERO-E-ZERO: l'eccezione ha gia' il suo rifiuto qui sopra; null e'
+            // una vista senza spigoli visibili, e lo zero e' vero.
             int disponibili = spigoli == null ? 0 : spigoli.Length;
             if (disponibili == 0)
                 return Fallito(
@@ -279,6 +281,10 @@ namespace Riscontro.Disegno
             misurati.Sort((x, y) => x.Lunghezza.CompareTo(y.Lunghezza));
 
             int prima = ContaQuote(disegno);
+            if (prima < 0)
+                return Fallito(
+                    "Non riesco a contare le quote della tavola prima di cominciare: senza " +
+                    "quel numero non saprei dirti quali ho messo io. Non ho toccato niente.");
 
             // ── LA TRAPPOLA DEL MODALE, spenta e rimessa ────────────────
             bool chiedevaIlValore = true;
@@ -375,7 +381,7 @@ namespace Riscontro.Disegno
                                      as IDisplayDimension;
                         try { modello.EditRebuild3(); } catch { }
 
-                        if (ContaQuote(disegno) <= quotePrima)
+                        if (NonCresciuta(disegno, quotePrima, natura))
                         {
                             // NON SI GUARDA SE `AddDimension` HA RISPOSTA: si
                             // guarda se la quota c'e'. E' la regola di casa —
@@ -413,6 +419,11 @@ namespace Riscontro.Disegno
             }
 
             int dopo = ContaQuote(disegno);
+            if (dopo < 0)
+                return Fallito(
+                    "Ho messo le quote nella vista «" + nomeVista + "», ma poi non riesco a " +
+                    "ricontarle: non so dirti quante ne sono nate. Guarda la tavola prima di " +
+                    "andare avanti.");
             int messe = dopo - prima;
 
             if (messe <= 0)
@@ -824,7 +835,7 @@ namespace Riscontro.Disegno
                 }
                 catch { }
                 string come = "richiamo del foro";
-                if (richiamo == null || ContaQuote(disegno) <= quotePrima)
+                if (richiamo == null || NonCresciuta(disegno, quotePrima, richiamo))
                 {
                     // Senza richiamo (un foro che non viene da un taglio
                     // riconoscibile), il diametro semplice.
@@ -838,7 +849,7 @@ namespace Riscontro.Disegno
                     }
                     catch { }
                 }
-                if (richiamo == null || ContaQuote(disegno) <= quotePrima)
+                if (richiamo == null || NonCresciuta(disegno, quotePrima, richiamo))
                 {
                     falliti.Add("fori Ø" + g.Key.ToString("0.##", Ci) + " (il richiamo non e' nato)");
                     continue;
@@ -994,7 +1005,7 @@ namespace Riscontro.Disegno
                 }
             }
             catch { }
-            if (quota == null || ContaQuote(disegno) <= quotePrima)
+            if (quota == null || NonCresciuta(disegno, quotePrima, quota))
             {
                 falliti.Add("posizione del foro a " + attesoMm.ToString("0.##", Ci) + " mm (la quota non e' nata)");
                 return;
@@ -1065,7 +1076,7 @@ namespace Riscontro.Disegno
                         quota = disegno.AddChamferDim(x, y, 0) as IDisplayDimension;
                 }
                 catch { }
-                if (quota == null || ContaQuote(disegno) <= quotePrima)
+                if (quota == null || NonCresciuta(disegno, quotePrima, quota))
                 {
                     falliti.Add("smusso «" + s.DiSmusso + "» (la quota da smusso non e' nata)");
                     continue;

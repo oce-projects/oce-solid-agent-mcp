@@ -709,6 +709,9 @@ namespace Riscontro.Disegno
             }
             catch { }
 
+            // ZERO-E-ZERO: `messe` conta le quote NATE, una per una; una che non
+            // nasce non e' una quota. I catch qui sotto chiudono la selezione e
+            // rimettono la preferenza: non toccano il conteggio.
             int messe = 0;
             foreach (var voce in daQuotare)
             {
@@ -1968,7 +1971,7 @@ namespace Riscontro.Disegno
 
             // SI MISURA PRIMA, perche' dopo non si puo' piu'.
             // Serve al controllo sul volume in fondo: vedi `NotaSulVolume`.
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
 
             double raggioForo = diametro / 2;
 
@@ -2099,7 +2102,7 @@ namespace Riscontro.Disegno
             {
                 ["diametro_mm"] = diametro,
                 ["passante"] = passante,
-                ["pareti_forate"] = pareti,
+                ["pareti_forate"] = pareti >= 0 ? (object)pareti : null,
                 ["quote_sullo_schizzo"] = quoteMesse,
             };
             foreach (var voce in misureAncora) misure[voce.Key] = voce.Value;
@@ -2159,10 +2162,9 @@ namespace Riscontro.Disegno
         /// </summary>
         private static void NotaSulVolume(
             Dictionary<string, object> misure,
-            double volumePrima, double volumeDopo, double attesoMm3, string cosa)
+            double? volumePrima, double? volumeDopo, double attesoMm3, string cosa)
         {
             if (misure == null) return;
-            double tolti = volumePrima - volumeDopo;
 
             // Un volume che non si e' potuto leggere non diventa uno zero: uno
             // zero vorrebbe dire «non ha tolto niente», che e' un'affermazione.
@@ -2185,7 +2187,12 @@ namespace Riscontro.Disegno
             // `Guscio` la scrive giusta quindici righe piu' in la'
             // (`volumePrima > 0 && volumeDopo > 0`): la stessa cosa, fatta bene,
             // nello stesso file.
-            if (volumePrima <= 0 || volumeDopo <= 0) return;
+            //
+            // DAL 25/9/2026 (voce Z-C8) LO DICE IL TIPO: `VolumeMm3` torna
+            // `double?`, null quando non si legge, e questo controllo non deve
+            // piu' indovinare quale zero sia una misura.
+            if (volumePrima == null || volumeDopo == null || volumePrima <= 0) return;
+            double tolti = volumePrima.Value - volumeDopo.Value;
 
             misure["tolti_mm3"] = Math.Round(tolti, 2);
             if (attesoMm3 <= 0) return;
@@ -2222,7 +2229,7 @@ namespace Riscontro.Disegno
                 return Fallito("Tasca non passante senza profondita'.");
 
             // SI MISURA PRIMA, perche' dopo non si puo' piu'.
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             double x, y;
             if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
             if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
@@ -2471,7 +2478,8 @@ namespace Riscontro.Disegno
 
             if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
+            if (volumePrima == null) return Fallito(VolumeNonLettoPrima("tagliare l'asola"));
             var schizzi = modello.SketchManager;
             schizzi.InsertSketch(true);
 
@@ -2545,7 +2553,19 @@ namespace Riscontro.Disegno
             // L'area dello stadio: il rettangolo centrale piu' i due
             // semicerchi, che insieme fanno un cerchio.
             double area = (lunghezza - larghezza) * larghezza + Math.PI * raggio * raggio;
-            double tolto = volumePrima - VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
+            if (volumeDopo == null)
+                return Riuscito(feature, new Dictionary<string, object>
+                {
+                    ["lunghezza_mm"] = lunghezza,
+                    ["larghezza_mm"] = larghezza,
+                    ["angolo_gradi"] = angolo,
+                    ["passante"] = passante,
+                    ["area_mm2"] = Math.Round(area, 2),
+                    ["materiale_tolto_mm3"] = null,
+                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                }, NormaleDellaFaccia(faccia));
+            double tolto = volumePrima.Value - volumeDopo.Value;
             if (tolto <= 0)
                 return Fallito(
                     "L'asola non ha tolto niente: il taglio e' riuscito ma il " +
@@ -2721,6 +2741,7 @@ namespace Riscontro.Disegno
             if (volumeTotale <= 0 || volumeMosso <= 0)
                 return Fallito("I corpi indicati non hanno volume: non c'e' niente da spostare.");
             int corpiPrima = ContaCorpiSolidi(modello);
+            if (corpiPrima < 0) return Fallito("Non riesco a contare i corpi del pezzo prima di spostarli.");
 
             // I corpi da muovere vanno selezionati con MARCA 1: e' la marca che
             // la feature legge. Con la marca a zero la selezione c'e' ma la
@@ -2786,7 +2807,7 @@ namespace Riscontro.Disegno
             // ── E ADESSO SI MISURA ───────────────────────────────────────────
             int corpiDopo = ContaCorpiSolidi(modello);
             int corpiAttesi = corpiPrima + copie * selezionati;
-            if (corpiDopo != corpiAttesi)
+            if (corpiDopo >= 0 && corpiDopo != corpiAttesi)
                 return Fallito(
                     "Dopo lo spostamento il pezzo ha " + corpiDopo + " corpi invece di " +
                     corpiAttesi + ". Non ti confermo un pezzo diverso da quello " +
@@ -2943,6 +2964,10 @@ namespace Riscontro.Disegno
         /// La ricetta per riconoscere una faccia cilindrica di un certo
         /// diametro e' quella gia' in produzione in `OperazioniFori`:
         /// `IFace2.IGetSurface().IsCylinder()` e `CylinderParams[6] * 2000`.
+        ///
+        /// **-1 quando non si e' potuto leggere** (voce Z-C8): `pareti_forate: 0`
+        /// su un foro riuscito e' un'affermazione falsa. ZERO-E-ZERO: una
+        /// feature viva senza facce (`GetFaces` null) non ha forato niente.
         /// </summary>
         private static int ParetiForate(IFeature feature, double diametroMm)
         {
@@ -2962,7 +2987,7 @@ namespace Riscontro.Disegno
                 }
                 return quante;
             }
-            catch { return 0; }
+            catch { return -1; }
         }
 
         /// <summary>Tutti i corpi solidi del pezzo, come li vuole MassaDi.</summary>
@@ -3056,7 +3081,9 @@ namespace Riscontro.Disegno
             bool unisci = Bool(a, "unisci", true);
 
             int corpiPrima = ContaCorpiSolidi(modello);
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
+            if (corpiPrima < 0 || volumePrima == null)
+                return Fallito(VolumeNonLettoPrima("fare il rialzo"));
 
             if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
 
@@ -3097,7 +3124,19 @@ namespace Riscontro.Disegno
 
             // ── e adesso si conta ────────────────────────────────────────
             int corpiDopo = ContaCorpiSolidi(modello);
-            double aggiunto = VolumeMm3(modello) - volumePrima;
+            double? volumeDopo = VolumeMm3(modello);
+            if (corpiDopo < 0 || volumeDopo == null)
+                return Riuscito(feature, new Dictionary<string, object>
+                {
+                    ["altezza_mm"] = altezza,
+                    ["unisci"] = unisci,
+                    ["contorni"] = contorni.Count,
+                    ["segmenti"] = segmenti,
+                    ["corpi"] = NumeroOppureNull(corpiDopo),
+                    ["materiale_aggiunto_mm3"] = null,
+                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                }, NormaleDellaFaccia(faccia));
+            double aggiunto = volumeDopo.Value - volumePrima.Value;
 
             if (unisci && corpiDopo != corpiPrima)
                 return Fallito(
@@ -3219,8 +3258,12 @@ namespace Riscontro.Disegno
                     (dove == null ? "" : " Ci sono: " + dove + "."));
 
             double prima = Unita.Mm(quota.SystemValue);
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
+            if (corpiPrima < 0)
+                return Fallito(
+                    "Non riesco a contare i corpi del pezzo prima di cambiare la quota: " +
+                    "senza, non saprei dirti se la modifica lo spezza. Non ho toccato niente.");
 
             // swSetValueInConfiguration_e.swSetValue_InAllConfigurations = 2
             const int inTutteLeConfigurazioni = 2;
@@ -3254,7 +3297,7 @@ namespace Riscontro.Disegno
                     dopo.ToString("0.###") + " mm invece di " + valore + ": il " +
                     "valore non ha preso. Il pezzo non e' cambiato.");
 
-            double volumeDopo = VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
             int corpiDopo = ContaCorpiSolidi(modello);
 
             // UNA MODIFICA CHE NON MUOVE NIENTE E' UN SOSPETTO, NON UN
@@ -3262,14 +3305,19 @@ namespace Riscontro.Disegno
             // vuol dire che quella quota non comanda la geometria che chi
             // chiede aveva in mente — e confermarla come «fatto» sarebbe una
             // bugia comoda.
-            bool volumeFermo = Math.Abs(volumeDopo - volumePrima) < 0.01;
+            //
+            // Fermo si puo' dire solo di due volumi LETTI (voce Z-C8): con due
+            // letture fallite lo zero di prima e lo zero di dopo erano uguali,
+            // e la nota diceva «il volume no».
+            bool volumeFermo = volumePrima.HasValue && volumeDopo.HasValue &&
+                               Math.Abs(volumeDopo.Value - volumePrima.Value) < 0.01;
             if (!ricostruito)
                 return Fallito(
                     "La quota e' cambiata ma la ricostruzione non e' riuscita: " +
                     "il pezzo e' in errore. Guardalo prima di andare avanti." +
                     RestaNelPezzo);
 
-            if (corpiDopo != corpiPrima)
+            if (corpiDopo >= 0 && corpiDopo != corpiPrima)
                 return Fallito(
                     "Dopo la modifica il pezzo ha " + corpiDopo + " corpi invece " +
                     "di " + corpiPrima + ": la quota nuova ha spezzato o unito " +
@@ -3302,13 +3350,16 @@ namespace Riscontro.Disegno
                 {
                     quota.SetSystemValue3(Unita.M(prima), inTutteLeConfigurazioni, null);
                     modello.EditRebuild3();
-                    double tornato = VolumeMm3(modello);
-                    rimesso = Math.Abs(tornato - volumePrima) < 0.01
+                    double? tornato = VolumeMm3(modello);
+                    rimesso = tornato == null || volumePrima == null
+                        ? " Ho rimesso " + prima.ToString("0.###") + " mm, ma non ho potuto " +
+                          "rimisurare il volume per controllare che il pezzo sia com'era: guardalo."
+                        : Math.Abs(tornato.Value - volumePrima.Value) < 0.01
                         ? " Non l'ho lasciato cosi': ho rimesso " + prima.ToString("0.###") +
                           " mm e il pezzo e' com'era."
                         : " Ho provato a rimettere " + prima.ToString("0.###") + " mm, ma il " +
-                          "volume adesso e' " + tornato.ToString("0.##") + " mm3 invece di " +
-                          volumePrima.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
+                          "volume adesso e' " + tornato.Value.ToString("0.##") + " mm3 invece di " +
+                          volumePrima.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
                 }
                 catch (Exception ex)
                 {
@@ -3329,9 +3380,10 @@ namespace Riscontro.Disegno
                 ["quota"] = nomeQuota,
                 ["prima_mm"] = Math.Round(prima, 3),
                 ["adesso_mm"] = Math.Round(dopo, 3),
-                ["volume_mm3"] = Math.Round(volumeDopo, 2),
-                ["volume_cambiato_mm3"] = Math.Round(volumeDopo - volumePrima, 2),
+                ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["volume_cambiato_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2),
             };
+            if (volumeDopo == null || corpiDopo < 0) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
 
             // L'ALBERO PUO' ESSERE CAMBIATO, NON SOLO LE MISURE.
             //
@@ -3685,7 +3737,7 @@ namespace Riscontro.Disegno
                 // Il valore di ritorno e' un `RefPlane`, che NON e' una
                 // `Feature`: il cast puo' dare null anche a piano creato. Chi
                 // decide e' l'albero.
-                if (feature == null && ContaPiani(modello) > pianiPrima)
+                if (feature == null && pianiPrima >= 0 && ContaPiani(modello) > pianiPrima)
                     feature = UltimaFeature(modello);
             }
             catch (Exception ex)
@@ -3814,8 +3866,10 @@ namespace Riscontro.Disegno
         private Esito RipetiLineare(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double volumePrima; int corpiPrima, faccePrima;
+            double? volumePrima; int corpiPrima, faccePrima;
             Fotografia(modello, out volumePrima, out corpiPrima, out faccePrima);
+            if (volumePrima == null || corpiPrima < 0 || faccePrima < 0)
+                return Fallito(VolumeNonLettoPrima("fare la copia"));
 
             double passo1, istanze1Grezzo;
             string errore;
@@ -3950,8 +4004,10 @@ namespace Riscontro.Disegno
             string piano = Str(a, "piano", "");
             if (string.IsNullOrEmpty(piano)) return Fallito("Manca il piano di simmetria.");
 
-            double volumePrima; int corpiPrima, faccePrima;
+            double? volumePrima; int corpiPrima, faccePrima;
             Fotografia(modello, out volumePrima, out corpiPrima, out faccePrima);
+            if (volumePrima == null || corpiPrima < 0 || faccePrima < 0)
+                return Fallito(VolumeNonLettoPrima("fare la copia"));
 
             modello.ClearSelection2(true);
             var pianoFeature = TrovaPianoBase(modello, piano);
@@ -4438,7 +4494,7 @@ namespace Riscontro.Disegno
                     "attraversarlo." + SenzaLoSchizzo(modello));
 
             int nCorpi = ContaCorpiSolidi(modello);
-            if (nCorpi != 1)
+            if (nCorpi >= 0 && nCorpi != 1)
                 return Fallito(
                     "La rivoluzione ha creato la feature ma il documento ha " +
                     nCorpi + " corpi solidi invece di uno: molto probabilmente " +
@@ -4629,7 +4685,8 @@ namespace Riscontro.Disegno
 
             int featurePrima = ContaFeature(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
+            if (corpiPrima < 0 || featurePrima < 0) return Fallito(VolumeNonLettoPrima("fare il guscio").Replace("il volume del pezzo", "i corpi del pezzo"));
 
             try
             {
@@ -4640,14 +4697,19 @@ namespace Riscontro.Disegno
                 return Fallito("Il guscio non e' riuscito: " + ex.Message);
             }
 
-            if (ContaFeature(modello) <= featurePrima)
+            int featureDopo = ContaFeature(modello);
+            if (featureDopo < 0)
+                return Fallito(
+                    "Ho chiesto il guscio, ma poi non riesco a ricontare l'albero: non so dirti " +
+                    "se e' nato. Guarda il pezzo prima di andare avanti.");
+            if (featureDopo <= featurePrima)
                 return Fallito(
                     "Il guscio non e' stato creato. Di solito e' lo spessore: " +
                     "piu' grande di meta' del corpo non ci sta, e vicino a uno " +
                     "spigolo lascerebbe una parete di spessore negativo.");
 
             int corpiDopo = ContaCorpiSolidi(modello);
-            if (corpiDopo != corpiPrima)
+            if (corpiDopo >= 0 && corpiDopo != corpiPrima)
                 return Fallito(
                     "Il guscio ha cambiato il numero di corpi solidi (da " +
                     corpiPrima + " a " + corpiDopo + "): non e' il corpo svuotato " +
@@ -4655,7 +4717,7 @@ namespace Riscontro.Disegno
 
             // IL GUSCIO TOGLIE MATERIALE. Se il volume non e' calato, quella
             // feature non e' un guscio, qualunque cosa dica l'albero.
-            double volumeDopo = VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
             if (volumePrima > 0 && volumeDopo > 0 && volumeDopo >= volumePrima - 0.001)
                 return Fallito(string.Format(
                     System.Globalization.CultureInfo.InvariantCulture,
@@ -4679,7 +4741,9 @@ namespace Riscontro.Disegno
                 ["facce_tolte"] = daiPassi != null ? daiPassi.Count : uid.Count,
             };
             if (volumePrima > 0 && volumeDopo > 0)
-                misure["materiale_tolto_mm3"] = Math.Round(volumePrima - volumeDopo, 1);
+                misure["materiale_tolto_mm3"] = Math.Round(volumePrima.Value - volumeDopo.Value, 1);
+            else
+                misure["volume_non_riletto"] = NotaVolumeNonRiletto;
             return Riuscito(feature, misure);
         }
 
@@ -4689,18 +4753,23 @@ namespace Riscontro.Disegno
         /// Serve alle operazioni la cui API ritorna void — il guscio, per
         /// adesso — per sapere se hanno creato qualcosa: l'unico segno di vita
         /// e' che l'albero e' cresciuto di una posizione.
+        ///
+        /// **-1 quando non si e' potuto leggere, o se non e' una parte** (voce
+        /// Z-C8): con la forma `int n = 0; try { ... } catch { }` un errore a
+        /// meta' albero dava un numero piu' basso, e «l'albero non e'
+        /// cresciuto» diventava un rifiuto falso.
         /// </summary>
         private static int ContaFeature(IModelDoc2 modello)
         {
             var parte = modello as IPartDoc;
-            if (parte == null) return 0;
+            if (parte == null) return -1;
             int n = 0;
             try
             {
                 var f = parte.IFirstFeature();
                 while (f != null) { n++; f = f.IGetNextFeature(); }
             }
-            catch { }
+            catch { return -1; }
             return n;
         }
 
@@ -4711,19 +4780,34 @@ namespace Riscontro.Disegno
         /// li' si cerca uno schizzo e il tipo si conosce, qui si cerca «quello
         /// che l'API ha appena creato senza dirmelo».
         /// </summary>
-        /// <summary>Quanti piani di riferimento ha il pezzo, adesso.</summary>
+        /// <summary>
+        /// Quanti piani di riferimento ha il pezzo, adesso, o **-1 se non si e'
+        /// potuto leggere** (voce Z-C8): una feature che non dice il suo tipo,
+        /// o un albero che si interrompe, lasciavano un numero piu' basso.
+        /// </summary>
         private static int ContaPiani(IModelDoc2 modello)
         {
             var parte = modello as IPartDoc;
-            if (parte == null) return 0;
+            if (parte == null) return -1;
             int n = 0;
-            IFeature f = parte.IFirstFeature();
-            while (f != null)
+            try
             {
-                try { if (f.GetTypeName2() == "RefPlane") n++; } catch { }
-                try { f = (IFeature)f.GetNextFeature(); } catch { break; }
+                IFeature f = parte.IFirstFeature();
+                while (f != null)
+                {
+                    if (f.GetTypeName2() == "RefPlane") n++;
+                    f = (IFeature)f.GetNextFeature();
+                }
             }
+            catch { return -1; }
             return n;
+        }
+
+        /// <summary>Quanti piani ha aggiunto il passo, o null se un conteggio non si legge.</summary>
+        private static object PianiAggiunti(IModelDoc2 modello, int prima)
+        {
+            int ora = ContaPiani(modello);
+            return prima >= 0 && ora >= 0 ? (object)(ora - prima) : null;
         }
 
         private static IFeature UltimaFeature(IModelDoc2 modello)
@@ -4749,11 +4833,15 @@ namespace Riscontro.Disegno
         /// scelto il volume cambia, ma ci sono casi in cui cambia poco e
         /// casi in cui la copia si fonde con cio' che c'era. Le facce
         /// invece si contano, e una copia in piu' ne porta sempre.
+        ///
+        /// **-1 quando non si e' potuto leggere** (voce Z-C8): aveva la forma
+        /// che lo scanner non vedeva, `int n = 0; try { ... } catch { }`, e due
+        /// letture fallite davano «stesse 0 facce» — cioe' il pezzo identico.
         /// </summary>
         private static int ContaFacce(IModelDoc2 modello)
         {
             var parte = modello as IPartDoc;
-            if (parte == null) return 0;
+            if (parte == null) return -1;
             int n = 0;
             try
             {
@@ -4765,7 +4853,7 @@ namespace Riscontro.Disegno
                     if (facce != null) n += facce.Length;
                 }
             }
-            catch { }
+            catch { return -1; }
             return n;
         }
 
@@ -4774,7 +4862,7 @@ namespace Riscontro.Disegno
         /// da confrontare prima e dopo un'operazione che copia.
         /// </summary>
         private static void Fotografia(
-            IModelDoc2 modello, out double volume, out int corpi, out int facce)
+            IModelDoc2 modello, out double? volume, out int corpi, out int facce)
         {
             volume = VolumeMm3(modello);
             corpi = ContaCorpiSolidi(modello);
@@ -4799,25 +4887,35 @@ namespace Riscontro.Disegno
         /// </summary>
         private static string ConfrontaCopia(
             IModelDoc2 modello,
-            double volumePrima, int corpiPrima, int faccePrima,
+            double? volumePrima, int corpiPrima, int faccePrima,
             Dictionary<string, object> misure,
             string cosaEra)
         {
-            double volumeDopo; int corpiDopo, facceDopo;
+            double? volumeDopo; int corpiDopo, facceDopo;
             Fotografia(modello, out volumeDopo, out corpiDopo, out facceDopo);
 
-            misure["volume_prima_mm3"] = Math.Round(volumePrima, 2);
-            misure["volume_dopo_mm3"] = Math.Round(volumeDopo, 2);
-            misure["volume_cambiato_mm3"] = Math.Round(volumeDopo - volumePrima, 2);
-            misure["facce_prima"] = faccePrima;
-            misure["facce_dopo"] = facceDopo;
-            misure["corpi"] = corpiDopo;
+            misure["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2);
+            misure["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2);
+            misure["volume_cambiato_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2);
+            misure["facce_prima"] = NumeroOppureNull(faccePrima);
+            misure["facce_dopo"] = NumeroOppureNull(facceDopo);
+            misure["corpi"] = NumeroOppureNull(corpiDopo);
 
-            bool volumeFermo = Math.Abs(volumeDopo - volumePrima) < 0.01;
+            // «IDENTICO» SI DICE SOLO DI COSE LETTE (voce Z-C8): con due letture
+            // fallite, zero prima e zero dopo erano «stesso volume, stesse 0
+            // facce», e una copia riuscita veniva rifiutata come inesistente.
+            bool tuttoLetto = volumePrima.HasValue && volumeDopo.HasValue &&
+                              faccePrima >= 0 && facceDopo >= 0 && corpiPrima >= 0 && corpiDopo >= 0;
+            if (!tuttoLetto)
+            {
+                misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+                return null;
+            }
+            bool volumeFermo = Math.Abs(volumeDopo.Value - volumePrima.Value) < 0.01;
             if (volumeFermo && facceDopo == faccePrima && corpiDopo == corpiPrima)
                 return
                     cosaEra + " dice di essere riuscito, ma il pezzo e' identico a prima: " +
-                    "stesso volume (" + Math.Round(volumeDopo, 2) + " mm3), stesse " +
+                    "stesso volume (" + Math.Round(volumeDopo.Value, 2) + " mm3), stesse " +
                     facceDopo + " facce, stessi " + corpiDopo + " corpi. Non e' stato copiato niente. " +
                     "Di solito vuol dire che la lavorazione indicata non e' quella che credi, " +
                     "oppure che la copia sarebbe caduta esattamente dove c'e' gia' l'originale.";
@@ -4832,16 +4930,22 @@ namespace Riscontro.Disegno
         /// da' solo quelle che quella feature ha creato. E' la differenza
         /// che permette di contare le copie senza che il materiale gia'
         /// presente c'entri niente.
+        ///
+        /// **-1 quando non si e' potuto leggere** (voce Z-C8). Con lo zero, una
+        /// lettura fallita diventava «la lavorazione non ha piu' nessuna
+        /// faccia», e `SopprimiIstanza` rimetteva a posto una modifica giusta.
+        /// ZERO-E-ZERO: `GetFaces` null su una feature viva vuol dire che non
+        /// ne possiede (un piano, uno schizzo): quello zero e' vero.
         /// </summary>
         private static int FacceDellaFeature(IFeature f)
         {
-            if (f == null) return 0;
+            if (f == null) return -1;
             try
             {
                 var facce = f.GetFaces() as object[];
                 return facce == null ? 0 : facce.Length;
             }
-            catch { return 0; }
+            catch { return -1; }
         }
 
         /// <summary>
@@ -4945,8 +5049,11 @@ namespace Riscontro.Disegno
                 int viste = 0;
                 while (f != null && viste < 200)
                 {
+                    // -1 SI TIENE (voce Z-C8): una lavorazione che non si e'
+                    // lasciata contare non e' una lavorazione «senza facce», e
+                    // toglierla dall'elenco la farebbe risultare sparita.
                     int quante = FacceDellaFeature(f);
-                    if (quante > 0)
+                    if (quante != 0)
                     {
                         viste++;
                         try { fuori[f.Name] = quante; } catch { }
@@ -4978,8 +5085,10 @@ namespace Riscontro.Disegno
 
             foreach (var voce in prima)
             {
+                if (voce.Value < 0) continue;
                 int ora;
                 if (!dopo.TryGetValue(voce.Key, out ora)) { sparite.Add(voce.Key); continue; }
+                if (ora < 0) continue;
                 if (ora < voce.Value) perse.Add(voce.Key + " " + voce.Value + " -> " + ora);
                 else if (ora > voce.Value) prese.Add(voce.Key + " " + voce.Value + " -> " + ora);
             }
@@ -5004,20 +5113,91 @@ namespace Riscontro.Disegno
                    string.Join("; ", righe) + ".";
         }
 
+        /// <summary>
+        /// Quanti corpi solidi ha la parte, o **-1 se non si e' potuto leggere**
+        /// (voce Z-C8): anche un documento che non e' una parte, perche' «zero
+        /// corpi» detto di un assieme e' una frase falsa.
+        ///
+        /// ZERO-E-ZERO: `GetBodies2` null su una parte viva vuol dire che non ha
+        /// corpi solidi (una parte appena aperta, o fatta solo di superfici);
+        /// una maniglia morta solleva, e finisce nel `catch`.
+        ///
+        /// Chi confronta due conteggi deve guardare prima che siano tutti e due
+        /// >= 0: un -1 dentro una differenza e' un numero inventato.
+        /// </summary>
         private static int ContaCorpiSolidi(IModelDoc2 modello)
         {
             var parte = modello as IPartDoc;
-            if (parte == null) return 0;
+            if (parte == null) return -1;
             try
             {
                 var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
                 return corpi == null ? 0 : corpi.Length;
             }
-            catch { return 0; }
+            catch { return -1; }
         }
 
         /// <summary>
-        /// Il volume di tutti i corpi solidi, in mm3. Zero se non si legge.
+        /// Un conteggio per una risposta: il numero, o null quando e' -1 («non
+        /// lo so»). Un campo null si legge come «non misurato»; un -1 si
+        /// leggerebbe come un numero.
+        /// </summary>
+        private static object NumeroOppureNull(int n)
+        {
+            return n >= 0 ? (object)n : null;
+        }
+
+        /// <summary>Un volume per il diario: il numero, o «?» se non si e' letto.</summary>
+        private static string Letto(double? v)
+        {
+            return v.HasValue ? v.Value.ToString("0.#") : "?";
+        }
+
+        /// <summary>Un volume per una risposta: arrotondato, o null se non si e' letto.</summary>
+        private static object NumeroOppureNull(double? v, int cifre)
+        {
+            return v.HasValue ? (object)Math.Round(v.Value, cifre) : null;
+        }
+
+        /// <summary>
+        /// Il rifiuto quando il volume non si legge PRIMA di fare qualcosa
+        /// (voce Z-C8). Non costa niente: non si e' ancora toccato il pezzo, e
+        /// senza quel numero ogni controllo dopo sarebbe un confronto con
+        /// l'aria. E' la stessa strada di `SpostaCorpi` con `MassaDi`.
+        /// </summary>
+        private static string VolumeNonLettoPrima(string cosa)
+        {
+            return "Non riesco a misurare il volume del pezzo prima di " + cosa + ": senza quel " +
+                   "numero non saprei dirti cosa e' cambiato. Non ho toccato niente.";
+        }
+
+        /// <summary>
+        /// La nota quando il volume non si rilegge DOPO (voce Z-C8). Qui non si
+        /// rifiuta: la lavorazione c'e', e buttarla per una lettura fallita
+        /// sarebbe peggio. Non si scrive nemmeno un numero: si dice che i
+        /// controlli sul materiale non sono stati fatti. E' la regola di
+        /// `NotaSulVolume` e del guscio, «la guardia tace invece di inventare»,
+        /// detta a voce alta.
+        /// </summary>
+        private const string NotaVolumeNonRiletto =
+            "Dopo la lavorazione non sono riuscito a rimisurare il volume del pezzo: la " +
+            "lavorazione c'e', ma i controlli sul materiale tolto o aggiunto non li ho potuti " +
+            "fare. Guarda il pezzo prima di andare avanti.";
+
+        /// <summary>
+        /// Il volume di tutti i corpi solidi, in mm3, o **null se non si e'
+        /// potuto leggere** (voce Z-C8).
+        ///
+        /// Diceva «zero se non si legge», e duemila righe piu' su
+        /// `NotaSulVolume` spiegava perche' quello zero era un'affermazione
+        /// falsa — difendendosi da sola, e lasciando il buco a tutti gli altri
+        /// chiamanti. Adesso il tipo lo dice: `double?`, e il compilatore
+        /// impedisce di sommarlo o arrotondarlo senza guardare.
+        ///
+        /// ZERO-E-ZERO: `GetBodies2` null su una parte viva vuol dire nessun
+        /// corpo solido, e il volume e' davvero zero. Un corpo che non da' le
+        /// sue proprieta' di massa fa null TUTTO: saltarlo darebbe una somma
+        /// parziale detta come intera.
         ///
         /// L'INDICE 3 E' MISURATO, NON RICORDATO. `IBody2.GetVolume` non
         /// esiste (e' fra le sette API che sembravano giuste); l'alternativa
@@ -5028,10 +5208,10 @@ namespace Riscontro.Disegno
         /// e cosi' per tutte e undici le taglie da M3 a M24. Su un vettore
         /// letto male quei numeri non tornerebbero.
         /// </summary>
-        private static double VolumeMm3(IModelDoc2 modello)
+        private static double? VolumeMm3(IModelDoc2 modello)
         {
             var parte = modello as IPartDoc;
-            if (parte == null) return 0;
+            if (parte == null) return null;
             double v = 0;
             try
             {
@@ -5040,10 +5220,11 @@ namespace Riscontro.Disegno
                 foreach (var c in corpi)
                 {
                     var mp = (c as IBody2)?.GetMassProperties(1000.0) as double[];
-                    if (mp != null && mp.Length > 4) v += mp[3] * 1e9;
+                    if (mp == null || mp.Length <= 4) return null;
+                    v += mp[3] * 1e9;
                 }
             }
-            catch { return 0; }
+            catch { return null; }
             return v;
         }
 
@@ -5242,8 +5423,10 @@ namespace Riscontro.Disegno
         private Esito RipetiCircolare(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double volumePrima; int corpiPrima, faccePrima;
+            double? volumePrima; int corpiPrima, faccePrima;
             Fotografia(modello, out volumePrima, out corpiPrima, out faccePrima);
+            if (volumePrima == null || corpiPrima < 0 || faccePrima < 0)
+                return Fallito(VolumeNonLettoPrima("fare la copia"));
 
             int istanze = (int)Num(a, "numero_istanze");
             double angolo = Num(a, "angolo_totale_gradi", 360);
@@ -5670,7 +5853,7 @@ namespace Riscontro.Disegno
                         : "togli «riattiva»."));
             }
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
             var figli = FigliDi(f);
 
@@ -5697,16 +5880,16 @@ namespace Riscontro.Disegno
 
             try { modello.EditRebuild3(); } catch { }
 
-            double volumeDopo = VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
             int corpiDopo = ContaCorpiSolidi(modello);
 
             var misure = new Dictionary<string, object>
             {
                 ["lavorazione"] = uid,
                 ["soppressa"] = !riattiva,
-                ["volume_prima_mm3"] = Math.Round(volumePrima, 2),
-                ["volume_dopo_mm3"] = Math.Round(volumeDopo, 2),
-                ["corpi"] = corpiDopo,
+                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["corpi"] = NumeroOppureNull(corpiDopo),
                 // GLI IDENTIFICATIVI NON VALGONO PIU', e si dice sempre: e' il
                 // difetto piu' caro del progetto — un'operazione giusta fatta
                 // alla cieca — e qui la cecita' e' garantita.
@@ -5715,7 +5898,7 @@ namespace Riscontro.Disegno
                     "prima non valgono piu'. Rileggi il pezzo prima del passo " +
                     "seguente.",
             };
-            if (corpiDopo != corpiPrima)
+            if (corpiPrima >= 0 && corpiDopo >= 0 && corpiDopo != corpiPrima)
                 misure["nota_corpi"] =
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo + ".";
             if (figli.Count > 0)
@@ -5724,7 +5907,7 @@ namespace Riscontro.Disegno
                     ": " + (riattiva ? "si sono riaccese con lei." : "si sono spente con lei.");
 
             _log("[agente] " + (riattiva ? "riattivata" : "soppressa") + " " + uid +
-                 ", volume " + volumePrima.ToString("0.#") + " -> " + volumeDopo.ToString("0.#"));
+                 ", volume " + Letto(volumePrima) + " -> " + Letto(volumeDopo));
             return RiuscitoSenzaCreare(misure);
         }
 
@@ -5780,7 +5963,7 @@ namespace Riscontro.Disegno
                     "ci sta sopra. Se ti serve solo vedere il pezzo senza, usa " +
                     "«sopprimi_lavorazione»: spegne anche i figli e si disfa.");
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
             int featurePrima = ContaFeature(modello);
 
@@ -5822,30 +6005,30 @@ namespace Riscontro.Disegno
                     "fare altro.");
 
             int featureDopo = ContaFeature(modello);
-            double volumeDopo = VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
             int corpiDopo = ContaCorpiSolidi(modello);
 
             var misure = new Dictionary<string, object>
             {
                 ["lavorazione_tolta"] = uid,
-                ["volume_prima_mm3"] = Math.Round(volumePrima, 2),
-                ["volume_dopo_mm3"] = Math.Round(volumeDopo, 2),
-                ["lavorazioni_prima"] = featurePrima,
-                ["lavorazioni_dopo"] = featureDopo,
-                ["corpi"] = corpiDopo,
+                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["lavorazioni_prima"] = NumeroOppureNull(featurePrima),
+                ["lavorazioni_dopo"] = NumeroOppureNull(featureDopo),
+                ["corpi"] = NumeroOppureNull(corpiDopo),
                 ["nota_identificativi"] =
                     "Le facce sono cambiate: gli identificativi (F1, E4) di " +
                     "prima non valgono piu'. Rileggi il pezzo prima del passo " +
                     "seguente.",
             };
-            if (corpiDopo != corpiPrima)
+            if (corpiPrima >= 0 && corpiDopo >= 0 && corpiDopo != corpiPrima)
                 misure["nota_corpi"] =
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": togliere questa lavorazione ha spezzato o unito il pezzo.";
 
             _log("[agente] eliminata " + uid + ", lavorazioni " + featurePrima +
-                 " -> " + featureDopo + ", volume " + volumePrima.ToString("0.#") +
-                 " -> " + volumeDopo.ToString("0.#"));
+                 " -> " + featureDopo + ", volume " + Letto(volumePrima) +
+                 " -> " + Letto(volumeDopo));
             return RiuscitoSenzaCreare(misure);
         }
 
@@ -5901,16 +6084,22 @@ namespace Riscontro.Disegno
             if (tipo == OrigineDelPezzo) return LasciatoSchizzo;
 
             // ── 3. e dev'essere nato in questo passo ────────────────────
+            // Con un conteggio illeggibile non si sa se lo schizzo e' nato in
+            // questo passo, e non si cancella niente (voce Z-C8).
             int featureAdesso = ContaFeature(modello);
-            if (featureAdesso <= _featureAllInizioDelPasso) return LasciatoSchizzo;
+            if (featureAdesso < 0 || _featureAllInizioDelPasso < 0 ||
+                featureAdesso <= _featureAllInizioDelPasso) return LasciatoSchizzo;
 
             // ── 4. e non deve avere figli ───────────────────────────────
             try { if (ultima.IGetChildCount() > 0) return LasciatoSchizzo; }
             catch { return LasciatoSchizzo; }
 
-            // Cio' che NON deve cambiare, letto prima di toccare niente.
-            double volumePrima = VolumeMm3(modello);
+            // Cio' che NON deve cambiare, letto prima di toccare niente. Se non
+            // si legge (voce Z-C8), non si cancella: senza il prima non si
+            // potrebbe dire che togliere lo schizzo non ha cambiato il pezzo.
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
+            if (volumePrima == null || corpiPrima < 0) return LasciatoSchizzo;
 
             string nome = "";
             try { nome = ultima.Name; } catch { }
@@ -5937,11 +6126,14 @@ namespace Riscontro.Disegno
 
             // ── e adesso si conta ───────────────────────────────────────
             int featureDopo = ContaFeature(modello);
-            double volumeDopo = VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
             int corpiDopo = ContaCorpiSolidi(modello);
+            if (volumeDopo == null || corpiDopo < 0 || featureDopo < 0)
+                return " Lo schizzo che avevo disegnato l'ho tolto, ma non ho potuto rimisurare " +
+                       "il pezzo per controllare che sia com'era: guardalo.";
             if (featureDopo != featureAdesso - 1
                 || corpiDopo != corpiPrima
-                || Math.Abs(volumeDopo - volumePrima) > 1e-6)
+                || Math.Abs(volumeDopo.Value - volumePrima.Value) > 1e-6)
             {
                 _log(string.Format(
                     "[agente] tolto lo schizzo «{0}» ma il pezzo e' cambiato: " +

@@ -123,7 +123,7 @@ namespace Riscontro.Disegno
                     (giaSaltate.Length == 0 ? "nessuna" : Elenco(giaSaltate)) + ".");
 
             int faccePrima = FacceDellaFeature(ripetizione);
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
 
             bool fatto;
@@ -149,7 +149,7 @@ namespace Riscontro.Disegno
                     " da «" + uid + "», e non dice perche'.");
 
             int facceDopo = FacceDellaFeature(ripetizione);
-            double volumeDopo = VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
             int quante = Math.Abs(nuove.Length - giaSaltate.Length);
 
             // ── E QUI SI GUARDA SE E' SUCCESSO QUALCOSA ──────────────────
@@ -180,20 +180,25 @@ namespace Riscontro.Disegno
                     rimesso));
             }
 
+            int corpiDopo = ContaCorpiSolidi(modello);
             var misure = new Dictionary<string, object>
             {
                 ["copie_tolte_adesso"] = riattiva ? new int[0] : copie.ToArray(),
                 ["copie_rimesse_adesso"] = riattiva ? copie.ToArray() : new int[0],
                 ["copie_tolte_in_tutto"] = nuove,
-                ["facce_della_ripetizione"] = facceDopo,
-                ["facce_prima"] = faccePrima,
-                ["corpi"] = ContaCorpiSolidi(modello),
+                ["facce_della_ripetizione"] = NumeroOppureNull(facceDopo),
+                ["facce_prima"] = NumeroOppureNull(faccePrima),
+                ["corpi"] = NumeroOppureNull(corpiDopo),
                 [riattiva ? "materiale_tolto_mm3" : "materiale_tornato_mm3"] =
-                    Math.Round(Math.Abs(volumeDopo - volumePrima), 2),
+                    NumeroOppureNull(volumeDopo.HasValue && volumePrima.HasValue
+                        ? Math.Abs(volumeDopo.Value - volumePrima.Value) : (double?)null, 2),
             };
-            if (corpiPrima != misure["corpi"] as int? )
+            // «Spezzato» si dice di due conteggi LETTI (voce Z-C8): prima il
+            // confronto era fra un int e un oggetto, e con una lettura fallita
+            // lo zero diceva che il pezzo si era rotto.
+            if (corpiPrima >= 0 && corpiDopo >= 0 && corpiPrima != corpiDopo)
                 misure["attenzione_corpi"] =
-                    "I corpi sono passati da " + corpiPrima + " a " + misure["corpi"] +
+                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": togliere una copia ha spezzato il pezzo.";
 
             _log("[agente] «" + uid + "»: copie " + (riattiva ? "rimesse " : "tolte ") +

@@ -71,7 +71,7 @@ namespace Riscontro.Disegno
             if (!SelezionaPiano(modello, piano))
                 return Fallito("Non riesco a selezionare il piano «" + piano + "».");
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             modello.SketchManager.InsertSketch(true);
             bool addPrima = modello.SketchManager.AddToDB;
             try
@@ -110,7 +110,7 @@ namespace Riscontro.Disegno
                     "Ho chiesto spessore {0} e raggio {1}, e la lamiera dice {2:0.###} e {3:0.###}. " +
                     "Ritirala — {4}.", spessore, raggio, t, r, Frasi.CosiSiRitira));
 
-            double volumePiegato = VolumeMm3(modello);
+            double? volumePiegato = VolumeMm3(modello);
             double sviluppo = LunghezzaSviluppata(modello, out double volumeSviluppato);
 
             // IL CONTO A MANO, nelle due convenzioni. Misurato: con la L data
@@ -139,7 +139,7 @@ namespace Riscontro.Disegno
                 ["raggio_mm"] = Math.Round(r, 3),
                 ["fattore_k"] = Math.Round(k, 4),
                 ["pieghe"] = pieghe,
-                ["volume_mm3"] = Math.Round(volumePiegato - volumePrima, 2),
+                ["volume_mm3"] = NumeroOppureNull(volumePiegato - volumePrima, 2),
                 ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
                 ["lunghezza_sviluppo_a_mano_mm"] = Math.Round(atteso, 3),
                 ["i_punti_sono_le_facce"] = convenzione,
@@ -153,7 +153,8 @@ namespace Riscontro.Disegno
                     "Lo sviluppo di SOLIDWORKS e' {0:0.###} mm e il conto a mano ne da' {1:0.###}: " +
                     "prima di mandare il DXF al taglio, controlla la tabella delle pieghe del " +
                     "modello di documento.", sviluppo, atteso);
-            if (!double.IsNaN(volumeSviluppato) && Math.Abs(volumeSviluppato - volumePiegato) > 0.005 * volumePiegato)
+            if (!double.IsNaN(volumeSviluppato) && volumePiegato.HasValue &&
+                Math.Abs(volumeSviluppato - volumePiegato.Value) > 0.005 * volumePiegato.Value)
                 misure["attenzione_volume"] = "Il volume sviluppato non e' quello piegato: lo sviluppo non e' affidabile.";
 
             return Riuscito(flangia, misure);
@@ -262,7 +263,7 @@ namespace Riscontro.Disegno
                 sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swUnSuppressFeature,
                     (int)swInConfigurationOpts_e.swThisConfiguration, null);
                 modello.EditRebuild3();
-                volume = VolumeMm3(modello);
+                volume = VolumeMm3(modello) ?? double.NaN;   // NaN qui vuol gia' dire «non lo so»
                 var corpi = (modello as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
                 var box = corpi == null || corpi.Length == 0 ? null : (corpi[0] as IBody2)?.GetBodyBox() as double[];
                 if (box == null) return double.NaN;

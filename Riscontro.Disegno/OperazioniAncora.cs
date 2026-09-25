@@ -581,7 +581,7 @@ namespace Riscontro.Disegno
         /// «Ha detto di averlo tolto» non basta, come in `EliminaLavorazione`:
         /// si ricontano le lavorazioni e si rimisura il volume.
         /// </summary>
-        private string TogliIlTaglio(IModelDoc2 modello, IFeature taglio, double volumePrima)
+        private string TogliIlTaglio(IModelDoc2 modello, IFeature taglio, double? volumePrima)
         {
             bool tolto = false;
             try
@@ -594,10 +594,16 @@ namespace Riscontro.Disegno
             finally { try { modello.ClearSelection2(true); } catch { } }
             if (!tolto) return RestaNelPezzo;
             try { modello.EditRebuild3(); } catch { }
-            double volumeDopo = VolumeMm3(modello);
-            if (ContaFeature(modello) > _featureAllInizioDelPasso ||
-                (volumePrima > 0 && Math.Abs(volumeDopo - volumePrima) > 0.01))
-                return RestaNelPezzo;
+            int lavorazioni = ContaFeature(modello);
+            if (lavorazioni < 0 || _featureAllInizioDelPasso < 0)
+                return " Il taglio l'ho tolto, con il suo schizzo, ma non ho potuto ricontare " +
+                       "l'albero per controllare che il pezzo sia com'era: guardalo.";
+            if (lavorazioni > _featureAllInizioDelPasso) return RestaNelPezzo;
+            double? volumeDopo = VolumeMm3(modello);
+            if (volumePrima == null || volumeDopo == null)
+                return " Il taglio l'ho tolto, con il suo schizzo, ma non ho potuto rimisurare il " +
+                       "volume per controllare che il pezzo sia com'era: guardalo.";
+            if (Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.01) return RestaNelPezzo;
             return " Il taglio l'ho tolto, con il suo schizzo: il pezzo e' com'era prima di questo passo.";
         }
 

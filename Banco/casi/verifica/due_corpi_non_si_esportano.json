@@ -27,11 +27,11 @@
           "contiene": ["Non lo esporterei", "2 corpi", "uno solo"],
           "non_contiene": ["si puo' esportare"] } ] },
     { "operazione": "verifica_geometria_corpo",
-      "argomenti": { "corpo_uid": "C1" },
+      "argomenti": { "corpo_uid": "@corpo(nome=Estrusione-Estrusione1)" },
+      "perche_il_nome": "Voce Z-C16: il numero di un corpo cambia fra un giro e l'altro (misurato il 25/9/2026 su questo stesso pezzo: la copia era C1 in un giro su tre). Il corpo si nomina per NOME, e l'attesa «misure.corpi[0].corpo = C1» -- che chiedeva l'ordine, non il corpo -- non c'e' piu'. I due corpi qui sono uguali, e la verifica di uno solo ha lo stesso giudizio: il caso prova la strada del corpo singolo, non quale dei due.",
       "attese": [
         { "cosa": "misure.corpi_totali", "uguale": 1,
           "perche_uno": "chiedendo UN corpo si risponde di quello, e il conto dei corpi del pezzo non entra nel giudizio: sul singolo corpo la domanda e' «e' sano», non «e' tutto il pezzo»" },
-        { "cosa": "misure.stampabile", "uguale": true },
-        { "cosa": "misure.corpi[0].corpo", "uguale": "C1" } ] }
+        { "cosa": "misure.stampabile", "uguale": true } ] }
   ]
 }

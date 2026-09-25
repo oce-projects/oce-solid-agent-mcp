@@ -335,7 +335,9 @@ namespace Riscontro.Disegno
                     if (facce == null) continue;
                     foreach (var f in facce)
                     {
-                        try { quanti += (f as IFace2).GetTessTriangleCount(); } catch { }
+                        // Una faccia che non dice i suoi triangoli fa «non lo so»
+                        // tutto il conto, non un conto piu' basso (voce Z-C8).
+                        try { quanti += (f as IFace2).GetTessTriangleCount(); } catch { return -1; }
                     }
                 }
                 return quanti;
@@ -550,16 +552,24 @@ namespace Riscontro.Disegno
             // documento: su un pezzo grosso sono minuti.
             if (Bool(a, "riapri_e_confronta", false))
             {
-                double mio = VolumeMm3(modello);
+                // IL CONFRONTO VUOLE DUE VOLUMI LETTI (voce Z-C8): con lo zero
+                // di una lettura fallita da questa parte, «il pezzo ne ha 0: la
+                // traduzione ha perso qualcosa» era una frase falsa.
+                double? mioLetto = VolumeMm3(modello);
                 string comE;
                 double suo = VolumeRiaprendo(dove, out comE);
-                misure["volume_mm3"] = Math.Round(mio, 2);
+                misure["volume_mm3"] = NumeroOppureNull(mioLetto, 2);
                 misure["volume_riletto_mm3"] = suo >= 0 ? (object)Math.Round(suo, 2) : null;
                 misure["come_e_andata_la_rilettura"] = comE;
                 if (suo < 0)
                     return Fallito(
                         "Il file e' scritto ma non sono riuscito a rileggerlo per " +
                         "confrontarlo: " + comE + " (" + dove + ")");
+                if (mioLetto == null)
+                    return Fallito(
+                        "Il file e' scritto e riletto, ma non riesco a misurare il volume del " +
+                        "pezzo di partenza: senza, il confronto non si fa. (" + dove + ")");
+                double mio = mioLetto.Value;
 
                 // UN MILLESIMO, non «circa». Una traduzione che perde un
                 // millesimo di volume ha perso una faccia, e su un pezzo che
@@ -749,9 +759,14 @@ namespace Riscontro.Disegno
                     comE = "LoadFile4 non ha aperto niente (codice " + errori + ")";
                     return -1;
                 }
-                double v = VolumeMm3(riaperto);
+                double? v = VolumeMm3(riaperto);
+                if (v == null)
+                {
+                    comE = "riaperto, ma il volume della geometria tradotta non si e' lasciato leggere";
+                    return -1;
+                }
                 comE = "riaperto come pezzo e richiuso; volume letto dalla geometria tradotta";
-                return v;
+                return v.Value;
             }
             catch (Exception ex)
             {

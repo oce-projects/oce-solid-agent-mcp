@@ -19,9 +19,11 @@
         { "cosa": "misure.corpi[0].ingombro_mm", "uguale": [100, 100, 20], "tolleranza": 0.01,
           "perche_questa_tolleranza": "il singolo corpo e' rimasto quello di prima" } ] },
     { "operazione": "ingombro_corpo",
-      "argomenti": { "corpo_uid": "C1" },
+      "argomenti": { "corpo_uid": "@corpo(nome=Estrusione-Estrusione1)" },
       "attese": [
         { "cosa": "misure.ingombro_mm", "uguale": [100, 100, 20], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "chiedendo UN corpo si risponde di quello, e i 620 spariscono" } ] }
+          "perche_questa_tolleranza": "chiedendo UN corpo si risponde di quello, e i 620 spariscono" },
+        { "cosa": "misure.da_mm", "uguale": [-50, -50, 0], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "l'ingombro da solo e' cieco su QUALE corpo (sono uguali): e' la posizione a dirlo. Voce Z-C16: il 25/9/2026 un giro su tre «C1» era la copia, a z 600, e il caso era verde lo stesso. Adesso il corpo si nomina per nome e si controlla che parta da z = 0" } ] }
   ]
 }

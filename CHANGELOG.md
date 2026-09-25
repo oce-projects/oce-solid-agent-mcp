@@ -24,6 +24,58 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.92.0 — 25 September 2026 · library 0.117.0
+
+Zero is not «I don't know» (entry Z-C8), and two guards that were looking
+elsewhere (Z-C16, Z-C18).
+
+### Counts read from SOLIDWORKS no longer answer 0 when the read fails
+
+A function that reads the CAD and returns `0` from its `catch` makes a
+statement: «this part has zero bodies», «zero mm³ were removed». A reader
+has no way to tell the read failed. The scanner found 21 such places; a
+read-only agent traced every caller and classified them: 12 real defects,
+4 true zeros, 5 not reads at all. Then a third syntactic form the scanner
+had never seen (`int n = 0; try { … } catch { } return n;`) added ten more.
+
+- `VolumeMm3` is now `double?`, and the compiler listed its 44 call sites;
+  `ContaCorpiSolidi`, `FacceDellaFeature`, `ContaFacce`, `ContaFogli`,
+  `ContaViste`, `ContaQuote`, `ContaFeature`, `ContaPiani`, the note, centre
+  mark, trim-tree, draft-face and triangle counts return -1.
+- Callers compare only values that were read. A volume that cannot be read
+  **before** an operation is a refusal (nothing has been touched yet); one
+  that cannot be read **after** is not: the field is null and the response
+  says the material checks were not done.
+- The document state writes `null` for a body volume or a face area it
+  could not read, instead of leaving the key out (which also meant zero);
+  `annulla` no longer redoes a step on an unreadable volume.
+- In passing, real false outcomes this closes: a failed read after a note
+  or a set of centre marks produced «nothing was created» with the thing
+  in place; a failed face count made `sopprimi_istanza` revert a correct
+  change; two failed volume reads made a copy look «identical to before».
+- `Controlli/zero-o-non-lo-so.js` knows the third form, and with all sites
+  fixed or marked `ZERO-E-ZERO:` with a reason it becomes a pre-push guard,
+  seen failing on a planted site before being trusted.
+
+### Body numbers are not stable, and three cases were green by symmetry
+
+Measured again: in one run out of three, the copy of a plate was `C1`.
+`sottrai_un_cubo_dall_altro`, `ingombro_di_due_corpi_lontani` and
+`due_corpi_non_si_esportano` now name the body (`@corpo(nome=…)`) and check
+what tells the two apart — the centre of mass of what remains, the position
+of the box.
+
+### The union guard compared two different enums
+
+`combina_corpi` refused «the union left two bodies» by comparing
+`SWBODYADD` (15903) with `swCombineBodiesOperationAdd` (0): it could never
+fire. Measured first: with two bodies that do not touch, SOLIDWORKS does
+not create the feature at all, so the earlier refusal answers; the new case
+`lim_unione_di_corpi_che_non_si_toccano` pins it, and the guard now looks at
+the right value.
+
+---
+
 ## 0.91.0 — 25 September 2026 · library 0.116.0
 
 The anchor (entry E18, parts a and b). `x_mm`/`y_mm` are absolute model

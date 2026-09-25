@@ -104,9 +104,11 @@ namespace Riscontro.Disegno
                 return Fallito("Non riesco a leggere l'orientamento della faccia neutra.");
 
             bool capovolgi = Bool(a, "capovolgi", false);
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
             int inclinatePrima = QuanteFacceInclinate(modello, normaleNeutra, angolo);
+            if (corpiPrima < 0 || inclinatePrima < 0)
+                return Fallito(VolumeNonLettoPrima("fare lo sformo").Replace("il volume del pezzo", "le facce del pezzo"));
 
             modello.ClearSelection2(true);
             var gestore = modello.SelectionManager as ISelectionMgr;
@@ -145,9 +147,15 @@ namespace Riscontro.Disegno
             // non si e' inclinato niente. L'unica misura vera e' quante facce
             // del pezzo stanno all'angolo chiesto rispetto alla neutra.
             int inclinateDopo = QuanteFacceInclinate(modello, normaleNeutra, angolo);
-            double volumeDopo = VolumeMm3(modello);
+            double? volumeDopo = VolumeMm3(modello);
             int corpiDopo = ContaCorpiSolidi(modello);
             int nuove = inclinateDopo - inclinatePrima;
+            if (inclinateDopo < 0)
+                return Fallito(
+                    "Lo sformo e' nato, ma poi non riesco a ricontare le facce inclinate: " +
+                    "la feature dichiara l'angolo anche quando non ha inclinato niente, quindi " +
+                    "senza quel conto non posso dirti che ha funzionato. Guarda il pezzo — " +
+                    Frasi.CosiSiRitira + ".");
 
             if (nuove < facce.Count)
             {
@@ -167,13 +175,15 @@ namespace Riscontro.Disegno
                     comeSiRitira));
             }
 
-            if (corpiDopo != corpiPrima)
+            if (corpiDopo >= 0 && corpiDopo != corpiPrima)
                 return Fallito(
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": uno sformo non deve spezzare il pezzo. Ritiralo — " +
                     Frasi.CosiSiRitira + ".");
 
-            double mosso = volumeDopo - volumePrima;
+            // Lo sformo non si decide sul volume (le facce si contano): qui il
+            // volume si riporta soltanto, e se non si legge si dice (voce Z-C8).
+            double? mosso = volumeDopo - volumePrima;
             var misure = new Dictionary<string, object>
             {
                 ["angolo_gradi"] = angolo,
@@ -181,9 +191,9 @@ namespace Riscontro.Disegno
                 ["facce_all_angolo_prima"] = inclinatePrima,
                 ["facce_all_angolo_dopo"] = inclinateDopo,
                 ["capovolgi"] = capovolgi,
-                ["materiale_mm3"] = Math.Round(mosso, 2),
-                ["il_pezzo_e_cresciuto"] = mosso > 0,
-                ["corpi"] = corpiDopo,
+                ["materiale_mm3"] = NumeroOppureNull(mosso, 2),
+                ["il_pezzo_e_cresciuto"] = mosso.HasValue ? (object)(mosso.Value > 0) : null,
+                ["corpi"] = NumeroOppureNull(corpiDopo),
                 // L'ANGOLO DICHIARATO DALLA FEATURE, accanto a quello misurato
                 // e con scritto che cos'e'. Non si nasconde: si nomina.
                 ["angolo_dichiarato_dalla_feature"] = AngoloDellaFeature(feature),
@@ -197,7 +207,7 @@ namespace Riscontro.Disegno
 
             _log(string.Format(CultureInfo.InvariantCulture,
                 "[agente] sformo di {0:0.###} gradi su {1} facce: all'angolo {2} -> {3}, " +
-                "volume {4:0.##}", angolo, facce.Count, inclinatePrima, inclinateDopo, mosso));
+                "volume {4}", angolo, facce.Count, inclinatePrima, inclinateDopo, Letto(mosso)));
 
             return Riuscito(feature, misure, normaleNeutra);
         }
@@ -226,6 +236,9 @@ namespace Riscontro.Disegno
         ///
         /// Si contano le facce PIANE e basta: una faccia cilindrica sformata
         /// diventa conica e non ha un'inclinazione sola.
+        ///
+        /// **-1 se non si e' potuto leggere** (voce Z-C8). ZERO-E-ZERO: un pezzo
+        /// senza corpi solidi (`GetBodies2` null) non ha facce inclinate.
         /// </summary>
         private static int QuanteFacceInclinate(
             IModelDoc2 modello, double[] normaleNeutra, double angoloGradi)
@@ -262,7 +275,7 @@ namespace Riscontro.Disegno
                     }
                 }
             }
-            catch { }
+            catch { return -1; }
             return quante;
         }
 

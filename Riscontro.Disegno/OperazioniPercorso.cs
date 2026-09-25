@@ -91,8 +91,9 @@ namespace Riscontro.Disegno
                 lunghezza += d;
             }
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
+            if (volumePrima == null) return Fallito(VolumeNonLettoPrima("fare il tubo"));
 
             var schizzi = modello.SketchManager;
             bool disegnato = false;
@@ -158,9 +159,19 @@ namespace Riscontro.Disegno
                     "curva di raggio minore del raggio del tubo la superficie si " +
                     "attraverserebbe." + SenzaLoSchizzo(modello));
 
-            double volumeDopo = VolumeMm3(modello);
-            double aggiunto = volumeDopo - volumePrima;
+            double? volumeDopo = VolumeMm3(modello);
             int corpiDopo = ContaCorpiSolidi(modello);
+            if (volumeDopo == null)
+                return Riuscito(feature, new Dictionary<string, object>
+                {
+                    ["diametro_mm"] = diametro,
+                    ["punti_percorso"] = punti.Count,
+                    ["lunghezza_percorso_mm"] = Math.Round(lunghezza, 3),
+                    ["materiale_aggiunto_mm3"] = null,
+                    ["corpi"] = NumeroOppureNull(corpiDopo),
+                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                });
+            double aggiunto = volumeDopo.Value - volumePrima.Value;
 
             if (aggiunto <= 0)
                 return Fallito(
@@ -183,7 +194,7 @@ namespace Riscontro.Disegno
                 ["materiale_aggiunto_mm3"] = Math.Round(aggiunto, 3),
                 ["volume_teorico_mm3"] = Math.Round(teorico, 3),
                 ["percorso_dritto"] = dritto,
-                ["corpi"] = corpiDopo,
+                ["corpi"] = NumeroOppureNull(corpiDopo),
             };
             if (dritto)
             {
@@ -204,7 +215,7 @@ namespace Riscontro.Disegno
                     "quindi il volume vero e' MINORE di area per lunghezza. Il teorico qui " +
                     "sopra e' il limite superiore, non la risposta.";
             }
-            if (corpiDopo != corpiPrima && corpiPrima > 0)
+            if (corpiDopo >= 0 && corpiPrima > 0 && corpiDopo != corpiPrima)
                 misure["attenzione_corpi"] =
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": il tubo non si e' unito a quello che c'era.";
@@ -238,9 +249,10 @@ namespace Riscontro.Disegno
             double sfalsa1 = Num(a, "sfalsa1_mm", 0);
             double sfalsa2 = Num(a, "sfalsa2_mm", 0);
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
             int pianiPrima = ContaPiani(modello);
+            if (volumePrima == null) return Fallito(VolumeNonLettoPrima("fare il loft"));
 
             var schizzi = modello.SketchManager;
             IFeature s1, s2;
@@ -258,7 +270,12 @@ namespace Riscontro.Disegno
                 if (!SelezionaPiano(modello, piano))
                     return Fallito("Non ho trovato il piano «" + piano + "» nell'albero.");
                 modello.CreatePlaneAtOffset3(Unita.M(Math.Abs(distanza)), distanza < 0, true);
-                if (ContaPiani(modello) <= pianiPrima)
+                int pianiOra = ContaPiani(modello);
+                if (pianiPrima < 0 || pianiOra < 0)
+                    return Fallito(
+                        "Non riesco a contare i piani dell'albero, e senza non so dire se il " +
+                        "piano del secondo cerchio e' nato." + SenzaLoSchizzo(modello));
+                if (pianiOra <= pianiPrima)
                     return Fallito(
                         "Il piano del secondo cerchio non e' stato creato, e nell'albero non " +
                         "ne e' comparso nessuno.");
@@ -305,7 +322,22 @@ namespace Riscontro.Disegno
                     "uno dei due profili che non si chiude, o due profili che si " +
                     "attraversano.");
 
-            double aggiunto = VolumeMm3(modello) - volumePrima;
+            // I corpi si leggono UNA volta (prima tre chiamate per lo stesso
+            // numero), e il volume dopo puo' non leggersi (voce Z-C8).
+            int corpiDopo = ContaCorpiSolidi(modello);
+            double? volumeDopo = VolumeMm3(modello);
+            if (volumeDopo == null)
+                return Riuscito(feature, new Dictionary<string, object>
+                {
+                    ["diametro1_mm"] = d1,
+                    ["diametro2_mm"] = d2,
+                    ["distanza_mm"] = distanza,
+                    ["materiale_aggiunto_mm3"] = null,
+                    ["corpi"] = NumeroOppureNull(corpiDopo),
+                    ["piani_aggiunti"] = PianiAggiunti(modello, pianiPrima),
+                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                });
+            double aggiunto = volumeDopo.Value - volumePrima.Value;
             if (aggiunto <= 0)
                 return Fallito(
                     "Il loft non ha aggiunto materiale. Ritiralo — " + Frasi.CosiSiRitira + ".");
@@ -326,8 +358,8 @@ namespace Riscontro.Disegno
                 ["materiale_aggiunto_mm3"] = Math.Round(aggiunto, 3),
                 ["volume_tronco_di_cono_mm3"] = Math.Round(teorico, 3),
                 ["scarto_dal_tronco_di_cono"] = Math.Round(scarto, 8),
-                ["corpi"] = ContaCorpiSolidi(modello),
-                ["piani_aggiunti"] = ContaPiani(modello) - pianiPrima,
+                ["corpi"] = NumeroOppureNull(corpiDopo),
+                ["piani_aggiunti"] = PianiAggiunti(modello, pianiPrima),
                 // NON E' UN CONO, ED E' MISURATO. Vedi la nota in testa.
                 ["nota_sul_volume"] =
                     "La superficie di un loft fra due cerchi e' un'APPROSSIMAZIONE A SPLINE " +
@@ -345,9 +377,9 @@ namespace Riscontro.Disegno
                     Frasi.CosiSiRitira + ".",
                     teorico, aggiunto, scarto * 100));
 
-            if (corpiPrima > 0 && ContaCorpiSolidi(modello) != corpiPrima)
+            if (corpiPrima > 0 && corpiDopo >= 0 && corpiDopo != corpiPrima)
                 misure["attenzione_corpi"] =
-                    "I corpi sono passati da " + corpiPrima + " a " + ContaCorpiSolidi(modello) +
+                    "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": il loft non si e' unito a quello che c'era.";
 
             _log(string.Format(CultureInfo.InvariantCulture,

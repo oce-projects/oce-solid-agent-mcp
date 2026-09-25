@@ -102,7 +102,10 @@ namespace Riscontro.Disegno
             catch (Exception ex) { return Fallito("Il piano non e' stato creato: " + ex.Message); }
 
             int pianiDopo = ContaPiani(modello);
-            if (pianiDopo == pianiPrima)
+            // «Non e' comparso nessun piano» si dice di due conteggi letti; con
+            // uno illeggibile resta l'oggetto restituito (voce Z-C8).
+            if ((pianiPrima >= 0 && pianiDopo >= 0 && pianiDopo == pianiPrima) ||
+                ((pianiPrima < 0 || pianiDopo < 0) && grezzo == null))
                 return Fallito(
                     "Il piano non e' stato creato, e nell'albero non ne e' comparso nessuno. " +
                     "SOLIDWORKS non dice perche'.");
@@ -124,8 +127,8 @@ namespace Riscontro.Disegno
             {
                 ["punti_mm"] = punti.Select(p => p.Select(x => Math.Round(x, 4)).ToArray()).ToArray(),
                 ["normale_calcolata"] = attesa.Select(x => Math.Round(x, 6)).ToArray(),
-                ["piani_prima"] = pianiPrima,
-                ["piani_adesso"] = pianiDopo,
+                ["piani_prima"] = NumeroOppureNull(pianiPrima),
+                ["piani_adesso"] = NumeroOppureNull(pianiDopo),
             };
 
             if (letta == null)

@@ -128,6 +128,11 @@ namespace Riscontro.Disegno
                 }
 
                 int prima = QuanteCroci(vista);
+                if (prima < 0)
+                    return Fallito(
+                        "Non riesco a contare le croci di centro della vista «" + (nome ?? "?") +
+                        "» prima di cominciare: senza quel numero non saprei dirti quali ho " +
+                        "messo io. Non ho toccato niente.");
                 int dopo = prima;
                 string stileQui = null;
 
@@ -154,6 +159,11 @@ namespace Riscontro.Disegno
                     }
 
                     dopo = QuanteCroci(vista);
+                    if (dopo < 0)
+                        return Fallito(
+                            "Ho chiesto le croci di centro sulla vista «" + (nome ?? "?") +
+                            "», ma poi non riesco a ricontarle: non so dirti se sono nate. " +
+                            "Guarda la tavola prima di andare avanti.");
                     if (dopo > prima) { stileQui = NomeDelloStile(stile); break; }
                 }
 
@@ -221,16 +231,20 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Quante croci di centro ha questa vista. Zero anche quando non si e'
-        /// potuto leggere — ed e' accettabile **solo** perche' il numero serve
-        /// per un confronto prima/dopo: se la lettura fallisse in tutti e due i
-        /// momenti la differenza sarebbe zero, cioe' «non e' nato niente», che
-        /// e' il verso prudente.
+        /// Quante croci di centro ha questa vista, o **-1 se non si e' potuto
+        /// leggere** (voce Z-C8).
+        ///
+        /// Tornava zero, e il commento diceva che era «il verso prudente». Non
+        /// lo era: se falliva la lettura di PRIMA, qualunque croce dopo
+        /// sembrava nuova e il messaggio diceva «messe N croci» anche su una
+        /// vista che le aveva gia'; se falliva quella di DOPO, il ciclo provava
+        /// tutti e tre gli stili (croci doppie) e poi diceva «quella vista non
+        /// ha fori». Un numero che non si e' letto non si confronta.
         /// </summary>
         private static int QuanteCroci(IView vista)
         {
             try { return vista.GetCenterMarkCount(); }
-            catch { return 0; }
+            catch { return -1; }
         }
 
         /// <summary>

@@ -942,6 +942,8 @@ namespace Riscontro.Disegno
                     stato.Firme["C" + (i + 1)] = new FirmaEntita
                     {
                         Tipo = "BODY",
+                        // ZERO-E-ZERO: chi legge `Misura` guarda sempre `> 0`, e
+                        // nessuno la legge per i corpi; zero qui e' «non misurata».
                         Misura = scatola == null ? 0 : Math.Round(
                             (scatola[3] - scatola[0]) * (scatola[4] - scatola[1]) *
                             (scatola[5] - scatola[2]), 2),
@@ -1020,17 +1022,27 @@ namespace Riscontro.Disegno
                 // cui il modello puo' capire se una modifica ha fatto
                 // qualcosa. L'add-in lo calcolava gia' per le proprie
                 // verifiche e non lo diceva a nessuno.
+                //
+                // UN CORPO CHE NON RISPONDE FA «NON LO SO», NON UN VOLUME PIU'
+                // BASSO (voce Z-C8). Prima si saltava, e la chiave spariva anche
+                // quando il volume non si era letto: assente voleva dire zero
+                // OPPURE «non letto», e `annulla` poteva rifare un passo dopo un
+                // annullamento giusto. Adesso: chiave assente = nessun volume
+                // solido; chiave con null = non si e' potuto leggere.
                 double volume = 0;
+                bool volumeIlleggibile = false;
                 foreach (var c in corpi)
                 {
                     try
                     {
                         var mp = c.GetMassProperties(1000.0) as double[];
-                        if (mp != null && mp.Length > 4 && mp[3] > 0) volume += mp[3] * 1e9;
+                        if (mp == null || mp.Length <= 4) { volumeIlleggibile = true; break; }
+                        if (mp[3] > 0) volume += mp[3] * 1e9;
                     }
-                    catch { }
+                    catch { volumeIlleggibile = true; break; }
                 }
-                if (volume > 0) dati["volume_mm3"] = Math.Round(volume, 1);
+                if (volumeIlleggibile) dati["volume_mm3"] = null;
+                else if (volume > 0) dati["volume_mm3"] = Math.Round(volume, 1);
 
                 // ── facce e spigoli, con il tetto sul TOTALE ──────────────
                 //
@@ -1067,6 +1079,8 @@ namespace Riscontro.Disegno
 
                 // Le piu' grandi per prime: sono quelle su cui un progettista
                 // lavora, e sono quelle che una descrizione corta deve avere.
+                // ZERO-E-ZERO: e' una chiave d'ordinamento, non un'affermazione —
+                // una faccia che non da' l'area finisce in fondo, e basta.
                 var ordinate = tutteLeFacce
                     .OrderByDescending(t => { try { return t.Item1.GetArea(); } catch { return 0.0; } })
                     .ToList();
@@ -1084,14 +1098,19 @@ namespace Riscontro.Disegno
                 {
                     iFaccia++;
                     var uid = "F" + iFaccia;
-                    double areaMm2 = 0;
-                    try { areaMm2 = Unita.Mm2(t.Item1.GetArea()); } catch { }
+                    // L'area che non si legge e' null nello stato, non 0 mm²
+                    // (voce Z-C8). ZERO-E-ZERO: nella firma resta 0, perche' chi
+                    // legge `Misura` guarda sempre `> 0` e lo prende per «non
+                    // misurata».
+                    double? areaLetta = null;
+                    try { areaLetta = Unita.Mm2(t.Item1.GetArea()); } catch { }
+                    double areaMm2 = areaLetta ?? 0;
                     var punto = PuntoSuFaccia(t.Item1);
                     var normale = NormaleFaccia(t.Item1);
                     var voce = new Dictionary<string, object>
                     {
                         ["uid"] = uid,
-                        ["area_mm2"] = Math.Round(areaMm2, 2),
+                        ["area_mm2"] = areaLetta.HasValue ? (object)Math.Round(areaLetta.Value, 2) : null,
                         ["punto_mm"] = punto,
                         ["normale"] = normale,
                         ["piana"] = normale != null,
@@ -2099,6 +2118,8 @@ namespace Riscontro.Disegno
             if (faccia == null) return null;
             try
             {
+                // ZERO-E-ZERO: 0 in `Misura` vuol dire «non misurata» per tutti
+                // quelli che la leggono (guardano `> 0`).
                 double areaMm2 = 0;
                 try { areaMm2 = Unita.Mm2(faccia.GetArea()); } catch { }
 

@@ -108,6 +108,10 @@ namespace Riscontro.Disegno
 
             int foglioPrima = ContaNoteDelFoglio(disegno);
             int vistePrima = ContaNoteDelleViste(disegno);
+            if (foglioPrima < 0 || vistePrima < 0)
+                return Fallito(
+                    "Non riesco a contare le note della tavola prima di cominciare: senza quel " +
+                    "numero non saprei dirti se la nota e' nata. Non ho toccato niente.");
 
             object nata = null;
             try
@@ -142,6 +146,10 @@ namespace Riscontro.Disegno
 
             int foglioDopo = ContaNoteDelFoglio(disegno);
             int visteDopo = ContaNoteDelleViste(disegno);
+            if (foglioDopo < 0 || visteDopo < 0)
+                return Fallito(
+                    "Ho scritto la nota, ma poi non riesco a ricontare le note della tavola: " +
+                    "non so dirti se e' nata ne' dove. Guarda la tavola prima di andare avanti.");
             int messe = (foglioDopo - foglioPrima) + (visteDopo - vistePrima);
 
             // NON SI GUARDA SE `InsertNote` HA RISPOSTO: si guarda se la nota
@@ -254,22 +262,30 @@ namespace Riscontro.Disegno
         /// Le note del FOGLIO. La prima «vista» di una tavola e' il foglio, ed
         /// e' li' che `InsertNote` scrive: contare da `GetNextView()` in poi —
         /// cioe' le viste vere — risponderebbe zero con la nota al suo posto.
+        ///
+        /// **-1 quando non si e' potuto leggere** (voce Z-C8). Con lo zero, una
+        /// lettura fallita DOPO dava il rifiuto «nessuna nota e' nata» con la
+        /// nota al suo posto. Una tavola ha sempre il foglio: se non c'e', non
+        /// e' uno zero, e' una lettura andata male.
         /// </summary>
         private int ContaNoteDelFoglio(IDrawingDoc disegno)
         {
             try
             {
                 var foglio = disegno.GetFirstView() as IView;
-                if (foglio == null) return 0;
+                if (foglio == null) return -1;
                 return foglio.GetNoteCount();
             }
-            catch { return 0; }
+            catch { return -1; }
         }
 
         /// <summary>
         /// Le note delle viste vere, foglio escluso. Serve come CONTRALTARE:
         /// se salisse questa invece di quella del foglio, la nota sarebbe
         /// finita dentro una vista e si sposterebbe insieme a lei.
+        ///
+        /// -1 quando anche una sola vista non risponde: la somma delle altre
+        /// sarebbe un numero piu' basso del vero, detto come se fosse vero.
         /// </summary>
         private int ContaNoteDelleViste(IDrawingDoc disegno)
         {
@@ -277,15 +293,15 @@ namespace Riscontro.Disegno
             try
             {
                 var foglio = disegno.GetFirstView() as IView;
-                if (foglio == null) return 0;
+                if (foglio == null) return -1;
                 var v = foglio.GetNextView() as IView;
                 while (v != null)
                 {
-                    try { n += v.GetNoteCount(); } catch { }
+                    n += v.GetNoteCount();
                     v = v.GetNextView() as IView;
                 }
             }
-            catch { }
+            catch { return -1; }
             return n;
         }
     }

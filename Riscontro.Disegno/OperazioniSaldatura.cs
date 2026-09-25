@@ -637,8 +637,9 @@ namespace Riscontro.Disegno
                 return Fallito("Fra i corpi indicati c'e' qualcosa che non e' un corpo solido.");
             }
 
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
             int featurePrima = ContaFeatureDellAlbero(modello);
+            if (volumePrima == null || featurePrima < 0) return Fallito(VolumeNonLettoPrima("tagliare le barre"));
 
             IFeature feature;
             try
@@ -664,9 +665,11 @@ namespace Riscontro.Disegno
             // difetto qui sopra il primo giorno — l'operazione diceva
             // «corpi_tagliati: 1» su un pezzo identico a prima.
             try { modello.EditRebuild3(); } catch { }
-            bool nellAlbero = ContaFeatureDellAlbero(modello) > featurePrima;
-            double volumeDopo = VolumeMm3(modello);
-            double variazione = volumeDopo - volumePrima;
+            int featureDopo = ContaFeatureDellAlbero(modello);
+            // Con l'albero illeggibile non si puo' dire che la feature non c'e':
+            // decide il volume, qui sotto (voce Z-C8).
+            bool nellAlbero = featureDopo < 0 || featureDopo > featurePrima;
+            double? volumeDopo = VolumeMm3(modello);
             if (!nellAlbero)
                 // Con gli array tipizzati succede ancora, e il 25/9/2026 e'
                 // successo sempre e solo quando le barre non si incontrano: due
@@ -677,10 +680,20 @@ namespace Riscontro.Disegno
                     "nell'albero non c'e', e il pezzo e' quello di prima: di solito vuol " +
                     "dire che le barre da tagliare non incontrano quelle di taglio. Non " +
                     "ti dico che le barre sono tagliate.");
+            if (volumeDopo == null)
+                return Riuscito(feature, new Dictionary<string, object>
+                {
+                    ["corpi_tagliati"] = nDa,
+                    ["corpi_di_taglio"] = nContro,
+                    ["gioco_mm"] = gioco,
+                    ["variazione_volume_mm3"] = null,
+                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                });
+            double variazione = volumeDopo.Value - volumePrima.Value;
             if (Math.Abs(variazione) < 0.01)
                 return Fallito(
                     "Il taglio e' nell'albero ma non ha cambiato niente: volume " +
-                    volumePrima.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+                    volumePrima.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
                     " mm3 prima e dopo. Le barre da tagliare non entrano in quelle di " +
                     "taglio, o gia' ci arrivano esatte. Non ti confermo un pezzo diverso " +
                     "da quello che ti ho mostrato — " + Frasi.CosiSiRitira + ".");
@@ -698,7 +711,9 @@ namespace Riscontro.Disegno
         /// <summary>
         /// Quante feature ha l'albero, al primo livello. Serve a una cosa sola:
         /// sapere se una feature che SOLIDWORKS ha restituito ci e' entrata
-        /// davvero (vedi `TagliaMembri`).
+        /// davvero (vedi `TagliaMembri`). -1 se non si e' potuto leggere (voce
+        /// Z-C8): un conteggio a meta' faceva dire «la feature nell'albero non
+        /// c'e'» a un taglio riuscito.
         /// </summary>
         private static int ContaFeatureDellAlbero(IModelDoc2 modello)
         {
@@ -708,7 +723,7 @@ namespace Riscontro.Disegno
                 var f = modello.FirstFeature() as IFeature;
                 while (f != null) { n++; f = f.GetNextFeature() as IFeature; }
             }
-            catch { }
+            catch { return -1; }
             return n;
         }
 
@@ -797,7 +812,15 @@ namespace Riscontro.Disegno
                     "passo non e' riuscito.");
 
             try { modello.EditRebuild3(); } catch { }
-            int voci = CartelleDistinta(modello).Sum(c => { try { return c.GetBodyCount(); } catch { return 0; } });
+            // UNA CARTELLA CHE NON RISPONDE NON CONTA ZERO (voce Z-C8): la somma
+            // delle altre sarebbe un numero piu' basso del vero, scritto come
+            // vero. Si scrive null, cioe' «non lo so».
+            int? voci = 0;
+            foreach (var c in CartelleDistinta(modello))
+            {
+                try { voci += c.GetBodyCount(); }
+                catch { voci = null; break; }
+            }
             return Riuscito(feature, new Dictionary<string, object>
             {
                 ["corpi_in_distinta"] = voci,
@@ -1015,8 +1038,14 @@ namespace Riscontro.Disegno
                     "una barra in battuta su un'altra, e' la faccia LATERALE della barra " +
                     "contro la faccia su cui arriva, non la sua testa.");
 
-            double contatto = Math.Max(
-                LunghezzaCheStaSu(facce[0], facce[1]), LunghezzaCheStaSu(facce[1], facce[0]));
+            // Basta un verso che tocca; ma «non si toccano» si puo' dire solo
+            // se tutti e due i versi hanno risposto.
+            double l1 = LunghezzaCheStaSu(facce[0], facce[1]), l2 = LunghezzaCheStaSu(facce[1], facce[0]);
+            if (Math.Max(l1, l2) < 0.01 && (l1 < 0 || l2 < 0))
+                return Fallito(
+                    "Non riesco a leggere gli spigoli delle due facce, e senza non so dirti " +
+                    "se si toccano. Non ho messo il cordone.");
+            double contatto = Math.Max(l1, l2);
             if (contatto < 0.01)
                 return Fallito(
                     "Le due facce non si toccano: nessuno spigolo dell'una sta " +
@@ -1089,13 +1118,22 @@ namespace Riscontro.Disegno
         /// spigolo di fondo. Tre punti e non uno, perche' uno spigolo che
         /// sfiora l'altra faccia in un punto solo non e' una linea di
         /// saldatura.
+        ///
+        /// **-1 quando non si e' potuto leggere** (voce Z-C8): lo zero voleva
+        /// dire «non si toccano», e il chiamante rifiutava il cordone con una
+        /// frase falsa. ZERO-E-ZERO: una faccia senza spigoli (`GetEdges` null,
+        /// una sfera intera) non tocca niente lungo uno spigolo, e quello zero
+        /// e' vero. Uno spigolo che non si lascia valutare non si conta, ma se
+        /// alla fine non sta sopra niente e qualcuno non ha risposto, il
+        /// risultato e' «non lo so», non zero.
         /// </summary>
         private static double LunghezzaCheStaSu(IFace2 faccia, IFace2 altra)
         {
             double totale = 0;
+            int muti = 0;
             object[] spigoli;
             try { spigoli = faccia.GetEdges() as object[]; }
-            catch { return 0; }
+            catch { return -1; }
             if (spigoli == null) return 0;
             foreach (var o in spigoli)
             {
@@ -1117,9 +1155,9 @@ namespace Riscontro.Disegno
                     }
                     if (sta) totale += curva.GetLength3(u0, u1) * 1000.0;
                 }
-                catch { }
+                catch { muti++; }
             }
-            return totale;
+            return totale <= 0 && muti > 0 ? -1 : totale;
         }
 
         // ─────────────────────────────────────────────────────────────────

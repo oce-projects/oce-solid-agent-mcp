@@ -80,6 +80,22 @@ for sonda in percorsi-del-todo.js rimandi-del-todo.js righe-del-todo.js; do
     fi
 done
 
+# ZERO O «NON LO SO» (voce Z-C8). Fino al 25/9/2026 era solo un elenco di
+# lavoro; riparati tutti i punti, diventa una guardia: un conteggio nuovo che
+# risponde zero da un catch, senza il marcatore ZERO-E-ZERO e la ragione, non
+# esce dal banco di lavoro. Si prova prima di credergli (--provami).
+zero="$qui/../zero-o-non-lo-so.js"
+if [ -f "$zero" ]; then
+    node "$zero" --provami > /dev/null
+    if [ $? -ne 0 ]; then
+        node "$zero" --provami | grep -E 'DA GUARDARE|!  |NON SI COMPORTA' >&2
+        echo "" >&2
+        echo "pre-push: FERMO. Un conteggio dice zero dove vorrebbe dire «non lo so»." >&2
+        echo "Si ripara con -1 o null, oppure col marcatore ZERO-E-ZERO: e la ragione." >&2
+        exit 1
+    fi
+fi
+
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$controllo"
 esito=$?
 

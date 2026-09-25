@@ -109,7 +109,9 @@ namespace Riscontro.Disegno
             bool grassetto = Bool(a, "grassetto", false);
 
             int corpiPrima = ContaCorpiSolidi(modello);
-            double volumePrima = VolumeMm3(modello);
+            double? volumePrima = VolumeMm3(modello);
+            if (corpiPrima < 0 || volumePrima == null)
+                return Fallito(VolumeNonLettoPrima("marcare la faccia"));
 
             // La scatola della FACCIA, per sapere dove la scritta puo' stare.
             double[] scatolaFaccia = ScatolaDellaFaccia(faccia);
@@ -231,9 +233,23 @@ namespace Riscontro.Disegno
                     "faccia risponde cosi'." + SenzaLoSchizzo(modello));
 
             // ── e adesso si conta ────────────────────────────────────────
-            double dopo = VolumeMm3(modello);
-            double mosso = inRilievo ? dopo - volumePrima : volumePrima - dopo;
+            double? dopo = VolumeMm3(modello);
             int corpiDopo = ContaCorpiSolidi(modello);
+            if (dopo == null || corpiDopo < 0)
+                return Riuscito(feature, new Dictionary<string, object>
+                {
+                    ["testo"] = testo,
+                    ["altezza_mm"] = altezza,
+                    ["profondita_mm"] = profondita,
+                    ["in_rilievo"] = inRilievo,
+                    ["contorni"] = contorni,
+                    ["larghezza_scritta_mm"] = Tondo(scatolaTesto[3] - scatolaTesto[0]),
+                    ["altezza_scritta_mm"] = Tondo(scatolaTesto[4] - scatolaTesto[1]),
+                    [inRilievo ? "materiale_aggiunto_mm3" : "materiale_tolto_mm3"] = null,
+                    ["corpi"] = NumeroOppureNull(corpiDopo),
+                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                }, NormaleDellaFaccia(faccia));
+            double mosso = inRilievo ? dopo.Value - volumePrima.Value : volumePrima.Value - dopo.Value;
 
             if (mosso <= 0)
                 return Fallito(

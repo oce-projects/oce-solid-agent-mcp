@@ -89,8 +89,20 @@ namespace Prove.Contratti
         /// **90 dal 25/9/2026 (libreria 0.116.0)**: l'ancora (voce E18), coi
         /// rifiuti che dicono come ancorare l'asse mancante e a quale spigolo
         /// vivo attaccarsi invece che al bordo di uno smusso.
+        ///
+        /// **75 dal 25/9/2026 (libreria 0.117.0), e SCENDE senza che nessun
+        /// messaggio sia peggiorato.** I rifiuti nuovi di Z-C8 avevano fatto
+        /// salire il conto a 92, e guardandoli uno per uno nessuno dei due
+        /// scatti era una strada: «prima di scrivere» contiene «scriv», e un
+        /// rifiuto chiuso sulla sua riga si prendeva il «metti» del rifiuto
+        /// SUCCESSIVO, perche' il rilevatore leggeva sempre la riga dopo.
+        /// Corretto il rilevatore (si ferma a fine messaggio), il conto vero e'
+        /// 75: quindici «strade» erano in prestito dal vicino. Misurato con
+        /// una replica del rilevatore su HEAD e sull'albero: 75 e 75.
+        /// *E' la storia del 66 e dell'83 al contrario: un rilevatore piu'
+        /// onesto abbassa il numero, e va scritto per la stessa ragione.*
         /// </summary>
-        private const int Pavimento = 90;
+        private const int Pavimento = 75;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.
@@ -148,7 +160,15 @@ namespace Prove.Contratti
                     // prima vorrebbe dire giudicare mute quasi tutte: qui i
                     // messaggi lunghi sono la norma, e sono proprio quelli che
                     // la strada ce l'hanno.
+                    //
+                    // MA NON OLTRE LA FINE DEL SUO. Fino al 25/9/2026 il ciclo
+                    // leggeva sempre almeno la riga dopo, anche quando il
+                    // messaggio si chiudeva sulla sua: un rifiuto breve si
+                    // prendeva il «metti» del rifiuto successivo, e il
+                    // pavimento e' salito di uno senza che nessuno scrivesse un
+                    // messaggio migliore.
                     var testo = r;
+                    if (!r.Contains(");"))
                     for (int j = i + 1; j < righe.Length && j < i + 12; j++)
                     {
                         if (righe[j].TrimStart().StartsWith("//", StringComparison.Ordinal)) continue;

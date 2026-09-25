@@ -1,0 +1,25 @@
+{
+  "nome": "lim_unione_di_corpi_che_non_si_toccano",
+  "famiglia": "corpi",
+  "perche": "VOCE Z-C18. La guardia «l'unione ha lasciato due corpi» confrontava due enum diversi e non poteva scattare. Prima di ripararla si e' misurato cosa fa SOLIDWORKS con due corpi che non si toccano (25/9/2026, due cubi da 10 a 50 mm uno dall'altro): la feature NON NASCE, e l'operazione rifiuta prima di arrivare alla guardia. Questo caso fissa quel rifiuto: se un giorno SOLIDWORKS creasse la feature senza fondere, il rifiuto dovrebbe venire dalla guardia riparata, con un'altra frase — e il caso lo direbbe.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 1000 } ] },
+    { "operazione": "sposta_corpi",
+      "argomenti": { "corpi_uid": ["@corpo(nome=Estrusione-Estrusione1)"], "dx_mm": 50, "copia": true, "quante_copie": 1 },
+      "attese": [
+        { "cosa": "corpi", "uguale": 2 },
+        { "cosa": "volume_mm3", "uguale": 2000 } ] },
+    { "operazione": "combina_corpi",
+      "argomenti": { "operazione": "unisci", "corpo_principale_uid": "@corpo(nome=Estrusione-Estrusione1)" },
+      "perche_il_principale": "Per somigliare alla gemella senza esserne una copia: con gli stessi argomenti di «combina_chiesto» la differenza starebbe solo nella geometria, che il confronto delle gemelle non vede. Il principale nominato per nome non cambia l'unione.",
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non ha creato niente", "non si toccano"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "combina_chiesto" } }
+  ]
+}

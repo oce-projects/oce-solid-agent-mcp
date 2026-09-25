@@ -525,6 +525,8 @@ namespace Riscontro.Disegno
                     if (sk != null)
                     {
                         var seg = sk.GetSketchSegments() as object[];
+                        // ZERO-E-ZERO: uno schizzo di soli punti non ha segmenti, e
+                        // null e' proprio lo schizzo di posizionamento che si cerca.
                         int n = seg == null ? 0 : seg.Length;
                         if (n < meno) { meno = n; migliore = s; }
                     }
