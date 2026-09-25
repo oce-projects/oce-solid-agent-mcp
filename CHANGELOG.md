@@ -24,6 +24,37 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.93.0 — 25 September 2026 · library 0.118.0
+
+### The number on the drawing is the model's? (entry Z-C2)
+
+«A dimension comes from the model, it cannot lie» holds until someone
+writes over the number. Measured the three ways the interop offers:
+`SetOverride(true, v)` (read back by `GetOverride`/`GetOverrideValue`),
+`SetText(0, "…")` (which writes the PREFIX and switches the value off), and
+`ShowDimensionValue = false`. Two reads catch all three, including an
+override that happens to equal the model value. The drawing state now counts
+`quote_numero_non_del_modello` per view and in total, lists up to ten with
+how, and warns. A C# bench group (`numeri`) forges three dimensions and
+expects three; on the untouched drawing, zero.
+
+### The slot sketch is defined, and the slot takes the anchor (entry E18)
+
+`asola` drew four entities and nothing else: no relations, no dimensions,
+so a finished slot could not be corrected. Now the sketch gets four
+tangencies, equal radii, a construction line between the arc centres with
+its length dimensioned, the radius dimensioned, and horizontal/vertical when
+the slot is at 0 or 90 degrees — measured: change the radius and the centre
+distance and the slot stays a slot, volume exact. `asola` takes `ancora`;
+an oblique slot dimensions its angle against the anchor's first edge with
+`AddSpecificDimension` (angular), because `Extension.AddDimension` returns
+null on that pair and `AddDimension2` is forbidden. Without an anchor an
+oblique slot is free to rotate, and the response says so. Three bench cases:
+the slot corrected through its dimension, the anchored slot, the anchored
+oblique slot keeping its 30 degrees on a plate that grows.
+
+---
+
 ## 0.92.0 — 25 September 2026 · library 0.117.0
 
 Zero is not «I don't know» (entry Z-C8), and two guards that were looking

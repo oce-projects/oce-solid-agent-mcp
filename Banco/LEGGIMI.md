@@ -519,7 +519,9 @@ casi/lavorazioni/ 17   il guscio, e da che parte toglie;
                        davanti, sul fianco e sul dietro; otto rifiuti e lo
                        spigolo sul bordo di uno smusso
 casi/coppie/       8   i rifiuti con la loro gemella
-casi/asola/       15   ogni faccia, non una sola
+casi/asola/       18   ogni faccia, non una sola; lo schizzo quotato che si
+                       corregge con modifica_quota, e l'ancora dritta e obliqua
+                       (voce E18)
 casi/smusso/       3   dove un raccordo toglierebbe un altro volume
 casi/rivoluzione/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
 casi/piano/        5   DOVE finisce il piano, non la distanza chiesta

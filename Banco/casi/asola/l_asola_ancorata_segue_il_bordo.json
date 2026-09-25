@@ -1,0 +1,33 @@
+{
+  "nome": "l_asola_ancorata_segue_il_bordo",
+  "famiglia": "asola",
+  "perche": "VOCE E18 sull'asola: 60 x 20 a 40 dal fianco destro e centrata in altezza. La piastra cresce verso +X e +Y (voce E2): portata a 260 il fianco va a 160 e l'asola deve andare a x = 120 (le estremita' a 100 e 140); portata a 180 l'altezza va da -60 a 120 e l'asola deve salire a y = 30. Misurato il 25/9/2026 col banchetto.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "asola",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 60, "y_mm": 0,
+                     "lunghezza_mm": 60, "larghezza_mm": 20, "passante": true,
+                     "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=20)", "distanza_mm": 40 },
+                                 "y": { "centrata_fra": [ "@spigolo(asse=X,y~=-60,z~=20)", "@spigolo(asse=X,y~=60,z~=20)" ] } } },
+      "attese": [
+        { "cosa": "centri_x_mm", "uguale": [40, 80], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "i centri delle estremita' si leggono in metri da CylinderParams" },
+        { "cosa": "misure.ancora.schizzo", "uguale": "completamente definito" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+      "attese": [
+        { "cosa": "centri_x_mm", "uguale": [100, 140], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "il fianco destro va a 160, il centro deve restare a 40: 120, estremita' a 100 e 140" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 180 },
+      "attese": [
+        { "cosa": "centri_y_mm", "uguale": [30, 30], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'altezza va da -60 a 120: a meta' c'e' 30" },
+        { "cosa": "volume_mm3", "uguale": 913716.81, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "260*180*20 meno l'asola intera, 22283,19" } ] }
+  ]
+}

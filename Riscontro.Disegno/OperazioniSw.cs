@@ -2462,6 +2462,13 @@ namespace Riscontro.Disegno
             var bassoA = nelPiano(-corsa, -raggio);
             var bassoB = nelPiano(+corsa, -raggio);
 
+            // L'ANCORA (voce E18), controllata tutta prima di disegnare. Il
+            // mezzo ingombro per asse e' quello qui sotto: la corsa proiettata
+            // piu' il raggio.
+            var ancora = LeggiAncora(a, stato, faccia, assi, offsetM, x, y,
+                Math.Abs(corsa * cos) + raggio, Math.Abs(corsa * sin) + raggio, out motivo);
+            if (ancora == null) return Fallito(motivo);
+
             // Mezzo ingombro dello stadio sui due assi della faccia: la corsa
             // proiettata piu' il raggio delle estremita'. Con angolo 0 fa
             // lunghezza/2 e larghezza/2, come deve.
@@ -2487,6 +2494,8 @@ namespace Riscontro.Disegno
             double[] pColmoA = null, pColmoB = null;
             bool disegnato = false;
             int segmenti = 0;
+            int quoteStadio = 0;
+            var misureAncora = new Dictionary<string, object>();
             try
             {
                 pAltoA = PuntoNelloSchizzo(modello, assi, offsetM, altoA[0], altoA[1], out errore);
@@ -2513,9 +2522,29 @@ namespace Riscontro.Disegno
                     // millimetro. Un contorno aperto non si taglia, e infatti
                     // il 10 settembre 2026 dodici prove su dodici finivano con
                     // «l'asola non e' stata tagliata».
+                    ISketchSegment[] creati;
                     disegnato = DisegnaLoStadio(
                         schizzi, pAltoA, pAltoB, pBassoA, pBassoB, pColmoA, pColmoB,
-                        out segmenti, out errore);
+                        out segmenti, out errore, out creati);
+
+                    // LO STADIO SI DEFINISCE (voce E18): tangenze, raggi uguali,
+                    // la mezzeria fra i centri e le sue quote. Senza ancora e'
+                    // un guadagno lo stesso — l'asola si corregge con
+                    // `modifica_quota` — e un errore qui non ferma il taglio;
+                    // con l'ancora lo schizzo deve uscirne completamente
+                    // definito, o non si taglia.
+                    if (disegnato)
+                    {
+                        string erroreStadio;
+                        quoteStadio = DefinisciLoStadio(
+                            modello, creati, assi, offsetM, x, y, angolo, corsa, raggio,
+                            ancora, misureAncora, out erroreStadio);
+                        if (!ancora.Vuoto && erroreStadio != null)
+                        {
+                            disegnato = false;
+                            errore = erroreStadio;
+                        }
+                    }
                 }
             }
             finally
@@ -2549,6 +2578,10 @@ namespace Riscontro.Disegno
                     sotto + SenzaLoSchizzo(modello));
             }
 
+            // LA PROVA DI MOVIMENTO dell'ancora, come per foro e tasca.
+            string nonRegge = ProvaDiMovimento(modello, ancora, feature);
+            if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+
             // ── E ADESSO SI CONTA ────────────────────────────────────────────
             // L'area dello stadio: il rettangolo centrale piu' i due
             // semicerchi, che insieme fanno un cerchio.
@@ -2563,6 +2596,7 @@ namespace Riscontro.Disegno
                     ["passante"] = passante,
                     ["area_mm2"] = Math.Round(area, 2),
                     ["materiale_tolto_mm3"] = null,
+                    ["quote_sullo_schizzo"] = quoteStadio,
                     ["volume_non_riletto"] = NotaVolumeNonRiletto,
                 }, NormaleDellaFaccia(faccia));
             double tolto = volumePrima.Value - volumeDopo.Value;
@@ -2630,7 +2664,7 @@ namespace Riscontro.Disegno
                 }
             }
 
-            return Riuscito(feature, new Dictionary<string, object>
+            var misureAsola = new Dictionary<string, object>
             {
                 ["lunghezza_mm"] = lunghezza,
                 ["larghezza_mm"] = larghezza,
@@ -2638,7 +2672,10 @@ namespace Riscontro.Disegno
                 ["passante"] = passante,
                 ["area_mm2"] = Math.Round(area, 2),
                 ["materiale_tolto_mm3"] = Math.Round(tolto, 2),
-            }, NormaleDellaFaccia(faccia));
+                ["quote_sullo_schizzo"] = quoteStadio,
+            };
+            foreach (var voce in misureAncora) misureAsola[voce.Key] = voce.Value;
+            return Riuscito(feature, misureAsola, NormaleDellaFaccia(faccia));
         }
 
         /// <summary>
@@ -2889,20 +2926,23 @@ namespace Riscontro.Disegno
             ISketchManager schizzi,
             double[] altoA, double[] altoB, double[] bassoA, double[] bassoB,
             double[] colmoA, double[] colmoB,
-            out int segmenti, out string errore)
+            out int segmenti, out string errore, out ISketchSegment[] creati)
         {
             segmenti = 0;
             errore = null;
+            creati = new ISketchSegment[4];
             bool addToDbPrima = false, displayPrima = false;
             try { addToDbPrima = schizzi.AddToDB; displayPrima = schizzi.DisplayWhenAdded; } catch { }
             try
             {
                 try { schizzi.AddToDB = true; schizzi.DisplayWhenAdded = false; } catch { }
 
-                if (schizzi.CreateLine(altoA[0], altoA[1], altoA[2],
-                                       altoB[0], altoB[1], altoB[2]) != null) segmenti++;
-                if (schizzi.CreateLine(bassoB[0], bassoB[1], bassoB[2],
-                                       bassoA[0], bassoA[1], bassoA[2]) != null) segmenti++;
+                creati[0] = schizzi.CreateLine(altoA[0], altoA[1], altoA[2],
+                                               altoB[0], altoB[1], altoB[2]);
+                if (creati[0] != null) segmenti++;
+                creati[1] = schizzi.CreateLine(bassoB[0], bassoB[1], bassoB[2],
+                                               bassoA[0], bassoA[1], bassoA[2]);
+                if (creati[1] != null) segmenti++;
 
                 // GLI ARCHI SI DANNO PER TRE PUNTI, NON PER VERSO.
                 //
@@ -2925,12 +2965,14 @@ namespace Riscontro.Disegno
                 // passa per `PuntoNelloSchizzo` come tutti gli altri, e
                 // l'arco resta determinato dalla GEOMETRIA invece che da una
                 // convenzione. Non c'e' piu' niente da indovinare.
-                if (schizzi.Create3PointArc(altoB[0], altoB[1], altoB[2],
-                                            bassoB[0], bassoB[1], bassoB[2],
-                                            colmoB[0], colmoB[1], colmoB[2]) != null) segmenti++;
-                if (schizzi.Create3PointArc(bassoA[0], bassoA[1], bassoA[2],
-                                            altoA[0], altoA[1], altoA[2],
-                                            colmoA[0], colmoA[1], colmoA[2]) != null) segmenti++;
+                creati[2] = schizzi.Create3PointArc(altoB[0], altoB[1], altoB[2],
+                                                    bassoB[0], bassoB[1], bassoB[2],
+                                                    colmoB[0], colmoB[1], colmoB[2]);
+                if (creati[2] != null) segmenti++;
+                creati[3] = schizzi.Create3PointArc(bassoA[0], bassoA[1], bassoA[2],
+                                                    altoA[0], altoA[1], altoA[2],
+                                                    colmoA[0], colmoA[1], colmoA[2]);
+                if (creati[3] != null) segmenti++;
             }
             catch (Exception ex)
             {

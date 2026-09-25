@@ -510,6 +510,7 @@ namespace Riscontro.Disegno.Catalogo
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
+                            "ancora", SchemaAncora("l'asola"),
                             "lunghezza_mm", O(
                                 "type", "number",
                                 "description", "lunghezza TOTALE da fuori a fuori, non la corsa. Dev'essere "
@@ -519,7 +520,10 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "larghezza dell'asola, cioe' il diametro delle estremita' tonde"),
                             "angolo_gradi", O(
                                 "type", "number",
-                                "description", "rotazione nel piano della faccia, predefinito 0"),
+                                "description", "rotazione nel piano della faccia, predefinito 0. Lo schizzo "
+                                    + "nasce quotato (raggio e distanza fra i centri): a 0 e 90 gradi anche "
+                                    + "l'orientamento e' fissato; obliqua, l'angolo si quota contro il primo "
+                                    + "spigolo dell'«ancora», e senza ancora resta libero (te lo dico)."),
                             "passante", O(
                                 "type", "boolean",
                                 "description", "predefinito: si'"),

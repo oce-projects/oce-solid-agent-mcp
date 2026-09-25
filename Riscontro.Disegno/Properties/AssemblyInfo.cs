@@ -241,8 +241,19 @@ using System.Runtime.InteropServices;
 //          numero: il campo e' null e c'e' la nota. Lo stato scrive null per un
 //          volume o un'area che non si leggono. La guardia dell'unione
 //          confrontava due enum diversi e non scattava mai (voce Z-C18).
-[assembly: AssemblyVersion("0.117.0.0")]
-[assembly: AssemblyFileVersion("0.117.0.0")]
+// 0.118.0: IL NUMERO STAMPATO E' QUELLO DEL MODELLO? (voce Z-C2) Lo stato della
+//          tavola conta le quote che stampano un numero non del modello: numero
+//          sovrascritto (`GetOverride`) o valore spento con del testo al suo
+//          posto (`ShowDimensionValue`), misurati il 25/9/2026 sulle tre strade
+//          dell'interop. Prende anche il numero sovrascritto che combacia per
+//          caso col modello, perche' guarda la sovrascrittura e non i valori.
+//          E L'ASOLA (voce E18): lo schizzo nasce definito — tangenze, raggi
+//          uguali, mezzeria fra i centri quotata, raggio quotato, orizzontale o
+//          verticale — e si corregge con modifica_quota; prende `ancora`, e
+//          obliqua quota l'angolo contro lo spigolo d'ancora con
+//          AddSpecificDimension (Extension.AddDimension torna null li').
+[assembly: AssemblyVersion("0.118.0.0")]
+[assembly: AssemblyFileVersion("0.118.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -257,4 +268,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.117.0")]
+[assembly: AssemblyInformationalVersion("0.118.0")]

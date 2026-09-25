@@ -160,6 +160,8 @@ namespace Riscontro.Disegno
             int? quoteTotali = 0, crociTotali = 0;
             int? gtolTot = 0, datumTot = 0, saldTot = 0, rugTot = 0, noteTot = 0, annTot = 0;
             int orfaneTot = 0;
+            int? numeriFalsiTot = 0;
+            var numeriFalsi = new List<Dictionary<string, object>>();
             bool orfaneSconosciute = false;
             // ── IL FOGLIO SI CONTA A PARTE, E NON E' UNA RIFINITURA ────────
             //
@@ -199,6 +201,10 @@ namespace Riscontro.Disegno
                     // quale.
                     int? croci = Letto(() => v.GetCenterMarkCount());
                     crociTotali += croci;
+
+                    // IL NUMERO CHE SI STAMPA E' QUELLO DEL MODELLO? (voce Z-C2)
+                    int? falsi = QuoteColNumeroNonDelModello(v, numeriFalsi);
+                    numeriFalsiTot += falsi;
 
                     // ── LE ANNOTAZIONI, UNA FAMIGLIA PER VOLTA (voce Z-E1) ──
                     //
@@ -267,6 +273,7 @@ namespace Riscontro.Disegno
                         // stesso motivo — **un campo che compare solo quando ha
                         // un valore interessante insegna a non cercarlo.**
                         voce["croci_di_centro"] = croci;
+                        voce["quote_numero_non_del_modello"] = falsi;
                         voce["quote_orfane"] = orfane;
 
                         // SEMPRE, ANCHE TUTTE A ZERO, e per la stessa ragione
@@ -302,6 +309,16 @@ namespace Riscontro.Disegno
             dati["viste_totali"] = visteTotali;
             dati["quote_totali"] = quoteTotali;
             dati["croci_di_centro_totali"] = crociTotali;
+            dati["quote_numero_non_del_modello_totali"] = numeriFalsiTot;
+            if (numeriFalsi.Count > 0)
+            {
+                dati["quote_numero_non_del_modello"] = numeriFalsi;
+                dati["attenzione_numeri"] =
+                    numeriFalsi.Count + (numeriFalsi.Count == 1 ? " quota stampa" : " quote stampano") +
+                    " un numero che non e' quello del modello (sovrascritto, o il valore spento " +
+                    "con del testo al suo posto). La geometria e' giusta, la carta no: in officina " +
+                    "si lavora col numero stampato.";
+            }
             dati["annotazioni_totali"] = Sei(gtolTot, datumTot, saldTot, rugTot, noteTot, annTot);
             dati["quote_orfane_totali"] = orfaneSconosciute && orfaneTot == 0 ? (object)null : orfaneTot;
             if (orfaneTot > 0)
@@ -395,6 +412,66 @@ namespace Riscontro.Disegno
         /// aspettare una somma che non torna, e chi la vede non tornare cerca
         /// un difetto dove non c'e'.
         /// </summary>
+        /// <summary>
+        /// Quante quote della vista stampano un numero che NON e' quello del
+        /// modello (voce Z-C2), o null se non si puo' leggere. Le trova, e ne
+        /// mette al piu' dieci in `dettagli` con il modo.
+        ///
+        /// «La quota viene dal modello, non puo' mentire» vale finche' nessuno
+        /// scrive sopra il numero. Misurato il 25/9/2026 (`prova0089
+        /// testoquote`) sulle tre strade che l'interop offre:
+        ///
+        ///   appena nata                 GetOverride falso, ShowDimensionValue vero,
+        ///                               GetText(0..4) tutti vuoti
+        ///   SetOverride(true, 0,099)    GetOverride VERO, GetOverrideValue 99 mm
+        ///   SetText(0, "99")            scrive il PREFISSO e SPEGNE il valore:
+        ///                               ShowDimensionValue falso, GetText(1) «99»
+        ///   ShowDimensionValue = false  il valore non si stampa
+        ///
+        /// Quindi bastano due letture, e prendono anche il caso che la voce
+        /// temeva di piu': il numero sovrascritto che per caso combacia col
+        /// modello resta segnalato, perche' si guarda la sovrascrittura, non il
+        /// confronto dei valori.
+        /// </summary>
+        private static int? QuoteColNumeroNonDelModello(IView v, List<Dictionary<string, object>> dettagli)
+        {
+            int n = 0;
+            try
+            {
+                var q = v.GetFirstDisplayDimension5() as IDisplayDimension;
+                while (q != null)
+                {
+                    bool sovrascritta = q.GetOverride();
+                    bool spento = !q.ShowDimensionValue;
+                    if (sovrascritta || spento)
+                    {
+                        n++;
+                        if (dettagli.Count < 10)
+                        {
+                            var dim = q.GetDimension2(0);
+                            var voce = new Dictionary<string, object>();
+                            try { voce["quota"] = dim.FullName; } catch { }
+                            try { voce["vista"] = v.Name; } catch { }
+                            try { voce["del_modello_mm"] = Math.Round(dim.GetSystemValue2("") * 1000.0, 3); } catch { }
+                            if (sovrascritta)
+                                voce["come"] = "numero sovrascritto: stampa " +
+                                    Math.Round(q.GetOverrideValue() * 1000.0, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) + " mm";
+                            else
+                            {
+                                string testo = "";
+                                try { testo = (q.GetText(1) ?? "") + (q.GetText(2) ?? ""); } catch { }
+                                voce["come"] = "valore spento" + (testo.Length > 0 ? ": al suo posto «" + testo + "»" : "");
+                            }
+                            dettagli.Add(voce);
+                        }
+                    }
+                    q = q.GetNext5() as IDisplayDimension;
+                }
+            }
+            catch { return null; }
+            return n;
+        }
+
         /// <summary>
         /// Un conteggio letto da una vista, o null se la chiamata non risponde
         /// (voce Z-C8). Il null si porta dietro nelle somme: `int?` sommato a

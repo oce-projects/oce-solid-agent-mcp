@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -656,6 +657,185 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// LO STADIO DELL'ASOLA, DEFINITO (voce E18). `DisegnaLoStadio` lo
+        /// disegna con quattro entita' sotto `AddToDB` e basta: niente relazioni,
+        /// niente quote. Qui si aggiunge cio' che lo rende un'asola anche dopo
+        /// una modifica, e — se c'e' — l'ancora. Torna quante quote ha messo;
+        /// `errore` non nullo vuol dire che lo schizzo non e' come serve (con
+        /// l'ancora e' un rifiuto, senza e' solo una quota in meno).
+        ///
+        /// MISURATO il 25/9/2026 (`prova0089 stadio`, `stadio2`), piastra 200 x
+        /// 120, asola 60 x 20 a 0 e a 30 gradi:
+        ///
+        ///   gli estremi disegnati con AddToDB   gia' fusi: 6 punti (4 raccordi e
+        ///                                       2 centri), le coincidenze non
+        ///                                       servono
+        ///   4 tangenze + raggi uguali           +5 relazioni
+        ///   quota sull'arco                     il RAGGIO (10)
+        ///   quota fra i due centri              null, con tutte e due le chiamate:
+        ///                                       serve una mezzeria di costruzione
+        ///                                       legata ai centri, e si quota lei (40)
+        ///   orientamento a 0 gradi              orizzontale sulla mezzeria
+        ///   orientamento a 30 gradi             Extension.AddDimension null,
+        ///                                       AddDimension2 30 (vietata, GP6),
+        ///                                       AddSpecificDimension ANGOLARE 30
+        ///   raggio 15 e centri a 60 dopo        volume atteso al centesimo, zero
+        ///                                       errori: resta un'asola
+        ///
+        /// Senza ancora l'asola obliqua resta libera di ruotare (nessuno spigolo
+        /// da cui misurare l'angolo): si dice nelle misure. Con l'ancora l'angolo
+        /// si quota contro il suo primo spigolo.
+        /// </summary>
+        private int DefinisciLoStadio(
+            IModelDoc2 modello, ISketchSegment[] stadio, double[] assi, double offsetM,
+            double x, double y, double angoloGradi, double corsa, double raggio,
+            Ancoraggio ancora, Dictionary<string, object> misure, out string errore)
+        {
+            errore = null;
+            if (stadio == null || stadio.Length < 4 || stadio.Any(s => s == null))
+            {
+                errore = "Lo stadio non ha i suoi quattro pezzi: non posso definirlo.";
+                return 0;
+            }
+            ISketchSegment l1 = stadio[0], l2 = stadio[1], a1 = stadio[2], a2 = stadio[3];
+            var arcoB = a1 as ISketchArc;   // a1 e' l'estremita' dalla parte +corsa
+            var arcoA = a2 as ISketchArc;
+            if (arcoA == null || arcoB == null)
+            {
+                errore = "Le estremita' dell'asola non sono archi: non posso definirla.";
+                return 0;
+            }
+            var schizzi = modello.SketchManager;
+
+            // TANGENZE E RAGGI UGUALI: quattro linee-arco, e i due archi uguali.
+            int relPrima = RelazioniDelloSchizzo(schizzi);
+            foreach (var coppia in new[] { new[] { l1, a1 }, new[] { l1, a2 }, new[] { l2, a1 }, new[] { l2, a2 } })
+                Relazione(modello, coppia[0], coppia[1], "sgTANGENT");
+            Relazione(modello, a1, a2, "sgSAMELENGTH");
+
+            // LA MEZZERIA FRA I CENTRI, di costruzione e legata a tutti e due.
+            double rad = angoloGradi * Math.PI / 180.0, cos = Math.Cos(rad), sin = Math.Sin(rad);
+            string e1;
+            var cA = PuntoNelloSchizzo(modello, assi, offsetM, x - corsa * cos, y - corsa * sin, out e1);
+            var cB = cA == null ? null : PuntoNelloSchizzo(modello, assi, offsetM, x + corsa * cos, y + corsa * sin, out e1);
+            if (cB == null) { errore = e1; return 0; }
+            ISketchSegment mezzeria;
+            bool addPrima = schizzi.AddToDB;
+            try
+            {
+                schizzi.AddToDB = true;
+                mezzeria = schizzi.CreateCenterLine(cA[0], cA[1], cA[2], cB[0], cB[1], cB[2]);
+            }
+            finally { schizzi.AddToDB = addPrima; }
+            var linea = mezzeria as ISketchLine;
+            if (linea == null) { errore = "La mezzeria fra i centri dell'asola non e' nata."; return 0; }
+            // Disegnata sotto AddToDB esattamente sui centri, la mezzeria vi si
+            // FONDE (misurato: le coincidenze non aggiungono relazioni). Si
+            // chiedono lo stesso, per il caso in cui un arrotondamento le
+            // lasciasse a parte; il conto che vale e' quello delle altre cinque.
+            Relazione(modello, (ISketchPoint)linea.GetStartPoint2(), (ISketchPoint)arcoA.GetCenterPoint2(), "sgCOINCIDENT");
+            Relazione(modello, (ISketchPoint)linea.GetEndPoint2(), (ISketchPoint)arcoB.GetCenterPoint2(), "sgCOINCIDENT");
+            int relDopo = RelazioniDelloSchizzo(schizzi);
+            if (relPrima >= 0 && relDopo - relPrima < 5)
+                errore = "Le relazioni dello stadio non sono nate tutte (" +
+                         (relDopo - relPrima).ToString(CultureInfo.InvariantCulture) + " su 5: quattro tangenze e i raggi uguali).";
+
+            // LE QUOTE: il raggio e la mezzeria (la lunghezza fra i centri).
+            string e2;
+            var testoR = PuntoNelloSchizzo(modello, assi, offsetM,
+                x + (corsa + raggio + 6) * cos, y + (corsa + raggio + 6) * sin + 6, out e2);
+            var testoL = PuntoNelloSchizzo(modello, assi, offsetM,
+                x - (raggio + 8) * sin, y + (raggio + 8) * cos, out e2);
+            var daQuotare = new List<Quota>();
+            if (testoR != null) daQuotare.Add(Quota.Su(a1, testoR));
+            if (testoL != null) daQuotare.Add(Quota.Su(mezzeria, testoL));
+            int quote = QuotaSegmenti(modello, daQuotare);
+            if (quote < 2 && errore == null) errore = "Le quote dell'asola non sono nate tutte (" + quote + " su 2).";
+
+            // L'ORIENTAMENTO. Mezzeria orizzontale o verticale NELLO SCHIZZO:
+            // una relazione. Obliqua: un angolo contro il primo spigolo
+            // dell'ancora, se c'e'; altrimenti resta libera, e lo si dice.
+            bool orizzontale = Math.Abs(cB[1] - cA[1]) < 1e-9, verticale = Math.Abs(cB[0] - cA[0]) < 1e-9;
+            if (orizzontale || verticale)
+                RelazioneSola(modello, mezzeria, orizzontale ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
+            else if (!ancora.Vuoto)
+            {
+                var asse = ancora.X ?? ancora.Y;
+                var riferimento = asse.Centrata ? asse.Fra1 : asse.Spigolo;
+                string e3;
+                var testoA = PuntoNelloSchizzo(modello, assi, offsetM,
+                    x + (corsa + raggio + 14) * cos, y + (corsa + raggio + 14) * sin, out e3);
+                if (testoA == null || !QuotaAngolo(modello, mezzeria, riferimento.Spigolo, testoA))
+                {
+                    if (errore == null) errore = "L'angolo dell'asola contro lo spigolo «" + riferimento.Uid + "» non e' nato.";
+                }
+                else quote++;
+            }
+            else
+                misure["orientamento"] = "libero: un'asola obliqua senza ancora non ha uno spigolo da cui " +
+                                         "misurare l'angolo, e dopo una modifica puo' ruotare.";
+
+            // L'ANCORA, sul punto a meta' della mezzeria.
+            if (!ancora.Vuoto)
+            {
+                if (errore != null) return quote;
+                string e4;
+                var centro = PuntoNelloSchizzo(modello, assi, offsetM, x, y, out e4);
+                if (centro == null) { errore = e4; return quote; }
+                ISketchPoint punto;
+                try
+                {
+                    schizzi.AddToDB = true;
+                    punto = schizzi.CreatePoint(centro[0], centro[1], centro[2]);
+                }
+                finally { schizzi.AddToDB = addPrima; }
+                if (punto == null || !Relazione(modello, punto, mezzeria, "sgATMIDDLE"))
+                {
+                    errore = "Non sono riuscito a mettere il punto al centro dell'asola.";
+                    return quote;
+                }
+                string e5;
+                if (!ApplicaAncora(modello, ancora, punto, assi, offsetM, x, y, misure, out e5))
+                    errore = e5;
+            }
+            return quote;
+        }
+
+        /// <summary>
+        /// Una quota ANGOLARE fra una linea dello schizzo e uno spigolo del
+        /// modello. `AddSpecificDimension` col tipo esplicito: `Extension.
+        /// AddDimension` torna null su questa coppia, e `AddDimension2` e'
+        /// vietata (GP6). Misurato il 25/9/2026: 30 gradi su 30.
+        /// </summary>
+        private bool QuotaAngolo(IModelDoc2 modello, ISketchSegment linea, IEdge spigolo, double[] testo)
+        {
+            bool chiedeva = true;
+            try
+            {
+                chiedeva = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
+                _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
+            }
+            catch { }
+            try
+            {
+                modello.ClearSelection2(true);
+                if (!linea.Select4(false, null) || !((IEntity)spigolo).Select4(true, null)) return false;
+                int errore = 0;
+                var quota = modello.Extension.AddSpecificDimension(
+                    testo[0], testo[1], testo[2], (int)swDimensionType_e.swAngularDimension, ref errore) as IDisplayDimension;
+                if (quota == null) return false;
+                try { quota.MarkedForDrawing = true; } catch { }
+                return true;
+            }
+            catch { return false; }
+            finally
+            {
+                try { modello.ClearSelection2(true); } catch { }
+                try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, chiedeva); } catch { }
+            }
+        }
+
+        /// <summary>
         /// Una relazione fra due cose dello schizzo o del modello. Si passano
         /// come `object` perche' si selezionano ognuna col SUO `Select4`:
         /// misurato il 25/9/2026, un punto o un segmento di schizzo NON sono
@@ -668,6 +848,20 @@ namespace Riscontro.Disegno
             {
                 modello.ClearSelection2(true);
                 if (!Seleziona(uno, false) || !Seleziona(due, true)) return false;
+                modello.SketchAddConstraints(quale);
+                return true;
+            }
+            catch { return false; }
+            finally { try { modello.ClearSelection2(true); } catch { } }
+        }
+
+        /// <summary>Una relazione su una cosa sola (orizzontale, verticale).</summary>
+        private static bool RelazioneSola(IModelDoc2 modello, object cosa, string quale)
+        {
+            try
+            {
+                modello.ClearSelection2(true);
+                if (!Seleziona(cosa, false)) return false;
                 modello.SketchAddConstraints(quale);
                 return true;
             }

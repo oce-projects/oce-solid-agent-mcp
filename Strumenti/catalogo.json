@@ -347,6 +347,58 @@
       "type": "number",
       "description": "vedi x_mm"
      },
+     "ancora": {
+      "type": "object",
+      "description": "COSA TIENE L'ASOLA DOV'E' QUANDO IL PEZZO CAMBIA. Senza, x_mm/y_mm sono coordinate assolute: se la piastra si allunga, l'asola resta dov'era. Per OGNI asse, «x» e «y», tutti e due obbligatori, una di due cose: {\"spigolo_uid\": \"E7\", \"distanza_mm\": 20}, la distanza dal CENTRO a uno spigolo dritto della stessa faccia che corre lungo l'altro asse; oppure {\"centrata_fra\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. x_mm/y_mm restano obbligatori e devono dire lo stesso punto.\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro asse o sta sul bordo di uno smusso o di un raccordo; se la distanza e' meno di meta' della larghezza (il profilo scavalcherebbe lo spigolo); se lo schizzo non risulta completamente definito, o non regge una modifica di prova — e allora il taglio lo tolgo.",
+      "properties": {
+       "x": {
+        "type": "object",
+        "description": "l'ancora lungo x_mm: spigolo_uid + distanza_mm, oppure centrata_fra",
+        "properties": {
+         "spigolo_uid": {
+          "type": "string",
+          "description": "uno spigolo dritto della faccia, dallo stato, che corre lungo y_mm"
+         },
+         "distanza_mm": {
+          "type": "number",
+          "description": "dal CENTRO del profilo allo spigolo, misurata lungo x_mm"
+         },
+         "centrata_fra": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "due spigoli opposti della faccia, dallo stato, che corrono lungo y_mm: il centro resta a meta' fra loro"
+         }
+        }
+       },
+       "y": {
+        "type": "object",
+        "description": "l'ancora lungo y_mm: spigolo_uid + distanza_mm, oppure centrata_fra",
+        "properties": {
+         "spigolo_uid": {
+          "type": "string",
+          "description": "uno spigolo dritto della faccia, dallo stato, che corre lungo x_mm"
+         },
+         "distanza_mm": {
+          "type": "number",
+          "description": "dal CENTRO del profilo allo spigolo, misurata lungo y_mm"
+         },
+         "centrata_fra": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "due spigoli opposti della faccia, dallo stato, che corrono lungo x_mm: il centro resta a meta' fra loro"
+         }
+        }
+       }
+      },
+      "required": [
+       "x",
+       "y"
+      ]
+     },
      "lunghezza_mm": {
       "type": "number",
       "description": "lunghezza TOTALE da fuori a fuori, non la corsa. Dev'essere maggiore della larghezza."
@@ -357,7 +409,7 @@
      },
      "angolo_gradi": {
       "type": "number",
-      "description": "rotazione nel piano della faccia, predefinito 0"
+      "description": "rotazione nel piano della faccia, predefinito 0. Lo schizzo nasce quotato (raggio e distanza fra i centri): a 0 e 90 gradi anche l'orientamento e' fissato; obliqua, l'angolo si quota contro il primo spigolo dell'«ancora», e senza ancora resta libero (te lo dico)."
      },
      "passante": {
       "type": "boolean",

@@ -711,6 +711,9 @@ namespace ProvaSaldatura
                 // dichiarato non sa costruire, perche' dopo `crea_disegno` non
                 // torna al pezzo per sopprimere.
                 new Gruppo { Nome = "orfane",       Cosa = "la quota che resta senza spigolo (Z-A2)", Azioni = una(ProvaLeQuoteOrfane) },
+                // IL NUMERO STAMPATO (voce Z-C2): nessuna operazione del catalogo
+                // sovrascrive una quota, quindi la falsificazione si fa qui.
+                new Gruppo { Nome = "numeri",       Cosa = "il numero stampato e' quello del modello (Z-C2)", Azioni = una(ProvaINumeriDelleQuote) },
                 // LA PORTA DEL CLIENTE (voce F14): non chiama la libreria,
                 // parla al ponte sullo stdio come farebbe un client MCP.
                 new Gruppo { Nome = "porta-del-cliente",

@@ -60,6 +60,7 @@
     <Compile Include="Regressione.cs" />
     <Compile Include="PortaDelCliente.cs" />
     <Compile Include="Orfane.cs" />
+    <Compile Include="NumeriDelleQuote.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProvaNuove.cs" />
     <Compile Include="ProveSenzaIlPezzo.cs" />
