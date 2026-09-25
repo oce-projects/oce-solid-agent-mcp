@@ -1,0 +1,37 @@
+{
+  "nome": "la_tasca_centrata_segue_la_mezzeria",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE E18, pezzo (b). Una tasca 60 x 40 centrata fra i fianchi e a 30 dal fondo: le due ancore insieme, una per asse. La centratura e' PER ASSE — una mezzeria con gli estremi sulla retta dei due fianchi, perpendicolare, e il centro della tasca a meta' — perche' la prima misura, con la mezzeria fra i PUNTI MEDI dei fianchi, centrava in tutte e due le direzioni e faceva saltare la tasca in y gia' alla creazione. La piastra cresce verso +X e +Y (voce E2): la tasca deve andare a x = 30 e restare a 30 dal fondo.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "taglio_rettangolare",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": -30,
+                     "lunghezza_mm": 60, "larghezza_mm": 40, "passante": false, "profondita_mm": 5,
+                     "ancora": { "x": { "centrata_fra": [ "@spigolo(asse=Y,x~=-100,z~=20)", "@spigolo(asse=Y,x~=100,z~=20)" ] },
+                                 "y": { "spigolo_uid": "@spigolo(asse=X,y~=-60,z~=20)", "distanza_mm": 30 } } },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 468000, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "480000 meno 60*40*5" },
+        { "cosa": "centro_massa_mm", "uguale": [0, 0.769, 9.808], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "calcolato a mano: piastra 480000 in (0,0,10) meno tasca 12000 in (0,-30,17,5); il centesimo copre l'arrotondamento" },
+        { "cosa": "misure.ancora.y.quota_riletta_mm", "uguale": 30, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "la quota si rilegge in metri" },
+        { "cosa": "misure.ancora.schizzo", "uguale": "completamente definito" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+      "attese": [
+        { "cosa": "misure.adesso_mm", "uguale": 260 },
+        { "cosa": "centro_massa_mm", "uguale": [30, 0.588, 9.853], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "piastra 624000 in (30,0,10) meno tasca 12000 in (30,-30,17,5): la tasca e' andata a meta' della piastra nuova. Rimasta a x = 0, il baricentro sarebbe a x = 30,588" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 180 },
+      "attese": [
+        { "cosa": "misure.adesso_mm", "uguale": 180 },
+        { "cosa": "centro_massa_mm", "uguale": [30, 30.779, 9.903], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "piastra 936000 in (30,30,10) meno tasca 12000 in (30,-30,17,5): il fondo non si e' mosso e la tasca resta a 30 da lui" } ] }
+  ]
+}

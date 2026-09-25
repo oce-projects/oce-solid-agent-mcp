@@ -4,6 +4,7 @@
   "perche": "Una tasca al centro di una piastra che si allunga. La piastra cresce DA UNA PARTE SOLA anche se lo schizzo e' centrato (misurato nella voce E2), quindi «al centro» e «dov'era» smettono di coincidere: e' il caso in cui l'intento si vede a occhio nudo.",
   "intento": "ancorato_a_bordo",
   "perche_intento": "«tasca centrata» vuol dire centrata, non «a x = 0»: portando la lunghezza da 200 a 260 il pezzo va da X[-100,100] a X[-100,160], e il centro si sposta a x = 30. Una tasca che resta a x = 0 non e' piu' centrata.",
+  "perche_l_ancora": "VOCE E18 (b). Fino alla libreria 0.115.0 il `costruisci` dava la tasca a coordinate assolute (x 0, y 0), cioe' un'istruzione che un progettista non darebbe per «centrata»: il caso misurava un limite, e restava in silenzio per costruzione. Adesso il piano dice cosa intende — centrata fra i fianchi e fra il fondo e l'alto, con `ancora` — e le ATTESE sono le stesse di prima. Il vecchio modo resta provato dal gemello `r03b_tasca_resta_dov_era`.",
   "costruisci": [
     {
       "operazione": "estrudi_rettangolo",
@@ -14,7 +15,9 @@
       "operazione": "taglio_rettangolare",
       "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
                      "lunghezza_mm": 60, "larghezza_mm": 40,
-                     "passante": false, "profondita_mm": 5 }
+                     "passante": false, "profondita_mm": 5,
+                     "ancora": { "x": { "centrata_fra": [ "@spigolo(asse=Y,x~=-100,z~=20)", "@spigolo(asse=Y,x~=100,z~=20)" ] },
+                                 "y": { "centrata_fra": [ "@spigolo(asse=X,y~=-60,z~=20)", "@spigolo(asse=X,y~=60,z~=20)" ] } } }
     }
   ],
   "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },

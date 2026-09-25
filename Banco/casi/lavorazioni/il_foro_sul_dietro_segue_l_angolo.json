@@ -1,0 +1,40 @@
+{
+  "nome": "il_foro_sul_dietro_segue_l_angolo",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE E18, rischio 4 del critico, la seconda meta': la faccia di DIETRO (normale -Z). Lo schizzo su una faccia rivolta all'indietro ha la X girata rispetto al modello (lo dice `PuntoNelloSchizzo`), e un'ancora che ragionasse nelle coordinate dello schizzo misurerebbe dal lato sbagliato. Foro Ø8 cieco a 20 dal fianco destro e dall'alto: dopo 260 x 180 deve stare a (140, 100). Misurato il 25/9/2026 col banchetto.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=dietro)", "x_mm": 80, "y_mm": 40,
+                     "diametro_mm": 8, "passante": false, "profondita_mm": 5,
+                     "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=0)", "distanza_mm": 20 },
+                                 "y": { "spigolo_uid": "@spigolo(asse=X,y~=60,z~=0)", "distanza_mm": 20 } } },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 479748.67, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "480000 meno pi*4^2*5 = 251,327" },
+        { "cosa": "centri_x_mm", "uguale": [80], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'asse del cilindro si legge in metri" },
+        { "cosa": "centri_y_mm", "uguale": [40], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "come sopra" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+      "attese": [
+        { "cosa": "misure.adesso_mm", "uguale": 260 },
+        { "cosa": "centri_x_mm", "uguale": [140], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "il fianco destro va a 160: 140" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 180 },
+      "attese": [
+        { "cosa": "misure.adesso_mm", "uguale": 180 },
+        { "cosa": "centri_x_mm", "uguale": [140], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "il fianco destro non si e' mosso" },
+        { "cosa": "centri_y_mm", "uguale": [100], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'alto va a 120: 100" },
+        { "cosa": "volume_mm3", "uguale": 935748.67, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "260*180*20 meno il foro intero" } ] }
+  ]
+}

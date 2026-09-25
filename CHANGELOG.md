@@ -24,6 +24,54 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.91.0 — 25 September 2026 · library 0.116.0
+
+The anchor (entry E18, parts a and b). `x_mm`/`y_mm` are absolute model
+coordinates: a hole «20 mm from the edge» on a plate that grows stayed
+where it was — clean rebuild, no error, wrong part. `taglio_cilindrico` and
+`taglio_rettangolare` now take `ancora`:
+
+```json
+"ancora": { "x": {"spigolo_uid": "E7", "distanza_mm": 20},
+            "y": {"centrata_fra": ["E3", "E5"]} }
+```
+
+For each face axis, either a dimension from the profile centre to a
+straight edge, or the centre kept halfway between two opposite edges. Both
+axes are required. `x_mm`/`y_mm` stay: they say where the point is, the
+anchor says what holds it there, and they must agree.
+
+The rules come from measuring and from an adversarial review written before
+the code: the edge carries its signature, is straight, lies in the face and
+runs along the other axis, and is not the boundary of a chamfer or fillet;
+`AddToDB` is on only around each creation; the sketch must come out fully
+defined with no dangling, over-defining or broken relation; after the cut a
+movement test (each anchor dimension +0.1 mm, rebuild, restore) and, if it
+fails, the cut is removed and the part checked back to what it was.
+Centring is per axis (a centre line with its ends on the two edges' lines,
+perpendicular, the point at its middle): centring between the edges'
+midpoints moved the hole in y at creation.
+
+Measuring found three things the design did not:
+
+- a sketch point or segment is not an `IEntity`: the cast returns null
+  silently, and the centre line came out with 2 relations out of 4 — the
+  relation count caught it;
+- `IModelDocExtension.AddDimension` returns null for a sketch point plus a
+  model edge, in all four directions, on three faces. Horizontal/vertical
+  dimensions work, chosen from the edge direction in the sketch;
+- the expectation of regression case `r01` assumed the plate grows
+  symmetrically; it grows on one side (entry E2). Corrected to
+  [-40, -40, 100, 100]; with the old numbers it could never hold.
+
+Bench cases: an anchored hole on the front, side and back faces; a pocket
+centred between the sides; eight refusals and the chamfer-edge refusal.
+Regression: `r03` now builds with the anchor (same expectations), `r03b` is
+its absolute twin, `r19` is an anchored hole. The bench attaches signatures
+for the edges inside `ancora` too, as the bridge does.
+
+---
+
 ## 0.90.0 — 25 September 2026 · library 0.115.0
 
 The dimensioned drawing, looked at (entry GT11). Asked to see a drawing,

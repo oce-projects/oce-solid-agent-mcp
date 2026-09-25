@@ -324,7 +324,7 @@ un argomento in comune (sono due operazioni che non si parlano).
 .\Banco\banco.ps1 -Regressione
 ```
 
-Sedici pezzi in `casi/regressione/`, ognuno con `costruisci`, **una sola
+Diciotto pezzi in `casi/regressione/`, ognuno con `costruisci`, **una sola
 `modifica`** e un `intento`. Il risultato e' **una di tre cose, non due**:
 
 | | |
@@ -509,11 +509,15 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/ 11   il guscio, e da che parte toglie;
+casi/lavorazioni/ 17   il guscio, e da che parte toglie;
                        la quota che fa uscire l'asola dal materiale, rifiutata
                        e rimessa com'era (voce E18 c), e la sua gemella;
                        il raccordo sui quattro angoli e il foro guidato che
-                       segue la tabella ISO (Z-C6: prima solo in regressione)
+                       segue la tabella ISO (Z-C6: prima solo in regressione);
+                       l'ANCORA (voce E18): il foro a 20 dal bordo che segue
+                       il bordo, la tasca centrata che segue la mezzeria, sul
+                       davanti, sul fianco e sul dietro; otto rifiuti e lo
+                       spigolo sul bordo di uno smusso
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       15   ogni faccia, non una sola
 casi/smusso/       3   dove un raccordo toglierebbe un altro volume
@@ -572,7 +576,7 @@ casi/lamiera/      4   la L si sviluppa lunga quanto il conto a mano; data al
                        delle pieghe rifiutato (voce GP18)
 casi/quote/        2   la piastra si quota da sola con DimXpert, coi valori
                        giusti; con due riferimenti rifiuta (voce Z-H3)
-casi/regressione/ 16   una quota a monte cambia: chi regge e chi si stacca (--regressione)
+casi/regressione/ 18   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 ```
 
 **Gli altri** — piani per il ponte MCP e materiale di lavoro, non li esegue

@@ -1971,6 +1971,13 @@ namespace Riscontro.Disegno
             double volumePrima = VolumeMm3(modello);
 
             double raggioForo = diametro / 2;
+
+            // L'ANCORA (voce E18): cosa tiene il foro dov'e' quando il pezzo
+            // cambia. Si controlla tutta PRIMA di disegnare: un'ancora sbagliata
+            // non deve lasciare niente nel pezzo. Vuota = il vecchio modo.
+            var ancora = LeggiAncora(a, stato, faccia, assi, offsetM, x, y, raggioForo, raggioForo, out motivo);
+            if (ancora == null) return Fallito(motivo);
+
             string senzaSperanza = TaglioSenzaSperanza(
                 modello, assi,
                 "Il foro da " + diametro.ToString("0.##") + " mm",
@@ -1993,8 +2000,19 @@ namespace Riscontro.Disegno
                 try { schizzi.InsertSketch(false); } catch { }
                 return Fallito(errore);
             }
-            var cerchioTaglio = schizzi.CreateCircleByRadius(
-                centro[0], centro[1], centro[2], Unita.M(diametro / 2));
+            // CON L'ANCORA, `AddToDB` a vero attorno alla creazione: le
+            // relazioni che SOLIDWORKS indovina (centro sull'origine, su un
+            // punto medio) si sommerebbero all'ancora e sovravincolerebbero lo
+            // schizzo. Senza ancora il foro nasce come e' sempre nato.
+            ISketchSegment cerchioTaglio;
+            bool addPrima = schizzi.AddToDB;
+            try
+            {
+                if (!ancora.Vuoto) schizzi.AddToDB = true;
+                cerchioTaglio = schizzi.CreateCircleByRadius(
+                    centro[0], centro[1], centro[2], Unita.M(diametro / 2));
+            }
+            finally { schizzi.AddToDB = addPrima; }
 
             // IL DIAMETRO, SULLO SCHIZZO DEL FORO.
             //
@@ -2016,6 +2034,20 @@ namespace Riscontro.Disegno
                 ? QuotaSegmenti(modello,
                     new List<Quota> { Quota.Su(cerchioTaglio, testoQuota) })
                 : 0;
+
+            // L'ANCORA SI ATTACCA AL CENTRO DEL CERCHIO, dopo il diametro: lo
+            // schizzo deve uscirne completamente definito.
+            var misureAncora = new Dictionary<string, object>();
+            if (!ancora.Vuoto)
+            {
+                ISketchPoint puntoCentro = null;
+                try { puntoCentro = ((ISketchArc)cerchioTaglio).GetCenterPoint2() as ISketchPoint; } catch { }
+                if (!ApplicaAncora(modello, ancora, puntoCentro, assi, offsetM, x, y, misureAncora, out string erroreAncora))
+                {
+                    try { schizzi.InsertSketch(false); } catch { }
+                    return Fallito(erroreAncora + SenzaLoSchizzo(modello));
+                }
+            }
 
             schizzi.InsertSketch(false);
 
@@ -2058,6 +2090,11 @@ namespace Riscontro.Disegno
                     "chiedilo cieco con la profondita' dello spessore." +
                     RestaNelPezzo);
 
+            // LA PROVA DI MOVIMENTO: un'ancora che non regge una modifica non
+            // serve, e il taglio che la porta non resta nel pezzo.
+            string nonRegge = ProvaDiMovimento(modello, ancora, feature);
+            if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+
             var misure = new Dictionary<string, object>
             {
                 ["diametro_mm"] = diametro,
@@ -2065,6 +2102,7 @@ namespace Riscontro.Disegno
                 ["pareti_forate"] = pareti,
                 ["quote_sullo_schizzo"] = quoteMesse,
             };
+            foreach (var voce in misureAncora) misure[voce.Key] = voce.Value;
 
             // QUANTO SE N'E' ANDATO DAVVERO. Vedi `NotaSulVolume`.
             NotaSulVolume(
@@ -2189,6 +2227,10 @@ namespace Riscontro.Disegno
             if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
             if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
 
+            // L'ANCORA (voce E18), controllata tutta prima di disegnare.
+            var ancora = LeggiAncora(a, stato, faccia, assi, offsetM, x, y, lunghezza / 2, larghezza / 2, out motivo);
+            if (ancora == null) return Fallito(motivo);
+
             string senzaSperanza = TaglioSenzaSperanza(
                 modello, assi,
                 "La tasca " + lunghezza.ToString("0.##") + " x " + larghezza.ToString("0.##") + " mm",
@@ -2211,8 +2253,15 @@ namespace Riscontro.Disegno
                 try { schizzi.InsertSketch(false); } catch { }
                 return Fallito(errore);
             }
-            var latiTaglio = schizzi.CreateCornerRectangle(
-                p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]) as object[];
+            object[] latiTaglio;
+            bool addPrima = schizzi.AddToDB;
+            try
+            {
+                if (!ancora.Vuoto) schizzi.AddToDB = true;
+                latiTaglio = schizzi.CreateCornerRectangle(
+                    p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]) as object[];
+            }
+            finally { schizzi.AddToDB = addPrima; }
 
             // LE DUE QUOTE DELLA TASCA, per lo stesso motivo del foro tondo.
             //
@@ -2239,6 +2288,23 @@ namespace Riscontro.Disegno
                 quoteMesse = QuotaSegmenti(modello, elenco);
             }
 
+            // L'ANCORA SI ATTACCA AL CENTRO DELLA TASCA, che si costruisce: il
+            // rettangolo per angoli non ha un punto al centro.
+            var misureAncora = new Dictionary<string, object>();
+            if (!ancora.Vuoto)
+            {
+                var puntoCentro = CentroDelRettangolo(modello, latiTaglio, p1, p2);
+                string erroreAncora = puntoCentro == null
+                    ? "Non sono riuscito a costruire il centro della tasca a cui attaccare l'ancora."
+                    : null;
+                if (erroreAncora != null ||
+                    !ApplicaAncora(modello, ancora, puntoCentro, assi, offsetM, x, y, misureAncora, out erroreAncora))
+                {
+                    try { schizzi.InsertSketch(false); } catch { }
+                    return Fallito(erroreAncora + SenzaLoSchizzo(modello));
+                }
+            }
+
             schizzi.InsertSketch(false);
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
@@ -2254,6 +2320,10 @@ namespace Riscontro.Disegno
                     CampioniRettangolo(x, y, lunghezza, larghezza));
                 return Fallito("Il taglio non e' stato creato." + sotto + SenzaLoSchizzo(modello));
             }
+
+            string nonRegge = ProvaDiMovimento(modello, ancora, feature);
+            if (nonRegge != null) return Fallito(nonRegge + TogliIlTaglio(modello, feature, volumePrima));
+
             var misureTasca = new Dictionary<string, object>
             {
                 ["lunghezza_mm"] = lunghezza,
@@ -2261,6 +2331,7 @@ namespace Riscontro.Disegno
                 ["passante"] = passante,
                 ["quote_sullo_schizzo"] = quoteMesse,
             };
+            foreach (var voce in misureAncora) misureTasca[voce.Key] = voce.Value;
 
             // LO STESSO DIFETTO DI `taglio_cilindrico`, e la stessa riparazione
             // (voce E13). Una tasca il cui profilo cade in parte fuori dalla

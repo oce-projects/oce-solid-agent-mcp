@@ -212,10 +212,21 @@ namespace ProvaSaldatura
                 var elenco = grezzo as System.Collections.IEnumerable;
                 if (elenco == null) continue;
 
+                // GLI SPIGOLI DELL'ANCORA (voce E18) stanno un livello piu' giu',
+                // in `ancora.x` e `ancora.y`: il ponte manda le firme di TUTTO lo
+                // stato, e la libreria rifiuta un'ancora il cui spigolo non ha
+                // firma in un piano che ne porta. Senza questo, il banco vedrebbe
+                // un rifiuto che in produzione non c'e'.
+                var sorgenti = new List<object>();
                 foreach (var campo in coppia.Item2)
                 {
                     object valore;
-                    if (!argomenti.TryGetValue(campo, out valore) || valore == null) continue;
+                    if (argomenti.TryGetValue(campo, out valore) && valore != null) sorgenti.Add(valore);
+                }
+                if (coppia.Item1 == "spigoli") sorgenti.AddRange(SpigoliDellAncora(argomenti));
+
+                foreach (var valore in sorgenti)
+                {
                     var voluti = new List<string>();
                     if (valore is string) voluti.Add((string)valore);
                     else
@@ -260,6 +271,24 @@ namespace ProvaSaldatura
             }
 
             if (firme.Count > 0) argomenti["_firme"] = firme;
+        }
+
+        /// <summary>Gli uid degli spigoli nominati da `ancora` (spigolo_uid e centrata_fra, per asse).</summary>
+        private static List<object> SpigoliDellAncora(Dictionary<string, object> argomenti)
+        {
+            var fuori = new List<object>();
+            object grezza;
+            var ancora = argomenti.TryGetValue("ancora", out grezza) ? grezza as Dictionary<string, object> : null;
+            if (ancora == null) return fuori;
+            foreach (var asse in ancora.Values)
+            {
+                var voce = asse as Dictionary<string, object>;
+                if (voce == null) continue;
+                object v;
+                if (voce.TryGetValue("spigolo_uid", out v) && v != null) fuori.Add(v);
+                if (voce.TryGetValue("centrata_fra", out v) && v != null) fuori.Add(v);
+            }
+            return fuori;
         }
 
         /// <summary>

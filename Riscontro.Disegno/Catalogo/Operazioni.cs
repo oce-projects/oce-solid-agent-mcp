@@ -1373,6 +1373,7 @@ namespace Riscontro.Disegno.Catalogo
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
+                            "ancora", SchemaAncora("il foro"),
                             "diametro_mm", O(
                                 "type", "number"),
                             "passante", O(
@@ -1441,10 +1442,13 @@ namespace Riscontro.Disegno.Catalogo
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
+                            "ancora", SchemaAncora("la tasca"),
                             "lunghezza_mm", O(
-                                "type", "number"),
+                                "type", "number",
+                                "description", "lungo x_mm"),
                             "larghezza_mm", O(
-                                "type", "number"),
+                                "type", "number",
+                                "description", "lungo y_mm"),
                             "passante", O(
                                 "type", "boolean",
                                 "description", "predefinito: no"),
@@ -4067,5 +4071,53 @@ namespace Riscontro.Disegno.Catalogo
                         "required", A("nome")),
                 },
             };
+
+        /// <summary>
+        /// L'argomento `ancora` (voce E18), lo stesso per il foro e la tasca. E'
+        /// un metodo e non un campo: la lista qui sopra si inizializza prima dei
+        /// campi dichiarati dopo di lei, e un campo varrebbe ancora null.
+        /// </summary>
+        private static Nodo SchemaAncora(string cosa)
+        {
+            return O(
+                "type", "object",
+                "description", "COSA TIENE " + cosa.ToUpperInvariant() + " DOV'E' QUANDO IL PEZZO CAMBIA. Senza, "
+                    + "x_mm/y_mm sono coordinate assolute: se la piastra si allunga, " + cosa + " resta "
+                    + "dov'era. Per OGNI asse, «x» e «y», tutti e due obbligatori, una di due cose: "
+                    + "{\"spigolo_uid\": \"E7\", \"distanza_mm\": 20}, la distanza dal CENTRO a uno "
+                    + "spigolo dritto della stessa faccia che corre lungo l'altro asse; oppure "
+                    + "{\"centrata_fra\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. x_mm/y_mm "
+                    + "restano obbligatori e devono dire lo stesso punto."
+                    + "\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso "
+                    + "punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro "
+                    + "asse o sta sul bordo di uno smusso o di un raccordo; se la distanza e' meno di "
+                    + "meta' della larghezza (il profilo scavalcherebbe lo spigolo); se lo schizzo non "
+                    + "risulta completamente definito, o non regge una modifica di prova — e allora il "
+                    + "taglio lo tolgo.",
+                "properties", O(
+                    "x", AsseDellAncora("x"),
+                    "y", AsseDellAncora("y")),
+                "required", A("x", "y"));
+        }
+
+        private static Nodo AsseDellAncora(string asse)
+        {
+            string altro = asse == "x" ? "y" : "x";
+            return O(
+                "type", "object",
+                "description", "l'ancora lungo " + asse + "_mm: spigolo_uid + distanza_mm, oppure centrata_fra",
+                "properties", O(
+                    "spigolo_uid", O(
+                        "type", "string",
+                        "description", "uno spigolo dritto della faccia, dallo stato, che corre lungo " + altro + "_mm"),
+                    "distanza_mm", O(
+                        "type", "number",
+                        "description", "dal CENTRO del profilo allo spigolo, misurata lungo " + asse + "_mm"),
+                    "centrata_fra", O(
+                        "type", "array",
+                        "items", O("type", "string"),
+                        "description", "due spigoli opposti della faccia, dallo stato, che corrono lungo "
+                            + altro + "_mm: il centro resta a meta' fra loro")));
+        }
     }
 }

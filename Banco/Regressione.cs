@@ -36,11 +36,15 @@ namespace ProvaSaldatura
     ///   * `ancorato_a_assoluto` — «il foro resta a x = 80 nel modello»;
     ///   * `ancorato_a_bordo` — «il foro resta a 20 mm dal bordo destro».
     ///
-    /// **Oggi il sistema sa esprimere solo il primo:** `x_mm: 80` e' assoluto
-    /// per costruzione. Quindi i casi `ancorato_a_bordo` **devono fallire
-    /// adesso**, e non sono un difetto della suite: sono la misura di partenza
-    /// di E6/E7. Dichiararli attesi-verdi sarebbe barare; dichiararli attesi-
-    /// rossi sarebbe rendere permanente un limite. Si contano e basta.
+    /// **Fino alla libreria 0.115.0 il sistema sapeva esprimere solo il
+    /// primo:** `x_mm: 80` e' assoluto per costruzione, e i casi
+    /// `ancorato_a_bordo` fallivano tutti — la misura di partenza di E6/E7.
+    /// Dalla 0.116.0 `taglio_cilindrico` e `taglio_rettangolare` prendono
+    /// `ancora` (voce E18): i casi il cui piano la usa possono reggere, quelli
+    /// scritti con operazioni che non la sanno prendere (`foro_guidato`)
+    /// restano in silenzio. Dichiararli attesi-verdi sarebbe barare;
+    /// dichiararli attesi-rossi sarebbe rendere permanente un limite. Si
+    /// contano e basta.
     ///
     /// ── E LA RIGA DEI SILENZIOSI SI SCRIVE ANCHE SE VALE ZERO ─────────────
     ///
@@ -341,9 +345,10 @@ namespace ProvaSaldatura
                     "> La terza riga si scrive **anche quando vale zero**: un conteggio che",
                     "> sparisce quando e' zero e' un conteggio che nessuno controlla.",
                     "",
-                    "I casi `ancorato_a_bordo` **devono fallire adesso**: oggi il sistema sa",
-                    "esprimere solo l'ancoraggio assoluto — `x_mm: 80` lo e' per costruzione.",
-                    "Non sono un difetto della suite, sono la misura di partenza di E6/E7.",
+                    "Senza `ancora` `x_mm: 80` e' assoluto per costruzione. Con `ancora`",
+                    "(voce E18: `taglio_cilindrico`, `taglio_rettangolare`) il profilo segue",
+                    "lo spigolo. I casi `ancorato_a_bordo` scritti con operazioni che l'ancora",
+                    "non la sanno prendere restano in silenzio: sono la misura di cio' che manca.",
                     "",
                     "| caso | intento | esito | |",
                     "|---|---|---|---|",

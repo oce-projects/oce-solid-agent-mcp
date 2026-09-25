@@ -1,0 +1,41 @@
+{
+  "nome": "il_foro_sul_fianco_resta_a_meta_spessore",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE E18, rischio 4 del critico: le regole dell'ancora parlano degli assi DELLA FACCIA (`assi[]`), non della X e della Y del modello. Sulla faccia di destra (normale +X) x_mm e' la Y del modello e y_mm la Z: un foro Ø6 a 30 dall'alto e centrato nello spessore. Alzando la piastra l'alto va da 60 a 120 e il foro deve seguirlo (Y 30 -> 90); ingrossandola da 20 a 30 il foro deve restare a meta' (Z 10 -> 15). Misurato il 25/9/2026 col banchetto.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=destra)", "x_mm": 30, "y_mm": 10,
+                     "diametro_mm": 6, "passante": false, "profondita_mm": 10,
+                     "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Z,x~=100,y~=60)", "distanza_mm": 30 },
+                                 "y": { "centrata_fra": [ "@spigolo(asse=Y,x~=100,z~=20)", "@spigolo(asse=Y,x~=100,z~=0)" ] } } },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 479717.26, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "480000 meno pi*3^2*10 = 282,743" },
+        { "cosa": "centri_y_mm", "uguale": [30], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'asse del cilindro si legge in metri" },
+        { "cosa": "centri_z_mm", "uguale": [10], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "come sopra" },
+        { "cosa": "misure.ancora.schizzo", "uguale": "completamente definito" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 180 },
+      "attese": [
+        { "cosa": "misure.adesso_mm", "uguale": 180 },
+        { "cosa": "centri_y_mm", "uguale": [90], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "l'alto va a 120, il foro deve restare a 30: 90" },
+        { "cosa": "centri_z_mm", "uguale": [10], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "lo spessore non e' cambiato" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 30 },
+      "attese": [
+        { "cosa": "misure.adesso_mm", "uguale": 30 },
+        { "cosa": "centri_z_mm", "uguale": [15], "tolleranza": 0.05,
+          "perche_questa_tolleranza": "lo spessore va da 0 a 30, il foro deve restare a meta'" },
+        { "cosa": "volume_mm3", "uguale": 1079717.26, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "200*180*30 meno il foro intero" } ] }
+  ]
+}

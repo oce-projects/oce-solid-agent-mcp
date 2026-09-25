@@ -85,8 +85,12 @@ namespace Prove.Contratti
         /// **88 dal 25/9/2026 (libreria 0.114.0)**: `cordone_saldatura`
         /// riscritto su due facce, coi rifiuti nuovi che dicono quale faccia
         /// indicare invece.
+        ///
+        /// **90 dal 25/9/2026 (libreria 0.116.0)**: l'ancora (voce E18), coi
+        /// rifiuti che dicono come ancorare l'asse mancante e a quale spigolo
+        /// vivo attaccarsi invece che al bordo di uno smusso.
         /// </summary>
-        private const int Pavimento = 88;
+        private const int Pavimento = 90;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

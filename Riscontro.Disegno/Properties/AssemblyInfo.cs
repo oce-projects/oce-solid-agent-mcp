@@ -219,8 +219,20 @@ using System.Runtime.InteropServices;
 //            un'altra vista, leggendolo dagli spigoli delle quote che ci sono.
 //          E le quote restano dentro la cornice del foglio, e la vista si puo'
 //          dire con l'identificativo dello stato («V2»).
-[assembly: AssemblyVersion("0.115.0.0")]
-[assembly: AssemblyFileVersion("0.115.0.0")]
+// 0.116.0: L'ANCORA (voce E18, pezzi a e b). `taglio_cilindrico` e
+//          `taglio_rettangolare` prendono `ancora`: per ogni asse della faccia
+//          una quota dal centro a uno spigolo, oppure il centro a meta' fra due
+//          spigoli opposti. Senza, x_mm/y_mm restano assoluti e un foro a 20
+//          dal bordo resta dov'era quando la piastra si allunga. Le regole
+//          vengono dalla misura e da un critico avversariale: tutti e due gli
+//          assi, spigolo con la firma, dritto, sulla faccia e non sul bordo di
+//          uno smusso; coerente con x_mm/y_mm; `AddToDB` solo attorno alle
+//          creazioni; schizzo completamente definito e nessuna relazione
+//          malata; una prova di movimento dopo il taglio, e se non regge il
+//          taglio si toglie. La centratura e' PER ASSE: fra i punti medi dei
+//          fianchi faceva saltare il foro in y gia' alla creazione.
+[assembly: AssemblyVersion("0.116.0.0")]
+[assembly: AssemblyFileVersion("0.116.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -235,4 +247,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.115.0")]
+[assembly: AssemblyInformationalVersion("0.116.0")]

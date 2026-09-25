@@ -1,0 +1,27 @@
+{
+  "nome": "r03b_tasca_resta_dov_era",
+  "famiglia": "regressione",
+  "perche": "IL GEMELLO ASSOLUTO di `r03_tasca_centrata` (voce E18): la stessa tasca, senza `ancora`. Prova che il vecchio modo continua a funzionare quando e' quello che si vuole — una tasca che sta a x = 0 perche' li' c'e' qualcosa che le corrisponde, non perche' e' il centro.",
+  "intento": "ancorato_a_assoluto",
+  "perche_intento": "senza ancora x_mm/y_mm sono coordinate del modello: portando la lunghezza a 260 la piastra va da X -100 a +160 e la tasca resta a x = 0. Il baricentro va a x = 30,588 invece di 30: e' la differenza che `r03` misura, vista dall'altra parte.",
+  "costruisci": [
+    {
+      "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true }
+    },
+    {
+      "operazione": "taglio_rettangolare",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+                     "lunghezza_mm": 60, "larghezza_mm": 40,
+                     "passante": false, "profondita_mm": 5 }
+    }
+  ],
+  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+  "dopo": [
+    { "cosa": "ingombro_mm", "uguale": [260, 120, 20] },
+    { "cosa": "centro_massa_mm", "uguale": [30.588, 0, 9.853],
+      "tolleranza": 0.02,
+      "perche_questa_tolleranza": "piastra 624000 mm3 in (30,0,10) meno tasca 12000 in (0,0,17.5): x = 624000*30/612000 = 30,588. Il centesimo copre l'arrotondamento" }
+  ]
+}
