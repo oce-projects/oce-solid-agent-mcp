@@ -830,7 +830,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "aprirebbe il bordo, o due aperture che si fonderebbero in una: "
                         + "rimette il valore di prima, e lo dice. Succede piu' spesso di quanto "
                         + "sembri, perche' una piastra disegnata centrata cresce e cala DA UNA "
-                        + "PARTE SOLA: accorciarla di 50 sposta un fianco di 50, non due di 25.",
+                        + "PARTE SOLA: accorciarla di 50 sposta un fianco di 50, non due di 25."
+                        + "\n\nRIFIUTA anche se con la quota nuova uno smusso o un raccordo non "
+                        + "ci sta piu' — per esempio lo spessore sotto il lato dello smusso: "
+                        + "SOLIDWORKS non da' errore, cambia la forma da solo, e la lavorazione "
+                        + "di base perde una faccia intera. Rimette il valore di prima e dice "
+                        + "quale smusso o raccordo.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",

@@ -101,8 +101,13 @@ namespace Prove.Contratti
         /// una replica del rilevatore su HEAD e sull'albero: 75 e 75.
         /// *E' la storia del 66 e dell'83 al contrario: un rilevatore piu'
         /// onesto abbassa il numero, e va scritto per la stessa ragione.*
+        ///
+        /// **76 dal 26/9/2026 (libreria 0.121.0):** il rifiuto nuovo di
+        /// `modifica_quota` sullo smusso o il raccordo che non ci sta piu' dice
+        /// la strada («cambia o togli prima lo smusso o il raccordo, poi la
+        /// quota»).
         /// </summary>
-        private const int Pavimento = 75;
+        private const int Pavimento = 76;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

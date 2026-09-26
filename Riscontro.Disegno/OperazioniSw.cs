@@ -3413,27 +3413,7 @@ namespace Riscontro.Disegno
             int aperteDopo = ApertureChiuse(modello);
             if (apertePrima >= 0 && aperteDopo >= 0 && aperteDopo < apertePrima)
             {
-                string rimesso;
-                try
-                {
-                    quota.SetSystemValue3(Unita.M(prima), inTutteLeConfigurazioni, null);
-                    modello.EditRebuild3();
-                    double? tornato = VolumeMm3(modello);
-                    rimesso = tornato == null || volumePrima == null
-                        ? " Ho rimesso " + prima.ToString("0.###") + " mm, ma non ho potuto " +
-                          "rimisurare il volume per controllare che il pezzo sia com'era: guardalo."
-                        : Math.Abs(tornato.Value - volumePrima.Value) < 0.01
-                        ? " Non l'ho lasciato cosi': ho rimesso " + prima.ToString("0.###") +
-                          " mm e il pezzo e' com'era."
-                        : " Ho provato a rimettere " + prima.ToString("0.###") + " mm, ma il " +
-                          "volume adesso e' " + tornato.Value.ToString("0.##") + " mm3 invece di " +
-                          volumePrima.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
-                }
-                catch (Exception ex)
-                {
-                    rimesso = " E non sono riuscito a rimettere " + prima.ToString("0.###") +
-                              " mm (" + ex.Message + "): il pezzo e' rimasto col valore nuovo.";
-                }
+                string rimesso = RimettiLaQuota(modello, quota, prima, volumePrima);
                 return Fallito(
                     "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " mm un'apertura " +
                     "esce dal materiale: le aperture chiuse sulle facce piane passano da " +
@@ -3441,6 +3421,41 @@ namespace Riscontro.Disegno
                     "il pezzo adesso ne apre il bordo, oppure due aperture si sono fuse in una." +
                     rimesso + " Se e' proprio quello che vuoi, sposta prima l'apertura, poi " +
                     "cambia la quota.");
+            }
+
+            // UNO SMUSSO O UN RACCORDO CHE NON CI STA PIU' (26/9/2026, caso r05
+            // della regressione — l'ultimo dei silenzi).
+            //
+            // Misurato: piastra spessa 20 con uno smusso da 2 su uno spigolo
+            // lungo, spessore portato a 1. Lo smusso non ci sta, e SOLIDWORKS NON
+            // FALLISCE: ricostruisce pulito, nessuna lavorazione in errore, e si
+            // mangia un millimetro di larghezza. Lo stesso col banchetto
+            // (`prova0089 storia`): due raccordi da 8 in cima a una piastra, poi
+            // larghezza a 10 o spessore a 6 — riuscita, zero errori, un pezzo che
+            // non e' quello che i raccordi descrivono.
+            //
+            // Il segno c'era gia', e lo si buttava: la lavorazione DI BASE perde
+            // una faccia intera — quella che smusso o raccordo adesso si prendono
+            // tutta — e `LavorazioniCambiate` lo scriveva in una nota, con la
+            // spiegazione sbagliata («una lavorazione cieca diventata passante»).
+            // Qui si guarda la stessa cosa con la domanda giusta: una lavorazione
+            // che NON e' un taglio ha perso facce, e piu' avanti nell'albero c'e'
+            // uno smusso o un raccordo? Allora e' lui che non ci sta, e si
+            // rifiuta come per le aperture: valore di prima, e volume riletto.
+            //
+            // I TAGLI RESTANO FUORI apposta: una tasca che perde il fondo e'
+            // diventata passante, e puo' essere proprio cio' che si voleva (la
+            // nota sotto lo dice e non rifiuta).
+            string chiNonCiSta = SmussoCheNonCiSta(modello, lavorazioniPrima, FaccePerLavorazione(modello));
+            if (chiNonCiSta != null)
+            {
+                string rimesso = RimettiLaQuota(modello, quota, prima, volumePrima);
+                return Fallito(
+                    "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " mm " + chiNonCiSta +
+                    ": non ci sta piu'. SOLIDWORKS non lo segnala come errore — ricostruisce e " +
+                    "cambia la forma da solo — ma il pezzo che esce non e' quello che la lavorazione " +
+                    "descrive." + rimesso + " Se vuoi quella misura, cambia o togli prima lo smusso " +
+                    "o il raccordo, poi la quota.");
             }
 
             var misure = new Dictionary<string, object>
@@ -5151,6 +5166,92 @@ namespace Riscontro.Disegno
         /// sede cieca e un passaggio sono due pezzi diversi, e chi ha chiesto
         /// la modifica deve poterlo leggere invece di scoprirlo in officina.
         /// </summary>
+        /// <summary>
+        /// Rimette una quota al valore di prima dopo un rifiuto, ricostruisce e
+        /// RILEGGE il volume: la coda della frase di rifiuto. Sta in un metodo
+        /// solo perche' la usano due guardie di `ModificaQuota` (aperture che
+        /// escono dal materiale, smussi che non ci stanno), e due copie dello
+        /// stesso «ho rimesso» divergono alla prima correzione.
+        /// </summary>
+        private static string RimettiLaQuota(
+            IModelDoc2 modello, IDimension quota, double prima, double? volumePrima)
+        {
+            // swSetValueInConfiguration_e.swSetValue_InAllConfigurations = 2
+            const int inTutteLeConfigurazioni = 2;
+            try
+            {
+                quota.SetSystemValue3(Unita.M(prima), inTutteLeConfigurazioni, null);
+                modello.EditRebuild3();
+                double? tornato = VolumeMm3(modello);
+                return tornato == null || volumePrima == null
+                    ? " Ho rimesso " + prima.ToString("0.###") + " mm, ma non ho potuto " +
+                      "rimisurare il volume per controllare che il pezzo sia com'era: guardalo."
+                    : Math.Abs(tornato.Value - volumePrima.Value) < 0.01
+                    ? " Non l'ho lasciato cosi': ho rimesso " + prima.ToString("0.###") +
+                      " mm e il pezzo e' com'era."
+                    : " Ho provato a rimettere " + prima.ToString("0.###") + " mm, ma il " +
+                      "volume adesso e' " + tornato.Value.ToString("0.##") + " mm3 invece di " +
+                      volumePrima.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
+            }
+            catch (Exception ex)
+            {
+                return " E non sono riuscito a rimettere " + prima.ToString("0.###") +
+                       " mm (" + ex.Message + "): il pezzo e' rimasto col valore nuovo.";
+            }
+        }
+
+        /// <summary>
+        /// Lo smusso o il raccordo che una quota nuova ha fatto uscire di misura,
+        /// detto a parole («lo smusso «Smusso1» si prende una faccia intera di
+        /// «Estrusione1» (6 -> 5 facce)»); null se non ce n'e'.
+        ///
+        /// Due condizioni, tutte e due lette: una lavorazione che non e' un
+        /// taglio (`Cut`, `ICE`, `HoleWzd`, e i tagli di rivoluzione) ha MENO
+        /// facce di prima, e dopo di lei nell'albero c'e' uno smusso o un
+        /// raccordo. Un conteggio -1 non entra: «non lo so» non e' «perso».
+        /// </summary>
+        private static string SmussoCheNonCiSta(
+            IModelDoc2 modello, Dictionary<string, int> prima, Dictionary<string, int> dopo)
+        {
+            if (modello == null || prima == null || dopo == null) return null;
+            string perdente = null, quanto = null;
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                int viste = 0;
+                while (f != null && viste < 400)
+                {
+                    viste++;
+                    string nome = null, tipo = null;
+                    try { nome = f.Name; tipo = f.GetTypeName2(); } catch { }
+                    if (nome != null && tipo != null)
+                    {
+                        bool eUnTaglio = tipo == "Cut" || tipo == "ICE" || tipo == "HoleWzd" ||
+                                         tipo.IndexOf("Cut", StringComparison.OrdinalIgnoreCase) >= 0;
+                        bool eSmussoORaccordo = tipo == "Chamfer" ||
+                                                tipo.IndexOf("Fillet", StringComparison.OrdinalIgnoreCase) >= 0;
+                        int p, d;
+                        if (perdente == null && !eUnTaglio && !eSmussoORaccordo &&
+                            prima.TryGetValue(nome, out p) && dopo.TryGetValue(nome, out d) &&
+                            p >= 0 && d >= 0 && d < p)
+                        {
+                            perdente = nome;
+                            quanto = p + " -> " + d;
+                        }
+                        else if (perdente != null && eSmussoORaccordo)
+                        {
+                            return (tipo == "Chamfer" ? "lo smusso «" : "il raccordo «") + nome +
+                                   "» si prende una faccia intera di «" + perdente + "» (" + quanto +
+                                   " facce)";
+                        }
+                    }
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            return null;
+        }
+
         private static string LavorazioniCambiate(
             Dictionary<string, int> prima, Dictionary<string, int> dopo,
             Dictionary<string, object> misure)
@@ -5180,8 +5281,8 @@ namespace Riscontro.Disegno
                 righe.Add("non hanno piu' nessuna faccia: " + string.Join(", ", sparite));
             if (perse.Count > 0)
                 righe.Add("hanno perso facce: " + string.Join(", ", perse) +
-                          ". Una lavorazione cieca che perde una faccia di solito e' " +
-                          "diventata PASSANTE: il fondo non c'e' piu'");
+                          ". Un taglio cieco che perde una faccia di solito e' " +
+                          "diventato PASSANTE: il fondo non c'e' piu'");
             if (prese.Count > 0)
                 righe.Add("hanno preso facce: " + string.Join(", ", prese));
 

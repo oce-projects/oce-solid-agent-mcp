@@ -24,6 +24,38 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.96.0 — 26 September 2026 · library 0.121.0
+
+**The regression has no silent case left.** `r05` — a 2 mm chamfer, then
+the plate brought to 1 mm — was the last one, and it was written off as
+SOLIDWORKS' own: the chamfer no longer fits, and SOLIDWORKS does not fail,
+it rebuilds clean and eats a millimetre of width. The sign was already
+there and thrown away: the BASE feature loses a whole face (the one the
+chamfer now takes entirely), and `LavorazioniCambiate` wrote it in a note
+with the wrong explanation («a blind feature became through»).
+
+Now `modifica_quota` refuses, names the chamfer or fillet, and puts the
+old value back when a feature that is not a cut loses faces and a chamfer
+or fillet comes after it in the tree. Cuts stay out on purpose: a pocket
+that loses its bottom has become a through cut, and that may be the point
+(the note says so, now worded for cuts). `RimettiLaQuota` is extracted:
+the aperture guard of E18(c) and this one put a value back the same way.
+
+It came out of entry E20. The probe (`prova0089 storia`: two R8 fillets,
+then width 60 -> 10 or thickness 20 -> 6) found **no feature in error** in
+either case — a per-step error count would have caught nothing. E20
+closes as not needed in its written form; this guard is what it found.
+
+Regression (19 cases): **17 hold, 2 break and say so, 0 silent** (it was
+12/0/4 of 16 on 15 September). New cases: the thickness below the fillet
+radius, refused and restored, and its twin at 12 that fits; and E19's
+«two candidates» branch — a plate and its copy touching, the same edge
+twice — refused with «non scelgo io».
+
+Full bench: 1194 tests, 0 failed, 939 of 939 expectations verified.
+
+---
+
 ## 0.95.0 — 25 September 2026 · library 0.120.0
 
 Edges are found again by signature (entry E19). Faces have had this since

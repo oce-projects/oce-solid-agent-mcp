@@ -1,0 +1,26 @@
+{
+  "nome": "lim_raccordo_su_uno_spigolo_doppio",
+  "famiglia": "ritrovare",
+  "perche": "VOCE E19, il ramo «due candidati». La piastra e la sua copia spostata di 100 si toccano sulla faccia a x = 50: lo spigolo verticale in (50, 30) c'e' DUE volte, uno per corpo, stessa lunghezza e stesso punto. Il raccordo porta l'uid letto prima della copia (E11); dopo la copia gli spigoli sono il doppio, E11 e' uno da 60, e la ricerca per firma ne trova due uguali. Sceglierne uno sarebbe indovinare il corpo: rifiuto, «non scelgo io».",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 120000 } ] },
+    { "operazione": "sposta_corpi",
+      "argomenti": { "corpi_uid": [ "@corpo(n=1)" ], "dx_mm": 100, "copia": true, "quante_copie": 1 },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 240000 },
+        { "cosa": "stato.corpi_totali", "uguale": 2 } ] },
+    { "operazione": "raccordo_spigoli",
+      "uid_dal_passo": 2,
+      "argomenti": { "spigoli_uid": [ "@spigolo(asse=Z,x~=50,y~=30)" ], "raggio_mm": 6 },
+      "perche_il_raggio_diverso": "6 invece dell'8 della gemella: il rifiuto non dipende dal raggio (voce F5).",
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non scelgo io"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "il_raccordo_ritrova_lo_spigolo_rinumerato" } }
+  ]
+}

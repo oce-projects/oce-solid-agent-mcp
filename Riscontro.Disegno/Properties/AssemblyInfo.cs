@@ -268,8 +268,13 @@ using System.Runtime.InteropServices;
 //          il piu' vicino — e si dice in `riancoraggi`. `LunghezzaMm` da' la
 //          lunghezza VERA (GetLength3), non la corda: il bordo di un foro era
 //          «lungo 0» nello stato. FirmaCombacia confronta anche la lunghezza.
-[assembly: AssemblyVersion("0.120.0.0")]
-[assembly: AssemblyFileVersion("0.120.0.0")]
+// 0.121.0: LO SMUSSO CHE NON CI STA (caso r05, l'ultimo silenzio della
+//          regressione). modifica_quota rifiuta, e rimette il valore, se una
+//          lavorazione che non e' un taglio perde facce e dopo di lei c'e' uno
+//          smusso o un raccordo: e' lui che si prende una faccia intera, e
+//          SOLIDWORKS non lo segnala. RimettiLaQuota estratto (due guardie).
+[assembly: AssemblyVersion("0.121.0.0")]
+[assembly: AssemblyFileVersion("0.121.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -284,4 +289,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.120.0")]
+[assembly: AssemblyInformationalVersion("0.121.0")]

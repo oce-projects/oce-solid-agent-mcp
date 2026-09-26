@@ -416,10 +416,10 @@ a valle rimisurata. Il risultato e' una di tre cose, non due:
 | | casi su 19 | |
 |---|---|---|
 | **reggono** | **17** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
-| **si staccano e lo dicono** | **1** | la ricostruzione fallisce, una lavorazione porta un errore, o la modifica viene rifiutata: il progettista lo vede |
-| **si staccano in silenzio** | **1** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
+| **si staccano e lo dicono** | **2** | la ricostruzione fallisce, una lavorazione porta un errore, o la modifica viene rifiutata: il progettista lo vede |
+| **si staccano in silenzio** | **0** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
 
-*Misurato il 25/9/2026 su SOLIDWORKS 29.5.1, libreria 0.119.0. Si rifa' con
+*Misurato il 26/9/2026 su SOLIDWORKS 29.5.1, libreria 0.121.0. Si rifa' con
 `.\Banco\banco.ps1 -Regressione`; il dettaglio caso per caso finisce in
 `Banco/resoconto/regressione.md`.*
 
@@ -444,11 +444,15 @@ asse — e il profilo segue il bordo:
   **rifiuta con criterio**, e la quota torna com'era: e' la riga di mezzo;
 - anche asole e rialzi prendono l'ancora (0.118.0, 0.119.0).
 
-Il quarto non e' riparabile da qui, e vale la pena dirlo: uno smusso piu'
-grande del materiale **non fallisce**. SOLIDWORKS ricostruisce pulito e si
-mangia un millimetro di larghezza. Non si previene ancorando meglio — si
-prende solo rileggendo il pezzo dopo, che e' cio' che questo ponte fa a ogni
-passo.
+Il quarto (`r05`) non si ripara ancorando, e per un po' l'abbiamo scritto
+come irreparabile: uno smusso piu' grande del materiale **non fallisce**.
+SOLIDWORKS ricostruisce pulito e si mangia un millimetro di larghezza. Si
+prende rileggendo il pezzo dopo — e il segno c'era gia': la lavorazione di
+base perde una faccia intera, quella che lo smusso adesso si prende tutta.
+Dalla libreria 0.121.0 `modifica_quota` guarda proprio quello: se una
+lavorazione che non e' un taglio perde facce e piu' avanti c'e' uno smusso o
+un raccordo, **rifiuta, dice quale, e rimette il valore di prima**. `r05` e'
+passato alla riga di mezzo, e la terza e' a zero.
 
 La terza riga si scrive **anche quando vale zero**: un conteggio che sparisce
 quando e' zero e' un conteggio che nessuno controlla.

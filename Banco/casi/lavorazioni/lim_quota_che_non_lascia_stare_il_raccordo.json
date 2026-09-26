@@ -1,0 +1,26 @@
+{
+  "nome": "lim_quota_che_non_lascia_stare_il_raccordo",
+  "famiglia": "lavorazioni",
+  "perche": "Due raccordi da 8 sugli spigoli in cima, poi lo spessore portato a 6: il raccordo non ci sta piu'. SOLIDWORKS NON FALLISCE — ricostruisce pulito, zero lavorazioni in errore, e cambia la forma da solo (misurato col banchetto `prova0089 storia`, 26/9/2026). L'unico segno e' che l'estrusione di base perde due facce intere (6 -> 4): i fianchi se li prendono i raccordi. E' il meccanismo del caso r05 della regressione, l'ultimo dei silenzi. `modifica_quota` deve rifiutare, dire QUALE raccordo, e rimettere il valore di prima.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 120000 } ] },
+    { "operazione": "raccordo_spigoli",
+      "argomenti": { "spigoli_uid": [ "@spigolo(asse=X,y~=30,z~=20)", "@spigolo(asse=X,y~=-30,z~=20)" ],
+                     "raggio_mm": 8 },
+      "attese": [
+        { "cosa": "misure.spigoli", "uguale": 2 },
+        { "cosa": "volume_mm3", "uguale": 117253.1, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "120000 meno 2 x (1 - pi/4) x 8^2 x 100 = 2746,9: il conto ha pi dentro" } ] },
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 6 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non ci sta piu'", "si prende una faccia intera", "ho rimesso 20 mm"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "la_quota_che_lascia_stare_il_raccordo" } }
+  ]
+}
