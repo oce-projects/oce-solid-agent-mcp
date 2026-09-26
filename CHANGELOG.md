@@ -24,6 +24,51 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.97.0 — 26 September 2026 · library 0.122.0
+
+`flangia_spigolo`, the third sheet-metal operation of seven (entry GP18):
+a 90° flange on a border edge of an existing sheet — how a box gets closed,
+with bends on edges in different directions, which `flangia_base` from one
+profile cannot do.
+
+Probed before writing, ten attempts (`Controlli/FlangiaSpigolo`).
+`InsertSheetMetalEdgeFlange2` returns null, with no exception, with null
+sketches, with its seventh parameter (`FlangeOffsetDist` — the length) at
+0 or 20, with typed `Edge[]`/`Feature[]`; it creates an EMPTY flange (no
+volume added) with a line on a plane perpendicular to the edge. It creates a
+real one only with a **rectangle on the flange plane**, the base on the
+edge: the end face of the sheet. Measured with profiles 20 and 30 high:
+`OffsetDistance` reads 22 and 32 (profile + T, at the outer virtual
+sharp), and the flat length grows by (L - R - T) + BA - (R + T) to the
+thousandth. SOLIDWORKS replaces the sketch it is given with its own, and
+the length follows the profile: `ModifyDefinition` on `OffsetDistance`
+answers true and changes nothing.
+
+The operation finds the edge by signature (E19), checks it is straight and
+lies between the broad face and an end face as wide as the thickness,
+draws the rectangle from the edge along the broad face's outward normal,
+and compares the volume added with the hand calculation; a flange born
+empty is refused. Three cases: the 25 mm flange that lengthens the flat
+by 21.712, and its two refusals (nothing straight left, not a border edge).
+
+And `orlo`, the fourth: a hem, closed or open. `InsertSheetMetalHem2` works
+on the selected edge and was born at the first try — no sketch. Measured
+on the harness before writing: the open hem is the flange formula with a
+180° bend and an inner radius of half the gap, three measurements out of
+three to the thousandth; the closed one sits 0.057 above the same formula
+with radius 0, like a 0.05 mm inner radius, measured with thickness 2 only
+— so for the closed hem the hand calculation is reported, not trusted.
+`SpigoloDiBordo` is extracted: flange and hem find their edge the same way.
+Three more cases (open, closed, open without gap refused).
+
+The probe also found that a sheet metal part's side is not one face: it is
+split per straight segment, each as wide as the thickness — so side edges
+are border edges too, and the first «not a border edge» case was wrong.
+
+Full bench: 1216 tests, 0 failed, 955 of 955 expectations verified.
+
+---
+
 ## 0.96.0 — 26 September 2026 · library 0.121.0
 
 **The regression has no silent case left.** `r05` — a 2 mm chamfer, then

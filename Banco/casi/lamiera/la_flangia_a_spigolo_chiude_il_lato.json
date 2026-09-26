@@ -1,0 +1,25 @@
+{
+  "nome": "la_flangia_a_spigolo_chiude_il_lato",
+  "famiglia": "lamiera",
+  "perche": "VOCE GP18, la terza operazione della famiglia. Sulla L dei casi di lamiera (50 + 30, profonda 40, T 2, R 2) una flangia a 90 gradi sullo spigolo in fondo al lato da 50, lunga 25 allo spigolo virtuale esterno. La sonda `Controlli/FlangiaSpigolo` l'ha misurata prima di scriverla: nasce solo con un RETTANGOLO di profilo sulla faccia di testa, e lo sviluppo cresce di (L - R - T) + BA - (R + T), al millesimo, con 22 e con 32.",
+  "gli_spigoli_per_dove_stanno": "La L va da x -2 a 50 e da y -2 a 30: lo spigolo in fondo al lato da 50 sulla faccia interna sta a x = 50, y = 0, lungo Z per 40.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "flangia_base",
+      "argomenti": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
+                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+      "attese": [
+        { "cosa": "misure.lunghezza_sviluppo_mm", "uguale": 80.712, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "la L di la_L_si_sviluppa: (50 - 2) + (30 - 2) + pi/2 * 3" } ] },
+    { "operazione": "flangia_spigolo",
+      "argomenti": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "lunghezza_mm": 25 },
+      "attese": [
+        { "cosa": "misure.lunghezza_mm", "uguale": 25, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "riletta dalla flangia in metri" },
+        { "cosa": "misure.volume_mm3", "uguale": 1736.99, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "(25 - 2 - 2) + pi/2 * (2 + 0,5 * 2) - (2 + 2) = 21,712 mm di sviluppo in piu', per 2 di spessore e 40 di spigolo. Misurato con la sonda a 22 e 32: 1497 e 2297, uguali al conto" },
+        { "cosa": "misure.lunghezza_sviluppo_mm", "uguale": 102.424, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "80,712 + 21,712: la striscia spianata e' il lato lungo del pezzo sviluppato" },
+        { "cosa": "corpi", "uguale": 1 } ] }
+  ]
+}

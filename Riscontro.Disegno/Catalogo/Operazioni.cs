@@ -3746,6 +3746,80 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "flangia_spigolo",
+                    Famiglia = "lamiera",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "Una piega nuova su uno spigolo di bordo di una lamiera che c'e' gia'.",
+                    Descrizione =
+                        "Aggiunge una FLANGIA a 90 gradi su uno spigolo di bordo di una lamiera "
+                        + "(fatta con «flangia_base»): e' cosi' che si chiude una scatola, con pieghe "
+                        + "su spigoli di direzioni diverse.\n\nLo spigolo e' quello fra la faccia "
+                        + "larga della lamiera e una faccia di TESTA, larga quanto lo spessore; la "
+                        + "flangia si alza dalla parte verso cui guarda la faccia larga. "
+                        + "«lunghezza_mm» e' misurata allo SPIGOLO VIRTUALE ESTERNO, e il materiale "
+                        + "resta dentro l'ingombro di prima: il lato su cui pieghi si accorcia di "
+                        + "raggio + spessore. Spessore, raggio e fattore K sono quelli della "
+                        + "lamiera, riletti.\n\nLa risposta porta il volume aggiunto accanto al "
+                        + "conto a mano (lo sviluppo in piu', (L - R - T) + BA - (R + T), per lo "
+                        + "spessore e la lunghezza dello spigolo), e la lunghezza riletta dalla "
+                        + "flangia.\n\nMI RIFIUTO se la lunghezza non lascia niente di dritto "
+                        + "(non oltre raggio + spessore), se lo spigolo non e' dritto o non sta sul "
+                        + "bordo della lamiera, e se la flangia nasce senza aggiungere materiale.",
+                    Precondizione = "una parte di lamiera",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "spigolo_uid", O(
+                                "type", "string",
+                                "description", "lo spigolo di bordo su cui piegare, dallo stato del documento (E1, E2...)"),
+                            "lunghezza_mm", O(
+                                "type", "number",
+                                "description", "quanto e' lunga la flangia, misurata allo spigolo virtuale esterno")),
+                        "required", A("spigolo_uid", "lunghezza_mm")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "orlo",
+                    Famiglia = "lamiera",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "Il bordo di una lamiera ripiegato su se stesso, chiuso o aperto.",
+                    Descrizione =
+                        "Ripiega su se stesso il bordo di una lamiera (fatta con «flangia_base»): "
+                        + "l'orlo che toglie il filo tagliente e irrigidisce il bordo. «chiuso» e' "
+                        + "schiacciato sulla lamiera; «aperto» lascia «gioco_mm» fra il bordo e la "
+                        + "lamiera. Resta dentro l'ingombro di prima.\n\nLo spigolo e' quello fra la "
+                        + "faccia larga e una faccia di testa, larga quanto lo spessore. La risposta "
+                        + "porta il volume aggiunto accanto al conto a mano: per l'aperto e' la piega "
+                        + "a 180 gradi col raggio interno pari a meta' del gioco, misurata tre volte "
+                        + "al millesimo; per il chiuso il conto usa un raggio di 0,05 mm, misurato "
+                        + "con spessore 2, e si dice ma non decide.\n\nMI RIFIUTO se l'orlo non "
+                        + "lascia niente di dritto, se «aperto» non ha gioco, se lo spigolo non e' "
+                        + "dritto o non sta sul bordo, e se l'orlo nasce senza aggiungere materiale.",
+                    Precondizione = "una parte di lamiera",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "spigolo_uid", O(
+                                "type", "string",
+                                "description", "lo spigolo di bordo da ripiegare, dallo stato del documento (E1, E2...)"),
+                            "tipo", O(
+                                "type", "string",
+                                "enum", A("chiuso", "aperto"),
+                                "description", "chiuso (schiacciato) o aperto (con gioco). Predefinito «chiuso»."),
+                            "lunghezza_mm", O(
+                                "type", "number",
+                                "description", "quanto e' lungo il bordo ripiegato"),
+                            "gioco_mm", O(
+                                "type", "number",
+                                "description", "solo per «aperto»: lo spazio fra il bordo ripiegato e la lamiera")),
+                        "required", A("spigolo_uid", "lunghezza_mm")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "sviluppo_dxf",
                     Famiglia = "lamiera",
                     DocumentoRichiesto = "parte",

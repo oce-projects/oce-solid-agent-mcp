@@ -1,0 +1,19 @@
+{
+  "nome": "lim_flangia_spigolo_senza_dritto",
+  "famiglia": "lamiera",
+  "perche": "Una flangia lunga 4 allo spigolo esterno, con raggio 2 e spessore 2: la piega consuma tutto, non resta niente di dritto. Si rifiuta PRIMA di toccare il pezzo, col conto che dice fin dove si puo' scendere.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "flangia_base",
+      "argomenti": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
+                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+      "attese": [ { "cosa": "corpi", "uguale": 1 } ] },
+    { "operazione": "flangia_spigolo",
+      "argomenti": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "lunghezza_mm": 4 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["niente di dritto", "piu' lunga di 4 mm"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "la_flangia_a_spigolo_chiude_il_lato" } }
+  ]
+}

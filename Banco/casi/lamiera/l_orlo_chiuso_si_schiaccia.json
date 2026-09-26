@@ -1,0 +1,19 @@
+{
+  "nome": "l_orlo_chiuso_si_schiaccia",
+  "famiglia": "lamiera",
+  "perche": "L'orlo CHIUSO lungo 10 sullo stesso spigolo. Misurato col banchetto: +9,199 di sviluppo (e +14,199 lungo 15), cioe' 0,057 sopra la formula con raggio 0 — come un raggio interno di 0,05 mm. E' misurato con spessore 2 soltanto: per questo l'operazione lo dice accanto alla misura e non ci decide sopra, e qui si pretende la misura, non il conto.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "flangia_base",
+      "argomenti": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
+                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+      "attese": [ { "cosa": "corpi", "uguale": 1 } ] },
+    { "operazione": "orlo",
+      "argomenti": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "tipo": "chiuso", "lunghezza_mm": 10 },
+      "attese": [
+        { "cosa": "misure.volume_mm3", "uguale": 735.9, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "misurato 735,9 col banchetto; il conto col raggio 0,05 da' 735,89" },
+        { "cosa": "misure.tipo", "uguale": "chiuso" },
+        { "cosa": "corpi", "uguale": 1 } ] }
+  ]
+}

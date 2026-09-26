@@ -273,8 +273,16 @@ using System.Runtime.InteropServices;
 //          lavorazione che non e' un taglio perde facce e dopo di lei c'e' uno
 //          smusso o un raccordo: e' lui che si prende una faccia intera, e
 //          SOLIDWORKS non lo segnala. RimettiLaQuota estratto (due guardie).
-[assembly: AssemblyVersion("0.121.0.0")]
-[assembly: AssemblyFileVersion("0.121.0.0")]
+// 0.122.0: `flangia_spigolo` (voce GP18, terza su sette). La flangia a spigolo
+//          nasce solo con un RETTANGOLO di profilo sul piano della flangia (la
+//          faccia di testa): dieci tentativi della sonda, i primi otto null, il
+//          nono una flangia vuota. Lunghezza allo spigolo virtuale esterno =
+//          profilo + T; volume in piu' confrontato col conto a mano. E `orlo`
+//          (quarta su sette): sullo spigolo selezionato, nessuno schizzo;
+//          l'aperto e' la piega a 180 gradi col raggio = meta' del gioco.
+//          `SpigoloDiBordo` estratto, per flangia e orlo.
+[assembly: AssemblyVersion("0.122.0.0")]
+[assembly: AssemblyFileVersion("0.122.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -289,4 +297,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.121.0")]
+[assembly: AssemblyInformationalVersion("0.122.0")]

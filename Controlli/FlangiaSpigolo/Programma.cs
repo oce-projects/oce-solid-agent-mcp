@@ -34,6 +34,13 @@ internal static class Programma
     private static int Main(string[] argomenti)
     {
         bool tieni = Array.IndexOf(argomenti, "--tieni") >= 0;
+        // --testa: salta i tentativi 1-9 (tutti misurati il 25-26/9) e prova
+        // solo il 10, il profilo disegnato sulla faccia di testa.
+        bool testa = Array.IndexOf(argomenti, "--testa") >= 0;
+        // --alta=N: l'altezza del rettangolo di profilo in mm (20 se non detta).
+        double alta = 0.020;
+        foreach (var arg in argomenti)
+            if (arg.StartsWith("--alta=")) alta = double.Parse(arg.Substring(7), System.Globalization.CultureInfo.InvariantCulture) / 1000.0;
         Console.WriteLine();
         Console.WriteLine("FLANGIA A SPIGOLO — prima di scriverla (voce GP18)");
         Console.WriteLine();
@@ -91,13 +98,19 @@ internal static class Programma
             // di `IEdgeFlangeFeatureData.OffsetDistance`: la LUNGHEZZA della
             // flangia. I primi quattro tentativi passavano 0 — una flangia lunga
             // zero, che non nasce senza dire perche'. Qui 20 mm.
+            // TENTATIVI 7 E 8 (26/9/2026). La trappola gia' pagata con le
+            // booleane (memoria «array tipizzati»): un elenco passato come
+            // `object[]` fa rispondere null senza eccezione, e vuole il tipo
+            // vero — `Edge[]` per gli spigoli, `Feature[]` per gli schizzi.
             IFeature flangia = null;
-            for (int t = 1; t <= 6 && flangia == null; t++)
+            for (int t = 1; t <= 8 && flangia == null && !testa; t++)
             {
                 doc.ClearSelection2(true);
                 if (t >= 2) (scelto as IEntity).Select4(false, null);
-                object schizzi = t == 3 || t == 6 ? (object)new object[] { null } : null;
+                object schizzi = t == 3 || t == 6 ? (object)new object[] { null }
+                               : t == 8 ? (object)new Feature[] { null } : null;
                 double lunghezza = t >= 5 ? 0.020 : 0;
+                object spigoli = t >= 7 ? (object)new Edge[] { (Edge)scelto } : new object[] { scelto };
                 try
                 {
                     flangia = t == 4
@@ -105,7 +118,7 @@ internal static class Programma
                             Math.PI / 2, 0.002, (int)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside, 0,
                             (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature
-                        : doc.FeatureManager.InsertSheetMetalEdgeFlange2(new object[] { scelto }, schizzi, opzioni,
+                        : doc.FeatureManager.InsertSheetMetalEdgeFlange2(spigoli, schizzi, opzioni,
                             Math.PI / 2, 0.002, (int)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside, lunghezza,
                             (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
@@ -115,10 +128,131 @@ internal static class Programma
                     : t == 2 ? "spigolo selezionato, schizzi null" : t == 3 ? "spigolo selezionato, schizzi [null]"
                     : t == 4 ? "InsertSheetMetalEdgeFlange, la vecchia"
                     : t == 5 ? "spigolo selezionato, schizzi null, LUNGA 20"
-                    : "spigolo selezionato, schizzi [null], LUNGA 20") + "): " + (flangia == null ? "null" : flangia.Name));
+                    : t == 6 ? "spigolo selezionato, schizzi [null], LUNGA 20"
+                    : t == 7 ? "Edge[], schizzi null, LUNGA 20"
+                    : "Edge[], Feature[]{null}, LUNGA 20") + "): " + (flangia == null ? "null" : flangia.Name));
             }
+            // TENTATIVO 9: lo SCHIZZO DI PROFILO, come dice il TODO. Un piano
+            // perpendicolare allo spigolo nel suo vertice d'inizio (marchi 0 e
+            // 1, vincoli perpendicolare + coincidente), e sul piano una linea di
+            // 20 mm che parte dal vertice verso +Y: la direzione della flangia.
+            if (flangia == null && !testa)
+            {
+                var v0 = (scelto.GetStartVertex() as IVertex);
+                var p0 = v0?.GetPoint() as double[];
+                var selMgr = (ISelectionMgr)doc.SelectionManager;
+                doc.ClearSelection2(true);
+                var sd0 = (SelectData)selMgr.CreateSelectData(); sd0.Mark = 0;
+                var sd1 = (SelectData)selMgr.CreateSelectData(); sd1.Mark = 1;
+                bool sel0 = (scelto as IEntity).Select4(false, sd0);
+                bool sel1 = (v0 as IEntity).Select4(true, sd1);
+                var piano = doc.FeatureManager.InsertRefPlane(
+                    (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_Perpendicular, 0,
+                    (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_Coincident, 0, 0, 0) as IFeature;
+                Console.WriteLine("      tentativo 9: selezione " + sel0 + "/" + sel1 + ", piano " + (piano == null ? "NON NATO" : piano.Name) +
+                                  ", vertice " + (p0 == null ? "?" : string.Join(" ", Array.ConvertAll(p0, x => (x * 1000).ToString("0.#")))));
+                if (piano != null && p0 != null)
+                {
+                    doc.ClearSelection2(true);
+                    piano.Select2(false, 0);
+                    doc.SketchManager.InsertSketch(true);
+                    var sk = doc.SketchManager.ActiveSketch as ISketch;
+                    var mu = (IMathUtility)sw.GetMathUtility();
+                    var tr = sk.ModelToSketchTransform;
+                    Func<double, double, double, double[]> nelloSchizzo = (x, y, z) =>
+                        ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { x, y, z })).MultiplyTransform(tr)).ArrayData as double[];
+                    var a = nelloSchizzo(p0[0], p0[1], p0[2]);
+                    var b = nelloSchizzo(p0[0], p0[1] + 0.020, p0[2]);
+                    doc.SketchManager.AddToDB = true;
+                    var linea = doc.SketchManager.CreateLine(a[0], a[1], 0, b[0], b[1], 0);
+                    doc.SketchManager.AddToDB = false;
+                    doc.SketchManager.InsertSketch(true);
+                    IFeature schizzo = null;
+                    var fs = doc.FirstFeature() as IFeature;
+                    while (fs != null) { if (fs.GetTypeName2() == "ProfileFeature") schizzo = fs; fs = fs.GetNextFeature() as IFeature; }
+                    Console.WriteLine("      tentativo 9: linea " + (linea != null) + ", schizzo " + (schizzo == null ? "?" : schizzo.Name));
+                    doc.ClearSelection2(true);
+                    (scelto as IEntity).Select4(false, null);
+                    try
+                    {
+                        flangia = doc.FeatureManager.InsertSheetMetalEdgeFlange2(new Edge[] { (Edge)scelto },
+                            new Feature[] { (Feature)schizzo }, opzioni,
+                            Math.PI / 2, 0.002, (int)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside, 0.020,
+                            (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
+                            (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
+                    }
+                    catch (Exception ex) { Console.WriteLine("      tentativo 9 alza: " + ex.Message); }
+                    Console.WriteLine("      tentativo 9 (Edge[], Feature[]{schizzo di profilo}, LUNGA 20): " + (flangia == null ? "null" : flangia.Name));
+                }
+            }
+
+            // TENTATIVO 10 (26/9/2026). Il 9 fa nascere una «Bordo-Flangia» che
+            // non aggiunge materiale, e SOLIDWORKS sostituisce lo schizzo con uno
+            // suo: la linea su un piano perpendicolare non e' un profilo. Nella
+            // finestra il profilo della flangia a spigolo e' un RETTANGOLO sul
+            // piano della flangia, col lato di base sullo spigolo. Qui: la faccia
+            // di testa del lato da 50 (x = 50, y da -2 a 0) come piano di schizzo,
+            // e il rettangolo da (y 0, z 0) a (y 20, z 40).
+            if (flangia == null && testa)
+            {
+                doc.ClearSelection2(true);
+                bool faccia = doc.Extension.SelectByID2("", "FACE", 0.050, -0.001, 0.020, false, 0, null, 0);
+                doc.SketchManager.InsertSketch(true);
+                var sk = doc.SketchManager.ActiveSketch as ISketch;
+                Console.WriteLine("      tentativo 10: faccia di testa " + faccia + ", schizzo " + (sk != null));
+                if (sk != null)
+                {
+                    var mu = (IMathUtility)sw.GetMathUtility();
+                    var tr = sk.ModelToSketchTransform;
+                    Func<double, double, double, double[]> nelloSchizzo = (x, y, z) =>
+                        ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { x, y, z })).MultiplyTransform(tr)).ArrayData as double[];
+                    var a = nelloSchizzo(0.050, 0, 0);
+                    var b = nelloSchizzo(0.050, alta, 0.040);
+                    doc.SketchManager.AddToDB = true;
+                    var rett = doc.SketchManager.CreateCornerRectangle(a[0], a[1], 0, b[0], b[1], 0) as object[];
+                    doc.SketchManager.AddToDB = false;
+                    doc.SketchManager.InsertSketch(true);
+                    IFeature schizzo = null;
+                    var fs = doc.FirstFeature() as IFeature;
+                    while (fs != null) { if (fs.GetTypeName2() == "ProfileFeature") schizzo = fs; fs = fs.GetNextFeature() as IFeature; }
+                    Console.WriteLine("      tentativo 10: rettangolo " + (rett == null ? "null" : rett.Length + " linee") +
+                                      ", schizzo " + (schizzo == null ? "?" : schizzo.Name));
+                    doc.ClearSelection2(true);
+                    try
+                    {
+                        flangia = doc.FeatureManager.InsertSheetMetalEdgeFlange2(new Edge[] { (Edge)scelto },
+                            new Feature[] { (Feature)schizzo }, opzioni,
+                            Math.PI / 2, 0.002, (int)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside, 0.020,
+                            (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
+                            (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
+                    }
+                    catch (Exception ex) { Console.WriteLine("      tentativo 10 alza: " + ex.Message); }
+                    Console.WriteLine("      tentativo 10 (rettangolo sulla testa): " + (flangia == null ? "null" : flangia.Name));
+                }
+            }
+
             doc.EditRebuild3();
-            if (flangia == null) { Console.WriteLine("  nessuno dei quattro tentativi fa nascere la flangia"); return 5; }
+            // L'ALBERO, dopo: i tentativi falliti hanno lasciato qualcosa? La
+            // flangia nata e' in errore? E il volume, che dice se la flangia ha
+            // aggiunto materiale davvero.
+            Console.WriteLine("      albero:");
+            var fa = doc.FirstFeature() as IFeature;
+            while (fa != null)
+            {
+                bool avviso; int codice = 0;
+                try { codice = fa.GetErrorCode2(out avviso); } catch { avviso = false; }
+                string tipo = fa.GetTypeName2();
+                if (tipo != "RefPlane" && tipo != "OriginProfileFeature" && !tipo.EndsWith("Folder") &&
+                    tipo != "MaterialFolder" && tipo != "DetailCabinet" && tipo != "SensorFolder" &&
+                    tipo != "HistoryFolder" && tipo != "SelectionSetFolder" && tipo != "EqnFolder")
+                    Console.WriteLine("        " + fa.Name + " [" + tipo + "]" + (codice != 0 ? " ERRORE " + codice + (avviso ? " (avviso)" : "") : ""));
+                fa = fa.GetNextFeature() as IFeature;
+            }
+            var corpiDopo = ((IPartDoc)doc).GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+            var massa = corpiDopo == null ? null : (corpiDopo[0] as IBody2).GetMassProperties(1) as double[];
+            double volume = massa == null ? -1 : massa[3] * 1e9;
+            Console.WriteLine("      volume adesso " + volume.ToString("0.##") + " mm3 (la L sola: 80,712 x 2 x 40 = 6457)");
+            if (flangia == null) { Console.WriteLine("  nessuno dei tentativi fa nascere la flangia"); return 5; }
             var dati = flangia.GetDefinition() as IEdgeFlangeFeatureData;
             double s1 = Sviluppo(doc);
             Dice("flangia a spigolo nata: «" + flangia.Name + "», lunghezza " + (dati.OffsetDistance * 1000).ToString("0.###") +
@@ -133,14 +267,19 @@ internal static class Programma
             Dice("OffsetDistance -> 25: ModifyDefinition " + mod + ", riletta " + (dati2.OffsetDistance * 1000).ToString("0.###") +
                  " mm, sviluppo " + s2.ToString("0.###") + " (cresciuto di " + (s2 - s0).ToString("0.###") + ")");
 
-            // Il conto: la flangia quotata allo spigolo virtuale ESTERNO di 25
-            // aggiunge (25 - R - T) di dritto + BA, e toglie al lato da 50 i
-            // suoi R + T in fondo.
+            // IL CONTO, misurato il 26/9/2026 (tentativo 10). La lunghezza che la
+            // flangia dichiara (OffsetDistance, allo spigolo virtuale esterno) e'
+            // l'altezza del profilo piu' lo spessore; con la posizione «materiale
+            // dentro» il lato da 50 perde i suoi R + T in fondo. Lo sviluppo
+            // cresce di (Lo - R - T) + BA - (R + T). ModifyDefinition su
+            // OffsetDistance risponde vero e non cambia niente: la lunghezza la
+            // comanda il profilo.
             double ba = Math.PI / 2 * (2 + 0.5 * 2);
+            double lo = alta * 1000 + 2;
             Console.WriteLine();
-            Console.WriteLine("  se la flangia e' quotata allo spigolo virtuale esterno: +" + (25 - 2 - 2 - 2 - 2 + ba).ToString("0.###") + " mm");
-            Console.WriteLine("  se allo spigolo virtuale interno:                        +" + (25 - 2 - 2 + ba).ToString("0.###") + " mm");
-            Console.WriteLine("  misurato:                                                 +" + (s2 - s0).ToString("0.###") + " mm");
+            Console.WriteLine("  lunghezza attesa allo spigolo virtuale esterno: " + lo.ToString("0.###") + " mm (profilo + T)");
+            Console.WriteLine("  sviluppo atteso: +" + (lo - 2 - 2 + ba - 2 - 2).ToString("0.###") + " mm");
+            Console.WriteLine("  misurato:        +" + (s1 - s0).ToString("0.###") + " mm");
             return 0;
         }
         catch (Exception ex)

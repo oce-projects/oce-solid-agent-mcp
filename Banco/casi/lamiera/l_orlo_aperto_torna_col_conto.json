@@ -1,0 +1,21 @@
+{
+  "nome": "l_orlo_aperto_torna_col_conto",
+  "famiglia": "lamiera",
+  "perche": "VOCE GP18, la quarta operazione. Un orlo aperto lungo 10 con gioco 1 sullo spigolo in fondo al lato da 50 della L. Misurato col banchetto (`prova0089 orlo`) prima di scriverlo: l'aperto e' la formula della flangia con la piega a 180 gradi e il raggio interno pari a meta' del gioco — tre misure su tre al millesimo (gioco 1 e 2, lunghezza 10 e 15).",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "flangia_base",
+      "argomenti": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
+                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+      "attese": [ { "cosa": "corpi", "uguale": 1 } ] },
+    { "operazione": "orlo",
+      "argomenti": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "tipo": "aperto",
+                     "lunghezza_mm": 10, "gioco_mm": 1 },
+      "attese": [
+        { "cosa": "misure.volume_mm3", "uguale": 776.99, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "(10 - 0,5 - 2) + pi * (0,5 + 0,5 * 2) - (0,5 + 2) = 9,712 mm di sviluppo in piu', per 2 x 40. Misurato 776,99" },
+        { "cosa": "misure.lunghezza_sviluppo_mm", "uguale": 90.424, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "80,712 + 9,712: la striscia spianata" },
+        { "cosa": "corpi", "uguale": 1 } ] }
+  ]
+}

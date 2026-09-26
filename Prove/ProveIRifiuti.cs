@@ -106,8 +106,13 @@ namespace Prove.Contratti
         /// `modifica_quota` sullo smusso o il raccordo che non ci sta piu' dice
         /// la strada («cambia o togli prima lo smusso o il raccordo, poi la
         /// quota»).
+        ///
+        /// **77 dal 26/9/2026 (libreria 0.122.0):** `flangia_spigolo` rifiuta
+        /// una flangia senza niente di dritto dicendo fin dove si puo' scendere.
+        /// **78, stessa libreria:** `orlo` rifiuta un aperto senza gioco dicendo
+        /// che senza gioco si chiama «chiuso».
         /// </summary>
-        private const int Pavimento = 76;
+        private const int Pavimento = 78;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

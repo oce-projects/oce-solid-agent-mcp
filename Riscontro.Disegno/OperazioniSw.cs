@@ -264,7 +264,7 @@ namespace Riscontro.Disegno
             "telaio_rettangolare", "verifica_geometria_corpo",
             "verifica_sovrasporgenze",
             "vista_modello", "viste_standard",
-            "flangia_base", "sviluppo_dxf", "schema_di_quote",
+            "flangia_base", "flangia_spigolo", "orlo", "sviluppo_dxf", "schema_di_quote",
         };
 
         /// <summary>
@@ -373,6 +373,8 @@ namespace Riscontro.Disegno
                     // In OperazioniLamiera.cs e OperazioniDimXpert.cs, ognuna
                     // con la misura che l'ha resa costruibile scritta in testa.
                     case "flangia_base": return FlangiaBase(modello, argomenti);
+                    case "flangia_spigolo": return FlangiaSpigolo(modello, argomenti, stato);
+                    case "orlo": return Orlo(modello, argomenti, stato);
                     case "sviluppo_dxf": return SviluppoDxf(modello, argomenti);
                     case "schema_di_quote": return SchemaDiQuote(modello, argomenti, stato);
                     case "crea_asse": return CreaAsse(modello, argomenti, stato);
