@@ -783,6 +783,54 @@
    "esempio": null
   },
   {
+   "nome": "tolleranza_quota",
+   "famiglia": "lavorazioni",
+   "sommario": "La tolleranza su una quota del modello (±, bilaterale, accoppiamento ISO), riscontrata e con i decimali giusti.",
+   "descrizione": "Mette la TOLLERANZA su una quota del modello: simmetrica (±valore), bilaterale (scostamenti superiore e inferiore) o un accoppiamento ISO (classe, es. H7 per un foro, g6 per un albero). Sulla quota del modello arriva in tavola da sola con «quote_dal_modello».\n\nL'ACCOPPIAMENTO SI RISCONTRA: gli scostamenti li calcola SOLIDWORKS, e io controllo che l'ampiezza sia il grado IT della tabella ISO 286-1 per quel diametro (IT5..IT11, fino a 500 mm) e che il segno sia quello della lettera (H da zero in su, h da zero in giu'). Se non torna la rimetto com'era e te lo dico.\n\nI DECIMALI: imposto quelli della tolleranza sulla quota. Misurato: senza, un H7 su 10 usciva in tavola «10 H7 +0 / 0» — in officina vuol dire «esatta».\n\nLa risposta porta scostamenti e limiti (10,000 / 10,015 per un Ø10 H7).\n\nMI RIFIUTO per un grado IT fuori da 5..11 o una quota oltre 500 mm (non li so riscontrare), per una bilaterale con l'inferiore sopra il superiore, e quando il riscontro non torna.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "quota": {
+      "type": "string",
+      "description": "il nome della quota, copiato dallo stato del documento (es. «D1@Schizzo2»)"
+     },
+     "tipo": {
+      "type": "string",
+      "enum": [
+       "simmetrica",
+       "bilaterale",
+       "accoppiamento",
+       "nessuna"
+      ],
+      "description": "che tolleranza. «nessuna» la toglie."
+     },
+     "valore_mm": {
+      "type": "number",
+      "description": "per «simmetrica»: il ± (0,05 = ±0,05)."
+     },
+     "superiore_mm": {
+      "type": "number",
+      "description": "per «bilaterale»: lo scostamento superiore (es. 0,1)."
+     },
+     "inferiore_mm": {
+      "type": "number",
+      "description": "per «bilaterale»: lo scostamento inferiore (es. -0,05)."
+     },
+     "classe": {
+      "type": "string",
+      "description": "per «accoppiamento»: la classe ISO, maiuscola per un foro (H7), minuscola per un albero (g6)."
+     }
+    },
+    "required": [
+     "quota",
+     "tipo"
+    ]
+   },
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
+  },
+  {
    "nome": "sopprimi_lavorazione",
    "famiglia": "lavorazioni",
    "sommario": "SPEGNE una lavorazione dell'albero, senza cancellarla. Si riaccende.",
@@ -1582,7 +1630,7 @@
    "nome": "distinta_taglio",
    "famiglia": "saldature",
    "sommario": "Crea o aggiorna la distinta di taglio del pezzo saldato. Va per ultima.",
-   "descrizione": "Crea o aggiorna la DISTINTA DI TAGLIO del pezzo saldato: l'elenco delle barre con profilo, misura, lunghezza e quantita'.\n\nE' il documento con cui si va in officina, ed e' il motivo per cui un telaio si fa con i membri strutturali invece che con le estrusioni. Chiamala DOPO aver messo tutte le barre e fatto tutti i tagli: una distinta calcolata prima riporta lunghezze che poi cambiano.",
+   "descrizione": "Crea o aggiorna la DISTINTA DI TAGLIO del pezzo saldato: l'elenco delle barre con profilo, misura, lunghezza e quantita'.\n\nE' il documento con cui si va in officina, ed e' il motivo per cui un telaio si fa con i membri strutturali invece che con le estrusioni. Chiamala DOPO aver messo tutte le barre e fatto tutti i tagli: una distinta calcolata prima riporta lunghezze che poi cambiano.\n\nUNA VOCE PER OGNI GRUPPO DI BARRE UGUALI: il pezzo diventa un saldato (la lavorazione «Saldatura», se manca) e la distinta e' quella automatica di SOLIDWORKS, che separa le barre per lunghezza. La risposta porta le voci — descrizione, lunghezza, quantita' — e la somma delle quantita' deve essere il numero delle barre, se no lo dice.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1971,7 +2019,7 @@
    "nome": "quote_dal_modello",
    "famiglia": "tavola",
    "sommario": "Porta in tavola le quote che il pezzo ha gia'.",
-   "descrizione": "Prende le quote dal MODELLO e le mette sulle viste.\n\nFUORI PROCESSO, SU QUESTA INSTALLAZIONE, NON PORTA NIENTE: misurato il 18/9/2026 su un pezzo con sette quote tutte marcate per il disegno, cinque strade di import, zero quote in tavola. In processo, dentro un add-in, l'11/9/2026 ne erano arrivate undici — mai rimisurato. Per mettere quote in tavola da qui c'e' «quota_in_tavola», che le CREA sugli spigoli che la vista mostra.\n\nSE NON ARRIVA NIENTE NON VUOL DIRE che il pezzo non ha quote: fuori processo e' il risultato normale. Prima di concludere che il pezzo va riquotato, guarda nello stato del pezzo se le sue lavorazioni hanno quote.\n\nPerche' esiste lo stesso: una quota che viene dal modello non puo' portare un numero diverso dalla geometria, mentre l'API di SolidWorks permette di scrivere in tavola un testo che la geometria non ha.\n\nDi serie arrivano solo le quote MARCATE per il disegno, cioe' quelle scelte per essere mostrate: con «tutte_le_quote» arrivano anche le altre, e la tavola diventa parecchio piu' fitta.",
+   "descrizione": "Prende le quote dal MODELLO e le mette sulle viste.\n\nFUORI PROCESSO, SU QUESTA INSTALLAZIONE, NON PORTA NIENTE: misurato il 18/9/2026 su un pezzo con sette quote tutte marcate per il disegno, cinque strade di import, zero quote in tavola. In processo, dentro un add-in, l'11/9/2026 ne erano arrivate undici — mai rimisurato. Per mettere quote in tavola da qui c'e' «quota_in_tavola», che le CREA sugli spigoli che la vista mostra.\n\nSE NON ARRIVA NIENTE NON VUOL DIRE che il pezzo non ha quote: fuori processo e' il risultato normale. Prima di concludere che il pezzo va riquotato, guarda nello stato del pezzo se le sue lavorazioni hanno quote.\n\nPerche' esiste lo stesso: una quota che viene dal modello non puo' portare un numero diverso dalla geometria, mentre l'API di SolidWorks permette di scrivere in tavola un testo che la geometria non ha.\n\nDi serie arrivano solo le quote MARCATE per il disegno, cioe' quelle scelte per essere mostrate: con «tutte_le_quote» arrivano anche le altre, e la tavola diventa parecchio piu' fitta.\n\nMI RIFIUTO se la tavola non ha viste (le quote non avrebbero dove attaccarsi) e se non arriva nessuna quota: te lo dico con quante il pezzo ne ha marcate, invece di rispondere «fatto».",
    "schema": {
     "type": "object",
     "properties": {
@@ -1982,6 +2030,40 @@
      "callout_fori": {
       "type": "boolean",
       "description": "anche le indicazioni dei fori guidati (M8, profondita', filetto). Attive se non dici niente."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "una tavola con almeno una vista",
+   "documento": "tavola",
+   "esempio": null
+  },
+  {
+   "nome": "croci_di_centro",
+   "famiglia": "tavola",
+   "sommario": "Controlla che ogni foro delle viste abbia la croce di centro, contandole davvero, e rifiuta se ne manca.",
+   "descrizione": "CONTROLLA che ogni foro visibile nelle viste abbia la croce di centro, e prova a metterla dove manca. SOLIDWORKS le mette da se' creando la vista, se l'opzione del documento «Croci di centro sui fori» e' accesa: quei fori li riconosco («cerchi_che_avevano_gia_la_croce»). Da codice una croce nuova non nasce (misurato): un foro senza croce e' un rifiuto, con la strada — l'opzione accesa e la vista rifatta.\n\nPERCHE' SERVE. Una tavola con dodici fori e nessuna croce di centro si stampa e sembra completa. In officina manca la cosa che serve per forare: **dove sta il centro.**\n\nTI DICO QUANTE NE SONO NATE, contate sulla vista: ogni croce deve far salire il conto di uno, e un cerchio rimasto senza croce e' un rifiuto. Se il numero e' **zero** te lo dico invece di dire «fatto» — quasi sempre la vista e' quella sbagliata (i fori come cerchi si vedono dall'alto, di solito V2).\n\nLA DIMENSIONE, se non me la dici, e' quella del documento: e' una convenzione di studio.\n\nSenza «vista» le guardo tutte. Raccordi e asole no: misurato, sugli archi la croce da codice non nasce.\n\nLE CROCI SI CONTANO ENUMERANDOLE: il contatore di SOLIDWORKS (GetCenterMarkCount) non vede quelle messe alla creazione della vista, e diceva zero su un foglio che ne aveva tre.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "vista": {
+      "type": "string",
+      "description": "UNA vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Vuoto = tutte le viste."
+     },
+     "su": {
+      "type": "string",
+      "enum": [
+       "fori"
+      ],
+      "description": "«fori», i cerchi interi (l'unico: sui raccordi la croce da codice non nasce, misurato)."
+     },
+     "dimensione_mm": {
+      "type": "number",
+      "description": "quanto e' grande la croce. Se non lo dici uso le impostazioni del documento, che e' quasi sempre la cosa giusta."
+     },
+     "linee_estese": {
+      "type": "boolean",
+      "description": "le linee d'asse che escono dalla croce fino al bordo del cerchio. Spente se non dici niente."
      }
     },
     "required": []
@@ -2066,6 +2148,163 @@
     "required": []
    },
    "precondizione": "una tavola con una vista del pezzo in cui i fori si vedono come cerchi",
+   "documento": "tavola",
+   "esempio": null
+  },
+  {
+   "nome": "vista_sviluppo",
+   "famiglia": "tavola",
+   "sommario": "La vista dello SVILUPPO di una lamiera in tavola, misurata contro il pezzo.",
+   "descrizione": "Mette in tavola la vista dello SVILUPPO di un pezzo di lamiera: la lamiera distesa, con le linee di piega, com'e' prima di andare in pressa. E' la vista che serve a chi taglia il lamierino.\n\nLa vista si MISURA: l'ingombro si legge dagli spigoli visibili (non dal contorno della vista, che comprende la nota di piega e un margine — misurato: 92,6 mm per uno sviluppo di 80,7) e si confronta con lo sviluppo del pezzo misurato prima di mettere la vista. La risposta porta l'ingombro, le linee di piega e la lunghezza dello sviluppo. La vista va in un posto libero del foglio (misurata a scala 2:1 a 300/90 mm cadeva nel cartiglio).\n\nMI RIFIUTO se il pezzo non e' di lamiera, se la vista nasce ma non e' uno sviluppo, o se misura un'altra cosa dallo sviluppo del pezzo: in quei casi la tolgo.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "modello": {
+      "type": "string",
+      "description": "il percorso del pezzo di lamiera. Vuoto = quello della tavola."
+     },
+     "configurazione": {
+      "type": "string",
+      "description": "la configurazione del pezzo. Vuota = quella attiva."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "dove va il centro della vista sul foglio, in mm. Vuoto = un posto libero fuori dalle viste e dal cartiglio."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "idem in verticale."
+     },
+     "nascondi_pieghe": {
+      "type": "boolean",
+      "description": "senza le linee di piega. Predefinito falso: chi piega le vuole."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "una tavola e, aperto, un pezzo di lamiera salvato su disco",
+   "documento": "tavola",
+   "esempio": null
+  },
+  {
+   "nome": "saldatura_in_tavola",
+   "famiglia": "tavola",
+   "sommario": "Il simbolo di saldatura ISO sul giunto fra due corpi, in una vista.",
+   "descrizione": "Mette in tavola il SIMBOLO DI SALDATURA (ISO 2553) sul giunto fra due corpi di un saldato: la freccia sulla linea del giunto, il simbolo del cordone (angolo, V, mezza V, testa), la gola «a» a sinistra e, se la dai, la lunghezza a destra.\n\nIL GIUNTO LO TROVO IO: fra gli spigoli che la vista mostra, quello in cui un corpo tocca l'altro (il piu' lungo). Il simbolo si sposta fuori dal pezzo, dalla parte di «lato», oltre le quote gia' messe.\n\nSI RILEGGE: simbolo, gola, lunghezza, «tutto attorno». Il codice del simbolo e' quello della libreria di SOLIDWORKS («<WELD-FILL>» per l'angolo): misurato, con un codice sbagliato il simbolo nasce lo stesso, si rilegge uguale, e non disegna il triangolo.\n\nMI RIFIUTO se il pezzo ha un corpo solo, se nella vista non si vede nessun giunto, e se il simbolo nato non e' quello chiesto (in quel caso lo tolgo).",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "vista": {
+      "type": "string",
+      "description": "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."
+     },
+     "tipo": {
+      "type": "string",
+      "enum": [
+       "angolo",
+       "v",
+       "mezza_v",
+       "testa"
+      ],
+      "description": "il cordone. Predefinito angolo."
+     },
+     "a_mm": {
+      "type": "number",
+      "description": "la gola del cordone in mm (ISO 2553, «a»). Da 0 a 50."
+     },
+     "lunghezza_mm": {
+      "type": "number",
+      "description": "la lunghezza del cordone, a destra del simbolo. Vuota = tutto il giunto."
+     },
+     "tutto_attorno": {
+      "type": "boolean",
+      "description": "il cerchio del cordone tutto attorno. Predefinito falso."
+     },
+     "in_opera": {
+      "type": "boolean",
+      "description": "la bandierina della saldatura in opera (in cantiere). Predefinito falso."
+     },
+     "entrambi_i_lati": {
+      "type": "boolean",
+      "description": "il cordone dai due lati del giunto. Predefinito falso."
+     },
+     "lato": {
+      "type": "string",
+      "enum": [
+       "alto",
+       "basso",
+       "sinistra",
+       "destra"
+      ],
+      "description": "da che parte della vista va il simbolo. Predefinito alto."
+     }
+    },
+    "required": [
+     "a_mm"
+    ]
+   },
+   "precondizione": "una tavola con una vista di un saldato in cui si vede il giunto fra due corpi",
+   "documento": "tavola",
+   "esempio": null
+  },
+  {
+   "nome": "distinta_base_in_tavola",
+   "famiglia": "tavola",
+   "sommario": "La distinta base di un assieme in tavola, confrontata coi componenti dell'assieme.",
+   "descrizione": "Mette in tavola la DISTINTA BASE dell'assieme che sta dietro una vista: numero di voce, componente, quantita'. Di serie il primo livello; «solo_parti» o «indentata» per le altre.\n\nLA CONFRONTO: l'assieme sa per conto suo quali componenti ha e quanti; le voci e la somma delle quantita' devono combaciare. Se non combaciano la tolgo e te lo dico.\n\nPoi la misuro e la metto in un posto libero del foglio, fuori dalle viste e dal cartiglio.\n\nMI RIFIUTO se dietro la vista non c'e' un assieme (per un saldato c'e' «distinta_taglio_in_tavola») o se sul foglio non c'e' posto.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "vista": {
+      "type": "string",
+      "description": "la vista dell'assieme (V1, V2...) o per nome. Predefinita la prima."
+     },
+     "tipo": {
+      "type": "string",
+      "enum": [
+       "primo_livello",
+       "solo_parti",
+       "indentata"
+      ],
+      "description": "che distinta. Predefinito primo_livello."
+     },
+     "template": {
+      "type": "string",
+      "description": "il modello di tabella. Vuoto = il primo della cartella dei modelli di distinta."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "una tavola con una vista di un assieme salvato",
+   "documento": "tavola",
+   "esempio": null
+  },
+  {
+   "nome": "palloncini",
+   "famiglia": "tavola",
+   "sommario": "I palloncini coi numeri di voce della distinta sui componenti di una vista, contati.",
+   "descrizione": "Mette i PALLONCINI sui componenti dell'assieme in una vista, col numero di voce della distinta base (AutoBalloon5). Li conta sulla vista prima e dopo, e ti dice i numeri scritti.\n\nMI RIFIUTO se in tavola non c'e' ancora una distinta base (i palloncini portano il suo numero di voce: mettila prima con «distinta_base_in_tavola») o se dietro la vista non c'e' un assieme.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "vista": {
+      "type": "string",
+      "description": "la vista (V1, V2...) o per nome. Predefinita la prima."
+     },
+     "disposizione": {
+      "type": "string",
+      "enum": [
+       "quadrato",
+       "cerchio",
+       "sopra",
+       "sotto"
+      ],
+      "description": "come disporre i palloncini attorno alla vista. Predefinito quadrato."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "una tavola con la distinta base e una vista dell'assieme",
    "documento": "tavola",
    "esempio": null
   },
@@ -2246,7 +2485,7 @@
    "nome": "sezione_in_tavola",
    "famiglia": "tavola",
    "sommario": "Crea una vista di sezione su una tavola, e controlla che il taglio abbia incontrato materiale.",
-   "descrizione": "Taglia una vista della tavola e mette la sezione a fianco. E' la prima cosa che manca per una tavola d'officina vera: un pezzo con una cavita' interna, senza sezione, non si legge — le linee nascoste dicono che c'e' un vuoto, non che forma ha.\n\nLA LINEA DI TAGLIO LA TRACCIO IO, da parte a parte della vista: una linea che la sfiora da' una sezione vuota senza dire niente. Di serie taglio in mezzo; con «a_mm» sposti il taglio, in millimetri **di foglio** — non del modello, perche' sul foglio la vista e' in scala.\n\nTI DICO SE E' NATA contando le viste prima e dopo, non perche' l'API ha risposto un oggetto: puo' rispondere senza aver fatto niente.\n\nE MI RIFIUTO SE NON C'E' TRATTEGGIO. Una sezione senza tratteggio e' una linea di taglio caduta fuori dal materiale: sul foglio resta una vista che sembra buona e non mostra niente, e nessun errore lo direbbe. Preferisco fallire e dirti dove ho tagliato.\n\nQUELLO CHE NON POSSO SAPERE e' se quella e' la sezione che serviva. So dirti che il taglio ha incontrato materiale, non che passa per la cavita' che volevi mostrare.",
+   "descrizione": "Taglia una vista della tavola e mette la sezione a fianco. E' la prima cosa che manca per una tavola d'officina vera: un pezzo con una cavita' interna, senza sezione, non si legge — le linee nascoste dicono che c'e' un vuoto, non che forma ha.\n\nLA LINEA DI TAGLIO LA TRACCIO IO, da parte a parte della vista: una linea che la sfiora da' una sezione vuota senza dire niente. Di serie taglio in mezzo; con «a_mm» sposti il taglio, in millimetri **di foglio** — non del modello, perche' sul foglio la vista e' in scala.\n\nTI DICO SE E' NATA contando le viste prima e dopo, non perche' l'API ha risposto un oggetto: puo' rispondere senza aver fatto niente.\n\nE MI RIFIUTO SE NON C'E' TRATTEGGIO. Una sezione senza tratteggio e' una linea di taglio caduta fuori dal materiale: sul foglio resta una vista che sembra buona e non mostra niente, e nessun errore lo direbbe. Preferisco fallire e dirti dove ho tagliato.\n\nLA LETTERA E' UNA SOLA PER TAVOLA: se «etichetta» e' gia' di un'altra sezione o di un dettaglio mi rifiuto e ti dico quelle usate — due «A-A» sembrano lo stesso taglio. La lettera che la vista ha davvero te la rileggo («etichetta_riletta»).\n\nQUELLO CHE NON POSSO SAPERE e' se quella e' la sezione che serviva. So dirti che il taglio ha incontrato materiale, non che passa per la cavita' che volevi mostrare.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2285,7 +2524,7 @@
    "nome": "dettaglio_in_tavola",
    "famiglia": "tavola",
    "sommario": "Crea una vista di dettaglio ingrandita su una tavola, e controlla che il cerchio sia diventato un dettaglio.",
-   "descrizione": "Ingrandisce un pezzo di una vista. E' l'altra meta' di cio' che manca a una tavola d'officina: la sezione fa vedere cosa c'e' dentro, il dettaglio fa vedere cio' che e' troppo piccolo per leggersi alla scala del disegno — una gola, uno smusso, un raccordo con la sua quota.\n\nIL CERCHIO LO TRACCIO IO, dentro la vista. Di serie al centro con raggio un quarto del lato minore; con «x_mm» e «y_mm» lo sposti e con «raggio_mm» lo cambi, in millimetri **di foglio** — non del modello, perche' sul foglio la vista e' in scala.\n\nMI RIFIUTO SE IL CERCHIO SBORDA dalla vista: un cerchio fuori ingrandisce del vuoto, e il vuoto ingrandito e' comunque una vista che sembra buona.\n\nE TI DICO SE IL CERCHIO E' DIVENTATO UN DETTAGLIO, contando le circonferenze di dettaglio sulla vista di partenza prima e dopo. Se non sale, sul foglio resta un cerchio disegnato a mano accanto a una vista che non gli e' legata — e nessun errore lo direbbe.\n\nQUELLO CHE NON POSSO SAPERE e' se quello e' il particolare che serviva: un cerchio spostato di dieci millimetri ingrandisce un pezzo di piano liscio, ed e' altrettanto valido.",
+   "descrizione": "Ingrandisce un pezzo di una vista. E' l'altra meta' di cio' che manca a una tavola d'officina: la sezione fa vedere cosa c'e' dentro, il dettaglio fa vedere cio' che e' troppo piccolo per leggersi alla scala del disegno — una gola, uno smusso, un raccordo con la sua quota.\n\nIL CERCHIO LO TRACCIO IO, dentro la vista. Di serie al centro con raggio un quarto del lato minore; con «x_mm» e «y_mm» lo sposti e con «raggio_mm» lo cambi, in millimetri **di foglio** — non del modello, perche' sul foglio la vista e' in scala.\n\nMI RIFIUTO SE IL CERCHIO SBORDA dalla vista: un cerchio fuori ingrandisce del vuoto, e il vuoto ingrandito e' comunque una vista che sembra buona.\n\nE TI DICO SE IL CERCHIO E' DIVENTATO UN DETTAGLIO, contando le circonferenze di dettaglio sulla vista di partenza prima e dopo. Se non sale, sul foglio resta un cerchio disegnato a mano accanto a una vista che non gli e' legata — e nessun errore lo direbbe.\n\nLA LETTERA E' UNA SOLA PER TAVOLA: se «etichetta» e' gia' di una sezione o di un altro dettaglio mi rifiuto e ti dico quelle usate. La lettera vera te la rileggo («etichetta_riletta»).\n\nQUELLO CHE NON POSSO SAPERE e' se quello e' il particolare che serviva: un cerchio spostato di dieci millimetri ingrandisce un pezzo di piano liscio, ed e' altrettanto valido.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2356,6 +2595,48 @@
    "precondizione": "un assieme aperto con almeno due componenti",
    "documento": "assieme",
    "esempio": "{\"toccarsi_conta\":true}"
+  },
+  {
+   "nome": "distinta_taglio_in_tavola",
+   "famiglia": "tavola",
+   "sommario": "Mette in tavola la distinta di taglio del saldato, e la confronta con quella del pezzo.",
+   "descrizione": "Inserisce nella tavola la DISTINTA DI TAGLIO del saldato che sta dietro una vista: l'elenco delle barre con lunghezze e quantita'.\n\nE LA CONFRONTO. Il pezzo sa gia', per conto suo, quanti corpi ha in distinta; la tabella in tavola dice la sua. Sono **due letture indipendenti dello stesso fatto**: se non combaciano te lo dico e non scelgo a quale credere. Una tavola che dichiara una quantita' diversa dal modello manda in officina il numero sbagliato di barre, e nessuno dei due lati da' errore.\n\nDi solito vuol dire che il pezzo e' cambiato dopo l'ultimo «distinta_taglio»: si rifa' quello e si rimette la tabella.\n\nLa colonna delle quantita' non la indovino per posizione: la chiedo al modello di tabella.\n\nLE COLONNE E IL POSTO: tengo quelle che in officina servono per tagliare (numero, quantita', lunghezza, i due angoli, descrizione) e nascondo le altre — il modello di tabella di casa ne ha 17, e la tabella usciva dal foglio. «colonne» ne sceglie altre per intestazione, o «tutte». Poi misuro la tabella e la metto in un posto libero dentro la cornice, fuori dalle viste e dal cartiglio; se non c'e' posto la tolgo e lo dico.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "vista": {
+      "type": "string",
+      "description": "quale vista. Vuoto = la prima della tavola."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "dove mettere l'angolo in alto a sinistra della tabella. Vuoto = un posto libero che trovo io."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "idem, in verticale."
+     },
+     "colonne": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "le intestazioni delle colonne da tenere, o [\"tutte\"]. Vuoto = numero, quantita', lunghezza, angoli, descrizione."
+     },
+     "configurazione": {
+      "type": "string",
+      "description": "quale configurazione del pezzo. Vuota = quella della vista."
+     },
+     "template": {
+      "type": "string",
+      "description": "il modello di tabella. Vuoto = quello dell'installazione."
+     }
+    },
+    "required": []
+   },
+   "precondizione": "una tavola con una vista di un saldato che ha gia' la distinta di taglio",
+   "documento": "tavola",
+   "esempio": null
   },
   {
    "nome": "nuovo_foglio",

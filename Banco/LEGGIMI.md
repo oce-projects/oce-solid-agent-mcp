@@ -548,7 +548,7 @@ casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella)
-casi/tavola/      21   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      30   il primo caso che arriva in TAVOLA (voce GT0);
                        la tavola della piastra con fori e smusso, GUARDATA:
                        fori col richiamo e le posizioni, smusso 5 x 45, niente
                        quote ripetute fra viste (voce GT11);
@@ -572,7 +572,18 @@ casi/tavola/      21   il primo caso che arriva in TAVOLA (voce GT0);
                        datum, rugosita' e tolleranze geometriche attaccate agli
                        spigoli e fuori dal pezzo (voci GT6, GT8), coi quattro
                        rifiuti: lettera doppia, planarita' con un riferimento,
-                       datum che non c'e', Ra fuori scala
+                       datum che non c'e', Ra fuori scala; la distinta di
+                       taglio in tavola, una riga per lunghezza (voce GT2);
+                       lo sviluppo della L in tavola misurato contro il pezzo,
+                       e rifiutato su un pezzo pieno (voce GT13); il simbolo
+                       di saldatura sul giunto della T, e rifiutato su un corpo
+                       solo (voce GT7); il foro cieco con la sua profondita',
+                       niente fori dalla vista di fianco, nessun testo di quota
+                       accavallato (voce GT12); due sezioni con la stessa
+                       lettera, rifiutata la seconda (voce Z-C13); le croci di
+                       centro sui fori contate davvero, e i raccordi rifiutati
+                       (voce W2.11); la distinta base di un assieme di due
+                       pezzi coi palloncini (voce GT9)
 casi/saldature/    4   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
@@ -596,8 +607,11 @@ casi/lamiera/     12   la L si sviluppa lunga quanto il conto a mano; data al
                        e l'aperto senza gioco rifiutato; la piega da schizzo
                        che alza meta' lamiera (ingombro dal conto, sviluppo
                        invariato) e la piega a 180 rifiutata (voce GP18)
-casi/quote/        2   la piastra si quota da sola con DimXpert, coi valori
-                       giusti; con due riferimenti rifiuta (voce Z-H3)
+casi/quote/        4   la piastra si quota da sola con DimXpert, coi valori
+                       giusti; con due riferimenti rifiuta (voce Z-H3); la
+                       tolleranza sulla quota del modello, H7 riscontrato sulla
+                       ISO 286 e ±0,05, IT14 rifiutato (voce Z-F2); le quote del
+                       modello arrivano in tavola, e senza viste rifiuta (Z-C1-bis)
 casi/regressione/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 casi/ritrovare/    3   lo spigolo nominato con l'uid letto PRIMA di due fori si
                        ritrova per firma (stessa lunghezza, stesso punto) e il

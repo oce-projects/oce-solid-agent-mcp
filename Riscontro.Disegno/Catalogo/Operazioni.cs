@@ -852,6 +852,44 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "tolleranza_quota",
+                    Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "La tolleranza su una quota del modello (±, bilaterale, accoppiamento ISO), riscontrata e con i decimali giusti.",
+                    Descrizione =
+                        "Mette la TOLLERANZA su una quota del modello: simmetrica (±valore), bilaterale "
+                        + "(scostamenti superiore e inferiore) o un accoppiamento ISO (classe, es. H7 per un "
+                        + "foro, g6 per un albero). Sulla quota del modello arriva in tavola da sola con "
+                        + "«quote_dal_modello».\n\nL'ACCOPPIAMENTO SI RISCONTRA: gli scostamenti li calcola "
+                        + "SOLIDWORKS, e io controllo che l'ampiezza sia il grado IT della tabella ISO 286-1 per "
+                        + "quel diametro (IT5..IT11, fino a 500 mm) e che il segno sia quello della lettera "
+                        + "(H da zero in su, h da zero in giu'). Se non torna la rimetto com'era e te lo dico."
+                        + "\n\nI DECIMALI: imposto quelli della tolleranza sulla quota. Misurato: senza, un H7 "
+                        + "su 10 usciva in tavola «10 H7 +0 / 0» — in officina vuol dire «esatta».\n\nLa "
+                        + "risposta porta scostamenti e limiti (10,000 / 10,015 per un Ø10 H7).\n\nMI RIFIUTO "
+                        + "per un grado IT fuori da 5..11 o una quota oltre 500 mm (non li so riscontrare), per "
+                        + "una bilaterale con l'inferiore sopra il superiore, e quando il riscontro non torna.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "quota", O(
+                                "type", "string",
+                                "description", "il nome della quota, copiato dallo stato del documento (es. «D1@Schizzo2»)"),
+                            "tipo", O(
+                                "type", "string",
+                                "enum", A("simmetrica", "bilaterale", "accoppiamento", "nessuna"),
+                                "description", "che tolleranza. «nessuna» la toglie."),
+                            "valore_mm", O("type", "number", "description", "per «simmetrica»: il ± (0,05 = ±0,05)."),
+                            "superiore_mm", O("type", "number", "description", "per «bilaterale»: lo scostamento superiore (es. 0,1)."),
+                            "inferiore_mm", O("type", "number", "description", "per «bilaterale»: lo scostamento inferiore (es. -0,05)."),
+                            "classe", O("type", "string", "description", "per «accoppiamento»: la classe ISO, maiuscola per un foro (H7), minuscola per un albero (g6).")),
+                        "required", A("quota", "tipo")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "sopprimi_lavorazione",
                     Famiglia = "lavorazioni",
                     Esempio = "{\"feature_uid\":\"Taglio-Estrusione2\"}",   // da `lim_sopprimere_due_volte`
@@ -1682,7 +1720,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "telaio si fa con i membri strutturali invece che con le "
                         + "estrusioni. Chiamala DOPO aver messo tutte le barre e fatto tutti "
                         + "i tagli: una distinta calcolata prima riporta lunghezze che poi "
-                        + "cambiano.",
+                        + "cambiano.\n\nUNA VOCE PER OGNI GRUPPO DI BARRE UGUALI: il pezzo diventa "
+                        + "un saldato (la lavorazione «Saldatura», se manca) e la distinta e' quella "
+                        + "automatica di SOLIDWORKS, che separa le barre per lunghezza. La risposta "
+                        + "porta le voci — descrizione, lunghezza, quantita' — e la somma delle "
+                        + "quantita' deve essere il numero delle barre, se no lo dice.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -2189,7 +2231,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nDi serie arrivano solo le quote "
                         + "MARCATE per il disegno, cioe' quelle scelte per essere mostrate: "
                         + "con «tutte_le_quote» arrivano anche le altre, e la tavola diventa "
-                        + "parecchio piu' fitta.",
+                        + "parecchio piu' fitta.\n\nMI RIFIUTO se la tavola non ha viste (le quote "
+                        + "non avrebbero dove attaccarsi) e se non arriva nessuna quota: te lo dico "
+                        + "con quante il pezzo ne ha marcate, invece di rispondere «fatto».",
                     Precondizione = "una tavola con almeno una vista",
                     Schema = O(
                         "type", "object",
@@ -2209,76 +2253,54 @@ namespace Riscontro.Disegno.Catalogo
                     Nome = "croci_di_centro",
                     Famiglia = "tavola",
                     DocumentoRichiesto = "tavola",
-                    // ── NON PROVATA, E NON PERCHE' MANCHI IL TEMPO ──────
+                    // ── PROVATA DAL 26/9/2026 (libreria 0.125.0) ──────────
                     //
-                    // Il codice c'e' ed e' giusto; e' l'API che dice di si' e
-                    // non fa niente. Misurato il 17/9/2026, tre sonde:
-                    //
-                    //   - 25 combinazioni di `InsertType` x `InsertOption` su
-                    //     `AutoInsertCenterMarks2`: risposta `True` ogni volta,
-                    //     croci 0 -> 0, linee d'asse 0 -> 0;
-                    //   - la vista GIUSTA (quella che mostra tre spigoli
-                    //     circolari, contati con `GetVisibleEntityCount2`),
-                    //     attivata con `ActivateView` e selezionata: 0 -> 0;
-                    //   - `InsertCenterMark2` e `InsertCenterMark3` su ognuno
-                    //     dei tre spigoli circolari selezionati: 0 messe;
-                    //   - con `swDetailingAutoInsertCenterMarks` e le tre
-                    //     `...ForHoles/Fillets/Slots` accese a mano, e con
-                    //     `UseDocumentDefaults: false` e dimensione esplicita:
-                    //     ancora 0 -> 0.
-                    //
-                    // Non si e' trovato nessun modo di far nascere una croce di
-                    // centro da codice su questa installazione. **Finche' non si
-                    // trova, l'operazione non si offre**: e' la regola del
-                    // catalogo a due livelli, e vale soprattutto quando la
-                    // tentazione e' forte — qui l'operazione «riesce», e chi la
-                    // chiamasse crederebbe di avere i centri.
-                    //
-                    // Il codice resta (`OperazioniCentrini.cs`) perche' la
-                    // parte difficile e' gia' fatta e misurata, e perche'
-                    // riporta `croci_aggiunte = 0` invece di dichiarare fatto:
-                    // il giorno in cui si scopre cosa manca, si rimette
-                    // `Provata = true` e c'e' gia' tutto, caso di banco
-                    // compreso. Vedi la voce W2.11 del TODO.
-                    Provata = false,
+                    // Dal 17/9 era `Provata = false`: `AutoInsertCenterMarks2`
+                    // rispondeva True e metteva zero croci in 25 combinazioni, e
+                    // `InsertCenterMark2/3` sugli spigoli selezionati zero. Il
+                    // 26/9 (`prova0089 croci2`, col controllo positivo):
+                    // le croci sui fori C'ERANO (le mette SOLIDWORKS creando la
+                    // vista) e `GetCenterMarkCount` non le contava; da codice una
+                    // croce nuova non nasce. L'operazione e' un controllo: conta
+                    // enumerando e rifiuta i fori senza croce. Vedi la voce W2.11.
+                    Provata = true,
                     Sommario =
-                        "Mette le croci di centro sui fori delle viste, e le CONTA.",
+                        "Controlla che ogni foro delle viste abbia la croce di centro, contandole davvero, e rifiuta se ne manca.",
                     Descrizione =
-                        "Mette la croce di centro su ogni foro delle viste, in un colpo: "
-                        + "non serve selezionare niente.\n\nPERCHE' SERVE. Una tavola con "
-                        + "dodici fori e nessuna croce di centro si stampa e sembra "
-                        + "completa. In officina manca la cosa che serve per forare: "
-                        + "**dove sta il centro.** Nessun errore, tavola inutilizzabile."
-                        + "\n\nTI DICO QUANTE NE SONO NATE, non che ho chiamato l'API: le "
-                        + "croci si contano sulla vista prima e dopo. Se il numero e' "
-                        + "**zero** te lo grido invece di dire «fatto» — quasi sempre vuol "
-                        + "dire che quella vista non ha cerchi, cioe' che e' la vista "
-                        + "sbagliata.\n\nLA DIMENSIONE, se non me la dici, e' quella del "
-                        + "documento. E' voluto: la misura delle croci e' una convenzione "
-                        + "di studio, e sceglierne una io vorrebbe dire darti tavole che "
-                        + "non somigliano alle altre tavole della tua officina.\n\nSenza "
-                        + "«vista» le guardo tutte.",
+                        "CONTROLLA che ogni foro visibile nelle viste abbia la croce di centro, e "
+                        + "prova a metterla dove manca. SOLIDWORKS le mette da se' creando la vista, "
+                        + "se l'opzione del documento «Croci di centro sui fori» e' accesa: quei fori "
+                        + "li riconosco («cerchi_che_avevano_gia_la_croce»). Da codice una croce "
+                        + "nuova non nasce (misurato): un foro senza croce e' un rifiuto, con la "
+                        + "strada — l'opzione accesa e la vista rifatta.\n\nPERCHE' SERVE. Una tavola con dodici fori e "
+                        + "nessuna croce di centro si stampa e sembra completa. In officina manca "
+                        + "la cosa che serve per forare: **dove sta il centro.**\n\nTI DICO "
+                        + "QUANTE NE SONO NATE, contate sulla vista: ogni croce deve far salire il "
+                        + "conto di uno, e un cerchio rimasto senza croce e' un rifiuto. Se il "
+                        + "numero e' **zero** te lo dico invece di dire «fatto» — quasi sempre la "
+                        + "vista e' quella sbagliata (i fori come cerchi si vedono dall'alto, di "
+                        + "solito V2).\n\nLA DIMENSIONE, se non me la dici, e' quella del "
+                        + "documento: e' una convenzione di studio.\n\nSenza «vista» le guardo "
+                        + "tutte. Raccordi e asole no: misurato, sugli archi la croce da codice "
+                        + "non nasce.\n\nLE CROCI SI CONTANO ENUMERANDOLE: il contatore di "
+                        + "SOLIDWORKS (GetCenterMarkCount) non vede quelle messe alla creazione "
+                        + "della vista, e diceva zero su un foglio che ne aveva tre.",
                     Precondizione = "una tavola con almeno una vista",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "vista", O(
                                 "type", "string",
-                                "description", "il nome di UNA vista, come lo riporta lo stato della "
-                                    + "tavola. Vuoto = tutte le viste."),
+                                "description", "UNA vista, come la chiama lo stato della tavola (V1, V2...) "
+                                    + "o per nome. Vuoto = tutte le viste."),
                             "su", O(
                                 "type", "string",
-                                "description", "«fori» (predefinito), «raccordi», «asole» oppure "
-                                    + "«tutti». Un nome diverso da questi lo rifiuto invece di "
-                                    + "ripiegare sui fori: ti ritroveresti le croci su un'altra cosa."),
+                                "enum", A("fori"),
+                                "description", "«fori», i cerchi interi (l'unico: sui raccordi la croce da codice non nasce, misurato)."),
                             "dimensione_mm", O(
                                 "type", "number",
                                 "description", "quanto e' grande la croce. Se non lo dici uso le "
                                     + "impostazioni del documento, che e' quasi sempre la cosa giusta."),
-                            "distacco_mm", O(
-                                "type", "number",
-                                "description", "lo stacco fra la croce e le linee estese. Conta solo "
-                                    + "con «linee_estese»."),
                             "linee_estese", O(
                                 "type", "boolean",
                                 "description", "le linee d'asse che escono dalla croce fino al bordo "
@@ -2405,6 +2427,116 @@ namespace Riscontro.Disegno.Catalogo
                             "x_mm", O("type", "number", "description", "dove va l'angolo in alto a sinistra della tabella sul foglio, in mm. Predefinito 15."),
                             "y_mm", O("type", "number", "description", "idem in verticale. Predefinito 15 sotto il bordo alto del foglio."),
                             "inizio_tag", O("type", "string", "description", "la lettera dei tag. Predefinito «A».")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "vista_sviluppo",
+                    Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
+                    Provata = true,
+                    Sommario = "La vista dello SVILUPPO di una lamiera in tavola, misurata contro il pezzo.",
+                    Descrizione =
+                        "Mette in tavola la vista dello SVILUPPO di un pezzo di lamiera: la lamiera "
+                        + "distesa, con le linee di piega, com'e' prima di andare in pressa. E' la "
+                        + "vista che serve a chi taglia il lamierino.\n\nLa vista si MISURA: "
+                        + "l'ingombro si legge dagli spigoli visibili (non dal contorno della vista, "
+                        + "che comprende la nota di piega e un margine — misurato: 92,6 mm per uno "
+                        + "sviluppo di 80,7) e si confronta con lo sviluppo del pezzo misurato prima "
+                        + "di mettere la vista. La risposta porta l'ingombro, le linee di piega e la "
+                        + "lunghezza dello sviluppo. La vista va in un posto libero del foglio (misurata "
+                        + "a scala 2:1 a 300/90 mm cadeva nel cartiglio).\n\nMI RIFIUTO se il pezzo non e' di lamiera, se "
+                        + "la vista nasce ma non e' uno sviluppo, o se misura un'altra cosa dallo "
+                        + "sviluppo del pezzo: in quei casi la tolgo.",
+                    Precondizione = "una tavola e, aperto, un pezzo di lamiera salvato su disco",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "modello", O("type", "string", "description", "il percorso del pezzo di lamiera. Vuoto = quello della tavola."),
+                            "configurazione", O("type", "string", "description", "la configurazione del pezzo. Vuota = quella attiva."),
+                            "x_mm", O("type", "number", "description", "dove va il centro della vista sul foglio, in mm. Vuoto = un posto libero fuori dalle viste e dal cartiglio."),
+                            "y_mm", O("type", "number", "description", "idem in verticale."),
+                            "nascondi_pieghe", O("type", "boolean", "description", "senza le linee di piega. Predefinito falso: chi piega le vuole.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "saldatura_in_tavola",
+                    Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
+                    Provata = true,
+                    Sommario = "Il simbolo di saldatura ISO sul giunto fra due corpi, in una vista.",
+                    Descrizione =
+                        "Mette in tavola il SIMBOLO DI SALDATURA (ISO 2553) sul giunto fra due corpi "
+                        + "di un saldato: la freccia sulla linea del giunto, il simbolo del cordone "
+                        + "(angolo, V, mezza V, testa), la gola «a» a sinistra e, se la dai, la "
+                        + "lunghezza a destra.\n\nIL GIUNTO LO TROVO IO: fra gli spigoli che la vista "
+                        + "mostra, quello in cui un corpo tocca l'altro (il piu' lungo). Il simbolo "
+                        + "si sposta fuori dal pezzo, dalla parte di «lato», oltre le quote gia' "
+                        + "messe.\n\nSI RILEGGE: simbolo, gola, lunghezza, «tutto attorno». Il "
+                        + "codice del simbolo e' quello della libreria di SOLIDWORKS («<WELD-FILL>» "
+                        + "per l'angolo): misurato, con un codice sbagliato il simbolo nasce lo "
+                        + "stesso, si rilegge uguale, e non disegna il triangolo.\n\nMI RIFIUTO se "
+                        + "il pezzo ha un corpo solo, se nella vista non si vede nessun giunto, e se "
+                        + "il simbolo nato non e' quello chiesto (in quel caso lo tolgo).",
+                    Precondizione = "una tavola con una vista di un saldato in cui si vede il giunto fra due corpi",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O("type", "string", "description", "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."),
+                            "tipo", O("type", "string", "enum", A("angolo", "v", "mezza_v", "testa"), "description", "il cordone. Predefinito angolo."),
+                            "a_mm", O("type", "number", "description", "la gola del cordone in mm (ISO 2553, «a»). Da 0 a 50."),
+                            "lunghezza_mm", O("type", "number", "description", "la lunghezza del cordone, a destra del simbolo. Vuota = tutto il giunto."),
+                            "tutto_attorno", O("type", "boolean", "description", "il cerchio del cordone tutto attorno. Predefinito falso."),
+                            "in_opera", O("type", "boolean", "description", "la bandierina della saldatura in opera (in cantiere). Predefinito falso."),
+                            "entrambi_i_lati", O("type", "boolean", "description", "il cordone dai due lati del giunto. Predefinito falso."),
+                            "lato", O("type", "string", "enum", A("alto", "basso", "sinistra", "destra"), "description", "da che parte della vista va il simbolo. Predefinito alto.")),
+                        "required", A("a_mm")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "distinta_base_in_tavola",
+                    Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
+                    Provata = true,
+                    Sommario = "La distinta base di un assieme in tavola, confrontata coi componenti dell'assieme.",
+                    Descrizione =
+                        "Mette in tavola la DISTINTA BASE dell'assieme che sta dietro una vista: numero di "
+                        + "voce, componente, quantita'. Di serie il primo livello; «solo_parti» o "
+                        + "«indentata» per le altre.\n\nLA CONFRONTO: l'assieme sa per conto suo quali "
+                        + "componenti ha e quanti; le voci e la somma delle quantita' devono combaciare. Se non "
+                        + "combaciano la tolgo e te lo dico.\n\nPoi la misuro e la metto in un posto libero "
+                        + "del foglio, fuori dalle viste e dal cartiglio.\n\nMI RIFIUTO se dietro la vista non "
+                        + "c'e' un assieme (per un saldato c'e' «distinta_taglio_in_tavola») o se sul foglio non "
+                        + "c'e' posto.",
+                    Precondizione = "una tavola con una vista di un assieme salvato",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O("type", "string", "description", "la vista dell'assieme (V1, V2...) o per nome. Predefinita la prima."),
+                            "tipo", O("type", "string", "enum", A("primo_livello", "solo_parti", "indentata"), "description", "che distinta. Predefinito primo_livello."),
+                            "template", O("type", "string", "description", "il modello di tabella. Vuoto = il primo della cartella dei modelli di distinta.")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "palloncini",
+                    Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
+                    Provata = true,
+                    Sommario = "I palloncini coi numeri di voce della distinta sui componenti di una vista, contati.",
+                    Descrizione =
+                        "Mette i PALLONCINI sui componenti dell'assieme in una vista, col numero di voce della "
+                        + "distinta base (AutoBalloon5). Li conta sulla vista prima e dopo, e ti dice i numeri "
+                        + "scritti.\n\nMI RIFIUTO se in tavola non c'e' ancora una distinta base (i palloncini "
+                        + "portano il suo numero di voce: mettila prima con «distinta_base_in_tavola») o se "
+                        + "dietro la vista non c'e' un assieme.",
+                    Precondizione = "una tavola con la distinta base e una vista dell'assieme",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O("type", "string", "description", "la vista (V1, V2...) o per nome. Predefinita la prima."),
+                            "disposizione", O("type", "string", "enum", A("quadrato", "cerchio", "sopra", "sotto"), "description", "come disporre i palloncini attorno alla vista. Predefinito quadrato.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -2562,6 +2694,8 @@ namespace Riscontro.Disegno.Catalogo
                 new OperazioneDisegno
                 {
                     Nome = "sezione_in_tavola",
+                    // Z-C13 (26/9/2026): una lettera gia' usata da una sezione o da un
+                    // dettaglio si rifiuta; la lettera effettiva si rilegge.
                     Famiglia = "tavola",
                     Esempio = "{\"etichetta\":\"A\",\"a_mm\":0}",   // da `la_sezione_taglia_il_pezzo`
                     DocumentoRichiesto = "tavola",
@@ -2599,6 +2733,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "materiale: sul foglio resta una vista che sembra buona e non "
                         + "mostra niente, e nessun errore lo direbbe. Preferisco "
                         + "fallire e dirti dove ho tagliato.\n\n"
+                        + "LA LETTERA E' UNA SOLA PER TAVOLA: se «etichetta» e' gia' di "
+                        + "un'altra sezione o di un dettaglio mi rifiuto e ti dico quelle "
+                        + "usate — due «A-A» sembrano lo stesso taglio. La lettera che la "
+                        + "vista ha davvero te la rileggo («etichetta_riletta»).\n\n"
                         + "QUELLO CHE NON POSSO SAPERE e' se quella e' la sezione che "
                         + "serviva. So dirti che il taglio ha incontrato materiale, non "
                         + "che passa per la cavita' che volevi mostrare.",
@@ -2672,6 +2810,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "dopo. Se non sale, sul foglio resta un cerchio disegnato a mano "
                         + "accanto a una vista che non gli e' legata — e nessun errore lo "
                         + "direbbe.\n\n"
+                        + "LA LETTERA E' UNA SOLA PER TAVOLA: se «etichetta» e' gia' di una "
+                        + "sezione o di un altro dettaglio mi rifiuto e ti dico quelle usate. "
+                        + "La lettera vera te la rileggo («etichetta_riletta»).\n\n"
                         + "QUELLO CHE NON POSSO SAPERE e' se quello e' il particolare che "
                         + "serviva: un cerchio spostato di dieci millimetri ingrandisce un "
                         + "pezzo di piano liscio, ed e' altrettanto valido.",
@@ -2794,7 +2935,15 @@ namespace Riscontro.Disegno.Catalogo
                     Nome = "distinta_taglio_in_tavola",
                     Famiglia = "tavola",
                     DocumentoRichiesto = "tavola",
-                    // ── NON PROVATA: la tabella non nasce ───────────────
+                    // ── PROVATA DAL 26/9/2026 (libreria 0.125.0) ──────────
+                    //
+                    // La tabella nasce quando il pezzo e' un SALDATO con la
+                    // distinta automatica — che `distinta_taglio` adesso fa. Il
+                    // testo qui sotto e' del 17/9: la causa non era la tavola,
+                    // era il pezzo (`IsWeldment` falso). Misurato: telaio
+                    // 1000 x 800, tabella con 2 voci, 2 x 1000 e 2 x 800.
+                    //
+                    // ── (17/9) NON PROVATA: la tabella non nasce ───────────
                     //
                     // `IView.InsertWeldmentTable` torna `null`, e non e' un
                     // problema di questa operazione: **su questa installazione
@@ -2814,7 +2963,7 @@ namespace Riscontro.Disegno.Catalogo
                     // due API di annotazione che non c'entrano niente fra loro,
                     // tutte e due mute sulla stessa tavola. Vedi la voce GT2
                     // del TODO per dove ripartire.
-                    Provata = false,
+                    Provata = true,
                     Sommario =
                         "Mette in tavola la distinta di taglio del saldato, e la confronta "
                         + "con quella del pezzo.",
@@ -2830,7 +2979,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "errore.\n\nDi solito vuol dire che il pezzo e' cambiato dopo "
                         + "l'ultimo «distinta_taglio»: si rifa' quello e si rimette la "
                         + "tabella.\n\nLa colonna delle quantita' non la indovino per "
-                        + "posizione: la chiedo al modello di tabella.",
+                        + "posizione: la chiedo al modello di tabella.\n\nLE COLONNE E IL POSTO: "
+                        + "tengo quelle che in officina servono per tagliare (numero, quantita', "
+                        + "lunghezza, i due angoli, descrizione) e nascondo le altre — il modello "
+                        + "di tabella di casa ne ha 17, e la tabella usciva dal foglio. «colonne» "
+                        + "ne sceglie altre per intestazione, o «tutte». Poi misuro la tabella e "
+                        + "la metto in un posto libero dentro la cornice, fuori dalle viste e dal "
+                        + "cartiglio; se non c'e' posto la tolgo e lo dico.",
                     Precondizione = "una tavola con una vista di un saldato che ha gia' la distinta di taglio",
                     Schema = O(
                         "type", "object",
@@ -2840,10 +2995,14 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "quale vista. Vuoto = la prima della tavola."),
                             "x_mm", O(
                                 "type", "number",
-                                "description", "dove mettere l'angolo in alto a sinistra della tabella."),
+                                "description", "dove mettere l'angolo in alto a sinistra della tabella. Vuoto = un posto libero che trovo io."),
                             "y_mm", O(
                                 "type", "number",
                                 "description", "idem, in verticale."),
+                            "colonne", O(
+                                "type", "array",
+                                "items", O("type", "string"),
+                                "description", "le intestazioni delle colonne da tenere, o [\"tutte\"]. Vuoto = numero, quantita', lunghezza, angoli, descrizione."),
                             "configurazione", O(
                                 "type", "string",
                                 "description", "quale configurazione del pezzo. Vuota = quella della vista."),

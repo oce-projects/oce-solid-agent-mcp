@@ -68,8 +68,8 @@
           "perche": "tre viste standard. Il numero esatto e non «maggiore di zero»: una tavola con una vista sola e' riuscita per l'API e inutile per chi taglia." },
         { "cosa": "stato.viste_totali", "uguale": 3,
           "perche": "**LE DUE LETTURE CONCORDANO.** L'operazione dice «tre create»; lo stato ricomincia da capo e rilegge il foglio vista per vista. Due strade indipendenti verso lo stesso numero -- se divergessero, una delle due mentirebbe e non si saprebbe quale. E' la stessa prova che GA5 fa su `assieme_vincolato`." },
-        { "cosa": "stato.croci_di_centro_totali", "uguale": 0,
-          "perche": "LE VISTE NASCONO SENZA CROCI DI CENTRO, e il campo esiste per dirlo. Una tavola con tre fori e nessun centro si stampa e sembra completa: in officina manca la cosa che serve per forare. Questo zero **non e' una constatazione neutra, e' il buco che resta aperto** -- vedi la voce W2.11: su questa installazione non si e' trovato nessun modo di riempirlo da codice.",
+        { "cosa": "stato.croci_di_centro_totali", "uguale": 3,
+          "perche": "**ERA 0, ED ERA IL CONTATORE CHE MENTIVA** (26/9/2026, voce W2.11). Le viste nascono CON le croci sui tre fori: le mette SOLIDWORKS alla creazione della vista (opzione del documento «croci sui fori», accesa qui), e si vedono nel PNG. `IView.GetCenterMarkCount()` rispondeva 0 perche' quelle non le conta; enumerandole (`GetFirstCenterMark`/`GetNext`) sono tre. Per una settimana questa riga ha tenuto verde un buco che non c'era, e ha nascosto il difetto vero: lo stato diceva zero croci su un foglio che ne aveva tre.",
           "e_il_campo_e_nuovo": "`stato.viste[].croci_di_centro` e `stato.croci_di_centro_totali` sono nati insieme a questo caso. Si scrivono SEMPRE, anche a zero: un campo che compare solo quando ha un valore interessante insegna a non cercarlo." } ] }
   ]
 }

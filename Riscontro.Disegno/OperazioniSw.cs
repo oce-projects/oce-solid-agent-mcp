@@ -246,14 +246,14 @@ namespace Riscontro.Disegno
             "estrudi_su_faccia", "fazzoletto", "filettatura_cosmetica",
             "foro_guidato", "guscio", "inserisci_componente",
             "imposta_foglio", "incidi_testo", "ingombro_corpo", "membro_strutturale",
-            "misura_fra_entita", "modifica_quota", "proprieta_di_massa",
+            "misura_fra_entita", "modifica_quota", "tolleranza_quota", "proprieta_di_massa",
             "loft_fra_due_cerchi",
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
             "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
             "sostituisci_componente",
-            "croci_di_centro", "quota_in_tavola", "nota_in_tavola", "tabella_fori_in_tavola",
+            "croci_di_centro", "quota_in_tavola", "nota_in_tavola", "tabella_fori_in_tavola", "vista_sviluppo", "saldatura_in_tavola", "distinta_base_in_tavola", "palloncini",
             "rugosita_in_tavola", "datum_in_tavola", "tolleranza_geometrica_in_tavola",
             "sezione_in_tavola", "dettaglio_in_tavola",
             "nuovo_foglio", "attiva_foglio", "distinta_taglio_in_tavola",
@@ -321,6 +321,7 @@ namespace Riscontro.Disegno
                     case "asola": return Asola(modello, argomenti, stato);
                     case "estrudi_su_faccia": return EstrudiSuFaccia(modello, argomenti, stato);
                     case "modifica_quota": return ModificaQuota(modello, argomenti, stato);
+                    case "tolleranza_quota": return TolleranzaQuota(modello, argomenti);
                     case "sopprimi_lavorazione": return SopprimiLavorazione(modello, argomenti, stato);
                     case "elimina_lavorazione": return EliminaLavorazione(modello, argomenti, stato);
                     case "sposta_corpi": return SpostaCorpi(modello, argomenti, stato);
@@ -407,6 +408,10 @@ namespace Riscontro.Disegno
                     // contarla nel posto sbagliato avrebbe chiuso quattro voci.
                     case "nota_in_tavola": return NotaInTavola(modello, argomenti);
                     case "tabella_fori_in_tavola": return TabellaForiInTavola(modello, argomenti);
+                    case "vista_sviluppo": return VistaSviluppo(modello, argomenti);
+                    case "saldatura_in_tavola": return SaldaturaInTavola(modello, argomenti);
+                    case "distinta_base_in_tavola": return DistintaBaseInTavola(modello, argomenti);
+                    case "palloncini": return Palloncini(modello, argomenti);
                     case "rugosita_in_tavola": return RugositaInTavola(modello, argomenti);
                     case "datum_in_tavola": return DatumInTavola(modello, argomenti);
                     case "tolleranza_geometrica_in_tavola": return TolleranzaGeometricaInTavola(modello, argomenti);

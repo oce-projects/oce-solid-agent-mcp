@@ -1111,11 +1111,14 @@ namespace Prove.Contratti
         ///
         /// Misurato il 18/9/2026: su un pezzo costruito dal ponte, con **sette
         /// quote tutte marcate per il disegno**, cinque strade di import ne
-        /// portano **zero** — mentre nello stesso istante, sulla stessa tavola,
-        /// `InsertNote` aggiunge un'annotazione. Non e' la sessione: e' l'import
-        /// delle quote, e resta rotto finche' non si prova in processo (Z-E7).
+        /// portavano **zero**. **Il 26/9/2026 l'import funziona fuori processo**
+        /// (7 quote sullo stesso pezzo, due sonde) e la prova di comportamento
+        /// c'e': `quote/le_quote_arrivano_dal_modello`, col rifiuto senza viste e
+        /// la gemella verde (Z-C1-bis, Z-E7 chiusa). Questo controllo resta per il
+        /// giorno in cui l'import torna a portare zero quote: allora il messaggio
+        /// qui sotto e' di nuovo tutto cio' che un modello riceve.
         ///
-        /// Finche' dura, **quel messaggio e' tutto cio' che un modello riceve
+        /// In quel caso **quel messaggio e' tutto cio' che un modello riceve
         /// quando chiede le quote**, ed e' la parte che funziona: dice quante
         /// quote ha il pezzo, **quante sono marcate** — il dato che divide in
         /// due le cause possibili — e l'elenco delle strade provate. Se qualcuno
@@ -1125,14 +1128,8 @@ namespace Prove.Contratti
         ///
         /// Guarda il **sorgente**, non l'esecuzione: qui SOLIDWORKS non c'e'.
         /// Quindi prova che le frasi ci sono ancora, **non** che il rifiuto
-        /// scatta e nemmeno che dice il vero. La prova di comportamento sarebbe
-        /// un caso di banco con `deve_fallire`, e **oggi non si puo' scrivere**:
-        /// il banco pretende una gemella VERDE con la stessa operazione (voce
-        /// F5), e per `quote_dal_modello` una gemella verde non esiste, perche'
-        /// l'operazione non riesce mai. La regola ha ragione — *una prova che
-        /// verifica solo il rifiuto non distingue «il controllo funziona» da
-        /// «non funziona niente»* — e questo controllo non finge di essere
-        /// quella prova. E' meno, e lo dice.
+        /// scatta e nemmeno che dice il vero: quello lo prova il caso di banco
+        /// della coppia (dal 26/9/2026).
         /// </summary>
         private static void IlRifiutoDelleQuoteDiceAncoraQuelloCheServe()
         {

@@ -67,14 +67,15 @@ namespace Riscontro.Disegno
                     "La tavola non ha viste: una distinta di taglio si aggancia a una " +
                     "vista del pezzo. Mettine una con «viste_standard».");
 
-            string voluta = Str(a, "vista", null);
-            var vista = TrovaLaVista(disegno, voluta);
+            // LA VISTA COME LE ALTRE OPERAZIONI DI TAVOLA: per uid (V1, V2...) o
+            // per nome. Fino alla 0.124.0 solo per nome — «V1», come la chiama lo
+            // stato, rispondeva «non c'e'» (visto dal primo caso di banco che
+            // l'ha chiamata, 26/9/2026).
+            string motivo;
+            var vista = RisolviVista(disegno, nomi, Str(a, "vista", null), out motivo);
+            if (motivo != null) return Fallito(motivo);
             if (vista == null)
-                return Fallito(
-                    voluta == null
-                        ? "Non riesco a prendere la prima vista della tavola."
-                        : "Non c'e' nessuna vista che si chiami «" + voluta + "». Ci sono: " +
-                          string.Join(", ", nomi) + ".");
+                return Fallito("Non riesco a prendere la vista della tavola.");
 
             string nomeVista = null;
             try { nomeVista = vista.Name; } catch { }
@@ -200,6 +201,23 @@ namespace Riscontro.Disegno
             if (corpiNelPezzo >= 0) misure["corpi_nella_distinta_del_pezzo"] = corpiNelPezzo;
             if (quantitaLetta) misure["quantita_in_tabella"] = quantitaTotale;
 
+            // ── LE COLONNE CHE SERVONO, E UN POSTO SUL FOGLIO ───────────
+            //
+            // VISTO NEL PNG il 26/9/2026, col banco verde: il modello di tabella
+            // dell'officina ha 17 colonne (autore, codice, trattamento, stato di
+            // fornitura, QUANTITY e TOTAL LENGTH doppioni...), e la tabella messa
+            // a 250/200 usciva dal foglio dopo la quarta. Le righe si leggevano
+            // tutte — il controllo guardava le celle, non dove cadevano.
+            // Si leggono prima (sopra) con tutte le colonne; poi si nascondono
+            // quelle che in officina non servono, si misura la tabella e la si
+            // mette in un posto libero dentro la cornice.
+            string motivoPosto;
+            if (!ColonneEPosto(disegno, tabella, colonne, proprietaDiColonna, intestazioni, a, misure, out motivoPosto))
+            {
+                bool tolta = TogliLaTabellaDiTaglio(modello, tabella);
+                return Fallito(motivoPosto + (tolta ? " Ho tolto la tabella." : " Togli la tabella: " + Frasi.CosiSiRitira + "."));
+            }
+
             // ── IL CONFRONTO ───────────────────────────────────────────
             //
             // E' la ragione per cui questa voce valeva la pena: la seconda
@@ -255,27 +273,172 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// La vista chiesta per nome, o la prima della tavola.
-        /// **Il foglio non e' una vista** e non va mai restituito: `GetFirstView`
-        /// torna il FOGLIO, e le viste cominciano dal successivo.
+        /// Le proprieta' di colonna che in officina servono per tagliare: la
+        /// lunghezza, i due angoli, la descrizione (il profilo). Col numero di voce
+        /// e la quantita', che sono colonne di TIPO (`swWeldTableColumnType_*`).
         /// </summary>
-        private static IView TrovaLaVista(IDrawingDoc disegno, string nome)
+        private static readonly HashSet<string> ColonneDiOfficina = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "LUNGHEZZA", "LENGTH", "ANGOLO1", "ANGOLO2", "ANGLE1", "ANGLE2", "DESCRIZIONE", "DESCRIPTION",
+        };
+
+        /// <summary>
+        /// Nasconde le colonne che non servono (o tiene quelle chieste con
+        /// «colonne»), misura la tabella e la mette in un posto libero del
+        /// foglio: dentro la cornice, fuori dalle viste e dal cartiglio. False
+        /// col motivo se il posto non c'e' o se una colonna chiesta non esiste.
+        /// </summary>
+        private static bool ColonneEPosto(IDrawingDoc disegno, ITableAnnotation tabella, int colonne,
+                                          List<string> proprieta, List<string> intestazioni,
+                                          Dictionary<string, object> a, Dictionary<string, object> misure, out string motivo)
+        {
+            motivo = null;
+            // ── 1. QUALI COLONNE ────────────────────────────────────────────
+            var chieste = Lista(a, "colonne");
+            bool tutte = chieste.Any(c => string.Equals((c ?? "").Trim(), "tutte", StringComparison.OrdinalIgnoreCase));
+            var tenere = new bool[colonne];
+            if (tutte)
+                for (int c = 0; c < colonne; c++) tenere[c] = true;
+            else if (chieste.Count > 0)
+            {
+                foreach (var ch in chieste)
+                {
+                    int i = intestazioni.FindIndex(t => string.Equals((t ?? "").Trim(), (ch ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
+                    if (i < 0)
+                    {
+                        motivo = "La tabella non ha una colonna «" + ch + "». Ha: " + string.Join(", ", intestazioni) +
+                                 " (oppure chiedi «tutte»).";
+                        return false;
+                    }
+                    tenere[i] = true;
+                }
+            }
+            else
+            {
+                int tenute = 0;
+                for (int c = 0; c < colonne; c++)
+                {
+                    int tipo = -1;
+                    try { tipo = tabella.GetColumnType2(c, true); } catch { }
+                    tenere[c] = tipo == (int)swTableColumnTypes_e.swWeldTableColumnType_ItemNumber ||
+                                tipo == (int)swTableColumnTypes_e.swWeldTableColumnType_Quantity ||
+                                ColonneDiOfficina.Contains((proprieta[c] ?? "").Trim());
+                    if (tenere[c]) tenute++;
+                }
+                // Un modello di tabella che non si riconosce resta com'e': meglio
+                // tutte le colonne che una tabella senza lunghezze.
+                if (tenute < 3) for (int c = 0; c < colonne; c++) tenere[c] = true;
+            }
+            var visibili = new List<string>();
+            var nascoste = new List<string>();
+            for (int c = colonne - 1; c >= 0; c--)   // dall'ultima: nascondere non sposta quelle prima
+            {
+                if (tenere[c]) continue;
+                try { tabella.ColumnHidden[c] = true; } catch { }
+            }
+            // SI RILEGGONO (revisione del 26/9/2026): un'assegnazione ignorata
+            // lascerebbe in tavola tutte e 17 le colonne con la risposta che dice
+            // il contrario.
+            for (int c = 0; c < colonne; c++)
+            {
+                bool nascosta = false;
+                try { nascosta = tabella.ColumnHidden[c]; } catch { }
+                (nascosta ? nascoste : visibili).Add(intestazioni[c]);
+                if (nascosta == tenere[c])
+                {
+                    motivo = "La colonna «" + intestazioni[c] + "» doveva essere " + (tenere[c] ? "visibile" : "nascosta") +
+                             " e non lo e': la tabella non e' quella che ti direi.";
+                    return false;
+                }
+            }
+            misure["colonne_visibili"] = visibili.ToArray();
+            misure["colonne_nascoste"] = nascoste.ToArray();
+
+            // ── 2. QUANTO E' GRANDE ─────────────────────────────────────────
+            double w = 0, h = 0;
+            try
+            {
+                int nc = tabella.ColumnCount, nr = tabella.RowCount;
+                for (int c = 0; c < nc; c++) w += tabella.GetColumnWidth(c);
+                for (int r = 0; r < nr; r++) h += tabella.GetRowHeight(r);
+            }
+            catch { }
+            if (w <= 0 || h <= 0)
+            {
+                motivo = "La tabella e' nata ma non riesco a misurarla: senza misura non so se sta nel foglio.";
+                return false;
+            }
+            misure["ingombro_tabella_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
+
+            // ── 3. DOVE (OperazioniPostoSulFoglio) ──────────────────────────
+            string nomeTabella = null;
+            try { nomeTabella = (tabella.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
+            var foglio = LeggiIlFoglio(disegno, null, nomeTabella);
+            misure["cartiglio_stimato"] = foglio.CartiglioStimato;
+            bool chiesta = a.ContainsKey("x_mm") || a.ContainsKey("y_mm");
+            double px, py; string dove;
+            if (chiesta)
+            {
+                // x_mm/y_mm sono l'angolo in ALTO a sinistra della tabella.
+                px = Unita.M(Num(a, "x_mm", 250)); py = Unita.M(Num(a, "y_mm", 200));
+                string perche = foglio.Tocca(px, py - h, px + w, py);
+                if (perche != null)
+                {
+                    motivo = string.Format(CultureInfo.InvariantCulture,
+                        "La tabella ({0:0} x {1:0} mm) messa a {2:0}/{3:0} {4}. Togli «x_mm» e «y_mm» e la metto io in " +
+                        "un posto libero, oppure nascondi colonne con «colonne».", w * 1000, h * 1000, px * 1000, py * 1000, perche);
+                    return false;
+                }
+                dove = "dove chiesto";
+            }
+            else
+            {
+                var basso = PostoLibero(foglio, w, h, out dove);
+                if (basso == null)
+                {
+                    motivo = string.Format(CultureInfo.InvariantCulture,
+                        "Sul foglio non c'e' un posto libero per la tabella ({0:0} x {1:0} mm) fuori dalle viste e dal " +
+                        "cartiglio. Nascondi colonne con «colonne», oppure usa un foglio piu' grande.", w * 1000, h * 1000);
+                    return false;
+                }
+                px = basso[0]; py = basso[1] + h;   // l'ancora e' in alto a sinistra
+            }
+            double[] letta = null;
+            try
+            {
+                var an = tabella.GetAnnotation() as IAnnotation;
+                an?.SetPosition2(px, py, 0);
+                letta = an?.GetPosition() as double[];
+            }
+            catch { }
+            if (letta == null || Math.Abs(letta[0] - px) > 0.0005 || Math.Abs(letta[1] - py) > 0.0005)
+            {
+                motivo = "Ho provato a spostare la tabella " + dove + " ma non si e' spostata (riletta " +
+                         (letta == null ? "niente" : string.Format(CultureInfo.InvariantCulture, "{0:0.#}/{1:0.#} mm", letta[0] * 1000, letta[1] * 1000)) + ").";
+                return false;
+            }
+            misure["posizione_tabella_mm"] = new object[] { Math.Round(px * 1000, 1), Math.Round(py * 1000, 1) };
+            misure["dove_sta_la_tabella"] = dove;
+            misure["dentro_il_foglio"] = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Toglie la tabella appena messa. `DeleteSelection2` e non `EditDelete`
+        /// (la seconda puo' aprire una finestra di conferma).
+        /// </summary>
+        private static bool TogliLaTabellaDiTaglio(IModelDoc2 modello, ITableAnnotation tabella)
         {
             try
             {
-                var foglio = disegno.GetFirstView() as IView;
-                var v = foglio == null ? null : foglio.GetNextView() as IView;
-                while (v != null)
-                {
-                    if (string.IsNullOrWhiteSpace(nome)) return v;
-                    string suo = null;
-                    try { suo = v.Name; } catch { }
-                    if (string.Equals(suo, nome, StringComparison.OrdinalIgnoreCase)) return v;
-                    v = v.GetNextView() as IView;
-                }
+                modello.ClearSelection2(true);
+                var an = tabella.GetAnnotation() as IAnnotation;
+                bool tolta = an != null && an.Select3(false, null) &&
+                             modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                modello.ClearSelection2(true);
+                return tolta;
             }
-            catch { }
-            return null;
+            catch { return false; }
         }
 
         /// <summary>

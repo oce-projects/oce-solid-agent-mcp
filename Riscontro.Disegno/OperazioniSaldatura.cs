@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using SolidWorks.Interop.sldworks;
@@ -727,105 +728,177 @@ namespace Riscontro.Disegno
             return n;
         }
 
+        /// <summary>
+        /// LA DISTINTA DI TAGLIO: una voce per ogni gruppo di barre UGUALI.
+        ///
+        /// ── IL DIFETTO TROVATO IL 26/9/2026 (voce GT2) ───────────────────────
+        ///
+        /// Fino alla libreria 0.124.0 questa operazione chiamava
+        /// `InsertWeldmentCutList2` con TUTTI i corpi: nasceva UNA voce con dentro
+        /// tutte le barre. Il telaio 1000 x 800 del banco usciva «QUANTITY 4,
+        /// LUNGHEZZA 1000» — in officina, quattro barre da 1000 dove due sono da
+        /// 800. Il caso di banco era verde: chiedeva solo che i corpi fossero 4.
+        ///
+        /// La causa, misurata (`prova0089 distinta2`): il pezzo non era un
+        /// SALDATO (`IsWeldment` falso: i membri strutturali non mettono la
+        /// lavorazione «Saldatura»), e la distinta automatica non si accende su un
+        /// pezzo che non lo e'. Con la lavorazione Saldatura — messa anche DOPO le
+        /// barre — e `SetAutomaticCutList(true)` sulla cartella «Corpi solidi»,
+        /// SOLIDWORKS separa le voci da solo: 2 x 1000 e 2 x 800. E la stessa
+        /// causa faceva tornare null `InsertWeldmentTable` in tavola.
+        ///
+        /// Le voci si LEGGONO dalle proprieta' delle cartelle (descrizione,
+        /// lunghezza, quantita': si riconoscono dall'espressione, `LENGTH@@@` e
+        /// `QUANTITY@@@`, perche' i NOMI sono tradotti) e la somma delle quantita'
+        /// deve essere il numero dei corpi.
+        /// </summary>
         private Esito DistintaTaglio(IModelDoc2 modello, Dictionary<string, object> a)
         {
             bool aggiorna = Bool(a, "aggiorna_se_esiste", true);
+            var parte = modello as IPartDoc;
+            if (parte == null) return Fallito("La distinta di taglio si fa su una parte.");
 
-            // UNA SECONDA DISTINTA NON E' UN DOPPIONE INNOCUO.
-            //
-            // Se la cartella della distinta c'e' gia' e se ne crea un'altra, in
-            // officina arrivano due elenchi della stessa carpenteria, con
-            // quantita' che si sommano. Meglio aggiornare quella che c'e'.
-            var esistenti = CartelleDistinta(modello);
-            if (esistenti.Count > 0)
-            {
-                if (!aggiorna)
-                    return Fallito(
-                        "Nel pezzo c'e' gia' una distinta di taglio. Crearne una " +
-                        "seconda vorrebbe dire due elenchi della stessa " +
-                        "carpenteria: se vuoi ricalcolare quella che c'e', " +
-                        "chiedi «aggiorna_se_esiste».");
+            // UNA SECONDA DISTINTA NON E' UN DOPPIONE INNOCUO: si aggiorna quella
+            // che c'e', o si rifiuta se non si vuole.
+            bool giaEsisteva = CartelleDistinta(modello).Count > 0;
+            if (giaEsisteva && !aggiorna)
+                return Fallito(
+                    "Nel pezzo c'e' gia' una distinta di taglio. Crearne una " +
+                    "seconda vorrebbe dire due elenchi della stessa " +
+                    "carpenteria: se vuoi ricalcolare quella che c'e', " +
+                    "chiedi «aggiorna_se_esiste».");
 
-                int aggiornate = 0;
-                foreach (var cartella in esistenti)
-                {
-                    try { if (cartella.UpdateCutList()) aggiornate++; }
-                    catch (Exception ex)
-                    {
-                        _log("[agente] distinta non aggiornata: " + ex.Message);
-                    }
-                }
-                try { modello.EditRebuild3(); } catch { }
-                return new Esito
-                {
-                    Riuscito = true,
-                    FeatureCreata = "",
-                    Misure = new Dictionary<string, object>
-                    {
-                        ["distinte_aggiornate"] = aggiornate,
-                        ["gia_esisteva"] = true,
-                    },
-                };
-            }
-
-            // LA DISTINTA VUOLE I CORPI, NON null.
-            //
-            // «null = tutti i corpi» sembrava ragionevole e non lo e':
-            // misurato il 9 settembre 2026, InsertWeldmentCutList2(null)
-            // torna null e non crea niente. Passando l'array dei corpi
-            // solidi nasce «Elenco elementi1», Type=5, CutListType=3, con
-            // dentro le quattro barre.
-            //
-            // E la distinta NON nasce da sola quando si inserisce un membro
-            // strutturale: va chiesta. Per questo `distinta_taglio` e' una
-            // operazione e non un effetto collaterale.
             object[] corpiSolidi;
-            try
-            {
-                corpiSolidi = (modello as IPartDoc)?.GetBodies2(
-                    (int)swBodyType_e.swSolidBody, false) as object[];
-            }
-            catch (Exception ex)
-            {
-                return Fallito("Non riesco a leggere i corpi del pezzo: " + ex.Message);
-            }
+            try { corpiSolidi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[]; }
+            catch (Exception ex) { return Fallito("Non riesco a leggere i corpi del pezzo: " + ex.Message); }
             if (corpiSolidi == null || corpiSolidi.Length == 0)
                 return Fallito(
                     "Nel pezzo non c'e' nessun corpo solido: non c'e' niente da " +
                     "mettere in distinta. Se le barre le doveva fare un passo " +
                     "prima, quel passo non e' riuscito.");
 
-            IFeature feature;
+            // ── 1. IL PEZZO DIVENTA UN SALDATO, se non lo e' ────────────────
+            bool? eraSaldato = null;
+            try { eraSaldato = parte.IsWeldment(); } catch { }
+            var lavorazioniPrima = new HashSet<string>(NomiDelleLavorazioni(modello));
+            if (eraSaldato != true)
+            {
+                try { modello.FeatureManager.InsertWeldmentFeature(); } catch { }
+                try { modello.ForceRebuild3(false); } catch { }
+            }
+            // SE DA QUI SI FALLISCE, la lavorazione «Saldatura» messa adesso si
+            // toglie: un rifiuto non lascia il pezzo trasformato (revisione del
+            // 26/9/2026).
+            Func<string, Esito> rifiuta = testo =>
+            {
+                if (eraSaldato != true) TogliLavorazioniNuove(modello, lavorazioniPrima);
+                return Fallito(testo);
+            };
+            bool saldato = false;
+            try { saldato = parte.IsWeldment(); } catch { }
+            if (!saldato)
+                return rifiuta(
+                    "Non riesco a fare del pezzo un saldato (la lavorazione «Saldatura» non nasce): senza, " +
+                    "SOLIDWORKS non separa le barre per lunghezza, e una distinta con tutte le barre in una " +
+                    "voce sola manderebbe in officina le lunghezze sbagliate.");
+
+            // ── 2. LA DISTINTA AUTOMATICA ───────────────────────────────────
+            bool automatica = false;
             try
             {
-                feature = modello.FeatureManager.InsertWeldmentCutList2(
-                    corpiSolidi.Cast<Body2>().ToArray()) as IFeature;
+                var f0 = modello.FirstFeature() as IFeature;
+                while (f0 != null)
+                {
+                    if (f0.GetTypeName2() == "SolidBodyFolder")
+                    {
+                        var bf = f0.GetSpecificFeature2() as IBodyFolder;
+                        if (bf != null)
+                        {
+                            bf.SetAutomaticCutList(true);
+                            bf.SetAutomaticUpdate(true);
+                            bf.UpdateCutList();
+                            automatica = bf.GetAutomaticCutList();
+                        }
+                    }
+                    f0 = f0.GetNextFeature() as IFeature;
+                }
             }
-            catch (Exception ex)
-            {
-                return Fallito("La distinta di taglio non e' riuscita: " + ex.Message);
-            }
-            if (feature == null)
-                return Fallito(
-                    "La distinta di taglio non e' stata creata. Serve almeno un " +
-                    "corpo: se le barre le doveva fare un passo prima, quel " +
-                    "passo non e' riuscito.");
-
-            try { modello.EditRebuild3(); } catch { }
-            // UNA CARTELLA CHE NON RISPONDE NON CONTA ZERO (voce Z-C8): la somma
-            // delle altre sarebbe un numero piu' basso del vero, scritto come
-            // vero. Si scrive null, cioe' «non lo so».
-            int? voci = 0;
+            catch { }
             foreach (var c in CartelleDistinta(modello))
+                try { c.UpdateCutList(); } catch { }
+            try { modello.ForceRebuild3(false); } catch { }
+            if (!automatica)
+                return rifiuta(
+                    "Non riesco ad accendere la distinta automatica sulla cartella «Corpi solidi»: senza, le " +
+                    "barre non si separano per lunghezza.");
+
+            // ── 3. LE VOCI, LETTE ───────────────────────────────────────────
+            var cartelle = CartelleDistinta(modello);
+            if (cartelle.Count == 0)
+                return rifiuta("La distinta automatica e' accesa ma non ha prodotto nessuna voce.");
+            int? corpiInDistinta = 0;
+            int? quantitaTotale = 0;
+            var voci = new List<object>();
+            var lunghezze = new List<object>();
+            IFeature primaCartella = null;
+            foreach (var c in cartelle)
             {
-                try { voci += c.GetBodyCount(); }
-                catch { voci = null; break; }
+                int corpi = -1;
+                try { corpi = c.GetBodyCount(); } catch { }
+                if (corpi < 0) corpiInDistinta = null; else if (corpiInDistinta.HasValue) corpiInDistinta += corpi;
+                IFeature fc = null;
+                try { fc = c.GetFeature() as IFeature; } catch { }
+                if (primaCartella == null) primaCartella = fc;
+                string descrizione = null, lunghezza = null, quantita = null;
+                try
+                {
+                    var cpm = fc?.CustomPropertyManager;
+                    foreach (var o in (cpm?.GetNames() as object[]) ?? new object[0])
+                    {
+                        string nome = Convert.ToString(o), val, ris; bool usato, collegato;
+                        cpm.Get6(nome, false, out val, out ris, out usato, out collegato);
+                        string v = val ?? "";
+                        if (v.IndexOf("TOTAL LENGTH@@@", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                        if (v.IndexOf("LENGTH@@@", StringComparison.OrdinalIgnoreCase) >= 0) lunghezza = ris;
+                        else if (v.IndexOf("QUANTITY@@@", StringComparison.OrdinalIgnoreCase) >= 0) quantita = ris;
+                        else if (nome.Equals("Descrizione", StringComparison.OrdinalIgnoreCase) ||
+                                 nome.Equals("Description", StringComparison.OrdinalIgnoreCase)) descrizione = ris;
+                    }
+                }
+                catch { }
+                double l;
+                bool lNum = double.TryParse((lunghezza ?? "").Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out l);
+                int q;
+                bool qNum = int.TryParse((quantita ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out q);
+                if (!qNum) quantitaTotale = null; else if (quantitaTotale.HasValue) quantitaTotale += q;
+                if (lNum) lunghezze.Add(Math.Round(l, 2));
+                voci.Add(new Dictionary<string, object>
+                {
+                    ["descrizione"] = descrizione,
+                    ["lunghezza_mm"] = lNum ? (object)Math.Round(l, 2) : lunghezza,
+                    ["quantita"] = qNum ? (object)q : quantita,
+                    ["corpi"] = NumeroOppureNull(corpi),
+                });
             }
-            return Riuscito(feature, new Dictionary<string, object>
+
+            var misure = new Dictionary<string, object>
             {
-                ["corpi_in_distinta"] = voci,
-                ["gia_esisteva"] = false,
-            });
+                ["corpi_in_distinta"] = corpiInDistinta,
+                ["voci_distinte"] = voci.Count,
+                ["voci"] = voci.ToArray(),
+                ["lunghezze_mm"] = lunghezze.ToArray(),
+                ["quantita_totale"] = quantitaTotale,
+                ["gia_esisteva"] = giaEsisteva,
+                ["reso_saldato"] = eraSaldato.HasValue ? (object)!eraSaldato.Value : null,
+            };
+            // LA SOMMA DELLE QUANTITA' E' IL NUMERO DELLE BARRE: se no, qualcosa
+            // manca o e' contato due volte, e lo si dice.
+            if (quantitaTotale.HasValue && quantitaTotale.Value != corpiSolidi.Length)
+                misure["attenzione"] = "La distinta dice " + quantitaTotale.Value + " barre in tutto e il pezzo ha " +
+                                       corpiSolidi.Length + " corpi: prima di andare in officina, controlla.";
+            // Una distinta che c'era gia' non e' una feature creata adesso.
+            if (primaCartella != null && !giaEsisteva) return Riuscito(primaCartella, misure);
+            return SenzaFeature(misure);
         }
 
         private Esito TappoEstremita(
@@ -1100,6 +1173,58 @@ namespace Riscontro.Disegno
                 ["corpo_da"] = corpoDa,
                 ["corpo_a"] = corpoA,
             });
+        }
+
+        /// <summary>I nomi delle lavorazioni dell'albero, nell'ordine.</summary>
+        private static List<string> NomiDelleLavorazioni(IModelDoc2 modello)
+        {
+            var fuori = new List<string>();
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    try { fuori.Add(f.Name); } catch { }
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        /// <summary>
+        /// Toglie le lavorazioni nate dopo `prima` (la «Saldatura» e le cartelle
+        /// di distinta messe da un'operazione che poi rifiuta). DeleteSelection2,
+        /// non EditDelete. Al meglio: quelle che non si lasciano togliere restano,
+        /// e l'albero lo dice.
+        /// </summary>
+        private static void TogliLavorazioniNuove(IModelDoc2 modello, HashSet<string> prima)
+        {
+            try
+            {
+                var nuove = new List<IFeature>();
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    string n = null;
+                    try { n = f.Name; } catch { }
+                    if (n != null && !prima.Contains(n)) nuove.Add(f);
+                    f = f.GetNextFeature() as IFeature;
+                }
+                for (int i = nuove.Count - 1; i >= 0; i--)
+                {
+                    try
+                    {
+                        modello.ClearSelection2(true);
+                        if (nuove[i].Select2(false, 0))
+                            modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                    }
+                    catch { }
+                }
+                modello.ClearSelection2(true);
+                modello.ForceRebuild3(false);
+            }
+            catch { }
         }
 
         private static string NomeDelCorpo(IFace2 faccia)

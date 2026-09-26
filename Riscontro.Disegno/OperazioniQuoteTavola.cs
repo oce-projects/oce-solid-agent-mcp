@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -433,6 +435,13 @@ namespace Riscontro.Disegno
 
             double[] dopoContorno = ContornoDi(vista);
 
+            // ── I TESTI CHE SI ACCAVALLANO (voce GT12, punto 3) ─────────────
+            // Il rettangolo vero di ogni testo, letto da IDisplayData
+            // (OperazioniTestiQuote): testo su testo in tutta la tavola, testo
+            // su una linea del pezzo in questa vista.
+            var testiDelleQuote = TestiDelleQuote(disegno);
+            var accavallati = TestiCheSiAccavallano(disegno, vista, testiDelleQuote);
+
             var misure = new Dictionary<string, object>
             {
                 ["vista"] = nomeVista,
@@ -495,6 +504,11 @@ namespace Riscontro.Disegno
                 // campi fra loro: mettere qui il paragone gia' fatto e' l'unico
                 // modo perche' diventi una riga verificabile.
                 ["contorno_cresciuto"] = ContornoCresciuto(contorno, dopoContorno),
+                ["testi_letti"] = testiDelleQuote.Count,
+                ["testi_che_si_accavallano"] = accavallati.ToArray(),
+                // Nessun testo letto su una tavola con quote e' «non lo so», non
+                // «nessuno si accavalla» (revisione del 26/9/2026).
+                ["quanti_testi_si_accavallano"] = testiDelleQuote.Count == 0 && dopo > 0 ? null : (object)accavallati.Count,
                 ["distacco_usato_mm"] = Math.Round(distacco * 1000, 2),
                 ["passo_usato_mm"] = Math.Round(passo * 1000, 2),
 
@@ -517,12 +531,11 @@ namespace Riscontro.Disegno
                     "funzionali, non funzionali e ausiliarie, e una quota funzionale " +
                     "non si deve dedurre da altre: quello lo sa il progettista. So " +
                     "dire quante ne ho messe, non se il pezzo e' definito.\n" +
-                    "E non guardo: se il TESTO di una quota si sovrappone alle linee " +
-                    "del disegno (l'ingombro del riquadro di testo non si legge da " +
-                    "una quota, solo da una nota — il testo lo metto a meta' del tratto " +
-                    "quotato, calcolato con la trasformazione intera della vista); se si " +
-                    "accavalla con quote messe da qualcun altro, col cartiglio o con " +
-                    "un'altra vista; se una quota di posizione dei fori andava presa da un " +
+                    "Il TESTO delle quote lo guardo (dal 26/9/2026): il suo rettangolo " +
+                    "vero, letto da SOLIDWORKS, contro gli altri testi della tavola e le " +
+                    "linee del pezzo in questa vista — «testi_che_si_accavallano». Non " +
+                    "guardo le linee di misura e di richiamo, ne' il cartiglio. " +
+                    "E non guardo: se una quota di posizione dei fori andava presa da un " +
                     "altro riferimento funzionale (prendo i bordi); quale sistema " +
                     "adottare fra in serie, in parallelo e a quote sovrapposte; se una " +
                     "quota andava fra parentesi come ausiliaria. Tolleranze, rugosita' " +
@@ -856,12 +869,29 @@ namespace Riscontro.Disegno
                 descritto["orientamento"] = come;
                 descritto["posizione_mm"] = DovEFinita(richiamo);
                 nate.Add(descritto);
+                // LA PROFONDITA' DEL FORO CIECO (voce GT12, punto 1): il richiamo
+                // di SOLIDWORKS la mette da se' nel suffisso — misurato il 26/9/2026,
+                // «<MOD-DIAM>8» + «<HOLE-DEPTH>5» per un Ø8 profondo 5, «PASSANTE»
+                // per il passante. Si rilegge e si dice: un foro cieco senza
+                // profondita' in tavola si fora passante.
+                string suffisso = "";
+                try { suffisso = richiamo.GetText((int)swDimensionTextParts_e.swDimensionTextSuffix) ?? ""; } catch { }
+                object profondita = null;
+                var mp = Regex.Match(suffisso, @"<HOLE-DEPTH>\s*([0-9]+(?:[.,][0-9]+)?)");
+                double pv;
+                if (mp.Success && double.TryParse(mp.Groups[1].Value.Replace(',', '.'), NumberStyles.Float, Ci, out pv))
+                    profondita = pv;
+                bool passante = suffisso.IndexOf("PASSANTE", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                suffisso.IndexOf("THRU", StringComparison.OrdinalIgnoreCase) >= 0;
                 fori.Add(new Dictionary<string, object>
                 {
                     ["diametro_mm"] = g.Key,
                     ["quanti"] = g.Value.Count,
                     ["come"] = come,
                     ["diametro_riletto_mm"] = descritto.ContainsKey("mm") ? descritto["mm"] : null,
+                    ["passante"] = come == "richiamo del foro" ? (object)passante : null,
+                    ["profondita_mm"] = profondita,
+                    ["suffisso_del_richiamo"] = suffisso,
                 });
                 gia.Add(chiave);
                 daPosizionare.AddRange(g.Value);

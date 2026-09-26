@@ -24,6 +24,127 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.100.0 — 26 September 2026 · library 0.125.0
+
+**`distinta_taglio` was wrong, and its case was green (entry GT2).** It put
+EVERY bar into one cut-list item: the 1000 x 800 frame came out as
+«QUANTITY 4, LENGTH 1000» — four 1000 mm bars where two are 800. The case
+only asked that the bodies be four, and they were. The cause, measured: a
+part made of structural members is not a WELDMENT (`IsWeldment` false),
+and SOLIDWORKS does not group bars by length without the «Weldment»
+feature. Now `distinta_taglio` adds that feature when missing, turns on the
+automatic cut list on the solid-bodies folder, reads the items back
+(description, length, quantity — recognised by their expression, since the
+property NAMES are localised) and checks that the quantities add up to the
+bodies. The same fix makes `distinta_taglio_in_tavola` work: the cut-list
+table is born in the drawing, one row per length, and its quantity matches
+the part. The operation is now `Provata`, and it takes the view by its
+uid (V1) like the other drawing operations — the first bench case that
+called it with «V1» got «no such view». One new case, and the old case now
+asks for the two items.
+
+New operation `vista_sviluppo` (entry GT13): the flat pattern of a sheet
+metal part as a drawing view, with its bend lines. The view is MEASURED:
+its size comes from the visible edges, not from the view outline — which
+said 92.6 mm for a flat length of 80.7, because it includes the bend note
+and a margin — and is compared with the flat length measured on the part
+before the view is placed. Refused on a part that is not sheet metal, and a
+view that is not flat or measures something else is removed. Two cases.
+
+New operation `saldatura_in_tavola` (entry GT7): the ISO 2553 weld symbol
+(fillet, V, bevel, square butt) with the throat «a» and optional length,
+all-around and field-weld flags. The operation finds the joint itself —
+the longest visible edge where one body touches another — puts the arrow
+on it, moves the symbol out of the part, and reads everything back. The
+symbol code is the one from SOLIDWORKS' symbol library, `<WELD-FILL>`:
+measured, with a wrong code (`<IGWS-FILLET>`, «Fillet») the symbol is
+born, reads back identical, and draws no triangle — only the PNG showed
+it. Refused on a single-body part and on a view with no visible joint; a
+symbol born wrong is removed. Two cases.
+
+**Two defects found by LOOKING at the drawings, with the bench green.**
+The cut-list table used the shop's table template, 17 columns wide, and at
+250/200 mm it ran off the sheet after the fourth column. The flat-pattern
+view at 300/90 mm, scale 2:1, ran into the title block. Now the cut list
+keeps only the columns a workshop needs (item, quantity, length, the two
+angles, description; `colonne` chooses others or «tutte»), and both the
+table and the view are measured and placed in a free spot inside the
+border, away from the other views and the title block (read from the
+sheet format when it declares one, estimated otherwise). If there is no
+room, they are removed and the operation says so.
+
+`quota_in_tavola` (entry GT12): the hole callout of a blind hole already
+carries its depth — SOLIDWORKS puts `<HOLE-DEPTH>5` in the suffix — and
+now the operation reads it back (`fori[].profondita_mm`, `passante`). The
+text of every dimension has a real rectangle: `IDisplayData` gives
+position, height, angle and — `GetTextInBoxWidthAtIndex` — the width,
+even without a box. The operation now reports texts that fall on another
+text or on a line of the part (`testi_che_si_accavallano`). One case: a
+blind hole with its depth, no hole dimensioned from the side view, no text
+overlapping. (Pieces of the same dimension — a hole callout «Ø8 ↧5» is
+four texts side by side — are not compared with each other: the first
+bench counted four overlaps that on paper are one word.)
+
+Entry Z-C13: two section views «A-A» on the same drawing are two different
+cuts that look like the same one, and SOLIDWORKS allows it. `sezione_in_tavola`
+and `dettaglio_in_tavola` now refuse a letter already used by a section or a
+detail — read from the views (`IDrSection.GetLabel`, `IDetailCircle.GetLabel`),
+not from what was asked — and report the letter they actually got. Both also
+take the view by its uid (V1), like the other drawing operations. One case.
+
+**Center marks (entry W2.11), blocked since 17/9 — and the block was mostly a
+counter that lies.** SOLIDWORKS puts a center mark on every hole when it
+creates a view (document option «center marks on holes», on in the house
+template), and `IView.GetCenterMarkCount()` does not count those: it said 0
+on a view with three marks. Enumerating them (`GetFirstCenterMark`/`GetNext`)
+finds them all. The drawing state now counts them that way — an old case that
+asserted «0 center marks» on three holes was green for a week on a false
+zero. From code, no new mark is born: `AutoInsertCenterMarks2`,
+`InsertCenterMark2/3` and `AddCenterMark` (on a circle selected in the view)
+were all measured; with the automatic marks deleted, `AddCenterMark` adds
+none, and on fillet arcs none either. So `croci_di_centro` is now a CHECK: it
+recognizes the holes that have a mark, tries to add the missing ones, and
+refuses — naming the document option — when a hole stays without one.
+`Provata` again. One case.
+
+New operation `tolleranza_quota` (entry Z-F2): a tolerance on a MODEL
+dimension — symmetric (±), bilateral, or an ISO fit (H7 for a hole, g6 for a
+shaft) — which then reaches the drawing by itself with `quote_dal_modello`.
+SOLIDWORKS computes the ISO 286 deviations of a fit; the operation checks
+them against its own copy of the ISO 286-1 table (IT5..IT11 up to 500 mm:
+the width must be the IT grade, H starts at zero, h ends at zero) and puts
+the dimension back if they disagree. It also sets the tolerance precision:
+measured, without it an H7 on a 10 mm hole printed as «10 H7 +0 / 0» —
+«exact» — because the limits followed the dimension's zero decimals. One
+case (fit, symmetric, and IT14 refused).
+
+**An adversarial review of this release, before the bench** (three lenses,
+each finding checked by a refuter) found and this version fixes: the weld
+symbol accepted when the symbol count could not be read (it could re-read an
+old symbol), and «field weld» / «both sides» were not checked; the free-spot
+search ignored tables and notes already on the sheet; `tolleranza_quota` on
+an ANGULAR dimension took radians for metres (now refused), and a tolerance
+whose precision could not be set answered «done» (now refused and restored);
+`vista_sviluppo` answered «done» when the part's flat length could not be
+measured; `croci_di_centro` took every full circle for a hole — a disc's rim
+too (now: the circle faces the viewer and is an INNER loop of a planar face;
+`FaceInSurfaceSense` was measured and does not tell, it depends on how the
+surface was made); a section with no hatch stayed on the sheet and its letter
+blocked the very remedy the message suggested; «0 overlapping texts» when no
+text had been read; hidden cut-list columns declared without re-reading;
+«feature created» on a cut list that already existed; the duplicate-letter
+check looked at the current sheet only; `reso_saldato` true when
+`IsWeldment` could not be read; and a failed `distinta_taglio` left the
+«Weldment» feature in the part (now removed).
+
+New operations `distinta_base_in_tavola` and `palloncini` (entry GT9): the
+bill of materials of an assembly (`IView.InsertBomTable4`, top level by
+default, the type chosen by name because `swBomType_e` starts at 1), checked
+against the assembly itself — items = distinct components, quantities =
+instances, two independent readings — and placed in a free spot; then the
+balloons (`AutoBalloon5` with an options object), counted on the view before
+and after, with the item numbers read back. One case: a two-part assembly.
+
 ## 0.99.0 — 26 September 2026 · library 0.124.0
 
 **Tables are born on this installation.** On 17 September no table would

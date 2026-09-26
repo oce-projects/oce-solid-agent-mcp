@@ -82,7 +82,7 @@ namespace Riscontro.Disegno
             //
             // La PRIMA «vista» del foglio e' il foglio stesso (tipo 1), e si
             // salta. Chi la prendesse per una vista sezionerebbe il foglio.
-            string chiesta = Str(a, "vista", null);
+            string chiesta = VistaChiestaPerNome(disegno, Str(a, "vista", null));
             IView bersaglio = null;
             var nomiViste = new List<string>();
             int vistePrima = 0;
@@ -143,6 +143,9 @@ namespace Riscontro.Disegno
             string etichetta = Str(a, "etichetta", "A");
             if (string.IsNullOrWhiteSpace(etichetta)) etichetta = "A";
             double profonditaM = Num(a, "profondita_mm", 0) / 1000.0;
+            // DUE «A-A» SULLA STESSA TAVOLA (voce Z-C13): si rifiuta prima.
+            string doppia = LetteraGiaUsata(disegno, etichetta);
+            if (doppia != null) return Fallito(doppia);
 
             double xMin = sagoma[0], yMin = sagoma[1], xMax = sagoma[2], yMax = sagoma[3];
             double largo = xMax - xMin, alto = yMax - yMin;
@@ -306,8 +309,12 @@ namespace Riscontro.Disegno
             // Vedi il docstring. Una vista di sezione senza tratteggio e' una
             // linea di taglio caduta fuori dal materiale: formalmente valida,
             // conta come vista, e non mostra niente.
+            // LA VISTA VUOTA SI TOGLIE (revisione del 26/9/2026): restando, la sua
+            // lettera «A» faceva rifiutare il rimedio che il messaggio stesso indica.
+            bool vuotaTolta = tratteggi == 0 && TogliLaVista(modello, nomeSezione);
             if (tratteggi == 0)
                 return Fallito(
+                    (vuotaTolta ? "Ho tolto la vista «" + nomeSezione + "»: " : "") +
                     "La vista «" + nomeSezione + "» e' nata ma NON HA TRATTEGGIO " +
                     "(campiture di faccia: 0), e " +
                     "una sezione senza tratteggio e' una linea di taglio caduta fuori " +
@@ -317,8 +324,11 @@ namespace Riscontro.Disegno
                     Math.Round((verso == "verticale" ? x1 : y1) * 1000, 2) + " mm di foglio. " +
                     "Sposta il taglio con «a_mm».");
 
+            // LA LETTERA EFFETTIVA, riletta dalla vista (Z-C13).
+            string letteraLetta = LetteraDellaVista(ultima);
             var fuori = new Dictionary<string, object>
             {
+                ["etichetta_riletta"] = letteraLetta,
                 ["vista_sezionata"] = nomeBersaglio,
                 ["viste_prima"] = vistePrima,
                 ["viste_dopo"] = visteDopo,

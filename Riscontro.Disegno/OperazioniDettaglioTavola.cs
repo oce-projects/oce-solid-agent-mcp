@@ -67,7 +67,7 @@ namespace Riscontro.Disegno
             // ── LA VISTA DA DETTAGLIARE ─────────────────────────────────
             //
             // La PRIMA «vista» del foglio e' il foglio stesso, e si salta.
-            string chiesta = Str(a, "vista", null);
+            string chiesta = VistaChiestaPerNome(disegno, Str(a, "vista", null));
             IView bersaglio = null;
             var nomiViste = new List<string>();
             int vistePrima = 0;
@@ -148,6 +148,9 @@ namespace Riscontro.Disegno
                 return Fallito("«scala» dev'essere maggiore di zero: ho letto " + scala1 + ".");
             string etichetta = Str(a, "etichetta", "B");
             if (string.IsNullOrWhiteSpace(etichetta)) etichetta = "B";
+            // UN DETTAGLIO «B» ACCANTO A UNA SEZIONE «B-B» (voce Z-C13): si rifiuta prima.
+            string doppia = LetteraGiaUsata(disegno, etichetta);
+            if (doppia != null) return Fallito(doppia);
 
             // Quante circonferenze aveva PRIMA. Vedi il docstring: il conto e'
             // il valore di RITORNO, non l'`out`.
@@ -256,8 +259,10 @@ namespace Riscontro.Disegno
                     ": il cerchio non e' diventato un dettaglio, e sul foglio resta " +
                     "disegnato a mano accanto a una vista che non gli e' legata.");
 
+            string letteraLetta = LetteraDellaVista(ultima);
             var fuori = new Dictionary<string, object>
             {
+                ["etichetta_riletta"] = letteraLetta,
                 ["vista_dettagliata"] = nomeBersaglio,
                 ["viste_prima"] = vistePrima,
                 ["viste_dopo"] = visteDopo,

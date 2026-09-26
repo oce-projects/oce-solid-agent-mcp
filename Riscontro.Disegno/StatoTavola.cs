@@ -199,7 +199,9 @@ namespace Riscontro.Disegno
                     // cosa, leggendola per conto proprio.** Se un giorno
                     // divergessero, una delle due mentirebbe e non si saprebbe
                     // quale.
-                    int? croci = Letto(() => v.GetCenterMarkCount());
+                    // ENUMERATE, non GetCenterMarkCount: quello non vede le croci
+                    // messe da SOLIDWORKS alla creazione della vista (26/9/2026).
+                    int? croci = Letto(() => { int n = ContaCroci.DellaVista(v); if (n < 0) throw new InvalidOperationException(); return n; });
                     crociTotali += croci;
 
                     // IL NUMERO CHE SI STAMPA E' QUELLO DEL MODELLO? (voce Z-C2)

@@ -1,0 +1,35 @@
+{
+  "nome": "le_quote_arrivano_dal_modello",
+  "famiglia": "quote",
+  "perche": "VOCI Z-C1-bis e Z-E7. Dal 18/9/2026 `quote_dal_modello` era «l'operazione che non riesce mai fuori processo» (Z-C1: 0 quote su 7), e il suo caso non si poteva scrivere perche' un rifiuto senza gemella verde non prova niente. Il 26/9 due sonde fuori processo (prova0089 tolq, tolq2) l'hanno vista portare in tavola 7 quote, tolleranze comprese. Adesso la coppia vera: la gemella che rifiuta (una tavola senza viste) e il caso verde (le quote arrivano).",
+  "il_difetto_che_questo_caso_prende": "L'import che risponde «fatto» con zero quote (il blocco di Z-C1, che il 26/9 non c'era piu' e che puo' tornare), e il rifiuto su una tavola senza viste che smette di dirlo.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 96000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 0, "y_mm": 0, "diametro_mm": 10, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 95214.6, "tolleranza": 0.05, "perche_questa_tolleranza": "pi dentro" } ] },
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\le_quote_arrivano_dal_modello.sldprt" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0, "perche": "una vista si aggancia al FILE del pezzo" } ] },
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
+    { "operazione": "quote_dal_modello",
+      "argomenti": { "callout_fori": false },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non ha viste", "Metti prima le viste"],
+        "gemella": "le_quote_arrivano_dal_modello" } },
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\le_quote_arrivano_dal_modello.sldprt" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
+    { "operazione": "quote_dal_modello",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.quote_inserite", "uguale": 7,
+          "perche": "misurato col banchetto il 26/9/2026 sullo stesso pezzo: 120 e 80 dello schizzo, lo spessore 10, il Ø10 del foro, ripartiti sulle tre viste. Zero era il blocco di Z-C1" },
+        { "cosa": "stato.viste_totali", "uguale": 3, "perche": "l'import non tocca le viste" } ] }
+  ]
+}

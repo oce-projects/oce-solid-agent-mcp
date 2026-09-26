@@ -299,8 +299,43 @@ using System.Runtime.InteropServices;
 //          vista), poi SPOSTATE fuori dal pezzo, oltre le quote gia' messe e fuori
 //          dalle altre viste — tutto trovato guardando il PNG. Riletti Ra,
 //          lettera, simbolo, valore e riferimenti.
-[assembly: AssemblyVersion("0.124.0.0")]
-[assembly: AssemblyFileVersion("0.124.0.0")]
+// 0.125.0: `distinta_taglio` giusta (voce GT2). Metteva TUTTE le barre in una
+//          voce («4 x 1000» per un telaio 1000 x 800) e il caso era verde.
+//          Causa: il pezzo non era un saldato. Adesso mette la lavorazione
+//          «Saldatura» se manca, accende la distinta automatica sulla cartella
+//          dei corpi, legge le voci (descrizione, lunghezza, quantita') e
+//          controlla che le quantita' sommino ai corpi. Con la stessa cura nasce
+//          `distinta_taglio_in_tavola`: Provata (e prende la vista per uid,
+//          V1, come le altre operazioni di tavola). E `vista_sviluppo` (voce
+//          GT13): la lamiera distesa in tavola; l'ingombro dagli spigoli
+//          visibili (il contorno della vista diceva 92,6 per 80,7) contro lo
+//          sviluppo misurato sul pezzo prima di mettere la vista. E
+//          `saldatura_in_tavola` (voce GT7): il simbolo ISO sul giunto fra due
+//          corpi, che l'operazione trova da se'; il codice e' quello di
+//          gtol.sym (`<WELD-FILL>`) — con un codice sbagliato il simbolo nasceva
+//          e si rileggeva uguale, senza triangolo. GUARDANDO I PNG, col banco
+//          verde: la distinta (17 colonne del modello di tabella) usciva dal
+//          foglio e lo sviluppo cadeva nel cartiglio — adesso si nascondono le
+//          colonne che in officina non servono e tabella e vista vanno in un
+//          posto libero (OperazioniPostoSulFoglio). E GT12: `quota_in_tavola`
+//          rilegge la profondita' del foro cieco dal richiamo e guarda il
+//          rettangolo vero di ogni testo (IDisplayData) contro gli altri testi e
+//          le linee del pezzo (i pezzi di una stessa quota — il richiamo «Ø8 ↧5»
+//          e' fatto di quattro testi — non si confrontano fra loro: il primo
+//          banco ne contava quattro sovrapposizioni). E Z-C13: una sezione o un
+//          dettaglio con una lettera gia' usata si rifiuta; la lettera effettiva
+//          si rilegge (IDrSection / IDetailCircle); le due operazioni prendono
+//          la vista anche per uid (V1). W2.11: le croci di centro sui fori C'ERANO
+//          (le mette SOLIDWORKS creando la vista) e GetCenterMarkCount non le
+//          contava — si contano enumerandole, nello stato e nell'operazione, che
+//          diventa un controllo (da codice una croce nuova non nasce, misurato).
+//          Z-F2: `tolleranza_quota` (±, bilaterale, accoppiamento ISO riscontrato
+//          sulla tabella ISO 286-1) coi decimali della tolleranza impostati — senza,
+//          in tavola usciva «10 H7 +0 / 0». GT9: `distinta_base_in_tavola`
+//          (InsertBomTable4 sulla vista, confrontata coi componenti dell'assieme,
+//          messa in un posto libero) e `palloncini` (AutoBalloon5, contati dopo).
+[assembly: AssemblyVersion("0.125.0.0")]
+[assembly: AssemblyFileVersion("0.125.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -315,4 +350,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.124.0")]
+[assembly: AssemblyInformationalVersion("0.125.0")]

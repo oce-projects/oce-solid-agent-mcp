@@ -1,0 +1,44 @@
+{
+  "nome": "la_distinta_base_conta_i_componenti",
+  "famiglia": "tavola",
+  "perche": "VOCE GT9. La consegna standard di un assieme e' la tavola con la distinta base e i palloncini. Una base 120x80x10 e un coperchio 120x80x4 appoggiato sopra (non dentro: y = 7), tavola dell'assieme, distinta e palloncini.",
+  "il_difetto_che_questo_caso_prende": "La distinta che conta i componenti in modo diverso dall'assieme (tipo sbagliato: «solo parti» invece di «primo livello», un enum che parte da 1), la quantita' che non somma i pezzi, e i palloncini che non nascono o nascono in numero diverso dalle voci.",
+  "assieme": {
+    "componenti": [
+      { "nome": "base",
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+        ] },
+      { "nome": "coperchio",
+        "posizione_mm": [0, 7, 0],
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+        ] }
+    ]
+  },
+  "passi": [
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\la_distinta_base_conta_i_componenti.sldasm" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0, "perche": "la vista si aggancia al FILE dell'assieme" } ] },
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\la_distinta_base_conta_i_componenti.sldasm" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
+    { "operazione": "distinta_base_in_tavola",
+      "argomenti": { "vista": "V1" },
+      "attese": [
+        { "cosa": "misure.voci", "uguale": 2, "perche": "base e coperchio" },
+        { "cosa": "misure.quantita_in_tabella", "uguale": 2, "perche": "un pezzo per voce" },
+        { "cosa": "misure.combaciano", "uguale": true, "perche": "la tabella e l'assieme, letti ognuno per conto suo" },
+        { "cosa": "misure.dentro_il_foglio", "uguale": true, "perche": "misurata e messa in un posto libero" } ] },
+    { "operazione": "palloncini",
+      "argomenti": { "vista": "V1" },
+      "attese": [
+        { "cosa": "misure.palloncini_messi", "uguale": 2, "perche": "uno per componente, contati dopo sulla vista" },
+        { "cosa": "misure.numeri", "contiene": ["1", "2"], "perche": "i numeri di voce della distinta" } ] }
+  ]
+}

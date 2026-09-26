@@ -1,0 +1,46 @@
+{
+  "nome": "le_croci_di_centro_sui_fori",
+  "famiglia": "tavola",
+  "perche": "VOCE W2.11. Bloccata dal 17/9/2026 per «l'API dice si' e non mette niente». Il 26/9 la sonda ha trovato che le croci C'ERANO: SOLIDWORKS le mette da se' sui fori quando crea la vista (opzione del documento «croci sui fori», accesa qui), e IView.GetCenterMarkCount() risponde 0 perche' quelle non le conta. Enumerandole (GetFirstCenterMark/GetNext) sono tre. Da codice una croce nuova non nasce (misurato: tolte le automatiche, AddCenterMark non ne rimette): l'operazione e' un CONTROLLO, che dice quali fori hanno la croce e rifiuta se ne manca.",
+  "il_difetto_che_questo_caso_prende": "Quattro: il contatore che dice zero su un foglio con tre croci (lo stato, che le riconta per conto suo); le croci DOPPIE sui fori che le hanno gia'; una seconda chiamata che raddoppia; e i raccordi, su cui la croce da codice non nasce (misurato: 4 archi su 4), che devono essere un rifiuto e non un «fatto» con zero croci.",
+  "e_il_foro_senza_croce": "Il rifiuto per un foro senza croce l'ha provato il banchetto (prova0089 croci7), togliendo le croci automatiche: il banco non ha un'operazione che le tolga, e su questa installazione ogni foro la croce ce l'ha.",
+  "le_viste_si_chiamano_per_uid": "V2, la vista dall'alto: i fori sono cerchi.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 96000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": -40, "y_mm": 0, "diametro_mm": 8, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 95497.35, "tolleranza": 0.05, "perche_questa_tolleranza": "pi dentro" } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 0, "y_mm": 0, "diametro_mm": 8, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 94994.69, "tolleranza": 0.05, "perche_questa_tolleranza": "pi dentro" } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 40, "y_mm": 0, "diametro_mm": 8, "passante": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 94492.04, "tolleranza": 0.05, "perche_questa_tolleranza": "pi dentro" } ] },
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\le_croci_di_centro_sui_fori.sldprt" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0, "perche": "una vista si aggancia al FILE del pezzo" } ] },
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\le_croci_di_centro_sui_fori.sldprt" },
+      "attese": [
+        { "cosa": "misure.viste_create", "uguale": 3 },
+        { "cosa": "stato.croci_di_centro_totali", "uguale": 3,
+          "perche": "le tre croci che SOLIDWORKS mette creando la vista, enumerate: il contatore di prima diceva 0" } ] },
+    { "operazione": "croci_di_centro",
+      "argomenti": { "vista": "V2" },
+      "attese": [
+        { "cosa": "misure.croci_aggiunte", "uguale": 0, "perche": "ogni foro ha gia' la croce: una seconda sarebbe una linea piu' spessa, non un'informazione" },
+        { "cosa": "misure.cerchi_che_avevano_gia_la_croce", "uguale": 3, "perche": "riconosciute, una per foro" },
+        { "cosa": "stato.croci_di_centro_totali", "uguale": 3, "perche": "sempre tre sul foglio" } ] },
+    { "operazione": "croci_di_centro",
+      "argomenti": { "vista": "V2", "su": "raccordi" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non nasce", "Chiedi «fori»"],
+        "gemella": "le_croci_di_centro_sui_fori" } }
+  ]
+}

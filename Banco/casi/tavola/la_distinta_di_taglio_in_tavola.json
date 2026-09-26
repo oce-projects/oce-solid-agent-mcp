@@ -1,0 +1,50 @@
+{
+  "nome": "la_distinta_di_taglio_in_tavola",
+  "famiglia": "tavola",
+  "perche": "VOCE GT2. Dal 17/9/2026 `distinta_taglio_in_tavola` era a catalogo con `Provata = false`: `InsertWeldmentTable` tornava null in 24 combinazioni su 24, e la voce diceva «il blocco e' piu' grosso della voce». Il 26/9 la causa: il telaio non era un SALDATO (`IsWeldment` falso), e senza la lavorazione «Saldatura» non nasce la distinta automatica, e senza distinta automatica non nasce la tabella. Adesso `distinta_taglio` fa del pezzo un saldato, e la tabella nasce: due voci, 2 x 1000 e 2 x 800.",
+  "il_difetto_che_questo_caso_prende": "Tre: la tabella che non nasce (il pezzo non saldato), la tabella con tutte le barre in una riga (la distinta fatta con `InsertWeldmentCutList2` su tutti i corpi: «4 x 1000»), e la tabella che somma un numero di barre diverso dal pezzo.",
+  "le_viste_si_chiamano_per_uid": "V1 frontale: il telaio e' sul piano frontale, e li' si vedono le quattro barre.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "telaio_rettangolare",
+      "argomenti": {
+        "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configurazione": "80X80X5",
+        "lunghezza_mm": 1000,
+        "larghezza_mm": 800,
+        "piano": "frontale",
+        "trattamento_angolo": "quartabuono",
+        "centrato": true
+      },
+      "attese": [ { "cosa": "corpi", "uguale": 4, "perche": "quattro barre: il numero con cui si confronta la tabella" } ] },
+    { "operazione": "distinta_taglio",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.voci_distinte", "uguale": 2, "perche": "due lunghezze, due voci" },
+        { "cosa": "misure.quantita_totale", "uguale": 4, "perche": "due piu' due" } ] },
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\la_distinta_di_taglio_in_tavola.sldprt" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0, "perche": "una vista si aggancia al FILE del pezzo" } ] },
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\la_distinta_di_taglio_in_tavola.sldprt" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
+    { "operazione": "distinta_taglio_in_tavola",
+      "argomenti": { "vista": "V1" },
+      "attese": [
+        { "cosa": "misure.voci", "uguale": 2,
+          "perche": "una riga per lunghezza, sotto l'intestazione: con la distinta di prima sarebbe stata una riga sola, «4 x 1000»" },
+        { "cosa": "misure.quantita_in_tabella", "uguale": 4,
+          "perche": "la colonna delle quantita' chiesta al modello di tabella (GetColumnCustomProperty), non indovinata per posizione" },
+        { "cosa": "misure.combaciano", "uguale": true,
+          "perche": "due letture indipendenti dello stesso fatto: la tabella sul foglio e le cartelle di distinta del pezzo" },
+        { "cosa": "misure.righe_lette", "contiene": ["800"],
+          "perche": "la barra da 800 e' scritta sul foglio: e' proprio quella che la distinta di prima perdeva" },
+        { "cosa": "misure.dentro_il_foglio", "uguale": true,
+          "perche": "VISTO NEL PNG il 26/9/2026, col resto del caso verde: la tabella del modello dell'officina ha 17 colonne e a 250/200 usciva dal foglio dopo la quarta. Adesso si misura e va in un posto libero dentro la cornice" },
+        { "cosa": "misure.colonne_visibili", "contiene": ["LUNGHEZZA", "QUANTITA"],
+          "perche": "le colonne che in officina servono restano; le altre (autore, codice, i doppioni QUANTITY e TOTAL LENGTH...) si nascondono" } ] }
+  ]
+}

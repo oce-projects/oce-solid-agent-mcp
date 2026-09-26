@@ -119,8 +119,22 @@ namespace Prove.Contratti
         /// **89, stessa libreria:** le tre annotazioni (rugosita', datum,
         /// tolleranza geometrica) dicono cosa fare per ogni rifiuto — la lettera
         /// libera, togliere il riferimento, mettere il datum prima.
+        /// **90, libreria 0.125.0:** `vista_sviluppo` su un pezzo che non e' di
+        /// lamiera dice che non c'e' uno sviluppo da mettere in tavola. **93:**
+        /// `saldatura_in_tavola` dice su quale vista provare quando il giunto non
+        /// si vede, e toglie da se' il simbolo nato sbagliato (o dice di toglierlo).
+        /// **94:** la distinta in tavola senza posto dice di nascondere colonne o
+        /// di togliere x/y e lasciar scegliere il posto. **98:** le lettere di
+        /// sezioni e dettagli («Usa un'altra lettera»), le croci (i raccordi:
+        /// «Chiedi fori»; un foro senza croce: l'opzione del documento) e
+        /// `tolleranza_quota` («Scegli un grado fra 5 e 11», l'esempio della
+        /// bilaterale). **100:** dalla revisione avversariale — la quota angolare
+        /// («Scegli una quota lineare») e la quota non mostrata («mostra la quota»).
+        /// **106:** GT9 — la distinta base e i palloncini dicono cosa mettere prima
+        /// (la vista di un assieme, la distinta prima dei palloncini) e cosa usare
+        /// per un saldato.
         /// </summary>
-        private const int Pavimento = 89;
+        private const int Pavimento = 106;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

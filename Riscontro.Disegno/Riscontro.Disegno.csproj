@@ -112,6 +112,13 @@
     <Compile Include="OperazioniCentrini.cs" />
     <Compile Include="OperazioniQuoteTavola.cs" />
     <Compile Include="OperazioniTabellaFori.cs" />
+    <Compile Include="OperazioniSviluppoTavola.cs" />
+    <Compile Include="OperazioniSaldaturaTavola.cs" />
+    <Compile Include="OperazioniPostoSulFoglio.cs" />
+    <Compile Include="OperazioniTestiQuote.cs" />
+    <Compile Include="OperazioniEtichetteTavola.cs" />
+    <Compile Include="OperazioniTolleranzaQuota.cs" />
+    <Compile Include="OperazioniDistintaBase.cs" />
     <Compile Include="OperazioniAnnotazioniTavola.cs" />
     <Compile Include="OperazioniNotaTavola.cs" />
     <Compile Include="OperazioniSezioneTavola.cs" />

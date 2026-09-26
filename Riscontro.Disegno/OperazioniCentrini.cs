@@ -12,55 +12,31 @@ namespace Riscontro.Disegno
     ///
     /// Una tavola con dodici fori e nessuna croce di centro esce, si stampa, e
     /// sembra completa. In officina manca la cosa che serve per forare: **dove
-    /// sta il centro.** E' la forma da tavola del difetto che questo progetto
-    /// esiste per prendere — nessun errore, risultato inutilizzabile.
+    /// sta il centro.** Nessun errore, risultato inutilizzabile.
     ///
-    /// ── LA FIRMA STA SU `IView`, NON SU `IDrawingDoc` ───────────────────
+    /// ── COSA SI E' MISURATO, DAL 17/9 AL 26/9/2026 ─────────────────────
     ///
-    ///     Boolean IView.AutoInsertCenterMarks2(
-    ///         Int32 InsertType, Int32 InsertOption,
-    ///         Boolean LinearSlotCenter, Boolean ArcSlotCenter,
-    ///         Boolean UseDocumentDefaults, Double Size, Double Gap,
-    ///         Boolean ExtendedLines, Boolean CenterLineFont, Double Angle)
+    /// Il 17/9 tre sonde: `AutoInsertCenterMarks2` (25 combinazioni),
+    /// `InsertCenterMark2/3`: «risponde True e non mette niente», contando con
+    /// `GetCenterMarkCount`. Il 26/9 (`prova0089 croci2..croci7`):
     ///
-    /// Mette le croci su **tutti** i fori della vista in un colpo e **non
-    /// chiede nessuna selezione**: e' esattamente cio' che serve qui, perche'
-    /// una tavola con dodici fori non si fa selezionando dodici cerchi.
+    ///   1. **LE CROCI C'ERANO.** SOLIDWORKS le mette da se' sui fori quando crea
+    ///      la vista (opzione del documento `swDetailingAutoInsertCenterMarksForHoles`,
+    ///      accesa nel modello di casa). Si vedono nel PNG.
+    ///   2. **`GetCenterMarkCount` NON LE CONTA**: 0 su una vista con tre croci.
+    ///      `GetFirstCenterMark`/`GetNext` le vede tutte (`ContaCroci`).
+    ///   3. **DA CODICE NON NE NASCE NESSUNA.** `AddCenterMark` sul cerchio
+    ///      selezionato nella vista faceva salire `GetCenterMarkCount` 0->3 —
+    ///      ma su fori che la croce l'avevano gia'; tolte le tre croci
+    ///      automatiche, `AddCenterMark` non ne rimette nessuna. Sugli archi dei
+    ///      raccordi, niente (4 su 4).
     ///
-    /// `InsertType` e' una MASCHERA DI BIT — `swAutoInsertCenterMarkTypes_e`:
-    /// Hole = 1, Fillets = 2, Slots = 4 — non un valore esclusivo. Letto, non
-    /// ricordato: sono le potenze di due a dirlo.
+    /// ── QUINDI E' UN CONTROLLO ──────────────────────────────────────────
     ///
-    /// ── E TRE NOMI VICINI CHE SONO BOTTONI ──────────────────────────────
-    ///
-    /// `IDrawingDoc.CenterMark()` ha zero argomenti e ritorna `Void`. Ma una
-    /// croce di centro ha una dimensione, uno stile e delle linee: se nessuna
-    /// di queste e' un argomento, quella non e' l'API che la crea — **e'
-    /// l'entrata della finestra.** Da qui non c'e' nessuno che possa premere
-    /// OK, e una chiamata COM che aspetta un modale appende il ponte e il
-    /// client dietro (memoria: «API SolidWorks che aprono finestre»).
-    /// `AddCenterMark` e `InsertCenterMark3` lavorano invece sulla SELEZIONE, e
-    /// vanno bene per «questo foro qui»: non e' il caso di questa operazione.
-    ///
-    /// ── LA MISURA NON E' IL `Boolean` ───────────────────────────────────
-    ///
-    /// `IView.GetCenterMarkCount()` **prima e dopo**, vista per vista. Il
-    /// valore di ritorno dice che la chiamata e' andata, non che sia nata una
-    /// croce — ed e' il difetto tipico: *il valore che torna da chi ha fatto la
-    /// cosa non e' la misura della cosa.*
-    ///
-    /// ── L'UNICO ARGOMENTO CHE NON HO POTUTO LEGGERE, E COSA CI FACCIO ───
-    ///
-    /// `InsertOption` non ha un enum dedicato nell'interop: non c'e' nessun
-    /// `swAutoInsertCenterMarkOptions_e`. Il candidato e' `swCenterMarkStyle_e`
-    /// (Single = 2, LinearGroup = 3, CircularGroup = 4), **e questo e' un
-    /// sospetto, non un fatto.** Percio' non si indovina: si prova lo stile
-    /// singolo, **si contano le croci**, e se non ne e' nata nessuna si provano
-    /// gli altri due. E' la stessa tecnica di `quote_dal_modello` con le sue
-    /// maschere: *quando non si sa quale valore sia quello giusto, si prova e
-    /// si RICONTA — l'unica cosa che non si fa e' dichiarare fatto.*
-    /// Quale stile abbia funzionato finisce nelle misure, cosi' la prossima
-    /// volta e' un fatto e non piu' un tentativo.
+    /// Per ogni foro visibile si guarda se ha la croce (una croce entro mezzo
+    /// millimetro dal centro). Se ne manca qualcuna si prova `AddCenterMark`
+    /// (qui non nasce, altrove chissa'), e se resta senza si RIFIUTA dicendo la
+    /// strada che funziona: l'opzione del documento accesa e la vista rifatta.
     /// </summary>
     public partial class OperazioniSw
     {
@@ -78,41 +54,58 @@ namespace Riscontro.Disegno
                     "La tavola non ha viste: le croci non avrebbero dove attaccarsi. " +
                     "Metti prima le viste con «viste_standard» o «vista_modello».");
 
-            string voluta = Str(a, "vista", null);
+            string voluta = VistaChiestaPerNome(disegno, Str(a, "vista", null));
             if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
                 return Fallito(
-                    "Non c'e' nessuna vista che si chiami «" + voluta + "». Ci sono: " +
-                    string.Join(", ", nomi) + ".");
+                    "Non c'e' nessuna vista «" + voluta + "». Ci sono: " + string.Join(", ", nomi) +
+                    " (o V1..V" + nomi.Count + ").");
 
-            int tipo = TipoDiCentrino(Str(a, "su", "fori"));
-            if (tipo == 0)
-                return Fallito(
-                    "«su» puo' essere «fori», «raccordi», «asole» oppure «tutti». " +
-                    "Predefinito: «fori».");
-
-            // SENZA `dimensione_mm` si usano le impostazioni del documento, e
-            // non un numero scelto da me. La dimensione delle croci e' una
-            // convenzione di studio: metterne una mia vorrebbe dire produrre
-            // tavole che non somigliano alle altre tavole della stessa officina.
-            bool suaDimensione = a != null && a.ContainsKey("dimensione_mm");
-            double dimensioneMm = Num(a, "dimensione_mm", 2.5);
-            double gapMm = Num(a, "distacco_mm", 0.0);
-            bool estese = Bool(a, "linee_estese", false);
-
-            // Gli stili da provare, nell'ordine. Il primo e' il piu' probabile;
-            // gli altri due esistono perche' `InsertOption` non e' documentato
-            // dall'interop e il conteggio e' l'unico giudice (vedi il commento
-            // in testa alla classe).
-            var stili = new[]
+            // SOLO I FORI (cerchi interi). Misurato il 26/9/2026 (`prova0089
+            // croci6`): `AddCenterMark` su un ARCO di raccordo selezionato nella
+            // vista non fa nascere niente, 4 archi su 4. Le asole hanno due archi
+            // e una croce sola in mezzo. Tutt'e due si rifiutano, con la misura.
+            string su = (Str(a, "su", "fori") ?? "fori").Trim().ToLowerInvariant();
+            bool interi = true, archi = false;
+            switch (su)
             {
-                (int)swCenterMarkStyle_e.swCenterMark_Single,
-                (int)swCenterMarkStyle_e.swCenterMark_LinearGroup,
-                (int)swCenterMarkStyle_e.swCenterMark_CircularGroup,
-            };
+                case "": case "fori": break;
+                case "raccordi":
+                case "tutti":
+                    return Fallito("Sui raccordi la croce da codice non nasce: misurato, AddCenterMark su un arco " +
+                                   "selezionato nella vista non mette niente (4 archi su 4). Chiedi «fori»; i centri " +
+                                   "dei raccordi, se servono, vanno messi a mano in SOLIDWORKS.");
+                case "asole":
+                    return Fallito("Le asole non le so: un'asola ha due archi e una croce sola in mezzo, e una croce " +
+                                   "per arco sarebbe sbagliata. Chiedi «fori».");
+                default:
+                    return Fallito("«su» puo' essere solo «fori», non «" + su + "».");
+            }
+
+            // SENZA `dimensione_mm` la dimensione del documento: e' una
+            // convenzione di studio, non un numero mio.
+            bool suaDimensione = a != null && a.ContainsKey("dimensione_mm");
+            double dimensione = Unita.M(Num(a, "dimensione_mm", 2.5));
+            if (!suaDimensione)
+            {
+                try
+                {
+                    double doc = modello.Extension.GetUserPreferenceDouble(
+                        (int)swUserPreferenceDoubleValue_e.swDetailingCenterMarkSize,
+                        (int)swUserPreferenceOption_e.swDetailingNoOptionSpecified);
+                    if (doc > 0) dimensione = doc;
+                }
+                catch { }
+            }
+            if (dimensione <= 0) return Fallito("«dimensione_mm» deve essere maggiore di zero.");
+            bool linee = Bool(a, "linee_estese", false);
+
+            IMathUtility mu = null;
+            try { mu = _sw.GetMathUtility() as IMathUtility; } catch { }
+            var selMgr = modello.SelectionManager as ISelectionMgr;
 
             var perVista = new List<object>();
-            int totalePrima = 0, totaleDopo = 0;
-            string stileCheHaFunzionato = null;
+            int totalePrima = 0, totaleDopo = 0, gia = 0;
+            var nonNate = new List<string>();
 
             var foglio = disegno.GetFirstView() as IView;      // il primo e' IL FOGLIO
             var vista = foglio == null ? null : foglio.GetNextView() as IView;
@@ -120,7 +113,6 @@ namespace Riscontro.Disegno
             {
                 string nome = null;
                 try { nome = vista.Name; } catch { }
-
                 if (!string.IsNullOrWhiteSpace(voluta) && !StessoNome(nome, voluta))
                 {
                     vista = vista.GetNextView() as IView;
@@ -133,53 +125,80 @@ namespace Riscontro.Disegno
                         "Non riesco a contare le croci di centro della vista «" + (nome ?? "?") +
                         "» prima di cominciare: senza quel numero non saprei dirti quali ho " +
                         "messo io. Non ho toccato niente.");
-                int dopo = prima;
-                string stileQui = null;
 
-                foreach (var stile in stili)
+                MathTransform tr = null;
+                try { tr = vista.ModelToViewTransform; } catch { }
+                var centriGia = CentriDelleCroci(vista);
+                int cerchiQui = 0, messeQui = 0, giaQui = 0, nonFori = 0;
+                int conto = prima;
+                foreach (var o in (vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]) ?? new object[0])
                 {
+                    var e = o as IEdge;
+                    ICurve c = null;
+                    try { c = e?.GetCurve() as ICurve; } catch { }
+                    if (c == null || !c.IsCircle()) continue;
+                    bool intero = false;
+                    try { intero = e.GetStartVertex() == null; } catch { }
+                    if (intero ? !interi : !archi) continue;
+                    // UN FORO VERO (revisione del 26/9/2026): il cerchio guarda chi legge
+                    // (il suo asse, portato sul foglio, e' perpendicolare al foglio) ed e'
+                    // un anello INTERNO di una faccia piana. Il bordo di un disco o la
+                    // testa di un albero sono cerchi interi ma non fori: prima diventavano
+                    // «fori senza croce» e l'operazione rifiutava un pezzo giusto.
+                    if (!EUnForoCheSiVede(e, c, mu, tr)) { nonFori++; continue; }
+                    cerchiQui++;
+
+                    // Il centro sul foglio, per non mettere due croci sullo stesso foro.
+                    double[] centro = null;
                     try
                     {
-                        vista.AutoInsertCenterMarks2(
-                            tipo, stile,
-                            true,                 // LinearSlotCenter
-                            true,                 // ArcSlotCenter
-                            !suaDimensione,       // UseDocumentDefaults
-                            Unita.M(dimensioneMm),
-                            Unita.M(gapMm),
-                            estese,
-                            false,                // CenterLineFont
-                            0.0);                 // Angle
+                        var cp = c.CircleParams as double[];
+                        if (cp != null && mu != null && tr != null)
+                            centro = ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { cp[0], cp[1], cp[2] })).MultiplyTransform(tr)).ArrayData as double[];
                     }
-                    catch (Exception ex)
-                    {
-                        return Fallito(
-                            "Croci di centro non inserite sulla vista «" + (nome ?? "?") +
-                            "»: " + ex.Message);
-                    }
+                    catch { }
+                    if (centro != null && centriGia.Exists(q => StessoCentro(vista, q, centro)))
+                    { giaQui++; continue; }
 
-                    dopo = QuanteCroci(vista);
-                    if (dopo < 0)
-                        return Fallito(
-                            "Ho chiesto le croci di centro sulla vista «" + (nome ?? "?") +
-                            "», ma poi non riesco a ricontarle: non so dirti se sono nate. " +
-                            "Guarda la tavola prima di andare avanti.");
-                    if (dopo > prima) { stileQui = NomeDelloStile(stile); break; }
+                    bool presa = false;
+                    try
+                    {
+                        modello.ClearSelection2(true);
+                        var sd = selMgr?.CreateSelectData() as SelectData;
+                        if (sd != null) { sd.View = (View)vista; presa = (e as IEntity).Select4(false, sd); }
+                    }
+                    catch { }
+                    if (presa)
+                        try { disegno.AddCenterMark(dimensione, linee); } catch { }
+                    modello.ClearSelection2(true);
+                    int adesso = QuanteCroci(vista);
+                    if (adesso == conto + 1)
+                    {
+                        messeQui++;
+                        conto = adesso;
+                        if (centro != null) centriGia.Add(RelativoAllaVista(vista, centro));
+                    }
+                    else
+                    {
+                        nonNate.Add((nome ?? "?") + ": un cerchio" + (presa ? "" : " (non si e' lasciato selezionare)"));
+                        if (adesso >= 0) conto = adesso;
+                    }
                 }
 
-                if (stileQui != null && stileCheHaFunzionato == null)
-                    stileCheHaFunzionato = stileQui;
-
+                int dopo = QuanteCroci(vista);
                 totalePrima += prima;
-                totaleDopo += dopo;
+                totaleDopo += dopo < 0 ? prima : dopo;
+                gia += giaQui;
                 perVista.Add(new Dictionary<string, object>
                 {
                     ["vista"] = nome ?? "(senza nome)",
+                    ["cerchi"] = cerchiQui,
+                    ["cerchi_che_non_sono_fori"] = nonFori,
                     ["croci_prima"] = prima,
-                    ["croci_dopo"] = dopo,
-                    ["croci_aggiunte"] = Math.Max(0, dopo - prima),
+                    ["croci_dopo"] = NumeroOppureNull(dopo),
+                    ["croci_aggiunte"] = messeQui,
+                    ["cerchi_che_avevano_gia_la_croce"] = giaQui,
                 });
-
                 vista = vista.GetNextView() as IView;
             }
 
@@ -188,35 +207,37 @@ namespace Riscontro.Disegno
             int aggiunte = Math.Max(0, totaleDopo - totalePrima);
             var misure = new Dictionary<string, object>
             {
-                ["su"] = Str(a, "su", "fori"),
+                ["su"] = su,
                 ["viste_guardate"] = perVista.Count,
                 ["croci_prima"] = totalePrima,
                 ["croci_dopo"] = totaleDopo,
                 ["croci_aggiunte"] = aggiunte,
+                ["cerchi_che_avevano_gia_la_croce"] = gia,
                 ["per_vista"] = perVista.ToArray(),
-                ["dimensione"] = suaDimensione
-                    ? dimensioneMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " mm"
-                    : "quella del documento",
+                ["dimensione_mm"] = Math.Round(dimensione * 1000, 3),
+                ["dimensione_da"] = suaDimensione ? "chiesta" : "documento",
             };
-            if (stileCheHaFunzionato != null) misure["stile_che_ha_funzionato"] = stileCheHaFunzionato;
+            if (nonNate.Count > 0)
+            {
+                misure["cerchi_senza_croce"] = nonNate.ToArray();
+                return Fallito(nonNate.Count + (nonNate.Count == 1 ? " foro e'" : " fori sono") +
+                               " senza croce di centro (" + string.Join("; ", nonNate) + ") e da codice la croce non " +
+                               "nasce (misurato: AddCenterMark non la mette). La mette SOLIDWORKS creando la vista, se " +
+                               "l'opzione del documento «Croci di centro sui fori» e' accesa: accendila nel modello di " +
+                               "tavola e rifai la vista. Una tavola con qualche foro senza centro sembra finita e non lo e'.");
+            }
 
             // ── ZERO CROCI NON E' UN SUCCESSO SILENZIOSO ────────────────
-            //
-            // La chiamata puo' rispondere `true` e non aver disegnato niente:
-            // succede quando la vista non ha cerchi. Detto come «fatto» sarebbe
-            // il difetto che questa operazione esiste per prevenire, spostato
-            // di un passo — chi legge crede di avere i centri e non li ha.
             if (aggiunte == 0)
             {
                 misure["giudizio"] =
                     "NESSUNA CROCE AGGIUNTA. " +
-                    (totaleDopo > 0
-                        ? "Le " + totaleDopo + " che ci sono c'erano gia': niente di nuovo da mettere."
+                    (gia > 0
+                        ? gia + (gia == 1 ? " cerchio aveva" : " cerchi avevano") + " gia' la croce: niente di nuovo da mettere."
                         : "Su " + perVista.Count + (perVista.Count == 1 ? " vista" : " viste") +
-                          " non e' nato niente, e quasi sempre vuol dire che quella vista non " +
-                          "ha " + CosaCercava(tipo) + ": e' la vista sbagliata, oppure il pezzo " +
-                          "non ne ha.") +
-                    " Non l'ho considerata fatta a meta': il numero e' zero e te lo dico.";
+                          " non c'e' nessun " + (interi ? "foro" : "arco") + " visibile: e' la vista sbagliata " +
+                          "(i fori si vedono come cerchi dall'alto, di solito V2), oppure il pezzo non ne ha.") +
+                    " Il numero e' zero e te lo dico.";
                 _log("[agente] " + misure["giudizio"]);
                 return RiuscitoSenzaCreare(misure);
             }
@@ -224,10 +245,94 @@ namespace Riscontro.Disegno
             misure["giudizio"] =
                 "Messe " + aggiunte + (aggiunte == 1 ? " croce di centro" : " croci di centro") +
                 " su " + perVista.Count + (perVista.Count == 1 ? " vista" : " viste") +
-                " (" + totalePrima + " -> " + totaleDopo + "), contate sulla tavola e non " +
-                "dedotte dalla risposta.";
+                " (" + totalePrima + " -> " + totaleDopo + "), una per cerchio, contate sulla tavola.";
             _log("[agente] " + misure["giudizio"]);
             return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// Il cerchio e' un foro che in questa vista si vede come cerchio: asse
+        /// perpendicolare al foglio, e anello interno di una faccia piana.
+        /// </summary>
+        private static bool EUnForoCheSiVede(IEdge e, ICurve c, IMathUtility mu, MathTransform tr)
+        {
+            try
+            {
+                var cp = c.CircleParams as double[];
+                if (cp == null || cp.Length < 6 || mu == null || tr == null) return false;
+                var asse = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
+                double l = Math.Sqrt(asse[0] * asse[0] + asse[1] * asse[1] + asse[2] * asse[2]);
+                if (l < 1e-12 || Math.Abs(asse[2]) / l < 0.99) return false;
+                // IL CERCHIO E' UN ANELLO INTERNO DI UNA FACCIA PIANA: il bordo di un
+                // foro sta dentro la faccia che attraversa; il bordo di un disco o la
+                // testa di un albero e' l'anello ESTERNO della sua faccia.
+                // Misurato il 26/9/2026 (\`prova0089 croci8\`): FaceInSurfaceSense
+                // NON distingue — foro vero, disco falso — perche' il verso della
+                // superficie dipende da come e' nata; l'anello no.
+                foreach (var oc in (e.GetCoEdges() as object[]) ?? new object[0])
+                {
+                    var anello = (oc as ICoEdge)?.GetLoop() as ILoop2;
+                    var f = anello?.GetFace() as IFace2;
+                    var s = f?.GetSurface() as ISurface;
+                    if (s == null || !s.IsPlane()) continue;
+                    if (!anello.IsOuter()) return true;
+                }
+                return false;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// I centri delle croci che la vista ha gia', come li dice
+        /// `ICenterMark.GetPosition(0)`: RISPETTO AL CENTRO DELLA VISTA, non sul
+        /// foglio. Misurato il 26/9/2026 (`prova0089 croci4`): un cerchio a
+        /// 54,5/110,69 sul foglio, in una vista centrata a 94,5/110,69, ha la
+        /// croce a -40/0. Il primo codice li confrontava col foglio, e la seconda
+        /// chiamata metteva tre croci doppie.
+        /// </summary>
+        private static List<double[]> CentriDelleCroci(IView vista)
+        {
+            var fuori = new List<double[]>();
+            try
+            {
+                var cm = vista.GetFirstCenterMark() as ICenterMark;
+                while (cm != null)
+                {
+                    try
+                    {
+                        var p = cm.GetPosition(0) as double[];
+                        if (p != null && p.Length >= 2) fuori.Add(new[] { p[0], p[1] });
+                    }
+                    catch { }
+                    cm = cm.GetNext() as ICenterMark;
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        /// <summary>Un punto del foglio portato nel riferimento della vista (come GetPosition).</summary>
+        private static double[] RelativoAllaVista(IView vista, double[] foglio)
+        {
+            double[] p = null;
+            try { p = vista.Position as double[]; } catch { }
+            if (p == null || p.Length < 2) return new[] { foglio[0], foglio[1] };
+            return new[] { foglio[0] - p[0], foglio[1] - p[1] };
+        }
+
+        /// <summary>
+        /// La croce `q` (riferimento della vista) sta sul centro `foglio`? Si prova
+        /// con e senza la scala: a scala 1 non si e' potuto dire se GetPosition
+        /// la applichi, e mezzo millimetro di tolleranza vale nelle due letture.
+        /// </summary>
+        private static bool StessoCentro(IView vista, double[] q, double[] foglio)
+        {
+            var r = RelativoAllaVista(vista, foglio);
+            double scala = 1;
+            try { scala = vista.ScaleDecimal; } catch { }
+            if (scala <= 0) scala = 1;
+            if (Math.Abs(q[0] - r[0]) < 0.0005 && Math.Abs(q[1] - r[1]) < 0.0005) return true;
+            return Math.Abs(q[0] - r[0] / scala) < 0.0005 && Math.Abs(q[1] - r[1] / scala) < 0.0005;
         }
 
         /// <summary>
@@ -243,50 +348,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private static int QuanteCroci(IView vista)
         {
-            try { return vista.GetCenterMarkCount(); }
-            catch { return -1; }
-        }
-
-        /// <summary>
-        /// La maschera di `swAutoInsertCenterMarkTypes_e`, o 0 se il nome non
-        /// si riconosce. **Non c'e' un valore predefinito silenzioso**: un nome
-        /// sbagliato deve dare un rifiuto, non le croci su qualcos'altro.
-        /// </summary>
-        private static int TipoDiCentrino(string come)
-        {
-            const int FORI = (int)swAutoInsertCenterMarkTypes_e.swAutoInsertCenterMarkType_Hole;
-            const int RACCORDI = (int)swAutoInsertCenterMarkTypes_e.swAutoInsertCenterMarkType_Fillets;
-            const int ASOLE = (int)swAutoInsertCenterMarkTypes_e.swAutoInsertCenterMarkType_Slots;
-
-            switch ((come ?? "").Trim().ToLowerInvariant())
-            {
-                case "":
-                case "fori": return FORI;
-                case "raccordi": return RACCORDI;
-                case "asole": return ASOLE;
-                case "tutti": return FORI | RACCORDI | ASOLE;
-                default: return 0;
-            }
-        }
-
-        private static string CosaCercava(int tipo)
-        {
-            var pezzi = new List<string>();
-            if ((tipo & (int)swAutoInsertCenterMarkTypes_e.swAutoInsertCenterMarkType_Hole) != 0)
-                pezzi.Add("fori");
-            if ((tipo & (int)swAutoInsertCenterMarkTypes_e.swAutoInsertCenterMarkType_Fillets) != 0)
-                pezzi.Add("raccordi");
-            if ((tipo & (int)swAutoInsertCenterMarkTypes_e.swAutoInsertCenterMarkType_Slots) != 0)
-                pezzi.Add("asole");
-            return pezzi.Count == 0 ? "niente di cercabile" : string.Join(" ne' ", pezzi);
-        }
-
-        private static string NomeDelloStile(int stile)
-        {
-            if (stile == (int)swCenterMarkStyle_e.swCenterMark_Single) return "singolo";
-            if (stile == (int)swCenterMarkStyle_e.swCenterMark_LinearGroup) return "gruppo lineare";
-            if (stile == (int)swCenterMarkStyle_e.swCenterMark_CircularGroup) return "gruppo circolare";
-            return "sconosciuto (" + stile + ")";
+            return ContaCroci.DellaVista(vista);
         }
 
         private static bool StessoNome(string a, string b)
@@ -299,6 +361,37 @@ namespace Riscontro.Disegno
         {
             foreach (var n in nomi) if (StessoNome(n, voluta)) return true;
             return false;
+        }
+    }
+
+    /// <summary>
+    /// LE CROCI DI CENTRO SI CONTANO ENUMERANDOLE (26/9/2026, `prova0089 croci5`).
+    ///
+    /// `IView.GetCenterMarkCount()` rispondeva **0** su una vista con tre croci:
+    /// quelle che SOLIDWORKS mette da se' sui fori quando crea la vista (opzione
+    /// del documento `swDetailingAutoInsertCenterMarksForHoles`, accesa qui) non
+    /// le conta; conta solo quelle aggiunte dopo. `GetFirstCenterMark` /
+    /// `GetNext` le vede tutte. Il «blocco» di W2.11 del 17/9 — «l'API dice si'
+    /// e non mette niente» — era in gran parte questo contatore: le croci
+    /// c'erano, e nessuno le vedeva. Lo usano l'operazione e lo stato.
+    /// </summary>
+    internal static class ContaCroci
+    {
+        /// <summary>Quante croci di centro ha la vista, enumerate; -1 se non si legge.</summary>
+        internal static int DellaVista(IView vista)
+        {
+            try
+            {
+                int n = 0;
+                var cm = vista.GetFirstCenterMark() as ICenterMark;
+                while (cm != null && n < 10000)
+                {
+                    n++;
+                    cm = cm.GetNext() as ICenterMark;
+                }
+                return n;
+            }
+            catch { return -1; }
         }
     }
 }

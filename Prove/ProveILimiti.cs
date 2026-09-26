@@ -431,10 +431,9 @@ namespace Prove.Contratti
         private static readonly Dictionary<string, string> SenzaCasoVerde =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                ["quote_dal_modello"] =
-                    "voce Z-E7: fuori processo porta zero quote (Z-C1, 0 su 7); in " +
-                    "processo c'e' una misura di undici, mai ripetuta. Un caso verde " +
-                    "non si scrive finche' non la si rifa' dentro un add-in.",
+                // (26/9/2026) `quote_dal_modello` non e' piu' qui: fuori processo
+                // porta le quote (7 sullo stesso pezzo di Z-C1, due sonde), e ha la
+                // sua coppia vera: `quote/le_quote_arrivano_dal_modello`.
             };
 
         /// <summary>
