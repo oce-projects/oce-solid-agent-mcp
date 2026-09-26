@@ -78,33 +78,9 @@ namespace Riscontro.Disegno
                     "Metti prima le viste con «viste_standard» o «vista_modello».");
 
             string voluta = Str(a, "vista", null);
-
-            // «V2», COME LO SCRIVE LO STATO DELLA TAVOLA (25/9/2026). I NOMI delle
-            // viste dipendono dalla lingua di SOLIDWORKS — «Vista del disegno2»
-            // qui, «Drawing View2» in inglese — e un piano che li copia vale su
-            // una sola installazione. L'identificativo dello stato no: V1 e' la
-            // prima vista del foglio, nello stesso ordine in cui lo stato le
-            // elenca. Un nome vero vince sempre: se una vista si chiama «V2», e'
-            // quella.
-            if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
-            {
-                var uid = System.Text.RegularExpressions.Regex.Match(voluta.Trim(), @"^[Vv](\d+)$");
-                if (uid.Success)
-                {
-                    int k = int.Parse(uid.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
-                    if (k < 1 || k > nomi.Count)
-                        return Fallito(
-                            "Non c'e' la vista «" + voluta + "»: la tavola ne ha " + nomi.Count +
-                            " (da V1 a V" + nomi.Count + ").");
-                    voluta = nomi[k - 1];
-                }
-            }
-            if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
-                return Fallito(
-                    "Non c'e' nessuna vista che si chiami «" + voluta + "». Ci sono: " +
-                    string.Join(", ", nomi) + ".");
-
-            IView vista = VistaPerNome(disegno, voluta);
+            string motivoVista;
+            IView vista = RisolviVista(disegno, nomi, voluta, out motivoVista);
+            if (motivoVista != null) return Fallito(motivoVista);
             if (vista == null)
                 return Fallito("Non riesco a prendere la vista su cui quotare.");
 
@@ -202,6 +178,7 @@ namespace Riscontro.Disegno
             // chiesti quattro spigoli.
             var tutti = new List<Spigolo>();
             var cerchi = new List<Cerchio>();
+            int foriNellaTabella = 0;   // ZERO-E-ZERO: nessuna tabella fori nella vista, finche' non si guarda
             for (int i = 0; i < disponibili; i++)
             {
                 var c = CerchioSulFoglio(spigoli[i] as IEdge, i, mu, tr);
@@ -324,7 +301,13 @@ namespace Riscontro.Disegno
                 // misura dal CENTRO (15 sulla piastra), con `AddDimension` non
                 // nasce niente.
                 var dimensioniFoglio = DimensioniDelFoglio(disegno);
-                if (cerchi.Count > 0)
+                // UNA TABELLA FORI NELLA VISTA QUOTA GIA' I FORI (voce GT5, 26/9/2026).
+                // La prima tavola con la tabella, GUARDATA, aveva i fori due volte:
+                // posizioni e misure nella tabella, e di nuovo richiami e quote di
+                // posizione sulla vista. «Ciascun elemento si quota una volta sola»:
+                // se la tabella c'e', i fori sono suoi.
+                foriNellaTabella = ForiNellaTabellaFori(disegno);
+                if (cerchi.Count > 0 && foriNellaTabella <= 0)
                     QuotaIFori(modello, disegno, cerchi, tutti, gia, contorno, distacco, passo, scala,
                                ref sotto, ref diLato, ref aSinistra, dimensioniFoglio, nate, fori, altrove, falliti);
 
@@ -432,11 +415,12 @@ namespace Riscontro.Disegno
                 // Se tutto cio' che la vista mostra e' gia' quotato altrove, o e'
                 // un doppione, o sta nello smusso, si dice cosi' — e resta un
                 // rifiuto, perche' zero quote non sono una risposta «fatto».
-                if (falliti.Count == 0 && (doppioni.Count + altrove.Count + diSmusso.Count) > 0)
+                if (falliti.Count == 0 && ((doppioni.Count + altrove.Count + diSmusso.Count) > 0 || foriNellaTabella > 0))
                     return Fallito(
                         "Nella vista «" + nomeVista + "» non c'e' niente da quotare che non lo sia " +
                         "gia': " + doppioni.Count + " doppioni nella vista, " + altrove.Count +
-                        " gia' quotati in un'altra vista, " + diSmusso.Count + " dello smusso. " +
+                        " gia' quotati in un'altra vista, " + diSmusso.Count + " dello smusso" +
+                        (foriNellaTabella > 0 ? ", " + foriNellaTabella + " fori nella tabella fori" : "") + ". " +
                         "Ciascun elemento si quota una volta sola in tutta la tavola (UNI ISO 129-1).");
                 return Fallito(
                     "Nessuna quota e' nata (erano " + prima + ", sono " + dopo + "). " +
@@ -485,6 +469,7 @@ namespace Riscontro.Disegno
                 // verdi, perche' chiedevano i millimetri delle quote messe —
                 // non se la tavola basta a fare il pezzo.
                 ["fori"] = fori.ToArray(),
+                ["fori_nella_tabella_fori"] = foriNellaTabella > 0 ? (object)foriNellaTabella : null,
                 ["smussi"] = smussi.ToArray(),
                 ["gia_quotate_altrove"] = altrove.ToArray(),
                 ["spigoli_dello_smusso"] = diSmusso.ToArray(),
@@ -1286,6 +1271,47 @@ namespace Riscontro.Disegno
                 pezzi.Add(q.TryGetValue("mm", out v) && v != null ? v + " mm" : "?");
             }
             return string.Join(", ", pezzi);
+        }
+
+        /// <summary>
+        /// La vista chiesta come la scrive lo stato («V2») o per nome, o la prima
+        /// vera se non si dice. Null col motivo quando la vista non c'e'; null
+        /// senza motivo quando c'e' ma non si lascia prendere.
+        ///
+        /// «V2», COME LO SCRIVE LO STATO DELLA TAVOLA (25/9/2026). I NOMI delle
+        /// viste dipendono dalla lingua di SOLIDWORKS — «Vista del disegno2»
+        /// qui, «Drawing View2» in inglese — e un piano che li copia vale su
+        /// una sola installazione. L'identificativo dello stato no: V1 e' la
+        /// prima vista del foglio, nello stesso ordine in cui lo stato le
+        /// elenca. Un nome vero vince sempre: se una vista si chiama «V2», e'
+        /// quella. Estratto da `quota_in_tavola` il 26/9/2026: lo usa anche
+        /// `tabella_fori_in_tavola`, e due copie divergono.
+        /// </summary>
+        private static IView RisolviVista(IDrawingDoc disegno, List<string> nomi, string voluta, out string motivo)
+        {
+            motivo = null;
+            if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
+            {
+                var uid = System.Text.RegularExpressions.Regex.Match(voluta.Trim(), @"^[Vv](\d+)$");
+                if (uid.Success)
+                {
+                    int k = int.Parse(uid.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                    if (k < 1 || k > nomi.Count)
+                    {
+                        motivo = "Non c'e' la vista «" + voluta + "»: la tavola ne ha " + nomi.Count +
+                                 " (da V1 a V" + nomi.Count + ").";
+                        return null;
+                    }
+                    voluta = nomi[k - 1];
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
+            {
+                motivo = "Non c'e' nessuna vista che si chiami «" + voluta + "». Ci sono: " +
+                         string.Join(", ", nomi) + ".";
+                return null;
+            }
+            return VistaPerNome(disegno, voluta);
         }
 
         /// <summary>La vista chiesta per nome, o la prima vera se non si dice.</summary>

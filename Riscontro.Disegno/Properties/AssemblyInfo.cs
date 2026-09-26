@@ -286,8 +286,21 @@ using System.Runtime.InteropServices;
 //          con lo schizzo selezionato, al primo colpo). Volume e sviluppo
 //          restano; l'ingombro prima e dopo dice quale lato e' rimasto fermo.
 //          Il jog no: sette varianti di selezione, niente.
-[assembly: AssemblyVersion("0.123.0.0")]
-[assembly: AssemblyFileVersion("0.123.0.0")]
+// 0.124.0: `tabella_fori_in_tavola` (voce GT5). Le tabelle nascono (la sonda
+//          unica del 26/9: generali, revisioni, fori; la distinta di taglio no).
+//          La tabella fori vuole il vertice d'origine col marchio 1 e la faccia
+//          col marchio 2, SELEZIONATI nella vista: coi marchi scambiati nasce
+//          vuota senza errore, quindi si pretende righe = fori + 1 e ogni
+//          posizione si rilegge contro il pezzo. `quota_in_tavola` lascia i fori
+//          alla tabella quando c'e' (la tabella sta sul FOGLIO, non sulla vista).
+//          `RisolviVista` estratto da quota_in_tavola. E `rugosita_in_tavola`,
+//          `datum_in_tavola`, `tolleranza_geometrica_in_tavola` (voci GT6, GT8):
+//          attaccate allo spigolo di bordo del lato chiesto (selezionato nella
+//          vista), poi SPOSTATE fuori dal pezzo, oltre le quote gia' messe e fuori
+//          dalle altre viste — tutto trovato guardando il PNG. Riletti Ra,
+//          lettera, simbolo, valore e riferimenti.
+[assembly: AssemblyVersion("0.124.0.0")]
+[assembly: AssemblyFileVersion("0.124.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -302,4 +315,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.123.0")]
+[assembly: AssemblyInformationalVersion("0.124.0")]

@@ -89,6 +89,8 @@ namespace Prove.Contratti
                 { "sostituisci_componente.percorso", "e con quale file" },
                 { "inserisci_componente.percorso", "quale file si inserisce" },
                 { "flangia_base.punti", "il profilo della lamiera: e' la lamiera stessa, e da che parte va lo spessore dipende dal verso" },
+                { "rugosita_in_tavola.ra_um", "la rugosita' la decide la funzione della superficie: un Ra d'ufficio si stamperebbe su ogni faccia" },
+                { "tolleranza_geometrica_in_tavola.caratteristica", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
 
                 // ── DIPENDONO DALL'OFFICINA, NON DA NOI (voce Z-G8) ───────
                 { "membro_strutturale.profilo_percorso",

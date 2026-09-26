@@ -24,6 +24,59 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.99.0 — 26 September 2026 · library 0.124.0
+
+**Tables are born on this installation.** On 17 September no table would
+insert (entry GT2: even a generic 3x3 returned null). One probe on 26
+September, with a positive control in the same run (a note, +1 every
+time), across a fresh drawing, a saved one and one activated in front:
+`InsertGeneralTableAnnotation` (never tried before), `InsertTableAnnotation`
+and `InsertTableAnnotation2`, `InsertRevisionTable2` all create their
+table; only `InsertWeldmentTable` stays null, in 24 combinations of view,
+template, configuration and anchor. What changed since the 17th is not
+measured; the likeliest candidate is the K9 fix (`viste_standard` put the
+wrong part in the drawing).
+
+`tabella_fori_in_tavola` (entry GT5): the hole table of the drilled face
+seen in a view. `InsertHoleTable2` has no argument for origin or face:
+they are SELECTED in the view — a corner vertex with mark 1, the face with
+mark 2. With the marks swapped the table is born EMPTY (header only) and no
+error: so the operation requires rows = holes + 1, removes an empty table,
+and reads every row back against the part (each position must match a hole
+measured on the view from the origin). On the demo plate: A1..A4 Ø8 at
+15/15, 15/65, 105/15, 105/65 and B1 Ø20 at 60/40.
+
+Looking at the drawing found a defect no check saw: the holes were
+dimensioned twice, in the table and again with callouts and position
+dimensions. `quota_in_tavola` now leaves the holes to the table when there
+is one — and the table sits on the SHEET, not on the view, which is why
+the first fix did not see it. A table added after the dimensions says the
+holes are now dimensioned twice. `RisolviVista` is extracted from
+`quota_in_tavola`. Two cases (the drawing, looked at; the table on the
+side view, refused).
+
+And the annotations (entries GT6, GT8): `rugosita_in_tavola` (surface
+finish, Ra in micrometres), `datum_in_tavola` and
+`tolleranza_geometrica_in_tavola` (a geometric tolerance frame: flatness,
+perpendicularity, position...). All three were born at the first try — no
+modal window — and all three were WRONG on the sheet, which only the PNG
+showed: the surface finish ignored its coordinates and landed outside the
+border; the datum flag sat on the far side of its edge with the leader
+across the part; the frame floated attached to nothing. Then, with the
+dimensions in place, the datum flag landed on the 120 dimension line and
+the frame on top of the side view. Now each one is attached to the border
+edge of the requested side (selected in the view), and moved out of the
+part — beyond the dimensions already on that side, and out of the other
+views. Ra, letter, symbol code, value and datum references are read back.
+Refused: a datum letter already used (two datum A are no error and make
+every tolerance citing A ambiguous), a form tolerance with a datum, an
+orientation or location tolerance without one, a datum that is not on the
+drawing, Ra outside 0–100. Five cases.
+
+Full bench: 1291 tests, 0 failed, 1018 of 1018 expectations verified.
+
+---
+
 ## 0.98.0 — 26 September 2026 · library 0.123.0
 
 `piega_da_schizzo`, the fifth sheet-metal operation: a sheet bent along a

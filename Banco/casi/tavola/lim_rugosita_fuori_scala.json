@@ -1,0 +1,24 @@
+{
+  "nome": "lim_rugosita_fuori_scala",
+  "famiglia": "tavola",
+  "perche": "Ra 0 non e' una rugosita': e' di solito un campo dimenticato. Un simbolo «0» in tavola si stampa e chiede una superficie impossibile. Si rifiuta prima di toccare la tavola, dicendo l'intervallo.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 96000 } ] },
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\lim_rugosita_fuori_scala.sldprt" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0 } ] },
+    { "operazione": "crea_disegno", "argomenti": { "formato": "A3" },
+      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\lim_rugosita_fuori_scala.sldprt" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
+    { "operazione": "rugosita_in_tavola",
+      "argomenti": { "vista": "V1", "lato": "alto", "ra_um": 0 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["fra 0 e 100"],
+        "gemella": "le_annotazioni_stanno_fuori_dal_pezzo" } }
+  ]
+}

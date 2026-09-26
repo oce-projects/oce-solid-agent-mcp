@@ -111,6 +111,8 @@
     <Compile Include="OperazioniCartiglio.cs" />
     <Compile Include="OperazioniCentrini.cs" />
     <Compile Include="OperazioniQuoteTavola.cs" />
+    <Compile Include="OperazioniTabellaFori.cs" />
+    <Compile Include="OperazioniAnnotazioniTavola.cs" />
     <Compile Include="OperazioniNotaTavola.cs" />
     <Compile Include="OperazioniSezioneTavola.cs" />
     <Compile Include="OperazioniDettaglioTavola.cs" />

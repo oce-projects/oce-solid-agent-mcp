@@ -113,8 +113,14 @@ namespace Prove.Contratti
         /// che senza gioco si chiama «chiuso».
         /// **79 dalla libreria 0.123.0:** `piega_da_schizzo` rifiuta i 180 gradi
         /// nominando «orlo».
+        /// **81 dalla libreria 0.124.0:** `tabella_fori_in_tavola` dice su quale
+        /// vista va (V2) e cosa fare della doppia quotatura; `quota_in_tavola`
+        /// nomina la tabella fori fra le cose gia' quotate.
+        /// **89, stessa libreria:** le tre annotazioni (rugosita', datum,
+        /// tolleranza geometrica) dicono cosa fare per ogni rifiuto — la lettera
+        /// libera, togliere il riferimento, mettere il datum prima.
         /// </summary>
-        private const int Pavimento = 79;
+        private const int Pavimento = 89;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

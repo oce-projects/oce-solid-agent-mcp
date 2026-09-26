@@ -1,0 +1,27 @@
+{
+  "nome": "lim_tolleranza_su_un_datum_che_non_c_e",
+  "famiglia": "tavola",
+  "perche": "Una perpendicolarita' rispetto a «B» su una tavola che ha solo il datum A: la cornice nascerebbe e citerebbe un riferimento che non esiste. Si rifiuta dicendo quali datum ci sono, e come si mette quello che manca.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 96000 } ] },
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\lim_tolleranza_su_un_datum_che_non_c_e.sldprt" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0 } ] },
+    { "operazione": "crea_disegno", "argomenti": { "formato": "A3" },
+      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\lim_tolleranza_su_un_datum_che_non_c_e.sldprt" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
+    { "operazione": "datum_in_tavola",
+      "argomenti": { "vista": "V1", "lato": "basso", "lettera": "A" },
+      "attese": [ { "cosa": "misure.lettera_riletta", "uguale": "A" } ] },
+    { "operazione": "tolleranza_geometrica_in_tavola",
+      "argomenti": { "vista": "V1", "lato": "destra", "caratteristica": "perpendicolarita", "valore_mm": 0.05, "riferimenti": ["B"] },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["datum «B»", "non c'e'", "datum_in_tavola"],
+        "gemella": "le_annotazioni_stanno_fuori_dal_pezzo" } }
+  ]
+}

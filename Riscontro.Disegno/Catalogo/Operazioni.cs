@@ -2370,6 +2370,143 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "tabella_fori_in_tavola",
+                    Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
+                    Provata = true,
+                    Sommario =
+                        "La tabella fori su una vista: un tag per foro, la posizione dall'origine e la misura.",
+                    Descrizione =
+                        "Mette in tavola la TABELLA FORI della faccia forata che si vede in una vista: "
+                        + "per ogni foro un tag (A1, A2...), la posizione X e Y da un vertice d'angolo "
+                        + "del pezzo, e la misura («Ø8 PASSANTE»). E' la tabella che serve a chi fora "
+                        + "una piastra con tanti fori, al posto di una quota per foro.\n\nLa vista e' "
+                        + "quella in cui i fori si vedono come cerchi (di solito V2, dall'alto): la "
+                        + "faccia la sceglie l'operazione fra quelle che guardano verso chi legge, la "
+                        + "piu' forata. «origine» dice da quale angolo di quella faccia si misura "
+                        + "(predefinito basso_sinistra).\n\nLa tabella si RILEGGE: le righe devono "
+                        + "essere i fori piu' l'intestazione, e ogni posizione scritta deve "
+                        + "corrispondere a un foro del pezzo misurato sulla vista. Misurato: con "
+                        + "l'origine e la faccia selezionate male SOLIDWORKS fa nascere una tabella "
+                        + "VUOTA senza errore.\n\nMI RIFIUTO se nessuna faccia con dei fori guarda "
+                        + "verso chi legge in quella vista, e se la tabella nasce vuota o dice "
+                        + "posizioni che il pezzo non ha: in quei casi la tolgo.",
+                    Precondizione = "una tavola con una vista del pezzo in cui i fori si vedono come cerchi",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O(
+                                "type", "string",
+                                "description", "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."),
+                            "origine", O(
+                                "type", "string",
+                                "enum", A("basso_sinistra", "basso_destra", "alto_sinistra", "alto_destra"),
+                                "description", "da quale angolo della faccia forata si misurano le posizioni. Predefinito basso_sinistra."),
+                            "x_mm", O("type", "number", "description", "dove va l'angolo in alto a sinistra della tabella sul foglio, in mm. Predefinito 15."),
+                            "y_mm", O("type", "number", "description", "idem in verticale. Predefinito 15 sotto il bordo alto del foglio."),
+                            "inizio_tag", O("type", "string", "description", "la lettera dei tag. Predefinito «A».")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "rugosita_in_tavola",
+                    Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
+                    Provata = true,
+                    Sommario = "Il simbolo di rugosita' (Ra in micrometri) su uno spigolo di bordo di una vista.",
+                    Descrizione =
+                        "Mette il simbolo di RUGOSITA' (UNI EN ISO 1302) con la linea di richiamo sullo spigolo "
+                        + "di bordo di una vista, dal «lato» chiesto, e lo porta fuori dal pezzo. «lavorazione»: "
+                        + "asportazione (la barretta, predefinito), qualsiasi, senza_asportazione (il cerchietto)."
+                        + "\n\nIl Ra si RILEGGE dal simbolo. Misurato: senza spostarlo, SOLIDWORKS mette il simbolo "
+                        + "fuori cornice ignorando le coordinate; per questo la posizione si imposta e si rilegge."
+                        + "\n\nMI RIFIUTO se Ra non sta fra 0 e 100 micrometri, se la vista non ha uno spigolo dritto "
+                        + "su quel lato, e se il simbolo nato dice un Ra diverso.",
+                    Precondizione = "una tavola con una vista",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "lato", O(
+                                "type", "string",
+                                "enum", A("alto", "basso", "sinistra", "destra"),
+                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «alto»."),
+                            "ra_um", O("type", "number", "description", "la rugosita' Ra in micrometri, per esempio 3.2"),
+                            "lavorazione", O(
+                                "type", "string",
+                                "enum", A("asportazione", "qualsiasi", "senza_asportazione"),
+                                "description", "come si ottiene la superficie. Predefinito «asportazione».")),
+                        "required", A("ra_um")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "datum_in_tavola",
+                    Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
+                    Provata = true,
+                    Sommario = "Un riferimento (datum A, B...) su uno spigolo di bordo di una vista.",
+                    Descrizione =
+                        "Mette un DATUM (UNI EN ISO 5459): il triangolo sullo spigolo di bordo della vista dal "
+                        + "«lato» chiesto, e la bandierina con la «lettera» fuori dal pezzo, dalla stessa parte. "
+                        + "E' il riferimento che le tolleranze geometriche citano.\n\nLa lettera si RILEGGE. "
+                        + "Misurato: lasciato dove nasce, SOLIDWORKS mette la bandierina dall'altra parte dello "
+                        + "spigolo e la linea attraversa il pezzo; per questo si sposta.\n\nMI RIFIUTO se la "
+                        + "lettera c'e' gia' in tavola — due datum con la stessa lettera non danno errore e rendono "
+                        + "ambigua ogni tolleranza — e se la vista non ha uno spigolo dritto su quel lato.",
+                    Precondizione = "una tavola con una vista",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "lato", O(
+                                "type", "string",
+                                "enum", A("alto", "basso", "sinistra", "destra"),
+                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «basso»."),
+                            "lettera", O("type", "string", "description", "la lettera del riferimento, dalla A alla Z. Predefinita «A».")),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "tolleranza_geometrica_in_tavola",
+                    Famiglia = "tavola",
+                    DocumentoRichiesto = "tavola",
+                    Provata = true,
+                    Sommario = "Una cornice di tolleranza geometrica (planarita', perpendicolarita', posizione...) su uno spigolo.",
+                    Descrizione =
+                        "Mette una CORNICE DI TOLLERANZA GEOMETRICA (UNI EN ISO 1101) con la freccia sullo spigolo "
+                        + "di bordo della vista dal «lato» chiesto: la «caratteristica», l'ampiezza della zona in mm "
+                        + "e i «riferimenti» (fino a tre lettere di datum, nell'ordine primario, secondario, "
+                        + "terziario). «diametro» mette il Ø davanti al valore (una zona cilindrica, per la "
+                        + "posizione di un asse).\n\nSimbolo, valore e riferimenti si RILEGGONO dalla cornice."
+                        + "\n\nMI RIFIUTO se una tolleranza di forma (rettilineita', planarita', circolarita', "
+                        + "cilindricita') cita un datum, se una di orientamento o di posizione non ne cita nessuno, "
+                        + "se un datum citato non c'e' in tavola (mettilo prima con «datum_in_tavola»), e se la "
+                        + "cornice nata non dice cio' che si e' chiesto.",
+                    Precondizione = "una tavola con una vista, e i datum che si citano gia' messi",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "vista", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "lato", O(
+                                "type", "string",
+                                "enum", A("alto", "basso", "sinistra", "destra"),
+                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «destra»."),
+                            "caratteristica", O(
+                                "type", "string",
+                                "enum", A("rettilineita", "planarita", "circolarita", "cilindricita", "profilo_linea",
+                                          "profilo_superficie", "inclinazione", "perpendicolarita", "parallelismo",
+                                          "posizione", "concentricita", "simmetria", "oscillazione_circolare",
+                                          "oscillazione_totale"),
+                                "description", "la caratteristica geometrica"),
+                            "valore_mm", O("type", "number", "description", "l'ampiezza della zona di tolleranza, in mm"),
+                            "riferimenti", O(
+                                "type", "array", "items", O("type", "string"),
+                                "description", "le lettere dei datum, fino a tre, nell'ordine primario, secondario, terziario"),
+                            "diametro", O("type", "boolean", "description", "zona cilindrica: il Ø davanti al valore")),
+                        "required", A("caratteristica", "valore_mm")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "nota_in_tavola",
                     Famiglia = "tavola",
                     Esempio = "{\"testo\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `la_nota_finisce_sul_foglio`

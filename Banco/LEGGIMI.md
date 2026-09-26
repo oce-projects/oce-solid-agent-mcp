@@ -548,7 +548,7 @@ casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella)
-casi/tavola/      14   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      21   il primo caso che arriva in TAVOLA (voce GT0);
                        la tavola della piastra con fori e smusso, GUARDATA:
                        fori col richiamo e le posizioni, smusso 5 x 45, niente
                        quote ripetute fra viste (voce GT11);
@@ -565,7 +565,14 @@ casi/tavola/      14   il primo caso che arriva in TAVOLA (voce GT0);
                        il dettaglio INGRANDISCE, e il cerchio e' DIVENTATO un
                        dettaglio -- non il tratteggio, che su un dettaglio
                        vale zero (voce GT4, l'altra meta');
-                       il cerchio piu' grande della vista (la gemella)
+                       il cerchio piu' grande della vista (la gemella);
+                       la tabella fori dice dove sono i fori, riletta contro il
+                       pezzo, e quota_in_tavola lascia i fori alla tabella
+                       (voce GT5); la tabella sulla vista di fianco, rifiutata;
+                       datum, rugosita' e tolleranze geometriche attaccate agli
+                       spigoli e fuori dal pezzo (voci GT6, GT8), coi quattro
+                       rifiuti: lettera doppia, planarita' con un riferimento,
+                       datum che non c'e', Ra fuori scala
 casi/saldature/    4   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
