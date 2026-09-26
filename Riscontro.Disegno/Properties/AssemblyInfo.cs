@@ -281,8 +281,13 @@ using System.Runtime.InteropServices;
 //          (quarta su sette): sullo spigolo selezionato, nessuno schizzo;
 //          l'aperto e' la piega a 180 gradi col raggio = meta' del gioco.
 //          `SpigoloDiBordo` estratto, per flangia e orlo.
-[assembly: AssemblyVersion("0.122.0.0")]
-[assembly: AssemblyFileVersion("0.122.0.0")]
+// 0.123.0: `piega_da_schizzo` (voce GP18, quinta su sette): la lamiera si
+//          piega lungo una linea tracciata su una faccia (InsertSheetMetal3dBend
+//          con lo schizzo selezionato, al primo colpo). Volume e sviluppo
+//          restano; l'ingombro prima e dopo dice quale lato e' rimasto fermo.
+//          Il jog no: sette varianti di selezione, niente.
+[assembly: AssemblyVersion("0.123.0.0")]
+[assembly: AssemblyFileVersion("0.123.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -297,4 +302,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.122.0")]
+[assembly: AssemblyInformationalVersion("0.123.0")]

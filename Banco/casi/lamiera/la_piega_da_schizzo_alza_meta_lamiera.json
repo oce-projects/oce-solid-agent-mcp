@@ -1,0 +1,24 @@
+{
+  "nome": "la_piega_da_schizzo_alza_meta_lamiera",
+  "famiglia": "lamiera",
+  "perche": "VOCE GP18, la quinta operazione. Una lamiera piatta 100 x 40 x 2 (R 2), piegata a 90 gradi lungo una linea di traverso a x = 50 sulla faccia alta. Misurata col banchetto (`prova0089 piega`) prima di scriverla: volume invariato, e l'ingombro che torna col conto — 46 di piano (50 - R - T), la piega da 4,712, e il resto (49,288) che sale da y = 2. Una piega non aggiunge lamiera, la sposta: lo sviluppo resta 100.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "flangia_base",
+      "argomenti": { "piano": "frontale", "punti": [[0, 0], [100, 0]],
+                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 8000, "tolleranza": 0.05,
+                    "perche_questa_tolleranza": "100 x 40 x 2; misurato 8000,02" } ] },
+    { "operazione": "piega_da_schizzo",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "da_mm": [50, 0, 0], "a_mm": [50, 0, 40],
+                     "angolo_gradi": 90 },
+      "attese": [
+        { "cosa": "ingombro_mm", "uguale": [50, 53.288, 40], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "in y: da -2 a R + (100 - (50 - R - T) - pi/2 * (R + K T)) = 51,288. Il lato fermo e' quello a x < 50: lo sceglie SOLIDWORKS, ed e' il motivo per cui l'attesa e' sull'ingombro intero" },
+        { "cosa": "misure.volume_mm3", "uguale": 8000, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "una piega non aggiunge lamiera" },
+        { "cosa": "misure.lunghezza_sviluppo_mm", "uguale": 100, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "spianata torna la lamiera di prima" },
+        { "cosa": "corpi", "uguale": 1 } ] }
+  ]
+}

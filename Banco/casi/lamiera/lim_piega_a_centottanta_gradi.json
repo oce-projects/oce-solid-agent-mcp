@@ -1,0 +1,20 @@
+{
+  "nome": "lim_piega_a_centottanta_gradi",
+  "famiglia": "lamiera",
+  "perche": "A 180 gradi la lamiera si richiude su se stessa: non e' una piega da schizzo, e' un orlo. Si rifiuta prima di toccare il pezzo, e il rifiuto nomina l'operazione giusta.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "flangia_base",
+      "argomenti": { "piano": "frontale", "punti": [[0, 0], [100, 0]],
+                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+      "attese": [ { "cosa": "corpi", "uguale": 1 } ] },
+    { "operazione": "piega_da_schizzo",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "da_mm": [50, 0, 0], "a_mm": [50, 0, 40],
+                     "angolo_gradi": 180 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["fra 0 e 180", "«orlo»"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "la_piega_da_schizzo_alza_meta_lamiera" } }
+  ]
+}

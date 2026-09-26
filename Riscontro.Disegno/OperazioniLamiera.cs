@@ -531,6 +531,176 @@ namespace Riscontro.Disegno
             return Riuscito(orlo, misure);
         }
 
+        /// <summary>
+        /// LA PIEGA DA SCHIZZO (voce GP18): la lamiera si piega lungo una linea
+        /// tracciata su una sua faccia.
+        ///
+        /// ── MISURATA PRIMA DI SCRIVERLA, 26/9/2026 (`prova0089 piega`) ────────
+        ///
+        /// `InsertSheetMetal3dBend(Angle, UseDefaultRadius, Radius, FlipDir,
+        /// BendPos, PCBA)` con lo SCHIZZO della linea selezionato nasce al primo
+        /// colpo; la faccia fissa non serve (con o senza, stesso pezzo). Su una
+        /// lamiera piatta 100 x 40 x 2 (R 2, K 0,5), linea di traverso a x = 50
+        /// sulla faccia alta, 90 gradi, «materiale dentro»: volume invariato
+        /// (8000), ingombro 50 x 53,288 x 40 — 46 di piano (50 - R - T), la piega
+        /// da 4,712, e 49,288 di lato che sale da y = 2. Lo sviluppo non cambia:
+        /// una piega non aggiunge lamiera, la sposta.
+        ///
+        /// La lamiera si piega verso la parte a cui GUARDA la faccia su cui sta
+        /// la linea: per piegare dall'altra parte si traccia la linea sull'altra
+        /// faccia. Il lato che resta fermo lo sceglie SOLIDWORKS: la risposta
+        /// porta l'ingombro prima e dopo, che lo dice.
+        ///
+        /// IL JOG no: `IModelDoc2.InsertSheetMetalJog` (Void) non ha fatto
+        /// nascere niente in sette varianti di selezione, e fra le definizioni di
+        /// lavorazione non c'e' un jog. E' nel TODO, voce GP18.
+        /// </summary>
+        private Esito PiegaDaSchizzo(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
+        {
+            var dati = DatiDellaLamiera(modello);
+            if (dati == null)
+                return Fallito("Questo pezzo non e' di lamiera: la piega da schizzo piega una lamiera che " +
+                               "c'e' gia' (fatta con «flangia_base»).");
+            double t = Unita.Mm(dati.Thickness), r = Unita.Mm(dati.BendRadius);
+            double angolo = Num(a, "angolo_gradi", 90);
+            if (angolo <= 0 || angolo >= 180)
+                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                    "«angolo_gradi» va fra 0 e 180 esclusi: {0:0.##} non e' una piega. A 180 la lamiera " +
+                    "si richiuderebbe su se stessa — per quello c'e' «orlo».", angolo));
+            var da = Terna(a, "da_mm");
+            var fino = Terna(a, "a_mm");
+            if (da == null || fino == null)
+                return Fallito("«da_mm» e «a_mm» sono i due estremi della linea di piega, punti [x, y, z] in mm " +
+                               "sulla faccia (dallo stato del documento).");
+
+            string uidFaccia = Str(a, "faccia_uid", "");
+            var faccia = RisolviFaccia(stato, a, uidFaccia, out string motivo);
+            if (faccia == null) return Fallito(motivo ?? "Nessuna faccia indicata.");
+            double[] piano = null;
+            try
+            {
+                var sup = faccia.GetSurface() as ISurface;
+                if (sup != null && sup.IsPlane()) piano = sup.PlaneParams as double[];
+            }
+            catch { }
+            if (piano == null || piano.Length < 6)
+                return Fallito("La faccia «" + uidFaccia + "» non e' piana: la linea di piega si traccia su una faccia piana.");
+            // I DUE PUNTI STANNO SULLA FACCIA: distanza dal suo piano entro 5 centesimi.
+            Func<double[], double> dalPiano = p =>
+                Math.Abs((Unita.M(p[0]) - piano[3]) * piano[0] + (Unita.M(p[1]) - piano[4]) * piano[1] +
+                         (Unita.M(p[2]) - piano[5]) * piano[2]) * 1000.0;
+            double scarto = Math.Max(dalPiano(da), dalPiano(fino));
+            if (scarto > 0.05)
+                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                    "La linea di piega non sta sulla faccia «{0}»: un estremo ne dista {1:0.###} mm. I due punti " +
+                    "vanno presi sul piano della faccia.", uidFaccia, scarto));
+            double lungaLinea = Math.Sqrt(Math.Pow(fino[0] - da[0], 2) + Math.Pow(fino[1] - da[1], 2) + Math.Pow(fino[2] - da[2], 2));
+            if (lungaLinea < 1)
+                return Fallito("La linea di piega e' lunga meno di un millimetro: i due punti coincidono.");
+
+            double? volumePrima = VolumeMm3(modello);
+            double sviluppoPrima = LunghezzaSviluppata(modello, out double _);
+            var scatolaPrima = ScatolaDelPezzoMm(modello);
+            var schizziPrima = new HashSet<string>();
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null) { if (f.GetTypeName2() == "ProfileFeature") schizziPrima.Add(f.Name); f = f.GetNextFeature() as IFeature; }
+            }
+            catch { }
+
+            modello.ClearSelection2(true);
+            if (!(faccia as IEntity).Select4(false, null))
+                return Fallito("Non riesco a selezionare la faccia «" + uidFaccia + "».");
+            modello.SketchManager.InsertSketch(true);
+            var sk = modello.SketchManager.ActiveSketch as ISketch;
+            var matematica = _sw.GetMathUtility() as IMathUtility;
+            if (sk == null || matematica == null)
+                return Fallito("Lo schizzo della linea di piega non si e' aperto." + SenzaLoSchizzo(modello));
+            var tr = sk.ModelToSketchTransform;
+            Func<double[], double[]> nelloSchizzo = p =>
+                ((IMathPoint)((IMathPoint)matematica.CreatePoint(new[] { Unita.M(p[0]), Unita.M(p[1]), Unita.M(p[2]) }))
+                    .MultiplyTransform(tr)).ArrayData as double[];
+            var s0 = nelloSchizzo(da); var s1 = nelloSchizzo(fino);
+            bool addPrima = modello.SketchManager.AddToDB;
+            try
+            {
+                modello.SketchManager.AddToDB = true;
+                modello.SketchManager.CreateLine(s0[0], s0[1], 0, s1[0], s1[1], 0);
+            }
+            finally { modello.SketchManager.AddToDB = addPrima; }
+            modello.SketchManager.InsertSketch(true);
+            // Come per la flangia a spigolo: in una lamiera l'ultima lavorazione e'
+            // lo sviluppo, e lo schizzo nuovo e' quello che prima non c'era.
+            IFeature schizzo = null;
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    if (f.GetTypeName2() == "ProfileFeature" && !schizziPrima.Contains(f.Name)) schizzo = f;
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            if (schizzo == null)
+                return Fallito("Non ritrovo lo schizzo della linea di piega appena fatto." + SenzaLoSchizzo(modello));
+
+            modello.ClearSelection2(true);
+            schizzo.Select2(false, 0);
+            IFeature piega;
+            try
+            {
+                piega = modello.FeatureManager.InsertSheetMetal3dBend(
+                    angolo * Math.PI / 180.0, true, Unita.M(r), false,
+                    (short)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside, null) as IFeature;
+            }
+            catch (Exception ex) { return Fallito("La piega non e' nata: " + ex.Message + SenzaLoSchizzo(modello)); }
+            if (piega == null)
+                return Fallito("La piega non e' nata, e SOLIDWORKS non dice perche'. Di solito la linea non " +
+                               "attraversa la faccia da bordo a bordo." + SenzaLoSchizzo(modello));
+            modello.EditRebuild3();
+
+            bool avviso = false; int codice = 0;
+            try { codice = piega.GetErrorCode2(out avviso); } catch { }
+            if (codice != 0 && !avviso)
+                return Fallito("La piega «" + piega.Name + "» e' nata in errore (codice " + codice + "): ritirala — " +
+                               Frasi.CosiSiRitira + ".");
+
+            var scatolaDopo = ScatolaDelPezzoMm(modello);
+            bool mossa = scatolaPrima == null || scatolaDopo == null;
+            for (int i = 0; !mossa && i < 6; i++) mossa = Math.Abs(scatolaDopo[i] - scatolaPrima[i]) > 0.01;
+            if (!mossa)
+                return Fallito("La piega «" + piega.Name + "» e' nell'albero ma il pezzo ha lo stesso ingombro di " +
+                               "prima: non si e' piegato niente. Ritirala — " + Frasi.CosiSiRitira + ".");
+
+            double? volumeDopo = VolumeMm3(modello);
+            double sviluppoDopo = LunghezzaSviluppata(modello, out double _);
+            Func<double[], object> arrotonda = s => s == null ? null : (object)Array.ConvertAll(s, x => Math.Round(x, 3));
+            var misure = new Dictionary<string, object>
+            {
+                ["angolo_gradi"] = Math.Round(angolo, 3),
+                ["raggio_mm"] = Math.Round(r, 3),
+                ["spessore_mm"] = Math.Round(t, 3),
+                ["scatola_prima_mm"] = arrotonda(scatolaPrima),
+                ["scatola_dopo_mm"] = arrotonda(scatolaDopo),
+                ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppoDopo) ? null : (object)Math.Round(sviluppoDopo, 3),
+            };
+            // UNA PIEGA NON AGGIUNGE LAMIERA: volume e sviluppo restano quelli di
+            // prima. Se cambiano, il pezzo non e' quello che si crede.
+            if (!volumeDopo.HasValue || !volumePrima.HasValue) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+            else if (Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.001 * volumePrima.Value)
+                misure["attenzione"] = string.Format(CultureInfo.InvariantCulture,
+                    "Il volume e' passato da {0:0.##} a {1:0.##} mm3: una piega non aggiunge ne' toglie lamiera.",
+                    volumePrima.Value, volumeDopo.Value);
+            if (!double.IsNaN(sviluppoPrima) && !double.IsNaN(sviluppoDopo) && Math.Abs(sviluppoDopo - sviluppoPrima) > 0.05)
+                misure["attenzione_sviluppo"] = string.Format(CultureInfo.InvariantCulture,
+                    "Lo sviluppo e' passato da {0:0.###} a {1:0.###} mm: con una piega da schizzo dovrebbe restare uguale.",
+                    sviluppoPrima, sviluppoDopo);
+            return Riuscito(piega, misure);
+        }
+
         private Esito SviluppoDxf(IModelDoc2 modello, Dictionary<string, object> a)
         {
             var parte = modello as IPartDoc;

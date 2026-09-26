@@ -3820,6 +3820,44 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "piega_da_schizzo",
+                    Famiglia = "lamiera",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "Piega una lamiera lungo una linea tracciata su una sua faccia.",
+                    Descrizione =
+                        "Piega una lamiera che c'e' gia' lungo una LINEA tracciata su una sua "
+                        + "faccia piana, dall'estremo «da_mm» a «a_mm» (punti [x, y, z] in mm sul "
+                        + "piano della faccia). La linea attraversa la faccia da bordo a bordo.\n\n"
+                        + "La lamiera si piega verso la parte a cui GUARDA la faccia: per piegare "
+                        + "dall'altra parte, traccia la linea sull'altra faccia. Il raggio e' quello "
+                        + "della lamiera; il lato che resta fermo lo sceglie SOLIDWORKS, e la "
+                        + "risposta porta l'ingombro prima e dopo.\n\nUna piega non aggiunge "
+                        + "lamiera: volume e sviluppo restano quelli di prima, e se cambiano la "
+                        + "risposta lo dice.\n\nMI RIFIUTO se l'angolo non sta fra 0 e 180 gradi "
+                        + "esclusi, se la faccia non e' piana, se un estremo della linea non sta "
+                        + "sulla faccia, e se la piega nasce senza piegare niente.",
+                    Precondizione = "una parte di lamiera",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "faccia_uid", O(
+                                "type", "string",
+                                "description", "la faccia piana su cui si traccia la linea, dallo stato del documento (F1, F2...)"),
+                            "da_mm", O(
+                                "type", "array", "items", O("type", "number"),
+                                "description", "un estremo della linea di piega, [x, y, z] in mm sulla faccia"),
+                            "a_mm", O(
+                                "type", "array", "items", O("type", "number"),
+                                "description", "l'altro estremo, [x, y, z] in mm sulla faccia"),
+                            "angolo_gradi", O(
+                                "type", "number",
+                                "description", "l'angolo di piega. Predefinito 90.")),
+                        "required", A("faccia_uid", "da_mm", "a_mm")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "sviluppo_dxf",
                     Famiglia = "lamiera",
                     DocumentoRichiesto = "parte",

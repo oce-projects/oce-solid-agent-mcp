@@ -2,7 +2,7 @@
 
 *Un progetto indipendente, non affiliato a Dassault Systèmes.*
 
-Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settantacinque
+Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti settantasei
 operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
 remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
 
@@ -67,7 +67,7 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sette, non settantacinque. Le operazioni di disegno sono settantacinque, ma esporne
+Sette, non settantasei. Le operazioni di disegno sono settantasei, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,

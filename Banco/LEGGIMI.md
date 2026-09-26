@@ -579,14 +579,16 @@ casi/estrusioni/   8   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        cresce dalla faccia verso fuori (voce Z-C6); il rialzo
                        tondo e rettangolare ancorati, e il triangolo rifiutato
                        (voce E18)
-casi/lamiera/     10   la L si sviluppa lunga quanto il conto a mano; data al
+casi/lamiera/     12   la L si sviluppa lunga quanto il conto a mano; data al
                        contrario, i punti diventano le facce esterne; lo
                        sviluppo senza file rifiutato; il tratto piu' corto
                        delle pieghe rifiutato; la flangia a spigolo da 25
                        che allunga lo sviluppo di 21,712, e i suoi due
                        rifiuti — niente di dritto, spigolo non di bordo;
                        l'orlo aperto che torna col conto, il chiuso misurato,
-                       e l'aperto senza gioco rifiutato (voce GP18)
+                       e l'aperto senza gioco rifiutato; la piega da schizzo
+                       che alza meta' lamiera (ingombro dal conto, sviluppo
+                       invariato) e la piega a 180 rifiutata (voce GP18)
 casi/quote/        2   la piastra si quota da sola con DimXpert, coi valori
                        giusti; con due riferimenti rifiuta (voce Z-H3)
 casi/regressione/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)

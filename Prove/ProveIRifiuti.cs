@@ -111,8 +111,10 @@ namespace Prove.Contratti
         /// una flangia senza niente di dritto dicendo fin dove si puo' scendere.
         /// **78, stessa libreria:** `orlo` rifiuta un aperto senza gioco dicendo
         /// che senza gioco si chiama «chiuso».
+        /// **79 dalla libreria 0.123.0:** `piega_da_schizzo` rifiuta i 180 gradi
+        /// nominando «orlo».
         /// </summary>
-        private const int Pavimento = 78;
+        private const int Pavimento = 79;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

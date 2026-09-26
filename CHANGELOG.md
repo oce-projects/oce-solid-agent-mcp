@@ -24,6 +24,26 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.98.0 — 26 September 2026 · library 0.123.0
+
+`piega_da_schizzo`, the fifth sheet-metal operation: a sheet bent along a
+line drawn on one of its faces. `InsertSheetMetal3dBend` with the line's
+sketch selected was born at the first try; the fixed face is not needed.
+Measured on a flat 100 x 40 x 2 sheet (R 2), line across at x = 50, 90°:
+volume unchanged, and the bounding box matching the hand calculation — 46
+of flat (50 - R - T), the 4.712 bend, 49.288 rising from y = 2. A bend
+adds no sheet, it moves it: volume and flat length are checked unchanged,
+and the box before and after tells which side SOLIDWORKS kept fixed. The
+sheet bends toward the side the face looks at.
+
+The jog was not: `IModelDoc2.InsertSheetMetalJog` (it returns nothing)
+created nothing in seven selection variants, and there is no jog among the
+feature definitions. It is in the TODO with the variants written down.
+
+Full bench: 1224 tests, 0 failed, 961 of 961 expectations verified.
+
+---
+
 ## 0.97.0 — 26 September 2026 · library 0.122.0
 
 `flangia_spigolo`, the third sheet-metal operation of seven (entry GP18):

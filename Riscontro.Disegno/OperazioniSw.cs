@@ -264,7 +264,7 @@ namespace Riscontro.Disegno
             "telaio_rettangolare", "verifica_geometria_corpo",
             "verifica_sovrasporgenze",
             "vista_modello", "viste_standard",
-            "flangia_base", "flangia_spigolo", "orlo", "sviluppo_dxf", "schema_di_quote",
+            "flangia_base", "flangia_spigolo", "orlo", "piega_da_schizzo", "sviluppo_dxf", "schema_di_quote",
         };
 
         /// <summary>
@@ -375,6 +375,7 @@ namespace Riscontro.Disegno
                     case "flangia_base": return FlangiaBase(modello, argomenti);
                     case "flangia_spigolo": return FlangiaSpigolo(modello, argomenti, stato);
                     case "orlo": return Orlo(modello, argomenti, stato);
+                    case "piega_da_schizzo": return PiegaDaSchizzo(modello, argomenti, stato);
                     case "sviluppo_dxf": return SviluppoDxf(modello, argomenti);
                     case "schema_di_quote": return SchemaDiQuote(modello, argomenti, stato);
                     case "crea_asse": return CreaAsse(modello, argomenti, stato);
