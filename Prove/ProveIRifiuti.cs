@@ -130,8 +130,8 @@ namespace Prove.Contratti
         /// `tolleranza_quota` («Scegli un grado fra 5 e 11», l'esempio della
         /// bilaterale). **100:** dalla revisione avversariale — la quota angolare
         /// («Scegli una quota lineare») e la quota non mostrata («mostra la quota»).
-        /// **106:** GT9 — la distinta base e i palloncini dicono cosa mettere prima
-        /// (la vista di un assieme, la distinta prima dei palloncini) e cosa usare
+        /// **106:** GT9 — la distinta base e la bollatura dicono cosa mettere prima
+        /// (la vista di un assieme, la distinta prima della bollatura) e cosa usare
         /// per un saldato.
         /// </summary>
         private const int Pavimento = 106;

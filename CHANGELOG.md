@@ -24,6 +24,47 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.101.0 — 26 September 2026 · library 0.126.0
+
+**Do the dimensions reach the PDF? (entry Z-C9, the «objects» half).** The
+drawing counters count what is in the document: a dimension on a layer that
+does not print, or in a hidden view, counts — and never reaches the shop.
+`esporta_pdf` now reads the PDF text back and requires every number printed
+by the drawing's dimensions to appear there at least as many times as the
+dimensions print it («at least»: the PDF also has title-block numbers). Seen
+firing before being trusted: the «Ø12 THRU» callout moved to a non-printing
+layer, and the export reports «12 (on the drawing 1, in the PDF 0)». One case
+(the check stays quiet on a good drawing).
+
+**`palloncini` is now `bollatura`** — the shop word for BOM balloons,
+and the name the operation, the catalogue and the messages use. Tried on a
+real three-part assembly (read-only, drawing saved outside the vault): the
+isometric view ballooned items 1 and 2 and answered «done» while item 3 —
+covered in that view — had no balloon anywhere. `bollatura` now compares the
+item numbers of the BOM with the balloons of the WHOLE drawing and names the
+items still without one («balloon another view, where it shows»). And a view
+where every item is already ballooned elsewhere is no longer a failure: it
+answers «nothing to add in this view». The old warning comparing balloons
+with visible components is gone: it fired on every repeated component and
+the item-number check says the thing that matters.
+
+**A circle is not always a hole (`quota_in_tavola`, entry GT12).** Looking
+for a blind hole the callout would not recognise, a turned bushing (Ø30 × 30,
+axial blind bore Ø8 × 10, made by revolution) showed a worse defect: the Ø30
+OUTLINE got a hole callout «Ø30 ↧30», drawn on top of the real «Ø8 ↧10», and
+in the side views the two circles seen edge-on were «holes whose callout did
+not appear». A hole now is a circle that faces the reader AND is an inner loop
+of a planar face (the centre-mark rule); the outline of a round part gets a
+diameter dimension, read back (edge-on, `AddDiameterDimension2` says 60 for a
+Ø30 — measured), reported in `diametri_esterni`; edge-on circles are listed in
+`cerchi_di_taglio`, and a view with nothing else is refused saying so. Every
+hole also reports passante/depth READ FROM THE GEOMETRY (the cylinder and its
+other circle: inner loop of a plane = through; outer loop or cone = blind),
+holes are grouped by diameter AND depth, and when the callout does not appear
+the depth is written into the diameter dimension («Ø8 ↧5», tried and looked
+at). Revolved bores do get a proper callout: the fallback has not yet been
+seen on a real hole. New case `tavola/la_boccola_tornita_non_e_un_foro`.
+
 ## 0.100.0 — 26 September 2026 · library 0.125.0
 
 **`distinta_taglio` was wrong, and its case was green (entry GT2).** It put
@@ -137,7 +178,7 @@ check looked at the current sheet only; `reso_saldato` true when
 `IsWeldment` could not be read; and a failed `distinta_taglio` left the
 «Weldment» feature in the part (now removed).
 
-New operations `distinta_base_in_tavola` and `palloncini` (entry GT9): the
+New operations `distinta_base_in_tavola` and `bollatura` (entry GT9 — «bollatura» is the shop word for BOM balloons): the
 bill of materials of an assembly (`IView.InsertBomTable4`, top level by
 default, the type chosen by name because `swBomType_e` starts at 1), checked
 against the assembly itself — items = distinct components, quantities =

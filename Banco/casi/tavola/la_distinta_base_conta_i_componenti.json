@@ -1,7 +1,7 @@
 {
   "nome": "la_distinta_base_conta_i_componenti",
   "famiglia": "tavola",
-  "perche": "VOCE GT9. La consegna standard di un assieme e' la tavola con la distinta base e i palloncini. Una base 120x80x10 e un coperchio 120x80x4 appoggiato sopra (non dentro: y = 7), tavola dell'assieme, distinta e palloncini.",
+  "perche": "VOCE GT9. La consegna standard di un assieme e' la tavola con la distinta base e la bollatura (i palloncini coi numeri di voce). Una base 120x80x10 e un coperchio 120x80x4 appoggiato sopra (non dentro: y = 7), tavola dell'assieme, distinta e palloncini.",
   "il_difetto_che_questo_caso_prende": "La distinta che conta i componenti in modo diverso dall'assieme (tipo sbagliato: «solo parti» invece di «primo livello», un enum che parte da 1), la quantita' che non somma i pezzi, e i palloncini che non nascono o nascono in numero diverso dalle voci.",
   "assieme": {
     "componenti": [
@@ -35,10 +35,12 @@
         { "cosa": "misure.quantita_in_tabella", "uguale": 2, "perche": "un pezzo per voce" },
         { "cosa": "misure.combaciano", "uguale": true, "perche": "la tabella e l'assieme, letti ognuno per conto suo" },
         { "cosa": "misure.dentro_il_foglio", "uguale": true, "perche": "misurata e messa in un posto libero" } ] },
-    { "operazione": "palloncini",
+    { "operazione": "bollatura",
       "argomenti": { "vista": "V1" },
       "attese": [
         { "cosa": "misure.palloncini_messi", "uguale": 2, "perche": "uno per componente, contati dopo sulla vista" },
-        { "cosa": "misure.numeri", "contiene": ["1", "2"], "perche": "i numeri di voce della distinta" } ] }
+        { "cosa": "misure.numeri", "contiene": ["1", "2"], "perche": "i numeri di voce della distinta" },
+        { "cosa": "misure.quante_voci_senza_bollatura", "uguale": 0,
+          "perche": "ogni voce della distinta ha il suo palloncino: sull'assieme Starlink (26/9/2026) il disco, coperto nell'isometrica, restava senza e la risposta diceva «fatto»" } ] }
   ]
 }

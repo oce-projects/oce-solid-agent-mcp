@@ -8,7 +8,10 @@ using SolidWorks.Interop.swconst;
 namespace Riscontro.Disegno
 {
     /// <summary>
-    /// LA DISTINTA BASE E I PALLONCINI IN TAVOLA (voce GT9).
+    /// LA DISTINTA BASE E LA BOLLATURA IN TAVOLA (voce GT9).
+    ///
+    /// «Bollatura» e' il nome d'officina dei palloncini coi numeri di voce
+    /// (deciso il 26/9/2026): l'operazione si chiama cosi'.
     ///
     /// `IView.InsertBomTable4(UseAnchorPoint, X, Y, AnchorType, BomType,
     /// Configuration, TableTemplate, Hidden, IndentedNumberingType,
@@ -212,12 +215,12 @@ namespace Riscontro.Disegno
         }
 
         // ──────────────────────────────────────────────────────────────────
-        // palloncini
+        // bollatura (i palloncini coi numeri di voce)
         // ──────────────────────────────────────────────────────────────────
-        private Esito Palloncini(IModelDoc2 modello, Dictionary<string, object> a)
+        private Esito Bollatura(IModelDoc2 modello, Dictionary<string, object> a)
         {
             var disegno = modello as IDrawingDoc;
-            if (disegno == null) return Fallito("Il documento attivo non e' una tavola: i palloncini stanno su una vista di un assieme.");
+            if (disegno == null) return Fallito("Il documento attivo non e' una tavola: la bollatura sta su una vista di un assieme.");
             var nomi = NomiDelleViste(disegno);
             if (nomi.Count == 0) return Fallito("La tavola non ha viste: metti prima le viste dell'assieme.");
             string motivo;
@@ -226,9 +229,9 @@ namespace Riscontro.Disegno
             if (vista == null) return Fallito("Non riesco a prendere la vista.");
             var assieme = vista.ReferencedDocument as IAssemblyDoc;
             if (assieme == null)
-                return Fallito("Dietro la vista non c'e' un assieme: i palloncini numerano i componenti di un assieme.");
+                return Fallito("Dietro la vista non c'e' un assieme: la bollatura numera i componenti di un assieme.");
             if (TabelleDellaTavolaTutte(disegno) <= 0 || !HaDistintaBase(disegno))
-                return Fallito("In tavola non c'e' una distinta base: i palloncini portano il numero di voce della distinta. " +
+                return Fallito("In tavola non c'e' una distinta base: la bollatura porta il numero di voce della distinta. " +
                                "Metti prima «distinta_base_in_tavola».");
 
             string disposizione = (Str(a, "disposizione", "quadrato") ?? "quadrato").Trim().ToLowerInvariant();
@@ -256,7 +259,7 @@ namespace Riscontro.Disegno
                 opt.UpperTextContent = (int)swBalloonTextContent_e.swBalloonTextItemNumber;
                 nati = disegno.AutoBalloon5(opt);
             }
-            catch (Exception ex) { modello.ClearSelection2(true); return Fallito("I palloncini non sono nati: " + ex.Message); }
+            catch (Exception ex) { modello.ClearSelection2(true); return Fallito("La bollatura non e' nata: " + ex.Message); }
             modello.ClearSelection2(true);
             int dopo = PalloncinidellaVista(vista);
             var visibili = ComponentiVisibili(vista);
@@ -270,13 +273,91 @@ namespace Riscontro.Disegno
                 ["numeri"] = NumeriDeiPalloncini(vista).ToArray(),
             };
             if (prima < 0 || dopo < 0)
-                return Fallito("Non riesco a contare i palloncini della vista: non so se sono nati. Guarda la tavola.");
+                return Fallito("Non riesco a contare i palloncini della vista: non so se la bollatura e' nata. Guarda la tavola.");
             if (dopo <= prima)
+            {
+                // NIENTE DI NUOVO NON E' SEMPRE UN ERRORE: se ogni voce della
+                // distinta ha gia' il suo palloncino in un'altra vista, SOLIDWORKS
+                // giustamente non ne mette (visto sullo Starlink, 26/9/2026).
+                var gia = NumeriDiVoceDellaDistinta(disegno);
+                var giaBollati = NumeriBollatiInTavola(disegno);
+                if (gia != null && gia.Count > 0 && gia.All(giaBollati.Contains))
+                {
+                    misure["voci_della_distinta"] = gia.Count;
+                    misure["voci_senza_bollatura"] = new string[0];
+                    misure["quante_voci_senza_bollatura"] = 0;
+                    misure["giudizio"] = "Ogni voce della distinta ha gia' il suo palloncino in tavola: niente da aggiungere in questa vista.";
+                    return RiuscitoSenzaCreare(misure);
+                }
                 return Fallito("SOLIDWORKS non ha messo nessun palloncino (erano " + prima + ", sono " + dopo + ").");
-            if (visibili > 0 && dopo - prima != visibili)
-                misure["attenzione"] = "Palloncini messi " + (dopo - prima) + ", componenti che la vista mostra " + visibili +
-                                       ": con «ignora i multipli» un componente ripetuto ha un palloncino solo — controlla.";
+            }
+
+            // OGNI VOCE DELLA DISTINTA HA IL SUO PALLONCINO? (visto sull'assieme
+            // Starlink, 26/9/2026: il disco coperto nell'isometrica restava senza,
+            // e la risposta diceva «fatto»). Si confrontano i numeri di voce della
+            // distinta con i palloncini di TUTTA la tavola, e si dice quali mancano:
+            // si bolla un'altra vista, dove quel componente si vede.
+            var voci = NumeriDiVoceDellaDistinta(disegno);
+            if (voci != null)
+            {
+                var bollati = NumeriBollatiInTavola(disegno);
+                var senza = voci.Where(v => !bollati.Contains(v)).ToList();
+                misure["voci_della_distinta"] = voci.Count;
+                misure["voci_senza_bollatura"] = senza.ToArray();
+                misure["quante_voci_senza_bollatura"] = senza.Count;
+                if (senza.Count > 0)
+                    misure["attenzione"] = (senza.Count == 1
+                        ? "La voce " + senza[0] + " della distinta non ha palloncino in tavola: in questa vista quel componente " +
+                          "non si vede. Fai la bollatura anche su un'altra vista, dove si vede."
+                        : "Le voci " + string.Join(", ", senza) + " della distinta non hanno palloncino in tavola: in questa " +
+                          "vista quei componenti non si vedono. Fai la bollatura anche su un'altra vista, dove si vedono.");
+            }
+            else misure["quante_voci_senza_bollatura"] = null;   // la colonna dei numeri di voce non si legge
             return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>I numeri di voce che hanno un palloncino in una qualunque vista della tavola.</summary>
+        private static HashSet<string> NumeriBollatiInTavola(IDrawingDoc disegno)
+        {
+            var bollati = new HashSet<string>(StringComparer.Ordinal);
+            try
+            {
+                var w = disegno.GetFirstView() as IView;
+                while (w != null) { foreach (var n in NumeriDeiPalloncini(w)) bollati.Add(n.Trim()); w = w.GetNextView() as IView; }
+            }
+            catch { }
+            return bollati;
+        }
+
+        /// <summary>I numeri di voce della prima distinta base della tavola; null se non si leggono.</summary>
+        private static List<string> NumeriDiVoceDellaDistinta(IDrawingDoc disegno)
+        {
+            try
+            {
+                var v = disegno.GetFirstView() as IView;
+                while (v != null)
+                {
+                    foreach (var o in (v.GetTableAnnotations() as object[]) ?? new object[0])
+                    {
+                        if (!(o is IBomTableAnnotation)) continue;
+                        var t = o as ITableAnnotation;
+                        int col = -1;
+                        for (int c = 0; c < t.ColumnCount && col < 0; c++)
+                            try { if (t.GetColumnType2(c, false) == (int)swTableColumnTypes_e.swBomTableColumnType_ItemNumber) col = c; } catch { }
+                        if (col < 0) return null;
+                        var fuori = new List<string>();
+                        for (int r = 1; r < t.RowCount; r++)
+                        {
+                            string n = Cella(t, r, col).Trim();
+                            if (n.Length > 0) fuori.Add(n);
+                        }
+                        return fuori;
+                    }
+                    v = v.GetNextView() as IView;
+                }
+            }
+            catch { }
+            return null;
         }
 
         private static bool HaDistintaBase(IDrawingDoc disegno)

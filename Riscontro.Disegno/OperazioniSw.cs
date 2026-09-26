@@ -253,7 +253,7 @@ namespace Riscontro.Disegno
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
             "sostituisci_componente",
-            "croci_di_centro", "quota_in_tavola", "nota_in_tavola", "tabella_fori_in_tavola", "vista_sviluppo", "saldatura_in_tavola", "distinta_base_in_tavola", "palloncini",
+            "croci_di_centro", "quota_in_tavola", "nota_in_tavola", "tabella_fori_in_tavola", "vista_sviluppo", "saldatura_in_tavola", "distinta_base_in_tavola", "bollatura",
             "rugosita_in_tavola", "datum_in_tavola", "tolleranza_geometrica_in_tavola",
             "sezione_in_tavola", "dettaglio_in_tavola",
             "nuovo_foglio", "attiva_foglio", "distinta_taglio_in_tavola",
@@ -411,7 +411,7 @@ namespace Riscontro.Disegno
                     case "vista_sviluppo": return VistaSviluppo(modello, argomenti);
                     case "saldatura_in_tavola": return SaldaturaInTavola(modello, argomenti);
                     case "distinta_base_in_tavola": return DistintaBaseInTavola(modello, argomenti);
-                    case "palloncini": return Palloncini(modello, argomenti);
+                    case "bollatura": return Bollatura(modello, argomenti);
                     case "rugosita_in_tavola": return RugositaInTavola(modello, argomenti);
                     case "datum_in_tavola": return DatumInTavola(modello, argomenti);
                     case "tolleranza_geometrica_in_tavola": return TolleranzaGeometricaInTavola(modello, argomenti);

@@ -773,6 +773,33 @@ namespace Riscontro.Disegno
                     misure["attenzione"] = "Nel PDF scritto non trovo: «" + string.Join("», «", mancanti) +
                         "». Se dovevano esserci, controlla la tavola prima di mandarla.";
             }
+            // ── LE QUOTE ARRIVANO NEL PDF? (voce Z-C9, la meta' «oggetti») ──
+            //
+            // I contatori contano nel documento: una quota su un livello che non
+            // si stampa, o in una vista nascosta, conta e in officina non arriva.
+            // Ogni numero stampato dalle quote deve comparire nel testo del PDF
+            // almeno tante volte quante lo stampano (OperazioniQuoteNelPdf).
+            int quoteInTavola;
+            var numeriAttesi = NumeriDelleQuote(disegno, out quoteInTavola);
+            misure["quote_in_tavola"] = quoteInTavola;
+            if (quoteInTavola > 0)
+            {
+                string testoPdf = null;
+                try { testoPdf = TestoDelPdf.Leggi(dove); } catch { }
+                if (string.IsNullOrWhiteSpace(testoPdf))
+                    misure["quote_mancanti_nel_pdf"] = null;   // il testo non si legge: non lo so
+                else
+                {
+                    var mancano = QuoteCheMancanoNelPdf(numeriAttesi, testoPdf);
+                    misure["quote_mancanti_nel_pdf"] = mancano.ToArray();
+                    misure["quanti_numeri_di_quota_mancano"] = mancano.Count;
+                    if (mancano.Count > 0)
+                        misure["attenzione"] = (misure.ContainsKey("attenzione") ? misure["attenzione"] + " " : "") +
+                            "Nel PDF mancano numeri che le quote della tavola stampano: " + string.Join(", ", mancano) +
+                            ". Di solito e' una quota su un livello che non si stampa o in una vista nascosta: " +
+                            "guarda la tavola prima di mandarla in officina.";
+                }
+            }
             _log("[agente] PDF: " + fogli + " fogli, " + pagine + " pagine, " + dove);
             return SenzaFeature(misure);
         }

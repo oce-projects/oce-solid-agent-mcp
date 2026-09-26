@@ -197,6 +197,8 @@ namespace Riscontro.Disegno
             var gia = ChiaviGiaQuotate(disegno);
 
             var falliti = new List<string>();
+            var diametriEsterni = new List<Dictionary<string, object>>();
+            var diTaglio = new List<string>();
             var misurati = new List<Spigolo>();
             var doppioni = new List<string>();
             var altrove = new List<string>();
@@ -309,9 +311,14 @@ namespace Riscontro.Disegno
                 // posizione sulla vista. «Ciascun elemento si quota una volta sola»:
                 // se la tabella c'e', i fori sono suoi.
                 foriNellaTabella = ForiNellaTabellaFori(disegno);
-                if (cerchi.Count > 0 && foriNellaTabella <= 0)
-                    QuotaIFori(modello, disegno, cerchi, tutti, gia, contorno, distacco, passo, scala,
+                var foriVeri = cerchi.FindAll(c => c.Tipo == "foro");
+                if (foriVeri.Count > 0 && foriNellaTabella <= 0)
+                    QuotaIFori(modello, disegno, foriVeri, tutti, gia, contorno, distacco, passo, scala,
                                ref sotto, ref diLato, ref aSinistra, dimensioniFoglio, nate, fori, altrove, falliti);
+                QuotaIContorni(modello, disegno, cerchi.FindAll(c => c.Tipo == "contorno"), gia, contorno, distacco,
+                               nate, diametriEsterni, altrove, falliti);
+                foreach (var c in cerchi)
+                    if (c.Tipo == "di_taglio") diTaglio.Add("Ø" + c.DiametroMm.ToString("0.##", Ci));
 
                 foreach (var s in misurati)
                 {
@@ -417,6 +424,14 @@ namespace Riscontro.Disegno
                 // Se tutto cio' che la vista mostra e' gia' quotato altrove, o e'
                 // un doppione, o sta nello smusso, si dice cosi' — e resta un
                 // rifiuto, perche' zero quote non sono una risposta «fatto».
+                if (falliti.Count == 0 && diTaglio.Count > 0 && misurati.Count == 0 &&
+                    doppioni.Count + altrove.Count + diSmusso.Count == 0 && foriNellaTabella <= 0)
+                    return Fallito(
+                        "Nella vista «" + nomeVista + "» gli unici spigoli sono cerchi visti di taglio (" +
+                        string.Join(", ", diTaglio) + "): e' un pezzo tondo visto di fianco. Il diametro lo quoto " +
+                        "dalla vista in cui e' un cerchio. La lunghezza di un pezzo tondo da questa vista non la " +
+                        "quoto ancora: le generatrici del cilindro non sono spigoli, e la quota fra due cerchi di " +
+                        "taglio non l'ho misurata (di taglio, AddDiameterDimension2 dice 60 per un Ø30).");
                 if (falliti.Count == 0 && ((doppioni.Count + altrove.Count + diSmusso.Count) > 0 || foriNellaTabella > 0))
                     return Fallito(
                         "Nella vista «" + nomeVista + "» non c'e' niente da quotare che non lo sia " +
@@ -479,6 +494,11 @@ namespace Riscontro.Disegno
                 // non se la tavola basta a fare il pezzo.
                 ["fori"] = fori.ToArray(),
                 ["fori_nella_tabella_fori"] = foriNellaTabella > 0 ? (object)foriNellaTabella : null,
+                // I CERCHI CHE NON SONO FORI (26/9/2026): il contorno di un pezzo
+                // tondo ha una quota di diametro, non un richiamo; un cerchio visto
+                // di taglio non si quota da qui.
+                ["diametri_esterni"] = diametriEsterni.ToArray(),
+                ["cerchi_di_taglio"] = diTaglio.ToArray(),
                 ["smussi"] = smussi.ToArray(),
                 ["gia_quotate_altrove"] = altrove.ToArray(),
                 ["spigoli_dello_smusso"] = diSmusso.ToArray(),
@@ -523,7 +543,8 @@ namespace Riscontro.Disegno
                     "contorno e passo costante fra 7 e 12 su A3/A4. Dentro la cornice " +
                     "del foglio: se da un lato non c'e' posto, dall'altro. I fori col " +
                     "richiamo e la posizione dai bordi di riferimento (sinistro e in " +
-                    "basso), attaccata al foro piu' vicino al lato della quota; gli " +
+                    "basso: lo zero e' l'angolo in basso a sinistra, lo stesso della " +
+                    "tabella fori), attaccata al foro piu' vicino al lato della quota; gli " +
                     "smussi con la quota da smusso, fuori dal pezzo dalla parte dello smusso.",
 
                 ["cosa_non_guarda"] =
@@ -677,13 +698,16 @@ namespace Riscontro.Disegno
             catch { return null; }
         }
 
-        /// <summary>Un foro visto lungo il suo asse: un cerchio intero nella vista.</summary>
+        /// <summary>Un cerchio intero nella vista: un foro, il contorno di un pezzo tondo, o un cerchio visto di taglio.</summary>
         private sealed class Cerchio
         {
             public int Indice;
             public IEdge Spigolo;
             public double[] CentroFoglio;   // metri
             public double DiametroMm;
+            public string Tipo;             // "foro", "contorno", "di_taglio"
+            public bool? Passante;          // dalla geometria; null se non si capisce
+            public double ProfonditaMm = double.NaN;
         }
 
         private static readonly System.Globalization.CultureInfo Ci = System.Globalization.CultureInfo.InvariantCulture;
@@ -706,7 +730,29 @@ namespace Riscontro.Disegno
                 if (cp == null || cp.Length < 7) return null;
                 var centro = SulFoglio(new[] { cp[0], cp[1], cp[2] }, mu, tr);
                 if (centro == null) return null;
-                return new Cerchio { Indice = indice, Spigolo = e, CentroFoglio = centro, DiametroMm = Math.Round(cp[6] * 2000.0, 3) };
+                // CHE CERCHIO E' (26/9/2026, una boccola tornita): il contorno Ø30
+                // di un pezzo tondo prendeva il richiamo «Ø30 ↧30» come fosse un
+                // foro, e i due cerchi della boccola visti di taglio finivano fra
+                // i «fori il cui richiamo non e' nato». Un foro guarda chi legge
+                // (l'asse, portato sul foglio, e' perpendicolare al foglio) ED e'
+                // un anello interno di una faccia piana — il criterio delle croci
+                // di centro (EUnForoCheSiVede).
+                string tipo;
+                var asse = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
+                // ZERO-E-ZERO: un asse che non si porta sul foglio vale lunghezza zero
+                // apposta — il cerchio finisce fra quelli di taglio, cioe' NON quotato
+                // e detto nella risposta, invece di prendere un richiamo di foro.
+                double l = asse == null ? 0 : Math.Sqrt(asse[0] * asse[0] + asse[1] * asse[1] + asse[2] * asse[2]);
+                if (l < 1e-12 || Math.Abs(asse[2]) / l < 0.99) tipo = "di_taglio";
+                else tipo = EUnForoCheSiVede(e, curva, mu, tr) ? "foro" : "contorno";
+                var c = new Cerchio { Indice = indice, Spigolo = e, CentroFoglio = centro, DiametroMm = Math.Round(cp[6] * 2000.0, 3), Tipo = tipo };
+                if (tipo == "foro")
+                {
+                    double prof;
+                    c.Passante = PassanteDallaGeometria(e, out prof);
+                    c.ProfonditaMm = prof;
+                }
+                return c;
             }
             catch { return null; }
         }
@@ -787,6 +833,116 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// Passante o cieco, DALLA GEOMETRIA: il cilindro del foro e il suo altro
+        /// cerchio. Se l'altro cerchio e' un anello interno di una faccia piana il
+        /// foro esce di li': passante. Se e' l'anello esterno di una faccia piana
+        /// (il fondo) o tocca un cono (la punta), e' cieco, e la profondita' e' la
+        /// distanza fra i due cerchi lungo l'asse — quella che il richiamo scrive
+        /// dopo ↧, punta esclusa. null se non si capisce (il cilindro finisce su
+        /// un altro cilindro, per esempio).
+        /// </summary>
+        private static bool? PassanteDallaGeometria(IEdge bordo, out double profonditaMm)
+        {
+            profonditaMm = double.NaN;
+            try
+            {
+                var cb = (bordo.GetCurve() as ICurve)?.CircleParams as double[];
+                if (cb == null || cb.Length < 7) return null;
+                foreach (var oc in (bordo.GetCoEdges() as object[]) ?? new object[0])
+                {
+                    var cil = ((oc as ICoEdge)?.GetLoop() as ILoop2)?.GetFace() as IFace2;
+                    var sc = cil?.GetSurface() as ISurface;
+                    if (sc == null || !sc.IsCylinder()) continue;
+                    foreach (var o in (cil.GetEdges() as object[]) ?? new object[0])
+                    {
+                        var altro = o as IEdge;
+                        var ca = altro?.GetCurve() as ICurve;
+                        if (ca == null || !ca.IsCircle()) continue;
+                        var cp = ca.CircleParams as double[];
+                        if (cp == null || cp.Length < 7) continue;
+                        double lungoAsse = Math.Abs((cp[0] - cb[0]) * cb[3] + (cp[1] - cb[1]) * cb[4] + (cp[2] - cb[2]) * cb[5]);
+                        if (lungoAsse < 1e-7) continue;   // e' il cerchio da cui si parte
+                        foreach (var oc2 in (altro.GetCoEdges() as object[]) ?? new object[0])
+                        {
+                            var an = (oc2 as ICoEdge)?.GetLoop() as ILoop2;
+                            var s = (an?.GetFace() as IFace2)?.GetSurface() as ISurface;
+                            if (s == null || s.IsCylinder()) continue;   // il cilindro del foro
+                            if (s.IsCone()) { profonditaMm = Math.Round(lungoAsse * 1000, 3); return false; }
+                            if (s.IsPlane())
+                            {
+                                if (!an.IsOuter()) return true;
+                                profonditaMm = Math.Round(lungoAsse * 1000, 3);
+                                return false;
+                            }
+                        }
+                        return null;
+                    }
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// IL CONTORNO DI UN PEZZO TONDO visto lungo l'asse: una quota di
+        /// diametro, non un richiamo di foro. Riletta: deve valere il diametro del
+        /// cerchio — sullo stesso cerchio visto di taglio `AddDiameterDimension2`
+        /// dice 60 per un Ø30 (misurato il 26/9/2026), e un numero sbagliato e
+        /// plausibile non resta in tavola.
+        /// </summary>
+        private void QuotaIContorni(
+            IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> contorni, HashSet<string> gia,
+            double[] contorno, double distacco, List<Dictionary<string, object>> nate,
+            List<Dictionary<string, object>> diametri, List<string> altrove, List<string> falliti)
+        {
+            var fatti = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var c in contorni)
+            {
+                string dm = c.DiametroMm.ToString("0.##", Ci);
+                string chiave = "foro|" + Math.Round(c.DiametroMm, 2).ToString("0.00", Ci);
+                if (!fatti.Add(chiave)) continue;
+                if (gia.Contains(chiave)) { altrove.Add("diametro esterno Ø" + dm + " (gia' quotato in questa tavola)"); continue; }
+                int quotePrima = ContaQuote(disegno);
+                IDisplayDimension q = null;
+                try
+                {
+                    modello.ClearSelection2(true);
+                    if ((c.Spigolo as IEntity).Select4(false, null))
+                        q = modello.AddDiameterDimension2(c.CentroFoglio[0] + 0.015, contorno[3] + distacco * 0.8, 0) as IDisplayDimension;
+                }
+                catch { }
+                modello.ClearSelection2(true);
+                if (q == null || NonCresciuta(disegno, quotePrima, q))
+                {
+                    falliti.Add("diametro esterno Ø" + dm + " (la quota non e' nata)");
+                    continue;
+                }
+                var descritta = DescriviQuota(q, c.Indice);
+                object letto = descritta.ContainsKey("mm") ? descritta["mm"] : null;
+                if (!(letto is double) || Math.Abs((double)letto - c.DiametroMm) > 0.01)
+                {
+                    bool tolta = false;
+                    try
+                    {
+                        var an = q.GetAnnotation() as IAnnotation;
+                        if (an != null && an.Select3(false, null))
+                            tolta = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                        modello.ClearSelection2(true);
+                    }
+                    catch { }
+                    falliti.Add("diametro esterno Ø" + dm + " (SOLIDWORKS ha scritto " + (letto ?? "?") +
+                                (tolta ? ": l'ho tolta)" : ": toglila)"));
+                    continue;
+                }
+                descritta["orientamento"] = "diametro esterno";
+                descritta["posizione_mm"] = DovEFinita(q);
+                nate.Add(descritta);
+                diametri.Add(new Dictionary<string, object> { ["diametro_mm"] = Math.Round(c.DiametroMm, 2), ["diametro_riletto_mm"] = letto });
+                gia.Add(chiave);
+            }
+        }
+
+        /// <summary>
         /// I FORI: un richiamo per diametro (col numero dei fori uguali davanti)
         /// e le quote di posizione dai due spigoli di riferimento, in parallelo.
         /// </summary>
@@ -797,10 +953,15 @@ namespace Riscontro.Disegno
             List<Dictionary<string, object>> nate, List<Dictionary<string, object>> fori,
             List<string> altrove, List<string> falliti)
         {
-            var gruppi = new SortedDictionary<double, List<Cerchio>>();
+            // UN RICHIAMO PER DIAMETRO *E PROFONDITA'*: «4× Ø8 ↧5» su quattro Ø8
+            // di cui due passanti manderebbe l'officina a forarli tutti ciechi.
+            // Il secondo termine viene dalla geometria: -1 passante, -2 non si
+            // capisce, altrimenti la profondita'.
+            var gruppi = new SortedDictionary<Tuple<double, double>, List<Cerchio>>();
             foreach (var c in cerchi)
             {
-                double k = Math.Round(c.DiametroMm, 2);
+                var k = Tuple.Create(Math.Round(c.DiametroMm, 2),
+                    c.Passante == true ? -1.0 : c.Passante == false && !double.IsNaN(c.ProfonditaMm) ? Math.Round(c.ProfonditaMm, 2) : -2.0);
                 if (!gruppi.ContainsKey(k)) gruppi[k] = new List<Cerchio>();
                 gruppi[k].Add(c);
             }
@@ -808,10 +969,10 @@ namespace Riscontro.Disegno
             var daPosizionare = new List<Cerchio>();
             foreach (var g in gruppi)
             {
-                string chiave = "foro|" + g.Key.ToString("0.00", Ci);
+                string chiave = "foro|" + g.Key.Item1.ToString("0.00", Ci);
                 if (gia.Contains(chiave))
                 {
-                    altrove.Add("fori Ø" + g.Key.ToString("0.##", Ci) + " (gia' quotati in questa tavola)");
+                    altrove.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (gia' quotati in questa tavola)");
                     continue;
                 }
                 // Il richiamo va sul foro in alto a sinistra: e' il primo che si
@@ -849,7 +1010,7 @@ namespace Riscontro.Disegno
                 }
                 if (richiamo == null || NonCresciuta(disegno, quotePrima, richiamo))
                 {
-                    falliti.Add("fori Ø" + g.Key.ToString("0.##", Ci) + " (il richiamo non e' nato)");
+                    falliti.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (il richiamo non e' nato)");
                     continue;
                 }
                 if (g.Value.Count > 1)
@@ -862,6 +1023,22 @@ namespace Riscontro.Disegno
                         string prefisso = richiamo.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? "";
                         richiamo.SetText((int)swDimensionTextParts_e.swDimensionTextPrefix,
                                          g.Value.Count.ToString(Ci) + "× " + prefisso);
+                    }
+                    catch { }
+                }
+                // IL RIPIEGO NON PORTA LA PROFONDITA' (revisione avversariale del
+                // 26/9/2026): se il richiamo non nasce, la quota di diametro dice
+                // «Ø8» e basta, e un cieco in officina si fora passante. La
+                // profondita' allora la scrive il ponte, dalla geometria, nel
+                // suffisso — lo stesso «<HOLE-DEPTH>» che usa il richiamo.
+                string profonditaDa = come == "richiamo del foro" ? "richiamo" : null;
+                if (come == "quota di diametro" && capo.Passante == false && !double.IsNaN(capo.ProfonditaMm))
+                {
+                    try
+                    {
+                        richiamo.SetText((int)swDimensionTextParts_e.swDimensionTextSuffix,
+                                         " <HOLE-DEPTH>" + capo.ProfonditaMm.ToString("0.##", Ci));
+                        profonditaDa = "geometria";
                     }
                     catch { }
                 }
@@ -883,15 +1060,28 @@ namespace Riscontro.Disegno
                     profondita = pv;
                 bool passante = suffisso.IndexOf("PASSANTE", StringComparison.OrdinalIgnoreCase) >= 0 ||
                                 suffisso.IndexOf("THRU", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (profondita == null) profonditaDa = null;
+                if (capo.Passante == false && profondita == null)
+                    // Un cieco, per la geometria, che esce dalla tavola senza
+                    // profondita': non e' «fatto», e lo si dice.
+                    falliti.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (cieco" +
+                                (double.IsNaN(capo.ProfonditaMm) ? "" : ", profondo " + capo.ProfonditaMm.ToString("0.##", Ci)) +
+                                ", ma la quota non porta la profondita': in officina si forerebbe passante)");
                 fori.Add(new Dictionary<string, object>
                 {
-                    ["diametro_mm"] = g.Key,
+                    ["diametro_mm"] = g.Key.Item1,
                     ["quanti"] = g.Value.Count,
                     ["come"] = come,
                     ["diametro_riletto_mm"] = descritto.ContainsKey("mm") ? descritto["mm"] : null,
-                    ["passante"] = come == "richiamo del foro" ? (object)passante : null,
+                    ["passante"] = come == "richiamo del foro" ? (object)passante : capo.Passante,
                     ["profondita_mm"] = profondita,
+                    ["profondita_da"] = profonditaDa,
                     ["suffisso_del_richiamo"] = suffisso,
+                    // LA STESSA COSA LETTA DALLA GEOMETRIA, sempre: il cilindro del
+                    // foro e il suo altro cerchio. Accanto a quella del richiamo, per
+                    // chi vuole confrontarle.
+                    ["passante_dalla_geometria"] = capo.Passante,
+                    ["profondita_dalla_geometria_mm"] = double.IsNaN(capo.ProfonditaMm) ? null : (object)capo.ProfonditaMm,
                 });
                 gia.Add(chiave);
                 daPosizionare.AddRange(g.Value);

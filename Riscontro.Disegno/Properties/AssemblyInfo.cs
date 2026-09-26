@@ -333,9 +333,24 @@ using System.Runtime.InteropServices;
 //          sulla tabella ISO 286-1) coi decimali della tolleranza impostati — senza,
 //          in tavola usciva «10 H7 +0 / 0». GT9: `distinta_base_in_tavola`
 //          (InsertBomTable4 sulla vista, confrontata coi componenti dell'assieme,
-//          messa in un posto libero) e `palloncini` (AutoBalloon5, contati dopo).
-[assembly: AssemblyVersion("0.125.0.0")]
-[assembly: AssemblyFileVersion("0.125.0.0")]
+//          messa in un posto libero) e `bollatura` (i palloncini: AutoBalloon5, contati dopo).
+// 0.126.0: Z-C9, la meta' «oggetti»: `esporta_pdf` rilegge il testo del PDF e
+//          pretende che ogni numero stampato dalle quote ci sia (una quota su un
+//          livello che non si stampa conta nel documento e in officina non
+//          arriva). Visto scattare: il richiamo Ø12 su un livello non
+//          stampabile, «12 (sulla tavola 1, nel PDF 0)».
+//          `palloncini` diventa `bollatura` (lessico d'officina) e dice quali
+//          voci della distinta restano senza palloncino in TUTTA la tavola
+//          (visto sullo Starlink: il disco coperto nell'isometrica). Una vista
+//          dove ogni voce e' gia' bollata altrove non e' piu' un errore.
+//          `quota_in_tavola`: un cerchio e' un foro solo se guarda chi legge ED e'
+//          anello interno di una faccia piana (la boccola tornita: il contorno
+//          Ø30 prendeva «Ø30 ↧30»); il contorno ha la quota di diametro, i cerchi
+//          di taglio si dicono. Passante/profondita' anche dalla geometria, fori
+//          raggruppati per diametro e profondita', e il ripiego senza richiamo
+//          scrive la profondita' nel testo.
+[assembly: AssemblyVersion("0.126.0.0")]
+[assembly: AssemblyFileVersion("0.126.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -350,4 +365,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.125.0")]
+[assembly: AssemblyInformationalVersion("0.126.0")]

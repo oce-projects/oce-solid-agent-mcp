@@ -2353,7 +2353,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "per diametro) e la posizione dai due bordi di riferimento, quello a "
                         + "sinistra e quello in basso; gli smussi con la QUOTA DA SMUSSO («5 x "
                         + "45°»), non coi loro spigoli — l'ipotenusa e i tratti accorciati "
-                        + "dallo smusso non si quotano."
+                        + "dallo smusso non si quotano. Un foro cieco porta la profondita' "
+                        + "(«Ø8 ↧5»); se il richiamo non nasce, la scrivo io dalla geometria."
+                        + "\n\nUN CERCHIO NON E' SEMPRE UN FORO: il contorno di un pezzo tondo "
+                        + "visto di fronte ha una quota di diametro (diametri_esterni), e un "
+                        + "cerchio visto di taglio non lo quoto — il diametro va dalla vista in "
+                        + "cui e' un cerchio. La lunghezza di un pezzo tondo visto di fianco non "
+                        + "la quoto ancora, e se la vista ha solo quello te lo dico."
                         + "\n\nUNA QUOTA SOLA PER ELEMENTO IN TUTTA LA TAVOLA: se la stessa "
                         + "estensione del pezzo e' gia' quotata in un'altra vista, qui la salto "
                         + "e te lo dico (UNI ISO 129-1). Quindi quota le viste una alla volta, e "
@@ -2520,16 +2526,19 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "palloncini",
+                    Nome = "bollatura",
                     Famiglia = "tavola",
                     DocumentoRichiesto = "tavola",
                     Provata = true,
-                    Sommario = "I palloncini coi numeri di voce della distinta sui componenti di una vista, contati.",
+                    Sommario = "La bollatura: i palloncini coi numeri di voce della distinta sui componenti di una vista, contati.",
                     Descrizione =
-                        "Mette i PALLONCINI sui componenti dell'assieme in una vista, col numero di voce della "
+                        "Fa la BOLLATURA: mette i palloncini sui componenti dell'assieme in una vista, col numero di voce della "
                         + "distinta base (AutoBalloon5). Li conta sulla vista prima e dopo, e ti dice i numeri "
-                        + "scritti.\n\nMI RIFIUTO se in tavola non c'e' ancora una distinta base (i palloncini "
-                        + "portano il suo numero di voce: mettila prima con «distinta_base_in_tavola») o se "
+                        + "scritti. Poi confronta le voci della distinta coi palloncini di TUTTA la tavola e ti "
+                        + "dice quali voci restano senza (quel componente in questa vista non si vede: bolla "
+                        + "un'altra vista). Se ogni voce ha gia' il suo palloncino altrove, non ne mette e "
+                        + "risponde «niente da aggiungere».\n\nMI RIFIUTO se in tavola non c'e' ancora una distinta base (la bollatura "
+                        + "porta il suo numero di voce: mettila prima con «distinta_base_in_tavola») o se "
                         + "dietro la vista non c'e' un assieme.",
                     Precondizione = "una tavola con la distinta base e una vista dell'assieme",
                     Schema = O(
