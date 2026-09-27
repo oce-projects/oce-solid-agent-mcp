@@ -24,6 +24,31 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.105.0 — 27 September 2026 · library 0.130.0
+
+**Give a number a name (entry Z-F1).** Two new operations on SOLIDWORKS'
+own equations: `variabile_globale` creates or changes a global variable (a
+value in mm, or an expression such as `2 * "parete" + 1mm`), and
+`lega_quota` makes a dimension driven by an expression. A dimension driven by
+`parete` follows every change of `parete` by construction — the identity
+system SOLIDWORKS already has, and the only kind of model someone who is not
+the designer can change without breaking it. Measured first on a 120×80×10
+plate: `IEquationMgr.Add3` returns the index; with the thickness linked,
+`parete` = 12 mm gives 115200 mm³ and 15 mm gives 144000.
+
+- `get_Status` cannot be trusted (−1 after a successful `EvaluateAll`, 1
+  after a successful `set_Equation`): every answer is checked on the VALUES
+  read back — the equation's and the dimension's.
+- «spessore» (and «Spessore») is refused by the Italian SOLIDWORKS even on a
+  part with no properties, and an equation that uses it evaluates to 3: the
+  refusal says so and proposes another name.
+- The name of a dimension in an equation is its `FullName` without the part
+  at the end («D1@Estrusione-Estrusione1»).
+- The part state lists its equations (`equazioni`), so a driven dimension is
+  known before someone tries to change it by hand.
+
+New case `quote/la_parete_ha_un_nome`. Ninety operations.
+
 ## 0.104.0 — 27 September 2026 · library 0.129.0
 
 **What holds a component, and a new operation to fix or free it (entries

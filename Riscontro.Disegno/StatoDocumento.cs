@@ -1436,6 +1436,12 @@ namespace Riscontro.Disegno
             dati["troncato"] = troncato;
             dati["unita_protocollo"] = "mm";
 
+            // LE EQUAZIONI E LE VARIABILI GLOBALI (voce Z-F1), se ce ne sono: chi
+            // legge lo stato deve sapere che una quota e' guidata prima di provare
+            // a cambiarla a mano.
+            var equazioni = OperazioniSw.EquazioniDelDocumento(modello);
+            if (equazioni != null) dati["equazioni"] = equazioni;
+
             // ── LA FORMA IN UNA FRASE (voce V3) ──────────────────────────
             //
             // Va per ULTIMA perche' legge `dati`: l'ingombro, il volume, le

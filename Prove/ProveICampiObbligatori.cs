@@ -94,6 +94,9 @@ namespace Prove.Contratti
                 { "tolleranza_quota.tipo", "± o H7 e' la domanda stessa: non c'e' un tipo di tolleranza d'ufficio" },
                 { "fissa_componente.componente", "quale componente fissare lo sa chi monta: sceglierlo io sarebbe inchiodare un pezzo a caso" },
                 { "fissa_componente.fisso", "fissare e liberare sono due cose opposte: non c'e' un verso d'ufficio" },
+                { "variabile_globale.nome", "il nome e' la cosa stessa che si crea: senza, non c'e' una variabile" },
+                { "lega_quota.quota", "quale quota legare lo sa chi progetta: legarne una a caso cambia un pezzo senza dirlo" },
+                { "lega_quota.espressione", "a cosa legarla e' la domanda stessa: non c'e' un'espressione d'ufficio" },
                 { "tolleranza_geometrica_in_tavola.caratteristica", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
 
                 // ── DIPENDONO DALL'OFFICINA, NON DA NOI (voce Z-G8) ───────

@@ -615,11 +615,13 @@ casi/lamiera/     12   la L si sviluppa lunga quanto il conto a mano; data al
                        e l'aperto senza gioco rifiutato; la piega da schizzo
                        che alza meta' lamiera (ingombro dal conto, sviluppo
                        invariato) e la piega a 180 rifiutata (voce GP18)
-casi/quote/        4   la piastra si quota da sola con DimXpert, coi valori
+casi/quote/        5   la piastra si quota da sola con DimXpert, coi valori
                        giusti; con due riferimenti rifiuta (voce Z-H3); la
                        tolleranza sulla quota del modello, H7 riscontrato sulla
                        ISO 286 e ±0,05, IT14 rifiutato (voce Z-F2); le quote del
-                       modello arrivano in tavola, e senza viste rifiuta (Z-C1-bis)
+                       modello arrivano in tavola, e senza viste rifiuta (Z-C1-bis);
+                       la parete ha un nome: variabile globale e quota legata,
+                       che seguono il cambio (Z-F1)
 casi/regressione/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 casi/ritrovare/    3   lo spigolo nominato con l'uid letto PRIMA di due fori si
                        ritrova per firma (stessa lunghezza, stesso punto) e il

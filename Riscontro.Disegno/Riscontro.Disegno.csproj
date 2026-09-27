@@ -121,6 +121,7 @@
     <Compile Include="OperazioniTondoTavola.cs" />
     <Compile Include="OperazioniMisuraAssieme.cs" />
     <Compile Include="OperazioniFissaComponente.cs" />
+    <Compile Include="OperazioniEquazioni.cs" />
     <Compile Include="OperazioniDistintaBase.cs" />
     <Compile Include="OperazioniQuoteNelPdf.cs" />
     <Compile Include="OperazioniAnnotazioniTavola.cs" />

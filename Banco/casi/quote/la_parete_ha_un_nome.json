@@ -1,0 +1,36 @@
+{
+  "nome": "la_parete_ha_un_nome",
+  "famiglia": "quote",
+  "perche": "VOCE Z-F1. Non ripetere un numero, dargli un nome: una variabile globale «parete» e lo spessore della piastra legato a lei. Cambiando la variabile cambia il pezzo, per costruzione. Misurato il 27/9/2026 (prova0089 zf1, zf1b): Add3 torna l'indice; la quota legata segue la variabile (96000 -> 115200 -> 144000 mm3); get_Status non si legge (-1 anche quando va) e l'esito si prende dai valori riletti; «spessore» e' un nome gia' preso nel SOLIDWORKS in italiano.",
+  "il_difetto_che_questo_caso_prende": "Una variabile scritta che non guida niente; un legame che l'equazione accetta e la quota non segue; il cambio della variabile che non arriva al pezzo senza EvaluateAll e ricostruzione; il nome rifiutato da SOLIDWORKS preso per buono.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 96000 } ] },
+    { "operazione": "variabile_globale",
+      "argomenti": { "nome": "parete", "valore_mm": 12 },
+      "attese": [
+        { "cosa": "misure.valore_mm", "uguale": 12, "perche": "riletta dall'equazione" },
+        { "cosa": "misure.nuova", "uguale": true },
+        { "cosa": "stato.equazioni[0].variabile_globale", "uguale": true, "perche": "lo stato elenca le equazioni" },
+        { "cosa": "volume_mm3", "uguale": 96000, "perche": "una variabile che nessuno usa non cambia il pezzo" } ] },
+    { "operazione": "lega_quota",
+      "argomenti": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "espressione": "\"parete\"" },
+      "attese": [
+        { "cosa": "misure.valore_prima_mm", "uguale": 10 },
+        { "cosa": "misure.valore_dopo_mm", "uguale": 12, "perche": "la quota riletta vale quanto l'equazione" },
+        { "cosa": "volume_mm3", "uguale": 115200, "perche": "120 x 80 x 12" } ] },
+    { "operazione": "variabile_globale",
+      "argomenti": { "nome": "parete", "valore_mm": 15 },
+      "attese": [
+        { "cosa": "misure.nuova", "uguale": false, "perche": "la stessa variabile, riscritta" },
+        { "cosa": "misure.quote_guidate[0].valore", "uguale": 15, "perche": "la quota legata segue" },
+        { "cosa": "volume_mm3", "uguale": 144000, "perche": "120 x 80 x 15: cambiando la variabile cambia il pezzo" } ] },
+    { "operazione": "variabile_globale",
+      "argomenti": { "nome": "spessore", "valore_mm": 12 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non accetta", "parete"],
+        "gemella": "la_parete_ha_un_nome" } }
+  ]
+}

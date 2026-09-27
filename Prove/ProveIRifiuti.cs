@@ -136,8 +136,11 @@ namespace Prove.Contratti
         /// ne' assieme («Aprimi il pezzo o l'assieme»), lo STL di un assieme («usa
         /// esporta_step»), la rilettura dello STEP d'assieme («toglilo e richiedimelo»).
         /// **109:** Z-D5 — `fissa_componente` fuori da un assieme («Aprimi l'assieme»).
+        /// **116:** Z-F1 — `variabile_globale` e `lega_quota`: il nome fatto male (con
+        /// gli esempi), valore o espressione, il nome gia' preso («usa parete»), la
+        /// variabile che non esiste («creala con variabile_globale»), il pezzo da aprire.
         /// </summary>
-        private const int Pavimento = 109;
+        private const int Pavimento = 116;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

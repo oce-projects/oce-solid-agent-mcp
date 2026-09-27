@@ -805,6 +805,70 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "variabile_globale",
+                    Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Esempio = "{\"nome\":\"parete\",\"valore_mm\":12}",   // da `la_parete_ha_un_nome`
+                    Sommario = "Dai un NOME a un numero (parete = 3 mm): le quote legate cambiano con lui.",
+                    Descrizione =
+                        "Crea o cambia una variabile globale del pezzo: «parete» = 12 mm, oppure "
+                        + "un'espressione («2 * \"parete\" + 1mm»). Le quote legate con "
+                        + "«lega_quota» cambiano quando la cambi: e' il modo di fare un pezzo che "
+                        + "si modifica senza rompersi, senza ripetere lo stesso numero in dieci "
+                        + "posti.\n\nDopo averla scritta la rileggo, e ti dico quali quote guida e "
+                        + "il volume prima e dopo.\n\nMI RIFIUTO se il nome non e' fatto di lettere, "
+                        + "cifre e «_», se mi dai insieme (o nessuno dei due) «valore_mm» ed "
+                        + "«espressione», e se SOLIDWORKS non accetta il nome: nel SOLIDWORKS in "
+                        + "italiano «spessore» e' gia' preso (misurato) — usa per esempio «parete».",
+                    Precondizione = "un pezzo aperto",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "nome", O(
+                                "type", "string",
+                                "description", "il nome della variabile: lettere, cifre e «_», comincia con una lettera."),
+                            "valore_mm", O(
+                                "type", "number",
+                                "description", "il valore, in millimetri. Oppure «espressione»."),
+                            "espressione", O(
+                                "type", "string",
+                                "description", "un'espressione di SOLIDWORKS, coi nomi fra virgolette doppie: "
+                                    + "«2 * \"parete\" + 1mm». Oppure «valore_mm».")),
+                        "required", A("nome")),
+                },
+                new OperazioneDisegno
+                {
+                    Nome = "lega_quota",
+                    Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario = "Lega una quota a una variabile o a un conto: la guida l'equazione.",
+                    Descrizione =
+                        "Lega una quota del pezzo (il suo nome dallo stato, «D1@Schizzo1») a "
+                        + "un'espressione: una variabile globale («\"parete\"») o un conto "
+                        + "(«2 * \"parete\" + 1mm»). Da li' la quota la guida l'equazione, e "
+                        + "cambia quando cambia la variabile; «modifica_quota» non la cambia piu'."
+                        + "\n\nDopo il legame rileggo la quota: deve valere quanto dice "
+                        + "l'equazione, e ti do il volume prima e dopo.\n\nMI RIFIUTO se la quota "
+                        + "non c'e' (ti dico quali ci sono) o se SOLIDWORKS non accetta "
+                        + "l'espressione (una variabile che non esiste: creala prima con "
+                        + "«variabile_globale»).",
+                    Precondizione = "un pezzo aperto con almeno una quota",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "quota", O(
+                                "type", "string",
+                                "description", "il nome della quota, copiato dallo stato del documento."),
+                            "espressione", O(
+                                "type", "string",
+                                "description", "a cosa legarla, coi nomi fra virgolette doppie: «\"parete\"», "
+                                    + "«2 * \"parete\" + 1mm».")),
+                        "required", A("quota", "espressione")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "modifica_quota",
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",
