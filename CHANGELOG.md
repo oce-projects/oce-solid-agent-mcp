@@ -49,7 +49,10 @@ branch takes the next numbers.)
 - **`Strumenti/api_knowledge.json`** (new, embedded in the executable): state
   (`forbidden`, `confirm`, `gray`, `never_probed`, `probed_read`,
   `probed_modifies`), enum map, measured indices, measured types of `Object`
-  parameters, source.
+  parameters, source. First fill from the memories, the RAG notes and the
+  "measured" comments of the sources: 167 members (52 forbidden, 33 confirm,
+  16 gray, 21 never_probed, 31 probed_read, 14 probed_modifies), each name
+  checked against the interop by the contract.
 - **`Controlli/api-inventory.ps1`** writes the inventory from PowerShell; the
   contract `ApiSignatureMatchesInventory` compares it with the C# formatter
   (14,928 lines, zero differences, seen failing on one lost `&`).

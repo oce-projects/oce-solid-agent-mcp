@@ -10,6 +10,11 @@
     "probed_modifies": "called and measured: modifies the model"
   },
   "members": {
+    "IAssemblyDoc.AddComponent5": {
+      "state": "probed_modifies",
+      "why": "Takes a path on disk (the document must already be saved). Measured 2026-09-17 and predicted beforehand: positions the CENTER of the component's bounding box, NOT its origin. A part extruded in one direction only (the normal case) has its origin on a face, not mid-thickness: asked for z=30 on a 4mm-thick part, the origin lands at (0,-2,30); asked for z=0 on a 10mm-thick part, origin lands at (0,-5,0) -- both predicted before probing and confirmed after. Report the field as origine_mm, not posizione_mm (the two rarely coincide and the old name invited a wrong comparison).",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 5); code:OperazioniAssieme.cs:185; code:StatoAssieme.cs:209"
+    },
     "IAssemblyDoc.AddMate5": {
       "state": "probed_modifies",
       "why": "15 arguments, mostly Double/Int32/Boolean positional -- a position mistake mates silently, no exception. Measured 2026-09-17: no special \"selection mark\" is needed (that unknown, once rated 8-10h, turned out to not exist): plain IEntity.Select4(append:true, null) on the two entities, then AddMate5, answers swAddMateError_NoError. IMPORTANT: in swAddMateError_e, NoError = 1 and ErrorUnknown = 0 -- a naive 'if (errore != 0)' would report a successful mate as failed. swMateAlign_e has three pairs of names on the same value: swAlignNONE = swMateAlignALIGNED = 0, swAlignSAME = swMateAlignANTI_ALIGNED = 1, swAlignAGAINST = swMateAlignCLOSEST = 2. \"SAME\" is worth \"ANTI_ALIGNED\": same number, opposite sense. The bridge writes swMateAlignANTI_ALIGNED / swMateAlignALIGNED (OperazioniAccoppia.cs:109).",
@@ -20,26 +25,80 @@
       },
       "source": "code:OperazioniAccoppia.cs:18; rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 9); rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; rag:82zz_ter_i_materiali_dei_due_workflow.md; code:OperazioniAccoppia.cs:109,134,199-204"
     },
+    "IAssemblyDoc.AutoExplode": {
+      "state": "never_probed",
+      "why": "Boolean return, zero arguments: an innocuous-looking signature, but 'auto' with no arguments means SOLIDWORKS decides on its own, and it is not known whether it decides silently or pops a dialog. Must be measured on a throwaway document (does the call return within a few seconds?) before trusting it, not assumed either way.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 14)"
+    },
+    "IAssemblyDoc.CreateExplodedView": {
+      "state": "probed_modifies",
+      "why": "CORRECTION of an earlier note in the same source: initial reflection guessed this was a zero-arg UI-button opener like EditExplodeParameters/ViewExplodeAssembly. Actual measurement on 2026-09-17 disproved that: the call returns True and creates a real exploded view step (\"Vista esplosa1\"), no blocking dialog. Trust the runtime measurement over the earlier hypothesis.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 15, explicitly correcting section 14)"
+    },
     "IAssemblyDoc.CreateMateData": {
       "state": "never_probed",
       "why": "The Type parameter is declared Int32 and which enum it takes is NOT tabulated: reflection cannot say it, and nobody has measured it yet. Entry U11.3 measures it; until then api_signature says \"enum not tabulated\".",
       "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (U1.1 acceptance example)"
     },
-    "IModelDocExtension.IsSamePersistentID": {
-      "state": "gray",
-      "why": "Returns Int32, NOT Boolean: it is a swObjectEquality (swObjectNotSame = 0, swObjectSame = 1, swObjectUnsupported = 2). The \"true 46 times out of 46\" of Z-A7 does not say which of the two non-zero values it was. The decision not to use it does not change: if it was 1 it never discriminated, if it was 2 it is not supported. GetObjectByPersistReference3 + a corroborating read are used instead.",
-      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (point 8); rag:80z_le_misure_che_sbloccano.md; TODO U, point 13"
+    "IAssemblyDoc.DeleteSelections": {
+      "state": "confirm",
+      "why": "Destructive deletion inside an assembly.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
     },
-    "IMathTransform.ArrayData": {
+    "IAssemblyDoc.EditExplodeParameters": {
+      "state": "gray",
+      "why": "Void return, zero arguments: pattern already paid for with AddDimension/ManuallySelect/Select4(ShowPopup:true) -- a zero-arg Void member is a UI button with nobody on the other end to click OK. Never actually called; flagged from reflection alone, not run.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 14)"
+    },
+    "IAssemblyDoc.GetComponents": {
       "state": "probed_read",
-      "why": "16 numbers. Measured layout: indices 0-8 are the 3x3 rotation matrix stored ROW-MAJOR (row i = indices 3i, 3i+1, 3i+2); indices 9-11 are the translation; index 12 onward: index not tabulated. IMPORTANT: the plane-normal use case measured that the normal is the THIRD ROW (indices 6,7,8), not the third column -- on two of three test planes row and column gave the same answer (50/50 chance of picking the wrong one forever), the third (oblique) plane exposed the difference: row gives the correct (0,-.7071,.7071), column gives the wrong (0,.7071,.7071). Separately, on IComponent2.GetTotalTransform, indices 9-11 were confirmed as translation by asking for z=30 and reading back [0,-2,30] (see IAssemblyDoc.AddComponent5 for the -2 explanation) and predicting+confirming a second case at (0,-5,0).",
-      "source": "code:OperazioniPiani.cs:31; rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 5); rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; memory:numeri_dei_corpi_instabili.md",
-      "indices": {
-        "return": {
-          "0-8": "3x3 rotation, row-major (row i = 3i..3i+2); a plane normal is the THIRD ROW 6-8 (measured on an oblique plane, 16/9/2026)",
-          "9-11": "translation, metres (measured on IComponent2.GetTotalTransform: z = 30 mm read back as [0, -2, 30] mm)"
-        }
-      }
+      "why": "Call with false, not true. With true, a sub-assembly comes back as ONE component with nothing inside, and the model would read '2 components' on an assembly that really has thirty -- every reasoning built on that count would be plausible and wrong.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 2)"
+    },
+    "IAssemblyDoc.ReplaceComponents2": {
+      "state": "gray",
+      "why": "Measured 2026-09-17 in six conditions (assembly saved/unsaved, new file opened/closed): with ReAttachMates=true AND a component that has real mates to reattach, the call raises RPC_E_SERVERFAULT. With ReAttachMates=false it always succeeds. Always pass false; a probe that only checks the call succeeds (not whether mates survive) is not proof either way -- the bench found 0 mates lost with false, the opposite of what a shallow probe suggested.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (sections 10-13); code:OperazioniSostituisci.cs:111"
+    },
+    "IAssemblyDoc.ViewExplodeAssembly": {
+      "state": "gray",
+      "why": "Same reasoning as EditExplodeParameters: Void, zero arguments, suspected UI-only entry point. Never actually called.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 14)"
+    },
+    "IBody2.Check": {
+      "state": "probed_read",
+      "why": "Measured: 1 on a sound solid, 1 on two touching solids, 1 on an open sheet body. OPPOSITE convention to Check2 (0 on the same sound body). Does not see an open sheet.",
+      "source": "code:OperazioniVerifica.cs:31-66 (measured 15/9/2026 with Controlli\\CorpoRotto)"
+    },
+    "IBody2.Check2": {
+      "state": "probed_read",
+      "why": "Measured: 0 on a sound solid, 0 on two touching solids, 0 on an open sheet body. OPPOSITE convention to Check (1 on the same sound body): reading 0 as \"false, broken\" gives a stable, coherent, inverted answer.",
+      "source": "code:OperazioniVerifica.cs:31-66 (measured 15/9/2026 with Controlli\\CorpoRotto)"
+    },
+    "IBody2.DeleteFaces2": {
+      "state": "never_probed",
+      "why": "Real 'Delete Face' with reconstruction option (Object/typed Face2[] argument family); not yet exercised. Needs IDeleteFaceFeatureData for reread.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IBody2.DeleteFaces3": {
+      "state": "never_probed",
+      "why": "Same family as DeleteFaces2; not yet exercised.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IBody2.DeleteFaces4": {
+      "state": "never_probed",
+      "why": "Same family as DeleteFaces2; not yet exercised.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IBody2.DeleteFaces5": {
+      "state": "never_probed",
+      "why": "Has extra HealAction/LoopProcessOption parameters -- SUSPECTED (by having the highest number and the richest parameter set) to be the one to promote, but this is exactly the 'last of a /2/3/4/5 family, not verified' case: not yet exercised, do not assume it is correct without measuring.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IBody2.Diagnose": {
+      "state": "probed_read",
+      "why": "Returns DiagnoseResult; IDiagnoseResult.GetGapsCount() is the only one of the four checks that sees an open sheet body (1 gap, where Check, Check2 and Check3 all say sound).",
+      "source": "code:OperazioniVerifica.cs:31-66 (measured 15/9/2026 with Controlli\\CorpoRotto)"
     },
     "IBody2.GetMassProperties": {
       "state": "probed_read",
@@ -51,6 +110,76 @@
           "0-2": "centre of mass, metres (used by green bench cases: volume-weighted centre of several bodies)"
         }
       }
+    },
+    "IBody2.GetUpdateStamp": {
+      "state": "never_probed",
+      "why": "Candidate generation counter for object-registry staleness (U1.2). NOT yet measured whether it changes on a plain selection (SelectByID2/Select4) alone -- if it does, every preselection would immediately expire the entities just registered, and would block U7 (which lives on preselection). This measurement is the actual point of U1.2, not yet done.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (point 6, T1.2)"
+    },
+    "IBody2.get_Check3": {
+      "state": "probed_read",
+      "why": "A PROPERTY returning FaultEntity, not a method: written Check3() in late binding it fails at run time inside a catch. Measured: Check3.Count is 0 on a sound solid, on two touching solids AND on an open sheet body: it does not see an open sheet. Only IBody2.Diagnose().GetGapsCount() does.",
+      "source": "code:OperazioniVerifica.cs:31-66 (measured 15/9/2026 with Controlli\\CorpoRotto)"
+    },
+    "IBomTableAnnotation.SaveAsExcel": {
+      "state": "confirm",
+      "why": "Writes an Excel file to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IComponent2.GetMates": {
+      "state": "probed_read",
+      "why": "Returns Object (an array of mate references) but returns NULL when there are zero mates, NOT an empty array -- this is the convention on much of this API. A null return can mean either \"zero mates\" or \"could not read\": tell them apart by checking whether the component still answers its own Name2 (alive -> null really means zero; unresponsive -> null means unknown).",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (sections 7, 9); code:OperazioniAssieme.cs:296; code:StatoAssieme.cs:254"
+    },
+    "IComponent2.GetPathName": {
+      "state": "probed_read",
+      "why": "Used to detect the no-op case of replacing a component with itself (same resolved full path).",
+      "source": "code:OperazioniSostituisci.cs"
+    },
+    "IComponent2.GetRemainingDOFs": {
+      "state": "probed_read",
+      "why": "Does NOT return a count. Returns a swRemainingDofs_e STATE (Restricted=0, Unrestricted=1, Unavailable=2, Failed=3, RootComponent=4). Measured 2026-09-16: a freshly built assembly returns 2 (Unavailable) identically for a FIXED component and a FREE component -- the same value on two different truths means the value tabulates nothing. Do not publish it as a DOF count; use IsFixed() + GetMates() count instead.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (sections 3, 7); code:OperazioniAssieme.cs:296"
+    },
+    "IComponent2.GetTotalTransform": {
+      "state": "probed_read",
+      "why": "Returns an IMathTransform (declared Object). Argument true INCLUDES the exploded-view transform if one exists and is shown -- a position read with true while exploded is the exploded-view position, plausible and wrong; check IModelDocExtension.IsExploded first. See IMathTransform.ArrayData for how to read the returned transform.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (sections 5, 14)"
+    },
+    "IComponent2.IsFixed": {
+      "state": "probed_read",
+      "why": "Reliable. Measured: SOLIDWORKS itself fixes the FIRST component inserted into a new assembly (base-1 fixed=True vs coperchio-1 fixed=False) -- every assembly therefore has at least one pinned part, and a DOF sum that does not exclude fixed components would be wrong on every assembly, always, in the convenient direction nobody checks.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 3)"
+    },
+    "IComponent2.get_Name2": {
+      "state": "probed_read",
+      "why": "Unique within the assembly (\"base-1\", \"base-2\", \"coperchio-1\"), and this is what makes a stable C1..Cn numbering possible: sort by Name2, never trust GetComponents' own return order, which is not documented anywhere and was seen to differ between reads.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 2)"
+    },
+    "IConfiguration.AddExplodeStep2": {
+      "state": "probed_modifies",
+      "why": "Has an out Error parameter carrying swAddExplodeStepError_e -- the error is NOT in the return value. Measured 2026-09-17: on a freshly built assembly, returned NoComponents(3) across five different selection attempts (whole component, one at a time, various Select4/ManuallySelect variants); the correct selection recipe to make a step succeed is still unmeasured.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 14-15)"
+    },
+    "IConfiguration.GetExplodeStep": {
+      "state": "probed_read",
+      "why": "Measured working: step 0 named \"Catena1\", 2 components, distance 0 mm in that run.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 15)"
+    },
+    "IConfiguration.GetNumberOfExplodeSteps": {
+      "state": "probed_read",
+      "why": "Measured working: returned 1 after CreateExplodedView.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 15)"
+    },
+    "IConfiguration.get_ChildComponentDisplayInBOM": {
+      "state": "never_probed",
+      "why": "Second of the two BOM-opening fields, same caveat as get_ShowChildComponentsInBOM.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 4)"
+    },
+    "IConfiguration.get_ShowChildComponentsInBOM": {
+      "state": "never_probed",
+      "why": "One of two BOM fields (out of six total on IConfiguration) that decide whether a sub-assembly OPENS in the BOM; found by reflection, not measured at runtime. A sub-assembly that opens when it should not adds unrequested rows and the BOM stays plausible but wrong.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 4)"
     },
     "ICurve.CircleParams": {
       "state": "probed_read",
@@ -64,15 +193,80 @@
       },
       "source": "code:OperazioniCorpi.cs:520; code:OperazioniCentrini.cs:155,261; code:OperazioniQuoteTavola.cs:744-756"
     },
-    "IModelDoc2.EditDelete": {
-      "state": "forbidden",
-      "why": "Forbidden by contract (ProveLeFirmeVietate). Measured still alive in the codebase on 2026-09-27: OperazioniTabellaFori.cs:358 called modello.EditDelete() to remove a wrongly-created hole table; must be replaced with IModelDocExtension.DeleteSelection2 as already done in OperazioniSw.cs:5852.",
-      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; rag:82zz_ter_i_materiali_dei_due_workflow.md; code:OperazioniTabellaFori.cs:358"
+    "IDeleteFaceFeatureData.GetDeletedFaces": {
+      "state": "never_probed",
+      "why": "Rereads the result of an IBody2.DeleteFaces* call; not yet exercised since DeleteFaces2-5 themselves are unprobed.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
     },
-    "IModelDocExtension.AddDimension": {
+    "IDeleteFaceFeatureData.get_Options": {
+      "state": "never_probed",
+      "why": "Same status as GetDeletedFaces: paired reread member, not yet exercised.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IDesignTable.SaveAsExcelFile": {
+      "state": "confirm",
+      "why": "Writes an Excel file to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IDiagnoseResult.GetGapsCount": {
+      "state": "probed_read",
+      "why": "Measured: 0 on a sound solid and on two touching solids, 1 on an open sheet body. The criterion for \"closed\" (TODO U point 2).",
+      "source": "code:OperazioniVerifica.cs:31-66 (measured 15/9/2026 with Controlli\\CorpoRotto)"
+    },
+    "IEntity.Select4": {
+      "state": "probed_modifies",
+      "why": "Measured 2026-09-17: Select4(append:true, null) on two entities is sufficient before AddMate5, no special selection mark needed. CAUTION: with ShowPopup:true this becomes a UI-button call (same family as AddDimension) -- do not set that flag from the bridge. Also: ISketchPoint/ISketchSegment are NOT IEntity (an 'as IEntity' cast silently returns null); they have their own Select4/Select2.",
+      "source": "code:OperazioniAccoppia.cs:18; rag:82d_gli_assiemi_e_la_misura_che_manca.md (sections 9, 14); memory:api_sw_quota_punto_spigolo.md"
+    },
+    "IEquationMgr.Add3": {
+      "state": "probed_read",
+      "why": "Reliable, unlike get_Status: returns the new equation's index, or -1 on failure. Also measured: an equation variable named 'spessore' or 'Spessore' is REJECTED even on a part with no such property, and silently binds to an unrelated value (3) instead of raising an error -- these are reserved words in the Italian SOLIDWORKS UI. Use a non-reserved example name (e.g. 'parete') and always reread the value.",
+      "source": "memory:api_sw_equazioni.md; rag:82zs_dare_un_nome_a_un_numero_variabili_globali_ed_equazioni.md"
+    },
+    "IEquationMgr.EvaluateAll": {
+      "state": "probed_modifies",
+      "why": "The call itself does something real, but its own get_Status afterward lies (-1 even on success) -- always reread the actual driven values, never trust Status.",
+      "source": "memory:api_sw_equazioni.md; rag:82zs_dare_un_nome_a_un_numero_variabili_globali_ed_equazioni.md"
+    },
+    "IEquationMgr.get_Status": {
+      "state": "gray",
+      "why": "MEASURED 2026-09-27 to be unusable as a success/failure signal: reads -1 after a successful EvaluateAll AND reads 1 after a successful set_Equation -- it does not track outcome. Never branch on it; instead reread get_Value and the driven dimension after any write.",
+      "source": "memory:api_sw_equazioni.md; rag:82zs_dare_un_nome_a_un_numero_variabili_globali_ed_equazioni.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IEquationMgr.set_Equation": {
+      "state": "probed_modifies",
+      "why": "Same get_Status caveat as EvaluateAll (reads 1 even on a successful write -- not a useful confirmation). Also subject to the 'spessore' reserved-name trap under Add3.",
+      "source": "memory:api_sw_equazioni.md; rag:82zs_dare_un_nome_a_un_numero_variabili_globali_ed_equazioni.md"
+    },
+    "IExplodeStep.ExplodeDistance": {
+      "state": "probed_read",
+      "why": "Reading (get_ExplodeDistance) is safe and measured working (0 mm on a freshly created, not-yet-dragged step). WARNING: the SETTER of this same property, set_ExplodeDistance, is a separate forbidden entry -- writing it from out of process killed SOLIDWORKS (see IExplodeStep.set_ExplodeDistance).",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 15); memory:esploso_fa_cadere_solidworks.md"
+    },
+    "IExplodeStep.GetComponentName": {
+      "state": "probed_read",
+      "why": "Measured working, part of reading a step's content (a step is read, not just counted).",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 14-15)"
+    },
+    "IExplodeStep.GetNumOfComponents": {
+      "state": "probed_read",
+      "why": "Measured working, read alongside get_Name/get_ExplodeDistance/GetComponentName to describe a step without assuming its content.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 14-15)"
+    },
+    "IExplodeStep.set_ExplodeDistance": {
       "state": "forbidden",
-      "why": "Measured 2026-09-11: opens the \"Modifica\" modal dialog and the COM call never returns while swInputDimValOnCreate is on. Also measured to return null in every sketch-point+model-edge combination tried, and for point-to-point (arc centers) dimensions, and for two silhouette entities. This is exactly the AddDimension the U1.4 forbidden list names.",
-      "source": "memory:api_sw_che_aprono_finestre.md; memory:api_sw_quota_punto_spigolo.md; rag:82zd_l_ancora_costruita_tre_cose_che_la_misura_ha_trovato.md; rag:82zf_il_numero_stampato_e_l_asola_definita.md; rag:82zp_il_tondo_visto_di_fianco_generatrici_che_non_si_lasciano_prendere.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+      "why": "Measured 2026-09-26 evening: writing this property from out of process on a step created by CreateExplodedView raised 0x800706BE (\"RPC server unavailable\") and killed the SLDWORKS process, with the user's own session open since 24/9. Never write it out of process.",
+      "source": "memory:esploso_fa_cadere_solidworks.md; rag:82zn_croci_di_centro_tolleranze_e_il_token_scaduto.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IFeature.GetUpdateStamp": {
+      "state": "never_probed",
+      "why": "Same open question as IBody2.GetUpdateStamp/IModelDoc2.GetUpdateStamp: which of the three stamps changes on selection alone is not yet measured.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (point 6, T1.2)"
+    },
+    "IFeatureManager.EditDeleteFace": {
+      "state": "never_probed",
+      "why": "This is the reconstructive face delete/replace (with Refill option), a DIFFERENT operation from the real 'Delete Face with surface reconstruction' which lives on IBody2.DeleteFaces2-5. Not yet exercised.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
     },
     "IFeatureManager.FeatureExtrusion3": {
       "state": "probed_modifies",
@@ -84,6 +278,69 @@
       },
       "source": "code:OperazioniSw.cs:6368-6386"
     },
+    "IFeatureManager.InsertCosmeticWeldBead": {
+      "state": "probed_modifies",
+      "why": "Measured 2026-09-25: works only via selection (the 'lato'/side variant), ONE face per side, and does NOT check whether the faces actually touch -- it will create a bead between faces that are far apart if that is not checked first.",
+      "source": "memory:api_sw_array_tipizzati.md; rag:82zb_scrivere_il_caso_trova_due_operazioni_mai_funzionanti.md"
+    },
+    "IFeatureManager.InsertCosmeticWeldBead2": {
+      "state": "gray",
+      "why": "Measured null in EVERY form tried (object[], Face2[], and other argument variants) -- never actually created a bead in any tried combination, unlike the older InsertCosmeticWeldBead(lato).",
+      "source": "memory:api_sw_array_tipizzati.md; rag:82zb_scrivere_il_caso_trova_due_operazioni_mai_funzionanti.md; rag:82zm_simbolo_di_saldatura_sviluppo_e_il_posto_sul_foglio.md"
+    },
+    "IFeatureManager.InsertDeleteBody2": {
+      "state": "confirm",
+      "why": "Destructive: deletes a body.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IFeatureManager.InsertGussetFeature": {
+      "state": "gray",
+      "why": "Part of '16 null variants across three calls' (this member plus …2 and …3) all failing to create a gusset feature (GP20); suspected to need a registered macro rather than more blind argument probing.",
+      "source": "memory:api_sw_array_tipizzati.md; rag:82zb_scrivere_il_caso_trova_due_operazioni_mai_funzionanti.md"
+    },
+    "IFeatureManager.InsertGussetFeature2": {
+      "state": "gray",
+      "why": "Same '16 null variants' family as InsertGussetFeature/InsertGussetFeature3.",
+      "source": "memory:api_sw_array_tipizzati.md; rag:82zb_scrivere_il_caso_trova_due_operazioni_mai_funzionanti.md"
+    },
+    "IFeatureManager.InsertGussetFeature3": {
+      "state": "gray",
+      "why": "Same '16 null variants' family; also the last-numbered member of this small family (2 is the only intermediate, no 4/5 exist in the inventory).",
+      "source": "memory:api_sw_array_tipizzati.md; rag:82zb_scrivere_il_caso_trova_due_operazioni_mai_funzionanti.md"
+    },
+    "IFeatureManager.InsertMacroFeature": {
+      "state": "forbidden",
+      "why": "Macro feature: code that runs on every rebuild, saved inside the part.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IFeatureManager.InsertMacroFeature2": {
+      "state": "forbidden",
+      "why": "Same family as InsertMacroFeature.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IFeatureManager.InsertMacroFeature3": {
+      "state": "forbidden",
+      "why": "Same family as InsertMacroFeature.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IFeatureManager.InsertSewRefSurface": {
+      "state": "never_probed",
+      "why": "Real signature confirmed by reflection: 5 arguments, returns Feature. This is the 'real' SewRefSurface the U1.1 acceptance example expects api_search(\"SewRefSurface\") to surface alongside the old-interface Void one below.",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (U1.1 acceptance example)"
+    },
+    "IFeatureManager.InsertSheetMetalGussetFeature3": {
+      "state": "never_probed",
+      "why": "Distinct member from the weldment InsertGussetFeature* family above: this is the SHEET-METAL gusset (swFmSMGusset=118). GP20 only tried the weldment family; this one has not been tried at all yet and should be tried before assuming it shares the same failure.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IFeatureManager.InsertWeldmentCutList2": {
+      "state": "gray",
+      "why": "Named in the same object[]-vs-typed-array trap family as InsertWeldmentTrimFeature2 (both take Body2[]/Face2[]-shaped Object parameters), but this member's own volume/tree measurement has not been independently confirmed the way InsertWeldmentTrimFeature2 was -- treat the typed-array requirement as certain by family, the exact phantom-feature numbers as unconfirmed for this specific member.",
+      "measured_types": {
+        "Bodies": "Body2[] by family with InsertWeldmentTrimFeature2 (not measured on this member)"
+      },
+      "source": "memory:api_sw_array_tipizzati.md"
+    },
     "IFeatureManager.InsertWeldmentTrimFeature2": {
       "state": "probed_modifies",
       "why": "MEASURED 2026-09-25 on a two-member weldment frame (taglia_membri): with object[] for BodiesToTrim/BodiesOrFaces the interop marshals a VARIANT array and SOLIDWORKS answers with a feature that never enters the tree -- part unchanged, NO error at all. With Body2[] typed arrays (or DispatchWrapper[]) the cut is real: volume drops by the expected -58798.23 mm3. This is the cardinal defense of the whole bridge (U1.3): arguments must always be converted to the type the signature declares.",
@@ -92,6 +349,552 @@
         "BodiesOrFaces": "Body2[] or Face2[] (DispatchWrapper[] also works; object[] makes a phantom feature)"
       },
       "source": "memory:api_sw_array_tipizzati.md; rag:82zb_scrivere_il_caso_trova_due_operazioni_mai_funzionanti.md; rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IFeatureManager.PostSplitBody": {
+      "state": "confirm",
+      "why": "Writes SavePaths files to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IFeatureManager.PostSplitBody2": {
+      "state": "confirm",
+      "why": "Same as PostSplitBody.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IFrame.GetHWnd": {
+      "state": "probed_read",
+      "why": "Combined with the Win32 IsWindowEnabled call on this handle, correctly detects an open modal dialog on the main frame in 0 ms, measured 6 readings out of 6 correct (vs. CommandInProgress, wrong on 3/6). This is the guard to use, not CommandInProgress.",
+      "source": "rag:82z_a_banco_acceso_cosa_si_trova_leggendo.md; rag:82za_sei_sonde_diventano_codice_e_quattro_api_che_mentono.md; code:EsecutorePiano.cs:653"
+    },
+    "IJournalManager.RunCommand": {
+      "state": "forbidden",
+      "why": "Same family as ISldWorks.RunCommand.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IJournalManager.WriteJournalToMacro": {
+      "state": "forbidden",
+      "why": "Writes arbitrary executable macro content.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IMassProperty.PrincipleMomentsOfInertia": {
+      "state": "gray",
+      "why": "Measured: answers three zeros on a 200,000 mm3 steel cube. A believable wrong number: never read it; use IModelDocExtension.GetMassProperties slots 6-8.",
+      "source": "code:OperazioniMisura.cs:186-200"
+    },
+    "IMassProperty2.PrincipalMomentsOfInertia": {
+      "state": "gray",
+      "why": "Measured: answers three zeros on a 200,000 mm3 steel cube, like the old spelling on IMassProperty. Use IModelDocExtension.GetMassProperties slots 6-8.",
+      "source": "code:OperazioniMisura.cs:186-200"
+    },
+    "IMathTransform.ArrayData": {
+      "state": "probed_read",
+      "why": "16 numbers. Measured layout: indices 0-8 are the 3x3 rotation matrix stored ROW-MAJOR (row i = indices 3i, 3i+1, 3i+2); indices 9-11 are the translation; index 12 onward: index not tabulated. IMPORTANT: the plane-normal use case measured that the normal is the THIRD ROW (indices 6,7,8), not the third column -- on two of three test planes row and column gave the same answer (50/50 chance of picking the wrong one forever), the third (oblique) plane exposed the difference: row gives the correct (0,-.7071,.7071), column gives the wrong (0,.7071,.7071). Separately, on IComponent2.GetTotalTransform, indices 9-11 were confirmed as translation by asking for z=30 and reading back [0,-2,30] (see IAssemblyDoc.AddComponent5 for the -2 explanation) and predicting+confirming a second case at (0,-5,0).",
+      "source": "code:OperazioniPiani.cs:31; rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 5); rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; memory:numeri_dei_corpi_instabili.md",
+      "indices": {
+        "return": {
+          "0-8": "3x3 rotation, row-major (row i = 3i..3i+2); a plane normal is the THIRD ROW 6-8 (measured on an oblique plane, 16/9/2026)",
+          "9-11": "translation, metres (measured on IComponent2.GetTotalTransform: z = 30 mm read back as [0, -2, 30] mm)"
+        }
+      }
+    },
+    "IModelDoc.AddDimension": {
+      "state": "forbidden",
+      "why": "Old interface, same family as IModelDocExtension.AddDimension/IModelDoc2.AddDimension2 (modal + forbidden by GP6 contract). Never exposed.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IModelDoc.AddDimension2": {
+      "state": "forbidden",
+      "why": "Old interface, forbidden family. Never exposed.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IModelDoc.EditDelete": {
+      "state": "forbidden",
+      "why": "Old interface, same forbidden family as IModelDoc2.EditDelete: asks for confirmation and can bring SOLIDWORKS down. Never exposed anyway (old interface).",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md"
+    },
+    "IModelDoc.IAddDimension2": {
+      "state": "forbidden",
+      "why": "Old interface, forbidden family. Never exposed.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IModelDoc2.AddDimension": {
+      "state": "forbidden",
+      "why": "Forbidden by contract GP6 (Prove.Contratti). Also measured unreliable even when called: returns null for sketch-point+model-edge in all four directions, and for point-to-point dimensions; use AddHorizontalDimension2/AddVerticalDimension2/AddSpecificDimension instead.",
+      "source": "memory:api_sw_quota_punto_spigolo.md; rag:82zd_l_ancora_costruita_tre_cose_che_la_misura_ha_trovato.md; rag:82zf_il_numero_stampato_e_l_asola_definita.md"
+    },
+    "IModelDoc2.AddDimension2": {
+      "state": "forbidden",
+      "why": "Forbidden by contract GP6. Measured to work when called directly (e.g. 30 degrees on 30 exact, 25/9), which is exactly why it is blocked by static contract before reaching the bench.",
+      "source": "memory:api_sw_quota_punto_spigolo.md; rag:82zd_l_ancora_costruita_tre_cose_che_la_misura_ha_trovato.md"
+    },
+    "IModelDoc2.AddHorizontalDimension2": {
+      "state": "probed_modifies",
+      "why": "Measured reliable replacement for AddDimension/AddDimension2 between a sketch point and a model edge (20mm and 30mm exact, 25/9) and between silhouettes (measures from the CENTER). Direction is chosen by the sketch edge's OWN direction: a vertical edge in the sketch takes a horizontal dimension, not the reverse -- e.g. on the right-hand face, sketch x_mm corresponds to model Y.",
+      "source": "memory:api_sw_quota_punto_spigolo.md; rag:82zd_l_ancora_costruita_tre_cose_che_la_misura_ha_trovato.md; rag:82zc_la_tavola_guardata_quattro_difetti_col_banco_verde.md"
+    },
+    "IModelDoc2.AddVerticalDimension2": {
+      "state": "probed_modifies",
+      "why": "Same family and same measured reliability as AddHorizontalDimension2 -- direction chosen from the sketch edge's own orientation, not assumed.",
+      "source": "memory:api_sw_quota_punto_spigolo.md; rag:82zd_l_ancora_costruita_tre_cose_che_la_misura_ha_trovato.md"
+    },
+    "IModelDoc2.BreakAllExternalReferences": {
+      "state": "confirm",
+      "why": "Destructive: severs all external references, only inside U0's sandbox folder.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.DeleteAllRelations": {
+      "state": "confirm",
+      "why": "Destructive: deletes all sketch relations.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.EditDelete": {
+      "state": "forbidden",
+      "why": "Forbidden by contract (ProveLeFirmeVietate). Measured still alive in the codebase on 2026-09-27: OperazioniTabellaFori.cs:358 called modello.EditDelete() to remove a wrongly-created hole table; must be replaced with IModelDocExtension.DeleteSelection2 as already done in OperazioniSw.cs:5852.",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; rag:82zz_ter_i_materiali_dei_due_workflow.md; code:OperazioniTabellaFori.cs:358"
+    },
+    "IModelDoc2.GetUpdateStamp": {
+      "state": "never_probed",
+      "why": "Same open question: not yet measured whether this changes for reasons other than a real rebuild (e.g. mere selection).",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (point 6, T1.2); rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md point 8"
+    },
+    "IModelDoc2.IAddDimension2": {
+      "state": "forbidden",
+      "why": "Same forbidden family as AddDimension2 (typed I-variant).",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IModelDoc2.InsertHelix": {
+      "state": "never_probed",
+      "why": "Void return, ten positional parameters, four of which (Reversed, Clockwised, Tapered, Outward) are ALL contiguous Booleans -- exactly the 'wrong but plausible number' risk pattern if two are swapped, since a mixed-up pair would not raise an error, it would just build a different helix. Correct owner found by reflection (IModelDoc2, not IFeatureManager, correcting an earlier TODO assumption) but never actually called.",
+      "source": "memory:riflessione_cad_spento.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IModelDoc2.InsertMacroFeature": {
+      "state": "forbidden",
+      "why": "Same family as IFeatureManager.InsertMacroFeature*.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.InsertOffsetSurface": {
+      "state": "never_probed",
+      "why": "Confirmed Void return by reflection -- the exact U1.1 acceptance example of a member whose new feature is only found via the before/after photo (FotoDelPezzo), never from its own return value. Not runtime-measured beyond the signature.",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (U1.1 acceptance example)"
+    },
+    "IModelDoc2.InsertSewRefSurface": {
+      "state": "never_probed",
+      "why": "Same name as IFeatureManager.InsertSewRefSurface but zero arguments, returns Void -- the exact 'same name, two different real signatures' trap named in the U1.1 acceptance example (api_search must return both, not collapse to one).",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (U1.1 acceptance example)"
+    },
+    "IModelDoc2.Save": {
+      "state": "confirm",
+      "why": "Writes to disk; rule 'every Save*/SaveAs* asks for human confirmation'.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.Save2": {
+      "state": "confirm",
+      "why": "Same rule as Save.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.Save3": {
+      "state": "confirm",
+      "why": "Same rule as Save.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.SaveAs": {
+      "state": "confirm",
+      "why": "Writes a (possibly new) file to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.SaveAs2": {
+      "state": "confirm",
+      "why": "Same rule as SaveAs.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.SaveAs3": {
+      "state": "confirm",
+      "why": "Same rule as SaveAs. This is the exact member on which api/save_denied_writes_nothing is specified (denied confirmation -> File.Exists false).",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (U1.4 spec)"
+    },
+    "IModelDoc2.SaveAs4": {
+      "state": "confirm",
+      "why": "Same rule as SaveAs.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.SaveAsSilent": {
+      "state": "confirm",
+      "why": "Same rule as SaveAs (silent still writes to disk).",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.SaveBMP": {
+      "state": "confirm",
+      "why": "Writes an image file to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDoc2.SaveSilent": {
+      "state": "confirm",
+      "why": "Same rule as Save.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.AddDimension": {
+      "state": "forbidden",
+      "why": "Measured 2026-09-11: opens the \"Modifica\" modal dialog and the COM call never returns while swInputDimValOnCreate is on. Also measured to return null in every sketch-point+model-edge combination tried, and for point-to-point (arc centers) dimensions, and for two silhouette entities. This is exactly the AddDimension the U1.4 forbidden list names.",
+      "source": "memory:api_sw_che_aprono_finestre.md; memory:api_sw_quota_punto_spigolo.md; rag:82zd_l_ancora_costruita_tre_cose_che_la_misura_ha_trovato.md; rag:82zf_il_numero_stampato_e_l_asola_definita.md; rag:82zp_il_tondo_visto_di_fianco_generatrici_che_non_si_lasciano_prendere.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IModelDocExtension.AddSpecificDimension": {
+      "state": "probed_modifies",
+      "why": "Measured the ONLY working way to dimension an angle between a sketch line and a model edge (30 degrees measured exact, using swAngularDimension) after both Extension.AddDimension and AddDimension2 failed/were forbidden for that combination. On an arc, the dimension it creates is the RADIUS.",
+      "source": "memory:api_sw_quota_punto_spigolo.md; rag:82zf_il_numero_stampato_e_l_asola_definita.md"
+    },
+    "IModelDocExtension.BreakAllExternalFileReferences2": {
+      "state": "confirm",
+      "why": "Same as BreakAllExternalReferences.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.DeleteSelection2": {
+      "state": "confirm",
+      "why": "Destructive deletion, needs confirmation; is also the correct replacement for the forbidden EditDelete (used already in OperazioniSw.cs:5852 with a before/after table count).",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; code:OperazioniSw.cs:5852"
+    },
+    "IModelDocExtension.GetDependencies": {
+      "state": "probed_read",
+      "why": "Called as GetDependencies(true,true,false,true,false). Returns a flat object[] of alternating (name, path) pairs, e.g. \"zb3_base\", path, \"zb3_coperchio\", path. MEASURED: the 4th argument (documented as ListBrokenRefs) marks NOTHING even when called on an assembly with a genuinely broken reference -- result was identical to the sane assembly. Do not rely on it to flag broken references.",
+      "source": "rag:82zx_da_quali_file_dipende_un_assieme.md; code:OperazioniDipendenze.cs:15"
+    },
+    "IModelDocExtension.GetMassProperties": {
+      "state": "probed_read",
+      "why": "Returns thirteen numbers (declared Object). Measured: the principal moments of inertia are at 6, 7, 8 (0.001387, 0.001387, 0.002667 kg m2 on a 200,000 mm3 steel cube). The other slots are not tabulated here.",
+      "indices": {
+        "return": {
+          "6-8": "principal moments of inertia, kg m2 (measured)"
+        }
+      },
+      "source": "code:OperazioniMisura.cs:44-56,186-200"
+    },
+    "IModelDocExtension.GetObjectByPersistReference3": {
+      "state": "probed_read",
+      "why": "Second Int32& ErrorCode parameter carries the real result. Measured (case 80z): 6 of 8 references resolved after a feature suppression, the 2 missing ones came back with ErrorCode=1 -- whether a persistent reference survives a suppression specifically is still to be re-measured before relying on it there.",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (rischi, U1.2)"
+    },
+    "IModelDocExtension.GetPersistReference3": {
+      "state": "probed_read",
+      "why": "Returns a byte[] blob (declared Object). Measured in version 0.1: re-found 8 out of 8 faces across all five successful modifications tried, including the three cases where a sketch-point anchor was independently lost -- persistent references are more robust than the point-based anchor for this use case.",
+      "source": "code:StatoDocumento.cs:381"
+    },
+    "IModelDocExtension.GetWhatsWrongCount": {
+      "state": "probed_read",
+      "why": "NOTE ON THE OWNER: the name suggests IAssemblyDoc, but that member does not exist there (inventory-checked); the real owner is IModelDocExtension. Measured essential for detecting a mate that SURVIVES a component replacement but goes into error (pointing at faces that no longer exist): mate count alone stayed 2-before/2-after (looked fine), while GetWhatsWrongCount went 0-before/2-after (broken). A mate that stays is not the same as a mate that works.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 11); code:OperazioniSostituisci.cs:47"
+    },
+    "IModelDocExtension.IsExploded": {
+      "state": "probed_read",
+      "why": "Measured working: follows ShowExploded2(true, name) and reports whether the assembly is currently shown exploded, and under what view name. Needed because GetTotalTransform(true) silently returns exploded-view positions.",
+      "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 14-15)"
+    },
+    "IModelDocExtension.IsSamePersistentID": {
+      "state": "gray",
+      "why": "Returns Int32, NOT Boolean: it is a swObjectEquality (swObjectNotSame = 0, swObjectSame = 1, swObjectUnsupported = 2). The \"true 46 times out of 46\" of Z-A7 does not say which of the two non-zero values it was. The decision not to use it does not change: if it was 1 it never discriminated, if it was 2 it is not supported. GetObjectByPersistReference3 + a corroborating read are used instead.",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (point 8); rag:80z_le_misure_che_sbloccano.md; TODO U, point 13"
+    },
+    "IModelDocExtension.RunCommand": {
+      "state": "forbidden",
+      "why": "Same family as ISldWorks.RunCommand.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.SaveAs": {
+      "state": "confirm",
+      "why": "Writes to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.SaveAs2": {
+      "state": "confirm",
+      "why": "Writes to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.SaveAs3": {
+      "state": "confirm",
+      "why": "Writes to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.SelectByID2": {
+      "state": "probed_modifies",
+      "why": "IMPORTANT: exists ONLY on IModelDocExtension in this interop, not on IModelDoc2 -- must be called through Extension. Used with mark strings such as \"BODYFEATURE\"; measured that selecting by a feature's CURRENT display name (e.g. after a rename to \"Taglio-Estruso1\") returns false if the code still looks for the old name (\"Cut-Extrude1\"), i.e. selection by name is fragile across a language/rename change. SelectByID2 exists only on IModelDocExtension (9 arguments, with Mark and Callout); the other preselection is IEntity.Select4(Boolean Append, SelectData Data).",
+      "source": "rag:82h_tre_sonde_che_costruivano_il_pezzo_sbagliato.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IModelDocExtension.SetUserPreferenceDouble": {
+      "state": "confirm",
+      "why": "Same rule as SetUserPreferenceToggle (document preference).",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.SetUserPreferenceInteger": {
+      "state": "confirm",
+      "why": "Same rule as SetUserPreferenceToggle (document preference).",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.SetUserPreferenceString": {
+      "state": "confirm",
+      "why": "Same rule as SetUserPreferenceToggle (document preference).",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.SetUserPreferenceTextFormat": {
+      "state": "confirm",
+      "why": "Same rule as SetUserPreferenceToggle (document preference).",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IModelDocExtension.SetUserPreferenceToggle": {
+      "state": "confirm",
+      "why": "Changes how the document's numbers are interpreted (unit-level document preferences); confirm by rule. NOTE: this is a DIFFERENT member from the guard's own internal ISldWorks.SetUserPreferenceToggle use for swInputDimValOnCreate(=10)/swShowErrorsEveryRebuild(=77), which the CallGuard flips and restores itself and is not gated by user confirmation.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)",
+      "enums": {
+        "UserPref": "swUserPreferenceToggle_e",
+        "UserPrefOption": "swUserPreferenceOption_e"
+      }
+    },
+    "IPartDoc.ExportFlatPatternView": {
+      "state": "gray",
+      "why": "Measured 2026-09-24: on a part that was never saved, opens the \"Save As\" dialog and the call does not return. Save the document first, or call from a separate thread with a hard timeout.",
+      "source": "memory:api_sw_che_aprono_finestre.md"
+    },
+    "IPartDoc.GetBodies2": {
+      "state": "probed_read",
+      "why": "BodyType is a swBodyType_e. The state reading passes swSolidBody only (StatoDocumento), which is why surface bodies are not seen today (TODO U, point 1). Lives on IPartDoc, not IModelDoc2.",
+      "enums": {
+        "BodyType": "swBodyType_e"
+      },
+      "source": "code:OperazioniCorpi.cs:129; code:StatoDocumento.cs:791"
+    },
+    "IPartDoc.SaveToFile": {
+      "state": "confirm",
+      "why": "Writes to disk (e.g. flat pattern export).",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IPartDoc.SaveToFile2": {
+      "state": "confirm",
+      "why": "Same rule as SaveToFile.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IPartDoc.SaveToFile3": {
+      "state": "confirm",
+      "why": "Same rule as SaveToFile.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IPartExplodeStep.set_ExplodeDistance": {
+      "state": "forbidden",
+      "why": "Same crash family as IExplodeStep.set_ExplodeDistance (sister interface on part-level explode steps).",
+      "source": "memory:esploso_fa_cadere_solidworks.md"
+    },
+    "ISilhouetteEdge.GetCurve": {
+      "state": "gray",
+      "why": "Measured to return null from out of process (does not crash like GetStartPoint/GetEndPoint, but gives nothing usable).",
+      "source": "memory:api_sw_generatrici_e_step.md; rag:82zp_il_tondo_visto_di_fianco_generatrici_che_non_si_lasciano_prendere.md"
+    },
+    "ISilhouetteEdge.GetEndPoint": {
+      "state": "forbidden",
+      "why": "Same measured RPC_E_SERVERFAULT as GetStartPoint.",
+      "source": "memory:api_sw_generatrici_e_step.md; rag:82zp_il_tondo_visto_di_fianco_generatrici_che_non_si_lasciano_prendere.md"
+    },
+    "ISilhouetteEdge.GetFace": {
+      "state": "gray",
+      "why": "Measured null until GraphicsRedraw2 is called and the entity re-requested; even after redraw some faces on some geometries (bushings) never come back, and after a new dimension previously-read silhouettes may stop selecting.",
+      "source": "memory:api_sw_generatrici_e_step.md; rag:82zp_il_tondo_visto_di_fianco_generatrici_che_non_si_lasciano_prendere.md; code:OperazioniTondoTavola.cs:218"
+    },
+    "ISilhouetteEdge.GetStartPoint": {
+      "state": "forbidden",
+      "why": "Measured 2026-09-27: called from out of process raises RPC_E_SERVERFAULT (SOLIDWORKS itself throws). Named explicitly in the U1.4 forbidden list.",
+      "source": "memory:api_sw_generatrici_e_step.md; rag:82zp_il_tondo_visto_di_fianco_generatrici_che_non_si_lasciano_prendere.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "ISldWorks.ActivateDoc": {
+      "state": "forbidden",
+      "why": "Measured 2026-09-14: changes the active document seen by OTHER sessions on the same SOLIDWORKS process; a test estrudi_rettangolo landed inside another session's Parte4 this way. Bridge must keep its own IModelDoc2 reference, never ActiveDoc/Activate*.",
+      "source": "memory:solidworks_documento_attivo.md"
+    },
+    "ISldWorks.ActivateDoc2": {
+      "state": "forbidden",
+      "why": "Same measured risk as ActivateDoc.",
+      "source": "memory:solidworks_documento_attivo.md"
+    },
+    "ISldWorks.ActivateDoc3": {
+      "state": "forbidden",
+      "why": "Same measured risk as ActivateDoc.",
+      "source": "memory:solidworks_documento_attivo.md"
+    },
+    "ISldWorks.AddMenu": {
+      "state": "forbidden",
+      "why": "Modifies the application UI for every user of this SOLIDWORKS instance.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.AddMenuItem2": {
+      "state": "forbidden",
+      "why": "Same family as AddMenu.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.AddMenuItem3": {
+      "state": "forbidden",
+      "why": "Same family as AddMenu.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.AddMenuItem4": {
+      "state": "forbidden",
+      "why": "Same family as AddMenu.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.AddMenuItem5": {
+      "state": "forbidden",
+      "why": "Same family as AddMenu.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.AddToolbar": {
+      "state": "forbidden",
+      "why": "Same family as AddMenu.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.AddToolbar2": {
+      "state": "forbidden",
+      "why": "Same family as AddMenu.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.AddToolbar3": {
+      "state": "forbidden",
+      "why": "Same family as AddMenu.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.CloseAllDocuments": {
+      "state": "forbidden",
+      "why": "Closes documents belonging to other sessions on the same SOLIDWORKS (multiple sessions share one process, measured).",
+      "source": "memory:solidworks_documento_attivo.md; rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.CloseDoc": {
+      "state": "forbidden",
+      "why": "Forbidden for a document this session did not open or create (multi-session risk, measured); the bridge closes only its own documents, always discarding, never saving.",
+      "source": "memory:solidworks_documento_attivo.md; rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.CopyDocument": {
+      "state": "confirm",
+      "why": "Writes new files to disk.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.ExitApp": {
+      "state": "forbidden",
+      "why": "Closes the whole application; other sessions/users share the same SOLIDWORKS process and license seat (K7).",
+      "source": "memory:esploso_fa_cadere_solidworks.md (why: crash cost); rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.Frame": {
+      "state": "probed_read",
+      "why": "Returns the main window Object (declared Object, not a typed Frame) from which GetHWnd is obtained for the modal guard.",
+      "source": "code:EsecutorePiano.cs:653"
+    },
+    "ISldWorks.GetAddInObject": {
+      "state": "forbidden",
+      "why": "From here one reaches the OpenPDM add-in and its vault.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.IActivateDoc2": {
+      "state": "forbidden",
+      "why": "Same measured risk as ActivateDoc (typed variant).",
+      "source": "memory:solidworks_documento_attivo.md"
+    },
+    "ISldWorks.IActivateDoc3": {
+      "state": "forbidden",
+      "why": "Same measured risk as ActivateDoc (typed variant).",
+      "source": "memory:solidworks_documento_attivo.md"
+    },
+    "ISldWorks.LoadAddIn": {
+      "state": "forbidden",
+      "why": "Changes what is loaded in the whole application, can reach the OpenPDM add-in and its vault.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.LoadFile4": {
+      "state": "forbidden",
+      "why": "Measured: loading a STEP file opens the modal \"New SOLIDWORKS Document\" dialog (model template chooser) and the call does not return until someone closes it; closed with Cancel, the import still proceeded as a 2-component assembly. Forbidden until U10 finds a way without the modal. To verify a STEP without importing, count MANIFOLD_SOLID_BREP occurrences in the file text instead.",
+      "source": "memory:api_sw_generatrici_e_step.md; rag:82zq_l_assieme_intero_si_pesa_si_misura_si_manda.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "ISldWorks.QuitDoc": {
+      "state": "forbidden",
+      "why": "Same multi-session risk as CloseAllDocuments.",
+      "source": "memory:solidworks_documento_attivo.md; rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.RunCommand": {
+      "state": "forbidden",
+      "why": "Arbitrary command execution, forbidden on ISldWorks/IModelDocExtension/IJournalManager.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.RunMacro": {
+      "state": "forbidden",
+      "why": "Arbitrary code execution surface: forbidden by U1.4 rule regardless of family/overload.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.RunMacro2": {
+      "state": "forbidden",
+      "why": "Same family as RunMacro.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.SendMsgToUser": {
+      "state": "forbidden",
+      "why": "Opens a modal message box; same trap family as AddDimension (blocking dialog, COM call never returns).",
+      "source": "memory:api_sw_che_aprono_finestre.md; rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.SendMsgToUser2": {
+      "state": "forbidden",
+      "why": "Same modal family as SendMsgToUser.",
+      "source": "memory:api_sw_che_aprono_finestre.md; rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.SetCurrentWorkingDirectory": {
+      "state": "forbidden",
+      "why": "Application-wide setting, affects other sessions.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.SetSearchFolders": {
+      "state": "forbidden",
+      "why": "Application-wide setting.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.SetUserPreferenceToggle": {
+      "state": "confirm",
+      "why": "Application-wide preference, persists in the Windows registry: confirm by rule for general use. Two specific values are the known measured exception, flipped and restored automatically by the call guard itself (not user-facing confirm): swInputDimValOnCreate(=10) before any call that could pop the \"Modifica\" quote dialog, and swShowErrorsEveryRebuild(=77) around rebuilds, both saved to a %LOCALAPPDATA% file and mutex-guarded across processes so two overlapping bridge/bench/add-in instances cannot leave the toggle stuck off.",
+      "source": "memory:api_sw_che_aprono_finestre.md; rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; code:EsecutorePiano.cs:252-266,441-450; code:OperazioniAncora.cs:736",
+      "enums": {
+        "UserPreferenceValue": "swUserPreferenceToggle_e"
+      }
+    },
+    "ISldWorks.UnloadAddIn": {
+      "state": "forbidden",
+      "why": "Same reach as LoadAddIn.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.get_ActiveDoc": {
+      "state": "forbidden",
+      "why": "Bridge must use its own kept obj:doc reference, never the shared ActiveDoc (multi-session risk, measured 14/9).",
+      "source": "memory:solidworks_documento_attivo.md; rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.get_CommandInProgress": {
+      "state": "gray",
+      "why": "Measured UNRELIABLE as a modal-dialog guard: stays False while a modal dialog is open (wrong on 3 of 6 readings in one run). Do not use it to detect a stuck/blocked call.",
+      "source": "rag:82z_a_banco_acceso_cosa_si_trova_leggendo.md; rag:82za_sei_sonde_diventano_codice_e_quattro_api_che_mentono.md"
+    },
+    "ISldWorks.get_IActiveDoc2": {
+      "state": "forbidden",
+      "why": "Same reason as get_ActiveDoc (typed variant).",
+      "source": "memory:solidworks_documento_attivo.md"
+    },
+    "ISldWorks.set_UserControl": {
+      "state": "forbidden",
+      "why": "Application-wide setting.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "ISldWorks.set_Visible": {
+      "state": "forbidden",
+      "why": "Application-wide setting, another user's session.",
+      "source": "rag:82zz_ter_i_materiali_dei_due_workflow.md (U1.4 spec)"
+    },
+    "IView.AutoInsertCenterMarks2": {
+      "state": "never_probed",
+      "why": "Correct owner found by reflection while SOLIDWORKS was locked (23-24/9), replacing a wrong assumption in the TODO; not run/measured at runtime, only confirmed to exist with this signature.",
+      "source": "memory:riflessione_cad_spento.md"
+    },
+    "IView.GetPolylines7": {
+      "state": "probed_read",
+      "why": "Returns Object (the curve objects); the out parameter Polylines (Object&) carries a positional numeric array whose slot meanings have never been measured on this project: index not tabulated, do not assume a \"classic\" order. Measured: on the stepped-shaft example, for the silhouette of the D20 face the object in GetPolylines7 was null.",
+      "source": "code:OperazioniTondoTavola.cs:26; rag:82zp_il_tondo_visto_di_fianco_generatrici_che_non_si_lasciano_prendere.md"
+    },
+    "IView.InsertWeldmentTable": {
+      "state": "never_probed",
+      "why": "Correct owner found by reflection while SOLIDWORKS was locked (23-24/9); not run/measured at runtime.",
+      "source": "memory:riflessione_cad_spento.md"
     }
   }
 }
