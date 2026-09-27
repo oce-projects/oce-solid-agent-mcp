@@ -132,9 +132,11 @@ namespace Prove.Contratti
         /// («Scegli una quota lineare») e la quota non mostrata («mostra la quota»).
         /// **106:** GT9 — la distinta base e la bollatura dicono cosa mettere prima
         /// (la vista di un assieme, la distinta prima della bollatura) e cosa usare
-        /// per un saldato.
+        /// per un saldato. **108:** Z-D1/Z-D6 — un documento che non e' ne' pezzo
+        /// ne' assieme («Aprimi il pezzo o l'assieme»), lo STL di un assieme («usa
+        /// esporta_step»), la rilettura dello STEP d'assieme («toglilo e richiedimelo»).
         /// </summary>
-        private const int Pavimento = 106;
+        private const int Pavimento = 108;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

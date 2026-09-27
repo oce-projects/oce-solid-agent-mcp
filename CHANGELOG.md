@@ -24,6 +24,31 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.103.0 — 27 September 2026 · library 0.128.0
+
+**The whole assembly: how much it weighs, how big it is, and the STEP to send
+(entries Z-D1, Z-D6).** `proprieta_di_massa`, `ingombro_corpo`,
+`esporta_step` and `esporta_iges` refused an assembly («not a part»).
+Measured first (base in AISI 304, lid in S235JR, a third instance
+suppressed):
+
+- `CreateMassProperty()` on the assembly, with no bodies added, gives
+  exactly the sum of the parts (1.06752 kg); the suppressed component does
+  not weigh. The answer checks it against the parts read one by one and stops
+  if they differ; a part without material makes the mass null, naming it.
+- `IComponent2.GetBodies3` returns bodies in PART space (the lid at y 0..4
+  instead of 5..9): the bounding box uses a copy of each body moved with the
+  component's `Transform2`.
+- The assembly STEP is written like a part's, and the check is the count of
+  `MANIFOLD_SOLID_BREP` in the text against the solid bodies of the
+  unsuppressed parts: reopening an assembly STEP with `LoadFile4` opens the
+  «New document» dialog and the call never returns, so
+  `riapri_e_confronta` is refused on an assembly, saying why.
+
+Suppressed components are listed, never silently dropped. The STL of an
+assembly is still refused, now pointing to `esporta_step`. New case
+`assiemi/l_assieme_si_pesa_si_misura_si_manda`.
+
 ## 0.102.0 — 27 September 2026 · library 0.127.0
 
 **A turned part dimensioned from the side (entry GT14).** Until now the

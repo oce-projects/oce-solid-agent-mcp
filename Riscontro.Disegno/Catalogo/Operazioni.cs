@@ -3278,7 +3278,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "proprieta_di_massa",
                     Famiglia = "verifiche",
-                    DocumentoRichiesto = "parte",
+                    DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
                         "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
@@ -3294,7 +3294,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "RICALCOLATA a mano (volume per densita') accanto a quella di "
                         + "SOLIDWORKS: se le due divergono, una delle misure non e' nelle "
                         + "unita' che dichiara, ed e' il modo in cui un fattore mille si fa "
-                        + "vedere invece di nascondersi.",
+                        + "vedere invece di nascondersi."
+                        + "\n\nSU UN ASSIEME peso l'assieme intero (i componenti soppressi no, e "
+                        + "te li elenco) e controllo la massa contro la somma dei pezzi letti uno "
+                        + "per uno: se non combaciano mi fermo. Se un pezzo non ha materiale, la "
+                        + "massa e' null e ti dico quale.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -3309,7 +3313,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "ingombro_corpo",
                     Famiglia = "verifiche",
-                    DocumentoRichiesto = "parte",
+                    DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
                         "La scatola del pezzo in mm, corpo per corpo e tutta insieme.",
@@ -3322,7 +3326,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "scatola ALLINEATA AGLI ASSI del modello, non la piu' piccola "
                         + "possibile: un pezzo lungo messo in diagonale ha un ingombro molto "
                         + "piu' grande di quello che gli servirebbe girato bene, e questa "
-                        + "misura non dice come girarlo.",
+                        + "misura non dice come girarlo."
+                        + "\n\nSU UN ASSIEME misuro ogni pezzo nel posto in cui sta nell'assieme "
+                        + "e la scatola che li contiene tutti; i componenti soppressi no, e te "
+                        + "li elenco.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -3580,7 +3587,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "esporta_step",
                     Famiglia = "esportazioni",
-                    DocumentoRichiesto = "parte",
+                    DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
                         "Scrive lo STEP per chi deve lavorare il pezzo, e rilegge dal file "
@@ -3600,7 +3607,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "«riapri_e_confronta» il file viene riaperto in SOLIDWORKS e il suo "
                         + "volume confrontato col pezzo: e' l'unica misura che dice che la "
                         + "GEOMETRIA e' sopravvissuta alla traduzione. Costa un'apertura di "
-                        + "documento, quindi non e' il predefinito.",
+                        + "documento, quindi non e' il predefinito."
+                        + "\n\nANCHE UN ASSIEME: lo scrivo intero e conto i solidi nel file contro "
+                        + "quelli dei pezzi non soppressi. «riapri_e_confronta» su un assieme lo "
+                        + "rifiuto: rileggere lo STEP di un assieme apre una finestra e la chiamata "
+                        + "non torna.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -3626,7 +3637,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "esporta_iges",
                     Famiglia = "esportazioni",
-                    DocumentoRichiesto = "parte",
+                    DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
                         "Scrive l'IGES, per i CAD e le macchine che lo STEP non lo leggono.",

@@ -74,7 +74,8 @@ namespace Riscontro.Disegno
             var parte = modello as IPartDoc;
             if (parte == null)
                 return Fallito(
-                    "Questo documento non e' un pezzo: lo STL si esporta da una parte.");
+                    "Questo documento non e' un pezzo: lo STL si esporta da una parte. Per mandare un " +
+                    "assieme usa «esporta_step», che lo porta intero.");
 
             // ── 1. LA VERIFICA VIENE PRIMA, e puo' fermare tutto ──────────
             //
@@ -387,9 +388,16 @@ namespace Riscontro.Disegno
             StatoDocumento stato)
         {
             var parte = modello as IPartDoc;
-            if (parte == null)
+            var assieme = modello as IAssemblyDoc;   // voce Z-D6: anche l'assieme si manda
+            if (parte == null && assieme == null)
                 return Fallito(
-                    "Questo documento non e' un pezzo: STEP e IGES si esportano da una parte.");
+                    "Questo documento non e' un pezzo ne' un assieme: STEP e IGES si esportano da una " +
+                    "parte o da un assieme. Aprimi quello da mandare.");
+            if (assieme != null && Bool(a, "riapri_e_confronta", false))
+                return Fallito(
+                    "Su un assieme «riapri_e_confronta» non lo faccio: rileggere lo STEP di un assieme apre " +
+                    "la finestra «Nuovo documento» e la chiamata non torna (misurato). Il controllo che faccio " +
+                    "e' il conto dei solidi nel file contro quelli dei pezzi: toglilo e richiedimelo.");
 
             bool iges = operazione == "esporta_iges";
             string[] estensioniBuone = iges
@@ -400,9 +408,13 @@ namespace Riscontro.Disegno
             // viaggia con la risposta: chi manda un pezzo a un fornitore ha
             // diritto di sapere che aveva due corpi, non di essere fermato.
             string giudizio = "";
-            var verifica = VerificaGeometriaCorpo(modello, new Dictionary<string, object>(), stato);
-            if (verifica.Riuscito && verifica.Misure != null && verifica.Misure.ContainsKey("giudizio"))
-                giudizio = Convert.ToString(verifica.Misure["giudizio"]);
+            if (parte != null)
+            {
+                var verifica = VerificaGeometriaCorpo(modello, new Dictionary<string, object>(), stato);
+                if (verifica.Riuscito && verifica.Misure != null && verifica.Misure.ContainsKey("giudizio"))
+                    giudizio = Convert.ToString(verifica.Misure["giudizio"]);
+            }
+            else giudizio = "assieme: la verifica dei corpi si fa sui pezzi, uno per uno";
 
             string dove = Str(a, "percorso", null);
             if (string.IsNullOrWhiteSpace(dove))
@@ -541,6 +553,20 @@ namespace Riscontro.Disegno
                         " (FILE_SCHEMA «" + schema + "»). Il file c'e' e non e' il " +
                         "protocollo che serve: certi fornitori accettano solo il 203. (" +
                         dove + ")");
+                // L'ASSIEME INTERO NEL FILE (voce Z-D6): un MANIFOLD_SOLID_BREP per
+                // corpo, contro i corpi dei pezzi non soppressi. Rileggerlo non si
+                // puo' (apre un modale): si contano i solidi nel testo.
+                if (assieme != null)
+                {
+                    int attesi = SolidiAttesiNellAssieme(assieme);
+                    int nelFile = SolidiNelloStep(dove);
+                    misure["solidi_attesi"] = attesi >= 0 ? (object)attesi : null;
+                    misure["solidi_nel_file"] = nelFile >= 0 ? (object)nelFile : null;
+                    if (attesi >= 0 && nelFile >= 0 && nelFile < attesi)
+                        return Fallito(
+                            "Lo STEP dell'assieme ha " + nelFile + " solidi e i pezzi non soppressi ne hanno " +
+                            attesi + ": qualcosa non e' arrivato nel file. (" + dove + ")");
+                }
             }
 
             // ── LA PROVA VERA, SE LA SI CHIEDE ───────────────────────────

@@ -70,9 +70,13 @@ namespace Riscontro.Disegno
         private Esito ProprietaDiMassa(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
+            // L'ASSIEME HA LA SUA STRADA (voce Z-D1): CreateMassProperty sull'assieme
+            // intero, controllata contro la somma dei pezzi (OperazioniMisuraAssieme).
+            if (modello is IAssemblyDoc) return ProprietaDiMassaAssieme(modello, a);
             var parte = modello as IPartDoc;
             if (parte == null)
-                return Fallito("Questo documento non e' un pezzo: non ha corpi da pesare.");
+                return Fallito("Questo documento non e' un pezzo ne' un assieme: non ha corpi da pesare. " +
+                               "Aprimi il pezzo o l'assieme.");
 
             var corpi = CorpiScelti(parte, Str(a, "corpo_uid", null), out string motivo);
             if (corpi == null) return Fallito(motivo);
@@ -219,9 +223,11 @@ namespace Riscontro.Disegno
         private Esito IngombroCorpo(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
+            if (modello is IAssemblyDoc) return IngombroAssieme(modello, a);   // voce Z-D1
             var parte = modello as IPartDoc;
             if (parte == null)
-                return Fallito("Questo documento non e' un pezzo: non ha corpi da misurare.");
+                return Fallito("Questo documento non e' un pezzo ne' un assieme: non ha corpi da misurare. " +
+                               "Aprimi il pezzo o l'assieme.");
 
             var corpi = CorpiScelti(parte, Str(a, "corpo_uid", null), out string motivo);
             if (corpi == null) return Fallito(motivo);

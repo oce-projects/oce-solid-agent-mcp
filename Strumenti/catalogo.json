@@ -2823,7 +2823,7 @@
    "nome": "proprieta_di_massa",
    "famiglia": "verifiche",
    "sommario": "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
-   "descrizione": "Risponde a «quanto pesa questo pezzo»: volume, area della superficie, massa, densita' e baricentro.\n\nLA MASSA SENZA MATERIALE NON E' ZERO, E' «NON SI SA»: se al pezzo non e' stato dato un materiale ti rispondo null e ti dico perche'. SOLIDWORKS risponderebbe lo stesso usando la densita' predefinita del modello -- di solito 1000 kg/m3, cioe' acqua -- e un pezzo d'acciaio che pesa come l'acqua e' un numero credibile e sbagliato di otto volte. Usa prima «applica_materiale».\n\nLa massa arriva anche RICALCOLATA a mano (volume per densita') accanto a quella di SOLIDWORKS: se le due divergono, una delle misure non e' nelle unita' che dichiara, ed e' il modo in cui un fattore mille si fa vedere invece di nascondersi.",
+   "descrizione": "Risponde a «quanto pesa questo pezzo»: volume, area della superficie, massa, densita' e baricentro.\n\nLA MASSA SENZA MATERIALE NON E' ZERO, E' «NON SI SA»: se al pezzo non e' stato dato un materiale ti rispondo null e ti dico perche'. SOLIDWORKS risponderebbe lo stesso usando la densita' predefinita del modello -- di solito 1000 kg/m3, cioe' acqua -- e un pezzo d'acciaio che pesa come l'acqua e' un numero credibile e sbagliato di otto volte. Usa prima «applica_materiale».\n\nLa massa arriva anche RICALCOLATA a mano (volume per densita') accanto a quella di SOLIDWORKS: se le due divergono, una delle misure non e' nelle unita' che dichiara, ed e' il modo in cui un fattore mille si fa vedere invece di nascondersi.\n\nSU UN ASSIEME peso l'assieme intero (i componenti soppressi no, e te li elenco) e controllo la massa contro la somma dei pezzi letti uno per uno: se non combaciano mi fermo. Se un pezzo non ha materiale, la massa e' null e ti dico quale.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2835,14 +2835,14 @@
     "required": []
    },
    "precondizione": "corpo_solido",
-   "documento": "parte",
+   "documento": "parte/assieme",
    "esempio": null
   },
   {
    "nome": "ingombro_corpo",
    "famiglia": "verifiche",
    "sommario": "La scatola del pezzo in mm, corpo per corpo e tutta insieme.",
-   "descrizione": "Risponde a «entra nella scatola 300x260x40»: da dove a dove arriva il pezzo su ognuno dei tre assi, e quanto misura.\n\nI punti sono quelli VERI del corpo, presi in sei direzioni, non la scatola approssimata: un ingombro dichiarato piu' grande del vero fa dimensionare male tutto quello che ci sta intorno.\n\nE' la scatola ALLINEATA AGLI ASSI del modello, non la piu' piccola possibile: un pezzo lungo messo in diagonale ha un ingombro molto piu' grande di quello che gli servirebbe girato bene, e questa misura non dice come girarlo.",
+   "descrizione": "Risponde a «entra nella scatola 300x260x40»: da dove a dove arriva il pezzo su ognuno dei tre assi, e quanto misura.\n\nI punti sono quelli VERI del corpo, presi in sei direzioni, non la scatola approssimata: un ingombro dichiarato piu' grande del vero fa dimensionare male tutto quello che ci sta intorno.\n\nE' la scatola ALLINEATA AGLI ASSI del modello, non la piu' piccola possibile: un pezzo lungo messo in diagonale ha un ingombro molto piu' grande di quello che gli servirebbe girato bene, e questa misura non dice come girarlo.\n\nSU UN ASSIEME misuro ogni pezzo nel posto in cui sta nell'assieme e la scatola che li contiene tutti; i componenti soppressi no, e te li elenco.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2854,7 +2854,7 @@
     "required": []
    },
    "precondizione": "corpo_solido",
-   "documento": "parte",
+   "documento": "parte/assieme",
    "esempio": null
   },
   {
@@ -3052,7 +3052,7 @@
    "nome": "esporta_step",
    "famiglia": "esportazioni",
    "sommario": "Scrive lo STEP per chi deve lavorare il pezzo, e rilegge dal file quale protocollo e' uscito davvero.",
-   "descrizione": "Scrive il pezzo come STEP: e' il formato con cui si manda un pezzo a un fornitore, a un cliente, o lo si porta in un altro CAD.\n\nA differenza dello STL NON SI RIFIUTA se il pezzo ha piu' corpi o delle superfici: uno STEP li porta, e un saldato si manda al fornitore proprio cosi'. La verifica gira lo stesso e il suo giudizio torna nella risposta, cosi' sai com'era il pezzo che hai mandato.\n\nDOPO AVER SCRITTO RILEGGE IL FILE e dice quale protocollo e' uscito DAVVERO, non quale hai chiesto: il valore che governa la cosa e' un numero senza nome nell'API, e l'unica prova e' il FILE_SCHEMA scritto dentro il file. Se non combacia, fallisce -- certi fornitori accettano solo l'AP203.\n\nCon «riapri_e_confronta» il file viene riaperto in SOLIDWORKS e il suo volume confrontato col pezzo: e' l'unica misura che dice che la GEOMETRIA e' sopravvissuta alla traduzione. Costa un'apertura di documento, quindi non e' il predefinito.",
+   "descrizione": "Scrive il pezzo come STEP: e' il formato con cui si manda un pezzo a un fornitore, a un cliente, o lo si porta in un altro CAD.\n\nA differenza dello STL NON SI RIFIUTA se il pezzo ha piu' corpi o delle superfici: uno STEP li porta, e un saldato si manda al fornitore proprio cosi'. La verifica gira lo stesso e il suo giudizio torna nella risposta, cosi' sai com'era il pezzo che hai mandato.\n\nDOPO AVER SCRITTO RILEGGE IL FILE e dice quale protocollo e' uscito DAVVERO, non quale hai chiesto: il valore che governa la cosa e' un numero senza nome nell'API, e l'unica prova e' il FILE_SCHEMA scritto dentro il file. Se non combacia, fallisce -- certi fornitori accettano solo l'AP203.\n\nCon «riapri_e_confronta» il file viene riaperto in SOLIDWORKS e il suo volume confrontato col pezzo: e' l'unica misura che dice che la GEOMETRIA e' sopravvissuta alla traduzione. Costa un'apertura di documento, quindi non e' il predefinito.\n\nANCHE UN ASSIEME: lo scrivo intero e conto i solidi nel file contro quelli dei pezzi non soppressi. «riapri_e_confronta» su un assieme lo rifiuto: rileggere lo STEP di un assieme apre una finestra e la chiamata non torna.",
    "schema": {
     "type": "object",
     "properties": {
@@ -3077,7 +3077,7 @@
     "required": []
    },
    "precondizione": "corpo_solido",
-   "documento": "parte",
+   "documento": "parte/assieme",
    "esempio": null
   },
   {
@@ -3108,7 +3108,7 @@
     "required": []
    },
    "precondizione": "corpo_solido",
-   "documento": "parte",
+   "documento": "parte/assieme",
    "esempio": null
   },
   {
