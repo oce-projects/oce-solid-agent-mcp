@@ -49,8 +49,9 @@ namespace Prove.Contratti
         /// **26**: `variabile_globale`, dal suo caso (`la_parete_ha_un_nome`).
         /// **27**: `riordina_lavorazione` (`l_ordine_cambia_il_pezzo`).
         /// **28**: `specchia_componente` (`la_staffa_destra_e_la_sinistra`).
+        /// **29**: `cambia_estrusione` (`il_cieco_diventa_passante`).
         /// </summary>
-        private const int Pavimento = 28;
+        private const int Pavimento = 29;
 
         /// <summary>Cio' che un client non puo' copiare.</summary>
         private static readonly string[] SoloDelBanco = { "@", "{LAVORO}", "{PROFILI}" };

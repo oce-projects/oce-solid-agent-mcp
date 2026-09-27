@@ -757,6 +757,35 @@
    "esempio": null
   },
   {
+   "nome": "cambia_estrusione",
+   "famiglia": "lavorazioni",
+   "sommario": "Cambia un'estrusione o un taglio gia' fatti: cieco -> passante, o un'altra profondita'.",
+   "descrizione": "Cambia la definizione di un'estrusione o di un taglio estruso che c'e' gia': un foro cieco che deve diventare passante («passante»: true), o una profondita' diversa («profondita_mm»). Non si rifa' il pezzo: la lavorazione cambia al suo posto nell'albero, e quelle a valle la seguono.\n\nDopo rileggo la definizione (condizione e profondita'), il volume prima e dopo e le lavorazioni in errore: se la modifica ne rompe una a valle, rimetto com'era e mi rifiuto. Se il volume non cambia te lo dico (un cieco piu' profondo del materiale e' gia' passante).\n\nMI RIFIUTO se la lavorazione non e' un'estrusione o un taglio estruso (per una quota qualunque c'e' «modifica_quota»), se chiedi «passante» per un'estrusione, e se non mi dai uno solo fra «passante» e «profondita_mm».",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "feature_uid": {
+      "type": "string",
+      "description": "la lavorazione da cambiare, col nome dallo stato («feature»)."
+     },
+     "passante": {
+      "type": "boolean",
+      "description": "true: il taglio attraversa tutto. Oppure «profondita_mm»."
+     },
+     "profondita_mm": {
+      "type": "number",
+      "description": "la profondita' nuova, in mm (cieca). Oppure «passante»."
+     }
+    },
+    "required": [
+     "feature_uid"
+    ]
+   },
+   "precondizione": "un pezzo con un'estrusione o un taglio estruso",
+   "documento": "parte",
+   "esempio": "{\"feature_uid\":\"Taglio-Estrusione1\",\"passante\":true}"
+  },
+  {
    "nome": "riordina_lavorazione",
    "famiglia": "lavorazioni",
    "sommario": "Sposta una lavorazione prima o dopo un'altra nell'albero, e dice come e' cambiato il pezzo.",

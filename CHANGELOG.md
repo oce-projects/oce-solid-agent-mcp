@@ -24,6 +24,28 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.109.0 — 27 September 2026 · library 0.134.0
+
+**Change a feature that is already there (entry Z-F4).** A blind hole that
+must go through, a plate that must grow: until now the only way was to
+rebuild the part. New operation `cambia_estrusione` (`feature_uid`, and
+either `passante` or `profondita_mm`) for extrusions and extruded cuts.
+Measured first (120×80×10 plate, Ø8×5 blind hole = 95748.67 mm³):
+`GetDefinition()` as `IExtrudeFeatureData2`, `SetEndCondition` /
+`SetDepth`, `ModifyDefinition` — through-all 95497.35, blind 7 again
+95648.14; the base extrusion 10 → 12, with the hole on the top face following
+it (114848.14).
+
+- The definition is read back (end condition and depth), with volume and
+  features in error before and after; if the change breaks a feature
+  downstream the old definition is put back and the operation refuses.
+- A blind depth past the material gives no error and is already through:
+  when the volume does not change, the answer says so.
+- `passante` on a boss extrusion is refused (there is nothing to go
+  through); other feature types point to `modifica_quota`.
+
+New case `lavorazioni/il_cieco_diventa_passante`. Ninety-four operations.
+
 ## 0.108.0 — 27 September 2026 · library 0.133.0
 
 **The right bracket and the left one (entry GA11).** New operation

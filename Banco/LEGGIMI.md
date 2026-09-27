@@ -510,7 +510,7 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/ 22   il guscio, e da che parte toglie;
+casi/lavorazioni/ 23   il guscio, e da che parte toglie;
                        la quota che fa uscire l'asola dal materiale, rifiutata
                        e rimessa com'era (voce E18 c), e la sua gemella;
                        il raccordo sui quattro angoli e il foro guidato che
@@ -523,7 +523,8 @@ casi/lavorazioni/ 22   il guscio, e da che parte toglie;
                        lo spessore sotto il raggio dei raccordi, rifiutato e
                        rimesso (il meccanismo di r05), e la gemella che ci sta;
                        l'ordine cambia il pezzo: il guscio prima o dopo il foro,
-                       e lo spostamento impossibile rifiutato (Z-F3)
+                       e lo spostamento impossibile rifiutato (Z-F3); il cieco
+                       che diventa passante e la piastra che cresce (Z-F4)
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       18   ogni faccia, non una sola; lo schizzo quotato che si
                        corregge con modifica_quota, e l'ancora dritta e obliqua

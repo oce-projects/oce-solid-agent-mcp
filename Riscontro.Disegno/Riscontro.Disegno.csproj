@@ -125,6 +125,7 @@
     <Compile Include="OperazioniRiordina.cs" />
     <Compile Include="OperazioniRicalco.cs" />
     <Compile Include="OperazioniSpecchiaComponente.cs" />
+    <Compile Include="OperazioniCambiaEstrusione.cs" />
     <Compile Include="OperazioniDistintaBase.cs" />
     <Compile Include="OperazioniQuoteNelPdf.cs" />
     <Compile Include="OperazioniAnnotazioniTavola.cs" />

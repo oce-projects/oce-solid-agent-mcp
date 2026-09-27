@@ -145,8 +145,11 @@ namespace Prove.Contratti
         /// il file che non e' un'immagine («PNG, JPG…»), l'immagine da risalvare.
         /// **125:** GA11 — `specchia_componente`: il modo che manca (spiega i tre), fuori
         /// da un assieme («c'e' specchia»), il file che c'e' gia' («cambia suffisso»).
+        /// **128:** Z-F4 — `cambia_estrusione`: la lavorazione che non e' un'estrusione
+        /// («c'e' modifica_quota»), «passante» su un'estrusione («dimmi profondita_mm»),
+        /// passante o profondita'.
         /// </summary>
-        private const int Pavimento = 125;
+        private const int Pavimento = 128;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

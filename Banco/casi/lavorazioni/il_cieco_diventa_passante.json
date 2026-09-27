@@ -1,0 +1,42 @@
+{
+  "nome": "il_cieco_diventa_passante",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE Z-F4. Una cieca che deve diventare passante, una piastra che deve crescere: prima l'unica strada era rifare il pezzo. Misurato il 27/9/2026 (prova0089 zf4): GetDefinition come IExtrudeFeatureData2, SetEndCondition/SetDepth, ModifyDefinition cambiano la lavorazione al suo posto, e il foro sulla faccia di sopra segue la piastra che cresce.",
+  "il_difetto_che_questo_caso_prende": "La definizione creduta cambiata perche' ModifyDefinition ha risposto true, senza rileggerla ne' guardare il volume; «passante» su un'estrusione; il foro che non segue la faccia quando la piastra cresce.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 96000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": 0, "y_mm": 0, "diametro_mm": 8, "passante": false, "profondita_mm": 5 },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 95748.67, "tolleranza": 0.05,
+                    "perche_questa_tolleranza": "pi dentro: 96000 meno pi x 4^2 x 5" } ] },
+    { "operazione": "cambia_estrusione",
+      "argomenti": { "feature_uid": "Taglio-Estrusione1", "passante": true },
+      "attese": [
+        { "cosa": "misure.fine_prima", "uguale": "cieca" },
+        { "cosa": "misure.fine_dopo", "uguale": "passante", "perche": "riletta dalla definizione" },
+        { "cosa": "volume_mm3", "uguale": 95497.35, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "pi dentro: 96000 meno pi x 4^2 x 10" } ] },
+    { "operazione": "cambia_estrusione",
+      "argomenti": { "feature_uid": "Taglio-Estrusione1", "profondita_mm": 7 },
+      "attese": [
+        { "cosa": "misure.fine_dopo", "uguale": "cieca" },
+        { "cosa": "misure.profondita_dopo_mm", "uguale": 7 },
+        { "cosa": "volume_mm3", "uguale": 95648.14, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "pi dentro: 96000 meno pi x 4^2 x 7" } ] },
+    { "operazione": "cambia_estrusione",
+      "argomenti": { "feature_uid": "Estrusione-Estrusione1", "profondita_mm": 12 },
+      "attese": [
+        { "cosa": "misure.profondita_prima_mm", "uguale": 10 },
+        { "cosa": "misure.lavorazioni_in_errore", "uguale": 0, "perche": "il foro sulla faccia di sopra segue la piastra" },
+        { "cosa": "volume_mm3", "uguale": 114848.14, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "pi dentro: 120 x 80 x 12 meno pi x 4^2 x 7" } ] },
+    { "operazione": "cambia_estrusione",
+      "argomenti": { "feature_uid": "Estrusione-Estrusione1", "passante": true },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["«passante» vale per un taglio", "profondita_mm"],
+        "gemella": "il_cieco_diventa_passante" } }
+  ]
+}

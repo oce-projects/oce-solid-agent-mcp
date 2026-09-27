@@ -805,6 +805,40 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "cambia_estrusione",
+                    Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione1\",\"passante\":true}",   // da `il_cieco_diventa_passante`
+                    Sommario = "Cambia un'estrusione o un taglio gia' fatti: cieco -> passante, o un'altra profondita'.",
+                    Descrizione =
+                        "Cambia la definizione di un'estrusione o di un taglio estruso che c'e' gia': un "
+                        + "foro cieco che deve diventare passante («passante»: true), o una profondita' "
+                        + "diversa («profondita_mm»). Non si rifa' il pezzo: la lavorazione cambia al suo "
+                        + "posto nell'albero, e quelle a valle la seguono.\n\nDopo rileggo la definizione "
+                        + "(condizione e profondita'), il volume prima e dopo e le lavorazioni in errore: se "
+                        + "la modifica ne rompe una a valle, rimetto com'era e mi rifiuto. Se il volume non "
+                        + "cambia te lo dico (un cieco piu' profondo del materiale e' gia' passante).\n\nMI "
+                        + "RIFIUTO se la lavorazione non e' un'estrusione o un taglio estruso (per una quota "
+                        + "qualunque c'e' «modifica_quota»), se chiedi «passante» per un'estrusione, e se non "
+                        + "mi dai uno solo fra «passante» e «profondita_mm».",
+                    Precondizione = "un pezzo con un'estrusione o un taglio estruso",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "feature_uid", O(
+                                "type", "string",
+                                "description", "la lavorazione da cambiare, col nome dallo stato («feature»)."),
+                            "passante", O(
+                                "type", "boolean",
+                                "description", "true: il taglio attraversa tutto. Oppure «profondita_mm»."),
+                            "profondita_mm", O(
+                                "type", "number",
+                                "description", "la profondita' nuova, in mm (cieca). Oppure «passante».")),
+                        "required", A("feature_uid")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "riordina_lavorazione",
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",
