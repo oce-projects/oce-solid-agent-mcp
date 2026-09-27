@@ -391,6 +391,7 @@ namespace Prove.Contratti
             ProveLeFirmeDelDocumento.Tutte();
             ProveIlRegistro.Tutte();
             ProveLAvanzamento.Tutte();
+            ApiCatalogContracts.Run();
             IlLeggimiDiceQuantiSono();
 
             Console.WriteLine();
@@ -499,7 +500,7 @@ namespace Prove.Contratti
             var mappa = new[]
             {
                 new { Dove = new[] { @"Riscontro.Disegno", @"Riscontro.Disegno\Catalogo",
-                                     @"Riscontro.Disegno\Properties" },
+                                     @"Riscontro.Disegno\Properties", @"Riscontro.Disegno\Api" },
                       Progetto = @"Riscontro.Disegno\Riscontro.Disegno.csproj" },
                 new { Dove = new[] { @"Ponte", @"Strumenti", @"Mcp" },
                       Progetto = @"Oce.Solid.Agent.csproj" },

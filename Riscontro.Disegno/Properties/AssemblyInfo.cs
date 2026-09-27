@@ -394,8 +394,12 @@ using System.Runtime.InteropServices;
 //          (GetDependencies) e quali mancano, detto dal DISCO — il parametro
 //          «ListBrokenRefs» non segna niente (misurato). Lo stato dell'assieme
 //          dice `file_mancante` per il componente il cui file non c'e'.
-[assembly: AssemblyVersion("0.135.0.0")]
-[assembly: AssemblyFileVersion("0.135.0.0")]
+// 0.137.0: U1.1, Api\ApiCatalog: api_search and api_signature by reflection on
+//          the loaded interop, with what is known of each member from
+//          api_knowledge.json. (0.136.0 is the uncommitted work in the main
+//          folder at the time of writing.)
+[assembly: AssemblyVersion("0.137.0.0")]
+[assembly: AssemblyFileVersion("0.137.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -410,4 +414,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.135.0")]
+[assembly: AssemblyInformationalVersion("0.137.0")]

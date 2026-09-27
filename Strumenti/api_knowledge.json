@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "about": "What is known of each SOLIDWORKS API member (entry U1.1). Read by api_signature and api_search; checked by the contracts: every member must exist in the interop, every enum map must name a real parameter and a real swconst enum, measured types only on parameters declared Object, indices only on \"return\" or a real parameter. A member that is not here is never_probed. Enum maps and index meanings are written only when known: anything else is \"enum not tabulated\" / \"index not tabulated\".",
+  "states": {
+    "forbidden": "never called by the bridge (crash, modal, arbitrary code, the whole application)",
+    "confirm": "writes to disk or does what cannot be undone: asks a person first",
+    "gray": "called and measured to lie, return nothing usable or behave only sometimes",
+    "never_probed": "nobody has called it here",
+    "probed_read": "called and measured: reads, does not modify",
+    "probed_modifies": "called and measured: modifies the model"
+  },
+  "members": {
+    "IAssemblyDoc.AddMate5": {
+      "state": "probed_modifies",
+      "why": "15 arguments, mostly Double/Int32/Boolean positional -- a position mistake mates silently, no exception. Measured 2026-09-17: no special \"selection mark\" is needed (that unknown, once rated 8-10h, turned out to not exist): plain IEntity.Select4(append:true, null) on the two entities, then AddMate5, answers swAddMateError_NoError. IMPORTANT: in swAddMateError_e, NoError = 1 and ErrorUnknown = 0 -- a naive 'if (errore != 0)' would report a successful mate as failed. swMateAlign_e has three pairs of names on the same value: swAlignNONE = swMateAlignALIGNED = 0, swAlignSAME = swMateAlignANTI_ALIGNED = 1, swAlignAGAINST = swMateAlignCLOSEST = 2. \"SAME\" is worth \"ANTI_ALIGNED\": same number, opposite sense. The bridge writes swMateAlignANTI_ALIGNED / swMateAlignALIGNED (OperazioniAccoppia.cs:109).",
+      "enums": {
+        "MateTypeFromEnum": "swMateType_e",
+        "AlignFromEnum": "swMateAlign_e",
+        "ErrorStatus": "swAddMateError_e"
+      },
+      "source": "code:OperazioniAccoppia.cs:18; rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 9); rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; rag:82zz_ter_i_materiali_dei_due_workflow.md; code:OperazioniAccoppia.cs:109,134,199-204"
+    },
+    "IAssemblyDoc.CreateMateData": {
+      "state": "never_probed",
+      "why": "The Type parameter is declared Int32 and which enum it takes is NOT tabulated: reflection cannot say it, and nobody has measured it yet. Entry U11.3 measures it; until then api_signature says \"enum not tabulated\".",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (U1.1 acceptance example)"
+    },
+    "IModelDocExtension.IsSamePersistentID": {
+      "state": "gray",
+      "why": "Returns Int32, NOT Boolean: it is a swObjectEquality (swObjectNotSame = 0, swObjectSame = 1, swObjectUnsupported = 2). The \"true 46 times out of 46\" of Z-A7 does not say which of the two non-zero values it was. The decision not to use it does not change: if it was 1 it never discriminated, if it was 2 it is not supported. GetObjectByPersistReference3 + a corroborating read are used instead.",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md (point 8); rag:80z_le_misure_che_sbloccano.md; TODO U, point 13"
+    },
+    "IMathTransform.ArrayData": {
+      "state": "probed_read",
+      "why": "16 numbers. Measured layout: indices 0-8 are the 3x3 rotation matrix stored ROW-MAJOR (row i = indices 3i, 3i+1, 3i+2); indices 9-11 are the translation; index 12 onward: index not tabulated. IMPORTANT: the plane-normal use case measured that the normal is the THIRD ROW (indices 6,7,8), not the third column -- on two of three test planes row and column gave the same answer (50/50 chance of picking the wrong one forever), the third (oblique) plane exposed the difference: row gives the correct (0,-.7071,.7071), column gives the wrong (0,.7071,.7071). Separately, on IComponent2.GetTotalTransform, indices 9-11 were confirmed as translation by asking for z=30 and reading back [0,-2,30] (see IAssemblyDoc.AddComponent5 for the -2 explanation) and predicting+confirming a second case at (0,-5,0).",
+      "source": "code:OperazioniPiani.cs:31; rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 5); rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; memory:numeri_dei_corpi_instabili.md",
+      "indices": {
+        "return": {
+          "0-8": "3x3 rotation, row-major (row i = 3i..3i+2); a plane normal is the THIRD ROW 6-8 (measured on an oblique plane, 16/9/2026)",
+          "9-11": "translation, metres (measured on IComponent2.GetTotalTransform: z = 30 mm read back as [0, -2, 30] mm)"
+        }
+      }
+    },
+    "IBody2.GetMassProperties": {
+      "state": "probed_read",
+      "why": "Returns a double[] (declared Object). MEASURED index 3 = volume in cubic meters: on 2026-09-09, eleven guided-hole sizes M3 through M24 all matched pi*r^2*depth at the tenth of a cubic millimeter using index 3. IMPORTANT: a member named IBody2.GetVolume does NOT exist in the inventory -- it is one of several names that 'sounded right' and were not; GetMassProperties(density) is the real member. GetBodies2 (needed to get the IBody2 instances) lives on IPartDoc, not on IModelDoc2.",
+      "source": "code:OperazioniSw.cs:5416; code:OperazioniSw.cs:3084; code:OperazioniInterferenze.cs:231",
+      "indices": {
+        "return": {
+          "3": "volume, cubic metres (measured 9/9/2026 on eleven guided holes M3-M24)",
+          "0-2": "centre of mass, metres (used by green bench cases: volume-weighted centre of several bodies)"
+        }
+      }
+    },
+    "ICurve.CircleParams": {
+      "state": "probed_read",
+      "why": "Returns a double[] (declared Object). The slots below are the ones the code reads and green bench cases check (thread diameter = [6] x 2000 mm, centre marks, hole callouts); the other slots are not tabulated.",
+      "indices": {
+        "return": {
+          "6": "radius, metres",
+          "0-2": "centre, metres",
+          "3-5": "axis direction"
+        }
+      },
+      "source": "code:OperazioniCorpi.cs:520; code:OperazioniCentrini.cs:155,261; code:OperazioniQuoteTavola.cs:744-756"
+    },
+    "IModelDoc2.EditDelete": {
+      "state": "forbidden",
+      "why": "Forbidden by contract (ProveLeFirmeVietate). Measured still alive in the codebase on 2026-09-27: OperazioniTabellaFori.cs:358 called modello.EditDelete() to remove a wrongly-created hole table; must be replaced with IModelDocExtension.DeleteSelection2 as already done in OperazioniSw.cs:5852.",
+      "source": "rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; rag:82zz_ter_i_materiali_dei_due_workflow.md; code:OperazioniTabellaFori.cs:358"
+    },
+    "IModelDocExtension.AddDimension": {
+      "state": "forbidden",
+      "why": "Measured 2026-09-11: opens the \"Modifica\" modal dialog and the COM call never returns while swInputDimValOnCreate is on. Also measured to return null in every sketch-point+model-edge combination tried, and for point-to-point (arc centers) dimensions, and for two silhouette entities. This is exactly the AddDimension the U1.4 forbidden list names.",
+      "source": "memory:api_sw_che_aprono_finestre.md; memory:api_sw_quota_punto_spigolo.md; rag:82zd_l_ancora_costruita_tre_cose_che_la_misura_ha_trovato.md; rag:82zf_il_numero_stampato_e_l_asola_definita.md; rag:82zp_il_tondo_visto_di_fianco_generatrici_che_non_si_lasciano_prendere.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    },
+    "IFeatureManager.FeatureExtrusion3": {
+      "state": "probed_modifies",
+      "why": "23 positional arguments. The end conditions T1/T2 are swEndConditions_e and the start condition T0 is swStartConditions_e (the code passes them by enum name). The U1 acceptance plate (100x60x10 = 60,000 mm3) is built with it.",
+      "enums": {
+        "T1": "swEndConditions_e",
+        "T2": "swEndConditions_e",
+        "T0": "swStartConditions_e"
+      },
+      "source": "code:OperazioniSw.cs:6368-6386"
+    },
+    "IFeatureManager.InsertWeldmentTrimFeature2": {
+      "state": "probed_modifies",
+      "why": "MEASURED 2026-09-25 on a two-member weldment frame (taglia_membri): with object[] for BodiesToTrim/BodiesOrFaces the interop marshals a VARIANT array and SOLIDWORKS answers with a feature that never enters the tree -- part unchanged, NO error at all. With Body2[] typed arrays (or DispatchWrapper[]) the cut is real: volume drops by the expected -58798.23 mm3. This is the cardinal defense of the whole bridge (U1.3): arguments must always be converted to the type the signature declares.",
+      "measured_types": {
+        "BodiesToTrim": "Body2[] (DispatchWrapper[] also works; object[] makes a phantom feature)",
+        "BodiesOrFaces": "Body2[] or Face2[] (DispatchWrapper[] also works; object[] makes a phantom feature)"
+      },
+      "source": "memory:api_sw_array_tipizzati.md; rag:82zb_scrivere_il_caso_trova_due_operazioni_mai_funzionanti.md; rag:82zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api.md; rag:82zz_ter_i_materiali_dei_due_workflow.md"
+    }
+  }
+}

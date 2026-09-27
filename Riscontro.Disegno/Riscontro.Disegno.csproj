@@ -73,6 +73,8 @@
          sta in System.Xml. Senza, CS0012 su MaterialiSolidWorks.cs:82. -->
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
+    <!-- Api\ApiCatalog.cs reads api_knowledge.json (entry U1.1). -->
+    <Reference Include="System.Web.Extensions" />
   </ItemGroup>
 
   <ItemGroup>
@@ -103,6 +105,7 @@
     <Compile Include="Catalogo\OperazioneDisegno.cs" />
     <Compile Include="Catalogo\Operazioni.cs" />
     <Compile Include="Catalogo\Esporta.cs" />
+    <Compile Include="Api\ApiCatalog.cs" />
     <Compile Include="FontePiano.cs" />
     <Compile Include="EsecutorePiano.cs" />
     <Compile Include="OperazioniSw.cs" />

@@ -67,13 +67,19 @@ l'installatore se le porta dentro.
 
 ## Gli strumenti
 
-Sette, non novantacinque. Le operazioni di disegno sono novantacinque, ma esporne
+Nove, non novantacinque. Le operazioni di disegno sono novantacinque, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
 scritta sotto la tabella, non per coprire di piu'. Il settimo, `documento`,
 dalla 0.87.0: senza, per cominciare un pezzo da zero serviva una persona che
 cliccasse File > Nuovo.)
+
+*Since 0.112.0 (entry U1.1): the eighth and ninth, `api_search` and
+`api_signature`, read the whole SOLIDWORKS API — the `sldworks` interop and the
+`swconst` enums, 13,945 members once the four old interfaces are left out — by
+reflection, with SOLIDWORKS closed. They are the first half of the generic
+layer; `api_objects` and `api_call` come with U1.2-U1.3.*
 
 | strumento | a cosa serve |
 |---|---|
@@ -84,6 +90,8 @@ cliccasse File > Nuovo.)
 | `misura` | le stesse operazioni, ma **solo quelle che leggono** (famiglia `verifiche`). Si dichiara di sola lettura, cosi' il client non chiede conferma per una misura |
 | `annulla` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `disegna` l'aveva lasciato |
 | `documento` | crea una parte o un assieme vuoti, apre un file dal disco, elenca i documenti aperti, ne porta uno davanti, ne chiude uno — e **rifiuta di chiudere** un documento con modifiche non salvate. Dice sempre se un file e' aperto in **sola lettura**; e dopo ogni cambio di documento `disegna` pretende un nuovo `guarda_il_pezzo` |
+| `api_search` | searches the whole API by a piece of a name and answers with the **real signatures** read from the interop on this machine; the four old interfaces (`IModelDoc`, `IBody`, `IFace`, `IComponent`) are named with the sister to use, never shown. Read only |
+| `api_signature` | the card of one member: every overload, property or method, the `&` out parameters, the typed `I…` variant, the numbered family with the last one marked **«latest by number, not verified»**, the **Void** flag, and what is known of it from `Strumenti/api_knowledge.json` — state, enum map (**«enum not tabulated»** where nobody wrote one), measured indices (**«index not tabulated»** otherwise), measured types, source. Read only |
 
 **`misura` esiste perche' le annotazioni stanno sullo strumento.** Il client MCP
 legge `readOnlyHint` e `destructiveHint` in `tools/list`, cioe' **prima** che

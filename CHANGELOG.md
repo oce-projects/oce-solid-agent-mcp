@@ -24,6 +24,43 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.112.0 — 28 September 2026 · library 0.137.0
+
+**The whole SOLIDWORKS API, searched and described by reflection (entry
+U1.1).** Two new MCP tools, nine in all: `api_search` and `api_signature`.
+They read the interop loaded in the bridge (`typeof(ISldWorks).Assembly`) and
+the `swconst` enums; `swmotionstudy` is listed read only when present. They
+never touch SOLIDWORKS and work with it closed. (0.111.0 and library 0.136.0
+are the uncommitted work of the main folder at the time of writing; this
+branch takes the next numbers.)
+
+- **The engine is in the library**, `Riscontro.Disegno\Api\ApiCatalog.cs`;
+  the bridge only registers the tools.
+- **13,945 exposed members**: the 14,928 of the interop minus the four old
+  interfaces `IModelDoc`, `IBody`, `IFace`, `IComponent` (983). A search names
+  them with the sister to use; a signature request answers «old interface: use
+  …» and never prints the old signature.
+- **A card says only what is known.** Every overload with real types, property
+  or method, `&` out parameters by name, the typed `I…` variant, the numbered
+  family with the last one «latest by number, not verified», the Void flag.
+  Which enum an `Int32` takes comes ONLY from the hand-written map in
+  `Strumenti/api_knowledge.json` (otherwise «enum not tabulated»), and array
+  indices only when measured (otherwise «index not tabulated»).
+- **`Strumenti/api_knowledge.json`** (new, embedded in the executable): state
+  (`forbidden`, `confirm`, `gray`, `never_probed`, `probed_read`,
+  `probed_modifies`), enum map, measured indices, measured types of `Object`
+  parameters, source.
+- **`Controlli/api-inventory.ps1`** writes the inventory from PowerShell; the
+  contract `ApiSignatureMatchesInventory` compares it with the C# formatter
+  (14,928 lines, zero differences, seen failing on one lost `&`).
+- Contracts: the point checks of the entry, knowledge naming only real
+  members (seen refusing an invented one), hidden interfaces losing no name
+  (seen saying no for `IMassProperty`), both tools through the real bridge.
+  `tools/list` is now asserted at nine.
+- **Bench:** no case, by the entry's own rule — these calls do not touch the
+  part. The bench still has to run on library 0.137.0 before release, because
+  the library changed.
+
 ## 0.110.0 — 27 September 2026 · library 0.135.0
 
 **Which files an assembly stands on, and which are missing (entry Z-B3).**

@@ -145,8 +145,10 @@ namespace Prove.Contratti
                 // in piu' che appare senza che nessuno l'abbia voluto e' un
                 // pezzo di superficie pubblica comparso per sbaglio, e questo e'
                 // il solo posto che se ne accorge.
-                Segna("tools/list da' esattamente sette strumenti",
-                      strumenti != null && strumenti.Length == 7,
+                // NINE SINCE 0.112.0: api_search and api_signature (entry
+                // U1.1). Changed on purpose, like the seventh.
+                Segna("tools/list gives exactly nine tools",
+                      strumenti != null && strumenti.Length == 9,
                       strumenti == null ? "(niente)" : strumenti.Length + " strumenti: " +
                           string.Join(", ", strumenti.Select(s => Convert.ToString(Dentro(s, "name")))));
 
