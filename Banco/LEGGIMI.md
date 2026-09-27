@@ -549,7 +549,7 @@ casi/esporta/     10   STL, STEP e IGES: il file riletto byte per byte,
 casi/proprieta/   11   i due cassetti, e il codice che va in distinta
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-casi/assiemi/      8   inserire non e' accoppiare; un vincolo solo non basta;
+casi/assiemi/      9   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella);
@@ -557,7 +557,8 @@ casi/assiemi/      8   inserire non e' accoppiare; un vincolo solo non basta;
                        fisso non e' accoppiato: tipi degli accoppiamenti, visibile,
                        trasparente, fissa e libera (Z-D3, Z-D4, Z-D5);
                        la staffa destra e la sinistra: istanza, opposto legato
-                       e slegato, su tre piani (GA11)
+                       e slegato, su tre piani (GA11); da quali file dipende
+                       l'assieme, e che ci sono (Z-B3)
 casi/tavola/      33   il primo caso che arriva in TAVOLA (voce GT0);
                        la tavola della piastra con fori e smusso, GUARDATA:
                        fori col richiamo e le posizioni, smusso 5 x 45, niente

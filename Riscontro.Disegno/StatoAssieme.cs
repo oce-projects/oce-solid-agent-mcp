@@ -155,7 +155,14 @@ namespace Riscontro.Disegno
                 try
                 {
                     var p = c.GetPathName();
-                    if (!string.IsNullOrWhiteSpace(p)) voce["percorso"] = p;
+                    if (!string.IsNullOrWhiteSpace(p))
+                    {
+                        voce["percorso"] = p;
+                        // IL FILE C'E'? (voce Z-B3) Un componente il cui file manca
+                        // sul disco l'assieme lo mostra soppresso, e nient'altro lo
+                        // dice. Si scrive solo quando manca: e' il caso raro.
+                        if (!System.IO.File.Exists(p)) voce["file_mancante"] = true;
+                    }
                 }
                 catch { }
 

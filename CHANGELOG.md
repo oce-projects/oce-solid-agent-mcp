@@ -24,6 +24,25 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.110.0 — 27 September 2026 · library 0.135.0
+
+**Which files an assembly stands on, and which are missing (entry Z-B3).**
+An assembly is a graph of files on disk, and the model could not know that
+one of them was gone. New operation `dipendenze` (any document). Measured
+first: `GetDependencies` returns flat name/path pairs at all levels, and
+**the parameter literally called «list broken references» marks nothing** —
+a component file renamed on disk is listed with its path like the others.
+Only the disk can tell (`File.Exists`); reopened, the assembly shows that
+component suppressed with no document and `OpenDoc6` error 2.
+
+- The answer lists every file with `esiste`, and the missing ones with a
+  warning (find or replace them before measuring or exporting).
+- The assembly state adds `file_mancante` to a component whose file is not
+  on disk.
+
+New case `assiemi/l_assieme_dice_da_che_file_dipende` (the healthy assembly;
+the missing file was seen by the probe). Ninety-five operations.
+
 ## 0.109.0 — 27 September 2026 · library 0.134.0
 
 **Change a feature that is already there (entry Z-F4).** A blind hole that

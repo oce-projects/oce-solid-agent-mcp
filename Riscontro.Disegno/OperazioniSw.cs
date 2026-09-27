@@ -238,7 +238,7 @@ namespace Riscontro.Disegno
             "accoppia", "combina_corpi",
             "cordone_saldatura", "crea_asse", "crea_configurazione",
             "crea_disegno", "crea_piano", "distinta_taglio",
-            "piano_per_tre_punti", "profili_saldatura", "immagine_nello_schizzo",
+            "piano_per_tre_punti", "profili_saldatura", "immagine_nello_schizzo", "dipendenze",
             "distanza_minima", "elimina_lavorazione",
             "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
@@ -493,6 +493,10 @@ namespace Riscontro.Disegno
                     // OperazioniMisura.cs.
                     case "proprieta_di_massa":
                         return ProprietaDiMassa(modello, argomenti, stato);
+                    // Da quali file dipende il documento, e quali mancano (voce Z-B3).
+                    // OperazioniDipendenze.cs.
+                    case "dipendenze":
+                        return Dipendenze(modello, argomenti, stato);
                     case "ingombro_corpo":
                         return IngombroCorpo(modello, argomenti, stato);
                     case "distanza_minima":

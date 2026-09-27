@@ -3409,6 +3409,25 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "dipendenze",
+                    Famiglia = "verifiche",
+                    DocumentoRichiesto = "qualunque",
+                    Provata = true,
+                    Sommario = "Da quali file dipende il documento, e quali mancano sul disco. Non tocca niente.",
+                    Descrizione =
+                        "Un assieme (o una tavola) e' un grafo di file sul disco: ti dico da quali file "
+                        + "dipende, a tutti i livelli, e per ognuno se c'e'. Un file che manca e' un "
+                        + "componente che l'assieme mostra SOPPRESSO: prima di misurare o esportare va "
+                        + "ritrovato o sostituito.\n\nSe manca lo dice il disco, non l'API: il parametro "
+                        + "che promette di segnare i riferimenti rotti non li segna (misurato).",
+                    Precondizione = "un documento salvato",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(),
+                        "required", A()),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "proprieta_di_massa",
                     Famiglia = "verifiche",
                     DocumentoRichiesto = "parte/assieme",

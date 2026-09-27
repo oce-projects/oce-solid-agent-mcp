@@ -2939,6 +2939,20 @@
    "esempio": "{\"soglia_gradi\":70}"
   },
   {
+   "nome": "dipendenze",
+   "famiglia": "verifiche",
+   "sommario": "Da quali file dipende il documento, e quali mancano sul disco. Non tocca niente.",
+   "descrizione": "Un assieme (o una tavola) e' un grafo di file sul disco: ti dico da quali file dipende, a tutti i livelli, e per ognuno se c'e'. Un file che manca e' un componente che l'assieme mostra SOPPRESSO: prima di misurare o esportare va ritrovato o sostituito.\n\nSe manca lo dice il disco, non l'API: il parametro che promette di segnare i riferimenti rotti non li segna (misurato).",
+   "schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+   },
+   "precondizione": "un documento salvato",
+   "documento": "qualunque",
+   "esempio": null
+  },
+  {
    "nome": "proprieta_di_massa",
    "famiglia": "verifiche",
    "sommario": "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
