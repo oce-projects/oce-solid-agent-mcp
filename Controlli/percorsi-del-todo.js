@@ -86,6 +86,20 @@ function dove(p) {
   return null;
 }
 
+// ── I FILE DA CREARE, dichiarati (28/9/2026) ────────────────────────────────
+//
+// Una voce aperta che progetta del lavoro nomina i file che quel lavoro
+// creera': `Strumenti/coverage.json` non c'e' perche' la voce non e' ancora
+// fatta, non perche' qualcuno l'abbia rinominato. Le Sezioni T e U (i due
+// workflow del 27/9) ne citano sette, e il gancio fermava il push.
+//
+// La regola NON esenta un file per nome: vuole che la voce lo DICA, scrivendo
+// «(da creare)» subito dopo il percorso, almeno una volta. Un file annunciato
+// e mai scritto resta visibile: quando la voce si chiude, il percorso finisce
+// fra quelli delle voci chiuse, e il `--tutti` lo elenca.
+const DA_CREARE = /^\s*\(da creare\)/;
+const annunciati = new Set();
+
 let statoVoce = null;          // ' ', 'x' o '~' della voce in cui siamo
 const citazioni = new Map();   // percorso -> stato della voce
 
@@ -102,6 +116,7 @@ for (const riga of righe) {
     if (!p.includes('/')) continue;
     if (/[ ()*]/.test(p)) continue;
     if (!ESTENSIONI.some(e => p.toLowerCase().endsWith(e))) continue;
+    if (DA_CREARE.test(riga.slice(m.index + m[0].length))) annunciati.add(p);
     if (!citazioni.has(p)) citazioni.set(p, statoVoce);
   }
 }
@@ -109,12 +124,14 @@ for (const riga of righe) {
 const mancanti = [];
 const altroRepo = [];
 const storici = [];
+const daFare = [];
 let ok = 0;
 for (const [p, stato] of citazioni) {
   if (ALTROVE.some(r => r.test(p)) || TRANSITORI.some(r => r.test(p))) { altroRepo.push(p); continue; }
   const b = dove(p);
   if (b) { ok++; if (tutti) console.log('  ok   ' + p + (b === '(radice)' ? '' : '   [sotto ' + b + ']')); continue; }
   if (stato === 'x') storici.push(p);      // voce chiusa: e' un nome di allora
+  else if (annunciati.has(p)) daFare.push(p);   // voce aperta che dice «(da creare)»
   else mancanti.push(p + (stato === null ? '   (fuori da una voce)' : ''));
 }
 
@@ -122,6 +139,7 @@ console.log('percorsi citati:  ' + citazioni.size);
 console.log('che esistono:     ' + ok);
 console.log('in voci CHIUSE, e non si toccano: ' + storici.length);
 console.log('altrove o transitori:             ' + altroRepo.length);
+console.log('annunciati «(da creare)»:         ' + daFare.length);
 console.log('');
 if (mancanti.length === 0) {
   console.log('Nessuna voce aperta manda a un file che non c\'e\'.');
@@ -134,6 +152,11 @@ if (mancanti.length === 0) {
   // ESCE 1, perche' il gancio pre-push lo legge. Una sonda che stampa e
   // poi esce 0 e' una sonda che nessun gancio puo' usare.
   process.exitCode = 1;
+}
+if (tutti && daFare.length) {
+  console.log('');
+  console.log('file annunciati dalle voci aperte, da creare:');
+  for (const p of daFare) console.log('  +  ' + p);
 }
 if (tutti && storici.length) {
   console.log('');
