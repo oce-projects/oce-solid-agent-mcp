@@ -24,6 +24,28 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.106.0 — 27 September 2026 · library 0.131.0
+
+**Reorder the tree (entry Z-F3).** A shell before a hole gives a different
+part from a shell after it, and moving the feature is a weekly gesture. New
+operation `riordina_lavorazione` (`feature_uid`, `rispetto_a_uid`, `dove`:
+prima/dopo). Measured first on a 100×60×40 box with a Ø10 through hole and a
+3 mm shell opening the top: `ReorderFeature` returns true and the volume
+changes (hole then shell 56485.7 mm³, shell before the hole 51952.38), and
+putting it back gives 56485.7 again; an impossible move (the hole before the
+extrusion it sits on) returns false and touches nothing.
+
+- Features are named as everywhere in the bridge, and the name is checked
+  against the `feature_id` the state gave (a name can be renamed, the ID
+  cannot).
+- After the move the tree is rebuilt and the features in error counted: if
+  the move broke one downstream, the feature goes back where it was and the
+  operation refuses. The order is read back (true from `ReorderFeature` is
+  not trusted alone), with volume and bodies before and after; an order that
+  changes nothing in the part is said.
+
+New case `lavorazioni/l_ordine_cambia_il_pezzo`. Ninety-one operations.
+
 ## 0.105.0 — 27 September 2026 · library 0.130.0
 
 **Give a number a name (entry Z-F1).** Two new operations on SOLIDWORKS'

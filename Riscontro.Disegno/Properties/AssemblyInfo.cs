@@ -374,8 +374,11 @@ using System.Runtime.InteropServices;
 //          un'espressione), rilette dai VALORI (get_Status non si legge);
 //          «spessore» e' un nome gia' preso nel SOLIDWORKS in italiano. Lo stato
 //          elenca le equazioni del pezzo.
-[assembly: AssemblyVersion("0.130.0.0")]
-[assembly: AssemblyFileVersion("0.130.0.0")]
+// 0.131.0: Z-F3, `riordina_lavorazione`: ReorderFeature prima o dopo un'altra
+//          lavorazione, nome controllato col feature_id, ordine e volume riletti;
+//          uno spostamento che rompe una lavorazione a valle si rimette dov'era.
+[assembly: AssemblyVersion("0.131.0.0")]
+[assembly: AssemblyFileVersion("0.131.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -390,4 +393,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.130.0")]
+[assembly: AssemblyInformationalVersion("0.131.0")]

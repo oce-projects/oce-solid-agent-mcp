@@ -97,6 +97,7 @@ namespace Prove.Contratti
                 { "variabile_globale.nome", "il nome e' la cosa stessa che si crea: senza, non c'e' una variabile" },
                 { "lega_quota.quota", "quale quota legare lo sa chi progetta: legarne una a caso cambia un pezzo senza dirlo" },
                 { "lega_quota.espressione", "a cosa legarla e' la domanda stessa: non c'e' un'espressione d'ufficio" },
+                { "riordina_lavorazione.dove", "prima o dopo danno due pezzi diversi: non c'e' un verso d'ufficio" },
                 { "tolleranza_geometrica_in_tavola.caratteristica", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
 
                 // ── DIPENDONO DALL'OFFICINA, NON DA NOI (voce Z-G8) ───────

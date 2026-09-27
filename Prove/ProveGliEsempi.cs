@@ -47,8 +47,9 @@ namespace Prove.Contratti
         /// migliorando la prova, non l'esempio. **25** il 27/9/2026: `fissa_componente`
         /// nasce con l'esempio copiato dal suo caso (`fisso_non_e_accoppiato`).
         /// **26**: `variabile_globale`, dal suo caso (`la_parete_ha_un_nome`).
+        /// **27**: `riordina_lavorazione` (`l_ordine_cambia_il_pezzo`).
         /// </summary>
-        private const int Pavimento = 26;
+        private const int Pavimento = 27;
 
         /// <summary>Cio' che un client non puo' copiare.</summary>
         private static readonly string[] SoloDelBanco = { "@", "{LAVORO}", "{PROFILI}" };

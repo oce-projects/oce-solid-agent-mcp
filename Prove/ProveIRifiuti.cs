@@ -139,8 +139,10 @@ namespace Prove.Contratti
         /// **116:** Z-F1 — `variabile_globale` e `lega_quota`: il nome fatto male (con
         /// gli esempi), valore o espressione, il nome gia' preso («usa parete»), la
         /// variabile che non esiste («creala con variabile_globale»), il pezzo da aprire.
+        /// **119:** Z-F3 — `riordina_lavorazione`: lo spostamento impossibile («spostala
+        /// rispetto a una lavorazione che viene dopo»), i nomi mancanti, il pezzo.
         /// </summary>
-        private const int Pavimento = 116;
+        private const int Pavimento = 119;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

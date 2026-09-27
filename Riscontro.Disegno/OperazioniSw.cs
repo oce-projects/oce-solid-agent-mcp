@@ -246,7 +246,7 @@ namespace Riscontro.Disegno
             "estrudi_su_faccia", "fazzoletto", "filettatura_cosmetica",
             "foro_guidato", "guscio", "inserisci_componente",
             "imposta_foglio", "incidi_testo", "ingombro_corpo", "membro_strutturale",
-            "misura_fra_entita", "modifica_quota", "variabile_globale", "lega_quota", "tolleranza_quota", "proprieta_di_massa",
+            "misura_fra_entita", "modifica_quota", "variabile_globale", "lega_quota", "riordina_lavorazione", "tolleranza_quota", "proprieta_di_massa",
             "loft_fra_due_cerchi",
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
             "ripeti_circolare", "scrivi_proprieta",
@@ -325,6 +325,8 @@ namespace Riscontro.Disegno
                     // un numero invece di ripeterlo. OperazioniEquazioni.cs.
                     case "variabile_globale": return VariabileGlobale(modello, argomenti, stato);
                     case "lega_quota": return LegaQuota(modello, argomenti, stato);
+                    // Riordinare l'albero (voce Z-F3). OperazioniRiordina.cs.
+                    case "riordina_lavorazione": return RiordinaLavorazione(modello, argomenti, stato);
                     case "tolleranza_quota": return TolleranzaQuota(modello, argomenti);
                     case "sopprimi_lavorazione": return SopprimiLavorazione(modello, argomenti, stato);
                     case "elimina_lavorazione": return EliminaLavorazione(modello, argomenti, stato);

@@ -805,6 +805,41 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "riordina_lavorazione",
+                    Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Esempio = "{\"feature_uid\":\"Svuota1\",\"rispetto_a_uid\":\"Taglio-Estrusione1\",\"dove\":\"prima\"}",   // da `l_ordine_cambia_il_pezzo`
+                    Sommario = "Sposta una lavorazione prima o dopo un'altra nell'albero, e dice come e' cambiato il pezzo.",
+                    Descrizione =
+                        "Sposta una lavorazione nell'albero, prima o dopo un'altra: uno svuotamento "
+                        + "messo prima di un foro da' un pezzo diverso da uno messo dopo (misurato: "
+                        + "56485,7 contro 51952,38 mm3 sulla stessa scatola). Ti do l'ordine prima e "
+                        + "dopo, il volume e i corpi prima e dopo; se il pezzo non cambia te lo dico."
+                        + "\n\nSE LO SPOSTAMENTO ROMPE UNA LAVORAZIONE A VALLE la rimetto dov'era e "
+                        + "mi rifiuto.\n\nMI RIFIUTO se una delle due lavorazioni non c'e' o non e' "
+                        + "piu' quella dello stato (il nome si rinomina, l'ID no), se «dove» non e' "
+                        + "«prima» o «dopo», e se SOLIDWORKS non la sposta: succede quando dipende da "
+                        + "una lavorazione che verrebbe dopo (un foro prima dell'estrusione su cui "
+                        + "sta).",
+                    Precondizione = "un pezzo con almeno due lavorazioni",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "feature_uid", O(
+                                "type", "string",
+                                "description", "la lavorazione da spostare, col nome dallo stato («feature»)."),
+                            "rispetto_a_uid", O(
+                                "type", "string",
+                                "description", "la lavorazione accanto a cui metterla."),
+                            "dove", O(
+                                "type", "string",
+                                "enum", A("prima", "dopo"),
+                                "description", "prima o dopo di «rispetto_a_uid».")),
+                        "required", A("feature_uid", "rispetto_a_uid", "dove")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "variabile_globale",
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",
