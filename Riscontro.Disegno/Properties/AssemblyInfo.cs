@@ -349,8 +349,16 @@ using System.Runtime.InteropServices;
 //          di taglio si dicono. Passante/profondita' anche dalla geometria, fori
 //          raggruppati per diametro e profondita', e il ripiego senza richiamo
 //          scrive la profondita' nel testo.
-[assembly: AssemblyVersion("0.126.0.0")]
-[assembly: AssemblyFileVersion("0.126.0.0")]
+// 0.127.0: GT14, il pezzo tondo visto di fianco. `quota_in_tavola` sulla vista
+//          longitudinale di un albero o di una boccola: lunghezze fra le facce
+//          (due cerchi di taglio, in parallelo dalla prima faccia) e diametri
+//          dalle due generatrici di ogni cilindro (il Ø lo mette SOLIDWORKS),
+//          riletti; le generatrici senza faccia provate a coppie e tenute solo
+//          se il valore e' un diametro vero del pezzo; i diametri che la vista
+//          non espone, detti. `esporta_pdf` conta le quote di cui il testo non
+//          si legge (non controllate) invece di saltarle in silenzio.
+[assembly: AssemblyVersion("0.127.0.0")]
+[assembly: AssemblyFileVersion("0.127.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -365,4 +373,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.126.0")]
+[assembly: AssemblyInformationalVersion("0.127.0")]

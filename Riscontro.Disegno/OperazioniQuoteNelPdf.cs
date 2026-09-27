@@ -25,10 +25,15 @@ namespace Riscontro.Disegno
     {
         private static readonly Regex NumeroInTesto = new Regex(@"\d+(?:[.,]\d+)?", RegexOptions.Compiled);
 
-        /// <summary>I numeri stampati dalle quote della tavola, per valore -> quante volte.</summary>
-        private static Dictionary<string, int> NumeriDelleQuote(IDrawingDoc disegno, out int quote)
+        /// <summary>
+        /// I numeri stampati dalle quote della tavola, per valore -> quante volte.
+        /// `senzaTesto`: le quote di cui il testo non si legge — NON controllate,
+        /// e si dice (un controllo che salta in silenzio sembra un controllo passato).
+        /// </summary>
+        private static Dictionary<string, int> NumeriDelleQuote(IDrawingDoc disegno, out int quote, out int senzaTesto)
         {
             quote = 0;
+            senzaTesto = 0;
             var fuori = new Dictionary<string, int>(StringComparer.Ordinal);
             try
             {
@@ -44,9 +49,9 @@ namespace Riscontro.Disegno
                             var dati = dd.GetDisplayData() as IDisplayData;
                             // ZERO-E-ZERO: senza IDisplayData la quota non ha testi da
                             // cercare nel PDF — zero testi e' il limite del ciclo, non una
-                            // misura. Quella quota resta NON controllata (voce Z-C9: da
-                            // contare a parte e dire nella risposta).
+                            // misura. Quella quota resta NON controllata, e si conta.
                             int n = dati == null ? 0 : dati.GetTextCount();
+                            if (n <= 0) senzaTesto++;
                             for (int i = 0; i < n; i++)
                                 foreach (Match m in NumeroInTesto.Matches(dati.GetTextAtIndex(i) ?? ""))
                                 {
@@ -54,7 +59,7 @@ namespace Riscontro.Disegno
                                     fuori[k] = fuori.TryGetValue(k, out int c) ? c + 1 : 1;
                                 }
                         }
-                        catch { }
+                        catch { senzaTesto++; }
                         dd = dd.GetNext5() as IDisplayDimension;
                     }
                     v = v.GetNextView() as IView;

@@ -35,8 +35,16 @@
           "perche": "prima i due richiami nascevano nello stesso punto, uno sopra l'altro" } ] },
     { "operazione": "quota_in_tavola",
       "argomenti": { "vista": "V1" },
+      "com_era_prima": "Fino alla 0.126.0 questa vista si rifiutava («gli unici spigoli sono cerchi visti di taglio»). Dalla 0.127.0 (voce GT14) la vista longitudinale di un tondo si quota.",
+      "attese": [
+        { "cosa": "misure.tondo_lunghezze_mm", "uguale": [30], "perche": "la lunghezza della boccola, fra le due facce viste di taglio, riletta" },
+        { "cosa": "misure.tondo_diametri_mm", "non_contiene": ["30"], "perche": "il Ø30 e' gia' quotato nella vista di fronte: una volta sola in tutta la tavola" },
+        { "cosa": "misure.gia_quotate_altrove", "contiene": ["diametro Ø30"], "perche": "e lo dice" },
+        { "cosa": "misure.quanti_testi_si_accavallano", "uguale": 0 } ] },
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V2" },
       "deve_fallire": {
-        "il_messaggio_contiene": ["cerchi visti di taglio", "pezzo tondo"],
+        "il_messaggio_contiene": ["gia' quotati in un'altra vista"],
         "gemella": "la_boccola_tornita_non_e_un_foro" } }
   ]
 }

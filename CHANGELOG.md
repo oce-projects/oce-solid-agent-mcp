@@ -24,6 +24,43 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.102.0 — 27 September 2026 · library 0.127.0
+
+**A turned part dimensioned from the side (entry GT14).** Until now the
+longitudinal view of a shaft or a bushing was refused: its only edges are the
+end circles seen edge-on. Measured on the stepped shaft of the `rivoluzione`
+example (Ø30×40, Ø20×30, Ø34×20):
+
+- two edge-on circles selected + `AddDimension2` give the distance between
+  the faces — the LENGTHS, now placed in parallel from the first face (the
+  same single zero as the holes): 40, 70, 90;
+- two silhouette edges of the same face give, by themselves, a diameter
+  dimension with the Ø prefix — the DIAMETERS: Ø34, Ø30;
+- but SOLIDWORKS does not always expose them. `ISilhouetteEdge.GetFace` is
+  null until the drawing is redrawn and the face asked a second time; on the
+  bushing it stays null, and those silhouettes are tried in pairs — the
+  dimension is kept only if SOLIDWORKS puts the Ø on it AND its value is the
+  diameter of a coaxial cylinder of the part not yet dimensioned; the Ø20 of
+  the shaft has a silhouette that cannot be selected at all, and the answer
+  says so in `tondo_diametri_non_raggiunti` instead of keeping quiet.
+- Roads measured and closed: `GetStartPoint` from out of process makes
+  SOLIDWORKS raise (RPC_E_SERVERFAULT), `GetCurve` is null, picking by
+  position takes one silhouette at a time, a centreline plus a silhouette
+  measures from the SHEET origin (212.49) and `Diametric` cannot be set.
+
+The probes used `IModelDoc2.AddDimension2`, which the contract forbids (no
+direction, entry GP6), and `Extension.AddDimension` with two entities creates
+nothing: the code uses the DECLARED horizontal/vertical dimensions
+(`AddHorizontalDimension2` for the lengths, `AddVerticalDimension2` for the
+diameters of a horizontal shaft) — on two silhouettes of one face SOLIDWORKS
+still adds the Ø by itself. Silhouettes are read again before every
+dimension: after a new dimension the old ones may no longer select.
+Every dimension is read back against the geometry before it stays. The two
+views that follow repeat nothing. `esporta_pdf` now counts the dimensions
+whose text cannot be read (`quote_non_controllate`) instead of skipping them
+silently. New case `tavola/l_albero_a_gradini_quotato_di_fianco`; the side
+view of `tavola/la_boccola_tornita_non_e_un_foro` is no longer refused.
+
 ## 0.101.0 — 26 September 2026 · library 0.126.0
 
 **Do the dimensions reach the PDF? (entry Z-C9, the «objects» half).** The

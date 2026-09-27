@@ -118,6 +118,7 @@
     <Compile Include="OperazioniTestiQuote.cs" />
     <Compile Include="OperazioniEtichetteTavola.cs" />
     <Compile Include="OperazioniTolleranzaQuota.cs" />
+    <Compile Include="OperazioniTondoTavola.cs" />
     <Compile Include="OperazioniDistintaBase.cs" />
     <Compile Include="OperazioniQuoteNelPdf.cs" />
     <Compile Include="OperazioniAnnotazioniTavola.cs" />

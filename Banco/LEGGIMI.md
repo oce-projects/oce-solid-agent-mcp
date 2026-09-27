@@ -548,7 +548,7 @@ casi/assiemi/      5   inserire non e' accoppiare; un vincolo solo non basta;
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella)
-casi/tavola/      32   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      33   il primo caso che arriva in TAVOLA (voce GT0);
                        la tavola della piastra con fori e smusso, GUARDATA:
                        fori col richiamo e le posizioni, smusso 5 x 45, niente
                        quote ripetute fra viste (voce GT11);
@@ -586,7 +586,9 @@ casi/tavola/      32   il primo caso che arriva in TAVOLA (voce GT0);
                        pezzi con la bollatura (voce GT9); le quote della tavola
                        ritrovate nel testo del PDF (voce Z-C9); la boccola
                        tornita, dove il contorno Ø30 non e' un foro e la
-                       profondita' del cieco si legge anche dalla geometria (GT12)
+                       profondita' del cieco si legge anche dalla geometria (GT12);
+                       l'albero a gradini quotato di fianco: lunghezze in
+                       parallelo e diametri dalle generatrici (GT14)
 casi/saldature/    4   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone

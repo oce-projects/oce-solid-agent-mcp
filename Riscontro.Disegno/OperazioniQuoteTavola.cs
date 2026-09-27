@@ -199,6 +199,7 @@ namespace Riscontro.Disegno
             var falliti = new List<string>();
             var diametriEsterni = new List<Dictionary<string, object>>();
             var diTaglio = new List<string>();
+            EsitoTondo tondo = null;
             var misurati = new List<Spigolo>();
             var doppioni = new List<string>();
             var altrove = new List<string>();
@@ -315,10 +316,15 @@ namespace Riscontro.Disegno
                 if (foriVeri.Count > 0 && foriNellaTabella <= 0)
                     QuotaIFori(modello, disegno, foriVeri, tutti, gia, contorno, distacco, passo, scala,
                                ref sotto, ref diLato, ref aSinistra, dimensioniFoglio, nate, fori, altrove, falliti);
-                QuotaIContorni(modello, disegno, cerchi.FindAll(c => c.Tipo == "contorno"), gia, contorno, distacco,
+                QuotaIContorni(modello, disegno, cerchi.FindAll(c => c.Tipo == "contorno"), gia, contorno, distacco, passo,
                                nate, diametriEsterni, altrove, falliti);
                 foreach (var c in cerchi)
                     if (c.Tipo == "di_taglio") diTaglio.Add("Ø" + c.DiametroMm.ToString("0.##", Ci));
+                // IL TONDO VISTO DI FIANCO (voce GT14): cerchi di taglio coassiali
+                // vogliono dire un pezzo tornito nella vista longitudinale —
+                // lunghezze fra le facce e diametri dalle generatrici.
+                tondo = QuotaIlTondoDiFianco(modello, disegno, vista, mu, tr, cerchi.FindAll(c => c.Tipo == "di_taglio"),
+                                             gia, contorno, distacco, passo, ref sotto, ref diLato, nate, altrove, falliti);
 
                 foreach (var s in misurati)
                 {
@@ -424,14 +430,13 @@ namespace Riscontro.Disegno
                 // Se tutto cio' che la vista mostra e' gia' quotato altrove, o e'
                 // un doppione, o sta nello smusso, si dice cosi' — e resta un
                 // rifiuto, perche' zero quote non sono una risposta «fatto».
-                if (falliti.Count == 0 && diTaglio.Count > 0 && misurati.Count == 0 &&
+                if (falliti.Count == 0 && diTaglio.Count > 0 && misurati.Count == 0 && tondo == null &&
                     doppioni.Count + altrove.Count + diSmusso.Count == 0 && foriNellaTabella <= 0)
                     return Fallito(
                         "Nella vista «" + nomeVista + "» gli unici spigoli sono cerchi visti di taglio (" +
-                        string.Join(", ", diTaglio) + "): e' un pezzo tondo visto di fianco. Il diametro lo quoto " +
-                        "dalla vista in cui e' un cerchio. La lunghezza di un pezzo tondo da questa vista non la " +
-                        "quoto ancora: le generatrici del cilindro non sono spigoli, e la quota fra due cerchi di " +
-                        "taglio non l'ho misurata (di taglio, AddDiameterDimension2 dice 60 per un Ø30).");
+                        string.Join(", ", diTaglio) + ") e non stanno su uno stesso asse: non e' un pezzo tondo " +
+                        "visto di fianco che io sappia quotare. Il diametro di un cerchio lo quoto dalla vista in " +
+                        "cui e' un cerchio (di taglio, AddDiameterDimension2 dice 60 per un Ø30).");
                 if (falliti.Count == 0 && ((doppioni.Count + altrove.Count + diSmusso.Count) > 0 || foriNellaTabella > 0))
                     return Fallito(
                         "Nella vista «" + nomeVista + "» non c'e' niente da quotare che non lo sia " +
@@ -499,6 +504,14 @@ namespace Riscontro.Disegno
                 // di taglio non si quota da qui.
                 ["diametri_esterni"] = diametriEsterni.ToArray(),
                 ["cerchi_di_taglio"] = diTaglio.ToArray(),
+                // IL TONDO VISTO DI FIANCO (voce GT14): lunghezze in parallelo dalla
+                // prima faccia, diametri dalle generatrici; e i diametri che la
+                // vista non espone, detti.
+                ["tondo_asse"] = tondo?.Asse,
+                ["tondo_lunghezze_mm"] = tondo == null ? null : tondo.Lunghezze.ToArray(),
+                ["tondo_diametri_mm"] = tondo == null ? null : tondo.Diametri.ToArray(),
+                ["tondo_diametri_non_raggiunti"] = tondo == null ? null : tondo.NonRaggiunti.ToArray(),
+                ["tondo_generatrici_senza_faccia"] = tondo == null ? null : (object)tondo.GeneratriciSenzaFaccia,
                 ["smussi"] = smussi.ToArray(),
                 ["gia_quotate_altrove"] = altrove.ToArray(),
                 ["spigoli_dello_smusso"] = diSmusso.ToArray(),
@@ -708,6 +721,8 @@ namespace Riscontro.Disegno
             public string Tipo;             // "foro", "contorno", "di_taglio"
             public bool? Passante;          // dalla geometria; null se non si capisce
             public double ProfonditaMm = double.NaN;
+            public double[] CentroModello;  // metri, nel modello
+            public double[] AsseModello;    // versore, nel modello
         }
 
         private static readonly System.Globalization.CultureInfo Ci = System.Globalization.CultureInfo.InvariantCulture;
@@ -745,7 +760,8 @@ namespace Riscontro.Disegno
                 double l = asse == null ? 0 : Math.Sqrt(asse[0] * asse[0] + asse[1] * asse[1] + asse[2] * asse[2]);
                 if (l < 1e-12 || Math.Abs(asse[2]) / l < 0.99) tipo = "di_taglio";
                 else tipo = EUnForoCheSiVede(e, curva, mu, tr) ? "foro" : "contorno";
-                var c = new Cerchio { Indice = indice, Spigolo = e, CentroFoglio = centro, DiametroMm = Math.Round(cp[6] * 2000.0, 3), Tipo = tipo };
+                var c = new Cerchio { Indice = indice, Spigolo = e, CentroFoglio = centro, DiametroMm = Math.Round(cp[6] * 2000.0, 3), Tipo = tipo,
+                                      CentroModello = new[] { cp[0], cp[1], cp[2] }, AsseModello = new[] { cp[3], cp[4], cp[5] } };
                 if (tipo == "foro")
                 {
                     double prof;
@@ -798,7 +814,29 @@ namespace Riscontro.Disegno
                             var ann = d.GetAnnotation() as IAnnotation;
                             var ents = ann?.GetAttachedEntities3() as object[];
                             var dritti = new List<IEdge>();
+                            // DUE CERCHI COASSIALI SONO UNA LUNGHEZZA DEL TONDO (voce GT14),
+                            // non due diametri gia' quotati; UNA GENERATRICE porta il
+                            // diametro della sua faccia.
+                            var cerchiAttaccati = new List<double[]>();
                             if (ents != null)
+                                foreach (var o in ents)
+                                {
+                                    var ce = o as IEdge;
+                                    var cc = ce == null ? null : ce.GetCurve() as ICurve;
+                                    if (cc != null && cc.IsCircle()) cerchiAttaccati.Add(cc.CircleParams as double[]);
+                                    var gen = o as ISilhouetteEdge;
+                                    if (gen != null)
+                                    {
+                                        var su = (gen.GetFace() as IFace2)?.GetSurface() as ISurface;
+                                        if (su != null && su.IsCylinder())
+                                            fuori.Add("foro|" + Math.Round(((double[])su.CylinderParams)[6] * 2000.0, 2).ToString("0.00", Ci));
+                                    }
+                                }
+                            bool lunghezzaDelTondo = cerchiAttaccati.Count == 2 && Coassiali(cerchiAttaccati[0], cerchiAttaccati[1]);
+                            if (lunghezzaDelTondo)
+                                fuori.Add(ChiaveTondo(new[] { cerchiAttaccati[0][0], cerchiAttaccati[0][1], cerchiAttaccati[0][2] },
+                                                      new[] { cerchiAttaccati[1][0], cerchiAttaccati[1][1], cerchiAttaccati[1][2] }));
+                            if (ents != null && !lunghezzaDelTondo)
                                 foreach (var o in ents)
                                 {
                                     var e = o as IEdge;
@@ -892,10 +930,14 @@ namespace Riscontro.Disegno
         /// </summary>
         private void QuotaIContorni(
             IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> contorni, HashSet<string> gia,
-            double[] contorno, double distacco, List<Dictionary<string, object>> nate,
+            double[] contorno, double distacco, double passo, List<Dictionary<string, object>> nate,
             List<Dictionary<string, object>> diametri, List<string> altrove, List<string> falliti)
         {
             var fatti = new HashSet<string>(StringComparer.Ordinal);
+            // UN PASSO PIU' IN ALTO PER OGNI DIAMETRO: i contorni di un tondo sono
+            // concentrici, e alla stessa altezza i testi nascevano uno sull'altro
+            // (l'albero a gradini visto di testa, 27/9/2026: quattro testi accavallati).
+            int n = 0;
             foreach (var c in contorni)
             {
                 string dm = c.DiametroMm.ToString("0.##", Ci);
@@ -908,7 +950,7 @@ namespace Riscontro.Disegno
                 {
                     modello.ClearSelection2(true);
                     if ((c.Spigolo as IEntity).Select4(false, null))
-                        q = modello.AddDiameterDimension2(c.CentroFoglio[0] + 0.015, contorno[3] + distacco * 0.8, 0) as IDisplayDimension;
+                        q = modello.AddDiameterDimension2(c.CentroFoglio[0] + 0.015 + n * 0.012, contorno[3] + distacco * 0.8 + n * passo, 0) as IDisplayDimension;
                 }
                 catch { }
                 modello.ClearSelection2(true);
@@ -939,6 +981,7 @@ namespace Riscontro.Disegno
                 nate.Add(descritta);
                 diametri.Add(new Dictionary<string, object> { ["diametro_mm"] = Math.Round(c.DiametroMm, 2), ["diametro_riletto_mm"] = letto });
                 gia.Add(chiave);
+                n++;
             }
         }
 

@@ -779,9 +779,14 @@ namespace Riscontro.Disegno
             // si stampa, o in una vista nascosta, conta e in officina non arriva.
             // Ogni numero stampato dalle quote deve comparire nel testo del PDF
             // almeno tante volte quante lo stampano (OperazioniQuoteNelPdf).
-            int quoteInTavola;
-            var numeriAttesi = NumeriDelleQuote(disegno, out quoteInTavola);
+            int quoteInTavola, quoteSenzaTesto;
+            var numeriAttesi = NumeriDelleQuote(disegno, out quoteInTavola, out quoteSenzaTesto);
             misure["quote_in_tavola"] = quoteInTavola;
+            misure["quote_non_controllate"] = quoteSenzaTesto;   // il loro testo non si legge
+            if (quoteSenzaTesto > 0)
+                misure["attenzione"] = (misure.ContainsKey("attenzione") ? misure["attenzione"] + " " : "") +
+                    quoteSenzaTesto + (quoteSenzaTesto == 1 ? " quota non ha" : " quote non hanno") +
+                    " un testo che io sappia leggere: se arrivano nel PDF non l'ho controllato.";
             if (quoteInTavola > 0)
             {
                 string testoPdf = null;
