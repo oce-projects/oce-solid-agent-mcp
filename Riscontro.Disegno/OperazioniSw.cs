@@ -238,7 +238,7 @@ namespace Riscontro.Disegno
             "accoppia", "combina_corpi",
             "cordone_saldatura", "crea_asse", "crea_configurazione",
             "crea_disegno", "crea_piano", "distinta_taglio",
-            "piano_per_tre_punti", "profili_saldatura",
+            "piano_per_tre_punti", "profili_saldatura", "immagine_nello_schizzo",
             "distanza_minima", "elimina_lavorazione",
             "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
             "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
@@ -370,6 +370,10 @@ namespace Riscontro.Disegno
                     // che cambia come l'assieme si ricostruisce. OperazioniFissaComponente.cs.
                     case "fissa_componente":
                         return FissaComponente(modello, argomenti, stato);
+                    // Un'immagine da ricalcare, in scala, in uno schizzo (voce Z-F5).
+                    // OperazioniRicalco.cs.
+                    case "immagine_nello_schizzo":
+                        return ImmagineNelloSchizzo(modello, argomenti, stato);
                     case "piano_per_tre_punti":
                         return PianoPerTrePunti(modello, argomenti, stato);
 

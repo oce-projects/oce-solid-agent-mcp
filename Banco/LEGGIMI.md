@@ -530,7 +530,9 @@ casi/asola/       18   ogni faccia, non una sola; lo schizzo quotato che si
                        (voce E18)
 casi/smusso/       3   dove un raccordo toglierebbe un altro volume
 casi/rivoluzione/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
-casi/piano/        5   DOVE finisce il piano, non la distanza chiesta
+casi/piano/        6   DOVE finisce il piano, non la distanza chiesta; la foto
+                       da ricalcare messa in scala su un piano (Z-F5, legge
+                       {DATI}: Banco/dati/, versionata)
 casi/specchia/     2   il foro deve comparire dall'altra parte
 casi/ripeti/       8   la direzione, che e' il dubbio vero; l'asse riconosciuto
                        per identita', e rifiutato se si e' spostato (voce E4)

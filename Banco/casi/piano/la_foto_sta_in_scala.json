@@ -1,0 +1,28 @@
+{
+  "nome": "la_foto_sta_in_scala",
+  "famiglia": "piano",
+  "perche": "VOCE Z-F5. L'ingresso piu' frequente in un'officina piccola e' una foto o uno schizzo a penna: l'immagine va messa in uno schizzo, IN SCALA, per ricalcarla. Un PNG di 400 x 200 pixel (Banco/dati/ricalco_400x200.png: un rettangolo nero su bianco) largo 120 mm, con l'angolo in basso a sinistra in 10,20. Misurato il 27/9/2026 (prova0089 zf5): entra a 1 px = 1 mm, SetSize e SetOrigin la portano dove si chiede, e GetPointOnSketchFromPixel vuole (colonna, riga) al contrario del nome dei suoi argomenti.",
+  "il_difetto_che_questo_caso_prende": "L'immagine messa a 1 px = 1 mm (400 mm invece di 120); la scala creduta perche' SetSize ha risposto true; il PDF preso per un'immagine.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "immagine_nello_schizzo",
+      "argomenti": { "percorso": "{DATI}\\ricalco_400x200.png", "piano": "frontale", "larghezza_mm": 120, "x_mm": 10, "y_mm": 20 },
+      "attese": [
+        { "cosa": "misure.pixel", "uguale": [400, 200] },
+        { "cosa": "misure.larghezza_mm", "uguale": 120, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "riletta da GetSize, in metri e arrotondata" },
+        { "cosa": "misure.altezza_mm", "uguale": 60, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "la stessa: l'aspetto bloccato" },
+        { "cosa": "misure.mm_per_pixel", "uguale": 0.3 },
+        { "cosa": "misure.origine_mm", "uguale": [10, 20], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "riletta da GetOrigin" },
+        { "cosa": "misure.verifica_scala_mm", "uguale": 119.7, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "399 colonne per 0,3 mm, dai due pixel portati nello schizzo",
+          "perche": "la scala verificata sull'immagine, non creduta" } ] },
+    { "operazione": "immagine_nello_schizzo",
+      "argomenti": { "percorso": "{DATI}\\ricalco.pdf", "piano": "frontale", "larghezza_mm": 120, "x_mm": 10, "y_mm": 20 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["PDF", "PNG"],
+        "gemella": "la_foto_sta_in_scala" } }
+  ]
+}

@@ -24,6 +24,30 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.107.0 — 27 September 2026 · library 0.132.0
+
+**A photo to trace, to scale, in a sketch (entry Z-F5).** The most frequent
+input in a small shop is not a DXF: it is a photo, or a sketch with the
+dimensions in pen. The model can read the image; it lacked the place to put
+it. New operation `immagine_nello_schizzo` (`percorso`, `piano`,
+`larghezza_mm` — the true width of the whole image — and the lower-left
+corner `x_mm`, `y_mm`). Measured first with a 400×200 px PNG:
+`InsertSketchPicture` puts it in at 1 px = 1 mm; `SetSize` with the aspect
+ratio locked and `SetOrigin` put it where asked (120×60 mm at 10,20).
+
+- The scale is VERIFIED, not believed: the first and last pixel of the first
+  row, mapped into the sketch with `GetPointOnSketchFromPixel`, must be
+  (columns − 1) × mm-per-pixel apart within 1% (119.7 mm in the case).
+  **That call takes (column, row), the opposite of its argument names**
+  (measured: the first argument moves along X; a row beyond the height gives
+  null).
+- A PDF does not go in (null): the refusal says to convert the page to PNG.
+- The answer gives the rule from a pixel to millimetres in the sketch.
+- The bench learns `{DATI}` (`Banco/dati/`, versioned): input files a case
+  reads, since `{LAVORO}` is emptied every run.
+
+New case `piano/la_foto_sta_in_scala`. Ninety-two operations.
+
 ## 0.106.0 — 27 September 2026 · library 0.131.0
 
 **Reorder the tree (entry Z-F3).** A shell before a hole gives a different

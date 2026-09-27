@@ -82,6 +82,23 @@ namespace ProvaSaldatura
             }
         }
 
+        /// <summary>
+        /// I FILE CHE UN CASO LEGGE E NON SCRIVE: `Banco\dati\`, versionata (voce
+        /// Z-F5, 27/9/2026: l'immagine da ricalcare). `{LAVORO}` si svuota a ogni
+        /// giro e non e' nel repository, quindi un file d'ingresso non puo' starci.
+        /// </summary>
+        internal static string Dati
+        {
+            get
+            {
+                var qui = Path.GetDirectoryName(
+                    System.Reflection.Assembly.GetEntryAssembly() != null
+                        ? System.Reflection.Assembly.GetEntryAssembly().Location
+                        : System.Reflection.Assembly.GetExecutingAssembly().Location);
+                return Path.GetFullPath(Path.Combine(qui ?? ".", "..", "dati"));
+            }
+        }
+
         /// <summary>Un testo lungo, accorciato per stare su una riga di esito.</summary>
         internal static string Breve(string s)
         {
@@ -588,6 +605,9 @@ namespace ProvaSaldatura
             // ne' il repository ne' il disco di chi lavora.
             if (testo != null && testo.Contains("{LAVORO}"))
                 return testo.Replace("{LAVORO}", Lavoro);
+            // `{DATI}`: i file d'ingresso versionati (Banco\dati\).
+            if (testo != null && testo.Contains("{DATI}"))
+                return testo.Replace("{DATI}", Dati);
             return grezzo;
         }
 

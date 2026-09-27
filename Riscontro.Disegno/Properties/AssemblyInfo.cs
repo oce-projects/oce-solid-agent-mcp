@@ -377,8 +377,13 @@ using System.Runtime.InteropServices;
 // 0.131.0: Z-F3, `riordina_lavorazione`: ReorderFeature prima o dopo un'altra
 //          lavorazione, nome controllato col feature_id, ordine e volume riletti;
 //          uno spostamento che rompe una lavorazione a valle si rimette dov'era.
-[assembly: AssemblyVersion("0.131.0.0")]
-[assembly: AssemblyFileVersion("0.131.0.0")]
+// 0.132.0: Z-F5, `immagine_nello_schizzo`: una foto o uno schizzo a mano in uno
+//          schizzo su un piano, in scala (SetSize con l'aspetto bloccato,
+//          SetOrigin), verificata con GetPointOnSketchFromPixel — che vuole
+//          (colonna, riga), al contrario del nome dei suoi argomenti. Un PDF non
+//          entra. Il banco legge {DATI} (Banco\dati\, versionata).
+[assembly: AssemblyVersion("0.132.0.0")]
+[assembly: AssemblyFileVersion("0.132.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -393,4 +398,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.131.0")]
+[assembly: AssemblyInformationalVersion("0.132.0")]

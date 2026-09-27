@@ -141,8 +141,10 @@ namespace Prove.Contratti
         /// variabile che non esiste («creala con variabile_globale»), il pezzo da aprire.
         /// **119:** Z-F3 — `riordina_lavorazione`: lo spostamento impossibile («spostala
         /// rispetto a una lavorazione che viene dopo»), i nomi mancanti, il pezzo.
+        /// **122:** Z-F5 — `immagine_nello_schizzo`: il PDF («convertilo in PNG»),
+        /// il file che non e' un'immagine («PNG, JPG…»), l'immagine da risalvare.
         /// </summary>
-        private const int Pavimento = 119;
+        private const int Pavimento = 122;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

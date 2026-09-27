@@ -3450,6 +3450,50 @@
    "esempio": "{\"piano\":\"frontale\",\"diametro1_mm\":40,\"diametro2_mm\":20,\"distanza_mm\":50}"
   },
   {
+   "nome": "immagine_nello_schizzo",
+   "famiglia": "riferimenti",
+   "sommario": "Mette una foto o uno schizzo a mano, in scala, su un piano: da ricalcare.",
+   "descrizione": "Mette un'immagine (una foto del pezzo, uno schizzo con le quote a penna) in uno schizzo su un piano, IN SCALA: tu mi dici quanto e' larga davvero tutta l'immagine («larghezza_mm» — una misura nota divisa per i suoi pixel, per la larghezza dell'immagine) e dove va l'angolo in basso a sinistra. Poi ricalchi sullo stesso piano con le operazioni di schizzo.\n\nLA SCALA LA VERIFICO: il primo e l'ultimo pixel della prima riga, nello schizzo, devono distare quanto dicono i millimetri per pixel, entro l'1%. Ti rispondo la regola per passare da un pixel ai millimetri.\n\nMI RIFIUTO per un PDF (non entra: convertilo in PNG), per un file che non c'e' o non e' un'immagine, e per una larghezza non positiva.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "percorso": {
+      "type": "string",
+      "description": "il file dell'immagine: PNG, JPG, BMP, GIF o TIF."
+     },
+     "piano": {
+      "type": "string",
+      "enum": [
+       "frontale",
+       "superiore",
+       "destro"
+      ],
+      "description": "il piano su cui metterla."
+     },
+     "larghezza_mm": {
+      "type": "number",
+      "description": "quanto e' larga davvero TUTTA l'immagine, in mm: la scala."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "dove va l'angolo in basso a sinistra, x. Predefinito 0."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "dove va l'angolo in basso a sinistra, y. Predefinito 0."
+     }
+    },
+    "required": [
+     "percorso",
+     "piano",
+     "larghezza_mm"
+    ]
+   },
+   "precondizione": "un pezzo aperto (anche vuoto)",
+   "documento": "parte",
+   "esempio": null
+  },
+  {
    "nome": "piano_per_tre_punti",
    "famiglia": "riferimenti",
    "sommario": "Un piano obliquo, dato per tre punti, e rileggo la sua normale per dirti che e' quello.",

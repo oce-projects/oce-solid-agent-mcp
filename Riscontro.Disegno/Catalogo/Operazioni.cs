@@ -4111,6 +4111,42 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "immagine_nello_schizzo",
+                    Famiglia = "riferimenti",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario = "Mette una foto o uno schizzo a mano, in scala, su un piano: da ricalcare.",
+                    Descrizione =
+                        "Mette un'immagine (una foto del pezzo, uno schizzo con le quote a penna) in uno "
+                        + "schizzo su un piano, IN SCALA: tu mi dici quanto e' larga davvero tutta "
+                        + "l'immagine («larghezza_mm» — una misura nota divisa per i suoi pixel, per la "
+                        + "larghezza dell'immagine) e dove va l'angolo in basso a sinistra. Poi ricalchi "
+                        + "sullo stesso piano con le operazioni di schizzo.\n\nLA SCALA LA VERIFICO: il "
+                        + "primo e l'ultimo pixel della prima riga, nello schizzo, devono distare quanto "
+                        + "dicono i millimetri per pixel, entro l'1%. Ti rispondo la regola per passare "
+                        + "da un pixel ai millimetri.\n\nMI RIFIUTO per un PDF (non entra: convertilo in "
+                        + "PNG), per un file che non c'e' o non e' un'immagine, e per una larghezza non "
+                        + "positiva.",
+                    Precondizione = "un pezzo aperto (anche vuoto)",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "percorso", O(
+                                "type", "string",
+                                "description", "il file dell'immagine: PNG, JPG, BMP, GIF o TIF."),
+                            "piano", O(
+                                "type", "string",
+                                "enum", A("frontale", "superiore", "destro"),
+                                "description", "il piano su cui metterla."),
+                            "larghezza_mm", O(
+                                "type", "number",
+                                "description", "quanto e' larga davvero TUTTA l'immagine, in mm: la scala."),
+                            "x_mm", O("type", "number", "description", "dove va l'angolo in basso a sinistra, x. Predefinito 0."),
+                            "y_mm", O("type", "number", "description", "dove va l'angolo in basso a sinistra, y. Predefinito 0.")),
+                        "required", A("percorso", "piano", "larghezza_mm")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "piano_per_tre_punti",
                     Famiglia = "riferimenti",
                     Esempio = "{\"punto1_mm\":[0,0,0],\"punto2_mm\":[50,0,0],\"punto3_mm\":[100,10,0]}",   // da `lim_tre_punti_in_fila`
