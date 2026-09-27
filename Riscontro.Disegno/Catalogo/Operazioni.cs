@@ -3770,6 +3770,37 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "fissa_componente",
+                    Famiglia = "assiemi",
+                    DocumentoRichiesto = "assieme",
+                    Provata = true,
+                    Esempio = "{\"componente\":\"C2\",\"fisso\":true}",   // da `fisso_non_e_accoppiato`
+                    Sommario = "Fissa o libera un componente dell'assieme, e lo rilegge.",
+                    Descrizione =
+                        "Fissa un componente (non si muove piu', qualunque accoppiamento abbia) o "
+                        + "lo libera (lo tengono solo i suoi accoppiamenti). E' l'unico stato di "
+                        + "un componente che cambia come l'assieme si ricostruisce.\n\nFISSO NON "
+                        + "VUOL DIRE ACCOPPIATO: il primo componente inserito SOLIDWORKS lo fissa "
+                        + "da solo, e un assieme che sta fermo solo per quello non e' montato. "
+                        + "Dopo averlo cambiato lo rileggo, e ti dico quanti accoppiamenti ha: un "
+                        + "componente libero con zero accoppiamenti e' appoggiato, si muove."
+                        + "\n\nMI RIFIUTO se non mi dici «fisso» (true o false: sono due cose "
+                        + "opposte, non c'e' un verso d'ufficio) o se il componente non c'e' "
+                        + "(ti dico quali ci sono).",
+                    Precondizione = "un assieme aperto con almeno un componente",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "componente", O(
+                                "type", "string",
+                                "description", "l'identificativo del componente, dallo stato: «C1», «C2», ..."),
+                            "fisso", O(
+                                "type", "boolean",
+                                "description", "true per fissarlo, false per liberarlo.")),
+                        "required", A("componente", "fisso")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "sostituisci_componente",
                     Famiglia = "assiemi",
                     DocumentoRichiesto = "assieme",

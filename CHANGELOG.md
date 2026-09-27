@@ -24,6 +24,28 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.104.0 — 27 September 2026 · library 0.129.0
+
+**What holds a component, and a new operation to fix or free it (entries
+Z-D3, Z-D4, Z-D5).** The assembly state said HOW MANY mates a component has,
+not WHICH; it did not say whether a component is a sub-assembly, hidden or
+transparent; and fixing or freeing a component was not possible. Measured
+first: `GetMates` returns `IMate2` objects whose `Type` is `swMateType_e`;
+transparency lives in `MaterialPropertyValues[7]` (0.75 after
+`SetComponentTransparent`), only once the component has its own appearance;
+`FixComponent`/`UnfixComponent` on the selected component work both ways,
+including on the first component, which SOLIDWORKS fixes by itself.
+
+- Assembly state, per component: `accoppiamenti_tipi` (by name: coincidente,
+  concentrico, parallelo, …), `e_sottoassieme` (null when the component is
+  suppressed: «I don't know», not «no»), `visibile`, `trasparente`.
+- New operation `fissa_componente` (`componente`, `fisso` — both required:
+  fixing and freeing are opposites). Both calls return nothing: the result is
+  read back with `IsFixed`, and the answer says how many mates still hold a
+  freed component (zero means it rests there and moves).
+
+New case `assiemi/fisso_non_e_accoppiato`. Eighty-eight operations.
+
 ## 0.103.0 — 27 September 2026 · library 0.128.0
 
 **The whole assembly: how much it weighs, how big it is, and the STEP to send

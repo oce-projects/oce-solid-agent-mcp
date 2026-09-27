@@ -135,8 +135,9 @@ namespace Prove.Contratti
         /// per un saldato. **108:** Z-D1/Z-D6 — un documento che non e' ne' pezzo
         /// ne' assieme («Aprimi il pezzo o l'assieme»), lo STL di un assieme («usa
         /// esporta_step»), la rilettura dello STEP d'assieme («toglilo e richiedimelo»).
+        /// **109:** Z-D5 — `fissa_componente` fuori da un assieme («Aprimi l'assieme»).
         /// </summary>
-        private const int Pavimento = 108;
+        private const int Pavimento = 109;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

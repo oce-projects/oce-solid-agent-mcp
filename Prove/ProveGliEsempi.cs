@@ -44,9 +44,10 @@ namespace Prove.Contratti
         /// Quante operazioni hanno un esempio. Ventiquattro il 23/9/2026, e
         /// **puo' solo salire**: si alza scrivendo un caso di banco che usi
         /// argomenti da client invece che selettori del banco — cioe'
-        /// migliorando la prova, non l'esempio.
+        /// migliorando la prova, non l'esempio. **25** il 27/9/2026: `fissa_componente`
+        /// nasce con l'esempio copiato dal suo caso (`fisso_non_e_accoppiato`).
         /// </summary>
-        private const int Pavimento = 24;
+        private const int Pavimento = 25;
 
         /// <summary>Cio' che un client non puo' copiare.</summary>
         private static readonly string[] SoloDelBanco = { "@", "{LAVORO}", "{PROFILI}" };

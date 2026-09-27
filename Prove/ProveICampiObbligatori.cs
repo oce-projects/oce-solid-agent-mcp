@@ -92,6 +92,8 @@ namespace Prove.Contratti
                 { "rugosita_in_tavola.ra_um", "la rugosita' la decide la funzione della superficie: un Ra d'ufficio si stamperebbe su ogni faccia" },
                 { "tolleranza_quota.quota", "quale quota tollerare lo sa solo chi progetta: una tolleranza d'ufficio su una quota scelta da me e' un accoppiamento inventato" },
                 { "tolleranza_quota.tipo", "± o H7 e' la domanda stessa: non c'e' un tipo di tolleranza d'ufficio" },
+                { "fissa_componente.componente", "quale componente fissare lo sa chi monta: sceglierlo io sarebbe inchiodare un pezzo a caso" },
+                { "fissa_componente.fisso", "fissare e liberare sono due cose opposte: non c'e' un verso d'ufficio" },
                 { "tolleranza_geometrica_in_tavola.caratteristica", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
 
                 // ── DIPENDONO DALL'OFFICINA, NON DA NOI (voce Z-G8) ───────

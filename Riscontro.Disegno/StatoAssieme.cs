@@ -243,6 +243,52 @@ namespace Riscontro.Disegno
                 int suoiAcc = OperazioniSw.AccoppiamentiDi(c);
                 if (suoiAcc >= 0) voce["accoppiamenti"] = suoiAcc;
 
+                // ── CHE ACCOPPIAMENTI (voce Z-D3) ───────────────────────
+                // Misurato il 27/9/2026 (`prova0089 zd345`): `GetMates` da' oggetti
+                // IMate2 (e IFeature); `Type` e' `swMateType_e`. Si scrivono per
+                // NOME, nell'ordine in cui SOLIDWORKS li da'. «Come e' montato
+                // questo pezzo, incernierato o appoggiato?» si legge qui.
+                // Zero accoppiamenti (contati sopra) e' un elenco vuoto; un GetMates
+                // null con accoppiamenti contati, o illeggibili, e' «non lo so».
+                if (suoiAcc == 0) voce["accoppiamenti_tipi"] = new string[0];
+                else if (suoiAcc > 0)
+                {
+                    var tipi = TipiDegliAccoppiamenti(c);
+                    voce["accoppiamenti_tipi"] = tipi;   // null se non si leggono
+                }
+
+                // ── SOTTOASSIEME, VISIBILE, TRASPARENTE (voce Z-D4) ─────
+                // Un sotto-assieme e' un blocco che ne nasconde altri: lo si dice.
+                // `GetModelDoc2` di un soppresso e' null: «non lo so», non «no».
+                try
+                {
+                    var suo = c.GetModelDoc2();
+                    voce["e_sottoassieme"] = suo == null ? null : (object)(suo is IAssemblyDoc);
+                }
+                catch { voce["e_sottoassieme"] = null; }
+                // `Visible` e' swComponentVisibilityState_e: 1 visibile, 0 nascosto.
+                try
+                {
+                    int vis = c.Visible;
+                    voce["visibile"] = vis == 1 ? (object)true : vis == 0 ? (object)false : null;
+                }
+                catch { voce["visibile"] = null; }
+                // LA TRASPARENZA NON E' UN CAMPO DEL COMPONENTE (accertato il
+                // 23/9): sta in `MaterialPropertyValues`, posizione 7, e c'e' solo
+                // se il componente ha un aspetto suo (misurato: 0,75 dopo
+                // `SetComponentTransparent`). Trasparente e visibile sono due stati
+                // diversi, non alternativi.
+                try
+                {
+                    if (!c.HasMaterialPropertyValues()) voce["trasparente"] = false;
+                    else
+                    {
+                        var mpv = c.MaterialPropertyValues as double[];
+                        voce["trasparente"] = mpv != null && mpv.Length > 7 ? (object)(mpv[7] > 0) : null;
+                    }
+                }
+                catch { voce["trasparente"] = null; }
+
                 // ── I GRADI DI LIBERTA' RESIDUI (voce GA5) ───────────────
                 //
                 // E' la misura che distingue un assieme da quattro pezzi nella
@@ -493,6 +539,49 @@ namespace Riscontro.Disegno
         /// tradotti a caso: **un nome inventato e' peggio di un numero onesto**,
         /// perche' chi legge il nome ci crede.
         /// </summary>
+        /// <summary>I tipi degli accoppiamenti di un componente, per nome; null se non si leggono.</summary>
+        private static string[] TipiDegliAccoppiamenti(IComponent2 c)
+        {
+            try
+            {
+                var grezzi = c.GetMates() as object[];
+                if (grezzi == null) return null;   // chi chiama sa gia' che ce ne sono: null e' «non lo so»
+                var fuori = new List<string>();
+                foreach (var o in grezzi)
+                {
+                    var m = o as IMate2;
+                    if (m == null) { fuori.Add("?"); continue; }
+                    fuori.Add(NomeDelTipo(m.Type));
+                }
+                return fuori.ToArray();
+            }
+            catch { return null; }
+        }
+
+        private static string NomeDelTipo(int t)
+        {
+            switch (t)
+            {
+                case (int)swMateType_e.swMateCOINCIDENT: return "coincidente";
+                case (int)swMateType_e.swMateCONCENTRIC: return "concentrico";
+                case (int)swMateType_e.swMatePERPENDICULAR: return "perpendicolare";
+                case (int)swMateType_e.swMatePARALLEL: return "parallelo";
+                case (int)swMateType_e.swMateTANGENT: return "tangente";
+                case (int)swMateType_e.swMateDISTANCE: return "distanza";
+                case (int)swMateType_e.swMateANGLE: return "angolo";
+                case (int)swMateType_e.swMateSYMMETRIC: return "simmetrico";
+                case (int)swMateType_e.swMateWIDTH: return "larghezza";
+                case (int)swMateType_e.swMateLOCK: return "blocco";
+                case (int)swMateType_e.swMateHINGE: return "cerniera";
+                case (int)swMateType_e.swMateSLOT: return "asola";
+                case (int)swMateType_e.swMateGEAR: return "ingranaggio";
+                case (int)swMateType_e.swMateSCREW: return "vite";
+                default:
+                    var n = Enum.GetName(typeof(swMateType_e), t);
+                    return n == null ? "tipo " + t : n.Replace("swMate", "").ToLowerInvariant();
+            }
+        }
+
         private static string NomeDelloStato(int stato)
         {
             switch (stato)

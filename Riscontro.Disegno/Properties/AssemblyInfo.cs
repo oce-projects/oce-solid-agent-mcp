@@ -363,8 +363,14 @@ using System.Runtime.InteropServices;
 //          nell'assieme (arrivano nello spazio della parte); `esporta_step` e
 //          `esporta_iges` dell'assieme, con i solidi dello STEP contati contro
 //          quelli dei pezzi (rileggerlo apre un modale). Soppressi esclusi e detti.
-[assembly: AssemblyVersion("0.128.0.0")]
-[assembly: AssemblyFileVersion("0.128.0.0")]
+// 0.129.0: Z-D3, Z-D4, Z-D5. Lo stato dell'assieme dice i TIPI degli
+//          accoppiamenti per nome (GetMates da' IMate2), se un componente e' un
+//          sotto-assieme, se e' visibile e se e' trasparente (MaterialPropertyValues
+//          [7]); operazione nuova `fissa_componente` (FixComponent/UnfixComponent
+//          sul componente selezionato, riletti con IsFixed; anche il primo
+//          componente, che SOLIDWORKS fissa da solo, si lascia liberare).
+[assembly: AssemblyVersion("0.129.0.0")]
+[assembly: AssemblyFileVersion("0.129.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -379,4 +385,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.128.0")]
+[assembly: AssemblyInformationalVersion("0.129.0")]

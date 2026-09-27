@@ -252,7 +252,7 @@ namespace Riscontro.Disegno
             "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
-            "sostituisci_componente",
+            "sostituisci_componente", "fissa_componente",
             "croci_di_centro", "quota_in_tavola", "nota_in_tavola", "tabella_fori_in_tavola", "vista_sviluppo", "saldatura_in_tavola", "distinta_base_in_tavola", "bollatura",
             "rugosita_in_tavola", "datum_in_tavola", "tolleranza_geometrica_in_tavola",
             "sezione_in_tavola", "dettaglio_in_tavola",
@@ -360,6 +360,10 @@ namespace Riscontro.Disegno
                     // e la cosa che misura e' se gli accoppiamenti sopravvivono.
                     case "sostituisci_componente":
                         return SostituisciComponente(modello, argomenti, stato);
+                    // Fissare o liberare (voce Z-D5): l'unico stato di un componente
+                    // che cambia come l'assieme si ricostruisce. OperazioniFissaComponente.cs.
+                    case "fissa_componente":
+                        return FissaComponente(modello, argomenti, stato);
                     case "piano_per_tre_punti":
                         return PianoPerTrePunti(modello, argomenti, stato);
 

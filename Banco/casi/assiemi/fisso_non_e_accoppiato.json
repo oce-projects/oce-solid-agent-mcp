@@ -1,0 +1,54 @@
+{
+  "nome": "fisso_non_e_accoppiato",
+  "famiglia": "assiemi",
+  "perche": "VOCI Z-D3, Z-D4, Z-D5. Lo stato di un assieme diceva QUANTI accoppiamenti ha un componente, non QUALI; non diceva se un componente e' un sotto-assieme, se e' nascosto o trasparente; e fissare o liberare un componente non si poteva. Misurato il 27/9/2026 (prova0089 zd345): GetMates da' IMate2 col tipo (swMateType_e); la trasparenza sta in MaterialPropertyValues[7]; FixComponent/UnfixComponent sul componente selezionato funzionano nei due versi, anche sul primo componente, che SOLIDWORKS fissa da solo.",
+  "il_difetto_che_questo_caso_prende": "Un accoppiamento letto col tipo sbagliato (l'enum per numero); un componente fissato che rileggendo e' ancora libero (FixComponent e' void: non dice niente); il primo componente, fissato da SOLIDWORKS, che non si lascia liberare; un sotto-assieme o un componente nascosto che lo stato non distingue.",
+  "assieme": {
+    "componenti": [
+      { "nome": "base",
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+        ] },
+      { "nome": "coperchio",
+        "posizione_mm": [0, 7, 0],
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+        ] }
+    ]
+  },
+  "passi": [
+    { "operazione": "accoppia",
+      "argomenti": {
+        "componente_a": "C1", "faccia_a": "alto",
+        "componente_b": "C2", "faccia_b": "basso",
+        "tipo": "coincidente", "allineamento": "opposto"
+      },
+      "attese": [
+        { "cosa": "stato.componenti[1].accoppiamenti_tipi", "uguale": ["coincidente"],
+          "perche": "Z-D3: il tipo dell'accoppiamento per NOME, non solo il conteggio" },
+        { "cosa": "stato.componenti[0].e_sottoassieme", "uguale": false, "perche": "Z-D4: la base e' un pezzo" },
+        { "cosa": "stato.componenti[1].visibile", "uguale": true, "perche": "Z-D4" },
+        { "cosa": "stato.componenti[1].trasparente", "uguale": false,
+          "perche": "Z-D4: nessun aspetto suo sul componente, quindi non trasparente" } ] },
+    { "operazione": "fissa_componente",
+      "argomenti": { "componente": "C2", "fisso": true },
+      "attese": [
+        { "cosa": "misure.fisso_prima", "uguale": false },
+        { "cosa": "misure.fisso_dopo", "uguale": true, "perche": "riletto con IsFixed: FixComponent non risponde niente" },
+        { "cosa": "stato.componenti_fissi", "uguale": 2, "perche": "la base (fissata da SOLIDWORKS) e il coperchio" } ] },
+    { "operazione": "fissa_componente",
+      "argomenti": { "componente": "C1", "fisso": false },
+      "attese": [
+        { "cosa": "misure.fisso_prima", "uguale": true, "perche": "il primo componente lo fissa SOLIDWORKS da solo" },
+        { "cosa": "misure.fisso_dopo", "uguale": false, "perche": "e si lascia liberare come uno fissato a mano (misurato)" },
+        { "cosa": "misure.accoppiamenti", "uguale": 1, "perche": "libero, lo tiene il suo accoppiamento" },
+        { "cosa": "stato.componenti_fissi", "uguale": 1 } ] },
+    { "operazione": "fissa_componente",
+      "argomenti": { "componente": "C2" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["Dimmi «fisso»"],
+        "gemella": "fisso_non_e_accoppiato" } }
+  ]
+}
