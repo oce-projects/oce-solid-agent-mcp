@@ -24,6 +24,28 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.108.0 — 27 September 2026 · library 0.133.0
+
+**The right bracket and the left one (entry GA11).** New operation
+`specchia_componente` (`componente`, `piano` of the assembly, `modo`,
+optional `suffisso`). The danger is in the link: linked and not wanted, you
+change the right bracket and the left one changes too; unlinked and not
+wanted, you correct the right one and the left stays wrong without saying so.
+So `modo` is always asked, never defaulted. Measured first with the modern
+route (`FeatureManager.CreateDefinition(swFmMirrorComponent)` →
+`IMirrorComponentFeatureData`, typed `Component2[]` arrays):
+
+- `istanza`: one more component of the SAME file, mirrored;
+- `opposto_legato`: a NEW file whose tree is a single `MirrorStock` feature —
+  it follows the original;
+- `opposto_slegato`: a new file with the features COPIED — independent.
+
+Afterwards the answer is VERIFIED: the new component's true-box centre
+against the mirror of the original's centre (within 0.01 mm), and for the
+opposite-hand files the link read from the new file's tree. New case
+`assiemi/la_staffa_destra_e_la_sinistra` (all three, on three planes).
+Ninety-three operations.
+
 ## 0.107.0 — 27 September 2026 · library 0.132.0
 
 **A photo to trace, to scale, in a sketch (entry Z-F5).** The most frequent

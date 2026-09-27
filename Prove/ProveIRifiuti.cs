@@ -143,8 +143,10 @@ namespace Prove.Contratti
         /// rispetto a una lavorazione che viene dopo»), i nomi mancanti, il pezzo.
         /// **122:** Z-F5 — `immagine_nello_schizzo`: il PDF («convertilo in PNG»),
         /// il file che non e' un'immagine («PNG, JPG…»), l'immagine da risalvare.
+        /// **125:** GA11 — `specchia_componente`: il modo che manca (spiega i tre), fuori
+        /// da un assieme («c'e' specchia»), il file che c'e' gia' («cambia suffisso»).
         /// </summary>
-        private const int Pavimento = 122;
+        private const int Pavimento = 125;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

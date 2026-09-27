@@ -252,7 +252,7 @@ namespace Riscontro.Disegno
             "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
-            "sostituisci_componente", "fissa_componente",
+            "sostituisci_componente", "fissa_componente", "specchia_componente",
             "croci_di_centro", "quota_in_tavola", "nota_in_tavola", "tabella_fori_in_tavola", "vista_sviluppo", "saldatura_in_tavola", "distinta_base_in_tavola", "bollatura",
             "rugosita_in_tavola", "datum_in_tavola", "tolleranza_geometrica_in_tavola",
             "sezione_in_tavola", "dettaglio_in_tavola",
@@ -370,6 +370,9 @@ namespace Riscontro.Disegno
                     // che cambia come l'assieme si ricostruisce. OperazioniFissaComponente.cs.
                     case "fissa_componente":
                         return FissaComponente(modello, argomenti, stato);
+                    // La staffa destra e la sinistra (voce GA11). OperazioniSpecchiaComponente.cs.
+                    case "specchia_componente":
+                        return SpecchiaComponente(modello, argomenti, stato);
                     // Un'immagine da ricalcare, in scala, in uno schizzo (voce Z-F5).
                     // OperazioniRicalco.cs.
                     case "immagine_nello_schizzo":

@@ -3273,6 +3273,51 @@
    "esempio": null
   },
   {
+   "nome": "specchia_componente",
+   "famiglia": "assiemi",
+   "sommario": "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
+   "descrizione": "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). DEVI SCEGLIERE COME, perche' sono tre pezzi diversi:\n- «istanza»: lo stesso file, specchiato. Giusto per un pezzo simmetrico.\n- «opposto_legato»: un file nuovo che SEGUE l'originale. Cambi la destra e cambia anche la sinistra.\n- «opposto_slegato»: un file nuovo INDIPENDENTE. Correggi la destra e la sinistra resta com'era, senza che niente te lo dica.\n\nDopo lo verifico: il centro del pezzo nuovo contro lo specchio del centro dell'originale, e per gli opposti l'albero del file nuovo (legato o no). Il file nuovo prende il nome dell'originale col «suffisso» (predefinito «_spec»), nella stessa cartella.\n\nMI RIFIUTO se non mi dici «modo» (ti spiego i tre), se il piano non e' uno dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono).",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "componente": {
+      "type": "string",
+      "description": "l'identificativo del componente, dallo stato: «C1», «C2», ..."
+     },
+     "piano": {
+      "type": "string",
+      "enum": [
+       "frontale",
+       "superiore",
+       "destro"
+      ],
+      "description": "il piano dell'assieme su cui specchiare."
+     },
+     "modo": {
+      "type": "string",
+      "enum": [
+       "istanza",
+       "opposto_legato",
+       "opposto_slegato"
+      ],
+      "description": "istanza (stesso file), opposto_legato (file nuovo che segue l'originale), opposto_slegato (file nuovo indipendente)."
+     },
+     "suffisso": {
+      "type": "string",
+      "description": "per gli opposti: cosa aggiungere al nome del file. Predefinito «_spec»."
+     }
+    },
+    "required": [
+     "componente",
+     "piano",
+     "modo"
+    ]
+   },
+   "precondizione": "un assieme aperto con almeno un componente",
+   "documento": "assieme",
+   "esempio": "{\"componente\":\"C2\",\"piano\":\"destro\",\"modo\":\"istanza\"}"
+  },
+  {
    "nome": "fissa_componente",
    "famiglia": "assiemi",
    "sommario": "Fissa o libera un componente dell'assieme, e lo rilegge.",

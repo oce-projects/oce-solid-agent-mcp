@@ -382,8 +382,12 @@ using System.Runtime.InteropServices;
 //          SetOrigin), verificata con GetPointOnSketchFromPixel — che vuole
 //          (colonna, riga), al contrario del nome dei suoi argomenti. Un PDF non
 //          entra. Il banco legge {DATI} (Banco\dati\, versionata).
-[assembly: AssemblyVersion("0.132.0.0")]
-[assembly: AssemblyFileVersion("0.132.0.0")]
+// 0.133.0: GA11, `specchia_componente`: IMirrorComponentFeatureData con array
+//          tipizzati; istanza, opposto legato (MirrorStock) o slegato, sempre
+//          chiesto; verificati il centro contro lo specchio e, per gli opposti, il
+//          legame letto dall'albero del file nuovo.
+[assembly: AssemblyVersion("0.133.0.0")]
+[assembly: AssemblyFileVersion("0.133.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -398,4 +402,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.132.0")]
+[assembly: AssemblyInformationalVersion("0.133.0")]

@@ -48,8 +48,9 @@ namespace Prove.Contratti
         /// nasce con l'esempio copiato dal suo caso (`fisso_non_e_accoppiato`).
         /// **26**: `variabile_globale`, dal suo caso (`la_parete_ha_un_nome`).
         /// **27**: `riordina_lavorazione` (`l_ordine_cambia_il_pezzo`).
+        /// **28**: `specchia_componente` (`la_staffa_destra_e_la_sinistra`).
         /// </summary>
-        private const int Pavimento = 27;
+        private const int Pavimento = 28;
 
         /// <summary>Cio' che un client non puo' copiare.</summary>
         private static readonly string[] SoloDelBanco = { "@", "{LAVORO}", "{PROFILI}" };

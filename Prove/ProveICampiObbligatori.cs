@@ -99,6 +99,9 @@ namespace Prove.Contratti
                 { "lega_quota.espressione", "a cosa legarla e' la domanda stessa: non c'e' un'espressione d'ufficio" },
                 { "riordina_lavorazione.dove", "prima o dopo danno due pezzi diversi: non c'e' un verso d'ufficio" },
                 { "immagine_nello_schizzo.percorso", "l'immagine da ricalcare e' la cosa stessa: senza, non c'e' niente da mettere" },
+                { "specchia_componente.componente", "quale pezzo specchiare lo sa chi monta: sceglierlo io sarebbe specchiarne uno a caso" },
+                { "specchia_componente.piano", "il piano decide dove va il pezzo: un piano d'ufficio lo mette dalla parte sbagliata" },
+                { "specchia_componente.modo", "istanza, legato o slegato sono tre pezzi diversi, e sbagliare non da' errore: si chiede sempre" },
                 { "immagine_nello_schizzo.piano", "su quale piano sta il disegno lo sa chi lo guarda: un piano d'ufficio lo metterebbe di traverso" },
                 { "tolleranza_geometrica_in_tavola.caratteristica", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
 

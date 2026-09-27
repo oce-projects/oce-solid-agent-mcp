@@ -3869,6 +3869,47 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "specchia_componente",
+                    Famiglia = "assiemi",
+                    DocumentoRichiesto = "assieme",
+                    Provata = true,
+                    Esempio = "{\"componente\":\"C2\",\"piano\":\"destro\",\"modo\":\"istanza\"}",   // da `la_staffa_destra_e_la_sinistra`
+                    Sommario = "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
+                    Descrizione =
+                        "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). "
+                        + "DEVI SCEGLIERE COME, perche' sono tre pezzi diversi:\n- «istanza»: lo stesso "
+                        + "file, specchiato. Giusto per un pezzo simmetrico.\n- «opposto_legato»: un file "
+                        + "nuovo che SEGUE l'originale. Cambi la destra e cambia anche la sinistra.\n- "
+                        + "«opposto_slegato»: un file nuovo INDIPENDENTE. Correggi la destra e la sinistra "
+                        + "resta com'era, senza che niente te lo dica.\n\nDopo lo verifico: il centro del "
+                        + "pezzo nuovo contro lo specchio del centro dell'originale, e per gli opposti "
+                        + "l'albero del file nuovo (legato o no). Il file nuovo prende il nome "
+                        + "dell'originale col «suffisso» (predefinito «_spec»), nella stessa cartella."
+                        + "\n\nMI RIFIUTO se non mi dici «modo» (ti spiego i tre), se il piano non e' uno "
+                        + "dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono).",
+                    Precondizione = "un assieme aperto con almeno un componente",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "componente", O(
+                                "type", "string",
+                                "description", "l'identificativo del componente, dallo stato: «C1», «C2», ..."),
+                            "piano", O(
+                                "type", "string",
+                                "enum", A("frontale", "superiore", "destro"),
+                                "description", "il piano dell'assieme su cui specchiare."),
+                            "modo", O(
+                                "type", "string",
+                                "enum", A("istanza", "opposto_legato", "opposto_slegato"),
+                                "description", "istanza (stesso file), opposto_legato (file nuovo che segue "
+                                    + "l'originale), opposto_slegato (file nuovo indipendente)."),
+                            "suffisso", O(
+                                "type", "string",
+                                "description", "per gli opposti: cosa aggiungere al nome del file. Predefinito «_spec».")),
+                        "required", A("componente", "piano", "modo")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "fissa_componente",
                     Famiglia = "assiemi",
                     DocumentoRichiesto = "assieme",
