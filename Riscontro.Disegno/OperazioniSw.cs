@@ -3914,19 +3914,19 @@ namespace Riscontro.Disegno
         /// comunque un identificativo di faccia. La versione 1 fa il caso che
         /// il committente ha chiesto per nome.
         ///
-        /// FIRME VERIFICATE sull'interop 29.5.1.1:
-        ///   IFeatureManager.InsertRefPlane(Int32 FirstConstraint, Double
-        ///       FirstConstraintAngleOrDistance, Int32 SecondConstraint,
-        ///       Double SecondConstraintAngleOrDistance, Int32
-        ///       ThirdConstraint, Double ThirdConstraintAngleOrDistance)
-        ///   IFeature.SelectByMark(Boolean AppendFlag, Int32 Mark)
-        ///   swRefPlaneReferenceConstraints_e: Distance = 8, OptionFlip = 256
-        ///
-        /// IL SEGNO DELLA DISTANZA NON E' VERIFICATO DENTRO SOLIDWORKS: si
-        /// passa il valore assoluto e si aggiunge OptionFlip quando la
-        /// distanza e' negativa. E' la lettura piu' letterale dell'enum, ma
-        /// circolano macro che passano il segno direttamente. Da misurare:
-        /// piano superiore, distanza -100, il piano nuovo deve finire SOTTO.
+        /// THE CALL (Z-C21.7, L8-1): IFeatureManager.InsertRefPlane with the
+        /// base plane selected with mark 0 (the first reference entity), the
+        /// Distance constraint, OptionFlip when the distance is negative, and
+        /// the ABSOLUTE distance: ApiHelpers.SelectOffsetPlaneBase and
+        /// ApiHelpers.InsertOffsetPlane, where the guide pages and the probe
+        /// numbers are. Until Z-C21.7 this was the obsolete
+        /// IModelDoc2.CreatePlaneAtOffset3, because InsertRefPlane had been
+        /// measured to make no plane on 10/9/2026; the InsertRefPlane probe of
+        /// Z-C21.3 (28/9/2026) showed that measure was
+        /// made with mark 1 (H1: no plane), while mark 0 makes the plane where
+        /// it belongs (G1 top +100, G4 top -100, G6 front -250). The sign of
+        /// the distance is measured too: a signed distance puts the plane on
+        /// the base plane (G5: (0, 0, 0) for -100), hence OptionFlip.
         /// </summary>
         private Esito CreaPiano(IModelDoc2 modello, Dictionary<string, object> a)
         {
@@ -3940,36 +3940,16 @@ namespace Riscontro.Disegno
             IFeature riferimento = TrovaPianoBase(modello, piano);
             if (riferimento == null)
                 return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
-            // SELEZIONARE LA FEATURE NON E' SELEZIONARE IL PIANO.
-            // `IFeature.Select2` mette in selezione la voce dell'albero;
-            // `InsertRefPlane` vuole un riferimento di tipo PIANO. Con la
-            // feature selezionata la selezione c'e' — misurato: «selezionati
-            // 1, marca 1, piano Piano superiore» — e la chiamata torna null
-            // lo stesso, senza dire niente.
-            //
-            // Il nome NON e' scritto a mano: si legge dalla feature che
-            // abbiamo gia' in mano, cosi' la lingua dell'installazione non
-            // c'entra (in italiano si chiama «Piano superiore»).
-            string nomePiano = null;
-            try { nomePiano = riferimento.Name; } catch { }
-            bool selezionato = false;
-            if (!string.IsNullOrEmpty(nomePiano))
-            {
-                try
-                {
-                    selezionato = modello.Extension.SelectByID2(
-                        nomePiano, "PLANE", 0, 0, 0, false, SelectionMarks.OffsetPlaneReference, null, 0);
-                }
-                catch { }
-            }
-            if (!selezionato && !riferimento.Select2(false, SelectionMarks.OffsetPlaneReference))
+            // The PLANE is selected by name, with mark 0; the tree entry through
+            // IFeature.Select2 is only the fallback (the probe's G3 measured it
+            // working with InsertRefPlane too).
+            if (!ApiHelpers.SelectOffsetPlaneBase(modello, riferimento))
                 return Fallito($"Non sono riuscito a selezionare il piano «{piano}».");
 
-            // COSA HA DAVVERO IN MANO SOLIDWORKS QUANDO CHIAMIAMO.
-            // `InsertRefPlane` non lavora sui parametri: lavora su cio' che e'
-            // selezionato CON LA MARCA GIUSTA, e se la marca non e' quella
-            // torna null senza dire niente. Queste tre righe non costano nulla
-            // e trasformano un «non e' stato creato» in una diagnosi.
+            // WHAT SOLIDWORKS REALLY HOLDS WHEN WE CALL. InsertRefPlane works on
+            // what is selected WITH THE RIGHT MARK, and with the wrong mark it
+            // returns null and says nothing (H1). These lines cost nothing and
+            // turn a "not created" into a diagnosis.
             string comEra = "";
             try
             {
@@ -3984,50 +3964,17 @@ namespace Riscontro.Disegno
             }
             catch { }
 
-            int vincolo = (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_Distance;
-            if (distanza < 0)
-                vincolo |= (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_OptionFlip;
-
-            // QUALE VALORE DI VINCOLO VUOLE DAVVERO. La firma e' giusta, la
-            // selezione e' giusta (misurato: un oggetto, marca 1, tipo 4 =
-            // swSelDATUMPLANES), e la chiamata torna null lo stesso. Resta il
-            // numero. Si provano i candidati in ordine e si tiene quello che
-            // riesce, riselezionando ogni volta perche' una chiamata fallita
-            // puo' aver consumato la selezione.
-            // LA CHIAMATA GIUSTA NON E' QUELLA GENERALE.
-            //
-            // `IFeatureManager.InsertRefPlane` e' l'API generale dei piani di
-            // riferimento — vincoli, angoli, tre riferimenti — e per un piano
-            // SFALSATO non funziona: misurato il 10 settembre 2026 con la
-            // selezione verificata (un oggetto, marca 1, tipo 4 =
-            // swSelDATUMPLANES) e provando tutti i vincoli plausibili (8, 9,
-            // 1, 264, 265). Tutti null, e nessun piano in piu' nell'albero:
-            // quindi non era il cast a mentire, il piano proprio non nasceva.
-            //
-            // Per lo sfalsamento c'e' un'API dedicata:
-            //   IModelDoc2.CreatePlaneAtOffset3(Double Val, Boolean FlipDir,
-            //       Boolean AutoSize) -> Object
-            // verificata per riflessione sull'interop 29.5.1.1. E' la stessa
-            // lezione del guscio, dove `InsertFeatureShell` sta su IModelDoc2
-            // e non su IFeatureManager come tutto il resto: la famiglia a cui
-            // una chiamata appartiene non si indovina dal nome.
-            //
-            // IL VERSO STA IN UN BOOLEANO, NON NEL SEGNO. `Val` e' una
-            // distanza, e da che parte va lo dice `FlipDir`: passare un numero
-            // negativo non sposterebbe dall'altra parte, sarebbe solo una
-            // distanza che non vuol dire niente.
+            // THE SIDE IS A BIT, NOT A SIGN (probe G4/G5): the absolute
+            // distance, with OptionFlip when the distance asked is negative.
             int pianiPrima = ContaPiani(modello);
             IFeature feature = null;
             try
             {
-                object grezzo = modello.CreatePlaneAtOffset3(
-                    Val: Unita.M(Math.Abs(distanza)),
-                    FlipDir: distanza < 0,
-                    AutoSize: true);
+                object grezzo = ApiHelpers.InsertOffsetPlane(modello, distanza);
                 feature = grezzo as IFeature;
-                // Il valore di ritorno e' un `RefPlane`, che NON e' una
-                // `Feature`: il cast puo' dare null anche a piano creato. Chi
-                // decide e' l'albero.
+                // The return value is a RefPlane; the probe found it to be an
+                // IFeature as well, but the cast is not what decides: the tree
+                // does, as it did with CreatePlaneAtOffset3.
                 if (feature == null && pianiPrima >= 0 && ContaPiani(modello) > pianiPrima)
                     feature = UltimaFeature(modello);
             }

@@ -20,11 +20,40 @@ numero di versione di cio' che l'ha prodotta non e' una misura — e' un
 aneddoto. Se fra un mese una prova dice una cosa diversa da oggi, la prima
 domanda sara' «con quale versione?», e deve avere una risposta.
 
-Criterio (semver ridotto MAJOR.MINOR.PATCH):
+Criterion (reduced semver MAJOR.MINOR.PATCH):
 
-- **MINOR +1** quando il ponte guadagna strumenti o capacita' visibili;
-- **PATCH +1** per correzioni;
-- **MAJOR** resta 0 finche' il protocollo degli strumenti non e' stabile.
+- **MINOR +1** when the bridge gains visible tools or capabilities;
+- **PATCH +1** for fixes;
+- **MAJOR** stays 0 until the tool protocol is stable.
+
+---
+
+## Unreleased — Z-C21.7 (branch z-c21-7-migrazioni)
+
+**The obsolete API calls that the Z-C21.3 probes of 28 September 2026 decided,
+migrated one per commit.** Each migration follows exactly the call the probe
+measured, cites its guide page and the probe numbers in the code, and takes its
+keys out of the exact ratchet of `Prove/ObsoleteCallsContract.cs`. **The bench
+has not run on this branch**: every bullet names the existing cases that must
+give the same answer (same volume, same box) on the next run, and none of them
+has been run yet.
+
+- **L8-1 / L2-4, the offset plane: `CreatePlaneAtOffset3` -> `InsertRefPlane`.**
+  `crea_piano`, the second plane of `loft_fra_due_cerchi` and the plane of
+  `nervatura` now select the base plane by name with mark 0 (the guide's «0 =
+  First reference entity»; `SelectionMarks.OffsetPlaneReference` goes from 1 to 0)
+  and call `IFeatureManager.InsertRefPlane(8 | 256 when d < 0, |d|, 0, 0, 0, 0)`
+  through `ApiHelpers.SelectOffsetPlaneBase` / `InsertOffsetPlane`. Probe: G1 top
+  +100 at (0, 100, 0), G4 top -100 at (0, -100, 0), G6 front -250 at (0, 0, -250);
+  H1 with mark 1 made no plane (the measure of 10 September that ruled the method
+  out was the mark); G5 with a SIGNED distance put the plane at (0, 0, 0), hence
+  OptionFlip and the absolute value; the loft L2 gave 43980.736 mm3, the same as on
+  the old plane. Frozen keys removed: 3 (`OperazioniSw`, `OperazioniPercorso`,
+  `OperazioniNervatura`). No answer changes. Cases that must stay identical:
+  `piano/piano_superiore_piu_100`, `piano/piano_superiore_meno_100`,
+  `piano/piano_frontale_meno_250`, `lavorazioni/il_loft_non_e_un_cono`,
+  `lavorazioni/nervatura_nell_angolo_della_l`,
+  `lavorazioni/lim_nervatura_fuori_dal_suo_piano`.
 
 ---
 

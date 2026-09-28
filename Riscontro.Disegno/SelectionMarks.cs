@@ -121,17 +121,19 @@ namespace Riscontro.Disegno
         /// UseAutoSelect; five revolve cases pass that way. Not used yet.
         public const int RevolveAxis = 4;
 
-        // ── IModelDoc2.CreatePlaneAtOffset3 (crea_piano, loft) ──────────────
+        // ── IFeatureManager.InsertRefPlane (crea_piano, loft, rib plane) ────
 
         /// <summary>The reference plane an offset plane is measured from.</summary>
-        /// Guide: IModelDoc2~CreatePlaneAtOffset3.html, which says nothing about marks.
-        /// UNDOCUMENTED: the plane is selected with mark 1; measured on
-        /// 10/9/2026 (one selected object, mark 1, type 4 = swSelDATUMPLANES).
-        /// MEASURED: piano_superiore_piu_100
-        /// DIVERGES: L8-1 — IFeatureManager~InsertRefPlane.html wants
-        /// «0 = First reference entity»; the measure that ruled InsertRefPlane
-        /// out was made with this mark 1 (probe of Z-C21.3).
-        public const int OffsetPlaneReference = 1;
+        /// Guide: IFeatureManager~InsertRefPlane.html, Remarks, «0 = First reference entity».
+        /// Here 0 is a real mark, not "no mark": it has a name so that the
+        /// three call sites (ApiHelpers.SelectOffsetPlaneBase) cannot drift.
+        /// Measured by the InsertRefPlane probe of Z-C21.3 (28/9/2026): with
+        /// mark 0 InsertRefPlane makes the plane where it
+        /// belongs (G1 top +100 at (0, 100, 0), G4 top -100 at (0, -100, 0),
+        /// G6 front -250 at (0, 0, -250)); with mark 1 (H1, the value this
+        /// constant had until Z-C21.7, taken over from CreatePlaneAtOffset3)
+        /// it makes no plane at all, which is what ruled it out on 10/9/2026.
+        public const int OffsetPlaneReference = 0;
 
         // ── IFeatureManager.InsertMultiFaceDraft (sformo) ───────────────────
 

@@ -399,28 +399,30 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Il piano parallelo al piano base, sfalsato di `distanzaMm`. La stessa
-        /// strada di `crea_piano` (CreatePlaneAtOffset3 dopo aver selezionato il
-        /// piano base per nome, tipo "PLANE", marca 1), misurata dal banco nei
-        /// casi di `casi/piano`; ed e' la chiamata della sonda
-        /// (`CreatePlaneAtOffset3(0.025, false, true)`). Il valore di ritorno e'
-        /// un RefPlane e non una Feature: chi decide e' l'albero.
+        /// The plane parallel to the base plane, offset by `distanzaMm`: the
+        /// same call as `crea_piano` since Z-C21.7 (L8-1), IFeatureManager.
+        /// InsertRefPlane with the base plane selected by name with mark 0
+        /// (ApiHelpers.SelectOffsetPlaneBase / InsertOffsetPlane, where the
+        /// guide pages and the numbers of the Z-C21.3 probe are: G1 top +100,
+        /// G4 top -100, G6 front -250 all where they belong). Until then it was
+        /// the obsolete CreatePlaneAtOffset3, the call of the rib probe
+        /// (Controlli/Nervatura, `CreatePlaneAtOffset3(0.025, false, true)`).
+        /// The tree decides whether the plane was born, not the return value.
         /// </summary>
         private static IFeature NervaturaPianoSfalsato(IModelDoc2 modello, string piano, double distanzaMm, out string motivo)
         {
             motivo = null;
             var basePiano = TrovaPianoBase(modello, piano);
             if (basePiano == null) { motivo = "Non ho trovato il piano «" + piano + "» nell'albero."; return null; }
-            modello.ClearSelection2(true);
-            bool selezionato = false;
-            try { selezionato = modello.Extension.SelectByID2(NervaturaNome(basePiano), "PLANE", 0, 0, 0, false, SelectionMarks.OffsetPlaneReference, null, 0); } catch { }
-            if (!selezionato) selezionato = basePiano.Select2(false, SelectionMarks.OffsetPlaneReference);
-            if (!selezionato) { motivo = "Non sono riuscito a selezionare il piano «" + piano + "»."; return null; }
+            if (!ApiHelpers.SelectOffsetPlaneBase(modello, basePiano))
+            {
+                motivo = "Non sono riuscito a selezionare il piano «" + piano + "»."; return null;
+            }
 
             int pianiPrima = ContaPiani(modello);
             try
             {
-                modello.CreatePlaneAtOffset3(Unita.M(Math.Abs(distanzaMm)), distanzaMm < 0, true);
+                ApiHelpers.InsertOffsetPlane(modello, distanzaMm);
             }
             catch (Exception ex) { motivo = "Il piano della nervatura non e' nato: " + ex.Message; return null; }
             finally { try { modello.ClearSelection2(true); } catch { } }

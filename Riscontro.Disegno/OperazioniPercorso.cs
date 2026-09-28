@@ -266,10 +266,16 @@ namespace Riscontro.Disegno
                 schizzi.InsertSketch(false);
                 s1 = UltimoSchizzoFeature(modello);
 
-                // un piano alla distanza chiesta, e sopra il secondo cerchio
-                if (!SelezionaPiano(modello, piano))
+                // A plane at the distance asked, and the second circle on it.
+                // Z-C21.7 (L2-4): InsertRefPlane with the base plane selected
+                // by name with mark 0, exactly the loft L2 of the InsertRefPlane
+                // probe of Z-C21.3 (43980.736 mm3, the same volume as on the
+                // CreatePlaneAtOffset3 plane it replaces, L1). Guide pages and
+                // numbers in ApiHelpers.InsertOffsetPlane.
+                var basePlane = TrovaPianoBase(modello, piano);
+                if (basePlane == null || !ApiHelpers.SelectOffsetPlaneBase(modello, basePlane))
                     return Fallito("Non ho trovato il piano «" + piano + "» nell'albero.");
-                modello.CreatePlaneAtOffset3(Unita.M(Math.Abs(distanza)), distanza < 0, true);
+                ApiHelpers.InsertOffsetPlane(modello, distanza);
                 int pianiOra = ContaPiani(modello);
                 if (pianiPrima < 0 || pianiOra < 0)
                     return Fallito(

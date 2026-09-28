@@ -254,5 +254,77 @@ namespace Riscontro.Disegno
             outcome.ErrorCodeKnown = ReadErrorCode(outcome.Feature, out outcome.ErrorCode, out outcome.IsWarning);
             return outcome;
         }
+
+        // =====================================================================
+        //  L8-1 / L2-4 — AN OFFSET REFERENCE PLANE (Z-C21.7)
+        // =====================================================================
+
+        /// <summary>
+        /// Selects <paramref name="basePlane"/> as the FIRST reference of
+        /// <see cref="InsertOffsetPlane"/>: by name, type "PLANE", mark
+        /// <see cref="SelectionMarks.OffsetPlaneReference"/> (0), and through
+        /// IFeature.Select2 with the same mark when the name does not select.
+        /// Clears the selection first. False if nothing was selected.
+        ///
+        /// Guide: IFeatureManager~InsertRefPlane.html, Remarks: «Before calling
+        /// this method, you must have selected the reference entities using
+        /// these marks with IModelDocExtension::SelectByID2: 0 = First reference
+        /// entity». The name is read from the feature, never typed: the names
+        /// of the base planes change with the language of the installation.
+        /// </summary>
+        internal static bool SelectOffsetPlaneBase(IModelDoc2 document, IFeature basePlane)
+        {
+            document.ClearSelection2(true);
+            string name = null;
+            try { name = basePlane.Name; } catch { }
+            bool selected = false;
+            if (!string.IsNullOrEmpty(name))
+            {
+                try
+                {
+                    selected = document.Extension.SelectByID2(
+                        name, "PLANE", 0, 0, 0, false, SelectionMarks.OffsetPlaneReference, null, 0);
+                }
+                catch { }
+            }
+            return selected || basePlane.Select2(false, SelectionMarks.OffsetPlaneReference);
+        }
+
+        /// <summary>
+        /// A reference plane parallel to the plane selected with
+        /// <see cref="SelectOffsetPlaneBase"/>, at <paramref name="distanceMm"/>
+        /// (negative = the other side). Returns what InsertRefPlane returns (a
+        /// RefPlane, which the probe also found to be an IFeature), or null. The
+        /// caller still counts the planes of the tree: the tree decides.
+        ///
+        /// Guide: IModelDoc2~CreatePlaneAtOffset3.html, «Obsolete. Superseded by
+        /// IFeatureManager::InsertRefPlane»; IFeatureManager~InsertRefPlane.html,
+        /// «FirstConstraint First constraint as defined in
+        /// swRefPlaneReferenceConstraints_e», where Distance = 8 and
+        /// OptionFlip = 256 (swconst).
+        ///
+        /// MEASURED by the InsertRefPlane probe of Z-C21.3 (findings L8-1 and
+        /// L2-4, SOLIDWORKS 29.5.1, 28/9/2026), the base plane selected with
+        /// mark 0:
+        ///   G1 (8, 0.100) on the top plane: one new plane, origin (0, 100, 0);
+        ///   G4 (8|256, 0.100) on the top plane: (0, -100, 0);
+        ///   G6 (8|256, 0.250) on the front plane: (0, 0, -250);
+        ///   G5 (8, -0.100), a SIGNED distance: a plane at (0, 0, 0), wrong and
+        ///      with no error. The side is the OptionFlip bit, never the sign,
+        ///      so the distance passed is always the absolute value;
+        ///   H1 mark 1 + (8, 0.100): no plane at all. That was the measure of
+        ///      10/9/2026 that ruled InsertRefPlane out for eighteen days: the
+        ///      mark was wrong, not the method;
+        ///   L2 the loft between two circles 60 mm apart, second circle on a
+        ///      plane made this way: 43980.736 mm3, the same as the loft on a
+        ///      CreatePlaneAtOffset3 plane (L1, 43980.736 mm3).
+        /// </summary>
+        internal static object InsertOffsetPlane(IModelDoc2 document, double distanceMm)
+        {
+            int constraint = (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_Distance;
+            if (distanceMm < 0)
+                constraint |= (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_OptionFlip;
+            return document.FeatureManager.InsertRefPlane(constraint, Unita.M(Math.Abs(distanceMm)), 0, 0, 0, 0);
+        }
     }
 }
