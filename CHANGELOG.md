@@ -24,16 +24,14 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.2-bis (branch z-c21-2-bis)
+## 0.116.0 — 28 September 2026 · library 0.141.0
 
 **Silent defects of the API audit, second round (TODO entry Z-C21.10-esito-2).**
 Every fix below is a case where a part, a file or an answer came out wrong
 with `riuscita: true`, decided from the SOLIDWORKS API help (quoted in the
 code) or from the library's own logic. The new bench cases are written to go
 red on library 0.140.0 and green on this one, except where a bullet says
-otherwise. **VERSION.txt and AssemblyVersion are raised at merge, and the
-bench has not run on this branch yet**: the contracts are green except the
-bench-freshness checks.
+otherwise. BENCH_0141_PLACEHOLDER
 
 - **`telaio_rettangolare` / `membro_strutturale` close the weldment profile
   library again, and check that it closed** (N31). ISldWorks~CloseDoc.html:

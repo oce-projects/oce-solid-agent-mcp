@@ -4129,7 +4129,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "off for the export and put them back as they were. After writing I "
                         + "also read the file's directory and count its solids (type 186) and "
                         + "surfaces: «solid_entities», «surface_entities», «entities». A file "
-                        + "with neither, curves only, is refused: it opens, and it is not the part.",
+                        + "with neither, curves only, is refused: it opens, and it is not the part. "
+                        + "After turning the three options off I read them again: "
+                        + "«iges_options_not_off» lists any that stayed on or could not be read "
+                        + "(empty is the proof they were off), and «iges_options_warning» says "
+                        + "what to do.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",

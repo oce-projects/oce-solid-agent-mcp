@@ -420,8 +420,16 @@ using System.Runtime.InteropServices;
 //          (IFillPatternFeatureData, marks 1/4/16384), nervatura (InsertRib
 //          parallel to the sketch), fazzoletto back in the catalogue (mark 1
 //          and a profile that is not degenerate).
-[assembly: AssemblyVersion("0.140.0.0")]
-[assembly: AssemblyFileVersion("0.140.0.0")]
+// 0.141.0: Z-C21.2-bis, the silent defects of the second audit round that
+//          need no probe: the profile library closed and checked (N31), the
+//          frame reading and the plane names whatever their case (S20, N32,
+//          N33), interference lists read whole (N34), the overhang cache
+//          without nulls (N36), the whole drawing for "already dimensioned"
+//          (N43), the hole count read back (N48), the anchored hole checks
+//          (N50-N55), the IGES options read back (N59), the body verdict
+//          (N61), hidden dimensions skipped (C8-2).
+[assembly: AssemblyVersion("0.141.0.0")]
+[assembly: AssemblyFileVersion("0.141.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -436,4 +444,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.140.0")]
+[assembly: AssemblyInformationalVersion("0.141.0")]
