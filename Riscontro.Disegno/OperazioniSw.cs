@@ -4084,12 +4084,12 @@ namespace Riscontro.Disegno
             }
 
             modello.ClearSelection2(true);
-            if (!SelezionaAsse(modello, a, "asse1", stato, out errore)) return Fallito(errore);
+            if (!SelezionaAsse(modello, a, "asse1", stato, SelectionMarks.LinearPatternDirection1, append: false, out errore)) return Fallito(errore);
             // La seconda direzione passa dallo STESSO aiutante, con Mark 2:
             // prima aveva una riga sua che accettava solo un asse, e da quando
             // la direzione puo' essere uno spigolo le due strade divergevano —
             // una griglia con la direzione 1 su uno spigolo e la 2 no.
-            if (griglia && !SelezionaAsse(modello, a, "asse2", stato, out errore, SelectionMarks.LinearPatternDirection2))
+            if (griglia && !SelezionaAsse(modello, a, "asse2", stato, SelectionMarks.LinearPatternDirection2, append: true, out errore))
                 return Fallito("Direzione 2: " + errore);
 
             if (!SelezionaLavorazione(modello, a, out errore)) return Fallito(errore);
@@ -4269,14 +4269,19 @@ namespace Riscontro.Disegno
         /// <param name="prefisso">«asse», «asse1» oppure «asse2»: i campi si
         /// chiamano diversamente ma si risolvono identici.</param>
         /// <param name="mark">
-        /// 1 per la direzione principale — che e' quella che tutte e tre le
-        /// ripetizioni leggono — e 2 per la seconda direzione di una griglia.
-        /// Con Mark diverso da 1 si ACCUMULA sulla selezione gia' fatta,
-        /// altrimenti la seconda direzione cancellerebbe la prima.
+        /// The selection mark, from <see cref="SelectionMarks"/>: the main
+        /// direction (which all three patterns read), or the second direction
+        /// of a grid.
+        /// </param>
+        /// <param name="append">
+        /// True to ADD to the selection already made (the second direction of a
+        /// grid), otherwise the second direction would clear the first. Explicit
+        /// since Z-C21.6: it used to be inferred from `mark != 1`, which tied
+        /// the selection behaviour to the numeric value of a mark.
         /// </param>
         private bool SelezionaAsse(
             IModelDoc2 modello, Dictionary<string, object> a, string prefisso,
-            StatoDocumento stato, out string motivo, int mark = SelectionMarks.LinearPatternDirection1)
+            StatoDocumento stato, int mark, bool append, out string motivo)
         {
             motivo = null;
             string campoRif = prefisso + "_rif";
@@ -4294,7 +4299,7 @@ namespace Riscontro.Disegno
                     motivo = "Il passo " + numero + " non ha lasciato nessun asse.";
                     return false;
                 }
-                if (!passo.Feature.Select2(mark != 1, mark))
+                if (!passo.Feature.Select2(append, mark))
                 {
                     motivo = "Non sono riuscito a selezionare l'asse del passo " + numero + ".";
                     return false;
@@ -4370,7 +4375,7 @@ namespace Riscontro.Disegno
                 }
 
                 var entita = spigolo as IEntity;
-                if (entita == null || !entita.SelectByMark(mark != 1, mark))
+                if (entita == null || !entita.SelectByMark(append, mark))
                 {
                     motivo = "Lo spigolo «" + uid + "» non si e' lasciato selezionare.";
                     return false;
@@ -4388,10 +4393,10 @@ namespace Riscontro.Disegno
                 string scostamentoAsse;
                 if (!FirmaCombacia(a, uid, firmaAsse, out scostamentoAsse)) { motivo = scostamentoAsse; return false; }
                 var featAsse = firmaAsse.Entita as IFeature;
-                if (featAsse != null && featAsse.Select2(mark != 1, mark)) return true;
+                if (featAsse != null && featAsse.Select2(append, mark)) return true;
             }
 
-            if (!modello.Extension.SelectByID2(uid, "AXIS", 0, 0, 0, mark != 1, mark, null, 0))
+            if (!modello.Extension.SelectByID2(uid, "AXIS", 0, 0, 0, append, mark, null, 0))
             {
                 motivo =
                     "Non ho trovato l'asse «" + uid + "». Gli assi si fanno con " +
@@ -5717,7 +5722,7 @@ namespace Riscontro.Disegno
             // L'asse va selezionato per PRIMO con Mark = 1: la ripetizione
             // circolare prende la direzione dalla selezione, non dai parametri.
             string perche;
-            if (!SelezionaAsse(modello, a, "asse", stato, out perche, SelectionMarks.CircularPatternAxis)) return Fallito(perche);
+            if (!SelezionaAsse(modello, a, "asse", stato, SelectionMarks.CircularPatternAxis, append: false, out perche)) return Fallito(perche);
 
             // La lavorazione da ripetere puo' essere quella fatta da un passo
             // precedente di questo stesso piano — «fai un foro e ripetilo 6

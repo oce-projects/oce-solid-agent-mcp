@@ -116,10 +116,10 @@ namespace Riscontro.Disegno
 
             // NEUTRA MARCHIO 1, FACCE MARCHIO 2. Scambiati, la feature nasce
             // lo stesso e sforma le facce sbagliate: vedi la nota in testa.
-            if (!Seleziona(gestore, neutra, 1))
+            if (!Seleziona(gestore, neutra, SelectionMarks.DraftNeutralFace))
                 return Fallito("Non sono riuscito a selezionare la faccia neutra.");
             for (int i = 0; i < facce.Count; i++)
-                if (!Seleziona(gestore, facce[i], 2))
+                if (!Seleziona(gestore, facce[i], SelectionMarks.DraftFaces))
                     return Fallito("Non sono riuscito a selezionare la faccia «" + uid[i] + "».");
 
             IFeature feature;

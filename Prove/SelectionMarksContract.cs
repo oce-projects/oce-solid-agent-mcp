@@ -22,7 +22,12 @@ namespace Prove.Contratti
     ///   2. no SOLIDWORKS selection call in the library carries a non-zero
     ///      literal mark: `Select2(append, N)`, `SelectByMark(append, N)`,
     ///      `SelectByID2(..., append, N, callout, option)`, `.Mark = N`. A new
-    ///      call must take its mark from the table, where the page is quoted.
+    ///      call must take its mark from the table, where the page is quoted;
+    ///   3. nor does a call to a helper of the source that takes the mark as a
+    ///      parameter (an `int` parameter named mark, marca or marchio, such as
+    ///      `OperazioniSformo.Seleziona(gestore, faccia, int marchio)`): the
+    ///      literal would reach `SelectData.Mark` one call later, where rule 2
+    ///      only sees a variable (review of Z-C21.6).
     ///
     /// The quote is checked against the NUMBER, not against the page (the guide
     /// is Dassault's and is not in this repository): what it prevents is a
@@ -36,6 +41,9 @@ namespace Prove.Contratti
         private static readonly Regex QuoteRx = new Regex(@"«([^»]*)»", RegexOptions.Compiled);
         private static readonly Regex MeasuredRx = new Regex(@"MEASURED:\s*([A-Za-z0-9_\-]+)", RegexOptions.Compiled);
         private static readonly Regex MarkAssignRx = new Regex(@"\.\s*Mark\s*=\s*([1-9]\d*)\b", RegexOptions.Compiled);
+        private static readonly Regex DeclWithParamsRx = new Regex(@"(?<![\w.])([A-Za-z_]\w*)\s*\(([^()]*)\)\s*(?=\{|=>|$)", RegexOptions.Compiled | RegexOptions.Multiline);
+        private static readonly Regex MarkParamRx = new Regex(@"\bint\s+(?i:mark|marca|marchio)\s*(=|$)", RegexOptions.Compiled);
+        private static readonly Regex NamedMarkArgRx = new Regex(@"^\s*(?i:mark|marca|marchio)\s*:\s*([1-9]\d*)\s*$", RegexOptions.Compiled);
 
         internal static void RunAll()
         {
@@ -81,6 +89,7 @@ namespace Prove.Contratti
                 "sd.Mark = 2;",
                 "modello.Extension.SelectByID2(n, \"PLANE\", 0, 0, 0, false,\n    1, null, 0);",
                 "e.SelectByMark(false, 1);",
+                "bool Seleziona(ISelectionMgr g, IFace2 f, int marchio)\n{\n    return true;\n}\nvoid M() { Seleziona(g, f, 2); }",
             };
             var fineSamples = new[]
             {
@@ -89,11 +98,13 @@ namespace Prove.Contratti
                 "modello.Extension.SelectByID2(n, \"PLANE\", 0, 0, 0, false, 0, null, 0);",
                 "sd.Mark = SelectionMarks.HoleTableHoles;",
                 "// Select2(true, 4) is what the old code did",
+                "bool Seleziona(ISelectionMgr g, IFace2 f, int marchio)\n{\n    return true;\n}\nvoid M() { Seleziona(g, f, SelectionMarks.DraftFaces); }",
             };
             int caught = literalSamples.Count(s => LiteralMarks("t.cs", s).Count == 1);
             var falseAlarms = fineSamples.Where(s => LiteralMarks("t.cs", s).Count != 0).ToList();
-            Segna("the literal-mark rule catches the four call shapes", caught == literalSamples.Length,
-                  caught + " of " + literalSamples.Length + " (Select2, .Mark =, SelectByID2 over two lines, SelectByMark)");
+            Segna("the literal-mark rule catches the five call shapes", caught == literalSamples.Length,
+                  caught + " of " + literalSamples.Length + " (Select2, .Mark =, SelectByID2 over two lines, SelectByMark, " +
+                  "a helper's mark parameter)");
             Segna("and leaves marks from the table, mark 0 and comments alone", falseAlarms.Count == 0,
                   falseAlarms.Count == 0 ? fineSamples.Length + " lines, no false alarm" : string.Join(" | ", falseAlarms));
 
@@ -106,6 +117,7 @@ namespace Prove.Contratti
             // ── THE REAL SOURCE ──────────────────────────────────────────
             var found = new List<string>();
             int used = 0;
+            var texts = new List<KeyValuePair<string, string>>();
             foreach (var folder in new[] { "Riscontro.Disegno", "Ponte" })
             {
                 var dir = Path.Combine(Radice(), folder);
@@ -115,13 +127,21 @@ namespace Prove.Contratti
                     if (f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar) ||
                         f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)) continue;
                     if (Path.GetFileName(f) == "SelectionMarks.cs") continue;
-                    var text = File.ReadAllText(f);
-                    used += Regex.Matches(text, @"\bSelectionMarks\.\w+").Count;
-                    found.AddRange(LiteralMarks(Path.GetFileName(f), text));
+                    texts.Add(new KeyValuePair<string, string>(Path.GetFileName(f), File.ReadAllText(f)));
                 }
             }
+            // Two passes, so that a helper declared in one file is seen from another.
+            var markParams = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
+            foreach (var t in texts) CollectMarkParameters(Strip(t.Value, out _), markParams);
+            foreach (var t in texts)
+            {
+                used += Regex.Matches(t.Value, @"\bSelectionMarks\.\w+").Count;
+                found.AddRange(LiteralMarks(t.Key, t.Value, markParams));
+            }
             Segna("no selection call carries a non-zero literal mark", found.Count == 0,
-                  found.Count == 0 ? used + " marks taken from the table" : string.Join(" | ", found));
+                  found.Count == 0 ? used + " marks taken from the table; helpers with a mark parameter: " +
+                                     (markParams.Count == 0 ? "none" : string.Join(", ", markParams.Keys.OrderBy(k => k, StringComparer.Ordinal)))
+                                   : string.Join(" | ", found));
         }
 
         /// <summary>The constants of a table text that break the rules.</summary>
@@ -162,22 +182,71 @@ namespace Prove.Contratti
             return problems;
         }
 
-        /// <summary>Selection calls with a non-zero literal mark in a source text.</summary>
-        internal static List<string> LiteralMarks(string file, string text)
+        /// <summary>The text with comments and strings blanked, lines kept, so that positions map back.</summary>
+        private static string Strip(string text, out List<int> lineStart)
         {
-            var found = new List<string>();
-            // Comments and strings blanked, lines kept, so that positions map back.
             var raw = text.Replace("\r\n", "\n").Split('\n');
-            bool block = false, verbatim = false;
+            var state = new StripState();
             var sb = new StringBuilder();
-            var lineStart = new List<int>();
+            lineStart = new List<int>();
             foreach (var r in raw)
             {
                 string comment;
                 lineStart.Add(sb.Length);
-                sb.Append(ObsoleteCallScanner.Strip(r, ref block, ref verbatim, out comment)).Append('\n');
+                sb.Append(ObsoleteCallScanner.Strip(r, state, out comment)).Append('\n');
             }
-            var code = sb.ToString();
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Methods declared in <paramref name="code"/> with an `int` parameter
+        /// named mark, marca or marchio: name -> the positions of those parameters.
+        /// </summary>
+        private static void CollectMarkParameters(string code, Dictionary<string, HashSet<int>> into)
+        {
+            foreach (Match m in DeclWithParamsRx.Matches(code))
+            {
+                var parameters = SplitTopLevel(m.Groups[2].Value);
+                for (int i = 0; i < parameters.Count; i++)
+                {
+                    if (!MarkParamRx.IsMatch(parameters[i].Trim())) continue;
+                    HashSet<int> at;
+                    if (!into.TryGetValue(m.Groups[1].Value, out at)) into[m.Groups[1].Value] = at = new HashSet<int>();
+                    at.Add(i);
+                }
+            }
+        }
+
+        /// <summary>Splits a parameter list on the commas that are not inside &lt; &gt;, ( ), [ ] or { }.</summary>
+        private static List<string> SplitTopLevel(string list)
+        {
+            var parts = new List<string>();
+            int depth = 0, from = 0;
+            for (int i = 0; i < list.Length; i++)
+            {
+                char c = list[i];
+                if (c == '<' || c == '(' || c == '[' || c == '{') depth++;
+                else if (c == '>' || c == ')' || c == ']' || c == '}') depth--;
+                else if (c == ',' && depth == 0) { parts.Add(list.Substring(from, i - from)); from = i + 1; }
+            }
+            if (list.Trim().Length > 0) parts.Add(list.Substring(from));
+            return parts;
+        }
+
+        /// <summary>Selection calls with a non-zero literal mark in a source text (helpers declared in the same text).</summary>
+        internal static List<string> LiteralMarks(string file, string text)
+        {
+            var markParams = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
+            CollectMarkParameters(Strip(text, out _), markParams);
+            return LiteralMarks(file, text, markParams);
+        }
+
+        /// <summary>Selection calls with a non-zero literal mark in a source text.</summary>
+        internal static List<string> LiteralMarks(string file, string text, Dictionary<string, HashSet<int>> markParams)
+        {
+            var found = new List<string>();
+            List<int> lineStart;
+            var code = Strip(text, out lineStart);
             Func<int, int> lineOf = pos => { int i = lineStart.BinarySearch(pos); return (i >= 0 ? i : ~i - 1) + 1; };
 
             foreach (Match m in MarkAssignRx.Matches(code))
@@ -193,6 +262,22 @@ namespace Prove.Contratti
                     var mark = args[markAt].Trim();
                     if (Regex.IsMatch(mark, @"^[1-9]\d*$"))
                         found.Add(file + ":" + lineOf(m.Index) + " " + call + " with literal mark " + mark);
+                }
+            }
+            foreach (var helper in markParams)
+            {
+                foreach (Match m in Regex.Matches(code, @"(?<![\w])" + Regex.Escape(helper.Key) + @"\s*\("))
+                {
+                    var args = Arguments(code, m.Index + m.Length);
+                    if (args == null) continue;
+                    for (int i = 0; i < args.Count; i++)
+                    {
+                        var arg = args[i].Trim();
+                        var named = NamedMarkArgRx.Match(arg);
+                        if ((helper.Value.Contains(i) && Regex.IsMatch(arg, @"^[1-9]\d*$")) || named.Success)
+                            found.Add(file + ":" + lineOf(m.Index) + " " + helper.Key + " with literal mark " +
+                                      (named.Success ? named.Groups[1].Value : arg) + " (a mark parameter of the helper)");
+                    }
                 }
             }
             return found;

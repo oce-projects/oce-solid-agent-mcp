@@ -16,10 +16,14 @@ namespace Riscontro.Disegno
     ///     quotes, between « », the words of the page that give that number;
     ///   - a mark the guide does not document is allowed only as UNDOCUMENTED,
     ///     with the bank case that measured it ("MEASURED:");
-    ///   - where the code does not do what the page says, the constant is the
-    ///     value the code USES, marked DIVERGES with the audit finding: the
-    ///     change is a probe (Z-C21.3) or a migration (Z-C21.7), not something
-    ///     to slip in with a refactor;
+    ///   - where the code does not do what the page says, the constant is
+    ///     marked DIVERGES with the audit finding: the change is a probe
+    ///     (Z-C21.3) or a migration (Z-C21.7), not something to slip in with a
+    ///     refactor. If the code uses a different non-zero mark, the constant is
+    ///     the value the code USES; if the code selects with NO mark (the
+    ///     `Select4(true, null)` of pattern S9), the constant is the value of
+    ///     the page, "Not used by the code yet", so that the mark to try is
+    ///     written next to its quote;
     ///   - outside this file no SOLIDWORKS selection call carries a non-zero
     ///     literal mark.
     ///
@@ -128,6 +132,60 @@ namespace Riscontro.Disegno
         /// «0 = First reference entity»; the measure that ruled InsertRefPlane
         /// out was made with this mark 1 (probe of Z-C21.3).
         public const int OffsetPlaneReference = 1;
+
+        // ── IFeatureManager.InsertMultiFaceDraft (sformo) ───────────────────
+
+        /// <summary>The neutral plane or face of a draft.</summary>
+        /// Guide: IFeatureManager~InsertMultiFaceDraft.html, «then these items have a selection mark of 1».
+        /// The marks are given inside the description of the FlipDir parameter,
+        /// not in the Remarks (which only say to select with SelectByID2).
+        /// Passed through OperazioniSformo.Seleziona; swapped with the faces'
+        /// mark the feature is still created and drafts the wrong faces
+        /// (sformo_quattro_pareti).
+        public const int DraftNeutralFace = 1;
+
+        /// <summary>The faces to draft.</summary>
+        /// Guide: IFeatureManager~InsertMultiFaceDraft.html, «the faces to draft have a selection mark of 2».
+        public const int DraftFaces = 2;
+
+        // ── IFeatureManager.InsertGussetFeature3 (fazzoletto) ───────────────
+
+        /// <summary>The two faces that carry a weldment gusset.</summary>
+        /// Guide: IFeatureManager~InsertGussetFeature3.html, «select two faces that are the supporting legs of this gusset with a Mark of 1».
+        /// DIVERGES: M27 — OperazioniSaldatura selects the two faces with no mark
+        /// (Select4(true, null)). The operation is out of the catalogue because
+        /// the gusset is never created (GP20); the probe with mark 1 AND a valid
+        /// profile is the one that decides. Not used by the code yet.
+        public const int GussetSupportFaces = 1;
+
+        // ── IFeatureManager.FeatureFillet3, variable radius ─────────────────
+
+        /// <summary>The edges of a variable-radius fillet.</summary>
+        /// Guide: IFeatureManager~FeatureFillet3.html, «Variable radius fillets Call IModelDocExtension::SelectByID2 with Mark = 1 to select the edges to fillet».
+        /// DIVERGES: S9/M37 — raccordo_variabile (OperazioniCorpi) selects the
+        /// edge and its two vertices with no mark, measured working
+        /// (raccordo_che_cambia_raggio).
+        /// Moving to this mark belongs with the CreateDefinition migration of
+        /// FeatureFillet3 (Z-C21.7). Not used by the code yet.
+        public const int VariableFilletEdges = 1;
+
+        // ── IFeatureManager.InsertCosmeticWeldBead2 (cordone) ───────────────
+
+        /// <summary>Each weld-from face or edge of a cosmetic weld bead (weld geometry mode).</summary>
+        /// Guide: IFeatureManager~InsertCosmeticWeldBead2.html, «4 for each weld-from entity in WeldFromFaceOrEdgeSet».
+        /// DIVERGES: L9-3 — cordone_saldatura calls the OBSOLETE
+        /// InsertCosmeticWeldBead with both faces selected with no mark, which is
+        /// what that method's own example does (Insert_Cosmetic_Weld_Bead_Example:
+        /// SelectByID2(..., false, 0, ...) then (..., true, 0, ...)). The marks 4
+        /// and 8 belong to InsertCosmeticWeldBead2, which returned null in every
+        /// combination tried on 25/9/2026, never with these marks: that is the
+        /// remeasure before Z-C21.7 migrates it. Not used by the code yet.
+        public const int WeldBeadFrom = 4;
+
+        /// <summary>Each weld-to face or edge of a cosmetic weld bead (weld geometry mode).</summary>
+        /// Guide: IFeatureManager~InsertCosmeticWeldBead2.html, «8 for each weld-to entity in WeldToFaceOrEdgeSet».
+        /// DIVERGES: L9-3, as <see cref="WeldBeadFrom"/>.
+        public const int WeldBeadTo = 8;
 
         // ── IModelDoc2.InsertAxis2 ──────────────────────────────────────────
 
