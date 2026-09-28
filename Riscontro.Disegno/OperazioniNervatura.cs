@@ -413,8 +413,8 @@ namespace Riscontro.Disegno
             if (basePiano == null) { motivo = "Non ho trovato il piano «" + piano + "» nell'albero."; return null; }
             modello.ClearSelection2(true);
             bool selezionato = false;
-            try { selezionato = modello.Extension.SelectByID2(NervaturaNome(basePiano), "PLANE", 0, 0, 0, false, 1, null, 0); } catch { }
-            if (!selezionato) selezionato = basePiano.Select2(false, 1);
+            try { selezionato = modello.Extension.SelectByID2(NervaturaNome(basePiano), "PLANE", 0, 0, 0, false, SelectionMarks.OffsetPlaneReference, null, 0); } catch { }
+            if (!selezionato) selezionato = basePiano.Select2(false, SelectionMarks.OffsetPlaneReference);
             if (!selezionato) { motivo = "Non sono riuscito a selezionare il piano «" + piano + "»."; return null; }
 
             int pianiPrima = ContaPiani(modello);

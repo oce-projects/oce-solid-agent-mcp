@@ -123,6 +123,7 @@ namespace Prove.Contratti
             ["Riscontro.Disegno/OperazioniMisuraAssieme.cs|IModelDoc2.GetActiveConfiguration"] = 1,
             ["Riscontro.Disegno/OperazioniNotaTavola.cs|INote.GetTextPoint"] = 1,
             ["Riscontro.Disegno/OperazioniPercorso.cs|IFeatureManager.InsertProtrusionSwept4"] = 1,
+            ["Riscontro.Disegno/OperazioniNervatura.cs|IModelDoc2.CreatePlaneAtOffset3"] = 1,
             ["Riscontro.Disegno/OperazioniPercorso.cs|IModelDoc2.CreatePlaneAtOffset3"] = 1,
             ["Riscontro.Disegno/OperazioniPiani.cs|IModelDoc2.CreatePlaneFixed2"] = 1,
             ["Riscontro.Disegno/OperazioniQuoteTavola.cs|IModelDoc2.GraphicsRedraw2"] = 1,

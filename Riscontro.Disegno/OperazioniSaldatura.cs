@@ -1048,7 +1048,6 @@ namespace Riscontro.Disegno
         // quella del poligono si controlla esatta solo ad angolo retto, che e'
         // il caso misurato, e altrove si pretende almeno il triangolo che il
         // pentagono contiene.
-        private const int MarcaDelleFacceDiAppoggio = 1;       // Remarks di InsertGussetFeature3
         private const string TipoFazzoletto = "Gusset";        // GetTypeName2, misurato dalla sonda
         private const double TriangoloD3 = 0.015;              // Insert_Gusset_Feature_Example_CSharp.htm
         private const double TriangoloAngolo = 0.78539816339745;
@@ -1233,7 +1232,7 @@ namespace Riscontro.Disegno
                         "Il gestore della selezione non risponde: non riesco a marcare le due facce. " +
                         "Non ho toccato niente: prova a ripetere il passo.");
                 for (int i = 0; i < 2; i++)
-                    if (!Seleziona(gestore, facce[i], MarcaDelleFacceDiAppoggio))
+                    if (!Seleziona(gestore, facce[i], SelectionMarks.GussetSupportFaces))
                         return Fallito(
                             "La faccia «" + uid[i] + "» non si e' lasciata selezionare. Non ho toccato " +
                             "niente: rileggi lo stato e indica di nuovo le due facce.");

@@ -152,10 +152,12 @@ namespace Riscontro.Disegno
 
         /// <summary>The two faces that carry a weldment gusset.</summary>
         /// Guide: IFeatureManager~InsertGussetFeature3.html, «select two faces that are the supporting legs of this gusset with a Mark of 1».
-        /// DIVERGES: M27 — OperazioniSaldatura selects the two faces with no mark
-        /// (Select4(true, null)). The operation is out of the catalogue because
-        /// the gusset is never created (GP20); the probe with mark 1 AND a valid
-        /// profile is the one that decides. Not used by the code yet.
+        /// Used by fazzoletto (OperazioniSaldatura, 0.140.0). Until then the two
+        /// faces were selected with no mark and the gusset was never created
+        /// (GP20, M27): the probe of 28/9/2026 showed that the cause was the
+        /// degenerate profile, and that with a valid profile the recipe of
+        /// Insert_Gusset_Feature_Example (this mark) makes it, +9000 mm³
+        /// (il_fazzoletto_sta_nell_angolo).
         public const int GussetSupportFaces = 1;
 
         // ── IFeatureManager.FeatureFillet3, variable radius ─────────────────
@@ -186,6 +188,34 @@ namespace Riscontro.Disegno
         /// Guide: IFeatureManager~InsertCosmeticWeldBead2.html, «8 for each weld-to entity in WeldToFaceOrEdgeSet».
         /// DIVERGES: L9-3, as <see cref="WeldBeadFrom"/>.
         public const int WeldBeadTo = 8;
+
+        // ── ISimpleFilletFeatureData2, face fillet (raccordo_faccia) ────────
+
+        /// <summary>The first face set of a face fillet.</summary>
+        /// Guide: ISimpleFilletFeatureData2.html, Remarks, «Face fillet/face-face chamfer Call IModelDocExtension::SelectByID2 with: - Mark = 2 to select Face Set 1».
+        /// Not the values of swSimpleFilletWhichFaces_e (1 and 2), which belong
+        /// to SetFaces: as marks they give a null feature (measured 28/9/2026).
+        public const int FaceFilletFaceSet1 = 2;
+
+        /// <summary>The second face set of a face fillet.</summary>
+        /// Guide: ISimpleFilletFeatureData2.html, Remarks, «Mark = 4 to select Face Set 2».
+        public const int FaceFilletFaceSet2 = 4;
+
+        // ── IFillPatternFeatureData (ripeti_riempimento) ────────────────────
+
+        /// <summary>The direction reference (an edge or an axis) of a fill pattern.</summary>
+        /// Guide: IFillPatternFeatureData.html, Remarks, «Direction reference (e.g., edge or axis) Pattern direction (if not selected, SOLIDWORKS chooses a direction reference appropriate for the specified layout) 1».
+        /// The page calls it optional; measured on 28/9/2026 it is not: without
+        /// it CreateFeature returns null (lim_riempimento_senza_direzione).
+        public const int FillPatternDirection = 1;
+
+        /// <summary>The features a fill pattern repeats.</summary>
+        /// Guide: IFillPatternFeatureData.html, Remarks, «Features Pattern objects 4».
+        public const int FillPatternFeatures = 4;
+
+        /// <summary>The boundary (face, sketch or coplanar faces) a fill pattern fills.</summary>
+        /// Guide: IFillPatternFeatureData.html, Remarks, «Sketch, face, planar curve on a face, or coplanar faces Fill boundary 16384».
+        public const int FillPatternBoundary = 16384;
 
         // ── IModelDoc2.InsertAxis2 ──────────────────────────────────────────
 

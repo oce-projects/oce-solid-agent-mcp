@@ -71,16 +71,6 @@ namespace Riscontro.Disegno
     /// </summary>
     public partial class OperazioniSw
     {
-        /// <summary>
-        /// Le due marche di selezione della ricetta, da `ISimpleFilletFeatureData2.html`,
-        /// Remarks, riga «Face fillet/face-face chamfer»: «Mark = 2 to select Face
-        /// Set 1. Mark = 4 to select Face Set 2». Non sono i valori di
-        /// `swSimpleFilletWhichFaces_e` (1 e 2): quelli sono per `SetFaces`, e come
-        /// marche danno NULL (misurato).
-        /// </summary>
-        private const int MarcaFacceInsieme1 = 2;
-        private const int MarcaFacceInsieme2 = 4;
-
         /// <summary>Due normali con |coseno| oltre questo sono parallele.</summary>
         private const double RaccordoFacciaQuasiParallele = 0.9999;
 
@@ -212,10 +202,10 @@ namespace Riscontro.Disegno
                 if (gestore == null)
                     return Fallito("Non riesco a usare il gestore di selezione. Non ho toccato niente.");
                 // INSIEME 1 MARCA 2, INSIEME 2 MARCA 4 (vedi le costanti).
-                if (!Seleziona(gestore, faccia1, MarcaFacceInsieme1))
+                if (!Seleziona(gestore, faccia1, SelectionMarks.FaceFilletFaceSet1))
                     return Fallito("Non sono riuscito a selezionare la faccia «" + uid1 + "». Non ho toccato " +
                                    "niente: rileggi lo stato e indica di nuovo le due facce.");
-                if (!Seleziona(gestore, faccia2, MarcaFacceInsieme2))
+                if (!Seleziona(gestore, faccia2, SelectionMarks.FaceFilletFaceSet2))
                     return Fallito("Non sono riuscito a selezionare la faccia «" + uid2 + "». Non ho toccato " +
                                    "niente: rileggi lo stato e indica di nuovo le due facce.");
 

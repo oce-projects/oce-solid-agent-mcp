@@ -5,7 +5,7 @@
 Banco/AssiemeDiProva.cs|Add	2
 Banco/AssiemeDiProva.cs|Delete	1
 Banco/AssiemeDiProva.cs|Text	1
-Banco/Attese.cs|Select	1
+Banco/Attese.cs|Select	3
 Banco/Attese.cs|Value	6
 Banco/CasiDichiarati.cs|Add	5
 Banco/CasiDichiarati.cs|GetType	2
@@ -92,6 +92,8 @@ Riscontro.Disegno/OperazioniLamiera.cs|Value	17
 Riscontro.Disegno/OperazioniMisura.cs|Select	1
 Riscontro.Disegno/OperazioniMisuraAssieme.cs|Add	2
 Riscontro.Disegno/OperazioniMisuraAssieme.cs|Value	1
+Riscontro.Disegno/OperazioniNervatura.cs|Select2	1
+Riscontro.Disegno/OperazioniNervatura.cs|Value	3
 Riscontro.Disegno/OperazioniPercorso.cs|Select2	1
 Riscontro.Disegno/OperazioniPercorso.cs|Value	4
 Riscontro.Disegno/OperazioniPiani.cs|Select	7
@@ -106,11 +108,15 @@ Riscontro.Disegno/OperazioniQuoteTavola.cs|GetEdges	1
 Riscontro.Disegno/OperazioniQuoteTavola.cs|GetText	1
 Riscontro.Disegno/OperazioniQuoteTavola.cs|Text	2
 Riscontro.Disegno/OperazioniQuoteTavola.cs|Value	17
+Riscontro.Disegno/OperazioniRaccordoFaccia.cs|Value	12
 Riscontro.Disegno/OperazioniRiordina.cs|Value	2
+Riscontro.Disegno/OperazioniRipetiRiempimento.cs|Value	4
 Riscontro.Disegno/OperazioniSaldatura.cs|Add	2
 Riscontro.Disegno/OperazioniSaldatura.cs|GetFeature	1
+Riscontro.Disegno/OperazioniSaldatura.cs|Name	1
+Riscontro.Disegno/OperazioniSaldatura.cs|Select	1
 Riscontro.Disegno/OperazioniSaldatura.cs|Select2	1
-Riscontro.Disegno/OperazioniSaldatura.cs|Value	6
+Riscontro.Disegno/OperazioniSaldatura.cs|Value	22
 Riscontro.Disegno/OperazioniSformo.cs|GetBodies2	1
 Riscontro.Disegno/OperazioniSformo.cs|Value	1
 Riscontro.Disegno/OperazioniSostituisci.cs|Value	2

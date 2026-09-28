@@ -85,15 +85,6 @@ namespace Riscontro.Disegno
         private const string TipoRiempimento = "APattern";
 
         /// <summary>
-        /// Le marche della tabella nelle Remarks di IFillPatternFeatureData. Non
-        /// c'e' un enum di swconst che le nomini: sono numeri di contratto della
-        /// pagina, e si scrivono una volta qui.
-        /// </summary>
-        private const int MarcaDirezioneRiempimento = 1;
-        private const int MarcaLavorazioneRiempimento = 4;
-        private const int MarcaContornoRiempimento = 16384;
-
-        /// <summary>
         /// Quanto la direzione puo' uscire dal piano della faccia di contorno:
         /// il seno dell'angolo, 0,01 = circa mezzo grado. Uno spigolo della faccia
         /// ci sta dentro con uno zero di macchina.
@@ -175,7 +166,7 @@ namespace Riscontro.Disegno
                 //    selezione e si ricomincia: l'ordine dell'esempio e della
                 //    sonda A e' lavorazione, direzione, contorno, e l'aiutante con
                 //    la marca 1 seleziona da capo invece di aggiungere.
-                if (!SelezionaAsse(modello, a, "asse", stato, out errore, MarcaDirezioneRiempimento))
+                if (!SelezionaAsse(modello, a, "asse", stato, SelectionMarks.FillPatternDirection, append: false, out errore))
                     return Fallito("Direzione: " + errore);
                 object direzione = DirezioneSelezionataPerRiempimento(modello);
                 if (direzione == null)
@@ -202,9 +193,9 @@ namespace Riscontro.Disegno
 
                 // 2. La lavorazione da ripetere, marca 4 (SelectByID2 BODYFEATURE,
                 //    come l'esempio; o l'oggetto del passo citato).
-                if (!SelezionaLavorazione(modello, a, out errore, MarcaLavorazioneRiempimento))
+                if (!SelezionaLavorazione(modello, a, out errore, SelectionMarks.FillPatternFeatures))
                     return Fallito(errore);
-                seme = SemeSelezionato(modello, MarcaLavorazioneRiempimento);
+                seme = SemeSelezionato(modello, SelectionMarks.FillPatternFeatures);
 
                 // 3. La direzione di nuovo, marca 1, aggiunta.
                 if (!RiselezionaDirezione(modello, direzione))
@@ -213,7 +204,7 @@ namespace Riscontro.Disegno
 
                 // 4. Il contorno, marca 16384, aggiunto.
                 var gestore = modello.SelectionManager as ISelectionMgr;
-                if (gestore == null || !Seleziona(gestore, contorno, MarcaContornoRiempimento))
+                if (gestore == null || !Seleziona(gestore, contorno, SelectionMarks.FillPatternBoundary))
                     return Fallito("Non sono riuscito a selezionare la faccia di contorno" +
                                    (facciaUid.Length > 0 ? " «" + facciaUid + "»" : "") +
                                    ". Rileggi lo stato del documento e indica di nuovo la faccia.");
@@ -410,11 +401,11 @@ namespace Riscontro.Disegno
                     var gestore = modello.SelectionManager as ISelectionMgr;
                     if (entita == null || gestore == null) return false;
                     var d = (SelectData)gestore.CreateSelectData();
-                    d.Mark = MarcaDirezioneRiempimento;
+                    d.Mark = SelectionMarks.FillPatternDirection;
                     return entita.Select4(true, d);
                 }
                 var f = direzione as IFeature;
-                if (f != null) return f.Select2(true, MarcaDirezioneRiempimento);
+                if (f != null) return f.Select2(true, SelectionMarks.FillPatternDirection);
             }
             catch { }
             return false;

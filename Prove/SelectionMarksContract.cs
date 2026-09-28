@@ -37,7 +37,7 @@ namespace Prove.Contratti
     internal static class SelectionMarksContract
     {
         private static readonly Regex ConstRx = new Regex(@"public\s+const\s+int\s+(\w+)\s*=\s*(\d+)\s*;", RegexOptions.Compiled);
-        private static readonly Regex GuideRx = new Regex(@"Guide:\s*(\w+~\w+\.html)", RegexOptions.Compiled);
+        private static readonly Regex GuideRx = new Regex(@"Guide:\s*(\w+(?:~\w+)?\.html)", RegexOptions.Compiled);
         private static readonly Regex QuoteRx = new Regex(@"«([^»]*)»", RegexOptions.Compiled);
         private static readonly Regex MeasuredRx = new Regex(@"MEASURED:\s*([A-Za-z0-9_\-]+)", RegexOptions.Compiled);
         private static readonly Regex MarkAssignRx = new Regex(@"\.\s*Mark\s*=\s*([1-9]\d*)\b", RegexOptions.Compiled);
@@ -161,7 +161,7 @@ namespace Prove.Contratti
                     string name = m.Groups[1].Value, value = m.Groups[2].Value;
                     var block = string.Join(" ", doc);
                     doc.Clear();
-                    if (!GuideRx.IsMatch(block)) { problems.Add(name + ": no \"Guide: Interface~Member.html\""); continue; }
+                    if (!GuideRx.IsMatch(block)) { problems.Add(name + ": no \"Guide: Interface~Member.html\" (or Interface.html)"); continue; }
                     if (block.Contains("UNDOCUMENTED:"))
                     {
                         var measured = MeasuredRx.Match(block);
