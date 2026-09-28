@@ -107,11 +107,10 @@ namespace Riscontro.Disegno
             // (flangia_spigolo, orlo, piega_da_schizzo) lo leggevano, questa no:
             // la rilettura di T e R qui sotto viene dalla lavorazione «SheetMetal»,
             // che c'e' anche con la flangia rossa, e non prova niente sulla flangia.
-            bool avvisoFlangia = false; int codiceFlangia = 0;
-            try { codiceFlangia = flangia.GetErrorCode2(out avvisoFlangia); } catch { }
-            if (codiceFlangia != (int)swFeatureError_e.swFeatureErrorNone && !avvisoFlangia)
+            var flangeError = ApiHelpers.RebuildError(flangia);   // S11: GetErrorCode2, warnings excluded
+            if (flangeError != null)
                 return Fallito("La flangia base «" + flangia.Name + "» e' nata in errore (" +
-                               ErroriFeature.Frase(codiceFlangia) + "): ritirala — " + Frasi.CosiSiRitira + ".");
+                               flangeError + "): ritirala — " + Frasi.CosiSiRitira + ".");
 
             // ── T, R, K RILETTI dalla lamiera, non ripetuti dagli argomenti ──
             var dati = DatiDellaLamiera(modello);
@@ -317,10 +316,9 @@ namespace Riscontro.Disegno
                 return Fallito("La flangia a spigolo non e' nata, e SOLIDWORKS non dice perche'." + SenzaLoSchizzo(modello));
             modello.EditRebuild3();
 
-            bool avviso = false; int codice = 0;
-            try { codice = flangia.GetErrorCode2(out avviso); } catch { }
-            if (codice != 0 && !avviso)
-                return Fallito("La flangia a spigolo «" + flangia.Name + "» e' nata in errore (codice " + codice +
+            var flangeError = ApiHelpers.RebuildError(flangia);   // S11: GetErrorCode2, warnings excluded
+            if (flangeError != null)
+                return Fallito("La flangia a spigolo «" + flangia.Name + "» e' nata in errore (" + flangeError +
                                "): ritirala — " + Frasi.CosiSiRitira + ".");
 
             double letta = -1;
@@ -521,10 +519,9 @@ namespace Riscontro.Disegno
             if (orlo == null) return Fallito("L'orlo non e' nato, e SOLIDWORKS non dice perche'.");
             modello.EditRebuild3();
 
-            bool avviso = false; int codice = 0;
-            try { codice = orlo.GetErrorCode2(out avviso); } catch { }
-            if (codice != 0 && !avviso)
-                return Fallito("L'orlo «" + orlo.Name + "» e' nato in errore (codice " + codice + "): ritiralo — " +
+            var hemError = ApiHelpers.RebuildError(orlo);   // S11: GetErrorCode2, warnings excluded
+            if (hemError != null)
+                return Fallito("L'orlo «" + orlo.Name + "» e' nato in errore (" + hemError + "): ritiralo — " +
                                Frasi.CosiSiRitira + ".");
 
             double? volumeDopo = VolumeMm3(modello);
@@ -689,10 +686,9 @@ namespace Riscontro.Disegno
                                "attraversa la faccia da bordo a bordo." + SenzaLoSchizzo(modello));
             modello.EditRebuild3();
 
-            bool avviso = false; int codice = 0;
-            try { codice = piega.GetErrorCode2(out avviso); } catch { }
-            if (codice != 0 && !avviso)
-                return Fallito("La piega «" + piega.Name + "» e' nata in errore (codice " + codice + "): ritirala — " +
+            var bendError = ApiHelpers.RebuildError(piega);   // S11: GetErrorCode2, warnings excluded
+            if (bendError != null)
+                return Fallito("La piega «" + piega.Name + "» e' nata in errore (" + bendError + "): ritirala — " +
                                Frasi.CosiSiRitira + ".");
 
             var scatolaDopo = ScatolaDelPezzoMm(modello);

@@ -120,9 +120,14 @@ namespace Riscontro.Disegno
         {
             /// <summary>The boolean ModifyDefinition returned.</summary>
             public bool Applied;
-            /// <summary>IFeature.GetErrorCode2 after the change (0 = none).</summary>
+            /// <summary>IFeature.GetErrorCode2 after the change (0 = none, or not known).</summary>
             public int ErrorCode;
             public bool IsWarning;
+            /// <summary>
+            /// False when GetErrorCode2 threw: ErrorCode is then 0 because
+            /// nothing was read, not because the feature is sound.
+            /// </summary>
+            public bool ErrorCodeKnown;
             /// <summary>A real rebuild error, not a warning.</summary>
             public bool InError => ErrorCode != (int)swFeatureError_e.swFeatureErrorNone && !IsWarning;
             /// <summary>The phrase for the error, or null if there is none.</summary>
@@ -143,9 +148,11 @@ namespace Riscontro.Disegno
         /// The caller still decides what to do with each answer (restore,
         /// refuse, report): this helper only makes sure the second question is
         /// always asked. An error code that cannot be read is left at zero and
-        /// does not become an error: the caller's volume and face checks decide
-        /// (the project measured that GetErrorCode2 alone can stay silent on a
-        /// real defect, see CopieMancanti in OperazioniSw).
+        /// does not become an error, but <see cref="DefinitionChange.ErrorCodeKnown"/>
+        /// says so: a caller that has no other check (volume, faces) must not
+        /// read "not known" as "sound" (the project measured that GetErrorCode2
+        /// alone can stay silent on a real defect, see CopieMancanti in
+        /// OperazioniSw).
         /// </summary>
         internal static DefinitionChange ModifyAndVerify(
             IFeature feature, object definition, IModelDoc2 topDocument, object component = null)
@@ -154,7 +161,7 @@ namespace Riscontro.Disegno
             {
                 Applied = feature.ModifyDefinition(definition, topDocument, component),
             };
-            ReadErrorCode(feature, out change.ErrorCode, out change.IsWarning);
+            change.ErrorCodeKnown = ReadErrorCode(feature, out change.ErrorCode, out change.IsWarning);
             return change;
         }
 
@@ -165,17 +172,28 @@ namespace Riscontro.Disegno
         /// </summary>
         internal static string RebuildError(IFeature feature)
         {
-            ReadErrorCode(feature, out int code, out bool warning);
+            return RebuildError(feature, out _);
+        }
+
+        /// <summary>
+        /// As <see cref="RebuildError(IFeature)"/>; <paramref name="known"/> is
+        /// false when GetErrorCode2 threw, so that a null phrase can be told
+        /// apart from "I could not ask".
+        /// </summary>
+        internal static string RebuildError(IFeature feature, out bool known)
+        {
+            known = ReadErrorCode(feature, out int code, out bool warning);
             return code != (int)swFeatureError_e.swFeatureErrorNone && !warning
                 ? ErroriFeature.Frase(code) : null;
         }
 
-        private static void ReadErrorCode(IFeature feature, out int code, out bool warning)
+        /// <summary>GetErrorCode2; false (and code 0) when it throws.</summary>
+        private static bool ReadErrorCode(IFeature feature, out int code, out bool warning)
         {
             code = (int)swFeatureError_e.swFeatureErrorNone;
             warning = false;
-            try { code = feature.GetErrorCode2(out warning); }
-            catch { code = (int)swFeatureError_e.swFeatureErrorNone; warning = false; }
+            try { code = feature.GetErrorCode2(out warning); return true; }
+            catch { code = (int)swFeatureError_e.swFeatureErrorNone; warning = false; return false; }
         }
 
         // =====================================================================
@@ -193,6 +211,8 @@ namespace Riscontro.Disegno
             public IFeature Feature;
             public int ErrorCode;
             public bool IsWarning;
+            /// <summary>False when GetErrorCode2 threw (see <see cref="DefinitionChange.ErrorCodeKnown"/>).</summary>
+            public bool ErrorCodeKnown;
             public bool InError => ErrorCode != (int)swFeatureError_e.swFeatureErrorNone && !IsWarning;
             public string ErrorPhrase => InError ? ErroriFeature.Frase(ErrorCode) : null;
         }
@@ -231,7 +251,7 @@ namespace Riscontro.Disegno
             outcome.Feature = manager.CreateFeature(data) as IFeature;
             if (outcome.Feature == null) return outcome;
             outcome.Stage = CreationStage.Done;
-            ReadErrorCode(outcome.Feature, out outcome.ErrorCode, out outcome.IsWarning);
+            outcome.ErrorCodeKnown = ReadErrorCode(outcome.Feature, out outcome.ErrorCode, out outcome.IsWarning);
             return outcome;
         }
     }

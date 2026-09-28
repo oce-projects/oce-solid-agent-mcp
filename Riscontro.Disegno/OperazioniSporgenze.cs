@@ -113,6 +113,12 @@ namespace Riscontro.Disegno
             int facceGuardate = 0, facceSporgenti = 0, facceCurve = 0;
             int facceNonAnalizzate = 0;
             double areaNonAnalizzata = 0;
+            // Planar faces that hang over the threshold but whose true box did
+            // not answer: whether they rest on the plate is unknown, so they
+            // count as not analysed (part of facceNonAnalizzate), never as
+            // overhangs and never as resting.
+            int planarWithoutBox = 0;
+            double planarWithoutBoxArea = 0;
             int concordi = 0, discordi = 0;
             var elenco = new List<Dictionary<string, object>>();
 
@@ -164,7 +170,19 @@ namespace Riscontro.Disegno
                         if (normale == null) continue;
                         double gradiP = Sporgenza(normale, su);
                         bool giuP = Prodotto(normale, su) < 0;
-                        if (giuP && gradiP > soglia && !SulPiano(faccia, su, quotaPiano))
+                        bool? resting = giuP && gradiP > soglia ? SulPiano(faccia, su, quotaPiano) : true;
+                        if (resting == null)
+                        {
+                            // S6: the true box replaced IFace2.GetBox, which always
+                            // answered. A box that does not answer is not "not on
+                            // the plate": it is a face this check did not look at.
+                            facceNonAnalizzate++;
+                            areaNonAnalizzata += areaFaccia;
+                            planarWithoutBox++;
+                            planarWithoutBoxArea += areaFaccia;
+                            continue;
+                        }
+                        if (resting == false)
                         {
                             facceSporgenti++;
                             areaSporgente += areaFaccia;
@@ -248,17 +266,29 @@ namespace Riscontro.Disegno
             };
             if (facceNonAnalizzate > 0)
                 misure["area_not_analyzed_mm2"] = Math.Round(areaNonAnalizzata, 2);
+            if (planarWithoutBox > 0)
+            {
+                misure["planar_faces_without_true_box"] = planarWithoutBox;
+                misure["planar_area_without_true_box_mm2"] = Math.Round(planarWithoutBoxArea, 2);
+            }
             if (troncato)
             {
                 misure["sporgenze_non_elencate"] = elenco.Count - quanteNeDico;
                 misure["troncato"] = true;
             }
 
-            string nonGuardate = facceNonAnalizzate == 0 ? "" : string.Format(
+            int curvedNotAnalysed = facceNonAnalizzate - planarWithoutBox;
+            string nonGuardate = curvedNotAnalysed == 0 ? "" : string.Format(
                 CultureInfo.InvariantCulture,
                 " ATTENZIONE: {0} facce curve ({1:0.##} mm2) non si sono lasciate tassellare " +
                 "e non le ho potute guardare: una faccia curva non ha una normale sola.",
-                facceNonAnalizzate, areaNonAnalizzata);
+                curvedNotAnalysed, areaNonAnalizzata - planarWithoutBoxArea);
+            if (planarWithoutBox > 0)
+                nonGuardate += string.Format(
+                    CultureInfo.InvariantCulture,
+                    " WARNING: {0} planar faces ({1:0.##} mm2) hang over the threshold, but their true " +
+                    "bounding box could not be measured, so I cannot tell whether they rest on the plate.",
+                    planarWithoutBox, planarWithoutBoxArea);
             misure["giudizio"] = facceSporgenti > 0
                 ? string.Format(CultureInfo.InvariantCulture,
                     "NON si stampa senza supporti: {0} facce pendono oltre {1:0.#} gradi, " +
@@ -268,8 +298,8 @@ namespace Riscontro.Disegno
                 : facceNonAnalizzate > 0
                     ? string.Format(CultureInfo.InvariantCulture,
                         "NON POSSO DIRE se si stampa senza supporti con la soglia di {0:0.#} " +
-                        "gradi: sulle facce che ho guardato non pende niente oltre, ma", soglia) +
-                      nonGuardate.Replace(" ATTENZIONE:", "") +
+                        "gradi: sulle facce che ho guardato non pende niente oltre.", soglia) +
+                      nonGuardate +
                       " Riprova dopo una ricostruzione, o guarda quelle facce a occhio."
                     : string.Format(CultureInfo.InvariantCulture,
                         "Si stampa senza supporti con la soglia di {0:0.#} gradi: non c'e' " +
@@ -360,12 +390,16 @@ namespace Riscontro.Disegno
             return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
         }
 
-        private static bool SulPiano(IFace2 faccia, double[] su, double quotaPiano)
+        /// <summary>
+        /// Whether the face rests on the plate; null when its true box cannot
+        /// be measured (the caller counts it as not analysed).
+        /// </summary>
+        private static bool? SulPiano(IFace2 faccia, double[] su, double quotaPiano)
         {
             try
             {
                 var b = ApiHelpers.TrueBoundingBox(faccia);   // S6: not IFace2.GetBox, approximate
-                if (b == null || b.Length < 6) return false;
+                if (b == null || b.Length < 6) return null;
                 // l'angolo piu' alto della scatola, proiettato sulla direzione
                 double alto = double.MinValue;
                 for (int i = 0; i < 8; i++)
@@ -378,7 +412,7 @@ namespace Riscontro.Disegno
                 }
                 return alto - quotaPiano < Unita.M(SulPianoMm);
             }
-            catch { return false; }
+            catch { return null; }
         }
 
         private static bool SulPianoPunto(double[] punto, double[] su, double quotaPiano)

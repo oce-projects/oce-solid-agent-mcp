@@ -491,22 +491,15 @@ namespace Riscontro.Disegno
             }
 
             double miglioreProiezione = 0;
+            int unmeasured = 0;
             foreach (var f in facce)
             {
                 var n = Normale(f);
                 if (n == null) continue;
                 if (Math.Abs(Prodotto(n, passo.Direzione)) <= Coseno) continue;
 
-                double[] box;
-                try { box = ApiHelpers.TrueBoundingBox(f); }   // S6: not IFace2.GetBox, approximate
-                catch { continue; }
-                if (box == null || box.Length < 6) continue;
-                var centro = new double[]
-                {
-                    (box[0] + box[3]) / 2,
-                    (box[1] + box[4]) / 2,
-                    (box[2] + box[5]) / 2,
-                };
+                var centro = PointToProject(f);
+                if (centro == null) { unmeasured++; continue; }
                 double proiezione = Prodotto(centro, passo.Direzione) * verso;
                 if (scelta == null || proiezione > miglioreProiezione)
                 {
@@ -515,6 +508,16 @@ namespace Riscontro.Disegno
                 }
             }
 
+            if (scelta == null && unmeasured > 0)
+            {
+                // Not "there is no such face": there are, and none could be measured.
+                motivo =
+                    "The step «" + passo.Operazione + "» left " + unmeasured + " planar face(s) " +
+                    "perpendicular to the extrusion direction, but I could not measure where any " +
+                    "of them is (neither the true bounding box nor a point on the face answered). " +
+                    "Name the face by its identifier.";
+                return false;
+            }
             if (scelta == null)
             {
                 motivo =
@@ -524,6 +527,38 @@ namespace Riscontro.Disegno
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// The point of a planar face perpendicular to the direction that is
+        /// projected on the direction to rank the faces: the centre of its true
+        /// box, or, when the box does not answer, a point ON the face. Null
+        /// only when neither answers.
+        ///
+        /// For a face perpendicular to the direction every point of the face
+        /// has (within the Coseno tolerance) the same projection, so a point on
+        /// the face ranks it as well as the centre of its box. Guide:
+        /// IFace2~GetClosestPointOn.html, «Array of five doubles representing
+        /// the X,Y,Z point on the face followed by the U, V parameter»; the box
+        /// is ApiHelpers.TrueBoundingBox (S6), which can fail where the
+        /// approximate IFace2.GetBox always answered.
+        /// </summary>
+        private static double[] PointToProject(IFace2 face)
+        {
+            try
+            {
+                var box = ApiHelpers.TrueBoundingBox(face);   // S6: not IFace2.GetBox, approximate
+                if (box != null && box.Length >= 6)
+                    return new[] { (box[0] + box[3]) / 2, (box[1] + box[4]) / 2, (box[2] + box[5]) / 2 };
+            }
+            catch { }
+            try
+            {
+                var p = face.GetClosestPointOn(0, 0, 0) as double[];
+                if (p != null && p.Length >= 3) return new[] { p[0], p[1], p[2] };
+            }
+            catch { }
+            return null;
         }
 
         /// <summary>

@@ -309,7 +309,18 @@ namespace Riscontro.Disegno
                 if (d == null) return "Non sono riuscito a rimettere le cose com'erano.";
                 porta.Apri(d, modello);
                 porta.Scrivi(d, DaScrivere(comEra));
-                if (ApiHelpers.ModifyAndVerify(ripetizione, d, modello).Applied)
+                // S11: Applied alone is not the verdict (IFeature~ModifyDefinition.html,
+                // Remarks: it can return true and leave a new rebuild error). The
+                // sentence "put back as it was" is said only when the feature is
+                // known to be sound.
+                var change = ApiHelpers.ModifyAndVerify(ripetizione, d, modello);
+                if (change.Applied && change.InError)
+                    return "I put the pattern definition back, but the pattern is now in a rebuild error (" +
+                           change.ErrorPhrase + "): check the pattern.";
+                if (change.Applied && !change.ErrorCodeKnown)
+                    return "I put the pattern definition back, but I could not read whether it rebuilds " +
+                           "without errors: check the pattern.";
+                if (change.Applied)
                     return "Ho rimesso la ripetizione com'era.";
                 porta.Chiudi(d);
             }

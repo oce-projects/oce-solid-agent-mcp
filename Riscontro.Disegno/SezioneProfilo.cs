@@ -227,20 +227,12 @@ namespace Riscontro.Disegno
                 }
                 try { doc.EditRebuild3(); } catch { }
 
-                double[] totale = null;
                 var corpi = (doc as IPartDoc).GetBodies2(
                     (int)swBodyType_e.swSolidBody, false) as object[];
                 if (corpi == null || corpi.Length == 0) return null;
-                foreach (var c in corpi)
-                {
-                    // Approximate ON PURPOSE: paired with the same approximation in
-                    // OperazioniSaldatura.IngombroDeiCorpi, so that the two cancel out.
-                    var b = ApiHelpers.ApproximateBoundingBox(c as IBody2);
-                    if (b == null || b.Length < 6) continue;
-                    if (totale == null) { totale = (double[])b.Clone(); continue; }
-                    for (int i = 0; i < 3; i++) totale[i] = Math.Min(totale[i], b[i]);
-                    for (int i = 3; i < 6; i++) totale[i] = Math.Max(totale[i], b[i]);
-                }
+                // Approximate ON PURPOSE: paired with the same approximation in
+                // OperazioniSaldatura.IngombroDeiCorpi, so that the two cancel out.
+                var totale = ApiHelpers.UnionOfBoxes(corpi, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
                 if (totale == null) return null;
 
                 double ingombroU = (totale[3 + asseU] - totale[asseU]) * 1000.0;

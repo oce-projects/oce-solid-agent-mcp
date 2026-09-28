@@ -115,6 +115,14 @@ namespace Riscontro.Disegno
 
             // La scatola della FACCIA, per sapere dove la scritta puo' stare.
             double[] scatolaFaccia = ScatolaDellaFaccia(faccia);
+            // Without the face box the overflow check (SbordaFuori) cannot run,
+            // and a truncated inscription would be engraved without a word.
+            // Refuse before touching the part (S6: the true box can fail where
+            // IFace2.GetBox always answered).
+            if (scatolaFaccia == null)
+                return Fallito(
+                    "I cannot measure the face: its true bounding box did not answer, so I " +
+                    "cannot check that the text stays inside it. Nothing was changed.");
             double areaFaccia = 0;
             try { areaFaccia = faccia.GetArea() * 1e6; } catch { }
 

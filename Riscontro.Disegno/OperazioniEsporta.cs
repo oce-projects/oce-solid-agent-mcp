@@ -191,7 +191,7 @@ namespace Riscontro.Disegno
 
             if (!ok || !File.Exists(posato))
                 return Fallito(
-                    "Lo STL non e' stato scritto (codice " + errori + SaveErrorWords(errori) + "). " +
+                    "Lo STL non e' stato scritto (codice " + errori + SaveErrorNames(errori) + "). " +
                     "Il file non c'e': " + posato);
 
             long quantoPesa = new FileInfo(posato).Length;
@@ -284,15 +284,15 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// The Errors mask of SaveAs3 in words, as ": ..." to append after the
+        /// The swFileSaveError_e names of the Errors mask of SaveAs3, as ": ..." to append after the
         /// raw code, or "" when the mask is 0 (S13, ErrorCodeDecoder). The raw
         /// code stays in the message: whoever already searches for it still
         /// finds it.
         /// </summary>
-        private static string SaveErrorWords(int errors)
+        private static string SaveErrorNames(int errors)
         {
-            var words = ErrorCodeDecoder.FileSaveErrors(errors);
-            return words == null ? "" : ": " + words;
+            var names = ErrorCodeDecoder.FileSaveErrors(errors);
+            return names == null ? "" : ": " + names;
         }
 
         private void RimettiPreferenzeStl(PreferenzeStl p)
@@ -550,7 +550,7 @@ namespace Riscontro.Disegno
             finally { RimettiPreferenzeScambio(prima); }
 
             if (!ok || !File.Exists(dove))
-                return Fallito("Il file non e' stato scritto (codice " + errori + SaveErrorWords(errori) + "): " + dove);
+                return Fallito("Il file non e' stato scritto (codice " + errori + SaveErrorNames(errori) + "): " + dove);
 
             long quantoPesa = new FileInfo(dove).Length;
             var misure = new Dictionary<string, object>

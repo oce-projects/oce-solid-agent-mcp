@@ -1432,17 +1432,9 @@ namespace Riscontro.Disegno
                 }
                 if (corpi.Count == 0) return null;
 
-                double[] totale = null;
-                foreach (var c in corpi)
-                {
-                    // Approximate ON PURPOSE, see the summary above (paired with
-                    // SezioneProfilo): ApiHelpers.ApproximateBoundingBox.
-                    var b = ApiHelpers.ApproximateBoundingBox(c);
-                    if (b == null || b.Length < 6) continue;
-                    if (totale == null) { totale = (double[])b.Clone(); continue; }
-                    for (int i = 0; i < 3; i++) totale[i] = Math.Min(totale[i], b[i]);
-                    for (int i = 3; i < 6; i++) totale[i] = Math.Max(totale[i], b[i]);
-                }
+                // Approximate ON PURPOSE, see the summary above (paired with
+                // SezioneProfilo): ApiHelpers.ApproximateBoundingBox.
+                var totale = ApiHelpers.UnionOfBoxes(corpi, ApiHelpers.ApproximateBoundingBox);
                 if (totale == null) return null;
                 for (int i = 0; i < 6; i++) totale[i] *= 1000.0;
                 return totale;

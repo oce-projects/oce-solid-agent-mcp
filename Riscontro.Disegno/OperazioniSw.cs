@@ -1685,22 +1685,11 @@ namespace Riscontro.Disegno
             var parte = modello as IPartDoc;
             var corpi = parte?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
             if (corpi == null || corpi.Length == 0) return null;
-            double[] fuori = null;
-            foreach (var c in corpi)
-            {
-                // Approximate ON PURPOSE, see the summary: a box that can only
-                // be larger than the part makes both checks more permissive.
-                var b = ApiHelpers.ApproximateBoundingBox(c as IBody2);
-                if (b == null || b.Length < 6) continue;
-                if (fuori == null)
-                {
-                    fuori = new double[6];
-                    for (int i = 0; i < 6; i++) fuori[i] = Unita.Mm(b[i]);
-                    continue;
-                }
-                for (int i = 0; i < 3; i++) fuori[i] = Math.Min(fuori[i], Unita.Mm(b[i]));
-                for (int i = 3; i < 6; i++) fuori[i] = Math.Max(fuori[i], Unita.Mm(b[i]));
-            }
+            // Approximate ON PURPOSE, see the summary: a box that can only
+            // be larger than the part makes both checks more permissive.
+            var fuori = ApiHelpers.UnionOfBoxes(corpi, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
+            if (fuori == null) return null;
+            for (int i = 0; i < 6; i++) fuori[i] = Unita.Mm(fuori[i]);
             return fuori;
         }
 
@@ -2727,19 +2716,12 @@ namespace Riscontro.Disegno
             var parte = modello as IPartDoc;
             var corpi = parte?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
             if (corpi == null || corpi.Length == 0) return 0;
-            double basso = double.MaxValue, alto = double.MinValue;
-            foreach (var c in corpi)
-            {
-                // Approximate ON PURPOSE: this is a ceiling for a through cut,
-                // and the approximate box encloses the body (IBody2~GetBodyBox.html),
-                // so it is never lower than the true one.
-                var b = ApiHelpers.ApproximateBoundingBox(c as IBody2);
-                if (b == null || b.Length < 6) continue;
-                basso = Math.Min(basso, b[asse]);
-                alto = Math.Max(alto, b[asse + 3]);
-            }
-            if (alto <= basso) return 0;
-            return Unita.Mm(alto - basso);
+            // Approximate ON PURPOSE: this is a ceiling for a through cut,
+            // and the approximate box encloses the body (IBody2~GetBodyBox.html),
+            // so it is never lower than the true one.
+            var u = ApiHelpers.UnionOfBoxes(corpi, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
+            if (u == null || u[asse + 3] <= u[asse]) return 0;
+            return Unita.Mm(u[asse + 3] - u[asse]);
         }
 
         /// <summary>

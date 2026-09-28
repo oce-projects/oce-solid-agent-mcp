@@ -56,9 +56,11 @@ namespace Riscontro.Disegno
                 var f = modello.FirstFeature() as IFeature;
                 while (f != null)
                 {
-                    bool avviso;
-                    int c = f.GetErrorCode2(out avviso);
-                    if (c != 0 && !avviso) n++;
+                    // S11: ApiHelpers.RebuildError; a code that cannot be read
+                    // makes the count unknown (-1), as the exception did before.
+                    bool known;
+                    if (ApiHelpers.RebuildError(f, out known) != null) n++;
+                    if (!known) return -1;
                     f = f.GetNextFeature() as IFeature;
                 }
                 return n;

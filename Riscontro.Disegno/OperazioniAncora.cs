@@ -771,15 +771,13 @@ namespace Riscontro.Disegno
             if (taglio == null) return null;
             try
             {
-                bool avviso;
-                int codice = taglio.GetErrorCode2(out avviso);
-                if (codice != 0 && !avviso) return "codice " + codice.ToString(CultureInfo.InvariantCulture);
+                // S11: ApiHelpers.RebuildError (GetErrorCode2, warnings excluded),
+                // which also says the code in words (ErroriFeature), as the summary promises.
+                var cutError = ApiHelpers.RebuildError(taglio);
+                if (cutError != null) return cutError;
                 var schizzo = taglio.GetFirstSubFeature() as IFeature;
-                if (schizzo != null)
-                {
-                    int c2 = schizzo.GetErrorCode2(out avviso);
-                    if (c2 != 0 && !avviso) return "schizzo, codice " + c2.ToString(CultureInfo.InvariantCulture);
-                }
+                var sketchError = schizzo == null ? null : ApiHelpers.RebuildError(schizzo);
+                if (sketchError != null) return "schizzo: " + sketchError;
             }
             catch { }
             return null;
