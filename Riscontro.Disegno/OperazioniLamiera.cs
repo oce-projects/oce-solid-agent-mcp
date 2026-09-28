@@ -193,26 +193,24 @@ namespace Riscontro.Disegno
         /// bordo di una lamiera che c'e' gia'. Serve alle scatole — pieghe su
         /// spigoli di direzioni diverse, che `flangia_base` da un profilo solo non fa.
         ///
-        /// ── MISURATA PRIMA DI SCRIVERLA, 25-26/9/2026 ────────────────────────
+        /// ── HOW IT IS MADE (Z-C21.7, L10-1) ─────────────────────────────────
         ///
-        /// `Controlli/FlangiaSpigolo`, dieci tentativi. `InsertSheetMetalEdgeFlange2`
-        /// risponde null senza eccezione con gli schizzi a null, col settimo
-        /// parametro (`FlangeOffsetDist`, la lunghezza) a 0 o a 20, con gli elenchi
-        /// tipizzati; nasce VUOTA (volume invariato) con una linea su un piano
-        /// perpendicolare allo spigolo. **Nasce e aggiunge materiale solo con un
-        /// RETTANGOLO sul piano della flangia**, la base sullo spigolo: qui la
-        /// faccia di testa della lamiera, che e' proprio quel piano.
+        /// The guide's recipe: InsertSketchForEdgeFlange, the profile in that
+        /// sketch (<see cref="FlangeProfile"/>), CreateDefinition(swFmEdgeFlange),
+        /// AddEdges, OffsetDistance = the length at the OUTER virtual sharp,
+        /// CreateFeature. The Z-C21.3 probe probe_edge_flange_definition measured
+        /// it (case E1) giving the same flange as the obsolete
+        /// InsertSheetMetalEdgeFlange2 used until then (E0): +1736.995 mm3,
+        /// OffsetDistance 25, flat 80.712 -> 102.425 on the L of the bench case.
         ///
-        /// Misurato sulla L (T 2, R 2, K 0,5, «materiale dentro»), profilo alto 20
-        /// e 30: `OffsetDistance` riletta 22 e 32 — profilo + T, allo spigolo
-        /// virtuale ESTERNO — e lo sviluppo cresce di (Lo - R - T) + BA - (R + T),
-        /// al millesimo. Quindi il rettangolo e' alto Lo - T, e il conto del
-        /// volume in piu' e' quello sviluppo per T per la lunghezza dello spigolo.
-        ///
-        /// Due cose da sapere: SOLIDWORKS SOSTITUISCE lo schizzo passato con uno
-        /// suo (la geometria segue il nostro, il nome no); e la lunghezza la
-        /// comanda il profilo — `ModifyDefinition` su `OffsetDistance` risponde
-        /// vero e non cambia niente.
+        /// The obsolete call had been measured on 25-26/9/2026
+        /// (`Controlli/FlangiaSpigolo`, ten attempts): it was born and added
+        /// material only with a RECTANGLE on the plane of the flange (the head
+        /// face), L - T high, and there the profile governed the length. With
+        /// the new recipe OffsetDistance governs it (E3: offset 35 gives
+        /// +2536.997 mm3 on the same profile), and the extra volume is still the
+        /// extra flat length, (L - R - T) + BA - (R + T), times T times the
+        /// length of the edge.
         /// </summary>
         private Esito FlangiaSpigolo(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
@@ -237,83 +235,89 @@ namespace Riscontro.Disegno
             string uid = Str(a, "spigolo_uid", "");
             var bordo = SpigoloDiBordo(a, stato, uid, t, "una flangia", out errore);
             if (bordo == null) return Fallito(errore);
-            var spigolo = bordo.Spigolo; var testa = bordo.Testa;
-            var p0 = bordo.P0; var p1 = bordo.P1; var n = bordo.Normale;
+            var spigolo = bordo.Spigolo;
+            var n = bordo.Normale;
             double lungo = bordo.LungoM;
             double h = Unita.M(lunghezza - t);
-            var q0 = new[] { p0[0] + n[0] * h, p0[1] + n[1] * h, p0[2] + n[2] * h };
-            var q1 = new[] { p1[0] + n[0] * h, p1[1] + n[1] * h, p1[2] + n[2] * h };
 
             double? volumePrima = VolumeMm3(modello);
-            var schizziPrima = new HashSet<string>();
-            try
-            {
-                var f = modello.FirstFeature() as IFeature;
-                while (f != null)
-                {
-                    if (f.GetTypeName2() == "ProfileFeature") schizziPrima.Add(f.Name);
-                    f = f.GetNextFeature() as IFeature;
-                }
-            }
-            catch { }
+
+            // THE RECIPE OF THE GUIDE (Z-C21.7, L10-1), not the obsolete
+            // InsertSheetMetalEdgeFlange2 («Obsolete. Superseded by
+            // IFeatureManager::CreateDefinition and IFeatureManager::CreateFeature»).
+            // IModelDoc2~InsertSketchForEdgeFlange.html: «After calling this
+            // method, you must create the profile for the flange on the
+            // appropriate plane. Then use IFeatureManager::CreateDefinition,
+            // IEdgeFlangeFeatureData, and IFeatureManager::CreateFeature»;
+            // IEdgeFlangeFeatureData~AddEdges.html: «Before calling this method,
+            // call IModelDoc2::InsertSketchForEdgeFlange to associate the
+            // sketches with the edges». The steps are those of
+            // Create_Edge_Flange_Example_CSharp.htm with its obsolete sketch
+            // helpers replaced (SketchUseEdge3, SketchManager.ActiveSketch,
+            // SketchManager.CreateLine), exactly the case E1 of the Z-C21.3 probe
+            // probe_edge_flange_definition, on the L of the bench case
+            // (T 2, R 2, depth 40, L 25): born without error, OffsetDistance 25,
+            // volume +1736.995 mm3, flat 80.712 -> 102.425, the same numbers as
+            // InsertSheetMetalEdgeFlange2 on the same edge (E0). The profile is
+            // L - T high as before, although the probe found the height does not
+            // matter (E2, L high: the same); the LENGTH is OffsetDistance (E3,
+            // offset 35: +2536.997 mm3), no longer the profile as with the
+            // obsolete call. A pre-selected edge changes nothing (E4).
             modello.ClearSelection2(true);
-            if (!(testa as IEntity).Select4(false, null))
-                return Fallito("Non riesco a selezionare la faccia di testa dello spigolo «" + uid + "».");
-            modello.SketchManager.InsertSketch(true);
-            var sk = modello.SketchManager.ActiveSketch as ISketch;
-            var matematica = _sw.GetMathUtility() as IMathUtility;
-            if (sk == null || matematica == null)
-                return Fallito("Lo schizzo del profilo non si e' aperto sulla faccia di testa." + SenzaLoSchizzo(modello));
-            var tr = sk.ModelToSketchTransform;
-            Func<double[], double[]> nelloSchizzo = p =>
-                ((IMathPoint)((IMathPoint)matematica.CreatePoint(p)).MultiplyTransform(tr)).ArrayData as double[];
-            var angoli = new[] { nelloSchizzo(p0), nelloSchizzo(p1), nelloSchizzo(q1), nelloSchizzo(q0) };
-            bool addPrima = modello.SketchManager.AddToDB;
-            try
-            {
-                modello.SketchManager.AddToDB = true;
-                for (int i = 0; i < 4; i++)
-                {
-                    var da = angoli[i]; var ad = angoli[(i + 1) % 4];
-                    modello.SketchManager.CreateLine(da[0], da[1], 0, ad[0], ad[1], 0);
-                }
-            }
-            finally { modello.SketchManager.AddToDB = addPrima; }
-            modello.SketchManager.InsertSketch(true);
-            // LO SCHIZZO NUOVO NON E' L'ULTIMO DELL'ALBERO. In una lamiera la
-            // lavorazione in fondo e' sempre lo sviluppo («FlatPattern»), e le
-            // lavorazioni nuove entrano PRIMA di lui: misurato al primo giro di
-            // banco, `FeatureByPositionReverse(0)` dava lo sviluppo. Si prende lo
-            // schizzo che prima non c'era.
-            IFeature schizzo = null;
-            try
-            {
-                var f = modello.FirstFeature() as IFeature;
-                while (f != null)
-                {
-                    if (f.GetTypeName2() == "ProfileFeature" && !schizziPrima.Contains(f.Name)) schizzo = f;
-                    f = f.GetNextFeature() as IFeature;
-                }
-            }
-            catch { }
+            IFeature schizzo;
+            try { schizzo = modello.InsertSketchForEdgeFlange(spigolo, Math.PI / 2, false) as IFeature; }
+            catch (Exception ex) { return Fallito("The sketch of the edge flange was not created: " + ex.Message + SenzaLoSchizzo(modello)); }
             if (schizzo == null)
-                return Fallito("Non ritrovo lo schizzo del profilo appena fatto." + SenzaLoSchizzo(modello));
+                return Fallito("The sketch of the edge flange was not created (InsertSketchForEdgeFlange returned null)." + SenzaLoSchizzo(modello));
+
+            ISketch sk = null;
+            string profileProblem = null;
+            try
+            {
+                schizzo.Select2(false, 0);
+                modello.EditSketch();
+                sk = modello.SketchManager.ActiveSketch as ISketch;
+                profileProblem = FlangeProfile(modello, sk, spigolo, h, n);
+            }
+            catch (Exception ex) { profileProblem = "the profile of the edge flange was not drawn: " + ex.Message; }
+            finally
+            {
+                // The sketch is closed on every path: a sketch left in edit mode
+                // would take the next operation's geometry.
+                try { if (modello.SketchManager.ActiveSketch != null) modello.SketchManager.InsertSketch(true); } catch { }
+            }
+            if (profileProblem != null)
+                return Fallito("The edge flange was not made: " + profileProblem + "." + SenzaLoSchizzo(modello));
 
             modello.ClearSelection2(true);
             IFeature flangia;
             try
             {
-                int opzioni = (int)(swInsertEdgeFlangeOptions_e.swInsertEdgeFlangeUseDefaultRadius |
-                                    swInsertEdgeFlangeOptions_e.swInsertEdgeFlangeUseDefaultRelief);
-                flangia = modello.FeatureManager.InsertSheetMetalEdgeFlange2(
-                    new Edge[] { (Edge)spigolo }, new Feature[] { (Feature)schizzo }, opzioni,
-                    Math.PI / 2, Unita.M(r), (int)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside,
-                    Unita.M(lunghezza), (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
-                    (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
+                var creation = ApiHelpers.CreateFeatureFromDefinition<IEdgeFlangeFeatureData>(
+                    modello.FeatureManager, (int)swFeatureNameID_e.swFmEdgeFlange, flangeData =>
+                    {
+                        int code = flangeData.AddEdges(new Edge[] { (Edge)spigolo }, new Sketch[] { (Sketch)sk });
+                        if (code != (int)swEdgeFlangeError_e.swEdgeFlangeError_NoError) return false;
+                        flangeData.UseDefaultBendRadius = true;
+                        flangeData.BendAngle = Math.PI / 2;
+                        flangeData.OffsetType = (int)swFlangeOffsetTypes_e.swFlangeOffsetBlind;
+                        flangeData.OffsetDistance = Unita.M(lunghezza);
+                        flangeData.OffsetDimType = (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp;
+                        flangeData.PositionType = (int)swFlangePositionTypes_e.swFlangePositionTypeMaterialInside;
+                        flangeData.UseDefaultBendRelief = true;
+                        flangeData.UseDefaultBendAllowance = true;
+                        return true;
+                    });
+                flangia = creation.Feature;
+                if (flangia == null)
+                    return Fallito("The edge flange was not made: " +
+                                   (creation.Stage == ApiHelpers.CreationStage.Fill ? "AddEdges refused the edge and its sketch"
+                                    : creation.Stage == ApiHelpers.CreationStage.Creation ? "CreateFeature returned null, and SOLIDWORKS does not say why"
+                                    : "CreateDefinition(swFmEdgeFlange) returned nothing") +
+                                   "." + SenzaLoSchizzo(modello));
             }
             catch (Exception ex) { return Fallito("La flangia a spigolo non e' nata: " + ex.Message + SenzaLoSchizzo(modello)); }
-            if (flangia == null)
-                return Fallito("La flangia a spigolo non e' nata, e SOLIDWORKS non dice perche'." + SenzaLoSchizzo(modello));
+            finally { try { modello.ClearSelection2(true); } catch { } }
             modello.EditRebuild3();
 
             var flangeError = ApiHelpers.RebuildError(flangia);   // S11: GetErrorCode2, warnings excluded
@@ -360,6 +364,62 @@ namespace Riscontro.Disegno
                 misure["attenzione_lunghezza"] = string.Format(CultureInfo.InvariantCulture,
                     "Ho chiesto {0:0.###} mm allo spigolo esterno e la flangia dice {1:0.###}.", lunghezza, letta);
             return Riuscito(flangia, misure);
+        }
+
+        /// <summary>
+        /// The profile of an edge flange, drawn in the sketch that
+        /// InsertSketchForEdgeFlange made (open for editing): the edge converted
+        /// into the sketch, then three lines <paramref name="heightM"/> up in the
+        /// sketch's +Y, as Create_Edge_Flange_Example_CSharp.htm does and as the
+        /// case E1 of the Z-C21.3 probe probe_edge_flange_definition measured.
+        /// Null when drawn, otherwise what went wrong.
+        ///
+        /// THE SIDE IS CHECKED BEFORE DRAWING. The catalogue promises that the
+        /// flange rises on the side the broad face looks toward, which the
+        /// obsolete call got by construction (the rectangle was drawn along that
+        /// normal). Here the side is the sketch's +Y, which SOLIDWORKS chooses:
+        /// on the bench edge the probe found it along the broad face's normal
+        /// ((0, 1, 0), corners (50, 23, 40) and (50, 23, 0)). A flange on the
+        /// other side adds the same volume (probe E5, FlipDir true: +1736.995
+        /// mm3), so no later check would see it: a profile that would go the
+        /// other way is refused instead of built.
+        /// </summary>
+        private string FlangeProfile(IModelDoc2 modello, ISketch sk, IEdge edge, double heightM, double[] normal)
+        {
+            if (sk == null) return "the sketch made by InsertSketchForEdgeFlange did not open for editing";
+            if (!((IEntity)edge).Select4(false, null)) return "the edge could not be selected inside the flange sketch";
+            if (!modello.SketchManager.SketchUseEdge3(false, false)) return "SketchUseEdge3 did not convert the edge into the flange sketch";
+            ISketchLine line = null;
+            foreach (var o in (sk.GetSketchSegments() as object[]) ?? new object[0]) { line = o as ISketchLine; if (line != null) break; }
+            var start = line?.GetStartPoint2() as ISketchPoint;
+            var end = line?.GetEndPoint2() as ISketchPoint;
+            if (start == null || end == null) return "the converted edge is not in the flange sketch";
+
+            var math = _sw.GetMathUtility() as IMathUtility;
+            var toModel = sk.ModelToSketchTransform?.Inverse() as MathTransform;
+            if (math == null || toModel == null) return "the flange sketch cannot be read back in model coordinates";
+            Func<double, double, double[]> inModel = (x, y) =>
+                ((IMathPoint)((IMathPoint)math.CreatePoint(new[] { x, y, 0.0 })).MultiplyTransform(toModel)).ArrayData as double[];
+            var foot = inModel(start.X, start.Y);
+            var top = inModel(start.X, start.Y + heightM);
+            if (foot == null || top == null || normal == null) return "the flange sketch cannot be read back in model coordinates";
+            double along = (top[0] - foot[0]) * normal[0] + (top[1] - foot[1]) * normal[1] + (top[2] - foot[2]) * normal[2];
+            if (along < 0.5 * heightM)
+                return string.Format(CultureInfo.InvariantCulture,
+                    "the sketch SOLIDWORKS made for the flange points {0:0.###} mm along the outward normal of the broad " +
+                    "face instead of {1:0.###}: the flange would not rise on the side the broad face looks toward",
+                    Unita.Mm(along), Unita.Mm(heightM));
+
+            bool addToDbBefore = modello.SketchManager.AddToDB;
+            try
+            {
+                modello.SketchManager.AddToDB = true;
+                modello.SketchManager.CreateLine(start.X, start.Y, 0, start.X, start.Y + heightM, 0);
+                modello.SketchManager.CreateLine(start.X, start.Y + heightM, 0, end.X, end.Y + heightM, 0);
+                modello.SketchManager.CreateLine(end.X, end.Y + heightM, 0, end.X, end.Y, 0);
+            }
+            finally { modello.SketchManager.AddToDB = addToDbBefore; }
+            return null;
         }
 
         /// <summary>Uno spigolo di bordo di una lamiera, con le sue due facce.</summary>

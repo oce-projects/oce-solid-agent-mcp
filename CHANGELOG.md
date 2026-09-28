@@ -54,6 +54,24 @@ has been run yet.
   `piano/piano_frontale_meno_250`, `lavorazioni/il_loft_non_e_un_cono`,
   `lavorazioni/nervatura_nell_angolo_della_l`,
   `lavorazioni/lim_nervatura_fuori_dal_suo_piano`.
+- **L10-1, the edge flange: `InsertSheetMetalEdgeFlange2` -> `InsertSketchForEdgeFlange`
+  + `CreateDefinition(swFmEdgeFlange)`.** `flangia_spigolo` follows the guide's
+  recipe (case E1 of `probe_edge_flange_definition`): the sketch SOLIDWORKS makes for
+  the edge, the edge converted into it (`SketchUseEdge3`), three lines L - T up in
+  its +Y, then `AddEdges`, OffsetDistance L at the outer virtual sharp, material
+  inside, default radius, relief and allowance, `CreateFeature` through
+  `ApiHelpers.CreateFeatureFromDefinition`. Probe on the L of the bench (T 2, R 2,
+  depth 40, L 25): E1 born without error, OffsetDistance 25, +1736.995 mm3, flat
+  80.712 -> 102.425, the same as the obsolete call (E0); OffsetDistance now governs
+  the length (E3, 35: +2536.997 mm3), the profile height does not matter (E2), a
+  pre-selected edge changes nothing (E4). New: before drawing, the far side of the
+  profile is read back in model coordinates and must go along the broad face's
+  outward normal, the side the catalogue promises; a flipped flange adds the same
+  volume (E5) and no later check would see it, so the other side is refused. New
+  refusals are in English. Frozen key removed: 1. No answer changes. Cases that must
+  stay identical: `lamiera/la_flangia_a_spigolo_chiude_il_lato` (+1736.99 mm3,
+  length 25, flat 102.424), `lamiera/lim_flangia_spigolo_non_di_bordo` and
+  `lamiera/lim_flangia_spigolo_senza_dritto` (refused before the recipe).
 
 ---
 

@@ -234,7 +234,8 @@ namespace Riscontro.Disegno
         ///
         /// The migrations of Z-C21.7 (FeatureFillet3, LinearPattern5,
         /// CircularPattern5, Swept4, EdgeFlange2) go through here, one per
-        /// commit. Today the only user is the mirror of components.
+        /// commit. Users: the mirror of components and, since Z-C21.7 (L10-1),
+        /// the edge flange (no selection: the edge goes in through AddEdges).
         /// </summary>
         internal static FeatureCreation CreateFeatureFromDefinition<TData>(
             IFeatureManager manager, int featureNameId, Func<TData, bool> fill,
