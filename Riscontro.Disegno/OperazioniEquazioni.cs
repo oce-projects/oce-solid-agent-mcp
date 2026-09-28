@@ -102,8 +102,18 @@ namespace Riscontro.Disegno
 
             var em = modello.GetEquationMgr() as IEquationMgr;
             if (em == null) return Fallito("Non leggo le equazioni di questo pezzo (GetEquationMgr non risponde).");
-            double? volumePrima = VolumeMm3(modello);
-            bool nuova = EquazioneDi(em, nome) < 0;
+            // LE GUARDIE DI modifica_quota (revisione avversariale del 27/9/2026):
+            // una variabile che guida delle quote cambia la geometria come una
+            // quota, e una quota legata modifica_quota non la cambia piu'.
+            var foto = FotografaIlPezzo(modello);
+            if (foto.Corpi < 0)
+                return Fallito("Non riesco a contare i corpi del pezzo prima di cambiare la variabile: senza, non " +
+                               "saprei dirti se la modifica lo spezza. Non ho toccato niente.");
+            double? volumePrima = foto.Volume;
+            int esistente = EquazioneDi(em, nome);
+            bool nuova = esistente < 0;
+            string vecchia = null;
+            if (!nuova) { try { vecchia = em.get_Equation(esistente); } catch { } }
             int i = ScriviEquazione(em, nome, destra);
             if (i < 0)
                 return Fallito(
@@ -111,27 +121,42 @@ namespace Riscontro.Disegno
                     "SOLIDWORKS in italiano «spessore» lo e' (misurato) — scegline un altro, per esempio «parete»; " +
                     "se e' un'espressione, controlla che i nomi fra virgolette esistano.");
             try { em.EvaluateAll(); } catch { }
-            try { modello.ForceRebuild3(false); } catch { }
+            bool ricostruito = false;
+            try { ricostruito = modello.ForceRebuild3(false); } catch { }
             i = EquazioneDi(em, nome);
             double letto = double.NaN;
             try { if (i >= 0) letto = em.get_Value(i); } catch { }
+            string cosa = nuova ? "le equazioni senza «" + nome + "»" : "«" + vecchia + "»";
             if (i < 0 || double.IsNaN(letto))
-                return Fallito("La variabile «" + nome + "» non si rilegge dopo averla scritta: non so che valore ha.");
-            if (numero && Math.Abs(letto - valore) > 1e-6)
+                return Fallito("La variabile «" + nome + "» non si rilegge dopo averla scritta: non so che valore ha." +
+                               ETornatoComEra(modello, foto, RimettiLEquazione(modello, em, nome, vecchia, null), cosa));
+            // IL VALORE E' NELLE UNITA' DEL DOCUMENTO: in millimetri si confronta.
+            double fattore = MmPerUnitaDelDocumento(modello);
+            double lettoMm = double.IsNaN(fattore) ? double.NaN : letto * fattore;
+            if (numero && !double.IsNaN(lettoMm) && Math.Abs(lettoMm - valore) > 1e-6)
                 return Fallito("Ho scritto «" + nome + "» = " + valore.ToString("0.###", Inv) + " mm e rileggendola vale " +
-                               letto.ToString("0.###", Inv) + ": non e' la variabile che volevi.");
+                               lettoMm.ToString("0.###", Inv) + " mm: non e' la variabile che volevi." +
+                               ETornatoComEra(modello, foto, RimettiLEquazione(modello, em, nome, vecchia, null), cosa));
+            string rotto = CosaSiERotto(modello, foto, ricostruito, true);
+            if (rotto != null)
+                return Fallito("Con «" + nome + "» = " + destra + " " + rotto + "." +
+                               ETornatoComEra(modello, foto, RimettiLEquazione(modello, em, nome, vecchia, null), cosa) +
+                               " Se vuoi proprio quel valore, sistema prima la lavorazione che non ci sta, poi cambia la variabile.");
             double? volumeDopo = VolumeMm3(modello);
             var misure = new Dictionary<string, object>
             {
                 ["nome"] = nome,
                 ["equazione"] = em.get_Equation(i),
-                ["valore_mm"] = Math.Round(letto, 6),
+                ["valore_mm"] = double.IsNaN(lettoMm) ? null : (object)Math.Round(lettoMm, 6),
                 ["nuova"] = nuova,
                 ["quote_guidate"] = QuoteGuidateDa(em, nome),
                 ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
                 ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["unita"] = "millimetri (il valore di una variabile di lunghezza, nelle unita' del documento)",
+                ["unita"] = "millimetri (il valore di una variabile di lunghezza, riletto nelle unita' del documento e portato in mm)",
             };
+            if (double.IsNaN(lettoMm))
+                misure["attenzione"] = "Non so in che unita' e' il documento: la variabile vale " + letto.ToString("0.######", Inv) +
+                                       " nelle sue unita', e non l'ho confrontata col valore chiesto.";
             return RiuscitoSenzaCreare(misure);
         }
 
@@ -159,36 +184,106 @@ namespace Riscontro.Disegno
             string nomeEq = pezzi[0] + "@" + pezzi[1];
             var em = modello.GetEquationMgr() as IEquationMgr;
             if (em == null) return Fallito("Non leggo le equazioni di questo pezzo (GetEquationMgr non risponde).");
-            double prima = Unita.Mm(quota.SystemValue);
-            double? volumePrima = VolumeMm3(modello);
+            // UNA QUOTA ANGOLARE si legge in gradi, una lineare in mm: SystemValue e'
+            // in radianti o in metri, e il confronto con l'equazione (nelle unita'
+            // del documento) si fa con GetValue3, che e' nelle stesse unita'.
+            int tipoQuota = -1;
+            try { tipoQuota = quota.GetType(); } catch { }
+            bool angolare = tipoQuota == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular;
+            double primaSistema = quota.SystemValue;
+            var foto = FotografaIlPezzo(modello);
+            if (foto.Corpi < 0)
+                return Fallito("Non riesco a contare i corpi del pezzo prima di legare la quota: senza, non saprei " +
+                               "dirti se il legame lo spezza. Non ho toccato niente.");
+            double? volumePrima = foto.Volume;
+            int esistente = EquazioneDi(em, nomeEq);
+            string vecchia = null;
+            if (esistente >= 0) { try { vecchia = em.get_Equation(esistente); } catch { } }
             int i = ScriviEquazione(em, nomeEq, espressione);
             if (i < 0)
                 return Fallito("SOLIDWORKS non accetta «\"" + nomeEq + "\" = " + espressione + "». Controlla che le " +
-                               "variabili fra virgolette esistano (le crei con «variabile_globale») e che la quota " +
-                               "non sia gia' guidata da un'altra equazione.");
+                               "variabili fra virgolette esistano (le crei con «variabile_globale»).");
             try { em.EvaluateAll(); } catch { }
-            try { modello.ForceRebuild3(false); } catch { }
+            bool ricostruito = false;
+            try { ricostruito = modello.ForceRebuild3(false); } catch { }
             i = EquazioneDi(em, nomeEq);
             double atteso = double.NaN;
             try { if (i >= 0) atteso = em.get_Value(i); } catch { }
-            double dopo = Unita.Mm(quota.SystemValue);
-            if (double.IsNaN(atteso) || Math.Abs(dopo - atteso) > 0.001)
-                return Fallito("Ho legato «" + nomeEq + "» a «" + espressione + "», ma la quota dice " + dopo.ToString("0.###", Inv) +
-                               " mm e l'equazione " + (double.IsNaN(atteso) ? "non si rilegge" : atteso.ToString("0.###", Inv)) +
-                               ": il legame non ha preso.");
+            double dopoDoc = double.NaN;
+            try { dopoDoc = ((double[])quota.GetValue3((int)swInConfigurationOpts_e.swThisConfiguration, null))[0]; } catch { }
+            // Rimettere: l'equazione di prima, o nessuna — e allora anche il valore di
+            // prima, perche' una quota slegata tiene l'ultimo valore che l'equazione le ha dato.
+            Func<bool> rimetti = () => RimettiLEquazione(modello, em, nomeEq, vecchia,
+                vecchia != null ? null : new Action(() => quota.SetSystemValue3(primaSistema, 2, null)));
+            string cosa = vecchia != null ? "«" + vecchia + "»" : "la quota slegata, col suo valore di prima";
+            if (double.IsNaN(atteso) || double.IsNaN(dopoDoc) || Math.Abs(dopoDoc - atteso) > 0.001)
+                return Fallito("Ho legato «" + nomeEq + "» a «" + espressione + "», ma la quota dice " +
+                               (double.IsNaN(dopoDoc) ? "?" : dopoDoc.ToString("0.###", Inv)) + " e l'equazione " +
+                               (double.IsNaN(atteso) ? "non si rilegge" : atteso.ToString("0.###", Inv)) +
+                               " (nelle unita' del documento): il legame non ha preso." +
+                               ETornatoComEra(modello, foto, rimetti(), cosa));
+            string rotto = CosaSiERotto(modello, foto, ricostruito, true);
+            if (rotto != null)
+                return Fallito("Legando «" + nomeEq + "» a «" + espressione + "» " + rotto + "." +
+                               ETornatoComEra(modello, foto, rimetti(), cosa));
             double? volumeDopo = VolumeMm3(modello);
+            double dopoSistema = quota.SystemValue;
             var misure = new Dictionary<string, object>
             {
                 ["quota"] = nomeEq,
                 ["equazione"] = em.get_Equation(i),
-                ["valore_prima_mm"] = Math.Round(prima, 4),
-                ["valore_dopo_mm"] = Math.Round(dopo, 4),
                 ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
                 ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
                 ["giudizio"] = "La quota «" + nomeEq + "» adesso la guida «" + espressione + "»: cambiando la variabile " +
                                "cambia lei. Con «modifica_quota» non si cambia piu' (e' guidata).",
             };
+            if (angolare)
+            {
+                misure["valore_prima_gradi"] = Math.Round(primaSistema * 180.0 / Math.PI, 4);
+                misure["valore_dopo_gradi"] = Math.Round(dopoSistema * 180.0 / Math.PI, 4);
+            }
+            else
+            {
+                misure["valore_prima_mm"] = Math.Round(Unita.Mm(primaSistema), 4);
+                misure["valore_dopo_mm"] = Math.Round(Unita.Mm(dopoSistema), 4);
+            }
+            // UN LEGAME CHE NE SOSTITUISCE UN ALTRO SI DICE (revisione del 27/9/2026):
+            // prima si riscriveva in silenzio.
+            if (vecchia != null) misure["legame_sostituito"] = vecchia;
             return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// Rimette le equazioni com'erano: la vecchia riscritta, o la nuova tolta
+        /// (con «dopo», per rimettere il valore di una quota slegata); poi ricalcola
+        /// e ricostruisce. Vero se RILEGGENDO le equazioni sono quelle di prima —
+        /// il numero che Delete risponde non si crede.
+        /// </summary>
+        private static bool RimettiLEquazione(IModelDoc2 modello, IEquationMgr em, string nome, string vecchia, Action dopo)
+        {
+            bool fatto = false;
+            try
+            {
+                int i = EquazioneDi(em, nome);
+                if (vecchia != null)
+                {
+                    if (i >= 0)
+                    {
+                        em.set_Equation(i, vecchia);
+                        fatto = string.Equals(em.get_Equation(i), vecchia, StringComparison.Ordinal);
+                    }
+                }
+                else
+                {
+                    if (i >= 0) em.Delete(i);
+                    fatto = EquazioneDi(em, nome) < 0;
+                }
+                try { em.EvaluateAll(); } catch { }
+                if (dopo != null) dopo();
+                modello.ForceRebuild3(false);
+            }
+            catch { }
+            return fatto;
         }
 
         /// <summary>Le equazioni che usano «nome» a destra, con la quota che guidano e il suo valore.</summary>
@@ -216,14 +311,21 @@ namespace Riscontro.Disegno
             return fuori.ToArray();
         }
 
-        /// <summary>Per lo stato: le equazioni del documento (le prime venti), o null se non ce ne sono.</summary>
-        internal static object[] EquazioniDelDocumento(IModelDoc2 modello)
+        /// <summary>
+        /// Per lo stato: le equazioni del documento (le prime venti), o null se non ce
+        /// ne sono; in «totale» quante sono davvero, perche' chi legge sappia che
+        /// l'elenco e' tagliato (revisione del 27/9/2026: le ultime quote guidate
+        /// sparivano senza dirlo). Il «valore» e' nelle unita' del documento.
+        /// </summary>
+        internal static object[] EquazioniDelDocumento(IModelDoc2 modello, out int totale)
         {
+            totale = 0;
             try
             {
                 var em = modello.GetEquationMgr() as IEquationMgr;
                 if (em == null) return null;
                 int n = em.GetCount();
+                totale = n;
                 if (n <= 0) return null;
                 var fuori = new List<object>();
                 for (int i = 0; i < n && i < 20; i++)

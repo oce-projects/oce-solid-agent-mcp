@@ -400,6 +400,16 @@ namespace Riscontro.Disegno
                     "e' il conto dei solidi nel file contro quelli dei pezzi: toglilo e richiedimelo.");
 
             bool iges = operazione == "esporta_iges";
+            // L'IGES DELL'ASSIEME NO (revisione avversariale del 27/9/2026): non ha la
+            // verifica dei solidi che ha lo STEP, e dipende da una preferenza globale
+            // (swIGESComponentsIntoOneFile) che non si imposta — con quella spenta
+            // SOLIDWORKS scrive un file per componente, e quello in «percorso» puo'
+            // non contenere l'assieme intero. Finche' non e' misurato, si rifiuta.
+            if (iges && assieme != null)
+                return Fallito(
+                    "L'IGES di un assieme non lo scrivo: non so verificare che dentro ci sia l'assieme intero (con " +
+                    "certe impostazioni SOLIDWORKS scrive un file per componente). Per mandare l'assieme usa " +
+                    "«esporta_step», che lo porta intero e lo controllo; per un pezzo solo, aprilo e chiedimi l'IGES li'.");
             string[] estensioniBuone = iges
                 ? new[] { ".iges", ".igs" }
                 : new[] { ".step", ".stp" };

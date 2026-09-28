@@ -24,6 +24,70 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.111.0 — 27 September 2026 · library 0.136.0
+
+**The adversarial review of the day's work (entry Z-C20).** Three reviewers and
+one adversarial verifier per finding went over everything closed on 27
+September; seven findings were confirmed real, and eight more were sensible.
+All of them are fixed here, each with a bench case where the bench can build
+the situation.
+
+- **The guards of `modifica_quota` in one place** (`OperazioniGuardie.cs`):
+  rebuild result, features in error, body count, openings that break out of the
+  material, a chamfer or fillet that no longer fits. `variabile_globale`,
+  `lega_quota` and `cambia_estrusione` had one or none — a variable driving the
+  thickness, set to 1 under a 2 mm chamfer, rebuilt clean, changed the shape
+  and answered "done". Now they refuse and put things back (the old equation
+  rewritten, a new one deleted, an unbound dimension restored), and say
+  whether the volume came back.
+- **`cambia_estrusione` keeps a mid-plane extrusion mid-plane.** A symmetric
+  plate 100 deep asked for 120 became blind from 0 to 120 — it moved by 60
+  instead of growing by 10 per side. "Through" on a mid-plane cut goes through
+  both ways; end conditions with a reference (up to a surface, a vertex, a
+  body) are refused, because the reference could not be restored.
+- **Drawing dimensions: "already dimensioned" is read before the call, and per
+  CYLINDER.** Two Ø8 holes, one through and one blind, are two groups — the
+  second one used to be skipped as already dimensioned, with no callout and no
+  depth. Two Ø30 journals, or a Ø30 step and a Ø30 cross hole, are different
+  cylinders and no longer cancel each other. A hole-position dimension no
+  longer marks the reference edge's length as dimensioned.
+- **Turned parts seen from the side count only planar faces.** On a Ø30 x 40
+  shaft chamfered 1 x 45° the chamfer circles made the lengths 1, 39 and 40;
+  now only 40, and the chamfer is reported (`tondo_note`). Seen end-on, a
+  chamfer edge is not an outer diameter (`bordi_non_quotati`).
+- **The STEP of an assembly counts one shape per part, not per instance.**
+  Measured: an assembly with the same base twice and a lid once writes 2
+  solids — the shape of a part is written once and the instances are
+  occurrences. The expected count was per instance (3) and refused a correct
+  STEP on every assembly with repeated screws or feet. Now per unique part
+  (file plus configuration); a solid with voids (`BREP_WITH_VOIDS`) counts too.
+- **A boss is not a hole.** The foot of a boss is also an inner loop of a
+  planar face; the wall that starts from it goes outward, so it gets a
+  diameter dimension, not a hole callout.
+- **Smaller ones:** `lega_quota` compares in document units (angles in degrees)
+  and reports a replaced binding; `variabile_globale` reads back in mm from the
+  document units; the state reports `equazioni_totali` beyond twenty; IGES of an
+  assembly is refused (not verifiable, depends on a global preference); a
+  rejected `specchia_componente` removes the mirror; `dipendenze` without an
+  answer says "unknown" for missing files too; the assembly mass skips the
+  per-part cross-check for a component using another configuration, and asks
+  that configuration for the material.
+- **The last live \`EditDelete\`.** Removing a hole table born wrong called
+  \`modello.EditDelete()\`, which asks for confirmation in a dialog — inside
+  SOLIDWORKS the COM call never returns. Found by the workflow that designed
+  Section U; replaced with \`DeleteSelection2\`, and the ban is now a rule of
+  \`Prove/ProveLeFirmeVietate.cs\` (it was only written in comments).
+- **The tested version is declared (entry H17).** The README says "tested only
+  on SOLIDWORKS 2021 SP5.1"; the installer accepts any version and warns when
+  it is not the tested one (older ones can be tried, newer ones are untested).
+
+New cases: `tavola/due_fori_uguali_uno_passante_uno_cieco`,
+`tavola/la_borchia_non_e_un_foro`, `tavola/l_albero_smussato_non_quota_le_gambe`,
+`lavorazioni/la_piastra_simmetrica_cresce_dalle_due_parti`,
+`quote/la_variabile_non_scavalca_lo_smusso`, `assiemi/due_basi_uguali_uno_step`,
+`esporta/lim_iges_di_un_assieme`.
+`esporta_iges` now declares `parte` only. Ninety-five operations.
+
 ## 0.110.0 — 27 September 2026 · library 0.135.0
 
 **Which files an assembly stands on, and which are missing (entry Z-B3).**

@@ -53,7 +53,10 @@ namespace Riscontro.Disegno
             {
                 dati.AccessSelections(modello, null);
                 dati.SetEndCondition(true, fine);
-                if (fine == (int)swEndConditions_e.swEndCondBlind) dati.SetDepth(true, profonditaM);
+                // ANCHE IL PIANO MEDIO HA LA SUA PROFONDITA' (revisione del 27/9/2026):
+                // senza, il ripristino rimetteva la condizione e lasciava la misura nuova.
+                if (fine == (int)swEndConditions_e.swEndCondBlind || fine == (int)swEndConditions_e.swEndCondMidPlane)
+                    dati.SetDepth(true, profonditaM);
                 fatto = f.ModifyDefinition(dati, modello, null);
             }
             catch { fatto = false; }
@@ -100,28 +103,56 @@ namespace Riscontro.Disegno
             if (prima == null) return Fallito("Non leggo la definizione di «" + f.Name + "».");
             int finePrima = prima.GetEndCondition(true);
             double profPrima = prima.GetDepth(true);
-            double? volumePrima = VolumeMm3(modello);
-            int erroriPrima = LavorazioniInErrore(modello);
-            int fineChiesta = chiedePassante ? (int)swEndConditions_e.swEndCondThroughAll : (int)swEndConditions_e.swEndCondBlind;
+            // LA CONDIZIONE CHE SI CHIEDE DIPENDE DA QUELLA CHE C'E' (revisione
+            // avversariale del 27/9/2026). Una piastra simmetrica da 100 (da -50 a
+            // +50) portata a 120 diventava cieca da 0 a +120: non cresceva di 10 per
+            // parte, si spostava di 60, e i fori sulle facce la seguivano in posti
+            // diversi — e la risposta diceva «riuscito». Il piano medio resta piano
+            // medio; «passante» su un piano medio attraversa nei due versi.
+            // Le condizioni con un RIFERIMENTO (fino a una superficie, a un vertice,
+            // a un corpo) non si toccano: cambiarle perde il riferimento, e se
+            // qualcosa si rompe non saprei rimetterlo.
+            bool conRiferimento = finePrima == (int)swEndConditions_e.swEndCondUpToSurface ||
+                                  finePrima == (int)swEndConditions_e.swEndCondOffsetFromSurface ||
+                                  finePrima == (int)swEndConditions_e.swEndCondUpToVertex ||
+                                  finePrima == (int)swEndConditions_e.swEndCondUpToBody ||
+                                  finePrima == (int)swEndConditions_e.swEndCondUpToSelection ||
+                                  finePrima == (int)swEndConditions_e.swEndCondUpToNext;
+            if (conRiferimento)
+                return Fallito("«" + f.Name + "» finisce «" + NomeDellaFine(finePrima) + "»: cambiarla perderebbe il " +
+                               "riferimento, e se qualcosa si rompesse non saprei rimetterlo. Cambiala a mano, oppure " +
+                               "dimmi una quota da cambiare con «modifica_quota».");
+            bool simmetrica = finePrima == (int)swEndConditions_e.swEndCondMidPlane ||
+                              finePrima == (int)swEndConditions_e.swEndCondThroughAllBoth;
+            int fineChiesta = chiedePassante
+                ? (simmetrica ? (int)swEndConditions_e.swEndCondThroughAllBoth : (int)swEndConditions_e.swEndCondThroughAll)
+                : (simmetrica ? (int)swEndConditions_e.swEndCondMidPlane : (int)swEndConditions_e.swEndCondBlind);
+            // LE GUARDIE DI modifica_quota: corpi, aperture, smussi, errori.
+            var foto = FotografaIlPezzo(modello);
+            double? volumePrima = foto.Volume;
             if (!ScriviEstrusione(modello, f, fineChiesta, chiedeProfondita ? Unita.M(profondita) : profPrima))
                 return Fallito("SOLIDWORKS non accetta la definizione nuova di «" + f.Name + "» (ModifyDefinition ha risposto " +
                                "false). Non ho toccato niente.");
-            try { modello.ForceRebuild3(false); } catch { }
+            bool ricostruito = false;
+            try { ricostruito = modello.ForceRebuild3(false); } catch { }
             int erroriDopo = LavorazioniInErrore(modello);
-            if (erroriPrima >= 0 && erroriDopo > erroriPrima)
+            // Senza le aperture: cambia solo la profondita', e un passante che torna
+            // cieco le fa calare a ragione (vedi CosaSiERotto).
+            string rotto = CosaSiERotto(modello, foto, ricostruito, false);
+            if (rotto != null)
             {
                 bool rimessa = ScriviEstrusione(modello, f, finePrima, profPrima);
                 try { modello.ForceRebuild3(false); } catch { }
-                return Fallito("Con la definizione nuova «" + f.Name + "» rompe " + (erroriDopo - erroriPrima) + " lavorazioni " +
-                               "(" + erroriDopo + " in errore invece di " + erroriPrima + "). " +
-                               (rimessa ? "L'ho rimessa com'era." : "Non sono riuscito a rimetterla: " + Frasi.CosiSiRitira + "."));
+                return Fallito("Con la definizione nuova di «" + f.Name + "» " + rotto + "." +
+                               ETornatoComEra(modello, foto, rimessa, "la definizione di prima (" + NomeDellaFine(finePrima) + ")"));
             }
             var dopo = f.GetDefinition() as IExtrudeFeatureData2;
             int fineDopo = dopo == null ? -1 : dopo.GetEndCondition(true);
             double profDopo = dopo == null ? double.NaN : dopo.GetDepth(true);
+            bool conProfondita = fineDopo == (int)swEndConditions_e.swEndCondBlind || fineDopo == (int)swEndConditions_e.swEndCondMidPlane;
             if (fineDopo != fineChiesta || (chiedeProfondita && Math.Abs(Unita.Mm(profDopo) - profondita) > 0.001))
                 return Fallito("SOLIDWORKS dice di aver cambiato «" + f.Name + "», ma rileggendola e' " + NomeDellaFine(fineDopo) +
-                               (fineDopo == (int)swEndConditions_e.swEndCondBlind ? " profonda " + Unita.Mm(profDopo).ToString("0.###") + " mm" : "") +
+                               (conProfondita ? " profonda " + Unita.Mm(profDopo).ToString("0.###") + " mm" : "") +
                                ": non e' quello che hai chiesto.");
             double? volumeDopo = VolumeMm3(modello);
             var misure = new Dictionary<string, object>
@@ -129,9 +160,10 @@ namespace Riscontro.Disegno
                 ["lavorazione"] = f.Name,
                 ["tipo"] = taglio ? "taglio" : "estrusione",
                 ["fine_prima"] = NomeDellaFine(finePrima),
-                ["profondita_prima_mm"] = finePrima == (int)swEndConditions_e.swEndCondBlind ? (object)Math.Round(Unita.Mm(profPrima), 4) : null,
+                ["profondita_prima_mm"] = finePrima == (int)swEndConditions_e.swEndCondBlind || finePrima == (int)swEndConditions_e.swEndCondMidPlane
+                    ? (object)Math.Round(Unita.Mm(profPrima), 4) : null,
                 ["fine_dopo"] = NomeDellaFine(fineDopo),
-                ["profondita_dopo_mm"] = fineDopo == (int)swEndConditions_e.swEndCondBlind ? (object)Math.Round(Unita.Mm(profDopo), 4) : null,
+                ["profondita_dopo_mm"] = conProfondita ? (object)Math.Round(Unita.Mm(profDopo), 4) : null,
                 ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
                 ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
                 ["lavorazioni_in_errore"] = erroriDopo >= 0 ? (object)erroriDopo : null,

@@ -3789,7 +3789,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "esporta_iges",
                     Famiglia = "esportazioni",
-                    DocumentoRichiesto = "parte/assieme",
+                    DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
                         "Scrive l'IGES, per i CAD e le macchine che lo STEP non lo leggono.",

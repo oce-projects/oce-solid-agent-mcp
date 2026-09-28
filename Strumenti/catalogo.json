@@ -3241,7 +3241,7 @@
     "required": []
    },
    "precondizione": "corpo_solido",
-   "documento": "parte/assieme",
+   "documento": "parte",
    "esempio": null
   },
   {

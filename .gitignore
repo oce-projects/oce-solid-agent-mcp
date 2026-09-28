@@ -96,3 +96,6 @@ note-interne/
 # collauda. Oggi non ne e' tracciato nessuno; costa una riga tenerli fuori
 # prima che uno nasca durante una prova e finisca in un commit.
 *.bak
+
+# Le worktree degli agenti (workflow): copie di lavoro separate, mai versionate.
+.claude/

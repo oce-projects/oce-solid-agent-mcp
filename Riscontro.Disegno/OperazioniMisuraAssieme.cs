@@ -86,12 +86,32 @@ namespace Riscontro.Disegno
                     (nonLetti.Count > 0 ? "; di " + string.Join(", ", nonLetti) + " non leggo il documento (alleggeriti? risolvili)" : "") + ".");
 
             var senzaMateriale = new List<string>();
+            var altraConfigurazione = new List<string>();
             double somma = 0;
             bool sommaLetta = true;
             foreach (var c in pezzi)
             {
                 var doc = c.GetModelDoc2() as IModelDoc2;
-                if (string.IsNullOrEmpty(MaterialeDelPezzo(doc))) senzaMateriale.Add(c.Name2);
+                // LA CONFIGURAZIONE DEL COMPONENTE, NON QUELLA ATTIVA DEL PEZZO
+                // (revisione avversariale del 27/9/2026). Una vite Toolbox — un file,
+                // una configurazione per misura — usata M10x40 in un assieme e salvata
+                // attiva su M6x16: il pezzo pesato da solo e' l'altro, la somma non
+                // torna, e l'operazione si fermava con una causa falsa. Quel pezzo
+                // resta fuori dalla somma di controllo (la massa dell'assieme e'
+                // giusta: SOLIDWORKS pesa la configurazione che il componente usa), e
+                // il materiale si chiede alla configurazione usata.
+                string usata = null, attiva = null;
+                try { usata = c.ReferencedConfiguration; } catch { }
+                try { attiva = (doc.GetActiveConfiguration() as IConfiguration)?.Name; } catch { }
+                bool altra = !string.IsNullOrEmpty(usata) && !string.IsNullOrEmpty(attiva) &&
+                             !string.Equals(usata, attiva, StringComparison.OrdinalIgnoreCase);
+                if (string.IsNullOrEmpty(MaterialeDelPezzo(doc, altra ? usata : ""))) senzaMateriale.Add(c.Name2);
+                if (altra)
+                {
+                    altraConfigurazione.Add(c.Name2 + " (usa «" + usata + "», il pezzo e' aperto su «" + attiva + "»)");
+                    sommaLetta = false;
+                    continue;
+                }
                 var m = MassaDelPezzo(doc);
                 if (m == null) sommaLetta = false; else somma += m.Value;
             }
@@ -126,6 +146,8 @@ namespace Riscontro.Disegno
                 ["unita"] = "millimetri e chilogrammi",
             };
             if (nonLetti.Count > 0) misure["componenti_non_letti"] = nonLetti.ToArray();
+            if (altraConfigurazione.Count > 0)
+                misure["somma_non_controllata_per"] = altraConfigurazione.ToArray();
 
             if (senzaMateriale.Count > 0)
             {
@@ -158,7 +180,7 @@ namespace Riscontro.Disegno
                             "sembra (un materiale messo sul componente nell'assieme? un componente contato due volte?). " +
                             "Non ti do un numero.");
                 }
-                else misure["somma_dei_pezzi_kg"] = null;   // un pezzo non si e' lasciato pesare: niente controllo
+                else misure["somma_dei_pezzi_kg"] = null;   // un pezzo non si e' lasciato pesare, o usa un'altra configurazione: niente controllo
             }
             misure["cosa_non_guarda"] =
                 "I componenti soppressi non pesano, e li elenco. Un materiale messo sul COMPONENTE " +
@@ -239,12 +261,28 @@ namespace Riscontro.Disegno
             return RiuscitoSenzaCreare(misure);
         }
 
-        /// <summary>Z-D6: i corpi solidi che lo STEP di questo assieme deve contenere.</summary>
+        /// <summary>
+        /// Z-D6: i corpi solidi che lo STEP di questo assieme deve contenere.
+        ///
+        /// PER PEZZO, NON PER ISTANZA (revisione avversariale del 27/9/2026). Lo
+        /// STEP scrive la struttura dell'assieme: la forma di un pezzo compare UNA
+        /// volta e le istanze sono occorrenze con la loro trasformazione. Misurato
+        /// il 28/9/2026 (caso assiemi/due_basi_uguali_uno_step: la base due volte
+        /// e il coperchio una) — nel file 2 solidi. Il conto per istanza
+        /// ne aspettava 3, e rifiutava uno STEP giusto su ogni assieme con viti o
+        /// piedini ripetuti. Un pezzo e' il suo file PIU' la configurazione: due
+        /// misure della stessa vite sono due forme.
+        /// </summary>
         private static int SolidiAttesiNellAssieme(IAssemblyDoc assieme)
         {
             int n = 0;
+            var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var c in PezziDellAssieme(assieme, new List<string>(), new List<string>()))
             {
+                string chiave;
+                try { chiave = (c.GetPathName() ?? "") + "|" + (c.ReferencedConfiguration ?? ""); }
+                catch { return -1; }
+                if (!visti.Add(chiave)) continue;
                 object info;
                 try { n += ((c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[]) ?? new object[0]).Length; }
                 catch { return -1; }
@@ -252,17 +290,21 @@ namespace Riscontro.Disegno
             return n;
         }
 
-        /// <summary>Quanti MANIFOLD_SOLID_BREP ci sono nel testo dello STEP; -1 se non si legge.</summary>
+        /// <summary>
+        /// Quanti solidi ci sono nel testo dello STEP; -1 se non si legge. Si conta
+        /// per ISTANZA di entita' (il testo fra due «;»): un solido con cavita' si
+        /// scrive BREP_WITH_VOIDS, che non contiene la parola MANIFOLD_SOLID_BREP, e
+        /// un'entita' complessa puo' nominare tutte e due — contata una volta sola
+        /// (revisione avversariale del 27/9/2026).
+        /// </summary>
         private static int SolidiNelloStep(string percorso)
         {
             try
             {
                 int n = 0;
-                foreach (var riga in File.ReadLines(percorso))
-                {
-                    int i = 0;
-                    while ((i = riga.IndexOf("MANIFOLD_SOLID_BREP", i, StringComparison.Ordinal)) >= 0) { n++; i += 19; }
-                }
+                foreach (var istanza in File.ReadAllText(percorso).Split(';'))
+                    if (istanza.IndexOf("MANIFOLD_SOLID_BREP", StringComparison.Ordinal) >= 0 ||
+                        istanza.IndexOf("BREP_WITH_VOIDS", StringComparison.Ordinal) >= 0) n++;
                 return n;
             }
             catch { return -1; }

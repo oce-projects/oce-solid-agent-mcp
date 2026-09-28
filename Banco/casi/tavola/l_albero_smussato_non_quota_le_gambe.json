@@ -1,0 +1,40 @@
+{
+  "nome": "l_albero_smussato_non_quota_le_gambe",
+  "famiglia": "tavola",
+  "perche": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievi sul tondo. Un albero Ø30 lungo 40 con uno smusso 1 x 45° alle due teste. Di testa i cerchi sono due: il Ø30 (cono-cilindro) e il Ø28 (cono-piano, il bordo dello smusso), e il secondo non e' un diametro da quotare. Di fianco i cerchi visti di taglio sono quattro (a 0, 1, 39, 40): contati tutti come facce nascevano le lunghezze 1, 39 e 40 — le «gambe» dello smusso, che il resto della tavola scarta. Una faccia del tondo e' un cerchio che borda una faccia PIANA perpendicolare all'asse. E il Ø30 quotato di testa e' lo stesso CILINDRO che di fianco non si quota due volte (la chiave e' del cilindro, non del solo diametro).",
+  "il_difetto_che_questo_caso_prende": "Le gambe dello smusso quotate come lunghezze del tondo; il bordo di uno smusso quotato come diametro esterno; lo stesso diametro quotato in due viste.",
+  "le_viste_si_chiamano_per_uid": "V1 frontale (l'albero di fianco), V3 laterale (l'albero di testa).",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "rivoluzione",
+      "argomenti": { "piano": "frontale", "angolo_gradi": 360, "asse": [[0, 0], [40, 0]],
+                     "contorni": [[[0, 0], [0, 14], [1, 15], [39, 15], [40, 14], [40, 0]]] },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 28182.18, "tolleranza": 0.05,
+                    "perche_questa_tolleranza": "pi dentro: pi x 15^2 x 40 meno due anelli di smusso (pi x 15^2 x 1 meno il tronco di cono pi/3 x (15^2 + 15 x 14 + 14^2))" } ] },
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\l_albero_smussato_non_quota_le_gambe.sldprt" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0 } ] },
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\l_albero_smussato_non_quota_le_gambe.sldprt" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V3" },
+      "attese": [
+        { "cosa": "misure.diametri_esterni[0].diametro_riletto_mm", "uguale": 30, "perche": "il diametro dell'albero, riletto" },
+        { "cosa": "misure.bordi_non_quotati", "contiene": ["Ø28"],
+          "perche": "il bordo dello smusso si dice, non si quota come diametro" } ] },
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V1" },
+      "attese": [
+        { "cosa": "misure.tondo_lunghezze_mm", "uguale": [40],
+          "perche": "la sola lunghezza: fra le due teste piane. Niente 1 e 39" },
+        { "cosa": "misure.tondo_note", "contiene": ["smusso sul Ø30"], "perche": "lo smusso si dice" },
+        { "cosa": "misure.tondo_diametri_mm", "non_contiene": ["30"],
+          "perche": "il Ø30 e' gia' quotato di testa: lo stesso cilindro, una volta sola" },
+        { "cosa": "misure.quote_mm", "non_contiene": ["30"],
+          "perche": "nessuna quota da 30 nasce in questa vista: il Ø30 e' di testa. Il primo giro (28/9/2026) chiedeva anche che lo dicesse fra i gia' quotati: di fianco SOLIDWORKS non espone una coppia di generatrici del Ø30 stretto fra i due smussi (come il Ø20 dell'albero a gradini), quindi non c'e' niente da tentare e niente da dire. Quello che conta e' che non nasca un doppione." } ] }
+  ]
+}

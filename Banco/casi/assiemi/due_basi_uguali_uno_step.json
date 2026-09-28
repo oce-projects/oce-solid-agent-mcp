@@ -1,0 +1,109 @@
+{
+  "nome": "due_basi_uguali_uno_step",
+  "famiglia": "assiemi",
+  "perche": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievo sullo STEP dell'assieme. Il conto dei solidi attesi sommava i corpi di ogni ISTANZA; lo STEP di un assieme scrive la struttura, e la forma di un pezzo che compare due volte potrebbe esserci una volta sola. Il caso del banco aveva due pezzi DIVERSI e la terza istanza soppressa: non lo poteva vedere. Qui la base compare due volte (la seconda inserita dal passo), il coperchio una. Il caso MISURA quanti solidi scrive lo STEP; la massa dell'assieme conta le istanze.",
+  "il_difetto_che_questo_caso_prende": "Uno STEP giusto rifiutato perche' i solidi si contano per istanza.",
+  "assieme": {
+    "componenti": [
+      {
+        "nome": "base",
+        "passi": [
+          {
+            "operazione": "estrudi_rettangolo",
+            "argomenti": {
+              "piano": "superiore",
+              "lunghezza_mm": 120,
+              "larghezza_mm": 80,
+              "spessore_mm": 10,
+              "centrato": true
+            }
+          },
+          {
+            "operazione": "applica_materiale",
+            "argomenti": {
+              "materiale": "AISI 304"
+            }
+          }
+        ]
+      },
+      {
+        "nome": "coperchio",
+        "posizione_mm": [
+          0,
+          7,
+          0
+        ],
+        "passi": [
+          {
+            "operazione": "estrudi_rettangolo",
+            "argomenti": {
+              "piano": "superiore",
+              "lunghezza_mm": 120,
+              "larghezza_mm": 80,
+              "spessore_mm": 4,
+              "centrato": true
+            }
+          },
+          {
+            "operazione": "applica_materiale",
+            "argomenti": {
+              "materiale": "S235JR"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "passi": [
+    {
+      "operazione": "inserisci_componente",
+      "argomenti": {
+        "percorso": "{LAVORO}\\due_basi_uguali_uno_step_base.sldprt",
+        "x_mm": 200,
+        "y_mm": 0,
+        "z_mm": 0
+      },
+      "attese": [
+        {
+          "cosa": "misure.componenti_dopo",
+          "uguale": 3
+        }
+      ]
+    },
+    {
+      "operazione": "proprieta_di_massa",
+      "argomenti": {},
+      "attese": [
+        {
+          "cosa": "misure.massa_kg",
+          "uguale": 1.8355,
+          "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "arrotondata a quattro decimali: 2 x 0,768 + 0,29952 = 1,83552",
+          "perche": "la massa conta le ISTANZE: due basi pesano due volte"
+        },
+        {
+          "cosa": "misure.componenti_pesati",
+          "uguale": 3
+        }
+      ]
+    },
+    {
+      "operazione": "esporta_step",
+      "argomenti": {
+        "percorso": "{LAVORO}\\due_basi_uguali_uno_step.step"
+      },
+      "attese": [
+        {
+          "cosa": "misure.solidi_nel_file",
+          "uguale": 2,
+          "perche": "MISURATO il 28/9/2026: con la base due volte e il coperchio una, lo STEP ha 2 solidi — la forma di un pezzo si scrive una volta sola, le istanze sono occorrenze"
+        },
+        {
+          "cosa": "misure.solidi_attesi",
+          "uguale": 2,
+          "perche": "i pezzi UNICI (percorso e configurazione), non le istanze"
+        }
+      ]
+    }
+  ]
+}

@@ -639,7 +639,7 @@ namespace Riscontro.Disegno
             catch { return null; }
         }
 
-        private static string MaterialeDelPezzo(IModelDoc2 modello)
+        private static string MaterialeDelPezzo(IModelDoc2 modello, string configurazione = "")
         {
             try
             {
@@ -647,8 +647,10 @@ namespace Riscontro.Disegno
                 var parte = modello as IPartDoc;
                 if (parte == null) return null;
                 // La stringa vuota vuol dire «la configurazione attiva», ed e'
-                // come lo chiedono gia' `StatoDocumento` e `applica_materiale`.
-                string nome = parte.GetMaterialPropertyName2("", out database);
+                // come lo chiedono gia' `StatoDocumento` e `applica_materiale`. Il
+                // materiale e' PER CONFIGURAZIONE: nell'assieme si chiede quella che
+                // il componente usa.
+                string nome = parte.GetMaterialPropertyName2(configurazione ?? "", out database);
                 return string.IsNullOrWhiteSpace(nome) ? null : nome;
             }
             catch { return null; }

@@ -198,6 +198,7 @@ namespace Riscontro.Disegno
 
             var falliti = new List<string>();
             var diametriEsterni = new List<Dictionary<string, object>>();
+            var bordiNonQuotati = new List<string>();
             var diTaglio = new List<string>();
             EsitoTondo tondo = null;
             var misurati = new List<Spigolo>();
@@ -317,7 +318,7 @@ namespace Riscontro.Disegno
                     QuotaIFori(modello, disegno, foriVeri, tutti, gia, contorno, distacco, passo, scala,
                                ref sotto, ref diLato, ref aSinistra, dimensioniFoglio, nate, fori, altrove, falliti);
                 QuotaIContorni(modello, disegno, cerchi.FindAll(c => c.Tipo == "contorno"), gia, contorno, distacco, passo,
-                               nate, diametriEsterni, altrove, falliti);
+                               nate, diametriEsterni, bordiNonQuotati, altrove, falliti);
                 foreach (var c in cerchi)
                     if (c.Tipo == "di_taglio") diTaglio.Add("Ø" + c.DiametroMm.ToString("0.##", Ci));
                 // IL TONDO VISTO DI FIANCO (voce GT14): cerchi di taglio coassiali
@@ -503,6 +504,7 @@ namespace Riscontro.Disegno
                 // tondo ha una quota di diametro, non un richiamo; un cerchio visto
                 // di taglio non si quota da qui.
                 ["diametri_esterni"] = diametriEsterni.ToArray(),
+                ["bordi_non_quotati"] = bordiNonQuotati.ToArray(),
                 ["cerchi_di_taglio"] = diTaglio.ToArray(),
                 // IL TONDO VISTO DI FIANCO (voce GT14): lunghezze in parallelo dalla
                 // prima faccia, diametri dalle generatrici; e i diametri che la
@@ -511,6 +513,7 @@ namespace Riscontro.Disegno
                 ["tondo_lunghezze_mm"] = tondo == null ? null : tondo.Lunghezze.ToArray(),
                 ["tondo_diametri_mm"] = tondo == null ? null : tondo.Diametri.ToArray(),
                 ["tondo_diametri_non_raggiunti"] = tondo == null ? null : tondo.NonRaggiunti.ToArray(),
+                ["tondo_note"] = tondo == null ? null : tondo.Note.ToArray(),
                 ["tondo_generatrici_senza_faccia"] = tondo == null ? null : (object)tondo.GeneratriciSenzaFaccia,
                 ["smussi"] = smussi.ToArray(),
                 ["gia_quotate_altrove"] = altrove.ToArray(),
@@ -759,7 +762,11 @@ namespace Riscontro.Disegno
                 // e detto nella risposta, invece di prendere un richiamo di foro.
                 double l = asse == null ? 0 : Math.Sqrt(asse[0] * asse[0] + asse[1] * asse[1] + asse[2] * asse[2]);
                 if (l < 1e-12 || Math.Abs(asse[2]) / l < 0.99) tipo = "di_taglio";
-                else tipo = EUnForoCheSiVede(e, curva, mu, tr) ? "foro" : "contorno";
+                // UN ANELLO INTERNO NON BASTA (revisione avversariale del 27/9/2026): lo
+                // e' anche il piede di una borchia, e un cerchio di tangenza Ø24 al
+                // piede di una borchia Ø20 raccordata diventava «un foro» con le sue
+                // quote di posizione. Una borchia ha una quota di diametro.
+                else tipo = EUnForoCheSiVede(e, curva, mu, tr) && !EIlPiedeDiUnaBorchia(e) ? "foro" : "contorno";
                 var c = new Cerchio { Indice = indice, Spigolo = e, CentroFoglio = centro, DiametroMm = Math.Round(cp[6] * 2000.0, 3), Tipo = tipo,
                                       CentroModello = new[] { cp[0], cp[1], cp[2] }, AsseModello = new[] { cp[3], cp[4], cp[5] } };
                 if (tipo == "foro")
@@ -801,6 +808,8 @@ namespace Riscontro.Disegno
         private static HashSet<string> ChiaviGiaQuotate(IDrawingDoc disegno)
         {
             var fuori = new HashSet<string>(StringComparer.Ordinal);
+            // Le generatrici dicono la loro faccia solo a tavola ridisegnata (82zp).
+            try { (disegno as IModelDoc2)?.GraphicsRedraw2(); } catch { }
             try
             {
                 var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
@@ -818,20 +827,51 @@ namespace Riscontro.Disegno
                             // non due diametri gia' quotati; UNA GENERATRICE porta il
                             // diametro della sua faccia.
                             var cerchiAttaccati = new List<double[]>();
+                            bool suGeneratrice = false, conUnaRetta = false;
+                            string chiaveGeneratrice = null;
                             if (ents != null)
                                 foreach (var o in ents)
                                 {
                                     var ce = o as IEdge;
                                     var cc = ce == null ? null : ce.GetCurve() as ICurve;
                                     if (cc != null && cc.IsCircle()) cerchiAttaccati.Add(cc.CircleParams as double[]);
+                                    if (cc != null && cc.IsLine()) conUnaRetta = true;
                                     var gen = o as ISilhouetteEdge;
                                     if (gen != null)
                                     {
-                                        var su = (gen.GetFace() as IFace2)?.GetSurface() as ISurface;
-                                        if (su != null && su.IsCylinder())
-                                            fuori.Add("foro|" + Math.Round(((double[])su.CylinderParams)[6] * 2000.0, 2).ToString("0.00", Ci));
+                                        suGeneratrice = true;
+                                        IFace2 fg = null;
+                                        try { fg = gen.GetFace() as IFace2; } catch { }
+                                        var kg = ChiaveDelCilindro(fg);
+                                        if (kg != null) chiaveGeneratrice = kg;
                                     }
                                 }
+                            // UNA QUOTA SU GENERATRICI (revisione avversariale del 27/9/2026):
+                            // col cilindro, la SUA chiave; SENZA faccia — sulla boccola GetFace
+                            // resta null (82zp) — il diametro dal valore, se la quota porta il Ø:
+                            // lo stesso criterio con cui la strada «generatrici senza faccia»
+                            // l'ha tenuta. Prima non la si vedeva affatto, e la chiamata dopo
+                            // rimetteva lo stesso diametro.
+                            if (suGeneratrice)
+                            {
+                                if (chiaveGeneratrice != null)
+                                {
+                                    fuori.Add(chiaveGeneratrice);
+                                    fuori.Add("foro|" + chiaveGeneratrice.Split('|')[1]);
+                                }
+                                else
+                                {
+                                    string pre = ""; double mm = double.NaN;
+                                    try { pre = d.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
+                                    try { mm = (d.GetDimension2(0) as IDimension).GetSystemValue2("") * 1000.0; } catch { }
+                                    if (pre.Contains("<MOD-DIAM>") && !double.IsNaN(mm))
+                                    {
+                                        string dd = Math.Round(mm, 2).ToString("0.00", Ci);
+                                        fuori.Add("foro|" + dd);
+                                        fuori.Add("cil?|" + dd);   // un Ø30, ma non si sa di quale cilindro
+                                    }
+                                }
+                            }
                             bool lunghezzaDelTondo = cerchiAttaccati.Count == 2 && Coassiali(cerchiAttaccati[0], cerchiAttaccati[1]);
                             if (lunghezzaDelTondo)
                                 fuori.Add(ChiaveTondo(new[] { cerchiAttaccati[0][0], cerchiAttaccati[0][1], cerchiAttaccati[0][2] },
@@ -844,16 +884,29 @@ namespace Riscontro.Disegno
                                     var c = e.GetCurve() as ICurve;
                                     if (c != null && c.IsCircle())
                                     {
+                                        // UN DIAMETRO, NON UNA POSIZIONE: la quota di posizione di un
+                                        // foro e' attaccata al cerchio E a uno spigolo, e non quota il
+                                        // foro (il richiamo nasce prima e porta la sua chiave).
+                                        if (conUnaRetta) continue;
                                         var cp = c.CircleParams as double[];
-                                        if (cp != null && cp.Length >= 7)
-                                            fuori.Add("foro|" + Math.Round(cp[6] * 2000.0, 2).ToString("0.00", Ci));
+                                        if (cp == null || cp.Length < 7) continue;
+                                        string dd = Math.Round(cp[6] * 2000.0, 2).ToString("0.00", Ci);
+                                        fuori.Add("foro|" + dd);
+                                        // E IL SUO CILINDRO, se si trova: un gradino di un tondo e un
+                                        // foro dello stesso Ø sono due elementi (revisione del 27/9).
+                                        fuori.Add(ChiaveDelCilindroDelCerchio(e) ?? "cil?|" + dd);
                                         continue;
                                     }
                                     var sm = TocCaUnoSmusso(e);
                                     if (sm != null) fuori.Add("smusso|" + sm);
                                     if (c != null && c.IsLine()) dritti.Add(e);
                                 }
-                            if (dritti.Count == 1)
+                            // L'ESTENSIONE DI UNO SPIGOLO E' QUOTATA solo da una quota attaccata
+                            // a LUI SOLO (revisione avversariale del 27/9/2026): la quota di
+                            // posizione di un foro prende il bordo della piastra come
+                            // riferimento, e segnarne l'estensione faceva scartare l'altezza
+                            // vera nella vista dopo («gia' quotata in un'altra vista»).
+                            if (dritti.Count == 1 && ents.Length == 1 && cerchiAttaccati.Count == 0 && !suGeneratrice)
                             {
                                 var p = dritti[0].GetCurveParams3() as ICurveParamData;
                                 var k = ChiaveNelModello(p.StartPoint as double[], p.EndPoint as double[]);
@@ -868,6 +921,56 @@ namespace Riscontro.Disegno
             }
             catch { }
             return fuori;
+        }
+
+        /// <summary>
+        /// Il cerchio e' il piede di una sporgenza, non la bocca di un foro: l'altra
+        /// faccia che il cerchio borda (il cilindro della borchia, il raccordo al
+        /// piede) sale dalla parte di FUORI della faccia piana, mentre la parete di
+        /// un foro (o il suo smusso) scende dentro il materiale. Si misura sui
+        /// cerchi e sugli estremi degli altri spigoli di quella faccia, contro la
+        /// normale della faccia piana. False se non si capisce: resta foro, come prima.
+        /// </summary>
+        private static bool EIlPiedeDiUnaBorchia(IEdge e)
+        {
+            try
+            {
+                var cb = (e.GetCurve() as ICurve)?.CircleParams as double[];
+                if (cb == null || cb.Length < 3) return false;
+                IFace2 piana = null, altra = null;
+                foreach (var oc in (e.GetCoEdges() as object[]) ?? new object[0])
+                {
+                    var f = ((oc as ICoEdge)?.GetLoop() as ILoop2)?.GetFace() as IFace2;
+                    var su = f?.GetSurface() as ISurface;
+                    if (su == null) continue;
+                    if (su.IsPlane() && piana == null) piana = f; else altra = f;
+                }
+                if (piana == null || altra == null) return false;
+                var n = piana.Normal as double[];
+                if (n == null || n.Length < 3) return false;
+                double piuLontano = 0;
+                foreach (var o in (altra.GetEdges() as object[]) ?? new object[0])
+                {
+                    var ed = o as IEdge;
+                    var cv = ed?.GetCurve() as ICurve;
+                    if (cv == null) continue;
+                    var punti = new List<double[]>();
+                    if (cv.IsCircle()) { var cc = cv.CircleParams as double[]; if (cc != null) punti.Add(cc); }
+                    else
+                    {
+                        var pr = ed.GetCurveParams3() as ICurveParamData;
+                        if (pr?.StartPoint is double[] a) punti.Add(a);
+                        if (pr?.EndPoint is double[] b) punti.Add(b);
+                    }
+                    foreach (var p in punti)
+                    {
+                        double h = (p[0] - cb[0]) * n[0] + (p[1] - cb[1]) * n[1] + (p[2] - cb[2]) * n[2];
+                        if (Math.Abs(h) > Math.Abs(piuLontano)) piuLontano = h;
+                    }
+                }
+                return piuLontano > 1e-7;
+            }
+            catch { return false; }
         }
 
         /// <summary>
@@ -931,7 +1034,7 @@ namespace Riscontro.Disegno
         private void QuotaIContorni(
             IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> contorni, HashSet<string> gia,
             double[] contorno, double distacco, double passo, List<Dictionary<string, object>> nate,
-            List<Dictionary<string, object>> diametri, List<string> altrove, List<string> falliti)
+            List<Dictionary<string, object>> diametri, List<string> bordi, List<string> altrove, List<string> falliti)
         {
             var fatti = new HashSet<string>(StringComparer.Ordinal);
             // UN PASSO PIU' IN ALTO PER OGNI DIAMETRO: i contorni di un tondo sono
@@ -943,7 +1046,33 @@ namespace Riscontro.Disegno
                 string dm = c.DiametroMm.ToString("0.##", Ci);
                 string chiave = "foro|" + Math.Round(c.DiametroMm, 2).ToString("0.00", Ci);
                 if (!fatti.Add(chiave)) continue;
-                if (gia.Contains(chiave)) { altrove.Add("diametro esterno Ø" + dm + " (gia' quotato in questa tavola)"); continue; }
+                // IL SUO CILINDRO, se si trova (revisione del 27/9/2026): il contorno
+                // di un tondo e' gia' quotato se lo e' QUEL cilindro, non un Ø uguale
+                // qualunque — un foro trasversale Ø30 richiamato in un'altra vista non
+                // quota il gradino Ø30.
+                string suo = ChiaveDelCilindroDelCerchio(c.Spigolo);
+                // UN CERCHIO SENZA IL SUO CILINDRO non e' un diametro esterno: e' il
+                // bordo di uno smusso (cono-piano, il Ø28 di un Ø30 smussato visto di
+                // testa) o la linea di tangenza di un raccordo (il Ø24 al piede di una
+                // borchia Ø20 raccordata). Quotarlo e' una quota che non si fabbrica.
+                if (suo == null)
+                {
+                    bool diSmusso = false;
+                    foreach (var oc in (c.Spigolo.GetCoEdges() as object[]) ?? new object[0])
+                    {
+                        var su = (((oc as ICoEdge)?.GetLoop() as ILoop2)?.GetFace() as IFace2)?.GetSurface() as ISurface;
+                        if (su != null && (su.IsCone() || su.IsTorus())) diSmusso = true;
+                    }
+                    if (diSmusso)
+                    {
+                        bordi.Add("Ø" + dm + " (bordo di uno smusso o di un raccordo: va con la sua quota, non con un diametro)");
+                        continue;
+                    }
+                }
+                bool quotato = suo != null
+                    ? gia.Contains(suo) || gia.Contains("cil?|" + chiave.Substring(5))
+                    : gia.Contains(chiave);
+                if (quotato) { altrove.Add("diametro esterno Ø" + dm + " (gia' quotato in questa tavola)"); continue; }
                 int quotePrima = ContaQuote(disegno);
                 IDisplayDimension q = null;
                 try
@@ -981,6 +1110,7 @@ namespace Riscontro.Disegno
                 nate.Add(descritta);
                 diametri.Add(new Dictionary<string, object> { ["diametro_mm"] = Math.Round(c.DiametroMm, 2), ["diametro_riletto_mm"] = letto });
                 gia.Add(chiave);
+                if (suo != null) gia.Add(suo);
                 n++;
             }
         }
@@ -1010,10 +1140,30 @@ namespace Riscontro.Disegno
             }
 
             var daPosizionare = new List<Cerchio>();
+            // GIA' QUOTATO VUOL DIRE PRIMA DI QUESTA CHIAMATA (revisione avversariale
+            // del 27/9/2026). I gruppi sono per diametro E profondita', e con la
+            // chiave del solo diametro aggiunta dentro questo ciclo il secondo gruppo
+            // — due Ø8 ciechi accanto a due Ø8 passanti — finiva «gia' quotato»:
+            // senza richiamo, senza profondita', senza posizione. In officina si
+            // foravano tutti e quattro passanti, cioe' proprio il caso che il
+            // raggruppamento doveva evitare.
+            var giaPrima = new HashSet<string>(gia, StringComparer.Ordinal);
             foreach (var g in gruppi)
             {
                 string chiave = "foro|" + g.Key.Item1.ToString("0.00", Ci);
-                if (gia.Contains(chiave))
+                // E PER CILINDRO, quando si trova: un gradino di un tondo dello
+                // stesso Ø, quotato in un'altra vista, non e' questo foro.
+                var suoi = new List<string>();
+                bool tuttiTrovati = true;
+                foreach (var c in g.Value)
+                {
+                    string k = ChiaveDelCilindroDelCerchio(c.Spigolo);
+                    if (k == null) tuttiTrovati = false; else suoi.Add(k);
+                }
+                bool quotato = giaPrima.Contains("cil?|" + chiave.Substring(5));
+                if (tuttiTrovati) { foreach (var k in suoi) if (giaPrima.Contains(k)) quotato = true; }
+                else if (giaPrima.Contains(chiave)) quotato = true;
+                if (quotato)
                 {
                     altrove.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (gia' quotati in questa tavola)");
                     continue;
@@ -1127,6 +1277,7 @@ namespace Riscontro.Disegno
                     ["profondita_dalla_geometria_mm"] = double.IsNaN(capo.ProfonditaMm) ? null : (object)capo.ProfonditaMm,
                 });
                 gia.Add(chiave);
+                foreach (var k in suoi) gia.Add(k);
                 daPosizionare.AddRange(g.Value);
             }
             if (daPosizionare.Count == 0) return;

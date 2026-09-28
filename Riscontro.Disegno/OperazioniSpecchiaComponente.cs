@@ -137,14 +137,17 @@ namespace Riscontro.Disegno
             foreach (var v in StatoDocumento.ComponentiInOrdine(dopo))
                 if (!primaNomi.Contains(v.Key)) { nuovo = v.Value; break; }
             if (nuovo == null)
-                return Fallito("Lo specchio «" + SafeNome(nuova) + "» c'e' ma non vedo un componente nuovo nell'assieme.");
+                return Fallito("Lo specchio «" + SafeNome(nuova) + "» c'e' ma non vedo un componente nuovo nell'assieme." +
+                               TogliLoSpecchio(modello, nuova, null));
             string fileNuovo = "";
             try { fileNuovo = nuovo.GetPathName() ?? ""; } catch { }
             bool stessoFile = string.Equals(fileNuovo, fileOriginale, StringComparison.OrdinalIgnoreCase);
             if (modo == "istanza" && !stessoFile)
-                return Fallito("Ho chiesto un'istanza dello stesso file e SOLIDWORKS ha messo «" + Path.GetFileName(fileNuovo) + "».");
+                return Fallito("Ho chiesto un'istanza dello stesso file e SOLIDWORKS ha messo «" + Path.GetFileName(fileNuovo) + "»." +
+                               TogliLoSpecchio(modello, nuova, fileNuovo));
             if (modo != "istanza" && stessoFile)
-                return Fallito("Ho chiesto un file opposto e il componente nuovo usa ancora «" + Path.GetFileName(fileOriginale) + "».");
+                return Fallito("Ho chiesto un file opposto e il componente nuovo usa ancora «" + Path.GetFileName(fileOriginale) + "»." +
+                               TogliLoSpecchio(modello, nuova, null));
             // IL LEGAME, LETTO DALL'ALBERO DEL FILE NUOVO: MirrorStock = legato.
             bool? legato = null;
             if (modo != "istanza")
@@ -160,10 +163,12 @@ namespace Riscontro.Disegno
                 catch { }
                 if (legato == null)
                     return Fallito("Il file nuovo «" + Path.GetFileName(fileNuovo) + "» c'e', ma non leggo il suo albero: non " +
-                                   "so dirti se segue l'originale. Aprilo e guarda se la prima lavorazione e' «Specchiato».");
+                                   "so dirti se segue l'originale. Aprilo e guarda se la prima lavorazione e' «Specchiato»." +
+                                   TogliLoSpecchio(modello, nuova, fileNuovo));
                 if (legato.Value != (modo == "opposto_legato"))
                     return Fallito("Ho chiesto un file " + (modo == "opposto_legato" ? "legato" : "slegato") + " all'originale e «" +
-                                   Path.GetFileName(fileNuovo) + "» e' " + (legato.Value ? "legato" : "slegato") + ".");
+                                   Path.GetFileName(fileNuovo) + "» e' " + (legato.Value ? "legato" : "slegato") + "." +
+                                   TogliLoSpecchio(modello, nuova, fileNuovo));
             }
             // IL POSTO: il centro del nuovo e lo specchio del centro dell'originale.
             var centroNuovo = CentroDelComponente(nuovo);
@@ -173,7 +178,8 @@ namespace Riscontro.Disegno
                 Math.Sqrt(Math.Pow(centroNuovo[0] - atteso[0], 2) + Math.Pow(centroNuovo[1] - atteso[1], 2) + Math.Pow(centroNuovo[2] - atteso[2], 2));   // ScatolaDelCorpo da' gia' mm
             if (double.IsNaN(scarto) || scarto > 0.01)
                 return Fallito("«" + NomeDi(nuovo) + "» e' nato, ma il suo centro " + (centroNuovo == null ? "non si legge" :
-                               "sta a " + scarto.ToString("0.###") + " mm dallo specchio dell'originale") + ": non e' lo specchio che volevi.");
+                               "sta a " + scarto.ToString("0.###") + " mm dallo specchio dell'originale") + ": non e' lo specchio che volevi." +
+                               TogliLoSpecchio(modello, nuova, modo == "istanza" ? null : fileNuovo));
             var misure = new Dictionary<string, object>
             {
                 ["specchio"] = SafeNome(nuova),
@@ -193,6 +199,30 @@ namespace Riscontro.Disegno
             };
             _log("[agente] specchiato " + NomeDi(c) + " (" + modo + ") -> " + NomeDi(nuovo));
             return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// Toglie lo specchio appena nato quando la verifica lo rifiuta (revisione del
+        /// 27/9/2026): prima restava nell'assieme un componente che nessuno aveva
+        /// accettato. Il FILE nuovo, se c'e', non lo cancello — un file sul disco non
+        /// lo tolgo per conto di nessuno — ma lo dico, perche' con lo stesso suffisso
+        /// lo specchio non rinasce. La coda della frase di rifiuto.
+        /// </summary>
+        private static string TogliLoSpecchio(IModelDoc2 modello, IFeature f, string fileNuovo)
+        {
+            bool tolto = false;
+            try
+            {
+                modello.ClearSelection2(true);
+                if (f != null && f.Select2(false, 0))
+                    tolto = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                modello.ClearSelection2(true);
+                modello.EditRebuild3();
+            }
+            catch { }
+            string file = string.IsNullOrEmpty(fileNuovo) ? "" :
+                " Il file «" + Path.GetFileName(fileNuovo) + "» e' rimasto sul disco: cancellalo, o usa un altro «suffisso».";
+            return (tolto ? " Ho tolto lo specchio: l'assieme e' com'era." : " Lo specchio «" + SafeNome(f) + "» e' rimasto nell'assieme: toglilo tu.") + file;
         }
 
         private static string SafeNome(IFeature f)

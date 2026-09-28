@@ -1,0 +1,30 @@
+{
+  "nome": "la_piastra_simmetrica_cresce_dalle_due_parti",
+  "famiglia": "lavorazioni",
+  "perche": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievi su cambia_estrusione. Una piastra estrusa SIMMETRICA (piano medio) 100 x 60, profonda 100: da -50 a +50. cambia_estrusione con profondita_mm 120 la trasformava in CIECA da un lato, da 0 a +120: non cresceva di 10 per parte, si spostava di 60, e la risposta diceva «riuscito» (fine, profondita' e volume tornavano). Il piano medio resta piano medio, e la profondita' si scrive anche li' (senza, il ripristino rimetteva la condizione e lasciava la misura nuova).",
+  "il_difetto_che_questo_caso_prende": "Un'estrusione simmetrica che cambiando profondita' diventa cieca e trasla il pezzo; la profondita' di un piano medio non riportata; il rientro che non rimette la misura.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_profilo",
+      "argomenti": { "piano": "frontale", "spessore_mm": 100, "simmetrico": true,
+                     "contorni": [[[-50, -30], [50, -30], [50, 30], [-50, 30]]] },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 600000 },
+        { "cosa": "stato.ingombro_da_mm", "uguale": [-50, -30, -50], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "punti estremi veri, arrotondati",
+          "perche": "meta' da una parte e meta' dall'altra del piano frontale" } ] },
+    { "operazione": "cambia_estrusione",
+      "argomenti": { "feature_uid": "@feature(tipo=Extrusion,n=1)", "profondita_mm": 120 },
+      "attese": [
+        { "cosa": "misure.fine_prima", "uguale": "piano medio" },
+        { "cosa": "misure.fine_dopo", "uguale": "piano medio", "perche": "PRIMA DIVENTAVA «cieca»" },
+        { "cosa": "misure.profondita_prima_mm", "uguale": 100, "perche": "la profondita' di un piano medio si riporta" },
+        { "cosa": "misure.profondita_dopo_mm", "uguale": 120 },
+        { "cosa": "volume_mm3", "uguale": 720000 },
+        { "cosa": "stato.ingombro_da_mm", "uguale": [-50, -30, -60], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "punti estremi veri, arrotondati",
+          "perche": "cresce di 10 PER PARTE: da cieca sarebbe partita da 0" },
+        { "cosa": "stato.ingombro_mm", "uguale": [100, 60, 120], "tolleranza": 0.01,
+          "perche_questa_tolleranza": "la stessa" } ] }
+  ]
+}

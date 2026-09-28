@@ -1439,8 +1439,17 @@ namespace Riscontro.Disegno
             // LE EQUAZIONI E LE VARIABILI GLOBALI (voce Z-F1), se ce ne sono: chi
             // legge lo stato deve sapere che una quota e' guidata prima di provare
             // a cambiarla a mano.
-            var equazioni = OperazioniSw.EquazioniDelDocumento(modello);
-            if (equazioni != null) dati["equazioni"] = equazioni;
+            int equazioniTotali;
+            var equazioni = OperazioniSw.EquazioniDelDocumento(modello, out equazioniTotali);
+            if (equazioni != null)
+            {
+                dati["equazioni"] = equazioni;
+                if (equazioniTotali > equazioni.Length)
+                {
+                    dati["equazioni_totali"] = equazioniTotali;
+                    dati["troncato"] = true;
+                }
+            }
 
             // ── LA FORMA IN UNA FRASE (voce V3) ──────────────────────────
             //

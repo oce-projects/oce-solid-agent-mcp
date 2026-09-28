@@ -53,6 +53,7 @@ namespace Riscontro.Disegno
             public readonly List<double> Lunghezze = new List<double>();
             public readonly List<double> Diametri = new List<double>();
             public readonly List<string> NonRaggiunti = new List<string>();
+            public readonly List<string> Note = new List<string>();
             public int GeneratriciSenzaFaccia;
             public int CoppieScartate;
             public string Asse;
@@ -94,13 +95,40 @@ namespace Riscontro.Disegno
             double versoFoglio = orizzontale ? asseFoglio[0] : asseFoglio[1];
             suAsse.Sort((a, b) => (a.Item1 * Math.Sign(versoFoglio)).CompareTo(b.Item1 * Math.Sign(versoFoglio)));
             // Una posizione per faccia: due cerchi alla stessa t sono la stessa faccia.
+            //
+            // E SOLO I CERCHI DI UNA FACCIA PIANA DI TESTA O DI SPALLAMENTO
+            // (revisione avversariale del 27/9/2026). Uno smusso fa due cerchi,
+            // cono-piano e cono-cilindro, e un raccordo con gli spigoli tangenti
+            // visibili fa lo stesso: contati come facce, su un Ø30x40 smussato 1x45°
+            // nascevano 1, 39 e 40 — le «gambe» dello smusso che il resto della
+            // tavola scarta come quote in piu' (EGambaDiSmusso). Un cerchio e' una
+            // faccia del tondo se borda una faccia PIANA perpendicolare all'asse;
+            // gli altri si dicono, non si quotano.
             var facce = new List<Tuple<double, Cerchio>>();
+            var smussi = new List<string>();
             foreach (var p in suAsse)
+            {
+                string bordo = CosaBordaIlCerchio(p.Item2.Spigolo, asse);
+                if (bordo != "piano")
+                {
+                    if (bordo == "cono" || bordo == "toro")
+                    {
+                        string detto = (bordo == "cono" ? "smusso" : "raccordo") + " sul Ø" + p.Item2.DiametroMm.ToString("0.##", Ci);
+                        if (!smussi.Contains(detto)) smussi.Add(detto);
+                    }
+                    continue;
+                }
                 if (facce.Count == 0 || Math.Abs(p.Item1 - facce[facce.Count - 1].Item1) > 1e-6) facce.Add(p);
+            }
+            foreach (var sm in smussi)
+                esito.Note.Add(sm + " (non e' una faccia del tondo: la sua misura va con la quota da smusso o " +
+                                       "da raccordo, che questa vista non mette)");
+            if (facce.Count < 2)
+                esito.Note.Add("lunghezze (meno di due facce piane di testa o di spallamento viste di taglio)");
 
             var selMgr = modello.SelectionManager as ISelectionMgr;
             // ── LE LUNGHEZZE, IN PARALLELO DALLA PRIMA FACCIA ──────────────────
-            var zero = facce[0];
+            var zero = facce.Count > 0 ? facce[0] : null;
             for (int i = 1; i < facce.Count; i++)
             {
                 var f = facce[i];
@@ -162,10 +190,14 @@ namespace Riscontro.Disegno
                 double attesaMm = Math.Round(m[0] * 2000.0, 3);
                 string cosa = "diametro Ø" + attesaMm.ToString("0.##", Ci);
                 string chiave = "foro|" + Math.Round(attesaMm, 2).ToString("0.00", Ci);
-                if (gia.Contains(chiave)) { altrove.Add(cosa + " (gia' quotato in questa tavola)"); continue; }
                 // A META' DELLA FACCIA, sull'asse: la linea di misura attraversa il
-                // suo cilindro, come si quota un albero.
+                // suo cilindro, come si quota un albero. Lo stesso punto fa la
+                // CHIAVE DEL CILINDRO (revisione del 27/9/2026): due perni Ø30
+                // separati da un collare sono due quote, non una.
                 double tm = (m[1] + m[2]) / 2;
+                string delCilindro = ChiaveDelCilindro(m[0] * 2000.0, new[] { m[3] + tm * m[6], m[4] + tm * m[7], m[5] + tm * m[8] });
+                if (gia.Contains(delCilindro) || gia.Contains("cil?|" + chiave.Substring(5)))
+                { altrove.Add(cosa + " (gia' quotato in questa tavola)"); continue; }
                 var mezzo = SulFoglio(new[] { m[3] + tm * m[6], m[4] + tm * m[7], m[5] + tm * m[8] }, mu, tr);
                 if (mezzo == null) { falliti.Add(cosa + " (non so dove sta sul foglio)"); continue; }
                 var a = lette.Gruppi[scelta][0]; var b = lette.Gruppi[scelta][1];
@@ -179,6 +211,7 @@ namespace Riscontro.Disegno
                 nate.Add(descritta);
                 esito.Diametri.Add(attesaMm);
                 gia.Add(chiave);
+                gia.Add(delCilindro);
             }
 
             // ── LE GENERATRICI SENZA FACCIA, PROVATE A COPPIE ───────────────────
@@ -212,12 +245,11 @@ namespace Riscontro.Disegno
                 double letto = double.NaN; string prefisso = "";
                 try { letto = Math.Round((q.GetDimension2(0) as IDimension).GetSystemValue2("") * 1000.0, 3); } catch { }
                 try { prefisso = q.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
-                double[] suo = null;
+                CilindroDelTondo suo = null;
                 foreach (var c in cilindri)
-                    if (!double.IsNaN(letto) && Math.Abs(c[0] - letto) <= 0.01 &&
-                        !gia.Contains("foro|" + Math.Round(c[0], 2).ToString("0.00", Ci))) { suo = c; break; }
+                    if (!double.IsNaN(letto) && Math.Abs(c.DiametroMm - letto) <= 0.01 && !CilindroQuotato(gia, c)) { suo = c; break; }
                 if (prefisso.Contains("<MOD-DIAM>") && suo == null && !double.IsNaN(letto) &&
-                    cilindri.Any(c => Math.Abs(c[0] - letto) <= 0.01))
+                    cilindri.Any(c => Math.Abs(c.DiametroMm - letto) <= 0.01))
                 {
                     // UN DIAMETRO VERO, ma gia' quotato altrove: si toglie e si dice.
                     TogliQuota(modello, q);
@@ -226,14 +258,15 @@ namespace Riscontro.Disegno
                     continue;
                 }
                 if (!prefisso.Contains("<MOD-DIAM>") || suo == null) { TogliQuota(modello, q); esito.CoppieScartate++; continue; }
-                var mezzo = SulFoglio(new[] { suo[1], suo[2], suo[3] }, mu, tr);
+                var mezzo = SulFoglio(suo.Meta, mu, tr);
                 try { if (mezzo != null) (q.GetAnnotation() as IAnnotation)?.SetPosition2(mezzo[0], mezzo[1], 0); } catch { }
                 var descritta = DescriviQuota(q, -1);
                 descritta["orientamento"] = "diametro del tondo (generatrici senza faccia, riconosciuto dal valore)";
                 descritta["posizione_mm"] = DovEFinita(q);
                 nate.Add(descritta);
-                esito.Diametri.Add(Math.Round(suo[0], 3));
-                gia.Add("foro|" + Math.Round(suo[0], 2).ToString("0.00", Ci));
+                esito.Diametri.Add(Math.Round(suo.DiametroMm, 3));
+                gia.Add("foro|" + Math.Round(suo.DiametroMm, 2).ToString("0.00", Ci));
+                gia.Add(suo.Chiave);
             }
 
             // ── E QUELLI CHE LA VISTA NON ESPONE ────────────────────────────────
@@ -242,21 +275,35 @@ namespace Riscontro.Disegno
             var detti = new HashSet<string>(StringComparer.Ordinal);
             foreach (var c in cilindri)
             {
-                string nome = "Ø" + Math.Round(c[0], 2).ToString("0.##", Ci);
-                if (gia.Contains("foro|" + Math.Round(c[0], 2).ToString("0.00", Ci)) || !detti.Add(nome)) continue;
+                string nome = "Ø" + Math.Round(c.DiametroMm, 2).ToString("0.##", Ci);
+                if (CilindroQuotato(gia, c) || !detti.Add(c.Chiave)) continue;
                 esito.NonRaggiunti.Add(nome + " (non raggiunto da questa vista: generatrici nascoste, o che SOLIDWORKS " +
                                        "non da'. Se e' un foro, quotalo dalla vista in cui e' un cerchio)");
             }
             return esito;
         }
 
-        /// <summary>
-        /// I cilindri del pezzo coassiali col tondo: [diametro mm, x, y, z del punto a
-        /// meta' lungo l'asse, in metri nel modello]. Vuoto se la vista non e' di una parte.
-        /// </summary>
-        private static List<double[]> CilindriCoassiali(IView vista, double[] asse, double[] o)
+        /// <summary>Un cilindro del tondo: il diametro, il punto a meta' lungo l'asse (m, nel modello), la chiave.</summary>
+        private sealed class CilindroDelTondo
         {
-            var fuori = new List<double[]>();
+            public double DiametroMm;
+            public double[] Meta;
+            public string Chiave;
+        }
+
+        /// <summary>Quel cilindro e' gia' quotato: la sua chiave, o un Ø uguale di cui non si sa il cilindro.</summary>
+        private static bool CilindroQuotato(HashSet<string> gia, CilindroDelTondo c)
+        {
+            return gia.Contains(c.Chiave) || gia.Contains("cil?|" + Math.Round(c.DiametroMm, 2).ToString("0.00", Ci));
+        }
+
+        /// <summary>
+        /// I cilindri del pezzo coassiali col tondo, ciascuno col punto a meta' lungo
+        /// l'asse e la sua chiave. Vuoto se la vista non e' di una parte.
+        /// </summary>
+        private static List<CilindroDelTondo> CilindriCoassiali(IView vista, double[] asse, double[] o)
+        {
+            var fuori = new List<CilindroDelTondo>();
             try
             {
                 var parte = vista.ReferencedDocument as IPartDoc;
@@ -274,7 +321,8 @@ namespace Riscontro.Disegno
                         double tmin, tmax;
                         if (!EstremiDellaFaccia(faccia, cp, out tmin, out tmax)) continue;
                         double tm = (tmin + tmax) / 2;
-                        fuori.Add(new[] { Math.Round(cp[6] * 2000.0, 3), cp[0] + tm * cp[3], cp[1] + tm * cp[4], cp[2] + tm * cp[5] });
+                        var meta = new[] { cp[0] + tm * cp[3], cp[1] + tm * cp[4], cp[2] + tm * cp[5] };
+                        fuori.Add(new CilindroDelTondo { DiametroMm = Math.Round(cp[6] * 2000.0, 3), Meta = meta, Chiave = ChiaveDelCilindro(cp[6] * 2000.0, meta) });
                     }
             }
             catch { }
@@ -421,6 +469,89 @@ namespace Riscontro.Disegno
             }
             catch { return false; }
             return tmax > tmin;
+        }
+
+        /// <summary>
+        /// La chiave di UN cilindro del pezzo: il diametro e il punto a meta' lungo
+        /// l'asse, nel modello («cil|30.00|x,y,z», millimetri al decimo). Due
+        /// gradini dello stesso Ø, o un foro dello stesso Ø di un gradino, sono
+        /// cilindri diversi e hanno chiavi diverse: con la chiave del solo
+        /// diametro uno cancellava l'altro (revisione avversariale del 27/9/2026).
+        /// Il punto a meta' non dipende dall'origine che la superficie sceglie
+        /// sull'asse, quindi le due meta' di una faccia spezzata danno la stessa.
+        /// </summary>
+        private static string ChiaveDelCilindro(double diametroMm, double[] meta)
+        {
+            return "cil|" + Math.Round(diametroMm, 2).ToString("0.00", Ci) + "|" +
+                   string.Join(",", meta.Take(3).Select(v => (Math.Round(v * 1000, 1) + 0.0).ToString("0.0", Ci)));
+        }
+
+        /// <summary>La chiave del cilindro di una faccia, o null se la faccia non e' un cilindro che si legge.</summary>
+        private static string ChiaveDelCilindro(IFace2 faccia)
+        {
+            try
+            {
+                var su = faccia?.GetSurface() as ISurface;
+                if (su == null || !su.IsCylinder()) return null;
+                var cp = su.CylinderParams as double[];
+                double tmin, tmax;
+                if (cp == null || cp.Length < 7 || !EstremiDellaFaccia(faccia, cp, out tmin, out tmax)) return null;
+                double tm = (tmin + tmax) / 2;
+                return ChiaveDelCilindro(cp[6] * 2000.0, new[] { cp[0] + tm * cp[3], cp[1] + tm * cp[4], cp[2] + tm * cp[5] });
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// La chiave del cilindro di cui il cerchio e' un bordo (stesso raggio), o
+        /// null. Per co-spigoli e anelli, come PassanteDallaGeometria: e' la strada
+        /// che da fuori processo risponde.
+        /// </summary>
+        private static string ChiaveDelCilindroDelCerchio(IEdge e)
+        {
+            try
+            {
+                var cb = (e?.GetCurve() as ICurve)?.CircleParams as double[];
+                if (cb == null || cb.Length < 7) return null;
+                foreach (var oc in (e.GetCoEdges() as object[]) ?? new object[0])
+                {
+                    var f = ((oc as ICoEdge)?.GetLoop() as ILoop2)?.GetFace() as IFace2;
+                    var su = f?.GetSurface() as ISurface;
+                    if (su == null || !su.IsCylinder()) continue;
+                    var cp = su.CylinderParams as double[];
+                    if (cp == null || cp.Length < 7 || Math.Abs(cp[6] - cb[6]) > 1e-8) continue;
+                    return ChiaveDelCilindro(f);
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// Che faccia borda un cerchio del tondo: «piano» se una delle sue facce e' un
+        /// piano perpendicolare all'asse (una testa, uno spallamento), altrimenti
+        /// «cono» (uno smusso), «toro» (un raccordo) o «altro».
+        /// </summary>
+        private static string CosaBordaIlCerchio(IEdge spigolo, double[] asse)
+        {
+            string trovato = "altro";
+            try
+            {
+                foreach (var oc in (spigolo?.GetCoEdges() as object[]) ?? new object[0])
+                {
+                    var su = (((oc as ICoEdge)?.GetLoop() as ILoop2)?.GetFace() as IFace2)?.GetSurface() as ISurface;
+                    if (su == null) continue;
+                    if (su.IsPlane())
+                    {
+                        var pp = su.PlaneParams as double[];
+                        if (pp != null && pp.Length >= 3 && Math.Abs(Dot(new[] { pp[0], pp[1], pp[2] }, asse)) > 0.9999) return "piano";
+                    }
+                    else if (su.IsCone()) trovato = "cono";
+                    else if (su.IsTorus() && trovato != "cono") trovato = "toro";
+                }
+            }
+            catch { }
+            return trovato;
         }
 
         /// <summary>La chiave di una lunghezza del tondo: i centri delle due facce, nel modello.</summary>

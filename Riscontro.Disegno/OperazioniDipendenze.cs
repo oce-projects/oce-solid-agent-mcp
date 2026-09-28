@@ -67,7 +67,16 @@ namespace Riscontro.Disegno
                                  "ciascuno c'e' lo dice il disco (File.Exists), perche' il parametro dell'API che " +
                                  "promette di segnare i riferimenti rotti non li segna (misurato).",
             };
-            if (voci == null) misure["quanti_file"] = null;   // l'API non ha risposto: «non lo so», non «zero file»
+            if (voci == null)
+            {
+                // L'API NON HA RISPOSTO: «non lo so», non «zero file» — e nemmeno
+                // «zero mancanti» (revisione del 27/9/2026: quanti_mancano diceva 0).
+                misure["quanti_file"] = null;
+                misure["mancanti"] = null;
+                misure["quanti_mancano"] = null;
+                misure["attenzione"] = "GetDependencies non ha risposto: non so da quali file dipende il documento, " +
+                                       "ne' se ne manca qualcuno. Non prenderlo per un documento senza dipendenze.";
+            }
             if (mancanti.Count > 0)
                 misure["attenzione"] = mancanti.Count + (mancanti.Count == 1 ? " file manca" : " file mancano") + " sul disco: " +
                     string.Join(", ", mancanti) + ". In un assieme quei componenti risultano soppressi: ritrova i file " +

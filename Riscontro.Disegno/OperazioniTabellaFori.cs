@@ -355,7 +355,12 @@ namespace Riscontro.Disegno
             {
                 var ann = tabella.GetAnnotation() as IAnnotation;
                 modello.ClearSelection2(true);
-                if (ann != null && ann.Select3(false, null)) modello.EditDelete();
+                // DeleteSelection2 E NON EditDelete: EditDelete chiede conferma con
+                // una finestra, e la chiamata COM non torna (vedi OperazioniSw,
+                // SenzaLoSchizzo). Era l'unica rimasta, trovata dal workflow W-S il
+                // 27/9/2026; adesso il divieto e' in Prove/ProveLeFirmeVietate.
+                if (ann != null && ann.Select3(false, null))
+                    modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                 modello.ClearSelection2(true);
             }
             catch { }

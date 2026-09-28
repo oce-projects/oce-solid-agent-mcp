@@ -1,0 +1,61 @@
+{
+  "nome": "lim_iges_di_un_assieme",
+  "famiglia": "esporta",
+  "perche": "REVISIONE AVVERSARIALE DEL 27/9/2026. Con Z-D6 anche esporta_iges accettava un assieme, ma senza la verifica dei solidi che ha lo STEP, e il risultato dipende da una preferenza globale (swIGESComponentsIntoOneFile) che il ponte non imposta: con quella spenta SOLIDWORKS scrive un file per componente, e quello in «percorso» puo' non contenere l'assieme intero. Finche' non e' misurato, l'IGES di un assieme si rifiuta e rimanda allo STEP.",
+  "il_difetto_che_questo_caso_prende": "Un IGES d'assieme dato per buono senza sapere se dentro c'e' l'assieme intero.",
+  "assieme": {
+    "componenti": [
+      {
+        "nome": "base",
+        "passi": [
+          {
+            "operazione": "estrudi_rettangolo",
+            "argomenti": {
+              "piano": "superiore",
+              "lunghezza_mm": 120,
+              "larghezza_mm": 80,
+              "spessore_mm": 10,
+              "centrato": true
+            }
+          }
+        ]
+      },
+      {
+        "nome": "coperchio",
+        "posizione_mm": [
+          0,
+          7,
+          0
+        ],
+        "passi": [
+          {
+            "operazione": "estrudi_rettangolo",
+            "argomenti": {
+              "piano": "superiore",
+              "lunghezza_mm": 120,
+              "larghezza_mm": 80,
+              "spessore_mm": 4,
+              "centrato": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "passi": [
+    {
+      "operazione": "esporta_iges",
+      "argomenti": {
+        "percorso": "{LAVORO}\\lim_iges_di_un_assieme.igs",
+        "rappresentazione": "solidi"
+      },
+      "deve_fallire": {
+        "il_messaggio_contiene": [
+          "IGES di un assieme",
+          "esporta_step"
+        ],
+        "gemella": "iges_solidi"
+      }
+    }
+  ]
+}

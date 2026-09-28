@@ -461,6 +461,10 @@ quando e' zero e' un conteggio che nessuno controlla.
 
 - **Serve una sessione SOLIDWORKS aperta.** Il ponte si aggancia a una sessione che c'e',
   non ne avvia una.
+- **Provato solo su SOLIDWORKS 2021 SP5.1** (interop 29.5.1). Le versioni piu'
+  vecchie si possono provare quando serve; le piu' nuove non sono provate.
+  L'installatore le accetta tutte, e per una versione diversa da quella provata
+  mette un avviso.
 - **Niente scritture fuori dal documento aperto.** Il ponte non salva nel
   vault, non tocca librerie, non installa niente.
 - **Nessuna operazione non misurata.** Se un'operazione non e' stata costruita

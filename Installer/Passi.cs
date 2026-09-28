@@ -170,6 +170,18 @@ namespace Oce.Solid.Agent.Installer
             return null;
         }
 
+        /// <summary>La versione principale di SOLIDWORKS provata: 29 = 2021 (SP5.1).</summary>
+        private const int VersioneProvata = 29;
+
+        /// <summary>«29.5.1.1» -> 29; 0 se non si legge. 29 e' la 2021: l'anno e' 1992 + la principale.</summary>
+        private static int VersionePrincipale(string v)
+        {
+            if (string.IsNullOrWhiteSpace(v)) return 0;
+            int punto = v.IndexOf('.');
+            int n;
+            return int.TryParse(punto > 0 ? v.Substring(0, punto) : v, out n) ? n : 0;
+        }
+
         private static bool CartellaHaInterop(string cartella)
         {
             try
@@ -193,11 +205,25 @@ namespace Oce.Solid.Agent.Installer
                         Path.Combine(redist, "SolidWorks.Interop.sldworks.dll")).FileVersion;
                 }
                 catch { }
+                // LA VERSIONE PROVATA SI DICHIARA (voce H17, decisione del proprietario del
+                // 27/9/2026): il ponte e' misurato solo su SOLIDWORKS 2021 SP5.1
+                // (interop 29.5.1). Una versione diversa non si blocca: si avvisa.
+                // Le piu' vecchie si possono provare quando serve, le piu' nuove no
+                // (la licenza su cui si prova non le installa).
+                int principale = VersionePrincipale(v);
+                string anno = principale > 0 ? (principale + 1992).ToString() : null;
+                bool provata = principale == VersioneProvata;
                 return new Controllo
                 {
                     Titolo = "SOLIDWORKS installato",
-                    Esito = Esito.Bene,
-                    Dettaglio = redist + (string.IsNullOrWhiteSpace(v) ? "" : "  (interop " + v + ")"),
+                    Esito = provata || principale <= 0 ? Esito.Bene : Esito.Avviso,
+                    Dettaglio = redist + (string.IsNullOrWhiteSpace(v) ? "" : "  (interop " + v +
+                                (anno == null ? "" : ", SOLIDWORKS " + anno) + ")"),
+                    CosaFare = provata || principale <= 0 ? null :
+                        "Il ponte e' provato solo su SOLIDWORKS 2021 SP5.1. Con la " + anno + " si installa lo " +
+                        "stesso, ma nessuno l'ha misurata: " + (principale > VersioneProvata
+                            ? "e' piu' nuova di quella provata, e certe API possono essersi mosse."
+                            : "e' piu' vecchia di quella provata; si puo' provare, e se qualcosa non va dillo."),
                 };
             }
 

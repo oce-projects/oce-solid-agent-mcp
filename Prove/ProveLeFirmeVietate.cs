@@ -63,11 +63,19 @@ namespace Prove.Contratti
                     "quota nasce orientata a caso, ed e' un difetto che sullo " +
                     "schermo non si vede (voce GP6)"
                 },
+                {
+                    @"\.\s*EditDelete\s*\(",
+                    "IModelDoc2.EditDelete chiede conferma con una finestra: dentro " +
+                    "SOLIDWORKS la chiamata COM non torna e il CAD resta piantato. Si " +
+                    "usa `modello.Extension.DeleteSelection2(swDelete_Absorbed)`. " +
+                    "Era vietata solo nei commenti, e OperazioniTabellaFori la chiamava " +
+                    "davvero (trovata dal workflow W-S il 27/9/2026)"
+                },
             };
 
         internal static void Tutte()
         {
-            Gruppo("le chiamate vietate per contratto (GP6)");
+            Gruppo("le chiamate vietate per contratto (GP6, EditDelete)");
 
             // ── PRIMA: LA REGOLA HA I DENTI? ─────────────────────────────
             var devonoScattare = new[]
@@ -75,6 +83,7 @@ namespace Prove.Contratti
                 "var q = modello.AddDimension(x, y, z);",
                 "if (!modello.AddDimension2(x, y, z)) return;",
                 "modello . AddDimension ( 0, 0, 0 );",
+                "if (ann.Select3(false, null)) modello.EditDelete();",
             };
             int prese = 0;
             foreach (var r in devonoScattare)
@@ -92,12 +101,13 @@ namespace Prove.Contratti
                 "var natura = modello.Extension.AddDimension(x, y, z, 0);",
                 "modello.Extension.AddDimension(voce.X, voce.Y, voce.Z, 0);",
                 "// AddDimension apre un modale: spegnere swInputDimValOnCreate",
+                "modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);",
             };
             var urlate = devonoPassare
                 .Where(r => Vietate.Keys.Any(k => Regex.IsMatch(r, k))).ToList();
             Segna("e NON prende `Extension.AddDimension`, che e' quella giusta",
                   urlate.Count == 0,
-                  urlate.Count == 0 ? "tre righe legittime, zero falsi allarmi"
+                  urlate.Count == 0 ? "quattro righe legittime, zero falsi allarmi"
                                     : string.Join(" | ", urlate));
 
             // ── POI: IL SORGENTE VERO ────────────────────────────────────

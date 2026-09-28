@@ -38,9 +38,13 @@ const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 //
 // Si leggono dalle intestazioni, che sono l'unico posto dove un nome di voce
 // e' definito. `#### [x] K17 — ...` oppure `### [ ] W3.1 — ...`.
+// E LE SOTTO-VOCI, a cinque cancelletti (28/9/2026): `##### [ ] U1.1 — ...`,
+// `##### [ ] Z-C21.3 — ...`. Le voci grandi delle Sezioni T e U, di W3.1-bis e
+// di Z-C21 si dividono cosi', e un rimando a una sotto-voce che esiste veniva
+// dato per rotto.
 const esistono = new Set();
 for (const r of righe) {
-  const m = r.match(/^#{2,4} \[[ x~]\] ([A-Z][A-Za-z0-9.\-]*)\b/);
+  const m = r.match(/^#{2,5} \[[ x~]\] ([A-Z][A-Za-z0-9.\-]*)\b/);
   if (m) esistono.add(m[1]);
   // anche le sezioni senza casella: `## W2 — ...`, `### Z-C — ...`
   const s = r.match(/^#{2,4} ([A-Z][A-Za-z0-9.\-]*)\s+—/);

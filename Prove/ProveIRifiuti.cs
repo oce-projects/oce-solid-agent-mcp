@@ -149,7 +149,7 @@ namespace Prove.Contratti
         /// («c'e' modifica_quota»), «passante» su un'estrusione («dimmi profondita_mm»),
         /// passante o profondita'.
         /// </summary>
-        private const int Pavimento = 128;
+        private const int Pavimento = 136;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

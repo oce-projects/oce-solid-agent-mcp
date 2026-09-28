@@ -510,7 +510,9 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/ 23   il guscio, e da che parte toglie;
+casi/lavorazioni/ 24   il guscio, e da che parte toglie;
+                       la piastra simmetrica che cresce dalle due parti
+                       con cambia_estrusione (revisione del 27/9, Z-C20);
                        la quota che fa uscire l'asola dal materiale, rifiutata
                        e rimessa com'era (voce E18 c), e la sua gemella;
                        il raccordo sui quattro angoli e il foro guidato che
@@ -544,12 +546,15 @@ casi/verifica/     5   com'e' venuto: solido, chiuso, sano
 casi/misura/      10   quanto pesa, in che scatola ci sta, quanto dista
 casi/corpi/       14   le booleane, il raccordo variabile, il filetto cosmetico;
                        l'unione di corpi che non si toccano rifiutata (Z-C18)
-casi/esporta/     10   STL, STEP e IGES: il file riletto byte per byte,
-                       e il volume riaperto in SOLIDWORKS
+casi/esporta/     11   STL, STEP e IGES: il file riletto byte per byte,
+                       e il volume riaperto in SOLIDWORKS; l'IGES di un
+                       assieme rifiutato (Z-C20)
 casi/proprieta/   11   i due cassetti, e il codice che va in distinta
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-casi/assiemi/      9   inserire non e' accoppiare; un vincolo solo non basta;
+casi/assiemi/     10   inserire non e' accoppiare; un vincolo solo non basta;
+                       due basi uguali e uno STEP: una forma per pezzo,
+                       la massa per istanza (Z-C20);
                        il coperchio rifatto tiene i vincoli e li rompe;
                        il coperchio DENTRO la base (GA10);
                        toccarsi non e' compenetrarsi (GA10, la gemella);
@@ -559,7 +564,10 @@ casi/assiemi/      9   inserire non e' accoppiare; un vincolo solo non basta;
                        la staffa destra e la sinistra: istanza, opposto legato
                        e slegato, su tre piani (GA11); da quali file dipende
                        l'assieme, e che ci sono (Z-B3)
-casi/tavola/      33   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      36   il primo caso che arriva in TAVOLA (voce GT0);
+                       un Ø8 passante e un Ø8 cieco, due richiami; la borchia
+                       non e' un foro; l'albero smussato senza le gambe dello
+                       smusso (revisione del 27/9, Z-C20);
                        la tavola della piastra con fori e smusso, GUARDATA:
                        fori col richiamo e le posizioni, smusso 5 x 45, niente
                        quote ripetute fra viste (voce GT11);
@@ -623,7 +631,9 @@ casi/lamiera/     12   la L si sviluppa lunga quanto il conto a mano; data al
                        e l'aperto senza gioco rifiutato; la piega da schizzo
                        che alza meta' lamiera (ingombro dal conto, sviluppo
                        invariato) e la piega a 180 rifiutata (voce GP18)
-casi/quote/        5   la piastra si quota da sola con DimXpert, coi valori
+casi/quote/        6   la variabile che non scavalca lo smusso, rifiutata e
+                       rimessa com'era (Z-C20); la piastra si quota da sola
+                       con DimXpert, coi valori
                        giusti; con due riferimenti rifiuta (voce Z-H3); la
                        tolleranza sulla quota del modello, H7 riscontrato sulla
                        ISO 286 e ±0,05, IT14 rifiutato (voce Z-F2); le quote del
