@@ -1884,43 +1884,55 @@ namespace Riscontro.Disegno.Catalogo
                     Nome = "fazzoletto",
                     Famiglia = "saldature",
                     DocumentoRichiesto = "parte",
-                    // ── NON PROVATA: il fazzoletto non nasce ────────────
+                    // ── PROVATA DAL 28/9/2026 (voce GP20) ───────────────
                     //
-                    // Era `Provata = true` senza nessun caso che la
-                    // esercitasse (voce Z-C6), e quando il caso si e' provato
-                    // a scriverlo, il 25/9/2026, **non e' nato nessun
-                    // fazzoletto**. Su una T di tubolari 80x80x5 tagliata per
-                    // davvero, con la faccia alta della barra lunga e la
-                    // faccia laterale della corta (si toccano lungo uno
-                    // spigolo di 68 mm, ad angolo retto — le stesse su cui
-                    // `cordone_saldatura` nasce):
-                    //
-                    //   - `InsertGussetFeature3` con le due facce selezionate,
-                    //     senza marca, marche 1/1 e 1/2, ordine invertito;
-                    //     spessore interno, esterno e da tutte e due le parti;
-                    //     profilo triangolare e poligonale; lati o angolo;
-                    //     posizione inizio e centro;
-                    //   - `InsertGussetFeature2` con le facce passate come
-                    //     `Face2[]`, come `DispatchWrapper[]`, e per selezione;
-                    //   - `InsertGussetFeature`, la prima, per selezione;
-                    //   - su un telaio 1000x800 a quartabuono, le due facce
-                    //     interne di un angolo.
-                    //
-                    // **null ogni volta, albero e volume invariati.** Lo stesso
-                    // difetto di `taglia_membri` (array non tipizzati) e' stato
-                    // escluso passando gli array tipizzati. Voce GP20 del TODO
-                    // per dove ripartire.
-                    Provata = false,
+                    // Fino alla libreria 0.138.0 non e' mai nato un fazzoletto:
+                    // il metodo passava un poligono coi lati corti a zero
+                    // (ProfileD3 = ProfileD4 = 0) e nessuna marca, e
+                    // InsertGussetFeature3 tornava null. La guida API (Remarks
+                    // di InsertGussetFeature3, Insert_Gusset_Feature_Example_
+                    // CSharp.htm) vuole le due facce con marca 1 E un profilo
+                    // valido. Misurato con la sonda scratchpad\cinque\
+                    // probe_fazzoletto.cs sulla T 80x80x5: triangolo 60/60
+                    // spesso 5 +9000 mm3, poligono 60/60/15/15 +12937,5, corpi
+                    // 2 -> 3. Casi: saldature/il_fazzoletto_sta_nell_angolo e
+                    // saldature/il_poligono_del_fazzoletto_non_e_degenere.
+                    Provata = true,
                     Sommario =
-                        "Fazzoletto di irrigidimento fra due facce di un nodo.",
+                        "Fazzoletto di rinforzo, triangolare o poligonale, nell'angolo fra due facce "
+                        + "piane di due barre che si toccano.",
                     Descrizione =
-                        "Mette un FAZZOLETTO di rinforzo nell'angolo fra due barre: una "
-                        + "piastra triangolare saldata che irrigidisce il nodo.\n\nLe due "
-                        + "facce su cui si appoggia si indicano per identificativo, prese "
-                        + "dallo stato del documento: e' un'operazione che si chiede DOPO "
-                        + "aver fatto il telaio, guardandolo. In un angolo di tubolari le "
-                        + "facce candidate sono quattro, e sceglierne due «probabili» "
-                        + "vorrebbe dire mettere il rinforzo dalla parte sbagliata.",
+                        "Mette un FAZZOLETTO di rinforzo nell'angolo fra due barre di un telaio "
+                        + "saldato: una piastra, corpo a se', che irrigidisce il nodo e finisce in "
+                        + "distinta.\n\nLE DUE FACCE si indicano per identificativo, prese dallo "
+                        + "stato del documento: e' un'operazione che si chiede DOPO aver fatto le "
+                        + "barre e i tagli, guardandole. Devono essere PIANE, fare un angolo e "
+                        + "toccarsi lungo uno spigolo: per una barra in battuta su un'altra, la "
+                        + "faccia LATERALE della barra e la faccia su cui arriva (le stesse di "
+                        + "«cordone_saldatura»). In un angolo di tubolari le facce candidate sono "
+                        + "quattro, e sceglierne due «probabili» vorrebbe dire mettere il rinforzo "
+                        + "dalla parte sbagliata. Facce parallele, lontane o curve: rifiuto, prima "
+                        + "di toccare il pezzo.\n\nIL PROFILO: «triangolare» (il predefinito) coi "
+                        + "due lati «lato1_mm» e «lato2_mm» lungo le due facce; oppure «poligonale», "
+                        + "che taglia la punta e vuole anche i due lati corti «lato3_mm» e "
+                        + "«lato4_mm», piu' corti dei due lati. Un poligono senza lati corti e' "
+                        + "degenere e lo rifiuto: e' il difetto per cui questa operazione non ha "
+                        + "mai creato niente fino alla libreria 0.138.0. Lo spessore sta da tutte e "
+                        + "due le parti del piano del fazzoletto; «posizione» e' «inizio», «centro» "
+                        + "(il predefinito) o «fine» lungo lo spigolo comune, e un altro valore lo "
+                        + "rifiuto invece di metterlo al centro di nascosto.\n\nLA RISPOSTA E' "
+                        + "RILETTA, non ripetuta: il volume aggiunto contro il conto a mano "
+                        + "(«volume_added_mm3», «volume_expected_mm3»), i corpi prima e dopo, lo "
+                        + "spessore, il profilo, la posizione e le due facce d'appoggio riletti "
+                        + "dalla feature («thickness_read_mm», «profile_read», «location_read», "
+                        + "«supporting_faces_area_mm2»), il corpo nuovo e la sua scatola "
+                        + "(«new_body», «new_body_box_mm»). Se una di queste non torna, il "
+                        + "fazzoletto lo tolgo e te lo dico. Se ti serve solo documentare la "
+                        + "saldatura, usa «cordone_saldatura».",
+                    // Niente esempio: i due casi verdi nominano le facce coi
+                    // selettori del banco (@faccia(area~=...,verso=...)), che il
+                    // client non puo' copiare (vedi OperazioneDisegno.Esempio).
+                    Esempio = null,
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -1929,23 +1941,37 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
-                                "description", "esattamente DUE facce, una per barra, prese dallo stato del documento"),
+                                "description", "esattamente DUE facce piane, una per barra, che si toccano lungo "
+                                    + "uno spigolo e fanno angolo, prese dallo stato del documento (F1, F2...)"),
                             "spessore_mm", O(
                                 "type", "number",
-                                "description", "spessore della piastra"),
+                                "description", "spessore della piastra, da tutte e due le parti del suo piano"),
                             "lato1_mm", O(
                                 "type", "number",
-                                "description", "lato sulla prima faccia"),
+                                "description", "lato del fazzoletto lungo la prima faccia"),
                             "lato2_mm", O(
                                 "type", "number",
-                                "description", "lato sulla seconda faccia"),
+                                "description", "lato del fazzoletto lungo la seconda faccia"),
+                            "profilo", O(
+                                "type", "string",
+                                "enum", A(
+                                    "triangolare",
+                                    "poligonale"),
+                                "description", "forma della piastra (predefinito: triangolare). Il poligonale "
+                                    + "taglia la punta e vuole «lato3_mm» e «lato4_mm»"),
+                            "lato3_mm", O(
+                                "type", "number",
+                                "description", "solo col profilo poligonale: primo lato corto, piu' corto dei due lati"),
+                            "lato4_mm", O(
+                                "type", "number",
+                                "description", "solo col profilo poligonale: secondo lato corto, piu' corto dei due lati"),
                             "posizione", O(
                                 "type", "string",
                                 "enum", A(
                                     "inizio",
                                     "centro",
                                     "fine"),
-                                "description", "dove sta lungo il nodo (predefinito: centro)")),
+                                "description", "dove sta lungo lo spigolo fra le due facce (predefinito: centro)")),
                         "required", A(
                             "facce_uid",
                             "spessore_mm",

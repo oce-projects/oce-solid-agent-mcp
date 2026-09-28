@@ -971,6 +971,90 @@ namespace Riscontro.Disegno
             });
         }
 
+        // ─────────────────────────────────────────────────────────────────
+        // Il fazzoletto (voce GP20)
+        // ─────────────────────────────────────────────────────────────────
+        //
+        // NON E' MAI NATO UN FAZZOLETTO FINO ALLA LIBRERIA 0.138.0, E LA CAUSA
+        // ERA IL PROFILO DEGENERE.
+        //
+        // Il metodo spedito passava `BIsProfile = true` (poligono) con
+        // `ProfileD3 = ProfileAngle = ProfileD4 = 0` e nessuna marca: un
+        // poligono con i due lati corti a zero si chiude su se stesso, e
+        // SOLIDWORKS torna null senza dire perche'. Sedici varianti alla cieca
+        // (25/9/2026) avevano provato il triangolo SENZA marca e la marca 1/1
+        // col poligono DEGENERE, mai le due cose giuste insieme.
+        //
+        // ── LA GUIDA API (scratchpad\apihelp\estratto) ──────────────────────
+        //
+        //   SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~InsertGussetFeature3.html,
+        //   Remarks: «Before calling this method, you must call
+        //   IModelDocExtension::SelectByID2 to select two faces that are the
+        //   supporting legs of this gusset with a Mark of 1.»
+        //   Parametri: «BIsProfile — True to use a polygon profile, false to
+        //   use a triangle profile»; «ProfileAngle — valid only if BUseLenDim
+        //   is false»; «ProfileD4 — valid only if BUseLenDim is true».
+        //
+        //   Insert_Gusset_Feature_Example_CSharp.htm: due facce con marca 1,
+        //   poi InsertGussetFeature3(0.005, swGussetThicknessBothSides,
+        //   swGussetProfileLocationCenter, false, 0.025, 0.025, 0.015,
+        //   0.78539816339745, 0.015, false, 0.005, 0, false, false, false,
+        //   0.0125, 0.0125, 0.785398163397452, true, false). Il triangolo porta
+        //   comunque D3 = D4 = 15 mm e 45 gradi: qui si passano gli stessi.
+        //
+        //   SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IGussetFeatureData.html
+        //   e Get_Gusset_Feature_Data_Example_CSharp.htm: «swGussetFeatureData
+        //   = (GussetFeatureData)swFeature.GetDefinition();», poi
+        //   AccessSelections, ProfileType, ThicknessType, Thickness,
+        //   GetSupportingFaces, ReleaseSelectionAccess.
+        //   ...IGussetFeatureData~AccessSelections.html: «puts the model into a
+        //   rollback state ... You must use ... IGussetFeatureData::
+        //   ReleaseSelectionAccess if you did not [modify the feature]».
+        //
+        //   Gli enum, letti per riflessione sull'interop installato (le pagine
+        //   di swconst non sono nell'estrazione): swGussetProfileType_e
+        //   Polygon/Triangle, swGussetProfileLocationType_e Start/Center/End,
+        //   swGussetThicknessType_e Inner/BothSides/Outer. Qui si usano solo
+        //   per NOME.
+        //
+        // ── MISURATO (28/9/2026, sonda scratchpad\cinque\probe_fazzoletto.cs) ─
+        //
+        // Sulla T di tubolari 80x80x5 (lunga 600 in X, corta 300 in Z, la corta
+        // tagliata dalla lunga), fra la faccia alta della lunga e la faccia
+        // laterale della corta — le stesse su cui nasce `cordone_saldatura`:
+        //
+        //   la ricetta spedita (poligono, D3 = D4 = 0, senza marca)  -> null
+        //   la stessa con marca 1/1                                  -> null
+        //   la guida: triangolo 60/60, spessore 5, marca 1/1         -> NASCE,
+        //                                       +9000 mm3, corpi 2 -> 3
+        //   poligono 60/60 con D3 = D4 = 15, marca 1/1               -> NASCE,
+        //                                       +12937,5 mm3
+        //   triangolo via InsertGussetFeature2 con Face2[]           -> NASCE
+        //
+        // ── I CONTI A MANO ──────────────────────────────────────────────────
+        //
+        // Triangolo: lato1 x lato2 / 2 x spessore = 60 x 60 / 2 x 5 = 9000.
+        // Poligono: il pentagono (0,0) (l1,0) (l1,a) (b,l2) (0,l2), con a e b i
+        // due lati corti; per la formula dell'area di Gauss
+        //     (l1*l2 + l1*a + b*l2 - a*b) / 2
+        // = 60*60 - 45*45/2 = 2587,5 mm2, x 5 = 12937,5: e' il numero misurato.
+        // QUALE dei due lati corti sia `a` e quale `b` la guida non lo dice, e
+        // con 60/60 e 15/15 non si vede: si accettano tutte e due le letture.
+        // Fra due facce che non fanno 90 gradi l'area del triangolo si
+        // moltiplica per il seno dell'angolo (i lati corrono lungo le facce);
+        // quella del poligono si controlla esatta solo ad angolo retto, che e'
+        // il caso misurato, e altrove si pretende almeno il triangolo che il
+        // pentagono contiene.
+        private const int MarcaDelleFacceDiAppoggio = 1;       // Remarks di InsertGussetFeature3
+        private const double TriangoloD3 = 0.015;              // Insert_Gusset_Feature_Example_CSharp.htm
+        private const double TriangoloAngolo = 0.78539816339745;
+        private const double TriangoloD4 = 0.015;
+        private const double SmussoD5 = 0.0125;                // idem; lo smusso resta spento
+        private const double SmussoD6 = 0.0125;
+
+        private const string FazzolettoRestaNelPezzo =
+            " Il fazzoletto pero' e' rimasto nel pezzo: ritiralo — " + Frasi.CosiSiRitira + ".";
+
         private Esito Fazzoletto(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
@@ -989,78 +1073,514 @@ namespace Riscontro.Disegno
             if (uid.Count != 2)
                 return Fallito(
                     "Il fazzoletto va appoggiato su DUE facce, una per barra. " +
-                    "Ne hai indicate " + uid.Count + ".");
+                    "Ne hai indicate " + uid.Count + ": indica in «facce_uid» esattamente due " +
+                    "identificativi presi dallo stato del documento (F1, F2...).");
 
             double spessore = Num(a, "spessore_mm", 0);
             double lato1 = Num(a, "lato1_mm", 0);
             double lato2 = Num(a, "lato2_mm", 0);
-            if (spessore <= 0) return Fallito("Il fazzoletto non ha spessore.");
+            if (spessore <= 0)
+                return Fallito("Il fazzoletto non ha spessore: indica «spessore_mm» maggiore di zero, per esempio 5.");
             if (lato1 <= 0 || lato2 <= 0)
-                return Fallito("Il fazzoletto non ha i due lati.");
+                return Fallito("Il fazzoletto non ha i due lati: indica «lato1_mm» e «lato2_mm» maggiori di zero, per esempio 60 e 60.");
 
-            modello.ClearSelection2(true);
-            foreach (var u in uid)
+            // ── IL PROFILO: triangolare, oppure poligonale NON degenere ─────
+            string profilo = (Str(a, "profilo", "triangolare") ?? "").Trim().ToLowerInvariant();
+            Func<string, bool> dato = k =>
             {
-                StatoDocumento.FirmaEntita firma;
-                if (stato == null || !stato.Firme.TryGetValue(u, out firma) || firma.Tipo != "FACE")
-                    return Fallito("La faccia «" + u + "» non c'e' piu' in questo documento.");
-                string scostamento;
-                if (!FirmaCombacia(a, u, firma, out scostamento)) return Fallito(scostamento);
-                var ent = firma.Entita as IEntity;
-                if (ent == null || !ent.Select4(true, null))
-                    return Fallito("La faccia «" + u + "» non si e' lasciata selezionare.");
+                object g;
+                return a != null && a.TryGetValue(k, out g) && g != null;
+            };
+            bool poligono;
+            double lato3 = 0, lato4 = 0;
+            if (profilo == "triangolare")
+            {
+                poligono = false;
+                // Un ingresso che non si usa non si inghiotte (rilievo C1-1).
+                if (dato("lato3_mm") || dato("lato4_mm"))
+                    return Fallito(
+                        "«lato3_mm» e «lato4_mm» valgono solo col profilo «poligonale»: col " +
+                        "triangolare li butterei via senza dirtelo. Toglili, oppure chiedi " +
+                        "«profilo»: «poligonale».");
             }
+            else if (profilo == "poligonale")
+            {
+                poligono = true;
+                lato3 = Num(a, "lato3_mm", 0);
+                lato4 = Num(a, "lato4_mm", 0);
+                if (lato3 <= 0 || lato4 <= 0)
+                    return Fallito(
+                        "Un profilo «poligonale» senza «lato3_mm» e «lato4_mm», o con uno dei due a zero, " +
+                        "e' degenere: il poligono si chiude su se stesso e SOLIDWORKS non crea niente, " +
+                        "senza dire perche'. E' il difetto per cui questa operazione non ha mai creato " +
+                        "un fazzoletto fino alla libreria 0.138.0 (voce GP20). Dai i due lati corti, " +
+                        "oppure usa «profilo»: «triangolare».");
+                double corto = Math.Min(lato1, lato2);
+                if (lato3 >= corto || lato4 >= corto)
+                    return Fallito(
+                        "«lato3_mm» e «lato4_mm» sono i due lati CORTI del poligono, quelli che tagliano " +
+                        "la punta: devono essere piu' corti di «lato1_mm» e «lato2_mm» (qui " +
+                        corto.ToString("0.###", CultureInfo.InvariantCulture) + " mm), se no il " +
+                        "poligono non e' piu' un fazzoletto. Se lo vuoi pieno fino in punta, usa " +
+                        "«profilo»: «triangolare».");
+            }
+            else
+                return Fallito(
+                    "«profilo» e' «triangolare» o «poligonale», non «" + profilo + "»: usa il " +
+                    "triangolare (il predefinito), oppure il poligonale con «lato3_mm» e «lato4_mm».");
 
-            string posizione = Str(a, "posizione", "centro");
-            short dove;
+            // ── LA POSIZIONE LUNGO LO SPIGOLO (rilievo C1-1) ────────────────
+            // Fino alla 0.138.0 un valore sconosciuto finiva in silenzio al
+            // centro, e la risposta ripeteva la stringa ricevuta.
+            string posizione = (Str(a, "posizione", "centro") ?? "").Trim().ToLowerInvariant();
+            int dove;
             switch (posizione)
             {
-                case "inizio": dove = (short)swGussetProfileLocationType_e.swGussetProfileLocationStart; break;
-                case "fine": dove = (short)swGussetProfileLocationType_e.swGussetProfileLocationEnd; break;
-                default: dove = (short)swGussetProfileLocationType_e.swGussetProfileLocationCenter; break;
+                case "inizio": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationStart; break;
+                case "centro": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationCenter; break;
+                case "fine": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationEnd; break;
+                default:
+                    return Fallito(
+                        "«posizione» e' «inizio», «centro» o «fine» lungo lo spigolo fra le due facce, " +
+                        "non «" + posizione + "». Non la metto al centro di nascosto: usa uno dei tre, " +
+                        "oppure togli «posizione» e vale il centro.");
             }
 
-            IFeature feature;
+            // ── LE DUE FACCE, dallo stato ───────────────────────────────────
+            var facce = new IFace2[2];
+            for (int i = 0; i < 2; i++)
+            {
+                string u = uid[i];
+                StatoDocumento.FirmaEntita firma;
+                if (stato == null || !stato.Firme.TryGetValue(u, out firma) || firma.Tipo != "FACE")
+                    return Fallito(
+                        "La faccia «" + u + "» non c'e' piu' in questo documento: rileggi lo stato e " +
+                        "indica di nuovo le due facce.");
+                string scostamento;
+                if (!FirmaCombacia(a, u, firma, out scostamento)) return Fallito(scostamento);
+                facce[i] = firma.Entita as IFace2;
+                if (facce[i] == null)
+                    return Fallito(
+                        "La faccia «" + u + "» non si lascia leggere: indica un'altra faccia della " +
+                        "stessa barra, presa dallo stato.");
+            }
+
+            // ── E LA GEOMETRIA CHE UN FAZZOLETTO VUOLE, controllata QUI ─────
+            // Piane, che fanno angolo, che si toccano lungo uno spigolo: e'
+            // l'angolo fra due barre. SOLIDWORKS su facce sbagliate torna null
+            // senza un perche', e un null senza perche' e' esattamente cio' che
+            // ha tenuto ferma questa voce per tre giorni.
+            var normali = new double[2][];
+            for (int i = 0; i < 2; i++)
+            {
+                normali[i] = NormaleDellaFaccia(facce[i]);
+                if (normali[i] == null || normali[i].Length < 3)
+                    return Fallito(
+                        "La faccia «" + uid[i] + "» non e' piana: il fazzoletto si appoggia su due " +
+                        "facce PIANE, una per barra (su un tubo tondo non c'e' un piano su cui " +
+                        "posarlo). Indica una faccia piana della barra.");
+            }
+            double[] n1 = normali[0], n2 = normali[1];
+            double coseno = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
+            if (Math.Abs(coseno) > 0.999)
+                return Fallito(
+                    "Le due facce sono parallele: si appoggiano una sull'altra o stanno affiancate, " +
+                    "e non formano un angolo. Il fazzoletto va nell'angolo fra due facce che si " +
+                    "incontrano lungo uno spigolo: per una barra in battuta su un'altra indica la " +
+                    "faccia LATERALE della barra e la faccia su cui arriva, non la sua testa.");
+            double cx = n1[1] * n2[2] - n1[2] * n2[1];
+            double cy = n1[2] * n2[0] - n1[0] * n2[2];
+            double cz = n1[0] * n2[1] - n1[1] * n2[0];
+            double seno = Math.Sqrt(cx * cx + cy * cy + cz * cz);
+
+            // Basta un verso che tocca; «non si toccano» solo se tutti e due
+            // hanno risposto (voce Z-C8, come il cordone).
+            double t1 = LunghezzaCheStaSu(facce[0], facce[1]), t2 = LunghezzaCheStaSu(facce[1], facce[0]);
+            if (Math.Max(t1, t2) < 0.01 && (t1 < 0 || t2 < 0))
+                return Fallito(
+                    "Non riesco a leggere gli spigoli delle due facce, e senza non so dirti se si " +
+                    "toccano. Non ho messo il fazzoletto: prova con un'altra faccia della stessa barra.");
+            double contatto = Math.Max(t1, t2);
+            if (contatto < 0.01)
+                return Fallito(
+                    "Le due facce non si toccano: nessuno spigolo dell'una sta sull'altra, e il " +
+                    "fazzoletto va nell'angolo dove due barre si incontrano. Indica la faccia su cui " +
+                    "la barra arriva e la faccia LATERALE della barra che ci arriva sopra.");
+
+            // ── IL PEZZO PRIMA, letto prima di toccare niente ───────────────
+            double? volumePrima = VolumeMm3(modello);
+            int corpiPrima = ContaCorpiSolidi(modello);
+            int featurePrima = ContaFeature(modello);
+            int rottePrima = LavorazioniInErrore(modello);
+            if (volumePrima == null || corpiPrima < 0 || featurePrima < 0)
+                return Fallito(VolumeNonLettoPrima("mettere il fazzoletto") +
+                               " Prova a ricostruire il pezzo (Ctrl+Q) e a ripetere il passo.");
+            var nomiPrima = NomiDeiCorpiSolidi(modello);
+
+            // ── LE DUE FACCE CON LA MARCA 1, poi la chiamata ────────────────
+            IFeature feature = null;
+            string eccezione = null;
             try
             {
+                modello.ClearSelection2(true);
+                var gestore = modello.SelectionManager as ISelectionMgr;
+                if (gestore == null)
+                    return Fallito(
+                        "Il gestore della selezione non risponde: non riesco a marcare le due facce. " +
+                        "Non ho toccato niente: prova a ripetere il passo.");
+                for (int i = 0; i < 2; i++)
+                    if (!Seleziona(gestore, facce[i], MarcaDelleFacceDiAppoggio))
+                        return Fallito(
+                            "La faccia «" + uid[i] + "» non si e' lasciata selezionare. Non ho toccato " +
+                            "niente: rileggi lo stato e indica di nuovo le due facce.");
+
                 feature = modello.FeatureManager.InsertGussetFeature3(
                     Depth: Unita.M(spessore),
                     DirType: (short)swGussetThicknessType_e.swGussetThicknessBothSides,
-                    LocType: dove,
-                    BIsProfile: true,
+                    LocType: (short)dove,
+                    BIsProfile: poligono,
                     ProfileD1: Unita.M(lato1),
                     ProfileD2: Unita.M(lato2),
-                    ProfileD3: 0,
-                    ProfileAngle: 0,
-                    ProfileD4: 0,
+                    ProfileD3: poligono ? Unita.M(lato3) : TriangoloD3,
+                    ProfileAngle: poligono ? 0.0 : TriangoloAngolo,
+                    ProfileD4: poligono ? Unita.M(lato4) : TriangoloD4,
                     BOffset: false,
-                    DProfileOffset: 0,
+                    DProfileOffset: 0.0,
                     CrvIndex: 0,
                     BReverseDir: false,
                     BReverseFace: false,
-                    BUseLenDim: true,
-                    ProfileD5: 0,
-                    ProfileD6: 0,
-                    ProfileChamferAngle: 0,
+                    // Poligono: lati corti come lunghezze (D4), la forma misurata.
+                    // Triangolo: come l'esempio della guida (ProfileAngle).
+                    BUseLenDim: poligono,
+                    ProfileD5: SmussoD5,
+                    ProfileD6: SmussoD6,
+                    ProfileChamferAngle: 0.0,
                     BUseLenDimForChamfer: false,
                     BNeedChamferInGusset: false) as IFeature;
             }
             catch (Exception ex)
             {
-                return Fallito("Il fazzoletto non e' riuscito: " + ex.Message);
+                eccezione = ex.Message;
             }
-            if (feature == null)
-                return Fallito(
-                    "Il fazzoletto non e' stato creato. Le due facce devono " +
-                    "appartenere a barre che si incontrano, e formare un angolo.");
-
-            return Riuscito(feature, new Dictionary<string, object>
+            finally
             {
-                ["spessore_mm"] = spessore,
-                ["lato1_mm"] = lato1,
-                ["lato2_mm"] = lato2,
-                ["posizione"] = posizione,
-            });
+                try { modello.ClearSelection2(true); } catch { }
+            }
+
+            string alternativa =
+                " Di solito i lati non ci stanno sulle facce: prova lati piu' corti" +
+                (poligono ? ", o il profilo «triangolare»" : "") + ". Se ti serve solo " +
+                "documentare la saldatura fra queste due facce, c'e' «cordone_saldatura».";
+            if (feature == null)
+            {
+                int adesso = ContaFeature(modello);
+                string coda = adesso > featurePrima
+                    ? " Pero' l'albero e' cresciuto lo stesso: guarda il pezzo — " + Frasi.CosiSiRitira + "."
+                    : "";
+                return Fallito(
+                    (eccezione != null
+                        ? "Il fazzoletto non e' riuscito: " + eccezione + "."
+                        : "SOLIDWORKS non ha creato il fazzoletto, e non dice perche' (le due facce sono " +
+                          "piane, fanno angolo e si toccano per " +
+                          contatto.ToString("0.##", CultureInfo.InvariantCulture) + " mm).") +
+                    alternativa + coda);
+            }
+
+            try { modello.EditRebuild3(); } catch { }
+
+            // ── E ADESSO SI MISURA COSA E' NATO ─────────────────────────────
+            // 1. nell'albero: una feature tornata che nell'albero non c'e' e' la
+            //    feature fantasma di `taglia_membri` (array non tipizzati).
+            int featureDopo = ContaFeature(modello);
+            if (featureDopo >= 0 && featureDopo <= featurePrima)
+                return Fallito(
+                    "SOLIDWORKS ha risposto con una feature «" + NomeDelFazzoletto(feature) + "» che nell'albero " +
+                    "non c'e': non ti dico che il fazzoletto e' messo." + alternativa);
+
+            // 2. e' un fazzoletto: la definizione si rilegge come IGussetFeatureData.
+            IGussetFeatureData dati = null;
+            try { dati = feature.GetDefinition() as IGussetFeatureData; } catch { }
+            if (dati == null)
+                return Fallito(
+                    "La lavorazione nata («" + NomeDelFazzoletto(feature) + "», tipo «" + TipoDelFazzoletto(feature) + "») non " +
+                    "si rilegge come fazzoletto, e non posso controllare cosa ho messo." +
+                    TogliIlFazzoletto(modello, feature, volumePrima, featurePrima));
+
+            // 3. niente di rotto nell'albero.
+            int rotteDopo = LavorazioniInErrore(modello);
+            if (rottePrima >= 0 && rotteDopo > rottePrima)
+                return Fallito(
+                    "Col fazzoletto " + (rotteDopo - rottePrima) +
+                    (rotteDopo - rottePrima > 1 ? " lavorazioni sono andate" : " lavorazione e' andata") +
+                    " in errore (" + rotteDopo + " invece di " + rottePrima + ")." +
+                    TogliIlFazzoletto(modello, feature, volumePrima, featurePrima));
+
+            // 4. un corpo in piu': il fazzoletto e' un corpo suo (misurato 2 -> 3).
+            int corpiDopo = ContaCorpiSolidi(modello);
+            if (corpiDopo >= 0 && corpiDopo != corpiPrima + 1)
+                return Fallito(
+                    "Il fazzoletto e' un corpo a se' (misurato: da 2 corpi a 3), e qui il pezzo e' " +
+                    "passato da " + corpiPrima + " a " + corpiDopo + " corpi." +
+                    TogliIlFazzoletto(modello, feature, volumePrima, featurePrima));
+
+            // 5. il materiale aggiunto, contro il conto a mano.
+            double areaTriangolo = lato1 * lato2 / 2.0 * seno;
+            bool angoloRetto = seno > 0.9995;
+            var attesi = new List<double>();
+            if (!poligono) attesi.Add(areaTriangolo * spessore);
+            else if (angoloRetto)
+            {
+                attesi.Add((lato1 * lato2 + lato1 * lato3 + lato4 * lato2 - lato3 * lato4) / 2.0 * spessore);
+                attesi.Add((lato1 * lato2 + lato1 * lato4 + lato3 * lato2 - lato3 * lato4) / 2.0 * spessore);
+            }
+            string controlloVolume = attesi.Count > 0 ? "exact" : "at_least_triangle";
+            double? volumeDopo = VolumeMm3(modello);
+            double? aggiunto = volumeDopo.HasValue ? volumeDopo.Value - volumePrima.Value : (double?)null;
+            double? atteso = null;
+            if (aggiunto.HasValue)
+            {
+                if (attesi.Count > 0)
+                {
+                    double migliore = attesi[0];
+                    foreach (var v in attesi)
+                        if (Math.Abs(aggiunto.Value - v) < Math.Abs(aggiunto.Value - migliore)) migliore = v;
+                    atteso = migliore;
+                    if (Math.Abs(aggiunto.Value - migliore) > Math.Max(0.5, migliore * 1e-4))
+                        return Fallito(
+                            "Il fazzoletto e' nato ma ha aggiunto " + CifreDelFazzoletto(aggiunto.Value) + " mm3, e il conto " +
+                            "a mano ne vuole " + CifreDelFazzoletto(migliore) + " (" +
+                            (poligono ? "il poligono dei quattro lati" : "lato1 x lato2 / 2") +
+                            " x spessore): la piastra non e' quella chiesta, forse i lati non ci stanno " +
+                            "sulle facce." + TogliIlFazzoletto(modello, feature, volumePrima, featurePrima));
+                }
+                else
+                {
+                    atteso = areaTriangolo * spessore;
+                    if (aggiunto.Value < atteso.Value - Math.Max(0.5, atteso.Value * 1e-4))
+                        return Fallito(
+                            "Il fazzoletto e' nato ma ha aggiunto " + CifreDelFazzoletto(aggiunto.Value) + " mm3, meno del " +
+                            "triangolo che il poligono contiene (" + CifreDelFazzoletto(atteso.Value) + " mm3)." +
+                            TogliIlFazzoletto(modello, feature, volumePrima, featurePrima));
+                }
+            }
+
+            // 6. la definizione RILETTA, non gli ingressi ripetuti (rilievo C1-1).
+            double? spessoreLetto = null;
+            string profiloLetto = null, dispostoLetto = null, posizioneLetta = null;
+            try { spessoreLetto = dati.Thickness * 1000.0; } catch { }
+            try { profiloLetto = NomeDelProfilo(dati.ProfileType); } catch { }
+            try { dispostoLetto = NomeDelloSpessore(dati.ThicknessType); } catch { }
+            try { posizioneLetta = NomeDellaPosizione(dati.ProfileLocation); } catch { }
+            string sbagliato = null;
+            if (spessoreLetto.HasValue && Math.Abs(spessoreLetto.Value - spessore) > 0.001)
+                sbagliato = "lo spessore riletto e' " + spessoreLetto.Value.ToString("0.###", CultureInfo.InvariantCulture) +
+                            " mm invece di " + spessore.ToString("0.###", CultureInfo.InvariantCulture);
+            else if (profiloLetto != null && profiloLetto != profilo)
+                sbagliato = "il profilo riletto e' «" + profiloLetto + "» invece di «" + profilo + "»";
+            else if (dispostoLetto != null && dispostoLetto != "both_sides")
+                sbagliato = "lo spessore riletto sta «" + dispostoLetto + "» invece che da tutte e due le parti";
+            else if (posizioneLetta != null && posizioneLetta != posizione)
+                sbagliato = "la posizione riletta e' «" + posizioneLetta + "» invece di «" + posizione + "»";
+            if (sbagliato != null)
+                return Fallito(
+                    "Il fazzoletto e' nato, ma " + sbagliato + ": non te lo lascio passare per buono." +
+                    TogliIlFazzoletto(modello, feature, volumePrima, featurePrima));
+
+            // 7. le facce su cui SOLIDWORKS dice di averlo appoggiato.
+            double[] areeLette = AreeDelleFacceDiAppoggio(modello, dati);
+            double[] areeChieste = AreeInOrdine(facce[0], facce[1]);
+            if (areeLette != null && areeChieste != null)
+            {
+                for (int i = 0; i < 2; i++)
+                    if (Math.Abs(areeLette[i] - areeChieste[i]) > Math.Max(0.5, areeChieste[i] * 1e-4))
+                        return Fallito(
+                            "Il fazzoletto e' nato, ma SOLIDWORKS dice di averlo appoggiato su facce da " +
+                            CifreDelFazzoletto(areeLette[0]) + " e " + CifreDelFazzoletto(areeLette[1]) + " mm2, e tu hai indicato facce da " +
+                            CifreDelFazzoletto(areeChieste[0]) + " e " + CifreDelFazzoletto(areeChieste[1]) + " mm2." +
+                            TogliIlFazzoletto(modello, feature, volumePrima, featurePrima));
+            }
+
+            // 8. il corpo nuovo, e dove sta: il volume da solo e' cieco sulla posizione.
+            string corpoNuovo = null;
+            double[] scatola = null;
+            var nuovi = CorpiSolidiNuovi(modello, nomiPrima);
+            if (nuovi.Count == 1)
+            {
+                try { corpoNuovo = nuovi[0].Name; } catch { }
+                var s = ScatolaDelCorpo(nuovi[0]);
+                if (s != null) scatola = s.Select(x => Math.Round(x, 2)).ToArray();
+            }
+
+            var misure = new Dictionary<string, object>
+            {
+                ["volume_added_mm3"] = NumeroOppureNull(aggiunto, 2),
+                ["volume_expected_mm3"] = NumeroOppureNull(atteso, 2),
+                ["volume_check"] = controlloVolume,
+                ["bodies_before"] = corpiPrima,
+                ["bodies_after"] = NumeroOppureNull(corpiDopo),
+                ["new_body"] = corpoNuovo,
+                ["new_body_box_mm"] = scatola,
+                ["thickness_read_mm"] = NumeroOppureNull(spessoreLetto, 3),
+                ["thickness_type_read"] = dispostoLetto,
+                ["profile_read"] = profiloLetto,
+                ["location_read"] = posizioneLetta,
+                ["supporting_faces_area_mm2"] = areeLette == null
+                    ? null : new object[] { Math.Round(areeLette[0], 2), Math.Round(areeLette[1], 2) },
+                ["contact_mm"] = Math.Round(contatto, 2),
+            };
+            if (!aggiunto.HasValue) misure["volume_not_reread"] = NotaVolumeNonRiletto;
+            _log(string.Format(CultureInfo.InvariantCulture,
+                "[agente] fazzoletto {0} {1:0.###}x{2:0.###} sp {3:0.###}: volume {4}, corpi {5} -> {6}",
+                profilo, lato1, lato2, spessore, aggiunto.HasValue ? CifreDelFazzoletto(aggiunto.Value) : "?", corpiPrima, corpiDopo));
+            return Riuscito(feature, misure);
+        }
+
+        /// <summary>
+        /// Toglie un fazzoletto appena nato che non ha passato i controlli, e
+        /// torna la coda del messaggio. «Ha detto di averlo tolto» non basta,
+        /// come in `EliminaLavorazione`: si ricontano le lavorazioni e si
+        /// rimisura il volume. DeleteSelection2 e non EditDelete (apre la
+        /// finestra di conferma, e una chiamata COM con un modale non torna).
+        /// </summary>
+        private static string TogliIlFazzoletto(
+            IModelDoc2 modello, IFeature fazzoletto, double? volumePrima, int featurePrima)
+        {
+            bool tolto = false;
+            try
+            {
+                modello.ClearSelection2(true);
+                if (fazzoletto.Select2(false, 0))
+                    tolto = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+            }
+            catch { }
+            finally { try { modello.ClearSelection2(true); } catch { } }
+            if (!tolto) return FazzolettoRestaNelPezzo;
+            try { modello.EditRebuild3(); } catch { }
+            int lavorazioni = ContaFeature(modello);
+            if (lavorazioni < 0)
+                return " L'ho tolto, ma non ho potuto ricontare l'albero per controllare che il pezzo " +
+                       "sia com'era: guardalo.";
+            if (lavorazioni > featurePrima) return FazzolettoRestaNelPezzo;
+            double? volumeDopo = VolumeMm3(modello);
+            if (volumePrima == null || volumeDopo == null)
+                return " L'ho tolto, ma non ho potuto rimisurare il volume per controllare che il pezzo " +
+                       "sia com'era: guardalo.";
+            if (Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.01) return FazzolettoRestaNelPezzo;
+            return " L'ho tolto: il pezzo e' com'era prima di questo passo.";
+        }
+
+        /// <summary>
+        /// Le aree, in mm2 dalla piu' grande, delle due facce su cui la feature
+        /// dice di appoggiarsi: `AccessSelections` → `GetSupportingFaces` →
+        /// `ReleaseSelectionAccess`, come Get_Gusset_Feature_Data_Example_CSharp.htm.
+        /// Null se non si leggono: «non lo so» non accusa. Il rilascio sta nel
+        /// `finally`, perche' AccessSelections lascia il modello in rollback.
+        /// </summary>
+        private static double[] AreeDelleFacceDiAppoggio(IModelDoc2 modello, IGussetFeatureData dati)
+        {
+            bool accesso = false;
+            try
+            {
+                accesso = dati.AccessSelections((ModelDoc2)modello, null);
+                if (!accesso) return null;
+                Face2 prima, seconda;
+                if (!dati.GetSupportingFaces(out prima, out seconda)) return null;
+                return AreeInOrdine(prima as IFace2, seconda as IFace2);
+            }
+            catch { return null; }
+            finally
+            {
+                if (accesso) { try { dati.ReleaseSelectionAccess(); } catch { } }
+            }
+        }
+
+        /// <summary>Le aree di due facce in mm2, dalla piu' grande; null se una non si legge.</summary>
+        private static double[] AreeInOrdine(IFace2 prima, IFace2 seconda)
+        {
+            try
+            {
+                if (prima == null || seconda == null) return null;
+                double x = prima.GetArea() * 1e6, y = seconda.GetArea() * 1e6;
+                return x >= y ? new[] { x, y } : new[] { y, x };
+            }
+            catch { return null; }
+        }
+
+        /// <summary>I nomi dei corpi solidi del pezzo; vuoto se non si leggono.</summary>
+        private static HashSet<string> NomiDeiCorpiSolidi(IModelDoc2 modello)
+        {
+            var fuori = new HashSet<string>(StringComparer.Ordinal);
+            try
+            {
+                var corpi = (modello as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+                foreach (var c in corpi ?? new object[0])
+                {
+                    string n = null;
+                    try { n = (c as IBody2)?.Name; } catch { }
+                    if (n != null) fuori.Add(n);
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        /// <summary>I corpi solidi il cui nome non c'era prima.</summary>
+        private static List<IBody2> CorpiSolidiNuovi(IModelDoc2 modello, HashSet<string> nomiPrima)
+        {
+            var fuori = new List<IBody2>();
+            try
+            {
+                var corpi = (modello as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
+                foreach (var c in corpi ?? new object[0])
+                {
+                    var b = c as IBody2;
+                    string n = null;
+                    try { n = b?.Name; } catch { }
+                    if (b != null && n != null && !nomiPrima.Contains(n)) fuori.Add(b);
+                }
+            }
+            catch { }
+            return fuori;
+        }
+
+        // I valori degli enum del fazzoletto nelle parole della risposta. Per
+        // NOME dell'enum, mai per cifra; null se il valore non e' fra quelli noti.
+        private static string NomeDelProfilo(int v)
+        {
+            if (v == (int)swGussetProfileType_e.swGussetProfileTriangle) return "triangolare";
+            if (v == (int)swGussetProfileType_e.swGussetProfilePolygon) return "poligonale";
+            return null;
+        }
+
+        private static string NomeDelloSpessore(int v)
+        {
+            if (v == (int)swGussetThicknessType_e.swGussetThicknessBothSides) return "both_sides";
+            if (v == (int)swGussetThicknessType_e.swGussetThicknessInner) return "inner";
+            if (v == (int)swGussetThicknessType_e.swGussetThicknessOuter) return "outer";
+            return null;
+        }
+
+        private static string NomeDellaPosizione(int v)
+        {
+            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationStart) return "inizio";
+            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationCenter) return "centro";
+            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationEnd) return "fine";
+            return null;
+        }
+
+        private static string NomeDelFazzoletto(IFeature f)
+        {
+            try { return f.Name; } catch { return "?"; }
+        }
+
+        private static string TipoDelFazzoletto(IFeature f)
+        {
+            try { return f.GetTypeName2(); } catch { return "?"; }
+        }
+
+        private static string CifreDelFazzoletto(double v)
+        {
+            return v.ToString("0.##", CultureInfo.InvariantCulture);
         }
 
         // IL CORDONE, E PERCHE' ADESSO VUOLE DUE FACCE E NON DUE CORPI.
