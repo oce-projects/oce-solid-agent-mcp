@@ -109,7 +109,7 @@ namespace Riscontro.Disegno
             // che c'e' anche con la flangia rossa, e non prova niente sulla flangia.
             bool avvisoFlangia = false; int codiceFlangia = 0;
             try { codiceFlangia = flangia.GetErrorCode2(out avvisoFlangia); } catch { }
-            if (codiceFlangia != 0 && !avvisoFlangia)
+            if (codiceFlangia != (int)swFeatureError_e.swFeatureErrorNone && !avvisoFlangia)
                 return Fallito("La flangia base «" + flangia.Name + "» e' nata in errore (" +
                                ErroriFeature.Frase(codiceFlangia) + "): ritirala — " + Frasi.CosiSiRitira + ".");
 

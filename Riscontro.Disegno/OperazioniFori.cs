@@ -204,10 +204,17 @@ namespace Riscontro.Disegno
             // true, but results in a new rebuild error on the feature. [...]
             // After calling this method, call IFeature::GetErrorCode2 to
             // ascertain whether the feature has rebuild errors» (rilievo L4-3).
+            //
+            // SI LEGGE QUI, MA SI DECIDE AL PUNTO 6a (revisione di Z-C21.2). A
+            // questo punto il foro sta ancora dove l'ha messo HoleWizard5 — la
+            // faccia e' selezionata senza un punto (SelezionaFaccia) — e su una
+            // faccia che non contiene quel punto provvisorio il foro puo' essere
+            // in errore adesso e sano dopo PosizionaIFori. Rifiutare qui vorrebbe
+            // dire rifiutare un foro buono. Il codice di adesso si tiene e si
+            // riporta se alla fine il foro resta in errore.
+            string erroriIntermedi = null;
             string inErrore = ForoInErrore(feature);
-            if (inErrore != null)
-                return Fallito("Il foro guidato non e' venuto: dopo la norma ISO «" + feature.Name +
-                               "» e' in errore (" + inErrore + ")." + TogliIlTaglio(modello, feature, volumePrima));
+            if (inErrore != null) erroriIntermedi = "dopo la norma ISO: " + inErrore;
 
             // ── 5. il cieco, in un secondo giro ──────────────────────────
             if (!passante &&
@@ -216,8 +223,8 @@ namespace Riscontro.Disegno
                 return Fallito(errore);
             inErrore = passante ? null : ForoInErrore(feature);
             if (inErrore != null)
-                return Fallito("Il foro guidato non e' venuto: portato a cieco «" + feature.Name +
-                               "» e' in errore (" + inErrore + ")." + TogliIlTaglio(modello, feature, volumePrima));
+                erroriIntermedi = (erroriIntermedi == null ? "" : erroriIntermedi + "; ") +
+                                  "portato a cieco: " + inErrore;
 
             // ── 6. le posizioni ──────────────────────────────────────────
             if (!PosizionaIFori(modello, feature, assi, offsetM, posizioni, out errore))
@@ -238,7 +245,10 @@ namespace Riscontro.Disegno
             if (inErrore != null)
                 return Fallito("Il foro guidato non e' venuto: nelle posizioni chieste «" + feature.Name +
                                "» e' in errore (" + inErrore + "). Controlla che ogni posizione stia sulla " +
-                               "faccia." + TogliIlTaglio(modello, feature, volumePrima));
+                               "faccia." +
+                               (erroriIntermedi == null ? "" : " Era gia' in errore prima di posizionarlo (" +
+                                                               erroriIntermedi + ").") +
+                               TogliIlTaglio(modello, feature, volumePrima));
             double? volumeForato = VolumeMm3(modello);
             if (volumePrima.HasValue && volumeForato.HasValue && volumeForato.Value > volumePrima.Value - 0.01)
                 return Fallito(string.Format(System.Globalization.CultureInfo.InvariantCulture,
@@ -328,7 +338,8 @@ namespace Riscontro.Disegno
             {
                 bool avviso;
                 int codice = foro.GetErrorCode2(out avviso);
-                return codice != 0 && !avviso ? ErroriFeature.Frase(codice) : null;
+                return codice != (int)swFeatureError_e.swFeatureErrorNone && !avviso
+                    ? ErroriFeature.Frase(codice) : null;
             }
             catch { return null; }
         }

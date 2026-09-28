@@ -115,6 +115,8 @@ namespace Riscontro.Disegno
             // rispondeva riuscito. Un numero solo non dice una posizione su una
             // griglia: si rifiuta invece di indovinare.
             // (IsDirection2Specified.html: «True if direction 2 is specified».)
+            // Vale anche per la circolare e la guidata da curva, che possono
+            // avere una seconda direzione: vedi i loro `Griglia` qui sotto.
             string griglia = porta.Griglia(dati);
             if (griglia != null)
                 return Fallito(
@@ -199,7 +201,7 @@ namespace Riscontro.Disegno
             {
                 bool avviso;
                 int codice = ripetizione.GetErrorCode2(out avviso);
-                if (codice != 0 && !avviso) ripetizioneInErrore = ErroriFeature.Frase(codice);
+                if (codice != (int)SolidWorks.Interop.swconst.swFeatureError_e.swFeatureErrorNone && !avviso) ripetizioneInErrore = ErroriFeature.Frase(codice);
             }
             catch { }
             if (ripetizioneInErrore != null)
@@ -273,6 +275,11 @@ namespace Riscontro.Disegno
                 ["copie_tolte_in_tutto"] = nuove,
                 ["facce_della_ripetizione"] = NumeroOppureNull(facceDopo),
                 ["facce_prima"] = NumeroOppureNull(faccePrima),
+                // QUANTE FACCE VALE UNA COPIA, o null se i semi non si sono letti
+                // (revisione di Z-C21.2): con null il controllo «perdita = facce
+                // del seme x copie tolte» qui sopra NON si e' fatto, e chi legge
+                // lo deve poter vedere. Nome nuovo, in inglese.
+                ["faces_per_copy"] = facceDelSeme > 0 ? (object)facceDelSeme : null,
                 ["corpi"] = NumeroOppureNull(corpiDopo),
                 [riattiva ? "materiale_tolto_mm3" : "materiale_tornato_mm3"] =
                     NumeroOppureNull(volumeDopo.HasValue && volumePrima.HasValue
@@ -365,7 +372,30 @@ namespace Riscontro.Disegno
             public void Apri(object d, IModelDoc2 m) { ((ICircularPatternFeatureData)d).AccessSelections(m, null); }
             public void Chiudi(object d) { ((ICircularPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ICircularPatternFeatureData)d).PatternFeatureArray; }
-            public string Griglia(object d) { return null; }
+            // ANCHE LA CIRCOLARE PUO' AVERE DUE DIREZIONI (revisione di Z-C21.2,
+            // M6 corretto a meta'). ICircularPatternFeatureData~SkippedItemArray.html
+            // porta la stessa formula della lineare: «For a bi-directional
+            // pattern: I = n2 * ( i - 1) + ( j - 1)». Direction2.html: «True to
+            // create a bidirectional circular pattern feature»; TotalInstances2.html:
+            // «only available when Direction2 is true, and Symmetric is false» —
+            // con Symmetric la seconda direzione ripete il numero della prima
+            // (Symmetric.html: «symmetric or asymmetric circular pattern feature
+            // in Direction 2»).
+            public string Griglia(object d)
+            {
+                var c = (ICircularPatternFeatureData)d;
+                bool due = false, simmetrica = false; int n1 = 0, n2 = 0;
+                try
+                {
+                    due = c.Direction2;
+                    if (!due) return null;
+                    n1 = c.TotalInstances;
+                    simmetrica = c.Symmetric;
+                    n2 = simmetrica ? n1 : c.TotalInstances2;
+                }
+                catch { return null; }
+                return n2 > 1 ? n1 + " x " + n2 + (simmetrica ? ", simmetrica" : "") : null;
+            }
         }
 
         // E DELLE NOVE FAMIGLIE DI RIPETIZIONE, TRE NON HANNO L'ARRAY.
@@ -395,7 +425,18 @@ namespace Riscontro.Disegno
             public void Apri(object d, IModelDoc2 m) { ((ICurveDrivenPatternFeatureData)d).AccessSelections(m, null); }
             public void Chiudi(object d) { ((ICurveDrivenPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ICurveDrivenPatternFeatureData)d).PatternFeatureArray; }
-            public string Griglia(object d) { return null; }
+            // E LA GUIDATA DA CURVA (revisione di Z-C21.2): Dir2Specified.html,
+            // «whether Direction 2 is specified for this curve-driven pattern
+            // feature»; D2InstanceCount.html, «the number of instances in
+            // Direction 2 of this bidirectional curve-driven pattern feature».
+            public string Griglia(object d)
+            {
+                var c = (ICurveDrivenPatternFeatureData)d;
+                bool due = false; int n1 = 0, n2 = 0;
+                try { due = c.Dir2Specified; n1 = c.D1InstanceCount; n2 = c.D2InstanceCount; }
+                catch { return null; }
+                return due && n2 > 1 ? n1 + " x " + n2 : null;
+            }
         }
 
         private static object LeggiDefinizione(

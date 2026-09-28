@@ -96,6 +96,15 @@ namespace Riscontro.Disegno
         /// </summary>
         private const string OperazionePredefinita = "unisci";
 
+        /// <summary>
+        /// Coda del messaggio quando il principale e' il predefinito (il primo
+        /// corpo, per posizione) e coincide con un utensile nominato: senza,
+        /// «e' anche il corpo principale» suonerebbe come una scelta di chi chiede.
+        /// </summary>
+        private const string PrincipalePredefinito =
+            ", il predefinito: il primo corpo, preso per posizione perche' non l'hai " +
+            "nominato. Nominalo con «corpo_principale_uid» o «corpo_principale_rif»";
+
         private Esito CombinaCorpi(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
@@ -152,53 +161,117 @@ namespace Riscontro.Disegno
             // `riuscita: true`: e' la voce E4, misurata il 14/9/2026 sulla
             // gemella `sposta_corpi` e corretta li' con `CorpiDaUid`, che
             // confronta la firma (centro e scatola) letta dal piano con quella di
-            // adesso. Qui adesso passa dallo stesso punto. Il nome che si
-            // riporta resta quello chiesto: l'indice nel GetBodies2 qui sopra
-            // non e' detto che coincida con quello dello stato.
-            Func<IBody2, int> indiceDi = corpo =>
-            {
-                for (int i = 0; i < grezzi.Length; i++)
-                    if (ReferenceEquals(grezzi[i], corpo) || Equals(grezzi[i], corpo)) return i;
-                return -1;
-            };
+            // adesso. Qui adesso passa dallo stesso punto.
+            //
+            // E I CORPI TROVATI SI PASSANO COSI' COME SONO, come fa sposta_corpi
+            // con `firma.Entita`. La prima stesura li ricercava dentro il
+            // GetBodies2 qui sopra con ReferenceEquals/Equals: regge solo se
+            // SOLIDWORKS da' lo stesso oggetto COM per lo stesso corpo in due
+            // chiamate, e non e' misurato (revisione di Z-C21.2). Dove serve
+            // sapere se due corpi sono lo stesso — il principale fra gli
+            // utensili — si chiede a SOLIDWORKS: ISldWorks~IsSame.html, «Gets
+            // whether the two specified objects are the same object», «Return
+            // Value Object equality as defined by swObjectEquality», come in
+            // StatoTavola.
+            //
+            // I `_rif` (tabella L6-1): senza, un piano «taglio, poi booleana»
+            // non ha nessun modo valido di nominare i corpi — gli uid letti
+            // prima del taglio ora si rifiutano per firma, e quelli nuovi il
+            // piano non li conosce. Stessa strada di sposta_corpi:
+            // CorpiDalRiferimento.
             string motivoCorpo;
+            Func<object, object, bool> stesso = (x, y) =>
+            {
+                if (x == null || y == null) return false;
+                if (ReferenceEquals(x, y)) return true;
+                try { return _sw.IsSame(x, y) == (int)swObjectEquality.swObjectSame; }
+                catch { return false; }
+            };
+            // Il nome da riportare: l'uid dello STATO se il corpo c'e', altrimenti
+            // la posizione, detta come tale — i numeri del GetBodies2 di adesso
+            // non sono quelli dello stato (GetBodies2.html, stessa frase).
+            Func<object, int, string> nomeDi = (corpo, posizione) =>
+            {
+                if (stato != null && stato.Firme != null)
+                    foreach (var kv in stato.Firme)
+                        if (kv.Value != null && kv.Value.Tipo == "BODY" && stesso(kv.Value.Entita, corpo))
+                            return kv.Key;
+                return posizione < 0 ? "(corpo senza nome nello stato)"
+                                     : "C" + (posizione + 1) + " (per posizione)";
+            };
 
+            bool haPrincipaleRif = HaRiferimento(a, "corpo_principale_rif");
+            bool haUtensiliRif = HaRiferimento(a, "corpi_utensile_rif");
             string uidPrincipale = Str(a, "corpo_principale_uid", null);
-            int indicePrincipale = 0;
-            string nomePrincipale = "C1";
-            if (!string.IsNullOrWhiteSpace(uidPrincipale))
+            var chiesti = Lista(a, "corpi_utensile_uid");
+            if (haPrincipaleRif && !string.IsNullOrWhiteSpace(uidPrincipale))
+                return Fallito("Hai dato sia «corpo_principale_uid» sia «corpo_principale_rif»: uno nomina " +
+                               "un corpo dello stato, l'altro il corpo di un passo. Togli uno dei due.");
+            if (haUtensiliRif && chiesti != null && chiesti.Count > 0)
+                return Fallito("Hai dato sia «corpi_utensile_uid» sia «corpi_utensile_rif»: uno nomina " +
+                               "corpi dello stato, l'altro quelli di un passo. Togli uno dei due.");
+
+            object principale;
+            string nomePrincipale;
+            bool principalePerPosizione = false;
+            if (haPrincipaleRif)
+            {
+                int quanti;
+                var daPasso = CorpiDalRiferimento(a, "corpo_principale_rif", stato, out quanti, out motivoCorpo);
+                if (daPasso == null) return Fallito(motivoCorpo);
+                if (daPasso.Length != 1)
+                    return Fallito("Il passo di «corpo_principale_rif» ha lasciato " + daPasso.Length +
+                                   " corpi, e il principale e' uno solo: nominalo con «corpo_principale_uid» " +
+                                   "dopo aver riletto il pezzo.");
+                principale = daPasso[0];
+                nomePrincipale = nomeDi(principale, Array.FindIndex(grezzi, g => stesso(g, principale)));
+            }
+            else if (!string.IsNullOrWhiteSpace(uidPrincipale))
             {
                 uidPrincipale = uidPrincipale.Trim();
                 var trovati = CorpiDaUid(stato, new List<string> { uidPrincipale }, a, out motivoCorpo);
                 if (trovati == null) return Fallito(motivoCorpo);
-                indicePrincipale = indiceDi(trovati[0]);
-                if (indicePrincipale < 0)
-                    return Fallito(
-                        "Non trovo il corpo «" + uidPrincipale + "» fra i corpi solidi di " +
-                        "adesso: rileggi il pezzo e nominalo di nuovo.");
+                principale = trovati[0];
                 nomePrincipale = uidPrincipale;
+            }
+            else
+            {
+                // Il PREDEFINITO resta «il primo», ed e' per posizione: si dice.
+                principale = grezzi[0];
+                nomePrincipale = nomeDi(grezzi[0], 0);
+                principalePerPosizione = true;
             }
 
             var utensili = new List<object>();
             var nomiUtensili = new List<string>();
-            var chiesti = Lista(a, "corpi_utensile_uid");
-            if (chiesti != null && chiesti.Count > 0)
+            if (haUtensiliRif)
+            {
+                int quanti;
+                var daPasso = CorpiDalRiferimento(a, "corpi_utensile_rif", stato, out quanti, out motivoCorpo);
+                if (daPasso == null) return Fallito(motivoCorpo);
+                foreach (var c in daPasso)
+                {
+                    if (stesso(c, principale))
+                        return Fallito("Fra i corpi di «corpi_utensile_rif» c'e' anche il corpo principale (" +
+                                       nomePrincipale + (principalePerPosizione ? PrincipalePredefinito : "") +
+                                       "): un corpo non si combina con se stesso.");
+                    utensili.Add(c);
+                    nomiUtensili.Add(nomeDi(c, Array.FindIndex(grezzi, g => stesso(g, c))));
+                }
+            }
+            else if (chiesti != null && chiesti.Count > 0)
             {
                 foreach (var grezzo in chiesti)
                 {
                     string u = Convert.ToString(grezzo).Trim();
                     var trovati = CorpiDaUid(stato, new List<string> { u }, a, out motivoCorpo);
                     if (trovati == null) return Fallito(motivoCorpo);
-                    int i = indiceDi(trovati[0]);
-                    if (i < 0)
+                    if (stesso(trovati[0], principale))
                         return Fallito(
-                            "Non trovo il corpo «" + u + "» fra i corpi solidi di adesso: " +
-                            "rileggi il pezzo e nominalo di nuovo.");
-                    if (i == indicePrincipale)
-                        return Fallito(
-                            "«" + u + "» e' anche il corpo principale: un corpo non si " +
-                            "combina con se stesso.");
-                    utensili.Add(grezzi[i]);
+                            "«" + u + "» e' anche il corpo principale (" + nomePrincipale +
+                            (principalePerPosizione ? PrincipalePredefinito : "") +
+                            "): un corpo non si combina con se stesso.");
+                    utensili.Add(trovati[0]);
                     nomiUtensili.Add(u);
                 }
             }
@@ -206,9 +279,9 @@ namespace Riscontro.Disegno
             {
                 for (int i = 0; i < grezzi.Length; i++)
                 {
-                    if (i == indicePrincipale) continue;
+                    if (stesso(grezzi[i], principale)) continue;
                     utensili.Add(grezzi[i]);
-                    nomiUtensili.Add("C" + (i + 1));
+                    nomiUtensili.Add(nomeDi(grezzi[i], i));
                 }
             }
             if (utensili.Count == 0)
@@ -228,11 +301,11 @@ namespace Riscontro.Disegno
                 // IDispatch*, e senza il principale nell'elenco «unisci» e
                 // «interseca» non fanno niente — senza dirlo.
                 var daPassare = new List<DispatchWrapper>();
-                daPassare.Add(new DispatchWrapper(grezzi[indicePrincipale]));
+                daPassare.Add(new DispatchWrapper(principale));
                 foreach (var u in utensili) daPassare.Add(new DispatchWrapper(u));
 
                 feature = modello.FeatureManager.InsertCombineFeature(
-                    tipo, grezzi[indicePrincipale] as Body2, daPassare.ToArray()) as IFeature;
+                    tipo, principale as Body2, daPassare.ToArray()) as IFeature;
             }
             catch (Exception ex)
             {

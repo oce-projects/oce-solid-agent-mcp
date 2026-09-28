@@ -3063,7 +3063,7 @@
    "nome": "combina_corpi",
    "famiglia": "lavorazioni",
    "sommario": "Unisce, sottrae o interseca due o piu' corpi dello stesso pezzo.",
-   "descrizione": "La booleana fra CORPI dello stesso pezzo: «unisci» li fonde in uno, «sottrai» toglie gli altri dal principale, «interseca» tiene solo quello che hanno in comune.\n\nServe agli stampi e alle dime, e ai pezzi disegnati come piu' corpi e poi messi insieme. I corpi separati nascono con «sposta_corpi» e la copia.\n\nNELLA SOTTRAZIONE L'ORDINE CAMBIA IL PEZZO: il corpo principale e' quello che RESTA, gli altri sono quelli che gli vanno addosso. Se non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nDopo l'unione conto i corpi: se sono ancora due, non si sono fusi -- di solito non si toccano davvero -- e fallisco invece di confermarti un pezzo diverso da quello che credi.\n\nDopo una booleana gli identificativi di corpi e facce NON valgono piu': rileggi il pezzo.\n\nSE NON DICI QUALE BOOLEANA faccio «unisci», ed e' scritto nella risposta. «sottrai» e «interseca» si chiedono per nome, perche' cambiano il pezzo in modo opposto.",
+   "descrizione": "La booleana fra CORPI dello stesso pezzo: «unisci» li fonde in uno, «sottrai» toglie gli altri dal principale, «interseca» tiene solo quello che hanno in comune.\n\nServe agli stampi e alle dime, e ai pezzi disegnati come piu' corpi e poi messi insieme. I corpi separati nascono con «sposta_corpi» e la copia.\n\nNELLA SOTTRAZIONE L'ORDINE CAMBIA IL PEZZO: il corpo principale e' quello che RESTA, gli altri sono quelli che gli vanno addosso. Se non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nQuali corpi: gli identificativi dello stato (C1, C2...) con «_uid», oppure i corpi di un passo precedente di questo stesso piano con «_rif». Dopo un taglio gli identificativi letti prima non valgono piu', e un uid vecchio lo rifiuto invece di combinare un altro corpo.\n\nDopo l'unione conto i corpi: se sono ancora due, non si sono fusi -- di solito non si toccano davvero -- e fallisco invece di confermarti un pezzo diverso da quello che credi.\n\nDopo una booleana gli identificativi di corpi e facce NON valgono piu': rileggi il pezzo.\n\nSE NON DICI QUALE BOOLEANA faccio «unisci», ed e' scritto nella risposta. «sottrai» e «interseca» si chiedono per nome, perche' cambiano il pezzo in modo opposto.",
    "schema": {
     "type": "object",
     "properties": {
@@ -3081,12 +3081,52 @@
       "type": "string",
       "description": "il corpo che RESTA (per esempio «C1»). Se non lo dici e' il primo. Conta solo per «sottrai», ma scriverlo non fa mai male."
      },
+     "corpo_principale_rif": {
+      "type": "object",
+      "description": "il corpo che RESTA, se lo crea un passo precedente di questo stesso piano (per esempio dopo un taglio, che cambia gli identificativi). Metti questo OPPURE corpo_principale_uid, non tutti e due. Il passo deve lasciare UN corpo solo.\n\nGeneri ammessi:\n- corpi: i corpi toccati da quel passo",
+      "properties": {
+       "passo": {
+        "type": "integer",
+        "description": "il numero d'ordine del passo che crea la geometria, contando da 1. Deve essere un passo PRECEDENTE a questo."
+       },
+       "genere": {
+        "type": "string",
+        "enum": [
+         "corpi"
+        ]
+       }
+      },
+      "required": [
+       "passo",
+       "genere"
+      ]
+     },
      "corpi_utensile_uid": {
       "type": "array",
       "items": {
        "type": "string"
       },
       "description": "i corpi da unire, sottrarre o intersecare col principale. Se non li dici, tutti gli altri."
+     },
+     "corpi_utensile_rif": {
+      "type": "object",
+      "description": "i corpi da unire, sottrarre o intersecare, se li crea un passo precedente di questo stesso piano. Metti questo OPPURE corpi_utensile_uid, non tutti e due.\n\nGeneri ammessi:\n- corpi: i corpi toccati da quel passo, tutti insieme",
+      "properties": {
+       "passo": {
+        "type": "integer",
+        "description": "il numero d'ordine del passo che crea la geometria, contando da 1. Deve essere un passo PRECEDENTE a questo."
+       },
+       "genere": {
+        "type": "string",
+        "enum": [
+         "corpi"
+        ]
+       }
+      },
+      "required": [
+       "passo",
+       "genere"
+      ]
      }
     },
     "required": []
@@ -3870,7 +3910,7 @@
    "nome": "sopprimi_istanza",
    "famiglia": "lavorazioni",
    "sommario": "Toglie una o piu' copie da una ripetizione gia' fatta, e si rifiuta se la copia non c'era.",
-   "descrizione": "Una griglia di fori che ne salta uno dove passa una nervatura, una fila di asole che si ferma prima della piega. La ripetizione si fa prima, intera, con «ripeti_lineare» o «ripeti_circolare»; poi si toglie quello che non deve esserci.\n\nLE COPIE SI CONTANO DA 1, E L'ORIGINALE NON E' UNA COPIA. In una fila di quattro, la 1 e' la prima dopo l'originale e la 3 e' l'ultima.\n\nMI RIFIUTO SE LA COPIA NON C'ERA, ed e' la ragione per cui questa operazione controlla invece di limitarsi a scrivere. Una ripetizione costruisce solo le copie che stanno nel materiale e risponde «riuscito» anche quando ne ha fatte meno di quelle chieste: chiedere di togliere la quarta di quattro, quando la quarta e' caduta fuori dal pezzo, RIESCE e non cambia niente. Io conto le facce prima e dopo, e se non sono calate ti dico che quella copia non c'era e rimetto tutto com'era.\n\nSi puo' rimettere una copia tolta con «riattiva».\n\nNON TUTTE LE RIPETIZIONI SANNO FARLO: quelle guidate da uno schizzo, da una catena o da una quota non hanno le copie numerate. Uno specchio ha una copia sola: si toglie cancellandolo.\n\nDA UNA GRIGLIA A DUE DIREZIONI NON TOLGO COPIE: SOLIDWORKS le numera riga per riga, e un numero solo non dice quale posizione. Mi rifiuto anche se dopo la modifica la ripetizione va in errore, resta senza facce, o perde facce che non valgono le copie tolte — e rimetto com'era.",
+   "descrizione": "Una griglia di fori che ne salta uno dove passa una nervatura, una fila di asole che si ferma prima della piega. La ripetizione si fa prima, intera, con «ripeti_lineare» o «ripeti_circolare»; poi si toglie quello che non deve esserci.\n\nLE COPIE SI CONTANO DA 1, E L'ORIGINALE NON E' UNA COPIA. In una fila di quattro, la 1 e' la prima dopo l'originale e la 3 e' l'ultima.\n\nMI RIFIUTO SE LA COPIA NON C'ERA, ed e' la ragione per cui questa operazione controlla invece di limitarsi a scrivere. Una ripetizione costruisce solo le copie che stanno nel materiale e risponde «riuscito» anche quando ne ha fatte meno di quelle chieste: chiedere di togliere la quarta di quattro, quando la quarta e' caduta fuori dal pezzo, RIESCE e non cambia niente. Io conto le facce prima e dopo, e se non sono calate ti dico che quella copia non c'era e rimetto tutto com'era.\n\nSi puo' rimettere una copia tolta con «riattiva».\n\nNON TUTTE LE RIPETIZIONI SANNO FARLO: quelle guidate da uno schizzo, da una catena o da una quota non hanno le copie numerate. Uno specchio ha una copia sola: si toglie cancellandolo.\n\nDA UNA GRIGLIA A DUE DIREZIONI NON TOLGO COPIE (lineare, circolare o guidata da curva): SOLIDWORKS le numera riga per riga, e un numero solo non dice quale posizione. Mi rifiuto anche se dopo la modifica la ripetizione va in errore, resta senza facce, o perde facce che non valgono le copie tolte — e rimetto com'era. Per questo rifiuto anche le copie FUSE fra loro o col pezzo in modo da cambiare il numero di facce (per esempio due asole che si toccano): il conto delle facce non torna e non posso dire cosa ho tolto. Nella risposta «faces_per_copy» dice quante facce vale una copia (null se non l'ho potuto leggere: allora questo controllo non si e' fatto).",
    "schema": {
     "type": "object",
     "properties": {

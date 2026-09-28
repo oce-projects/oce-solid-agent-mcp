@@ -3613,7 +3613,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "separati nascono con «sposta_corpi» e la copia.\n\nNELLA "
                         + "SOTTRAZIONE L'ORDINE CAMBIA IL PEZZO: il corpo principale e' "
                         + "quello che RESTA, gli altri sono quelli che gli vanno addosso. Se "
-                        + "non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nDopo "
+                        + "non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nQuali "
+                        + "corpi: gli identificativi dello stato (C1, C2...) con «_uid», oppure i "
+                        + "corpi di un passo precedente di questo stesso piano con «_rif». Dopo un "
+                        + "taglio gli identificativi letti prima non valgono piu', e un uid vecchio "
+                        + "lo rifiuto invece di combinare un altro corpo.\n\nDopo "
                         + "l'unione conto i corpi: se sono ancora due, non si sono fusi -- di "
                         + "solito non si toccano davvero -- e fallisco invece di confermarti "
                         + "un pezzo diverso da quello che credi.\n\nDopo una booleana gli "
@@ -3635,11 +3639,48 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "string",
                                 "description", "il corpo che RESTA (per esempio «C1»). Se non lo dici e' il "
                                     + "primo. Conta solo per «sottrai», ma scriverlo non fa mai male."),
+                            "corpo_principale_rif", O(
+                                "type", "object",
+                                "description", "il corpo che RESTA, se lo crea un passo precedente di questo "
+                                    + "stesso piano (per esempio dopo un taglio, che cambia gli "
+                                    + "identificativi). Metti questo OPPURE corpo_principale_uid, non tutti e "
+                                    + "due. Il passo deve lasciare UN corpo solo.\n\nGeneri ammessi:\n- corpi: "
+                                    + "i corpi toccati da quel passo",
+                                "properties", O(
+                                    "passo", O(
+                                        "type", "integer",
+                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
+                                            + "1. Deve essere un passo PRECEDENTE a questo."),
+                                    "genere", O(
+                                        "type", "string",
+                                        "enum", A(
+                                            "corpi"))),
+                                "required", A(
+                                    "passo",
+                                    "genere")),
                             "corpi_utensile_uid", O(
                                 "type", "array",
                                 "items", O("type", "string"),
                                 "description", "i corpi da unire, sottrarre o intersecare col principale. Se "
-                                    + "non li dici, tutti gli altri.")),
+                                    + "non li dici, tutti gli altri."),
+                            "corpi_utensile_rif", O(
+                                "type", "object",
+                                "description", "i corpi da unire, sottrarre o intersecare, se li crea un passo "
+                                    + "precedente di questo stesso piano. Metti questo OPPURE "
+                                    + "corpi_utensile_uid, non tutti e due.\n\nGeneri ammessi:\n- corpi: i corpi "
+                                    + "toccati da quel passo, tutti insieme",
+                                "properties", O(
+                                    "passo", O(
+                                        "type", "integer",
+                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
+                                            + "1. Deve essere un passo PRECEDENTE a questo."),
+                                    "genere", O(
+                                        "type", "string",
+                                        "enum", A(
+                                            "corpi"))),
+                                "required", A(
+                                    "passo",
+                                    "genere"))),
                         // Z-G3: predefinito «unisci», dichiarato nella risposta.
                         "required", A()),
                 },
@@ -4597,11 +4638,16 @@ namespace Riscontro.Disegno.Catalogo
                         + "tolta con «riattiva».\n\nNON TUTTE LE RIPETIZIONI SANNO FARLO: "
                         + "quelle guidate da uno schizzo, da una catena o da una quota non "
                         + "hanno le copie numerate. Uno specchio ha una copia sola: si toglie "
-                        + "cancellandolo.\n\nDA UNA GRIGLIA A DUE DIREZIONI NON TOLGO COPIE: "
-                        + "SOLIDWORKS le numera riga per riga, e un numero solo non dice quale "
-                        + "posizione. Mi rifiuto anche se dopo la modifica la ripetizione va in "
-                        + "errore, resta senza facce, o perde facce che non valgono le copie "
-                        + "tolte — e rimetto com'era.",
+                        + "cancellandolo.\n\nDA UNA GRIGLIA A DUE DIREZIONI NON TOLGO COPIE "
+                        + "(lineare, circolare o guidata da curva): SOLIDWORKS le numera riga per "
+                        + "riga, e un numero solo non dice quale posizione. Mi rifiuto anche se "
+                        + "dopo la modifica la ripetizione va in errore, resta senza facce, o "
+                        + "perde facce che non valgono le copie tolte — e rimetto com'era. Per "
+                        + "questo rifiuto anche le copie FUSE fra loro o col pezzo in modo da "
+                        + "cambiare il numero di facce (per esempio due asole che si toccano): "
+                        + "il conto delle facce non torna e non posso dire cosa ho tolto. Nella "
+                        + "risposta «faces_per_copy» dice quante facce vale una copia (null se "
+                        + "non l'ho potuto leggere: allora questo controllo non si e' fatto).",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",

@@ -354,21 +354,56 @@ namespace Riscontro.Disegno
                         var f = o as IFace2;
                         if (f == null) continue;   // uno spigolo di bordo ha una faccia sola e un NULL (GetTwoAdjacentFaces2.html)
                         bool piana = false;
-                        try { piana = (f.GetSurface() as ISurface)?.IsPlane() == true; } catch { }
-                        var nf = piana ? f.Normal as double[] : null;
-                        if (piana && (nf == null || nf.Length < 3))
+                        ISurface superficie = null;
+                        try { superficie = f.GetSurface() as ISurface; piana = superficie?.IsPlane() == true; } catch { }
+                        // LA NORMALE: di una faccia piana da Normal; di una curva
+                        // nel punto medio dello spigolo, da EvaluateAtPoint
+                        // (revisione di Z-C21.2, difetto 8). ISurface~EvaluateAtPoint.html:
+                        // «This method calculates the normal, the principal
+                        // directions, and the principal curvatures, of the surface
+                        // at the specified point», e il ritorno comincia con
+                        // «surfNorm[i, j, k]». Il verso non conta: si usa il valore
+                        // assoluto del coseno. La prima stesura rifiutava OGNI faccia
+                        // non piana, anche un cilindro che incontra la faccia a 90
+                        // gradi lungo una retta (un mezzo tondo appoggiato): uno
+                        // spigolo vivo, e il messaggio «bordo di un raccordo» li'
+                        // era falso. Il raccordo si riconosce perche' e' TANGENTE:
+                        // la sua normale sullo spigolo e' quella della faccia.
+                        double[] nf = null;
+                        if (piana) nf = f.Normal as double[];
+                        else if (superficie != null)
                         {
-                            nonGuardato = "non riesco a leggere la normale di una faccia dello spigolo";
+                            try
+                            {
+                                var v = superficie.EvaluateAtPoint(
+                                    (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, (p0[2] + p1[2]) / 2) as double[];
+                                if (v != null && v.Length >= 3) nf = new[] { v[0], v[1], v[2] };
+                            }
+                            catch { nf = null; }
+                        }
+                        double lunghezza = nf == null || nf.Length < 3 ? 0
+                            : Math.Sqrt(nf[0] * nf[0] + nf[1] * nf[1] + nf[2] * nf[2]);
+                        if (lunghezza < 1e-9)
+                        {
+                            nonGuardato = "non riesco a leggere la normale di una faccia dello spigolo" +
+                                          (piana ? "" : " (non e' piana)");
                             break;
                         }
-                        double coseno = !piana ? 0
-                            : Math.Abs(nf[0] * normaleFaccia[0] + nf[1] * normaleFaccia[1] + nf[2] * normaleFaccia[2]);
+                        double coseno = Math.Abs(nf[0] * normaleFaccia[0] + nf[1] * normaleFaccia[1] +
+                                                 nf[2] * normaleFaccia[2]) / lunghezza;
                         if (piana && coseno > 0.999) continue;          // la faccia stessa, o complanare
-                        if (!piana || coseno > 0.01)
+                        if (!piana && coseno > 0.999)
+                        {
+                            motivo = "Lo spigolo «" + uid + "» sta sul bordo di un raccordo (la sua altra faccia e' " +
+                                     "curva e tangente a questa): se il raccordo cambia, lo spigolo si sposta e il " +
+                                     "profilo con lui. Ancoralo a uno spigolo vivo del pezzo.";
+                            return null;
+                        }
+                        if (coseno > 0.01)
                         {
                             motivo = "Lo spigolo «" + uid + "» sta sul bordo di uno smusso o di un raccordo (la sua " +
-                                     "altra faccia " + (piana ? "non e' perpendicolare a questa" : "non e' piana") +
-                                     "): se lo smusso o il raccordo cambia, il profilo si sposta con lui. Ancoralo " +
+                                     "altra faccia " + (piana ? "" : "e' curva e ") + "non e' perpendicolare a questa): " +
+                                     "se lo smusso o il raccordo cambia, il profilo si sposta con lui. Ancoralo " +
                                      "a uno spigolo vivo del pezzo.";
                             return null;
                         }
