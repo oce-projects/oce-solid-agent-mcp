@@ -50,7 +50,14 @@ library 0.136.0 and green on this one, and must be seen doing so before merge.
 - **`combina_corpi` resolves body uids by signature** (L6-1), through
   `CorpiDaUid` + `FirmaCombacia` like `sposta_corpi` (entry E4), instead of by
   position in a fresh `GetBodies2` (GetBodies2.html: "May vary the order in
-  which bodies are returned"). `IndiceDelCorpo` is gone.
+  which bodies are returned"). `IndiceDelCorpo` is gone. The bodies found are
+  passed to `InsertCombineFeature` as they are (no search by COM identity in a
+  second `GetBodies2`, which was never measured); "is this the main body?" is
+  asked through `ISldWorks.IsSame`. New `corpo_principale_rif` and
+  `corpi_utensile_rif` name the bodies of an earlier step of the same plan —
+  without them a "cut, then combine" plan had no valid way to name a body.
+  Names in the answer are state uids, or "C<n> (per posizione)" when the body
+  was taken by position.
 - **`verifica_sovrasporgenze` checks hidden bodies too** (L12-1:
   `GetBodies2(swSolidBody, false)`) and **no longer treats a curved face
   without tessellation as vertical** (L12-2: IFace2~Normal.html, "If the face
@@ -81,15 +88,22 @@ library 0.136.0 and green on this one, and must be seen doing so before merge.
   (ModifyDefinition.html: "call IFeature::GetErrorCode2"):
   `flangia_base` reads `GetErrorCode2` like its three siblings and refuses a
   flange that added less than half of the hand-computed volume (L10-4);
-  `foro_guidato` reads it after each `ModifyDefinition` and after positioning,
-  always measures the volume (not only with anchors), and removes a hole that
-  is in error or removed nothing (L4-3); `sopprimi_istanza` reads it, refuses
-  a pattern left with no faces, and refuses when the lost faces are not seed
-  faces × copies removed, putting the array back (L6-5).
+  `foro_guidato` reads it after each `ModifyDefinition` but decides only after
+  positioning (before that the hole still sits at HoleWizard5's provisional
+  point and may be in error while the final hole is sound; earlier codes are
+  only quoted in the refusal), always measures the volume (not only with
+  anchors), and removes a hole that is in error or removed nothing (L4-3);
+  `sopprimi_istanza` reads it, refuses a pattern left with no faces, and
+  refuses when the lost faces are not seed faces × copies removed, putting
+  the array back (L6-5). The answer carries `faces_per_copy` (null when the
+  seed faces could not be read, i.e. that check did not run), and the catalog
+  says that copies merged together are refused for the same reason.
 - **`sopprimi_istanza` refuses two-direction grids** (M6). SkippedItemArray.html
   gives I = n2·(i−1)+(j−1) for a bi-directional pattern: a single copy number
   does not name a grid position, and "copy 3" on a 3 × 2 grid removed
-  instance [2, 2].
+  instance [2, 2]. Linear (`IsDirection2Specified`), circular (`Direction2`,
+  `TotalInstances2`, or `Symmetric`) and curve-driven (`Dir2Specified`,
+  `D2InstanceCount`) patterns are all checked.
 - **`accoppia` no longer offers concentric and tangent** (M17): faces are
   chosen by direction through `IFace2.Normal`, i.e. only planar faces, and
   between two planar faces those mates cannot exist. They are refused with the
@@ -98,11 +112,20 @@ library 0.136.0 and green on this one, and must be seen doing so before merge.
   (L16-8: GetColumnCustomProperty.html, "returns an empty string if the column
   is not a user-defined column"; `GetColumnType2` = swWeldTableColumnType_Quantity),
   then by the "QUANTITY" property, and says so in `quantity_column_found_by`
-  and `comparison_done`.
+  and `comparison_done`. Its bench case now uses SOLIDWORKS' stock template
+  (`{SOLIDWORKS}\lang\english\cut list.sldwldtbt`), where QTY is a typed
+  column: the shop template of the options has QTY as a property and was
+  already found by name on 0.136.0. That QTY is type 402 in the stock
+  template is taken from the help, not measured: the case says what to do if
+  it comes out "name".
 - **The anchor refuses the tangent edge of a fillet** (C2-1 of the audit
   completion): the rule "the other face must be planar and perpendicular"
   never checked "planar", and a fillet's Normal is 0,0,0 — cosine 0, exactly
-  like a real perpendicular wall. `IsPlane()` now comes before `Normal`. If
+  like a real perpendicular wall. `IsPlane()` now comes before `Normal`; on a
+  curved face the normal is taken at the edge midpoint with
+  `ISurface.EvaluateAtPoint`, and the edge is refused when that face is
+  tangent (a fillet) or oblique, and accepted when it meets the face at 90°
+  (a sharp edge against a cylinder). If
   the check cannot look (no faces, no normal, an exception) it refuses instead
   of accepting (N6); an anchor on a non-planar working face is refused (N24).
   The anchor's movement probe now reads the `SetSystemValue3` status and the
@@ -118,8 +141,14 @@ library 0.136.0 and green on this one, and must be seen doing so before merge.
   `lim_griglia_non_si_conta_come_una_fila`,
   `la_distinta_di_taglio_dice_se_ha_confrontato`, `lim_ancora_sul_bordo_del_raccordo`.
   `il_taglio_senza_gioco_non_eredita` cannot reproduce a gap typed in the UI:
-  that scenario stays a manual probe.
-- Contracts: the floor of refusals that name a way out goes from 136 to 145.
+  that scenario stays a manual probe, and if the case stays green on 0.136.0
+  it is a regression case, not the proof of L9-2 (the case says so).
+  `salta_la_seconda_copia` also expects `faces_per_copy: 1`. New placeholder
+  `{SOLIDWORKS}`: the SOLIDWORKS install folder (`SW_INSTALL_PATH`, as in
+  build.ps1, or the default one), for stock files that cannot be versioned.
+- Numeric comparisons of `GetErrorCode2` in the new code use
+  `swFeatureError_e.swFeatureErrorNone` instead of the digit (Z-C7).
+- Contracts: the floor of refusals that name a way out goes from 136 to 146.
 
 ## 0.112.0 — 28 September 2026 · library 0.137.0
 

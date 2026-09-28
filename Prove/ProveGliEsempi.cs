@@ -54,7 +54,7 @@ namespace Prove.Contratti
         private const int Pavimento = 29;
 
         /// <summary>Cio' che un client non puo' copiare.</summary>
-        private static readonly string[] SoloDelBanco = { "@", "{LAVORO}", "{PROFILI}" };
+        private static readonly string[] SoloDelBanco = { "@", "{LAVORO}", "{PROFILI}", "{DATI}", "{SOLIDWORKS}" };
 
         internal static void Tutte()
         {
@@ -139,7 +139,7 @@ namespace Prove.Contratti
             Segna("nessun esempio usa qualcosa che vive solo nel banco",
                   contaminati.Count == 0,
                   contaminati.Count == 0
-                      ? "niente selettori @, niente segnaposto {LAVORO}/{PROFILI}"
+                      ? "niente selettori @, niente segnaposto {LAVORO}/{PROFILI}/{DATI}/{SOLIDWORKS}"
                       : string.Join(" | ", contaminati));
 
             Segna("e ogni campo dell'esempio esiste nello schema",

@@ -160,8 +160,14 @@ namespace Prove.Contratti
         /// spigolo»), il foro fuori dal pezzo. Nove in piu' secondo il
         /// rilevatore: il numero l'ha dato il controllo, l'elenco qui sopra e'
         /// quello dei messaggi nuovi e non una corrispondenza uno a uno.
+        /// **146, stessa voce, dopo la revisione:** meno due — i rifiuti intermedi di
+        /// `foro_guidato` (prima del posizionamento) non ci sono piu', e contavano
+        /// solo perche' «TogliIlTaglio» contiene «togli» — e piu' tre: in
+        /// `combina_corpi` uid e `_rif` dati insieme («togli uno dei due»), e il
+        /// passo di `corpo_principale_rif` che lascia piu' corpi («nominalo con
+        /// «corpo_principale_uid»»).
         /// </summary>
-        private const int Pavimento = 145;
+        private const int Pavimento = 146;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

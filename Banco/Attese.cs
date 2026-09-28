@@ -83,6 +83,35 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
+        /// LA CARTELLA DI INSTALLAZIONE DI SOLIDWORKS, per i file di serie che
+        /// un caso deve poter nominare senza copiarli nel repository (voce
+        /// Z-C21.2, revisione: il modello di distinta di taglio «cut
+        /// list.sldwldtbt», che e' di Dassault e non si versiona). Si dice con
+        /// `SW_INSTALL_PATH`, la stessa di build.ps1; senza, si cerca dove la mette l'installazione
+        /// predefinita, riconoscendola da SLDWORKS.exe. Se non si trova, il caso
+        /// non si puo' misurare — non e' rosso.
+        /// </summary>
+        internal static string CartellaSolidWorks
+        {
+            get
+            {
+                var sua = Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+                if (!string.IsNullOrWhiteSpace(sua)) return sua;
+                foreach (var pf in new[]
+                {
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    Environment.GetEnvironmentVariable("ProgramW6432"),
+                })
+                {
+                    if (string.IsNullOrWhiteSpace(pf)) continue;
+                    var d = Path.Combine(pf, "SOLIDWORKS Corp", "SOLIDWORKS");
+                    try { if (File.Exists(Path.Combine(d, "SLDWORKS.exe"))) return d; } catch { }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
         /// I FILE CHE UN CASO LEGGE E NON SCRIVE: `Banco\dati\`, versionata (voce
         /// Z-F5, 27/9/2026: l'immagine da ricalcare). `{LAVORO}` si svuota a ogni
         /// giro e non e' nel repository, quindi un file d'ingresso non puo' starci.
@@ -608,6 +637,17 @@ namespace ProvaSaldatura
             // `{DATI}`: i file d'ingresso versionati (Banco\dati\).
             if (testo != null && testo.Contains("{DATI}"))
                 return testo.Replace("{DATI}", Dati);
+            // `{SOLIDWORKS}`: i file DI SERIE dell'installazione (i modelli di
+            // tabella), che non sono ne' del repository ne' di chi lavora.
+            if (testo != null && testo.Contains("{SOLIDWORKS}"))
+            {
+                var sw = CartellaSolidWorks;
+                if (sw == null)
+                    throw new NonHoPotutoMisurare(
+                        "Questo caso nomina {SOLIDWORKS}, ma non trovo la cartella di " +
+                        "installazione di SOLIDWORKS: dilla con SW_INSTALL_PATH.");
+                return testo.Replace("{SOLIDWORKS}", sw);
+            }
             return grezzo;
         }
 

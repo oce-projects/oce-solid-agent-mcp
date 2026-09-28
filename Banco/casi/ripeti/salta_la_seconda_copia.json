@@ -34,6 +34,8 @@
         { "cosa": "misure.facce_prima", "uguale": 3,
           "perche": "la ripetizione possiede una faccia per copia: tre copie, tre facce cilindriche" },
         { "cosa": "misure.facce_della_ripetizione", "uguale": 2 },
+        { "cosa": "misure.faces_per_copy", "uguale": 1,
+          "perche": "VOCE Z-C21.2, rilievo L6-5 (revisione): le facce del seme lette da PatternFeatureArray, una faccia cilindrica per foro. Se la lettura fallisse il campo sarebbe null e il controllo «perdita = facce per copia x copie tolte» non si farebbe senza che niente lo dica: questa riga e' il modo di vederlo" },
         { "cosa": "misure.materiale_tornato_mm3", "uguale": 1272.35, "tolleranza": 0.5,
           "perche_questa_tolleranza": "pi*4,5^2*20 = 1272,35: il conto ha pi dentro" },
         { "cosa": "centri_x_mm", "uguale": [-75, -25, 0], "tolleranza": 0.05,
