@@ -602,11 +602,26 @@ namespace Riscontro.Disegno
                 codice = 4; // swEndConditionTrim
             double gioco = Num(a, "gioco_mm", 0);
 
-            // Il gioco si chiede con un'opzione, non solo col numero: passare
-            // GapValue senza il bit WeldGap lo fa ignorare in silenzio, e il
-            // riassunto avrebbe promesso un gioco che non c'e'.
-            int opzioni = 0;
-            if (gioco > 0) opzioni |= (int)swWeldmentTrimExtendOptionType_e
+            // IL BIT DEL GIOCO SI ACCENDE SEMPRE, ANCHE CON ZERO (voce Z-C21.2,
+            // rilievo L9-2).
+            //
+            // IFeatureManager~InsertWeldmentTrimFeature2.html, Remarks: «If you
+            // include swWeldmentTrimExtendOption_WeldGap in the Options parameter,
+            // then the GapValue parameter is used. Specify 0 for GapValue to
+            // ensure that there is no weld gap. If you exclude
+            // swWeldmentTrimExtendOption_WeldGap from the Options parameter, then
+            // the weld gap defaults to the last value specified in the SOLIDWORKS
+            // user-interface.»
+            //
+            // Il commento che stava qui ragionava al contrario: temeva un
+            // GapValue positivo ignorato, e accendeva il bit solo con `gioco > 0`.
+            // Il danno vero era l'altro: con `gioco_mm` a 0 — il predefinito — il
+            // bit restava spento e SOLIDWORKS usava l'ultimo gioco dato a mano
+            // da Accorcia/Estendi, mentre il riassunto diceva `gioco_mm: 0`. Il
+            // ponte gira sullo stesso SOLIDWORKS del lavoro vero: basta che chi
+            // disegna abbia usato un gioco da interfaccia perche' le chiamate dopo
+            // lo ereditino. Il caso `il_taglio_senza_gioco_non_eredita` lo guarda.
+            int opzioni = (int)swWeldmentTrimExtendOptionType_e
                 .swWeldmentTrimExtendOption_WeldGap;
 
             // GLI ARRAY VANNO TIPIZZATI, e non e' pignoleria: e' il difetto per

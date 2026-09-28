@@ -151,6 +151,25 @@ namespace Riscontro.Disegno
                     }
                 }
 
+                // LA SELEZIONE SI VUOTA PRIMA, SEMPRE (voce Z-C21.2, rilievo L13-1).
+                //
+                // IModelDocExtension~SaveAs3.html, Remarks: «Exports the entire
+                // model, unless faces or bodies are selected, in which case, it
+                // exports only those. Call IModelDoc2::ClearSelection2 before
+                // calling this method to clear the selection list and export the
+                // entire model.»
+                //
+                // Una faccia rimasta selezionata — da un passo prima, o a mano da
+                // chi sta davanti a SOLIDWORKS — faceva uscire uno STL con quella
+                // faccia sola, e i controlli qui sotto non potevano accorgersene:
+                // confrontano il file con se stesso (84 + 50 per triangolo), non
+                // col pezzo. `triangoli_dalla_geometria` resta un numero riportato
+                // accanto e non diventa un vincolo: la tassellatura di schermo e
+                // quella di esportazione non hanno la stessa tolleranza, e una
+                // soglia sull'ordine di grandezza non si fissa senza averla
+                // misurata su pezzi curvi. Il caso
+                // `lo_stl_non_esporta_la_faccia_selezionata` prende il difetto.
+                modello.ClearSelection2(true);
                 try
                 {
                     ok = modello.Extension.SaveAs3(
@@ -500,6 +519,12 @@ namespace Riscontro.Disegno
                     }
                 }
 
+                // COME PER LO STL (rilievo L13-1). IModelDocExtension~SaveAs3.html,
+                // Remarks: «Exports the entire model, unless faces or bodies are
+                // selected, in which case, it exports only those». Per lo STEP di
+                // una parte non c'e' nessun conto dei corpi che se ne accorgerebbe,
+                // e quello dell'assieme prenderebbe un file con meno solidi.
+                modello.ClearSelection2(true);
                 try
                 {
                     ok = modello.Extension.SaveAs3(

@@ -84,8 +84,13 @@ namespace Riscontro.Disegno
                     "E' il verso in cui cresce la stampa: il piano della macchina sta sotto, " +
                     "perpendicolare a questo.");
 
-            var corpi = CorpiDaGuardare(modello, a, out string motivo);
+            var corpi = CorpiDaGuardare(modello, a, stato, out string motivo);
             if (corpi == null) return Fallito(motivo);
+            int corpiNascosti = 0;
+            foreach (var c in corpi)
+            {
+                try { if (!c.Visible) corpiNascosti++; } catch { }
+            }
 
             // La quota del piano di appoggio: il punto piu' basso del pezzo
             // nella direzione di stampa.
@@ -106,6 +111,8 @@ namespace Riscontro.Disegno
             double areaTotale = 0, areaSporgente = 0, areaSulPiano = 0;
             double peggiore = 0;
             int facceGuardate = 0, facceSporgenti = 0, facceCurve = 0;
+            int facceNonAnalizzate = 0;
+            double areaNonAnalizzata = 0;
             int concordi = 0, discordi = 0;
             var elenco = new List<Dictionary<string, object>>();
 
@@ -133,8 +140,26 @@ namespace Riscontro.Disegno
                     if (tri == null || tri.Count == 0)
                     {
                         // Niente tassellazione: si ripiega sulla normale, che
-                        // per una faccia piana e' esatta. Per una curva non lo
-                        // e', e si dice.
+                        // per una faccia piana e' esatta. PER UNA CURVA NON C'E'
+                        // (voce Z-C21.2, rilievo L12-2).
+                        //
+                        // IFace2~Normal.html, Remarks: «If the face is not a
+                        // planar face, then this property returns 0,0,0.» Il
+                        // commento che stava qui prometteva «e si dice», e il
+                        // codice guardava solo `normale == null`: con (0,0,0)
+                        // Prodotto dava 0, la faccia risultava «in su» e non
+                        // veniva mai segnalata, qualunque fosse la sua
+                        // pendenza. Se nessuna faccia tassellava, la risposta
+                        // era «si stampa senza supporti» senza aver guardato
+                        // niente. Adesso la faccia curva senza triangoli si
+                        // CONTA come non analizzata, e il giudizio diventa non
+                        // conclusivo (qui sotto).
+                        if (!piana)
+                        {
+                            facceNonAnalizzate++;
+                            areaNonAnalizzata += areaFaccia;
+                            continue;
+                        }
                         if (normale == null) continue;
                         double gradiP = Sporgenza(normale, su);
                         bool giuP = Prodotto(normale, su) < 0;
@@ -207,25 +232,47 @@ namespace Riscontro.Disegno
                 ["area_sporgente_mm2"] = Math.Round(areaSporgente, 2),
                 ["area_totale_mm2"] = Math.Round(areaTotale, 2),
                 ["area_appoggiata_al_piano_mm2"] = Math.Round(areaSulPiano, 2),
-                ["si_stampa_senza_supporti"] = facceSporgenti == 0,
+                // NON CONCLUSIVO E' UN TERZO VALORE, non un «si'» (rilievo
+                // L12-2): con una faccia curva che non si e' potuta guardare,
+                // «nessuna sporgenza trovata» non vuol dire «nessuna sporgenza».
+                // Una sporgenza trovata resta un «no» anche cosi'.
+                ["si_stampa_senza_supporti"] = facceSporgenti > 0
+                    ? (object)false
+                    : facceNonAnalizzate > 0 ? null : (object)true,
                 ["sporgenze"] = elenco.Take(quanteNeDico).ToArray(),
                 ["triangoli_controllati"] = concordi + discordi,
+                // Nomi nuovi, in inglese come i prossimi del ponte.
+                ["faces_not_analyzed"] = facceNonAnalizzate,
+                ["hidden_bodies"] = corpiNascosti,
             };
+            if (facceNonAnalizzate > 0)
+                misure["area_not_analyzed_mm2"] = Math.Round(areaNonAnalizzata, 2);
             if (troncato)
             {
                 misure["sporgenze_non_elencate"] = elenco.Count - quanteNeDico;
                 misure["troncato"] = true;
             }
 
-            misure["giudizio"] = facceSporgenti == 0
+            string nonGuardate = facceNonAnalizzate == 0 ? "" : string.Format(
+                CultureInfo.InvariantCulture,
+                " ATTENZIONE: {0} facce curve ({1:0.##} mm2) non si sono lasciate tassellare " +
+                "e non le ho potute guardare: una faccia curva non ha una normale sola.",
+                facceNonAnalizzate, areaNonAnalizzata);
+            misure["giudizio"] = facceSporgenti > 0
                 ? string.Format(CultureInfo.InvariantCulture,
-                    "Si stampa senza supporti con la soglia di {0:0.#} gradi: non c'e' " +
-                    "nessuna superficie che pende oltre.", soglia)
-                : string.Format(CultureInfo.InvariantCulture,
                     "NON si stampa senza supporti: {0} facce pendono oltre {1:0.#} gradi, " +
                     "la peggiore a {2:0.#}, per {3:0.##} mm2 su {4:0.##} di superficie. " +
                     "Gira il pezzo, o mettici i supporti, o smussa quelle facce.",
-                    facceSporgenti, soglia, peggiore, areaSporgente, areaTotale);
+                    facceSporgenti, soglia, peggiore, areaSporgente, areaTotale) + nonGuardate
+                : facceNonAnalizzate > 0
+                    ? string.Format(CultureInfo.InvariantCulture,
+                        "NON POSSO DIRE se si stampa senza supporti con la soglia di {0:0.#} " +
+                        "gradi: sulle facce che ho guardato non pende niente oltre, ma", soglia) +
+                      nonGuardate.Replace(" ATTENZIONE:", "") +
+                      " Riprova dopo una ricostruzione, o guarda quelle facce a occhio."
+                    : string.Format(CultureInfo.InvariantCulture,
+                        "Si stampa senza supporti con la soglia di {0:0.#} gradi: non c'e' " +
+                        "nessuna superficie che pende oltre.", soglia);
 
             misure["cosa_non_guarda"] =
                 "Guardo l'angolo di ogni superficie rispetto alla direzione di stampa, e " +
@@ -383,28 +430,42 @@ namespace Riscontro.Disegno
             return new[] { n[0] / lung, n[1] / lung, n[2] / lung };
         }
 
-        private static List<IBody2> CorpiDaGuardare(
-            IModelDoc2 modello, Dictionary<string, object> a, out string motivo)
+        private List<IBody2> CorpiDaGuardare(
+            IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato,
+            out string motivo)
         {
             motivo = null;
             var parte = modello as IPartDoc;
             if (parte == null) { motivo = "Questo non e' un documento di parte."; return null; }
-            var grezzi = parte.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
+            // TUTTI I CORPI, ANCHE QUELLI NASCOSTI (voce Z-C21.2, rilievo L12-1).
+            //
+            // IPartDoc~GetBodies2.html, parametro BVisibleOnly: «True gets only
+            // the visible bodies, false gets all of the bodies in the part». Qui
+            // c'era `true`: un corpo nascosto per guardare dentro il pezzo usciva
+            // dall'analisi senza che niente lo dicesse, e «si_stampa_senza_supporti»
+            // poteva dire si' su un corpo che pende. Lo stato usa `false` da tempo
+            // (StatoDocumento.cs, «e il false e' voluto»), e con `true` qui «C2»
+            // indicava un corpo diverso da quello dello stato.
+            //
+            // La guida NON dice se `GetTessTriangles` risponde sulle facce di un
+            // corpo nascosto. Per questo il ramo senza triangoli (rilievo L12-2)
+            // conta le facce curve come non analizzate invece di saltarle: se il
+            // corpo nascosto non tassella, il giudizio diventa «non posso dire»
+            // e non torna il «si'» silenzioso. La mini-sonda che lo misura e'
+            // ancora da lanciare (voce Z-C21.2, CHANGELOG).
+            var grezzi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
             var tutti = (grezzi ?? new object[0]).Select(o => o as IBody2).Where(b => b != null).ToList();
             if (tutti.Count == 0) { motivo = "Il pezzo non ha corpi solidi da guardare."; return null; }
 
             string uid = Str(a, "corpo_uid", null);
             if (string.IsNullOrWhiteSpace(uid)) return tutti;
 
-            int n;
-            if (!uid.StartsWith("C", StringComparison.OrdinalIgnoreCase) ||
-                !int.TryParse(uid.Substring(1), out n) || n < 1 || n > tutti.Count)
-            {
-                motivo = "Non trovo il corpo «" + uid + "»: questo pezzo ha " + tutti.Count +
-                         (tutti.Count == 1 ? " corpo, che si chiama C1." : " corpi, da C1 a C" + tutti.Count + ".");
-                return null;
-            }
-            return new List<IBody2> { tutti[n - 1] };
+            // IL CORPO PER FIRMA, come in combina_corpi e sposta_corpi (schema S5,
+            // rilievo L6-1): GetBodies2.html, «May vary the order in which bodies
+            // are returned».
+            var trovati = CorpiDaUid(stato, new List<string> { uid.Trim() }, a, out motivo);
+            if (trovati == null) return null;
+            return new List<IBody2> { trovati[0] };
         }
     }
 }

@@ -2105,7 +2105,9 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "come si chiude il taglio (predefinito: taglio)"),
                             "gioco_mm", O(
                                 "type", "number",
-                                "description", "gioco lasciato (predefinito: 0)")),
+                                "description", "gioco lasciato (predefinito: 0). Il gioco che passi e' "
+                                    + "sempre quello applicato, anche 0: l'ultimo gioco dato a mano "
+                                    + "in SOLIDWORKS non viene ereditato")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -3384,7 +3386,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "peggiore -- ma appoggia sul piano della macchina e si stampa "
                         + "benissimo.\n\nTi rispondo la sporgenza peggiore, quanta area "
                         + "pende, e le facce una per una con dove stanno, cosi' sai se girare "
-                        + "il pezzo o smussare.",
+                        + "il pezzo o smussare.\n\nGUARDO ANCHE I CORPI NASCOSTI (quanti sono "
+                        + "te lo dico in «hidden_bodies»). Una faccia curva che non si lascia "
+                        + "tassellare non la posso guardare: la conto in «faces_not_analyzed», "
+                        + "e se non ho trovato sporgenze altrove «si_stampa_senza_supporti» "
+                        + "e' null, non true.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",

@@ -1405,6 +1405,42 @@ namespace ProvaSaldatura
                     if (argomenti == null) argomenti = new Dictionary<string, object>();
                     if (!ReferenceEquals(statoDegliUid, stato)) AttaccaFirme(argomenti, statoDegliUid);
 
+                    // «prima_seleziona» (voce Z-C21.2, rilievo L13-1): le entita'
+                    // che restano SELEZIONATE quando il passo parte, come le
+                    // lascerebbe un passo precedente o chi sta davanti a
+                    // SOLIDWORKS. Serve ai difetti che dipendono dalla selezione
+                    // e non dagli argomenti: `SaveAs3` esporta solo le facce
+                    // selezionate (IModelDocExtension~SaveAs3.html, Remarks), e un
+                    // caso senza questo campo non poteva nemmeno scriverlo.
+                    object daSelezionare;
+                    if (passo.TryGetValue("prima_seleziona", out daSelezionare) && daSelezionare != null)
+                    {
+                        string perche;
+                        if (!SelezionaPrima(attuale, daSelezionare, statoDegliUid, out perche))
+                        {
+                            ErroreDiBanco(etichetta, "«prima_seleziona»: " + perche);
+                            return false;
+                        }
+                    }
+                    // «prima_nascondi» (voce Z-C21.2, rilievo L12-1): i corpi
+                    // nascosti quando il passo parte, come li nasconde chi vuole
+                    // guardare dentro il pezzo. Nessuna operazione del catalogo
+                    // nasconde un corpo, e senza questo campo il difetto «un
+                    // corpo nascosto esce dal controllo» non si poteva scrivere.
+                    object daNascondere;
+                    if (passo.TryGetValue("prima_nascondi", out daNascondere) && daNascondere != null)
+                    {
+                        string perche;
+                        if (!NascondiPrima(attuale, daNascondere, statoDegliUid, out perche))
+                        {
+                            ErroreDiBanco(etichetta, "«prima_nascondi»: " + perche);
+                            return false;
+                        }
+                        // Lo stato si rilegge: il passo lo riceve, e un corpo
+                        // nascosto e' un fatto che lo stato deve vedere.
+                        stato = LeggiStato(attuale);
+                    }
+
                     double volumePrima = VolumeDelDocumento(attuale);
                     int featurePrima = QuanteFeature(stato);
 
@@ -1521,6 +1557,111 @@ namespace ProvaSaldatura
             // TUTTI I PASSI, TUTTE LE ATTESE. Ci si arriva solo se non e'
             // uscito niente per strada: e' questo che la voce F5 chiama «verde
             // in questo giro».
+            return true;
+        }
+
+        /// <summary>
+        /// Lascia selezionate le entita' di «prima_seleziona» (voce Z-C21.2).
+        ///
+        /// Il campo e' un elenco di uid o di selettori, risolti sullo STESSO
+        /// stato degli argomenti del passo. L'entita' si prende dalle firme
+        /// dello stato della libreria — le stesse che usano le operazioni per
+        /// trovare «F3» — e si seleziona con `IEntity.Select4(true, null)`.
+        /// Poi si conta: una selezione che non e' riuscita farebbe verde un
+        /// caso che non ha provato niente, quindi e' un errore di banco.
+        /// </summary>
+        private static bool SelezionaPrima(
+            IModelDoc2 doc, object grezzo, Dictionary<string, object> statoDegliUid,
+            out string perche)
+        {
+            List<string> uid;
+            List<object> entita;
+            if (!EntitaDelloStato(doc, grezzo, statoDegliUid, out uid, out entita, out perche))
+                return false;
+
+            doc.ClearSelection2(true);
+            for (int i = 0; i < uid.Count; i++)
+            {
+                var e = entita[i] as IEntity;
+                if (e == null) { perche = "«" + uid[i] + "» non e' un'entita' che so selezionare"; return false; }
+                if (!e.Select4(true, null)) { perche = "Select4 ha risposto no su «" + uid[i] + "»"; return false; }
+            }
+            int quante = ((ISelectionMgr)doc.SelectionManager).GetSelectedObjectCount2(-1);
+            if (quante != uid.Count)
+            {
+                perche = "chiesto di selezionare " + uid.Count + " entita', selezionate " + quante;
+                return false;
+            }
+            Console.WriteLine("       | prima del passo restano selezionate: " + string.Join(", ", uid));
+            return true;
+        }
+
+        /// <summary>
+        /// Nasconde i corpi di «prima_nascondi» (voce Z-C21.2) con
+        /// `IBody2.HideBody(true)` (IBody2~HideBody.html: «True to hide the
+        /// body, false to show the body») e rilegge `IBody2.Visible`: un corpo
+        /// che resta visibile farebbe verde un caso che non ha provato niente.
+        /// </summary>
+        private static bool NascondiPrima(
+            IModelDoc2 doc, object grezzo, Dictionary<string, object> statoDegliUid,
+            out string perche)
+        {
+            List<string> uid;
+            List<object> entita;
+            if (!EntitaDelloStato(doc, grezzo, statoDegliUid, out uid, out entita, out perche))
+                return false;
+            for (int i = 0; i < uid.Count; i++)
+            {
+                // UN CORPO, O IL CORPO DI UNA FACCIA. I nomi dei corpi dopo una
+                // copia o una lavorazione non sono prevedibili, e i numeri C1, C2
+                // cambiano fra un giro e l'altro (voce Z-C16); una faccia invece si
+                // nomina per DOVE sta (`@faccia(verso=davanti,x~=150)`).
+                var corpo = entita[i] as IBody2;
+                var faccia = entita[i] as IFace2;
+                if (corpo == null && faccia != null) corpo = faccia.GetBody() as IBody2;
+                if (corpo == null) { perche = "«" + uid[i] + "» non e' ne' un corpo ne' una faccia"; return false; }
+                corpo.HideBody(true);
+                if (corpo.Visible) { perche = "«" + uid[i] + "» e' ancora visibile dopo HideBody(true)"; return false; }
+            }
+            try { doc.GraphicsRedraw2(); } catch { }
+            Console.WriteLine("       | prima del passo restano nascosti: " + string.Join(", ", uid));
+            return true;
+        }
+
+        /// <summary>
+        /// Gli oggetti COM dietro a uid o selettori, dalle firme dello stato
+        /// della libreria: le stesse che le operazioni usano per trovare «F3» o
+        /// «C2».
+        /// </summary>
+        private static bool EntitaDelloStato(
+            IModelDoc2 doc, object grezzo, Dictionary<string, object> statoDegliUid,
+            out List<string> uid, out List<object> entita, out string perche)
+        {
+            perche = null;
+            uid = new List<string>();
+            entita = new List<object>();
+            object risolto;
+            try { risolto = Risolvi(grezzo, statoDegliUid); }
+            catch (Exception ex) { perche = ex.Message; return false; }
+            var elenco = risolto as System.Collections.IList;
+            if (elenco != null) { foreach (var u in elenco) uid.Add(Convert.ToString(u)); }
+            else if (risolto != null) uid.Add(Convert.ToString(risolto));
+            if (uid.Count == 0) { perche = "l'elenco e' vuoto"; return false; }
+
+            object statoOggetto;
+            try { statoOggetto = LeggiStatoOggetto(doc); }
+            catch (Exception ex) { perche = "non leggo lo stato: " + Perche(ex); return false; }
+            var firme = _tStato.GetProperty("Firme",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(statoOggetto) as System.Collections.IDictionary;
+            if (firme == null) { perche = "lo stato della libreria non ha «Firme»"; return false; }
+            foreach (var u in uid)
+            {
+                var firma = firme.Contains(u) ? firme[u] : null;
+                var e = firma?.GetType().GetField("Entita")?.GetValue(firma);
+                if (e == null) { perche = "nello stato non c'e' «" + u + "»"; return false; }
+                entita.Add(e);
+            }
             return true;
         }
 

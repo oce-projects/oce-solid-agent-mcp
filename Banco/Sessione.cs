@@ -200,10 +200,21 @@ namespace ProvaSaldatura
             if (argomenti == null || stato == null) return;
             var firme = new Dictionary<string, object>();
 
+            // I CORPI COME LE FACCE (voce Z-C21.2, rilievo L6-1). Il ponte manda
+            // le firme dei corpi da tempo (`Attrezzi.FirmeDelloStato`, «centro_mm»
+            // e «ingombro_mm»); il banco no, e con «uid_dal_passo» un corpo
+            // nominato prima di un taglio arrivava SENZA firma: `FirmaCombacia`
+            // non aveva niente da confrontare e diceva si'. La voce E4 — il corpo
+            // rinumerato da un taglio — dal banco non si poteva vedere.
             var dove = new[]
             {
                 Tuple.Create("facce", new[] { "faccia_uid", "facce_uid" }),
                 Tuple.Create("spigoli", new[] { "spigoli_uid", "spigolo_uid" }),
+                Tuple.Create("corpi", new[]
+                {
+                    "corpi_uid", "corpo_uid", "corpo_principale_uid", "corpi_utensile_uid",
+                    "corpi_da_tagliare_uid", "corpi_di_taglio_uid",
+                }),
             };
             foreach (var coppia in dove)
             {
@@ -248,7 +259,8 @@ namespace ProvaSaldatura
                                     StringComparison.OrdinalIgnoreCase)) continue;
                             var firma = new Dictionary<string, object>();
                             foreach (var campoFirma in
-                                     new[] { "punto_mm", "normale", "area_mm2", "lunghezza_mm" })
+                                     new[] { "punto_mm", "normale", "area_mm2", "lunghezza_mm",
+                                             "centro_mm", "ingombro_mm" })
                             {
                                 object x;
                                 if (voce.TryGetValue(campoFirma, out x) && x != null)

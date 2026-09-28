@@ -1,0 +1,42 @@
+{
+  "nome": "il_corpo_nascosto_che_pende_si_vede",
+  "famiglia": "verifica",
+  "perche": "VOCE Z-C21.2, rilievo L12-1. verifica_sovrasporgenze chiamava GetBodies2(swSolidBody, true), e IPartDoc~GetBodies2.html dice del secondo argomento: «True gets only the visible bodies, false gets all of the bodies in the part». Un corpo nascosto per guardare dentro il pezzo usciva dall'analisi senza che niente lo dicesse, e la risposta era «si stampa senza supporti» su un pezzo che ha un corpo che pende.",
+  "il_difetto_che_questo_caso_prende": "Due corpi: un blocco dritto, che si stampa, e la sua copia rastremata a 60 gradi come in `pareti_a_sessanta_gradi_non_si_stampano`, che pende da quattro lati. La copia si NASCONDE prima della verifica («prima_nascondi», col corpo della sua faccia davanti). Sulla libreria vecchia la verifica guarda solo il blocco dritto e risponde 0 facce sporgenti; su quella nuova le quattro pareti della copia ci sono.",
+  "e_se_il_corpo_nascosto_non_tassella": "La guida non dice se GetTessTriangles risponde su un corpo nascosto (la mini-sonda della voce e' ancora da lanciare). Qui non conta: le quattro pareti sono PIANE, e per una faccia piana il ripiego su IFace2.Normal e' esatto. Se tassellano si contano per triangoli, se no per normale: 4 in tutti e due i casi.",
+  "dove_stanno_le_facce": "Il blocco va da x = -50 a 50, la copia (dx = 200) da 150 a 250. Le facce si nominano per il punto che lo stato pubblica, GetClosestPointOn(0,0,0): per la copia cade a x = 150 (davanti, sinistra, alto, basso) e a x = 250 (destra); per il blocco a x = 0, -50 e 50.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "sposta_corpi",
+      "argomenti": { "corpi_uid": [ "@corpo(nome=Estrusione-Estrusione1)" ], "dx_mm": 200,
+                     "copia": true, "quante_copie": 1 },
+      "attese": [
+        { "cosa": "corpi", "uguale": 2 },
+        { "cosa": "volume_mm3", "uguale": 400000 } ] },
+    { "operazione": "sformo",
+      "argomenti": { "faccia_neutra_uid": "@faccia(verso=davanti,x~=150)",
+                     "facce_uid": [ "@faccia(verso=destra,x~=250)", "@faccia(verso=sinistra,x~=150)",
+                                    "@faccia(verso=alto,x~=150)", "@faccia(verso=basso,x~=150)" ],
+                     "angolo_gradi": 60, "capovolgi": true },
+      "attese": [
+        { "cosa": "misure.facce_all_angolo_dopo", "uguale": 4 },
+        { "cosa": "misure.il_pezzo_e_cresciuto", "uguale": false,
+          "perche": "si stringe verso il basso: e' il tronco rovesciato, la forma che pende (vedi `pareti_a_sessanta_gradi_non_si_stampano`)" },
+        { "cosa": "corpi", "uguale": 2 } ] },
+    { "operazione": "verifica_sovrasporgenze",
+      "prima_nascondi": [ "@faccia(verso=davanti,x~=150)" ],
+      "argomenti": {},
+      "attese": [
+        { "cosa": "misure.facce_sporgenti", "uguale": 4,
+          "perche": "le quattro pareti a 60 gradi della copia NASCOSTA. Sulla libreria vecchia: 0" },
+        { "cosa": "misure.sporgenza_peggiore_gradi", "uguale": 60, "tolleranza": 0.1,
+          "perche_questa_tolleranza": "l'angolo si ricava dalle normali dei triangoli, che sono in virgola mobile singola" },
+        { "cosa": "misure.si_stampa_senza_supporti", "uguale": false },
+        { "cosa": "misure.hidden_bodies", "uguale": 1,
+          "perche": "la risposta dice che un corpo nascosto e' stato guardato" } ] }
+  ]
+}

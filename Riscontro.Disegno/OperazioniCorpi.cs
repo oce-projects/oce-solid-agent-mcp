@@ -141,15 +141,42 @@ namespace Riscontro.Disegno
             // meno A. Il principale si dice, e se non si dice e' il primo —
             // ma allora si scrive nella risposta, perche' chi legge deve
             // sapere quale dei due e' rimasto.
+            // ── GLI IDENTIFICATIVI SI RISOLVONO PER FIRMA, NON PER POSIZIONE ──
+            //
+            // (voce Z-C21.2, rilievo L6-1.) Fino alla libreria 0.136.0 «C2»
+            // voleva dire «il secondo di un GetBodies2 fatto adesso», e il
+            // parametro `stato` non era nemmeno letto.
+            // IPartDoc~GetBodies2.html, Remarks: «May vary the order in which
+            // bodies are returned». Un taglio fra la lettura dello stato e la
+            // booleana rinumera i corpi, e si combinava il corpo sbagliato con
+            // `riuscita: true`: e' la voce E4, misurata il 14/9/2026 sulla
+            // gemella `sposta_corpi` e corretta li' con `CorpiDaUid`, che
+            // confronta la firma (centro e scatola) letta dal piano con quella di
+            // adesso. Qui adesso passa dallo stesso punto. Il nome che si
+            // riporta resta quello chiesto: l'indice nel GetBodies2 qui sopra
+            // non e' detto che coincida con quello dello stato.
+            Func<IBody2, int> indiceDi = corpo =>
+            {
+                for (int i = 0; i < grezzi.Length; i++)
+                    if (ReferenceEquals(grezzi[i], corpo) || Equals(grezzi[i], corpo)) return i;
+                return -1;
+            };
+            string motivoCorpo;
+
             string uidPrincipale = Str(a, "corpo_principale_uid", null);
             int indicePrincipale = 0;
+            string nomePrincipale = "C1";
             if (!string.IsNullOrWhiteSpace(uidPrincipale))
             {
-                indicePrincipale = IndiceDelCorpo(uidPrincipale, grezzi.Length);
+                uidPrincipale = uidPrincipale.Trim();
+                var trovati = CorpiDaUid(stato, new List<string> { uidPrincipale }, a, out motivoCorpo);
+                if (trovati == null) return Fallito(motivoCorpo);
+                indicePrincipale = indiceDi(trovati[0]);
                 if (indicePrincipale < 0)
                     return Fallito(
-                        "Non trovo il corpo «" + uidPrincipale + "»: questo pezzo ne ha " +
-                        grezzi.Length + ", da C1 a C" + grezzi.Length + ".");
+                        "Non trovo il corpo «" + uidPrincipale + "» fra i corpi solidi di " +
+                        "adesso: rileggi il pezzo e nominalo di nuovo.");
+                nomePrincipale = uidPrincipale;
             }
 
             var utensili = new List<object>();
@@ -157,18 +184,22 @@ namespace Riscontro.Disegno
             var chiesti = Lista(a, "corpi_utensile_uid");
             if (chiesti != null && chiesti.Count > 0)
             {
-                foreach (var u in chiesti)
+                foreach (var grezzo in chiesti)
                 {
-                    int i = IndiceDelCorpo(u, grezzi.Length);
+                    string u = Convert.ToString(grezzo).Trim();
+                    var trovati = CorpiDaUid(stato, new List<string> { u }, a, out motivoCorpo);
+                    if (trovati == null) return Fallito(motivoCorpo);
+                    int i = indiceDi(trovati[0]);
                     if (i < 0)
-                        return Fallito("Non trovo il corpo «" + u + "»: questo pezzo ne ha " +
-                                       grezzi.Length + ", da C1 a C" + grezzi.Length + ".");
+                        return Fallito(
+                            "Non trovo il corpo «" + u + "» fra i corpi solidi di adesso: " +
+                            "rileggi il pezzo e nominalo di nuovo.");
                     if (i == indicePrincipale)
                         return Fallito(
                             "«" + u + "» e' anche il corpo principale: un corpo non si " +
                             "combina con se stesso.");
                     utensili.Add(grezzi[i]);
-                    nomiUtensili.Add("C" + (i + 1));
+                    nomiUtensili.Add(u);
                 }
             }
             else
@@ -260,7 +291,7 @@ namespace Riscontro.Disegno
                       "non l'hai chiesto tu. «sottrai» e «interseca» si chiedono " +
                       "per nome."
                     : "operazione: «" + comeChiesta + "» — l'hai chiesto tu.",
-                ["corpo_principale"] = "C" + (indicePrincipale + 1),
+                ["corpo_principale"] = nomePrincipale,
                 ["corpi_utensile"] = nomiUtensili.ToArray(),
                 ["corpi_prima"] = corpiPrima,
                 ["corpi"] = NumeroOppureNull(corpiDopo),
@@ -632,22 +663,9 @@ namespace Riscontro.Disegno
             });
         }
 
-        /// <summary>
-        /// Da «C2» all'indice 1. Meno uno se non e' un identificativo di corpo
-        /// o se il corpo non c'e': i due casi si dicono uguale a chi chiama,
-        /// perche' per chi ha scritto «C9» su un pezzo con due corpi la
-        /// differenza non aiuta.
-        /// </summary>
-        private static int IndiceDelCorpo(object uid, int quanti)
-        {
-            string s = Convert.ToString(uid);
-            if (string.IsNullOrWhiteSpace(s)) return -1;
-            s = s.Trim();
-            if (s.Length < 2 || (s[0] != 'C' && s[0] != 'c')) return -1;
-            int n;
-            if (!int.TryParse(s.Substring(1), out n)) return -1;
-            if (n < 1 || n > quanti) return -1;
-            return n - 1;
-        }
+        // `IndiceDelCorpo` («C2» -> indice 1 di un GetBodies2 nuovo) e' stato
+        // tolto con la voce Z-C21.2: era la risoluzione per posizione che il
+        // rilievo L6-1 ha trovato sbagliata. Gli uid dei corpi passano da
+        // `CorpiDaUid` (OperazioniSaldatura.cs), che guarda la firma.
     }
 }

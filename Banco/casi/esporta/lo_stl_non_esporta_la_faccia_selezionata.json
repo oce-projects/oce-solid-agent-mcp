@@ -1,0 +1,21 @@
+{
+  "nome": "lo_stl_non_esporta_la_faccia_selezionata",
+  "famiglia": "esporta",
+  "perche": "VOCE Z-C21.2, rilievo L13-1. IModelDocExtension~SaveAs3.html, Remarks: «Exports the entire model, unless faces or bodies are selected, in which case, it exports only those. Call IModelDoc2::ClearSelection2 before calling this method». Fino alla libreria 0.136.0 esporta_stl non vuotava la selezione: una faccia rimasta selezionata da un passo prima, o a mano, faceva uscire uno STL con quella faccia sola, e il controllo sul file (84 + 50 per triangolo) lo confrontava con se stesso e lo trovava giusto.",
+  "il_difetto_che_questo_caso_prende": "Lo stesso parallelepipedo di `scatola_dodici_triangoli`, con la faccia davanti lasciata SELEZIONATA dal banco prima del passo («prima_seleziona»). Il pezzo intero fa dodici triangoli e 684 byte; la faccia sola ne farebbe due, cioe' 84 + 50*2 = 184 byte. Sulla libreria vecchia il passo dice «triangoli: 2», e il file e' coerente con se stesso: e' il difetto che non da' errore.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "esporta_stl",
+      "prima_seleziona": [ "@faccia(verso=davanti)" ],
+      "argomenti": { "percorso": "{LAVORO}\\z_c21_2_faccia_selezionata.stl" },
+      "attese": [
+        { "cosa": "misure.triangoli", "uguale": 12,
+          "perche": "il pezzo INTERO: sei facce piane, due triangoli ciascuna. Con la sola faccia selezionata sarebbero 2" },
+        { "cosa": "misure.byte", "uguale": 684,
+          "perche": "84 + 50*12. La faccia sola darebbe 184, e il controllo interno del file passerebbe lo stesso" } ] }
+  ]
+}
