@@ -46,6 +46,12 @@ Ponte/Sessione.cs|GetType	3
 Ponte/Sessione.cs|Name	1
 Ponte/TurnoSulDocumento.cs|GetType	1
 Ponte/TurnoSulDocumento.cs|Text	1
+Riscontro.Disegno/Api/ApiCatalog.cs|Add	8
+Riscontro.Disegno/Api/ApiCatalog.cs|Name	57
+Riscontro.Disegno/Api/ApiCatalog.cs|Select	10
+Riscontro.Disegno/Api/ApiCatalog.cs|State	4
+Riscontro.Disegno/Api/ApiCatalog.cs|Text	1
+Riscontro.Disegno/Api/ApiCatalog.cs|Value	29
 Riscontro.Disegno/ApiHelpers.cs|Definition	1
 Riscontro.Disegno/Catalogo/Esporta.cs|Select	4
 Riscontro.Disegno/Catalogo/Esporta.cs|Value	1
