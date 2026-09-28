@@ -1,0 +1,25 @@
+{
+  "nome": "lim_ancora_sul_bordo_del_raccordo",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE Z-C21.2, rilievo C2-1 del completamento dell'audit: la gemella di `lim_ancora_sul_bordo_dello_smusso`, che per il raccordo NON era mai stata vista scattare. Il controllo del rischio 9 guarda l'altra faccia dello spigolo con IFace2.Normal, e IFace2~Normal.html dice: «If the face is not a planar face, then this property returns 0,0,0». Un raccordo e' un cilindro: Normal (0,0,0), coseno 0 come una parete perpendicolare vera, e lo spigolo tangente del raccordo passava per spigolo vivo. Il foro sarebbe andato dietro al raccordo a ogni modifica del raggio, senza errore.",
+  "il_difetto_che_questo_caso_prende": "Lo stesso pezzo e la stessa ancora del caso dello smusso, con un raccordo R5 al posto dello smusso 5: lo spigolo fra la faccia davanti e il raccordo sta a x = 95, z = 20, e' dritto, corre lungo Y e sta nel piano della faccia. Sulla libreria vecchia il foro si fa (l'ancora «regge»); su quella nuova si rifiuta perche' l'altra faccia non e' piana.",
+  "i_numeri": "Piastra 200 x 120 x 20 centrata: 480000. Il raccordo R5 lungo 120 toglie (5^2 - pi*5^2/4) x 120 = 5,365 x 120 = 643,81 mm3: 479356,19.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "raccordo_spigoli",
+      "argomenti": { "spigoli_uid": [ "@spigolo(asse=Y,x~=100,z~=20)" ], "raggio_mm": 5 },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 479356.19, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "480000 meno (25 - pi*25/4)*120 = 643,806: pi dentro, il ventesimo copre l'arrotondamento" } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 75, "y_mm": 40, "diametro_mm": 10, "passante": true,
+                     "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=95,z~=20)", "distanza_mm": 20 },
+                                 "y": { "spigolo_uid": "@spigolo(asse=X,y~=60,z~=20)", "distanza_mm": 20 } } },
+      "deve_fallire": { "il_messaggio_contiene": ["sul bordo di uno smusso o di un raccordo", "non e' piana"],
+                        "volume_invariato": true,
+                        "nessuna_feature_in_piu": true, "gemella": "il_foro_ancorato_segue_il_bordo" } }
+  ]
+}

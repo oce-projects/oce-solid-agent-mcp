@@ -804,13 +804,29 @@ namespace ProvaSaldatura
         /// dentro, e quel `Parte76` cambia a ogni giro — **quel piano oggi non
         /// si puo' rieseguire.** Risolvendolo sullo stato, il caso nomina la
         /// quota e il titolo lo mette il banco.
+        ///
+        /// `angolare=true` (voce Z-C21.2, rilievo M3) tiene solo le quote che lo
+        /// stato scrive in `gradi`, e allora «nome» si puo' omettere: i nomi che
+        /// SOLIDWORKS da' alle quote di uno smusso (D1, D2) e l'ordine in cui le
+        /// elenca non sono misurati, mentre «l'unica quota angolare del pezzo» e'
+        /// un fatto che lo stato dice.
         /// </summary>
         internal static string UnaQuota(
             string espressione, Dictionary<string, object> stato, List<Condizione> condizioni)
         {
             string dentroA = condizioni.FirstOrDefault(c => c.Campo == "feature")?.Valore;
             string chiamata = condizioni.FirstOrDefault(c => c.Campo == "nome")?.Valore;
-            if (chiamata == null) throw new NonHoPotutoMisurare(espressione + ": serve «nome»");
+            string angolareTesto = condizioni.FirstOrDefault(c => c.Campo == "angolare")?.Valore;
+            bool? angolare = null;
+            if (angolareTesto != null)
+            {
+                bool a;
+                if (!bool.TryParse(angolareTesto, out a))
+                    throw new NonHoPotutoMisurare(espressione + ": «angolare» e' true o false");
+                angolare = a;
+            }
+            if (chiamata == null && angolare == null)
+                throw new NonHoPotutoMisurare(espressione + ": serve «nome» (oppure «angolare»)");
 
             var feature = (stato != null && stato.ContainsKey("feature")
                 ? stato["feature"] : null) as System.Collections.IList;
@@ -831,7 +847,9 @@ namespace ProvaSaldatura
                     // «D1@Schizzo1@Parte286.Part» -> corto «D1», dentro «Schizzo1»
                     var pezzi = esteso.Split('@');
                     if (pezzi.Length < 2) continue;
-                    if (!string.Equals(pezzi[0], chiamata, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (chiamata != null &&
+                        !string.Equals(pezzi[0], chiamata, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (angolare.HasValue && quota.ContainsKey("gradi") != angolare.Value) continue;
                     if (dentroA != null &&
                         !string.Equals(pezzi[1], dentroA, StringComparison.OrdinalIgnoreCase)) continue;
                     trovate.Add(esteso);

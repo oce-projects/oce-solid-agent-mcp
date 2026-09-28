@@ -137,7 +137,21 @@ namespace Riscontro.Disegno
                 return null;
             }
 
-            double[] normale = faccia?.Normal as double[];
+            // LA NORMALE SOLO DI UNA FACCIA PIANA (voce Z-C21.2, rilievo N24).
+            // IFace2~Normal.html, Remarks: «If the face is not a planar face, then
+            // this property returns 0,0,0». Con (0,0,0) il controllo del bordo
+            // di smusso qui sotto dava coseno 0 per OGNI faccia adiacente, e
+            // lasciava passare tutto. NormaleDellaFaccia chiede IsPlane() prima,
+            // come Riferimenti.Normale; senza una faccia piana l'ancora si rifiuta.
+            double[] normale = NormaleDellaFaccia(faccia);
+            if (normale == null || normale.Length < 3)
+            {
+                motivo = "La faccia su cui lavori non e' piana (o non riesco a leggerne la normale): " +
+                         "l'ancora misura le distanze dagli spigoli nel piano della faccia, e su una " +
+                         "faccia curva quel piano non c'e'. Togli «ancora» e dai la posizione con " +
+                         "x_mm e y_mm.";
+                return null;
+            }
             var anc = new Ancoraggio();
             foreach (var nome in new[] { "x", "y" })
             {
@@ -309,28 +323,65 @@ namespace Riscontro.Disegno
             // parallelo — e se lo smusso passa da 2 a 5 il foro si sposta di 3
             // senza che nessuno lo sappia. L'altra faccia dello spigolo dev'essere
             // piana e perpendicolare a quella su cui si lavora.
+            //
+            // «PIANA» NON SI CONTROLLAVA (voce Z-C21.2, rilievo C2-1).
+            // IFace2~Normal.html: «Gets the unit normal vector for any planar
+            // face» e, nelle Remarks, «If the face is not a planar face, then
+            // this property returns 0,0,0». Il raccordo e' un cilindro: Normal
+            // dava (0,0,0), il coseno veniva 0 come per una parete perpendicolare
+            // vera, e lo spigolo tangente del raccordo passava per spigolo vivo.
+            // Il controllo funzionava solo per lo smusso (faccia piana obliqua).
+            // Adesso IsPlane() viene prima di Normal, come in
+            // Riferimenti.Normale e NormaleDellaFaccia; una faccia non piana si
+            // rifiuta con lo stesso messaggio.
+            //
+            // E SE NON RIESCE A GUARDARE, NON ACCETTA (rilievo N6). Prima un
+            // `catch { }` e un `if` che saltava con le facce o la normale
+            // mancanti lasciavano passare lo spigolo senza averlo guardato: un
+            // controllo che non guarda e dice si' e' peggio di nessun controllo
+            // (memoria «controllo mai visto scattare»).
+            string nonGuardato = null;
             try
             {
                 var facce = spigolo.GetTwoAdjacentFaces2() as object[];
-                if (facce != null && normaleFaccia != null && normaleFaccia.Length >= 3)
+                if (facce == null || facce.Length == 0)
+                    nonGuardato = "SOLIDWORKS non mi da' le facce dello spigolo";
+                else if (normaleFaccia == null || normaleFaccia.Length < 3)
+                    nonGuardato = "non ho la normale della faccia su cui lavori";
+                else
                     foreach (var o in facce)
                     {
                         var f = o as IFace2;
-                        if (f == null) continue;
-                        var nf = f.Normal as double[];
-                        double coseno = nf == null || nf.Length < 3 ? 1
+                        if (f == null) continue;   // uno spigolo di bordo ha una faccia sola e un NULL (GetTwoAdjacentFaces2.html)
+                        bool piana = false;
+                        try { piana = (f.GetSurface() as ISurface)?.IsPlane() == true; } catch { }
+                        var nf = piana ? f.Normal as double[] : null;
+                        if (piana && (nf == null || nf.Length < 3))
+                        {
+                            nonGuardato = "non riesco a leggere la normale di una faccia dello spigolo";
+                            break;
+                        }
+                        double coseno = !piana ? 0
                             : Math.Abs(nf[0] * normaleFaccia[0] + nf[1] * normaleFaccia[1] + nf[2] * normaleFaccia[2]);
-                        if (nf != null && coseno > 0.999) continue;          // la faccia stessa, o complanare
-                        if (nf == null || coseno > 0.01)
+                        if (piana && coseno > 0.999) continue;          // la faccia stessa, o complanare
+                        if (!piana || coseno > 0.01)
                         {
                             motivo = "Lo spigolo «" + uid + "» sta sul bordo di uno smusso o di un raccordo (la sua " +
-                                     "altra faccia non e' perpendicolare a questa): se lo smusso cambia, il profilo si " +
-                                     "sposta con lui. Ancoralo a uno spigolo vivo del pezzo.";
+                                     "altra faccia " + (piana ? "non e' perpendicolare a questa" : "non e' piana") +
+                                     "): se lo smusso o il raccordo cambia, il profilo si sposta con lui. Ancoralo " +
+                                     "a uno spigolo vivo del pezzo.";
                             return null;
                         }
                     }
             }
-            catch { }
+            catch (Exception ex) { nonGuardato = ex.Message; }
+            if (nonGuardato != null)
+            {
+                motivo = "Non sono riuscito a guardare l'altra faccia dello spigolo «" + uid + "» (" + nonGuardato +
+                         "): non so se sta sul bordo di uno smusso o di un raccordo, e un'ancora presa li' " +
+                         "si sposterebbe con lui senza errore. Ancoralo a un altro spigolo vivo del pezzo.";
+                return null;
+            }
             return new SpigoloDiAncora
             {
                 Uid = uid,
@@ -627,11 +678,32 @@ namespace Riscontro.Disegno
                 double era;
                 try { era = q.GetSystemValue2(""); } catch { continue; }
                 string rotta = null;
+                string ferma = null;
                 try
                 {
-                    q.SetSystemValue3(era + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
-                    modello.EditRebuild3();
-                    rotta = LavorazioneInErrore(taglio);
+                    // IL RITORNO SI LEGGE (voce Z-C21.2, rilievo M12).
+                    // IDimension~SetSystemValue3.html: «Return Value Success
+                    // indicator value as defined in swSetValueReturnStatus_e»
+                    // (Successful = 0; Failure = 1, InvalidValue = 2,
+                    // DrivenDimension = 3, ModelNotLoaded = 4, FrozenFeatureOwner
+                    // = 5, inventario swconst). Si scartava: se la quota non si
+                    // muoveva, la ricostruzione non trovava errori perche' non era
+                    // cambiato niente, e la prova «passava» senza aver provato.
+                    // Si rilegge anche il valore: mosso vuol dire mosso.
+                    int esitoMossa = q.SetSystemValue3(era + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
+                    if (esitoMossa != (int)swSetValueReturnStatus_e.swSetValue_Successful)
+                        ferma = "SOLIDWORKS ha risposto " + esitoMossa.ToString(CultureInfo.InvariantCulture) +
+                                " a SetSystemValue3";
+                    else
+                    {
+                        modello.EditRebuild3();
+                        double mossa = era;
+                        try { mossa = q.GetSystemValue2(""); } catch { }
+                        if (Math.Abs(mossa - (era + 0.0001)) > 1e-9)
+                            ferma = "rilette, la quota non si e' spostata";
+                        else
+                            rotta = LavorazioneInErrore(taglio);
+                    }
                 }
                 catch (Exception ex) { rotta = ex.Message; }
                 finally
@@ -643,6 +715,10 @@ namespace Riscontro.Disegno
                     }
                     catch { }
                 }
+                if (ferma != null)
+                    return "Non sono riuscito a spostare la quota d'ancora «" + asse.Nome + "» di un decimo (" + ferma +
+                           "): la prova di movimento non ha provato niente, e un'ancora che non so far muovere " +
+                           "non te la confermo.";
                 if (rotta != null)
                     return "Spostando la quota d'ancora «" + asse.Nome + "» di un decimo, il taglio va in errore (" + rotta +
                            "): lo schizzo non regge una modifica, e un'ancora che non regge una modifica non serve.";

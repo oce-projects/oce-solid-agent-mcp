@@ -3362,7 +3362,57 @@ namespace Riscontro.Disegno
                     "Non trovo la quota «" + nomeQuota + "» in questo documento." +
                     (dove == null ? "" : " Ci sono: " + dove + "."));
 
-            double prima = Unita.Mm(quota.SystemValue);
+            // ── LA QUOTA DI SOLA LETTURA NON SI SCAVALCA (voce Z-C21.2, M8) ──
+            //
+            // IDimension~SetSystemValue3.html, Remarks: «This method allows you
+            // to change the value of a read-only dimension. You can use
+            // IDimension::ReadOnly to determine if a dimension is read-only.»
+            // Chi ha messo la quota in sola lettura l'ha fatto apposta, e
+            // SetSystemValue3 la cambiava lo stesso senza dirlo. Lo stesso per
+            // una quota GUIDATA (IDimension.DrivenState, swDimensionDriven = 1,
+            // inventario swconst): e' una misura di riferimento, non comanda
+            // niente, e scriverci sopra non cambierebbe il pezzo.
+            bool solaLettura = false;
+            try { solaLettura = quota.ReadOnly; } catch { }
+            if (solaLettura)
+                return Fallito(
+                    "La quota «" + nomeQuota + "» e' di sola lettura: qualcuno l'ha bloccata " +
+                    "apposta, e io non la scavalco anche se SOLIDWORKS me lo permetterebbe. " +
+                    "Se va cambiata, togli prima la sola lettura dalla quota in SOLIDWORKS. " +
+                    "Non ho toccato niente.");
+            const int Guidata = 1;   // swDimensionDrivenState_e.swDimensionDriven
+            int comeGuida = 0;
+            try { comeGuida = quota.DrivenState; } catch { }
+            if (comeGuida == Guidata)
+                return Fallito(
+                    "La quota «" + nomeQuota + "» e' guidata (di riferimento): misura il " +
+                    "pezzo, non lo comanda. Cambia invece la quota che la guida. Non ho " +
+                    "toccato niente.");
+
+            // ── GRADI O MILLIMETRI: LO DICE LA QUOTA (voce Z-C21.2, M3) ─────
+            //
+            // IDimension~GetType.html: «Type of dimension as defined by
+            // swDimensionParamType_e» — DoubleLinear = 0, DoubleAngular = 1,
+            // Integer = 2 (inventario swconst). Fino alla libreria 0.136.0 ogni
+            // quota si convertiva da mm: «30» su un angolo diventava 0,03 rad
+            // (1,7 gradi), e la rilettura, sbagliata allo stesso modo, diceva che
+            // aveva preso. Lo stato del documento le quote angolari le scrive in
+            // `gradi` (StatoDocumento.cs, stessa GetType): qui il valore si legge
+            // nella stessa unita' in cui il modello l'ha letto.
+            const int QuotaAngolare = 1, QuotaIntera = 2;
+            int tipoQuota = 0;
+            try { tipoQuota = quota.GetType(); } catch { }
+            if (tipoQuota == QuotaIntera)
+                return Fallito(
+                    "La quota «" + nomeQuota + "» e' un numero intero (per esempio le copie " +
+                    "di una ripetizione), non una misura: con «valore_mm» non la cambio. " +
+                    "Non ho toccato niente.");
+            bool angolare = tipoQuota == QuotaAngolare;
+            Func<double, double> daSistema = angolare ? (Func<double, double>)Unita.Gradi : Unita.Mm;
+            Func<double, double> aSistema = angolare ? (Func<double, double>)Unita.Rad : Unita.M;
+            string unita = angolare ? "gradi" : "mm";
+
+            double prima = daSistema(quota.SystemValue);
             double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
             if (corpiPrima < 0)
@@ -3378,7 +3428,7 @@ namespace Riscontro.Disegno
 
             try
             {
-                esito = quota.SetSystemValue3(Unita.M(valore), inTutteLeConfigurazioni, null);
+                esito = quota.SetSystemValue3(aSistema(valore), inTutteLeConfigurazioni, null);
             }
             catch (Exception ex)
             {
@@ -3386,7 +3436,7 @@ namespace Riscontro.Disegno
             }
             if (esito != 0)
                 return Fallito(
-                    "SolidWorks ha rifiutato il valore " + valore + " mm per «" +
+                    "SolidWorks ha rifiutato il valore " + valore + " " + unita + " per «" +
                     nomeQuota + "» (codice " + esito + "). Di solito e' una " +
                     "quota governata da un'equazione o da una relazione.");
 
@@ -3395,11 +3445,11 @@ namespace Riscontro.Disegno
             catch (Exception ex) { return Fallito("La ricostruzione e' fallita: " + ex.Message); }
 
             // ── e adesso si guarda se e' successo davvero ────────────────
-            double dopo = Unita.Mm(quota.SystemValue);
+            double dopo = daSistema(quota.SystemValue);
             if (Math.Abs(dopo - valore) > 0.001)
                 return Fallito(
                     "La quota «" + nomeQuota + "» dice ancora " +
-                    dopo.ToString("0.###") + " mm invece di " + valore + ": il " +
+                    dopo.ToString("0.###") + " " + unita + " invece di " + valore + ": il " +
                     "valore non ha preso. Il pezzo non e' cambiato.");
 
             double? volumeDopo = VolumeMm3(modello);
@@ -3450,9 +3500,9 @@ namespace Riscontro.Disegno
             int aperteDopo = ApertureChiuse(modello);
             if (apertePrima >= 0 && aperteDopo >= 0 && aperteDopo < apertePrima)
             {
-                string rimesso = RimettiLaQuota(modello, quota, prima, volumePrima);
+                string rimesso = RimettiLaQuota(modello, quota, prima, volumePrima, aSistema, unita);
                 return Fallito(
-                    "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " mm un'apertura " +
+                    "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " " + unita + " un'apertura " +
                     "esce dal materiale: le aperture chiuse sulle facce piane passano da " +
                     apertePrima + " a " + aperteDopo + ". Un foro o un'asola che stava dentro " +
                     "il pezzo adesso ne apre il bordo, oppure due aperture si sono fuse in una." +
@@ -3486,9 +3536,9 @@ namespace Riscontro.Disegno
             string chiNonCiSta = SmussoCheNonCiSta(modello, lavorazioniPrima, FaccePerLavorazione(modello));
             if (chiNonCiSta != null)
             {
-                string rimesso = RimettiLaQuota(modello, quota, prima, volumePrima);
+                string rimesso = RimettiLaQuota(modello, quota, prima, volumePrima, aSistema, unita);
                 return Fallito(
-                    "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " mm " + chiNonCiSta +
+                    "Con «" + nomeQuota + "» a " + valore.ToString("0.###") + " " + unita + " " + chiNonCiSta +
                     ": non ci sta piu'. SOLIDWORKS non lo segnala come errore — ricostruisce e " +
                     "cambia la forma da solo — ma il pezzo che esce non e' quello che la lavorazione " +
                     "descrive." + rimesso + " Se vuoi quella misura, cambia o togli prima lo smusso " +
@@ -3498,11 +3548,22 @@ namespace Riscontro.Disegno
             var misure = new Dictionary<string, object>
             {
                 ["quota"] = nomeQuota,
-                ["prima_mm"] = Math.Round(prima, 3),
-                ["adesso_mm"] = Math.Round(dopo, 3),
                 ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
                 ["volume_cambiato_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2),
             };
+            // UNA QUOTA ANGOLARE NON SI RIPORTA IN «_mm» (M3): un campo che si
+            // chiama mm e porta gradi e' lo stesso difetto detto in un altro
+            // posto. I nomi nuovi sono in inglese, come i prossimi del ponte.
+            if (angolare)
+            {
+                misure["before_deg"] = Math.Round(prima, 3);
+                misure["after_deg"] = Math.Round(dopo, 3);
+            }
+            else
+            {
+                misure["prima_mm"] = Math.Round(prima, 3);
+                misure["adesso_mm"] = Math.Round(dopo, 3);
+            }
             if (volumeDopo == null || corpiDopo < 0) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
 
             // L'ALBERO PUO' ESSERE CAMBIATO, NON SOLO LE MISURE.
@@ -5211,29 +5272,32 @@ namespace Riscontro.Disegno
         /// stesso «ho rimesso» divergono alla prima correzione.
         /// </summary>
         private static string RimettiLaQuota(
-            IModelDoc2 modello, IDimension quota, double prima, double? volumePrima)
+            IModelDoc2 modello, IDimension quota, double prima, double? volumePrima,
+            Func<double, double> aSistema, string unita)
         {
             // swSetValueInConfiguration_e.swSetValue_InAllConfigurations = 2
             const int inTutteLeConfigurazioni = 2;
+            // Nella stessa unita' in cui `prima` e' stata letta: gradi per una
+            // quota angolare, mm per le altre (voce Z-C21.2, M3).
             try
             {
-                quota.SetSystemValue3(Unita.M(prima), inTutteLeConfigurazioni, null);
+                quota.SetSystemValue3(aSistema(prima), inTutteLeConfigurazioni, null);
                 modello.EditRebuild3();
                 double? tornato = VolumeMm3(modello);
                 return tornato == null || volumePrima == null
-                    ? " Ho rimesso " + prima.ToString("0.###") + " mm, ma non ho potuto " +
+                    ? " Ho rimesso " + prima.ToString("0.###") + " " + unita + ", ma non ho potuto " +
                       "rimisurare il volume per controllare che il pezzo sia com'era: guardalo."
                     : Math.Abs(tornato.Value - volumePrima.Value) < 0.01
                     ? " Non l'ho lasciato cosi': ho rimesso " + prima.ToString("0.###") +
-                      " mm e il pezzo e' com'era."
-                    : " Ho provato a rimettere " + prima.ToString("0.###") + " mm, ma il " +
+                      " " + unita + " e il pezzo e' com'era."
+                    : " Ho provato a rimettere " + prima.ToString("0.###") + " " + unita + ", ma il " +
                       "volume adesso e' " + tornato.Value.ToString("0.##") + " mm3 invece di " +
                       volumePrima.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
             }
             catch (Exception ex)
             {
                 return " E non sono riuscito a rimettere " + prima.ToString("0.###") +
-                       " mm (" + ex.Message + "): il pezzo e' rimasto col valore nuovo.";
+                       " " + unita + " (" + ex.Message + "): il pezzo e' rimasto col valore nuovo.";
             }
         }
 
