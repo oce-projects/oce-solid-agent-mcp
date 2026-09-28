@@ -132,7 +132,6 @@ namespace Prove.Contratti
             ["Riscontro.Disegno/OperazioniSw.cs|IFeatureManager.FeatureFillet3"] = 1,
             ["Riscontro.Disegno/OperazioniSw.cs|IFeatureManager.FeatureLinearPattern5"] = 1,
             ["Riscontro.Disegno/OperazioniSw.cs|ISketchManager.CreateSpline"] = 1,
-            ["Riscontro.Disegno/OperazioniTabellaFori.cs|IView.InsertHoleTable2"] = 1,
             ["Riscontro.Disegno/OperazioniTavola.cs|IDrawingDoc.InsertModelAnnotations2"] = 1,
             ["Riscontro.Disegno/OperazioniTavola.cs|IModelDocExtension.SaveAs"] = 2,
             ["Riscontro.Disegno/OperazioniTavola.cs|IView.GetDimensionCount"] = 1,
@@ -196,7 +195,6 @@ namespace Prove.Contratti
             ["ITableAnnotation.GetColumnType2"] = "superseded by ITableAnnotation::GetColumnType3 (bill of materials)",
             ["ITableAnnotation.Text"] = "superseded by ITableAnnotation::Text2 (bill of materials)",
             ["IView.GetDimensionCount"] = "C3-3/N20: superseded by IView::GetDimensionCount4",
-            ["IView.InsertHoleTable2"] = "L15-1: InsertHoleTable3 never tried; the marks 1/2 of the 2 are measured",
             ["IView.Name"] = "superseded by IView::GetName2/SetName2",
             ["IWizardHoleFeatureData2.FastenerType"] = "superseded by IWizardHoleFeatureData2::FastenerType2 (hole description in the state)",
         };

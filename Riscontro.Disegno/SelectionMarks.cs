@@ -93,14 +93,17 @@ namespace Riscontro.Disegno
         /// Guide: IFeatureManager~InsertProtrusionBlend2.html, «Set the mark for: 1 = profile selections».
         public const int LoftProfile = 1;
 
-        // ── IView.InsertHoleTable2 ──────────────────────────────────────────
+        // ── IView.InsertHoleTable3 ──────────────────────────────────────────
 
         /// <summary>The datum origin vertex of a hole table.</summary>
-        /// Guide: IView~InsertHoleTable2.html, «Selection Mark Datum origin vertex 1».
+        /// Guide: IView~InsertHoleTable3.html, «Selection Mark Datum origin vertex 1».
+        /// The same marks as the obsolete InsertHoleTable2 used until Z-C21.7;
+        /// the Z-C21.3 probe probe_hole_table3 measured that the 3 still needs
+        /// them: swapped (H3) the table is born with the header row only.
         public const int HoleTableDatumOrigin = 1;
 
         /// <summary>The hole edges and faces of a hole table.</summary>
-        /// Guide: IView~InsertHoleTable2.html, «Hole edges and faces 2».
+        /// Guide: IView~InsertHoleTable3.html, «Hole edges and faces 2».
         public const int HoleTableHoles = 2;
 
         // ── IModelDoc2.InsertFeatureShell ───────────────────────────────────

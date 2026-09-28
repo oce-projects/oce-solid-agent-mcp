@@ -13,20 +13,22 @@ namespace Riscontro.Disegno
     /// ── MISURATA PRIMA DI SCRIVERLA, 26/9/2026 (`prova0089 tabellafori`) ────
     ///
     /// `IView.InsertHoleTable2(UseAnchorPoint, X, Y, AnchorType, StartValue,
-    /// TableTemplate)` non ha argomenti per l'origine ne' per la faccia: vanno
-    /// SELEZIONATE prima, nella vista (`ISelectData.View`). Piastra 120 x 80 con
-    /// quattro fori Ø8 a 15 dai bordi, vista dall'alto:
+    /// TableTemplate)`, and `InsertHoleTable3` that replaces it since Z-C21.7,
+    /// have no argument for the origin or the face: they are SELECTED first, in
+    /// the view (`ISelectData.View`). Measured with InsertHoleTable2 on a
+    /// 120 x 80 plate with four D8 holes 15 from the edges, top view:
     ///
-    ///   vertice d'angolo col marchio 1, faccia forata col marchio 2
-    ///       -> 5 righe: A1 (15,15), A2 (15,65), A3 (105,15), A4 (105,65),
-    ///          tutti «Ø8 PASSANTE» — le posizioni dall'angolo, giuste
-    ///   marchi 2/1, oppure 0/0
-    ///       -> la tabella NASCE VUOTA (solo l'intestazione), senza errore
+    ///   corner vertex with mark 1, drilled face with mark 2
+    ///       -> 5 rows: A1 (15,15), A2 (15,65), A3 (105,15), A4 (105,65),
+    ///          all «Ø8 PASSANTE»: the positions from the corner, right
+    ///   marks 2/1, or 0/0
+    ///       -> the table is BORN EMPTY (the header only), without an error
     ///
-    /// Per questo l'operazione pretende righe = fori + 1, e una tabella nata
-    /// vuota la toglie e rifiuta. E rilegge ogni riga contro il modello: la
-    /// posizione di ogni foro dall'origine, misurata sulla vista, deve stare
-    /// nella tabella.
+    /// The Z-C21.3 probe probe_hole_table3 found the same with InsertHoleTable3
+    /// (swapped marks, H3: the header only). Hence the operation wants
+    /// rows = holes + 1, and removes and refuses a table born empty. And it
+    /// reads every row back against the model: the position of each hole from
+    /// the origin, measured on the view, must be in the table.
     ///
     /// Il 17/9 nessuna tabella nasceva su questa installazione (GT2): il 26/9
     /// nascono tutte tranne la distinta di taglio. Vedi la voce GT2 del TODO.
@@ -170,11 +172,26 @@ namespace Riscontro.Disegno
                                ", faccia " + okF + ").");
 
             string modelloTabella = PrimoModelloDiTabella((int)swUserPreferenceStringValue_e.swFileLocationsHoleTableTemplates, ".sldholtbt");
+            // Z-C21.7 (L15-1): InsertHoleTable3, not the obsolete InsertHoleTable2
+            // (IView~InsertHoleTable2.html: «Obsolete. Superseded by
+            // IView::InsertHoleTable3»). The two new arguments as case H1 of the
+            // Z-C21.3 probe probe_hole_table3: TagOrder swHoleTableTagOrder_XY (1),
+            // TagType swHoleTable_AlphaNumericTags (1), no manual tags
+            // (IView~InsertHoleTable3.html: «ManualTags Array of custom tags;
+            // valid only if TagType is swHoleTableTagStyle_e.swHoleTable_ManualTags»).
+            // On the bench plate (120 x 80, four D8 and one D20) H1 gave the same
+            // six rows as InsertHoleTable2 (H0): A1 (15,15), A2 (15,65),
+            // A3 (105,15), A4 (105,65), B1 (60,40), every one on a hole. TagType
+            // is honoured (H2, numeric: 1 to 5), so the start value this
+            // operation takes, the LETTER of the tags, goes with the alphanumeric
+            // style.
             object grezza;
             try
             {
-                grezza = vista.InsertHoleTable2(false, x, y,
-                    (int)swBOMConfigurationAnchorType_e.swBOMConfigurationAnchor_TopLeft, primoTag, modelloTabella);
+                grezza = vista.InsertHoleTable3(false, x, y,
+                    (int)swBOMConfigurationAnchorType_e.swBOMConfigurationAnchor_TopLeft, primoTag, modelloTabella,
+                    (int)swHoleTableTagOrder_e.swHoleTableTagOrder_XY,
+                    (int)swHoleTableTagStyle_e.swHoleTable_AlphaNumericTags, null);
             }
             catch (Exception ex) { return Fallito("La tabella fori non e' nata: " + ex.Message); }
             modello.ClearSelection2(true);

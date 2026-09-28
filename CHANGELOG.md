@@ -85,6 +85,18 @@ has been run yet.
   (22946 -> 23005 bytes in the probe, a different header), which no case checks.
   Cases that must stay identical: `lamiera/la_L_si_sviluppa` (flat 80.712, the DXF
   long side checked against it) and `lamiera/lim_sviluppo_senza_file`.
+- **L15-1, the hole table: `IView.InsertHoleTable2` -> `InsertHoleTable3`.**
+  `tabella_fori_in_tavola` passes the same six arguments plus TagOrder XY (1),
+  TagType alphanumeric (1) and no manual tags, case H1 of `probe_hole_table3`: on the
+  bench plate the same six rows as the obsolete call (H0), A1 (15,15), A2 (15,65),
+  A3 (105,15), A4 (105,65), B1 (60,40), each on a hole. TagType is honoured (H2,
+  numeric: 1 to 5); the marks 1 (origin vertex) and 2 (holes) are still needed (H3,
+  swapped: the header row only), so the table-born-empty refusal stays.
+  `SelectionMarks.HoleTableDatumOrigin` / `HoleTableHoles` now quote
+  IView~InsertHoleTable3.html (same values). Frozen key removed: 1. No answer
+  changes. Cases that must stay identical: `tavola/la_tabella_fori_dice_dove_sono`
+  (5 holes, 6 rows, positions verified) and
+  `tavola/lim_tabella_fori_sulla_vista_di_fianco`.
 
 ---
 
