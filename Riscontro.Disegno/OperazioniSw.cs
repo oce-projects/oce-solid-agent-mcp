@@ -249,7 +249,7 @@ namespace Riscontro.Disegno
             "misura_fra_entita", "modifica_quota", "variabile_globale", "lega_quota", "riordina_lavorazione", "cambia_estrusione", "tolleranza_quota", "proprieta_di_massa",
             "loft_fra_due_cerchi",
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile", "raccordo_faccia",
-            "ripeti_circolare", "scrivi_proprieta",
+            "ripeti_circolare", "ripeti_riempimento", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
             "sostituisci_componente", "fissa_componente", "specchia_componente",
@@ -410,6 +410,8 @@ namespace Riscontro.Disegno
                     case "specchia": return Specchia(modello, argomenti);
                     case "rivoluzione": return Rivoluzione(modello, argomenti);
                     case "ripeti_circolare": return RipetiCircolare(modello, argomenti, stato);
+                    // OperazioniRipetiRiempimento.cs (voce W1.1).
+                    case "ripeti_riempimento": return RipetiRiempimento(modello, argomenti, stato);
 
                     // ── tavola ──────────────────────────
                     // Stanno in Agente/OperazioniTavola.cs. Sono le prime

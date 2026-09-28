@@ -1,0 +1,30 @@
+{
+  "nome": "lim_riempimento_direzione_fuori_dalla_faccia",
+  "famiglia": "ripeti",
+  "perche": "LA DIREZIONE DEVE CORRERE LUNGO LA FACCIA. Uno spigolo dello spessore (lungo Z, perpendicolare alla faccia del davanti) e' dritto, e la guardia di «ripeti_lineare» lo accetterebbe; ma il riempimento dispone le copie DENTRO la faccia di contorno, e una direzione che ne esce non ha un verso da seguire la' dentro. L'operazione legge il verso dello spigolo (LineParams) e la normale della faccia, rifiuta quando la direzione esce dal piano (qui di 90 gradi) e dice di indicare uno dei bordi dritti della faccia. La gemella e' lo stesso passo con lo spigolo lungo 100, che corre lungo la faccia.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60,
+                     "spessore_mm": 12, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 72000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": -30, "y_mm": 0,
+                     "diametro_mm": 8, "passante": true },
+      "attese": [
+        { "cosa": "diametri_mm", "uguale": [8], "tolleranza": 0.02,
+          "perche_questa_tolleranza": "il diametro si legge da CylinderParams, che torna metri" },
+        { "cosa": "volume_mm3", "uguale": 71396.81, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "72000 meno pi*4^2*12: il conto ha pi dentro" } ] },
+    { "operazione": "ripeti_riempimento",
+      "argomenti": { "feature_uid": "@feature(tipo=ICE,n=1)",
+                     "faccia_uid": "@faccia(verso=davanti)",
+                     "asse_uid": "@spigolo(asse=Z,lungo~=12,n=1)",
+                     "passo_mm": 17.0240490494193, "copie_per_giro": 10, "margine_mm": 0 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non sta nel piano della faccia di contorno", "bordi dritti"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "il_riempimento_fa_quattordici_fori" } }
+  ]
+}

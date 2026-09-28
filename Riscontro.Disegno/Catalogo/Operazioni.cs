@@ -1341,6 +1341,129 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "ripeti_riempimento",
+                    Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
+                    // true SOLO dopo il banco verde su casi/ripeti (il verde e i tre rifiuti).
+                    Provata = true,
+                    Sommario =
+                        "Riempie una faccia piana di copie di una lavorazione: una piastra forata "
+                        + "per alleggerire, una griglia di sfiato.",
+                    Descrizione =
+                        "Riempie una faccia piana di copie di una lavorazione gia' fatta: una "
+                        + "piastra forata per alleggerire, una griglia di sfiato, un crivello. "
+                        + "SOLIDWORKS mette la prima copia al CENTRO della faccia e aggiunge giri "
+                        + "concentrici distanti «passo_mm», con «copie_per_giro» copie su ogni giro, "
+                        + "finche' la faccia le contiene; quelle che uscirebbero dal contorno (meno "
+                        + "«margine_mm») non si fanno. L'originale resta dov'era.\n\nQUANTE COPIE "
+                        + "ENTRANO LO DECIDE LA FACCIA, non un numero che dai tu: la risposta le conta "
+                        + "in «copies_made». Su una piastra 100 x 60 con un foro Ø8, passo circa 17 "
+                        + "e 10 copie per giro, sono 14.\n\nServono tre cose: la lavorazione "
+                        + "(«feature_uid» o «feature_rif»), la faccia di contorno su cui sta "
+                        + "(«faccia_uid» o «faccia_rif») e una DIREZIONE, cioe' uno spigolo dritto "
+                        + "che corre lungo la faccia («asse_uid», per esempio il suo bordo lungo) "
+                        + "oppure un asse fatto con «crea_asse» («asse_rif»). La direzione orienta "
+                        + "i giri.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un "
+                        + "cerchio di copie attorno a un asse, «ripeti_circolare». La disposizione e' "
+                        + "solo circolare: quadrata, poligonale e a perforazione non sono provate."
+                        + "\n\nMI RIFIUTO SE MANCA LA DIREZIONE: senza, SOLIDWORKS non crea niente e "
+                        + "non dice perche' (misurato, anche se la guida la dice facoltativa). MI "
+                        + "RIFIUTO SE LA FACCIA DI CONTORNO NON E' PIANA, e SE LA DIREZIONE NON STA "
+                        + "NEL PIANO DELLA FACCIA (uno spigolo dello spessore). E mi rifiuto, togliendo "
+                        + "la ripetizione, se nasce con lavorazioni in errore, con i corpi cambiati o "
+                        + "con copie che mordono il bordo o si fondono fra loro.",
+                    Precondizione = "feature_e_direzione",
+                    // Niente Esempio: il caso verde usa selettori del banco
+                    // (@feature, @faccia, @spigolo), e un esempio che il client non
+                    // puo' copiare e' una trappola (ProveGliEsempi, voce Z-G1).
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "feature_uid", O(
+                                "type", "string",
+                                "description", "la lavorazione da ripetere, se c'e' gia' nell'albero"),
+                            "feature_rif", O(
+                                "type", "object",
+                                "description", "la lavorazione fatta da un passo precedente di questo piano. "
+                                    + "Metti questo OPPURE feature_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- feature: la lavorazione fatta da quel passo, per "
+                                    + "ripeterla",
+                                "properties", O(
+                                    "passo", O(
+                                        "type", "integer",
+                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
+                                            + "1. Deve essere un passo PRECEDENTE a questo."),
+                                    "genere", O(
+                                        "type", "string",
+                                        "enum", A(
+                                            "feature"))),
+                                "required", A(
+                                    "passo",
+                                    "genere")),
+                            "faccia_uid", O(
+                                "type", "string",
+                                "description", "la faccia PIANA dentro cui disporre le copie, presa dallo stato "
+                                    + "(«F1»...): di solito quella da cui parte il foro"),
+                            "faccia_rif", O(
+                                "type", "object",
+                                "description", "la faccia creata da un passo precedente di questo stesso piano. "
+                                    + "Metti questo OPPURE faccia_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- faccia_di_fondo: il fondo della tasca (c'e' solo se la "
+                                    + "tasca e' cieca)\n- faccia_inferiore: la faccia sul piano di "
+                                    + "schizzo, il fondo dell'estrusione\n- faccia_superiore: la faccia "
+                                    + "in cima all'estrusione, quella opposta al piano di schizzo",
+                                "properties", O(
+                                    "passo", O(
+                                        "type", "integer",
+                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
+                                            + "1. Deve essere un passo PRECEDENTE a questo."),
+                                    "genere", O(
+                                        "type", "string",
+                                        "enum", A(
+                                            "faccia_di_fondo",
+                                            "faccia_inferiore",
+                                            "faccia_superiore"))),
+                                "required", A(
+                                    "passo",
+                                    "genere")),
+                            "asse_uid", O(
+                                "type", "string",
+                                "description", "la direzione dei giri: uno spigolo DRITTO che corre lungo la faccia "
+                                    + "di contorno («E1», «E2»...), per esempio il suo bordo lungo, oppure "
+                                    + "un asse gia' nel documento. Serve sempre: senza, la ripetizione non nasce"),
+                            "asse_rif", O(
+                                "type", "object",
+                                "description", "la direzione, se l'asse lo crea un passo precedente di questo "
+                                    + "piano con «crea_asse». Uno OPPURE l'altro.\n\nGeneri ammessi:\n- "
+                                    + "asse: l'asse creato dal passo, dal centro di un foro o di un "
+                                    + "albero",
+                                "properties", O(
+                                    "passo", O(
+                                        "type", "integer",
+                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
+                                            + "1. Deve essere un passo PRECEDENTE a questo."),
+                                    "genere", O(
+                                        "type", "string",
+                                        "enum", A(
+                                            "asse"))),
+                                "required", A(
+                                    "passo",
+                                    "genere")),
+                            "passo_mm", O(
+                                "type", "number",
+                                "description", "distanza fra un giro di copie e il successivo, da centro a centro"),
+                            "copie_per_giro", O(
+                                "type", "integer",
+                                "description", "quante copie su ogni giro attorno al centro della faccia"),
+                            "margine_mm", O(
+                                "type", "number",
+                                "description", "quanto le copie restano lontane dal bordo della faccia; predefinito 0")),
+                        "required", A(
+                            "passo_mm",
+                            "copie_per_giro")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "smusso_spigoli",
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",

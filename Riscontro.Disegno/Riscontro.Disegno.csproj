@@ -154,6 +154,7 @@
     <Compile Include="OperazioniTesto.cs" />
     <Compile Include="OperazioniIstanze.cs" />
     <Compile Include="OperazioniSformo.cs" />
+    <Compile Include="OperazioniRipetiRiempimento.cs" />
     <Compile Include="OperazioniRaccordoFaccia.cs" />
     <Compile Include="OperazioniLamiera.cs" />
     <Compile Include="OperazioniDimXpert.cs" />
