@@ -23,7 +23,7 @@
         { "cosa": "misure.schizzo_dei_fori", "uguale": "completamente definito",
           "perche": "the anchor was applied: the fit check with the counterbore let a hole at 20 through" } ] },
     { "operazione": "foro_guidato",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "tipo": "lamato", "taglia": "M8", "passante": true,
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti,z~=20)", "tipo": "lamato", "taglia": "M8", "passante": true,
                      "posizioni": [
                        { "x_mm": -94, "y_mm": 40,
                          "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=-100,z~=20)", "distanza_mm": 6 },

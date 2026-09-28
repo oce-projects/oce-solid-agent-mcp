@@ -143,6 +143,22 @@ otherwise. BENCH_0141_PLACEHOLDER
   goes from 26 to 27 (the new `falliti.Add` of N48: `falliti` is a
   `List<string>` parameter, which the scanner does not type); new group
   `Zc2110HelpersContract` (N32, N34, N36, N43, N55, C8-2 by reflection).
+- **From the full bench on 0.141.0 (first run):**
+  - **`nervatura` says what it could not remove.** When no rib is born in
+    either direction (a plate with no walls), the rib sketch cannot be
+    deleted afterwards: measured by `Controlli/NervaturaRitira` on SOLIDWORKS
+    29.5.1. DeleteSelection2 answers false with every option, EditDelete and
+    three EditUndo2 leave it, a control sketch deletes normally, and
+    EditSuppress2 works. The sketch is now suppressed and named in the refusal
+    ("resta nell'albero, SOPPRESSO"), and the volume check still says com'era.
+    Before, the refusal declared a restore that had failed.
+  - **Two bench cases corrected, no library change.**
+    `guided_hole_counterbore_past_the_edge` step 3 selects the plate face with
+    `z~=20`: after the first counterbore there are two front faces.
+    `l_albero_a_gradini_quotato_di_fianco` no longer demands that the Ø20 be
+    unreachable: with SOLIDWORKS freshly restarted it was exposed and
+    dimensioned ([34, 30, 20]), with no change to the shaft code. Both
+    outcomes are honest; Ø30 and Ø34 are still required to be dimensioned.
 
 ## 0.115.0 — 28 September 2026 · library 0.140.0
 

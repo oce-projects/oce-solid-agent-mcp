@@ -455,6 +455,18 @@ namespace Riscontro.Disegno
             if (mie.Count == 0) return " Non ho toccato il pezzo: e' com'era.";
             bool tutto = true;
             var nomi = new List<string>();
+            // A SKETCH THAT A FAILED InsertRib HAS TOUCHED CANNOT BE DELETED, ONLY
+            // SUPPRESSED. Measured on 28/9/2026 (probe cinque/probe_nervatura_ritira,
+            // SOLIDWORKS 29.5.1): after two failed InsertRib on a plate with no walls
+            // the rib sketch has no children and selects fine, yet
+            // DeleteSelection2 answers false with swDelete_Absorbed, swDelete_Children
+            // and 0, EditDelete leaves it and three EditUndo2 do not take it away.
+            // A new sketch made after the failures deletes normally, so the lock is
+            // on that sketch only. EditSuppress2 works (IsSuppressed read back true).
+            // Such a sketch is suppressed and named in the answer, instead of
+            // declaring a restore that did not happen (full bench on 0.141.0,
+            // lim_nervatura_sulla_piastra_senza_pareti).
+            var soppressi = new List<string>();
             for (int i = mie.Count - 1; i >= 0; i--)
             {
                 string nome = NervaturaNome(mie[i]);
@@ -466,7 +478,22 @@ namespace Riscontro.Disegno
                     modello.ClearSelection2(true);
                     if (!mie[i].Select2(false, 0)) { tutto = false; continue; }
                     if (!modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed))
-                        tutto = false;
+                    {
+                        string tipo = "";
+                        try { tipo = mie[i].GetTypeName2(); } catch { }
+                        bool soppresso = false;
+                        if (tipo == "ProfileFeature")
+                        {
+                            modello.ClearSelection2(true);
+                            if (mie[i].Select2(false, 0))
+                            {
+                                try { modello.EditSuppress2(); } catch { }
+                                try { soppresso = mie[i].IsSuppressed(); } catch { }
+                            }
+                        }
+                        if (soppresso) soppressi.Add(nome);
+                        else tutto = false;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -478,10 +505,15 @@ namespace Riscontro.Disegno
             try { modello.EditRebuild3(); } catch { }
             // SI RILEGGE L'ALBERO, NON IL VALORE DI RITORNO.
             foreach (var n in nomi)
-                if (!string.IsNullOrEmpty(n) && TrovaLavorazione(modello, n) != null) tutto = false;
+                if (!string.IsNullOrEmpty(n) && !soppressi.Contains(n) && TrovaLavorazione(modello, n) != null) tutto = false;
             nomi.Reverse();
-            return ETornatoComEra(modello, prima, tutto,
-                "il pezzo come l'avevo trovato (tolti «" + string.Join("», «", nomi) + "»)");
+            var tolti = nomi.FindAll(n => !soppressi.Contains(n));
+            string coda = ETornatoComEra(modello, prima, tutto,
+                "il pezzo come l'avevo trovato" + (tolti.Count > 0 ? " (tolti «" + string.Join("», «", tolti) + "»)" : ""));
+            if (soppressi.Count > 0)
+                coda += " Lo schizzo «" + string.Join("», «", soppressi) + "» resta nell'albero, SOPPRESSO: dopo una " +
+                        "nervatura fallita SOLIDWORKS non lo lascia cancellare (misurato), solo sopprimere.";
+            return coda;
         }
 
         /// <summary>I nomi delle feature di quel tipo, adesso.</summary>
