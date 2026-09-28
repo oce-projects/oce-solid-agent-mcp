@@ -457,6 +457,7 @@ ICurve.IGetBCurveParams	obsolete	sldworksapi
 ICurve.IGetBCurveParams3	obsolete	sldworksapi	
 ICurve.IGetBCurveParamsSize	obsolete	sldworksapi	
 ICurve.IGetBCurveParamsSize2	obsolete	sldworksapi	
+ICurve.Length2	obsolete	mention	
 ICurve.MakeBsplineCurve	obsolete	sldworksapi	
 ICustomPropertyManager.Add	obsolete	sldworksapi	IMathVector
 ICustomPropertyManager.Add2	obsolete	sldworksapi	IEquationMgr
@@ -2334,6 +2335,7 @@ IPartDoc.CreateFeatureFromBody	obsolete	sldworksapi
 IPartDoc.CreateFeatureFromBody2	obsolete	sldworksapi	
 IPartDoc.EditRebuild	obsolete	sldworksapi	
 IPartDoc.EditSuppress	obsolete	sldworksapi	
+IPartDoc.EditSuppress2	obsolete	mention	IModelDoc2
 IPartDoc.EditUnsuppress	obsolete	sldworksapi	
 IPartDoc.EditUnsuppressDependent	obsolete	sldworksapi	
 IPartDoc.EnumBodies	obsolete	sldworksapi	

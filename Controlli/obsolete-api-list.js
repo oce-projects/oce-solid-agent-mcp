@@ -33,7 +33,11 @@
 //   - every member page of obsoleteapi.chm is obsolete by construction,
 //     unless sldworksapi.chm has a CURRENT page for the same member (the
 //     obsolete guide also keeps old forms of members that still exist, e.g.
-//     IWizardHoleFeatureData2.Standard): then the current guide wins.
+//     IWizardHoleFeatureData2.Standard): then the current guide wins;
+//   - a member that a current page calls "the now obsolete I::X" is obsolete
+//     too (guide column "mention"), when neither guide has a current page for
+//     it: ICurve.Length2 has no page of its own, only a mention in
+//     ICurve~GetLength3.html.
 //
 // A member NAME can be obsolete on one interface and current on another
 // (Select2 on IEntity vs IFeature, GetBodies2 on IComponent2 vs IPartDoc). The
@@ -65,6 +69,13 @@ const declare = (iface, name) => {
   declared.get(name).add(iface);
 };
 
+// Members that a CURRENT page names as "the now obsolete X::Y" (ICurve::Length2
+// in ICurve~GetLength3.html). Some of them have no page of their own in either
+// guide, so the page loop alone never sees them. They are added at the end,
+// only when no guide has a current page for them.
+const mentioned = new Set();
+const mentionRx = /now obsolete\s+(?:(?:method|property)\s+)?((?:I\w+::\w+)(?:\s*(?:,|and)\s*I\w+::\w+)*)/gi;
+
 const pageName = /^SolidWorks\.Interop\.sldworks~SolidWorks\.Interop\.sldworks\.(I?\w+)~(\w+)\.html$/;
 for (const f of fs.readdirSync(main)) {
   const m = f.match(pageName);
@@ -75,6 +86,8 @@ for (const f of fs.readdirSync(main)) {
   if (!/^\s*\w+\s+(Method|Property)\s+\(/.test(title)) continue;
   declare(iface, name);
   const t = clean(html);
+  for (const mm of t.matchAll(mentionRx))
+    for (const ref of mm[1].match(/I\w+::\w+/g)) mentioned.add(ref.replace('::', '.'));
   const h = t.indexOf(HEADER), s = t.indexOf('.NET Syntax');
   const desc = h >= 0 && s > h ? t.slice(h + HEADER.length, s) : '';
   const r = t.indexOf(' Remarks ');
@@ -108,6 +121,15 @@ for (const dir of fs.readdirSync(obsoleteGuide)) {
   }
 }
 
+let byMention = 0;
+for (const key of mentioned) {
+  if (members.has(key) || currentPages.has(key)) continue;
+  const [iface, name] = key.split('.');
+  declare(iface, name);
+  members.set(key, { cls: 'obsolete', guide: 'mention' });
+  byMention++;
+}
+
 const rows = [];
 for (const [key, v] of members) {
   const name = key.split('.')[1];
@@ -125,4 +147,5 @@ const head = [
 fs.writeFileSync(out, head.concat(rows).join('\n') + '\n', 'utf8');
 const count = c => rows.filter(r => r.split('\t')[1] === c).length;
 console.log(rows.length + ' members (' + count('obsolete') + ' obsolete, ' + count('partial') + ' partial; ' +
-  overridden + ' obsoleteapi.chm pages left out because sldworksapi.chm lists them as current) -> ' + out);
+  overridden + ' obsoleteapi.chm pages left out because sldworksapi.chm lists them as current; ' +
+  byMention + ' known only from a "now obsolete" mention) -> ' + out);

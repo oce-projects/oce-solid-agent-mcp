@@ -67,6 +67,39 @@ namespace Prove.Contratti
     }
 
     /// <summary>
+    /// A call on a name that is obsolete on some interface and current on
+    /// another, whose receiver type the source does not say.
+    /// </summary>
+    internal sealed class UndecidedCall
+    {
+        public string File;
+        public int Line;
+        public string Name;
+        public string Code;
+    }
+
+    /// <summary>
+    /// The state of <see cref="ObsoleteCallScanner.Strip(string, StripState, out string)"/>
+    /// from one line to the next: a block comment, a verbatim string, or an
+    /// interpolated string whose holes hold code, can all span lines.
+    /// </summary>
+    internal sealed class StripState
+    {
+        internal sealed class Frame
+        {
+            public bool Hole;          // an interpolation hole {...}: code
+            public bool Verbatim;      // @"..." (for a string frame)
+            public bool Interpolated;  // $"..." (for a string frame)
+            public int Braces;         // nested { } inside a hole
+            public int Parens;         // nested ( ) [ ] inside a hole
+            public bool Format;        // after the ':' of a hole: literal format text
+        }
+
+        public bool Block;
+        public readonly List<Frame> Stack = new List<Frame>();
+    }
+
+    /// <summary>
     /// FINDS CALLS TO OBSOLETE MEMBERS IN C# SOURCE, WITHOUT COMPILING IT.
     ///
     /// The difficulty is that a member NAME can be obsolete on one interface
@@ -76,24 +109,35 @@ namespace Prove.Contratti
     /// check by name alone would either shout at every `feature.Select2` (and
     /// be switched off the same day) or miss the obsolete ones. So:
     ///
-    ///   1. the RECEIVER TYPE is inferred when the source says it: a declared
-    ///      variable or field (`IDimension quota`, also in another file of the
-    ///      same partial class), a cast (`(IEntity)x`, `x as IFace2`), a well
-    ///      known accessor (`.Extension`, `.FeatureManager`, `.SketchManager`,
-    ///      `.SelectionManager`, `.ConfigurationManager`). With a known
-    ///      SOLIDWORKS type the verdict is exact: the member is obsolete on that
-    ///      interface or it is not;
+    ///   1. the RECEIVER TYPE is inferred when the source says it, WITHIN THE
+    ///      SCOPE C# gives the name: a local or parameter visible at the call
+    ///      (declared in an enclosing block of the same method, not in another
+    ///      method that happens to use the same name), a field of the enclosing
+    ///      class (also declared in another file of the same partial class), a
+    ///      cast (`(IEntity)x`, `x as IFace2`), a well-known accessor
+    ///      (`.Extension`, `.FeatureManager`...), `new T(...)`, an element of a
+    ///      `T[]`, or the return type of a method declared in the scanned
+    ///      source (`var vista = RisolviVista(...)` is an IView because
+    ///      RisolviVista is declared `IView RisolviVista(`). A `var` whose type
+    ///      cannot be inferred HIDES any outer name, as it does in C#. With a
+    ///      known SOLIDWORKS type the verdict is exact;
     ///   2. with an unknown receiver, the name decides only when it is obsolete
     ///      on EVERY interface that declares it. Legacy interfaces that the code
     ///      never names are left out (IModelDoc next to IModelDoc2, IFace next to
     ///      IFace2...): otherwise every `EditRebuild3` would look ambiguous
     ///      because the ancient IModelDoc had an obsolete one;
-    ///   3. everything else is UNDECIDED and counted, not flagged: `list.Add`,
-    ///      `x.Value`, `feat.Select2` on an untyped receiver. The count is
-    ///      printed so that nobody mistakes "not flagged" for "checked".
+    ///   3. everything else is UNDECIDED and returned as such (`x.Value`,
+    ///      `feat.Select2` on an untyped receiver): the contract freezes those
+    ///      too, so that a new one is seen, and prints the count so that nobody
+    ///      mistakes "not flagged" for "checked".
+    ///
+    /// A type found OUTSIDE the scope of the call is never used: it made
+    /// `gia.Add` (a HashSet) look like an IModelDoc2 call and let an obsolete
+    /// `IView.Name` pass as `IConfigurationManager.Name` (review of Z-C21.6).
     ///
     /// Comments and string literals are blanked before looking, so that
-    /// explaining a trap in a comment does not become a violation.
+    /// explaining a trap in a comment does not become a violation; the code in
+    /// the holes of an interpolated string is kept.
     /// </summary>
     internal sealed class ObsoleteCallScanner
     {
@@ -107,23 +151,52 @@ namespace Prove.Contratti
         };
 
         private static readonly Regex DeclarationRx = new Regex(
-            @"\b(I?[A-Z][A-Za-z0-9_]*)(?:\[\])?\s+(@?[A-Za-z_]\w*)\s*(?==|;|,|\)|&|\||\bin\b)", RegexOptions.Compiled);
+            @"\b(I?[A-Z][A-Za-z0-9_]*)(\[\])?\s+(@?[A-Za-z_]\w*)\s*(?==|;|,|\)|&|\||\{|\bin\b)", RegexOptions.Compiled);
+        private static readonly Regex VarRx = new Regex(@"\bvar\s+(@?[A-Za-z_]\w*)\s*(=(?!=))?", RegexOptions.Compiled);
         private static readonly Regex CastAssignRx = new Regex(
             @"\b([A-Za-z_]\w*)\s*=\s*\(\s*(I?[A-Z]\w*)\s*\)", RegexOptions.Compiled);
         private static readonly Regex AsAssignRx = new Regex(
             @"\b([A-Za-z_]\w*)\s*=[^;=]*?\bas\s+(I?[A-Z]\w*)\s*(?=;|\?\?|\))", RegexOptions.Compiled);
         private static readonly Regex AccessorAssignRx = new Regex(
             @"\b([A-Za-z_]\w*)\s*=\s*[\w.()?\[\]]*?\.(Extension|FeatureManager|SketchManager|SelectionManager|ConfigurationManager)\s*(?:as\s+\w+\s*)?;", RegexOptions.Compiled);
+        private static readonly Regex MethodRx = new Regex(
+            @"\b(I?[A-Z]\w*)(\[\])?\s+([A-Za-z_]\w*)\s*(?:<[^()<>]*>)?\s*\(", RegexOptions.Compiled);
+        private static readonly Regex TypeHeaderRx = new Regex(@"\b(class|struct|interface|record|enum)\s+([A-Za-z_]\w*)", RegexOptions.Compiled);
+        private static readonly Regex NamespaceRx = new Regex(@"\bnamespace\b", RegexOptions.Compiled);
         private static readonly Regex TypeTokenRx = new Regex(
             @"(?:\bnew\s+|\bas\s+|\bis\s+|\btypeof\s*\(\s*|<\s*)(?<t>I?[A-Z]\w*)|\(\s*(?<t>I?[A-Z]\w*)\s*\)", RegexOptions.Compiled);
         private static readonly Regex MemberRx = new Regex(@"\.\s*([A-Za-z_]\w*)\b", RegexOptions.Compiled);
-        private static readonly Regex TrailingIdentRx = new Regex(@"([A-Za-z_]\w*)\s*$", RegexOptions.Compiled);
+        private static readonly Regex TrailingIdentRx = new Regex(@"(?<![\w.])([A-Za-z_]\w*)\s*$", RegexOptions.Compiled);
         private static readonly Regex TrailingMemberRx = new Regex(@"\.\s*([A-Za-z_]\w*)\s*$", RegexOptions.Compiled);
         private static readonly Regex CastInnerRx = new Regex(@"^\(\s*(I?[A-Z]\w*)\s*\)", RegexOptions.Compiled);
         private static readonly Regex AsInnerRx = new Regex(@"\bas\s+(I?[A-Z]\w*)\s*$", RegexOptions.Compiled);
+        private static readonly Regex NewRx = new Regex(@"^new\s+(?:[A-Za-z_]\w*\.)*([A-Za-z_]\w*)\s*(<|\(|\[|\{)", RegexOptions.Compiled);
+        private static readonly Regex CallRx = new Regex(@"^(?:([A-Za-z_]\w*)\s*\.\s*)?([A-Za-z_]\w*)\s*\(", RegexOptions.Compiled);
+        private static readonly Regex AccessorTailRx = new Regex(@"\.\s*(Extension|FeatureManager|SketchManager|SelectionManager|ConfigurationManager)\s*$", RegexOptions.Compiled);
 
         public const string MeasuredMarker = "OBSOLETE-MEASURED:";
         private static readonly Regex MeasuredRx = new Regex(@"OBSOLETE-MEASURED:\s*([A-Za-z0-9_\-]+)", RegexOptions.Compiled);
+
+        private enum ScopeKind { Namespace, Type, Code }
+
+        private sealed class Scope
+        {
+            public ScopeKind Kind;
+            public string ClassName;   // for a Type scope
+            public Scope Parent;
+            public int Depth;
+        }
+
+        private sealed class Declaration
+        {
+            public int Line, Col;
+            public string Name;
+            public string Type;        // null: declared, type unknown (a var that hides)
+            public string Method;      // "var x = Method(...)": resolved at Scan, when every method is known
+            public Scope Scope;        // a local: the block it lives in
+            public Scope Body;         // a parameter: the body of its method
+            public int EndLine = -1;   // a parameter of an expression-bodied member: its last line
+        }
 
         private sealed class SourceFile
         {
@@ -131,18 +204,25 @@ namespace Prove.Contratti
             public string[] Raw;
             public string[] Code;
             public string[] Comment;
-            public List<Tuple<int, string, string>> Declarations = new List<Tuple<int, string, string>>(); // line, name, type
+            public readonly Dictionary<string, List<Declaration>> Locals = new Dictionary<string, List<Declaration>>(StringComparer.Ordinal);
+            public Scope[] LineStart;                      // the scope at the start of each line
+            public List<Tuple<int, Scope>>[] Transitions;  // (column, scope from that column on)
         }
 
         private readonly ObsoleteApiList _list;
         private readonly List<SourceFile> _files = new List<SourceFile>();
         private readonly HashSet<string> _typesNamed = new HashSet<string>(StringComparer.Ordinal);
-        private readonly Dictionary<string, HashSet<string>> _globalTypes = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        private readonly HashSet<string> _classNames = new HashSet<string>(StringComparer.Ordinal);
+        // class name -> field or property name -> the types it is declared with
+        private readonly Dictionary<string, Dictionary<string, HashSet<string>>> _fields =
+            new Dictionary<string, Dictionary<string, HashSet<string>>>(StringComparer.Ordinal);
+        // method name -> the return types it is declared with, in any scanned file
+        private readonly Dictionary<string, HashSet<string>> _methods = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private Dictionary<string, List<string>> _byBase;
 
         /// <summary>Calls that could not be decided (ambiguous name, unknown receiver).</summary>
-        public int Undecided;
-        public readonly Dictionary<string, int> UndecidedByName = new Dictionary<string, int>(StringComparer.Ordinal);
+        public int Undecided => UndecidedCalls.Count;
+        public readonly List<UndecidedCall> UndecidedCalls = new List<UndecidedCall>();
 
         public ObsoleteCallScanner(ObsoleteApiList list) { _list = list; }
 
@@ -150,34 +230,218 @@ namespace Prove.Contratti
         public void Add(string relativePath, string[] lines)
         {
             var f = new SourceFile { Path = relativePath.Replace('\\', '/'), Raw = lines,
-                                     Code = new string[lines.Length], Comment = new string[lines.Length] };
-            bool block = false, verbatim = false;
+                                     Code = new string[lines.Length], Comment = new string[lines.Length],
+                                     LineStart = new Scope[lines.Length],
+                                     Transitions = new List<Tuple<int, Scope>>[lines.Length] };
+            var state = new StripState();
             for (int i = 0; i < lines.Length; i++)
             {
                 string comment;
-                f.Code[i] = Strip(lines[i], ref block, ref verbatim, out comment);
+                f.Code[i] = Strip(lines[i], state, out comment);
                 f.Comment[i] = comment;
+                foreach (Match m in TypeTokenRx.Matches(f.Code[i])) _typesNamed.Add(m.Groups["t"].Value);
             }
-            for (int i = 0; i < f.Code.Length; i++)
-            {
-                var c = f.Code[i];
-                foreach (Match m in DeclarationRx.Matches(c)) AddDeclaration(f, i, m.Groups[2].Value, m.Groups[1].Value);
-                foreach (Match m in CastAssignRx.Matches(c)) AddDeclaration(f, i, m.Groups[1].Value, m.Groups[2].Value);
-                foreach (Match m in AsAssignRx.Matches(c)) AddDeclaration(f, i, m.Groups[1].Value, m.Groups[2].Value);
-                foreach (Match m in AccessorAssignRx.Matches(c)) AddDeclaration(f, i, m.Groups[1].Value, Accessors[m.Groups[2].Value]);
-                foreach (Match m in TypeTokenRx.Matches(c)) _typesNamed.Add(m.Groups["t"].Value);
-            }
+            Walk(f);
             _files.Add(f);
         }
 
-        private void AddDeclaration(SourceFile f, int line, string name, string type)
+        /// <summary>The candidate declarations of a line, by column: (col, name, type, method).</summary>
+        private List<Tuple<int, string, string, string>> Candidates(SourceFile f, int i)
         {
-            name = name.TrimStart('@');
-            f.Declarations.Add(Tuple.Create(line, name, type));
-            _typesNamed.Add(type);
+            var c = f.Code[i];
+            var result = new List<Tuple<int, string, string, string>>();
+            foreach (Match m in DeclarationRx.Matches(c))
+            {
+                var t = m.Groups[1].Value;
+                if (t == "I") continue;
+                result.Add(Tuple.Create(m.Groups[3].Index, m.Groups[3].Value, t + m.Groups[2].Value, (string)null));
+            }
+            foreach (Match m in VarRx.Matches(c))
+            {
+                string type = null, method = null;
+                if (m.Groups[2].Success) RhsType(Statement(f, i, m.Index + m.Length), out type, out method);
+                result.Add(Tuple.Create(m.Groups[1].Index, m.Groups[1].Value, type, method));
+            }
+            Func<int, bool> afterVar = pos => Regex.IsMatch(c.Substring(0, pos), @"\bvar\s+$");
+            foreach (Match m in CastAssignRx.Matches(c))
+                if (!afterVar(m.Index)) result.Add(Tuple.Create(m.Index, m.Groups[1].Value, m.Groups[2].Value, (string)null));
+            foreach (Match m in AsAssignRx.Matches(c))
+                if (!afterVar(m.Index)) result.Add(Tuple.Create(m.Index, m.Groups[1].Value, m.Groups[2].Value, (string)null));
+            foreach (Match m in AccessorAssignRx.Matches(c))
+                if (!afterVar(m.Index)) result.Add(Tuple.Create(m.Index, m.Groups[1].Value, Accessors[m.Groups[2].Value], (string)null));
+            return result.OrderBy(x => x.Item1).ToList();
+        }
+
+        /// <summary>The code from a position to the end of its statement (';' at depth 0), up to ten lines.</summary>
+        private static string Statement(SourceFile f, int line, int col)
+        {
+            var sb = new StringBuilder();
+            int depth = 0;
+            for (int i = line; i < f.Code.Length && i < line + 10; i++)
+            {
+                var c = f.Code[i];
+                for (int j = i == line ? col : 0; j < c.Length; j++)
+                {
+                    char ch = c[j];
+                    if (ch == '(' || ch == '[' || ch == '{') depth++;
+                    else if (ch == ')' || ch == ']' || ch == '}') { if (depth == 0) return sb.ToString(); depth--; }
+                    else if ((ch == ';' || ch == ',') && depth == 0) return sb.ToString();
+                    sb.Append(ch);
+                }
+                sb.Append(' ');
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>The type of the right-hand side of a `var x = ...`, when the source says it.</summary>
+        private void RhsType(string rhs, out string type, out string method)
+        {
+            type = null;
+            method = null;
+            rhs = rhs.Trim();
+            if (rhs.Length == 0) return;
+            var m = NewRx.Match(rhs);
+            if (m.Success) { type = m.Groups[1].Value + (m.Groups[2].Value == "[" ? "[]" : ""); return; }
+            m = CastInnerRx.Match(rhs);
+            if (m.Success) { type = m.Groups[1].Value; return; }
+            m = AsInnerRx.Match(rhs);
+            if (m.Success) { type = m.Groups[1].Value; return; }
+            m = AccessorTailRx.Match(rhs);
+            if (m.Success) { type = Accessors[m.Groups[1].Value]; return; }
+            m = CallRx.Match(rhs);
+            if (m.Success)
+            {
+                // The call must be the WHOLE right-hand side: `Metodo(a).Altro` is not Metodo's type.
+                int open = m.Index + m.Length - 1, depth = 0, j = open;
+                for (; j < rhs.Length; j++)
+                {
+                    if (rhs[j] == '(') depth++;
+                    else if (rhs[j] == ')') { depth--; if (depth == 0) break; }
+                }
+                if (j >= rhs.Length || rhs.Substring(j + 1).Trim().Length != 0) return;
+                var qualifier = m.Groups[1].Success ? m.Groups[1].Value : null;
+                if (qualifier == null || qualifier == "this" || char.IsUpper(qualifier[0]))
+                    method = (qualifier != null && qualifier != "this" ? qualifier + "|" : "|") + m.Groups[2].Value;
+            }
+        }
+
+        /// <summary>
+        /// One pass over the blanked code: the braces give the scopes (namespace,
+        /// type, code block), and every declaration gets the scope where C#
+        /// makes it visible.
+        /// </summary>
+        private void Walk(SourceFile f)
+        {
+            var stack = new List<Scope>();
+            var parens = new List<int> { 0 };      // paren depth, one counter per brace level
+            var header = new StringBuilder();      // code since the last ; { or }
+            var pending = new List<Declaration>(); // parameters waiting for their body
+            Scope pendingOwner = null;
+            Func<Scope> top = () => stack.Count == 0 ? null : stack[stack.Count - 1];
+
+            for (int i = 0; i < f.Code.Length; i++)
+            {
+                f.LineStart[i] = top();
+                f.Transitions[i] = new List<Tuple<int, Scope>>();
+                var code = f.Code[i];
+                var candidates = Candidates(f, i);
+                int next = 0;
+
+                // Methods declared at type level: their return type.
+                if (top() != null && top().Kind == ScopeKind.Type && parens[parens.Count - 1] == 0)
+                    foreach (Match m in MethodRx.Matches(code))
+                        if (!Regex.IsMatch(code.Substring(0, m.Index), @"\bnew\s*$"))
+                            AddMethod(top().ClassName, m.Groups[3].Value, m.Groups[1].Value + m.Groups[2].Value);
+
+                for (int col = 0; col <= code.Length; col++)
+                {
+                    while (next < candidates.Count && candidates[next].Item1 <= col)
+                    {
+                        var cand = candidates[next++];
+                        var d = new Declaration { Line = i, Col = cand.Item1, Name = cand.Item2.TrimStart('@'),
+                                                  Type = cand.Item3, Method = cand.Item4 };
+                        var s = top();
+                        if (s == null || s.Kind == ScopeKind.Namespace) continue;
+                        if (s.Kind == ScopeKind.Code) { d.Scope = s; AddLocal(f, d); }
+                        else if (parens[parens.Count - 1] > 0)
+                        {
+                            if (pendingOwner != s) { pending.Clear(); pendingOwner = s; }
+                            pending.Add(d);
+                            AddLocal(f, d);
+                        }
+                        else AddField(s.ClassName, d.Name, d.Type);
+                        if (d.Type != null) _typesNamed.Add(d.Type.TrimEnd('[', ']'));
+                    }
+                    if (col == code.Length) break;
+                    char ch = code[col];
+                    if (ch == '(' || ch == '[') parens[parens.Count - 1]++;
+                    else if (ch == ')' || ch == ']') parens[parens.Count - 1] = Math.Max(0, parens[parens.Count - 1] - 1);
+                    else if (ch == '{')
+                    {
+                        var h = header.ToString();
+                        var s = new Scope { Parent = top(), Depth = stack.Count };
+                        var tm = TypeHeaderRx.Match(h);
+                        if (tm.Success) { s.Kind = ScopeKind.Type; s.ClassName = tm.Groups[2].Value; _classNames.Add(s.ClassName); }
+                        else if (NamespaceRx.IsMatch(h)) s.Kind = ScopeKind.Namespace;
+                        else s.Kind = ScopeKind.Code;
+                        if (s.Kind == ScopeKind.Code && pending.Count > 0 && pendingOwner == top() && parens[parens.Count - 1] == 0)
+                        {
+                            foreach (var p in pending) p.Body = s;
+                            pending.Clear();
+                        }
+                        stack.Add(s);
+                        parens.Add(0);
+                        header.Clear();
+                        f.Transitions[i].Add(Tuple.Create(col + 1, s));
+                        continue;
+                    }
+                    else if (ch == '}')
+                    {
+                        if (stack.Count > 0) { stack.RemoveAt(stack.Count - 1); parens.RemoveAt(parens.Count - 1); }
+                        header.Clear();
+                        f.Transitions[i].Add(Tuple.Create(col + 1, top()));
+                        continue;
+                    }
+                    else if (ch == ';')
+                    {
+                        if (pending.Count > 0 && pendingOwner == top() && parens[parens.Count - 1] == 0)
+                        {
+                            foreach (var p in pending) p.EndLine = i;   // expression-bodied or abstract member
+                            pending.Clear();
+                        }
+                        header.Clear();
+                        continue;
+                    }
+                    header.Append(ch);
+                }
+                header.Append(' ');
+            }
+        }
+
+        private static void AddLocal(SourceFile f, Declaration d)
+        {
+            List<Declaration> l;
+            if (!f.Locals.TryGetValue(d.Name, out l)) f.Locals[d.Name] = l = new List<Declaration>();
+            l.Add(d);
+        }
+
+        private void AddField(string className, string name, string type)
+        {
+            Dictionary<string, HashSet<string>> byName;
+            if (!_fields.TryGetValue(className ?? "", out byName)) _fields[className ?? ""] = byName = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
             HashSet<string> types;
-            if (!_globalTypes.TryGetValue(name, out types)) _globalTypes[name] = types = new HashSet<string>(StringComparer.Ordinal);
-            types.Add(type);
+            if (!byName.TryGetValue(name, out types)) byName[name] = types = new HashSet<string>(StringComparer.Ordinal);
+            types.Add(type ?? "?");
+        }
+
+        private void AddMethod(string className, string name, string type)
+        {
+            foreach (var key in new[] { "|" + name, (className ?? "") + "|" + name })
+            {
+                HashSet<string> types;
+                if (!_methods.TryGetValue(key, out types)) _methods[key] = types = new HashSet<string>(StringComparer.Ordinal);
+                types.Add(type);
+            }
         }
 
         /// <summary>Every call to an obsolete member in the files added.</summary>
@@ -192,8 +456,7 @@ namespace Prove.Contratti
                 l.Add(i);
             }
             var hits = new List<ObsoleteHit>();
-            Undecided = 0;
-            UndecidedByName.Clear();
+            UndecidedCalls.Clear();
             foreach (var f in _files) ScanFile(f, hits);
             return hits;
         }
@@ -207,7 +470,7 @@ namespace Prove.Contratti
                 {
                     var name = m.Groups[1].Value;
                     if (!_list.ObsoleteOn.ContainsKey(name)) continue;
-                    string receiver = ReceiverType(f, i, code.Substring(0, m.Index));
+                    string receiver = ReceiverType(f, i, m.Index, code.Substring(0, m.Index));
                     string member = null, how = null;
                     if (receiver != null)
                     {
@@ -223,10 +486,7 @@ namespace Prove.Contratti
                         if (obsolete.Count == 0) continue;
                         if (current.Count > 0)
                         {
-                            Undecided++;
-                            int n;
-                            UndecidedByName.TryGetValue(name, out n);
-                            UndecidedByName[name] = n + 1;
+                            UndecidedCalls.Add(new UndecidedCall { File = f.Path, Line = i + 1, Name = name, Code = f.Raw[i].Trim() });
                             continue;
                         }
                         member = obsolete[0] + "." + name;
@@ -261,7 +521,7 @@ namespace Prove.Contratti
             return false;
         }
 
-        private string ReceiverType(SourceFile f, int line, string before)
+        private string ReceiverType(SourceFile f, int line, int col, string before)
         {
             before = before.TrimEnd();
             if (before.EndsWith("?", StringComparison.Ordinal)) before = before.Substring(0, before.Length - 1).TrimEnd();
@@ -273,43 +533,127 @@ namespace Prove.Contratti
                 return Accessors.TryGetValue(member.Groups[1].Value, out t) ? t : null;
             }
             var ident = TrailingIdentRx.Match(before);
-            if (ident.Success) return TypeOf(f, line, ident.Groups[1].Value);
-            if (before[before.Length - 1] == ')')
+            if (ident.Success) return TypeOf(f, line, col, ident.Groups[1].Value);
+            char last = before[before.Length - 1];
+            if (last == ')' || last == ']')
             {
+                char open = last == ')' ? '(' : '[';
                 int depth = 0, j = before.Length - 1;
                 for (; j >= 0; j--)
                 {
-                    if (before[j] == ')') depth++;
-                    else if (before[j] == '(') { depth--; if (depth == 0) break; }
+                    if (before[j] == last) depth++;
+                    else if (before[j] == open) { depth--; if (depth == 0) break; }
                 }
                 if (j < 0) return null;
+                var head = before.Substring(0, j).TrimEnd();
+                if (last == ']')
+                {
+                    // An element of an array: `facce[i].Normal` with `IFace2[] facce`.
+                    var arr = TrailingIdentRx.Match(head);
+                    if (!arr.Success) return null;
+                    var t = TypeOf(f, line, col, arr.Groups[1].Value);
+                    return t != null && t.EndsWith("[]", StringComparison.Ordinal) ? t.Substring(0, t.Length - 2) : null;
+                }
                 var inner = before.Substring(j + 1, before.Length - j - 2).Trim();
                 var cast = CastInnerRx.Match(inner);
                 if (cast.Success) return cast.Groups[1].Value;
                 var asCast = AsInnerRx.Match(inner);
                 if (asCast.Success) return asCast.Groups[1].Value;
+                // A direct call: `RisolviVista(...).Name`, `new T(...).X`.
+                var callee = Regex.Match(head, @"(?:(?<![\w.])new\s+(?<new>[A-Za-z_]\w*)|(?<![\w.])(?<m>[A-Za-z_]\w*))\s*$");
+                if (callee.Success && callee.Groups["new"].Success) return callee.Groups["new"].Value;
+                if (callee.Success && callee.Groups["m"].Success) return MethodType("|" + callee.Groups["m"].Value);
             }
             return null;
         }
 
-        private string TypeOf(SourceFile f, int line, string name)
+        private string MethodType(string key)
         {
-            Tuple<int, string, string> best = null, first = null;
-            foreach (var d in f.Declarations)
-            {
-                if (d.Item2 != name) continue;
-                if (first == null) first = d;
-                if (d.Item1 <= line) best = d;
-            }
-            if (best != null) return best.Item3;
-            if (first != null) return first.Item3;
             HashSet<string> types;
-            if (_globalTypes.TryGetValue(name, out types) && types.Count == 1) return types.First();
+            return _methods.TryGetValue(key, out types) && types.Count == 1 ? types.First() : null;
+        }
+
+        private static Scope ScopeAt(SourceFile f, int line, int col)
+        {
+            var s = f.LineStart[line];
+            foreach (var t in f.Transitions[line])
+            {
+                if (t.Item1 > col) break;
+                s = t.Item2;
+            }
+            return s;
+        }
+
+        private static bool Encloses(Scope outer, Scope inner)
+        {
+            for (var s = inner; s != null; s = s.Parent) if (s == outer) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// The declared type of a name at a point of the file: the nearest local
+        /// or parameter visible there, else a field of an enclosing class. Null
+        /// when nothing in scope says it (a type seen elsewhere is not used).
+        /// </summary>
+        private string TypeOf(SourceFile f, int line, int col, string name)
+        {
+            var use = ScopeAt(f, line, col);
+            List<Declaration> locals;
+            if (f.Locals.TryGetValue(name, out locals))
+            {
+                Declaration best = null;
+                int bestDepth = -1;
+                foreach (var d in locals)
+                {
+                    int depth;
+                    if (d.Scope != null)
+                    {
+                        if (!Encloses(d.Scope, use)) continue;
+                        if (d.Line > line || (d.Line == line && d.Col >= col)) continue;
+                        depth = d.Scope.Depth;
+                    }
+                    else if (d.Body != null)
+                    {
+                        if (!Encloses(d.Body, use)) continue;
+                        depth = d.Body.Depth;
+                    }
+                    else if (d.EndLine >= 0)
+                    {
+                        if (line < d.Line || line > d.EndLine) continue;
+                        depth = 0;
+                    }
+                    else continue;
+                    if (best == null || depth > bestDepth || (depth == bestDepth && (d.Line > best.Line || (d.Line == best.Line && d.Col > best.Col))))
+                    {
+                        best = d;
+                        bestDepth = depth;
+                    }
+                }
+                if (best != null)
+                    return best.Method != null ? ResolveMethod(best.Method) : best.Type;
+            }
+            for (var s = use; s != null; s = s.Parent)
+            {
+                if (s.Kind != ScopeKind.Type) continue;
+                Dictionary<string, HashSet<string>> byName;
+                HashSet<string> types;
+                if (_fields.TryGetValue(s.ClassName ?? "", out byName) && byName.TryGetValue(name, out types))
+                    return types.Count == 1 && !types.Contains("?") ? types.First() : null;
+            }
             return null;
+        }
+
+        private string ResolveMethod(string key)
+        {
+            // "Class|Method" for a qualified static call, "|Method" otherwise.
+            if (!key.StartsWith("|", StringComparison.Ordinal) && !_classNames.Contains(key.Substring(0, key.IndexOf('|'))))
+                return null;
+            return MethodType(key);
         }
 
         private string Normalise(string type)
         {
+            if (type.EndsWith("[]", StringComparison.Ordinal)) return null;
             if (_list.Universe.Contains(type)) return type;
             if (_list.Universe.Contains("I" + type)) return "I" + type;
             return null;
@@ -335,50 +679,86 @@ namespace Prove.Contratti
 
         /// <summary>
         /// The line with comments and string/char literals blanked (same length),
-        /// and the text of its // comment in <paramref name="comment"/>.
+        /// and the text of its // comment in <paramref name="comment"/>. The code
+        /// inside the holes of an interpolated string is kept: `$"{m.GetX()}"`
+        /// is a call like any other.
         /// </summary>
-        internal static string Strip(string line, ref bool inBlock, ref bool inVerbatim, out string comment)
+        internal static string Strip(string line, StripState state, out string comment)
         {
             comment = null;
             var sb = new StringBuilder(line.Length);
+            var st = state.Stack;
             int i = 0;
-            char str = '\0';   // '"' normal string, '@' verbatim string
-            if (inVerbatim) str = '@';
             while (i < line.Length)
             {
                 char c = line[i];
                 char next = i + 1 < line.Length ? line[i + 1] : '\0';
-                if (inBlock)
+                if (state.Block)
                 {
-                    if (c == '*' && next == '/') { inBlock = false; sb.Append("  "); i += 2; continue; }
+                    if (c == '*' && next == '/') { state.Block = false; sb.Append("  "); i += 2; continue; }
                     sb.Append(' '); i++; continue;
                 }
-                if (str == '\0')
+                var top = st.Count == 0 ? null : st[st.Count - 1];
+                if (top != null && !top.Hole)
                 {
-                    if (c == '/' && next == '/') { comment = line.Substring(i); break; }
-                    if (c == '/' && next == '*') { inBlock = true; sb.Append("  "); i += 2; continue; }
+                    // Inside a string literal.
+                    if (!top.Verbatim && c == '\\') { sb.Append(next == '\0' ? " " : "  "); i += 2; continue; }
                     if (c == '"')
                     {
-                        bool verbatim = (i > 0 && line[i - 1] == '@') || (i > 1 && line[i - 1] == '$' && line[i - 2] == '@');
-                        str = verbatim ? '@' : '"';
-                        sb.Append(' '); i++; continue;
+                        if (top.Verbatim && next == '"') { sb.Append("  "); i += 2; continue; }
+                        st.RemoveAt(st.Count - 1); sb.Append(' '); i++; continue;
                     }
-                    if (c == '\'')
+                    if (top.Interpolated && (c == '{' || c == '}'))
                     {
-                        int end = line.IndexOf('\'', i + (next == '\\' ? 3 : 2));
-                        if (end > i && end - i <= 7) { sb.Append(' ', end - i + 1); i = end + 1; continue; }
+                        if (next == c) { sb.Append("  "); i += 2; continue; }
+                        if (c == '{') { st.Add(new StripState.Frame { Hole = true }); sb.Append(' '); i++; continue; }
                     }
-                    sb.Append(c); i++; continue;
+                    sb.Append(' '); i++; continue;
                 }
-                if (str == '"' && c == '\\') { sb.Append("  "); i += 2; continue; }
+                if (top != null && top.Format)
+                {
+                    if (c == '}') st.RemoveAt(st.Count - 1);
+                    sb.Append(' '); i++; continue;
+                }
+                // Code: the top level, or an interpolation hole.
+                if (c == '/' && next == '/') { if (top == null) comment = line.Substring(i); break; }
+                if (c == '/' && next == '*') { state.Block = true; sb.Append("  "); i += 2; continue; }
                 if (c == '"')
                 {
-                    if (str == '@' && next == '"') { sb.Append("  "); i += 2; continue; }
-                    str = '\0'; sb.Append(' '); i++; continue;
+                    bool verbatim = false, interpolated = false;
+                    for (int k = sb.Length - 1; k >= 0 && (sb[k] == '@' || sb[k] == '$'); k--)
+                    {
+                        if (sb[k] == '@') verbatim = true; else interpolated = true;
+                        sb[k] = ' ';
+                    }
+                    st.Add(new StripState.Frame { Verbatim = verbatim, Interpolated = interpolated });
+                    sb.Append(' '); i++; continue;
                 }
-                sb.Append(' '); i++;
+                if (c == '\'')
+                {
+                    int end = line.IndexOf('\'', i + (next == '\\' ? 3 : 2));
+                    if (end > i && end - i <= 7) { sb.Append(' ', end - i + 1); i = end + 1; continue; }
+                }
+                if (top != null)
+                {
+                    if (c == '{') top.Braces++;
+                    else if (c == '}')
+                    {
+                        if (top.Braces == 0) { st.RemoveAt(st.Count - 1); sb.Append(' '); i++; continue; }
+                        top.Braces--;
+                    }
+                    else if (c == '(' || c == '[') top.Parens++;
+                    else if (c == ')' || c == ']') top.Parens--;
+                    else if (c == ':' && next != ':' && top.Braces == 0 && top.Parens == 0)
+                    {
+                        top.Format = true; sb.Append(' '); i++; continue;
+                    }
+                }
+                sb.Append(c); i++;
             }
-            inVerbatim = str == '@';
+            // A regular (not verbatim) string cannot go on to the next line.
+            int cut = st.FindIndex(fr => !fr.Hole && !fr.Verbatim);
+            if (cut >= 0) st.RemoveRange(cut, st.Count - cut);
             while (sb.Length < line.Length) sb.Append(' ');
             return sb.ToString();
         }
