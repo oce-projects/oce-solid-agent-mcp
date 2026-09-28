@@ -142,6 +142,12 @@ namespace Prove.Contratti
             // RIUSCITO della stessa operazione, e almeno un argomento in comune.
             var passiDelCaso = new Dictionary<string, List<Tuple<string, Dictionary<string, object>, bool>>>(StringComparer.Ordinal);
             var rifiutiConGemella = new List<Tuple<string, string, Dictionary<string, object>, string>>();
+            // LA GEMELLA CON GLI STESSI ARGOMENTI SU UN ALTRO PEZZO (28/9/2026):
+            // caso, operazione, argomenti, gemella, indice del passo, frase
+            // dichiarata. Si guarda con `Attese.SiSomiglianoNelPezzo`, la stessa
+            // funzione del banco, e non con le due regole qui sopra.
+            var rifiutiNelPezzo = new List<Tuple<string, string, Dictionary<string, object>, string, int, string>>();
+            var passiGrezzi = new Dictionary<string, object[]>(StringComparer.Ordinal);
             var js = new JavaScriptSerializer();
             var casiCoiNumeri = new SortedSet<string>(StringComparer.Ordinal);
             // Z-C6: operazione -> casi dichiarati che la usano in un passo.
@@ -178,6 +184,7 @@ namespace Prove.Contratti
                 if (!caso.TryGetValue("passi", out grezzo)) continue;
                 var passi = grezzo as object[];
                 if (passi == null) continue;
+                passiGrezzi[nome] = passi;
 
                 int numero = 0;
                 foreach (var p in passi)
@@ -226,7 +233,14 @@ namespace Prove.Contratti
                     {
                         object g0;
                         var gem = ((Dictionary<string, object>)dv0).TryGetValue("gemella", out g0) ? Convert.ToString(g0) : null;
-                        if (!string.IsNullOrEmpty(gem))
+                        object dich;
+                        bool nelPezzo = ((Dictionary<string, object>)dv0).TryGetValue(
+                            ProvaSaldatura.Attese.CampoDifferenzaNelPezzo, out dich);
+                        if (!string.IsNullOrEmpty(gem) && nelPezzo)
+                            rifiutiNelPezzo.Add(Tuple.Create(nome, opNome,
+                                argN as Dictionary<string, object> ?? new Dictionary<string, object>(), gem,
+                                numero - 1, Convert.ToString(dich)));
+                        else if (!string.IsNullOrEmpty(gem))
                         {
                             rifiutiDaConfrontare.Add(Tuple.Create(nome, opNome, argTesto, gem));
                             rifiutiConGemella.Add(Tuple.Create(nome, opNome,
@@ -326,9 +340,42 @@ namespace Prove.Contratti
                 if (!ProvaSaldatura.Attese.SiSomigliano(r.Item3, suoi, out perche))
                     lontane.Add(r.Item1 + " -> " + r.Item4 + ": " + perche);
             }
+            // Le gemelle dichiarate sul pezzo: il primo passo riuscito della
+            // stessa operazione nella gemella, e i passi prima di lui.
+            foreach (var r in rifiutiNelPezzo)
+            {
+                object[] passiG, passiMiei;
+                if (!passiGrezzi.TryGetValue(r.Item4, out passiG) || !passiGrezzi.TryGetValue(r.Item1, out passiMiei)) continue;
+                int dove = -1;
+                for (int k = 0; k < passiG.Length; k++)
+                {
+                    var pg = passiG[k] as Dictionary<string, object>;
+                    object opG;
+                    if (pg == null || pg.ContainsKey("deve_fallire") || !pg.TryGetValue("operazione", out opG) ||
+                        Convert.ToString(opG) != r.Item2) continue;
+                    dove = k;
+                    break;
+                }
+                if (dove < 0)
+                {
+                    lontane.Add(r.Item1 + " -> " + r.Item4 + ": nessun passo «" + r.Item2 + "» che riesce");
+                    continue;
+                }
+                object argG;
+                ((Dictionary<string, object>)passiG[dove]).TryGetValue("argomenti", out argG);
+                string perche;
+                if (!ProvaSaldatura.Attese.SiSomiglianoNelPezzo(r.Item3,
+                        argG as Dictionary<string, object> ?? new Dictionary<string, object>(),
+                        passiMiei.Take(r.Item5).ToList(), passiG.Take(dove).ToList(), r.Item6, out perche))
+                    lontane.Add(r.Item1 + " -> " + r.Item4 + ": " + perche);
+            }
+
             Segna("ogni gemella somiglia al suo rifiuto come la vuole il banco (F5, vista prima del giro)",
                   lontane.Count == 0,
-                  lontane.Count == 0 ? rifiutiConGemella.Count + " coppie guardate col criterio del banco" : string.Join(" | ", lontane));
+                  lontane.Count == 0
+                      ? rifiutiConGemella.Count + " coppie guardate col criterio del banco, " +
+                        rifiutiNelPezzo.Count + " con la differenza dichiarata nel pezzo"
+                      : string.Join(" | ", lontane));
 
             Segna("nessuna gemella e' identica al suo rifiuto (voce F5, vista prima del giro)",
                   finte.Count == 0,

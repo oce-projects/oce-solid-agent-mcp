@@ -1363,7 +1363,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "(«faccia_uid» o «faccia_rif») e una DIREZIONE, cioe' uno spigolo dritto "
                         + "che corre lungo la faccia («asse_uid», per esempio il suo bordo lungo) "
                         + "oppure un asse fatto con «crea_asse» («asse_rif»). La direzione orienta "
-                        + "i giri.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un "
+                        + "i giri. Misurato con uno spigolo della faccia di contorno; un asse e' "
+                        + "accettato, ma nessuna prova l'ha ancora usato.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un "
                         + "cerchio di copie attorno a un asse, «ripeti_circolare». La disposizione e' "
                         + "solo circolare: quadrata, poligonale e a perforazione non sono provate."
                         + "\n\nMI RIFIUTO SE MANCA LA DIREZIONE: senza, SOLIDWORKS non crea niente e "
@@ -2015,8 +2016,8 @@ namespace Riscontro.Disegno.Catalogo
                     // InsertGussetFeature3 tornava null. La guida API (Remarks
                     // di InsertGussetFeature3, Insert_Gusset_Feature_Example_
                     // CSharp.htm) vuole le due facce con marca 1 E un profilo
-                    // valido. Misurato con la sonda scratchpad\cinque\
-                    // probe_fazzoletto.cs sulla T 80x80x5: triangolo 60/60
+                    // valido. Misurato con la sonda Controlli\Fazzoletto\
+                    // Programma.cs sulla T 80x80x5: triangolo 60/60
                     // spesso 5 +9000 mm3, poligono 60/60/15/15 +12937,5, corpi
                     // 2 -> 3. Casi: saldature/il_fazzoletto_sta_nell_angolo e
                     // saldature/il_poligono_del_fazzoletto_non_e_degenere.
@@ -2071,10 +2072,13 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "spessore della piastra, da tutte e due le parti del suo piano"),
                             "lato1_mm", O(
                                 "type", "number",
-                                "description", "lato del fazzoletto lungo la prima faccia"),
+                                "description", "uno dei due lati del fazzoletto, quelli che corrono lungo le due "
+                                    + "facce. Quale lato vada su quale faccia la guida non lo dice e nessuna "
+                                    + "prova lo ha distinto (misurato solo con lati uguali): se ti importa, "
+                                    + "guarda il pezzo dopo"),
                             "lato2_mm", O(
                                 "type", "number",
-                                "description", "lato del fazzoletto lungo la seconda faccia"),
+                                "description", "l'altro lato, lungo l'altra faccia (vedi lato1_mm)"),
                             "profilo", O(
                                 "type", "string",
                                 "enum", A(

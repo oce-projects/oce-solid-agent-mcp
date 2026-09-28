@@ -212,6 +212,8 @@ namespace ProvaSaldatura
             public string Gemella;       // chi deve riuscire
             public string Operazione;    // il passo che ha rifiutato
             public Dictionary<string, object> Argomenti;   // com'erano scritti nel file
+            public List<object> PezzoPrima;               // i passi prima del rifiuto: il pezzo
+            public string DifferenzaNelPezzo;             // «la_differenza_e_il_pezzo», o null
         }
 
         /// <summary>
@@ -320,14 +322,16 @@ namespace ProvaSaldatura
             if (passi == null) { perche = "la gemella non ha passi"; return false; }
 
             Dictionary<string, object> suoi = null;
-            foreach (var p in passi)
+            int doveSuoi = -1;
+            for (int k = 0; k < passi.Count; k++)
             {
-                var passo = p as Dictionary<string, object>;
+                var passo = passi[k] as Dictionary<string, object>;
                 if (passo == null) continue;
                 if (!string.Equals(Testo(passo, "operazione"), c.Operazione, StringComparison.Ordinal)) continue;
                 if (passo.ContainsKey("deve_fallire")) continue;   // due rifiuti non sono una coppia
                 suoi = (passo.ContainsKey("argomenti") ? passo["argomenti"] : null)
                        as Dictionary<string, object>;
+                doveSuoi = k;
                 break;
             }
             if (suoi == null)
@@ -342,6 +346,13 @@ namespace ProvaSaldatura
             // `Attese.` PER FORZA: il metodo qui accanto si chiama uguale, e
             // senza il prefisso il compilatore sceglie quello — cioe' se
             // stesso, all'infinito.
+            //
+            // LA DIFFERENZA DICHIARATA NEL PEZZO (28/9/2026): stessi argomenti,
+            // passi prima diversi. Si controlla in `Attese.SiSomiglianoNelPezzo`,
+            // e non si scrive un argomento finto per far passare la regola.
+            if (c.DifferenzaNelPezzo != null)
+                return Attese.SiSomiglianoNelPezzo(c.Argomenti, suoi, c.PezzoPrima,
+                                                   passi.Take(doveSuoi).ToList(), c.DifferenzaNelPezzo, out perche);
             return Attese.SiSomigliano(c.Argomenti, suoi, out perche);
         }
 
@@ -1510,6 +1521,10 @@ namespace ProvaSaldatura
                                 Operazione = operazione,
                                 Argomenti = (passo.ContainsKey("argomenti") ? passo["argomenti"] : null)
                                             as Dictionary<string, object>,
+                                PezzoPrima = passi.Take(i).ToList(),
+                                DifferenzaNelPezzo = deveFallire.ContainsKey(CampoDifferenzaNelPezzo)
+                                    ? Convert.ToString(deveFallire[CampoDifferenzaNelPezzo], CultureInfo.InvariantCulture)
+                                    : null,
                             });
                         continue;
                     }

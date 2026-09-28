@@ -182,8 +182,14 @@ namespace Prove.Contratti
         /// i rifiuti nuovi nominano l'alternativa — indica le facce, usa il
         /// triangolare, togli la posizione, prova lati piu' corti,
         /// «cordone_saldatura».
+        /// **216 dalla correzione della revisione (stesso ramo):** +3. Il raccordo
+        /// di faccia che toglie un volume diverso dal conto a mano nomina
+        /// «raccordo_spigoli»; la nervatura che, fallendo, lascia nell'albero una
+        /// lavorazione che non e' una «Rib» nomina «estrudi_su_faccia»; il
+        /// fazzoletto nato di un tipo diverso da «Gusset» nomina lati piu' corti e
+        /// «cordone_saldatura».
         /// </summary>
-        private const int Pavimento = 213;
+        private const int Pavimento = 216;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

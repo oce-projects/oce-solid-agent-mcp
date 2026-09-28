@@ -99,7 +99,14 @@ $attrezzi = @(
     # Un foro quotato contro lo spigolo lo segue? (voce E18, pezzi a e b)
     @{ nome = 'SeguiIlBordo'; sw = $true; lib = $false },
     # La flangia a spigolo nasce senza schizzo di profilo? (voce GP18: no)
-    @{ nome = 'FlangiaSpigolo'; sw = $true; lib = $false }
+    @{ nome = 'FlangiaSpigolo'; sw = $true; lib = $false },
+    # Le quattro lavorazioni della guida (28/9/2026): le misure dietro
+    # `raccordo_faccia` (GP7), `ripeti_riempimento` (W1.1), `nervatura` (W1.2)
+    # e `fazzoletto` (GP20). Ognuna porta in testa l'esito di quel giorno.
+    @{ nome = 'RaccordoDiFaccia'; sw = $true; lib = $false },
+    @{ nome = 'Riempimento'; sw = $true; lib = $false },
+    @{ nome = 'Nervatura'; sw = $true; lib = $false },
+    @{ nome = 'Fazzoletto'; sw = $true; lib = $false }
 )
 
 foreach ($a in $attrezzi) {

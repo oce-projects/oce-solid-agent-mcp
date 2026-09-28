@@ -16,7 +16,7 @@ namespace Riscontro.Disegno
     ///
     /// ── LA GUIDA API, E IL BOOLEANO CHE NESSUNO AVEVA GIRATO ─────────────
     ///
-    /// Pagine della guida estratta (`scratchpad/apihelp/estratto`):
+    /// Pagine della guida API (sldworksapi, estratta in locale), per nome:
     ///
     ///   * `SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~InsertRib.html`
     ///     — `void InsertRib(Is2Sided, ReverseThicknessDir, Thickness,
@@ -44,7 +44,7 @@ namespace Riscontro.Disegno
     /// la L giusta con la diagonale nel vuoto — e non hanno mai girato il
     /// verso del materiale. Nota RAG 82zz-quinquies.
     ///
-    /// ── LA SONDA DEL 28/9/2026 (`scratchpad/cinque/probe_nervatura.cs`) ──
+    /// ── LA SONDA DEL 28/9/2026 (`Controlli\Nervatura\Programma.cs`) ──
     ///
     /// Un pezzo nuovo per ogni riga; verita' = una feature NUOVA di tipo «Rib»
     /// piu' il delta di volume:
@@ -224,6 +224,13 @@ namespace Riscontro.Disegno
             if (linea == null || schizzo == null)
                 return Fallito("La linea della nervatura non e' nata nello schizzo." + NervaturaRitira(modello, mie, foto));
 
+            // L'ALBERO DOPO LO SCHIZZO: e' come deve essere prima di OGNI
+            // tentativo. Un tentativo fallito che lascia una feature di un altro
+            // tipo (non una «Rib») non la vede nessuno, e il secondo tentativo
+            // le costruirebbe sopra. La sonda non l'ha mai visto succedere; se
+            // succede non si prova l'altro verso, si ritira e si dice.
+            var nomiDopoLoSchizzo = NervaturaNomiDiTutte(modello);
+
             // ── I DUE VERSI DEL MATERIALE ────────────────────────────────
             IFeature rib = null;
             bool girato = false;
@@ -239,6 +246,19 @@ namespace Riscontro.Disegno
                 if (nata == null)
                 {
                     esiti.Add(verso + ": nessuna nervatura" + (alzato == null ? "" : " (" + alzato + ")"));
+                    var intruse = NervaturaNuoveDiTutte(modello, nomiDopoLoSchizzo);
+                    if (intruse.Count > 0)
+                    {
+                        var nomiIntrusi = new List<string>();
+                        foreach (var f in intruse) { nomiIntrusi.Add(NervaturaNome(f)); mie.Add(f); }
+                        return Fallito(
+                            "Col " + verso + " la nervatura non e' nata, ma l'albero e' cresciuto lo stesso («" +
+                            string.Join("», «", nomiIntrusi) + "»): non provo l'altro verso sopra una " +
+                            "lavorazione che non ho chiesto. Di solito la linea non sta fra due pareti: " +
+                            "spostala nel vuoto, con gli estremi (o il loro prolungamento) sulle pareti da " +
+                            "unire; per un rilievo su una faccia piana usa «estrudi_su_faccia»." +
+                            NervaturaRitira(modello, mie, foto));
+                    }
                     continue;
                 }
                 // UNA NERVATURA NATA CHE NON AGGIUNGE MATERIALE. La sonda non
@@ -305,11 +325,14 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["thickness_mm"] = Math.Round(spessore, 3),
-                ["sketch_plane"] = piano,
-                ["plane_offset_mm"] = Math.Round(distanza, 3),
+                // CHIESTI, E DETTI COSI': sono gli argomenti (e la lunghezza
+                // della linea fatta con quelli), non misure. Le misure sono il
+                // volume, i corpi, i tentativi e i «declared_*» riletti.
+                ["requested_thickness_mm"] = Math.Round(spessore, 3),
+                ["requested_sketch_plane"] = piano,
+                ["requested_plane_offset_mm"] = Math.Round(distanza, 3),
+                ["requested_line_length_mm"] = Math.Round(lunga, 3),
                 ["plane_created"] = pianoFattoQui,
-                ["line_length_mm"] = Math.Round(lunga, 3),
                 ["material_side"] = girato ? "flipped" : "straight",
                 ["attempts"] = tentativi,
                 ["added_material_mm3"] = NumeroOppureNull(aggiunto, 2),
@@ -476,6 +499,40 @@ namespace Riscontro.Disegno
             }
             catch { }
             return nomi;
+        }
+
+        /// <summary>I nomi di tutte le feature dell'albero, adesso.</summary>
+        private static HashSet<string> NervaturaNomiDiTutte(IModelDoc2 modello)
+        {
+            var nomi = new HashSet<string>(StringComparer.Ordinal);
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    nomi.Add(f.Name);
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            return nomi;
+        }
+
+        /// <summary>Le feature che prima non c'erano, dalla piu' vecchia alla piu' giovane.</summary>
+        private static List<IFeature> NervaturaNuoveDiTutte(IModelDoc2 modello, HashSet<string> prima)
+        {
+            var nuove = new List<IFeature>();
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    if (!prima.Contains(f.Name)) nuove.Add(f);
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            return nuove;
         }
 
         /// <summary>L'ultima feature di quel tipo che prima non c'era, o null.</summary>

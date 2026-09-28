@@ -540,6 +540,94 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
+        /// Il campo di «deve_fallire» che dichiara una gemella con gli STESSI
+        /// argomenti su un ALTRO pezzo. Il valore e' la frase che dice cosa
+        /// cambia nel pezzo: vuota non vale.
+        /// </summary>
+        internal const string CampoDifferenzaNelPezzo = "la_differenza_e_il_pezzo";
+
+        /// <summary>
+        /// LA GEMELLA CON GLI STESSI ARGOMENTI, SU UN ALTRO PEZZO (voce F5,
+        /// 28/9/2026, nervatura W1.2).
+        ///
+        /// Ci sono rifiuti che non dipendono da un argomento ma dal PEZZO: la
+        /// stessa nervatura (stessa linea, stesso piano, stesso spessore) nasce
+        /// nella scatola svuotata e non nasce sulla piastra senza pareti. La
+        /// regola di `SiSomigliano` pretende un argomento diverso, e prima di
+        /// questa funzione l'unico modo di rispettarla era scriverne uno che non
+        /// fa niente (un `distanza_mm: 0` che e' il predefinito): F5 verde senza
+        /// provare niente.
+        ///
+        /// Qui la differenza si DICHIARA (<see cref="CampoDifferenzaNelPezzo"/>)
+        /// e si CONTROLLA, in tutti e due i versi:
+        ///   1. la frase c'e';
+        ///   2. gli argomenti sono IDENTICI — se differiscono, la regola normale
+        ///      basta e la dichiarazione e' di troppo (o nasconde una coppia
+        ///      lasca);
+        ///   3. i passi PRIMA (il pezzo) differiscono — se sono uguali, stesso
+        ///      pezzo e stessi argomenti: e' una copia, come prima.
+        ///
+        /// I passi si confrontano come si scrivono (operazione e argomenti),
+        /// senza CAD: e' aritmetica sul JSON, e la prova Prove.Contratti.
+        /// </summary>
+        internal static bool SiSomiglianoNelPezzo(
+            Dictionary<string, object> miei, Dictionary<string, object> suoi,
+            IList<object> pezzoMio, IList<object> pezzoSuo, string dichiarazione,
+            out string perche)
+        {
+            if (string.IsNullOrWhiteSpace(dichiarazione))
+            {
+                perche = "«" + CampoDifferenzaNelPezzo + "» e' vuoto: deve dire cosa cambia nel pezzo " +
+                         "fra il rifiuto e la gemella";
+                return false;
+            }
+
+            string suArgomenti;
+            if (SiSomigliano(miei, suoi, out suArgomenti))
+            {
+                perche = "dichiara che la differenza e' il pezzo, ma gli argomenti differiscono gia' (" +
+                         suArgomenti + "): la regola normale basta, togli «" + CampoDifferenzaNelPezzo + "»";
+                return false;
+            }
+            if (suArgomenti.IndexOf("copia", StringComparison.Ordinal) < 0)
+            {
+                perche = "dichiara che la differenza e' il pezzo, ma gli argomenti non sono gli stessi: " +
+                         suArgomenti;
+                return false;
+            }
+
+            var mio = (pezzoMio ?? new List<object>()).Select(ComeSiScriveUnPasso).ToList();
+            var suo = (pezzoSuo ?? new List<object>()).Select(ComeSiScriveUnPasso).ToList();
+            int primoDiverso = -1;
+            for (int i = 0; i < Math.Max(mio.Count, suo.Count); i++)
+            {
+                string a = i < mio.Count ? mio[i] : null, b = i < suo.Count ? suo[i] : null;
+                if (!string.Equals(a, b, StringComparison.Ordinal)) { primoDiverso = i; break; }
+            }
+            if (primoDiverso < 0)
+            {
+                perche = "stessi argomenti E stesso pezzo (i " + mio.Count + " passi prima sono uguali): " +
+                         "non e' una gemella, e' una copia";
+                return false;
+            }
+
+            perche = "stessi argomenti, pezzo diverso dal passo " + (primoDiverso + 1) + " (" +
+                     dichiarazione.Trim() + ")";
+            return true;
+        }
+
+        /// <summary>Un passo di un caso come si scrive: operazione e argomenti.</summary>
+        private static string ComeSiScriveUnPasso(object passo)
+        {
+            var p = passo as Dictionary<string, object>;
+            if (p == null) return ComeSiScrive(passo);
+            object op, arg;
+            p.TryGetValue("operazione", out op);
+            p.TryGetValue("argomenti", out arg);
+            return ComeSiScrive(op) + " " + ComeSiScrive(arg);
+        }
+
+        /// <summary>
         /// Un percorso dentro un dizionario: `facce[0].area_mm2`.
         /// Null quando il percorso non porta da nessuna parte — e chi chiama lo
         /// fa diventare un rosso, perche' un campo assente non e' uno zero.

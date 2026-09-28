@@ -1,8 +1,8 @@
 {
   "nome": "lim_nervatura_sulla_piastra_senza_pareti",
   "famiglia": "lavorazioni",
-  "perche": "VOCE W1.2. La stessa linea della scatola svuotata (piano destro, y = 12, da z = -15 a 15, spessore 2), ma su una piastra 40 x 40 x 2 senza pareti: dalla linea non c'e' niente da incontrare. La sonda del 28/9/2026 (righe P1/P2) non ha visto nascere niente in nessuno dei due versi del materiale, ed e' giusto. L'operazione prova i due versi, rifiuta dicendo perche' e nominando «estrudi_su_faccia» per un rilievo su una faccia piana, e ritira lo schizzo che aveva fatto.",
-  "perche_la_gemella_e_la_scatola": "La differenza che conta e' il PEZZO, non gli argomenti: stessa linea, stesso piano, stesso spessore. «distanza_mm»: 0 e' scritto per esteso (e' il predefinito, lo schizzo sta sul piano destro come nella gemella) perche' il controllo F5 vuole almeno un argomento diverso dalla gemella; il gesto chiesto e' identico.",
+  "perche": "VOCE W1.2. La stessa linea della scatola svuotata (piano destro, y = 12, da z = -15 a 15, spessore 2), ma su una piastra 40 x 40 x 2 senza pareti: dalla linea non c'e' niente da incontrare. La sonda del 28/9/2026 (Controlli/Nervatura/Programma.cs, righe P1/P2) non ha visto nascere niente in nessuno dei due versi del materiale, ed e' giusto. L'operazione prova i due versi, rifiuta dicendo perche' e nominando «estrudi_su_faccia» per un rilievo su una faccia piana, e ritira lo schizzo che aveva fatto.",
+  "perche_la_gemella_e_la_scatola": "La differenza che conta e' il PEZZO, non gli argomenti: stessa linea, stesso piano, stesso spessore, e gli argomenti sono scritti IDENTICI a quelli della gemella. La prima stesura aggiungeva un «distanza_mm»: 0 (il predefinito, cioe' niente) solo perche' F5 vedesse un argomento diverso: una gemella che passava la regola senza provare niente. Adesso la differenza si dichiara in «la_differenza_e_il_pezzo», e banco e contratti controllano che gli argomenti siano gli stessi E che i passi prima siano diversi (Attese.SiSomiglianoNelPezzo).",
   "i_numeri": "Piastra 40 x 40 x 2 = 3200, sul superiore da y = 0 a y = 2 (come nella sonda). La linea a y = 12 sta 10 mm sopra la piastra, nel vuoto e senza pareti ai lati.",
   "parte": { "nuova": true },
   "passi": [
@@ -13,13 +13,14 @@
         { "cosa": "volume_mm3", "uguale": 3200 },
         { "cosa": "stato.ingombro_da_mm", "uguale": [-20, 0, -20] } ] },
     { "operazione": "nervatura",
-      "argomenti": { "piano": "destro", "distanza_mm": 0,
+      "argomenti": { "piano": "destro",
                      "da_mm": [0, 12, -15], "a_mm": [0, 12, 15],
                      "spessore_mm": 2 },
       "deve_fallire": {
         "il_messaggio_contiene": ["in nessuno dei due versi", "estrudi_su_faccia", "com'era"],
         "volume_invariato": true,
         "nessuna_feature_in_piu": true,
-        "gemella": "nervatura_nella_scatola_svuotata" } }
+        "gemella": "nervatura_nella_scatola_svuotata",
+        "la_differenza_e_il_pezzo": "la piastra 40 x 40 alta 2 non ha pareti; la gemella e' la scatola 40 x 40 x 20 svuotata dall'alto, con le pareti che la linea prolungata incontra a z = -18 e z = 18" } }
   ]
 }

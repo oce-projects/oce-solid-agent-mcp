@@ -1215,7 +1215,7 @@
    "nome": "ripeti_riempimento",
    "famiglia": "lavorazioni",
    "sommario": "Riempie una faccia piana di copie di una lavorazione: una piastra forata per alleggerire, una griglia di sfiato.",
-   "descrizione": "Riempie una faccia piana di copie di una lavorazione gia' fatta: una piastra forata per alleggerire, una griglia di sfiato, un crivello. SOLIDWORKS mette la prima copia al CENTRO della faccia e aggiunge giri concentrici distanti «passo_mm», con «copie_per_giro» copie su ogni giro, finche' la faccia le contiene; quelle che uscirebbero dal contorno (meno «margine_mm») non si fanno. L'originale resta dov'era.\n\nQUANTE COPIE ENTRANO LO DECIDE LA FACCIA, non un numero che dai tu: la risposta le conta in «copies_made». Su una piastra 100 x 60 con un foro Ø8, passo circa 17 e 10 copie per giro, sono 14.\n\nServono tre cose: la lavorazione («feature_uid» o «feature_rif»), la faccia di contorno su cui sta («faccia_uid» o «faccia_rif») e una DIREZIONE, cioe' uno spigolo dritto che corre lungo la faccia («asse_uid», per esempio il suo bordo lungo) oppure un asse fatto con «crea_asse» («asse_rif»). La direzione orienta i giri.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un cerchio di copie attorno a un asse, «ripeti_circolare». La disposizione e' solo circolare: quadrata, poligonale e a perforazione non sono provate.\n\nMI RIFIUTO SE MANCA LA DIREZIONE: senza, SOLIDWORKS non crea niente e non dice perche' (misurato, anche se la guida la dice facoltativa). MI RIFIUTO SE LA FACCIA DI CONTORNO NON E' PIANA, e SE LA DIREZIONE NON STA NEL PIANO DELLA FACCIA (uno spigolo dello spessore). E mi rifiuto, togliendo la ripetizione, se nasce con lavorazioni in errore, con i corpi cambiati o con copie che mordono il bordo o si fondono fra loro.",
+   "descrizione": "Riempie una faccia piana di copie di una lavorazione gia' fatta: una piastra forata per alleggerire, una griglia di sfiato, un crivello. SOLIDWORKS mette la prima copia al CENTRO della faccia e aggiunge giri concentrici distanti «passo_mm», con «copie_per_giro» copie su ogni giro, finche' la faccia le contiene; quelle che uscirebbero dal contorno (meno «margine_mm») non si fanno. L'originale resta dov'era.\n\nQUANTE COPIE ENTRANO LO DECIDE LA FACCIA, non un numero che dai tu: la risposta le conta in «copies_made». Su una piastra 100 x 60 con un foro Ø8, passo circa 17 e 10 copie per giro, sono 14.\n\nServono tre cose: la lavorazione («feature_uid» o «feature_rif»), la faccia di contorno su cui sta («faccia_uid» o «faccia_rif») e una DIREZIONE, cioe' uno spigolo dritto che corre lungo la faccia («asse_uid», per esempio il suo bordo lungo) oppure un asse fatto con «crea_asse» («asse_rif»). La direzione orienta i giri. Misurato con uno spigolo della faccia di contorno; un asse e' accettato, ma nessuna prova l'ha ancora usato.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un cerchio di copie attorno a un asse, «ripeti_circolare». La disposizione e' solo circolare: quadrata, poligonale e a perforazione non sono provate.\n\nMI RIFIUTO SE MANCA LA DIREZIONE: senza, SOLIDWORKS non crea niente e non dice perche' (misurato, anche se la guida la dice facoltativa). MI RIFIUTO SE LA FACCIA DI CONTORNO NON E' PIANA, e SE LA DIREZIONE NON STA NEL PIANO DELLA FACCIA (uno spigolo dello spessore). E mi rifiuto, togliendo la ripetizione, se nasce con lavorazioni in errore, con i corpi cambiati o con copie che mordono il bordo o si fondono fra loro.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1889,11 +1889,11 @@
      },
      "lato1_mm": {
       "type": "number",
-      "description": "lato del fazzoletto lungo la prima faccia"
+      "description": "uno dei due lati del fazzoletto, quelli che corrono lungo le due facce. Quale lato vada su quale faccia la guida non lo dice e nessuna prova lo ha distinto (misurato solo con lati uguali): se ti importa, guarda il pezzo dopo"
      },
      "lato2_mm": {
       "type": "number",
-      "description": "lato del fazzoletto lungo la seconda faccia"
+      "description": "l'altro lato, lungo l'altra faccia (vedi lato1_mm)"
      },
      "profilo": {
       "type": "string",

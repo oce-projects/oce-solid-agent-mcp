@@ -1,7 +1,7 @@
 {
   "nome": "raccordo_faccia_fra_due_facce_di_un_cubo",
   "famiglia": "lavorazioni",
-  "perche": "VOCE GP7, la meta' che mancava: il raccordo di FACCIA, appoggiato a due facce invece che a uno spigolo. Quattro tentativi storici con FeatureFillet3 (Ftyp=Face, marche 1/2) tornavano NULL. La guida API diceva le due cause: FeatureFillet3 e' obsoleto per i raccordi di faccia dal 2020 (FeatureFillet3.html, Remarks) e le marche sono 2 e 4 (ISimpleFilletFeatureData2.html, Remarks, riga «Face fillet/face-face chamfer»), non i valori 1/2 di swSimpleFilletWhichFaces_e, che e' il parametro di SetFaces. Questo e' il pezzo della sonda probe_raccordo_faccia (28/9/2026), rifatto col ponte: stesso cubo, stesse due facce, stesso raggio.",
+  "perche": "VOCE GP7, la meta' che mancava: il raccordo di FACCIA, appoggiato a due facce invece che a uno spigolo. Quattro tentativi storici con FeatureFillet3 (Ftyp=Face, marche 1/2) tornavano NULL. La guida API diceva le due cause: FeatureFillet3 e' obsoleto per i raccordi di faccia dal 2020 (FeatureFillet3.html, Remarks) e le marche sono 2 e 4 (ISimpleFilletFeatureData2.html, Remarks, riga «Face fillet/face-face chamfer»), non i valori 1/2 di swSimpleFilletWhichFaces_e, che e' il parametro di SetFaces. Questo e' il pezzo della sonda Controlli/RaccordoDiFaccia (28/9/2026), rifatto col ponte: stesso cubo, stesse due facce, stesso raggio.",
   "il_numero": "Un raccordo di raggio r su uno spigolo lungo L fra due facce piane a 90 gradi toglie L*r^2*(1 - pi/4): 40 * 25 * 0,2146018 = 214,602 mm3. La sonda ha misurato 214,6 (al decimo) con la ricetta della guida, e 0 col metodo vecchio.",
   "il_difetto_che_il_baricentro_prende": "Il volume da solo non dice QUALE spigolo si e' arrotondato: i dodici spigoli del cubo toglierebbero tutti 214,6. Il materiale tolto sta sull'angolo x = +20, z = +40 (davanti e destra), con il suo baricentro a 1,117 mm dallo spigolo: il baricentro del pezzo si sposta a x = -0,0635 e z = 19,9365. Lo spigolo davanti-sinistra darebbe x = +0,0635, quello dietro-destra z = 20,0635.",
   "parte": { "nuova": true },
@@ -16,7 +16,8 @@
       "attese": [
         { "cosa": "misure.feature_type", "uguale": "Fillet",
           "perche": "la feature nuova PER TIPO: la sonda l'ha vista nascere «Fillet»" },
-        { "cosa": "misure.radius_mm", "uguale": 5 },
+        { "cosa": "misure.declared_radius_mm", "uguale": 5, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "riletto dalla feature (ISimpleFilletFeatureData2.DefaultRadius, in metri) e non ripetuto dall'argomento: se la rilettura non torna il campo e' null e l'attesa e' rossa" },
         { "cosa": "misure.volume_before_mm3", "uguale": 64000, "tolleranza": 0.01,
           "perche_questa_tolleranza": "il volume si legge in metri cubi e si moltiplica per un miliardo" },
         { "cosa": "misure.volume_change_mm3", "uguale": -214.6, "tolleranza": 0.02,
@@ -24,7 +25,7 @@
         { "cosa": "misure.material_removed", "uguale": true,
           "perche": "su uno spigolo ESTERNO il raccordo toglie; in un angolo interno aggiungerebbe" },
         { "cosa": "misure.shared_edge_mm", "uguale": 40, "tolleranza": 0.01,
-          "perche_questa_tolleranza": "lo spigolo che le due facce hanno in comune, letto in metri" },
+          "perche_questa_tolleranza": "lo spigolo che le due facce hanno in comune, letto in metri e PRIMA del raccordo: dopo, fra le due facce c'e' la faccia del raccordo e non si toccano piu' (la prima stesura lo leggeva dopo, e questa attesa sarebbe stata rossa)" },
         { "cosa": "misure.expected_change_abs_mm3", "uguale": 214.6, "tolleranza": 0.01,
           "perche_questa_tolleranza": "40 x 25 x 0,2146018 = 214,602, arrotondato al centesimo nella risposta" },
         { "cosa": "misure.how_expected_is_counted", "contiene": ["1 - pi/4", "no number is made up"],

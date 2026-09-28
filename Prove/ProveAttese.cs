@@ -240,6 +240,31 @@ namespace Prove.Contratti
             Segna("un argomento solo, ma uguale: resta una copia",
                   !Attese.SiSomigliano(arg1("F1"), arg1("F1"), out d2), d2);
 
+            // LA DIFFERENZA DICHIARATA NEL PEZZO (28/9/2026, nervatura W1.2):
+            // stessi argomenti, passi prima diversi. Nei due versi, perche' una
+            // dichiarazione che passa sempre e' l'argomento finto di prima con
+            // un altro nome.
+            Func<string, double, object> passoPezzo = (piano, spessore) => new Dictionary<string, object>
+            {
+                ["operazione"] = "estrudi_rettangolo",
+                ["argomenti"] = new Dictionary<string, object> { ["piano"] = piano, ["spessore_mm"] = spessore },
+            };
+            var scatola = new List<object> { passoPezzo("superiore", 20.0),
+                new Dictionary<string, object> { ["operazione"] = "guscio" } };
+            var piastra = new List<object> { passoPezzo("superiore", 2.0) };
+            const string fraseDelPezzo = "la piastra non ha pareti, la scatola si'";
+            Segna("stessi argomenti su un altro pezzo, dichiarato: accettata",
+                  Attese.SiSomiglianoNelPezzo(arg2("F1", "10"), arg2("F1", "10"), piastra, scatola, fraseDelPezzo, out d2) &&
+                  d2.IndexOf("pezzo diverso dal passo 1", StringComparison.Ordinal) >= 0, d2);
+            Segna("stessi argomenti e stesso pezzo, anche se dichiarato: resta una copia",
+                  !Attese.SiSomiglianoNelPezzo(arg2("F1", "10"), arg2("F1", "10"), scatola, scatola, fraseDelPezzo, out d2) &&
+                  d2.IndexOf("copia", StringComparison.Ordinal) >= 0, d2);
+            Segna("argomenti diversi e la differenza dichiarata nel pezzo: la dichiarazione e' di troppo",
+                  !Attese.SiSomiglianoNelPezzo(arg2("F1", "10"), arg2("F1", "40"), piastra, scatola, fraseDelPezzo, out d2) &&
+                  d2.IndexOf("togli", StringComparison.Ordinal) >= 0, d2);
+            Segna("la differenza nel pezzo dichiarata senza dire quale: rifiutata",
+                  !Attese.SiSomiglianoNelPezzo(arg2("F1", "10"), arg2("F1", "10"), piastra, scatola, " ", out d2), d2);
+
             // I contorni sono liste: e' il caso che ha rotto il confronto.
             Segna("gemelle che differiscono solo in una lista: accettate",
                   Attese.SiSomigliano(

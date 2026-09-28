@@ -188,7 +188,7 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 | selettori | `@faccia(verso=…)`, `@faccia(piana=false)`, `@faccia(area~=907.92)`, `@faccia(verso=davanti,x~=150)` (x, y, z sono il punto che lo stato pubblica), `@spigolo(asse=Z,lungo~=100)`, `@spigolo(curvo=true,n=1)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)`, `@quota(angolare=true)` (l'unica quota in gradi, voce Z-C21.2) |
 | prima del passo | `prima_seleziona`: uid o selettori lasciati SELEZIONATI quando il passo parte, come li lascerebbe chi sta davanti a SOLIDWORKS (lo STL che esportava solo la faccia selezionata). `prima_nascondi`: corpi, o il corpo di una faccia, NASCOSTI prima del passo (il corpo nascosto che usciva dalla verifica delle sporgenze). Tutti e due si contano dopo averli fatti: una selezione non riuscita e' un errore di banco, non un verde (voce Z-C21.2) |
 | segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Banco\lavoro\`, ignorata da git); `{DATI}` i file d'ingresso versionati (`Banco\dati\`); `{SOLIDWORKS}` la cartella di installazione di SOLIDWORKS, per i file DI SERIE che non si versionano (i modelli di tabella; `SW_INSTALL_PATH` se non e' quella predefinita, voce Z-C21.2). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
-| `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella` |
+| `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella`, `la_differenza_e_il_pezzo` (vedi «Le coppie») |
 
 ### Un caso che gira su un ASSIEME — `casi/assiemi/` (voce GA0)
 
@@ -319,6 +319,21 @@ Quattro coppie, tutte sullo stesso blocco 314 x 274 x 52:
 Il banco dice **quanti argomenti differiscono** e rifiuta solo i due casi che
 contano: una gemella identica al rifiuto (e' una copia) e una che non ha nemmeno
 un argomento in comune (sono due operazioni che non si parlano).
+
+**Quando la differenza e' il pezzo e non un argomento** (28/9/2026): la stessa
+nervatura nasce nella scatola svuotata e non sulla piastra senza pareti. Non si
+scrive un argomento finto per far passare la regola: si dichiara in
+`deve_fallire`
+
+```json
+"la_differenza_e_il_pezzo": "la piastra non ha pareti; la gemella e' la scatola svuotata"
+```
+
+e banco e contratti (`Attese.SiSomiglianoNelPezzo`) pretendono tre cose: la frase
+c'e', gli argomenti sono **identici** a quelli della gemella (se differiscono la
+regola normale basta, e la dichiarazione e' di troppo), e i passi **prima** sono
+diversi (stesso pezzo e stessi argomenti resta una copia). Oggi la usa un caso
+solo: `lavorazioni/lim_nervatura_sulla_piastra_senza_pareti`.
 
 ### `-Regressione` — quanto reggono i riferimenti
 

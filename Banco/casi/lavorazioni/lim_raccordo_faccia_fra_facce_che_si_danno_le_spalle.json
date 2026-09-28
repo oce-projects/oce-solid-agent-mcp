@@ -1,7 +1,7 @@
 {
   "nome": "lim_raccordo_faccia_fra_facce_che_si_danno_le_spalle",
   "famiglia": "lavorazioni",
-  "perche": "Il davanti e il dietro dello stesso cubo: due facce piane, parallele, che si danno le spalle. Nessuna palla le tocca tutte e due dal lato dell'aria, quindi il raccordo e' impossibile per GEOMETRIA, non per un capriccio dell'API. La sonda probe_raccordo_faccia ha tolto dal giro la sua variante a facce parallele proprio per questo (REVISIONE 28/9/2026): un NULL li' misura la geometria, non la chiamata. Qui la geometria si guarda prima, e il rifiuto dice perche' e cosa usare invece.",
+  "perche": "Il davanti e il dietro dello stesso cubo: due facce piane, parallele, che si danno le spalle. Nessuna palla le tocca tutte e due dal lato dell'aria, quindi il raccordo e' impossibile per GEOMETRIA, non per un capriccio dell'API. La sonda Controlli/RaccordoDiFaccia ha tolto dal giro la sua variante a facce parallele proprio per questo (REVISIONE 28/9/2026): un NULL li' misura la geometria, non la chiamata. Qui la geometria si guarda prima, e il rifiuto dice perche' e cosa usare invece.",
   "perche_non_le_pareti_di_una_cava": "Due pareti parallele che SI GUARDANO (una cava) non si rifiutano allo stesso modo: una palla di raggio meta' della distanza le tocca tutte e due. Quel ramo non ha ancora una misura, e non si mette in un caso finche' non l'ha.",
   "parte": { "nuova": true },
   "passi": [

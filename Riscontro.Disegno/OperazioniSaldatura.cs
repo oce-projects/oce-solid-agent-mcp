@@ -985,7 +985,7 @@ namespace Riscontro.Disegno
         // (25/9/2026) avevano provato il triangolo SENZA marca e la marca 1/1
         // col poligono DEGENERE, mai le due cose giuste insieme.
         //
-        // ── LA GUIDA API (scratchpad\apihelp\estratto) ──────────────────────
+        // ── LA GUIDA API (sldworksapi, estratta in locale; pagine per nome) ──
         //
         //   SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~InsertGussetFeature3.html,
         //   Remarks: «Before calling this method, you must call
@@ -1017,7 +1017,7 @@ namespace Riscontro.Disegno
         //   swGussetThicknessType_e Inner/BothSides/Outer. Qui si usano solo
         //   per NOME.
         //
-        // ── MISURATO (28/9/2026, sonda scratchpad\cinque\probe_fazzoletto.cs) ─
+        // ── MISURATO (28/9/2026, sonda Controlli\Fazzoletto\Programma.cs) ──
         //
         // Sulla T di tubolari 80x80x5 (lunga 600 in X, corta 300 in Z, la corta
         // tagliata dalla lunga), fra la faccia alta della lunga e la faccia
@@ -1030,6 +1030,9 @@ namespace Riscontro.Disegno
         //   poligono 60/60 con D3 = D4 = 15, marca 1/1               -> NASCE,
         //                                       +12937,5 mm3
         //   triangolo via InsertGussetFeature2 con Face2[]           -> NASCE
+        //
+        // In tutte le varianti nate la feature e' di tipo «Gusset»
+        // (IFeature::GetTypeName2), e si controlla quello.
         //
         // ── I CONTI A MANO ──────────────────────────────────────────────────
         //
@@ -1046,6 +1049,7 @@ namespace Riscontro.Disegno
         // il caso misurato, e altrove si pretende almeno il triangolo che il
         // pentagono contiene.
         private const int MarcaDelleFacceDiAppoggio = 1;       // Remarks di InsertGussetFeature3
+        private const string TipoFazzoletto = "Gusset";        // GetTypeName2, misurato dalla sonda
         private const double TriangoloD3 = 0.015;              // Insert_Gusset_Feature_Example_CSharp.htm
         private const double TriangoloAngolo = 0.78539816339745;
         private const double TriangoloD4 = 0.015;
@@ -1297,7 +1301,16 @@ namespace Riscontro.Disegno
                     "SOLIDWORKS ha risposto con una feature «" + NomeDelFazzoletto(feature) + "» che nell'albero " +
                     "non c'e': non ti dico che il fazzoletto e' messo." + alternativa);
 
-            // 2. e' un fazzoletto: la definizione si rilegge come IGussetFeatureData.
+            // 2. e' un fazzoletto: il TIPO misurato dalla sonda («Gusset», come
+            //    «Fillet», «APattern» e «Rib» nelle altre tre di questa voce), e
+            //    la definizione che si rilegge come IGussetFeatureData.
+            string tipoNato = TipoDelFazzoletto(feature);
+            if (!string.Equals(tipoNato, TipoFazzoletto, StringComparison.Ordinal))
+                return Fallito(
+                    "E' nata una lavorazione «" + NomeDelFazzoletto(feature) + "» di tipo «" + tipoNato +
+                    "», non un fazzoletto («" + TipoFazzoletto + "», misurato): non ti confermo una cosa " +
+                    "diversa da quella che hai chiesto." +
+                    TogliIlFazzoletto(modello, feature, volumePrima, featurePrima) + alternativa);
             IGussetFeatureData dati = null;
             try { dati = feature.GetDefinition() as IGussetFeatureData; } catch { }
             if (dati == null)

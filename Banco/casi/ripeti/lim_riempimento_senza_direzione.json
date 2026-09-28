@@ -1,15 +1,15 @@
 {
   "nome": "lim_riempimento_senza_direzione",
   "famiglia": "ripeti",
-  "perche": "LA GUIDA DICE LA DIREZIONE FACOLTATIVA, LA SONDA NO. IFillPatternFeatureData, Remarks: senza la marca 1 «SOLIDWORKS chooses a direction reference appropriate for the specified layout». La sonda del 28/9/2026 (variante A2, stessa piastra, stesse selezioni meno lo spigolo) ha avuto NULL da CreateFeature, senza eccezione e senza messaggio. L'operazione rifiuta PRIMA di selezionare niente, dice che senza direzione non nasce e nomina la strada: uno spigolo dritto della faccia o un asse di «crea_asse». La gemella e' lo stesso passo con lo spigolo lungo.",
+  "perche": "LA GUIDA DICE LA DIREZIONE FACOLTATIVA, LA SONDA NO. IFillPatternFeatureData, Remarks: senza la marca 1 «SOLIDWORKS chooses a direction reference appropriate for the specified layout». La sonda del 28/9/2026 (Controlli/Riempimento/Programma.cs, tentativo A2: stessa piastra sul superiore, stesse selezioni meno lo spigolo) ha avuto NULL da CreateFeature, senza eccezione e senza messaggio. L'operazione rifiuta PRIMA di selezionare niente, dice che senza direzione non nasce e nomina la strada: uno spigolo dritto della faccia o un asse di «crea_asse». La gemella e' lo stesso passo con lo spigolo lungo.",
   "parte": { "nuova": true },
   "passi": [
     { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60,
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 60,
                      "spessore_mm": 12, "centrato": true },
       "attese": [ { "cosa": "volume_mm3", "uguale": 72000 } ] },
     { "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": -30, "y_mm": 0,
+      "argomenti": { "faccia_uid": "@faccia(verso=alto)", "x_mm": -30, "y_mm": 0,
                      "diametro_mm": 8, "passante": true },
       "attese": [
         { "cosa": "diametri_mm", "uguale": [8], "tolleranza": 0.02,
@@ -18,7 +18,7 @@
           "perche_questa_tolleranza": "72000 meno pi*4^2*12: il conto ha pi dentro" } ] },
     { "operazione": "ripeti_riempimento",
       "argomenti": { "feature_uid": "@feature(tipo=ICE,n=1)",
-                     "faccia_uid": "@faccia(verso=davanti)",
+                     "faccia_uid": "@faccia(verso=alto)",
                      "passo_mm": 17.0240490494193, "copie_per_giro": 10, "margine_mm": 0 },
       "deve_fallire": {
         "il_messaggio_contiene": ["senza una direzione", "spigolo dritto"],

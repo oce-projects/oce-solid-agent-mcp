@@ -18,7 +18,7 @@ namespace Riscontro.Disegno
     ///
     /// ── LA GUIDA PRIMA (metodo della voce, 28/9/2026) ────────────────────
     ///
-    /// Pagine della guida API estratta in locale (scratchpad\apihelp\estratto):
+    /// Pagine della guida API (sldworksapi, estratta in locale), per nome:
     ///
     ///  * `IFeatureManager~FeatureFillet3.html`, Remarks: «As of SOLIDWORKS 2020,
     ///    this method is obsolete for creating: constant radius fillets, offset
@@ -40,7 +40,7 @@ namespace Riscontro.Disegno
     ///    (Set1 = 1, Set2 = 2), che e' il parametro di `SetFaces` e non una marca.
     ///    L'enum col nome giusto e' quello sbagliato, di nuovo (vedi GP8).
     ///
-    /// ── MISURATO PRIMA DI SCRIVERE (sonda probe_raccordo_faccia, 28/9/2026) ──
+    /// ── MISURATO PRIMA DI SCRIVERE (sonda Controlli\RaccordoDiFaccia, 28/9/2026) ──
     ///
     /// Cubo 40x40x40, faccia +Z (marca 2) e faccia +X (marca 4), r = 5. Un
     /// raccordo r su uno spigolo di 40 fra due facce a 90 gradi toglie
@@ -158,10 +158,30 @@ namespace Riscontro.Disegno
             //    d: solo con r = d/2. Con r = d/2 si lascia provare a SOLIDWORKS,
             //    e le guardie dopo dicono se e' nato.
             // La sonda ha tolto dal giro la variante «facce parallele»
-            // (probe_raccordo_faccia.cs, REVISIONE 28/9/2026) proprio perche' un
+            // (Controlli\RaccordoDiFaccia, REVISIONE 28/9/2026) proprio perche' un
             // NULL li' non avrebbe misurato l'API ma la geometria.
             string parallele = FaccePianeParallele(faccia1, faccia2, uid1, uid2, raggio);
             if (parallele != null) return Fallito(parallele);
+
+            // ── IL CONTO A MANO, LETTO PRIMA DI TOCCARE IL PEZZO ─────────
+            //
+            // Dove e' un conto chiuso: due facce piane a 90 gradi che si
+            // toccano su uno spigolo lungo L. La sezione tolta (o aggiunta, in
+            // un angolo interno) e' r²(1 − π/4), e per lunghezza L. Altrove
+            // (facce curve, angoli diversi) non si scrive un numero inventato:
+            // null, e detto.
+            //
+            // PRIMA e non dopo: dopo il raccordo le due facce NON si toccano
+            // piu' (fra loro c'e' la faccia del raccordo), e lo spigolo comune
+            // letto li' sarebbe zero — il conto non ci sarebbe mai stato.
+            double spigolo = -1;
+            try { spigolo = LunghezzaCheStaSu(faccia1, faccia2); } catch { }
+            double? atteso = null;
+            var n1 = NormaleDellaFaccia(faccia1);
+            var n2 = NormaleDellaFaccia(faccia2);
+            if (spigolo > 0 && n1 != null && n2 != null && n1.Length >= 3 && n2.Length >= 3 &&
+                Math.Abs(n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2]) < 1e-6)
+                atteso = Math.Round(spigolo * raggio * raggio * (1 - Math.PI / 4), 2);
 
             // ── LA FOTOGRAFIA PRIMA (OperazioniGuardie.cs) ───────────────
             var foto = FotografaIlPezzo(modello);
@@ -271,19 +291,32 @@ namespace Riscontro.Disegno
                     "arrotondato niente." + TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima) +
                     " Prova «raccordo_spigoli» sullo spigolo fra le due facce.");
 
-            // IL CONTO A MANO, dove e' un conto chiuso: due facce piane a 90
-            // gradi che si toccano su uno spigolo lungo L. La sezione tolta (o
-            // aggiunta, in un angolo interno) e' r²(1 − π/4), e per lunghezza L.
-            // Altrove (facce curve, angoli diversi) non si scrive un numero
-            // inventato: null, e detto.
-            double spigolo = -1;
-            try { spigolo = LunghezzaCheStaSu(faccia1, faccia2); } catch { }
-            object atteso = null;
-            var n1 = NormaleDellaFaccia(faccia1);
-            var n2 = NormaleDellaFaccia(faccia2);
-            if (spigolo > 0 && n1 != null && n2 != null && n1.Length >= 3 && n2.Length >= 3 &&
-                Math.Abs(n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2]) < 1e-6)
-                atteso = Math.Round(spigolo * raggio * raggio * (1 - Math.PI / 4), 2);
+            // IL CONTO A MANO, CONFRONTATO. Dove c'e' (vedi sopra), un raccordo
+            // che toglie un'altra quantita' non e' quello chiesto: parziale, o
+            // appoggiato altrove. Lo scarto ammesso e' il mezzo decimo, o un
+            // decimillesimo del conto se e' piu' grande: il numero misurato
+            // dalla sonda (214,6) e il conto (214,602) stanno nel centesimo.
+            if (atteso.HasValue && cambio.HasValue &&
+                Math.Abs(Math.Abs(cambio.Value) - atteso.Value) > Math.Max(0.05, atteso.Value * 1e-4))
+                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                    "Il raccordo di faccia «{0}» e' nato, ma ha cambiato il volume di {1:0.##} mm3 e il " +
+                    "conto a mano ne vuole {2:0.##} (spigolo comune {3:0.##} mm x r² x (1 − π/4)): non " +
+                    "si e' appoggiato come chiesto sulle due facce.{4} Per lo stesso raccordo sullo " +
+                    "spigolo fra le due facce usa «raccordo_spigoli».",
+                    nome, Math.Abs(cambio.Value), atteso.Value, spigolo,
+                    TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima)));
+
+            // IL RAGGIO CHE LA FEATURE DICHIARA (ISimpleFilletFeatureData2~
+            // DefaultRadius.html: «Default radius of the symmetric fillet»),
+            // riletto con IFeature::GetDefinition — non l'argomento ripetuto.
+            // Non decide niente: decide il volume. Null se non si rilegge.
+            object raggioDichiarato = null;
+            try
+            {
+                var letti = feature.GetDefinition() as ISimpleFilletFeatureData2;
+                if (letti != null) raggioDichiarato = Math.Round(Unita.Mm(letti.DefaultRadius), 3);
+            }
+            catch { }
 
             int corpiDopo = ContaCorpiSolidi(modello);
             int inErroreDopo = LavorazioniInErrore(modello);
@@ -291,9 +324,9 @@ namespace Riscontro.Disegno
             var misure = new Dictionary<string, object>
             {
                 // I CAMPI NUOVI SONO IN INGLESE (decisione della lingua, W3.1).
-                ["face_set_1"] = uid1,
-                ["face_set_2"] = uid2,
-                ["radius_mm"] = raggio,
+                // Niente argomenti ripetuti come fossero misure: il raggio e'
+                // quello che la feature DICHIARA, il resto e' letto dal pezzo.
+                ["declared_radius_mm"] = raggioDichiarato,
                 ["feature_type"] = tipo,
                 ["volume_before_mm3"] = NumeroOppureNull(foto.Volume, 2),
                 ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
@@ -302,11 +335,13 @@ namespace Riscontro.Disegno
                 ["bodies"] = NumeroOppureNull(corpiDopo),
                 ["features_in_error"] = NumeroOppureNull(inErroreDopo),
                 ["shared_edge_mm"] = spigolo >= 0 ? (object)Math.Round(spigolo, 2) : null,
-                ["expected_change_abs_mm3"] = atteso,
+                ["expected_change_abs_mm3"] = NumeroOppureNull(atteso, 2),
                 ["how_expected_is_counted"] =
                     "shared edge length x r^2 x (1 - pi/4): exact for two flat faces at 90 degrees " +
                     "that touch along an edge (material removed on an outside edge, added in an " +
-                    "inside corner). Null when the two faces are not like that: no number is made up.",
+                    "inside corner), read BEFORE the fillet (afterwards the faces no longer touch) " +
+                    "and compared with the volume change. Null when the two faces are not like that: " +
+                    "no number is made up.",
             };
             if (!cambio.HasValue) misure["volume_not_read_again"] = NotaVolumeNonRiletto;
 

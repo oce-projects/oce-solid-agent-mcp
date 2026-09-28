@@ -56,10 +56,15 @@ makes their cases green (the Z-C6 contract says so until then).
   with the radius equal to half their distance. Afterwards the new feature
   must be a `Fillet`, the volume must change, bodies and features in error
   must be as before; otherwise the fillet is removed (`DeleteSelection2`) and
-  the part is checked to be as it was. New fields: `volume_change_mm3`,
-  `material_removed`, `shared_edge_mm`, `expected_change_abs_mm3` (two flat
-  faces at 90 degrees sharing an edge), `features_in_error`, `bodies`,
-  `feature_type`. Bench: `lavorazioni/raccordo_faccia_fra_due_facce_di_un_cubo`
+  the part is checked to be as it was. Where the hand calculation exists (two
+  flat faces at 90 degrees sharing an edge) it is read BEFORE the fillet —
+  afterwards the two faces no longer touch — and a volume change that differs
+  from it by more than 0.05 mm³ (or 1e-4 of it) removes the fillet and refuses,
+  naming `raccordo_spigoli`. New fields: `volume_change_mm3`,
+  `material_removed`, `shared_edge_mm`, `expected_change_abs_mm3`,
+  `features_in_error`, `bodies`, `feature_type`, and `declared_radius_mm`
+  (read back from `ISimpleFilletFeatureData2.DefaultRadius`; the inputs are
+  not echoed). Bench: `lavorazioni/raccordo_faccia_fra_due_facce_di_un_cubo`
   (volume and centre of mass, which tells which edge was filleted), and the
   two refusals `lim_raccordo_faccia_sulla_stessa_faccia`,
   `lim_raccordo_faccia_fra_facce_che_si_danno_le_spalle`.
@@ -77,11 +82,17 @@ makes their cases green (the Z-C6 contract says so until then).
   then recounts the tree and re-measures the volume) when it breaks a
   feature, changes the body count or makes openings merge. New answer fields:
   `copies_made` (counted from the faces the pattern owns), `volume_per_copy_mm3`,
-  `feature_type` (`APattern`), `layout`, `loop_spacing_mm`,
-  `instances_per_loop`, `margin_mm`. The table pattern stays out: NULL
-  without a coordinate system on mark 16. Bench:
-  `ripeti/il_riempimento_fa_quattordici_fori` and three refusals twinned
-  with it (`lim_riempimento_senza_direzione`,
+  `feature_type` (`APattern`), and `declared_layout`,
+  `declared_loop_spacing_mm`, `declared_instances_per_loop`,
+  `declared_margin_mm` read back from `IFillPatternFeatureData` (the layout by
+  enum name), not echoed from the inputs. The direction edge is re-selected with
+  `Select4` and a `SelectData` carrying mark 1, as the probe did; an axis from
+  `crea_asse` is accepted but not measured, and the catalogue says so. The
+  table pattern stays out: NULL without a coordinate system on mark 16. Bench:
+  `ripeti/il_riempimento_fa_quattordici_fori` on the probe's own plate (Top
+  plane, direction along the long edge of the boundary face: 14 is an
+  algorithmic number and is compared only on the measured geometry) and three
+  refusals twinned with it (`lim_riempimento_senza_direzione`,
   `lim_riempimento_contorno_non_piano`,
   `lim_riempimento_direzione_fuori_dalla_faccia`).
 - **New operation `nervatura` (rib, entry W1.2)**, family `lavorazioni`.
@@ -98,14 +109,20 @@ makes their cases green (the Z-C6 contract says so until then).
   Refused, with nothing left in the part (sketch and plane removed with
   `DeleteSelection2`, volume read back): an end off the plane, a line under 1 mm,
   and a rib that is born in neither direction (a plate without walls — it names
-  `estrudi_su_faccia`). New fields: `added_material_mm3`, `material_side`,
-  `attempts`, `line_length_mm`, `plane_created`, `declared_parallel_to_sketch`
-  and others. It carries a catalogue example copied from its green case.
+  `estrudi_su_faccia`). Before the second attempt the tree must be as it was
+  after the sketch: a failed attempt that leaves a feature of another type is
+  refused (and removed) instead of built upon. New fields: `added_material_mm3`,
+  `material_side`, `attempts`, `plane_created`, `declared_thickness_mm`,
+  `declared_flip_side`, `declared_parallel_to_sketch`; the inputs come back as
+  `requested_thickness_mm`, `requested_sketch_plane`,
+  `requested_plane_offset_mm`, `requested_line_length_mm`, named as inputs. It carries a catalogue example copied from its green case.
   Bench: `lavorazioni/nervatura_nell_angolo_della_l` (+2700 mm³),
   `lavorazioni/nervatura_nella_scatola_svuotata` (+720 mm³, second attempt on
   the same part: the one step the probe did not measure), and two refusals with
   their twins (`lim_nervatura_sulla_piastra_senza_pareti`,
-  `lim_nervatura_fuori_dal_suo_piano`).
+  `lim_nervatura_fuori_dal_suo_piano`). The plate refusal has the same
+  arguments as its twin: the difference is the part, and it is declared (see
+  the bench entry below) instead of carried by a dummy `distanza_mm: 0`.
 - **`fazzoletto` (weldment gusset) is back in the catalogue, measured** (entry
   GP20). Until library 0.138.0 it never created a gusset: it passed
   `InsertGussetFeature3` a polygon profile with both short sides at zero
@@ -127,11 +144,29 @@ makes their cases green (the Z-C6 contract says so until then).
   `new_body`, `new_body_box_mm`, `thickness_read_mm`, `thickness_type_read`,
   `profile_read`, `location_read`, `supporting_faces_area_mm2`,
   `contact_mm`); if one does not match, the gusset is removed and the refusal
-  says so. Bench: `saldature/il_fazzoletto_sta_nell_angolo`,
+  says so. The new feature must also be of type `Gusset`, the type every
+  variant of the probe returned. The schema no longer says which side goes on
+  which face: the help does not say it and no probe told them apart (only equal
+  sides were measured). Bench: `saldature/il_fazzoletto_sta_nell_angolo`,
   `saldature/il_poligono_del_fazzoletto_non_e_degenere` (each with its
   refusals and twins in the same file).
+- **The four probes are in the repository** (`Controlli\RaccordoDiFaccia`,
+  `Controlli\Riempimento`, `Controlli\Nervatura`, `Controlli\Fazzoletto`),
+  each with the output of 28/9/2026 in its header, built by
+  `costruisci-controlli.ps1` and so by every `build.ps1` (step 1c). The code
+  and the cases cite those paths and the help pages by name, no longer a
+  session scratchpad.
+- **Bench: a twin with the same arguments on another part.** A refusal that
+  depends on the part and not on an argument declares it in `deve_fallire` as
+  `la_differenza_e_il_pezzo` (a sentence saying what changes). The bench and
+  the contracts (`Attese.SiSomiglianoNelPezzo`) require the sentence, arguments
+  IDENTICAL to the twin's, and different steps before (same part and same
+  arguments is still a copy). Four new contracts test both ways.
 - **Contract floors.** Refusals that name a way forward (`ProveIRifiuti`):
-  146 -> 213 (+15 face fillet, +18 fill pattern, +10 rib, +24 gusset).
+  146 -> 216 (+15 face fillet, +18 fill pattern, +10 rib, +24 gusset, +3 from
+  the review: the fillet off the hand calculation, the rib attempt that leaves
+  another feature, the gusset of the wrong type). Contracts declared in
+  `Prove/LEGGIMI.md`: 401 -> 405.
   Operations with a copyable example (`ProveGliEsempi`): 29 -> 30 (the rib).
   Two required fields get a written decision (`ProveICampiObbligatori`):
   `ripeti_riempimento.copie_per_giro`, `nervatura.piano`. Bench cases: 13 new

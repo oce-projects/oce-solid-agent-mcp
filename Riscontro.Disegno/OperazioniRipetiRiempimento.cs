@@ -48,7 +48,7 @@ namespace Riscontro.Disegno
     ///   ...IFillPatternFeatureData~Margins.html: «distance between the fill
     ///     boundary and the outermost pattern instance; 0 for no margin».
     ///
-    /// ── LA SONDA, LANCIATA IL 28/9/2026 (scratchpad\cinque\probe_riempimento.cs) ──
+    /// ── LA SONDA, LANCIATA IL 28/9/2026 (Controlli\Riempimento\Programma.cs) ──
     ///
     /// Piastra 100 x 60 x 12, un foro passante Ø8 a 30 mm dal centro (603,2 mm3),
     /// SOLIDWORKS 29.5.1:
@@ -207,7 +207,7 @@ namespace Riscontro.Disegno
                 seme = SemeSelezionato(modello, MarcaLavorazioneRiempimento);
 
                 // 3. La direzione di nuovo, marca 1, aggiunta.
-                if (!RiselezionaDirezione(direzione))
+                if (!RiselezionaDirezione(modello, direzione))
                     return Fallito("Non sono riuscito a riselezionare la direzione " + direzioneDetta +
                                    " insieme alla lavorazione. Prova con un altro spigolo dritto della faccia.");
 
@@ -272,14 +272,12 @@ namespace Riscontro.Disegno
                     "piu' largo, perche' le copie restino lontane dal bordo, o un «passo_mm» piu' " +
                     "grande, perche' non si tocchino." + TogliIlRiempimento(modello, feature, volumePrima));
 
-            var misure = new Dictionary<string, object>
-            {
-                ["layout"] = "circular",
-                ["loop_spacing_mm"] = passo,
-                ["instances_per_loop"] = copiePerGiro,
-                ["margin_mm"] = margine,
-                ["feature_type"] = tipo,
-            };
+            // COSA DICHIARA LA FEATURE, riletto con IFeature::GetDefinition
+            // come IFillPatternFeatureData — non gli argomenti ripetuti. Non
+            // decide niente (decidono il volume, le copie contate e le
+            // guardie); un valore che non si rilegge e' null.
+            var misure = new Dictionary<string, object> { ["feature_type"] = tipo };
+            DichiaratoDalRiempimento(feature, misure);
 
             // «Niente e' cambiato» e' il falso successo: lo prende ConfrontaCopia.
             var fermo = ConfrontaCopia(
@@ -395,22 +393,73 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// La direzione gia' validata, riselezionata con la marca 1 IN AGGIUNTA
-        /// alla lavorazione: uno spigolo per entita', un asse per feature.
+        /// alla lavorazione. Uno spigolo con `IEntity.Select4` e un
+        /// `SelectData` con `Mark = 1`: la chiamata della sonda
+        /// (Controlli\Riempimento, `Mark(selMgr, 1)`), la stessa di
+        /// `Seleziona(gestore, faccia, marca)` per la faccia di contorno. Un asse
+        /// di riferimento per feature (`Select2` con la marca): la sonda non ne
+        /// ha usati, ed e' detto nel catalogo.
         /// </summary>
-        private static bool RiselezionaDirezione(object direzione)
+        private static bool RiselezionaDirezione(IModelDoc2 modello, object direzione)
         {
             try
             {
                 if (direzione is IEdge)
                 {
                     var entita = direzione as IEntity;
-                    return entita != null && entita.SelectByMark(true, MarcaDirezioneRiempimento);
+                    var gestore = modello.SelectionManager as ISelectionMgr;
+                    if (entita == null || gestore == null) return false;
+                    var d = (SelectData)gestore.CreateSelectData();
+                    d.Mark = MarcaDirezioneRiempimento;
+                    return entita.Select4(true, d);
                 }
                 var f = direzione as IFeature;
                 if (f != null) return f.Select2(true, MarcaDirezioneRiempimento);
             }
             catch { }
             return false;
+        }
+
+        /// <summary>
+        /// I quattro scalari che l'operazione chiede, come la feature nata li
+        /// DICHIARA (pagine della guida
+        /// `IFillPatternFeatureData~PatternLayoutType.html`, `~LoopSpacing.html`
+        /// «Distance between loops of pattern instances», `~NoOfInstances.html`
+        /// «Number of instances per loop or side», `~Margins.html`), letti da
+        /// `IFeature::GetDefinition` (`IFeature~GetDefinition.html`: «query the
+        /// feature data object»). La disposizione si scrive per NOME dell'enum
+        /// `swPatternLayoutType_e`, mai per cifra. Quello che non si rilegge
+        /// resta null: «non lo so» non si riempie con l'argomento.
+        /// </summary>
+        private static void DichiaratoDalRiempimento(IFeature feature, Dictionary<string, object> misure)
+        {
+            object disposizione = null, passo = null, copie = null, margine = null;
+            try
+            {
+                var d = feature.GetDefinition() as IFillPatternFeatureData;
+                if (d != null)
+                {
+                    try { disposizione = NomeDellaDisposizione(d.PatternLayoutType); } catch { }
+                    try { passo = Math.Round(Unita.Mm(d.LoopSpacing), 3); } catch { }
+                    try { copie = d.NoOfInstances; } catch { }
+                    try { margine = Math.Round(Unita.Mm(d.Margins), 3); } catch { }
+                }
+            }
+            catch { }
+            misure["declared_layout"] = disposizione;
+            misure["declared_loop_spacing_mm"] = passo;
+            misure["declared_instances_per_loop"] = copie;
+            misure["declared_margin_mm"] = margine;
+        }
+
+        /// <summary>Il nome in inglese della disposizione, dal nome dell'enum; null se sconosciuta.</summary>
+        private static string NomeDellaDisposizione(int valore)
+        {
+            if (valore == (int)swPatternLayoutType_e.swPatternLayoutCircular) return "circular";
+            if (valore == (int)swPatternLayoutType_e.swPatternLayoutSquare) return "square";
+            if (valore == (int)swPatternLayoutType_e.swPatternLayoutPolygon) return "polygon";
+            if (valore == (int)swPatternLayoutType_e.swPatternLayoutPerforation) return "perforation";
+            return null;
         }
 
         /// <summary>
