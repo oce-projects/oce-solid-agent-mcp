@@ -640,7 +640,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "quando il pezzo cambia. MI RIFIUTO se l'ancora ce l'hanno solo alcune "
                         + "posizioni (tutte o nessuna: i fori stanno in uno schizzo solo) e se una "
                         + "distanza e' meno del raggio del foro — quello lo so solo a foro fatto, "
-                        + "e allora il foro lo tolgo.",
+                        + "e allora il foro lo tolgo.\n\nMI RIFIUTO, e tolgo il foro, anche se "
+                        + "ricostruisce in errore o non toglie materiale: per esempio una "
+                        + "posizione che sta fuori dalla faccia.",
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -820,8 +822,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "la modifica ne rompe una a valle, rimetto com'era e mi rifiuto. Se il volume non "
                         + "cambia te lo dico (un cieco piu' profondo del materiale e' gia' passante).\n\nMI "
                         + "RIFIUTO se la lavorazione non e' un'estrusione o un taglio estruso (per una quota "
-                        + "qualunque c'e' «modifica_quota»), se chiedi «passante» per un'estrusione, e se non "
-                        + "mi dai uno solo fra «passante» e «profondita_mm».",
+                        + "qualunque c'e' «modifica_quota»), se chiedi «passante» per un'estrusione — anche "
+                        + "per un rialzo fatto su una faccia con «estrudi_su_faccia», che nello stato ha tipo "
+                        + "«ICE» come i tagli ma e' un'estrusione —, se l'estrusione va in DUE VERSI "
+                        + "indipendenti (cambio e rileggo solo il primo, e il secondo resterebbe com'era), e "
+                        + "se non mi dai uno solo fra «passante» e «profondita_mm».",
                     Precondizione = "un pezzo con un'estrusione o un taglio estruso",
                     Schema = O(
                         "type", "object",
@@ -968,7 +973,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "ci sta piu' — per esempio lo spessore sotto il lato dello smusso: "
                         + "SOLIDWORKS non da' errore, cambia la forma da solo, e la lavorazione "
                         + "di base perde una faccia intera. Rimette il valore di prima e dice "
-                        + "quale smusso o raccordo.",
+                        + "quale smusso o raccordo.\n\nUNA QUOTA ANGOLARE (lo stato la scrive in "
+                        + "«gradi») si cambia in GRADI: «valore_mm» porta i gradi, e la risposta "
+                        + "dice «before_deg» e «after_deg» invece di «prima_mm» e «adesso_mm».\n\n"
+                        + "RIFIUTA le quote di sola lettura (non le scavalco, anche se SOLIDWORKS "
+                        + "lo permetterebbe), quelle guidate, che misurano e non comandano, e "
+                        + "quelle intere, come le copie di una ripetizione.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -978,7 +988,8 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "il nome della quota, copiato dallo stato del documento"),
                             "valore_mm", O(
                                 "type", "number",
-                                "description", "il valore nuovo, in millimetri")),
+                                "description", "il valore nuovo, in millimetri; in gradi se la quota e' "
+                                    + "angolare")),
                         "required", A(
                             "quota",
                             "valore_mm")),
@@ -3127,7 +3138,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "errore.\n\nDi solito vuol dire che il pezzo e' cambiato dopo "
                         + "l'ultimo «distinta_taglio»: si rifa' quello e si rimette la "
                         + "tabella.\n\nLa colonna delle quantita' non la indovino per "
-                        + "posizione: la chiedo al modello di tabella.\n\nLE COLONNE E IL POSTO: "
+                        + "posizione: la chiedo al modello di tabella, prima per tipo e poi per "
+                        + "nome della proprieta'. Se non la trovo il confronto non si fa, e la "
+                        + "risposta lo dice in «comparison_done» (false) invece che in una frase "
+                        + "in fondo.\n\nLE COLONNE E IL POSTO: "
                         + "tengo quelle che in officina servono per tagliare (numero, quantita', "
                         + "lunghezza, i due angoli, descrizione) e nascondo le altre — il modello "
                         + "di tabella di casa ne ha 17, e la tabella usciva dal foglio. «colonne» "
@@ -3913,8 +3927,10 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "quale sua faccia, per verso."),
                             "tipo", O(
                                 "type", "string",
-                                "description", "coincidente (predefinito), concentrico, parallelo, "
-                                    + "perpendicolare, distanza, tangente."),
+                                "description", "coincidente (predefinito), parallelo, perpendicolare, "
+                                    + "distanza. Concentrico e tangente li rifiuto: vogliono una "
+                                    + "faccia curva, e le facce qui si scelgono per verso, che vale "
+                                    + "solo per quelle piane."),
                             "distanza_mm", O(
                                 "type", "number",
                                 "description", "solo per «distanza»: quanto stanno lontane. Senza, "
@@ -4311,7 +4327,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "combaciano lo dice, prima che il DXF vada al taglio.\n\nRifiuta un "
                         + "tratto piu' corto delle pieghe che lo mangiano (un lato da 1 mm con un "
                         + "raggio da 2): SOLIDWORKS darebbe una lavorazione rossa senza dire quale "
-                        + "lato.",
+                        + "lato. E rifiuta una flangia che nasce in errore o che aggiunge meno "
+                        + "della meta' del materiale del conto a mano.",
                     Precondizione = "una parte senza corpi, o a cui aggiungere una lamiera",
                     Schema = O(
                         "type", "object",
@@ -4580,7 +4597,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "tolta con «riattiva».\n\nNON TUTTE LE RIPETIZIONI SANNO FARLO: "
                         + "quelle guidate da uno schizzo, da una catena o da una quota non "
                         + "hanno le copie numerate. Uno specchio ha una copia sola: si toglie "
-                        + "cancellandolo.",
+                        + "cancellandolo.\n\nDA UNA GRIGLIA A DUE DIREZIONI NON TOLGO COPIE: "
+                        + "SOLIDWORKS le numera riga per riga, e un numero solo non dice quale "
+                        + "posizione. Mi rifiuto anche se dopo la modifica la ripetizione va in "
+                        + "errore, resta senza facce, o perde facce che non valgono le copie "
+                        + "tolte — e rimetto com'era.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -4822,7 +4843,9 @@ namespace Riscontro.Disegno.Catalogo
                     + "{\"centrata_fra\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. " + punto
                     + "\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso "
                     + "punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro "
-                    + "asse o sta sul bordo di uno smusso o di un raccordo; se la distanza e' meno di "
+                    + "asse o sta sul bordo di uno smusso o di un raccordo (l'altra faccia dello "
+                    + "spigolo dev'essere piana e perpendicolare, e se non riesco a guardarla "
+                    + "rifiuto); se la faccia su cui lavori non e' piana; se la distanza e' meno di "
                     + "meta' della larghezza (il profilo scavalcherebbe lo spigolo); se lo schizzo non "
                     + "risulta completamente definito, o non regge una modifica di prova — e allora il "
                     + "taglio lo tolgo.",

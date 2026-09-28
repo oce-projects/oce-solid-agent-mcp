@@ -148,8 +148,20 @@ namespace Prove.Contratti
         /// **128:** Z-F4 — `cambia_estrusione`: la lavorazione che non e' un'estrusione
         /// («c'e' modifica_quota»), «passante» su un'estrusione («dimmi profondita_mm»),
         /// passante o profondita'.
+        /// **145 dalla voce Z-C21.2 (28/9/2026, ramo z-c21-2-difetti-silenziosi):**
+        /// i difetti silenziosi diventati rifiuti dicono la strada — la quota di
+        /// sola lettura («togli prima la sola lettura»), la guidata («cambia
+        /// invece la quota che la guida»), cambia_estrusione a due versi
+        /// («cambiala a mano, oppure… modifica_quota»), concentrico e tangente
+        /// (coincidente, parallelo… con le facce piane), la griglia in
+        /// sopprimi_istanza («fai la ripetizione con una direzione sola»),
+        /// l'ancora su una faccia curva («togli ancora e dai x_mm e y_mm») e
+        /// sullo spigolo che non si lascia guardare («ancoralo a un altro
+        /// spigolo»), il foro fuori dal pezzo. Nove in piu' secondo il
+        /// rilevatore: il numero l'ha dato il controllo, l'elenco qui sopra e'
+        /// quello dei messaggi nuovi e non una corrispondenza uno a uno.
         /// </summary>
-        private const int Pavimento = 136;
+        private const int Pavimento = 145;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

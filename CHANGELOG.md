@@ -24,6 +24,103 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.2 (branch z-c21-2-difetti-silenziosi)
+
+**Silent defects that need no probe (entry Z-C21.2 of the API audit).** Every
+fix below is a case where a part, a file or an answer came out wrong with
+`riuscita: true`, and the SOLIDWORKS API help alone was enough to decide. Each
+fix quotes its help page in the code. VERSION.txt and AssemblyVersion are NOT
+raised on this branch: whoever merges it bumps them. **The new bench cases have
+NOT been run** (no SOLIDWORKS on this branch): they are written to go red on
+library 0.136.0 and green on this one, and must be seen doing so before merge.
+
+- **`esporta_stl`, `esporta_step`, `esporta_iges` clear the selection before
+  `SaveAs3`** (L13-1). IModelDocExtension~SaveAs3.html: "Exports the entire
+  model, unless faces or bodies are selected, in which case, it exports only
+  those". A face left selected produced an STL of that face alone, and the
+  file check (84 + 50 bytes per triangle) compared the file with itself.
+  `triangoli_dalla_geometria` is still reported, not enforced: a threshold on
+  the order of magnitude needs a measurement on curved parts first.
+- **`taglia_membri` always sets the WeldGap bit, also with gap 0** (L9-2).
+  InsertWeldmentTrimFeature2.html: without the bit "the weld gap defaults to
+  the last value specified in the SOLIDWORKS user-interface". A gap given by
+  hand in Trim/Extend was silently inherited while the answer said
+  `gioco_mm: 0`. This changes behaviour for anyone relying on the UI gap; the
+  catalog says so.
+- **`combina_corpi` resolves body uids by signature** (L6-1), through
+  `CorpiDaUid` + `FirmaCombacia` like `sposta_corpi` (entry E4), instead of by
+  position in a fresh `GetBodies2` (GetBodies2.html: "May vary the order in
+  which bodies are returned"). `IndiceDelCorpo` is gone.
+- **`verifica_sovrasporgenze` checks hidden bodies too** (L12-1:
+  `GetBodies2(swSolidBody, false)`) and **no longer treats a curved face
+  without tessellation as vertical** (L12-2: IFace2~Normal.html, "If the face
+  is not a planar face, then this property returns 0,0,0"). Such faces are
+  counted in the new `faces_not_analyzed` (with `area_not_analyzed_mm2`), and
+  when nothing overhangs elsewhere `si_stampa_senza_supporti` is `null`, not
+  `true`. `hidden_bodies` says how many hidden bodies were checked; `corpo_uid`
+  now resolves by signature. **Open: the mini-probe on the tessellation of a
+  hidden body was written, not run** (`TassellaNascosto`, kept outside the
+  repository in the session scratchpad): the help does not say whether
+  `GetTessTriangles` answers on a hidden body. If it does not, curved faces of
+  hidden bodies end up in `faces_not_analyzed` — a non-conclusive verdict, not
+  a silent "yes".
+- **`modifica_quota` changes angular dimensions in degrees** (M3).
+  IDimension~GetType.html (swDimensionParamType_e): "30" on an angle used to
+  become 0.03 rad and the equally wrong read-back passed. The answer carries
+  `before_deg`/`after_deg` instead of `prima_mm`/`adesso_mm`; integer
+  dimensions are refused. **Read-only and driven dimensions are refused** (M8):
+  SetSystemValue3.html, "This method allows you to change the value of a
+  read-only dimension".
+- **`cambia_estrusione`: "ICE" is not "cut"** (M7). A boss made with
+  `estrudi_su_faccia` has type "ICE" like face cuts (GetTypeName2.html);
+  cut or boss now comes from `IExtrudeFeatureData2.IsBossFeature`, so a boss
+  answers `tipo: estrusione` and "passante" on it is refused, and a real "Cut"
+  is accepted. **Two independent directions are refused** (L5-1:
+  BothDirections.html): only direction 1 was written and read back.
+- **Rebuild errors after `ModifyDefinition` and after creation are read**
+  (ModifyDefinition.html: "call IFeature::GetErrorCode2"):
+  `flangia_base` reads `GetErrorCode2` like its three siblings and refuses a
+  flange that added less than half of the hand-computed volume (L10-4);
+  `foro_guidato` reads it after each `ModifyDefinition` and after positioning,
+  always measures the volume (not only with anchors), and removes a hole that
+  is in error or removed nothing (L4-3); `sopprimi_istanza` reads it, refuses
+  a pattern left with no faces, and refuses when the lost faces are not seed
+  faces × copies removed, putting the array back (L6-5).
+- **`sopprimi_istanza` refuses two-direction grids** (M6). SkippedItemArray.html
+  gives I = n2·(i−1)+(j−1) for a bi-directional pattern: a single copy number
+  does not name a grid position, and "copy 3" on a 3 × 2 grid removed
+  instance [2, 2].
+- **`accoppia` no longer offers concentric and tangent** (M17): faces are
+  chosen by direction through `IFace2.Normal`, i.e. only planar faces, and
+  between two planar faces those mates cannot exist. They are refused with the
+  reason, before touching anything.
+- **`distinta_taglio_in_tavola` finds the quantity column by type first**
+  (L16-8: GetColumnCustomProperty.html, "returns an empty string if the column
+  is not a user-defined column"; `GetColumnType2` = swWeldTableColumnType_Quantity),
+  then by the "QUANTITY" property, and says so in `quantity_column_found_by`
+  and `comparison_done`.
+- **The anchor refuses the tangent edge of a fillet** (C2-1 of the audit
+  completion): the rule "the other face must be planar and perpendicular"
+  never checked "planar", and a fillet's Normal is 0,0,0 — cosine 0, exactly
+  like a real perpendicular wall. `IsPlane()` now comes before `Normal`. If
+  the check cannot look (no faces, no normal, an exception) it refuses instead
+  of accepting (N6); an anchor on a non-planar working face is refused (N24).
+  The anchor's movement probe now reads the `SetSystemValue3` status and the
+  moved value (M12): a dimension that did not move proved nothing.
+- **Bench**: steps accept `prima_seleziona` (entities left selected before the
+  step) and `prima_nascondi` (bodies, or the body of a face, hidden before the
+  step); `@quota(angolare=true)` picks the only angular dimension; with
+  `uid_dal_passo` bodies now carry their signature like the bridge sends it.
+  Ten new cases: `lo_stl_non_esporta_la_faccia_selezionata`,
+  `il_taglio_senza_gioco_non_eredita`, `lim_combina_col_corpo_letto_prima_del_taglio`,
+  `il_corpo_nascosto_che_pende_si_vede`, `l_angolo_dello_smusso_si_cambia_in_gradi`,
+  `il_rialzo_cresce_e_non_e_un_taglio`, `lim_foro_guidato_fuori_dal_pezzo`,
+  `lim_griglia_non_si_conta_come_una_fila`,
+  `la_distinta_di_taglio_dice_se_ha_confrontato`, `lim_ancora_sul_bordo_del_raccordo`.
+  `il_taglio_senza_gioco_non_eredita` cannot reproduce a gap typed in the UI:
+  that scenario stays a manual probe.
+- Contracts: the floor of refusals that name a way out goes from 136 to 145.
+
 ## 0.112.0 — 28 September 2026 · library 0.137.0
 
 **The whole SOLIDWORKS API, searched and described by reflection (entry

@@ -185,7 +185,8 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 | `uguale` | un numero, un testo, un elenco di numeri (con tolleranza) o un elenco di TESTO (uno a uno, e l'ordine conta) |
 | `contiene` / `non_contiene` | per le misure che sono **frasi** (`stato.forma`): una stringa o un elenco. Non si mettono insieme a `uguale` |
 | `tolleranza` | **assoluta**, in mm o mm³. Diversa da zero → serve `perche_questa_tolleranza`, altrimenti il caso e' **rotto** |
-| selettori | `@faccia(verso=…)`, `@faccia(piana=false)`, `@faccia(area~=907.92)`, `@spigolo(asse=Z,lungo~=100)`, `@spigolo(curvo=true,n=1)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)` |
+| selettori | `@faccia(verso=…)`, `@faccia(piana=false)`, `@faccia(area~=907.92)`, `@faccia(verso=davanti,x~=150)` (x, y, z sono il punto che lo stato pubblica), `@spigolo(asse=Z,lungo~=100)`, `@spigolo(curvo=true,n=1)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)`, `@quota(angolare=true)` (l'unica quota in gradi, voce Z-C21.2) |
+| prima del passo | `prima_seleziona`: uid o selettori lasciati SELEZIONATI quando il passo parte, come li lascerebbe chi sta davanti a SOLIDWORKS (lo STL che esportava solo la faccia selezionata). `prima_nascondi`: corpi, o il corpo di una faccia, NASCOSTI prima del passo (il corpo nascosto che usciva dalla verifica delle sporgenze). Tutti e due si contano dopo averli fatti: una selezione non riuscita e' un errore di banco, non un verde (voce Z-C21.2) |
 | segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Banco\lavoro\`, ignorata da git). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
 | `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella` |
 
@@ -510,7 +511,7 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/ 24   il guscio, e da che parte toglie;
+casi/lavorazioni/ 27   il guscio, e da che parte toglie;
                        la piastra simmetrica che cresce dalle due parti
                        con cambia_estrusione (revisione del 27/9, Z-C20);
                        la quota che fa uscire l'asola dal materiale, rifiutata
@@ -526,29 +527,39 @@ casi/lavorazioni/ 24   il guscio, e da che parte toglie;
                        rimesso (il meccanismo di r05), e la gemella che ci sta;
                        l'ordine cambia il pezzo: il guscio prima o dopo il foro,
                        e lo spostamento impossibile rifiutato (Z-F3); il cieco
-                       che diventa passante e la piastra che cresce (Z-F4)
+                       che diventa passante e la piastra che cresce (Z-F4);
+                       lo spigolo sul bordo di un RACCORDO rifiutato come
+                       quello dello smusso, il rialzo su una faccia che cresce
+                       e non e' un taglio, il foro guidato fuori dal pezzo
+                       rifiutato (Z-C21.2)
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       18   ogni faccia, non una sola; lo schizzo quotato che si
                        corregge con modifica_quota, e l'ancora dritta e obliqua
                        (voce E18)
-casi/smusso/       3   dove un raccordo toglierebbe un altro volume
+casi/smusso/       4   dove un raccordo toglierebbe un altro volume; l'angolo
+                       dello smusso si cambia in gradi (Z-C21.2)
 casi/rivoluzione/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
 casi/piano/        6   DOVE finisce il piano, non la distanza chiesta; la foto
                        da ricalcare messa in scala su un piano (Z-F5, legge
                        {DATI}: Banco/dati/, versionata)
 casi/specchia/     2   il foro deve comparire dall'altra parte
-casi/ripeti/       8   la direzione, che e' il dubbio vero; l'asse riconosciuto
-                       per identita', e rifiutato se si e' spostato (voce E4)
+casi/ripeti/       9   la direzione, che e' il dubbio vero; l'asse riconosciuto
+                       per identita', e rifiutato se si e' spostato (voce E4);
+                       la copia tolta da una griglia rifiutata (Z-C21.2)
 casi/asse/         2   l'asse dalla parete di un foro
 casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
-casi/verifica/     5   com'e' venuto: solido, chiuso, sano
+casi/verifica/     6   com'e' venuto: solido, chiuso, sano; il corpo nascosto
+                       che pende si vede (Z-C21.2)
 casi/misura/      10   quanto pesa, in che scatola ci sta, quanto dista
-casi/corpi/       14   le booleane, il raccordo variabile, il filetto cosmetico;
-                       l'unione di corpi che non si toccano rifiutata (Z-C18)
-casi/esporta/     11   STL, STEP e IGES: il file riletto byte per byte,
+casi/corpi/       15   le booleane, il raccordo variabile, il filetto cosmetico;
+                       l'unione di corpi che non si toccano rifiutata (Z-C18);
+                       la booleana col corpo letto prima di un taglio
+                       rifiutata (Z-C21.2)
+casi/esporta/     12   STL, STEP e IGES: il file riletto byte per byte,
                        e il volume riaperto in SOLIDWORKS; l'IGES di un
-                       assieme rifiutato (Z-C20)
+                       assieme rifiutato (Z-C20); lo STL con una faccia
+                       rimasta selezionata e' il pezzo intero (Z-C21.2)
 casi/proprieta/   11   i due cassetti, e il codice che va in distinta
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
@@ -564,7 +575,7 @@ casi/assiemi/     10   inserire non e' accoppiare; un vincolo solo non basta;
                        la staffa destra e la sinistra: istanza, opposto legato
                        e slegato, su tre piani (GA11); da quali file dipende
                        l'assieme, e che ci sono (Z-B3)
-casi/tavola/      36   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      37   il primo caso che arriva in TAVOLA (voce GT0);
                        un Ø8 passante e un Ø8 cieco, due richiami; la borchia
                        non e' un foro; l'albero smussato senza le gambe dello
                        smusso (revisione del 27/9, Z-C20);
@@ -607,14 +618,16 @@ casi/tavola/      36   il primo caso che arriva in TAVOLA (voce GT0);
                        tornita, dove il contorno Ø30 non e' un foro e la
                        profondita' del cieco si legge anche dalla geometria (GT12);
                        l'albero a gradini quotato di fianco: lunghezze in
-                       parallelo e diametri dalle generatrici (GT14)
-casi/saldature/    4   la distinta conta le barre, e i due numeri vengono da
+                       parallelo e diametri dalle generatrici (GT14); la
+                       distinta di taglio dice se ha confrontato (Z-C21.2)
+casi/saldature/    5   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
                        va fra facce che si toccano ad angolo; il tappo chiude
                        il tubo dentro (voce Z-C6). I corpi per NOME, con
                        @corpo(nome=...): i numeri C1, C2 cambiano fra un giro
-                       e l'altro
+                       e l'altro; il taglio senza gioco non eredita quello
+                       rimasto (Z-C21.2)
 casi/estrusioni/   8   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        l'ingombro, estremita' comprese, ed e' un poligono; la
                        ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta
@@ -656,6 +669,10 @@ PRIMA di scrivere il codice. Il giro e' parziale come con `-Gruppo`, e riscrive
 
 `"uid_dal_passo": N` in un passo prende selettori e firme dallo stato di PRIMA
 del passo N, come fa il ponte con un piano scritto guardando lo stato una volta.
+Le firme sono quelle di facce, spigoli e — dalla voce Z-C21.2 — corpi
+(`centro_mm`, `ingombro_mm`, come le manda il ponte): prima un corpo nominato
+cosi' arrivava senza firma, e il corpo rinumerato da un taglio (voce E4) dal banco
+non si poteva vedere.
 
 **Gli altri** — piani per il ponte MCP e materiale di lavoro, non li esegue
 `--gruppo casi`:
