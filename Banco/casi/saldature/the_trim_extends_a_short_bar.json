@@ -1,0 +1,37 @@
+{
+  "nome": "the_trim_extends_a_short_bar",
+  "famiglia": "saldature",
+  "perche": "ENTRY Z-C21.3 (the probe verdicts), finding L9-4 (= C5-4). The catalogue says taglia_membri trims the bars where they meet OR EXTENDS them until they touch. Up to library 0.141.0 it passed Options = 8 (the weld gap bit only) to InsertWeldmentTrimFeature2, and the only bench case was a cut. The Z-C21.3 probe of 28/9/2026 (typed Body2[] arrays, TUBO STRUTTURALE QUADRO 80X80X5, end condition Trim) measured: with a bar stopping 20 mm short of the other, Options 8 and 10 return a feature that is NOT in the tree and change nothing, 9 and 11 extend the bar to the face; with a bar entering the other, 8 and 11 cut the same -58798.23 mm3 while 15 (with the coped cut bit 4) cuts -57636.82. The guide gives the bits (swWeldmentTrimExtendOptionType_e: AllowTrimmedExtensionTrim 1, AllowTrimmingExtensionTrim 2, CopedCut 4, WeldGap 8). The library now passes 1 | 2 | 8 = 11.",
+  "il_difetto_che_questo_caso_prende": "Step 3 asks to trim a bar that does not reach the other one: it must be EXTENDED to the other's face. On library 0.141.0 SOLIDWORKS answers with a phantom feature, not in the tree, and the step is refused: red. The plain cut with the new Options is il_taglio_accorcia_la_barra, unchanged (the probe: 8 and 11 give the same cut).",
+  "i_numeri": "Measured by the probe on this very scene (TG): bar A (0,0,0)-(600,0,0), top face at Z 40; bar B (300,0,60)-(300,0,360), lower end at Z 60, 20 mm short of A. Before: 600 + 300 = 900 mm of tube, 1322960.17 mm3 (the same 900 x 1469.956 mm2 as the T of il_cordone_va_fra_facce_che_si_toccano). With Options 11: B from Z 60 to Z 40, +29399.11 mm3 (20 mm x 1469.956 = 29399.12 by hand), volume 1352359.28, two bodies.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "membro_strutturale",
+      "argomenti": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configurazione": "80X80X5",
+                     "segmenti": [ { "da": [0, 0, 0], "a": [600, 0, 0] } ] },
+      "attese": [ { "cosa": "corpi", "uguale": 1 } ] },
+
+    { "operazione": "membro_strutturale",
+      "argomenti": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configurazione": "80X80X5",
+                     "segmenti": [ { "da": [300, 0, 60], "a": [300, 0, 360] } ] },
+      "attese": [
+        { "cosa": "corpi", "uguale": 2 },
+        { "cosa": "volume_mm3", "uguale": 1322960.17, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "900 mm of tube at 1469.956 mm2, as the probe read it before the trim; half a mm3 covers the rounding of the section with its corner radii",
+          "perche": "the two bars do not touch yet: B stops 20 mm below A's top face" } ] },
+
+    { "operazione": "taglia_membri",
+      "argomenti": { "corpi_da_tagliare_uid": ["@corpo(nome=TUBO STRUTTURALE QUADRO 80X80X5(2))"],
+                     "corpi_di_taglio_uid": ["@corpo(nome=TUBO STRUTTURALE QUADRO 80X80X5(1))"] },
+      "attese": [
+        { "cosa": "misure.corpi_tagliati", "uguale": 1 },
+        { "cosa": "misure.variazione_volume_mm3", "uguale": 29399.11, "tolleranza": 0.05,
+          "perche_questa_tolleranza": "20 mm x 1469.956 mm2, measured by the probe with Options 11 at the hundredth, as the cut of il_taglio_accorcia_la_barra; positive = added",
+          "perche": "the bar is EXTENDED to the face, not left short and not cut" },
+        { "cosa": "volume_mm3", "uguale": 1352359.28, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "1322960.17 + 29399.11, read from the part and not from the answer: the second reading of the same fact" },
+        { "cosa": "corpi", "uguale": 2 } ] }
+  ]
+}

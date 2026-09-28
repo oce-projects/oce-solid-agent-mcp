@@ -29,10 +29,56 @@ namespace Riscontro.Disegno
     ///
     /// La scala si VERIFICA: il primo e l'ultimo pixel della prima riga, portati
     /// nello schizzo, devono distare (colonne - 1) x mm-per-pixel entro l'1%.
+    ///
+    /// OVER 2048 PX SOLIDWORKS KEEPS FEWER PIXELS THAN THE FILE (finding M11).
+    /// Measured on 28/9/2026 (probe_sketch_picture_4096 and
+    /// probe_sketch_picture2): PNGs of 1000 x 500 and 2048 x 1024
+    /// keep their size, 3000 x 1500 and 4096 x 2048 come back from
+    /// GetPixelmapSize as 2048 x 1024, with InsertSketchPicture and with
+    /// InsertSketchPicture2 whether HighestResolution is true or false (in a
+    /// part it is ignored). ISketchManager~InsertSketchPicture2.html:
+    /// "HighestResolution - True to insert images up to 8192 pixels without
+    /// compression, false to compress images to 2048 pixels before insertion";
+    /// Remarks: "If the document type is not a drawing, then HighestResolution
+    /// defaults to false." Up to library 0.141.0 mm_per_pixel was width / the
+    /// pixels of SOLIDWORKS: on the 4096 px file 0.2 instead of 0.1, and the
+    /// scale check passed, because it used the same wrong pixel count (the last
+    /// column of the file landed at 829 mm instead of 419.5). The pixels a caller
+    /// counts are the FILE's, read from its header: mm_per_pixel is per file
+    /// pixel, the scale check stays on the pixel map SOLIDWORKS holds, and the
+    /// result says when the two differ.
     /// </summary>
     public partial class OperazioniSw
     {
         private static readonly string[] Immagini = { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff" };
+
+        /// <summary>
+        /// The longest side SOLIDWORKS keeps in a part: a file over it comes back
+        /// from GetPixelmapSize with this long side (measured, see above).
+        /// </summary>
+        private const int PictureSideKeptInPart = 2048;
+
+        /// <summary>
+        /// The pixel size of the image FILE, from its header: GDI+ with
+        /// validateImageData = false reads the size without decoding the
+        /// pixels. False when the file cannot be read as an image.
+        /// </summary>
+        private static bool FilePixelSize(string path, out int width, out int height)
+        {
+            width = 0;
+            height = 0;
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (System.Drawing.Image image = System.Drawing.Image.FromStream(stream, false, false))
+                {
+                    width = image.Width;
+                    height = image.Height;
+                }
+            }
+            catch { return false; }
+            return width > 0 && height > 0;
+        }
 
         private Esito ImmagineNelloSchizzo(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
@@ -58,6 +104,8 @@ namespace Riscontro.Disegno
                 return Fallito("«larghezza_mm» e' la larghezza VERA dell'immagine in millimetri (una misura nota " +
                                "divisa per i suoi pixel, per tutta la larghezza): deve essere positiva.");
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0);
+            int fileWidth, fileHeight;
+            bool fileSizeKnown = FilePixelSize(percorso, out fileWidth, out fileHeight);
 
             if (!SelezionaPiano(modello, piano))
                 return Fallito("Non riesco a selezionare il piano " + piano + ".");
@@ -110,12 +158,43 @@ namespace Riscontro.Disegno
             if (w <= 0 || h <= 0)
                 return Fallito("L'immagine e' nello schizzo ma non ne leggo i pixel: non so darle la scala. Toglila (" +
                                (nomeFeature ?? "l'immagine nello schizzo") + ") e riprova con un PNG.");
-            double mmPerPixel = larghezza / w;
+
+            // THE PIXELS THE CALLER COUNTS ARE THE FILE'S (finding M11, see the
+            // class comment). SOLIDWORKS may hold fewer, never more, and with the
+            // same shape: anything else means the two are not the same picture
+            // (a JPEG turned by its EXIF orientation, say), and no scale is given.
+            string pictureName = nomeFeature ?? "the picture in the sketch";
+            int pixelWidth = w, pixelHeight = h;
+            bool compressed = false;
+            if (fileSizeKnown)
+            {
+                if (fileWidth != w || fileHeight != h)
+                {
+                    bool fewer = w <= fileWidth && h <= fileHeight;
+                    bool sameShape = Math.Abs((long)w * fileHeight - (long)h * fileWidth) <= Math.Max(fileWidth, fileHeight);
+                    if (!fewer || !sameShape)
+                        return Fallito("SOLIDWORKS holds the picture as " + w + " x " + h + " pixels and the file is " +
+                                       fileWidth + " x " + fileHeight + ": not the same picture shape, so I cannot give " +
+                                       "its scale. Remove it (" + pictureName + ") and save the image again as a PNG.");
+                    compressed = true;
+                }
+                pixelWidth = fileWidth;
+                pixelHeight = fileHeight;
+            }
+            else if (Math.Max(w, h) >= PictureSideKeptInPart)
+                return Fallito("I cannot read the pixel size of the file «" + percorso + "», and SOLIDWORKS holds the picture " +
+                               "at " + w + " x " + h + " pixels: at " + PictureSideKeptInPart + " px it may have compressed " +
+                               "it, and a scale per pixel would be wrong by the factor I cannot see. Remove it (" +
+                               pictureName + ") and save the image again as a PNG.");
+
+            double mmPerPixel = larghezza / pixelWidth;
             double larghezzaLetta = lw * 1000, altezzaLetta = lh * 1000;
             if (Math.Abs(larghezzaLetta - larghezza) > larghezza * 0.01)
                 return Fallito("Ho chiesto l'immagine larga " + larghezza.ToString("0.###") + " mm e rileggendola e' larga " +
                                larghezzaLetta.ToString("0.###") + ": la scala non ha preso.");
-            double attesa = (w - 1) * mmPerPixel;
+            // The scale check is on the pixel map SOLIDWORKS holds: those are the
+            // pixels GetPointOnSketchFromPixel takes.
+            double attesa = (w - 1) * (larghezza / w);
             if (!misura || Math.Abs(distanza - attesa) > attesa * 0.01)
                 return Fallito("L'immagine e' larga " + larghezzaLetta.ToString("0.###") + " mm, ma il primo e l'ultimo pixel " +
                                "della prima riga, nello schizzo, distano " + (misura ? distanza.ToString("0.###") : "?") +
@@ -124,19 +203,27 @@ namespace Riscontro.Disegno
             {
                 ["immagine"] = nomeFeature,
                 ["piano"] = piano,
-                ["pixel"] = new[] { w, h },
+                ["pixel"] = new[] { pixelWidth, pixelHeight },
+                ["solidworks_pixels"] = new[] { w, h },
                 ["larghezza_mm"] = Math.Round(larghezzaLetta, 4),
                 ["altezza_mm"] = Math.Round(altezzaLetta, 4),
                 ["mm_per_pixel"] = Math.Round(mmPerPixel, 6),
                 ["origine_mm"] = new[] { Math.Round(ox * 1000, 4), Math.Round(oy * 1000, 4) },
                 ["verifica_scala_mm"] = Math.Round(distanza, 4),
                 ["come_leggerla"] =
-                    "Nel piano dello schizzo l'angolo in basso a sinistra dell'immagine sta in «origine_mm». Il " +
-                    "pixel in colonna c e riga r (contate da 0, la riga dall'alto) sta in x = origine_x + c * " +
-                    "mm_per_pixel, y = origine_y + (" + h + " - r) * mm_per_pixel. Da qui si ricalca con le " +
-                    "operazioni di schizzo sullo stesso piano.",
+                    "In the plane of the sketch the lower left corner of the picture is at «origine_mm». The pixel " +
+                    "of the FILE in column c and row r (counted from 0, rows from the top) is at x = origine_mm[0] + " +
+                    "c * mm_per_pixel, y = origine_mm[1] + (" + pixelHeight + " - r) * mm_per_pixel. Trace it from there " +
+                    "with the sketch operations on the same plane.",
             };
-            _log("[agente] immagine " + w + "x" + h + " px in scala " + mmPerPixel.ToString("0.####") + " mm/px sul piano " + piano);
+            if (compressed)
+                misure["compression"] =
+                    "SOLIDWORKS keeps this picture at " + w + " x " + h + " pixels: it compresses a picture over " +
+                    PictureSideKeptInPart + " px when it inserts it in a part (ISketchManager~InsertSketchPicture2.html). " +
+                    "The file is " + fileWidth + " x " + fileHeight + ": «pixel» and «mm_per_pixel» are the FILE's, " +
+                    "which is what you count in the image; the picture in the sketch has less detail than the file.";
+            _log("[agente] picture " + pixelWidth + "x" + pixelHeight + " px (SOLIDWORKS " + w + "x" + h + ") at " +
+                 mmPerPixel.ToString("0.####") + " mm/px on the plane " + piano);
             return RiuscitoSenzaCreare(misure);
         }
     }

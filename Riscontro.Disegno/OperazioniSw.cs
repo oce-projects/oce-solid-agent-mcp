@@ -1025,19 +1025,25 @@ namespace Riscontro.Disegno
             var feature = Estrudi(modello, spessore, unisci: true, simmetrico: simmetrico);
             if (feature == null) return Fallito("L'estrusione non e' stata creata." + SenzaLoSchizzo(modello));
 
-            // Lo schizzo si blocca DOPO l'estrusione: prima, una relazione
-            // fissa su segmenti appena creati puo' interferire con la
-            // selezione che serve alla feature.
+            // The sketch is locked AFTER the extrusion: a FIXED relation added
+            // while the sketch was still being drawn raised RPC_E_SERVERFAULT
+            // in the probe of 28/9/2026 (finding M5, case R4, which passed an
+            // object[]: the typed array was measured only after the feature).
             string notaBlocco;
-            bool bloccato = BloccaSchizzo(modello, out notaBlocco);
+            int fixedRelations;
+            bool bloccato = BloccaSchizzo(modello, out notaBlocco, out fixedRelations);
 
             var misure = new Dictionary<string, object>
             {
                 ["schizzo_bloccato"] = bloccato,
+                ["fixed_relations"] = fixedRelations,
                 ["contorni"] = contorni.Count,
                 ["segmenti"] = segmenti,
                 ["spessore_mm"] = spessore,
             };
+            // Up to library 0.141.0 the note was computed and dropped: whoever
+            // reads a sketch that is not locked must be able to read why.
+            if (notaBlocco != null) misure["sketch_lock_note"] = notaBlocco;
             // I contorni staccati dal primo non si rifiutano, si DICONO: un
             // contorno fuori dal bordo esterno e' una regione a se', ed e'
             // legittimo (quattro alette su una faccia). Ma diventa un corpo in
@@ -1106,41 +1112,142 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// BLOCCA LO SCHIZZO DOV'E'.
+        /// LOCKS THE SKETCH WHERE IT IS.
         ///
-        /// Uno schizzo generato senza relazioni resta SOTTODEFINITO: un
-        /// trascinamento distratto sposta un vertice e il pezzo cambia senza
-        /// che nessuno lo sappia. Il committente l'ha notato guardando lo
-        /// schizzo della prima ruota.
+        /// A generated sketch without relations stays UNDER-DEFINED: a careless
+        /// drag moves a vertex and the part changes without anyone knowing. The
+        /// customer noticed it looking at the sketch of the first gear.
         ///
-        /// Si usa una relazione FISSA (swConstraintType_FIXED = 17), NON
-        /// FullyDefineSketch: quella non misura, aggiunge relazioni e SPOSTA la
-        /// geometria per soddisfarle — due lati quasi paralleli diventano
-        /// paralleli, e lo schizzo risulta verde e diverso di qualche decimo da
-        /// quello che e' stato confermato.
+        /// A FIXED relation (swConstraintType_FIXED = 17), NOT FullyDefineSketch:
+        /// that one does not measure, it adds relations and MOVES the geometry to
+        /// satisfy them (two nearly parallel sides become parallel, and the sketch
+        /// turns fully defined and a few tenths away from the confirmed one).
         ///
-        /// Se non riesce non si fallisce: il pezzo e' giusto lo stesso, e' solo
-        /// modificabile per sbaglio. Si scrive nell'esito e si va avanti.
+        /// THE SKETCH MUST BE OPEN AND THE ARRAY TYPED (finding M5,
+        /// probe_fixed_relation of 28/9/2026: an L profile of six lines extruded
+        /// 10 mm, 11000 mm3, the sketch found by SchizzoAppenaCreato after the
+        /// extrusion):
+        ///   * sketch closed, object[] (this method up to library 0.141.0):
+        ///     AddRelation returns null, 0 FIXED relations before and after the
+        ///     rebuild, and the sketch was declared locked all the same;
+        ///   * EditSketch, object[]: RPC_E_SERVERFAULT, 0 relations;
+        ///   * EditSketch, SketchSegment[] (DispatchWrapper[] the same): an
+        ///     ISketchRelation back, 6 FIXED relations read back after
+        ///     InsertSketch(true) and EditRebuild3, status 2 (under constrained)
+        ///     -> 3 (fully constrained), volume 11000 -> 11000, no sketch left
+        ///     active.
+        /// ISketchRelationManager~AddRelation.html (Remarks): "A sketch must be
+        /// active for this method to have any effect." IModelDoc2~EditSketch.html:
+        /// "If the selection is a feature, its underlying sketch is placed in edit
+        /// mode." SketchSegment[] and not object[] is the rule of the structural
+        /// member group too (OperazioniSaldatura.cs, measured 9/9/2026).
+        ///
+        /// THE ANSWER IS WHAT IS READ BACK, not what the call returned: the FIXED
+        /// relations are counted before the call and again after leaving the
+        /// sketch and rebuilding, on the sketch taken again from its feature. The
+        /// sketch is locked only when every segment got its relation;
+        /// <paramref name="fixedRelations"/> is the count that was added.
+        ///
+        /// A failure does not fail the operation: the part is right all the same,
+        /// it is only editable by mistake. It goes in the result (the note says
+        /// why) and the plan goes on.
         /// </summary>
-        private bool BloccaSchizzo(IModelDoc2 modello, out string nota)
+        private bool BloccaSchizzo(IModelDoc2 modello, out string nota, out int fixedRelations)
         {
             nota = null;
+            fixedRelations = 0;
+            IFeature sketchFeature = SchizzoAppenaCreato(modello);
+            var schizzo = sketchFeature?.GetSpecificFeature2() as ISketch;
+            if (schizzo == null) { nota = "sketch not found after the feature"; return false; }
+            int before = FixedRelationCount(schizzo);
+            if (before < 0) { nota = "the relations of the sketch cannot be read"; return false; }
+
+            int segmentCount = 0;
+            bool inEdit = false;
             try
             {
-                var schizzo = SchizzoAppenaCreato(modello)?.GetSpecificFeature2() as ISketch;
-                if (schizzo == null) { nota = "schizzo non ritrovato"; return false; }
-                var segmenti = schizzo.GetSketchSegments() as object[];
-                if (segmenti == null || segmenti.Length == 0) { nota = "nessun segmento"; return false; }
-                var relazioni = schizzo.RelationManager;
-                if (relazioni == null) { nota = "gestore relazioni assente"; return false; }
-                relazioni.AddRelation(segmenti, (int)swConstraintType_e.swConstraintType_FIXED);
-                return true;
+                modello.ClearSelection2(true);
+                if (!sketchFeature.Select2(false, 0)) nota = "the sketch could not be selected";
+                else
+                {
+                    modello.EditSketch();
+                    inEdit = true;
+                    if (modello.SketchManager.ActiveSketch == null) nota = "EditSketch did not open the sketch";
+                    else
+                    {
+                        // Taken again from the feature once in edit mode, as the probe did.
+                        schizzo = sketchFeature.GetSpecificFeature2() as ISketch;
+                        var segmenti = schizzo?.GetSketchSegments() as object[];
+                        if (segmenti == null || segmenti.Length == 0) nota = "the sketch has no segments";
+                        else
+                        {
+                            segmentCount = segmenti.Length;
+                            var typedSegments = new SketchSegment[segmenti.Length];
+                            for (int i = 0; i < segmenti.Length; i++) typedSegments[i] = (SketchSegment)segmenti[i];
+                            var relations = schizzo.RelationManager;
+                            if (relations == null) nota = "the sketch has no relation manager";
+                            else relations.AddRelation(typedSegments, (int)swConstraintType_e.swConstraintType_FIXED);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
-                nota = ex.Message;
+                nota = "AddRelation FIXED failed: " + ex.Message;
+            }
+            finally
+            {
+                // Leave the sketch only if one is open: InsertSketch(true) with
+                // no active sketch and a feature selected would OPEN one.
+                bool stillOpen = false;
+                try { stillOpen = modello.SketchManager.ActiveSketch != null; } catch { }
+                if (stillOpen) { try { modello.SketchManager.InsertSketch(true); } catch { } }
+                if (inEdit || stillOpen) { try { modello.EditRebuild3(); } catch { } }
+                try { modello.ClearSelection2(true); } catch { }
+            }
+
+            int after = FixedRelationCount(sketchFeature.GetSpecificFeature2() as ISketch);
+            if (after < 0)
+            {
+                nota = (nota == null ? "" : nota + "; ") + "the relations cannot be read back after the rebuild";
                 return false;
             }
+            fixedRelations = after - before;
+            if (nota != null) return false;
+            if (segmentCount == 0 || fixedRelations < segmentCount)
+            {
+                nota = fixedRelations + " FIXED relation(s) read back after the rebuild for " + segmentCount +
+                       " segment(s): the sketch is not locked";
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// The FIXED relations (swConstraintType_FIXED = 17) of a sketch, read
+        /// with GetRelations(swAll); -1 when they cannot be read.
+        /// ISketchRelationManager~GetRelations.html (Remarks): "Because some of
+        /// the objects may be NULL, you should check for this before accessing
+        /// them."
+        /// </summary>
+        private static int FixedRelationCount(ISketch sketch)
+        {
+            if (sketch == null) return -1;
+            try
+            {
+                var manager = sketch.RelationManager;
+                if (manager == null) return -1;
+                var relations = manager.GetRelations((int)swSketchRelationFilterType_e.swAll) as object[];
+                if (relations == null) return 0;
+                int count = 0;
+                foreach (var item in relations)
+                {
+                    var relation = item as ISketchRelation;
+                    if (relation != null && relation.GetRelationType() == (int)swConstraintType_e.swConstraintType_FIXED) count++;
+                }
+                return count;
+            }
+            catch { return -1; }
         }
 
         /// <summary>Un contorno letto dal piano: cerchio, composito o spezzata.</summary>
@@ -4699,14 +4806,18 @@ namespace Riscontro.Disegno
                     Frasi.CosiSiRitira + ".");
 
             string notaBlocco;
-            bool bloccato = BloccaSchizzo(modello, out notaBlocco);
-            return Riuscito(feature, new Dictionary<string, object>
+            int fixedRelations;
+            bool bloccato = BloccaSchizzo(modello, out notaBlocco, out fixedRelations);
+            var revolveMeasures = new Dictionary<string, object>
             {
                 ["schizzo_bloccato"] = bloccato,
+                ["fixed_relations"] = fixedRelations,
                 ["contorni"] = contorni.Count,
                 ["segmenti"] = segmenti,
                 ["angolo_gradi"] = angolo,
-            }, Riferimenti.NormaleDelPiano(piano));
+            };
+            if (notaBlocco != null) revolveMeasures["sketch_lock_note"] = notaBlocco;
+            return Riuscito(feature, revolveMeasures, Riferimenti.NormaleDelPiano(piano));
         }
 
         /// <summary>

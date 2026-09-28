@@ -85,6 +85,10 @@
     <Compile Include="SelectionMarksContract.cs" />
     <Compile Include="FormaSpellingContract.cs" />
     <Compile Include="Zc2110HelpersContract.cs" />
+    <Compile Include="StateChamferContract.cs" />
+    <Compile Include="Zc212DrawingContract.cs" />
+    <Compile Include="AssembliesZc212terContract.cs" />
+    <Compile Include="WeldmentConfigurationZc212terContract.cs" />
     <Compile Include="LanguageGateTests.cs" />
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.
          Non una copia: una copia diverge, e il giorno che diverge la suite

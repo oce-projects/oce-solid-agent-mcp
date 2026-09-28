@@ -270,20 +270,87 @@ namespace Riscontro.Disegno
         /// ne aspettava 3, e rifiutava uno STEP giusto su ogni assieme con viti o
         /// piedini ripetuti. Un pezzo e' il suo file PIU' la configurazione: due
         /// misure della stessa vite sono due forme.
+        ///
+        /// AN INSTANCE CUT IN THE ASSEMBLY IS A SHAPE OF ITS OWN (finding C4-2,
+        /// measured on 28/9/2026 by the Z-C21.3 probe of the user bodies in a STEP:
+        /// part P 40 x 40 x 10 inserted twice, an assembly cut through the first
+        /// instance only). IComponent2~GetBodies3.html, Remarks: «Returns an array
+        /// in BodiesInfo containing information about bodies that indicates whether
+        /// they are normal or user bodies. User bodies are original component bodies
+        /// that have been modified in an assembly». Measured: a 10 x 10 hole gave
+        /// the cut instance one swUserBody_e body (15000 mm3) and the other one
+        /// swNormalBody_e (16000 mm3), and the STEP held 2 solids where this count
+        /// said 1; a slot splitting the instance gave 2 user bodies (7200 + 7200)
+        /// and 3 solids in the STEP against 2 here. So a STEP that had lost the cut
+        /// instance would have passed. Now every instance with a user body adds
+        /// ALL its bodies, and only the instances with normal bodies are counted
+        /// once per file and configuration: 2 and 3, as in the file (and 1 and 2
+        /// for the uncut assembly and two configurations of the same file, as before).
         /// </summary>
         private static int SolidiAttesiNellAssieme(IAssemblyDoc assieme)
         {
-            int n = 0;
-            var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var keys = new List<string>();
+            var bodies = new List<int>();
+            var userBodies = new List<int>();
             foreach (var c in PezziDellAssieme(assieme, new List<string>(), new List<string>()))
             {
                 string chiave;
                 try { chiave = (c.GetPathName() ?? "") + "|" + (c.ReferencedConfiguration ?? ""); }
                 catch { return -1; }
-                if (!visti.Add(chiave)) continue;
                 object info;
-                try { n += ((c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[]) ?? new object[0]).Length; }
+                object[] found;
+                try { found = c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[]; }
                 catch { return -1; }
+                keys.Add(chiave);
+                bodies.Add(found == null ? 0 : found.Length);
+                userBodies.Add(UserBodiesIn(info));
+            }
+            return ExpectedStepSolids(keys.ToArray(), bodies.ToArray(), userBodies.ToArray());
+        }
+
+        /// <summary>
+        /// C4-2: how many entries of GetBodies3's BodiesInfo are swUserBody_e (0;
+        /// swNormalBody_e is 1, swconst page swBodyInfo_e.html). The probe read an
+        /// Int32[]; an object[] of numbers is read the same way. Nothing readable
+        /// is 0: the instance is then counted as before, once per file.
+        /// </summary>
+        private static int UserBodiesIn(object info)
+        {
+            int users = 0;
+            var numbers = info as int[];
+            if (numbers != null)
+            {
+                foreach (int k in numbers) if (k == (int)swBodyInfo_e.swUserBody_e) users++;
+                return users;
+            }
+            var boxed = info as object[];
+            if (boxed == null) return 0;
+            foreach (object o in boxed)
+            {
+                try { if (Convert.ToInt32(o) == (int)swBodyInfo_e.swUserBody_e) users++; } catch { }
+            }
+            return users;
+        }
+
+        /// <summary>
+        /// C4-2, the rule without SOLIDWORKS (the contract group in Prove calls it
+        /// with the probe's numbers): per non-suppressed part instance its file and
+        /// configuration key, its solid bodies and how many of them are user
+        /// bodies. An instance with a user body was changed in the assembly and is
+        /// a shape of its own in the STEP: all its bodies count. The others count
+        /// once per key. -1 if the arrays do not line up or a count is negative.
+        /// </summary>
+        internal static int ExpectedStepSolids(string[] keys, int[] bodies, int[] userBodies)
+        {
+            if (keys == null || bodies == null || userBodies == null ||
+                bodies.Length != keys.Length || userBodies.Length != keys.Length) return -1;
+            int n = 0;
+            var counted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (bodies[i] < 0 || userBodies[i] < 0) return -1;
+                if (userBodies[i] > 0) { n += bodies[i]; continue; }
+                if (counted.Add(keys[i] ?? "")) n += bodies[i];
             }
             return n;
         }

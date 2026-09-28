@@ -24,13 +24,35 @@ namespace Riscontro.Disegno
     ///  * Riaperto con un file mancante: `OpenDoc6` errori 2, il componente
     ///    risulta SOPPRESSO (`GetSuppression2` 0) e `GetModelDoc2` null.
     ///    `GetDocumentDependencies2` sul file chiuso da' lo stesso elenco.
+    ///
+    /// WHERE THE FILE WAS SAVED, NOT WHERE A SEARCH FINDS ONE (finding L12-8,
+    /// measured on 28/9/2026 by the Z-C21.3 probe of the same-name file:
+    /// the file of a component renamed away, and a DIFFERENT part with the same
+    /// file name in another folder). IModelDocExtension~GetDependencies.html:
+    /// «Searchflag — True to use the search rules to find dependencies, false to
+    /// look where the documents were last saved», and in the Remarks: «Setting
+    /// Searchflag to true causes this method to apply the current search
+    /// criteria rules to locate the particular reference and may result in a
+    /// different return value». Measured, with the component not loaded
+    /// (suppressed, OpenDoc6 swFileNotFoundError): with the current SOLIDWORKS
+    /// directory on the other folder, Searchflag=true (the call used up to
+    /// library 0.141.0) answered the same-name file of the other folder, which
+    /// exists, so the list of missing files came out EMPTY on a broken
+    /// assembly; Searchflag=false answered the saved path, which does not
+    /// exist. And once a true call had
+    /// found that file, a later false call answered it too: the search changes
+    /// the reference kept in memory. So the search is never run here:
+    /// Searchflag=false, the saved paths, and the disk says which are missing.
+    /// (When SOLIDWORKS itself LOADS a same-name file, found next to the
+    /// assembly, both flags answer that file: the component is resolved, and no
+    /// path tells it apart.)
     /// </summary>
     public partial class OperazioniSw
     {
         private Esito Dipendenze(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
             object grezzo = null;
-            try { grezzo = modello.Extension.GetDependencies(true, true, false, true, false); }
+            try { grezzo = modello.Extension.GetDependencies(true, false, false, true, false); }   // L12-8: Searchflag false
             catch (Exception ex) { return Fallito("Non leggo le dipendenze del documento: " + ex.Message); }
             var voci = grezzo as object[];
             var file = new List<object>();
@@ -63,9 +85,11 @@ namespace Riscontro.Disegno
                 ["quanti_file"] = file.Count,
                 ["mancanti"] = mancanti.ToArray(),
                 ["quanti_mancano"] = mancanti.Count,
-                ["come_lo_so"] = "GetDependencies elenca i file da cui il documento dipende, a tutti i livelli; se " +
-                                 "ciascuno c'e' lo dice il disco (File.Exists), perche' il parametro dell'API che " +
-                                 "promette di segnare i riferimenti rotti non li segna (misurato).",
+                ["come_lo_so"] = "GetDependencies lists the files the document depends on, at every level, at the path " +
+                                 "where each one was last saved (Searchflag false: the search rules can answer another " +
+                                 "file with the same name, found in another folder, for a component that is not loaded; " +
+                                 "measured). Whether each file is there, the disk says (File.Exists): a missing file is " +
+                                 "listed with its path like the others.",
             };
             if (voci == null)
             {

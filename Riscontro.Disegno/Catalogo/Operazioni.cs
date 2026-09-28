@@ -145,7 +145,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "non ripeterlo.\n\nSe la sagoma che ti serve ha un nome (una ruota "
                         + "dentata, un tubolare) guarda se esiste un'operazione dedicata: e' "
                         + "piu' facile da controllare per chi conferma, perche' mostra le "
-                        + "quote invece di un elenco di punti.",
+                        + "quote invece di un elenco di punti."
+                        + "\n\nThe result says whether the sketch is locked: true only when every segment "
+                        + "of the sketch got its FIXED relation, counted again after the rebuild. It "
+                        + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
+                        + "locked, «sketch_lock_note» with the reason.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -271,7 +275,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "due estremita' sono 24 lati ciascuna, coi vertici sul cerchio "
                         + "circoscritto, cosi' che l'asola non sia mai piu' stretta del "
                         + "nominale. Esce larga lo 0,2% in piu' (20,043 per 20) e con lo 0,2% "
-                        + "di area in piu'. Tondo e tubo sono cerchi veri.",
+                        + "di area in piu'. Tondo e tubo sono cerchi veri."
+                        + "\n\nThe result says whether the sketch is locked: true only when every segment "
+                        + "of the sketch got its FIXED relation, counted again after the rebuild. It "
+                        + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
+                        + "locked, «sketch_lock_note» with the reason.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -352,7 +360,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nMI RIFIUTO SE L'ASSE NON STA SUL PIANO DEL PROFILO, e se il profilo "
                         + "ATTRAVERSA l'asse. Un profilo a cavallo dell'asse genera un solido che "
                         + "si compenetra con se stesso: SOLIDWORKS a volte lo fa lo stesso, e il "
-                        + "pezzo che ne esce non e' quello che volevi.",
+                        + "pezzo che ne esce non e' quello che volevi."
+                        + "\n\nThe result says whether the sketch is locked: true only when every segment "
+                        + "of the sketch got its FIXED relation, counted again after the rebuild. It "
+                        + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
+                        + "locked, «sketch_lock_note» with the reason.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -407,7 +419,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "(con l'angolo di pressione standard di 20 gradi) rifiuto, perche' "
                         + "servirebbe la correzione di profilo contro l'intaglio del piede e "
                         + "non la so fare. E' un limite mio, non della meccanica: con un "
-                        + "angolo di pressione maggiore il minimo scende (25 gradi: 11 denti).",
+                        + "angolo di pressione maggiore il minimo scende (25 gradi: 11 denti)."
+                        + "\n\nThe result says whether the sketch is locked: true only when every segment "
+                        + "of the sketch got its FIXED relation, counted again after the rebuild. It "
+                        + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
+                        + "locked, «sketch_lock_note» with the reason.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -1135,7 +1151,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "lunghezza nello stesso punto, e lo dico nella risposta. MI RIFIUTO se "
                         + "lo spigolo che avevi visto non c'e' piu' com'era — accorciato, spezzato "
                         + "— invece di prendere il piu' vicino, e se il raggio non ci sta in meta' "
-                        + "dello spigolo.",
+                        + "dello spigolo."
+                        + "\n\nThe fillet follows tangent edges: one selected edge can round a whole "
+                        + "loop (a rounded block: 1 edge selected, 8 faces made). The document state "
+                        + "says so for every fillet: «selected_edges» is how many edges were selected, "
+                        + "«faces» how many faces the fillet made.",
                     Precondizione = "corpo_solido_e_spigolo",
                     Schema = O(
                         "type", "object",
@@ -1496,7 +1516,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "l'utente dice «smussa», non arrotondare."
                         + "\n\nMI RIFIUTO SE LO SMUSSO E' TROPPO GRANDE PER LO SPIGOLO -- non ci sta "
                         + "nemmeno meta'. Un valore oltre il limite non da' sempre errore: a volte "
-                        + "esce una geometria degenere che passa il ricalcolo.",
+                        + "esce una geometria degenere che passa il ricalcolo."
+                        + "\n\nThe chamfer follows tangent edges like the fillet. The document state "
+                        + "lists each chamfer with «selected_edges» and «faces», and its sizes by type: "
+                        + "angle-distance «lato1_mm» + «angolo_gradi», distance-distance «lato1_mm» + "
+                        + "«lato2_mm», and a vertex chamfer (made by hand) «vertex_distances_mm», its "
+                        + "three distances along the corner's edges.",
                     Precondizione = "corpo_solido_e_spigolo",
                     Schema = O(
                         "type", "object",
@@ -1833,7 +1858,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "caso.\n\nSE NON DICI IL MATERIALE uso «S235JR», che e' "
                         + "quello che questa officina lavora salvo avviso contrario, "
                         + "e te lo scrivo nella risposta: cosi' sai che l'ho scelto io "
-                        + "e non tu.",
+                        + "e non tu."
+                        + "\n\nThe material goes on EVERY configuration of the part, each one set "
+                        + "and read back by its own name (measured: the empty configuration name "
+                        + "reaches only the active configuration and the ones derived from it). The "
+                        + "answer lists them in «configurations»; I refuse the step, naming them, if "
+                        + "any configuration does not take the material.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -2149,7 +2179,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nIf the weldment profile library is still open and modified in "
                         + "SOLIDWORKS after the insertion, the answer carries "
                         + "«profile_library_warning»: close that library without saving, or a "
-                        + "Ctrl+S would rewrite the shared library.",
+                        + "Ctrl+S would rewrite the shared library."
+                        + "\n\nI refuse an empty «configurazione» when the profile file has several "
+                        + "sizes, and list them: with an empty size SOLIDWORKS builds the size the file "
+                        + "was saved on (measured: the 20 x 20 of the four in iso\\square tube.sldlfp). "
+                        + "An empty size is accepted only on a file with one size, and the answer says so "
+                        + "in «configuration_note».",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",
@@ -2160,7 +2195,8 @@ namespace Riscontro.Disegno.Catalogo
                             "configurazione", O(
                                 "type", "string",
                                 "description", "la misura, copiata ALLA LETTERA da profili_saldatura (es. "
-                                    + "«80X80X5»: maiuscole e virgole comprese)"),
+                                    + "«80X80X5»: maiuscole e virgole comprese). Empty only for a profile "
+                                    + "file with one size."),
                             "segmenti", O(
                                 "type", "array",
                                 "description", "le linee lungo cui corrono le barre, in mm nelle coordinate del modello",
@@ -2193,7 +2229,9 @@ namespace Riscontro.Disegno.Catalogo
                                     "testa2"),
                                 "description", "come si incontrano fra loro le barre di QUESTO gruppo, DOVE SI "
                                     + "TOCCANO. «quartabuono» e' il taglio a 45 gradi negli angoli "
-                                    + "(predefinito su un percorso chiuso); «testa1»/«testa2» e' una "
+                                    + "(default: quartabuono, the 45 degree miter, wherever the bars of "
+                                    + "this group touch, closed or open path; the answer says it was the "
+                                    + "default in «corner_treatment_note»); «testa1»/«testa2» e' una "
                                     + "barra che va in battuta sull'altra; «nessuno» le lascia "
                                     + "compenetrate e va detto solo se lo si vuole davvero.\n\nNON taglia "
                                     + "le estremita' LIBERE. Su una barra sola, o sui due capi di un "
@@ -2224,7 +2262,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "taglio riporta lunghezze che in officina non tornano.\n\nTi torno "
                         + "di quanto e' cambiato il volume (negativo = tolto). Se il pezzo "
                         + "non cambia, rifiuto: vuol dire che le barre non si incontrano, "
-                        + "e un taglio che non taglia niente non te lo confermo.",
+                        + "e un taglio che non taglia niente non te lo confermo."
+                        + "\n\nA bar that stops short of the other one is extended to its face "
+                        + "(measured: a bar 20 mm short grows by 20 mm, Options 1|2|8); a bar that "
+                        + "enters the other is cut at its face as before. The coped cut is not used.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -2382,7 +2423,10 @@ namespace Riscontro.Disegno.Catalogo
                             "profilo_percorso", O(
                                 "type", "string"),
                             "configurazione", O(
-                                "type", "string"),
+                                "type", "string",
+                                "description", "the profile size, copied from profili_saldatura. Empty is "
+                                    + "accepted only on a profile file with one size; with several sizes it is "
+                                    + "refused, and the sizes are listed."),
                             "lunghezza_mm", O(
                                 "type", "number",
                                 "description", "ingombro esterno"),
@@ -2403,7 +2447,8 @@ namespace Riscontro.Disegno.Catalogo
                                     "testa1",
                                     "testa2",
                                     "nessuno"),
-                                "description", "predefinito: quartabuono, cioe' 45 gradi"),
+                                "description", "default: quartabuono (45 degree miter); the answer says when "
+                                    + "it was the default («corner_treatment_note»)"),
                             "rotazione_gradi", O(
                                 "type", "number"),
                             "gioco_mm", O(
@@ -2543,23 +2588,25 @@ namespace Riscontro.Disegno.Catalogo
                     Sommario =
                         "Porta in tavola le quote che il pezzo ha gia'.",
                     Descrizione =
-                        "Prende le quote dal MODELLO e le mette sulle viste.\n\nFUORI "
-                        + "PROCESSO, SU QUESTA INSTALLAZIONE, NON PORTA NIENTE: misurato il "
-                        + "18/9/2026 su un pezzo con sette quote tutte marcate per il disegno, "
-                        + "cinque strade di import, zero quote in tavola. In processo, dentro "
-                        + "un add-in, l'11/9/2026 ne erano arrivate undici — mai rimisurato. "
-                        + "Per mettere quote in tavola da qui c'e' «quota_in_tavola», che le "
-                        + "CREA sugli spigoli che la vista mostra.\n\nSE NON ARRIVA NIENTE NON "
-                        + "VUOL DIRE che il pezzo non ha quote: fuori processo e' il risultato "
-                        + "normale. Prima di concludere che il pezzo va riquotato, guarda "
-                        + "nello stato del pezzo se le sue lavorazioni hanno quote.\n\nPerche' "
+                        "Prende le quote dal MODELLO e le mette sulle viste.\n\nThe import "
+                        + "works from this bridge, out of process: measured on 26/9/2026 (7 "
+                        + "dimensions on a plate) and again on 28/9/2026. To put on the drawing "
+                        + "a dimension the model does not have, «quota_in_tavola» CREATES it on "
+                        + "the edges the view shows.\n\nEach model dimension comes in once: I "
+                        + "ask SOLIDWORKS to eliminate duplicates (DuplicateDims true), so a "
+                        + "dimension already shown in one view is not repeated in another "
+                        + "(measured: 4 dimensions on a plate that got 7 before).\n\nPerche' "
                         + "esiste lo stesso: una quota che viene dal modello non puo' portare "
                         + "un numero diverso dalla geometria, mentre l'API di SolidWorks "
                         + "permette di scrivere in tavola un testo che la geometria non ha."
                         + "\n\nDi serie arrivano solo le quote "
                         + "MARCATE per il disegno, cioe' quelle scelte per essere mostrate: "
                         + "con «tutte_le_quote» arrivano anche le altre, e la tavola diventa "
-                        + "parecchio piu' fitta.\n\nMI RIFIUTO se la tavola non ha viste (le quote "
+                        + "parecchio piu' fitta.\n\nBy default only the dimensions MARKED for "
+                        + "drawing come in, fallbacks included. If the part has dimensions and "
+                        + "none is marked, I refuse and say so: pass tutte_le_quote=true to "
+                        + "import them all, or mark on the model the ones the drawing must show."
+                        + "\n\nMI RIFIUTO se la tavola non ha viste (le quote "
                         + "non avrebbero dove attaccarsi) e se non arriva nessuna quota: te lo dico "
                         + "con quante il pezzo ne ha marcate, invece di rispondere «fatto».",
                     Precondizione = "una tavola con almeno una vista",
@@ -2569,7 +2616,9 @@ namespace Riscontro.Disegno.Catalogo
                             "tutte_le_quote", O(
                                 "type", "boolean",
                                 "description", "anche le quote non marcate per il disegno. Rende la tavola piu' "
-                                    + "fitta: usalo quando quelle marcate non bastano."),
+                                    + "fitta: usalo quando quelle marcate non bastano. Without it, "
+                                    + "a part where no dimension is marked for drawing is refused, not "
+                                    + "imported."),
                             "callout_fori", O(
                                 "type", "boolean",
                                 "description", "anche le indicazioni dei fori guidati (M8, profondita', filetto). "
@@ -2858,7 +2907,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "combaciano la tolgo e te lo dico.\n\nPoi la misuro e la metto in un posto libero "
                         + "del foglio, fuori dalle viste e dal cartiglio.\n\nMI RIFIUTO se dietro la vista non "
                         + "c'e' un assieme (per un saldato c'e' «distinta_taglio_in_tavola») o se sul foglio non "
-                        + "c'e' posto.",
+                        + "c'e' posto."
+                        + "\n\nThe count on the assembly side follows how each sub-assembly shows its "
+                        + "children in the BOM (ChildComponentDisplayInBOM): in a top-level table a "
+                        + "sub-assembly that promotes its children is replaced by them; in a parts-only "
+                        + "table a sub-assembly that hides its children is one item. The indented table "
+                        + "counts every part.",
                     Precondizione = "una tavola con una vista di un assieme salvato",
                     Schema = O(
                         "type", "object",
@@ -3647,7 +3701,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "dipende, a tutti i livelli, e per ognuno se c'e'. Un file che manca e' un "
                         + "componente che l'assieme mostra SOPPRESSO: prima di misurare o esportare va "
                         + "ritrovato o sostituito.\n\nSe manca lo dice il disco, non l'API: il parametro "
-                        + "che promette di segnare i riferimenti rotti non li segna (misurato).",
+                        + "che promette di segnare i riferimenti rotti non li segna (misurato)."
+                        + "\n\nThe paths are where each file was last saved (GetDependencies with "
+                        + "Searchflag false): with the search rules, a component that is not loaded "
+                        + "could come back as another file with the same name found in another folder, "
+                        + "which exists, and a missing file would not be reported (measured, L12-8).",
                     Precondizione = "un documento salvato",
                     Schema = O(
                         "type", "object",
@@ -3995,7 +4053,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "robusta: controlla il risultato coi punti.\n\nQuello che non si "
                         + "applica non torna: il perimetro di una faccia che non ne ha, il "
                         + "raggio di un piano. SOLIDWORKS li darebbe come -1, che e' un "
-                        + "numero e non lo e'.",
+                        + "numero e non lo e'."
+                        + "\n\nA distance to an arc or a circle is taken as «arc_measure» says: "
+                        + "centre to centre (the default), between the nearest points or between "
+                        + "the farthest points. The result says which one was used («arc_measure», "
+                        + "read back from SOLIDWORKS) and «projection»: none. Measured on two holes "
+                        + "D10 and D20 at 50 mm centres: centre 50, minimum 35 (the wall between "
+                        + "them), maximum 65. I refuse any other value of «arc_measure».",
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -4006,7 +4070,14 @@ namespace Riscontro.Disegno.Catalogo
                                     + "documento."),
                             "uid2", O(
                                 "type", "string",
-                                "description", "la seconda, se vuoi misurare FRA due cose.")),
+                                "description", "la seconda, se vuoi misurare FRA due cose."),
+                            "arc_measure", O(
+                                "type", "string",
+                                "enum", A("centre", "minimum", "maximum"),
+                                "description", "how a distance to an arc or a circle is taken: centre = centre "
+                                    + "to centre (the default), minimum = between the nearest points, maximum = "
+                                    + "between the farthest points. The distance between the centres is always "
+                                    + "given too, centre to centre.")),
                         "required", A("uid")),
                 },
                 new OperazioneDisegno
@@ -4085,7 +4156,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nANCHE UN ASSIEME: lo scrivo intero e conto i solidi nel file contro "
                         + "quelli dei pezzi non soppressi. «riapri_e_confronta» su un assieme lo "
                         + "rifiuto: rileggere lo STEP di un assieme apre una finestra e la chiamata "
-                        + "non torna.",
+                        + "non torna. An instance changed in the assembly (a cut: user bodies in "
+                        + "GetBodies3's BodiesInfo) is a shape of its own and counts all its bodies; "
+                        + "the other instances count once per file and configuration.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -4274,7 +4347,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "l'albero del file nuovo (legato o no). Il file nuovo prende il nome "
                         + "dell'originale col «suffisso» (predefinito «_spec»), nella stessa cartella."
                         + "\n\nMI RIFIUTO se non mi dici «modo» (ti spiego i tre), se il piano non e' uno "
-                        + "dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono).",
+                        + "dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono)."
+                        + "\n\nFor an instance of the same file the orientation of the new instance is "
+                        + "SET («orientation», default mirrored_x_mirrored_y) and then CHECKED on the "
+                        + "axes of the instance (Transform2): the centre is the same in all four "
+                        + "orientations and cannot tell them apart. The answer carries «orientation» "
+                        + "and «new_axes» (x, y, z unit vectors). «orientation» with an opposite-hand "
+                        + "mode is refused, and so is a value that is not one of the four.",
                     Precondizione = "un assieme aperto con almeno un componente",
                     Schema = O(
                         "type", "object",
@@ -4282,6 +4361,14 @@ namespace Riscontro.Disegno.Catalogo
                             "componente", O(
                                 "type", "string",
                                 "description", "l'identificativo del componente, dallo stato: «C1», «C2», ..."),
+                            "orientation", O(
+                                "type", "string",
+                                "enum", A("mirrored_x_mirrored_y", "mirrored_and_flipped_x_mirrored_y",
+                                    "mirrored_x_mirrored_and_flipped_y", "mirrored_and_flipped_x_mirrored_and_flipped_y"),
+                                "description", "only for an instance of the same file: how the new instance is "
+                                    + "turned, as SOLIDWORKS names it (swMirrorComponentOrientation2_e). Default "
+                                    + "mirrored_x_mirrored_y, the SOLIDWORKS default. Refused with an opposite-hand "
+                                    + "mode."),
                             "piano", O(
                                 "type", "string",
                                 "enum", A("frontale", "superiore", "destro"),
@@ -4555,7 +4642,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "dicono i millimetri per pixel, entro l'1%. Ti rispondo la regola per passare "
                         + "da un pixel ai millimetri.\n\nMI RIFIUTO per un PDF (non entra: convertilo in "
                         + "PNG), per un file che non c'e' o non e' un'immagine, e per una larghezza non "
-                        + "positiva.",
+                        + "positiva."
+                        + "\n\nOver 2048 px SOLIDWORKS compresses the picture in a part, even with "
+                        + "HighestResolution (measured: 4096 x 2048 is held as 2048 x 1024). «pixel» and "
+                        + "«mm_per_pixel» are the FILE's, the pixels you count in the image: the scale is "
+                        + "«larghezza_mm» divided by the FILE's pixel width. «solidworks_pixels» is the map "
+                        + "SOLIDWORKS holds, and «compression» says when the two differ. I also refuse when "
+                        + "the file's pixel size cannot be read and SOLIDWORKS holds 2048 px or more on a "
+                        + "side, and when the picture SOLIDWORKS holds does not have the file's shape.",
                     Precondizione = "un pezzo aperto (anche vuoto)",
                     Schema = O(
                         "type", "object",

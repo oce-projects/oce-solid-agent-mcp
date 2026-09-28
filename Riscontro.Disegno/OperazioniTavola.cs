@@ -477,10 +477,6 @@ namespace Riscontro.Disegno
                     "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
                     "Metti prima le viste.");
 
-            const int MARCATE = (int)swInsertAnnotation_e.swInsertDimensionsMarkedForDrawing;
-            const int NON_MARCATE = (int)swInsertAnnotation_e.swInsertDimensionsNotMarkedForDrawing;
-            const int GENERICO = (int)swInsertAnnotation_e.swInsertDimensions;
-
             bool tutte = Bool(a, "tutte_le_quote", false);
             int extra = Bool(a, "callout_fori", true)
                 ? (int)swInsertAnnotation_e.swInsertholeCallout
@@ -489,9 +485,12 @@ namespace Riscontro.Disegno
             // Di serie si prendono solo le quote MARCATE per il disegno: sono
             // quelle che un progettista ha scelto di mostrare, e una tavola con
             // tutte le quote del modello e' illeggibile.
-            var maschere = tutte
-                ? new[] { MARCATE | NON_MARCATE | GENERICO, NON_MARCATE, GENERICO, MARCATE }
-                : new[] { MARCATE, MARCATE | GENERICO };
+            // The masks, and every fallback below, come from the ModelImport*
+            // members after this method (Z-C21.3, findings M2 and N9): with
+            // tutte_le_quote false no step may carry the NOT-MARKED bit or
+            // ignore the mask. Prove.Contratti (Zc212DrawingContract) reads the
+            // method from the first line of this comment to its closing brace.
+            var maschere = ModelImportMasks(tutte);
 
             int prima = ContaQuote(disegno);
             if (prima < 0)
@@ -515,7 +514,7 @@ namespace Riscontro.Disegno
                             (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
                             tipi,
                             true,    // tutte le viste
-                            false,   // DuplicateDims: mai. Una quota due volte e' una tavola sporca.
+                            ModelImportV3DuplicateDims, // TRUE eliminates duplicates (M2, see the constant)
                             false,   // HiddenFeatureDims
                             dalloSchizzo) as object[];
                         // ZERO-E-ZERO: e' solo quante ne ha restituite l'API; la misura
@@ -537,18 +536,29 @@ namespace Riscontro.Disegno
                 if (dopo > prima) break;
 
                 // La versione 2, con `AllTypes`: il parametro che la 3 non ha.
+                // AllTypes TRUE ignores the mask, so it is TRUE only when every
+                // dimension was asked for (N9, see ModelImportAllTypes).
+                // duplicateDims stays FALSE here on purpose: the page of THIS
+                // version says the opposite of the page of the 3
+                // (estratto_obsoleteapi\DrawingDoc\DrawingDoc__InsertModelAnnotations2.htm:
+                // «duplicateDims TRUE to insert duplicate dimensions, FALSE to
+                // eliminate duplicate dimensions»), and the probe of M2 measured
+                // the 3 only.
+                bool allTypes = ModelImportAllTypes(tutte);
                 try
                 {
                     if (disegno.InsertModelAnnotations2(
                             (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
-                            true, tipi, true, false, false))
+                            allTypes, tipi, true, false, false))
                     {
                         provati.Add("v2/" + maschera);
                         dopo = ContaQuote(disegno);
                         if (dopo < 0) return Fallito("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
                         if (dopo > prima)
                         {
-                            comeFatto = "InsertModelAnnotations2 con AllTypes, bit " + maschera;
+                            comeFatto = "InsertModelAnnotations2" +
+                                        (allTypes ? " with AllTypes" : " with the types mask") +
+                                        ", bit " + maschera;
                             break;
                         }
                     }
@@ -556,7 +566,10 @@ namespace Riscontro.Disegno
                 catch { }
             }
 
-            if (dopo <= prima)
+            // InsertModelDimensions has no mask at all
+            // (IDrawingDoc~InsertModelDimensions.html: «0 - All dimensions in
+            // the view»): it runs only when every dimension was asked for (N9).
+            if (dopo <= prima && ModelImportMayTakeEveryViewDimension(tutte))
             {
                 // La piu' vecchia di tutte, un parametro solo. Torna `void`:
                 // l'unico modo di sapere se ha fatto qualcosa e' ricontare.
@@ -589,10 +602,14 @@ namespace Riscontro.Disegno
                             if (doc.Extension.SelectByID2(
                                     v.Name, "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0))
                             {
+                                // The types follow tutte_le_quote (N9: the
+                                // NOT-MARKED bit here brought 7 unmarked
+                                // dimensions with nothing marked), and
+                                // DuplicateDims is the same TRUE as above (M2).
                                 disegno.InsertModelAnnotations3(
                                     (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel,
-                                    MARCATE | NON_MARCATE | GENERICO | extra,
-                                    false, false, false, false);
+                                    ModelImportViewByViewTypes(tutte, extra),
+                                    false, ModelImportV3DuplicateDims, false, false);
                                 quante++;
                             }
                         }
@@ -624,6 +641,25 @@ namespace Riscontro.Disegno
                 string _ignora;
                 var nomiQuote = NomiDelleQuoteDelModello(
                     PercorsoDelModelloInVista(disegno) ?? ModelloDaMettereInVista(out _ignora));
+                int marked = nomiQuote.Count(n => n.EndsWith("[marcata]"));
+
+                // NOTHING MARKED, AND ONLY THE MARKED ONES WERE ASKED FOR (N9).
+                // Until library 0.141.0 the fallbacks brought the unmarked
+                // dimensions anyway: the N9 probe of Z-C21.3, 28/9/2026,
+                // on a part with nothing marked the chain imported all 7 of
+                // them, view by view, and answered «done». Now every step stops
+                // at the marked masks, and the refusal says how to get the
+                // others instead of bringing them unasked.
+                if (!tutte && nomiQuote.Count > 0 && marked == 0)
+                    return Fallito(
+                        "No dimension came in (there were " + prima + ", there are " + dopo +
+                        "): the part has " + nomiQuote.Count + " dimensions and none is marked " +
+                        "for drawing (" + string.Join(", ", nomiQuote) + "). By default only the " +
+                        "MARKED dimensions are imported, and no fallback brings the others " +
+                        "unasked. Pass tutte_le_quote=true to import them all, or mark on the " +
+                        "model the ones the drawing must show. I tried: " +
+                        string.Join(", ", provati) + ".");
+
                 return Fallito(
                     "Non e' arrivata nessuna quota (erano " + prima + ", sono " + dopo +
                     "; l'ultimo tentativo ne ha restituite " + restituite + "). " +
@@ -632,7 +668,7 @@ namespace Riscontro.Disegno
                           "costruito senza quotare gli schizzi. Le quote vanno messe sul " +
                           "MODELLO, non sulla tavola."
                         : "Il pezzo ha " + nomiQuote.Count + " quote, di cui " +
-                          nomiQuote.Count(n => n.EndsWith("[marcata]")) +
+                          marked +
                           " marcate per il disegno (" +
                           string.Join(", ", nomiQuote) + "), e nessuna arriva in tavola. " +
                           "Ho provato: " + string.Join(", ", provati) + ". " +
@@ -654,6 +690,97 @@ namespace Riscontro.Disegno
                 ["solo_marcate_per_il_disegno"] = !tutte,
             };
             return SenzaFeature(misure);
+        }
+
+        // ── THE IMPORT CHAIN OF quote_dal_modello, AS VALUES (Z-C21.3: M2, N9) ──
+        //
+        // Small static members with no interop in the signature, so that
+        // Prove.Contratti (Zc212DrawingContract) reads them by reflection. The
+        // situation of N9, a part with NOTHING marked for drawing, cannot be
+        // built by a bench case: every extrusion depth is born marked, and the
+        // bridge marks the sketch dimensions it places (OperazioniSw.cs,
+        // QuotaSegmenti).
+        //
+        // The bits (swInsertAnnotation_e): swInsertDimensions = 8,
+        // swInsertDimensionsMarkedForDrawing = 32768,
+        // swInsertDimensionsNotMarkedForDrawing = 524288.
+
+        private const int ImportMarked = (int)swInsertAnnotation_e.swInsertDimensionsMarkedForDrawing;
+        private const int ImportNotMarked = (int)swInsertAnnotation_e.swInsertDimensionsNotMarkedForDrawing;
+        private const int ImportGeneric = (int)swInsertAnnotation_e.swInsertDimensions;
+
+        /// <summary>
+        /// DuplicateDims of InsertModelAnnotations3: TRUE (finding M2).
+        ///
+        /// IDrawingDoc~InsertModelAnnotations3.html: «DuplicateDims True to
+        /// eliminate duplicate dimensions, false to allow duplicate
+        /// dimensions». Up to library 0.141.0 the bridge passed false with the
+        /// comment «never duplicates», that is the opposite. Measured by
+        /// Z-C21.3 probe_duplicate_dims (28/9/2026) on the plate of the bench
+        /// case le_quote_arrivano_dal_modello (120 x 80 x 10, hole Ø10 through,
+        /// three standard views): false gave 7 dimensions with 3 of them twice
+        /// (the 120 in the front and top views, the depth 10 in the front and
+        /// side views, the 80 in the top and side views); true gave 4, none
+        /// twice (front: the 10; top: 120, 80 and Ø10; side: none). A second
+        /// call added 0 either way.
+        /// </summary>
+        internal const bool ModelImportV3DuplicateDims = true;
+
+        /// <summary>
+        /// The masks tried with InsertModelAnnotations3 (and 2), in order.
+        ///
+        /// With <paramref name="allDimensions"/> false every mask carries the
+        /// MARKED bit and none the NOT-MARKED bit (finding N9). Measured by
+        /// the N9 probe of Z-C21.3 (28/9/2026) on a part with NOTHING
+        /// marked: MARCATE and MARCATE|GENERICO, both placements, brought 0 of
+        /// its 7 unmarked dimensions; NON_MARCATE alone brought all 7.
+        /// </summary>
+        internal static int[] ModelImportMasks(bool allDimensions)
+        {
+            return allDimensions
+                ? new[] { ImportMarked | ImportNotMarked | ImportGeneric, ImportNotMarked, ImportGeneric, ImportMarked }
+                : new[] { ImportMarked, ImportMarked | ImportGeneric };
+        }
+
+        /// <summary>
+        /// AllTypes of InsertModelAnnotations2: TRUE only when every dimension
+        /// was asked for (finding N9). The current page of the 2 says only
+        /// «Obsolete»; the old one,
+        /// estratto_obsoleteapi\DrawingDoc\DrawingDoc__InsertModelAnnotations2.htm,
+        /// says «allTypes TRUE to insert all types of annotations, FALSE uses
+        /// the types argument»: TRUE ignores the mask. Measured by
+        /// the N9 probe: FALSE with the MARKED mask brought no
+        /// unmarked dimension.
+        /// </summary>
+        internal static bool ModelImportAllTypes(bool allDimensions)
+        {
+            return allDimensions;
+        }
+
+        /// <summary>
+        /// Whether InsertModelDimensions(0) may run: only when every dimension
+        /// was asked for (finding N9). IDrawingDoc~InsertModelDimensions.html:
+        /// «Inserts model dimensions into the selected drawing view», «0 - All
+        /// dimensions in the view»: there is no mask. Measured by
+        /// the N9 probe: with nothing selected it brought 0, with the
+        /// first view selected it brought 2 unmarked dimensions — and nothing
+        /// in quote_dal_modello decides what is selected when it gets there.
+        /// </summary>
+        internal static bool ModelImportMayTakeEveryViewDimension(bool allDimensions)
+        {
+            return allDimensions;
+        }
+
+        /// <summary>
+        /// The types of the last fallback, one view at a time (finding N9).
+        /// Measured by the N9 probe on the part with nothing marked:
+        /// MARCATE|NON_MARCATE|GENERICO brought all 7 unmarked dimensions (and
+        /// the bridge's whole chain reached them through this step), MARCATE
+        /// alone brought 0.
+        /// </summary>
+        internal static int ModelImportViewByViewTypes(bool allDimensions, int extra)
+        {
+            return (allDimensions ? ImportMarked | ImportNotMarked | ImportGeneric : ImportMarked) | extra;
         }
 
         // ─────────────────────────────────────────────────────────────────

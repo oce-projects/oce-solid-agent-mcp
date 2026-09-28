@@ -29,6 +29,27 @@ namespace Riscontro.Disegno
     /// il centro del pezzo nuovo contro lo specchio del centro dell'originale,
     /// e — per gli opposti — l'albero del file nuovo (c'e' `MirrorStock` = e'
     /// legato).
+    ///
+    /// THE ORIENTATION OF AN INSTANCE (finding N26, measured on 28/9/2026 by
+    /// the Z-C21.3 probe of the mirrored instance's axes: bracket 20 x 40 x 10
+    /// with a corner boss, inserted at x = +40, mirrored on the assembly Right
+    /// plane). An instance of the same file can come out in FOUR rigid
+    /// orientations, one per swMirrorComponentOrientation2_e value, and the
+    /// four have the SAME box
+    /// centre: the centre check passed on all of them (0 mm), so it cannot
+    /// tell them apart. Measured axes X' / Y' / Z' of Transform2:
+    ///   0 MirroredX_MirroredY                     (-1,0,0) (0,1,0) (0,0,-1)
+    ///   1 MirroredAndFlippedX_MirroredY           (1,0,0) (0,1,0) (0,0,1)
+    ///   2 MirroredX_MirroredAndFlippedY           (-1,0,0) (0,-1,0) (0,0,1)
+    ///   3 MirroredAndFlippedX_MirroredAndFlippedY (1,0,0) (0,-1,0) (0,0,-1)
+    /// With no orientation array SOLIDWORKS gave 0, the default the guide
+    /// documents (IMirrorComponentFeatureData~ComponentOrientationsAlignToComponentOrigin.html,
+    /// Remarks: «missing orientations default to
+    /// swMirrorComponentOrientation2_e.swOrientation_MirroredX_MirroredY»);
+    /// an int[] gave the same axes as the typed enum array. So the orientation
+    /// is now always SET (argument «orientation», default 0) and the axes of
+    /// the new instance are CHECKED against it: X' = ±(X mirrored in the plane),
+    /// Y' = ±(Y mirrored in the plane), Z' = X' x Y' (see MirrorAxesProblem).
     /// </summary>
     public partial class OperazioniSw
     {
@@ -56,6 +77,129 @@ namespace Riscontro.Disegno
             catch { return null; }
         }
 
+        /// <summary>
+        /// N26: the «orientation» argument, as the catalogue spells it, and the
+        /// swMirrorComponentOrientation2_e value it stands for (swconst page
+        /// swMirrorComponentOrientation2_e.html: MirroredX_MirroredY 0,
+        /// MirroredAndFlippedX_MirroredY 1, MirroredX_MirroredAndFlippedY 2,
+        /// MirroredAndFlippedX_MirroredAndFlippedY 3). The first one is the
+        /// default, as it is for SOLIDWORKS.
+        /// </summary>
+        internal static readonly string[] MirrorOrientationNames =
+        {
+            "mirrored_x_mirrored_y",
+            "mirrored_and_flipped_x_mirrored_y",
+            "mirrored_x_mirrored_and_flipped_y",
+            "mirrored_and_flipped_x_mirrored_and_flipped_y",
+        };
+
+        private static readonly swMirrorComponentOrientation2_e[] MirrorOrientationValues =
+        {
+            swMirrorComponentOrientation2_e.swOrientation_MirroredX_MirroredY,
+            swMirrorComponentOrientation2_e.swOrientation_MirroredAndFlippedX_MirroredY,
+            swMirrorComponentOrientation2_e.swOrientation_MirroredX_MirroredAndFlippedY,
+            swMirrorComponentOrientation2_e.swOrientation_MirroredAndFlippedX_MirroredAndFlippedY,
+        };
+
+        /// <summary>
+        /// N26: the X, Y and Z axes of a component in the assembly, as unit
+        /// vectors: Transform2 applied to (1,0,0), (0,1,0), (0,0,1) with
+        /// IMathVector.MultiplyTransform (a vector takes the rotation, not the
+        /// translation), as the probe read them. Null if any is unreadable.
+        /// </summary>
+        private double[][] ComponentAxes(IComponent2 component)
+        {
+            try
+            {
+                var math = _sw.GetMathUtility() as IMathUtility;
+                var transform = component.Transform2 as MathTransform;
+                if (math == null || transform == null) return null;
+                var axes = new double[3][];
+                for (int k = 0; k < 3; k++)
+                {
+                    var unit = new double[3];
+                    unit[k] = 1;
+                    var moved = ((IMathVector)math.CreateVector(unit)).MultiplyTransform(transform) as IMathVector;
+                    var data = moved == null ? null : moved.ArrayData as double[];
+                    if (data == null || data.Length < 3) return null;
+                    axes[k] = new[] { data[0], data[1], data[2] };
+                }
+                return axes;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// N26: the axes a mirrored instance must have, from the original's
+        /// axes, the assembly axis the mirror plane flips (0 = x for the Right
+        /// plane, 1 = y for Top, 2 = z for Front) and the orientation index
+        /// (see <see cref="MirrorOrientationNames"/>): X' = ±(X mirrored),
+        /// Y' = ±(Y mirrored), minus where the orientation says «flipped», and
+        /// Z' = X' x Y' so that the result is rigid. Null if an input is not
+        /// three vectors of three numbers.
+        ///
+        /// The probe measured this rule on the Right plane with the original
+        /// unrotated (all four orientations, table in the class comment). The
+        /// names speak of the COMPONENT's X and Y, which do not depend on the
+        /// plane, so the same rule is applied to the other two planes.
+        /// </summary>
+        internal static double[][] ExpectedMirrorAxes(double[][] before, int planeNormalIndex, int orientation)
+        {
+            if (before == null || before.Length < 3 || planeNormalIndex < 0 || planeNormalIndex > 2 ||
+                orientation < 0 || orientation > 3) return null;
+            for (int k = 0; k < 3; k++) if (before[k] == null || before[k].Length < 3) return null;
+            double sx = (orientation & 1) != 0 ? -1 : 1;   // 1 and 3: X mirrored AND flipped
+            double sy = (orientation & 2) != 0 ? -1 : 1;   // 2 and 3: Y mirrored AND flipped
+            var x = new[] { before[0][0], before[0][1], before[0][2] };
+            var y = new[] { before[1][0], before[1][1], before[1][2] };
+            x[planeNormalIndex] = -x[planeNormalIndex];
+            y[planeNormalIndex] = -y[planeNormalIndex];
+            for (int k = 0; k < 3; k++) { x[k] *= sx; y[k] *= sy; }
+            var z = new[] { x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0] };
+            return new[] { x, y, z };
+        }
+
+        /// <summary>
+        /// N26: null when the new instance's axes are the ones the orientation
+        /// asks for (1e-6 on each component: the probe read exact 0 and ±1), else
+        /// the sentence that says which axis is off and how.
+        /// </summary>
+        internal static string MirrorAxesProblem(double[][] before, double[][] after, int planeNormalIndex, int orientation)
+        {
+            var expected = ExpectedMirrorAxes(before, planeNormalIndex, orientation);
+            if (expected == null) return "the axes of the original component could not be read";
+            if (after == null || after.Length < 3) return "the axes of the new component could not be read";
+            var names = new[] { "X", "Y", "Z" };
+            var wrong = new List<string>();
+            for (int k = 0; k < 3; k++)
+            {
+                if (after[k] == null || after[k].Length < 3) return "the " + names[k] + " axis of the new component could not be read";
+                double off = 0;
+                for (int j = 0; j < 3; j++) off = Math.Max(off, Math.Abs(after[k][j] - expected[k][j]));
+                if (off > 1e-6) wrong.Add(names[k] + "' is " + AxisText(after[k]) + " instead of " + AxisText(expected[k]));
+            }
+            return wrong.Count == 0 ? null : string.Join(", ", wrong);
+        }
+
+        private static string AxisText(double[] v)
+        {
+            var parts = new string[3];
+            for (int k = 0; k < 3; k++)
+            {
+                double r = Math.Round(v[k], 4);
+                if (r == 0) r = 0;   // no «-0»
+                parts[k] = r.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+            }
+            return "(" + string.Join(", ", parts) + ")";
+        }
+
+        private static double[] RoundedAxis(double[] v)
+        {
+            var r = new double[3];
+            for (int k = 0; k < 3; k++) { r[k] = Math.Round(v[k], 6); if (r[k] == 0) r[k] = 0; }
+            return r;
+        }
+
         private Esito SpecchiaComponente(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
             var assieme = modello as IAssemblyDoc;
@@ -81,6 +225,20 @@ namespace Riscontro.Disegno
             string suffisso = (Str(a, "suffisso", "_spec") ?? "_spec").Trim();
             if (suffisso.Length == 0 || suffisso.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                 return Fallito("«suffisso» va nel nome del file nuovo: lettere e cifre, per esempio «_sx».");
+            // N26: the orientation of a mirrored instance, always set and then checked.
+            // An opposite-hand file is a new, mirrored part: SOLIDWORKS has no
+            // orientation to choose for it (the orientations go with
+            // ComponentsToInstanceAlignToComponentOrigin), so asking for one
+            // there is refused rather than ignored.
+            string orientationAsked = (Str(a, "orientation", "") ?? "").Trim().ToLowerInvariant();
+            int orientation = orientationAsked.Length == 0 ? 0 : Array.IndexOf(MirrorOrientationNames, orientationAsked);
+            if (orientationAsked.Length > 0 && modo != "istanza")
+                return Fallito("«orientation» applies only to a mirrored instance of the same file: an opposite-hand " +
+                               "file is a new mirrored part and has no orientation to choose. Leave «orientation» out. " +
+                               "Nothing was changed.");
+            if (orientation < 0)
+                return Fallito("«orientation» is one of «" + string.Join("», «", MirrorOrientationNames) + "» (the first is " +
+                               "the default), not «" + orientationAsked + "». Nothing was changed.");
 
             IFeature pianoF = null;
             int visti = 0;
@@ -97,6 +255,10 @@ namespace Riscontro.Disegno
             if (centroPrima == null)
                 return Fallito("Non leggo dove sta «" + NomeDi(c) + "» nell'assieme: senza, non saprei verificare lo " +
                                "specchio. Non ho toccato niente.");
+            double[][] axesBefore = modo == "istanza" ? ComponentAxes(c) : null;
+            if (modo == "istanza" && axesBefore == null)
+                return Fallito("I cannot read the axes of «" + NomeDi(c) + "» in the assembly (Transform2): without them I " +
+                               "could not check the orientation of the mirrored instance. Nothing was changed.");
             string fileOriginale = "";
             try { fileOriginale = c.GetPathName() ?? ""; } catch { }
             var primaNomi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -112,7 +274,17 @@ namespace Riscontro.Disegno
                 {
                     dati.MirrorPlane = pianoF;
                     var quali = new Component2[] { (Component2)c };   // array TIPIZZATO (object[] fa feature fantasma)
-                    if (modo == "istanza") dati.ComponentsToInstanceAlignToComponentOrigin = quali;
+                    if (modo == "istanza")
+                    {
+                        dati.ComponentsToInstanceAlignToComponentOrigin = quali;
+                        // N26: one orientation per component, typed as in
+                        // Mirror_Components_II_Example_CSharp.htm; the page of
+                        // ComponentsToInstanceAlignToComponentOrigin says «Use
+                        // IMirrorComponentFeatureData::ComponentOrientationsAlignToComponentOrigin
+                        // to specify the orientation of each component in this array».
+                        dati.ComponentOrientationsAlignToComponentOrigin =
+                            new swMirrorComponentOrientation2_e[] { MirrorOrientationValues[orientation] };
+                    }
                     else
                     {
                         dati.OppositeHandComponents = quali;
@@ -186,6 +358,19 @@ namespace Riscontro.Disegno
                 return Fallito("«" + NomeDi(nuovo) + "» e' nato, ma il suo centro " + (centroNuovo == null ? "non si legge" :
                                "sta a " + scarto.ToString("0.###") + " mm dallo specchio dell'originale") + ": non e' lo specchio che volevi." +
                                TogliLoSpecchio(modello, nuova, modo == "istanza" ? null : fileNuovo));
+            // N26: THE AXES, which the centre cannot see (all four orientations
+            // measured with the centre 0 mm off). Read from Transform2 of the new
+            // instance and compared with the orientation that was set.
+            double[][] axesAfter = null;
+            if (modo == "istanza")
+            {
+                axesAfter = ComponentAxes(nuovo);
+                string axesProblem = MirrorAxesProblem(axesBefore, axesAfter, quale == 1 ? 2 : quale == 2 ? 1 : 0, orientation);
+                if (axesProblem != null)
+                    return Fallito("«" + NomeDi(nuovo) + "» was born in the right place but not with the orientation " +
+                                   "«" + MirrorOrientationNames[orientation] + "»: " + axesProblem + "." +
+                                   TogliLoSpecchio(modello, nuova, null));
+            }
             var misure = new Dictionary<string, object>
             {
                 ["specchio"] = SafeNome(nuova),
@@ -197,6 +382,15 @@ namespace Riscontro.Disegno
                 ["legato_all_originale"] = legato,
                 ["centro_originale_mm"] = new[] { Tondo(centroPrima[0]), Tondo(centroPrima[1]), Tondo(centroPrima[2]) },
                 ["centro_nuovo_mm"] = new[] { Tondo(centroNuovo[0]), Tondo(centroNuovo[1]), Tondo(centroNuovo[2]) },
+                // N26: the orientation set, and the axes read back that match it
+                // (null for an opposite-hand file, which has no orientation to set).
+                ["orientation"] = modo == "istanza" ? MirrorOrientationNames[orientation] : null,
+                ["new_axes"] = axesAfter == null ? null : new Dictionary<string, object>
+                {
+                    ["x"] = RoundedAxis(axesAfter[0]),
+                    ["y"] = RoundedAxis(axesAfter[1]),
+                    ["z"] = RoundedAxis(axesAfter[2]),
+                },
                 ["giudizio"] = modo == "istanza"
                     ? "Un'istanza dello stesso file, specchiata: vale per un pezzo simmetrico."
                     : modo == "opposto_legato"

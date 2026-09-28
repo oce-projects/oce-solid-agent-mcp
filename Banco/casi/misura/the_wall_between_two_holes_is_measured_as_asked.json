@@ -1,0 +1,58 @@
+{
+  "nome": "the_wall_between_two_holes_is_measured_as_asked",
+  "famiglia": "misura",
+  "perche": "Z-C21, finding M29, measured REAL by Z-C21.3 on 28/9/2026 (probe_measure_arc_option). misura_fra_entita (OperazioniMisura.cs) never set IMeasure.ArcOption nor ProjectionOption, and between arcs or circles «distance» is three different numbers: IMeasure~ArcOption.html, «How to measure an arc or circle as defined by swMeasureArcCircleOption_e» (0 centre to centre, 1 minimum, 2 maximum). Unset, the measure took option 0 and published the distance between the axes as «distanza_mm», with nothing saying which distance it was. The fix takes «arc_measure» (centre, minimum, maximum; centre by default, the old behaviour), sets ArcOption and ProjectionOption = 0 before Calculate as the guide example does, reads ArcOption back and publishes it.",
+  "il_difetto_che_questo_caso_prende": "The wall between two holes asked for and the distance between their axes given instead (35 asked, 50 given: the old library ignores «arc_measure»); an option set and not taken; a name outside the three accepted as if it were the default.",
+  "e_la_gemella_e_nello_stesso_file": "The last step is the refusal and step 2 is its twin: the same two faces with «arc_measure» «minimum»; only that argument differs.",
+  "i_numeri": "Plate 100 x 60 x 10 on the front plane, holes D10 at x = -25 and D20 at x = +25, as in the probe: volume 60000 - pi x (25 + 100) x 10 = 56073.0092 mm3 (the probe read 56073.0092). Between the two cylindrical faces the probe read Distance 50 with ArcOption 0 (and unset), 35 with 1, 65 with 2, and CenterDistance 50 with all three: 50 - 5 - 10 = 35 between the nearest points, 50 + 5 + 10 = 65 between the farthest. A fresh IMeasure reads ArcOption 0 and ProjectionOption 0, and the option set on one measure does not stick to the next (step 5 of the probe). SOLIDWORKS may split a hole wall in two half cylinders: the probe took one of each and still read 35 and 65, because both halves reach the points on the line of the centres.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_profilo",
+      "argomenti": { "piano": "frontale",
+                     "contorni": [ [[-50, -30], [50, -30], [50, 30], [-50, 30]],
+                                   { "cerchio": [-25, 0], "diametro_mm": 10 },
+                                   { "cerchio": [25, 0], "diametro_mm": 20 } ],
+                     "spessore_mm": 10 },
+      "attese": [
+        { "cosa": "volume_mm3", "uguale": 56073.009, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "60000 - 3926.991 = 56073.009: the hundredth covers the rounding; a plate without one of the holes would be 785 or 3142 mm3 away",
+          "perche": "the two holes are there, with their diameters" },
+        { "cosa": "corpi", "uguale": 1 } ] },
+    { "operazione": "misura_fra_entita",
+      "argomenti": { "uid": "@faccia(diametro_mm~=10,n=1)", "uid2": "@faccia(diametro_mm~=20,n=1)",
+                     "arc_measure": "minimum" },
+      "attese": [
+        { "cosa": "misure.distanza_mm", "uguale": 35, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "given in metres by IMeasure; the probe read 35 exactly",
+          "perche": "the wall between the holes: 50 - 5 - 10. The old library ignores the argument and gives 50" },
+        { "cosa": "misure.distanza_fra_i_centri_mm", "uguale": 50, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "the same metres",
+          "perche": "CenterDistance does not follow ArcOption: 50 with all three options in the probe" },
+        { "cosa": "misure.arc_measure", "uguale": "minimum",
+          "perche": "read back from IMeasure.ArcOption after Calculate, and said next to the number" } ] },
+    { "operazione": "misura_fra_entita",
+      "argomenti": { "uid": "@faccia(diametro_mm~=10,n=1)", "uid2": "@faccia(diametro_mm~=20,n=1)",
+                     "arc_measure": "maximum" },
+      "attese": [
+        { "cosa": "misure.distanza_mm", "uguale": 65, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "given in metres by IMeasure; the probe read 65 exactly",
+          "perche": "the farthest points: 50 + 5 + 10" },
+        { "cosa": "misure.arc_measure", "uguale": "maximum" } ] },
+    { "operazione": "misura_fra_entita",
+      "argomenti": { "uid": "@faccia(diametro_mm~=10,n=1)", "uid2": "@faccia(diametro_mm~=20,n=1)" },
+      "attese": [
+        { "cosa": "misure.distanza_mm", "uguale": 50, "tolleranza": 0.001,
+          "perche_questa_tolleranza": "given in metres by IMeasure; the probe read 50 exactly",
+          "perche": "without the argument the measure is centre to centre, as it was before the option was set: the default does not change the old answers" },
+        { "cosa": "misure.arc_measure", "uguale": "centre",
+          "perche": "and now it says so" },
+        { "cosa": "misure.projection", "uguale": "none",
+          "perche": "ProjectionOption set to swMeasureProjectOn_None, the default the probe read, now written instead of inherited" } ] },
+    { "operazione": "misura_fra_entita",
+      "argomenti": { "uid": "@faccia(diametro_mm~=10,n=1)", "uid2": "@faccia(diametro_mm~=20,n=1)",
+                     "arc_measure": "nearest" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["«arc_measure»", "«nearest»", "«minimum»"],
+        "gemella": "the_wall_between_two_holes_is_measured_as_asked" } }
+  ]
+}

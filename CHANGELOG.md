@@ -28,6 +28,167 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.2-ter (branch z-c21-2-ter)
+
+**Sixteen findings of the Z-C21 audit fixed with the remedy the Z-C21.3 probes
+measured on 28 September 2026.** Every finding below was measured REAL by a probe
+first; each fix follows the call that the probe showed working, with its numbers,
+and cites its page of the API guide in the code. **The bench has not run on this
+branch yet**: the red-before and green-after of the new cases come from the probe
+numbers and from reasoning, not from a bench run, and the two bench-freshness
+checks of the contracts stay red until it runs. Version numbers are left to the
+release of this lot.
+
+Drawing (`OperazioniTavola.cs`, `StatoTavola.cs`):
+
+- **M2, duplicate dimensions from the model.** Both `InsertModelAnnotations3` calls
+  of `quote_dal_modello` passed DuplicateDims false, which the guide defines as
+  "allow" duplicates, under a comment that said the opposite. Measured on the
+  bench plate (120 x 80 x 10, one hole, three views): false gave 7 dimensions with
+  3 of them twice, true gave 4 with none twice. Now true. Bench case
+  `quote/le_quote_arrivano_dal_modello.json` updated: 4 dimensions instead of 7.
+  The obsolete `InsertModelAnnotations2` fallback stays false on purpose: its own
+  page gives the flag the opposite meaning, and it was not measured.
+- **N9, unmarked dimensions came in through the fallbacks.** Without
+  «tutte_le_quote» the first masks asked only MARKED dimensions, but the v2
+  fallback passed AllTypes true, `InsertModelDimensions(0)` took every dimension
+  of the view, and the view-by-view fallback asked NOT-MARKED too. Measured on a
+  part with nothing marked: 7 unmarked dimensions came in and the operation said
+  «done»; the view-by-view fallback with MARKED only gave 0. Now every step stops
+  at the MARKED masks unless «tutte_le_quote» is true, and a part that has
+  dimensions but none marked is refused with the way out. No bench case can build
+  a part with nothing marked: contract group `Zc212DrawingContract` (6 checks).
+- **N3, a turned diameter counted as an orphan.** A dimension that only
+  silhouette edges hold (attached type 46) cannot be checked with IsSame: the
+  probe got 0 hits at every step, and silhouette against silhouette answers Same
+  for every pair. Such a dimension is no longer counted in the orphans but in the
+  new state fields `dimensions_not_verifiable` (per view) and
+  `dimensions_not_verifiable_total`. Bench case
+  `tavola/the_turned_diameter_is_not_an_orphan.json` (a plain cylinder: 0 orphans,
+  1 not verifiable).
+
+Sketch, measure and picture (`OperazioniSw.cs`, `OperazioniMisura.cs`,
+`OperazioniRicalco.cs`):
+
+- **M5, the profile sketch was reported locked when it was not.** `AddRelation`
+  FIXED on a closed sketch with an object[] returned null and added 0 relations,
+  and the bridge answered locked. Measured remedy: EditSketch, the segments as a
+  typed SketchSegment[], leave the sketch, rebuild, count the FIXED relations
+  again (0 to 6 on the L profile, volume unchanged). The sketch is reported locked
+  only when every segment has its relation; the answer carries `fixed_relations`
+  and, otherwise, `sketch_lock_note`. Bench case
+  `estrusioni/the_l_profile_sketch_is_locked_for_real.json`. The typed array was
+  measured on straight lines only: on splines, circles or the revolve centreline a
+  shortfall is now reported, not hidden.
+- **M29, the distance between arcs was always centre to centre.** IMeasure.ArcOption
+  was never set: between two holes D10 and D20 at 50 mm the probe read 50 (centre),
+  35 (minimum) and 65 (maximum). `misura_fra_entita` takes `arc_measure` (centre,
+  the default and the old answer; minimum; maximum), sets it and ProjectionOption
+  before Calculate, reads it back and publishes it; another value is refused.
+  Bench case `misura/the_wall_between_two_holes_is_measured_as_asked.json`.
+- **M11, a picture over 2048 px got the wrong scale.** SOLIDWORKS holds a
+  4096 x 2048 picture as 2048 x 1024 in a part, with or without
+  HighestResolution, so the scale per pixel was twice the true one and the
+  bridge's own check passed. The pixel size is now read from the file header; the
+  map SOLIDWORKS holds is published beside it (`solidworks_pixels`,
+  `compression`), and a map larger than the file, of another shape, or a header
+  that cannot be read at 2048 px or more, is refused. Bench case
+  `piano/a_picture_over_2048_px_keeps_the_scale_of_its_file.json` with the data
+  file `Banco/dati/trace_4096x2048.png`.
+
+Assemblies (`OperazioniSpecchiaComponente.cs`, `OperazioniMisuraAssieme.cs`,
+`OperazioniDistintaBase.cs`, `OperazioniDipendenze.cs`):
+
+- **N26, the orientation of a mirrored instance was never set nor checked.** The
+  probe measured four different axis sets for the four orientations on the Right
+  plane, with the same centre, so the centre check could not tell them apart.
+  `specchia_componente` takes `orientation`, sets it with a typed
+  swMirrorComponentOrientation2_e[] and checks the axes of the new instance on
+  Transform2; a mismatch is refused and the mirror removed. The answer carries
+  `orientation` and `new_axes`. Bench case
+  `assiemi/the_mirrored_instance_turns_as_asked.json`; its Top and Front steps
+  extend the axis rule beyond the Right plane the probe measured, so a red there
+  after the fix means the rule is wrong for those planes. Contract checks in
+  `AssembliesZc212terContract`.
+- **C4-2, the STEP solid count ignored bodies cut in the assembly.** Measured:
+  STEP files with 1, 2, 3 and 2 solids where the old count said 1, 1, 2 and 2, so
+  a STEP missing the cut instance would have passed. An instance with user bodies
+  (GetBodies3 BodiesInfo) now counts all its bodies. No bench operation makes an
+  assembly cut: contract checks.
+- **N27, the BOM check refused right tables.** The assembly-side count ignored
+  ChildComponentDisplayInBOM: a Promote sub-assembly in a top-level table and a
+  Hide sub-assembly in a parts-only table were refused. The count now follows it
+  (8 probe tables reproduced; the indented table, not measured, keeps the old
+  count). No bench operation sets the option: contract checks.
+- **L12-8, a missing file could be hidden by a file with the same name.**
+  GetDependencies with Searchflag true answered a same-name file found in another
+  folder, which exists, and once it had, later calls with false answered it too.
+  Now Searchflag false only, and the disk decides what is missing. The bench
+  cannot rename a component file: a source check in the contracts.
+
+Weldments and configurations (`OperazioniMateriale.cs`, `OperazioniSaldatura.cs`):
+
+- **M10, the material reached only some configurations.** One
+  SetMaterialPropertyName2 with the empty name reached the active configuration and
+  its derived ones, not the others (density 1000 instead of 7800 on the plain
+  one). `applica_materiale` now sets and reads back every configuration by name,
+  refuses naming any that did not take it, and lists them in `configurations`.
+  Bench case `proprieta/the_material_reaches_every_configuration.json`.
+- **N25, the corner treatment and the empty profile size.** A member group without
+  a corner treatment was born with none (the probe read ApplyCornerTreatment
+  false): the miter is now the default, applied and declared
+  (`corner_treatment_note`), and the trial frame matches the real one. An empty
+  profile size built the size the file was saved on (20 x 20 of four): it is now
+  accepted only on a one-size file (`configuration_note`) and refused otherwise,
+  listing the sizes. Bench cases `saldature/a_member_group_is_mitred_by_default.json`
+  and `saldature/an_empty_profile_size_names_the_sizes.json` (tied to the Italian
+  install's profile file, the one the probe measured); the one-size acceptance in
+  `WeldmentConfigurationZc212terContract` (4 checks). Risk for the first bench
+  run: the miter default now also applies to single-bar groups, measured on an L
+  only.
+- **L9-4, the trim did not extend a short bar.** Options 8 alone gave a phantom
+  feature and no change on a bar 20 mm short; 1|2|8 = 11 extends it (+29399.11
+  mm3) and cuts a plain crossing exactly as 8 did. Bench case
+  `saldature/the_trim_extends_a_short_bar.json`.
+
+Document state (`StatoDocumento.cs`):
+
+- **C7-2 and N14, fillet and chamfer edge counts.** The fillet count came from
+  FilletItemsCount, which is -1 on uniform fillets, so it never appeared. The state
+  now writes `selected_edges` (GetEdgeCount, the selection) and `faces`
+  (IFeature.GetFaceCount), for fillets and chamfers: one selected edge that became
+  a whole loop reads 1 and 8. Bench case
+  `lavorazioni/the_state_counts_selected_edges_and_faces.json`. The replies of the
+  fillet and chamfer operations still give the selection under its old field name;
+  renaming it to `selected_edges` with `faces` beside it is left open (outside this
+  lot's files).
+- **N29, a vertex chamfer read as nothing.** The chamfer is now read by
+  IChamferFeatureData2.Type: a vertex chamfer gives `vertex_distances_mm` (probe
+  2/3/4 and 3/3/3, where the state gave {}). The read moved from the obsolete
+  IChamferFeatureData, so the obsolete ratchet goes down by two entries. No bench
+  operation makes a vertex chamfer: contract group `StateChamferContract` (4 checks).
+
+Not fixed in this lot, as measured: **C3-5** (framing on GetVisibleBox cut 13 of 24
+shots against 3 for the current framing; a real fix needs SOLIDWORKS to re-measure
+the margin), **M2 on the v2 fallback** (its page says the opposite of v3; needs its
+own probe or the v2-to-v3 migration), **N27 for mass and STEP parts** (the probe
+found them not real or undecided).
+
+Catalogue: `quote_dal_modello` (the stale «nothing comes in out of process»
+paragraphs replaced by the measured behaviour, duplicates, the marked default and
+its refusal), `misura_fra_entita` (`arc_measure`), `immagine_nello_schizzo`,
+`specchia_componente` (`orientation`), `esporta_step`, `distinta_base_in_tavola`,
+`dipendenze`, `applica_materiale`, `membro_strutturale`, `telaio_rettangolare`,
+`taglia_membri`, `raccordo_spigoli`, `smusso_spigoli`, and the four sketch-based
+operations (the lock flag, `fixed_relations`, `sketch_lock_note`).
+
+Counts: contracts 498 to 523 (four new groups: 4 + 6 + 11 + 4); bench cases +10
+(one each in `casi/assiemi`, `casi/estrusioni`, `casi/lavorazioni`, `casi/misura`,
+`casi/piano`, `casi/proprieta`, `casi/tavola`, three in `casi/saldature`), one case
+changed in `casi/quote`; the floor of refusals with a way out 216
+to 217 (a detector match on the helper that removes the mirror, not a better
+message); obsolete ratchet two entries lower. Language gate: nothing grew.
+
 ## 0.117.0 — 28 September 2026 · library 0.141.0 (unchanged)
 
 **The language gate: the Italian in the repository can only go down (entry

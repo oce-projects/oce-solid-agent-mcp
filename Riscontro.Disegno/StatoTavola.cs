@@ -160,6 +160,9 @@ namespace Riscontro.Disegno
             int? quoteTotali = 0, crociTotali = 0;
             int? gtolTot = 0, datumTot = 0, saldTot = 0, rugTot = 0, noteTot = 0, annTot = 0;
             int orfaneTot = 0;
+            // Dimensions attached to a silhouette: not counted as orphans,
+            // because IsSame cannot check them (N3, see QuoteSenzaSpigolo).
+            int notVerifiableTotal = 0;
             int? numeriFalsiTot = 0;
             var numeriFalsi = new List<Dictionary<string, object>>();
             bool orfaneSconosciute = false;
@@ -244,8 +247,10 @@ namespace Riscontro.Disegno
                     // a cui e' attaccata e' ancora fra quelli che la vista
                     // MOSTRA (1 prima, 0 dopo). null vuol dire «non lo so»
                     // (voce Z-C8), non zero.
-                    int? orfane = QuoteSenzaSpigolo(sw, v);
+                    int notVerifiable;
+                    int? orfane = QuoteSenzaSpigolo(sw, v, out notVerifiable);
                     if (orfane.HasValue) orfaneTot += orfane.Value; else orfaneSconosciute = true;
+                    notVerifiableTotal += notVerifiable;
 
                     if (viste.Count < MaxViste)
                     {
@@ -277,6 +282,8 @@ namespace Riscontro.Disegno
                         voce["croci_di_centro"] = croci;
                         voce["quote_numero_non_del_modello"] = falsi;
                         voce["quote_orfane"] = orfane;
+                        // Unknown when the orphans are unknown: the same reading.
+                        voce["dimensions_not_verifiable"] = orfane.HasValue ? (object)notVerifiable : null;
 
                         // SEMPRE, ANCHE TUTTE A ZERO, e per la stessa ragione
                         // delle due righe qui sopra: un campo che compare solo
@@ -323,6 +330,8 @@ namespace Riscontro.Disegno
             }
             dati["annotazioni_totali"] = Sei(gtolTot, datumTot, saldTot, rugTot, noteTot, annTot);
             dati["quote_orfane_totali"] = orfaneSconosciute && orfaneTot == 0 ? (object)null : orfaneTot;
+            dati["dimensions_not_verifiable_total"] =
+                orfaneSconosciute && notVerifiableTotal == 0 ? (object)null : notVerifiableTotal;
             if (orfaneTot > 0)
                 dati["attenzione_quote"] = orfaneTot + " quote sono attaccate a spigoli che le viste non " +
                     "mostrano piu': sul foglio si stampano col numero di prima, appese al niente. Di " +
@@ -344,11 +353,13 @@ namespace Riscontro.Disegno
                 "una tavola vuota. E un'annotazione su un layer non stampabile " +
                 "esiste, viene contata, e nel PDF non c'e': il conteggio dice " +
                 "cosa c'e' nel documento, non cosa esce dalla stampante. " +
-                "«quote_orfane» guarda se gli spigoli e i vertici a cui ogni quota e' " +
-                "attaccata sono fra quelli che la vista mostra: una quota attaccata a una " +
-                "SILHOUETTE (il contorno apparente di un cilindro) o a uno spigolo nascosto " +
-                "risulterebbe orfana senza esserlo. Quelle messe da «quota_in_tavola» stanno " +
-                "sempre su spigoli visibili.";
+                "«quote_orfane» checks whether the edges and vertices each dimension is " +
+                "attached to are among those the view shows. A dimension attached to a " +
+                "SILHOUETTE (the apparent outline of a cylinder: the diameters of a turned " +
+                "part seen from the side) cannot be checked, because SOLIDWORKS does not " +
+                "match it with any silhouette the view shows: it is not counted as an " +
+                "orphan but in «dimensions_not_verifiable». A dimension attached to a hidden " +
+                "edge still reads as an orphan without being one.";
             if (visteTotali > viste.Count) dati["viste_troncate"] = true;
 
             // LA TAVOLA VUOTA VA DETTA, non lasciata dedurre da un elenco che
@@ -368,9 +379,26 @@ namespace Riscontro.Disegno
         ///
         /// Una quota senza nessun aggancio (una quota libera) non e' orfana: e'
         /// libera, e non si conta.
+        ///
+        /// SILHOUETTES ARE NOT VERIFIABLE (Z-C21.3, finding N3). The diameters of
+        /// a turned part seen from the side hang on two silhouette edges
+        /// (IAnnotation~GetAttachedEntities3.html: «swSelSilhouettes |
+        /// ISilhouetteEdge»), and ISldWorks.IsSame never recognises them: probe
+        /// probe_silhouette_issame (28/9/2026), stepped shaft Ø20/Ø30, a Ø20
+        /// born on two silhouettes (attached types [46, 46], swSelSILHOUETTES):
+        /// 0 hits against the silhouettes the view shows, right after the
+        /// dimension, after a rebuild and after a model change, while
+        /// silhouette against silhouette answered Same for all four (too loose
+        /// to be used). With Edge and Vertex only, that Ø20 was 1 orphan out of
+        /// 2 dimensions, and the length beside it 0. So a dimension that no
+        /// visible edge or vertex holds and that is attached to a silhouette
+        /// (IAnnotation~GetAttachedEntityTypes.html: «Array of longs ... that
+        /// indicate the attached entity types as defined in swSelectType_e») is
+        /// not an orphan: it goes in <paramref name="notVerifiable"/>.
         /// </summary>
-        private static int? QuoteSenzaSpigolo(ISldWorks sw, IView v)
+        private static int? QuoteSenzaSpigolo(ISldWorks sw, IView v, out int notVerifiable)
         {
+            notVerifiable = 0;
             if (sw == null) return null;
             try
             {
@@ -386,6 +414,7 @@ namespace Riscontro.Disegno
                 }
                 if (visibili.Count > 800) return null;
                 int orfane = 0;
+                int onSilhouettes = 0;
                 foreach (var o in dims)
                 {
                     var ann = (o as IDisplayDimension)?.GetAnnotation() as IAnnotation;
@@ -398,11 +427,35 @@ namespace Riscontro.Disegno
                             if (sw.IsSame(a, vv) == (int)swObjectEquality.swObjectSame) { visto = true; break; }
                         if (visto) break;
                     }
-                    if (!visto) orfane++;
+                    if (visto) continue;
+                    if (IsAttachedToSilhouette(ann)) onSilhouettes++;
+                    else orfane++;
                 }
+                notVerifiable = onSilhouettes;
                 return orfane;
             }
-            catch { return null; }
+            catch { notVerifiable = 0; return null; }
+        }
+
+        /// <summary>
+        /// True when at least one attached entity of the annotation is a
+        /// silhouette edge (swSelSILHOUETTES, 46 in the probe of N3). A types
+        /// array that cannot be read is not a silhouette: the dimension keeps
+        /// the old reading, orphan when nothing visible holds it.
+        /// </summary>
+        private static bool IsAttachedToSilhouette(IAnnotation ann)
+        {
+            try
+            {
+                var types = ann.GetAttachedEntityTypes() as Array;
+                if (types == null) return false;
+                foreach (var t in types)
+                    if (Convert.ToInt32(t, System.Globalization.CultureInfo.InvariantCulture) ==
+                        (int)swSelectType_e.swSelSILHOUETTES)
+                        return true;
+            }
+            catch { }
+            return false;
         }
 
         /// <summary>

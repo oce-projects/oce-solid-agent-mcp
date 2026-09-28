@@ -63,7 +63,7 @@ namespace Riscontro.Disegno
             }
 
             // ── L'ASSIEME, LETTO PRIMA ──────────────────────────────────────
-            var attese = ComponentiPerVoce(assieme, tipoBom == (int)swBomType_e.swBomType_TopLevelOnly);
+            var attese = ComponentiPerVoce(assieme, tipoBom);
             if (attese == null) return Fallito("Non riesco a leggere i componenti dell'assieme: senza, non posso confrontare la distinta.");
             if (attese.Count == 0) return Fallito("L'assieme non ha componenti: la distinta sarebbe vuota.");
 
@@ -170,36 +170,168 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// I componenti per voce di distinta: chiave = file + configurazione,
-        /// valore = quante istanze. Solo il primo livello se `primoLivello`, se no
-        /// le sole parti di tutti i livelli. Null se non si legge.
+        /// The components per BOM item: key = file + configuration, value = how
+        /// many instances. Null if the assembly cannot be read.
+        ///
+        /// SUB-ASSEMBLIES THAT PROMOTE OR HIDE THEIR CHILDREN (finding N27,
+        /// measured on 28/9/2026 by the Z-C21.3 probe of envelopes and BOM children:
+        /// part A plus a sub-assembly of two B, whose configuration has
+        /// IConfiguration.ChildComponentDisplayInBOM set to Show, Hide or Promote;
+        /// IConfiguration~ChildComponentDisplayInBOM.html: «Gets or sets the child
+        /// component display option of a configuration in a Bill of Materials
+        /// (BOM)», swChildComponentInBOMOption_e Hide 1, Show 2, Promote 3). The
+        /// tables SOLIDWORKS wrote, and the old count of this method:
+        ///   Promote, top level only: rows A (1) and B (2), 3 pieces; the old
+        ///     count saw A and the sub-assembly, 2 instances -> false refusal;
+        ///   Hide, parts only: rows A (1) and the SUB-ASSEMBLY itself (1), 2
+        ///     pieces; the old count saw A and the two B, 3 -> false refusal;
+        ///   Show (both types), Promote parts only, Hide top level only: as the
+        ///     old count. Envelopes read ExcludeFromBOM true and were already out.
+        /// So: in a top-level table a promoting sub-assembly is replaced by its
+        /// children (and theirs, if they promote too: swChildComponentInBOMOption_e.html,
+        /// Promote: «all of its child components are promoted one level»); in a
+        /// parts-only table a hiding sub-assembly is one item and its children
+        /// are not. The same page describes Show as «The subassembly appears as a
+        /// single item in the BOM» and Hide as «Child components might be listed
+        /// individually»: in the parts-only tables it was the other way round
+        /// (Hide gave the single item, Show the two B), and the code follows the
+        /// tables SOLIDWORKS wrote. The indented table was not measured and
+        /// keeps the old count (every part, all levels).
+        /// The tree is read with IComponent2.GetChildren (IComponent2~GetChildren.html:
+        /// «it returns only the immediate (one level) children», so it is walked
+        /// level by level); a top-level table reads below the first level only
+        /// under a promoting sub-assembly.
         /// </summary>
-        private static Dictionary<string, int> ComponentiPerVoce(IAssemblyDoc assieme, bool primoLivello)
+        private static Dictionary<string, int> ComponentiPerVoce(IAssemblyDoc assieme, int bomType)
         {
             try
             {
-                var fuori = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                var comp = assieme.GetComponents(primoLivello) as object[];
-                foreach (var o in comp ?? new object[0])
+                bool topLevelOnly = bomType == (int)swBomType_e.swBomType_TopLevelOnly;
+                var comps = new List<IComponent2>();
+                var parents = new List<int>();
+                var keys = new List<string>();
+                var isAssembly = new List<bool>();
+                var childDisplay = new List<int>();
+                var skipped = new List<bool>();
+                foreach (var o in (assieme.GetComponents(true) as object[]) ?? new object[0])
                 {
-                    var c = o as IComponent2;
-                    if (c == null) continue;
+                    var top = o as IComponent2;
+                    if (top == null) continue;
+                    comps.Add(top);
+                    parents.Add(-1);
+                }
+                for (int i = 0; i < comps.Count && i < 100000; i++)
+                {
+                    IComponent2 c = comps[i];
                     bool soppresso = false, escluso = false;
                     try { soppresso = c.IsSuppressed(); } catch { }
                     try { escluso = c.ExcludeFromBOM; } catch { }
-                    if (soppresso || escluso) continue;
-                    if (!primoLivello)
+                    string configuration = c.ReferencedConfiguration ?? "";
+                    IModelDoc2 doc = null;
+                    try { doc = c.GetModelDoc2() as IModelDoc2; } catch { }   // null when suppressed or lightweight: a part, as before
+                    bool assembly = doc is IAssemblyDoc;
+                    int display = -1;
+                    if (assembly)
                     {
-                        // solo parti: un sottoassieme non e' una voce
-                        var m = c.GetModelDoc2() as IModelDoc2;
-                        if (m is IAssemblyDoc) continue;
+                        try
+                        {
+                            var cfg = doc.GetConfigurationByName(configuration) as IConfiguration;
+                            if (cfg != null) display = cfg.ChildComponentDisplayInBOM;
+                        }
+                        catch { }
                     }
-                    string chiave = (c.GetPathName() ?? "") + "|" + (c.ReferencedConfiguration ?? "");
-                    fuori[chiave] = fuori.TryGetValue(chiave, out int n) ? n + 1 : 1;
+                    keys.Add((c.GetPathName() ?? "") + "|" + configuration);
+                    isAssembly.Add(assembly);
+                    childDisplay.Add(display);
+                    skipped.Add(soppresso || escluso);
+                    if (topLevelOnly && (soppresso || escluso || !assembly ||
+                                         display != (int)swChildComponentInBOMOption_e.swChildComponent_Promote)) continue;
+                    object[] children = null;
+                    try { children = c.GetChildren() as object[]; } catch { }
+                    foreach (var o in children ?? new object[0])
+                    {
+                        var child = o as IComponent2;
+                        if (child == null) continue;
+                        comps.Add(child);
+                        parents.Add(i);
+                    }
                 }
-                return fuori;
+                return ExpectedBomItems(keys.ToArray(), parents.ToArray(), isAssembly.ToArray(),
+                                        childDisplay.ToArray(), skipped.ToArray(), bomType);
             }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// N27, the rule without SOLIDWORKS (the contract group in Prove calls it
+        /// with the probe's assemblies): one entry per component of the tree, its
+        /// key, the index of its parent (-1 at the top), whether it is an
+        /// assembly, its swChildComponentInBOMOption_e (-1 if not read) and
+        /// whether it is out of the BOM (suppressed or excluded). Returns the BOM
+        /// items a table of that swBomType_e must have, or null if the arrays do
+        /// not line up.
+        /// </summary>
+        internal static Dictionary<string, int> ExpectedBomItems(
+            string[] keys, int[] parents, bool[] isAssembly, int[] childDisplay, bool[] skipped, int bomType)
+        {
+            if (keys == null || parents == null || isAssembly == null || childDisplay == null || skipped == null) return null;
+            int n = keys.Length;
+            if (parents.Length != n || isAssembly.Length != n || childDisplay.Length != n || skipped.Length != n) return null;
+            const int hide = (int)swChildComponentInBOMOption_e.swChildComponent_Hide;
+            const int promote = (int)swChildComponentInBOMOption_e.swChildComponent_Promote;
+            var items = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (bomType == (int)swBomType_e.swBomType_TopLevelOnly)
+            {
+                // A promoting sub-assembly gives way to its children, which then
+                // stand as top-level items (and may promote in their turn).
+                var pending = new List<int>();
+                for (int i = 0; i < n; i++) if (parents[i] < 0) pending.Add(i);
+                for (int p = 0; p < pending.Count && p <= n; p++)
+                {
+                    int i = pending[p];
+                    if (skipped[i]) continue;
+                    if (isAssembly[i] && childDisplay[i] == promote)
+                    {
+                        for (int j = 0; j < n; j++) if (parents[j] == i) pending.Add(j);
+                        continue;
+                    }
+                    CountBomItem(items, keys[i]);
+                }
+                return items;
+            }
+            bool partsOnly = bomType == (int)swBomType_e.swBomType_PartsOnly;
+            for (int i = 0; i < n; i++)
+            {
+                if (skipped[i]) continue;
+                if (partsOnly && HiddenByParent(i, parents, isAssembly, childDisplay, hide)) continue;
+                if (isAssembly[i])
+                {
+                    // Parts only: a sub-assembly is no item, unless it hides its
+                    // children, and then it is one (measured: the table lists it).
+                    if (partsOnly && childDisplay[i] == hide) CountBomItem(items, keys[i]);
+                    continue;
+                }
+                CountBomItem(items, keys[i]);
+            }
+            return items;
+        }
+
+        /// <summary>N27: whether a sub-assembly above this component hides its children in the BOM.</summary>
+        private static bool HiddenByParent(int i, int[] parents, bool[] isAssembly, int[] childDisplay, int hide)
+        {
+            int p = parents[i];
+            for (int guard = 0; p >= 0 && p < parents.Length && guard <= parents.Length; guard++)
+            {
+                if (isAssembly[p] && childDisplay[p] == hide) return true;
+                p = parents[p];
+            }
+            return false;
+        }
+
+        private static void CountBomItem(Dictionary<string, int> items, string key)
+        {
+            string k = key ?? "";
+            items[k] = items.TryGetValue(k, out int n) ? n + 1 : 1;
         }
 
         private static int TabelleDellaTavolaTutte(IDrawingDoc disegno)

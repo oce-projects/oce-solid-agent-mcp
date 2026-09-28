@@ -1616,9 +1616,10 @@ namespace Riscontro.Disegno
         ///   IExtrudeFeatureData2.GetDepth(Boolean), .GetEndCondition(Boolean),
         ///       .BothDirections, .Merge
         ///   ISimpleFilletFeatureData2: DefaultRadius, IsMultipleRadius,
-        ///       FilletItemsCount
-        ///   IChamferFeatureData.GetEdgeChamferDistance(Int32),
-        ///       .EdgeChamferAngle
+        ///       GetEdgeCount()
+        ///   IChamferFeatureData2: Type, GetEdgeChamferDistance(Int32),
+        ///       EdgeChamferAngle, GetVertexChamferDistance(Int32), GetEdgeCount()
+        ///   IFeature.GetFaceCount()
         /// </summary>
         private static void ParametriDellaFeature(
             IFeature f, string tipo, Dictionary<string, object> voce)
@@ -1676,23 +1677,139 @@ namespace Riscontro.Disegno
                     if (d.DefaultRadius > 0)
                         voce["raggio_mm"] = Math.Round(d.DefaultRadius * 1000.0, 2);
                     if (d.IsMultipleRadius) voce["raggio_variabile"] = true;
-                    if (d.FilletItemsCount > 0) voce["spigoli"] = d.FilletItemsCount;
+                    // NOT FilletItemsCount (C7-2): «This method returns -1 if
+                    // this simple fillet feature is not multiple radius»
+                    // (ISimpleFilletFeatureData2~FilletItemsCount.html,
+                    // Remarks), and the bridge only makes uniform fillets, so
+                    // the edge count it guarded never came out (-1 on every
+                    // fillet of the Z-C21.3 edge-count probe, 28/9/2026).
+                    EdgeAndFaceCounts(f, () => d.GetEdgeCount(), voce);
                 }
                 else if (tipo == "Chamfer")
                 {
-                    var d = definizione as IChamferFeatureData;
+                    // IChamferFeatureData2, not the obsolete IChamferFeatureData:
+                    // the type that decides how to read the sizes is
+                    // IChamferFeatureData2::Type (IChamferFeatureData~Type.html:
+                    // «Obsolete. Superseded by IChamferFeatureData2::Type»).
+                    var d = definizione as IChamferFeatureData2;
                     if (d == null) return;
-                    // DUE DISTANZE, NON UNA. Uno smusso 3x6 e uno 3x3 tolgono
-                    // materiale diverso, e con un lato solo si leggono uguali.
-                    double l1 = d.GetEdgeChamferDistance(0) * 1000.0;
-                    double l2 = d.GetEdgeChamferDistance(1) * 1000.0;
-                    if (l1 > 0) voce["lato1_mm"] = Math.Round(l1, 2);
-                    if (l2 > 0 && Math.Abs(l2 - l1) > 0.001) voce["lato2_mm"] = Math.Round(l2, 2);
-                    if (d.EdgeChamferAngle > 0)
-                        voce["angolo_gradi"] = Math.Round(Unita.Gradi(d.EdgeChamferAngle), 1);
+                    ChamferSizes(d.Type, side => d.GetEdgeChamferDistance(side),
+                                 () => d.EdgeChamferAngle,
+                                 side => d.GetVertexChamferDistance(side), voce);
+                    EdgeAndFaceCounts(f, () => d.GetEdgeCount(), voce);
                 }
             }
             catch { }
+        }
+
+        /// <summary>
+        /// HOW MANY EDGES WERE SELECTED, AND HOW MANY FACES CAME OUT (C7-2,
+        /// N14, Z-C21.3).
+        ///
+        /// GetEdgeCount on the definition counts the SELECTED edges, not the
+        /// worked ones. Measured on 28/9/2026 (Z-C21.3, edge-count probe): a block
+        /// 40 x 30 x 20 high with its four vertical edges rounded r 5, then a
+        /// fillet r 2 with the bridge's options on ONE top edge. The fillet
+        /// propagates along the tangent loop, removes 110.399 mm3 (110.399 by
+        /// hand) and owns 8 faces; GetEdgeCount says 1, with or without
+        /// AccessSelections. The same for a chamfer 2 x 45 on one edge of the
+        /// same loop: 254.454 mm3, 8 faces, GetEdgeCount 1. With nothing to
+        /// propagate to, one edge and one face (F1, C1); four vertical edges,
+        /// 4 and 4 (F4).
+        ///
+        /// So the count goes out under the name of what it is,
+        /// «selected_edges», and next to it the feature's own faces, which is
+        /// what tells a reader that one selected edge became a whole loop:
+        ///   ISimpleFilletFeatureData2~GetEdgeCount.html: «Gets the number of
+        ///     edges on which to create a simple radius fillet»;
+        ///   IChamferFeatureData2~GetEdgeCount.html: «Gets the number of edges
+        ///     that are chamfered» — both measured as the selection;
+        ///   IFeature~GetFaceCount.html: «Gets the number of faces in this
+        ///     feature».
+        /// Only what is there is written: a vertex chamfer has no edges, and a
+        /// suppressed feature has no faces.
+        /// </summary>
+        private static void EdgeAndFaceCounts(
+            IFeature f, Func<int> selectedEdges, Dictionary<string, object> entry)
+        {
+            try
+            {
+                int n = selectedEdges();
+                if (n > 0) entry["selected_edges"] = n;
+            }
+            catch { }
+            try
+            {
+                int n = f.GetFaceCount();
+                if (n > 0) entry["faces"] = n;
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// THE SIZES OF A CHAMFER, READ BY ITS TYPE (N29, Z-C21.3).
+        ///
+        /// Up to library 0.141.0 every chamfer was read as an edge chamfer:
+        /// side 0, side 1 when different, the angle when not zero. A VERTEX
+        /// chamfer has none of them — its three sizes are distances along the
+        /// three edges that meet at the corner — so it went into the state
+        /// with no size at all. Measured on 28/9/2026 (Z-C21.3, chamfer probe,
+        /// V1 and V2, InsertFeatureChamfer with swChamferVertex on a corner of
+        /// a block): Type 3, edge distances 0 and 0, angle 0, vertex distances
+        /// 2/3/4 and 3/3/3, the ones asked; the triangle cut from the corner
+        /// measured 2/3/4 and 3/3/3, and the removed volume was the
+        /// tetrahedron's, 4 and 4.5 mm3. The same probe read the edge chamfers
+        /// back by type as they were made: angle-distance 5 at 30 degrees as
+        /// Type 1 with side 0 = 5 and angle 30; distance-distance 3 x 6 as
+        /// Type 2 with sides 3 and 6 and angle 0.
+        ///
+        /// Two distances, not one, on a distance-distance chamfer: a 3 x 6 and
+        /// a 3 x 3 remove different material, and with one side they would
+        /// read the same.
+        ///
+        /// IChamferFeatureData2~Type.html, Remarks: «An angle-distance chamfer
+        /// requires an angle and a distance; a distance-distance chamfer
+        /// requires two distances, one for each side of the chamfered edge»;
+        /// «A vertex chamfer requires three distances along three adjacent
+        /// edges» (their order is the edge order of IVertex::EnumEdgesOriented,
+        /// not X, Y, Z). ~EdgeChamferAngle.html: «relevant only for an
+        /// angle-distance type of chamfer»; ~GetVertexChamferDistance.html:
+        /// side 0, 1 or 2; ~GetEdgeChamferDistance.html: side 0 or 1, and 0
+        /// only for angle-distance. swChamferType_e: swChamferAngleDistance 1,
+        /// swChamferDistanceDistance 2, swChamferVertex 3,
+        /// swChamferEqualDistance 16. A type none of these three branches
+        /// knows (equal distance, or a combination) keeps the reading of
+        /// before: side 0, side 1 when different, the angle when not zero.
+        ///
+        /// No interop in the signature: the reads come in as functions, so the
+        /// rule runs without SOLIDWORKS (Prove, «the state reads a chamfer by
+        /// its type»), and it can be checked there that a vertex chamfer never
+        /// asks for an edge distance.
+        /// </summary>
+        internal static void ChamferSizes(
+            int type, Func<int, double> edgeDistance, Func<double> angle,
+            Func<int, double> vertexDistance, Dictionary<string, object> entry)
+        {
+            const int angleDistance = 1, distanceDistance = 2, vertex = 3;
+            if (type == vertex)
+            {
+                var sides = new double[3];
+                for (int i = 0; i < 3; i++) sides[i] = Math.Round(vertexDistance(i) * 1000.0, 2);
+                if (sides.Any(s => s > 0)) entry["vertex_distances_mm"] = sides;
+                return;
+            }
+            double first = edgeDistance(0) * 1000.0;
+            if (first > 0) entry["lato1_mm"] = Math.Round(first, 2);
+            if (type != angleDistance)
+            {
+                double second = edgeDistance(1) * 1000.0;
+                if (second > 0 && Math.Abs(second - first) > 0.001) entry["lato2_mm"] = Math.Round(second, 2);
+            }
+            if (type != distanceDistance)
+            {
+                double radians = angle();
+                if (radians > 0) entry["angolo_gradi"] = Math.Round(Unita.Gradi(radians), 1);
+            }
         }
 
         private static void Metti(Dictionary<string, object> voce, string chiave, string valore)

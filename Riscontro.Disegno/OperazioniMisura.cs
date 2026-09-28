@@ -431,6 +431,14 @@ namespace Riscontro.Disegno
                     "Ne hai date " + uid.Count + ": ne misuro una sola o due. Con piu' di " +
                     "due, «distanza» e «angolo» non vogliono dire piu' niente.");
 
+            string arcMeasure = (Str(a, "arc_measure", "centre") ?? "centre").Trim().ToLowerInvariant();
+            int arcOption;
+            if (!ArcMeasureOptions.TryGetValue(arcMeasure, out arcOption))
+                return Fallito(
+                    "«arc_measure» is «centre», «minimum» or «maximum», not «" + arcMeasure + "»: it says how " +
+                    "a distance to an arc or a circle is taken (centre to centre, between the nearest points, " +
+                    "between the farthest points).");
+
             var entita = new List<object>();
             foreach (var u in uid)
             {
@@ -445,6 +453,26 @@ namespace Riscontro.Disegno
             catch (Exception ex) { return Fallito("Non riesco a preparare la misura: " + ex.Message); }
             if (misura == null)
                 return Fallito("Questa installazione non espone lo strumento di misura.");
+
+            // THE ARC OPTION IS SET, NEVER INHERITED (finding M29). Measured on
+            // 28/9/2026 by probe_measure_arc_option (plate 100 x 60 x 10, holes
+            // D10 at x = -25 and D20 at x = +25): between the
+            // two cylindrical faces Distance is 50 with ArcOption 0, 35 with 1 and
+            // 65 with 2, while CenterDistance stays 50; a fresh IMeasure reads 0/0
+            // and the option set on one measure does not stick to the next. Up to
+            // library 0.141.0 it was never set: the distance was centre to centre
+            // and nothing said so. IMeasure~ArcOption.html: "How to measure an arc
+            // or circle as defined by swMeasureArcCircleOption_e"; the guide
+            // example (Measure_Selected_Entities_Example_CSharp.htm) sets it before
+            // Calculate. ProjectionOption goes to 0 (swMeasureProjectOn_None,
+            // IMeasure~ProjectionOption.html) for the same reason: the default
+            // measured 0, and the same distance, but it is ours to say.
+            try
+            {
+                misura.ArcOption = arcOption;
+                misura.ProjectionOption = (int)swMeasureProjectOnOption_e.swMeasureProjectOn_None;
+            }
+            catch (Exception ex) { return Fallito("The measure did not take the arc option: " + ex.Message); }
 
             bool riuscita;
             try
@@ -496,6 +524,17 @@ namespace Riscontro.Disegno
             Metti(fuori, "diametro_mm", misura.Diameter, 1000.0);
             if (uid.Count == 2)
             {
+                // Read back after Calculate: the probe read the value it had set.
+                // If SOLIDWORKS answered with another option, «distanza_mm» would
+                // be another kind of distance under the name the caller asked for.
+                int arcOptionRead = misura.ArcOption;
+                if (arcOptionRead != arcOption)
+                    return Fallito(
+                        "I asked the measure for «arc_measure» " + arcMeasure + " (ArcOption " + arcOption +
+                        ") and it reads back ArcOption " + arcOptionRead + ": the distance would be another " +
+                        "kind of distance, and I do not give it.");
+                fuori["arc_measure"] = arcMeasure;
+                fuori["projection"] = "none";
                 Metti(fuori, "distanza_mm", misura.Distance, 1000.0);
                 Metti(fuori, "distanza_normale_mm", misura.NormalDistance, 1000.0);
                 Metti(fuori, "distanza_fra_i_centri_mm", misura.CenterDistance, 1000.0);
@@ -519,6 +558,19 @@ namespace Riscontro.Disegno
                  (fuori.ContainsKey("distanza_mm") ? ": " + fuori["distanza_mm"] + " mm" : ""));
             return RiuscitoSenzaCreare(fuori);
         }
+
+        /// <summary>
+        /// The values of «arc_measure» and the IMeasure.ArcOption each one sets
+        /// (swMeasureArcCircleOption_e: CenterToCenter 0, MinimumDistance 1,
+        /// MaximumDistance 2). «centre» is the default because it is what the
+        /// measure did before the option was set (finding M29).
+        /// </summary>
+        private static readonly Dictionary<string, int> ArcMeasureOptions = new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["centre"] = (int)swMeasureArcCircleOption_e.swMeasureArcCircle_CenterToCenter,
+            ["minimum"] = (int)swMeasureArcCircleOption_e.swMeasureArcCircle_MinimumDistance,
+            ["maximum"] = (int)swMeasureArcCircleOption_e.swMeasureArcCircle_MaximumDistance,
+        };
 
         /// <summary>
         /// Mette un valore nelle misure **solo se e' una misura**.
@@ -634,10 +686,11 @@ namespace Riscontro.Disegno
                 string database;
                 var parte = modello as IPartDoc;
                 if (parte == null) return null;
-                // La stringa vuota vuol dire «la configurazione attiva», ed e'
-                // come lo chiedono gia' `StatoDocumento` e `applica_materiale`. Il
-                // materiale e' PER CONFIGURAZIONE: nell'assieme si chiede quella che
-                // il componente usa.
+                // The empty string means the active configuration (measured by
+                // Z-C21.3, L17-1), as `StatoDocumento` asks for it. Since M10
+                // `applica_materiale` sets and reads back every configuration by
+                // name instead. The material is PER CONFIGURATION: in an assembly
+                // the configuration the component uses is asked.
                 string nome = parte.GetMaterialPropertyName2(configurazione ?? "", out database);
                 return string.IsNullOrWhiteSpace(nome) ? null : nome;
             }

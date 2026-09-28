@@ -396,6 +396,10 @@ namespace Prove.Contratti
             SelectionMarksContract.RunAll();
             FormaSpellingContract.RunAll();
             Zc2110HelpersContract.RunAll();
+            StateChamferContract.RunAll();
+            Zc212DrawingContract.RunAll();
+            AssembliesZc212terContract.RunAll();
+            WeldmentConfigurationZc212terContract.RunAll();
             LanguageGateTests.All();
             IlLeggimiDiceQuantiSono();
 

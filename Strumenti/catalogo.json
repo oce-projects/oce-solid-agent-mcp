@@ -52,7 +52,7 @@
    "nome": "estrudi_profilo",
    "famiglia": "estrusioni",
    "sommario": "Una sagoma qualunque, data per contorni, estrusa: il modo generale di fare il primo corpo.",
-   "descrizione": "Estrude una SAGOMA QUALSIASI, data come elenco di vertici. E' l'operazione con cui si fa tutto quello che non e' un rettangolo o un cerchio: staffe sagomate, squadrette, fazzoletti, angolari, e i profili CAVI — tubolari, tubi, sezioni a C — che si fanno con DUE contorni, uno esterno e uno interno.\n\nIl primo contorno e' il bordo esterno; quelli dopo sono vuoti dentro di esso. Ogni contorno si chiude da solo: l'ultimo vertice si unisce al primo, non ripeterlo.\n\nSe la sagoma che ti serve ha un nome (una ruota dentata, un tubolare) guarda se esiste un'operazione dedicata: e' piu' facile da controllare per chi conferma, perche' mostra le quote invece di un elenco di punti.",
+   "descrizione": "Estrude una SAGOMA QUALSIASI, data come elenco di vertici. E' l'operazione con cui si fa tutto quello che non e' un rettangolo o un cerchio: staffe sagomate, squadrette, fazzoletti, angolari, e i profili CAVI — tubolari, tubi, sezioni a C — che si fanno con DUE contorni, uno esterno e uno interno.\n\nIl primo contorno e' il bordo esterno; quelli dopo sono vuoti dentro di esso. Ogni contorno si chiude da solo: l'ultimo vertice si unisce al primo, non ripeterlo.\n\nSe la sagoma che ti serve ha un nome (una ruota dentata, un tubolare) guarda se esiste un'operazione dedicata: e' piu' facile da controllare per chi conferma, perche' mostra le quote invece di un elenco di punti.\n\nThe result says whether the sketch is locked: true only when every segment of the sketch got its FIXED relation, counted again after the rebuild. It also carries «fixed_relations» (how many were added) and, when the sketch is not locked, «sketch_lock_note» with the reason.",
    "schema": {
     "type": "object",
     "properties": {
@@ -138,7 +138,7 @@
    "nome": "estrudi_sezione",
    "famiglia": "estrusioni",
    "sommario": "Una barra da sezione normalizzata (tubolare, tondo, angolare, U, T, piatto, esagono, asola) NON di carpenteria.",
-   "descrizione": "Estrude una sezione normalizzata — tubolare, tondo, tubo, angolare a L, profilato a U o a T, piatto, esagono, asola — e ottiene un CORPO SOLIDO con quella forma.\n\nNON E' L'OPERAZIONE DELLA CARPENTERIA. Per un elemento di telaio usa «membro_strutturale»: un corpo estruso ha la stessa forma di una barra, ma non e' un membro strutturale, quindi NON genera la distinta di taglio, non porta il nome del profilo, e non si lascia tagliare a 45 gradi agli incroci. Chi va in officina con un pezzo cosi' non ha l'elenco delle barre da tagliare.\n\nQuesta operazione serve quando la sezione NON e' un elemento di telaio: un distanziale ricavato da barra, una piastrina sagomata, un pezzo tornito da tondo, o un profilo che nella libreria aziendale non esiste.\n\nLe quote da dare cambiano con il tipo:\n• tubolare  larghezza, altezza, parete\n• tubo      diametro, parete\n• tondo     diametro\n• angolare / u / t   larghezza, altezza, spessore\n• piatto / asola     larghezza, altezza\n• esagono   chiave (l'apertura in chiave, non il diametro circoscritto)\n\n«lunghezza_mm» e' quanto e' lunga la barra: per un tubolare 80x80x5 lungo 1000 sono larghezza 80, altezza 80, parete 5, lunghezza 1000.\n\nGLI SPIGOLI SONO VIVI, e sul peso si vede. Un profilo commerciale ha gli angoli raggiati, quindi questa sezione pesa di piu': un tubolare 80x80x5 lungo 1000 viene 1.500.000 mm3 contro i circa 1.443.000 del profilo vero, cioe' il 4% in piu'. Per la forma non cambia niente; se il numero che ti serve e' il PESO, prendi il profilo dalla libreria con «membro_strutturale».\n\nL'ASOLA E' UN POLIGONO: le due estremita' sono 24 lati ciascuna, coi vertici sul cerchio circoscritto, cosi' che l'asola non sia mai piu' stretta del nominale. Esce larga lo 0,2% in piu' (20,043 per 20) e con lo 0,2% di area in piu'. Tondo e tubo sono cerchi veri.",
+   "descrizione": "Estrude una sezione normalizzata — tubolare, tondo, tubo, angolare a L, profilato a U o a T, piatto, esagono, asola — e ottiene un CORPO SOLIDO con quella forma.\n\nNON E' L'OPERAZIONE DELLA CARPENTERIA. Per un elemento di telaio usa «membro_strutturale»: un corpo estruso ha la stessa forma di una barra, ma non e' un membro strutturale, quindi NON genera la distinta di taglio, non porta il nome del profilo, e non si lascia tagliare a 45 gradi agli incroci. Chi va in officina con un pezzo cosi' non ha l'elenco delle barre da tagliare.\n\nQuesta operazione serve quando la sezione NON e' un elemento di telaio: un distanziale ricavato da barra, una piastrina sagomata, un pezzo tornito da tondo, o un profilo che nella libreria aziendale non esiste.\n\nLe quote da dare cambiano con il tipo:\n• tubolare  larghezza, altezza, parete\n• tubo      diametro, parete\n• tondo     diametro\n• angolare / u / t   larghezza, altezza, spessore\n• piatto / asola     larghezza, altezza\n• esagono   chiave (l'apertura in chiave, non il diametro circoscritto)\n\n«lunghezza_mm» e' quanto e' lunga la barra: per un tubolare 80x80x5 lungo 1000 sono larghezza 80, altezza 80, parete 5, lunghezza 1000.\n\nGLI SPIGOLI SONO VIVI, e sul peso si vede. Un profilo commerciale ha gli angoli raggiati, quindi questa sezione pesa di piu': un tubolare 80x80x5 lungo 1000 viene 1.500.000 mm3 contro i circa 1.443.000 del profilo vero, cioe' il 4% in piu'. Per la forma non cambia niente; se il numero che ti serve e' il PESO, prendi il profilo dalla libreria con «membro_strutturale».\n\nL'ASOLA E' UN POLIGONO: le due estremita' sono 24 lati ciascuna, coi vertici sul cerchio circoscritto, cosi' che l'asola non sia mai piu' stretta del nominale. Esce larga lo 0,2% in piu' (20,043 per 20) e con lo 0,2% di area in piu'. Tondo e tubo sono cerchi veri.\n\nThe result says whether the sketch is locked: true only when every segment of the sketch got its FIXED relation, counted again after the rebuild. It also carries «fixed_relations» (how many were added) and, when the sketch is not locked, «sketch_lock_note» with the reason.",
    "schema": {
     "type": "object",
     "properties": {
@@ -209,7 +209,7 @@
    "nome": "rivoluzione",
    "famiglia": "estrusioni",
    "sommario": "Un solido a simmetria di rotazione: boccole, distanziali, alberi a gradini, flange, pulegge, volantini.",
-   "descrizione": "Ruota un profilo attorno a un asse e ottiene un corpo a simmetria di rotazione. E' l'operazione per tutto cio' che si fa al tornio quando la forma VARIA lungo l'asse: alberi a gradini, boccole con gole, flange, pulegge. Per un cilindro costante bastano «estrudi_cerchio» o «estrudi_sezione», piu' semplici.\n\nIl profilo si da' con gli stessi CONTORNI di «estrudi_profilo»: il primo e' il bordo, i successivi sono vuoti.\n\nLA DIFFERENZA E' L'ASSE. Il profilo e' una MEZZA SEZIONE, vista di fianco come al tornio: sta tutto da un lato dell'asse, al piu' toccandolo. NON deve attraversarlo — un profilo che attraversa l'asse produce un solido che si autointerseca.\n\nEsempio, albero a gradini: diametro 30 per 40 mm, poi diametro 20 per altri 30, asse lungo y=0:\n  contorni: [[[0,0],[0,15],[40,15],[40,10],[70,10],[70,0]]]\n  asse: [[0,0],[70,0]]\nIl lato da (70,0) a (0,0), che chiude la spezzata, giace SULL'asse: e' il caso normale, non un errore.\n\nSolo il corpo pieno: per una parete sottile disegna il vuoto interno come secondo contorno.\n\nMI RIFIUTO SE L'ASSE NON STA SUL PIANO DEL PROFILO, e se il profilo ATTRAVERSA l'asse. Un profilo a cavallo dell'asse genera un solido che si compenetra con se stesso: SOLIDWORKS a volte lo fa lo stesso, e il pezzo che ne esce non e' quello che volevi.",
+   "descrizione": "Ruota un profilo attorno a un asse e ottiene un corpo a simmetria di rotazione. E' l'operazione per tutto cio' che si fa al tornio quando la forma VARIA lungo l'asse: alberi a gradini, boccole con gole, flange, pulegge. Per un cilindro costante bastano «estrudi_cerchio» o «estrudi_sezione», piu' semplici.\n\nIl profilo si da' con gli stessi CONTORNI di «estrudi_profilo»: il primo e' il bordo, i successivi sono vuoti.\n\nLA DIFFERENZA E' L'ASSE. Il profilo e' una MEZZA SEZIONE, vista di fianco come al tornio: sta tutto da un lato dell'asse, al piu' toccandolo. NON deve attraversarlo — un profilo che attraversa l'asse produce un solido che si autointerseca.\n\nEsempio, albero a gradini: diametro 30 per 40 mm, poi diametro 20 per altri 30, asse lungo y=0:\n  contorni: [[[0,0],[0,15],[40,15],[40,10],[70,10],[70,0]]]\n  asse: [[0,0],[70,0]]\nIl lato da (70,0) a (0,0), che chiude la spezzata, giace SULL'asse: e' il caso normale, non un errore.\n\nSolo il corpo pieno: per una parete sottile disegna il vuoto interno come secondo contorno.\n\nMI RIFIUTO SE L'ASSE NON STA SUL PIANO DEL PROFILO, e se il profilo ATTRAVERSA l'asse. Un profilo a cavallo dell'asse genera un solido che si compenetra con se stesso: SOLIDWORKS a volte lo fa lo stesso, e il pezzo che ne esce non e' quello che volevi.\n\nThe result says whether the sketch is locked: true only when every segment of the sketch got its FIXED relation, counted again after the rebuild. It also carries «fixed_relations» (how many were added) and, when the sketch is not locked, «sketch_lock_note» with the reason.",
    "schema": {
     "type": "object",
     "properties": {
@@ -257,7 +257,7 @@
    "nome": "ruota_dentata",
    "famiglia": "estrusioni",
    "sommario": "Una ruota dentata a evolvente, con foro e cava per linguetta.",
-   "descrizione": "Crea una RUOTA DENTATA cilindrica a denti dritti, dal numero di denti e dal modulo. Il profilo del dente e' a evolvente e lo calcolo io: tu dai solo i dati di progetto.\n\nCon foro_mm si ottiene anche il foro centrale.\n\nIL LIMITE: sotto 17 denti (con l'angolo di pressione standard di 20 gradi) rifiuto, perche' servirebbe la correzione di profilo contro l'intaglio del piede e non la so fare. E' un limite mio, non della meccanica: con un angolo di pressione maggiore il minimo scende (25 gradi: 11 denti).",
+   "descrizione": "Crea una RUOTA DENTATA cilindrica a denti dritti, dal numero di denti e dal modulo. Il profilo del dente e' a evolvente e lo calcolo io: tu dai solo i dati di progetto.\n\nCon foro_mm si ottiene anche il foro centrale.\n\nIL LIMITE: sotto 17 denti (con l'angolo di pressione standard di 20 gradi) rifiuto, perche' servirebbe la correzione di profilo contro l'intaglio del piede e non la so fare. E' un limite mio, non della meccanica: con un angolo di pressione maggiore il minimo scende (25 gradi: 11 denti).\n\nThe result says whether the sketch is locked: true only when every segment of the sketch got its FIXED relation, counted again after the rebuild. It also carries «fixed_relations» (how many were added) and, when the sketch is not locked, «sketch_lock_note» with the reason.",
    "schema": {
     "type": "object",
     "properties": {
@@ -999,7 +999,7 @@
    "nome": "raccordo_spigoli",
    "famiglia": "lavorazioni",
    "sommario": "Raccordo a raggio costante su uno o piu' spigoli.",
-   "descrizione": "Arrotonda uno o piu' spigoli con lo stesso raggio. Gli spigoli si indicano con gli identificativi presi dallo stato del documento.\n\nSe fra la lettura dello stato e adesso gli spigoli hanno cambiato numero (un foro fatto prima li rinumera), li ritrovo per firma: stessa lunghezza nello stesso punto, e lo dico nella risposta. MI RIFIUTO se lo spigolo che avevi visto non c'e' piu' com'era — accorciato, spezzato — invece di prendere il piu' vicino, e se il raggio non ci sta in meta' dello spigolo.",
+   "descrizione": "Arrotonda uno o piu' spigoli con lo stesso raggio. Gli spigoli si indicano con gli identificativi presi dallo stato del documento.\n\nSe fra la lettura dello stato e adesso gli spigoli hanno cambiato numero (un foro fatto prima li rinumera), li ritrovo per firma: stessa lunghezza nello stesso punto, e lo dico nella risposta. MI RIFIUTO se lo spigolo che avevi visto non c'e' piu' com'era — accorciato, spezzato — invece di prendere il piu' vicino, e se il raggio non ci sta in meta' dello spigolo.\n\nThe fillet follows tangent edges: one selected edge can round a whole loop (a rounded block: 1 edge selected, 8 faces made). The document state says so for every fillet: «selected_edges» is how many edges were selected, «faces» how many faces the fillet made.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1319,7 +1319,7 @@
    "nome": "smusso_spigoli",
    "famiglia": "lavorazioni",
    "sommario": "Smussa uno o piu' spigoli: bava, invito di montaggio, cianfrino da saldare.",
-   "descrizione": "Smusso su uno o piu' spigoli. E' il gemello di «raccordo_spigoli» e si indica allo stesso modo.\n\nPredefinito 45 gradi, che e' lo smusso di gran lunga piu' comune. Per uno smusso non simmetrico — un cianfrino di saldatura, un invito che deve entrare in una sede — metti «secondo_lato_mm» e l'angolo viene ignorato.\n\nSmusso o raccordo non e' una preferenza estetica: uno smusso si fa con una fresa o una lima, un raccordo vuole un utensile di raggio. Se l'utente dice «smussa», non arrotondare.\n\nMI RIFIUTO SE LO SMUSSO E' TROPPO GRANDE PER LO SPIGOLO -- non ci sta nemmeno meta'. Un valore oltre il limite non da' sempre errore: a volte esce una geometria degenere che passa il ricalcolo.",
+   "descrizione": "Smusso su uno o piu' spigoli. E' il gemello di «raccordo_spigoli» e si indica allo stesso modo.\n\nPredefinito 45 gradi, che e' lo smusso di gran lunga piu' comune. Per uno smusso non simmetrico — un cianfrino di saldatura, un invito che deve entrare in una sede — metti «secondo_lato_mm» e l'angolo viene ignorato.\n\nSmusso o raccordo non e' una preferenza estetica: uno smusso si fa con una fresa o una lima, un raccordo vuole un utensile di raggio. Se l'utente dice «smussa», non arrotondare.\n\nMI RIFIUTO SE LO SMUSSO E' TROPPO GRANDE PER LO SPIGOLO -- non ci sta nemmeno meta'. Un valore oltre il limite non da' sempre errore: a volte esce una geometria degenere che passa il ricalcolo.\n\nThe chamfer follows tangent edges like the fillet. The document state lists each chamfer with «selected_edges» and «faces», and its sizes by type: angle-distance «lato1_mm» + «angolo_gradi», distance-distance «lato1_mm» + «lato2_mm», and a vertex chamfer (made by hand) «vertex_distances_mm», its three distances along the corner's edges.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1727,7 +1727,7 @@
    "nome": "applica_materiale",
    "famiglia": "proprieta",
    "sommario": "Assegna il materiale al pezzo: senza, non c'e' peso ne' distinta utile.",
-   "descrizione": "Assegna il materiale al pezzo. VA FATTO SEMPRE, su ogni pezzo che disegni: senza materiale non c'e' densita', senza densita' non c'e' peso, e la distinta di taglio esce con la colonna del materiale vuota — cioe' non serve a comprare l'acciaio.\n\nScrivi il nome come lo direbbe un progettista («S235JR», «AISI 304», «Lega 6061»): la grafia esatta la trova la postazione, che ha le librerie vere. Se il nome corrisponde a piu' materiali o a nessuno, l'operazione fallisce elencandoti quelli che ci sono, e allora si chiede all'utente: fra 1.0037 e 1.0116 non si sceglie a caso.\n\nSE NON DICI IL MATERIALE uso «S235JR», che e' quello che questa officina lavora salvo avviso contrario, e te lo scrivo nella risposta: cosi' sai che l'ho scelto io e non tu.",
+   "descrizione": "Assegna il materiale al pezzo. VA FATTO SEMPRE, su ogni pezzo che disegni: senza materiale non c'e' densita', senza densita' non c'e' peso, e la distinta di taglio esce con la colonna del materiale vuota — cioe' non serve a comprare l'acciaio.\n\nScrivi il nome come lo direbbe un progettista («S235JR», «AISI 304», «Lega 6061»): la grafia esatta la trova la postazione, che ha le librerie vere. Se il nome corrisponde a piu' materiali o a nessuno, l'operazione fallisce elencandoti quelli che ci sono, e allora si chiede all'utente: fra 1.0037 e 1.0116 non si sceglie a caso.\n\nSE NON DICI IL MATERIALE uso «S235JR», che e' quello che questa officina lavora salvo avviso contrario, e te lo scrivo nella risposta: cosi' sai che l'ho scelto io e non tu.\n\nThe material goes on EVERY configuration of the part, each one set and read back by its own name (measured: the empty configuration name reaches only the active configuration and the ones derived from it). The answer lists them in «configurations»; I refuse the step, naming them, if any configuration does not take the material.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1936,7 +1936,7 @@
    "nome": "membro_strutturale",
    "famiglia": "saldature",
    "sommario": "Barre vere di carpenteria lungo i segmenti che dai: e' cio' che genera la distinta di taglio.",
-   "descrizione": "Crea una o piu' BARRE di un telaio saldato: membri strutturali veri, con il profilo preso dalla libreria dell'azienda.\n\nE' L'OPERAZIONE DA USARE PER TUTTO CIO' CHE E' CARPENTERIA: tubolari, angolari, piatti, IPE, HEA, HEB, UPN, UPE, profilati a U e a T — sia una barra sola sia un telaio intero.\n\nPerche' non basta estrudere una sezione: solo il membro strutturale genera la DISTINTA DI TAGLIO, porta il nome del profilo, e si lascia tagliare a 45 gradi agli incroci. Una barra estrusa ha la stessa forma e non serve a fare il pezzo.\n\nPRIMA CHIAMA «profili_saldatura» e copia da li' «profilo_percorso» e «configurazione» alla lettera. Non comporre il nome della misura: la libreria non e' uniforme e un nome inventato fa usare a SolidWorks un'altra misura, senza errore.\n\nI segmenti sono le linee lungo cui corrono le barre, in coordinate del modello in mm. Una barra dritta lunga 200 sull'asse X e' un segmento solo: da [0,0,0] a [200,0,0]. Un telaio rettangolare sono quattro segmenti che si chiudono.\n\nIf the weldment profile library is still open and modified in SOLIDWORKS after the insertion, the answer carries «profile_library_warning»: close that library without saving, or a Ctrl+S would rewrite the shared library.",
+   "descrizione": "Crea una o piu' BARRE di un telaio saldato: membri strutturali veri, con il profilo preso dalla libreria dell'azienda.\n\nE' L'OPERAZIONE DA USARE PER TUTTO CIO' CHE E' CARPENTERIA: tubolari, angolari, piatti, IPE, HEA, HEB, UPN, UPE, profilati a U e a T — sia una barra sola sia un telaio intero.\n\nPerche' non basta estrudere una sezione: solo il membro strutturale genera la DISTINTA DI TAGLIO, porta il nome del profilo, e si lascia tagliare a 45 gradi agli incroci. Una barra estrusa ha la stessa forma e non serve a fare il pezzo.\n\nPRIMA CHIAMA «profili_saldatura» e copia da li' «profilo_percorso» e «configurazione» alla lettera. Non comporre il nome della misura: la libreria non e' uniforme e un nome inventato fa usare a SolidWorks un'altra misura, senza errore.\n\nI segmenti sono le linee lungo cui corrono le barre, in coordinate del modello in mm. Una barra dritta lunga 200 sull'asse X e' un segmento solo: da [0,0,0] a [200,0,0]. Un telaio rettangolare sono quattro segmenti che si chiudono.\n\nIf the weldment profile library is still open and modified in SOLIDWORKS after the insertion, the answer carries «profile_library_warning»: close that library without saving, or a Ctrl+S would rewrite the shared library.\n\nI refuse an empty «configurazione» when the profile file has several sizes, and list them: with an empty size SOLIDWORKS builds the size the file was saved on (measured: the 20 x 20 of the four in iso\\square tube.sldlfp). An empty size is accepted only on a file with one size, and the answer says so in «configuration_note».",
    "schema": {
     "type": "object",
     "properties": {
@@ -1946,7 +1946,7 @@
      },
      "configurazione": {
       "type": "string",
-      "description": "la misura, copiata ALLA LETTERA da profili_saldatura (es. «80X80X5»: maiuscole e virgole comprese)"
+      "description": "la misura, copiata ALLA LETTERA da profili_saldatura (es. «80X80X5»: maiuscole e virgole comprese). Empty only for a profile file with one size."
      },
      "segmenti": {
       "type": "array",
@@ -1987,7 +1987,7 @@
        "testa1",
        "testa2"
       ],
-      "description": "come si incontrano fra loro le barre di QUESTO gruppo, DOVE SI TOCCANO. «quartabuono» e' il taglio a 45 gradi negli angoli (predefinito su un percorso chiuso); «testa1»/«testa2» e' una barra che va in battuta sull'altra; «nessuno» le lascia compenetrate e va detto solo se lo si vuole davvero.\n\nNON taglia le estremita' LIBERE. Su una barra sola, o sui due capi di un telaio aperto, non c'e' niente contro cui tagliare e questo parametro non ha effetto."
+      "description": "come si incontrano fra loro le barre di QUESTO gruppo, DOVE SI TOCCANO. «quartabuono» e' il taglio a 45 gradi negli angoli (default: quartabuono, the 45 degree miter, wherever the bars of this group touch, closed or open path; the answer says it was the default in «corner_treatment_note»); «testa1»/«testa2» e' una barra che va in battuta sull'altra; «nessuno» le lascia compenetrate e va detto solo se lo si vuole davvero.\n\nNON taglia le estremita' LIBERE. Su una barra sola, o sui due capi di un telaio aperto, non c'e' niente contro cui tagliare e questo parametro non ha effetto."
      },
      "gioco_mm": {
       "type": "number",
@@ -2008,7 +2008,7 @@
    "nome": "taglia_membri",
    "famiglia": "saldature",
    "sommario": "Taglia o estende le barre dove si incontrano.",
-   "descrizione": "Taglia le barre dove si incontrano, o le estende fino a toccarsi. E' il «taglia/estendi» della barra di saldature.\n\nServe quando due gruppi di barre si incrociano e non sono stati trattati agli angoli: senza, i corpi restano compenetrati e la distinta di taglio riporta lunghezze che in officina non tornano.\n\nTi torno di quanto e' cambiato il volume (negativo = tolto). Se il pezzo non cambia, rifiuto: vuol dire che le barre non si incontrano, e un taglio che non taglia niente non te lo confermo.",
+   "descrizione": "Taglia le barre dove si incontrano, o le estende fino a toccarsi. E' il «taglia/estendi» della barra di saldature.\n\nServe quando due gruppi di barre si incrociano e non sono stati trattati agli angoli: senza, i corpi restano compenetrati e la distinta di taglio riporta lunghezze che in officina non tornano.\n\nTi torno di quanto e' cambiato il volume (negativo = tolto). Se il pezzo non cambia, rifiuto: vuol dire che le barre non si incontrano, e un taglio che non taglia niente non te lo confermo.\n\nA bar that stops short of the other one is extended to its face (measured: a bar 20 mm short grows by 20 mm, Options 1|2|8); a bar that enters the other is cut at its face as before. The coped cut is not used.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2155,7 +2155,8 @@
       "type": "string"
      },
      "configurazione": {
-      "type": "string"
+      "type": "string",
+      "description": "the profile size, copied from profili_saldatura. Empty is accepted only on a profile file with one size; with several sizes it is refused, and the sizes are listed."
      },
      "lunghezza_mm": {
       "type": "number",
@@ -2182,7 +2183,7 @@
        "testa2",
        "nessuno"
       ],
-      "description": "predefinito: quartabuono, cioe' 45 gradi"
+      "description": "default: quartabuono (45 degree miter); the answer says when it was the default («corner_treatment_note»)"
      },
      "rotazione_gradi": {
       "type": "number"
@@ -2306,13 +2307,13 @@
    "nome": "quote_dal_modello",
    "famiglia": "tavola",
    "sommario": "Porta in tavola le quote che il pezzo ha gia'.",
-   "descrizione": "Prende le quote dal MODELLO e le mette sulle viste.\n\nFUORI PROCESSO, SU QUESTA INSTALLAZIONE, NON PORTA NIENTE: misurato il 18/9/2026 su un pezzo con sette quote tutte marcate per il disegno, cinque strade di import, zero quote in tavola. In processo, dentro un add-in, l'11/9/2026 ne erano arrivate undici — mai rimisurato. Per mettere quote in tavola da qui c'e' «quota_in_tavola», che le CREA sugli spigoli che la vista mostra.\n\nSE NON ARRIVA NIENTE NON VUOL DIRE che il pezzo non ha quote: fuori processo e' il risultato normale. Prima di concludere che il pezzo va riquotato, guarda nello stato del pezzo se le sue lavorazioni hanno quote.\n\nPerche' esiste lo stesso: una quota che viene dal modello non puo' portare un numero diverso dalla geometria, mentre l'API di SolidWorks permette di scrivere in tavola un testo che la geometria non ha.\n\nDi serie arrivano solo le quote MARCATE per il disegno, cioe' quelle scelte per essere mostrate: con «tutte_le_quote» arrivano anche le altre, e la tavola diventa parecchio piu' fitta.\n\nMI RIFIUTO se la tavola non ha viste (le quote non avrebbero dove attaccarsi) e se non arriva nessuna quota: te lo dico con quante il pezzo ne ha marcate, invece di rispondere «fatto».",
+   "descrizione": "Prende le quote dal MODELLO e le mette sulle viste.\n\nThe import works from this bridge, out of process: measured on 26/9/2026 (7 dimensions on a plate) and again on 28/9/2026. To put on the drawing a dimension the model does not have, «quota_in_tavola» CREATES it on the edges the view shows.\n\nEach model dimension comes in once: I ask SOLIDWORKS to eliminate duplicates (DuplicateDims true), so a dimension already shown in one view is not repeated in another (measured: 4 dimensions on a plate that got 7 before).\n\nPerche' esiste lo stesso: una quota che viene dal modello non puo' portare un numero diverso dalla geometria, mentre l'API di SolidWorks permette di scrivere in tavola un testo che la geometria non ha.\n\nDi serie arrivano solo le quote MARCATE per il disegno, cioe' quelle scelte per essere mostrate: con «tutte_le_quote» arrivano anche le altre, e la tavola diventa parecchio piu' fitta.\n\nBy default only the dimensions MARKED for drawing come in, fallbacks included. If the part has dimensions and none is marked, I refuse and say so: pass tutte_le_quote=true to import them all, or mark on the model the ones the drawing must show.\n\nMI RIFIUTO se la tavola non ha viste (le quote non avrebbero dove attaccarsi) e se non arriva nessuna quota: te lo dico con quante il pezzo ne ha marcate, invece di rispondere «fatto».",
    "schema": {
     "type": "object",
     "properties": {
      "tutte_le_quote": {
       "type": "boolean",
-      "description": "anche le quote non marcate per il disegno. Rende la tavola piu' fitta: usalo quando quelle marcate non bastano."
+      "description": "anche le quote non marcate per il disegno. Rende la tavola piu' fitta: usalo quando quelle marcate non bastano. Without it, a part where no dimension is marked for drawing is refused, not imported."
      },
      "callout_fori": {
       "type": "boolean",
@@ -2538,7 +2539,7 @@
    "nome": "distinta_base_in_tavola",
    "famiglia": "tavola",
    "sommario": "La distinta base di un assieme in tavola, confrontata coi componenti dell'assieme.",
-   "descrizione": "Mette in tavola la DISTINTA BASE dell'assieme che sta dietro una vista: numero di voce, componente, quantita'. Di serie il primo livello; «solo_parti» o «indentata» per le altre.\n\nLA CONFRONTO: l'assieme sa per conto suo quali componenti ha e quanti; le voci e la somma delle quantita' devono combaciare. Se non combaciano la tolgo e te lo dico.\n\nPoi la misuro e la metto in un posto libero del foglio, fuori dalle viste e dal cartiglio.\n\nMI RIFIUTO se dietro la vista non c'e' un assieme (per un saldato c'e' «distinta_taglio_in_tavola») o se sul foglio non c'e' posto.",
+   "descrizione": "Mette in tavola la DISTINTA BASE dell'assieme che sta dietro una vista: numero di voce, componente, quantita'. Di serie il primo livello; «solo_parti» o «indentata» per le altre.\n\nLA CONFRONTO: l'assieme sa per conto suo quali componenti ha e quanti; le voci e la somma delle quantita' devono combaciare. Se non combaciano la tolgo e te lo dico.\n\nPoi la misuro e la metto in un posto libero del foglio, fuori dalle viste e dal cartiglio.\n\nMI RIFIUTO se dietro la vista non c'e' un assieme (per un saldato c'e' «distinta_taglio_in_tavola») o se sul foglio non c'e' posto.\n\nThe count on the assembly side follows how each sub-assembly shows its children in the BOM (ChildComponentDisplayInBOM): in a top-level table a sub-assembly that promotes its children is replaced by them; in a parts-only table a sub-assembly that hides its children is one item. The indented table counts every part.",
    "schema": {
     "type": "object",
     "properties": {
@@ -3110,7 +3111,7 @@
    "nome": "dipendenze",
    "famiglia": "verifiche",
    "sommario": "Da quali file dipende il documento, e quali mancano sul disco. Non tocca niente.",
-   "descrizione": "Un assieme (o una tavola) e' un grafo di file sul disco: ti dico da quali file dipende, a tutti i livelli, e per ognuno se c'e'. Un file che manca e' un componente che l'assieme mostra SOPPRESSO: prima di misurare o esportare va ritrovato o sostituito.\n\nSe manca lo dice il disco, non l'API: il parametro che promette di segnare i riferimenti rotti non li segna (misurato).",
+   "descrizione": "Un assieme (o una tavola) e' un grafo di file sul disco: ti dico da quali file dipende, a tutti i livelli, e per ognuno se c'e'. Un file che manca e' un componente che l'assieme mostra SOPPRESSO: prima di misurare o esportare va ritrovato o sostituito.\n\nSe manca lo dice il disco, non l'API: il parametro che promette di segnare i riferimenti rotti non li segna (misurato).\n\nThe paths are where each file was last saved (GetDependencies with Searchflag false): with the search rules, a component that is not loaded could come back as another file with the same name found in another folder, which exists, and a missing file would not be reported (measured, L12-8).",
    "schema": {
     "type": "object",
     "properties": {},
@@ -3364,7 +3365,7 @@
    "nome": "misura_fra_entita",
    "famiglia": "verifiche",
    "sommario": "Lo strumento di misura: area, perimetro, distanza, angolo, parallelismo fra una o due entita'.",
-   "descrizione": "Misura UNA faccia o uno spigolo -- area, perimetro, lunghezza, raggio -- oppure DUE, e allora dice anche distanza, differenze sui tre assi, angolo, se sono parallele o perpendicolari.\n\nE' lo stesso strumento di misura che si usa a mano in SOLIDWORKS. Per la sola distanza minima fra due cose, «distanza_minima» e' piu' robusta: controlla il risultato coi punti.\n\nQuello che non si applica non torna: il perimetro di una faccia che non ne ha, il raggio di un piano. SOLIDWORKS li darebbe come -1, che e' un numero e non lo e'.",
+   "descrizione": "Misura UNA faccia o uno spigolo -- area, perimetro, lunghezza, raggio -- oppure DUE, e allora dice anche distanza, differenze sui tre assi, angolo, se sono parallele o perpendicolari.\n\nE' lo stesso strumento di misura che si usa a mano in SOLIDWORKS. Per la sola distanza minima fra due cose, «distanza_minima» e' piu' robusta: controlla il risultato coi punti.\n\nQuello che non si applica non torna: il perimetro di una faccia che non ne ha, il raggio di un piano. SOLIDWORKS li darebbe come -1, che e' un numero e non lo e'.\n\nA distance to an arc or a circle is taken as «arc_measure» says: centre to centre (the default), between the nearest points or between the farthest points. The result says which one was used («arc_measure», read back from SOLIDWORKS) and «projection»: none. Measured on two holes D10 and D20 at 50 mm centres: centre 50, minimum 35 (the wall between them), maximum 65. I refuse any other value of «arc_measure».",
    "schema": {
     "type": "object",
     "properties": {
@@ -3375,6 +3376,15 @@
      "uid2": {
       "type": "string",
       "description": "la seconda, se vuoi misurare FRA due cose."
+     },
+     "arc_measure": {
+      "type": "string",
+      "enum": [
+       "centre",
+       "minimum",
+       "maximum"
+      ],
+      "description": "how a distance to an arc or a circle is taken: centre = centre to centre (the default), minimum = between the nearest points, maximum = between the farthest points. The distance between the centres is always given too, centre to centre."
      }
     },
     "required": [
@@ -3424,7 +3434,7 @@
    "nome": "esporta_step",
    "famiglia": "esportazioni",
    "sommario": "Scrive lo STEP per chi deve lavorare il pezzo, e rilegge dal file quale protocollo e' uscito davvero.",
-   "descrizione": "Scrive il pezzo come STEP: e' il formato con cui si manda un pezzo a un fornitore, a un cliente, o lo si porta in un altro CAD.\n\nA differenza dello STL NON SI RIFIUTA se il pezzo ha piu' corpi o delle superfici: uno STEP li porta, e un saldato si manda al fornitore proprio cosi'. La verifica gira lo stesso e il suo giudizio torna nella risposta, cosi' sai com'era il pezzo che hai mandato.\n\nDOPO AVER SCRITTO RILEGGE IL FILE e dice quale protocollo e' uscito DAVVERO, non quale hai chiesto: il valore che governa la cosa e' un numero senza nome nell'API, e l'unica prova e' il FILE_SCHEMA scritto dentro il file. Se non combacia, fallisce -- certi fornitori accettano solo l'AP203.\n\nCon «riapri_e_confronta» il file viene riaperto in SOLIDWORKS e il suo volume confrontato col pezzo: e' l'unica misura che dice che la GEOMETRIA e' sopravvissuta alla traduzione. Costa un'apertura di documento, quindi non e' il predefinito.\n\nANCHE UN ASSIEME: lo scrivo intero e conto i solidi nel file contro quelli dei pezzi non soppressi. «riapri_e_confronta» su un assieme lo rifiuto: rileggere lo STEP di un assieme apre una finestra e la chiamata non torna.",
+   "descrizione": "Scrive il pezzo come STEP: e' il formato con cui si manda un pezzo a un fornitore, a un cliente, o lo si porta in un altro CAD.\n\nA differenza dello STL NON SI RIFIUTA se il pezzo ha piu' corpi o delle superfici: uno STEP li porta, e un saldato si manda al fornitore proprio cosi'. La verifica gira lo stesso e il suo giudizio torna nella risposta, cosi' sai com'era il pezzo che hai mandato.\n\nDOPO AVER SCRITTO RILEGGE IL FILE e dice quale protocollo e' uscito DAVVERO, non quale hai chiesto: il valore che governa la cosa e' un numero senza nome nell'API, e l'unica prova e' il FILE_SCHEMA scritto dentro il file. Se non combacia, fallisce -- certi fornitori accettano solo l'AP203.\n\nCon «riapri_e_confronta» il file viene riaperto in SOLIDWORKS e il suo volume confrontato col pezzo: e' l'unica misura che dice che la GEOMETRIA e' sopravvissuta alla traduzione. Costa un'apertura di documento, quindi non e' il predefinito.\n\nANCHE UN ASSIEME: lo scrivo intero e conto i solidi nel file contro quelli dei pezzi non soppressi. «riapri_e_confronta» su un assieme lo rifiuto: rileggere lo STEP di un assieme apre una finestra e la chiamata non torna. An instance changed in the assembly (a cut: user bodies in GetBodies3's BodiesInfo) is a shape of its own and counts all its bodies; the other instances count once per file and configuration.",
    "schema": {
     "type": "object",
     "properties": {
@@ -3558,13 +3568,23 @@
    "nome": "specchia_componente",
    "famiglia": "assiemi",
    "sommario": "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
-   "descrizione": "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). DEVI SCEGLIERE COME, perche' sono tre pezzi diversi:\n- «istanza»: lo stesso file, specchiato. Giusto per un pezzo simmetrico.\n- «opposto_legato»: un file nuovo che SEGUE l'originale. Cambi la destra e cambia anche la sinistra.\n- «opposto_slegato»: un file nuovo INDIPENDENTE. Correggi la destra e la sinistra resta com'era, senza che niente te lo dica.\n\nDopo lo verifico: il centro del pezzo nuovo contro lo specchio del centro dell'originale, e per gli opposti l'albero del file nuovo (legato o no). Il file nuovo prende il nome dell'originale col «suffisso» (predefinito «_spec»), nella stessa cartella.\n\nMI RIFIUTO se non mi dici «modo» (ti spiego i tre), se il piano non e' uno dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono).",
+   "descrizione": "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). DEVI SCEGLIERE COME, perche' sono tre pezzi diversi:\n- «istanza»: lo stesso file, specchiato. Giusto per un pezzo simmetrico.\n- «opposto_legato»: un file nuovo che SEGUE l'originale. Cambi la destra e cambia anche la sinistra.\n- «opposto_slegato»: un file nuovo INDIPENDENTE. Correggi la destra e la sinistra resta com'era, senza che niente te lo dica.\n\nDopo lo verifico: il centro del pezzo nuovo contro lo specchio del centro dell'originale, e per gli opposti l'albero del file nuovo (legato o no). Il file nuovo prende il nome dell'originale col «suffisso» (predefinito «_spec»), nella stessa cartella.\n\nMI RIFIUTO se non mi dici «modo» (ti spiego i tre), se il piano non e' uno dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono).\n\nFor an instance of the same file the orientation of the new instance is SET («orientation», default mirrored_x_mirrored_y) and then CHECKED on the axes of the instance (Transform2): the centre is the same in all four orientations and cannot tell them apart. The answer carries «orientation» and «new_axes» (x, y, z unit vectors). «orientation» with an opposite-hand mode is refused, and so is a value that is not one of the four.",
    "schema": {
     "type": "object",
     "properties": {
      "componente": {
       "type": "string",
       "description": "l'identificativo del componente, dallo stato: «C1», «C2», ..."
+     },
+     "orientation": {
+      "type": "string",
+      "enum": [
+       "mirrored_x_mirrored_y",
+       "mirrored_and_flipped_x_mirrored_y",
+       "mirrored_x_mirrored_and_flipped_y",
+       "mirrored_and_flipped_x_mirrored_and_flipped_y"
+      ],
+      "description": "only for an instance of the same file: how the new instance is turned, as SOLIDWORKS names it (swMirrorComponentOrientation2_e). Default mirrored_x_mirrored_y, the SOLIDWORKS default. Refused with an opposite-hand mode."
      },
      "piano": {
       "type": "string",
@@ -3780,7 +3800,7 @@
    "nome": "immagine_nello_schizzo",
    "famiglia": "riferimenti",
    "sommario": "Mette una foto o uno schizzo a mano, in scala, su un piano: da ricalcare.",
-   "descrizione": "Mette un'immagine (una foto del pezzo, uno schizzo con le quote a penna) in uno schizzo su un piano, IN SCALA: tu mi dici quanto e' larga davvero tutta l'immagine («larghezza_mm» — una misura nota divisa per i suoi pixel, per la larghezza dell'immagine) e dove va l'angolo in basso a sinistra. Poi ricalchi sullo stesso piano con le operazioni di schizzo.\n\nLA SCALA LA VERIFICO: il primo e l'ultimo pixel della prima riga, nello schizzo, devono distare quanto dicono i millimetri per pixel, entro l'1%. Ti rispondo la regola per passare da un pixel ai millimetri.\n\nMI RIFIUTO per un PDF (non entra: convertilo in PNG), per un file che non c'e' o non e' un'immagine, e per una larghezza non positiva.",
+   "descrizione": "Mette un'immagine (una foto del pezzo, uno schizzo con le quote a penna) in uno schizzo su un piano, IN SCALA: tu mi dici quanto e' larga davvero tutta l'immagine («larghezza_mm» — una misura nota divisa per i suoi pixel, per la larghezza dell'immagine) e dove va l'angolo in basso a sinistra. Poi ricalchi sullo stesso piano con le operazioni di schizzo.\n\nLA SCALA LA VERIFICO: il primo e l'ultimo pixel della prima riga, nello schizzo, devono distare quanto dicono i millimetri per pixel, entro l'1%. Ti rispondo la regola per passare da un pixel ai millimetri.\n\nMI RIFIUTO per un PDF (non entra: convertilo in PNG), per un file che non c'e' o non e' un'immagine, e per una larghezza non positiva.\n\nOver 2048 px SOLIDWORKS compresses the picture in a part, even with HighestResolution (measured: 4096 x 2048 is held as 2048 x 1024). «pixel» and «mm_per_pixel» are the FILE's, the pixels you count in the image: the scale is «larghezza_mm» divided by the FILE's pixel width. «solidworks_pixels» is the map SOLIDWORKS holds, and «compression» says when the two differ. I also refuse when the file's pixel size cannot be read and SOLIDWORKS holds 2048 px or more on a side, and when the picture SOLIDWORKS holds does not have the file's shape.",
    "schema": {
     "type": "object",
     "properties": {

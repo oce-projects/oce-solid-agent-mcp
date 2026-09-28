@@ -188,8 +188,13 @@ namespace Prove.Contratti
         /// lavorazione che non e' una «Rib» nomina «estrudi_su_faccia»; il
         /// fazzoletto nato di un tipo diverso da «Gusset» nomina lati piu' corti e
         /// «cordone_saldatura».
+        /// **217, Z-C21.2-ter:** +1, and it is the detector, not a better message:
+        /// the new refusal of «specchia_componente» for a mirror born with the wrong
+        /// orientation ends with the call that removes the mirror, and the name of
+        /// that helper holds a remedy word, like the other refusals of that file
+        /// that remove it.
         /// </summary>
-        private const int Pavimento = 216;
+        private const int Pavimento = 217;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

@@ -311,6 +311,41 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// Whether an EMPTY profile size can be passed to
+        /// InsertStructuralWeldment5 (Z-C21.3, finding N25): null when it can,
+        /// otherwise the refusal. <paramref name="sizes"/> is what
+        /// ISldWorks.GetConfigurationNames returned for the profile file (null
+        /// when it could not be read, <paramref name="whyUnread"/> then says
+        /// why). The guide gives the empty string for a SOLIDWORKS-supplied
+        /// profile; the Z-C21.3 probe measured that on a file with several
+        /// sizes it builds the size the file was saved on (the 20 x 20 of the
+        /// four in the 2021 «iso\square tube.sldlfp»), so it is accepted only
+        /// when the file has ONE size. Pure, no interop in the signature: the
+        /// contract group WeldmentConfigurationZc212terContract calls it by
+        /// reflection, since no bench case can build a one-size profile that
+        /// is known to exist on every station.
+        /// </summary>
+        internal static string EmptyProfileSizeRefusal(string fileName, string[] sizes, string whyUnread)
+        {
+            if (sizes == null || sizes.Length == 0)
+                return "The profile size («configurazione») is empty, and I cannot read " +
+                       "the sizes of «" + fileName + "»" +
+                       (whyUnread == null ? "" : " (" + whyUnread + ")") + ". An empty size " +
+                       "is only safe on a file with one size: on a file with several, " +
+                       "SOLIDWORKS builds the size the file was saved on, without an error. " +
+                       "Write the size in «configurazione», copied from «profili_saldatura».";
+            if (sizes.Length > 1)
+                return "The profile size («configurazione») is empty, and «" + fileName +
+                       "» has " + sizes.Length + " sizes: " + string.Join(", ", sizes.Take(12)) +
+                       (sizes.Length > 12 ? " and " + (sizes.Length - 12) + " more" : "") +
+                       ". With an empty size SOLIDWORKS " +
+                       "does not refuse: it builds the size the file was saved on (measured: " +
+                       "the 20 x 20 of the four in «square tube»), whatever size you meant. " +
+                       "Write one of them in «configurazione», exactly as listed.";
+            return null;
+        }
+
+        /// <summary>
         /// The body of <see cref="MembroStrutturale"/>, which closes the
         /// profile library on the way out: nothing in here closes it.
         /// </summary>
@@ -320,8 +355,12 @@ namespace Riscontro.Disegno
             string configurazione = Str(a, "configurazione", "");
             if (string.IsNullOrWhiteSpace(profilo))
                 return Fallito("Manca il percorso del profilo di saldatura.");
-            if (string.IsNullOrWhiteSpace(configurazione))
-                return Fallito("Manca la misura (configurazione) del profilo.");
+            // An empty size is no longer refused here (Z-C21.3, finding N25):
+            // the guide gives the empty string as THE value for a
+            // SOLIDWORKS-supplied profile, and whether it can be accepted
+            // depends on how many sizes the file has — decided below, after
+            // the file is known to exist.
+            if (string.IsNullOrWhiteSpace(configurazione)) configurazione = "";
 
             // IL CONTROLLO CHE IL SERVER NON PUO' FARE.
             //
@@ -342,7 +381,39 @@ namespace Riscontro.Disegno
             // profilo. Il pezzo esce con una parete diversa da quella
             // confermata, il rebuild e' pulito, e nessuno se ne accorge fino
             // all'officina.
-            try
+            //
+            // THE EMPTY SIZE (Z-C21.3, finding N25). IFeatureManager~
+            // InsertStructuralWeldment5.html, Remarks: «If using ...
+            // SOLIDWORKS-supplied weldment profile -> Then specify
+            // ConfigurationName as ... Empty string; Custom weldment profile ->
+            // Name of the configuration in the custom weldment profile». Until
+            // library 0.141.0 an empty size was refused outright. The Z-C21.3
+            // probe of the member group (28/9/2026, variants N7-N9) measured
+            // that the empty string WORKS — the member is born — but on
+            // a file with several sizes it builds the size the file was saved
+            // on, which is the danger this block exists for: the SOLIDWORKS 2021
+            // «iso\square tube.sldlfp» has four sizes (20 x 20 x 2 ... 80 x 80 x
+            // 5), and "" gave the 20 x 20 section (N7); the company library with
+            // "" gave a 50 x 50 section (N9). So the empty size is accepted when
+            // the file has ONE size (the guide's case: one file per size,
+            // nothing to choose), and refused with the sizes listed when it has
+            // several, or when they cannot be read. A size that is written is
+            // checked as before, in the else branch.
+            string onlySize = null;
+            if (configurazione.Length == 0)
+            {
+                string[] sizes = null;
+                string whyUnread = null;
+                try { sizes = _sw.GetConfigurationNames(profilo) as string[]; }
+                catch (Exception ex) { whyUnread = ex.Message; }
+                string fileName = Path.GetFileNameWithoutExtension(profilo);
+                string refusal = EmptyProfileSizeRefusal(fileName, sizes, whyUnread);
+                if (refusal != null) return Fallito(refusal);
+                onlySize = sizes[0];
+                _log("[agente] empty profile size accepted: «" + fileName +
+                     "» has one size only, «" + onlySize + "».");
+            }
+            else try
             {
                 var disponibili = _sw.GetConfigurationNames(profilo) as string[];
                 if (disponibili != null && disponibili.Length > 0)
@@ -388,6 +459,29 @@ namespace Riscontro.Disegno
             double rotazione = Num(a, "rotazione_gradi", 0);
             double gioco = Num(a, "gioco_mm", 0);
             string trattamento = Str(a, "trattamento_angolo", "");
+
+            // THE CORNER DEFAULT IS SET, NOT LEFT TO SOLIDWORKS (Z-C21.3,
+            // finding N25). The catalogue promises the 45 degree miter when the
+            // corner treatment is not given, for the rectangular frame and for
+            // the closed path of a structural member. Until library 0.141.0 the
+            // group was left as CreateStructuralMemberGroup makes it, and the
+            // answer said the treatment was not given. The Z-C21.3 probe of the
+            // member group (28/9/2026, verdicts in the TODO) read a fresh
+            // group — ApplyCornerTreatment False, CornerTreatmentType 0, the
+            // same on every call — and on an L of 80X80X5 (500 + 400 mm) that
+            // gives NO corner treatment: the bars interpenetrate (bar A ends at
+            // X 500, bar B at Z 0, volume 1322960.17 mm3), while the miter (N1:
+            // ApplyCornerTreatment true, CornerTreatmentType 1) gives A to X
+            // 540, B to Z -40, two 45 degree faces, volume 1322967.37 mm3.
+            // IStructuralMemberGroup~CornerTreatmentType.html, Remarks: «This
+            // property is only available when IStructuralMemberGroup::
+            // ApplyCornerTreatment is true»; Insert_Structural_Weldment_Example_
+            // CSharp.htm sets both (swEndConditionMiter). So the default is
+            // written into the request here, before the frame's overhang probe
+            // reads it (the trial frame must have the same corners as the real
+            // one), and the answer says it was the default.
+            bool cornerAssumed = string.IsNullOrWhiteSpace(trattamento);
+            if (cornerAssumed) trattamento = "quartabuono";
 
             // ── IL TELAIO A QUOTE ESTERNE ────────────────────────────────
             //
@@ -667,8 +761,21 @@ namespace Riscontro.Disegno
                 ["configurazione"] = configurazione,
                 ["barre"] = segmenti.Count,
                 ["lunghezza_percorso_mm"] = Math.Round(lunghezza, 2),
-                ["trattamento_angolo"] = string.IsNullOrEmpty(trattamento) ? "non detto" : trattamento,
+                ["trattamento_angolo"] = trattamento,
+                // Z-C21.3 N25: always written, like the material's note: a
+                // default that is applied without saying so reads the same as
+                // a choice somebody made.
+                ["corner_treatment_note"] = cornerAssumed
+                    ? "the corner treatment is the DEFAULT, the 45 degree miter where the " +
+                      "bars of this group touch: you did not ask for it. Name another one " +
+                      "in the corner treatment argument if you want it."
+                    : "the corner treatment is the one you asked for.",
             };
+            // Z-C21.3 N25: an empty size was accepted only because the file has
+            // one size; the answer names it.
+            if (onlySize != null)
+                misure["configuration_note"] =
+                    "empty size accepted: the profile file has one size only, «" + onlySize + "».";
             if (sporgenze != null)
                 misure["sporgenza_profilo_mm"] =
                     Math.Round(sporgenze[0], 2) + "x" + Math.Round(sporgenze[1], 2);
@@ -780,8 +887,32 @@ namespace Riscontro.Disegno
             // ponte gira sullo stesso SOLIDWORKS del lavoro vero: basta che chi
             // disegna abbia usato un gioco da interfaccia perche' le chiamate dopo
             // lo ereditino. Il caso `il_taglio_senza_gioco_non_eredita` lo guarda.
-            int opzioni = (int)swWeldmentTrimExtendOptionType_e
-                .swWeldmentTrimExtendOption_WeldGap;
+            //
+            // THE TWO EXTENSION BITS ARE ON TOO (Z-C21.3, finding L9-4). The
+            // catalogue says this operation trims the bars OR EXTENDS them until
+            // they touch; with the gap bit alone it could only trim. Guide:
+            // IFeatureManager~InsertWeldmentTrimFeature2.html, «Options: Logical
+            // sum of values as defined in swWeldmentTrimExtendOptionType_e»;
+            // swWeldmentTrimExtendOptionType_e.html (swconst): AllowTrimmedExtensionTrim
+            // 1, AllowTrimmingExtensionTrim 2, CopedCut 4, WeldGap 8;
+            // Insert_Weldment_Features_Example_CSharp.htm passes 1 + 2 + 4 + 8.
+            // The Z-C21.3 probe of 28/9/2026 (typed Body2[] arrays, 80X80X5 tube,
+            // gap 0) measured, with the default end condition (Trim, 4):
+            //   - bar B stopping 20 mm short of bar A's face: Options 8 and 10
+            //     return a feature that is NOT in the tree, volume unchanged (the
+            //     phantom refused below); 9 and 11 extend B to A's face, +29399.11
+            //     mm3 (20 mm x 1469.956 mm2), B from Z 60 to Z 40;
+            //   - bar B entering A by 40 mm: 8 and 11 cut the same -58798.23 mm3;
+            //     15 cuts -57636.82 (B stops at Z 34, not 40): the coped cut bit 4
+            //     changes a plain trim, so it stays OFF;
+            //   - an L with a 20 mm gap and the corner end conditions (1, 2, 3):
+            //     8 already closes the corner, and 11 gives the same numbers.
+            // So 1 | 2 | 8 = 11: the same cuts as before, and the extension the
+            // catalogue promises.
+            int opzioni =
+                (int)swWeldmentTrimExtendOptionType_e.swWeldmentTrimExtendOption_AllowTrimmedExtensionTrim |
+                (int)swWeldmentTrimExtendOptionType_e.swWeldmentTrimExtendOption_AllowTrimmingExtensionTrim |
+                (int)swWeldmentTrimExtendOptionType_e.swWeldmentTrimExtendOption_WeldGap;
 
             // GLI ARRAY VANNO TIPIZZATI, e non e' pignoleria: e' il difetto per
             // cui questa operazione ha mentito dalla nascita fino alla libreria
@@ -796,8 +927,9 @@ namespace Riscontro.Disegno
             // 58798,23 = 40 mm x 1469,956 mm2, la sezione del tubo: il taglio
             // giusto, al centesimo. Con `object[]` l'interop impacchetta un
             // array di VARIANT e SOLIDWORKS ne fa una feature fantasma senza
-            // dire niente. Anche su `condizione: testa1`, e con le opzioni di
-            // estensione accese: sempre fantasma.
+            // dire niente. (The old note here, «with the extension options on:
+            // always a phantom», was measured with object[] and proved nothing:
+            // with Body2[] the extension bits extend, see the Options above.)
             //
             // `distinta_taglio` passava gia' `Body2[]` ed e' per questo che
             // funzionava.

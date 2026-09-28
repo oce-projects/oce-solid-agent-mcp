@@ -1,8 +1,9 @@
 {
   "nome": "le_quote_arrivano_dal_modello",
   "famiglia": "quote",
-  "perche": "VOCI Z-C1-bis e Z-E7. Dal 18/9/2026 `quote_dal_modello` era «l'operazione che non riesce mai fuori processo» (Z-C1: 0 quote su 7), e il suo caso non si poteva scrivere perche' un rifiuto senza gemella verde non prova niente. Il 26/9 due sonde fuori processo (prova0089 tolq, tolq2) l'hanno vista portare in tavola 7 quote, tolleranze comprese. Adesso la coppia vera: la gemella che rifiuta (una tavola senza viste) e il caso verde (le quote arrivano).",
-  "il_difetto_che_questo_caso_prende": "L'import che risponde «fatto» con zero quote (il blocco di Z-C1, che il 26/9 non c'era piu' e che puo' tornare), e il rifiuto su una tavola senza viste che smette di dirlo.",
+  "perche": "Entries Z-C1-bis and Z-E7, then Z-C21.2 finding M2. From 18/9/2026 quote_dal_modello was «the operation that never succeeds out of process» (Z-C1: 0 dimensions of 7), and its case could not be written, because a refusal without a green twin proves nothing. On 26/9 two out-of-process probes (prova0089 tolq, tolq2) saw it bring the model dimensions into the drawing, tolerances included: hence the real pair, the twin that refuses (a drawing without views) and the green case (the dimensions arrive). The 7 of that day were 4 model dimensions, 3 of them twice (M2, measured in Z-C21.3): InsertModelAnnotations3 was called with DuplicateDims = false and the comment «never duplicates», while IDrawingDoc~InsertModelAnnotations3.html says «DuplicateDims True to eliminate duplicate dimensions, false to allow duplicate dimensions». The fix passes true, and the same plate gets each dimension once.",
+  "il_difetto_che_questo_caso_prende": "The import that answers «done» with zero dimensions (the block of Z-C1, gone on 26/9 and able to come back); the refusal on a drawing without views that stops saying so; and the same model dimension placed in two views (M2): on library 0.141.0 the last step inserts 7 and the expectation of 4 is RED.",
+  "i_numeri": "Plate 120 x 80 x 10 centred on the top plane, hole Ø10 through: 96000 - pi x 5^2 x 10 = 95214.6 mm3. Four model dimensions, all marked for drawing by the bridge: the 120 and the 80 of the sketch, the depth 10, the Ø10 (taglio_cilindrico places no position dimension). Probe probe_duplicate_dims, 28/9/2026, the same plate, three standard views, InsertModelAnnotations3 with the MARKED mask on all views: DuplicateDims false -> 7 (front: 120 and 10; top: 120, 80 and Ø10; side: 80 and 10; the 120, the 80 and the depth each twice), DuplicateDims true -> 4 (front: 10; top: 120, 80 and Ø10; side: none, no key twice); a second call on the same drawing adds 0 with either value.",
   "parte": { "nuova": true },
   "passi": [
     { "operazione": "estrudi_rettangolo",
@@ -28,8 +29,10 @@
     { "operazione": "quote_dal_modello",
       "argomenti": {},
       "attese": [
-        { "cosa": "misure.quote_inserite", "uguale": 7,
-          "perche": "misurato col banchetto il 26/9/2026 sullo stesso pezzo: 120 e 80 dello schizzo, lo spessore 10, il Ø10 del foro, ripartiti sulle tre viste. Zero era il blocco di Z-C1" },
+        { "cosa": "misure.quote_inserite", "uguale": 4,
+          "perche": "THE LINE THAT IS RED ON 0.141.0 (there it is 7). Each of the 4 model dimensions once: probe_duplicate_dims gave 4 with DuplicateDims true and 7 with false, the 120, the 80 and the depth 10 placed twice. Zero was the block of Z-C1" },
+        { "cosa": "misure.come", "contiene": ["InsertModelAnnotations3"],
+          "perche": "the 4 come from the first step, the MARKED mask on all views, the very call the probe measured: no fallback ran" },
         { "cosa": "stato.viste_totali", "uguale": 3, "perche": "l'import non tocca le viste" } ] }
   ]
 }
