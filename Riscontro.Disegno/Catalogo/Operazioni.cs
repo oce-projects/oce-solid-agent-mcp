@@ -3624,6 +3624,59 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "raccordo_faccia",
+                    Famiglia = "lavorazioni",
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "Un raccordo appoggiato a due facce invece che a uno spigolo: la palla "
+                        + "del raggio rotola toccandole tutte e due.",
+                    Descrizione =
+                        "Arrotonda il passaggio fra DUE FACCE: la superficie che nasce e' "
+                        + "quella lasciata da una palla del raggio chiesto che rotola "
+                        + "appoggiata a tutte e due. Sullo spigolo fra due facce che si "
+                        + "toccano da' lo stesso pezzo di «raccordo_spigoli»; la differenza "
+                        + "e' che non serve nominare uno spigolo, bastano le due facce."
+                        + "\n\nSu uno spigolo ESTERNO toglie materiale, in un angolo interno "
+                        + "ne aggiunge: nella risposta c'e' di quanto e' cambiato il volume "
+                        + "e da che parte. Quando le due facce sono piane, a 90 gradi, e si "
+                        + "toccano su uno spigolo, accanto c'e' anche il conto a mano "
+                        + "(lunghezza per r^2 per (1 - pi/4)).\n\nMI RIFIUTO PRIMA DI "
+                        + "PROVARE quando la stessa faccia e' in tutti e due gli insiemi "
+                        + "(per i bordi di una faccia sola c'e' «raccordo_spigoli»), e "
+                        + "quando le due facce sono piane e PARALLELE: se guardano dalla "
+                        + "stessa parte, o si danno le spalle come il davanti e il dietro di "
+                        + "un blocco, nessuna palla le tocca tutte e due. Due pareti che si "
+                        + "guardano (una cava) le lascio provare solo col raggio pari a meta' "
+                        + "della distanza, e te lo dico.\n\nDOPO CONTROLLO: che la lavorazione "
+                        + "nuova sia un raccordo, che il volume sia cambiato, che i corpi "
+                        + "siano quelli di prima e che nessuna lavorazione sia andata in "
+                        + "errore. Se una di queste non torna tolgo il raccordo, ricontrollo "
+                        + "che il pezzo sia com'era e te lo dico. Se non nasce -- di solito e' "
+                        + "il raggio, che non ci sta sulle facce -- lo dico e ti indico "
+                        + "«raccordo_spigoli».\n\nUna faccia per insieme; le facce si nominano "
+                        + "con gli identificativi dello stato, non con un riferimento a un "
+                        + "passo.",
+                    Precondizione = "corpo_solido_e_faccia",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "faccia_1_uid", O(
+                                "type", "string",
+                                "description", "la prima faccia, presa dallo stato del documento "
+                                    + "(per esempio «F1»)."),
+                            "faccia_2_uid", O(
+                                "type", "string",
+                                "description", "la seconda faccia, diversa dalla prima (per esempio "
+                                    + "«F3»). Due facce piane parallele non si raccordano."),
+                            "raggio_mm", O(
+                                "type", "number",
+                                "description", "il raggio del raccordo, in mm. Deve starci su tutte e "
+                                    + "due le facce.")),
+                        "required", A("faccia_1_uid", "faccia_2_uid", "raggio_mm")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "combina_corpi",
                     Famiglia = "lavorazioni",
                     Esempio = "{\"operazione\":\"interseca\"}",   // da `interseca_due_cubi`

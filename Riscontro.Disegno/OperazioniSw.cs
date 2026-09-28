@@ -248,7 +248,7 @@ namespace Riscontro.Disegno
             "imposta_foglio", "incidi_testo", "ingombro_corpo", "membro_strutturale",
             "misura_fra_entita", "modifica_quota", "variabile_globale", "lega_quota", "riordina_lavorazione", "cambia_estrusione", "tolleranza_quota", "proprieta_di_massa",
             "loft_fra_due_cerchi",
-            "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile",
+            "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile", "raccordo_faccia",
             "ripeti_circolare", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
             "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
@@ -339,6 +339,11 @@ namespace Riscontro.Disegno
                     case "combina_corpi": return CombinaCorpi(modello, argomenti, stato);
                     case "raccordo_variabile":
                         return RaccordoVariabile(modello, argomenti, stato);
+                    // Il raccordo di FACCIA (voce GP7, la meta' che mancava):
+                    // CreateDefinition(swFmFillet) e marche 2/4, non FeatureFillet3.
+                    // OperazioniRaccordoFaccia.cs.
+                    case "raccordo_faccia":
+                        return RaccordoFaccia(modello, argomenti, stato);
                     case "filettatura_cosmetica":
                         return FilettaturaCosmetica(modello, argomenti, stato);
                     case "raccordo_spigoli": return RaccordoSpigoli(modello, argomenti, stato);
