@@ -392,6 +392,8 @@ namespace Prove.Contratti
             ProveIlRegistro.Tutte();
             ProveLAvanzamento.Tutte();
             ApiCatalogContracts.Run();
+            ObsoleteCallsContract.RunAll();
+            SelectionMarksContract.RunAll();
             IlLeggimiDiceQuantiSono();
 
             Console.WriteLine();

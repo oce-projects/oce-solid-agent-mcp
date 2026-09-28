@@ -364,6 +364,10 @@ namespace Riscontro.Disegno
         private static Generatrici LeggiLeGeneratrici(IModelDoc2 modello, IView vista)
         {
             var g = new Generatrici();
+            // OBSOLETE-MEASURED: l_albero_a_gradini_quotato_di_fianco — IModelDoc2~GraphicsRedraw2.html:
+            // "Obsolete. Superseded by IModelView::GraphicsRedraw". The redraw is what makes
+            // ISilhouetteEdge.GetFace answer (null on every edge until then: probe prova0089
+            // gendiag, 27/9/2026). The replacement was not measured here: remeasure in Z-C21.7 (N20).
             try { modello.GraphicsRedraw2(); } catch { }
             try { g.Tutte = (vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_SilhouetteEdge) as object[]) ?? new object[0]; } catch { }
             var facce = new IFace2[g.Tutte.Length];
@@ -377,6 +381,7 @@ namespace Riscontro.Disegno
                     if (facce[i] == null) manca = true;
                 }
                 if (!manca) break;
+                // OBSOLETE-MEASURED: l_albero_a_gradini_quotato_di_fianco — same measure as above.
                 try { modello.GraphicsRedraw2(); } catch { }
             }
             for (int i = 0; i < g.Tutte.Length; i++)

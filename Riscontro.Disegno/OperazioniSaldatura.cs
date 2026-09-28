@@ -1151,6 +1151,10 @@ namespace Riscontro.Disegno
             IFeature feature;
             try
             {
+                // OBSOLETE-MEASURED: il_cordone_va_fra_facce_che_si_toccano — InsertCosmeticWeldBead2
+                // returned null in every combination tried on 25/9/2026 (see the comment above).
+                // The audit (L9-3) notes the guide example selects the faces with mark 4: to
+                // remeasure with that mark before Z-C21.7 migrates it.
                 feature = modello.FeatureManager.InsertCosmeticWeldBead(Unita.M(lato)) as IFeature;
             }
             catch (Exception ex)

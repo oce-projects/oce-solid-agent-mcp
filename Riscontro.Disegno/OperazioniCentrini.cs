@@ -169,6 +169,9 @@ namespace Riscontro.Disegno
                     }
                     catch { }
                     if (presa)
+                        // OBSOLETE-MEASURED: le_croci_di_centro_sui_fori — IDrawingDoc.AddCenterMark is
+                        // obsolete; its replacements InsertCenterMark2/3 answer True and add nothing
+                        // (probes of 17/9 and 26/9/2026, see the summary of this file).
                         try { disegno.AddCenterMark(dimensione, linee); } catch { }
                     modello.ClearSelection2(true);
                     int adesso = QuanteCroci(vista);
