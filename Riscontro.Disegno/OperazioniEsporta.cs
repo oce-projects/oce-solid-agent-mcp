@@ -534,9 +534,10 @@ namespace Riscontro.Disegno
             var prima = LeggiPreferenzeScambio();
             int errori = 0, avvisi = 0;
             bool ok;
+            List<string> igesTogglesNotOff = null;
             try
             {
-                if (iges) ImpostaPreferenzeIges(rappresentazione);
+                if (iges) igesTogglesNotOff = ImpostaPreferenzeIges(rappresentazione);
                 else ImpostaPreferenzeStep(protocollo);
 
                 if (File.Exists(dove))
@@ -602,6 +603,19 @@ namespace Riscontro.Disegno
                 misure["solid_entities"] = counted ? (object)solids : null;
                 misure["surface_entities"] = counted ? (object)surfaces : null;
                 misure["entity_census"] = census;
+                // THE THREE TOGGLES, AS READ BACK after turning them off (N59,
+                // review): an empty list is the proof they were off while the
+                // file was written; a name in it is an option that may have put
+                // curves in the file next to the solid, which the census above
+                // cannot tell from the solid's own edges.
+                misure["iges_options_not_off"] = igesTogglesNotOff != null
+                    ? (object)igesTogglesNotOff.ToArray() : null;
+                if (igesTogglesNotOff != null && igesTogglesNotOff.Count > 0)
+                    misure["iges_options_warning"] =
+                        "I could not turn off " + string.Join(", ", igesTogglesNotOff) + " for this export " +
+                        "(read back on, or unreadable): the file may carry sketch entities or 3D curves next " +
+                        "to the solid, and whoever opens it may take them for geometry. Turn them off in " +
+                        "System Options > Export > IGES 5.3 and export again.";
                 if (counted && entities > 0 && solids == 0 && surfaces == 0)
                     return Fallito(
                         "The IGES was written, but none of its " + entities + " entities is a solid " +
@@ -737,13 +751,36 @@ namespace Riscontro.Disegno
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, protocollo); } catch { }
         }
 
-        private void ImpostaPreferenzeIges(int rappresentazione)
+        /// <returns>
+        /// The IGES toggles of <see cref="IgesTogglesTurnedOff"/> that are NOT
+        /// off after setting them (Z-C21.10 N59, review): still on, or
+        /// unreadable. Empty when all three read back off.
+        ///
+        /// ISldWorks~SetUserPreferenceToggle.html gives no return value to read
+        /// (C# «void SetUserPreferenceToggle(System.int UserPreferenceValue,
+        /// System.bool OnFlag)»), so each toggle is read again with
+        /// ISldWorks~GetUserPreferenceToggle.html («True if UserPreferenceToggle
+        /// is toggled on; false if toggled off»). The census of the file sees a
+        /// solid replaced by curves, but not stray sketch entities or 3D curves
+        /// written NEXT TO the solid: for those, this read-back is the only
+        /// witness, and the answer carries it.
+        /// </returns>
+        private List<string> ImpostaPreferenzeIges(int rappresentazione)
         {
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation, rappresentazione); } catch { }
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface, true); } catch { }
             // N59: the solid (or the trimmed surfaces), and nothing next to it.
             foreach (var t in IgesTogglesTurnedOff)
                 try { _sw.SetUserPreferenceToggle((int)t, false); } catch { }
+
+            var notOff = new List<string>();
+            foreach (var t in IgesTogglesTurnedOff)
+            {
+                bool on = true;   // unreadable is not off
+                try { on = _sw.GetUserPreferenceToggle((int)t); } catch { }
+                if (on) notOff.Add(t.ToString());
+            }
+            return notOff;
         }
 
         private void RimettiPreferenzeScambio(PreferenzeScambio p)

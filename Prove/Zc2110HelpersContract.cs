@@ -76,6 +76,7 @@ namespace Prove.Contratti
             SameModel(helpers);
             HiddenByHand(helpers);
             OverhangArchive(section);
+            IgesCensus(sw);
         }
 
         private static object Call(Type t, string method, params object[] args)
@@ -172,6 +173,81 @@ namespace Prove.Contratti
                       "3 " + hidden + ", 2 " + half + ", 1 " + visible + ", 0 " + unknown);
             }
             catch (Exception ex) { Segna("C8-2: IsHiddenVisibility can be called", false, ex.GetType().Name + ": " + ex.Message); }
+        }
+
+        // ── N59: what an IGES file carries, from its directory section ───────
+        //
+        // Added in review: the bench case of N59 cannot build a wireframe file
+        // (it would need a user preference the bench does not write), so the
+        // census that decides the refusal «curves only» (no solid, no surface)
+        // had never been seen to say zero. Here it reads three synthetic files:
+        // a solid with its surfaces, curves only, and a directory section cut
+        // in the middle of an entry.
+        private static void IgesCensus(Type sw)
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "zc2110-iges-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(folder);
+                var census = sw.GetMethod("IgesEntityCensus", Any);
+                if (census == null) { Segna("N59: IgesEntityCensus is there", false, "missing on this library"); return; }
+
+                Func<int[], string> write = types =>
+                {
+                    var lines = new System.Collections.Generic.List<string>
+                    {
+                        "SYNTHETIC IGES FOR PROVE.CONTRATTI".PadRight(72) + "S      1",
+                        "1H,,1H;".PadRight(72) + "G      1",
+                    };
+                    int seq = 0;
+                    foreach (var t in types)
+                    {
+                        // Two directory lines per entity; the type in columns 1-8 of both.
+                        lines.Add(t.ToString().PadLeft(8).PadRight(72) + "D" + (++seq).ToString().PadLeft(7));
+                        lines.Add(t.ToString().PadLeft(8).PadRight(72) + "D" + (++seq).ToString().PadLeft(7));
+                    }
+                    lines.Add("S      1G      1D" + seq.ToString().PadLeft(7) + "P      0".PadRight(48) + "T      1");
+                    string file = Path.Combine(folder, Guid.NewGuid().ToString("N") + ".igs");
+                    File.WriteAllLines(file, lines);
+                    return file;
+                };
+                Func<string, object[]> count = file =>
+                {
+                    var args = new object[] { file, 0, 0, 0, null };
+                    bool ok = (bool)census.Invoke(null, args);
+                    return new object[] { ok, args[1], args[2], args[3], args[4] };
+                };
+
+                // A solid (186) over two plane surfaces (190) and one line (110).
+                var solid = count(write(new[] { 186, 190, 190, 110 }));
+                // The same part as a wireframe: lines and points only.
+                var wire = count(write(new[] { 110, 110, 110, 116 }));
+                Segna("N59: the census counts the solid and its surfaces, and a wireframe has neither",
+                      (bool)solid[0] && (int)solid[1] == 4 && (int)solid[2] == 1 && (int)solid[3] == 2 &&
+                      (bool)wire[0] && (int)wire[1] == 4 && (int)wire[2] == 0 && (int)wire[3] == 0,
+                      "solid file: ok " + solid[0] + ", entities " + solid[1] + ", solids " + solid[2] +
+                      ", surfaces " + solid[3] + " (expected 4, 1, 2); wireframe: ok " + wire[0] +
+                      ", entities " + wire[1] + ", solids " + wire[2] + ", surfaces " + wire[3] +
+                      " (expected 4, 0, 0)");
+
+                // A directory section with an odd number of lines is not read as a count.
+                string broken = write(new[] { 186, 190 });
+                var kept = File.ReadAllLines(broken).Where((l, i) => i != 3).ToArray();   // drop one D line
+                File.WriteAllLines(broken, kept);
+                var odd = count(broken);
+                Segna("N59: a directory section cut in the middle of an entry is not a census",
+                      !(bool)odd[0] && Convert.ToString(odd[4]).Contains("an entry takes two"),
+                      "ok " + odd[0] + ", " + Convert.ToString(odd[4]));
+            }
+            catch (Exception ex)
+            {
+                var inner = ex is TargetInvocationException && ex.InnerException != null ? ex.InnerException : ex;
+                Segna("N59: IgesEntityCensus can be called", false, inner.GetType().Name + ": " + inner.Message);
+            }
+            finally
+            {
+                try { if (Directory.Exists(folder)) Directory.Delete(folder, true); } catch { }
+            }
         }
 
         // ── N36: the overhang archive ────────────────────────────────────────
