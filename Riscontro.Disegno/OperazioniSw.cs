@@ -2829,7 +2829,7 @@ namespace Riscontro.Disegno
             var gestore = modello.SelectionManager as ISelectionMgr;
             var marca = gestore?.CreateSelectData();
             if (marca == null) return Fallito("SolidWorks non mi da' come marcare la selezione.");
-            marca.Mark = 1;
+            marca.Mark = SelectionMarks.MoveCopyBodyBody;
             // UN CORPO NON E' UNA IEntity, E LA DIFFERENZA NON SI VEDE FINCHE'
             // NON SI PROVA. Misurato il 10 settembre 2026 dentro SolidWorks:
             // `corpo as IEntity` torna null nell'interop, il contatore restava a
@@ -3442,7 +3442,7 @@ namespace Riscontro.Disegno
             if (esito != 0)
                 return Fallito(
                     "SolidWorks ha rifiutato il valore " + valore + " " + unita + " per «" +
-                    nomeQuota + "» (codice " + esito + "). Di solito e' una " +
+                    nomeQuota + "» (codice " + esito + ": " + ErrorCodeDecoder.SetValueStatus(esito) + "). Di solito e' una " +
                     "quota governata da un'equazione o da una relazione.");
 
             bool ricostruito;
@@ -3853,11 +3853,11 @@ namespace Riscontro.Disegno
                 try
                 {
                     selezionato = modello.Extension.SelectByID2(
-                        nomePiano, "PLANE", 0, 0, 0, false, 1, null, 0);
+                        nomePiano, "PLANE", 0, 0, 0, false, SelectionMarks.OffsetPlaneReference, null, 0);
                 }
                 catch { }
             }
-            if (!selezionato && !riferimento.Select2(false, 1))
+            if (!selezionato && !riferimento.Select2(false, SelectionMarks.OffsetPlaneReference))
                 return Fallito($"Non sono riuscito a selezionare il piano «{piano}».");
 
             // COSA HA DAVVERO IN MANO SOLIDWORKS QUANDO CHIAMIAMO.
@@ -3987,7 +3987,7 @@ namespace Riscontro.Disegno
 
             modello.ClearSelection2(true);
             var entita = faccia as IEntity;
-            if (entita == null || !entita.SelectByMark(false, 1))
+            if (entita == null || !entita.SelectByMark(false, SelectionMarks.AxisFace))
                 return Fallito("Non sono riuscito a selezionare la faccia.");
 
             bool creato;
@@ -4089,12 +4089,12 @@ namespace Riscontro.Disegno
             // prima aveva una riga sua che accettava solo un asse, e da quando
             // la direzione puo' essere uno spigolo le due strade divergevano —
             // una griglia con la direzione 1 su uno spigolo e la 2 no.
-            if (griglia && !SelezionaAsse(modello, a, "asse2", stato, out errore, 2))
+            if (griglia && !SelezionaAsse(modello, a, "asse2", stato, out errore, SelectionMarks.LinearPatternDirection2))
                 return Fallito("Direzione 2: " + errore);
 
             if (!SelezionaLavorazione(modello, a, out errore)) return Fallito(errore);
             // Prima di costruire: creare la ripetizione azzera la selezione.
-            var seme = SemeSelezionato(modello, 4);
+            var seme = SemeSelezionato(modello, SelectionMarks.LinearPatternFeatures);
 
             IFeature feature;
             try
@@ -4201,12 +4201,12 @@ namespace Riscontro.Disegno
             // lavorazioni con la 1 — non le stesse marche della ripetizione.
             // Fino alla 0.35.0 qui c'erano 1 e 4, cioe' quelle del pattern, e
             // lo specchio non veniva creato.
-            if (pianoFeature == null || !pianoFeature.Select2(false, 2))
+            if (pianoFeature == null || !pianoFeature.Select2(false, SelectionMarks.MirrorFeaturePlane))
                 return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
 
             string errore;
-            if (!SelezionaLavorazione(modello, a, out errore, marca: 1)) return Fallito(errore);
-            var seme = SemeSelezionato(modello, 1);
+            if (!SelezionaLavorazione(modello, a, out errore, marca: SelectionMarks.MirrorFeatureFeatures)) return Fallito(errore);
+            var seme = SemeSelezionato(modello, SelectionMarks.MirrorFeatureFeatures);
 
             IFeature feature;
             try
@@ -4276,7 +4276,7 @@ namespace Riscontro.Disegno
         /// </param>
         private bool SelezionaAsse(
             IModelDoc2 modello, Dictionary<string, object> a, string prefisso,
-            StatoDocumento stato, out string motivo, int mark = 1)
+            StatoDocumento stato, out string motivo, int mark = SelectionMarks.LinearPatternDirection1)
         {
             motivo = null;
             string campoRif = prefisso + "_rif";
@@ -4419,7 +4419,7 @@ namespace Riscontro.Disegno
         /// </param>
         private bool SelezionaLavorazione(
             IModelDoc2 modello, Dictionary<string, object> a, out string motivo,
-            int marca = 4)
+            int marca = SelectionMarks.LinearPatternFeatures)
         {
             motivo = null;
             if (HaRiferimento(a, "feature_rif"))
@@ -5717,7 +5717,7 @@ namespace Riscontro.Disegno
             // L'asse va selezionato per PRIMO con Mark = 1: la ripetizione
             // circolare prende la direzione dalla selezione, non dai parametri.
             string perche;
-            if (!SelezionaAsse(modello, a, "asse", stato, out perche)) return Fallito(perche);
+            if (!SelezionaAsse(modello, a, "asse", stato, out perche, SelectionMarks.CircularPatternAxis)) return Fallito(perche);
 
             // La lavorazione da ripetere puo' essere quella fatta da un passo
             // precedente di questo stesso piano — «fai un foro e ripetilo 6
@@ -5732,16 +5732,16 @@ namespace Riscontro.Disegno
                 if (precedente == null) return Fallito(perche ?? "Riferimento non risolto.");
                 if (precedente.Feature == null)
                     return Fallito($"Il passo {numero} non ha lasciato una lavorazione da ripetere.");
-                if (!precedente.Feature.Select2(true, 4))
+                if (!precedente.Feature.Select2(true, SelectionMarks.CircularPatternFeatures))
                     return Fallito($"Non sono riuscito a selezionare la lavorazione del passo {numero}.");
                 _log($"[agente] ripeto la lavorazione del passo {numero}");
             }
-            else if (!modello.Extension.SelectByID2(featureUid, "BODYFEATURE", 0, 0, 0, true, 4, null, 0))
+            else if (!modello.Extension.SelectByID2(featureUid, "BODYFEATURE", 0, 0, 0, true, SelectionMarks.CircularPatternFeatures, null, 0))
             {
                 return Fallito($"Non ho trovato la lavorazione «{featureUid}» da ripetere.");
             }
 
-            var seme = SemeSelezionato(modello, 4);
+            var seme = SemeSelezionato(modello, SelectionMarks.CircularPatternFeatures);
 
             var feature = modello.FeatureManager.FeatureCircularPattern5(
                 Number: istanze,

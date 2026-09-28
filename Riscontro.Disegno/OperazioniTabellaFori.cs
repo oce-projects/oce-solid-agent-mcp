@@ -161,8 +161,8 @@ namespace Riscontro.Disegno
             var sdV = sel?.CreateSelectData() as SelectData;
             var sdF = sel?.CreateSelectData() as SelectData;
             if (sdV == null || sdF == null) return Fallito("Non riesco a preparare la selezione nella vista.");
-            sdV.Mark = 1; sdV.View = (View)vista;
-            sdF.Mark = 2; sdF.View = (View)vista;
+            sdV.Mark = SelectionMarks.HoleTableDatumOrigin; sdV.View = (View)vista;
+            sdF.Mark = SelectionMarks.HoleTableHoles; sdF.View = (View)vista;
             bool okV = (vertice as IEntity).Select4(false, sdV);
             bool okF = (faccia as IEntity).Select4(true, sdF);
             if (!okV || !okF)

@@ -191,7 +191,7 @@ namespace Riscontro.Disegno
 
             if (!ok || !File.Exists(posato))
                 return Fallito(
-                    "Lo STL non e' stato scritto (codice " + errori + "). " +
+                    "Lo STL non e' stato scritto (codice " + errori + SaveErrorWords(errori) + "). " +
                     "Il file non c'e': " + posato);
 
             long quantoPesa = new FileInfo(posato).Length;
@@ -281,6 +281,18 @@ namespace Riscontro.Disegno
             // vuol dire che l'origine dello STL non e' l'origine del modello, e
             // chi confronta due esportazioni non ritrova piu' niente.
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLDontTranslateToPositive, true); } catch { }
+        }
+
+        /// <summary>
+        /// The Errors mask of SaveAs3 in words, as ": ..." to append after the
+        /// raw code, or "" when the mask is 0 (S13, ErrorCodeDecoder). The raw
+        /// code stays in the message: whoever already searches for it still
+        /// finds it.
+        /// </summary>
+        private static string SaveErrorWords(int errors)
+        {
+            var words = ErrorCodeDecoder.FileSaveErrors(errors);
+            return words == null ? "" : ": " + words;
         }
 
         private void RimettiPreferenzeStl(PreferenzeStl p)
@@ -538,7 +550,7 @@ namespace Riscontro.Disegno
             finally { RimettiPreferenzeScambio(prima); }
 
             if (!ok || !File.Exists(dove))
-                return Fallito("Il file non e' stato scritto (codice " + errori + "): " + dove);
+                return Fallito("Il file non e' stato scritto (codice " + errori + SaveErrorWords(errori) + "): " + dove);
 
             long quantoPesa = new FileInfo(dove).Length;
             var misure = new Dictionary<string, object>

@@ -728,7 +728,7 @@ namespace Riscontro.Disegno
                     int esitoMossa = q.SetSystemValue3(era + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
                     if (esitoMossa != (int)swSetValueReturnStatus_e.swSetValue_Successful)
                         ferma = "SOLIDWORKS ha risposto " + esitoMossa.ToString(CultureInfo.InvariantCulture) +
-                                " a SetSystemValue3";
+                                " a SetSystemValue3 (" + ErrorCodeDecoder.SetValueStatus(esitoMossa) + ")";
                     else
                     {
                         modello.EditRebuild3();

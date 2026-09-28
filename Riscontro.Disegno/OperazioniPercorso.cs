@@ -130,7 +130,7 @@ namespace Riscontro.Disegno
 
             modello.ClearSelection2(true);
             // MARCA 4: il percorso. Vedi la tabella nella nota in testa.
-            if (!percorso.Select2(true, 4))
+            if (!percorso.Select2(true, SelectionMarks.SweepPath))
                 return Fallito("Non sono riuscito a selezionare il percorso." + SenzaLoSchizzo(modello));
 
             IFeature feature;
@@ -298,7 +298,7 @@ namespace Riscontro.Disegno
             modello.ClearSelection2(true);
             // MARCA 1 PER TUTTI E DUE I PROFILI, e l'ORDINE conta: il loft va
             // dal primo selezionato al secondo.
-            if (!s1.Select2(true, 1) || !s2.Select2(true, 1))
+            if (!s1.Select2(true, SelectionMarks.LoftProfile) || !s2.Select2(true, SelectionMarks.LoftProfile))
                 return Fallito("Non sono riuscito a selezionare i due profili.");
 
             IFeature feature;
