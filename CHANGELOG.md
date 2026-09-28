@@ -131,8 +131,6 @@ green on the bench before merge.
     state (StatoDocumento) keeps its own reader: it also records warnings,
     which RebuildError leaves out by design.
 
-## Unreleased — Z-C21.2 (branch z-c21-2-difetti-silenziosi)
-
 ## 0.113.0 — 28 September 2026 · library 0.138.0
 
 **Silent defects that need no probe (entry Z-C21.2 of the API audit).** Every
