@@ -1,0 +1,23 @@
+{
+  "nome": "lim_nervatura_fuori_dal_suo_piano",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE W1.2. La L della gemella e la stessa diagonale, ma scritta a z = 20 mentre il piano chiesto e' il frontale sfalsato di 25. Una linea che non sta sul piano non si puo' disegnare su quel piano: proiettarla in silenzio vorrebbe dire fare la nervatura in un posto diverso da quello chiesto. Si rifiuta PRIMA di toccare il pezzo (niente piano, niente schizzo) e si dice di quanto e' fuori e cosa cambiare.",
+  "i_numeri": "Scarto: |20 - 25| = 5 mm, oltre i 0,05 di tolleranza (lo stesso margine di piega_da_schizzo).",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_profilo",
+      "argomenti": { "piano": "frontale",
+                     "contorni": [ [[0, 0], [60, 0], [60, 10], [10, 10], [10, 60], [0, 60]] ],
+                     "spessore_mm": 50 },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 55000 } ] },
+    { "operazione": "nervatura",
+      "argomenti": { "piano": "frontale", "distanza_mm": 25,
+                     "da_mm": [10, 40, 20], "a_mm": [40, 10, 20],
+                     "spessore_mm": 6 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["non sta sul piano frontale", "5 mm", "distanza_mm"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "nervatura_nell_angolo_della_l" } }
+  ]
+}

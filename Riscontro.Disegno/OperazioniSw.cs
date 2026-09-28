@@ -251,7 +251,7 @@ namespace Riscontro.Disegno
             "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile", "raccordo_faccia",
             "ripeti_circolare", "ripeti_riempimento", "scrivi_proprieta",
             "ripeti_lineare", "rivoluzione", "salva_documento",
-            "sformo", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
+            "sformo", "nervatura", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
             "sostituisci_componente", "fissa_componente", "specchia_componente",
             "croci_di_centro", "quota_in_tavola", "nota_in_tavola", "tabella_fori_in_tavola", "vista_sviluppo", "saldatura_in_tavola", "distinta_base_in_tavola", "bollatura",
             "rugosita_in_tavola", "datum_in_tavola", "tolleranza_geometrica_in_tavola",
@@ -546,6 +546,14 @@ namespace Riscontro.Disegno
                     // trovata misurando, non leggendo.
                     case "sformo":
                         return Sformo(modello, argomenti, stato);
+
+                    // ── la nervatura ────────────────────
+                    // Sta in OperazioniNervatura.cs (voce W1.2). InsertRib
+                    // PARALLELA allo schizzo (IsNormToSketch = false, come
+                    // l'esempio della guida); il verso del materiale si prova
+                    // dritto e poi girato.
+                    case "nervatura":
+                        return Nervatura(modello, argomenti);
 
                     // ── esportazioni ────────────────────
                     // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama

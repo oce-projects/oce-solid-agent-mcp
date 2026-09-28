@@ -4815,6 +4815,71 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
+                    Nome = "nervatura",
+                    Famiglia = "lavorazioni",
+                    Esempio = "{\"piano\":\"frontale\",\"distanza_mm\":25,\"da_mm\":[10,40,25],\"a_mm\":[40,10,25],\"spessore_mm\":6}",   // da `nervatura_nell_angolo_della_l`
+                    DocumentoRichiesto = "parte",
+                    Provata = true,
+                    Sommario =
+                        "Una nervatura di irrigidimento: riempie, nel piano di una linea, lo spazio "
+                        + "fra la linea e le pareti del pezzo. Misura il materiale aggiunto.",
+                    Descrizione =
+                        "Irrigidisce una parete sottile: l'angolo di una staffa a L, il fondo di una "
+                        + "scatola svuotata. Dai una LINEA con due estremi «da_mm» e «a_mm» (punti "
+                        + "[x, y, z] in mm nel sistema del modello) che sta su un piano: uno dei tre "
+                        + "base («piano»), eventualmente spostato parallelo a se stesso di «distanza_mm» "
+                        + "(il piano sfalsato lo creo io). La nervatura cresce NEL piano della linea, "
+                        + "dalla linea fino alle pareti che la linea -- prolungata -- incontra, ed e' "
+                        + "spessa «spessore_mm», divisi a meta' dalle due parti del piano.\n\n"
+                        + "LA LINEA STA NEL VUOTO, con gli estremi (o il loro prolungamento) sulle pareti "
+                        + "da unire. Esempio: L 60x60 spessa 10 e profonda 50, piano frontale a distanza "
+                        + "25, linea da [10, 40, 25] a [40, 10, 25]: la nervatura e' il triangolo "
+                        + "nell'angolo, 450 mm2 x 6 = 2700 mm3.\n\n"
+                        + "IL VERSO DEL MATERIALE lo provo io: prima dritto, poi girato, e tengo il primo "
+                        + "in cui la nervatura nasce e il pezzo cresce. Dipende dalla forma (nella L e' "
+                        + "il dritto, nella scatola svuotata il girato) e la risposta dice quale ho "
+                        + "usato e quanti tentativi. Se la linea sta fra pareti da tutte e due le parti "
+                        + "vince il dritto.\n\n"
+                        + "MI RIFIUTO se un estremo della linea non sta sul piano indicato (non la "
+                        + "proietto in silenzio), se la linea e' piu' corta di un millimetro, e se la "
+                        + "nervatura non nasce in nessuno dei due versi: di solito vuol dire che dalla "
+                        + "linea non c'e' niente da incontrare, come su una piastra senza pareti (per un "
+                        + "rilievo su una faccia piana c'e' «estrudi_su_faccia»). Quando rifiuto tolgo "
+                        + "lo schizzo e il piano che avevo fatto: il pezzo resta com'era.\n\n"
+                        + "Non faccio nervature sformate e non guardo QUALI pareti la nervatura ha "
+                        + "unito: misuro che e' nata, il materiale aggiunto e che il pezzo non si e' "
+                        + "rotto.",
+                    Precondizione = "corpo_solido",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "piano", O(
+                                "type", "string",
+                                "enum", A(
+                                    "frontale",
+                                    "superiore",
+                                    "destro"),
+                                "description", "il piano base parallelo a quello della nervatura: frontale "
+                                    + "(XY), superiore (XZ) o destro (YZ)"),
+                            "distanza_mm", O(
+                                "type", "number",
+                                "description", "di quanto il piano della nervatura e' spostato dal piano base, "
+                                    + "lungo la sua normale (+Z, +Y, +X). Negativo per l'altro verso. "
+                                    + "Predefinito 0: la nervatura sta sul piano base."),
+                            "da_mm", O(
+                                "type", "array", "items", O("type", "number"),
+                                "description", "un estremo della linea, [x, y, z] in mm, sul piano della nervatura"),
+                            "a_mm", O(
+                                "type", "array", "items", O("type", "number"),
+                                "description", "l'altro estremo, [x, y, z] in mm, sul piano della nervatura"),
+                            "spessore_mm", O(
+                                "type", "number",
+                                "description", "lo spessore della nervatura, in mm, diviso a meta' dalle due "
+                                    + "parti del piano. Per una staffa da 10 di solito 4-6.")),
+                        "required", A("piano", "da_mm", "a_mm", "spessore_mm")),
+                },
+                new OperazioneDisegno
+                {
                     Nome = "sopprimi_istanza",
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",
