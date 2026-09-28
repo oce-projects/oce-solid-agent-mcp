@@ -92,7 +92,8 @@ Riscontro.Disegno/OperazioniLamiera.cs|Value	17
 Riscontro.Disegno/OperazioniMisura.cs|Select	1
 Riscontro.Disegno/OperazioniMisuraAssieme.cs|Add	2
 Riscontro.Disegno/OperazioniMisuraAssieme.cs|Value	1
-Riscontro.Disegno/OperazioniNervatura.cs|Select2	1
+Riscontro.Disegno/OperazioniNervatura.cs|IsSuppressed	1
+Riscontro.Disegno/OperazioniNervatura.cs|Select2	2
 Riscontro.Disegno/OperazioniNervatura.cs|Value	3
 Riscontro.Disegno/OperazioniPercorso.cs|Select2	1
 Riscontro.Disegno/OperazioniPercorso.cs|Value	4

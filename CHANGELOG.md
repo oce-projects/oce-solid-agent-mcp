@@ -31,7 +31,10 @@ Every fix below is a case where a part, a file or an answer came out wrong
 with `riuscita: true`, decided from the SOLIDWORKS API help (quoted in the
 code) or from the library's own logic. The new bench cases are written to go
 red on library 0.140.0 and green on this one, except where a bullet says
-otherwise. BENCH_0141_PLACEHOLDER
+otherwise. **Full bench on library 0.141.0, 28/9/2026: 1832 tests, 0 failed**
+(second run; the first one found the three points listed at the end of this
+entry). Whether the new cases were RED on 0.140.0 has not been run yet
+(rule Z-C11).
 
 - **`telaio_rettangolare` / `membro_strutturale` close the weldment profile
   library again, and check that it closed** (N31). ISldWorks~CloseDoc.html:
@@ -171,9 +174,12 @@ computed by hand and compared with the probe. The help page is quoted in the
 code. Three operations are new (`raccordo_faccia`, `ripeti_riempimento`,
 `nervatura`) and one comes back into the catalogue (`fazzoletto`): the
 catalogue goes from 95 to 99 operations, all 99 executable ones. New answer
-fields are in English. VERSION.txt and AssemblyVersion are not raised on this
-branch: `Provata = true` on the four entries waits for the bench run that
-makes their cases green (the Z-C6 contract says so until then).
+fields are in English. **Full bench on library 0.140.0, 28/9/2026: 1753 tests,
+2 failed**, both in the new rib cases and neither in the recipe: a refusal
+without «com'era», and a shell volume written without tolerance, which kept
+the rib step behind it from running. Corrected, and seen green on the full
+bench on 0.141.0 (entry 0.116.0), together with the locked rib sketch found
+there.
 
 - **The face fillet (entry GP7, the half that was missing).** New operation
   `raccordo_faccia` (`faccia_1_uid`, `faccia_2_uid`, `raggio_mm`): a fillet
@@ -312,10 +318,9 @@ makes their cases green (the Z-C6 contract says so until then).
 
 **Single helpers for the recurring API patterns, and a static check that keeps
 obsolete calls from coming back (entry Z-C21.6 of the API audit).** Built on
-the Z-C21.2 branch. VERSION.txt and AssemblyVersion are NOT raised on this
-branch: whoever merges it bumps them. **The bench has NOT been run** (no
-SOLIDWORKS on this branch); the changes marked *behaviour* below must be seen
-green on the bench before merge.
+the Z-C21.2 branch. **Seen on the full bench on library 0.140.0, 28/9/2026**,
+together with the four operations of 0.115.0: none of the reds of that run is
+in the changes marked *behaviour* below.
 
 - **`ApiHelpers`** (Riscontro.Disegno/ApiHelpers.cs, ApiHelpers.Geometry.cs):
   one place per pattern, each helper quoting the help page it is built on.
