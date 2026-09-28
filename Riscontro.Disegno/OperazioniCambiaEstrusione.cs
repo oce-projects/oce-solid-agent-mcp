@@ -113,10 +113,16 @@ namespace Riscontro.Disegno
             // rispondeva false: «passante» su una piastra passava il controllo e la
             // piastra diventava «attraversa tutto» (il_cieco_diventa_passante,
             // passo 6, rosso nel banco intero del 28/9/2026 su 0.138.0). La pagina
-            // non ha Remarks che lo dicano (la tabella di GetTypeName2 distingue
-            // «Boss» da «Extrusion»; la sonda cambia_estrusione_base.cs lo misura).
-            // Dove il tipo e' gia' «Cut» o «Extrusion» decide il tipo, come prima
-            // di Z-C21.2.
+            // non ha Remarks che lo dicano. MISURATO il 28/9/2026 (sonda
+            // Controlli/TipoDellEstrusione, SOLIDWORKS 29.5.1), prima e dopo
+            // AccessSelections, stesse risposte:
+            //   base (prima estrusione)   GetTypeName2 Extrusion  GetTypeName Extrusion  IsBossFeature false
+            //   rialzo (FeatureExtrusion3) GetTypeName2 ICE       GetTypeName Boss       IsBossFeature true
+            //   taglio (FeatureCut4)       GetTypeName2 ICE       GetTypeName Cut        IsBossFeature false
+            // Anche le estrusioni fatte da uno schizzo su un piano, dopo la base,
+            // sono «ICE» per GetTypeName2: «Extrusion» e' solo la base, che non e'
+            // un «boss» e non e' un taglio. Dove il tipo e' gia' «Cut» o
+            // «Extrusion» decide il tipo, come prima di Z-C21.2.
             if (tipo != "Extrusion" && tipo != "Cut" && tipo != "ICE")
                 return Fallito("«" + f.Name + "» e' una lavorazione di tipo «" + tipo + "»: so cambiare le estrusioni e i tagli " +
                                "estrusi. Per una quota qualunque c'e' «modifica_quota».");

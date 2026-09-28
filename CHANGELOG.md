@@ -339,6 +339,9 @@ red on the previous library and green on this one.
   decide by themselves. Asked of every extrusion, it answered false on the
   base plate (the first extrusion of the part), and "passante" on the plate
   went through (`il_cieco_diventa_passante`, step 6, red in the full bench).
+  Measured by `Controlli/TipoDellEstrusione`: the base is "Extrusion" and
+  IsBossFeature false; every later extrusion, boss or cut, even from a sketch
+  on a plane, is "ICE" for GetTypeName2 (GetTypeName says Boss or Cut).
   **Two independent directions are refused** (L5-1:
   BothDirections.html): only direction 1 was written and read back.
 - **Rebuild errors after `ModifyDefinition` and after creation are read**

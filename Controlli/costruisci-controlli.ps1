@@ -106,7 +106,8 @@ $attrezzi = @(
     @{ nome = 'RaccordoDiFaccia'; sw = $true; lib = $false },
     @{ nome = 'Riempimento'; sw = $true; lib = $false },
     @{ nome = 'Nervatura'; sw = $true; lib = $false },
-    @{ nome = 'Fazzoletto'; sw = $true; lib = $false }
+    @{ nome = 'Fazzoletto'; sw = $true; lib = $false },
+    @{ nome = 'TipoDellEstrusione'; sw = $true; lib = $false }
 )
 
 foreach ($a in $attrezzi) {
