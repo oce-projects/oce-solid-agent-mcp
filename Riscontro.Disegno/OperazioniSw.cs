@@ -3897,6 +3897,7 @@ namespace Riscontro.Disegno
                 ["lato_mm"] = lato,
                 ["spigoli"] = quanti,
             };
+            SelectedEdgesAndFaces(feature, quanti, misure);
             if (dueLati) misure["secondo_lato_mm"] = secondoLato;
             else misure["angolo_gradi"] = angolo;
             return Riuscito(feature, misure);
@@ -5807,11 +5808,40 @@ namespace Riscontro.Disegno
                 PointRhoArray: null) as IFeature;
 
             if (feature == null) return Fallito("Il raccordo non e' stato creato.");
-            return Riuscito(feature, new Dictionary<string, object>
+            var measures = new Dictionary<string, object>
             {
                 ["raggio_mm"] = raggio,
                 ["spigoli"] = quantiSpigoli,
-            });
+            };
+            SelectedEdgesAndFaces(feature, quantiSpigoli, measures);
+            return Riuscito(feature, measures);
+        }
+
+        /// <summary>
+        /// THE REPLY OF A FILLET OR A CHAMFER SAYS WHAT WAS SELECTED AND WHAT WAS
+        /// MADE (finding N14, Z-C21.3). «spigoli» is the number of edges the
+        /// caller passed, kept under its old name for the callers that read it;
+        /// but with tangent propagation one selected edge can work a whole loop.
+        /// Measured on 28/9/2026 (Z-C21.3 edge-count probe, a block with its four
+        /// vertical edges rounded r 5): a fillet r 2 on ONE top edge, with these
+        /// options, removed 110.399 mm3 and owned 8 faces; a chamfer 2 x 45 on one
+        /// bottom edge, 254.454 mm3 and 8 faces; the reply said «spigoli: 1» both
+        /// times. So the reply also carries «selected_edges» (the same count,
+        /// under the name of what it is) and «faces», IFeature.GetFaceCount of the
+        /// new feature (IFeature~GetFaceCount.html: «Gets the number of faces in
+        /// this feature»), read right after creation as the probe read it. The
+        /// document state carries the same two fields for every fillet and
+        /// chamfer (StatoDocumento.EdgeAndFaceCounts).
+        /// </summary>
+        private static void SelectedEdgesAndFaces(IFeature feature, int selected, Dictionary<string, object> measures)
+        {
+            measures["selected_edges"] = selected;
+            try
+            {
+                int faces = feature.GetFaceCount();
+                if (faces > 0) measures["faces"] = faces;
+            }
+            catch { }
         }
 
         private Esito RipetiCircolare(

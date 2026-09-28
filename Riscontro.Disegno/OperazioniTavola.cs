@@ -672,12 +672,19 @@ namespace Riscontro.Disegno
                           " marcate per il disegno (" +
                           string.Join(", ", nomiQuote) + "), e nessuna arriva in tavola. " +
                           "Ho provato: " + string.Join(", ", provati) + ". " +
-                          "MISURATO IL 18/9/2026, fuori processo, su un pezzo costruito dal " +
-                          "ponte con 7 quote tutte marcate: cinque strade di import ne " +
-                          "portano zero, mentre nello stesso istante `InsertNote` sulla " +
-                          "stessa tavola aggiunge un'annotazione (67 -> 68). Non e' la " +
-                          "sessione: e' l'import delle quote. La strada che resta e' " +
-                          "dentro processo, nell'add-in (voce Z-E7)."));
+                          // Up to library 0.141.0 the tail said the import never works out
+                          // of process (18/9/2026). It does since 26/9/2026 (the bench case
+                          // le_quote_arrivano_dal_modello), and with the fallbacks now held
+                          // to the MARKED masks (N9) this refusal is what a part gets when
+                          // its marks do not reach the import: the N9 probe of Z-C21.3,
+                          // 28/9/2026, marked two sketch dimensions and the MARKED mask
+                          // brought 0 of them.
+                          "The import works out of process (measured on 26/9/2026 and " +
+                          "28/9/2026). A dimension marked on the sketch may still not be " +
+                          "one the MARKED mask brings (measured on 28/9/2026: two sketch " +
+                          "dimensions marked, 0 imported). Pass tutte_le_quote=true to import " +
+                          "every dimension of the model, or create the ones you need with " +
+                          "quota_in_tavola."));
             }
 
             var misure = new Dictionary<string, object>

@@ -158,10 +158,10 @@ Document state (`StatoDocumento.cs`):
   now writes `selected_edges` (GetEdgeCount, the selection) and `faces`
   (IFeature.GetFaceCount), for fillets and chamfers: one selected edge that became
   a whole loop reads 1 and 8. Bench case
-  `lavorazioni/the_state_counts_selected_edges_and_faces.json`. The replies of the
-  fillet and chamfer operations still give the selection under its old field name;
-  renaming it to `selected_edges` with `faces` beside it is left open (outside this
-  lot's files).
+  `lavorazioni/the_state_counts_selected_edges_and_faces.json`. The replies of
+  `raccordo_spigoli` and `smusso_spigoli` (added in review) keep `spigoli`, the
+  edges passed, and carry the same `selected_edges` and `faces` (IFeature.GetFaceCount
+  of the new feature); the same bench case asserts them.
 - **N29, a vertex chamfer read as nothing.** The chamfer is now read by
   IChamferFeatureData2.Type: a vertex chamfer gives `vertex_distances_mm` (probe
   2/3/4 and 3/3/3, where the state gave {}). The read moved from the obsolete

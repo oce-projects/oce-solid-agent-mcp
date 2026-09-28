@@ -553,7 +553,7 @@
     },
     "IModelDocExtension.GetDependencies": {
       "state": "probed_read",
-      "why": "Called as GetDependencies(true,true,false,true,false). Returns a flat object[] of alternating (name, path) pairs, e.g. \"zb3_base\", path, \"zb3_coperchio\", path. MEASURED: the 4th argument (documented as ListBrokenRefs) marks NOTHING even when called on an assembly with a genuinely broken reference -- result was identical to the sane assembly. Do not rely on it to flag broken references.",
+      "why": "Called as GetDependencies(true,false,false,true,false): Searchflag (the 2nd argument) is FALSE since Z-C21.2-ter. MEASURED 2026-09-28 (Z-C21.3, finding L12-8): with Searchflag true, a component that is not loaded (its file renamed away) came back as a DIFFERENT file with the same name found through the search rules (the current SOLIDWORKS folder), which exists, so a missing file was not reported; false answers the path where the file was last saved. Once a true call has found that file, later false calls answer it too: never call it with true before a check of missing files. Returns a flat object[] of alternating (name, path) pairs, e.g. \"zb3_base\", path, \"zb3_coperchio\", path. MEASURED: the 4th argument (documented as ListBrokenRefs) marks NOTHING even when called on an assembly with a genuinely broken reference -- result was identical to the sane assembly. Do not rely on it to flag broken references: File.Exists on each path.",
       "source": "rag:82zx_da_quali_file_dipende_un_assieme.md; code:OperazioniDipendenze.cs:15"
     },
     "IModelDocExtension.GetMassProperties": {
