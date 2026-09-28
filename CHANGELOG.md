@@ -43,8 +43,10 @@ green on the bench before merge.
     system units, bodies attached, `bodiesAttached` reported). CreateMassProperty2
     works by selection and waits for the same probe.
   - S11 `ModifyAndVerify` (ModifyDefinition always followed by GetErrorCode2)
-    and `RebuildError`: 4 ModifyDefinition sites and 2 hand-written
-    GetErrorCode2 readers. Each caller keeps its own verdict.
+    and `RebuildError`: 4 ModifyDefinition sites and 9 hand-written
+    GetErrorCode2 readers. Each caller keeps its own verdict. `ErrorCodeKnown`
+    (and `RebuildError(feature, out known)`) tells "no error" from "could not
+    read the code".
   - S12 `EdgeParameters`: GetCurve always before GetCurveParams3 (15 sites,
     6 of which skipped it). *Behaviour*: GetCurve is now called where it was
     not, as IEdge~GetCurveParams3.html requires. The one GetCurveParams2 site
@@ -55,34 +57,79 @@ green on the bench before merge.
     `verifica_sovrasporgenze`, `incidi_testo` and the extreme-face choice
     in Riferimenti now use the true box instead of GetBox/GetBodyBox, which the
     guide calls approximate and "not for comparison or calculation". A face box
-    that cannot be measured is null, not approximate. The approximate boxes that are
+    that cannot be measured is null, not approximate, and each caller says so
+    instead of turning it into a verdict (see the review corrections below). The approximate boxes that are
     approximate ON PURPOSE (a ceiling, a permissive pre-check, the pair
     SezioneProfilo / IngombroDeiCorpi, the fallback of the state when GetExtremePoint does not answer) go through `ApproximateBoundingBox`
-    with their reason.
+    with their reason; the unions of boxes go through `UnionOfBoxes`.
   - S10 `CreateFeatureFromDefinition` (selection, CreateDefinition, fill,
     CreateFeature, GetErrorCode2): ready for the Z-C21.7 migrations; today only
     the mirror of components uses it.
   - S17 `NormalIfPlanar`: 10 readings of IFace2.Normal (null on a curved face
     instead of 0,0,0; each site already treated either the same way).
-- **`SelectionMarks`** (S9): the 18 non-zero literal marks at selection calls
-  now name a constant that quotes its page; the divergences from the guide
-  (L2-1, L4-4, L7-5, L8-1) are recorded in the table, not changed.
+- **`SelectionMarks`** (S9): the 18 non-zero literal marks at selection calls,
+  and the 2 passed through the draft's `Seleziona` helper, now name a constant
+  that quotes its page (23 constants); the divergences from the guide (L2-1,
+  L4-4, L7-5, L8-1, and the missing marks of the gusset M27, of the variable
+  fillet and of InsertCosmeticWeldBead2 L9-3) are recorded in the table, not
+  changed. `SelezionaAsse` takes `append` explicitly instead of inferring it
+  from `mark != 1`.
 - **`ErrorCodeDecoder`** (S13): swSetValueReturnStatus_e, swFileSaveError_e and
-  swFileSaveWarning_e in words, from the interop enums. *Behaviour*: four
-  messages now add the words after the raw code (two SaveAs3 exports, two
-  SetSystemValue3 refusals).
+  swFileSaveWarning_e decoded to their ENUM NAMES, from the interop enums (a
+  mask as `swReadOnlySaveError | swFileLockError`). *Behaviour*: four
+  messages now add the enum name after the raw code (two SaveAs3 exports, two
+  SetSystemValue3 refusals), e.g. "(codice 2: swSetValue_InvalidValue)". No
+  sentence in either language: English words inside the Italian messages, or
+  new Italian words past the language gate, were both wrong.
 - **Refined list of obsolete members**: `Controlli/obsolete-api-list.js`
-  builds `Prove/data/obsolete-api-members.tsv` (3064 members, 21 obsolete only
+  builds `Prove/data/obsolete-api-members.tsv` (3066 members, 21 obsolete only
   for some uses) from sldworksapi.chm and obsoleteapi.chm. Compared with the
   raw list of Z-C21.1 it drops 27 false positives ("the now obsolete X"),
-  adds about 110 members the raw extraction missed, and lets the current guide
-  win on 10 old forms of current members.
+  adds about 110 members the raw extraction missed, adds the 2 members known
+  only from a "now obsolete" mention (ICurve.Length2, IPartDoc.EditSuppress2),
+  and lets the current guide win on 10 old forms of current members.
 - **Prove.Contratti**: `ObsoleteCallsContract` (every call to an obsolete
-  member carries `OBSOLETE-MEASURED: <bank case>` or sits in a frozen list for
-  Z-C21.7 that can only go down; 86 calls today, 4 measured, 82 frozen; seen
-  red on a call injected in a copy of a file) and `SelectionMarksContract`.
+  member is MEASURED, i.e. an `OBSOLETE-MEASURED: <bank case>` comment AND an
+  exact entry per file, member and case that says what is known of the
+  replacement, or FROZEN for Z-C21.7; the calls whose receiver type the source
+  does not say are frozen per file and name in
+  `Prove/data/obsolete-undecided-frozen.tsv`; all three are exact ratchets.
+  88 calls today, 4 measured, 84 frozen, 451 undecided; seen red five times on
+  changed copies of real files) and `SelectionMarksContract`.
   `OBSOLETE-MEASURED` on GraphicsRedraw2 x2 (OperazioniTondoTavola),
-  AddCenterMark and InsertCosmeticWeldBead. 386 checks.
+  AddCenterMark and InsertCosmeticWeldBead. 392 checks.
+- **Corrections after the adversarial review** (same branch):
+  - the obsolete-calls contract: a marker citing any existing case no longer
+    lets a new call through (the `Measured` entries are exact); a type is
+    taken only from a declaration IN SCOPE (the same method's blocks, the
+    parameters, the fields of the same partial class), never from another
+    method's variable of the same name, and a `var` of unknown type hides
+    outer names; the return types of methods in the source, `new T()` and
+    array elements give a type, which found an obsolete `IView.Name` in
+    OperazioniDistintaTavola and three `ISheetMetalFeatureData.KFactor` in
+    OperazioniLamiera (both frozen, with reasons) and removed two false ones
+    (`.Select` of LINQ in Banco/Program.cs); the holes of interpolated
+    strings are scanned; the undecided calls have their ratchet; the ratchet is
+    seen red both ways;
+  - `OBSOLETE-MEASURED` now means "a bank case proves the effect of this very
+    call"; what is known of the replacement (tried and failed, or not
+    measured) is written in the entry, so the two markers whose replacement was
+    not measured are no longer in contradiction with the definition;
+  - *behaviour* — a face whose true box does not answer is not a verdict:
+    `verifica_sovrasporgenze` counts it as not analysed (inconclusive, new
+    `planar_faces_without_true_box`), `incidi_testo` refuses before touching
+    the part instead of skipping the overflow check, and the extreme-face choice
+    of Riferimenti falls back to a point on the face (IFace2.GetClosestPointOn)
+    and says "could not be measured" instead of "there is no such face";
+  - *behaviour* — putting a pattern back after a refused change of instances
+    says "put back as it was" only when GetErrorCode2 says the pattern is sound;
+  - the four sheet-metal operations, the anchor movement check and the
+    feature-error count of `riordina_lavorazione` read GetErrorCode2 through
+    `RebuildError` (*behaviour*: the sheet-metal and anchor messages give the
+    error in words instead of "codice N"); the three hand-written unions of
+    approximate boxes and the one-axis extent go through `UnionOfBoxes`. The
+    state (StatoDocumento) keeps its own reader: it also records warnings,
+    which RebuildError leaves out by design.
 
 ## Unreleased — Z-C21.2 (branch z-c21-2-difetti-silenziosi)
 
