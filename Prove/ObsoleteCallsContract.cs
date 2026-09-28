@@ -311,17 +311,22 @@ namespace Prove.Contratti
                 copy.Insert(brace + 1, "            var injected = modello.GetActiveConfiguration();");
                 File.WriteAllLines(temp, copy);
 
-                var scanner = new ObsoleteCallScanner(list);
-                foreach (var kv in sources)
-                    scanner.Add(kv.Key, kv.Key == target ? File.ReadAllLines(temp) : kv.Value);
-                List<string> violations, stale;
+                // The file alone, before and after: whatever else is wrong in the
+                // tree is the business of the check above, not of this one.
+                List<string> before, after, stale;
                 int measured, frozenUsed;
-                Evaluate(scanner.Scan(), cases, out violations, out stale, out measured, out frozenUsed);
-                bool red = violations.Count == 1 && violations[0].Contains("GetActiveConfiguration") &&
-                           violations[0].Contains(target + ":" + (brace + 2));
+                var untouched = new ObsoleteCallScanner(list);
+                untouched.Add(target, original);
+                Evaluate(untouched.Scan(), cases, out before, out stale, out measured, out frozenUsed);
+                var injected = new ObsoleteCallScanner(list);
+                injected.Add(target, File.ReadAllLines(temp));
+                Evaluate(injected.Scan(), cases, out after, out stale, out measured, out frozenUsed);
+                var named = after.Where(v => v.Contains("GetActiveConfiguration") && v.Contains(target + ":" + (brace + 2))).ToList();
+                bool red = after.Count == before.Count + 1 && named.Count == 1;
                 Segna("seen red on an obsolete call injected in a copy of " + Path.GetFileName(target), red,
-                      red ? "red, and it names the injected line: " + violations[0]
-                          : "expected exactly the injected call, got " + violations.Count + ": " + string.Join(" | ", violations));
+                      red ? "red, and it names the injected line: " + named[0]
+                          : "expected one more violation naming the injected line, got " + before.Count + " -> " +
+                            after.Count + ": " + string.Join(" | ", after));
             }
             finally
             {

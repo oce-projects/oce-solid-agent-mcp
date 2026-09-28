@@ -24,6 +24,68 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.6 (branch z-c21-6-helper)
+
+**Single helpers for the recurring API patterns, and a static check that keeps
+obsolete calls from coming back (entry Z-C21.6 of the API audit).** Built on
+the Z-C21.2 branch. VERSION.txt and AssemblyVersion are NOT raised on this
+branch: whoever merges it bumps them. **The bench has NOT been run** (no
+SOLIDWORKS on this branch); the changes marked *behaviour* below must be seen
+green on the bench before merge.
+
+- **`ApiHelpers`** (Riscontro.Disegno/ApiHelpers.cs, ApiHelpers.Geometry.cs):
+  one place per pattern, each helper quoting the help page it is built on.
+  - S1 `ReadDimension` / `ReadDimensionInConfiguration`: the 18 readings of a
+    dimension value (7 `SystemValue`, 11 `GetSystemValue2("")`) go through
+    them, each keeping the call it made before. GetSystemValue3 is not used
+    yet: the shape of its return waits for the Z-C21.3 probe.
+  - S2 `NewMassProperty`: the 4 `CreateMassProperty` sites (a new object in
+    system units, bodies attached, `bodiesAttached` reported). CreateMassProperty2
+    works by selection and waits for the same probe.
+  - S11 `ModifyAndVerify` (ModifyDefinition always followed by GetErrorCode2)
+    and `RebuildError`: 4 ModifyDefinition sites and 2 hand-written
+    GetErrorCode2 readers. Each caller keeps its own verdict.
+  - S12 `EdgeParameters`: GetCurve always before GetCurveParams3 (15 sites,
+    6 of which skipped it). *Behaviour*: GetCurve is now called where it was
+    not, as IEdge~GetCurveParams3.html requires. The one GetCurveParams2 site
+    (sketch-text outline) goes through `EdgeParameterArray`, still obsolete.
+  - S6 `TrueBoundingBox` (six GetExtremePoint) for bodies and, through a
+    temporary sheet body (IFace2.CreateSheetBody), for faces. *Behaviour*: the
+    flat length measured by the sheet-metal operations (LunghezzaSviluppata), the face boxes of
+    `verifica_sovrasporgenze`, `incidi_testo` and the extreme-face choice
+    in Riferimenti now use the true box instead of GetBox/GetBodyBox, which the
+    guide calls approximate and "not for comparison or calculation". A face box
+    that cannot be measured is null, not approximate. The approximate boxes that are
+    approximate ON PURPOSE (a ceiling, a permissive pre-check, the pair
+    SezioneProfilo / IngombroDeiCorpi, the fallback of the state when GetExtremePoint does not answer) go through `ApproximateBoundingBox`
+    with their reason.
+  - S10 `CreateFeatureFromDefinition` (selection, CreateDefinition, fill,
+    CreateFeature, GetErrorCode2): ready for the Z-C21.7 migrations; today only
+    the mirror of components uses it.
+  - S17 `NormalIfPlanar`: 10 readings of IFace2.Normal (null on a curved face
+    instead of 0,0,0; each site already treated either the same way).
+- **`SelectionMarks`** (S9): the 18 non-zero literal marks at selection calls
+  now name a constant that quotes its page; the divergences from the guide
+  (L2-1, L4-4, L7-5, L8-1) are recorded in the table, not changed.
+- **`ErrorCodeDecoder`** (S13): swSetValueReturnStatus_e, swFileSaveError_e and
+  swFileSaveWarning_e in words, from the interop enums. *Behaviour*: four
+  messages now add the words after the raw code (two SaveAs3 exports, two
+  SetSystemValue3 refusals).
+- **Refined list of obsolete members**: `Controlli/obsolete-api-list.js`
+  builds `Prove/data/obsolete-api-members.tsv` (3064 members, 21 obsolete only
+  for some uses) from sldworksapi.chm and obsoleteapi.chm. Compared with the
+  raw list of Z-C21.1 it drops 27 false positives ("the now obsolete X"),
+  adds about 110 members the raw extraction missed, and lets the current guide
+  win on 10 old forms of current members.
+- **Prove.Contratti**: `ObsoleteCallsContract` (every call to an obsolete
+  member carries `OBSOLETE-MEASURED: <bank case>` or sits in a frozen list for
+  Z-C21.7 that can only go down; 86 calls today, 4 measured, 82 frozen; seen
+  red on a call injected in a copy of a file) and `SelectionMarksContract`.
+  `OBSOLETE-MEASURED` on GraphicsRedraw2 x2 (OperazioniTondoTavola),
+  AddCenterMark and InsertCosmeticWeldBead. 386 checks.
+
+## Unreleased — Z-C21.2 (branch z-c21-2-difetti-silenziosi)
+
 ## 0.113.0 — 28 September 2026 · library 0.138.0
 
 **Silent defects that need no probe (entry Z-C21.2 of the API audit).** Every
