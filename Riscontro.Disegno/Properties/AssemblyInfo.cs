@@ -405,8 +405,14 @@ using System.Runtime.InteropServices;
 // 0.137.0: U1.1, Api\ApiCatalog: api_search and api_signature by reflection on
 //          the loaded interop, with what is known of each member from
 //          api_knowledge.json.
-[assembly: AssemblyVersion("0.137.0.0")]
-[assembly: AssemblyFileVersion("0.137.0.0")]
+// 0.138.0: Z-C21.2, the silent defects of the API audit that need no probe:
+//          SaveAs3 after ClearSelection2, WeldGap always on, combina_corpi by
+//          signature, hidden bodies checked, angular dimensions in degrees,
+//          read-only and driven dimensions refused, BothDirections refused,
+//          GetErrorCode2 after ModifyDefinition, grids refused, the anchor on a
+//          fillet edge refused (IFace2.Normal is 0,0,0 on a non-planar face).
+[assembly: AssemblyVersion("0.138.0.0")]
+[assembly: AssemblyFileVersion("0.138.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -421,4 +427,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.137.0")]
+[assembly: AssemblyInformationalVersion("0.138.0")]

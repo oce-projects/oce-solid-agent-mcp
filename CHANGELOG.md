@@ -24,15 +24,13 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.2 (branch z-c21-2-difetti-silenziosi)
+## 0.113.0 — 28 September 2026 · library 0.138.0
 
 **Silent defects that need no probe (entry Z-C21.2 of the API audit).** Every
 fix below is a case where a part, a file or an answer came out wrong with
 `riuscita: true`, and the SOLIDWORKS API help alone was enough to decide. Each
-fix quotes its help page in the code. VERSION.txt and AssemblyVersion are NOT
-raised on this branch: whoever merges it bumps them. **The new bench cases have
-NOT been run** (no SOLIDWORKS on this branch): they are written to go red on
-library 0.136.0 and green on this one, and must be seen doing so before merge.
+fix quotes its help page in the code. The new bench cases are written to go
+red on the previous library and green on this one.
 
 - **`esporta_stl`, `esporta_step`, `esporta_iges` clear the selection before
   `SaveAs3`** (L13-1). IModelDocExtension~SaveAs3.html: "Exports the entire
