@@ -150,8 +150,7 @@ namespace Riscontro.Disegno
                 try
                 {
                     var e = o as IEdge;
-                    var c = e?.GetCurve() as ICurve;
-                    var cp = e?.GetCurveParams3() as ICurveParamData;
+                    var cp = ApiHelpers.EdgeParameters(e, out ICurve c);
                     if (c == null || cp == null) continue;
                     var tess = c.GetTessPts(1e-4, 1e-3, cp.StartPoint, cp.EndPoint) as double[];
                     if (tess == null || tess.Length < 6) continue;

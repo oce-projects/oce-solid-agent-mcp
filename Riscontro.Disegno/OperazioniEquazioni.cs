@@ -190,7 +190,7 @@ namespace Riscontro.Disegno
             int tipoQuota = -1;
             try { tipoQuota = quota.GetType(); } catch { }
             bool angolare = tipoQuota == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular;
-            double primaSistema = quota.SystemValue;
+            double primaSistema = ApiHelpers.ReadDimension(quota);
             var foto = FotografaIlPezzo(modello);
             if (foto.Corpi < 0)
                 return Fallito("Non riesco a contare i corpi del pezzo prima di legare la quota: senza, non saprei " +
@@ -227,7 +227,7 @@ namespace Riscontro.Disegno
                 return Fallito("Legando «" + nomeEq + "» a «" + espressione + "» " + rotto + "." +
                                ETornatoComEra(modello, foto, rimetti(), cosa));
             double? volumeDopo = VolumeMm3(modello);
-            double dopoSistema = quota.SystemValue;
+            double dopoSistema = ApiHelpers.ReadDimension(quota);
             var misure = new Dictionary<string, object>
             {
                 ["quota"] = nomeEq,

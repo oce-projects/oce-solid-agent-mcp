@@ -191,8 +191,7 @@ namespace Riscontro.Disegno
                 {
                     var e = o as IEdge;
                     var suo = e?.GetBody() as IBody2;
-                    var curva = e?.GetCurve() as ICurve;
-                    var p = e?.GetCurveParams3() as ICurveParamData;
+                    var p = ApiHelpers.EdgeParameters(e, out ICurve curva);
                     if (suo == null || curva == null || p == null) continue;
                     double u0 = p.UMinValue, u1 = p.UMaxValue;
                     var punti = new List<double[]>();

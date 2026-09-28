@@ -256,9 +256,8 @@ namespace Riscontro.Disegno
                     var f = corpo.GetFirstFace() as IFace2;
                     while (f != null)
                     {
-                        var s = f.GetSurface() as ISurface;
-                        var n = f.Normal as double[];
-                        if (s != null && n != null && s.IsPlane())
+                        var n = ApiHelpers.NormalIfPlanar(f);
+                        if (n != null)
                         {
                             double coseno =
                                 n[0] * normaleNeutra[0] +

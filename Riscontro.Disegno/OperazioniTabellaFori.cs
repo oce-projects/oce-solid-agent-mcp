@@ -104,8 +104,7 @@ namespace Riscontro.Disegno
                     foreach (var of in ((oc as IBody2)?.GetFaces() as object[]) ?? new object[0])
                     {
                         var f = of as IFace2;
-                        if (f == null || (f.GetSurface() as ISurface)?.IsPlane() != true) continue;
-                        var n = f.Normal as double[];
+                        var n = ApiHelpers.NormalIfPlanar(f);
                         if (n == null) continue;
                         var nv = direzioneSulFoglio(n);
                         double lung = Math.Sqrt(nv[0] * nv[0] + nv[1] * nv[1] + nv[2] * nv[2]);

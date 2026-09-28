@@ -1688,7 +1688,9 @@ namespace Riscontro.Disegno
             double[] fuori = null;
             foreach (var c in corpi)
             {
-                var b = (c as IBody2)?.GetBodyBox() as double[];
+                // Approximate ON PURPOSE, see the summary: a box that can only
+                // be larger than the part makes both checks more permissive.
+                var b = ApiHelpers.ApproximateBoundingBox(c as IBody2);
                 if (b == null || b.Length < 6) continue;
                 if (fuori == null)
                 {
@@ -2728,7 +2730,10 @@ namespace Riscontro.Disegno
             double basso = double.MaxValue, alto = double.MinValue;
             foreach (var c in corpi)
             {
-                var b = (c as IBody2)?.GetBodyBox() as double[];
+                // Approximate ON PURPOSE: this is a ceiling for a through cut,
+                // and the approximate box encloses the body (IBody2~GetBodyBox.html),
+                // so it is never lower than the true one.
+                var b = ApiHelpers.ApproximateBoundingBox(c as IBody2);
                 if (b == null || b.Length < 6) continue;
                 basso = Math.Min(basso, b[asse]);
                 alto = Math.Max(alto, b[asse + 3]);
@@ -3412,7 +3417,7 @@ namespace Riscontro.Disegno
             Func<double, double> aSistema = angolare ? (Func<double, double>)Unita.Rad : Unita.M;
             string unita = angolare ? "gradi" : "mm";
 
-            double prima = daSistema(quota.SystemValue);
+            double prima = daSistema(ApiHelpers.ReadDimension(quota));
             double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
             if (corpiPrima < 0)
@@ -3445,7 +3450,7 @@ namespace Riscontro.Disegno
             catch (Exception ex) { return Fallito("La ricostruzione e' fallita: " + ex.Message); }
 
             // ── e adesso si guarda se e' successo davvero ────────────────
-            double dopo = daSistema(quota.SystemValue);
+            double dopo = daSistema(ApiHelpers.ReadDimension(quota));
             if (Math.Abs(dopo - valore) > 0.001)
                 return Fallito(
                     "La quota «" + nomeQuota + "» dice ancora " +
@@ -7573,9 +7578,7 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var superficie = faccia?.GetSurface() as ISurface;
-                if (superficie == null || !superficie.IsPlane()) return null;
-                return faccia.Normal as double[];
+                return ApiHelpers.NormalIfPlanar(faccia);
             }
             catch { return null; }
         }

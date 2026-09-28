@@ -334,14 +334,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private static string ForoInErrore(IFeature foro)
         {
-            try
-            {
-                bool avviso;
-                int codice = foro.GetErrorCode2(out avviso);
-                return codice != (int)swFeatureError_e.swFeatureErrorNone && !avviso
-                    ? ErroriFeature.Frase(codice) : null;
-            }
-            catch { return null; }
+            return ApiHelpers.RebuildError(foro);
         }
 
         /// <summary>
@@ -409,7 +402,9 @@ namespace Riscontro.Disegno
             }
 
             bool applicato;
-            try { applicato = feature.ModifyDefinition(d, modello, null); }
+            // S11 (ApiHelpers.ModifyAndVerify); the error code is judged by the
+            // caller at step 6a, once the holes are positioned (ForoInErrore).
+            try { applicato = ApiHelpers.ModifyAndVerify(feature, d, modello).Applied; }
             catch (Exception ex)
             {
                 try { d.ReleaseSelectionAccess(); } catch { }

@@ -233,7 +233,9 @@ namespace Riscontro.Disegno
                 if (corpi == null || corpi.Length == 0) return null;
                 foreach (var c in corpi)
                 {
-                    var b = (c as IBody2).GetBodyBox() as double[];
+                    // Approximate ON PURPOSE: paired with the same approximation in
+                    // OperazioniSaldatura.IngombroDeiCorpi, so that the two cancel out.
+                    var b = ApiHelpers.ApproximateBoundingBox(c as IBody2);
                     if (b == null || b.Length < 6) continue;
                     if (totale == null) { totale = (double[])b.Clone(); continue; }
                     for (int i = 0; i < 3; i++) totale[i] = Math.Min(totale[i], b[i]);

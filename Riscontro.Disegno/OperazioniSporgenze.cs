@@ -125,7 +125,8 @@ namespace Riscontro.Disegno
                     f = f.GetNextFace() as IFace2;
                     facceGuardate++;
 
-                    var normale = faccia.Normal as double[];
+                    double[] normale = null;
+                    try { normale = ApiHelpers.NormalIfPlanar(faccia); } catch { }
                     bool piana = false;
                     try { var s = faccia.GetSurface() as ISurface; piana = s != null && s.IsPlane(); }
                     catch { }
@@ -363,7 +364,7 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var b = faccia.GetBox() as double[];
+                var b = ApiHelpers.TrueBoundingBox(faccia);   // S6: not IFace2.GetBox, approximate
                 if (b == null || b.Length < 6) return false;
                 // l'angolo piu' alto della scatola, proiettato sulla direzione
                 double alto = double.MinValue;
@@ -398,7 +399,7 @@ namespace Riscontro.Disegno
             };
             try
             {
-                var b = faccia.GetBox() as double[];
+                var b = ApiHelpers.TrueBoundingBox(faccia);   // S6: not IFace2.GetBox, approximate
                 if (b != null && b.Length >= 6)
                     voce["sta_fra_mm"] = new[]
                     {

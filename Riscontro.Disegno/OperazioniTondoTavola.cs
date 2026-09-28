@@ -243,7 +243,7 @@ namespace Riscontro.Disegno
                                     cx, cy, quotaDiametroOrizzontale);
                 if (q == null) continue;
                 double letto = double.NaN; string prefisso = "";
-                try { letto = Math.Round((q.GetDimension2(0) as IDimension).GetSystemValue2("") * 1000.0, 3); } catch { }
+                try { letto = Math.Round(ApiHelpers.ReadDimensionInConfiguration(q.GetDimension2(0) as IDimension, "") * 1000.0, 3); } catch { }
                 try { prefisso = q.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
                 CilindroDelTondo suo = null;
                 foreach (var c in cilindri)
@@ -439,7 +439,7 @@ namespace Riscontro.Disegno
         {
             double letto = double.NaN;
             string prefisso = "";
-            try { letto = (q.GetDimension2(0) as IDimension).GetSystemValue2("") * 1000.0; } catch { }
+            try { letto = ApiHelpers.ReadDimensionInConfiguration(q.GetDimension2(0) as IDimension, "") * 1000.0; } catch { }
             try { prefisso = q.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
             bool giusta = !double.IsNaN(letto) && Math.Abs(letto - attesaMm) <= 0.01 &&
                           (!diametro || prefisso.Contains("<MOD-DIAM>"));

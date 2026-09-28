@@ -175,8 +175,7 @@ namespace Riscontro.Disegno
                 var campioni = new List<double[]>();
                 try
                 {
-                    var cp = e.GetCurveParams3() as CurveParamData;
-                    var c = e.GetCurve() as ICurve;
+                    var cp = ApiHelpers.EdgeParameters(e, out ICurve c);
                     if (cp != null && c != null)
                     {
                         var tess = c.GetTessPts(1e-5, 1e-3, cp.StartPoint, cp.EndPoint) as double[];

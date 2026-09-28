@@ -88,7 +88,7 @@ namespace Riscontro.Disegno
                 return Fallito("Non riesco a dire se «" + nomeQuota + "» e' una quota lineare (tipo " + tipoQuota +
                                "): una tolleranza in mm su una quota di altro tipo sarebbe un numero sbagliato. Scegli " +
                                "una quota lineare.");
-            double nominale = Unita.Mm(quota.SystemValue);
+            double nominale = Unita.Mm(ApiHelpers.ReadDimension(quota));
             var tol = quota.Tolerance;
             if (tol == null) return Fallito("La quota «" + nomeQuota + "» non espone la tolleranza.");
 

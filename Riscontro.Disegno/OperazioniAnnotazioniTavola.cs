@@ -73,9 +73,8 @@ namespace Riscontro.Disegno
                 var e = o as IEdge;
                 try
                 {
-                    var curva = e?.GetCurve() as ICurve;
+                    var p = ApiHelpers.EdgeParameters(e, out ICurve curva);
                     if (curva == null || !curva.IsLine()) continue;
-                    var p = e.GetCurveParams3() as ICurveParamData;
                     var a = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.StartPoint)).MultiplyTransform(tr)).ArrayData as double[];
                     var b = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.EndPoint)).MultiplyTransform(tr)).ArrayData as double[];
                     bool orizzontale = Math.Abs(a[1] - b[1]) < 1e-6, verticale = Math.Abs(a[0] - b[0]) < 1e-6;
@@ -120,7 +119,7 @@ namespace Riscontro.Disegno
                 double mezzo = 0;
                 try
                 {
-                    var p = lato.Spigolo.GetCurveParams3() as ICurveParamData;
+                    var p = ApiHelpers.EdgeParameters(lato.Spigolo);
                     var s = p.StartPoint as double[]; var e = p.EndPoint as double[];
                     double scala = 1; try { scala = vista.ScaleDecimal; } catch { }
                     mezzo = Math.Sqrt(Math.Pow(e[0] - s[0], 2) + Math.Pow(e[1] - s[1], 2) + Math.Pow(e[2] - s[2], 2)) * (scala > 0 ? scala : 1) / 2;

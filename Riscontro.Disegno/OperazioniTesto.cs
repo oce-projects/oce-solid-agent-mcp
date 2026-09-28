@@ -348,7 +348,7 @@ namespace Riscontro.Disegno
                 var bordo = o as IEdge;
                 if (bordo == null) continue;
                 double[] p;
-                try { p = bordo.GetCurveParams2() as double[]; }
+                try { p = ApiHelpers.EdgeParameterArray(bordo); }
                 catch { continue; }
                 if (p == null || p.Length < 8) continue;
                 contorni++;
@@ -392,7 +392,7 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var b = faccia.GetBox() as double[];
+                var b = ApiHelpers.TrueBoundingBox(faccia);   // S6: not IFace2.GetBox, approximate
                 if (b == null || b.Length < 6) return null;
                 var fuori = new double[6];
                 for (int i = 0; i < 6; i++) fuori[i] = Unita.Mm(b[i]);

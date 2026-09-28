@@ -57,7 +57,10 @@ namespace Riscontro.Disegno
                 // senza, il ripristino rimetteva la condizione e lasciava la misura nuova.
                 if (fine == (int)swEndConditions_e.swEndCondBlind || fine == (int)swEndConditions_e.swEndCondMidPlane)
                     dati.SetDepth(true, profonditaM);
-                fatto = f.ModifyDefinition(dati, modello, null);
+                // S11: ModifyDefinition always with GetErrorCode2 (ApiHelpers).
+                // The verdict on errors stays with the caller, which rebuilds
+                // and counts the features in error (LavorazioniInErrore).
+                fatto = ApiHelpers.ModifyAndVerify(f, dati, modello).Applied;
             }
             catch { fatto = false; }
             if (!fatto) { try { dati.ReleaseSelectionAccess(); } catch { } }

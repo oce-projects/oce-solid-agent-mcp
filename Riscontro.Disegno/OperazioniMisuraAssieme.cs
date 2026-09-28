@@ -60,9 +60,8 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var mp = doc.Extension.CreateMassProperty() as IMassProperty;
+                var mp = ApiHelpers.NewMassProperty(doc, null, out _);
                 if (mp == null) return null;
-                mp.UseSystemUnits = true;
                 return mp.Mass;
             }
             catch { return null; }
@@ -122,9 +121,8 @@ namespace Riscontro.Disegno
             {
                 try
                 {
-                    var mp = modello.Extension.CreateMassProperty() as IMassProperty;
+                    var mp = ApiHelpers.NewMassProperty(modello, null, out _);
                     if (mp == null) return null;
-                    mp.UseSystemUnits = true;
                     return leggi(mp);
                 }
                 catch { return null; }

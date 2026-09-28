@@ -105,24 +105,30 @@ namespace Riscontro.Disegno
             IFeature nuova = null;
             try
             {
-                var fm = modello.FeatureManager;
-                var dati = fm.CreateDefinition((int)swFeatureNameID_e.swFmMirrorComponent) as IMirrorComponentFeatureData;
-                if (dati == null) return Fallito("SOLIDWORKS non ha dato la definizione dello specchio di componenti.");
-                dati.MirrorPlane = pianoF;
-                var quali = new Component2[] { (Component2)c };   // array TIPIZZATO (object[] fa feature fantasma)
-                if (modo == "istanza") dati.ComponentsToInstanceAlignToComponentOrigin = quali;
-                else
+                // S10: CreateDefinition -> fill -> CreateFeature, and the error code
+                // of what was born, through ApiHelpers.CreateFeatureFromDefinition.
+                var creation = ApiHelpers.CreateFeatureFromDefinition<IMirrorComponentFeatureData>(
+                    modello.FeatureManager, (int)swFeatureNameID_e.swFmMirrorComponent, dati =>
                 {
-                    dati.OppositeHandComponents = quali;
-                    dati.NameModifierType = (int)swMirrorComponentNameModifier_e.swMirrorComponentName_Suffix;
-                    dati.NameModifier = suffisso;
-                    dati.PlaceFilesInOneFolder = true;
-                    dati.MirrorComponentsFolderLocation = Path.GetDirectoryName(fileOriginale) ?? "";
-                    dati.BreakLinksToOriginalPart = modo == "opposto_slegato";
-                    dati.CreateDerivedConfigurations = false;
-                }
-                dati.MirrorType = (int)swMirrorComponentMirrorType_e.swMirrorType_CenterOfBoundingBox;
-                nuova = fm.CreateFeature(dati) as IFeature;
+                    dati.MirrorPlane = pianoF;
+                    var quali = new Component2[] { (Component2)c };   // array TIPIZZATO (object[] fa feature fantasma)
+                    if (modo == "istanza") dati.ComponentsToInstanceAlignToComponentOrigin = quali;
+                    else
+                    {
+                        dati.OppositeHandComponents = quali;
+                        dati.NameModifierType = (int)swMirrorComponentNameModifier_e.swMirrorComponentName_Suffix;
+                        dati.NameModifier = suffisso;
+                        dati.PlaceFilesInOneFolder = true;
+                        dati.MirrorComponentsFolderLocation = Path.GetDirectoryName(fileOriginale) ?? "";
+                        dati.BreakLinksToOriginalPart = modo == "opposto_slegato";
+                        dati.CreateDerivedConfigurations = false;
+                    }
+                    dati.MirrorType = (int)swMirrorComponentMirrorType_e.swMirrorType_CenterOfBoundingBox;
+                    return true;
+                });
+                if (creation.Stage == ApiHelpers.CreationStage.Definition)
+                    return Fallito("SOLIDWORKS non ha dato la definizione dello specchio di componenti.");
+                nuova = creation.Feature;
             }
             catch (Exception ex) { return Fallito("Lo specchio non e' riuscito: " + ex.Message); }
             try { modello.EditRebuild3(); } catch { }

@@ -172,7 +172,7 @@ namespace Riscontro.Disegno
                 // non ha piu' niente a che vedere con questa.
                 porta.Apri(dati, modello);
                 porta.Scrivi(dati, DaScrivere(nuove));
-                fatto = ripetizione.ModifyDefinition(dati, modello, null);
+                fatto = ApiHelpers.ModifyAndVerify(ripetizione, dati, modello).Applied;
                 if (!fatto) porta.Chiudi(dati);
             }
             catch (Exception ex)
@@ -196,14 +196,9 @@ namespace Riscontro.Disegno
             // this method, call IFeature::GetErrorCode2 to ascertain whether the
             // feature has rebuild errors». Si guardava solo il bool, che qui —
             // lo dice gia' il commento in testa — non e' mai il criterio.
-            string ripetizioneInErrore = null;
-            try
-            {
-                bool avviso;
-                int codice = ripetizione.GetErrorCode2(out avviso);
-                if (codice != (int)SolidWorks.Interop.swconst.swFeatureError_e.swFeatureErrorNone && !avviso) ripetizioneInErrore = ErroriFeature.Frase(codice);
-            }
-            catch { }
+            // Read again here, after faces and volume, where it was read before
+            // the helper existed (ApiHelpers.RebuildError, same rule).
+            string ripetizioneInErrore = ApiHelpers.RebuildError(ripetizione);
             if (ripetizioneInErrore != null)
             {
                 string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
@@ -314,7 +309,7 @@ namespace Riscontro.Disegno
                 if (d == null) return "Non sono riuscito a rimettere le cose com'erano.";
                 porta.Apri(d, modello);
                 porta.Scrivi(d, DaScrivere(comEra));
-                if (ripetizione.ModifyDefinition(d, modello, null))
+                if (ApiHelpers.ModifyAndVerify(ripetizione, d, modello).Applied)
                     return "Ho rimesso la ripetizione com'era.";
                 porta.Chiudi(d);
             }

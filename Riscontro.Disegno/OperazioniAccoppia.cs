@@ -343,7 +343,7 @@ namespace Riscontro.Disegno
                 var f = b.GetFirstFace() as IFace2;
                 while (f != null)
                 {
-                    var n = f.Normal as double[];
+                    var n = ApiHelpers.NormalIfPlanar(f);   // S17: null, not 0,0,0, on a curved face
                     if (n != null &&
                         n[0] * voluta[0] + n[1] * voluta[1] + n[2] * voluta[2] > 0.99)
                     {

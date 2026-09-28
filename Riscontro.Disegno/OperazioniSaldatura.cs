@@ -1115,8 +1115,10 @@ namespace Riscontro.Disegno
                     "Le due facce sono dello stesso corpo («" + corpoDa + "»). Un " +
                     "cordone unisce DUE corpi: indica una faccia per parte.");
 
-            var nDa = facce[0].Normal as double[];
-            var nA = facce[1].Normal as double[];
+            // S17: a curved face gives null (it used to give 0,0,0, a zero
+            // cosine): either way it is not "parallel", as before.
+            var nDa = ApiHelpers.NormalIfPlanar(facce[0]);
+            var nA = ApiHelpers.NormalIfPlanar(facce[1]);
             if (nDa != null && nA != null && nDa.Length >= 3 && nA.Length >= 3
                 && Math.Abs(nDa[0] * nA[0] + nDa[1] * nA[1] + nDa[2] * nA[2]) > 0.999)
                 return Fallito(
@@ -1280,8 +1282,7 @@ namespace Riscontro.Disegno
                 try
                 {
                     var spigolo = o as IEdge;
-                    var curva = spigolo?.GetCurve() as ICurve;
-                    var parametri = spigolo?.GetCurveParams3() as ICurveParamData;
+                    var parametri = ApiHelpers.EdgeParameters(spigolo, out ICurve curva);
                     if (curva == null || parametri == null) continue;
                     double u0 = parametri.UMinValue, u1 = parametri.UMaxValue;
                     bool sta = true;
@@ -1428,7 +1429,9 @@ namespace Riscontro.Disegno
                 double[] totale = null;
                 foreach (var c in corpi)
                 {
-                    var b = c.GetBodyBox() as double[];
+                    // Approximate ON PURPOSE, see the summary above (paired with
+                    // SezioneProfilo): ApiHelpers.ApproximateBoundingBox.
+                    var b = ApiHelpers.ApproximateBoundingBox(c);
                     if (b == null || b.Length < 6) continue;
                     if (totale == null) { totale = (double[])b.Clone(); continue; }
                     for (int i = 0; i < 3; i++) totale[i] = Math.Min(totale[i], b[i]);

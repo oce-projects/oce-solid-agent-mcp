@@ -498,7 +498,7 @@ namespace Riscontro.Disegno
                 if (Math.Abs(Prodotto(n, passo.Direzione)) <= Coseno) continue;
 
                 double[] box;
-                try { box = f.GetBox() as double[]; }
+                try { box = ApiHelpers.TrueBoundingBox(f); }   // S6: not IFace2.GetBox, approximate
                 catch { continue; }
                 if (box == null || box.Length < 6) continue;
                 var centro = new double[]
@@ -604,14 +604,10 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var superficie = faccia.GetSurface() as ISurface;
-                if (superficie == null || !superficie.IsPlane()) return null;
-                // Face2.Normal e' gia' la normale USCENTE della faccia: tiene
-                // conto del verso con cui la faccia usa la sua superficie.
-                // Prendere PlaneParams della superficie darebbe la normale
-                // della superficie, che per meta' delle facce di un solido
-                // punta dentro.
-                return Normalizza(faccia.Normal as double[]);
+                // S17: the rule (and why Face2.Normal and not PlaneParams)
+                // now lives in ApiHelpers.NormalIfPlanar.
+                var normal = ApiHelpers.NormalIfPlanar(faccia);
+                return normal == null ? null : Normalizza(normal);
             }
             catch { return null; }
         }

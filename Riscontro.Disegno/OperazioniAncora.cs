@@ -296,7 +296,7 @@ namespace Riscontro.Disegno
             var spigolo = firma.Entita as IEdge;
             ICurve curva = null;
             ICurveParamData par = null;
-            try { curva = spigolo?.GetCurve() as ICurve; par = spigolo?.GetCurveParams3() as ICurveParamData; } catch { }
+            try { par = ApiHelpers.EdgeParameters(spigolo, out curva); } catch { }
             if (curva == null || par == null || !curva.IsLine())
             {
                 motivo = "Lo spigolo «" + uid + "» non e' dritto: l'ancora si prende da uno spigolo dritto.";
@@ -370,7 +370,7 @@ namespace Riscontro.Disegno
                         // era falso. Il raccordo si riconosce perche' e' TANGENTE:
                         // la sua normale sullo spigolo e' quella della faccia.
                         double[] nf = null;
-                        if (piana) nf = f.Normal as double[];
+                        if (piana) nf = ApiHelpers.NormalIfPlanar(f);
                         else if (superficie != null)
                         {
                             try
@@ -711,7 +711,7 @@ namespace Riscontro.Disegno
                 var q = asse.QuotaNata;
                 if (q == null) continue;
                 double era;
-                try { era = q.GetSystemValue2(""); } catch { continue; }
+                try { era = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { continue; }
                 string rotta = null;
                 string ferma = null;
                 try
@@ -733,7 +733,7 @@ namespace Riscontro.Disegno
                     {
                         modello.EditRebuild3();
                         double mossa = era;
-                        try { mossa = q.GetSystemValue2(""); } catch { }
+                        try { mossa = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
                         if (Math.Abs(mossa - (era + 0.0001)) > 1e-9)
                             ferma = "rilette, la quota non si e' spostata";
                         else
@@ -758,7 +758,7 @@ namespace Riscontro.Disegno
                     return "Spostando la quota d'ancora «" + asse.Nome + "» di un decimo, il taglio va in errore (" + rotta +
                            "): lo schizzo non regge una modifica, e un'ancora che non regge una modifica non serve.";
                 double tornata = -1;
-                try { tornata = q.GetSystemValue2(""); } catch { }
+                try { tornata = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
                 if (Math.Abs(tornata - era) > 1e-9)
                     return "Dopo la prova di movimento la quota d'ancora «" + asse.Nome + "» non e' tornata al suo valore.";
             }
@@ -858,7 +858,7 @@ namespace Riscontro.Disegno
                 nata = quota?.GetDimension2(0);
                 if (nata == null) return -1;
                 try { quota.MarkedForDrawing = true; } catch { }
-                return nata.GetSystemValue2("") * 1000.0;
+                return ApiHelpers.ReadDimensionInConfiguration(nata, "") * 1000.0;
             }
             catch { return -1; }
             finally

@@ -406,8 +406,7 @@ namespace Riscontro.Disegno
             bool dritto = false;
             try
             {
-                var curva = b.Spigolo?.GetCurve() as ICurve;
-                var par = b.Spigolo?.GetCurveParams3() as ICurveParamData;
+                var par = ApiHelpers.EdgeParameters(b.Spigolo, out ICurve curva);
                 dritto = curva != null && curva.IsLine();
                 b.P0 = par?.StartPoint as double[];
                 b.P1 = par?.EndPoint as double[];
@@ -444,7 +443,7 @@ namespace Riscontro.Disegno
                     "e due piane. Scegli uno spigolo del bordo.", uid, cosa, t);
                 return null;
             }
-            var n = b.Larga.Normal as double[];
+            var n = ApiHelpers.NormalIfPlanar(b.Larga);
             // -1 e' «non letta» (voce Z-C8), e si rifiuta subito sotto.
             double nn = n == null || n.Length < 3 ? -1 : Math.Sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
             if (nn <= 1e-9)
@@ -835,7 +834,10 @@ namespace Riscontro.Disegno
                 modello.EditRebuild3();
                 volume = VolumeMm3(modello) ?? double.NaN;   // NaN qui vuol gia' dire «non lo so»
                 var corpi = (modello as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-                var box = corpi == null || corpi.Length == 0 ? null : (corpi[0] as IBody2)?.GetBodyBox() as double[];
+                // S6: the flat length is a measure, so the TRUE box
+                // (ApiHelpers.TrueBoundingBox), not GetBodyBox, which the guide
+                // says is approximate and not for calculations.
+                var box = corpi == null || corpi.Length == 0 ? null : ApiHelpers.TrueBoundingBox(corpi[0] as IBody2);
                 if (box == null) return double.NaN;
                 return Math.Max(Math.Abs(box[3] - box[0]), Math.Max(Math.Abs(box[4] - box[1]), Math.Abs(box[5] - box[2]))) * 1000.0;
             }

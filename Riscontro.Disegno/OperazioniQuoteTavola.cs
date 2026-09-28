@@ -645,7 +645,7 @@ namespace Riscontro.Disegno
             {
                 var spigolo = entita as IEdge;
                 if (spigolo == null) return null;
-                var p = spigolo.GetCurveParams3() as ICurveParamData;
+                var p = ApiHelpers.EdgeParameters(spigolo);
                 if (p == null) return null;
                 var da = p.StartPoint as double[];
                 var a = p.EndPoint as double[];
@@ -735,9 +735,8 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var curva = e?.GetCurve() as ICurve;
+                var p = ApiHelpers.EdgeParameters(e, out ICurve curva);
                 if (curva == null || !curva.IsCircle()) return null;
-                var p = e.GetCurveParams3() as ICurveParamData;
                 var da = p?.StartPoint as double[];
                 var a = p?.EndPoint as double[];
                 // UN CERCHIO INTERO ha inizio e fine nello stesso punto: un arco
@@ -863,7 +862,7 @@ namespace Riscontro.Disegno
                                 {
                                     string pre = ""; double mm = double.NaN;
                                     try { pre = d.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
-                                    try { mm = (d.GetDimension2(0) as IDimension).GetSystemValue2("") * 1000.0; } catch { }
+                                    try { mm = ApiHelpers.ReadDimensionInConfiguration(d.GetDimension2(0) as IDimension, "") * 1000.0; } catch { }
                                     if (pre.Contains("<MOD-DIAM>") && !double.IsNaN(mm))
                                     {
                                         string dd = Math.Round(mm, 2).ToString("0.00", Ci);
@@ -908,7 +907,7 @@ namespace Riscontro.Disegno
                             // vera nella vista dopo («gia' quotata in un'altra vista»).
                             if (dritti.Count == 1 && ents.Length == 1 && cerchiAttaccati.Count == 0 && !suGeneratrice)
                             {
-                                var p = dritti[0].GetCurveParams3() as ICurveParamData;
+                                var p = ApiHelpers.EdgeParameters(dritti[0]);
                                 var k = ChiaveNelModello(p.StartPoint as double[], p.EndPoint as double[]);
                                 if (k != null) fuori.Add(k);
                             }
@@ -946,7 +945,7 @@ namespace Riscontro.Disegno
                     if (su.IsPlane() && piana == null) piana = f; else altra = f;
                 }
                 if (piana == null || altra == null) return false;
-                var n = piana.Normal as double[];
+                var n = ApiHelpers.NormalIfPlanar(piana);
                 if (n == null || n.Length < 3) return false;
                 double piuLontano = 0;
                 foreach (var o in (altra.GetEdges() as object[]) ?? new object[0])
@@ -958,7 +957,7 @@ namespace Riscontro.Disegno
                     if (cv.IsCircle()) { var cc = cv.CircleParams as double[]; if (cc != null) punti.Add(cc); }
                     else
                     {
-                        var pr = ed.GetCurveParams3() as ICurveParamData;
+                        var pr = ApiHelpers.EdgeParameters(ed);
                         if (pr?.StartPoint is double[] a) punti.Add(a);
                         if (pr?.EndPoint is double[] b) punti.Add(b);
                     }
@@ -1500,8 +1499,8 @@ namespace Riscontro.Disegno
                         var dk = quota.GetDimension2(k) as IDimension;
                         if (dk == null) continue;
                         int tipo = dk.GetType();
-                        if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angolo = dk.GetSystemValue2("");
-                        else if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) larghezza = dk.GetSystemValue2("");
+                        if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angolo = ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                        else if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) larghezza = ApiHelpers.ReadDimensionInConfiguration(dk, "");
                     }
                     catch { }
                 }
@@ -1650,7 +1649,7 @@ namespace Riscontro.Disegno
                 if (dim != null)
                 {
                     try { fuori["nome"] = dim.FullName; } catch { }
-                    try { fuori["mm"] = Math.Round(dim.GetSystemValue2("") * 1000, 3); } catch { }
+                    try { fuori["mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000, 3); } catch { }
                 }
             }
             catch { }

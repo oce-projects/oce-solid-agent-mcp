@@ -1542,21 +1542,10 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var direzioni = new[]
-                {
-                    new double[] { -1, 0, 0 }, new double[] { 0, -1, 0 }, new double[] { 0, 0, -1 },
-                    new double[] { 1, 0, 0 }, new double[] { 0, 1, 0 }, new double[] { 0, 0, 1 },
-                };
+                var box = ApiHelpers.TrueBoundingBox(corpo);
+                if (box == null) return ScatolaApprossimata(corpo);
                 var fuori = new double[6];
-                for (int i = 0; i < 6; i++)
-                {
-                    double x, y, z;
-                    if (!corpo.GetExtremePoint(direzioni[i][0], direzioni[i][1], direzioni[i][2],
-                                               out x, out y, out z))
-                        return ScatolaApprossimata(corpo);
-                    double[] p = { x, y, z };
-                    fuori[i] = p[i % 3] * 1000.0;
-                }
+                for (int i = 0; i < 6; i++) fuori[i] = Unita.Mm(box[i]);
                 return fuori;
             }
             catch { return ScatolaApprossimata(corpo); }
@@ -1566,7 +1555,8 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var b = corpo.GetBodyBox() as double[];
+                // Only the fallback when GetExtremePoint does not answer (Ingombro).
+                var b = ApiHelpers.ApproximateBoundingBox(corpo);
                 if (b == null || b.Length < 6) return null;
                 var fuori = new double[6];
                 for (int i = 0; i < 6; i++) fuori[i] = b[i] * 1000.0;
@@ -2004,7 +1994,7 @@ namespace Riscontro.Disegno
             if (tipo == Angolare)
             {
                 double gradi = 0;
-                try { gradi = d.SystemValue * 180.0 / Math.PI; } catch { }
+                try { gradi = ApiHelpers.ReadDimension(d) * 180.0 / Math.PI; } catch { }
                 return new Dictionary<string, object>
                 {
                     ["nome"] = nome,
@@ -2015,7 +2005,7 @@ namespace Riscontro.Disegno
             return new Dictionary<string, object>
             {
                 ["nome"] = nome,
-                ["mm"] = Math.Round(Unita.Mm(d.SystemValue), 3),
+                ["mm"] = Math.Round(Unita.Mm(ApiHelpers.ReadDimension(d)), 3),
             };
         }
 
@@ -2048,11 +2038,10 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var proprieta = modello.Extension.CreateMassProperty() as IMassProperty;
+                // S2 (ApiHelpers.NewMassProperty). As before, a refused
+                // AddBodies is not checked here.
+                var proprieta = ApiHelpers.NewMassProperty(modello, corpi?.Cast<object>(), out _);
                 if (proprieta == null) return null;
-                proprieta.UseSystemUnits = true;
-                if (corpi != null && corpi.Count > 0)
-                    proprieta.AddBodies(corpi.Cast<object>().ToArray());
                 double kg = proprieta.Mass;
                 return kg > 0 ? (double?)kg : null;
             }
@@ -2074,7 +2063,7 @@ namespace Riscontro.Disegno
             fine = null;
             try
             {
-                var dati = spigolo.GetCurveParams3();
+                var dati = ApiHelpers.EdgeParameters(spigolo);
                 if (dati == null) return false;
                 inizio = dati.StartPoint as double[];
                 fine = dati.EndPoint as double[];
@@ -2116,8 +2105,7 @@ namespace Riscontro.Disegno
             // «lungo zero» (voce Z-C8).
             try
             {
-                var curva = spigolo.GetCurve() as ICurve;
-                var parametri = spigolo.GetCurveParams3() as ICurveParamData;
+                var parametri = ApiHelpers.EdgeParameters(spigolo, out ICurve curva);
                 if (curva != null && parametri != null)
                 {
                     double vera = curva.GetLength3(parametri.UMinValue, parametri.UMaxValue);

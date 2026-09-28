@@ -105,13 +105,12 @@ namespace Riscontro.Disegno
             {
                 try
                 {
-                    var mp = modello.Extension.CreateMassProperty() as IMassProperty;
-                    if (mp == null) return null;
-                    // ESPLICITO, non per abitudine: vedi il commento in testa.
-                    mp.UseSystemUnits = true;
-                    // `AddBodies` torna un booleano: senza i corpi agganciati
-                    // la misura non e' del pezzo che si crede.
-                    if (corpi.Count > 0 && !mp.AddBodies(corpi.ToArray())) return null;
+                    // S2: a new object in system units with the bodies attached
+                    // (ApiHelpers.NewMassProperty). AddBodies answers a boolean:
+                    // without the bodies attached the measure is not of the part
+                    // one believes.
+                    var mp = ApiHelpers.NewMassProperty(modello, corpi, out bool attached);
+                    if (mp == null || !attached) return null;
                     return leggi(mp);
                 }
                 catch { return null; }
@@ -619,21 +618,10 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var direzioni = new[]
-                {
-                    new double[] { -1, 0, 0 }, new double[] { 0, -1, 0 }, new double[] { 0, 0, -1 },
-                    new double[] { 1, 0, 0 }, new double[] { 0, 1, 0 }, new double[] { 0, 0, 1 },
-                };
+                var box = ApiHelpers.TrueBoundingBox(corpo);
+                if (box == null) return null;
                 var fuori = new double[6];
-                for (int i = 0; i < 6; i++)
-                {
-                    double x, y, z;
-                    if (!corpo.GetExtremePoint(direzioni[i][0], direzioni[i][1], direzioni[i][2],
-                                               out x, out y, out z))
-                        return null;
-                    double[] p = { x, y, z };
-                    fuori[i] = p[i % 3] * 1000.0;
-                }
+                for (int i = 0; i < 6; i++) fuori[i] = Unita.Mm(box[i]);
                 return fuori;
             }
             catch { return null; }
