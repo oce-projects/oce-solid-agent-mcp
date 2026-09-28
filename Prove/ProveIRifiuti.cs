@@ -166,8 +166,24 @@ namespace Prove.Contratti
         /// `combina_corpi` uid e `_rif` dati insieme («togli uno dei due»), e il
         /// passo di `corpo_principale_rif` che lascia piu' corpi («nominalo con
         /// «corpo_principale_uid»»).
+        /// **213 dalle quattro lavorazioni della guida (28/9/2026, ramo
+        /// quattro-lavorazioni):** +67, quanto ha contato il controllo sull'albero
+        /// unito, e torna con la somma delle repliche dei quattro scrittori file per
+        /// file. **+15, voce GP7 (`raccordo_faccia`):** la stessa faccia due volte e
+        /// le facce parallele indicano «raccordo_spigoli»; il raccordo che non nasce,
+        /// che nasce di un altro tipo, che rompe qualcosa o che non cambia il volume
+        /// dice di provare un raggio piu' piccolo o «raccordo_spigoli». **+18, voce
+        /// W1.1 (`ripeti_riempimento`):** la direzione che manca («indica uno spigolo
+        /// dritto… oppure… crea_asse»), la faccia non piana, la direzione fuori dalla
+        /// faccia, il passo e le copie per giro, e il NULL che nomina ripeti_lineare /
+        /// ripeti_circolare. **+10, voce W1.2 (`nervatura`):** l'estremo fuori dal
+        /// piano, la linea troppo corta, la nervatura che non nasce in nessun verso
+        /// («estrudi_su_faccia»), il piano da dire. **+24, voce GP20 (`fazzoletto`):**
+        /// i rifiuti nuovi nominano l'alternativa — indica le facce, usa il
+        /// triangolare, togli la posizione, prova lati piu' corti,
+        /// «cordone_saldatura».
         /// </summary>
-        private const int Pavimento = 146;
+        private const int Pavimento = 213;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

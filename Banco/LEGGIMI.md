@@ -511,7 +511,7 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/ 27   il guscio, e da che parte toglie;
+casi/lavorazioni/ 34   il guscio, e da che parte toglie;
                        la piastra simmetrica che cresce dalle due parti
                        con cambia_estrusione (revisione del 27/9, Z-C20);
                        la quota che fa uscire l'asola dal materiale, rifiutata
@@ -531,7 +531,14 @@ casi/lavorazioni/ 27   il guscio, e da che parte toglie;
                        lo spigolo sul bordo di un RACCORDO rifiutato come
                        quello dello smusso, il rialzo su una faccia che cresce
                        e non e' un taglio, il foro guidato fuori dal pezzo
-                       rifiutato (Z-C21.2)
+                       rifiutato (Z-C21.2); il raccordo di FACCIA fra due facce
+                       di un cubo, col baricentro che dice quale spigolo, e i
+                       due rifiuti: la stessa faccia due volte e due facce che
+                       si danno le spalle (GP7); la NERVATURA (W1.2): l'angolo
+                       della L col materiale dritto e la scatola svuotata col
+                       girato (il secondo tentativo sullo stesso pezzo), la
+                       piastra senza pareti e la linea fuori dal piano
+                       rifiutate
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       18   ogni faccia, non una sola; lo schizzo quotato che si
                        corregge con modifica_quota, e l'ancora dritta e obliqua
@@ -543,9 +550,12 @@ casi/piano/        6   DOVE finisce il piano, non la distanza chiesta; la foto
                        da ricalcare messa in scala su un piano (Z-F5, legge
                        {DATI}: Banco/dati/, versionata)
 casi/specchia/     2   il foro deve comparire dall'altra parte
-casi/ripeti/       9   la direzione, che e' il dubbio vero; l'asse riconosciuto
+casi/ripeti/      13   la direzione, che e' il dubbio vero; l'asse riconosciuto
                        per identita', e rifiutato se si e' spostato (voce E4);
-                       la copia tolta da una griglia rifiutata (Z-C21.2)
+                       la copia tolta da una griglia rifiutata (Z-C21.2);
+                       il riempimento che fa quattordici fori, e rifiutato
+                       senza direzione, su una faccia curva e con la direzione
+                       fuori dalla faccia (W1.1)
 casi/asse/         2   l'asse dalla parete di un foro
 casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
@@ -620,14 +630,18 @@ casi/tavola/      37   il primo caso che arriva in TAVOLA (voce GT0);
                        l'albero a gradini quotato di fianco: lunghezze in
                        parallelo e diametri dalle generatrici (GT14); la
                        distinta di taglio dice se ha confrontato (Z-C21.2)
-casi/saldature/    5   la distinta conta le barre, e i due numeri vengono da
+casi/saldature/    7   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
                        va fra facce che si toccano ad angolo; il tappo chiude
                        il tubo dentro (voce Z-C6). I corpi per NOME, con
                        @corpo(nome=...): i numeri C1, C2 cambiano fra un giro
                        e l'altro; il taglio senza gioco non eredita quello
-                       rimasto (Z-C21.2)
+                       rimasto (Z-C21.2); il fazzoletto nell'angolo della T,
+                       triangolare e poligonale, coi volumi misurati e la
+                       scatola del corpo nuovo; rifiutati la posizione fuori
+                       elenco, le facce che non si toccano o parallele, il
+                       poligono degenere e i lati corti troppo lunghi (GP20)
 casi/estrusioni/   8   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        l'ingombro, estremita' comprese, ed e' un poligono; la
                        ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta

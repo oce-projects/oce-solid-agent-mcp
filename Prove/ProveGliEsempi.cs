@@ -50,8 +50,12 @@ namespace Prove.Contratti
         /// **27**: `riordina_lavorazione` (`l_ordine_cambia_il_pezzo`).
         /// **28**: `specchia_componente` (`la_staffa_destra_e_la_sinistra`).
         /// **29**: `cambia_estrusione` (`il_cieco_diventa_passante`).
+        /// **30**: `nervatura` (`nervatura_nell_angolo_della_l`), voce W1.2. Le
+        /// altre tre lavorazioni della guida (`raccordo_faccia`,
+        /// `ripeti_riempimento`, `fazzoletto`) nascono senza: i loro casi verdi
+        /// nominano le facce coi selettori del banco.
         /// </summary>
-        private const int Pavimento = 29;
+        private const int Pavimento = 30;
 
         /// <summary>Cio' che un client non puo' copiare.</summary>
         private static readonly string[] SoloDelBanco = { "@", "{LAVORO}", "{PROFILI}", "{DATI}", "{SOLIDWORKS}" };

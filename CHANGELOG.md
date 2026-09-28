@@ -24,6 +24,119 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — le quattro lavorazioni della guida (branch quattro-lavorazioni)
+
+**Four operations that never worked, rebuilt from the SOLIDWORKS API help.**
+Each one had a history of NULL returns; each time the help page named the
+missing piece (an obsolete method, a selection mark, a flag, a degenerate
+profile). The recipe of the help was measured first by a probe, then written
+into the library together with its bench case, with the expected numbers
+computed by hand and compared with the probe. The help page is quoted in the
+code. Three operations are new (`raccordo_faccia`, `ripeti_riempimento`,
+`nervatura`) and one comes back into the catalogue (`fazzoletto`): the
+catalogue goes from 95 to 99 operations, all 99 executable ones. New answer
+fields are in English. VERSION.txt and AssemblyVersion are not raised on this
+branch: `Provata = true` on the four entries waits for the bench run that
+makes their cases green (the Z-C6 contract says so until then).
+
+- **The face fillet (entry GP7, the half that was missing).** New operation
+  `raccordo_faccia` (`faccia_1_uid`, `faccia_2_uid`, `raggio_mm`): a fillet
+  that rests on two faces instead of an edge. Four earlier attempts returned
+  NULL, and the API help named both causes: `FeatureFillet3` is obsolete for
+  face fillets since SOLIDWORKS 2020 (its Remarks), and the selection marks
+  are 2 and 4 (`ISimpleFilletFeatureData2` Remarks, "Face fillet/face-face
+  chamfer") — not the 1/2 of `swSimpleFilletWhichFaces_e`, which is the
+  parameter of `SetFaces`. Measured first by the probe (40 mm cube, two
+  adjacent faces, r = 5): the guide's recipe (`CreateDefinition(swFmFillet)`,
+  `Initialize(swFaceFillet)`, marks 2/4, circular profile, `DefaultRadius`,
+  `CreateFeature`) removes 214.6 mm³, exactly 40·25·(1 − π/4); the old call
+  and the new one with marks 1/2 both give NULL. The same face twice, and two
+  flat parallel faces (same side, or back to back), are refused before
+  calling: no ball touches both. Two walls facing each other are tried only
+  with the radius equal to half their distance. Afterwards the new feature
+  must be a `Fillet`, the volume must change, bodies and features in error
+  must be as before; otherwise the fillet is removed (`DeleteSelection2`) and
+  the part is checked to be as it was. New fields: `volume_change_mm3`,
+  `material_removed`, `shared_edge_mm`, `expected_change_abs_mm3` (two flat
+  faces at 90 degrees sharing an edge), `features_in_error`, `bodies`,
+  `feature_type`. Bench: `lavorazioni/raccordo_faccia_fra_due_facce_di_un_cubo`
+  (volume and centre of mass, which tells which edge was filleted), and the
+  two refusals `lim_raccordo_faccia_sulla_stessa_faccia`,
+  `lim_raccordo_faccia_fra_facce_che_si_danno_le_spalle`.
+- **`ripeti_riempimento`, the fill pattern (entry W1.1).** The recipe of
+  IFillPatternFeatureData (Remarks) and Create_Fill_Pattern_Example_CSharp.htm:
+  pre-select the feature (mark 4), a direction edge (mark 1) and the boundary
+  face (mark 16384), then `CreateDefinition(swFmFillPattern)` with scalars
+  only, then `CreateFeature`. `FeatureFillPattern` is "Obsolete" in the help,
+  and so were the fifteen NULLs of GP14. The probe of 28/9/2026 measured 14
+  holes on a 100 x 60 x 12 plate (-8444.6 mm³ = 14 x 603.2, exact); without
+  the direction edge `CreateFeature` returns NULL although the help calls it
+  optional, so the operation refuses before selecting anything. Circular
+  layout only (the one measured). It refuses a non-planar boundary and a
+  direction that leaves the face, and removes the pattern (`DeleteSelection2`,
+  then recounts the tree and re-measures the volume) when it breaks a
+  feature, changes the body count or makes openings merge. New answer fields:
+  `copies_made` (counted from the faces the pattern owns), `volume_per_copy_mm3`,
+  `feature_type` (`APattern`), `layout`, `loop_spacing_mm`,
+  `instances_per_loop`, `margin_mm`. The table pattern stays out: NULL
+  without a coordinate system on mark 16. Bench:
+  `ripeti/il_riempimento_fa_quattordici_fori` and three refusals twinned
+  with it (`lim_riempimento_senza_direzione`,
+  `lim_riempimento_contorno_non_piano`,
+  `lim_riempimento_direzione_fuori_dalla_faccia`).
+- **New operation `nervatura` (rib, entry W1.2)**, family `lavorazioni`.
+  IFeatureManager~InsertRib.html and the only example in the help
+  (Get_Rib_Feature_Data_Example_CSharp.htm) call `InsertRib` with
+  `IsNormToSketch = false`: the rib grows in the sketch plane, from the line to
+  the walls. Every historical probe passed `true`, which is why the rib "never
+  worked". The material side depends on the shape (L bracket: straight; shelled
+  box: flipped — measured by the probe of 28/9/2026), so the operation tries
+  straight, then flipped, and keeps the first one in which a new `Rib` feature is
+  born and the volume grows; `material_side` and `attempts` say which. Arguments:
+  a base plane plus an optional `distanza_mm` (the offset plane is created by the
+  operation), the two line ends in model coordinates, `spessore_mm` (two-sided).
+  Refused, with nothing left in the part (sketch and plane removed with
+  `DeleteSelection2`, volume read back): an end off the plane, a line under 1 mm,
+  and a rib that is born in neither direction (a plate without walls — it names
+  `estrudi_su_faccia`). New fields: `added_material_mm3`, `material_side`,
+  `attempts`, `line_length_mm`, `plane_created`, `declared_parallel_to_sketch`
+  and others. It carries a catalogue example copied from its green case.
+  Bench: `lavorazioni/nervatura_nell_angolo_della_l` (+2700 mm³),
+  `lavorazioni/nervatura_nella_scatola_svuotata` (+720 mm³, second attempt on
+  the same part: the one step the probe did not measure), and two refusals with
+  their twins (`lim_nervatura_sulla_piastra_senza_pareti`,
+  `lim_nervatura_fuori_dal_suo_piano`).
+- **`fazzoletto` (weldment gusset) is back in the catalogue, measured** (entry
+  GP20). Until library 0.138.0 it never created a gusset: it passed
+  `InsertGussetFeature3` a polygon profile with both short sides at zero
+  (`ProfileD3 = ProfileD4 = 0`) and no selection mark, and SOLIDWORKS returned
+  null without a reason. The API help (InsertGussetFeature3 Remarks: "select two
+  faces that are the supporting legs of this gusset with a Mark of 1";
+  Insert_Gusset_Feature_Example_CSharp.htm) asks for mark 1 on both faces AND a
+  valid profile. Measured on the 80x80x5 tube T: triangle 60/60, 5 thick,
+  +9000 mm³, bodies 2 -> 3; polygon 60/60 with short sides 15/15, +12937.5 mm³.
+  New arguments `profilo` (`triangolare` | `poligonale`), `lato3_mm`,
+  `lato4_mm`; a degenerate polygon, faces that are parallel, apart or not
+  planar, and a `posizione` outside the list are refused before SOLIDWORKS is
+  called. Only `centro` is exercised on the bench; `inizio` and `fine` are
+  accepted but not measured. The answer no longer echoes the inputs (audit
+  finding C1-1): the added volume is checked against the hand calculation, and
+  thickness, profile, location and supporting faces are read back from
+  `IGussetFeatureData`, plus the new body and its box (`volume_added_mm3`,
+  `volume_expected_mm3`, `volume_check`, `bodies_before`, `bodies_after`,
+  `new_body`, `new_body_box_mm`, `thickness_read_mm`, `thickness_type_read`,
+  `profile_read`, `location_read`, `supporting_faces_area_mm2`,
+  `contact_mm`); if one does not match, the gusset is removed and the refusal
+  says so. Bench: `saldature/il_fazzoletto_sta_nell_angolo`,
+  `saldature/il_poligono_del_fazzoletto_non_e_degenere` (each with its
+  refusals and twins in the same file).
+- **Contract floors.** Refusals that name a way forward (`ProveIRifiuti`):
+  146 -> 213 (+15 face fillet, +18 fill pattern, +10 rib, +24 gusset).
+  Operations with a copyable example (`ProveGliEsempi`): 29 -> 30 (the rib).
+  Two required fields get a written decision (`ProveICampiObbligatori`):
+  `ripeti_riempimento.copie_per_giro`, `nervatura.piano`. Bench cases: 13 new
+  (lavorazioni 27 -> 34, ripeti 9 -> 13, saldature 5 -> 7).
+
 ## Unreleased — Z-C21.6 (branch z-c21-6-helper)
 
 **Single helpers for the recurring API patterns, and a static check that keeps

@@ -70,6 +70,8 @@ namespace Prove.Contratti
                 { "modifica_quota.quota", "quale quota cambiare: indovinarla e' cambiare il pezzo sbagliato" },
                 { "ripeti_circolare.numero_istanze", "quante: e' il senso dell'operazione" },
                 { "ripeti_lineare.numero_istanze1", "idem" },
+                { "ripeti_riempimento.copie_per_giro", "quante copie per giro: e' la densita' del riempimento, non c'e' un numero d'officina" },
+                { "nervatura.piano", "il piano decide dove sta la nervatura: un piano d'ufficio la metterebbe di traverso, o fuori dal pezzo" },
                 { "specchia.piano", "rispetto a cosa: un predefinito specchierebbe a caso" },
                 { "nota_in_tavola.testo", "cosa c'e' scritto: non esiste un testo d'ufficio" },
                 { "incidi_testo.testo", "idem" },

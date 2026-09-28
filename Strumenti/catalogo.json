@@ -1212,6 +1212,110 @@
    "esempio": null
   },
   {
+   "nome": "ripeti_riempimento",
+   "famiglia": "lavorazioni",
+   "sommario": "Riempie una faccia piana di copie di una lavorazione: una piastra forata per alleggerire, una griglia di sfiato.",
+   "descrizione": "Riempie una faccia piana di copie di una lavorazione gia' fatta: una piastra forata per alleggerire, una griglia di sfiato, un crivello. SOLIDWORKS mette la prima copia al CENTRO della faccia e aggiunge giri concentrici distanti «passo_mm», con «copie_per_giro» copie su ogni giro, finche' la faccia le contiene; quelle che uscirebbero dal contorno (meno «margine_mm») non si fanno. L'originale resta dov'era.\n\nQUANTE COPIE ENTRANO LO DECIDE LA FACCIA, non un numero che dai tu: la risposta le conta in «copies_made». Su una piastra 100 x 60 con un foro Ø8, passo circa 17 e 10 copie per giro, sono 14.\n\nServono tre cose: la lavorazione («feature_uid» o «feature_rif»), la faccia di contorno su cui sta («faccia_uid» o «faccia_rif») e una DIREZIONE, cioe' uno spigolo dritto che corre lungo la faccia («asse_uid», per esempio il suo bordo lungo) oppure un asse fatto con «crea_asse» («asse_rif»). La direzione orienta i giri.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un cerchio di copie attorno a un asse, «ripeti_circolare». La disposizione e' solo circolare: quadrata, poligonale e a perforazione non sono provate.\n\nMI RIFIUTO SE MANCA LA DIREZIONE: senza, SOLIDWORKS non crea niente e non dice perche' (misurato, anche se la guida la dice facoltativa). MI RIFIUTO SE LA FACCIA DI CONTORNO NON E' PIANA, e SE LA DIREZIONE NON STA NEL PIANO DELLA FACCIA (uno spigolo dello spessore). E mi rifiuto, togliendo la ripetizione, se nasce con lavorazioni in errore, con i corpi cambiati o con copie che mordono il bordo o si fondono fra loro.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "feature_uid": {
+      "type": "string",
+      "description": "la lavorazione da ripetere, se c'e' gia' nell'albero"
+     },
+     "feature_rif": {
+      "type": "object",
+      "description": "la lavorazione fatta da un passo precedente di questo piano. Metti questo OPPURE feature_uid, non tutti e due.\n\nGeneri ammessi:\n- feature: la lavorazione fatta da quel passo, per ripeterla",
+      "properties": {
+       "passo": {
+        "type": "integer",
+        "description": "il numero d'ordine del passo che crea la geometria, contando da 1. Deve essere un passo PRECEDENTE a questo."
+       },
+       "genere": {
+        "type": "string",
+        "enum": [
+         "feature"
+        ]
+       }
+      },
+      "required": [
+       "passo",
+       "genere"
+      ]
+     },
+     "faccia_uid": {
+      "type": "string",
+      "description": "la faccia PIANA dentro cui disporre le copie, presa dallo stato («F1»...): di solito quella da cui parte il foro"
+     },
+     "faccia_rif": {
+      "type": "object",
+      "description": "la faccia creata da un passo precedente di questo stesso piano. Metti questo OPPURE faccia_uid, non tutti e due.\n\nGeneri ammessi:\n- faccia_di_fondo: il fondo della tasca (c'e' solo se la tasca e' cieca)\n- faccia_inferiore: la faccia sul piano di schizzo, il fondo dell'estrusione\n- faccia_superiore: la faccia in cima all'estrusione, quella opposta al piano di schizzo",
+      "properties": {
+       "passo": {
+        "type": "integer",
+        "description": "il numero d'ordine del passo che crea la geometria, contando da 1. Deve essere un passo PRECEDENTE a questo."
+       },
+       "genere": {
+        "type": "string",
+        "enum": [
+         "faccia_di_fondo",
+         "faccia_inferiore",
+         "faccia_superiore"
+        ]
+       }
+      },
+      "required": [
+       "passo",
+       "genere"
+      ]
+     },
+     "asse_uid": {
+      "type": "string",
+      "description": "la direzione dei giri: uno spigolo DRITTO che corre lungo la faccia di contorno («E1», «E2»...), per esempio il suo bordo lungo, oppure un asse gia' nel documento. Serve sempre: senza, la ripetizione non nasce"
+     },
+     "asse_rif": {
+      "type": "object",
+      "description": "la direzione, se l'asse lo crea un passo precedente di questo piano con «crea_asse». Uno OPPURE l'altro.\n\nGeneri ammessi:\n- asse: l'asse creato dal passo, dal centro di un foro o di un albero",
+      "properties": {
+       "passo": {
+        "type": "integer",
+        "description": "il numero d'ordine del passo che crea la geometria, contando da 1. Deve essere un passo PRECEDENTE a questo."
+       },
+       "genere": {
+        "type": "string",
+        "enum": [
+         "asse"
+        ]
+       }
+      },
+      "required": [
+       "passo",
+       "genere"
+      ]
+     },
+     "passo_mm": {
+      "type": "number",
+      "description": "distanza fra un giro di copie e il successivo, da centro a centro"
+     },
+     "copie_per_giro": {
+      "type": "integer",
+      "description": "quante copie su ogni giro attorno al centro della faccia"
+     },
+     "margine_mm": {
+      "type": "number",
+      "description": "quanto le copie restano lontane dal bordo della faccia; predefinito 0"
+     }
+    },
+    "required": [
+     "passo_mm",
+     "copie_per_giro"
+    ]
+   },
+   "precondizione": "feature_e_direzione",
+   "documento": "parte",
+   "esempio": null
+  },
+  {
    "nome": "smusso_spigoli",
    "famiglia": "lavorazioni",
    "sommario": "Smussa uno o piu' spigoli: bava, invito di montaggio, cianfrino da saldare.",
@@ -1761,6 +1865,70 @@
     "required": []
    },
    "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": null
+  },
+  {
+   "nome": "fazzoletto",
+   "famiglia": "saldature",
+   "sommario": "Fazzoletto di rinforzo, triangolare o poligonale, nell'angolo fra due facce piane di due barre che si toccano.",
+   "descrizione": "Mette un FAZZOLETTO di rinforzo nell'angolo fra due barre di un telaio saldato: una piastra, corpo a se', che irrigidisce il nodo e finisce in distinta.\n\nLE DUE FACCE si indicano per identificativo, prese dallo stato del documento: e' un'operazione che si chiede DOPO aver fatto le barre e i tagli, guardandole. Devono essere PIANE, fare un angolo e toccarsi lungo uno spigolo: per una barra in battuta su un'altra, la faccia LATERALE della barra e la faccia su cui arriva (le stesse di «cordone_saldatura»). In un angolo di tubolari le facce candidate sono quattro, e sceglierne due «probabili» vorrebbe dire mettere il rinforzo dalla parte sbagliata. Facce parallele, lontane o curve: rifiuto, prima di toccare il pezzo.\n\nIL PROFILO: «triangolare» (il predefinito) coi due lati «lato1_mm» e «lato2_mm» lungo le due facce; oppure «poligonale», che taglia la punta e vuole anche i due lati corti «lato3_mm» e «lato4_mm», piu' corti dei due lati. Un poligono senza lati corti e' degenere e lo rifiuto: e' il difetto per cui questa operazione non ha mai creato niente fino alla libreria 0.138.0. Lo spessore sta da tutte e due le parti del piano del fazzoletto; «posizione» e' «inizio», «centro» (il predefinito) o «fine» lungo lo spigolo comune, e un altro valore lo rifiuto invece di metterlo al centro di nascosto.\n\nLA RISPOSTA E' RILETTA, non ripetuta: il volume aggiunto contro il conto a mano («volume_added_mm3», «volume_expected_mm3»), i corpi prima e dopo, lo spessore, il profilo, la posizione e le due facce d'appoggio riletti dalla feature («thickness_read_mm», «profile_read», «location_read», «supporting_faces_area_mm2»), il corpo nuovo e la sua scatola («new_body», «new_body_box_mm»). Se una di queste non torna, il fazzoletto lo tolgo e te lo dico. Se ti serve solo documentare la saldatura, usa «cordone_saldatura».",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "facce_uid": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "esattamente DUE facce piane, una per barra, che si toccano lungo uno spigolo e fanno angolo, prese dallo stato del documento (F1, F2...)"
+     },
+     "spessore_mm": {
+      "type": "number",
+      "description": "spessore della piastra, da tutte e due le parti del suo piano"
+     },
+     "lato1_mm": {
+      "type": "number",
+      "description": "lato del fazzoletto lungo la prima faccia"
+     },
+     "lato2_mm": {
+      "type": "number",
+      "description": "lato del fazzoletto lungo la seconda faccia"
+     },
+     "profilo": {
+      "type": "string",
+      "enum": [
+       "triangolare",
+       "poligonale"
+      ],
+      "description": "forma della piastra (predefinito: triangolare). Il poligonale taglia la punta e vuole «lato3_mm» e «lato4_mm»"
+     },
+     "lato3_mm": {
+      "type": "number",
+      "description": "solo col profilo poligonale: primo lato corto, piu' corto dei due lati"
+     },
+     "lato4_mm": {
+      "type": "number",
+      "description": "solo col profilo poligonale: secondo lato corto, piu' corto dei due lati"
+     },
+     "posizione": {
+      "type": "string",
+      "enum": [
+       "inizio",
+       "centro",
+       "fine"
+      ],
+      "description": "dove sta lungo lo spigolo fra le due facce (predefinito: centro)"
+     }
+    },
+    "required": [
+     "facce_uid",
+     "spessore_mm",
+     "lato1_mm",
+     "lato2_mm"
+    ]
+   },
+   "precondizione": "corpo_solido_e_faccia",
    "documento": "parte",
    "esempio": null
   },
@@ -3060,6 +3228,37 @@
    "esempio": null
   },
   {
+   "nome": "raccordo_faccia",
+   "famiglia": "lavorazioni",
+   "sommario": "Un raccordo appoggiato a due facce invece che a uno spigolo: la palla del raggio rotola toccandole tutte e due.",
+   "descrizione": "Arrotonda il passaggio fra DUE FACCE: la superficie che nasce e' quella lasciata da una palla del raggio chiesto che rotola appoggiata a tutte e due. Sullo spigolo fra due facce che si toccano da' lo stesso pezzo di «raccordo_spigoli»; la differenza e' che non serve nominare uno spigolo, bastano le due facce.\n\nSu uno spigolo ESTERNO toglie materiale, in un angolo interno ne aggiunge: nella risposta c'e' di quanto e' cambiato il volume e da che parte. Quando le due facce sono piane, a 90 gradi, e si toccano su uno spigolo, accanto c'e' anche il conto a mano (lunghezza per r^2 per (1 - pi/4)).\n\nMI RIFIUTO PRIMA DI PROVARE quando la stessa faccia e' in tutti e due gli insiemi (per i bordi di una faccia sola c'e' «raccordo_spigoli»), e quando le due facce sono piane e PARALLELE: se guardano dalla stessa parte, o si danno le spalle come il davanti e il dietro di un blocco, nessuna palla le tocca tutte e due. Due pareti che si guardano (una cava) le lascio provare solo col raggio pari a meta' della distanza, e te lo dico.\n\nDOPO CONTROLLO: che la lavorazione nuova sia un raccordo, che il volume sia cambiato, che i corpi siano quelli di prima e che nessuna lavorazione sia andata in errore. Se una di queste non torna tolgo il raccordo, ricontrollo che il pezzo sia com'era e te lo dico. Se non nasce -- di solito e' il raggio, che non ci sta sulle facce -- lo dico e ti indico «raccordo_spigoli».\n\nUna faccia per insieme; le facce si nominano con gli identificativi dello stato, non con un riferimento a un passo.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "faccia_1_uid": {
+      "type": "string",
+      "description": "la prima faccia, presa dallo stato del documento (per esempio «F1»)."
+     },
+     "faccia_2_uid": {
+      "type": "string",
+      "description": "la seconda faccia, diversa dalla prima (per esempio «F3»). Due facce piane parallele non si raccordano."
+     },
+     "raggio_mm": {
+      "type": "number",
+      "description": "il raggio del raccordo, in mm. Deve starci su tutte e due le facce."
+     }
+    },
+    "required": [
+     "faccia_1_uid",
+     "faccia_2_uid",
+     "raggio_mm"
+    ]
+   },
+   "precondizione": "corpo_solido_e_faccia",
+   "documento": "parte",
+   "esempio": null
+  },
+  {
    "nome": "combina_corpi",
    "famiglia": "lavorazioni",
    "sommario": "Unisce, sottrae o interseca due o piu' corpi dello stesso pezzo.",
@@ -3905,6 +4104,57 @@
    "precondizione": "corpo_solido_e_faccia",
    "documento": "parte",
    "esempio": null
+  },
+  {
+   "nome": "nervatura",
+   "famiglia": "lavorazioni",
+   "sommario": "Una nervatura di irrigidimento: riempie, nel piano di una linea, lo spazio fra la linea e le pareti del pezzo. Misura il materiale aggiunto.",
+   "descrizione": "Irrigidisce una parete sottile: l'angolo di una staffa a L, il fondo di una scatola svuotata. Dai una LINEA con due estremi «da_mm» e «a_mm» (punti [x, y, z] in mm nel sistema del modello) che sta su un piano: uno dei tre base («piano»), eventualmente spostato parallelo a se stesso di «distanza_mm» (il piano sfalsato lo creo io). La nervatura cresce NEL piano della linea, dalla linea fino alle pareti che la linea -- prolungata -- incontra, ed e' spessa «spessore_mm», divisi a meta' dalle due parti del piano.\n\nLA LINEA STA NEL VUOTO, con gli estremi (o il loro prolungamento) sulle pareti da unire. Esempio: L 60x60 spessa 10 e profonda 50, piano frontale a distanza 25, linea da [10, 40, 25] a [40, 10, 25]: la nervatura e' il triangolo nell'angolo, 450 mm2 x 6 = 2700 mm3.\n\nIL VERSO DEL MATERIALE lo provo io: prima dritto, poi girato, e tengo il primo in cui la nervatura nasce e il pezzo cresce. Dipende dalla forma (nella L e' il dritto, nella scatola svuotata il girato) e la risposta dice quale ho usato e quanti tentativi. Se la linea sta fra pareti da tutte e due le parti vince il dritto.\n\nMI RIFIUTO se un estremo della linea non sta sul piano indicato (non la proietto in silenzio), se la linea e' piu' corta di un millimetro, e se la nervatura non nasce in nessuno dei due versi: di solito vuol dire che dalla linea non c'e' niente da incontrare, come su una piastra senza pareti (per un rilievo su una faccia piana c'e' «estrudi_su_faccia»). Quando rifiuto tolgo lo schizzo e il piano che avevo fatto: il pezzo resta com'era.\n\nNon faccio nervature sformate e non guardo QUALI pareti la nervatura ha unito: misuro che e' nata, il materiale aggiunto e che il pezzo non si e' rotto.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "piano": {
+      "type": "string",
+      "enum": [
+       "frontale",
+       "superiore",
+       "destro"
+      ],
+      "description": "il piano base parallelo a quello della nervatura: frontale (XY), superiore (XZ) o destro (YZ)"
+     },
+     "distanza_mm": {
+      "type": "number",
+      "description": "di quanto il piano della nervatura e' spostato dal piano base, lungo la sua normale (+Z, +Y, +X). Negativo per l'altro verso. Predefinito 0: la nervatura sta sul piano base."
+     },
+     "da_mm": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      },
+      "description": "un estremo della linea, [x, y, z] in mm, sul piano della nervatura"
+     },
+     "a_mm": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      },
+      "description": "l'altro estremo, [x, y, z] in mm, sul piano della nervatura"
+     },
+     "spessore_mm": {
+      "type": "number",
+      "description": "lo spessore della nervatura, in mm, diviso a meta' dalle due parti del piano. Per una staffa da 10 di solito 4-6."
+     }
+    },
+    "required": [
+     "piano",
+     "da_mm",
+     "a_mm",
+     "spessore_mm"
+    ]
+   },
+   "precondizione": "corpo_solido",
+   "documento": "parte",
+   "esempio": "{\"piano\":\"frontale\",\"distanza_mm\":25,\"da_mm\":[10,40,25],\"a_mm\":[40,10,25],\"spessore_mm\":6}"
   },
   {
    "nome": "sopprimi_istanza",
