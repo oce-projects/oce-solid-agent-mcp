@@ -98,6 +98,10 @@
          0.2.0 per settantotto versioni minori senza che nessuno la
          confrontasse con niente. -->
     <EmbeddedResource Include="VERSION.txt" />
+    <!-- WHAT IS KNOWN OF EACH API MEMBER (entry U1.1), read by api_search and
+         api_signature. Embedded, not copied: a knowledge file left behind by
+         the installer would make every member look never probed. -->
+    <EmbeddedResource Include="Strumenti\api_knowledge.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 

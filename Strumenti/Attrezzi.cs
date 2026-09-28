@@ -403,7 +403,155 @@ namespace Oce.Solid.Agent.Strumenti
                     // butta niente. NON e' idempotente: «nuovo» due volte fa due
                     // documenti.
                     soloLettura: false, distruttivo: false, idempotente: false),
+
+                // THE WHOLE API, READ BY REFLECTION (entry U1.1).
+                //
+                // Two tools that never touch SOLIDWORKS: they read the interop
+                // assembly loaded in this process and api_knowledge.json. They
+                // work with SOLIDWORKS closed, and they are the first half of
+                // Layer 1 (api_objects and api_call come with U1.2-U1.3).
+                Strumento(
+                    "api_search",
+                    "SEARCH the whole SOLIDWORKS API (the sldworks interop and the " +
+                    "swconst enums) by a piece of a name. Answers with the REAL " +
+                    "signatures, read from the interop on this machine: " +
+                    "«SewRefSurface» finds IFeatureManager.InsertSewRefSurface(5 " +
+                    "arguments) -> Feature and IModelDoc2.InsertSewRefSurface() -> Void.\n\n" +
+                    "«Interface.piece» searches one interface («IEdge.Adjacent»). " +
+                    "Enum names and enum values are searched too («swMateAlign»).\n\n" +
+                    "The four old interfaces (IModelDoc, IBody, IFace, IComponent) are " +
+                    "not exposed: a hit there names the new sister to use instead. " +
+                    "Members of swmotionstudy are listed read only.\n\n" +
+                    "Never touches SOLIDWORKS; works with it closed. For the full card " +
+                    "of one member (what is known of it, enums, indices), use " +
+                    "«api_signature».",
+                    Oggetto(
+                        new Dictionary<string, object>
+                        {
+                            ["query"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["description"] =
+                                    "a piece of the name, at least two characters; " +
+                                    "«Interface.piece» to search one interface",
+                            },
+                            ["limit"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "integer",
+                                ["description"] =
+                                    "how many lines to show, default 40, at most 200",
+                            },
+                        },
+                        new[] { "query" }),
+                    soloLettura: true, distruttivo: false, idempotente: true),
+
+                Strumento(
+                    "api_signature",
+                    "The CARD of one SOLIDWORKS API member, e.g. «IBody2.Check3» or " +
+                    "«IAssemblyDoc.AddMate5»: every overload with its real types, " +
+                    "property or method, the out (&) parameters by name, the typed " +
+                    "I… variant next to it, the numbered family (X, X2, X3) with the " +
+                    "latest marked «latest by number, not verified», and the flag " +
+                    "when it returns Void (then a new feature is only found from the " +
+                    "before/after snapshot).\n\n" +
+                    "It also says what is KNOWN of the member here: its state " +
+                    "(forbidden, confirm, gray, never_probed, probed_read, " +
+                    "probed_modifies), which enum an Int32 parameter takes — ONLY " +
+                    "where a hand-written map says so, otherwise «enum not " +
+                    "tabulated» — the meaning of array indices ONLY when measured, " +
+                    "otherwise «index not tabulated», the measured type of an Object " +
+                    "parameter, and the source of each fact. Do not guess what it " +
+                    "says is not tabulated.\n\n" +
+                    "Also takes an interface («IEdge»: its member names) or an enum " +
+                    "(«swFeatureNameID_e»: every value, names that share a value " +
+                    "marked AMBIGUOUS). Never touches SOLIDWORKS.",
+                    Oggetto(
+                        new Dictionary<string, object>
+                        {
+                            ["name"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["description"] =
+                                    "«Interface.Member», an interface, an enum of " +
+                                    "swconst, or a member name that exists on one " +
+                                    "interface only",
+                            },
+                        },
+                        new[] { "name" }),
+                    soloLettura: true, distruttivo: false, idempotente: true),
             };
+        }
+
+        /// <summary>
+        /// api_knowledge.json, embedded in the executable at build time.
+        ///
+        /// Embedded and not copied next to the executable: the installer
+        /// carries one file per payload entry, and a knowledge file that can
+        /// be missing would make api_signature answer "never_probed" for a
+        /// member measured to crash SOLIDWORKS — the one wrong answer that
+        /// looks like a right one. Read once.
+        /// </summary>
+        private static readonly Lazy<string> ApiKnowledgeJson = new Lazy<string>(() =>
+        {
+            try
+            {
+                var asm = typeof(Attrezzi).Assembly;
+                foreach (var name in asm.GetManifestResourceNames())
+                {
+                    if (!name.EndsWith("api_knowledge.json", StringComparison.OrdinalIgnoreCase)) continue;
+                    using (var stream = asm.GetManifestResourceStream(name))
+                    using (var reader = new StreamReader(stream, Encoding.UTF8))
+                        return reader.ReadToEnd();
+                }
+            }
+            catch (Exception ex)
+            {
+                Protocollo.Nota("[bridge] api_knowledge.json not readable: " + ex.Message);
+            }
+            return null;
+        });
+
+        private static Dictionary<string, object> ApiAnswerContent(Func<Riscontro.Disegno.Api.ApiAnswer> ask, string tool)
+        {
+            try
+            {
+                if (ApiKnowledgeJson.Value == null)
+                    return Protocollo.Contenuto(
+                        tool + ": api_knowledge.json is missing from this build, and without it " +
+                        "every member would look never probed — including the ones measured " +
+                        "to crash SOLIDWORKS. Rebuild the bridge.", true);
+                var answer = ask();
+                return Protocollo.Contenuto(answer.Text, answer.IsError);
+            }
+            catch (Exception ex)
+            {
+                // The interop is missing (SOLIDWORKS not installed where the
+                // bridge looks): say where to point it, not a stack trace.
+                var inner = ex;
+                while (inner.InnerException != null) inner = inner.InnerException;
+                return Protocollo.Contenuto(
+                    tool + " could not read the SOLIDWORKS interop: " + inner.Message +
+                    " Set SW_INSTALL_PATH to the SOLIDWORKS installation folder.", true);
+            }
+        }
+
+        private Dictionary<string, object> ApiSearch(Dictionary<string, object> argomenti)
+        {
+            var query = TestoDi(argomenti, "query");
+            int limit;
+            int.TryParse(TestoDi(argomenti, "limit") ?? "", NumberStyles.Integer,
+                         CultureInfo.InvariantCulture, out limit);
+            return ApiAnswerContent(
+                () => Riscontro.Disegno.Api.ApiCatalog.Search(query, limit, ApiKnowledgeJson.Value),
+                "api_search");
+        }
+
+        private Dictionary<string, object> ApiSignature(Dictionary<string, object> argomenti)
+        {
+            var name = TestoDi(argomenti, "name");
+            return ApiAnswerContent(
+                () => Riscontro.Disegno.Api.ApiCatalog.Signature(name, ApiKnowledgeJson.Value),
+                "api_signature");
         }
 
         /// <summary>
@@ -519,6 +667,8 @@ namespace Oce.Solid.Agent.Strumenti
                 case "misura": return Misura(argomenti);
                 case "annulla": return Annulla();
                 case "documento": return Documento(argomenti);
+                case "api_search": return ApiSearch(argomenti);
+                case "api_signature": return ApiSignature(argomenti);
                 default:
                     // E PRIMA DI RISPONDERE, SI SCRIVE (voce Z-G7): questo
                     // e' il punto che sapeva e taceva.
@@ -2733,6 +2883,7 @@ namespace Oce.Solid.Agent.Strumenti
         {
             "guarda_il_pezzo", "elenco_operazioni", "descrivi_operazione",
             "disegna", "misura", "annulla", "documento",
+            "api_search", "api_signature",
         };
 
         private static string TitoloUmano(string nome)
@@ -2746,6 +2897,8 @@ namespace Oce.Solid.Agent.Strumenti
                 case "misura": return "Misura il pezzo, senza toccarlo";
                 case "annulla": return "Ritira l'ultimo piano";
                 case "documento": return "Apri, crea o scegli il documento";
+                case "api_search": return "Search the SOLIDWORKS API";
+                case "api_signature": return "Signature and knowledge of an API member";
                 default: return nome;
             }
         }
