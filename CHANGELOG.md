@@ -7,6 +7,10 @@
 > mente* (regola della voce I1, che resta in piedi). Le voci **nuove** si
 > scrivono in inglese, a partire dalla prima successiva a questa riga. Il
 > confine e' qui, ed e' dichiarato invece che implicito.
+>
+> **Superseded on 28 September 2026 (entry W3.1-bis, decision D2):** the historical
+> entries below are translated too, in W3.1-bis.10, and the paragraph above is
+> rewritten then. New entries were already in English.
 
 **REGOLA, non consuetudine: ogni modifica al codice alza la versione in
 `VERSION.txt` e aggiunge una voce qui.**
@@ -23,6 +27,132 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 - **MAJOR** resta 0 finche' il protocollo degli strumenti non e' stabile.
 
 ---
+
+## 0.117.0 — 28 September 2026 · library 0.141.0 (unchanged)
+
+**The language gate: the Italian in the repository can only go down (entry
+W3.1-bis.1).** Decided on 28 September 2026: the whole repository goes to English
+before the first release, names included (D1) and historical entries of this file
+included (D2). This entry builds the ratchet that keeps the Italian from growing
+while the translation goes on, measures it before trusting it, and was then
+reviewed adversarially: the review opened the ratchet without a signature in three
+ways and found eight ways past the detector. All of them are closed below, each
+with a contract check that was seen red.
+
+- `Controlli/lingua/detect-italian.js` reads every file of `git ls-files` (or of a
+  commit, `--rev`, from the object store) and skips binaries **by extension only**,
+  from a closed list: never `git grep -I`, never git's own guess. Nine categories,
+  never summed. Comments, strings, markdown, JSON values and transition count
+  **Italian words per file** and may not grow in any file: Italian appended to a
+  line that is already Italian is growth too. Identifiers, JSON keys, protocol
+  values and path segments are repository-wide sets of whole names: no new Italian
+  name, so an identifier glued from Italian words that exist one by one is blocked,
+  and so is a name glued with hyphens (a JSON key with spaces is one whole key). A
+  name that was a tracked path segment is not new when it shows up in text after
+  the file is renamed. Transition must be 0 at a `v*` tag.
+- What the detector reads now, after the review: the holes of interpolated strings
+  (a string inside `{...}` or `${...}` is a string, a name is a name); prose after a
+  selector or a placeholder (`{name} not found...` is prose, the placeholder a
+  name); the words of `echo`/`printf` and the body of a here-document in shell
+  scripts; the typographic apostrophe as the accent; workshop words the repository
+  does not use yet (a list in `lexicon.json`, and the endings `-atura`, `-trice`,
+  `-one`, `-ella`, `-etto` for names). Italian words that English also has (a
+  musical term, an abbreviation, a brand: `weak_words` in `lexicon.json`) count
+  only in pairs, so an English line with one of them stays English.
+- `exceptions.json`: patterns with class, reason, signature and date, from a closed
+  list of classes; never a whole file. Refused now also: a `json_path` outside the
+  class detector-lexicon or outside one file of `Controlli/lingua/`; a pattern that
+  matches an Italian function word on its own, or takes away a third of the Italian
+  of one of five sentinel sentences; a pattern without `file` that matches an
+  Italian content word; and an exception that, on the tree, suppresses more than 40
+  hits in a file, more than the Italian left in it (from 10 up), or more than 300 in
+  the repository (`exception_limits` in `lexicon.json`).
+- **The CI step judges every commit of the range against its own parent**
+  (`.github/passi/language-gate.ps1`): (a) the tree is within its own baseline;
+  (b) a change to the gate itself (detector, lexicon, exceptions, the step, the
+  workflows, CODEOWNERS) carries the trailer `Language-Gate-Config-Change:`;
+  (c) the baseline is not above the parent's; (d) the tree is not above the
+  parent's baseline, **measured with the parent's detector, lexicon and
+  exceptions**. (c) and (d) pass only with the trailer
+  `Language-Baseline-Raise: <reason>` on **that** commit: a signature no longer
+  covers the range. Trailers are read by git, so the words in the middle of a body
+  do not sign. Renames are followed (`git diff -M`), a merge is judged against the
+  union of its parents' baselines, and on a pull request the base is the first
+  parent of the merge commit. `.github/workflows/language-gate.yml` runs the step
+  again on `pull_request_target`, where the workflow and the script are the target
+  branch's: a pull request cannot switch the gate off by editing it.
+  `.github/CODEOWNERS` covers `.github/`, `Controlli/lingua/` and
+  `Controlli/ganci/`. `prove.yml` runs on `v*` tags too, and a manual run takes a
+  `base` input.
+- **Pre-push**: the same step on the commits being pushed (read from git, so work
+  not yet committed changes nothing), then `--tighten` on each pushed tip. It stops
+  when the detector or the step is missing, instead of skipping in silence.
+- `baseline.json`, format 2, written on the MERGED tree (main at library 0.141.0
+  plus this entry), 674 files read: Italian words comments 147,940, strings
+  56,071, markdown 33,983, JSON values 55,845; distinct names identifiers 4,808,
+  JSON keys 443, protocol values 2,170, path segments 640; transition 0. **Raise
+  reason** (the commit carries `Language-Baseline-Raise:`): the branch baseline
+  had been measured on `4d7b84a`, before 0.137.0-0.141.0 landed on main with the
+  Italian they were written in; this is the first baseline, not a growth. The
+  branch history (eight commits, kept locally as `w31bis-1-cancello-storia`) is
+  landed as ONE commit, because the CI step judges every commit against its own
+  baseline and the old commits carried the old one.
+- **The measure** (`node Controlli/lingua/measure.js --summary`), four draws from
+  the tree of `4d7b84a`, labels stored as hashes. The first two (810 lines, and 120
+  English-heavy ones) were labelled while the detector was written and helped tune
+  it: precision 1.000, recall 0.997, 0 false alarms in 105. **The numbers to quote
+  are the two new draws, labelled blind** (from `--next`, before the detector ran on
+  them), after the review: 930 lines at random (seed 5150), 820 Italian and 110
+  English, **precision 1.000 (balanced 1:1) and recall 0.985**; 200 lines with two
+  English function words (seed 4747), **0 false alarms on 166 lines of English
+  prose**. Pooled over the blind draws: 0 false alarms in 279 English lines, so
+  with 95% confidence the false-alarm rate is below 1.1% and the balanced
+  precision above 0.989. Six labels were typing slips (a letter shifted by one
+  line), found by reading every label back against the notes, not only the
+  disagreements. Of the 12 Italian lines missed, 5 only name an existing file (by
+  design: counted once, under path segments) and 7 use words the lexicon lacks, or
+  one homograph alone (`--summary` lists them): left as measured.
+  808 found lines split as 473 counted (blocked wherever the words are added) and
+  335 found through names only (blocked only when the name is new). Out of the
+  repository: 41 workshop terms the repository never uses, kept out of every list
+  the detector loads, 29 caught in a new name by their ending alone; the Vim user
+  manual (9,796 English lines never seen): 3 false alarms.
+- Contract `LanguageGateTests`, 50 checks: the nine categories, the glued
+  identifier, the Italian folder and the file with a NUL byte as before, plus one
+  injection for each hole of the review and English lines with one homograph each
+  (must not count); four ways to cover a file with an exception (refused); and the
+  CI step on a throw-away repository with commits: a growth signed on a later
+  commit, a signature on the wrong commit, a loosened lexicon, an exception for the
+  exact sentence, a trailer in the body (all refused), a signed raise, a rename, a
+  JSON key with spaces, a merge (all accepted), the step switched off and judged by
+  the base's copy, a release tag with transition left (refused). **Every new check
+  seen red**: `node Controlli/lingua/see-it-fail.js` switches off each repair in
+  turn (20 mutations of the detector, the lexicon and the step) and runs the suite.
+- `Controlli/lingua/ci-proof.ps1`, the proof on GitHub, still to run: six
+  throw-away branches (an Italian line; the same with the baseline raised and no
+  trailer; the same, signed; the Italian line and a raise signed on the next
+  commit; a loosened lexicon; a rename), and the step must fail, fail, pass, fail,
+  fail, pass.
+- `Controlli/domande-senza-risposta.js`: the real NUL byte (offset 3899, line 97, a
+  key separator) is now written `'\u0000'`. Same value, and the same output byte
+  for byte with the same exit code on the same register, with and without its
+  line-by-line option. Git called the file binary and `controlla-pubblicabilita.ps1`
+  (`git grep -I`) still skips files like it: a separate entry, not language.
+- README: the section that kept the names Italian as protocol is replaced by an
+  English note (D1), and so is the matching sentence in
+  `Controlli/rinomina-prodotto.js`.
+
+- **`controlla-pubblicabilita.ps1` reads the files git takes for binary**
+  (entry Z-C22). The history pass used `git grep -I`, which skips every blob
+  git guesses is binary: a text file with one NUL byte is one, and
+  `Controlli/domande-senza-risposta.js` (a real NUL at offset 3899) was never
+  looked at. It is now `git grep --text`, with the binaries dropped by
+  extension (the same `$binari` list as the working-tree pass). Seen red on a
+  throw-away clone: a `.js` with a NUL and a private address in a commit
+  later deleted — the old script says "ok", the new one names the file.
+
+Bridge version 0.117.0; the library is unchanged (0.141.0): nothing here runs
+inside SOLIDWORKS, so the full bench of 0.141.0 still stands.
 
 ## 0.116.0 — 28 September 2026 · library 0.141.0
 

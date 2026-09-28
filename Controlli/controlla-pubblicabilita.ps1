@@ -288,7 +288,15 @@ Guarda 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $par
 # tolto, e il diff lo mostra solo due volte.
 #
 # `git grep` cerca dentro un albero senza estrarlo, quindi quarantuno commit
-# costano secondi e non minuti. -I salta i binari da solo.
+# costano secondi e non minuti.
+#
+# BINARY FILES ARE SKIPPED BY EXTENSION, NOT BY GIT'S GUESS (entry Z-C22). Here
+# stood `git grep -I`, which skips every blob git takes for binary: a text file
+# with one NUL byte inside is one. Controlli/domande-senza-risposta.js had a real
+# NUL (offset 3899) and was never looked at, in the tree or in the history. Now
+# `--text` reads every blob, and the paths whose extension is in `$binari`
+# (the same list the working-tree pass uses) are dropped afterwards — the rule
+# of the language detector: `git ls-files` minus the binaries by extension.
 
 Write-Host ""
 Write-Host "=== Nella storia che si sta per spingere"
@@ -351,7 +359,7 @@ if ($daSpingere.Count -eq 0) {
     Write-Host "  .. $($daSpingere.Count) commit da guardare"
 
     function GuardaStoria($nome, $pattern, $perche, $caseSensitive, $eccetto = @()) {
-        $trovati = @(EseguiGit (@('grep', '-I', '-n', '--no-color') +
+        $trovati = @(EseguiGit (@('grep', '--text', '-n', '--no-color') +
             $(if ($caseSensitive) { @() } else { @('-i') }) +
             @('-P', '-e', $pattern) + $daSpingere))
 
@@ -364,6 +372,7 @@ if ($daSpingere.Count -eq 0) {
             # sparita, e con lei il lasciapassare che i due controlli avevano
             # sull'indirizzo interno.
             if ($eccetto -contains (Split-Path -Leaf $percorso)) { return $false }
+            if ($binari -contains [IO.Path]::GetExtension($percorso).ToLower()) { return $false }
             $true
         })
 

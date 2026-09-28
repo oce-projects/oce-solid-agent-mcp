@@ -1,0 +1,46 @@
+# =============================================================================
+#  The language gate with the rules of the BASE (entry W3.1-bis.1)
+# =============================================================================
+#
+#  prove.yml runs the language gate too, but on a pull request prove.yml, the
+#  gate script and the detector all come from the pull request: a pull
+#  request could switch the gate off by editing them. Here the trigger is
+#  pull_request_target, so this file and the checkout are the ones of the
+#  target branch. The gate script of the base fetches the merge commit of the
+#  pull request and judges every commit of it from the object store:
+#  check (d) runs the PARENT's detector, lexicon and exceptions, and a change
+#  to any of them needs the trailer "Language-Gate-Config-Change:".
+#
+#  pull_request_target runs with the target branch's token. This job asks
+#  for `contents: read` only and uses no secret: check (a) runs the detector
+#  that each commit carries, i.e. code from the pull request, and with a
+#  read-only token that is no more than what `pull_request` already allows.
+#
+#  Branch protection should require this check (and CODEOWNERS covers
+#  .github/ and Controlli/lingua/): a gate that can be merged red is a sign.
+# =============================================================================
+
+name: language-gate
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+
+jobs:
+  base-rules:
+    runs-on: windows-latest
+
+    steps:
+
+      - name: Checkout of the target branch
+        uses: actions/checkout@v4
+        with:
+          # the token (read-only here) stays: the repository is private and
+          # the gate fetches the merge commit of the pull request with it
+          fetch-depth: 0
+
+      - name: Language gate (rules of the base)
+        shell: pwsh
+        run: .\.github\passi\language-gate.ps1 -FetchPullRequest ${{ github.event.pull_request.number }}

@@ -1,0 +1,6 @@
+# The language gate and the CI judge every change; a change to them needs the
+# owner's review (entry W3.1-bis.1). CODEOWNERS works only with branch
+# protection that requires code-owner reviews.
+/.github/                @Rasco94
+/Controlli/lingua/       @Rasco94
+/Controlli/ganci/        @Rasco94

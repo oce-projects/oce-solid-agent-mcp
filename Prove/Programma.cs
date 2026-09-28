@@ -396,6 +396,7 @@ namespace Prove.Contratti
             SelectionMarksContract.RunAll();
             FormaSpellingContract.RunAll();
             Zc2110HelpersContract.RunAll();
+            LanguageGateTests.All();
             IlLeggimiDiceQuantiSono();
 
             Console.WriteLine();

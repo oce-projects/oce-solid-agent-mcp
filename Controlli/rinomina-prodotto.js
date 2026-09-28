@@ -15,12 +15,12 @@
 //
 // COSA NON SI TOCCA, e sono decisioni:
 //
-//   * `CHANGELOG.md`: le voci storiche dicono cosa si chiamava allora. Un
-//     changelog riscritto e' un changelog che mente. Il criterio della voce I1
-//     dice testualmente «fuori dai changelog storici».
-//   * `Riscontro.Disegno`: non contiene nessun marchio altrui, e' un buon nome
-//     e non c'e' nessuna ragione per cambiarlo. La rinomina serve a togliere un
-//     marchio, non a uniformare.
+//   * `CHANGELOG.md`: not touched by this script, which removes a trademark.
+//     The historical entries are translated too, in W3.1-bis.10 (decision D2
+//     of 28 September 2026).
+//   * `Riscontro.Disegno`: not touched by this script, which removes a
+//     trademark. The project and its folder get an English name in
+//     W3.1-bis.6 (decision D6 of 28 September 2026).
 //   * i binari (`bin/`, `dist/`, `Installer/Payload/`): si rigenerano
 //     compilando.
 //

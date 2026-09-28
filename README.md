@@ -292,23 +292,19 @@ Le librerie di interoperabilita' di Dassault **non stanno in questo
 repository**: si prendono dall'installazione, cosi' la versione e' sempre
 quella che sta girando.
 
-## La lingua, che non e' mezza per caso
+## Language
 
-Il repository sta passando all'inglese: commenti, messaggi, descrizioni e
-documenti. **I NOMI no, e non e' lavoro lasciato a meta'.**
+The repository is moving to English **entirely, names included**: operations,
+arguments, case keys, classes, files and folders (decision of 28 September 2026,
+entry W3.1-bis). It replaces the earlier choice, written here until today, to keep
+the names Italian because they are the protocol. Until the names change
+(W3.1-bis.4 to .6) the protocol is still Italian, and this section will be
+rewritten then.
 
-| cosa | lingua | perche' |
-|---|---|---|
-| nomi delle operazioni (`estrudi_rettangolo`, `profili_saldatura`) | **italiano, e restano** | sono **il protocollo**: cambiarli rompe i piani salvati, i 270 casi di prova e ogni client che li abbia gia' visti |
-| nomi degli argomenti (`diametro_mm`, `facce_uid`) | **italiano, e restano** | idem |
-| namespace, classi, file, metodi | **italiano, e restano** | il banco e le prove chiamano **per riflessione, per nome** (`Carica.Classe(asm, "Catalogo")`). Rinominare una classe rompe chi la chiama **senza che il compilatore dica niente** |
-| commenti, messaggi di rifiuto, descrizioni del catalogo | → inglese | li legge chi lavora, e il modello |
-| README, guide, `CONTRIBUTING` | → inglese | li legge chiunque |
-| voci storiche del `CHANGELOG` | **italiano, e restano** | raccontano come si chiamavano le cose **allora**. *Un changelog riscritto e' un changelog che mente* |
-
-Quindi un lettore inglese che apre `OperazioniSformo.cs` e trova un file dal
-nome italiano **non ha trovato un residuo**: ha trovato un confine, e il confine
-passa fra **cio' che qualcuno cerca per nome a runtime** e tutto il resto.
+What holds already: **new text is written in English**, and a language gate
+(`Controlli/lingua/detect-italian.js`) keeps the Italian from growing, on every
+push and on the CI: every commit is judged against its parent, with its parent's
+rules, and a raise needs a signed trailer on the commit that raises.
 
 ## Il catalogo
 
