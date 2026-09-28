@@ -1973,6 +1973,18 @@ namespace Oce.Solid.Agent.Strumenti
                     break;
                 }
 
+                // THE STEP GOES ON UNDER THE CATALOGUE'S NAME (Z-C21.10,
+                // pattern S20). `Conosce` finds the operation ignoring case,
+                // and until 0.140.0 the step went on under the name as it was
+                // written. The library dispatches Ordinal: «Estrudi_Rettangolo»
+                // came back «Operazione sconosciuta» right after this check had
+                // said it exists, and «Rivoluzione», which carries «contorni»,
+                // fell into the profile extrusion the comment above warns
+                // about, with no «spessore_mm». Same rule as the enum values
+                // in Ponte/Forma.cs: what passes here goes on spelled as the
+                // catalogue spells it.
+                nome = Testo(_catalogo.Trova(nome), "nome") ?? nome;
+
                 // I PERCORSI SI CONTROLLANO PRIMA DI ESEGUIRE.
                 // Sono l'unica cosa che questo ponte scrive fuori dal
                 // documento aperto, e arrivano da un testo generato.
@@ -1998,6 +2010,12 @@ namespace Oce.Solid.Agent.Strumenti
                 // suo, nel migliore dei casi.
                 //
                 // SOLO LA FORMA, MAI IL MERITO: vedi Ponte/Forma.cs.
+                //
+                // AND THE FORMA REWRITES `suoi` IN PLACE (Z-C21.10, S20): an
+                // enum value accepted with a different case («Superiore»)
+                // comes out spelled as the catalogue spells it («superiore»).
+                // `suoi` is the very dictionary the step below hands to the
+                // library, which compares Ordinal.
                 var formaStorta = Ponte.Forma.Controlla(
                     nome, _catalogo.Schema(nome), suoi);
                 if (formaStorta != null)

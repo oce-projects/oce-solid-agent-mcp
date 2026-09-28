@@ -89,50 +89,216 @@ namespace Riscontro.Disegno
         /// indovinare: un telaio con le quote sbagliate e' il difetto che
         /// questo file esiste per chiudere.
         /// </returns>
+        /// <remarks>
+        /// THIS SIGNATURE DOES NOT CHANGE: the bench calls this method by
+        /// reflection (Banco/Program.cs, Sezioni), and an overload would make
+        /// `GetMethod("SporgenzeDelTelaio")` ambiguous. The work is in
+        /// <see cref="FrameOverhang"/>, which also says where the overhang
+        /// came from.
+        /// </remarks>
         public static double[] SporgenzeDelTelaio(
             ISldWorks sw, string profilo, string configurazione,
             int asseU, int asseV, double rotazioneGradi,
             int trattamentoAngolo, double giocoMm, Action<string> log)
         {
-            if (sw == null || string.IsNullOrWhiteSpace(profilo)) return null;
-            if (asseU < 0 || asseU > 2 || asseV < 0 || asseV > 2 || asseU == asseV) return null;
+            string source;
+            return FrameOverhang(sw, profilo, configurazione, asseU, asseV,
+                                 rotazioneGradi, trattamentoAngolo, giocoMm, log, out source);
+        }
+
+        /// <summary>The overhang was measured now, on a trial frame.</summary>
+        public const string OverhangMeasured = "measured";
+
+        /// <summary>The overhang was remembered: this session or the archive file.</summary>
+        public const string OverhangFromArchive = "archive";
+
+        /// <summary>
+        /// <see cref="SporgenzeDelTelaio"/>, saying where the answer came from
+        /// (<see cref="OverhangMeasured"/> or <see cref="OverhangFromArchive"/>;
+        /// null when there is no answer).
+        ///
+        /// WHAT IS REMEMBERED, AND FOR HOW LONG (Z-C21.10 N36). Until library
+        /// 0.140.0 two things went wrong with the memory:
+        ///   - a FAILED probe was kept as null and returned as null for the
+        ///     rest of the session: one passing hiccup (a network drive that
+        ///     stutters, a template that does not open) blocked that profile
+        ///     until SOLIDWORKS was closed;
+        ///   - the key had no date and no size of the library file: a library
+        ///     corrected afterwards kept its old overhang forever, in memory
+        ///     and in the archive on disk.
+        /// Now a failure is not remembered (the next call measures again), and
+        /// the key carries the file's LastWriteTimeUtc and length: a library
+        /// that changes is a new key. When the file cannot be read for its
+        /// date, nothing is remembered and the probe runs every time — slower,
+        /// never stale. A frame that comes out wrong on a remembered overhang
+        /// drops it with <see cref="ForgetFrameOverhang"/>.
+        /// </summary>
+        public static double[] FrameOverhang(
+            ISldWorks sw, string profile, string configuration,
+            int axisU, int axisV, double rotationDegrees,
+            int cornerTreatment, double gapMm, Action<string> log, out string source)
+        {
+            source = null;
+            if (sw == null || string.IsNullOrWhiteSpace(profile)) return null;
+            if (axisU < 0 || axisU > 2 || axisV < 0 || axisV > 2 || axisU == axisV) return null;
             log = log ?? (m => { });
 
-            string chiave = string.Join("|",
-                "telaio",
-                (profilo ?? "").ToUpperInvariant(),
-                configurazione ?? "",
-                asseU.ToString(CultureInfo.InvariantCulture),
-                asseV.ToString(CultureInfo.InvariantCulture),
-                Math.Round(rotazioneGradi, 3).ToString("0.###", CultureInfo.InvariantCulture),
-                trattamentoAngolo.ToString(CultureInfo.InvariantCulture),
-                Math.Round(giocoMm, 3).ToString("0.###", CultureInfo.InvariantCulture));
+            string key = FrameKeyOnDisk(profile, configuration, axisU, axisV,
+                                        rotationDegrees, cornerTreatment, gapMm);
+            return RememberOrMeasure(key,
+                () => TelaioDiProva(sw, profile, configuration, axisU, axisV,
+                                    rotationDegrees, cornerTreatment, gapMm, log),
+                log, out source);
+        }
 
+        /// <summary>
+        /// The memory of <see cref="FrameOverhang"/>, without SOLIDWORKS: the
+        /// remembered overhang for <paramref name="key"/>, or else what
+        /// <paramref name="measure"/> returns — remembered only when it is not
+        /// null (Z-C21.10 N36). A null key remembers nothing. It takes the
+        /// measurement as a delegate so that a contract test can drive it
+        /// with no CAD at all: a measurement that fails, then one that
+        /// succeeds, must be asked twice.
+        /// </summary>
+        internal static double[] RememberOrMeasure(
+            string key, Func<double[]> measure, Action<string> log, out string source)
+        {
+            source = null;
+            log = log ?? (m => { });
+            if (key != null)
+            {
+                lock (_serratura)
+                {
+                    Carica();
+                    double[] known;
+                    if (_memoria.TryGetValue(key, out known) && known != null)
+                    {
+                        source = OverhangFromArchive;
+                        log(string.Format(CultureInfo.InvariantCulture,
+                            "[sezione] overhang {0:0.##}/{1:0.##} remembered, not measured now " +
+                            "(archive: {2})", known[0], known[1], PercorsoArchivio()));
+                        return new[] { known[0], known[1] };
+                    }
+                }
+            }
+
+            double[] measured = null;
+            try { measured = measure == null ? null : measure(); }
+            catch (Exception ex) { log("[sezione] the trial frame failed: " + ex.Message); }
+
+            // A FAILURE IS NOT REMEMBERED: the next call measures again.
+            if (measured == null || measured.Length < 2) return null;
+            source = OverhangMeasured;
+
+            if (key != null)
+            {
+                lock (_serratura)
+                {
+                    Carica();
+                    _memoria[key] = new[] { measured[0], measured[1], 0.0 };
+                    Salva(log);
+                }
+            }
+            return new[] { measured[0], measured[1] };
+        }
+
+        /// <summary>
+        /// Drops a remembered overhang, from memory and from the archive file
+        /// (Z-C21.10 N36): the frame built with it came out wrong, and keeping
+        /// it would rebuild the same wrong frame at every attempt. The
+        /// arguments are those of <see cref="FrameOverhang"/>.
+        /// </summary>
+        /// <returns>True if there was an entry and it is gone.</returns>
+        public static bool ForgetFrameOverhang(
+            string profile, string configuration, int axisU, int axisV,
+            double rotationDegrees, int cornerTreatment, double gapMm, Action<string> log)
+        {
+            string key = FrameKeyOnDisk(profile, configuration, axisU, axisV,
+                                        rotationDegrees, cornerTreatment, gapMm);
+            return ForgetKey(key, log);
+        }
+
+        /// <summary>
+        /// <see cref="ForgetFrameOverhang"/> by key, without the disk read of
+        /// the library's date and size: what a contract test calls.
+        /// </summary>
+        internal static bool ForgetKey(string key, Action<string> log)
+        {
+            log = log ?? (m => { });
+            if (key == null) return false;
             lock (_serratura)
             {
                 Carica();
-                double[] gia;
-                if (_memoria.TryGetValue(chiave, out gia))
-                    return gia == null ? null : new[] { gia[0], gia[1] };
+                if (!_memoria.Remove(key)) return false;
+                Salva(log);
             }
+            log("[sezione] overhang dropped from the archive, it will be measured again: " + key);
+            return true;
+        }
 
-            double[] misurato = null;
+        /// <summary>
+        /// Where the archive of measured overhangs lives, to name it in a
+        /// message: a rejection that blames a remembered number must say
+        /// where it is remembered.
+        /// </summary>
+        public static string ArchivePath
+        {
+            get { return PercorsoArchivio(); }
+        }
+
+        /// <summary>
+        /// The first field of every key of this version. An archive line that
+        /// does not start with it was written before date and size were part
+        /// of the key, can never be matched again, and is left out on load.
+        /// </summary>
+        private const string KeyPrefix = "frame-v2";
+
+        /// <summary>
+        /// The key of a frame overhang, from the library file's date and
+        /// length as well as the frame options (Z-C21.10 N36). Pure: no disk,
+        /// no SOLIDWORKS — a contract test can call it.
+        /// </summary>
+        internal static string FrameKey(
+            string profile, long lastWriteUtcTicks, long length, string configuration,
+            int axisU, int axisV, double rotationDegrees, int cornerTreatment, double gapMm)
+        {
+            var c = CultureInfo.InvariantCulture;
+            return string.Join("|",
+                KeyPrefix,
+                (profile ?? "").ToUpperInvariant(),
+                lastWriteUtcTicks.ToString(c),
+                length.ToString(c),
+                configuration ?? "",
+                axisU.ToString(c),
+                axisV.ToString(c),
+                Math.Round(rotationDegrees, 3).ToString("0.###", c),
+                cornerTreatment.ToString(c),
+                Math.Round(gapMm, 3).ToString("0.###", c));
+        }
+
+        /// <summary>True for a key written by this version (see <see cref="KeyPrefix"/>).</summary>
+        internal static bool IsCurrentKey(string key)
+        {
+            return key != null && key.StartsWith(KeyPrefix + "|", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// <see cref="FrameKey"/> with the date and length read from the disk
+        /// now; null when the file cannot be read, and then nothing is
+        /// remembered.
+        /// </summary>
+        private static string FrameKeyOnDisk(
+            string profile, string configuration, int axisU, int axisV,
+            double rotationDegrees, int cornerTreatment, double gapMm)
+        {
             try
             {
-                misurato = TelaioDiProva(sw, profilo, configurazione, asseU, asseV,
-                                         rotazioneGradi, trattamentoAngolo, giocoMm, log);
+                var file = new FileInfo(profile);
+                if (!file.Exists) return null;
+                return FrameKey(profile, file.LastWriteTimeUtc.Ticks, file.Length, configuration,
+                                axisU, axisV, rotationDegrees, cornerTreatment, gapMm);
             }
-            catch (Exception ex) { log("[sezione] telaio di prova non riuscito: " + ex.Message); }
-
-            lock (_serratura)
-            {
-                Carica();
-                _memoria[chiave] = misurato == null
-                    ? null
-                    : new[] { misurato[0], misurato[1], 0.0 };
-                if (misurato != null) Salva(log);
-            }
-            return misurato;
+            catch { return null; }
         }
 
         /// <summary>Il lato del telaio di prova, in mm.</summary>
@@ -161,6 +327,22 @@ namespace Riscontro.Disegno
                 if (attivo != null) tornaA = attivo.GetTitle();
             }
             catch { }
+
+            // THE TRIAL MEMBER OPENS THE PROFILE LIBRARY TOO (Z-C21.10 N31).
+            // InsertStructuralWeldment5 below is a real insertion, and
+            // SOLIDWORKS opens the library by itself and leaves it modified,
+            // as OperazioniSaldatura measured for the real one. Closing the
+            // trial document may or may not take the library with it: the
+            // guide says «This method also closes any non-active hidden
+            // documents» (ISldWorks~CloseDoc.html), and whether a library
+            // opened this way is one of them is not measured. So the state
+            // is read before, and the same rule as the real insertion is
+            // applied after (OperazioniSw.RichiudiLaLibreria): what we opened
+            // or dirtied is closed without saving, then read back. It matters
+            // beyond this probe: a library left modified here looks, to the
+            // next frame, like one somebody was working on, and that frame
+            // then leaves it alone.
+            var libraryBefore = OperazioniSw.StatoDellaLibreria(sw, profilo);
 
             IModelDoc2 doc = null;
             try
@@ -259,6 +441,8 @@ namespace Riscontro.Disegno
             finally
             {
                 if (doc != null) { try { sw.CloseDoc(doc.GetTitle()); } catch { } }
+                string leftModified = OperazioniSw.RichiudiLaLibreria(sw, profilo, libraryBefore, log);
+                if (leftModified != null) log("[sezione] " + leftModified);
                 if (!string.IsNullOrEmpty(tornaA))
                 {
                     try { int e = 0; sw.ActivateDoc3(tornaA, false, 0, ref e); } catch { }
@@ -329,6 +513,10 @@ namespace Riscontro.Disegno
                 {
                     var pezzi = riga.Split('\t');
                     if (pezzi.Length != 4) continue;
+                    // A key without the file's date and size (before
+                    // Z-C21.10 N36) is never asked again: left out here, and
+                    // the next save does not write it back.
+                    if (!IsCurrentKey(pezzi[0])) continue;
                     double a, b, c;
                     if (!double.TryParse(pezzi[1], NumberStyles.Float, CultureInfo.InvariantCulture, out a)) continue;
                     if (!double.TryParse(pezzi[2], NumberStyles.Float, CultureInfo.InvariantCulture, out b)) continue;

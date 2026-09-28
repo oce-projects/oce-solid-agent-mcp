@@ -1,0 +1,74 @@
+{
+  "nome": "the_second_sheet_does_not_repeat_the_dimensions",
+  "famiglia": "tavola",
+  "perche": "Z-C21.10, finding N43 (lot Z-C21.2). quota_in_tavola skips an extent of the part that is already dimensioned, and the catalogue promises «UNA QUOTA SOLA PER ELEMENTO IN TUTTA LA TAVOLA» (UNI ISO 129-1: each element is dimensioned once). But ChiaviGiaQuotate walked the views from IDrawingDoc.GetFirstView, and IDrawingDoc~GetFirstView.html says «Gets the first drawing view on the current sheet.»: a second sheet with a view of the same part never saw the dimensions of the first, and got the 120 and the 10 again. The fix reads the views of every sheet with IDrawingDoc.GetViews (IDrawingDoc~GetViews.html: «an array of arrays with a length equal to the number of sheets»), keeping only the views of the same model and configuration.",
+  "il_difetto_che_questo_caso_prende": "Step 8 dimensions the top view of the SECOND sheet, whose 120 is already dimensioned in the front view of the FIRST sheet (step 5). The 120 must be skipped and said, and only the 80 placed: on library 0.140.0 the first expectation of step 8 is RED, because sheet 1 is never read and the 120 is placed a second time (2 dimensions, 120 and 80). Step 9 asks the front view of the second sheet, whose 120 and 10 are both on sheet 1: it must refuse as «already dimensioned», the same call that succeeds in step 5 on a drawing where nothing is dimensioned yet. «views_of_other_models_not_counted» = 0 is the other half: the model filter must recognise the views of sheet 1 as the same part, or the fix would do nothing and still look green on a one-sheet drawing.",
+  "e_la_gemella_e_nello_stesso_file": "The refusal (step 9) and step 5 are the same call, «vista: V1, quante: 6», on the same part: the difference is the drawing, which in step 9 already carries the 120 and the 10 on the first sheet («la_differenza_e_il_pezzo»).",
+  "i_numeri": "Plate 120 x 80 x 10 = 96000 mm3, centred, extruded up from the top plane: X from -60 to 60 (the 120), Y from 0 to 10 (the 10), Z from -40 to 40 (the 80). viste_standard gives front (X and Y), top (X and Z), side (Z and Y), in this order (measured in `la_tavola_quota_fori_e_smusso`). Sheet 1, front view: 120 and 10, 2 dimensions (the same step as in `la_tavola_quota_fori_e_smusso`). Sheet 2, top view: the 120 has the model key X|-60.00|60.00, the same as on sheet 1, so it is skipped; the two 80 edges are one element (Z|-40.00|40.00): 1 dimension. Sheet 2, front view: 120 (X|-60.00|60.00) and 10 (Y|0.00|10.00), both on sheet 1: 0 dimensions, refused. On 0.140.0 the top view of sheet 2 gets 2 dimensions, 120 and 80.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+                     "spessore_mm": 10, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 96000, "perche": "120 x 80 x 10: the part of both sheets" } ] },
+
+    { "operazione": "salva_documento",
+      "argomenti": { "percorso": "{LAVORO}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
+      "attese": [ { "cosa": "misure.avvisi", "uguale": 0, "perche": "a view hangs on the FILE of the part" } ] },
+
+    { "operazione": "crea_disegno",
+      "argomenti": { "formato": "A3" },
+      "attese": [
+        { "cosa": "stato.tipo", "uguale": "tavola", "perche": "from here on the bench works on the drawing" },
+        { "cosa": "misure.fogli", "uguale": 1, "perche": "one sheet to start with: the second one comes in step 6" } ] },
+
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3, "perche": "front, top, side on the first sheet" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V1", "quante": 6 },
+      "attese": [
+        { "cosa": "misure.quote_mm", "contiene": ["120", "10"],
+          "perche": "the length and the thickness, on the FIRST sheet: these are the dimensions the second sheet must not repeat" },
+        { "cosa": "misure.quote_messe", "uguale": 2,
+          "perche": "two dimensions for a rectangle, as in `la_tavola_quota_fori_e_smusso`" } ] },
+
+    { "operazione": "nuovo_foglio",
+      "argomenti": { "nome": "Second" },
+      "attese": [
+        { "cosa": "misure.fogli_dopo", "uguale": 2, "perche": "the second sheet exists" },
+        { "cosa": "misure.attivo", "uguale": "Second",
+          "perche": "and it is the one in front: the views of step 7 go on it, and the first sheet is NOT the current one when step 8 reads what is already dimensioned" } ] },
+
+    { "operazione": "viste_standard",
+      "argomenti": { "modello": "{LAVORO}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
+      "attese": [ { "cosa": "misure.viste_create", "uguale": 3,
+                    "perche": "front, top, side again, on the second sheet: V1, V2, V3 now name the views of this sheet" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V2", "quante": 6 },
+      "attese": [
+        { "cosa": "misure.quote_mm", "non_contiene": ["120"],
+          "perche": "THE LINE THAT IS RED ON 0.140.0, first so that the old library stops here and not on the new fields below. The 120 is on sheet 1 (step 5): repeating it on sheet 2 is the repeated dimensioning the catalogue promises to avoid" },
+        { "cosa": "misure.gia_quotate_altrove", "contiene": ["120"],
+          "perche": "the other side: the 120 is not missing because something broke, it was skipped and the answer says so" },
+        { "cosa": "misure.quote_mm", "contiene": ["80"],
+          "perche": "the width, which no view of sheet 1 dimensions: the fix must not skip what is NOT dimensioned elsewhere" },
+        { "cosa": "misure.quote_messe", "uguale": 1,
+          "perche": "the 80 only, counted before and after on this sheet" },
+        { "cosa": "misure.already_dimensioned_read_from", "uguale": "every sheet",
+          "perche": "IDrawingDoc.GetViews handed over both sheets; «current sheet only» would mean the fallback, and then the 120 would be back" },
+        { "cosa": "misure.views_of_other_models_not_counted", "uguale": 0,
+          "perche": "the six views show the same part in the same configuration: none may be left out by the model filter" },
+        { "cosa": "misure.hidden_dimensions_not_counted", "uguale": 0,
+          "perche": "nothing was hidden by hand in this drawing" } ] },
+
+    { "operazione": "quota_in_tavola",
+      "argomenti": { "vista": "V1", "quante": 6 },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["niente da quotare che non lo sia", "quotati in un'altra vista"],
+        "la_differenza_e_il_pezzo": "The same call as step 5, on the same part: in step 5 the drawing has no dimensions, here the first sheet already carries the 120 and the 10 that this front view shows, so there is nothing left to dimension.",
+        "gemella": "the_second_sheet_does_not_repeat_the_dimensions" } }
+  ]
+}

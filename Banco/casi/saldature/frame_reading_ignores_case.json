@@ -1,0 +1,37 @@
+{
+  "nome": "frame_reading_ignores_case",
+  "famiglia": "saldature",
+  "perche": "ENTRY Z-C21.10-esito-2, finding N32 (pattern S20). «misure» says what the two sizes of a frame mean: «ingombro», the outside size of the finished frame, or «interasse», the distance between the bar axes. Up to library 0.140.0 the library compared it Ordinal with «ingombro» and took EVERYTHING else for «interasse»: «Ingombro» gave a 1080 x 880 frame for 1000 x 800, with riuscito = true, and the answer did not say which reading it had used. The bridge now rewrites enum values in the catalogue spelling (Ponte/Forma.cs, S20), but only the top-level ones: the nested «telaio» the server builds is not in the catalogue schema, and the bench and the add-in do not go through the bridge at all. So the library matches the value without regard to case, refuses anything that is neither reading, and writes the reading it used in the answer («misure»).",
+  "il_difetto_che_questo_caso_prende": "Two. Step 1 asks for «Ingombro» with a capital: the frame must measure 1000 x 800 from outside (on library 0.140.0 it measures 1080 x 880, and the first expectation is red), and the answer must say «ingombro». Step 2 asks for «esterno», which is neither reading: it must be refused before anything is drawn (on library 0.140.0 it built a second frame on the centre lines and answered riuscito).",
+  "e_la_gemella_e_nello_stesso_file": "Step 2 (the refusal) and step 1 ask for the same frame; they differ only in «misure».",
+  "i_numeri": "80X80X5 square tube, overhang 80 mm per axis (40 per side). «ingombro» on the plane «frontale»: the path is 1000 - 80 = 920 by 800 - 80 = 720 on X and Y, the outside size 1000 x 800, and 80 on Z, the depth of the tube: [1000, 800, 80]. Read as «interasse» the path is 1000 x 800 and the outside size 1080 x 880: 80 mm away on each axis.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "telaio_rettangolare",
+      "argomenti": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configurazione": "80X80X5",
+                     "lunghezza_mm": 1000, "larghezza_mm": 800,
+                     "piano": "frontale", "trattamento_angolo": "quartabuono", "centrato": true,
+                     "misure": "Ingombro" },
+      "attese": [
+        { "cosa": "ingombro_mm", "uguale": [1000, 800, 80], "tolleranza": 0.5,
+          "perche_questa_tolleranza": "the same half millimetre with which the library verifies the outside size (OperazioniSw.MembroStrutturale) and the fixed bench checks it (Telaio in Program.cs), on the same approximate GetBodyBox. The centre-line reading is 80 mm away on X and on Y.",
+          "perche": "«Ingombro» is «ingombro»: the outside size asked for, measured on the part and not copied from the answer" },
+        { "cosa": "misure.misure", "uguale": "ingombro",
+          "perche": "the answer says which reading it used, in the catalogue spelling" },
+        { "cosa": "misure.ingombro_verificato", "uguale": true,
+          "perche": "the outside size was verified on the bodies the feature created, which happens only in the «ingombro» branch" } ] },
+
+    { "operazione": "telaio_rettangolare",
+      "argomenti": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configurazione": "80X80X5",
+                     "lunghezza_mm": 1000, "larghezza_mm": 800,
+                     "piano": "frontale", "trattamento_angolo": "quartabuono", "centrato": true,
+                     "misure": "esterno" },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["«misure» can only be", "«esterno»"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "frame_reading_ignores_case" } }
+  ]
+}

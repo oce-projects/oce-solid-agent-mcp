@@ -1,0 +1,25 @@
+{
+  "nome": "the_iges_carries_the_solid_not_its_wireframe",
+  "famiglia": "esporta",
+  "perche": "Z-C21.10, finding N59. esporta_iges set the representation and «IGES solid/surface entities», and left the sibling toggles of the same dialog as the user's profile had them: swIGESExportAsWireframe («Specifies whether to convert solid body to a 3D wireframe representation in the IGES file»), swIGESExportFreeCurves and swIGESExportSketchEntities (estratto_swconst/FileSaveAsIGESOptions.htm). And the only check on the file, the count of «P» records, cannot tell a solid from its wireframe: both have records. The fix turns the three off for the export and puts them back after, and reads the file's directory section to count solids and surfaces, refusing a file that has neither.",
+  "il_difetto_che_questo_caso_prende": "The half of the fix a case can build: the census of the file. On a block the IGES must say one solid (type 186) and six surfaces, one per face. If the directory were read wrong -- the wrong column, the wrong line of the pair -- the census would say zero and zero, and the new refusal would turn every correct IGES into a failure; `iges_solidi` would go red too, but this case says why.",
+  "se_resta_verde_sulla_libreria_vecchia": "It does not go red on 0.140.0: it stops with «campo assente: misure.solid_entities», a bench error, because the old library does not count entities. The situation of the defect -- a profile with «IGES wireframe (3D curves)» or «Export sketch entities» ticked -- cannot be set from a case (the bench has no step that writes a user preference, and a case must not depend on how the machine's profile happens to be). The read-set-restore is covered by the contract test proposed with this fix (Prove), which reads the source.",
+  "i_numeri": "Block 100 x 100 x 20 = 200000 mm3: one solid body, six flat faces. Measured by hand on 28/9/2026 on `gp3_solidi.igs`, the file `iges_solidi` writes of this same block with SOLIDWORKS 2021: 106 lines with «D» in column 73, 53 entities; type 186 (manifold solid B-rep object) once, type 190 (plane surface) six times, plus 514 shell x1, 510 face x6, 508 loop x6, 504 edge list x1, 502 vertex list x1, 110 line x12, 116 point x6, 123 direction x12, 314 colour x1. So solid_entities = 1, surface_entities = 6.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "esporta_iges",
+      "argomenti": { "percorso": "{LAVORO}\\the_iges_carries_the_solid.igs", "rappresentazione": "solidi" },
+      "attese": [
+        { "cosa": "misure.formato", "uguale": "IGES" },
+        { "cosa": "misure.solid_entities", "uguale": 1,
+          "perche": "one body, one manifold solid B-rep object: the file carries the solid" },
+        { "cosa": "misure.surface_entities", "uguale": 6,
+          "perche": "six flat faces, six surfaces under them. Plane surfaces (190) with the analytic representation the header declares; the count would be the same with B-spline surfaces (128), which are in the list too" },
+        { "cosa": "misure.entity_census", "contiene": [ "column 73", "columns 1-8" ],
+          "perche": "how it was counted travels with the answer" } ] }
+  ]
+}

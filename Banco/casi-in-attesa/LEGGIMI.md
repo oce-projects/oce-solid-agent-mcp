@@ -22,6 +22,19 @@ prima: un caso in `casi/` è una promessa che il giro mantiene.
 
 ## Cosa c'è adesso
 
+**One case, from 28/9/2026 (Z-C21.10, C8-2):**
+`a_dimension_hidden_by_hand_does_not_count.json`. It measures that a drawing
+dimension hidden by hand (IAnnotation.Visible = swAnnotationHidden) does not
+count as «already dimensioned» in `quota_in_tavola`. The library does it; the
+bench cannot build the situation yet: no catalogue operation hides a dimension,
+and the runner has no preamble field for it. It moves to `Banco/casi/tavola/`
+in the commit that brings the runner field `prima_nascondi_quote`
+(`{"vista": "V1"}`: every display dimension of that view is selected with
+IAnnotation.Select3 and hidden with IModelDoc2.HideDimension, then read back;
+one that is not swAnnotationHidden is a bench error), with a bench run.
+
+### Before, from 24/9/2026
+
 **Niente, ed è la cosa giusta.** I quattro casi di Z-G3 sono stati spostati in
 `Banco/casi/` il 24/9/2026, lo stesso giorno in cui i due `default` sono
 arrivati — `proprieta/materiale_predefinito.json` con la sua

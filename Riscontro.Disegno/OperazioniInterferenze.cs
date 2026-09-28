@@ -96,6 +96,8 @@ namespace Riscontro.Disegno
 
             var trovate = new List<object>();
             int quante = 0;
+            int interferencesRead = 0;
+            string listProblem = null;
             double volumeTotale = 0;
             bool volumiLetti = true;
             var coinvolti = new List<string>();
@@ -111,15 +113,34 @@ namespace Riscontro.Disegno
                 try { quante = gestore.GetInterferenceCount(); }
                 catch (Exception ex) { return Fallito("Non riesco a contare le interferenze: " + ex.Message); }
 
+                // THE LIST MUST BE AS LONG AS THE COUNT (Z-C21.10, finding N34).
+                //
+                // IInterferenceDetectionMgr~GetInterferenceCount.html, Remarks:
+                // «Call this method before calling
+                // IInterferenceDetectionMgr::IGetInterferences to determine the
+                // size of the array for the interferences»; and
+                // ~GetInterferences.html, Return Value: «Array of the
+                // interferences». The count IS the size of the array. With a null
+                // list, a shorter one, or an item that is not an IInterference,
+                // `volumiLetti` stayed true: the partial sum went into
+                // volume_totale_mm3 and into the verdict («2 INTERFERENZE, per 0
+                // mm3 in tutto», riuscita:true when GetInterferences threw). Now
+                // any of the three makes the volume unknown
+                // (`InterferenceListProblem`), and `interferences_read` says how
+                // many were actually read.
                 object[] elenco = null;
-                try { elenco = gestore.GetInterferences() as object[]; } catch { }
+                string whyNoList = null;
+                try { elenco = gestore.GetInterferences() as object[]; }
+                catch (Exception ex) { whyNoList = "GetInterferences threw: " + ex.Message; }
 
+                int notInterferences = 0;
                 if (elenco != null)
                 {
                     for (int i = 0; i < elenco.Length; i++)
                     {
                         var interferenza = elenco[i] as IInterference;
-                        if (interferenza == null) continue;
+                        if (interferenza == null) { notInterferences++; continue; }
+                        interferencesRead++;
 
                         double volume;
                         bool letto = VolumeDellInterferenzaMm3(interferenza, out volume);
@@ -139,6 +160,9 @@ namespace Riscontro.Disegno
                         trovate.Add(voce);
                     }
                 }
+                listProblem = InterferenceListProblem(
+                    quante, elenco == null ? (int?)null : elenco.Length, notInterferences, whyNoList);
+                if (listProblem != null) volumiLetti = false;
 
                 try
                 {
@@ -171,6 +195,9 @@ namespace Riscontro.Disegno
             var misure = new Dictionary<string, object>
             {
                 ["quante"] = quante,
+                // How many of the counted interferences the array actually gave:
+                // equal to «quante» when the list and the count agree (N34).
+                ["interferences_read"] = interferencesRead,
                 ["componenti_guardati"] = componenti.Count,
                 ["toccarsi_conta"] = toccarsiConta,
                 ["dentro_le_parti"] = dentroLeParti,
@@ -178,11 +205,27 @@ namespace Riscontro.Disegno
             if (trovate.Count > 0) misure["interferenze"] = trovate.ToArray();
             if (coinvolti.Count > 0) misure["componenti_coinvolti"] = coinvolti.ToArray();
             if (quante > 0 && volumiLetti) misure["volume_totale_mm3"] = Math.Round(volumeTotale, 3);
-            if (quante > 0 && !volumiLetti)
+            if (listProblem != null)
+                misure["cosa_non_so"] =
+                    "SOLIDWORKS did not give me the whole list of interferences (" + listProblem +
+                    "): I read " + interferencesRead + " of " + quante + ". The count comes from " +
+                    "GetInterferenceCount; the total volume would be the sum of a part of the list, " +
+                    "so I left it out instead of writing one smaller than the truth.";
+            else if (quante > 0 && !volumiLetti)
                 misure["cosa_non_so"] =
                     "Di almeno una interferenza non sono riuscito a leggere il volume: " +
                     "il conteggio e' giusto, la somma no. Non l'ho scritta, invece di " +
                     "scriverne una piu' piccola del vero.";
+
+            // A ZERO COUNT WITH INTERFERENCES IN THE LIST is not «none» (N34):
+            // the two calls disagree, and «Nessuna interferenza» with
+            // riuscita:true is the one answer that sends a part that does not
+            // fit to the shop.
+            if (quante == 0 && interferencesRead > 0)
+                return Fallito(
+                    "SOLIDWORKS counted 0 interferences and then listed " + interferencesRead +
+                    " (" + listProblem + "): I cannot tell you that the parts do not interfere. " +
+                    "Ask me again; if it repeats, check with Interference Detection in SOLIDWORKS.");
 
             // ── IL GIUDIZIO ─────────────────────────────────────────────
             if (quante == 0)
@@ -212,6 +255,38 @@ namespace Riscontro.Disegno
                 "due facce che si sfiorano, migliaia sono un pezzo dentro l'altro.";
             _log("[agente] " + misure["giudizio"]);
             return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// What is wrong with the array GetInterferences returned, measured
+        /// against the count (N34); null when it is whole. The array must be as
+        /// long as the count (GetInterferenceCount.html: «to determine the size
+        /// of the array for the interferences») and every item an
+        /// IInterference. `arrayLength` is null when there was no array,
+        /// `whyNoList` the exception that took it, if any.
+        ///
+        /// No interop type in the signature or the body, on purpose: the
+        /// branches a bench case cannot build (no array, a short one, an item
+        /// of another type) can be tested without SOLIDWORKS if this is moved
+        /// to a file Prove.Contratti compiles.
+        /// </summary>
+        internal static string InterferenceListProblem(
+            int counted, int? arrayLength, int notInterferences, string whyNoList)
+        {
+            var problems = new List<string>();
+            if (arrayLength == null)
+            {
+                if (counted > 0)
+                    problems.Add((whyNoList ?? "GetInterferences returned no array") +
+                                 ", after GetInterferenceCount counted " + counted);
+            }
+            else if ((int)arrayLength != counted)
+                problems.Add("GetInterferenceCount counted " + counted +
+                             " and GetInterferences returned an array of " + (int)arrayLength);
+            if (notInterferences > 0)
+                problems.Add(notInterferences + (notInterferences == 1 ? " item" : " items") +
+                             " of the array not an IInterference");
+            return problems.Count == 0 ? null : string.Join("; ", problems);
         }
 
         /// <summary>

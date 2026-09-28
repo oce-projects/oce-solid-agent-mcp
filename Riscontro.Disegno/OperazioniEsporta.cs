@@ -404,7 +404,26 @@ namespace Riscontro.Disegno
         //   swStepAP (int)                 203, 214, 242 — SENZA un enum
         //   swIGESRepresentation (int)     swIGES_BREP = 3 (solidi),
         //                                  swIGES_TRMSRF = 0 (superfici)
-        //   swIGESExportSolidAndSurface    esporta anche i solidi
+        //   swIGESExportSolidAndSurface    on: «Specifies whether to export data
+        //                                  as solid or surface entities»
+        //   swIGESExportAsWireframe        off: «Specifies whether to convert
+        //                                  solid body to a 3D wireframe
+        //                                  representation in the IGES file»
+        //   swIGESExportFreeCurves         off: «Specifies whether to include 3D
+        //                                  curve features in the exported file»
+        //   swIGESExportSketchEntities     off: «Specifies whether to export
+        //                                  sketch entities»
+        //
+        // (estratto_swconst/FileSaveAsIGESOptions.htm, «System Options > Export
+        // > IGES 5.3».) THE THREE «off» ARE Z-C21.10, finding N59: they were
+        // left as the user's profile had them. With «IGES wireframe (3D curves)»
+        // ticked the page says the solid body is converted to curves (whether
+        // next to the solid or in its place is not measured); with sketches or
+        // 3D curves ticked, the file carries stray curves the recipient takes
+        // for geometry. All four are read before, set, and put back in
+        // `finally`, like the representation. After writing, the file's own
+        // directory says what is in it (`IgesEntityCensus`): a file with no
+        // solid and no surface is refused.
         //
         // `swStepAP` E' IL CASO PIU' SCOMODO: i tre valori leciti NON hanno un
         // enum in `swconst`, quindi il numero e' un letterale — e un letterale
@@ -572,6 +591,22 @@ namespace Riscontro.Disegno
                     return Fallito(
                         "L'IGES e' stato scritto ma non ha nessun record di parametri: e' " +
                         "un file con le intestazioni e niente dentro. (" + dove + ")");
+
+                // WHAT IS IN THE FILE, NOT ONLY HOW MUCH (N59). The record count
+                // does not tell a solid from its wireframe: both have records.
+                // The directory section does, one type number per entity.
+                int entities, solids, surfaces;
+                string census;
+                bool counted = IgesEntityCensus(dove, out entities, out solids, out surfaces, out census);
+                misure["entities"] = counted ? (object)entities : null;
+                misure["solid_entities"] = counted ? (object)solids : null;
+                misure["surface_entities"] = counted ? (object)surfaces : null;
+                misure["entity_census"] = census;
+                if (counted && entities > 0 && solids == 0 && surfaces == 0)
+                    return Fallito(
+                        "The IGES was written, but none of its " + entities + " entities is a solid " +
+                        "(type 186) or a surface: it is a wireframe of the part, curves only, and " +
+                        "whoever opens it gets edges instead of a part. (" + dove + ")");
             }
             else
             {
@@ -666,7 +701,25 @@ namespace Riscontro.Disegno
             public int StepAp;
             public int IgesRappresentazione;
             public bool IgesSolidiESuperfici;
+            // N59: the IGES toggles turned off for the export, as the user had
+            // them. Only the ones actually read are here: a toggle whose read
+            // failed is not written back, so that a failed read does not turn
+            // into «off» in the user's profile.
+            public readonly Dictionary<swUserPreferenceToggle_e, bool> IgesTogglesBefore =
+                new Dictionary<swUserPreferenceToggle_e, bool>();
         }
+
+        /// <summary>
+        /// The IGES toggles the export turns off (N59), one list for read, set
+        /// and restore. FileSaveAsIGESOptions.htm: «IGES wireframe (3D curves)»,
+        /// «Export 3D Curve features», «Export sketch entities».
+        /// </summary>
+        private static readonly swUserPreferenceToggle_e[] IgesTogglesTurnedOff =
+        {
+            swUserPreferenceToggle_e.swIGESExportAsWireframe,
+            swUserPreferenceToggle_e.swIGESExportFreeCurves,
+            swUserPreferenceToggle_e.swIGESExportSketchEntities,
+        };
 
         private PreferenzeScambio LeggiPreferenzeScambio()
         {
@@ -674,6 +727,8 @@ namespace Riscontro.Disegno
             try { p.StepAp = _sw.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP); } catch { }
             try { p.IgesRappresentazione = _sw.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation); } catch { }
             try { p.IgesSolidiESuperfici = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface); } catch { }
+            foreach (var t in IgesTogglesTurnedOff)
+                try { p.IgesTogglesBefore[t] = _sw.GetUserPreferenceToggle((int)t); } catch { }
             return p;
         }
 
@@ -686,6 +741,9 @@ namespace Riscontro.Disegno
         {
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation, rappresentazione); } catch { }
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface, true); } catch { }
+            // N59: the solid (or the trimmed surfaces), and nothing next to it.
+            foreach (var t in IgesTogglesTurnedOff)
+                try { _sw.SetUserPreferenceToggle((int)t, false); } catch { }
         }
 
         private void RimettiPreferenzeScambio(PreferenzeScambio p)
@@ -694,6 +752,12 @@ namespace Riscontro.Disegno
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, p.StepAp); } catch { }
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation, p.IgesRappresentazione); } catch { }
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface, p.IgesSolidiESuperfici); } catch { }
+            foreach (var t in IgesTogglesTurnedOff)
+            {
+                bool before;
+                if (!p.IgesTogglesBefore.TryGetValue(t, out before)) continue;   // never read: left alone
+                try { _sw.SetUserPreferenceToggle((int)t, before); } catch { }
+            }
         }
 
         /// <summary>
@@ -785,6 +849,70 @@ namespace Riscontro.Disegno
             {
                 perche = "non ho potuto leggere il file: " + ex.Message;
                 return -1;
+            }
+        }
+
+        /// <summary>IGES 5.3 type 186, Manifold Solid B-Rep Object: the solid of a BREP file (one for the one body of `iges_solidi`).</summary>
+        private const int IgesManifoldSolidType = 186;
+
+        /// <summary>
+        /// IGES 5.3 surface entity types: plane 108, parametric spline surface
+        /// 114, ruled 118, surface of revolution 120, tabulated cylinder 122,
+        /// rational B-spline surface 128, offset 140, bounded 143, trimmed 144,
+        /// and the analytic surfaces 190-198 (plane, cylinder, cone, sphere,
+        /// torus). Faces (510) and shells (514) are topology, not surfaces, and
+        /// are left out: a face always points at one of these.
+        /// </summary>
+        private static readonly HashSet<int> IgesSurfaceTypes =
+            new HashSet<int> { 108, 114, 118, 120, 122, 128, 140, 143, 144, 190, 192, 194, 196, 198 };
+
+        /// <summary>
+        /// The entities of the IGES by kind (N59), read from its DIRECTORY
+        /// ENTRY section: the lines with «D» in column 73, two per entity, the
+        /// first of the two carrying the entity type number in columns 1-8.
+        ///
+        /// Checked by hand on 28/9/2026 against the file `iges_solidi` writes
+        /// (block 100 x 100 x 20, BREP, SOLIDWORKS 2021): 106 «D» lines, 53
+        /// entities, one of type 186, six of type 190 (plane surface), six 510
+        /// faces, one 514 shell, twelve 110 lines. So: solids 1, surfaces 6.
+        /// A wireframe file has lines and points and neither of the two.
+        /// </summary>
+        private static bool IgesEntityCensus(
+            string path, out int entities, out int solids, out int surfaces, out string how)
+        {
+            entities = 0; solids = 0; surfaces = 0;
+            try
+            {
+                int directoryLines = 0;
+                foreach (var line in File.ReadLines(path))
+                {
+                    if (line.Length < 73 || (line[72] != 'D' && line[72] != 'd')) continue;
+                    directoryLines++;
+                    if (directoryLines % 2 == 0) continue;   // the second line of the entry
+                    int type;
+                    if (!int.TryParse(line.Substring(0, 8).Trim(), System.Globalization.NumberStyles.Integer,
+                                      System.Globalization.CultureInfo.InvariantCulture, out type))
+                    {
+                        how = "directory line " + directoryLines + " has no entity type in columns 1-8";
+                        return false;
+                    }
+                    entities++;
+                    if (type == IgesManifoldSolidType) solids++;
+                    else if (IgesSurfaceTypes.Contains(type)) surfaces++;
+                }
+                if (directoryLines % 2 != 0)
+                {
+                    how = "the directory section has " + directoryLines + " lines, and an entry takes two";
+                    return false;
+                }
+                how = "from the directory section: the lines with «D» in column 73, the entity type " +
+                      "in columns 1-8 of the first line of each entry";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                how = "could not read the file: " + ex.Message;
+                return false;
             }
         }
 

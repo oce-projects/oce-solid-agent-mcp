@@ -194,7 +194,10 @@ namespace Riscontro.Disegno
             // vale per la TAVOLA, non per la vista: il 25/9/2026 la tavola della
             // piastra portava il 10 nella vista frontale e in quella laterale, e
             // il 120 nella frontale e in quella dall'alto.
-            var gia = ChiaviGiaQuotate(disegno);
+            // EVERY SHEET since Z-C21.2 (finding N43), only the views of this model
+            // and configuration, and without the dimensions hidden by hand (C8-2):
+            // what was read is in the answer, see ChiaviGiaQuotate.
+            var gia = ChiaviGiaQuotate(disegno, vista, out var existingRead);
 
             var falliti = new List<string>();
             var diametriEsterni = new List<Dictionary<string, object>>();
@@ -517,6 +520,19 @@ namespace Riscontro.Disegno
                 ["tondo_generatrici_senza_faccia"] = tondo == null ? null : (object)tondo.GeneratriciSenzaFaccia,
                 ["smussi"] = smussi.ToArray(),
                 ["gia_quotate_altrove"] = altrove.ToArray(),
+                // WHAT «ALREADY DIMENSIONED» WAS READ FROM (Z-C21.2, findings N43 and
+                // C8-2). «every sheet» when IDrawingDoc.GetViews handed over the views
+                // of all the sheets, «current sheet only» when it did not and the walk
+                // fell back to the sheet in front; «interrupted» when the walk broke
+                // off, and then the two counts are null (not known), not zero. The
+                // counts are what was left out on purpose: dimensions hidden by hand
+                // (not on the paper), and views of another model or configuration
+                // (their model coordinates are not this part's).
+                ["already_dimensioned_read_from"] =
+                    (existingRead.EverySheet ? "every sheet" : "current sheet only") +
+                    (existingRead.Complete ? "" : ", interrupted: some views were not read"),
+                ["hidden_dimensions_not_counted"] = existingRead.Complete ? (object)existingRead.HiddenByHand : null,
+                ["views_of_other_models_not_counted"] = existingRead.Complete ? (object)existingRead.ViewsOfAnotherModel : null,
                 ["spigoli_dello_smusso"] = diSmusso.ToArray(),
 
                 // ── I DOPPIONI SI DICONO, NON SI NASCONDONO ─────────────
@@ -803,20 +819,64 @@ namespace Riscontro.Disegno
         /// fori per diametro, gli smussi per lavorazione. Si legge dagli
         /// spigoli a cui le quote sono attaccate, non dai numeri: due 10
         /// diversi sono due elementi.
+        ///
+        /// THE WHOLE DRAWING, AS THE CATALOGUE PROMISES (Z-C21.2, finding N43).
+        /// Until library 0.140.0 the walk started at IDrawingDoc.GetFirstView,
+        /// which is «the first drawing view on the current sheet»
+        /// (IDrawingDoc~GetFirstView.html): a second sheet with a view of the
+        /// same part got the 120 and the 10 again. Now the views of every sheet
+        /// (ApiHelpers.ViewsOfEverySheet, IDrawingDoc.GetViews); when GetViews
+        /// does not hand them over, the current sheet as before, and
+        /// <paramref name="reading"/> says which.
+        ///
+        /// ONLY THE VIEWS OF THIS MODEL. The keys are model coordinates, and on
+        /// another sheet (one part per sheet is the common layout) a different
+        /// plate 120 long from the origin has the same key as this one: its 120
+        /// would silently take this part's 120 away. A view whose model and
+        /// configuration differ from those of <paramref name="vista"/> is left
+        /// out; one that does not say counts, as every view of the current
+        /// sheet did (ApiHelpers.MayShowTheSameModel).
+        ///
+        /// NOT THE DIMENSIONS HIDDEN BY HAND (Z-C21.2, finding C8-2).
+        /// IView~GetFirstDisplayDimension5.html hands over hidden and suppressed
+        /// dimensions too, and a dimension hidden by hand made its edge «already
+        /// dimensioned in this drawing» while the paper did not show it. It is
+        /// skipped by ApiHelpers.IsHiddenByHand; a hidden layer and a suppressed
+        /// owner feature are not seen by IAnnotation.Visible (its Remarks) and
+        /// still count.
         /// </summary>
-        private static HashSet<string> ChiaviGiaQuotate(IDrawingDoc disegno)
+        private static HashSet<string> ChiaviGiaQuotate(IDrawingDoc disegno, IView vista, out ExistingDimensionsReading reading)
         {
             var fuori = new HashSet<string>(StringComparer.Ordinal);
+            reading = new ExistingDimensionsReading();
             // Le generatrici dicono la loro faccia solo a tavola ridisegnata (82zp).
             try { (disegno as IModelDoc2)?.GraphicsRedraw2(); } catch { }
             try
             {
-                var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
-                while (v != null)
+                List<IView> views = null;
+                try { views = ApiHelpers.ViewsOfEverySheet(disegno); } catch { }
+                reading.EverySheet = views != null;
+                if (views == null)
                 {
-                    var d = v.GetFirstDisplayDimension5();
-                    while (d != null)
+                    var currentSheet = new List<IView>();
+                    var w = (disegno.GetFirstView() as IView)?.GetNextView() as IView;   // [0] is the sheet
+                    while (w != null) { currentSheet.Add(w); w = w.GetNextView() as IView; }
+                    views = currentSheet;
+                }
+                string thisModel = null;
+                try { thisModel = ApiHelpers.ReferencedModelKey(vista); } catch { }
+                foreach (var v in views)
+                {
+                    string itsModel = null;
+                    try { itsModel = ApiHelpers.ReferencedModelKey(v); } catch { }
+                    if (!ApiHelpers.MayShowTheSameModel(thisModel, itsModel)) { reading.ViewsOfAnotherModel++; continue; }
+                    for (var d = v.GetFirstDisplayDimension5(); d != null; d = d.GetNext5())
                     {
+                        // Not on the paper, not «already dimensioned» (C8-2). A state
+                        // that cannot be read counts as shown, as before.
+                        bool hidden = false;
+                        try { hidden = ApiHelpers.IsHiddenByHand(d); } catch { }
+                        if (hidden) { reading.HiddenByHand++; continue; }
                         try
                         {
                             var ann = d.GetAnnotation() as IAnnotation;
@@ -913,13 +973,33 @@ namespace Riscontro.Disegno
                             }
                         }
                         catch { }
-                        d = d.GetNext5();
                     }
-                    v = v.GetNextView() as IView;
                 }
+                reading.Complete = true;
             }
             catch { }
             return fuori;
+        }
+
+        /// <summary>
+        /// What the reading of the existing dimensions covered (Z-C21.2, findings
+        /// N43 and C8-2), so that the answer says it instead of implying «the
+        /// whole drawing».
+        /// </summary>
+        private sealed class ExistingDimensionsReading
+        {
+            /// <summary>
+            /// False when the walk broke off (a view or GetNext5 threw): the keys
+            /// found so far are used, and the counts below are not a number to
+            /// report — zero would be a claim.
+            /// </summary>
+            public bool Complete;
+            /// <summary>True: the views of every sheet (IDrawingDoc.GetViews). False: the current sheet only.</summary>
+            public bool EverySheet;
+            /// <summary>Display dimensions left out because their annotation is hidden by hand.</summary>
+            public int HiddenByHand;
+            /// <summary>Views left out because they show another model or configuration.</summary>
+            public int ViewsOfAnotherModel;
         }
 
         /// <summary>
@@ -1205,7 +1285,8 @@ namespace Riscontro.Disegno
                     falliti.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (il richiamo non e' nato)");
                     continue;
                 }
-                if (g.Value.Count > 1)
+                string countPrefix = g.Value.Count > 1 ? g.Value.Count.ToString(Ci) + "×" : null;
+                if (countPrefix != null)
                 {
                     // «4× » DAVANTI a cio' che c'e': il prefisso di un richiamo e'
                     // gia' il simbolo del diametro (<MOD-DIAM>), e sostituirlo lo
@@ -1214,10 +1295,30 @@ namespace Riscontro.Disegno
                     {
                         string prefisso = richiamo.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? "";
                         richiamo.SetText((int)swDimensionTextParts_e.swDimensionTextPrefix,
-                                         g.Value.Count.ToString(Ci) + "× " + prefisso);
+                                         countPrefix + " " + prefisso);
                     }
                     catch { }
                 }
+                // THE COUNT IS READ BACK, NOT ASSUMED (Z-C21.2, finding N48).
+                // IDisplayDimension~SetText.html returns nothing, and its Remarks
+                // end with «NOTE: This method does not support hole callouts.» —
+                // which is what AddHoleCallout2 hands back here. GetText carries
+                // the same note, yet the guide's own example «Get Whether Display
+                // Dimension is a Hole Callout» (VBA) reads the prefix and the suffix
+                // of a hole callout with it, and the suffix below is read that way
+                // since 26/9/2026. So the prefix is read again after writing it:
+                // «quanti» stays the number of holes in the group (the geometry),
+                // «prefix_read» is what the sheet says, and a count that did not
+                // stick is a failure. Until library 0.140.0 the answer said
+                // quanti = 4 whatever the callout carried, and the shop would have
+                // read one Ø8.
+                string prefixRead = null;
+                try { prefixRead = richiamo.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix); } catch { }
+                if (countPrefix != null &&
+                    (prefixRead == null || !prefixRead.TrimStart().StartsWith(countPrefix, StringComparison.Ordinal)))
+                    falliti.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the «" + countPrefix + "» in front did not stick: " +
+                                (prefixRead == null ? "the prefix could not be read back" : "the prefix reads «" + prefixRead + "»") +
+                                ", so the sheet does not say how many holes there are; add the count by hand)");
                 // IL RIPIEGO NON PORTA LA PROFONDITA' (revisione avversariale del
                 // 26/9/2026): se il richiamo non nasce, la quota di diametro dice
                 // «Ø8» e basta, e un cieco in officina si fora passante. La
@@ -1263,6 +1364,9 @@ namespace Riscontro.Disegno
                 {
                     ["diametro_mm"] = g.Key.Item1,
                     ["quanti"] = g.Value.Count,
+                    // The prefix as read back after writing «N×» (N48): the count on
+                    // the sheet, next to the count of the geometry above.
+                    ["prefix_read"] = prefixRead,
                     ["come"] = come,
                     ["diametro_riletto_mm"] = descritto.ContainsKey("mm") ? descritto["mm"] : null,
                     ["passante"] = come == "richiamo del foro" ? (object)passante : capo.Passante,

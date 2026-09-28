@@ -98,6 +98,14 @@ namespace Riscontro.Disegno
 
             string soloQuesto = Str(a, "corpo_uid", null);
 
+            // THE BODIES OF THE PART, counted before the «corpo_uid» filter
+            // (Z-C21.10, finding N61). IPartDoc~GetBodies2.html: «false gets
+            // all of the bodies in the part». With one body asked for,
+            // «corpi_totali» is 1 on a part of two, and the verdict read «Un solo
+            // corpo solido ... si puo' esportare»: a sentence about the PART,
+            // which has two bodies and would give an STL of two shells.
+            int bodiesInPart = grezzi.Count(o => o is IBody2);
+
             var elenco = new List<object>();
             int solidi = 0, fogli = 0, altri = 0;
             int conDifetti = 0, conFessure = 0;
@@ -178,10 +186,38 @@ namespace Riscontro.Disegno
 
             bool stampabile = motivi.Count == 0;
 
+            // ONE BODY OF SEVERAL: THE VERDICT SPEAKS FOR THAT BODY (N61).
+            // «stampabile» stays the verdict on the body asked for — the
+            // question «is this body sound» — and `verdict_about` says which.
+            // The sentence that said «si puo' esportare» of the part is
+            // replaced by one that names the body and the bodies of the part;
+            // the refusal already names the body in each of its reasons and
+            // stays as it was. On a part of one body the verdict on the body
+            // is the verdict on the part, and nothing changes.
+            string giudizio = stampabile
+                ? "Un solo corpo solido, chiuso e senza difetti: come geometria si puo' esportare."
+                : "Non lo esporterei cosi': " + string.Join("; ", motivi) + ".";
+            string verdictAbout = "part";
+            if (!string.IsNullOrEmpty(soloQuesto) && bodiesInPart > 1)
+            {
+                string which = Convert.ToString(((Dictionary<string, object>)elenco[0])["corpo"]);
+                verdictAbout = "body " + which;
+                if (stampabile)
+                    giudizio =
+                        "Body " + which + " is a closed solid with no defects. This verdict is about " +
+                        "body " + which + " only: the part has " + bodiesInPart + " bodies, and an STL " +
+                        "of the part would be " + bodiesInPart + " separate shells. Ask again without " +
+                        "«corpo_uid» for the verdict on the whole part.";
+            }
+
             var misure = new Dictionary<string, object>
             {
                 ["corpi"] = elenco.ToArray(),
                 ["corpi_totali"] = elenco.Count,
+                // Every body of the part, whatever «corpo_uid» asked, and what
+                // «stampabile» and «giudizio» speak for: «part» or «body C2» (N61).
+                ["bodies_in_part"] = bodiesInPart,
+                ["verdict_about"] = verdictAbout,
                 ["solidi"] = solidi,
                 ["fogli"] = fogli,
                 ["altri_corpi"] = altri,
@@ -190,9 +226,7 @@ namespace Riscontro.Disegno
                 ["stampabile"] = stampabile,
                 // UNA FRASE, NON UN NUMERO. Chi legge deve sapere COSA fare, e
                 // «stampabile: false» da solo non lo dice.
-                ["giudizio"] = stampabile
-                    ? "Un solo corpo solido, chiuso e senza difetti: come geometria si puo' esportare."
-                    : "Non lo esporterei cosi': " + string.Join("; ", motivi) + ".",
+                ["giudizio"] = giudizio,
                 // IL LIMITE DICHIARATO, e va detto ogni volta: questa
                 // operazione guarda la TOPOLOGIA, non lo spessore delle pareti
                 // ne' le sovrasporgenze. Un guscio da 0,3 mm passa di qui

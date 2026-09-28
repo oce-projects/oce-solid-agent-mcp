@@ -24,6 +24,128 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.2-bis (branch z-c21-2-bis)
+
+**Silent defects of the API audit, second round (TODO entry Z-C21.10-esito-2).**
+Every fix below is a case where a part, a file or an answer came out wrong
+with `riuscita: true`, decided from the SOLIDWORKS API help (quoted in the
+code) or from the library's own logic. The new bench cases are written to go
+red on library 0.140.0 and green on this one, except where a bullet says
+otherwise. **VERSION.txt and AssemblyVersion are raised at merge, and the
+bench has not run on this branch yet**: the contracts are green except the
+bench-freshness checks.
+
+- **`telaio_rettangolare` / `membro_strutturale` close the weldment profile
+  library again, and check that it closed** (N31). ISldWorks~CloseDoc.html:
+  "void CloseDoc(System.string Name)" returns nothing, and "the name of a
+  document that is not open, then this method does nothing"; the library is
+  now looked for again by path and, if still open, its IModelDoc2~GetSaveFlag
+  ("True if this document needs to be saved") decides. The close runs on every
+  exit of `membro_strutturale` (try/finally) and after the trial frame of
+  `SezioneProfilo`, which the bench's «sezioni» group calls directly. A library
+  left open and modified is reported in `profile_library_warning`. Case:
+  `saldature/a_frame_too_small_closes_the_profile_library` (red on 0.140.0
+  only on a fresh archive key; whether CloseDoc of the trial part already
+  closes the library as a "non-active hidden document" is still to be probed).
+- **`telaio_rettangolare` reads «misure» whatever the case, and refuses any
+  other word** (N32). «Ingombro» used to fall into the centre-line branch and
+  build a 1080 x 880 frame for 1000 x 800. The answer carries `misure`. Case:
+  `saldature/frame_reading_ignores_case` (the frame and its refused twin).
+- **The overhang archive of `SezioneProfilo` no longer keeps a failure or a
+  stale number** (N36). The key now carries the library file's date and size
+  (`frame-v2|...`), old-format lines are dropped on load, a failed trial
+  measurement is not remembered, and a frame built from a remembered overhang
+  that fails the outside-size check drops that entry and says so in the
+  rejection. The answer carries `overhang_source` («measured» / «archive»).
+  No API call changed. No bench case can build it: contract group «the pure
+  rules of the Z-C21.10 fixes the bench cannot reach».
+- **The bridge hands every enum value on in the catalogue's spelling, and the
+  step goes on under the catalogue's operation name** (S20, `Ponte/Forma.cs`,
+  `Strumenti/Attrezzi.cs`). The Forma accepted «Superiore» ignoring case and
+  passed it on untouched to a library that compares Ordinal. Nested objects
+  are covered; the rewrite walks a copy of the entries. Contract group «the
+  Forma rewrites enum values in the catalogue's spelling» (12 checks, 7 red on
+  the 0.140.0 Forma).
+- **An unknown plane name is refused, never the front plane** (N33,
+  `SelezionaPiano`). IFeature~Select2.html: "True if the feature was selected,
+  false if not"; the fallback now returns false like `TrovaPianoBase`, and
+  every caller turns it into a refusal. Case:
+  `estrusioni/unknown_plane_does_not_fall_back_to_front`.
+- **`verifica_interferenze` checks the list against the count** (N34).
+  IInterferenceDetectionMgr~GetInterferenceCount.html: "Call this method
+  before calling IInterferenceDetectionMgr::IGetInterferences to determine the
+  size of the array for the interferences". A missing or short array, or an
+  item that is not an IInterference, leaves `volume_totale_mm3` out and says
+  why in `cosa_non_so`; a count of 0 with interferences in the list is refused.
+  New `interferences_read`. Case:
+  `assiemi/the_interference_array_is_as_long_as_the_count` (not red on 0.140.0:
+  it stops on the missing field; it pins array length = count on SW 2021).
+- **`verifica_geometria_corpo` with `corpo_uid` speaks for that body only**
+  (N61). IPartDoc~GetBodies2.html: "false gets all of the bodies in the part".
+  `bodies_in_part` always counts every body, `verdict_about` says «part» or
+  «body Cn», and a sound body of a multibody part no longer gets the sentence
+  "si puo' esportare". Case: `verifica/one_body_of_two_is_not_the_part`.
+- **`esporta_iges` turns off the three toggles that add curves or turn the
+  solid into curves, and counts the solids in the file** (N59).
+  FileSaveAsIGESOptions.htm: swIGESExportAsWireframe "Specifies whether to
+  convert solid body to a 3D wireframe representation in the IGES file",
+  swIGESExportFreeCurves, swIGESExportSketchEntities. They are read, set off
+  and restored like the other exchange preferences (only the ones actually
+  read are restored). The IGES directory section is counted: `entities`,
+  `solid_entities` (type 186), `surface_entities`; a file with neither is
+  refused. Case: `esporta/the_iges_carries_the_solid_not_its_wireframe` (not
+  red on 0.140.0: it needs a user profile with the toggles on; it pins 1 solid
+  and 6 surfaces for the 100 x 100 x 20 block).
+- **`foro_guidato` with an anchor checks centred axes and the widest cut**
+  (N50). Centred axes were skipped; now half the gap between the two edges
+  must hold the radius, and the radius is the counterbore or countersink for
+  «lamato» / «svasato» (IWizardHoleFeatureData2~CounterBoreDiameter.html:
+  "This property is relevant only for swCounterBored and swCounterBoredDrilled
+  holes"). The check runs before the anchor. Cases:
+  `lavorazioni/guided_hole_centred_too_narrow`,
+  `lavorazioni/guided_hole_counterbore_past_the_edge`.
+- **The anchor's movement test no longer passes without testing** (N51): a
+  distance axis without its dimension, a dimension that cannot be read, or a
+  rebuild state that cannot be read (IFeature~GetErrorCode2.html) is a refusal,
+  not a pass.
+- **The anchor sketch's relations must be readable** (N52):
+  ISketchRelationManager~GetRelationsCount.html ("Number of sketch relations");
+  a null manager, a throwing or negative count is a refusal, not "healthy".
+- **The slot's four tangencies and equal radii are counted before the centre
+  line** (N54): IModelDoc2~SketchAddConstraints.html returns nothing, so the
+  count is the only proof, and the coincidences no longer hide two missing
+  tangencies. The answer carries `slot_relations`.
+- **The oblique slot's angle dimension is checked** (N55).
+  IModelDocExtension~AddSpecificDimension.html: "Error Result status as
+  defined in swAddSpecificDimension_e"; it must be Success, and the angle read
+  back must be the angle between the slot and the reference edge, or its
+  supplement. N51, N52, N54, N55 have no bench case (the bench cannot make the
+  API fail there); every anchored case is their regression guard, and the pure
+  angle rule is in the contract group.
+- **`quota_in_tavola` reads «already dimensioned» from every sheet** (N43).
+  IDrawingDoc~GetFirstView.html: "Gets the first drawing view on the current
+  sheet"; the views now come from IDrawingDoc.GetViews, with the current sheet
+  as fallback, said in `already_dimensioned_read_from`. Only views of the same
+  model and configuration count (`views_of_other_models_not_counted`). New
+  helper file `ApiHelpers.Drawing.cs`. Case:
+  `tavola/the_second_sheet_does_not_repeat_the_dimensions`.
+- **The «4×» of a hole callout is read back** (N48). IDisplayDimension~SetText.html:
+  "NOTE: This method does not support hole callouts."; the prefix is read
+  again into `fori[].prefix_read`, and a count that did not stick is a failure.
+  Case: `tavola/la_tavola_quota_fori_e_smusso` (new expectation).
+- **A dimension hidden by hand does not count as already dimensioned** (C8-2).
+  IAnnotation~Visible.html; swAnnotationHidden and swAnnotationHalfHidden are
+  skipped and counted in `hidden_dimensions_not_counted`. A hidden layer or a
+  suppressed owner feature is not seen ("This property cannot determine..."),
+  still open. Case written and parked in
+  `Banco/casi-in-attesa/a_dimension_hidden_by_hand_does_not_count.json` until
+  the runner field `prima_nascondi_quote` exists.
+- **Contracts**: `ProveILimiti` accepts the English stems «refus» / «reject» as
+  a declared limit; the undecided-call count of `OperazioniQuoteTavola.cs|Add`
+  goes from 26 to 27 (the new `falliti.Add` of N48: `falliti` is a
+  `List<string>` parameter, which the scanner does not type); new group
+  `Zc2110HelpersContract` (N32, N34, N36, N43, N55, C8-2 by reflection).
+
 ## 0.115.0 — 28 September 2026 · library 0.140.0
 
 **Four operations that never worked, rebuilt from the SOLIDWORKS API help.**

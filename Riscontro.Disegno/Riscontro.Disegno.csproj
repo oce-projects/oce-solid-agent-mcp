@@ -174,6 +174,7 @@
     <Compile Include="ErroriFeature.cs" />
     <Compile Include="ApiHelpers.cs" />
     <Compile Include="ApiHelpers.Geometry.cs" />
+    <Compile Include="ApiHelpers.Drawing.cs" />
     <Compile Include="ErrorCodeDecoder.cs" />
     <Compile Include="SelectionMarks.cs" />
     <Compile Include="FormaChiusa.cs" />

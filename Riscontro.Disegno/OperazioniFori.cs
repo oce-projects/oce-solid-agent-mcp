@@ -266,18 +266,23 @@ namespace Riscontro.Disegno
             };
 
             // ── 6b. l'ancora, a fori posizionati ─────────────────────────
-            if (ancore != null)
-            {
-                if (!AncoraIFori(modello, feature, assi, offsetM, posizioni, ancore, misure, out errore))
-                    return Fallito(errore + TogliIlTaglio(modello, feature, volumePrima));
-                try { modello.EditRebuild3(); } catch { }
-            }
-
-            // ── 7. si controlla che i fori siano dove sono stati chiesti ──
-            if (!passante) misure["profondita_mm"] = profondita;
-
+            //
+            // THE SIZE OF THE HOLE IS READ FIRST, BEFORE THE ANCHOR.
+            // The diameters do not change with the anchor, and the fit check
+            // below needs them: it runs before AncoraIFori, so that a hole that
+            // does not fit is refused on its size, and not on whatever the
+            // anchor makes of the edges it has just cut (Z-C21.2, finding N50).
             var definizione = feature.GetDefinition() as IWizardHoleFeatureData2;
             double diametroForo = 0;
+            // THE WIDEST CUT (N50): the anchor must fit the counterbore or the
+            // countersink too, not only the drilled hole. The two diameters are
+            // read only for their own type of hole, as their pages say:
+            // IWizardHoleFeatureData2~CounterBoreDiameter.html, «This property
+            // is relevant only for swCounterBored and swCounterBoredDrilled
+            // holes»; ~CounterSinkDiameter.html, «This property is relevant only
+            // for swCounterSunk and swCounterSunkDrilled holes».
+            double widestDiameter = 0;
+            string widestCut = "hole";
             if (definizione != null)
             {
                 diametroForo = Math.Max(
@@ -291,7 +296,47 @@ namespace Riscontro.Disegno
                     misure["lamatura_mm"] =
                         Math.Round(definizione.CounterBoreDiameter * 1000, 2) + "x" +
                         Math.Round(definizione.CounterBoreDepth * 1000, 2);
+                widestDiameter = diametroForo;
+                if (genere.Generico == (int)swWzdGeneralHoleTypes_e.swWzdCounterBore &&
+                    definizione.CounterBoreDiameter > 0 &&
+                    definizione.CounterBoreDiameter * 1000.0 >= widestDiameter)
+                {
+                    widestDiameter = definizione.CounterBoreDiameter * 1000.0;
+                    widestCut = "counterbore";
+                }
+                if (genere.Generico == (int)swWzdGeneralHoleTypes_e.swWzdCounterSink &&
+                    definizione.CounterSinkDiameter > 0 &&
+                    definizione.CounterSinkDiameter * 1000.0 >= widestDiameter)
+                {
+                    widestDiameter = definizione.CounterSinkDiameter * 1000.0;
+                    widestCut = "countersink";
+                }
             }
+
+            // THE ANCHOR WITH THE REAL RADIUS: distances and centred axes.
+            if (ancore != null)
+            {
+                if (widestDiameter > 0)
+                {
+                    string scavalca = ScavalcaColRaggio(ancore, assi, widestDiameter / 2, widestCut);
+                    if (scavalca != null) return Fallito(scavalca + TogliIlTaglio(modello, feature, volumePrima));
+                }
+                else
+                    // A check that could not run says so (N50): the anchor was
+                    // read with a zero radius, and nothing else has looked.
+                    misure["anchor_fit_not_checked"] = "SOLIDWORKS does not declare a diameter for this hole: " +
+                                                       "I could not check that it fits its anchor edges";
+            }
+
+            if (ancore != null)
+            {
+                if (!AncoraIFori(modello, feature, assi, offsetM, posizioni, ancore, misure, out errore))
+                    return Fallito(errore + TogliIlTaglio(modello, feature, volumePrima));
+                try { modello.EditRebuild3(); } catch { }
+            }
+
+            // ── 7. si controlla che i fori siano dove sono stati chiesti ──
+            if (!passante) misure["profondita_mm"] = profondita;
 
             // TRE ESITI, NON DUE. «Non ho potuto guardare» e' una risposta
             // diversa da «ho guardato e va bene», e finche' erano la stessa il
@@ -300,11 +345,9 @@ namespace Riscontro.Disegno
             //
             // Non verificabile NON e' un rifiuto: la lavorazione e' riuscita, e'
             // il controllo che non c'e' stato. Si dice, e si va avanti.
-            // L'ANCORA COL RAGGIO VERO, e la prova di movimento.
+            // The movement test of the anchor (its fit was checked at 6b).
             if (ancore != null)
             {
-                string scavalca = diametroForo > 0 ? ScavalcaColRaggio(ancore, diametroForo / 2) : null;
-                if (scavalca != null) return Fallito(scavalca + TogliIlTaglio(modello, feature, volumePrima));
                 foreach (var anc in ancore)
                 {
                     string nonRegge = ProvaDiMovimento(modello, anc, feature);

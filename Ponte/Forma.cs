@@ -42,6 +42,13 @@ namespace Oce.Solid.Agent.Ponte
         /// e' scritto in un modo che questo controllo non sa leggere, il
         /// problema e' del controllo, e fermare l'operazione vorrebbe dire far
         /// pagare a chi disegna un difetto nostro.
+        ///
+        /// IT ALSO REWRITES, IN <paramref name="argomenti"/> ITSELF, every enum
+        /// value spelled differently from the catalogue (Z-C21.10, pattern
+        /// S20): «Superiore» is accepted and goes on as «superiore». The caller
+        /// hands the same dictionary to the library, so whatever passes here
+        /// reaches the library spelled as the catalogue spells it. See the
+        /// enum block in <see cref="Sbaglia"/> for why.
         /// </summary>
         public static string Controlla(
             string operazione,
@@ -70,7 +77,13 @@ namespace Oce.Solid.Agent.Ponte
                        ", e non ci sono.";
 
             // ── 2. quello che c'e', ma della forma sbagliata ─────────────
-            foreach (var voce in argomenti)
+            //
+            // OVER A COPY OF THE ENTRIES, because an enum value can be
+            // rewritten in `argomenti` on the way (see Sbaglia). On .NET
+            // Framework even overwriting an existing key bumps the
+            // dictionary's version, and the next MoveNext of a foreach over
+            // that same dictionary throws InvalidOperationException.
+            foreach (var voce in argomenti.ToList())
             {
                 // Le chiavi che cominciano con il trattino basso non sono
                 // parametri dell'operazione: sono roba nostra («_firme»), e lo
@@ -82,8 +95,10 @@ namespace Oce.Solid.Agent.Ponte
                 var regola = grezzo as Dictionary<string, object>;
                 if (regola == null || voce.Value == null) continue;
 
-                var storto = Sbaglia(operazione, voce.Key, regola, voce.Value, 0);
+                string catalogueSpelling;
+                var storto = Sbaglia(operazione, voce.Key, regola, voce.Value, 0, out catalogueSpelling);
                 if (storto != null) return storto;
+                if (catalogueSpelling != null) argomenti[voce.Key] = catalogueSpelling;
             }
 
             return null;
@@ -120,11 +135,17 @@ namespace Oce.Solid.Agent.Ponte
         /// Il documento restava a meta'. La garanzia di tutto-o-niente e'
         /// esattamente cio' per cui questo controllo esiste: mantenerla solo al
         /// primo livello vuol dire non mantenerla.
+        ///
+        /// <paramref name="catalogueSpelling"/> is not null only when the value
+        /// is an enum written with a different case: it is the catalogue's
+        /// spelling, and the caller writes it back in place of the value.
+        /// Nested objects are rewritten inside <see cref="Annidato"/>.
         /// </summary>
         private static string Sbaglia(
             string operazione, string nome, Dictionary<string, object> regola,
-            object valore, int profondita)
+            object valore, int profondita, out string catalogueSpelling)
         {
+            catalogueSpelling = null;
             var tipo = Convert.ToString(Prendi(regola, "type") ?? "");
 
             switch (tipo)
@@ -168,14 +189,40 @@ namespace Oce.Solid.Agent.Ponte
             }
 
             // ── i valori ammessi ─────────────────────────────────────────
+            //
+            // THE VALUE GOES ON SPELLED AS THE CATALOGUE SPELLS IT (Z-C21.10,
+            // pattern S20). The case of a word is form, not merit, so
+            // «Superiore» is accepted here, as it always was. Until 0.140.0
+            // it then went on to the library untouched, and the library
+            // compares Ordinal: `SelezionaPiano` read «Superiore» as an
+            // unknown name and fell back to the front plane (the box on the
+            // wrong plane, riuscita:true, finding N33), and
+            // `telaio_rettangolare` read «Ingombro» as not-«ingombro», that
+            // is the centreline branch (a 1080x880 frame for 1000x800, N32).
+            // Teaching every comparison in the library to ignore case would
+            // leave the next one to be forgotten; rewriting the value here
+            // covers them all, because this is the one door every step of
+            // «disegna» comes through (Strumenti/Attrezzi.cs).
+            //
+            // An exact match wins. Otherwise the one value that differs only
+            // in case. Two such values (a catalogue spelling one word two
+            // ways) leave nothing to choose from, and that stays a rejection.
             var ammessi = Elenco(Prendi(regola, "enum"));
             if (ammessi.Count > 0)
             {
                 var scritto = Convert.ToString(valore);
-                if (!ammessi.Any(x => string.Equals(x, scritto, StringComparison.OrdinalIgnoreCase)))
-                    return "Per «" + operazione + "», «" + nome + "» puo' essere solo " +
-                           string.Join(", ", ammessi.Select(x => "«" + x + "»")) +
-                           ", e invece dice «" + scritto + "».";
+                if (ammessi.Contains(scritto, StringComparer.Ordinal)) return null;
+                var sameWord = ammessi
+                    .Where(x => string.Equals(x, scritto, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (sameWord.Count == 1)
+                {
+                    catalogueSpelling = sameWord[0];
+                    return null;
+                }
+                return "Per «" + operazione + "», «" + nome + "» puo' essere solo " +
+                       string.Join(", ", ammessi.Select(x => "«" + x + "»")) +
+                       ", e invece dice «" + scritto + "».";
             }
 
             return null;
@@ -212,7 +259,9 @@ namespace Oce.Solid.Agent.Ponte
                        ", e non li dice.";
 
             // ── quello che c'e', ma della forma sbagliata ──
-            foreach (var voce in valore)
+            // Over a copy, as in Controlla: an enum value such as
+            // «faccia_rif.genere» can be rewritten in `valore` on the way.
+            foreach (var voce in valore.ToList())
             {
                 if (voce.Key.StartsWith("_")) continue;
                 object grezzo;
@@ -220,9 +269,12 @@ namespace Oce.Solid.Agent.Ponte
                 var dentro = grezzo as Dictionary<string, object>;
                 if (dentro == null || voce.Value == null) continue;
 
+                string catalogueSpelling;
                 var storto = Sbaglia(
-                    operazione, percorso + "." + voce.Key, dentro, voce.Value, profondita);
+                    operazione, percorso + "." + voce.Key, dentro, voce.Value, profondita,
+                    out catalogueSpelling);
                 if (storto != null) return storto;
+                if (catalogueSpelling != null) valore[voce.Key] = catalogueSpelling;
             }
 
             return null;

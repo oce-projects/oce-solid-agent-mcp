@@ -394,6 +394,8 @@ namespace Prove.Contratti
             ApiCatalogContracts.Run();
             ObsoleteCallsContract.RunAll();
             SelectionMarksContract.RunAll();
+            FormaSpellingContract.RunAll();
+            Zc2110HelpersContract.RunAll();
             IlLeggimiDiceQuantiSono();
 
             Console.WriteLine();

@@ -6502,7 +6502,23 @@ namespace Riscontro.Disegno
         {
             var parte = modello as IPartDoc;
             if (parte == null) return false;
-            int voluto = quale == "superiore" ? 2 : quale == "destro" ? 3 : 1;
+            // THREE NAMES AND NOTHING ELSE (Z-C21.10, finding N33). Here too a
+            // final `: 1` sent ANY unknown name to the front plane: the same
+            // fallback TrovaPianoBase dropped after the measure of 10
+            // September 2026. «Superiore» (accepted by the Forma ignoring
+            // case, and until 0.140.0 passed on untouched) built the box on
+            // the front plane with riuscita:true. An unknown name is now a
+            // false, which every caller already turns into a refusal naming
+            // the plane, exactly as for a Select2 that fails
+            // (IFeature~Select2.html: «True if the feature was selected,
+            // false if not»). The comparison stays Ordinal on purpose: the
+            // Forma now rewrites every enum value in the catalogue's spelling
+            // (Ponte/Forma.cs, pattern S20).
+            int voluto = quale == "frontale" ? 1
+                       : quale == "superiore" ? 2
+                       : quale == "destro" ? 3
+                       : 0;
+            if (voluto == 0) return false;
 
             int visti = 0;
             IFeature f = parte.IFirstFeature();

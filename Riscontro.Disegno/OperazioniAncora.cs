@@ -588,7 +588,14 @@ namespace Riscontro.Disegno
                          "alla prima modifica del pezzo il profilo andrebbe dove lo mette il risolutore.";
                 return false;
             }
-            string malate = RelazioniMalate(schizzi);
+            string malate, notRead;
+            if (!RelazioniMalate(schizzi, out malate, out notRead))
+            {
+                motivo = "I cannot read the relations of the anchor sketch (" + notRead + "): fully defined is " +
+                         "not enough, a dangling, over-defining or broken relation would break it at the first " +
+                         "change, and I do not cut without having looked.";
+                return false;
+            }
             if (malate != null)
             {
                 motivo = "Lo schizzo dell'ancora ha relazioni " + malate + ": non taglio, si romperebbe alla prima modifica.";
@@ -668,19 +675,42 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// L'ancora di un foro guidato si legge prima di sapere il diametro (lo
-        /// decide la tabella, dopo): qui si guarda, a foro nato, che nessuna
-        /// distanza scavalchi lo spigolo col raggio vero.
+        /// The anchor of a guided hole is read before the diameter is known (the
+        /// ISO table decides it, later): here, once the hole exists, no anchor
+        /// may overrun an edge with the real radius.
+        ///
+        /// CENTRED AXES TOO, AND THE WIDEST CUT (Z-C21.2, finding N50). This
+        /// check skipped centred axes (`!asse.Centrata`), and LeggiAncora runs
+        /// with mezzo = 0 for foro_guidato, so its rule «the profile fits
+        /// between the two edges» (the «non ci sta» refusal in LeggiAncora)
+        /// never fired: an M8 centred between two edges 6 mm apart was
+        /// confirmed, and the hole cut through both of them. The same rule is
+        /// applied here, half the gap against the radius, with the same `Coord`
+        /// reading of the two edges; equal is allowed, as for a distance.
+        /// <paramref name="raggioMm"/> is the radius of the widest cut of the
+        /// hole (counterbore or countersink included, see ForoGuidato), and
+        /// <paramref name="widestCut"/> names it in the message.
         /// </summary>
-        private static string ScavalcaColRaggio(List<Ancoraggio> ancore, double raggioMm)
+        private static string ScavalcaColRaggio(List<Ancoraggio> ancore, double[] assi, double raggioMm, string widestCut)
         {
             for (int i = 0; i < ancore.Count; i++)
                 foreach (var asse in ancore[i].Assi())
                 {
-                    if (!asse.Centrata && asse.DistanzaMm + 1e-9 < raggioMm)
+                    if (asse.Centrata)
+                    {
+                        double gap = Math.Abs(Coord(asse.Fra2.InizioMm, assi, asse.Indice) -
+                                              Coord(asse.Fra1.InizioMm, assi, asse.Indice));
+                        if (gap / 2 + 1e-9 < raggioMm)
+                            return string.Format(CultureInfo.InvariantCulture,
+                                "Hole {0}: between «{1}» and «{2}» there are {3:0.##} mm along «{4}», and the {5} is " +
+                                "{6:0.##} mm wide: it does not fit, and it would cut through both edges.",
+                                i + 1, asse.Fra1.Uid, asse.Fra2.Uid, gap, asse.Nome, widestCut, 2 * raggioMm);
+                    }
+                    else if (asse.DistanzaMm + 1e-9 < raggioMm)
                         return string.Format(CultureInfo.InvariantCulture,
-                            "Foro {0}: «distanza_mm» {1:0.##} dallo spigolo «{2}» e' meno del raggio del foro ({3:0.##}): " +
-                            "il foro scavalcherebbe lo spigolo.", i + 1, asse.DistanzaMm, asse.Spigolo.Uid, raggioMm);
+                            "Hole {0}: «distanza_mm» {1:0.##} from edge «{2}» is less than the radius of the {3} " +
+                            "({4:0.##} mm): the {3} would cut past the edge.",
+                            i + 1, asse.DistanzaMm, asse.Spigolo.Uid, widestCut, raggioMm);
                 }
             return null;
         }
@@ -708,12 +738,26 @@ namespace Riscontro.Disegno
             if (anc == null || anc.Vuoto) return null;
             foreach (var asse in anc.Assi())
             {
+                // A CENTRED AXIS HAS NO DIMENSION TO MOVE (Z-C21.2, finding
+                // N51): the sgATMIDDLE relation on the centre line holds it, and
+                // skipping it is the design. A DISTANCE axis without its
+                // dimension, or whose dimension cannot be read, is a different
+                // thing: both went through a `continue`, and the test «passed»
+                // having moved nothing, the pattern that M12 closed below for
+                // the return of SetSystemValue3. Now they stop the test.
+                if (asse.Centrata) continue;
                 var q = asse.QuotaNata;
-                if (q == null) continue;
+                if (q == null)
+                    return MovementTestNotVerifiable(asse, "the anchor dimension was not kept when it was created");
                 double era;
-                try { era = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { continue; }
+                try { era = ApiHelpers.ReadDimensionInConfiguration(q, ""); }
+                catch (Exception ex)
+                {
+                    return MovementTestNotVerifiable(asse, "I cannot read the anchor dimension: " + ex.Message);
+                }
                 string rotta = null;
                 string ferma = null;
+                string notVerified = null;
                 try
                 {
                     // IL RITORNO SI LEGGE (voce Z-C21.2, rilievo M12).
@@ -737,7 +781,7 @@ namespace Riscontro.Disegno
                         if (Math.Abs(mossa - (era + 0.0001)) > 1e-9)
                             ferma = "rilette, la quota non si e' spostata";
                         else
-                            rotta = LavorazioneInErrore(taglio);
+                            rotta = LavorazioneInErrore(taglio, out notVerified);
                     }
                 }
                 catch (Exception ex) { rotta = ex.Message; }
@@ -754,6 +798,8 @@ namespace Riscontro.Disegno
                     return "Non sono riuscito a spostare la quota d'ancora «" + asse.Nome + "» di un decimo (" + ferma +
                            "): la prova di movimento non ha provato niente, e un'ancora che non so far muovere " +
                            "non te la confermo.";
+                if (notVerified != null)
+                    return MovementTestNotVerifiable(asse, "the anchor dimension moved, but " + notVerified);
                 if (rotta != null)
                     return "Spostando la quota d'ancora «" + asse.Nome + "» di un decimo, il taglio va in errore (" + rotta +
                            "): lo schizzo non regge una modifica, e un'ancora che non regge una modifica non serve.";
@@ -765,21 +811,63 @@ namespace Riscontro.Disegno
             return null;
         }
 
-        /// <summary>La lavorazione o il suo schizzo in errore, detto a parole; null se sani.</summary>
-        private static string LavorazioneInErrore(IFeature taglio)
+        /// <summary>
+        /// The movement test that could not test anything, in words: an anchor
+        /// that cannot be tested is not confirmed (Z-C21.2, finding N51).
+        /// </summary>
+        private static string MovementTestNotVerifiable(AncoraAsse asse, string why)
         {
-            if (taglio == null) return null;
+            return "The movement test of the anchor on «" + asse.Nome + "» is not verifiable (" + why +
+                   "): it would pass without having tested anything, and I do not confirm an anchor I cannot test.";
+        }
+
+        /// <summary>
+        /// The feature or its sketch in error, in words; null if both are
+        /// healthy. <paramref name="notVerified"/> is not null when the error
+        /// codes could not be read (Z-C21.2, finding N51): before, a `catch { }`
+        /// answered null, that is «healthy», and the movement test passed
+        /// without having looked. IFeature~GetErrorCode2.html, «Return Value
+        /// Feature error code as defined in swFeatureError_e», is read through
+        /// ApiHelpers.RebuildError(feature, out known), which says when the call
+        /// threw. A feature without a sketch is not a gap:
+        /// IFeature~GetFirstSubFeature.html, «If no sub-features exist for this
+        /// feature, then this method returns NULL».
+        /// </summary>
+        private static string LavorazioneInErrore(IFeature taglio, out string notVerified)
+        {
+            notVerified = null;
+            if (taglio == null)
+            {
+                notVerified = "there is no feature to watch";
+                return null;
+            }
             try
             {
                 // S11: ApiHelpers.RebuildError (GetErrorCode2, warnings excluded),
                 // which also says the code in words (ErroriFeature), as the summary promises.
-                var cutError = ApiHelpers.RebuildError(taglio);
+                bool known;
+                var cutError = ApiHelpers.RebuildError(taglio, out known);
+                if (!known)
+                {
+                    notVerified = "GetErrorCode2 did not answer on the feature";
+                    return null;
+                }
                 if (cutError != null) return cutError;
                 var schizzo = taglio.GetFirstSubFeature() as IFeature;
-                var sketchError = schizzo == null ? null : ApiHelpers.RebuildError(schizzo);
+                if (schizzo == null) return null;
+                var sketchError = ApiHelpers.RebuildError(schizzo, out known);
+                if (!known)
+                {
+                    notVerified = "GetErrorCode2 did not answer on its sketch";
+                    return null;
+                }
                 if (sketchError != null) return "schizzo: " + sketchError;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                notVerified = "reading its rebuild errors failed: " + ex.Message;
+                return null;
+            }
             return null;
         }
 
@@ -922,6 +1010,30 @@ namespace Riscontro.Disegno
             foreach (var coppia in new[] { new[] { l1, a1 }, new[] { l1, a2 }, new[] { l2, a1 }, new[] { l2, a2 } })
                 Relazione(modello, coppia[0], coppia[1], "sgTANGENT");
             Relazione(modello, a1, a2, "sgSAMELENGTH");
+            // THE FIVE ARE COUNTED HERE, BEFORE THE CENTRE LINE (Z-C21.2,
+            // finding N54). IModelDoc2~SketchAddConstraints.html gives it no
+            // return value (C# «void SketchAddConstraints»), so the relation
+            // count is the only proof that a tangency was born. It was taken
+            // after the two coincidences below, which are requested exactly for
+            // the case in which the centre line does NOT fuse with the centres:
+            // then they add two relations, and two missing tangencies passed as
+            // «5 of 5».
+            int relStadio = RelazioniDelloSchizzo(schizzi);
+            if (relPrima < 0 || relStadio < 0)
+                misure["slot_relations"] = "not counted: SOLIDWORKS did not give the relation count of the " +
+                                           "sketch, so I could not check that the four tangencies and the " +
+                                           "equal radii were born";
+            else if (relStadio - relPrima < 5)
+            {
+                errore = "Not all the relations of the slot were born (" +
+                         (relStadio - relPrima).ToString(CultureInfo.InvariantCulture) +
+                         " of 5: four tangencies and the equal radii).";
+                // Without an anchor the caller does not stop on `errore` (a slot
+                // that is only less constrained is still cut): the response says it.
+                misure["slot_relations"] = (relStadio - relPrima).ToString(CultureInfo.InvariantCulture) +
+                                           " of 5 born (four tangencies and the equal radii): after a change the " +
+                                           "slot may lose its shape";
+            }
 
             // LA MEZZERIA FRA I CENTRI, di costruzione e legata a tutti e due.
             double rad = angoloGradi * Math.PI / 180.0, cos = Math.Cos(rad), sin = Math.Sin(rad);
@@ -945,10 +1057,6 @@ namespace Riscontro.Disegno
             // lasciasse a parte; il conto che vale e' quello delle altre cinque.
             Relazione(modello, (ISketchPoint)linea.GetStartPoint2(), (ISketchPoint)arcoA.GetCenterPoint2(), "sgCOINCIDENT");
             Relazione(modello, (ISketchPoint)linea.GetEndPoint2(), (ISketchPoint)arcoB.GetCenterPoint2(), "sgCOINCIDENT");
-            int relDopo = RelazioniDelloSchizzo(schizzi);
-            if (relPrima >= 0 && relDopo - relPrima < 5)
-                errore = "Le relazioni dello stadio non sono nate tutte (" +
-                         (relDopo - relPrima).ToString(CultureInfo.InvariantCulture) + " su 5: quattro tangenze e i raggi uguali).";
 
             // LE QUOTE: il raggio e la mezzeria (la lunghezza fra i centri).
             string e2;
@@ -975,9 +1083,22 @@ namespace Riscontro.Disegno
                 string e3;
                 var testoA = PuntoNelloSchizzo(modello, assi, offsetM,
                     x + (corsa + raggio + 14) * cos, y + (corsa + raggio + 14) * sin, out e3);
-                if (testoA == null || !QuotaAngolo(modello, mezzeria, riferimento.Spigolo, testoA))
+                // The angle the dimension must read: between the slot line and
+                // the reference edge, both on the face (Z-C21.2, finding N55).
+                // It is not `angoloGradi` itself: against an edge that runs
+                // along y (the edge of an «x» anchor) a slot at 30 degrees reads
+                // 60, or its supplement.
+                double edgeDeg = Math.Atan2(
+                    Coord(riferimento.FineMm, assi, 1) - Coord(riferimento.InizioMm, assi, 1),
+                    Coord(riferimento.FineMm, assi, 0) - Coord(riferimento.InizioMm, assi, 0)) * 180.0 / Math.PI;
+                string angleNotKept = null;
+                if (testoA == null ||
+                    !QuotaAngolo(modello, mezzeria, riferimento.Spigolo, testoA,
+                                 AngleBetweenLinesDeg(angoloGradi, edgeDeg), out angleNotKept))
                 {
-                    if (errore == null) errore = "L'angolo dell'asola contro lo spigolo «" + riferimento.Uid + "» non e' nato.";
+                    if (errore == null)
+                        errore = "The angle of the slot against edge «" + riferimento.Uid + "» " +
+                                 (angleNotKept ?? "was not born.");
                 }
                 else quote++;
             }
@@ -1138,9 +1259,24 @@ namespace Riscontro.Disegno
         /// modello. `AddSpecificDimension` col tipo esplicito: `Extension.
         /// AddDimension` torna null su questa coppia, e `AddDimension2` e'
         /// vietata (GP6). Misurato il 25/9/2026: 30 gradi su 30.
+        ///
+        /// THE STATUS AND THE VALUE ARE READ (Z-C21.2, finding N55).
+        /// IModelDocExtension~AddSpecificDimension.html: «Error Result status as
+        /// defined in swAddSpecificDimension_e», and swAddSpecificDimension_e
+        /// has swAddSpecificDimension_Success 0 and
+        /// swAddSpecificDimension_DimTypeMismatch 1. Only `quota == null` was
+        /// checked, and the caller counted a dimension of unknown type and
+        /// value. Now the status must be Success and the value, read back,
+        /// must be <paramref name="betweenDeg"/> or its supplement: an angular
+        /// dimension between two lines shows one of the two, depending on
+        /// where its text sits, like QuotaPuntoSpigolo refuses a dimension that
+        /// measures something else. False with <paramref name="whyNot"/> null
+        /// means «not born» (the caller's message); not null says what is wrong.
         /// </summary>
-        private bool QuotaAngolo(IModelDoc2 modello, ISketchSegment linea, IEdge spigolo, double[] testo)
+        private bool QuotaAngolo(IModelDoc2 modello, ISketchSegment linea, IEdge spigolo, double[] testo,
+                                 double betweenDeg, out string whyNot)
         {
+            whyNot = null;
             bool chiedeva = true;
             try
             {
@@ -1156,6 +1292,28 @@ namespace Riscontro.Disegno
                 var quota = modello.Extension.AddSpecificDimension(
                     testo[0], testo[1], testo[2], (int)swDimensionType_e.swAngularDimension, ref errore) as IDisplayDimension;
                 if (quota == null) return false;
+                if (errore != (int)swAddSpecificDimension_e.swAddSpecificDimension_Success)
+                {
+                    whyNot = "was born, but AddSpecificDimension answered " + (swAddSpecificDimension_e)errore +
+                             ": I do not keep a dimension of the wrong type.";
+                    return false;
+                }
+                double readDeg;
+                try { readDeg = Unita.Gradi(ApiHelpers.ReadDimensionInConfiguration(quota.GetDimension2(0), "")); }
+                catch (Exception ex)
+                {
+                    whyNot = "was born, but I cannot read its value back (" + ex.Message + ").";
+                    return false;
+                }
+                const double AngleToleranceDeg = 0.01;
+                if (Math.Abs(readDeg - betweenDeg) > AngleToleranceDeg &&
+                    Math.Abs(readDeg - (180.0 - betweenDeg)) > AngleToleranceDeg)
+                {
+                    whyNot = string.Format(CultureInfo.InvariantCulture,
+                        "was born but reads {0:0.###} degrees instead of {1:0.###} (or {2:0.###}): it measures " +
+                        "something else, and I do not keep it.", readDeg, betweenDeg, 180.0 - betweenDeg);
+                    return false;
+                }
                 try { quota.MarkedForDrawing = true; } catch { }
                 return true;
             }
@@ -1165,6 +1323,16 @@ namespace Riscontro.Disegno
                 try { modello.ClearSelection2(true); } catch { }
                 try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, chiedeva); } catch { }
             }
+        }
+
+        /// <summary>
+        /// The angle between two LINES given by their directions in degrees,
+        /// from 0 to 90: a line has no verse, so 30 and 210 are the same line.
+        /// </summary>
+        private static double AngleBetweenLinesDeg(double aDeg, double bDeg)
+        {
+            double d = Math.Abs(aDeg - bDeg) % 180.0;
+            return Math.Min(d, 180.0 - d);
         }
 
         /// <summary>
@@ -1212,23 +1380,54 @@ namespace Riscontro.Disegno
             return false;
         }
 
-        /// <summary>Le relazioni penzolanti, sovravincolanti o rotte dello schizzo aperto, a parole; null se nessuna.</summary>
-        private static string RelazioniMalate(ISketchManager schizzi)
+        /// <summary>
+        /// The dangling, over-defining and broken relations of the open sketch,
+        /// in words in <paramref name="malate"/> (null if there are none).
+        ///
+        /// «NONE» AND «NOT READ» ARE TWO ANSWERS (Z-C21.2, finding N52). The
+        /// function returned null both for a sketch without sick relations and
+        /// when the RelationManager did not come or GetRelationsCount threw,
+        /// and SchizzoDefinitoESano read null as healthy: the check said yes
+        /// without having looked. ISketchRelationManager~GetRelationsCount.html:
+        /// «Return Value Number of sketch relations»; a count that does not come,
+        /// or comes negative, is not a count. Now the function returns false,
+        /// with the reason in <paramref name="notRead"/>, and the caller refuses.
+        /// </summary>
+        private static bool RelazioniMalate(ISketchManager schizzi, out string malate, out string notRead)
         {
+            malate = null;
+            notRead = null;
             try
             {
                 var gestore = schizzi.ActiveSketch?.RelationManager as ISketchRelationManager;
-                if (gestore == null) return null;
+                if (gestore == null)
+                {
+                    notRead = "SOLIDWORKS does not give the relation manager of the open sketch";
+                    return false;
+                }
                 var dette = new List<string>();
                 int n = gestore.GetRelationsCount((int)swSketchRelationFilterType_e.swDangling);
                 if (n > 0) dette.Add(n + " penzolant" + (n == 1 ? "e" : "i"));
+                int dangling = n;
                 n = gestore.GetRelationsCount((int)swSketchRelationFilterType_e.swOverDefining);
                 if (n > 0) dette.Add(n + " sovravincolant" + (n == 1 ? "e" : "i"));
+                int overDefining = n;
                 n = gestore.GetRelationsCount((int)swSketchRelationFilterType_e.swBroken);
                 if (n > 0) dette.Add(n + " rott" + (n == 1 ? "a" : "e"));
-                return dette.Count == 0 ? null : string.Join(", ", dette);
+                if (dangling < 0 || overDefining < 0 || n < 0)
+                {
+                    notRead = string.Format(CultureInfo.InvariantCulture,
+                        "GetRelationsCount answered {0} dangling, {1} over-defining, {2} broken", dangling, overDefining, n);
+                    return false;
+                }
+                malate = dette.Count == 0 ? null : string.Join(", ", dette);
+                return true;
             }
-            catch { return null; }
+            catch (Exception ex)
+            {
+                notRead = "counting them failed: " + ex.Message;
+                return false;
+            }
         }
 
         private static int RelazioniDelloSchizzo(ISketchManager schizzi)

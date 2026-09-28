@@ -526,7 +526,7 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/ 34   il guscio, e da che parte toglie;
+casi/lavorazioni/ 36   il guscio, e da che parte toglie;
                        la piastra simmetrica che cresce dalle due parti
                        con cambia_estrusione (revisione del 27/9, Z-C20);
                        la quota che fa uscire l'asola dal materiale, rifiutata
@@ -553,7 +553,9 @@ casi/lavorazioni/ 34   il guscio, e da che parte toglie;
                        della L col materiale dritto e la scatola svuotata col
                        girato (il secondo tentativo sullo stesso pezzo), la
                        piastra senza pareti e la linea fuori dal piano
-                       rifiutate
+                       rifiutate; the guided hole centred between edges too
+                       close for it, and the counterbore past the edge, both
+                       refused with their twins (Z-C21.10, N50)
 casi/coppie/       8   i rifiuti con la loro gemella
 casi/asola/       18   ogni faccia, non una sola; lo schizzo quotato che si
                        corregge con modifica_quota, e l'ancora dritta e obliqua
@@ -574,21 +576,24 @@ casi/ripeti/      13   la direzione, che e' il dubbio vero; l'asse riconosciuto
 casi/asse/         2   l'asse dalla parete di un foro
 casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
-casi/verifica/     6   com'e' venuto: solido, chiuso, sano; il corpo nascosto
-                       che pende si vede (Z-C21.2)
+casi/verifica/     7   com'e' venuto: solido, chiuso, sano; il corpo nascosto
+                       che pende si vede (Z-C21.2); one sound body of two is
+                       not the part (Z-C21.10, N61)
 casi/misura/      10   quanto pesa, in che scatola ci sta, quanto dista
 casi/corpi/       15   le booleane, il raccordo variabile, il filetto cosmetico;
                        l'unione di corpi che non si toccano rifiutata (Z-C18);
                        la booleana col corpo letto prima di un taglio
                        rifiutata (Z-C21.2)
-casi/esporta/     12   STL, STEP e IGES: il file riletto byte per byte,
+casi/esporta/     13   STL, STEP e IGES: il file riletto byte per byte,
                        e il volume riaperto in SOLIDWORKS; l'IGES di un
                        assieme rifiutato (Z-C20); lo STL con una faccia
-                       rimasta selezionata e' il pezzo intero (Z-C21.2)
+                       rimasta selezionata e' il pezzo intero (Z-C21.2);
+                       the IGES carries the solid, not its wireframe: its
+                       directory counted (Z-C21.10, N59)
 casi/proprieta/   11   i due cassetti, e il codice che va in distinta
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-casi/assiemi/     10   inserire non e' accoppiare; un vincolo solo non basta;
+casi/assiemi/     11   inserire non e' accoppiare; un vincolo solo non basta;
                        due basi uguali e uno STEP: una forma per pezzo,
                        la massa per istanza (Z-C20);
                        il coperchio rifatto tiene i vincoli e li rompe;
@@ -599,8 +604,9 @@ casi/assiemi/     10   inserire non e' accoppiare; un vincolo solo non basta;
                        trasparente, fissa e libera (Z-D3, Z-D4, Z-D5);
                        la staffa destra e la sinistra: istanza, opposto legato
                        e slegato, su tre piani (GA11); da quali file dipende
-                       l'assieme, e che ci sono (Z-B3)
-casi/tavola/      37   il primo caso che arriva in TAVOLA (voce GT0);
+                       l'assieme, e che ci sono (Z-B3); the interference array
+                       is as long as the count (Z-C21.10, N34)
+casi/tavola/      38   il primo caso che arriva in TAVOLA (voce GT0);
                        un Ø8 passante e un Ø8 cieco, due richiami; la borchia
                        non e' un foro; l'albero smussato senza le gambe dello
                        smusso (revisione del 27/9, Z-C20);
@@ -644,8 +650,10 @@ casi/tavola/      37   il primo caso che arriva in TAVOLA (voce GT0);
                        profondita' del cieco si legge anche dalla geometria (GT12);
                        l'albero a gradini quotato di fianco: lunghezze in
                        parallelo e diametri dalle generatrici (GT14); la
-                       distinta di taglio dice se ha confrontato (Z-C21.2)
-casi/saldature/    7   la distinta conta le barre, e i due numeri vengono da
+                       distinta di taglio dice se ha confrontato (Z-C21.2);
+                       the second sheet does not repeat the dimensions of the
+                       first (Z-C21.10, N43)
+casi/saldature/    9   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
                        va fra facce che si toccano ad angolo; il tappo chiude
@@ -656,13 +664,18 @@ casi/saldature/    7   la distinta conta le barre, e i due numeri vengono da
                        triangolare e poligonale, coi volumi misurati e la
                        scatola del corpo nuovo; rifiutati la posizione fuori
                        elenco, le facce che non si toccano o parallele, il
-                       poligono degenere e i lati corti troppo lunghi (GP20)
-casi/estrusioni/   8   il tubo ha il buco; l'asola estrusa e' lunga quanto
+                       poligono degenere e i lati corti troppo lunghi (GP20);
+                       the frame too small for its profile closes the weldment
+                       profile library again, and the frame's «misure» is read
+                       whatever the case, any other word refused (Z-C21.10,
+                       N31, N32)
+casi/estrusioni/   9   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        l'ingombro, estremita' comprese, ed e' un poligono; la
                        ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta
                        cresce dalla faccia verso fuori (voce Z-C6); il rialzo
                        tondo e rettangolare ancorati, e il triangolo rifiutato
-                       (voce E18)
+                       (voce E18); a plane name that is not one of the three is
+                       refused, never the front plane (Z-C21.10, N33)
 casi/lamiera/     12   la L si sviluppa lunga quanto il conto a mano; data al
                        contrario, i punti diventano le facce esterne; lo
                        sviluppo senza file rifiutato; il tratto piu' corto

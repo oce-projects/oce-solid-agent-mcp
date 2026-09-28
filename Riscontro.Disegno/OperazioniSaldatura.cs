@@ -76,24 +76,30 @@ namespace Riscontro.Disegno
         ///   ApertaPulita — c'era e nessuno l'aveva modificata
         ///   ApertaSporca — c'era e qualcuno ci stava gia' lavorando
         /// </summary>
-        private enum ComEra { Chiusa, ApertaPulita, ApertaSporca }
+        /// <remarks>
+        /// Internal, and the three methods below static, since Z-C21.10 N31:
+        /// the overhang probe in <see cref="SezioneProfilo"/> inserts a real
+        /// structural member too, and applies the same rule to the library it
+        /// opens.
+        /// </remarks>
+        internal enum ComEra { Chiusa, ApertaPulita, ApertaSporca }
 
-        private ComEra StatoDellaLibreria(string percorso)
+        internal static ComEra StatoDellaLibreria(ISldWorks sw, string percorso)
         {
-            var doc = DocumentoConPercorso(percorso);
+            var doc = DocumentoConPercorso(sw, percorso);
             if (doc == null) return ComEra.Chiusa;
             bool sporca = false;
             try { sporca = doc.GetSaveFlag(); } catch { }
             return sporca ? ComEra.ApertaSporca : ComEra.ApertaPulita;
         }
 
-        private IModelDoc2 DocumentoConPercorso(string percorso)
+        internal static IModelDoc2 DocumentoConPercorso(ISldWorks sw, string percorso)
         {
-            if (string.IsNullOrWhiteSpace(percorso)) return null;
+            if (sw == null || string.IsNullOrWhiteSpace(percorso)) return null;
             try
             {
                 var voluto = percorso.Trim().Replace('/', '\\');
-                var d = _sw.GetFirstDocument() as IModelDoc2;
+                var d = sw.GetFirstDocument() as IModelDoc2;
                 int guardia = 0;
                 while (d != null && guardia++ < 200)
                 {
@@ -118,29 +124,60 @@ namespace Riscontro.Disegno
         /// e' gia' nel pezzo, e un problema nel richiudere la libreria non
         /// deve trasformare un lavoro riuscito in un errore. Si scrive nel
         /// log e si va avanti.
+        ///
+        /// Z-C21.10 N31, what changed: it is static, so the overhang probe
+        /// (<see cref="SezioneProfilo"/>) applies the same rule, and it no
+        /// longer writes «closed» on the word of `CloseDoc`. The guide gives
+        /// no return value to read (ISldWorks~CloseDoc.html: «void CloseDoc(
+        /// System.string Name)»), and names cases in which it does nothing:
+        /// «the name of a document that is not open, then this method does
+        /// nothing». So the library is looked for again by path afterwards,
+        /// and if it is still there its dirty flag is read
+        /// (IModelDoc2~GetSaveFlag.html: «True if this document needs to be
+        /// saved, false if not»).
         /// </summary>
-        private void RichiudiLaLibreria(string profilo, ComEra comEra)
+        /// <returns>
+        /// Null when the library is not left modified by us: closed, open and
+        /// clean, or already modified before we touched it (that one is
+        /// logged, it is not this operation's doing). Otherwise the sentence
+        /// that the answer must carry: the library is still open and modified.
+        /// </returns>
+        internal static string RichiudiLaLibreria(
+            ISldWorks sw, string profilo, ComEra comEra, Action<string> log)
         {
-            var nome = Path.GetFileName(profilo);
+            log = log ?? (m => { });
+            // Called on every exit of the operation now, also with a path
+            // that never passed File.Exists: GetFileName throws on invalid
+            // characters, and this method must not throw.
+            string nome = profilo ?? "";
+            try { nome = Path.GetFileName(profilo); } catch { }
 
             // ERA APERTA E QUALCUNO CI STAVA LAVORANDO: non si tocca.
             // Era gia' a rischio prima di noi, e chiuderla vorrebbe dire
             // buttare via il lavoro di qualcun altro.
             if (comEra == ComEra.ApertaSporca)
             {
-                _log("[agente] la libreria «" + nome + "» era gia' aperta E " +
-                     "modificata prima di questo inserimento: non la tocco. " +
-                     "ATTENZIONE: un salvataggio la riscriverebbe, e non e' " +
-                     "colpa di questa operazione.");
-                return;
+                log("[agente] the library «" + nome + "» was already open AND " +
+                    "modified before this insertion: I do not touch it. " +
+                    "ATTENTION: saving it would rewrite it, and it is not " +
+                    "this operation's doing.");
+                return null;
             }
 
-            var doc = DocumentoConPercorso(profilo);
-            if (doc == null) return;
+            var doc = DocumentoConPercorso(sw, profilo);
+            if (doc == null) return null;
 
             string titolo = "";
             try { titolo = doc.GetTitle(); } catch { }
-            if (string.IsNullOrWhiteSpace(titolo)) return;
+            if (string.IsNullOrWhiteSpace(titolo))
+            {
+                bool dirtyWithoutTitle = false;
+                try { dirtyWithoutTitle = doc.GetSaveFlag(); } catch { }
+                if (!dirtyWithoutTitle) return null;
+                log("[agente] the library «" + nome + "» is open and modified, and its " +
+                    "title cannot be read: I cannot close it.");
+                return LibraryLeftModified(nome);
+            }
 
             // ERA APERTA E PULITA, E ADESSO E' SPORCA.
             //
@@ -161,31 +198,123 @@ namespace Riscontro.Disegno
 
             if (eraAperta && !sporcaAdesso)
             {
-                _log("[agente] la libreria «" + titolo + "» era gia' aperta e " +
-                     "l'inserimento non l'ha sporcata: la lascio dov'era.");
-                return;
+                log("[agente] the library «" + titolo + "» was already open and " +
+                    "the insertion did not modify it: I leave it where it was.");
+                return null;
             }
 
             try
             {
-                _sw.CloseDoc(titolo);
-                _log(eraAperta
-                    ? "[agente] richiusa senza salvare la libreria «" + titolo +
-                      "»: era gia' aperta ma PULITA, e l'inserimento l'ha " +
-                      "sporcata. Lasciarla li' vorrebbe dire lasciarla a un " +
-                      "Ctrl+S dall'essere riscritta. Non hai perso niente: " +
-                      "riaprila e la ritrovi identica."
-                    : "[agente] richiusa senza salvare la libreria «" + titolo +
-                      "»: l'inserimento l'aveva aperta e lasciata sporca");
+                sw.CloseDoc(titolo);
             }
             catch (Exception ex)
             {
-                _log("[agente] non riesco a richiudere la libreria «" + titolo + "»: " +
-                     ex.Message + ". ATTENZIONE: resta aperta e modificata, un salvataggio la riscriverebbe.");
+                log("[agente] I cannot close the library «" + titolo + "»: " +
+                    ex.Message + ". ATTENTION: it stays open and modified, saving it would rewrite it.");
+                return LibraryLeftModified(titolo);
             }
+
+            // READ BACK, DO NOT TRUST THE CALL (Z-C21.10 N31): see the summary.
+            var stillThere = DocumentoConPercorso(sw, profilo);
+            if (stillThere != null)
+            {
+                bool stillDirty = true;   // unreadable is not clean
+                try { stillDirty = stillThere.GetSaveFlag(); } catch { }
+                if (stillDirty)
+                {
+                    log("[agente] CloseDoc(«" + titolo + "») returned, and the library is " +
+                        "still open and modified: saving it would rewrite it.");
+                    return LibraryLeftModified(titolo);
+                }
+                log("[agente] CloseDoc(«" + titolo + "») returned, and the library is " +
+                    "still open, but clean: nothing to rewrite.");
+                return null;
+            }
+
+            log(eraAperta
+                ? "[agente] closed without saving the library «" + titolo +
+                  "»: it was already open but CLEAN, and the insertion modified " +
+                  "it. Leaving it there would leave it one Ctrl+S away from being " +
+                  "rewritten. Nothing is lost: reopen it and it is the same."
+                : "[agente] closed without saving the library «" + titolo +
+                  "»: the insertion had opened it and left it modified.");
+            return null;
         }
 
+        /// <summary>
+        /// The sentence the answer carries when the profile library is still
+        /// open and modified after <see cref="RichiudiLaLibreria"/> (Z-C21.10
+        /// N31). It goes to the reader, not only to the log: the log is
+        /// stderr, and the person at the screen is the one who can press
+        /// Ctrl+S.
+        /// </summary>
+        private static string LibraryLeftModified(string name)
+        {
+            return "ATTENTION: the weldment profile library «" + name + "» is still open " +
+                   "in SOLIDWORKS and marked as modified. Do not save it: close it " +
+                   "without saving, or a Ctrl+S would rewrite the shared library.";
+        }
+
+        /// <summary>
+        /// EVERY EXIT CLOSES THE PROFILE LIBRARY AGAIN (Z-C21.10 N31).
+        ///
+        /// Inserting a structural member makes SOLIDWORKS open the profile
+        /// library by itself and leave it marked as MODIFIED. It is not one of
+        /// our calls: it happens when inserting by hand too (measured on
+        /// 9/9/2026). While it stays like that, a stray Ctrl+S from anyone
+        /// rewrites the company's weldment profile library — a file on a
+        /// shared disk that every existing weldment depends on — and the
+        /// damage shows only when an old frame rebuilds with another section.
+        ///
+        /// Up to library 0.140.0 only two exits closed it again: the failed
+        /// insertion and the line right after it. The rejections that come
+        /// after the overhang probe of <see cref="SezioneProfilo"/> — «the
+        /// profile does not fit in the frame», a sketch segment that did not
+        /// draw, a group that did not form — returned with the library still
+        /// open if the probe had left it so. Now the body runs inside
+        /// try/finally, and the library is closed on the way out whatever the
+        /// exit, by the rule of <see cref="RichiudiLaLibreria"/> (only what we
+        /// opened, or what was clean and we dirtied). The probe applies the
+        /// same rule to its own trial member.
+        ///
+        /// If the library is still open and modified after that, the answer
+        /// says so: at the end of the rejection message, or in
+        /// «profile_library_warning» on success.
+        /// </summary>
         private Esito MembroStrutturale(IModelDoc2 modello, Dictionary<string, object> a)
+        {
+            string profile = Str(a, "profilo_percorso", "");
+            // WAS THE LIBRARY ALREADY OPEN BEFORE US? It must be read NOW,
+            // before the probe or the insertion can open it: afterwards «it
+            // was already open» and «we opened it» look the same, and closing
+            // a library the designer was working on is a damage.
+            var libraryBefore = StatoDellaLibreria(_sw, profile);
+            Esito result = null;
+            try
+            {
+                result = BuildStructuralMember(modello, a);
+            }
+            finally
+            {
+                string leftModified = RichiudiLaLibreria(_sw, profile, libraryBefore, _log);
+                if (leftModified != null && result != null)
+                {
+                    if (result.Riuscito)
+                    {
+                        if (result.Misure == null) result.Misure = new Dictionary<string, object>();
+                        result.Misure["profile_library_warning"] = leftModified;
+                    }
+                    else result.Errore = (result.Errore ?? "") + " " + leftModified;
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// The body of <see cref="MembroStrutturale"/>, which closes the
+        /// profile library on the way out: nothing in here closes it.
+        /// </summary>
+        private Esito BuildStructuralMember(IModelDoc2 modello, Dictionary<string, object> a)
         {
             string profilo = Str(a, "profilo_percorso", "");
             string configurazione = Str(a, "configurazione", "");
@@ -202,14 +331,6 @@ namespace Riscontro.Disegno
             // ritorna null, e senza questo controllo l'utente leggerebbe «il
             // membro non e' stato creato» senza sapere che il profilo era il
             // problema.
-            // LA LIBRERIA ERA GIA' APERTA PRIMA DI NOI?
-            //
-            // Serve saperlo ADESSO, perche' dopo non si distingue piu' e la
-            // differenza conta: se il progettista stava lavorando sul file
-            // di libreria, chiuderglielo sotto e' un danno. Si richiude solo
-            // cio' che si e' aperto.
-            var libreriaComEra = StatoDellaLibreria(profilo);
-
             if (!File.Exists(profilo))
                 return Fallito(
                     "Il profilo «" + profilo + "» non esiste su questa postazione. " +
@@ -293,9 +414,37 @@ namespace Riscontro.Disegno
             // qualcuno chiede esplicitamente le quote d'asse.
             double[] ingombroPromesso = null;
             double[] sporgenze = null;
+            // Where the overhang came from, and how to drop it from the
+            // archive if the frame built with it comes out wrong (Z-C21.10 N36).
+            string overhangSource = null;
+            Func<bool> forgetOverhang = null;
             int asseU = -1, asseV = -1;
             var telaio = telaioChiesto;
-            string comeSiMisura = Str(telaio, "misure", "ingombro");
+
+            // THE READING OF THE TWO SIZES, IN THE CATALOGUE SPELLING
+            // (Z-C21.10 N32). The comparisons below are Ordinal, and until
+            // library 0.140.0 the value arrived as written: «Ingombro» was not
+            // «ingombro», so it fell into the centre-line branch and a
+            // 1000x800 frame came out 1080x880 with riuscito = true — and so
+            // did any other word («esterno»). The bridge's Forma accepts enum
+            // values without regard to case and rewrites the top-level ones in
+            // the catalogue spelling (Ponte/Forma.cs, pattern S20), but the
+            // nested «telaio» the server builds is not in the catalogue schema
+            // at all, and the bench and the add-in do not go through the
+            // bridge: no check upstream sees every caller. Here the value is
+            // matched without regard to case, and anything that is neither
+            // reading is refused before a single line is drawn. The reading
+            // used goes back in the answer as «misure».
+            string askedReading = Str(telaio, "misure", "ingombro");
+            string comeSiMisura = FrameReading(askedReading);
+            if (telaio != null && comeSiMisura == null)
+                return Fallito(
+                    "«misure» can only be «ingombro» (the outside size of the finished " +
+                    "frame, the default) or «interasse» (the distance between the bar " +
+                    "axes), and it says «" + askedReading + "». Write one of the two, " +
+                    "or leave «misure» out for «ingombro». I do not guess: read the " +
+                    "other way, the frame would come out larger or smaller by the size " +
+                    "of the profile.");
 
             // ── IL TELAIO A INTERASSE ────────────────────────────────────
             //
@@ -345,9 +494,12 @@ namespace Riscontro.Disegno
                 int codiceAngolo;
                 if (!TrattamentiAngolo.TryGetValue(trattamento ?? "", out codiceAngolo))
                     codiceAngolo = 0;
-                sporgenze = SezioneProfilo.SporgenzeDelTelaio(
+                sporgenze = SezioneProfilo.FrameOverhang(
                     _sw, profilo, configurazione, asseU, asseV, rotazione,
-                    codiceAngolo, gioco, _log);
+                    codiceAngolo, gioco, _log, out overhangSource);
+                int probeU = asseU, probeV = asseV;
+                forgetOverhang = () => SezioneProfilo.ForgetFrameOverhang(
+                    profilo, configurazione, probeU, probeV, rotazione, codiceAngolo, gioco, _log);
                 if (sporgenze == null)
                     return Fallito(
                         "Non sono riuscito a misurare quanto sporge il profilo «" +
@@ -495,22 +647,12 @@ namespace Riscontro.Disegno
             }
             catch (Exception ex)
             {
-                RichiudiLaLibreria(profilo, libreriaComEra);
                 return Fallito("Il membro strutturale non e' riuscito: " + ex.Message + SenzaLoSchizzo(modello));
             }
 
-            // SI RICHIUDE SUBITO, RIUSCITO O NO.
-            //
-            // Inserendo un membro strutturale SolidWorks apre da solo il file
-            // di libreria del profilo e lo lascia marcato come MODIFICATO.
-            // Non e' una nostra chiamata: succede anche inserendolo a mano.
-            //
-            // Finche' resta cosi', un Ctrl+S distratto di chiunque riscrive
-            // la libreria dei profili dell'azienda — un file che sta su un
-            // disco condiviso e da cui dipendono tutti i saldati gia' fatti.
-            // Il danno non si vede il giorno stesso: si vede quando un
-            // telaio vecchio si ricostruisce con una sezione diversa.
-            RichiudiLaLibreria(profilo, libreriaComEra);
+            // The profile library that this insertion opened is closed again
+            // by MembroStrutturale on the way out, whatever the exit
+            // (Z-C21.10 N31): see its summary.
 
             if (feature == null)
                 return Fallito(
@@ -530,6 +672,12 @@ namespace Riscontro.Disegno
             if (sporgenze != null)
                 misure["sporgenza_profilo_mm"] =
                     Math.Round(sporgenze[0], 2) + "x" + Math.Round(sporgenze[1], 2);
+            // Z-C21.10 N32: which reading of the two sizes was used, always,
+            // so that a frame read as centre lines cannot pass for an outside
+            // size without the answer saying so.
+            if (telaio != null) misure["misure"] = comeSiMisura;
+            // Z-C21.10 N36: measured now, or taken from the archive.
+            if (overhangSource != null) misure["overhang_source"] = overhangSource;
 
             // ── SI MISURA CIO' CHE E' STATO FATTO ────────────────────────
             //
@@ -565,7 +713,17 @@ namespace Riscontro.Disegno
                     double vistoV = scatola[3 + asseV] - scatola[asseV];
                     double erroreU = Math.Abs(vistoU - ingombroPromesso[0]);
                     double erroreV = Math.Abs(vistoV - ingombroPromesso[1]);
-                    if (erroreU > 0.5 || erroreV > 0.5)
+                    // A WRONG FRAME BUILT ON A REMEMBERED OVERHANG (Z-C21.10
+                    // N36). Until library 0.140.0 the archive entry stayed, so
+                    // «withdraw it and try again» rebuilt the same wrong frame
+                    // from the same line of the same file, and the rejection
+                    // did not name that file. Now the entry is dropped here, and
+                    // the message says where the overhang came from.
+                    bool wrongFrame = erroreU > 0.5 || erroreV > 0.5;
+                    bool overhangDropped = wrongFrame &&
+                        overhangSource == SezioneProfilo.OverhangFromArchive &&
+                        forgetOverhang != null && forgetOverhang();
+                    if (wrongFrame)
                         return Fallito(string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
                             "Il telaio doveva essere {0:0.#}x{1:0.#} mm di ingombro esterno " +
@@ -574,7 +732,8 @@ namespace Riscontro.Disegno
                             ". (Sporgenza misurata del " +
                             "profilo: {4:0.##}x{5:0.##} mm.)",
                             ingombroPromesso[0], ingombroPromesso[1], vistoU, vistoV,
-                            sporgenze[0], sporgenze[1]));
+                            sporgenze[0], sporgenze[1]) +
+                            OverhangNote(overhangSource, overhangDropped));
                     misure["ingombro_verificato"] = true;
                     misure["ingombro_esterno_mm"] =
                         Math.Round(vistoU, 2) + "x" + Math.Round(vistoV, 2);
@@ -1889,6 +2048,44 @@ namespace Riscontro.Disegno
                 case "": u = 0; v = 1; return true;            // XY
                 default: u = -1; v = -1; return false;
             }
+        }
+
+        /// <summary>
+        /// The reading of a frame's two sizes in the catalogue spelling
+        /// («ingombro» or «interasse»), or null when the value is neither
+        /// (Z-C21.10 N32). Matched the way <see cref="AssiDelPiano"/> matches
+        /// the plane: trimmed, without regard to case; empty means the
+        /// default, «ingombro», as a missing value does.
+        /// </summary>
+        private static string FrameReading(string asked)
+        {
+            switch ((asked ?? "").Trim().ToLowerInvariant())
+            {
+                case "":
+                case "ingombro": return "ingombro";
+                case "interasse": return "interasse";
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        /// Where the overhang of a rejected frame came from, as a sentence to
+        /// append to the rejection (Z-C21.10 N36). Empty when nobody said.
+        /// </summary>
+        private static string OverhangNote(string source, bool dropped)
+        {
+            if (source == SezioneProfilo.OverhangMeasured)
+                return " The overhang was measured just now on a trial frame, not " +
+                       "taken from the archive.";
+            if (source != SezioneProfilo.OverhangFromArchive) return "";
+            return dropped
+                ? " The overhang was not measured now: it came from the archive of " +
+                  "measured sections («" + SezioneProfilo.ArchivePath + "»). I have " +
+                  "dropped that entry, so the next attempt measures the profile again."
+                : " The overhang was not measured now: it came from the archive of " +
+                  "measured sections («" + SezioneProfilo.ArchivePath + "»), and I " +
+                  "could not drop that entry: delete that file (it is rebuilt by " +
+                  "measuring) before trying again.";
         }
 
         /// <summary>

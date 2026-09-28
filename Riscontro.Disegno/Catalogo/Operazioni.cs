@@ -197,7 +197,10 @@ namespace Riscontro.Disegno.Catalogo
                     Descrizione =
                         "Crea una piastra rettangolare: disegna un rettangolo su un piano "
                         + "e lo estrude. E' l'operazione per piastre, staffe, basi, flange "
-                        + "squadrate.",
+                        + "squadrate."
+                        + "\n\n«piano» takes «frontale», «superiore» or «destro» (the case of "
+                        + "the letters does not matter); any other name is refused, it never "
+                        + "falls back to the front plane.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -523,7 +526,12 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "rotazione nel piano della faccia, predefinito 0. Lo schizzo "
                                     + "nasce quotato (raggio e distanza fra i centri): a 0 e 90 gradi anche "
                                     + "l'orientamento e' fissato; obliqua, l'angolo si quota contro il primo "
-                                    + "spigolo dell'«ancora», e senza ancora resta libero (te lo dico)."),
+                                    + "spigolo dell'«ancora», e senza ancora resta libero (te lo dico)."
+                                    + " The angle dimension is read back: it must measure the angle "
+                                    + "between the slot and that edge (or its supplement), or I refuse. "
+                                    + "If the four tangencies and the equal radii of the slot cannot be "
+                                    + "counted, or not all of them were born, the response says so in "
+                                    + "«slot_relations»."),
                             "passante", O(
                                 "type", "boolean",
                                 "description", "predefinito: si'"),
@@ -637,10 +645,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "come una lavorazione sola."
                         + "\n\nOgni posizione puo' portare un'«ancora» (una quota da uno spigolo, o "
                         + "il centro fra due spigoli, per asse): allora il foro segue il bordo "
-                        + "quando il pezzo cambia. MI RIFIUTO se l'ancora ce l'hanno solo alcune "
-                        + "posizioni (tutte o nessuna: i fori stanno in uno schizzo solo) e se una "
-                        + "distanza e' meno del raggio del foro — quello lo so solo a foro fatto, "
-                        + "e allora il foro lo tolgo.\n\nMI RIFIUTO, e tolgo il foro, anche se "
+                        + "quando il pezzo cambia. I REFUSE if only some positions carry an "
+                        + "anchor (all or none: the holes are in one sketch), if a distance is "
+                        + "less than the radius of the hole, or if, on a centred axis, the gap "
+                        + "between the two edges is narrower than the hole. The radius is the "
+                        + "widest cut: the counterbore for «lamato», the countersink for "
+                        + "«svasato». I know it only once the hole is made, and then I remove "
+                        + "the hole. If SOLIDWORKS does not declare the diameter, the response "
+                        + "says so in «anchor_fit_not_checked».\n\nMI RIFIUTO, e tolgo il foro, anche se "
                         + "ricostruisce in errore o non toglie materiale: per esempio una "
                         + "posizione che sta fuori dalla faccia.",
                     Precondizione = "corpo_solido_e_faccia",
@@ -704,8 +716,10 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "dove vanno i fori, sul piano della faccia. Piu' fori uguali "
                                     + "stanno in una chiamata sola. L'«ancora» si da' a TUTTE le posizioni o a "
                                     + "nessuna: i fori stanno in uno schizzo solo, e un punto senza ancora lo "
-                                    + "lascerebbe libero di muoversi. Mi rifiuto se una distanza e' meno del "
-                                    + "raggio del foro (lo decide la tabella): il foro l'ho gia' fatto, e lo tolgo.",
+                                    + "lascerebbe libero di muoversi. I refuse if a distance is less than "
+                                    + "the radius of the hole, or a centred gap is narrower than the hole, "
+                                    + "counterbore or countersink included (the ISO table decides it): the "
+                                    + "hole is already made, and I remove it.",
                                 "items", O(
                                     "type", "object",
                                     "properties", O(
@@ -2131,7 +2145,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "linee lungo cui corrono le barre, in coordinate del modello in "
                         + "mm. Una barra dritta lunga 200 sull'asse X e' un segmento solo: "
                         + "da [0,0,0] a [200,0,0]. Un telaio rettangolare sono quattro "
-                        + "segmenti che si chiudono.",
+                        + "segmenti che si chiudono."
+                        + "\n\nIf the weldment profile library is still open and modified in "
+                        + "SOLIDWORKS after the insertion, the answer carries "
+                        + "«profile_library_warning»: close that library without saving, or a "
+                        + "Ctrl+S would rewrite the shared library.",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",
@@ -2347,7 +2365,16 @@ namespace Riscontro.Disegno.Catalogo
                         + "due quote invece che con otto coordinate.\n\nLe quote sono "
                         + "l'INGOMBRO ESTERNO del telaio finito. Il piano dice su quale "
                         + "piano principale sta.\n\nCome per «membro_strutturale», profilo e "
-                        + "misura si copiano da «profili_saldatura».",
+                        + "misura si copiano da «profili_saldatura»."
+                        + "\n\nI refuse the frame, and draw nothing, when the profile does not "
+                        + "fit in the two sizes (its overhang, measured on a trial frame, is as "
+                        + "large as a side), and when «misure» is neither «ingombro» nor "
+                        + "«interasse» (upper or lower case does not matter). The answer says "
+                        + "which reading it used («misure»), whether the profile's overhang was "
+                        + "measured now or remembered from an earlier frame («overhang_source»: "
+                        + "«measured» or «archive»), and, if the weldment profile library is "
+                        + "still open and modified in SOLIDWORKS afterwards, "
+                        + "«profile_library_warning»: close that library without saving.",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",
@@ -2389,7 +2416,9 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "cosa vogliono dire le due quote: «ingombro» e' la misura del "
                                     + "pezzo finito da fuori a fuori (e' quello che intende un "
                                     + "progettista quando dice «telaio 1000x800»); «interasse» e' la "
-                                    + "distanza fra gli assi delle barre. Predefinito: ingombro."),
+                                    + "distanza fra gli assi delle barre. Predefinito: ingombro."
+                                    + " Upper or lower case does not matter («Ingombro» is "
+                                    + "«ingombro»); any other word is refused."),
                             "centrato", O(
                                 "type", "boolean",
                                 "description", "telaio centrato sull'origine (predefinito: si')")),
@@ -2654,6 +2683,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "45°»), non coi loro spigoli — l'ipotenusa e i tratti accorciati "
                         + "dallo smusso non si quotano. Un foro cieco porta la profondita' "
                         + "(«Ø8 ↧5»); se il richiamo non nasce, la scrivo io dalla geometria."
+                        + "\n\nTHE «4×» IS READ BACK: after writing the count in front of the "
+                        + "callout I read its prefix again (fori[].prefix_read). If the count did "
+                        + "not stick, the holes are listed in spigoli_non_quotati and the count "
+                        + "must be written by hand; «quanti» is the number of holes, not the text."
                         + "\n\nUN CERCHIO NON E' SEMPRE UN FORO: il contorno di un pezzo tondo "
                         + "visto di fronte ha una quota di diametro (diametri_esterni)."
                         + "\n\nIL PEZZO TONDO VISTO DI FIANCO (albero, boccola, perno) lo quoto "
@@ -2667,6 +2700,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "estensione del pezzo e' gia' quotata in un'altra vista, qui la salto "
                         + "e te lo dico (UNI ISO 129-1). Quindi quota le viste una alla volta, e "
                         + "non aspettarti in ogni vista le misure che ha gia' un'altra."
+                        + "\n\nON EVERY SHEET: «already dimensioned» is read from the views of "
+                        + "all the sheets, only from views of the same part and configuration, "
+                        + "and a dimension hidden by hand does not count (one on a hidden layer, "
+                        + "or of a suppressed feature, still does: I cannot see those). The "
+                        + "answer says what was read: already_dimensioned_read_from («every "
+                        + "sheet», or «current sheet only» when the drawing did not hand over "
+                        + "its sheets), hidden_dimensions_not_counted, "
+                        + "views_of_other_models_not_counted."
                         + "\n\nMI RIFIUTO SE LO SPIGOLO CHIESTO NON ESISTE nella vista, e ti dico "
                         + "quanti ne mostra. Un indice che non c'e' e' l'errore piu' facile da "
                         + "fare quotando alla cieca. E rifiuto una vista in cui non resta niente "
@@ -3224,7 +3265,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "albero in un foro dello stesso diametro condivide la superficie "
                         + "cilindrica, e li' e' proprio il problema: quel pezzo non entra. "
                         + "Se e' quello che ti interessa, chiedimelo con «toccarsi_conta», "
-                        + "e ti dico sempre quale delle due ho usato.\n\nNon modifica "
+                        + "e ti dico sempre quale delle due ho usato."
+                        + "\n\nTHE COUNT AND THE LIST MUST AGREE. «quante» is the count "
+                        + "SOLIDWORKS gives; «interferences_read» is how many interferences its "
+                        + "list actually held. When the two differ, «volume_totale_mm3» is left "
+                        + "out (a sum over part of the list would be smaller than the truth) and "
+                        + "«cosa_non_so» says what was missing; a count of zero with "
+                        + "interferences in the list is refused instead of answered «none»."
+                        + "\n\nNon modifica "
                         + "niente: si puo' chiedere anche con «misura».",
                     Precondizione = "un assieme aperto con almeno due componenti",
                     Schema = O(
@@ -3511,7 +3559,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "solido, chiuso, senza difetti.\n\nUn corpo APERTO -- una superficie "
                         + "rimasta li' per sbaglio -- e' il caso che conta e quello che "
                         + "nessuno vede: non da' errore da nessuna parte, sembra un pezzo, e "
-                        + "lo STL che ne esce non racchiude niente.\n\nATTENZIONE a cosa NON "
+                        + "lo STL che ne esce non racchiude niente."
+                        + "\n\nWITH «corpo_uid» THE VERDICT IS ABOUT THAT BODY ONLY: "
+                        + "«stampabile» and «giudizio» speak for it, and «verdict_about» says so "
+                        + "(«body C2»; «part» when you ask for the whole part). «bodies_in_part» "
+                        + "always counts every body of the part: a sound body of a part of two "
+                        + "is still a part whose STL is two separate shells."
+                        + "\n\nATTENZIONE a cosa NON "
                         + "guarda: lo spessore delle pareti e le sovrasporgenze. Un guscio da "
                         + "tre decimi passa di qui senza una parola.",
                     Precondizione = "corpo_solido",
@@ -3522,7 +3576,8 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "string",
                                 "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
                                     + "dici li guarda tutti. Gli identificativi stanno nello stato del "
-                                    + "documento, dentro «corpi».")),
+                                    + "documento, dentro «corpi». With it the verdict speaks for that "
+                                    + "body only; «bodies_in_part» still says how many bodies the part has.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -4067,7 +4122,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nCome lo STEP, non si rifiuta per piu' corpi o superfici, e la "
                         + "verifica del pezzo torna nella risposta.\n\nDopo aver scritto "
                         + "conta i record di parametri del file: un IGES con le sole "
-                        + "intestazioni e niente dentro esiste, pesa e si apre.",
+                        + "intestazioni e niente dentro esiste, pesa e si apre."
+                        + "\n\nThree IGES options of the SOLIDWORKS profile would add curves to "
+                        + "the file or turn the solid into curves: «IGES wireframe (3D curves)», "
+                        + "«Export 3D Curve features» and «Export sketch entities». I turn them "
+                        + "off for the export and put them back as they were. After writing I "
+                        + "also read the file's directory and count its solids (type 186) and "
+                        + "surfaces: «solid_entities», «surface_entities», «entities». A file "
+                        + "with neither, curves only, is refused: it opens, and it is not the part.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -5163,9 +5225,13 @@ namespace Riscontro.Disegno.Catalogo
                     + "asse o sta sul bordo di uno smusso o di un raccordo (l'altra faccia dello "
                     + "spigolo dev'essere piana e perpendicolare, e se non riesco a guardarla "
                     + "rifiuto); se la faccia su cui lavori non e' piana; se la distanza e' meno di "
-                    + "meta' della larghezza (il profilo scavalcherebbe lo spigolo); se lo schizzo non "
+                    + "meta' della larghezza (il profilo scavalcherebbe lo spigolo); "
+                    + "if, on a centred axis, the profile is wider than the gap between the two edges; "
+                    + "se lo schizzo non "
                     + "risulta completamente definito, o non regge una modifica di prova — e allora il "
-                    + "taglio lo tolgo.",
+                    + "taglio lo tolgo. I also refuse when I cannot do those checks: relations of the "
+                    + "sketch I cannot read, or an anchor dimension I cannot read or move (the test "
+                    + "would pass without testing anything).",
                 "properties", O(
                     "x", AsseDellAncora("x"),
                     "y", AsseDellAncora("y")),

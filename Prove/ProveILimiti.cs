@@ -70,6 +70,9 @@ namespace Prove.Contratti
         {
             "rifiut", "non posso", "limite", "non guarda", "non sa",
             "non copre", "fallisc", "sbord", "piu' grande",
+            // The catalogue is moving to English (Z-C21.10): these are the
+            // English stems of the same declaration.
+            "refus", "reject",
         };
 
         /// <summary>

@@ -83,6 +83,8 @@
     <Compile Include="ObsoleteCallScanner.cs" />
     <Compile Include="ObsoleteCallsContract.cs" />
     <Compile Include="SelectionMarksContract.cs" />
+    <Compile Include="FormaSpellingContract.cs" />
+    <Compile Include="Zc2110HelpersContract.cs" />
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.
          Non una copia: una copia diverge, e il giorno che diverge la suite
          col CAD comincia a passare per ragioni che qui non si vedono. -->

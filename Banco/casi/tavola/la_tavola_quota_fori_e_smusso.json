@@ -68,8 +68,10 @@
     { "operazione": "quota_in_tavola",
       "argomenti": { "vista": "V2", "quante": 6 },
       "attese": [
+        { "cosa": "misure.fori[0].prefix_read", "contiene": ["4×"],
+          "perche": "Z-C21.2, finding N48: the «4×» read back from the callout after writing it. IDisplayDimension~SetText.html returns nothing and says «This method does not support hole callouts», and until library 0.140.0 nothing checked what it wrote: the expectation below asked the COUNT of the holes, which is 4 whatever the callout says. On 0.140.0 this line is RED (no «prefix_read» in the answer)" },
         { "cosa": "misure.fori[0].quanti", "uguale": 4,
-          "perche": "UN richiamo per i quattro fori uguali, col «4×» davanti: il difetto era che i fori non c'erano per niente" },
+          "perche": "ONE callout for the four equal holes: the defect was that the holes were not dimensioned at all. This is the number of holes in the group (the geometry), not the text on the sheet: that is «prefix_read» above" },
         { "cosa": "misure.fori[0].diametro_riletto_mm", "uguale": 8,
           "perche": "il diametro riletto dal richiamo, non quello che credevo di aver chiesto" },
         { "cosa": "misure.quote_mm", "contiene": ["15", "105", "65"],
