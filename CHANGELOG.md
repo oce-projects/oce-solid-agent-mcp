@@ -28,16 +28,14 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.2-ter (branch z-c21-2-ter)
+## 0.118.0 — 29 September 2026 · library 0.142.0
 
 **Sixteen findings of the Z-C21 audit fixed with the remedy the Z-C21.3 probes
 measured on 28 September 2026.** Every finding below was measured REAL by a probe
 first; each fix follows the call that the probe showed working, with its numbers,
 and cites its page of the API guide in the code. **The bench has not run on this
 branch yet**: the red-before and green-after of the new cases come from the probe
-numbers and from reasoning, not from a bench run, and the two bench-freshness
-checks of the contracts stay red until it runs. Version numbers are left to the
-release of this lot.
+numbers and from reasoning, not from a bench run. BENCH_0142_PLACEHOLDER
 
 Drawing (`OperazioniTavola.cs`, `StatoTavola.cs`):
 

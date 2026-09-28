@@ -428,8 +428,18 @@ using System.Runtime.InteropServices;
 //          (N43), the hole count read back (N48), the anchored hole checks
 //          (N50-N55), the IGES options read back (N59), the body verdict
 //          (N61), hidden dimensions skipped (C8-2).
-[assembly: AssemblyVersion("0.141.0.0")]
-[assembly: AssemblyFileVersion("0.141.0.0")]
+// 0.142.0: Z-C21.2-ter, sixteen audit findings fixed with the remedy the
+//          Z-C21.3 probes measured: model dimensions without duplicates and
+//          only the marked ones (M2, N9), silhouette dimensions not verifiable
+//          instead of orphans (N3), the sketch lock that really locks (M5), arc
+//          measures with their option (M29), the real picture scale (M11), the
+//          mirrored instance orientation (N26), STEP solids with assembly cuts
+//          (C4-2), BOM of promoted and hidden children (N27), dependencies
+//          without same-name guesses (L12-8), material per configuration
+//          (M10), miter by default and trim bits (N25, L9-4), fillet and
+//          chamfer edges and vertex chamfers in the state (C7-2, N14, N29).
+[assembly: AssemblyVersion("0.142.0.0")]
+[assembly: AssemblyFileVersion("0.142.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -444,4 +454,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.141.0")]
+[assembly: AssemblyInformationalVersion("0.142.0")]

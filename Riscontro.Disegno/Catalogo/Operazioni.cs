@@ -1155,7 +1155,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nThe fillet follows tangent edges: one selected edge can round a whole "
                         + "loop (a rounded block: 1 edge selected, 8 faces made). The document state "
                         + "says so for every fillet: «selected_edges» is how many edges were selected, "
-                        + "«faces» how many faces the fillet made.",
+                        + "«faces» how many faces the fillet made. The answer carries «selected_edges» "
+                        + "and «faces» too, read the same way.",
                     Precondizione = "corpo_solido_e_spigolo",
                     Schema = O(
                         "type", "object",
@@ -1521,7 +1522,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "lists each chamfer with «selected_edges» and «faces», and its sizes by type: "
                         + "angle-distance «lato1_mm» + «angolo_gradi», distance-distance «lato1_mm» + "
                         + "«lato2_mm», and a vertex chamfer (made by hand) «vertex_distances_mm», its "
-                        + "three distances along the corner's edges.",
+                        + "three distances along the corner's edges. The answer carries «selected_edges» "
+                        + "and «faces» too, read the same way.",
                     Precondizione = "corpo_solido_e_spigolo",
                     Schema = O(
                         "type", "object",
