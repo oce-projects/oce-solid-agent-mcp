@@ -16,7 +16,7 @@
         { "cosa": "ingombro_mm", "uguale": [40, 20, 40] } ] },
     { "operazione": "guscio",
       "argomenti": { "facce_uid": ["@faccia(verso=alto)"], "spessore_mm": 2, "verso_esterno": false },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 8672 } ] },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 8672, "tolleranza": 0.05, "perche_questa_tolleranza": "il guscio si legge da GetMassProperties in metri cubi: 8672 esatto sulla carta, 8672 al millesimo nel pezzo (banco intero del 28/9/2026, rosso senza tolleranza)" } ] },
     { "operazione": "nervatura",
       "argomenti": { "piano": "destro",
                      "da_mm": [0, 12, -15], "a_mm": [0, 12, 15],

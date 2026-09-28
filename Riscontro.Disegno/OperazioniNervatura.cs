@@ -452,7 +452,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private string NervaturaRitira(IModelDoc2 modello, List<IFeature> mie, FotoDelPezzo prima)
         {
-            if (mie.Count == 0) return " Non ho toccato il pezzo.";
+            if (mie.Count == 0) return " Non ho toccato il pezzo: e' com'era.";
             bool tutto = true;
             var nomi = new List<string>();
             for (int i = mie.Count - 1; i >= 0; i--)
