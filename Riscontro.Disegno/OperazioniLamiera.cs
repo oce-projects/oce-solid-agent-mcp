@@ -25,9 +25,13 @@ namespace Riscontro.Disegno
     ///     «sviluppata», e il corpo resta PIEGATO. Lo sviluppo si legge togliendo
     ///     la soppressione alla lavorazione «FlatPattern» in fondo all'albero, e
     ///     rimettendola.
-    ///  2. `ExportFlatPatternView` su un pezzo MAI SALVATO apre «Salva con nome»
-    ///     e la chiamata COM non torna. `sviluppo_dxf` rifiuta un pezzo senza
-    ///     file, prima di chiamare.
+    ///  2. The export of the flat pattern on a part NEVER SAVED: the obsolete
+    ///     `ExportFlatPatternView` (used until Z-C21.7) opened "Save As" and the
+    ///     COM call did not return. `ExportToDWG2`, used since then, takes the
+    ///     path of the part as ModelName, and on an unsaved part it was not
+    ///     measured (the Z-C21.3 probe left that case to a run with someone at
+    ///     the screen). `sviluppo_dxf` still refuses a part without a file,
+    ///     before calling.
     ///  3. Lo schizzo si disegna con `AddToDB` a vero: le relazioni che
     ///     SOLIDWORKS indovina da solo sovravincolano alla prima modifica
     ///     (misurato con `Controlli/SeguiIlBordo`).
@@ -807,13 +811,38 @@ namespace Riscontro.Disegno
             try { if (File.Exists(dove)) File.Delete(dove); }
             catch (Exception ex) { return Fallito("C'e' gia' un DXF li' e non riesco a sostituirlo: " + ex.Message); }
 
+            // Z-C21.7 (L10-2): ExportToDWG2, not the obsolete ExportFlatPatternView
+            // (IPartDoc~ExportFlatPatternView.html: «Obsolete. Superseded by
+            // IPartDoc::ExportToDWG2»). IPartDoc~ExportToDWG2.html: ModelName is
+            // «Path and file name of the active part document», SheetMetalOptions
+            // «Bit #1: 1 to export flat-pattern geometry». Exactly case X1 of the
+            // Z-C21.3 probe probe_export_dwg2, on the saved bench L: True, a DXF
+            // of 4 LINE entities, box 40 x 80.712 mm, the part unchanged, the
+            // same box as ExportFlatPatternView (X0). Bend lines (options 5, X3)
+            // would not change the box; they are not asked, as before.
+            //
+            // ModelName names the ACTIVE document, and more than one session can
+            // work on the same SOLIDWORKS: OUR document is brought to the front
+            // first, checked, and the one that was in front goes back there.
+            string previousFront;
+            string activationProblem = BringToFront(modello, suo, out previousFront);
+            if (activationProblem != null)
+                return Fallito("The flat pattern was not exported: " + activationProblem + ".");
             bool ok;
             try
             {
-                ok = parte.ExportFlatPatternView(dove,
-                    (int)swExportFlatPatternViewOptions_e.swExportFlatPatternOption_RemoveBends);
+                ok = parte.ExportToDWG2(dove, suo, (int)swExportToDWG_e.swExportToDWG_ExportSheetMetal,
+                                        true, null, false, false, 1, null);
             }
             catch (Exception ex) { return Fallito("Lo sviluppo non e' uscito: " + ex.Message); }
+            finally
+            {
+                if (previousFront != null)
+                {
+                    try { int e = 0; _sw.ActivateDoc3(previousFront, false, (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref e); }
+                    catch { }
+                }
+            }
             if (!ok || !File.Exists(dove) || new FileInfo(dove).Length == 0)
                 return Fallito("SOLIDWORKS dice di aver esportato lo sviluppo, ma il file «" + dove +
                                "» " + (File.Exists(dove) ? "e' vuoto." : "non c'e'."));
@@ -839,6 +868,56 @@ namespace Riscontro.Disegno
                         dove, lato, sviluppo));
             }
             return SenzaFeature(misure);
+        }
+
+        /// <summary>
+        /// Brings <paramref name="document"/> (saved at <paramref name="path"/>)
+        /// to the front of SOLIDWORKS for a call that works on the ACTIVE
+        /// document (ExportToDWG2). Null when the active document is ours
+        /// afterwards, otherwise what went wrong; <paramref name="previousTitle"/>
+        /// is the title of the document that was in front before, when it was
+        /// another one, so that the caller can bring it back.
+        ///
+        /// The same call as the bridge's PortaDavanti (Ponte/Documenti.cs):
+        /// ActivateDoc3 with the title and swDontRebuildActiveDoc, then the
+        /// active document read back. ISldWorks~ActivateDoc3.html: «This method
+        /// brings the document specified in Name to the foreground of
+        /// SOLIDWORKS and returns a pointer to the document»; the Z-C21.3 probe
+        /// of C4-4 measured it bringing even a hidden part forward (errors 0,
+        /// the active document is the part). The check is by path, never by
+        /// title: the page warns that a title without extension can name a part
+        /// and an assembly at once.
+        /// </summary>
+        private string BringToFront(IModelDoc2 document, string path, out string previousTitle)
+        {
+            previousTitle = null;
+            Func<IModelDoc2, bool> isOurs = d =>
+            {
+                try { return d != null && string.Equals(d.GetPathName() ?? "", path, StringComparison.OrdinalIgnoreCase); }
+                catch { return false; }
+            };
+            IModelDoc2 front = null;
+            try { front = _sw.ActiveDoc as IModelDoc2; } catch { }
+            if (isOurs(front)) return null;
+            try { previousTitle = front?.GetTitle(); } catch { previousTitle = null; }
+
+            int errors = 0;
+            string title = "";
+            try
+            {
+                title = document.GetTitle() ?? "";
+                _sw.ActivateDoc3(title, false, (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref errors);
+            }
+            catch (Exception ex) { return "ActivateDoc3 could not bring «" + title + "» to the front: " + ex.Message; }
+            try { front = _sw.ActiveDoc as IModelDoc2; } catch { front = null; }
+            if (!isOurs(front))
+            {
+                string other = "";
+                try { other = front?.GetTitle() ?? "nothing"; } catch { }
+                return "asked to bring «" + title + "» to the front, the active document is «" + other +
+                       "» (activation error " + errors + "), and ExportToDWG2 exports the active document";
+            }
+            return null;
         }
 
         // =================================================================

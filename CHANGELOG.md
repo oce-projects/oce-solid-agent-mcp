@@ -72,6 +72,19 @@ has been run yet.
   stay identical: `lamiera/la_flangia_a_spigolo_chiude_il_lato` (+1736.99 mm3,
   length 25, flat 102.424), `lamiera/lim_flangia_spigolo_non_di_bordo` and
   `lamiera/lim_flangia_spigolo_senza_dritto` (refused before the recipe).
+- **L10-2, the flat-pattern DXF: `ExportFlatPatternView` -> `ExportToDWG2`.**
+  `sviluppo_dxf` calls `ExportToDWG2(dxf, part path, swExportToDWG_ExportSheetMetal,
+  true, null, false, false, 1, null)`, case X1 of `probe_export_dwg2`: on the saved
+  bench L it returned true with 4 LINE entities and the box 40 x 80.712 mm, the same
+  as the obsolete call (X0), the part unchanged. ModelName names the ACTIVE document,
+  so our document is first brought to the front with `ActivateDoc3` (title, no
+  rebuild, as the bridge's `PortaDavanti`), checked by path, and the document that
+  was in front goes back there afterwards; a failed activation is a refusal. The
+  refusal of a part never saved stays (the unsaved case of the probe was not run).
+  Frozen key removed: 1. The only field that can differ is `byte`, the file size
+  (22946 -> 23005 bytes in the probe, a different header), which no case checks.
+  Cases that must stay identical: `lamiera/la_L_si_sviluppa` (flat 80.712, the DXF
+  long side checked against it) and `lamiera/lim_sviluppo_senza_file`.
 
 ---
 
