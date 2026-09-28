@@ -80,7 +80,11 @@ red on the previous library and green on this one.
   `estrudi_su_faccia` has type "ICE" like face cuts (GetTypeName2.html);
   cut or boss now comes from `IExtrudeFeatureData2.IsBossFeature`, so a boss
   answers `tipo: estrusione` and "passante" on it is refused, and a real "Cut"
-  is accepted. **Two independent directions are refused** (L5-1:
+  is accepted. IsBossFeature is asked **only for "ICE"**: "Cut" and "Extrusion"
+  decide by themselves. Asked of every extrusion, it answered false on the
+  base plate (the first extrusion of the part), and "passante" on the plate
+  went through (`il_cieco_diventa_passante`, step 6, red in the full bench).
+  **Two independent directions are refused** (L5-1:
   BothDirections.html): only direction 1 was written and read back.
 - **Rebuild errors after `ModifyDefinition` and after creation are read**
   (ModifyDefinition.html: "call IFeature::GetErrorCode2"):

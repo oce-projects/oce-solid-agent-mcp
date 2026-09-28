@@ -101,20 +101,33 @@ namespace Riscontro.Disegno
             // (estrudi_su_faccia): StatoDocumento.cs lo misura dal 10/9/2026. Qui
             // «ICE» valeva «taglio» e basta: un rialzo diventava «taglio», e
             // «passante» su un rialzo non veniva rifiutato; un «Cut» vero veniva
-            // invece rifiutato. Taglio o rialzo lo dice la definizione:
+            // invece rifiutato. Per l'«ICE» taglio o rialzo lo dice la definizione:
             // IExtrudeFeatureData2~IsBossFeature.html, «True if this extrusion is
             // a boss feature, false if not».
+            //
+            // SOLO PER L'«ICE». La prima stesura chiedeva IsBossFeature a tutte, e
+            // la piastra di base (la PRIMA estrusione del pezzo, «Extrusion»)
+            // rispondeva false: «passante» su una piastra passava il controllo e la
+            // piastra diventava «attraversa tutto» (il_cieco_diventa_passante,
+            // passo 6, rosso nel banco intero del 28/9/2026 su 0.138.0). La pagina
+            // non ha Remarks che lo dicano (la tabella di GetTypeName2 distingue
+            // «Boss» da «Extrusion»; la sonda cambia_estrusione_base.cs lo misura).
+            // Dove il tipo e' gia' «Cut» o «Extrusion» decide il tipo, come prima
+            // di Z-C21.2.
             if (tipo != "Extrusion" && tipo != "Cut" && tipo != "ICE")
                 return Fallito("«" + f.Name + "» e' una lavorazione di tipo «" + tipo + "»: so cambiare le estrusioni e i tagli " +
                                "estrusi. Per una quota qualunque c'e' «modifica_quota».");
             var prima = f.GetDefinition() as IExtrudeFeatureData2;
             if (prima == null) return Fallito("Non leggo la definizione di «" + f.Name + "».");
-            bool taglio;
-            try { taglio = !prima.IsBossFeature(); }
-            catch (Exception ex)
+            bool taglio = tipo == "Cut";
+            if (tipo == "ICE")
             {
-                return Fallito("Non riesco a sapere se «" + f.Name + "» e' un taglio o un rialzo (" + ex.Message +
-                               "): non la tocco. Non ho toccato niente.");
+                try { taglio = !prima.IsBossFeature(); }
+                catch (Exception ex)
+                {
+                    return Fallito("Non riesco a sapere se «" + f.Name + "» e' un taglio o un rialzo (" + ex.Message +
+                                   "): non la tocco. Non ho toccato niente.");
+                }
             }
             if (chiedePassante && !taglio)
                 return Fallito("«passante» vale per un taglio: un'estrusione che «attraversa tutto» non ha niente da " +
