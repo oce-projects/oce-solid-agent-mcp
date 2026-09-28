@@ -150,7 +150,22 @@ namespace Riscontro.Disegno
                     "barre.");
 
             // ── LA COLONNA DELLE QUANTITA', CHIESTA E NON INDOVINATA ────
+            //
+            // PRIMA PER TIPO, POI PER NOME (voce Z-C21.2, rilievo L16-8).
+            // IWeldmentCutListAnnotation~GetColumnCustomProperty.html, Remarks:
+            // «This method returns an empty string if the column is not a
+            // user-defined column». La QTY del modello di tabella predefinito
+            // (template "", cioe' «cut list.sldwldtbt») puo' essere una colonna di
+            // TIPO quantita', non definita dall'utente: cercandola solo per nome
+            // della proprieta' restava -1, il confronto con la distinta del pezzo
+            // — la ragione per cui l'operazione esiste — saltava, e la risposta
+            // era un successo con una nota in fondo. Il tipo si legge con
+            // ITableAnnotation~GetColumnType2.html («Type of column as defined by
+            // swTableColumnTypes_e»; swWeldTableColumnType_Quantity = 402), come
+            // fa gia' ColonneEPosto qui sotto. Il nome «QUANTITY» resta il
+            // ripiego: il modello dell'officina ha le QTY come proprieta'.
             int colonnaQuantita = -1;
+            string comeTrovata = null;
             var proprietaDiColonna = new List<string>();
             for (int c = 0; c < colonne; c++)
             {
@@ -158,9 +173,24 @@ namespace Riscontro.Disegno
                 try { if (distinta != null) p = distinta.GetColumnCustomProperty(c); }
                 catch { }
                 proprietaDiColonna.Add(p ?? "");
-                if (colonnaQuantita < 0 && !string.IsNullOrWhiteSpace(p) &&
-                    p.IndexOf("QUANTITY", StringComparison.OrdinalIgnoreCase) >= 0)
+                int tipoColonna = -1;
+                try { tipoColonna = tabella.GetColumnType2(c, true); } catch { }
+                if (colonnaQuantita < 0 &&
+                    tipoColonna == (int)swTableColumnTypes_e.swWeldTableColumnType_Quantity)
+                {
                     colonnaQuantita = c;
+                    comeTrovata = "tipo";
+                }
+            }
+            for (int c = 0; colonnaQuantita < 0 && c < colonne; c++)
+            {
+                string p = proprietaDiColonna[c];
+                if (!string.IsNullOrWhiteSpace(p) &&
+                    p.IndexOf("QUANTITY", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    colonnaQuantita = c;
+                    comeTrovata = "nome";
+                }
             }
 
             var intestazioni = new List<string>();
@@ -200,6 +230,12 @@ namespace Riscontro.Disegno
             if (!string.IsNullOrWhiteSpace(percorsoPezzo)) misure["pezzo"] = percorsoPezzo;
             if (corpiNelPezzo >= 0) misure["corpi_nella_distinta_del_pezzo"] = corpiNelPezzo;
             if (quantitaLetta) misure["quantita_in_tabella"] = quantitaTotale;
+            // CAMPI DEDICATI, non una frase in fondo (rilievo L16-8). Nomi nuovi,
+            // in inglese come i prossimi del ponte: come si e' trovata la colonna
+            // delle quantita' («type», «name» o null) e se il confronto con la
+            // distinta del pezzo e' stato fatto.
+            misure["quantity_column_found_by"] = comeTrovata == "tipo" ? "type" : comeTrovata == "nome" ? "name" : null;
+            misure["comparison_done"] = quantitaLetta && corpiNelPezzo > 0;
 
             // ── LE COLONNE CHE SERVONO, E UN POSTO SUL FOGLIO ───────────
             //
@@ -252,8 +288,8 @@ namespace Riscontro.Disegno
                     ? ", e combacia con la distinta del pezzo (" + corpiNelPezzo + ")."
                     : ". Il confronto con la distinta del pezzo non si e' potuto fare.") +
                 (colonnaQuantita < 0
-                    ? " NOTA: non ho trovato la colonna delle quantita' fra le proprieta' " +
-                      "di colonna, quindi non ho sommato niente."
+                    ? " NOTA: non ho trovato la colonna delle quantita' ne' per tipo ne' fra le " +
+                      "proprieta' di colonna, quindi non ho sommato niente (comparison_done: false)."
                     : "");
             _log("[agente] " + misure["giudizio"]);
             return RiuscitoSenzaCreare(misure);

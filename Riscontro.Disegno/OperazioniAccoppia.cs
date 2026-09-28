@@ -82,6 +82,26 @@ namespace Riscontro.Disegno
                     "pezzo non si accoppia con se stesso: non vincola niente e " +
                     "l'assieme resterebbe libero come prima.");
 
+            // ── CONCENTRICO E TANGENTE NON POSSONO RIUSCIRE QUI (voce Z-C21.2,
+            // rilievo M17) ────────────────────────────────────────────────────
+            //
+            // Le facce si scelgono per VERSO, con IFace2.Normal (FacciaVersoDi), e
+            // IFace2~Normal.html dice: «Gets the unit normal vector for any planar
+            // face» e, nelle Remarks, «If the face is not a planar face, then this
+            // property returns 0,0,0». Quindi le facce che arrivano qui sono
+            // sempre PIANE, e fra due facce piane un concentrico o un tangente non
+            // esistono: a catalogo c'erano due tipi che non potevano mai riuscire,
+            // e fallivano con un errore di SOLIDWORKS che mandava a cercare
+            // altrove. Si dice il perche' prima di toccare niente.
+            string chiesto = (Str(a, "tipo", "coincidente") ?? "").Trim().ToLowerInvariant();
+            if (chiesto == "concentrico" || chiesto == "tangente")
+                return Fallito(
+                    "«" + chiesto + "» vuole almeno una faccia curva (un cilindro, un foro), e qui " +
+                    "le facce si scelgono per verso — alto, basso, davanti… — che vale solo per le " +
+                    "facce piane: fra due facce piane un «" + chiesto + "» non esiste. Con le facce " +
+                    "piane ci sono coincidente, parallelo, perpendicolare e distanza. Non ho toccato " +
+                    "niente.");
+
             string versoA = Str(a, "faccia_a", null);
             string versoB = Str(a, "faccia_b", null);
             var facciaA = FacciaVersoDi(compA, versoA, out string perche1);
@@ -188,8 +208,10 @@ namespace Riscontro.Disegno
 
         // =================================================================
 
+        // Concentrico e tangente non ci sono piu' (voce Z-C21.2, M17): con le facce
+        // scelte per verso non possono riuscire, e il rifiuto sta in Accoppia.
         private static readonly string[] TipiConosciuti =
-            { "coincidente", "concentrico", "parallelo", "perpendicolare", "distanza", "tangente" };
+            { "coincidente", "parallelo", "perpendicolare", "distanza" };
 
         private static int TipoDiAccoppiamento(string nome)
         {
@@ -197,11 +219,9 @@ namespace Riscontro.Disegno
             switch (nome.Trim().ToLowerInvariant())
             {
                 case "coincidente": return (int)swMateType_e.swMateCOINCIDENT;
-                case "concentrico": return (int)swMateType_e.swMateCONCENTRIC;
                 case "parallelo": return (int)swMateType_e.swMatePARALLEL;
                 case "perpendicolare": return (int)swMateType_e.swMatePERPENDICULAR;
                 case "distanza": return (int)swMateType_e.swMateDISTANCE;
-                case "tangente": return (int)swMateType_e.swMateTANGENT;
                 default: return -1;
             }
         }

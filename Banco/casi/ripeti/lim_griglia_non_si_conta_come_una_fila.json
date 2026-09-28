@@ -1,0 +1,37 @@
+{
+  "nome": "lim_griglia_non_si_conta_come_una_fila",
+  "famiglia": "ripeti",
+  "perche": "VOCE Z-C21.2, rilievo M6. ILinearPatternFeatureData~SkippedItemArray.html, Remarks: «For a bi-directional pattern: I = n2 * ( i - 1) + ( j - 1)». sopprimi_istanza scriveva il numero di copia cosi' com'era, come per una fila: su una griglia 3 x 2 «copia 3» toglieva l'istanza [2, 2] — la seconda della seconda riga — e rispondeva riuscito, con un foro sparito in un posto che nessuno aveva nominato. Un numero solo non dice una posizione su una griglia: si rifiuta invece di indovinare.",
+  "il_difetto_che_questo_caso_prende": "La griglia di `griglia_3x2` (sei fori da 9) e «togli la copia 3». Sulla libreria vecchia un foro spariva e la risposta era riuscita; su quella nuova si rifiuta dicendo che e' una griglia 3 x 2, e il pezzo resta con sei fori.",
+  "la_gemella": "`salta_la_seconda_copia`: la stessa operazione su una FILA, dove il numero di copia dice una posizione sola. Differisce per «copie» (2 invece di 3); la ripetizione si nomina allo stesso modo.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
+    { "operazione": "taglio_cilindrico",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+                     "diametro_mm": 9, "passante": true },
+      "attese": [ { "cosa": "diametri_mm", "uguale": [9], "tolleranza": 0.02,
+                    "perche_questa_tolleranza": "il diametro si legge da CylinderParams" } ] },
+    { "operazione": "ripeti_lineare",
+      "argomenti": { "feature_uid": "@feature(tipo=ICE,n=1)",
+                     "asse1_uid": "@spigolo(asse=X,lungo~=200,n=1)",
+                     "passo1_mm": 40, "numero_istanze1": 3,
+                     "asse2_uid": "@spigolo(asse=Y,lungo~=120,n=1)",
+                     "passo2_mm": 30, "numero_istanze2": 2 },
+      "attese": [
+        { "cosa": "diametri_mm", "uguale": [9, 9, 9, 9, 9, 9], "tolleranza": 0.02,
+          "perche_questa_tolleranza": "sei fori da 9: il diametro si legge da CylinderParams" },
+        { "cosa": "volume_mm3", "uguale": 472365.93, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "480000 meno sei volte pi*4,5^2*20: il conto ha pi dentro" } ] },
+    { "operazione": "sopprimi_istanza",
+      "argomenti": { "feature_uid": "@feature(tipo=LPattern,n=1)", "copie": [3] },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["griglia a due direzioni", "3 x 2"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "salta_la_seconda_copia" } }
+  ]
+}

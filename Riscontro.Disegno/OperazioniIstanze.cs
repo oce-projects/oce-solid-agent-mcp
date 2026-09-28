@@ -105,6 +105,41 @@ namespace Riscontro.Disegno
                     "Non so togliere copie da «" + uid + "»" +
                     (string.IsNullOrEmpty(tipo) ? "" : " (e' " + tipo + ")") + ": " + perche);
 
+            // ── UNA GRIGLIA NON SI CONTA COME UNA FILA (voce Z-C21.2, M6) ──
+            //
+            // ILinearPatternFeatureData~SkippedItemArray.html, Remarks: «For a
+            // bi-directional pattern: I = n2 * ( i - 1) + ( j - 1)», con n2 le
+            // istanze in direzione 2 e [i, j] gli indici nelle due direzioni.
+            // Qui «copia 2» si scriveva com'era: su una griglia 3 x 2 toglieva
+            // l'istanza [2, 1], non la seconda copia di nessuna fila, e
+            // rispondeva riuscito. Un numero solo non dice una posizione su una
+            // griglia: si rifiuta invece di indovinare.
+            // (IsDirection2Specified.html: «True if direction 2 is specified».)
+            string griglia = porta.Griglia(dati);
+            if (griglia != null)
+                return Fallito(
+                    "«" + uid + "» e' una griglia a due direzioni (" + griglia + "): un numero di copia " +
+                    "solo non dice quale posizione togliere, perche' SOLIDWORKS le numera riga per " +
+                    "riga. Non indovino. Se ti serve togliere una posizione, fai la ripetizione con " +
+                    "una direzione sola e togli la copia da quella fila. Non ho toccato niente.");
+
+            // I SEMI, per sapere quante facce vale una copia (rilievo L6-5).
+            // Letti prima di AccessSelections; se non si leggono, il controllo
+            // qui sotto non si fa invece di inventarsi un numero.
+            int facceDelSeme = 0;
+            try
+            {
+                var semi = porta.Semi(dati) as object[];
+                if (semi != null)
+                    foreach (var s in semi)
+                    {
+                        int n = FacceDellaFeature(s as IFeature);
+                        if (n < 0) { facceDelSeme = 0; break; }
+                        facceDelSeme += n;
+                    }
+            }
+            catch { facceDelSeme = 0; }
+
             int[] giaSaltate;
             try { giaSaltate = porta.Leggi(dati) ?? new int[0]; }
             catch (Exception ex) { return Fallito("Non riesco a leggere le copie gia' tolte: " + ex.Message); }
@@ -151,6 +186,56 @@ namespace Riscontro.Disegno
             int facceDopo = FacceDellaFeature(ripetizione);
             double? volumeDopo = VolumeMm3(modello);
             int quante = Math.Abs(nuove.Length - giaSaltate.Length);
+
+            // ── IN ERRORE DOPO LA MODIFICA? (voce Z-C21.2, rilievo L6-5) ────
+            //
+            // IFeature~ModifyDefinition.html, Remarks: «this method may leave
+            // the feature in an unpredictable state due to errors. After calling
+            // this method, call IFeature::GetErrorCode2 to ascertain whether the
+            // feature has rebuild errors». Si guardava solo il bool, che qui —
+            // lo dice gia' il commento in testa — non e' mai il criterio.
+            string ripetizioneInErrore = null;
+            try
+            {
+                bool avviso;
+                int codice = ripetizione.GetErrorCode2(out avviso);
+                if (codice != 0 && !avviso) ripetizioneInErrore = ErroriFeature.Frase(codice);
+            }
+            catch { }
+            if (ripetizioneInErrore != null)
+            {
+                string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
+                return Fallito("Dopo aver tolto le copie " + Elenco(copie) + " «" + uid + "» e' in errore (" +
+                               ripetizioneInErrore + "). " + rimesso);
+            }
+
+            // ── UNA RIPETIZIONE RIMASTA SENZA FACCE NON HA «TOLTO UNA COPIA» ──
+            //
+            // (rilievo L6-5.) Il controllo qui sotto chiedeva solo che le facce
+            // calassero: una ripetizione andata in errore che le perde TUTTE
+            // (GetFaces a null da' 0) lo passava. E la perdita deve valere le
+            // facce di una copia per le copie tolte: la stessa aritmetica di
+            // CopieMancanti (OperazioniSw.cs), che misura le copie che esistono
+            // davvero dividendo le facce della ripetizione per quelle del seme.
+            if (!riattiva && faccePrima > 0 && facceDopo == 0)
+            {
+                string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
+                return Fallito("Dopo aver tolto le copie " + Elenco(copie) + " «" + uid + "» non ha piu' " +
+                               "nessuna faccia: e' sparita tutta la ripetizione, non una copia. " + rimesso);
+            }
+            if (facceDelSeme > 0 && faccePrima >= 0 && facceDopo >= 0 &&
+                Math.Abs(facceDopo - faccePrima) != 0 &&
+                Math.Abs(facceDopo - faccePrima) != facceDelSeme * quante)
+            {
+                string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
+                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                    "Le facce della ripetizione sono passate da {0} a {1}, ma {2} {3} di «{4}» ne " +
+                    "valgono {5} ({6} per copia): {7} Guarda «copie_fatte» su questa ripetizione. {8}",
+                    faccePrima, facceDopo, quante, quante == 1 ? "copia" : "copie", uid,
+                    facceDelSeme * quante, facceDelSeme,
+                    riattiva ? "qualche copia rimessa non e' tornata." : "qualche copia tolta non c'era.",
+                    rimesso));
+            }
 
             // ── E QUI SI GUARDA SE E' SUCCESSO QUALCOSA ──────────────────
             //
@@ -250,6 +335,10 @@ namespace Riscontro.Disegno
             void Scrivi(object dati, int[] copie);
             void Apri(object dati, IModelDoc2 modello);
             void Chiudi(object dati);
+            // Voce Z-C21.2: le lavorazioni ripetute (PatternFeatureArray), e
+            // se la ripetizione e' una griglia a due direzioni (null se no).
+            object Semi(object dati);
+            string Griglia(object dati);
         }
 
         private sealed class SaltaLineare : ISaltaIstanze
@@ -258,6 +347,15 @@ namespace Riscontro.Disegno
             public void Scrivi(object d, int[] c) { ((ILinearPatternFeatureData)d).SkippedItemArray = c; }
             public void Apri(object d, IModelDoc2 m) { ((ILinearPatternFeatureData)d).AccessSelections(m, null); }
             public void Chiudi(object d) { ((ILinearPatternFeatureData)d).ReleaseSelectionAccess(); }
+            public object Semi(object d) { return ((ILinearPatternFeatureData)d).PatternFeatureArray; }
+            public string Griglia(object d)
+            {
+                var l = (ILinearPatternFeatureData)d;
+                bool due = false; int n1 = 0, n2 = 0;
+                try { due = l.IsDirection2Specified(); n1 = l.D1TotalInstances; n2 = l.D2TotalInstances; }
+                catch { return null; }
+                return due && n2 > 1 ? n1 + " x " + n2 : null;
+            }
         }
 
         private sealed class SaltaCircolare : ISaltaIstanze
@@ -266,6 +364,8 @@ namespace Riscontro.Disegno
             public void Scrivi(object d, int[] c) { ((ICircularPatternFeatureData)d).SkippedItemArray = c; }
             public void Apri(object d, IModelDoc2 m) { ((ICircularPatternFeatureData)d).AccessSelections(m, null); }
             public void Chiudi(object d) { ((ICircularPatternFeatureData)d).ReleaseSelectionAccess(); }
+            public object Semi(object d) { return ((ICircularPatternFeatureData)d).PatternFeatureArray; }
+            public string Griglia(object d) { return null; }
         }
 
         // E DELLE NOVE FAMIGLIE DI RIPETIZIONE, TRE NON HANNO L'ARRAY.
@@ -294,6 +394,8 @@ namespace Riscontro.Disegno
             public void Scrivi(object d, int[] c) { ((ICurveDrivenPatternFeatureData)d).SkippedItemArray = c; }
             public void Apri(object d, IModelDoc2 m) { ((ICurveDrivenPatternFeatureData)d).AccessSelections(m, null); }
             public void Chiudi(object d) { ((ICurveDrivenPatternFeatureData)d).ReleaseSelectionAccess(); }
+            public object Semi(object d) { return ((ICurveDrivenPatternFeatureData)d).PatternFeatureArray; }
+            public string Griglia(object d) { return null; }
         }
 
         private static object LeggiDefinizione(

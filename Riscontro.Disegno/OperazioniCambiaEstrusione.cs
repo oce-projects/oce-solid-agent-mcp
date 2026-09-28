@@ -92,17 +92,63 @@ namespace Riscontro.Disegno
             }
             string tipo = "";
             try { tipo = f.GetTypeName2(); } catch { }
-            bool taglio = tipo == "ICE";
-            if (tipo != "Extrusion" && !taglio)
+            // «ICE» NON VUOL DIRE TAGLIO (voce Z-C21.2, rilievo M7).
+            //
+            // IFeature~GetTypeName2.html: «To get the underlying type of feature
+            // of an Instant3D feature (i.e., "ICE"), call IFeature::GetTypeName».
+            // «ICE» e' un'estrusione fatta su una faccia, e puo' essere un taglio
+            // (taglio_cilindrico, taglio_rettangolare) o un RIALZO
+            // (estrudi_su_faccia): StatoDocumento.cs lo misura dal 10/9/2026. Qui
+            // «ICE» valeva «taglio» e basta: un rialzo diventava «taglio», e
+            // «passante» su un rialzo non veniva rifiutato; un «Cut» vero veniva
+            // invece rifiutato. Taglio o rialzo lo dice la definizione:
+            // IExtrudeFeatureData2~IsBossFeature.html, «True if this extrusion is
+            // a boss feature, false if not».
+            if (tipo != "Extrusion" && tipo != "Cut" && tipo != "ICE")
                 return Fallito("«" + f.Name + "» e' una lavorazione di tipo «" + tipo + "»: so cambiare le estrusioni e i tagli " +
                                "estrusi. Per una quota qualunque c'e' «modifica_quota».");
+            var prima = f.GetDefinition() as IExtrudeFeatureData2;
+            if (prima == null) return Fallito("Non leggo la definizione di «" + f.Name + "».");
+            bool taglio;
+            try { taglio = !prima.IsBossFeature(); }
+            catch (Exception ex)
+            {
+                return Fallito("Non riesco a sapere se «" + f.Name + "» e' un taglio o un rialzo (" + ex.Message +
+                               "): non la tocco. Non ho toccato niente.");
+            }
             if (chiedePassante && !taglio)
                 return Fallito("«passante» vale per un taglio: un'estrusione che «attraversa tutto» non ha niente da " +
                                "attraversare. Per farla crescere dimmi «profondita_mm».");
-            var prima = f.GetDefinition() as IExtrudeFeatureData2;
-            if (prima == null) return Fallito("Non leggo la definizione di «" + f.Name + "».");
             int finePrima = prima.GetEndCondition(true);
             double profPrima = prima.GetDepth(true);
+
+            // DUE VERSI INDIPENDENTI: SI RIFIUTA (voce Z-C21.2, rilievo L5-1).
+            //
+            // IExtrudeFeatureData2~BothDirections.html: «Gets or sets whether the
+            // extrusion is in both directions». Qui si scrive e si rilegge solo il
+            // verso 1 (Forward = true in SetEndCondition/SetDepth: «True for
+            // forward direction, false for reverse»). Su un'estrusione a due versi
+            // un «passante» cambiava il verso 1, la rilettura del verso 1 tornava,
+            // e la risposta diceva «riuscito» con il verso 2 rimasto cieco. Il
+            // ponte non crea mai estrusioni a due versi (Sd: true), quindi arrivano
+            // solo da pezzi fatti fuori: rifiutare costa poco e non toglie niente
+            // che funzionasse davvero. Il piano medio NON e' «due versi» (e' una
+            // condizione del verso 1) e resta ammesso.
+            bool dueVersi = false;
+            try { dueVersi = prima.BothDirections; } catch { }
+            if (dueVersi && finePrima != (int)swEndConditions_e.swEndCondMidPlane &&
+                finePrima != (int)swEndConditions_e.swEndCondThroughAllBoth)
+            {
+                int fine2 = -1; double prof2 = double.NaN;
+                try { fine2 = prima.GetEndCondition(false); prof2 = prima.GetDepth(false); } catch { }
+                bool conProf2 = fine2 == (int)swEndConditions_e.swEndCondBlind;
+                return Fallito("«" + f.Name + "» va in due versi indipendenti: il primo «" + NomeDellaFine(finePrima) +
+                               "», il secondo «" + NomeDellaFine(fine2) + "»" +
+                               (conProf2 ? " profondo " + Unita.Mm(prof2).ToString("0.###") + " mm" : "") +
+                               ". Io cambio e rileggo solo il primo, e ti direi «fatto» con il secondo com'era: " +
+                               "non la tocco. Cambiala a mano, oppure dimmi una quota da cambiare con " +
+                               "«modifica_quota». Non ho toccato niente.");
+            }
             // LA CONDIZIONE CHE SI CHIEDE DIPENDE DA QUELLA CHE C'E' (revisione
             // avversariale del 27/9/2026). Una piastra simmetrica da 100 (da -50 a
             // +50) portata a 120 diventava cieca da 0 a +120: non cresceva di 10 per

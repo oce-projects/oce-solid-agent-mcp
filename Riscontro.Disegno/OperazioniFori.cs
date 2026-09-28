@@ -155,7 +155,11 @@ namespace Riscontro.Disegno
             List<Ancoraggio> ancore;
             if (!LeggiLeAncoreDeiFori(a, stato, faccia, assi, offsetM, posizioni, out ancore, out errore))
                 return Fallito(errore);
-            double? volumePrima = ancore != null ? VolumeMm3(modello) : null;
+            // IL VOLUME SI LEGGE SEMPRE (voce Z-C21.2, rilievo L4-3), non solo
+            // con le ancore: e' il controllo con cui il commento in testa dice di
+            // aver scoperto il foro da due pollici, e senza il foro in errore
+            // passava come «posizioni_non_verificate».
+            double? volumePrima = VolumeMm3(modello);
 
             // ── 1. si crea PASSANTE, sempre ──────────────────────────────
             modello.ClearSelection2(true);
@@ -195,18 +199,53 @@ namespace Riscontro.Disegno
             if (!SistemaIlForo(modello, feature, genere, taglia, genere.TipoPassante,
                                false, 0, out errore))
                 return Fallito(errore);
+            // IFeature~ModifyDefinition.html, Remarks: «For some feature
+            // modifications, this method applies the new properties, returns
+            // true, but results in a new rebuild error on the feature. [...]
+            // After calling this method, call IFeature::GetErrorCode2 to
+            // ascertain whether the feature has rebuild errors» (rilievo L4-3).
+            string inErrore = ForoInErrore(feature);
+            if (inErrore != null)
+                return Fallito("Il foro guidato non e' venuto: dopo la norma ISO «" + feature.Name +
+                               "» e' in errore (" + inErrore + ")." + TogliIlTaglio(modello, feature, volumePrima));
 
             // ── 5. il cieco, in un secondo giro ──────────────────────────
             if (!passante &&
                 !SistemaIlForo(modello, feature, genere, taglia, genere.TipoCieco,
                                true, profondita, out errore))
                 return Fallito(errore);
+            inErrore = passante ? null : ForoInErrore(feature);
+            if (inErrore != null)
+                return Fallito("Il foro guidato non e' venuto: portato a cieco «" + feature.Name +
+                               "» e' in errore (" + inErrore + ")." + TogliIlTaglio(modello, feature, volumePrima));
 
             // ── 6. le posizioni ──────────────────────────────────────────
             if (!PosizionaIFori(modello, feature, assi, offsetM, posizioni, out errore))
                 return Fallito(errore);
 
             try { modello.EditRebuild3(); } catch { }
+
+            // ── 6a. A FORI POSIZIONATI: IN ERRORE? HA TOLTO QUALCOSA? ─────
+            //
+            // (rilievo L4-3.) Un foro spostato dove non c'e' materiale e' una
+            // feature che ricostruisce in errore, o che non toglie niente: in
+            // tutti e due i casi non ci sono cilindri da trovare, il giudizio
+            // delle posizioni diceva «non verificabile», e l'operazione
+            // rispondeva riuscita. GetErrorCode2 prima, il volume poi — il
+            // progetto ha misurato che GetErrorCode2 da solo puo' tacere su un
+            // difetto vero (voce CopieMancanti, OperazioniSw.cs).
+            inErrore = ForoInErrore(feature);
+            if (inErrore != null)
+                return Fallito("Il foro guidato non e' venuto: nelle posizioni chieste «" + feature.Name +
+                               "» e' in errore (" + inErrore + "). Controlla che ogni posizione stia sulla " +
+                               "faccia." + TogliIlTaglio(modello, feature, volumePrima));
+            double? volumeForato = VolumeMm3(modello);
+            if (volumePrima.HasValue && volumeForato.HasValue && volumeForato.Value > volumePrima.Value - 0.01)
+                return Fallito(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "Il foro guidato non e' venuto: «{0}» e' nell'albero ma il pezzo pesa come prima " +
+                    "({1:0.##} mm3), cioe' non ha tolto materiale. Controlla che ogni posizione stia " +
+                    "sulla faccia.", feature.Name, volumePrima.Value) +
+                    TogliIlTaglio(modello, feature, volumePrima));
 
             var misure = new Dictionary<string, object>
             {
@@ -274,6 +313,24 @@ namespace Riscontro.Disegno
             else misure["posizioni_non_verificate"] = dovePosizioni;
 
             return Riuscito(feature, misure, NormaleDellaFaccia(faccia));
+        }
+
+        /// <summary>
+        /// Il foro e' in errore di ricostruzione? La frase, o null se e' sano o
+        /// se il codice e' solo un avviso (IFeature~GetErrorCode2.html:
+        /// «IsWarning: True if the error is a warning, false if not»). Un
+        /// codice che non si legge non diventa un errore: decide il volume
+        /// (voce Z-C21.2, rilievo L4-3).
+        /// </summary>
+        private static string ForoInErrore(IFeature foro)
+        {
+            try
+            {
+                bool avviso;
+                int codice = foro.GetErrorCode2(out avviso);
+                return codice != 0 && !avviso ? ErroriFeature.Frase(codice) : null;
+            }
+            catch { return null; }
         }
 
         /// <summary>

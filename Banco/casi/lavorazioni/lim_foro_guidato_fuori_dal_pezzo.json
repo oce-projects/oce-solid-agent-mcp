@@ -1,0 +1,22 @@
+{
+  "nome": "lim_foro_guidato_fuori_dal_pezzo",
+  "famiglia": "lavorazioni",
+  "perche": "VOCE Z-C21.2, rilievo L4-3. IFeature~ModifyDefinition.html, Remarks: il metodo puo' rispondere true e lasciare «a new rebuild error on the feature. [...] After calling this method, call IFeature::GetErrorCode2». foro_guidato guardava solo il bool, e il volume lo leggeva solo con le ancore: un foro in errore non aveva cilindri da trovare, il giudizio delle posizioni diceva «non verificabile», e l'operazione rispondeva riuscita con «posizioni_non_verificate».",
+  "il_difetto_che_questo_caso_prende": "L'errore di ricostruzione forzato nel modo piu' semplice: l'unica posizione del foro sta a x = 500 su una piastra che va da -100 a 100. Il foro nasce (HoleWizard5 lo mette sulla faccia scelta), poi il punto si sposta fuori dal materiale e il foro ricostruisce in errore o non toglie niente. Sulla libreria vecchia: riuscito, «posizioni_non_verificate». Su quella nuova: rifiuto, e il foro si toglie (volume e albero come prima).",
+  "cosa_non_e_misurato": "Se SOLIDWORKS dia un codice d'errore o solo un avviso per un foro fuori dal pezzo non e' misurato: per questo la guardia nuova guarda PRIMA GetErrorCode2 e POI il volume, e il messaggio che il caso pretende e' la parte comune ai due rifiuti («non e' venuto»).",
+  "la_gemella": "`il_foro_guidato_segue_la_tabella`: lo stesso M8 filettato passante sulla stessa faccia, con la posizione dentro la piastra. Differisce per «posizioni».",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 480000, "perche": "200 x 120 x 20" } ] },
+    { "operazione": "foro_guidato",
+      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "taglia": "M8", "tipo": "filettato",
+                     "passante": true, "posizioni": [ { "x_mm": 500, "y_mm": 0 } ] },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["Il foro guidato non e' venuto"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "il_foro_guidato_segue_la_tabella" } }
+  ]
+}

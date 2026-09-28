@@ -99,6 +99,20 @@ namespace Riscontro.Disegno
                 return Fallito("La flangia base non e' nata, e SOLIDWORKS non dice perche'." + LasciatoSchizzo);
             modello.EditRebuild3();
 
+            // ── NATA IN ERRORE? (voce Z-C21.2, rilievo L10-4) ─────────────
+            //
+            // IFeature~GetErrorCode2.html: «This method returns many of the
+            // errors indicated by the What's Wrong icon seen with an invalid
+            // feature in the FeatureManager design tree». Le tre sorelle
+            // (flangia_spigolo, orlo, piega_da_schizzo) lo leggevano, questa no:
+            // la rilettura di T e R qui sotto viene dalla lavorazione «SheetMetal»,
+            // che c'e' anche con la flangia rossa, e non prova niente sulla flangia.
+            bool avvisoFlangia = false; int codiceFlangia = 0;
+            try { codiceFlangia = flangia.GetErrorCode2(out avvisoFlangia); } catch { }
+            if (codiceFlangia != 0 && !avvisoFlangia)
+                return Fallito("La flangia base «" + flangia.Name + "» e' nata in errore (" +
+                               ErroriFeature.Frase(codiceFlangia) + "): ritirala — " + Frasi.CosiSiRitira + ".");
+
             // ── T, R, K RILETTI dalla lamiera, non ripetuti dagli argomenti ──
             var dati = DatiDellaLamiera(modello);
             if (dati == null)
@@ -132,6 +146,21 @@ namespace Riscontro.Disegno
                 : Math.Abs(sviluppo - interne) <= 0.5 ? "interne"
                 : Math.Abs(sviluppo - esterne) <= 0.5 ? "esterne" : "nessuna delle due";
             double atteso = convenzione == "esterne" ? esterne : interne;
+
+            // ── E HA AGGIUNTO MATERIALE? (rilievo L10-4, come orlo e flangia a
+            // spigolo). Il volume di una lamiera piegata e' lo sviluppo per lo
+            // spessore per la profondita', a meno di dove si prende la fibra
+            // neutra: meta' del conto piu' corto delle due convenzioni e' una
+            // soglia che nessuna flangia vera manca, e una flangia vuota si'.
+            // Prima questo numero si riportava soltanto.
+            double? aggiuntoFlangia = volumePiegato - volumePrima;
+            double sogliaFlangia = 0.5 * Math.Min(interne, esterne) * t * profondita;
+            if (aggiuntoFlangia.HasValue && aggiuntoFlangia.Value < sogliaFlangia)
+                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                    "La flangia base «{0}» e' nell'albero ma ha aggiunto {1:0.##} mm3, meno della meta' " +
+                    "del conto a mano ({2:0.##} mm3 di sviluppo per spessore per profondita'): non e' " +
+                    "la lamiera chiesta. Ritirala — {3}.",
+                    flangia.Name, aggiuntoFlangia.Value, 2 * sogliaFlangia, Frasi.CosiSiRitira));
 
             var misure = new Dictionary<string, object>
             {
