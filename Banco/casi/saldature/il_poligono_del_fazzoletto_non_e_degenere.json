@@ -1,7 +1,7 @@
 {
   "nome": "il_poligono_del_fazzoletto_non_e_degenere",
   "famiglia": "saldature",
-  "perche": "VOCE GP20, la seconda forma. Il profilo POLIGONALE e' quello che la libreria spediva fino alla 0.138.0, ma coi due lati corti a zero: un poligono che si chiude su se stesso, e SOLIDWORKS null senza un perche', anche con la marca 1 (misurato il 28/9/2026, varianti 0 e 3 della sonda Controlli/Fazzoletto/Programma.cs). Con i lati corti veri (15 e 15) la stessa chiamata NASCE: +12937,5 mm3 (variante 2).",
+  "perche": "VOCE GP20, la seconda forma. Il profilo POLIGONALE e' quello che la libreria spediva fino alla 0.139.0, ma coi due lati corti a zero: un poligono che si chiude su se stesso, e SOLIDWORKS null senza un perche', anche con la marca 1 (misurato il 28/9/2026, varianti 0 e 3 della sonda Controlli/Fazzoletto/Programma.cs). Con i lati corti veri (15 e 15) la stessa chiamata NASCE: +12937,5 mm3 (variante 2).",
 
   "il_difetto_che_questo_caso_prende": "Il poligono degenere, cioe' esattamente la ricetta vecchia: il passo 4 la pretende rifiutata PRIMA di chiamare SOLIDWORKS, con un messaggio che dice «degenere» e nomina il triangolo. Il passo 5 prende il poligono coi lati corti lunghi quanto i lati (60 su 60): non e' piu' un fazzoletto, e va detto invece di lasciarlo a SOLIDWORKS. Il passo 6 e' il poligono buono, coi numeri misurati.",
 

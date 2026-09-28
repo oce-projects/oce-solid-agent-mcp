@@ -411,8 +411,17 @@ using System.Runtime.InteropServices;
 //          read-only and driven dimensions refused, BothDirections refused,
 //          GetErrorCode2 after ModifyDefinition, grids refused, the anchor on a
 //          fillet edge refused (IFace2.Normal is 0,0,0 on a non-planar face).
-[assembly: AssemblyVersion("0.138.0.0")]
-[assembly: AssemblyFileVersion("0.138.0.0")]
+// 0.139.0: Z-C21.6, one helper per recurring API pattern (rebuild errors,
+//          selection by mark, unions of boxes, body lists) and the static
+//          checks that keep obsolete calls and literal selection marks out
+//          (ObsoleteCallsContract, SelectionMarksContract, SelectionMarks.cs).
+// 0.140.0: the four operations rebuilt from the API help: raccordo_faccia
+//          (CreateDefinition(swFmFillet), marks 2/4), ripeti_riempimento
+//          (IFillPatternFeatureData, marks 1/4/16384), nervatura (InsertRib
+//          parallel to the sketch), fazzoletto back in the catalogue (mark 1
+//          and a profile that is not degenerate).
+[assembly: AssemblyVersion("0.140.0.0")]
+[assembly: AssemblyFileVersion("0.140.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -427,4 +436,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.138.0")]
+[assembly: AssemblyInformationalVersion("0.140.0")]

@@ -24,7 +24,7 @@ Criterio (semver ridotto MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — le quattro lavorazioni della guida (branch quattro-lavorazioni)
+## 0.115.0 — 28 September 2026 · library 0.140.0
 
 **Four operations that never worked, rebuilt from the SOLIDWORKS API help.**
 Each one had a history of NULL returns; each time the help page named the
@@ -172,7 +172,7 @@ makes their cases green (the Z-C6 contract says so until then).
   `ripeti_riempimento.copie_per_giro`, `nervatura.piano`. Bench cases: 13 new
   (lavorazioni 27 -> 34, ripeti 9 -> 13, saldature 5 -> 7).
 
-## Unreleased — Z-C21.6 (branch z-c21-6-helper)
+## 0.114.0 — 28 September 2026 · library 0.139.0
 
 **Single helpers for the recurring API patterns, and a static check that keeps
 obsolete calls from coming back (entry Z-C21.6 of the API audit).** Built on

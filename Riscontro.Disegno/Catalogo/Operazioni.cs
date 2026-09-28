@@ -2010,7 +2010,7 @@ namespace Riscontro.Disegno.Catalogo
                     DocumentoRichiesto = "parte",
                     // ── PROVATA DAL 28/9/2026 (voce GP20) ───────────────
                     //
-                    // Fino alla libreria 0.138.0 non e' mai nato un fazzoletto:
+                    // Fino alla libreria 0.139.0 non e' mai nato un fazzoletto:
                     // il metodo passava un poligono coi lati corti a zero
                     // (ProfileD3 = ProfileD4 = 0) e nessuna marca, e
                     // InsertGussetFeature3 tornava null. La guida API (Remarks
@@ -2041,7 +2041,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "che taglia la punta e vuole anche i due lati corti «lato3_mm» e "
                         + "«lato4_mm», piu' corti dei due lati. Un poligono senza lati corti e' "
                         + "degenere e lo rifiuto: e' il difetto per cui questa operazione non ha "
-                        + "mai creato niente fino alla libreria 0.138.0. Lo spessore sta da tutte e "
+                        + "mai creato niente fino alla libreria 0.139.0. Lo spessore sta da tutte e "
                         + "due le parti del piano del fazzoletto; «posizione» e' «inizio», «centro» "
                         + "(il predefinito) o «fine» lungo lo spigolo comune, e un altro valore lo "
                         + "rifiuto invece di metterlo al centro di nascosto.\n\nLA RISPOSTA E' "
