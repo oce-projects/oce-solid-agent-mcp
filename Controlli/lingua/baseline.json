@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 147940,
-  "strings": 56071,
-  "markdown": 33983,
-  "json_values": 55845,
-  "identifiers": 4808,
+  "comments": 147168,
+  "strings": 55784,
+  "markdown": 33967,
+  "json_values": 55640,
+  "identifiers": 4800,
   "json_keys": 443,
-  "protocol": 2170,
+  "protocol": 2169,
   "paths": 640,
   "transition": 0
  },
@@ -62,7 +62,7 @@
    "strings": 50
   },
   "Banco/PortaDelCliente.cs": {
-   "comments": 1007,
+   "comments": 1004,
    "strings": 287
   },
   "Banco/Program.cs": {
@@ -588,7 +588,7 @@
    "json_values": 121
   },
   "Banco/casi/quote/le_quote_arrivano_dal_modello.json": {
-   "json_values": 116
+   "json_values": 20
   },
   "Banco/casi/quote/lim_schema_con_due_riferimenti.json": {
    "json_values": 25
@@ -825,7 +825,7 @@
    "json_values": 123
   },
   "Banco/casi/tavola/le_croci_di_centro_sui_fori.json": {
-   "json_values": 201
+   "json_values": 170
   },
   "Banco/casi/tavola/le_quote_arrivano_nel_pdf.json": {
    "json_values": 126
@@ -991,7 +991,7 @@
    "json_values": 6
   },
   "CHANGELOG.md": {
-   "markdown": 22899
+   "markdown": 22883
   },
   "Condiviso/ClienteMcp.cs": {
    "comments": 407
@@ -1479,7 +1479,7 @@
   },
   "Riscontro.Disegno/Catalogo/Operazioni.cs": {
    "comments": 869,
-   "strings": 17833
+   "strings": 17756
   },
   "Riscontro.Disegno/ErroriFeature.cs": {
    "comments": 164,
@@ -1553,10 +1553,10 @@
   },
   "Riscontro.Disegno/OperazioniDipendenze.cs": {
    "comments": 128,
-   "strings": 64
+   "strings": 37
   },
   "Riscontro.Disegno/OperazioniDistintaBase.cs": {
-   "comments": 259,
+   "comments": 229,
    "strings": 301
   },
   "Riscontro.Disegno/OperazioniDistintaTavola.cs": {
@@ -1600,15 +1600,15 @@
    "strings": 312
   },
   "Riscontro.Disegno/OperazioniLamiera.cs": {
-   "comments": 1050,
-   "strings": 759
+   "comments": 892,
+   "strings": 723
   },
   "Riscontro.Disegno/OperazioniMateriale.cs": {
-   "comments": 326,
-   "strings": 56
+   "comments": 310,
+   "strings": 30
   },
   "Riscontro.Disegno/OperazioniMisura.cs": {
-   "comments": 1097,
+   "comments": 1072,
    "strings": 418
   },
   "Riscontro.Disegno/OperazioniMisuraAssieme.cs": {
@@ -1616,7 +1616,7 @@
    "strings": 242
   },
   "Riscontro.Disegno/OperazioniNervatura.cs": {
-   "comments": 817,
+   "comments": 778,
    "strings": 493
   },
   "Riscontro.Disegno/OperazioniNotaTavola.cs": {
@@ -1624,7 +1624,7 @@
    "strings": 216
   },
   "Riscontro.Disegno/OperazioniPercorso.cs": {
-   "comments": 407,
+   "comments": 398,
    "strings": 383
   },
   "Riscontro.Disegno/OperazioniPiani.cs": {
@@ -1657,7 +1657,7 @@
   },
   "Riscontro.Disegno/OperazioniRicalco.cs": {
    "comments": 131,
-   "strings": 174
+   "strings": 141
   },
   "Riscontro.Disegno/OperazioniRiordina.cs": {
    "comments": 165,
@@ -1668,8 +1668,8 @@
    "strings": 463
   },
   "Riscontro.Disegno/OperazioniSaldatura.cs": {
-   "comments": 3135,
-   "strings": 1527
+   "comments": 3128,
+   "strings": 1524
   },
   "Riscontro.Disegno/OperazioniSaldaturaTavola.cs": {
    "comments": 250,
@@ -1700,16 +1700,16 @@
    "strings": 221
   },
   "Riscontro.Disegno/OperazioniSw.cs": {
-   "comments": 15786,
-   "strings": 3343
+   "comments": 15394,
+   "strings": 3336
   },
   "Riscontro.Disegno/OperazioniTabellaFori.cs": {
-   "comments": 420,
+   "comments": 341,
    "strings": 223
   },
   "Riscontro.Disegno/OperazioniTavola.cs": {
-   "comments": 2092,
-   "strings": 815
+   "comments": 2090,
+   "strings": 775
   },
   "Riscontro.Disegno/OperazioniTestiQuote.cs": {
    "comments": 243,
@@ -1762,12 +1762,12 @@
    "strings": 178
   },
   "Riscontro.Disegno/StatoDocumento.cs": {
-   "comments": 6197,
+   "comments": 6185,
    "strings": 37
   },
   "Riscontro.Disegno/StatoTavola.cs": {
    "comments": 977,
-   "strings": 170
+   "strings": 132
   },
   "Riscontro.Disegno/TestoDelPdf.cs": {
    "comments": 97
@@ -1798,7 +1798,7 @@
    "json_values": 7
   },
   "Strumenti/catalogo.json": {
-   "json_values": 18895
+   "json_values": 18817
   },
   "build.ps1": {
    "comments": 517,
@@ -2405,7 +2405,6 @@
    "Frasi",
    "Frontale",
    "Fuori",
-   "GENERICO",
    "GUSCIO",
    "Gemella",
    "Gemellaggio",
@@ -2610,7 +2609,6 @@
    "Lunghezze",
    "Lungo",
    "LungoM",
-   "MARCATE",
    "MARCATORE",
    "MASSA",
    "MODELLI_SOLIDWORKS",
@@ -2832,6 +2830,7 @@
    "OperazioniMisura",
    "OperazioniMisuraAssieme",
    "OperazioniNervatura",
+   "OperazioniPercorso",
    "OperazioniPostoSulFoglio",
    "OperazioniQuoteNelPdf",
    "OperazioniQuoteTavola",
@@ -4984,6 +4983,7 @@
    "la_differenza_e_il_pezzo",
    "la_distinta_di_taglio_dice_se_ha_confrontato",
    "la_distinta_di_taglio_in_tavola",
+   "la_foto_sta_in_scala",
    "la_nota_finisce_sul_foglio",
    "la_parete_ha_un_nome",
    "la_sezione_taglia_il_pezzo",
@@ -5031,6 +5031,7 @@
    "lavoro",
    "lavoroVero",
    "le_croci_di_centro_sui_fori",
+   "le_quote_arrivano_dal_modello",
    "lega_quota",
    "legato",
    "leggeri",
@@ -5230,7 +5231,6 @@
    "nEsempio",
    "nFISSO",
    "nFORI",
-   "nFUORI",
    "nFacce",
    "nGLI",
    "nGUARDA",
@@ -5314,7 +5314,6 @@
    "nomeLavorazione",
    "nomeMembro",
    "nomeNelCaso",
-   "nomePiano",
    "nomePrincipale",
    "nomeQuota",
    "nomeSezione",
@@ -5433,8 +5432,6 @@
    "originale",
    "origine",
    "origine_mm",
-   "origine_x",
-   "origine_y",
    "orizzontale",
    "orizzontaleFatta",
    "orlo",
@@ -5554,7 +5551,6 @@
    "pianoT",
    "piano_frontale_meno_250",
    "piano_per_tre_punti",
-   "piano_superiore_piu_100",
    "piastra",
    "piastra_forata",
    "piatta",
@@ -5627,7 +5623,6 @@
    "primoDiedro",
    "primoDiverso",
    "primoFuori",
-   "primoLivello",
    "primoTag",
    "primo_livello",
    "principale",
@@ -5799,7 +5794,6 @@
    "relPrima",
    "relStadio",
    "relativo",
-   "relazioni",
    "remoto",
    "reso1",
    "reso2",
@@ -6011,7 +6005,6 @@
    "seleziona",
    "selezionate",
    "selezionati",
-   "selezionato",
    "selezione",
    "seme",
    "sento",
@@ -6290,7 +6283,6 @@
    "tenuto",
    "teorico",
    "testa",
-   "testa1",
    "testi",
    "testiDelleQuote",
    "testi_che_si_accavallano",
@@ -7732,7 +7724,6 @@
    "controlla-catalogo",
    "controlla-pubblicabilita",
    "controlla-workflow",
-   "controllare",
    "controlli",
    "controllo",
    "convertiti",
