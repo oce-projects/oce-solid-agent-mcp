@@ -507,7 +507,7 @@ namespace Riscontro.Disegno
                             var voce = new Dictionary<string, object>();
                             try { voce["quota"] = dim.FullName; } catch { }
                             try { voce["vista"] = v.Name; } catch { }
-                            try { voce["del_modello_mm"] = Math.Round(ApiHelpers.ReadDimensionInView(dim, v) * 1000.0, 3); } catch { }   // in the configuration of the view (Z-C21.7, S1)
+                            try { voce["del_modello_mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000.0, 3); } catch { }
                             if (sovrascritta)
                                 voce["come"] = "numero sovrascritto: stampa " +
                                     Math.Round(q.GetOverrideValue() * 1000.0, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) + " mm";

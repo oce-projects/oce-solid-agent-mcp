@@ -442,8 +442,9 @@ using System.Runtime.InteropServices;
 //          commit: offset planes through InsertRefPlane with mark 0, the edge
 //          flange through CreateDefinition, ExportToDWG2, InsertHoleTable3,
 //          InsertSketchPicture2, IsSuppressed2, CreateMassProperty2 for parts,
-//          InsertCosmeticWeldBead2 with marks 4/8, dimensions through
-//          GetSystemValue3 with the view's configuration in drawings.
+//          InsertCosmeticWeldBead2 with marks 4/8. The dimension readings
+//          through GetSystemValue3 were migrated and withdrawn (the drawing's
+//          own dimensions broke on the bench).
 [assembly: AssemblyVersion("0.143.0.0")]
 [assembly: AssemblyFileVersion("0.143.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che

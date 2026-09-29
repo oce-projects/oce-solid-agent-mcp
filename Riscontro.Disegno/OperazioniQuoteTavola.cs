@@ -318,9 +318,9 @@ namespace Riscontro.Disegno
                 foriNellaTabella = ForiNellaTabellaFori(disegno);
                 var foriVeri = cerchi.FindAll(c => c.Tipo == "foro");
                 if (foriVeri.Count > 0 && foriNellaTabella <= 0)
-                    QuotaIFori(modello, disegno, vista, foriVeri, tutti, gia, contorno, distacco, passo, scala,
+                    QuotaIFori(modello, disegno, foriVeri, tutti, gia, contorno, distacco, passo, scala,
                                ref sotto, ref diLato, ref aSinistra, dimensioniFoglio, nate, fori, altrove, falliti);
-                QuotaIContorni(modello, disegno, vista, cerchi.FindAll(c => c.Tipo == "contorno"), gia, contorno, distacco, passo,
+                QuotaIContorni(modello, disegno, cerchi.FindAll(c => c.Tipo == "contorno"), gia, contorno, distacco, passo,
                                nate, diametriEsterni, bordiNonQuotati, altrove, falliti);
                 foreach (var c in cerchi)
                     if (c.Tipo == "di_taglio") diTaglio.Add("Ø" + c.DiametroMm.ToString("0.##", Ci));
@@ -393,7 +393,7 @@ namespace Riscontro.Disegno
                             continue;
                         }
 
-                        var descritta = DescriviQuota(natura, s.Indice, vista);
+                        var descritta = DescriviQuota(natura, s.Indice);
                         descritta["orientamento"] = s.Verso;
                         descritta["posizione_mm"] = DovEFinita(natura);
                         nate.Add(descritta);
@@ -406,7 +406,7 @@ namespace Riscontro.Disegno
                 }
 
                 // ── GLI SMUSSI, CON LA QUOTA DA SMUSSO (voce GT11) ─────
-                QuotaGliSmussi(modello, disegno, vista, spigoli, tutti, gia, contorno, distacco, nate, smussi, altrove, falliti);
+                QuotaGliSmussi(modello, disegno, spigoli, tutti, gia, contorno, distacco, nate, smussi, altrove, falliti);
             }
             finally
             {
@@ -922,7 +922,7 @@ namespace Riscontro.Disegno
                                 {
                                     string pre = ""; double mm = double.NaN;
                                     try { pre = d.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
-                                    try { mm = ApiHelpers.ReadDimensionInView(d.GetDimension2(0) as IDimension, v) * 1000.0; } catch { }
+                                    try { mm = ApiHelpers.ReadDimensionInConfiguration(d.GetDimension2(0) as IDimension, "") * 1000.0; } catch { }
                                     if (pre.Contains("<MOD-DIAM>") && !double.IsNaN(mm))
                                     {
                                         string dd = Math.Round(mm, 2).ToString("0.00", Ci);
@@ -1111,7 +1111,7 @@ namespace Riscontro.Disegno
         /// plausibile non resta in tavola.
         /// </summary>
         private void QuotaIContorni(
-            IModelDoc2 modello, IDrawingDoc disegno, IView vista, List<Cerchio> contorni, HashSet<string> gia,
+            IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> contorni, HashSet<string> gia,
             double[] contorno, double distacco, double passo, List<Dictionary<string, object>> nate,
             List<Dictionary<string, object>> diametri, List<string> bordi, List<string> altrove, List<string> falliti)
         {
@@ -1167,7 +1167,7 @@ namespace Riscontro.Disegno
                     falliti.Add("diametro esterno Ø" + dm + " (la quota non e' nata)");
                     continue;
                 }
-                var descritta = DescriviQuota(q, c.Indice, vista);
+                var descritta = DescriviQuota(q, c.Indice);
                 object letto = descritta.ContainsKey("mm") ? descritta["mm"] : null;
                 if (!(letto is double) || Math.Abs((double)letto - c.DiametroMm) > 0.01)
                 {
@@ -1199,7 +1199,7 @@ namespace Riscontro.Disegno
         /// e le quote di posizione dai due spigoli di riferimento, in parallelo.
         /// </summary>
         private void QuotaIFori(
-            IModelDoc2 modello, IDrawingDoc disegno, IView vista, List<Cerchio> cerchi, List<Spigolo> tutti,
+            IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> cerchi, List<Spigolo> tutti,
             HashSet<string> gia, double[] contorno, double distacco, double passo, double scala,
             ref int sotto, ref int diLato, ref int aSinistra, double[] foglio,
             List<Dictionary<string, object>> nate, List<Dictionary<string, object>> fori,
@@ -1335,7 +1335,7 @@ namespace Riscontro.Disegno
                     }
                     catch { }
                 }
-                var descritto = DescriviQuota(richiamo, capo.Indice, vista);
+                var descritto = DescriviQuota(richiamo, capo.Indice);
                 descritto["orientamento"] = come;
                 descritto["posizione_mm"] = DovEFinita(richiamo);
                 nate.Add(descritto);
@@ -1426,7 +1426,7 @@ namespace Riscontro.Disegno
                     if (!colonne.TryGetValue(d, out suo) || c.CentroFoglio[1] < suo.CentroFoglio[1]) colonne[d] = c;
                 }
                 foreach (var col in colonne)
-                    PosizioneDelForo(modello, disegno, vista, col.Value, sx, true, col.Key / scala,
+                    PosizioneDelForo(modello, disegno, col.Value, sx, true, col.Key / scala,
                                      (col.Value.CentroFoglio[0] + sx.DaFoglio[0]) / 2,
                                      contorno[1] - distacco - sotto++ * passo, nate, falliti);
             }
@@ -1458,7 +1458,7 @@ namespace Riscontro.Disegno
                     double x = aDestra
                         ? contorno[2] + distacco + diLato++ * passo
                         : contorno[0] - distacco - aSinistra++ * passo;
-                    PosizioneDelForo(modello, disegno, vista, scelto, giu, false, riga.Key / scala,
+                    PosizioneDelForo(modello, disegno, scelto, giu, false, riga.Key / scala,
                                      x, (scelto.CentroFoglio[1] + giu.DaFoglio[1]) / 2, nate, falliti);
                 }
             }
@@ -1487,7 +1487,7 @@ namespace Riscontro.Disegno
         /// del foro invece che al centro, sarebbe un raggio di troppo.
         /// </summary>
         private void PosizioneDelForo(
-            IModelDoc2 modello, IDrawingDoc disegno, IView vista, Cerchio foro, Spigolo riferimento, bool orizzontale,
+            IModelDoc2 modello, IDrawingDoc disegno, Cerchio foro, Spigolo riferimento, bool orizzontale,
             double attesoMm, double x, double y,
             List<Dictionary<string, object>> nate, List<string> falliti)
         {
@@ -1512,7 +1512,7 @@ namespace Riscontro.Disegno
                 falliti.Add("posizione del foro a " + attesoMm.ToString("0.##", Ci) + " mm (la quota non e' nata)");
                 return;
             }
-            var descritta = DescriviQuota(quota, foro.Indice, vista);
+            var descritta = DescriviQuota(quota, foro.Indice);
             descritta["orientamento"] = orizzontale ? "posizione orizzontale del foro" : "posizione verticale del foro";
             descritta["posizione_mm"] = DovEFinita(quota);
             object mm;
@@ -1530,7 +1530,7 @@ namespace Riscontro.Disegno
         /// spigolo dello smusso e una delle sue «gambe», come a mano.
         /// </summary>
         private void QuotaGliSmussi(
-            IModelDoc2 modello, IDrawingDoc disegno, IView vista, object[] spigoli, List<Spigolo> tutti,
+            IModelDoc2 modello, IDrawingDoc disegno, object[] spigoli, List<Spigolo> tutti,
             HashSet<string> gia, double[] contorno, double distacco,
             List<Dictionary<string, object>> nate, List<Dictionary<string, object>> smussi,
             List<string> altrove, List<string> falliti)
@@ -1583,7 +1583,7 @@ namespace Riscontro.Disegno
                     falliti.Add("smusso «" + s.DiSmusso + "» (la quota da smusso non e' nata)");
                     continue;
                 }
-                var descritta = DescriviQuota(quota, s.Indice, vista);
+                var descritta = DescriviQuota(quota, s.Indice);
                 descritta["orientamento"] = "quota da smusso";
                 descritta["posizione_mm"] = DovEFinita(quota);
 
@@ -1603,8 +1603,8 @@ namespace Riscontro.Disegno
                         var dk = quota.GetDimension2(k) as IDimension;
                         if (dk == null) continue;
                         int tipo = dk.GetType();
-                        if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angolo = ApiHelpers.ReadDimensionInView(dk, vista);
-                        else if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) larghezza = ApiHelpers.ReadDimensionInView(dk, vista);
+                        if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angolo = ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                        else if (tipo == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) larghezza = ApiHelpers.ReadDimensionInConfiguration(dk, "");
                     }
                     catch { }
                 }
@@ -1730,15 +1730,12 @@ namespace Riscontro.Disegno
         /// Nome e VALORE di una quota appena nata, il valore riletto da
         /// SOLIDWORKS e non quello che credevo di aver chiesto.
         ///
-        /// The value comes in system units, METRES, whatever the units of the
-        /// document: the one reading that does not depend on how the drawing is
-        /// set up. Since Z-C21.7 it is GetSystemValue3 in the configuration of
-        /// <paramref name="vista"/> (ApiHelpers.ReadDimensionInView), where it
-        /// was GetSystemValue2(""), which the Z-C21.3 probe found reading the
-        /// view's configuration too. `IDimension.Value` follows the units of the
-        /// document, so it is not used to compare.
+        /// `GetSystemValue2("")` torna **metri**, sempre, qualunque siano le
+        /// unita' del documento: e' l'unica lettura che non dipende da come e'
+        /// impostata la tavola. `IDimension.Value` invece segue le unita' del
+        /// documento, quindi si riporta accanto ma non si usa per confrontare.
         /// </summary>
-        private static Dictionary<string, object> DescriviQuota(IDisplayDimension d, int spigolo, IView vista)
+        private static Dictionary<string, object> DescriviQuota(IDisplayDimension d, int spigolo)
         {
             var fuori = new Dictionary<string, object> { ["spigolo"] = spigolo };
             if (d == null)
@@ -1756,7 +1753,7 @@ namespace Riscontro.Disegno
                 if (dim != null)
                 {
                     try { fuori["nome"] = dim.FullName; } catch { }
-                    try { fuori["mm"] = Math.Round(ApiHelpers.ReadDimensionInView(dim, vista) * 1000, 3); } catch { }
+                    try { fuori["mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000, 3); } catch { }
                 }
             }
             catch { }

@@ -163,49 +163,20 @@ same box). BENCH_0143_PLACEHOLDER
   DIVERGES note. No answer changes. Case that must stay identical:
   `saldature/il_cordone_va_fra_facce_che_si_toccano` (68 mm, side read back 4,
   volume 1264161.94 unchanged, the two refusals before it).
-- **S1, reading a dimension: `SystemValue` / `GetSystemValue2("")` -> `GetSystemValue3`,
-  and in a drawing the configuration of the view.** `ApiHelpers.ReadDimension` (parts:
-  the state's dimensions, `modifica_quota`, `lega_quota`, `tolleranza_quota`, the anchor
-  checks of `OperazioniAncora`) is now `GetSystemValue3(swThisConfiguration, null)[0]`;
-  `ReadDimensionInConfiguration` is `GetSystemValue3(swSpecifyConfiguration, {name})[0]`
-  and wants a name; the new `ReadDimensionInView` reads a drawing dimension in the
-  configuration its view references (the base view's, for a view that names none).
-  `probe_dimension_value3`: in a part the first form equals `SystemValue` and
-  `GetSystemValue2("")` everywhere (0.01 m / 5 deg in A, 0.025 m / 8 deg in B, with
-  either active), and the second equals `GetSystemValue2(name)`. In a DRAWING whose
-  view shows B while the part has A active, `SystemValue` and `GetSystemValue2("")` read
-  B (the view) but `GetSystemValue3(swThisConfiguration, null)` reads A, a plausible
-  wrong number; `(swSpecifyConfiguration, {B})` reads B. So every drawing caller now
-  passes its view: the existing dimensions of a view (`ChiaviGiaQuotate`), the
-  dimensions `quota_in_tavola` makes and reads back (`DescriviQuota`, the chamfer
-  dimension, through `QuotaIContorni`, `QuotaIFori`, `PosizioneDelForo`,
-  `QuotaGliSmussi`), the turned part (`OperazioniTondoTavola`, `RilettaGiusta`) and the
-  overridden dimensions of the drawing state (`StatoTavola`). An answer of another
-  shape throws, and every call site already catches. NOT PROBED: dimensions the
-  drawing owns (made by AddDimension, AddChamferDim, between silhouette edges) go
-  through the same call; the drawing cases are their first measure. Nor was a view of
-  an ASSEMBLY probed, where the view names an assembly configuration while a part
-  dimension shown in it may have no configuration of that name. The bench's own
-  reader (`Banco/NumeriDelleQuote.cs`) stays on `GetSystemValue2("")`, frozen with that
-  reason, so that it does not share the reading under test. Frozen keys removed: 2
-  (`ApiHelpers.cs` SystemValue and GetSystemValue2). No answer changes expected; no
-  bench case sets a view to a configuration other than the part's active one, the
-  situation the probe measured. Cases that must stay identical: the 14 `tavola/` cases
-  with `quota_in_tavola` (among them `la_tavola_si_quota`, `la_tavola_quota_fori_e_smusso`,
-  `l_albero_a_gradini_quotato_di_fianco`, `the_turned_diameter_is_not_an_orphan`),
-  `quote/le_quote_arrivano_dal_modello`, `quote/la_parete_ha_un_nome`,
-  `quote/la_variabile_non_scavalca_lo_smusso`, `quote/la_tolleranza_sulla_quota_del_modello`,
-  the `modifica_quota` cases of `asola/`, `estrusioni/`, `lavorazioni/` and `smusso/`
-  (the anchors) and `ponte/d3_tavola`, and the bench's dimension-numbers group.
-
-Not migrated: **L1-1, `CreateSpline`** stays frozen, as the Z-C21.3 decision says.
-Its `WhyFrozen` now carries the measure, and a discrepancy: `probe_spline3` printed
-"keep CreateSpline frozen" because `CreateSpline3` with SimulateNaturalEnds false
-gives 8806.568 mm3 against the bridge's 8808.586 (triples) or no extrusion (pairs),
-but that verdict only counted SimulateNaturalEnds false, and the same probe reports
-`CreateSpline3(triples, null, null, true)` (S5) and `CreateSpline2(triples, true)` (S2)
-as the same as the bridge: 8808.586 mm3, the same box, every spline read back exact.
-Left for a decision.
+- **S1, reading a dimension through `GetSystemValue3`: migrated, benched, WITHDRAWN.**
+  The migration moved `ApiHelpers.ReadDimension` to `GetSystemValue3(swThisConfiguration,
+  null)[0]` and made every drawing caller read in the configuration of its view
+  (`GetSystemValue3(swSpecifyConfiguration, {view configuration})[0]`), as
+  `probe_dimension_value3` measured for MODEL dimensions shown in a drawing. The
+  dimensions the DRAWING owns (AddDimension, AddChamferDim, between silhouettes) had not
+  been probed, and the bench families `tavola` and `quote` on 0.143.0 (29/9/2026) gave 12
+  failures and 8 bench errors: "no dimension was born" on the turned parts, `quote_mm`
+  without 120 or 10 in every `quota_in_tavola` case, no outside diameters read back.
+  The dimensions were made and then discarded by the readback. The commit is reverted:
+  the readings are back on `SystemValue` / `GetSystemValue2`, the two keys are frozen
+  again, and `WhyFrozen` carries this measure. What stays true from the probe: in a
+  drawing `GetSystemValue3(This, null)` reads the model's active configuration, not the
+  view's, so a future migration must be probed on drawing-owned dimensions first.
 
 ---
 
