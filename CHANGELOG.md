@@ -35,7 +35,10 @@ migrated one per commit.** Each migration follows exactly the call the probe
 measured, cites its guide page and the probe numbers in the code, and takes its
 keys out of the exact ratchet of `Prove/ObsoleteCallsContract.cs`. Every
 bullet names the existing cases that must give the same answer (same volume,
-same box). BENCH_0143_PLACEHOLDER
+same box). **Full bench on library 0.143.0, 29/9/2026: 1934 tests, 0 failed**, after the
+bench families tavola and quote had shown that migration 9 (S1) breaks the
+drawing's own dimensions, and it was withdrawn (below). The same run is the green
+bench of 0.142.0 (entry 0.118.0).
 
 - **L8-1 / L2-4, the offset plane: `CreatePlaneAtOffset3` -> `InsertRefPlane`.**
   `crea_piano`, the second plane of `loft_fra_due_cerchi` and the plane of
