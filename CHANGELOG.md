@@ -111,6 +111,14 @@ note 82zz-decies), built on library 0.143.0 with the probes of the same afternoo
   off here); contract `DocumentByPathContract`, 13 checks. Still open: which document
   CloseDoc/ActivateDoc3 picks when two titles are really equal, CloseDoc by path on a
   drawing, the bench's own teardown by title, and C4-3 (rebuild on activation).
+  **A path counts as a name only if the file is on disk** (first full bench on 0.144.0,
+  group `iges_solidi`): a part reopened from an IGES with LoadFile4 was never saved,
+  yet GetPathName answered `...\lavoro\gp3_solidi.SLDPRT`, a file that does not exist,
+  and CloseDoc given that path closed the reopened part AND the original part of the
+  export («Parte2115», never saved), discarding its changes. The collateral check saw
+  it and said so, after the fact. `DocumentByPath.PathOnDisk` now gives "" for such a
+  path, and the document is closed by its title under the collision rule, as before
+  0.144.0.
 - **Contracts and counts.** Three new groups, 23 checks (6 + 4 + 13); `Prove/LEGGIMI.md`
   now says 546 controls. The 526 it said before was 3 more than main runs today: main
   (25cc619), built and run in a throw-away worktree on 29/9/2026, gives 523 with the same

@@ -295,7 +295,7 @@ namespace Riscontro.Disegno
                 outcome.Message = "no SOLIDWORKS session or no document to close";
                 return outcome;
             }
-            try { outcome.FilePath = (doc.GetPathName() ?? "").Trim(); } catch (Exception) { }
+            try { outcome.FilePath = PathOnDisk(doc); } catch (Exception) { }
             try { outcome.WindowTitle = (doc.GetTitle() ?? "").Trim(); } catch (Exception) { }
             try { outcome.HadUnsavedChanges = doc.GetSaveFlag(); } catch (Exception) { outcome.HadUnsavedChanges = true; }
             bool wasVisible = true;
@@ -417,7 +417,7 @@ namespace Riscontro.Disegno
                 return false;
             }
             string path = "", title = "";
-            try { path = (doc.GetPathName() ?? "").Trim(); } catch (Exception) { }
+            try { path = PathOnDisk(doc); } catch (Exception) { }
             try { title = (doc.GetTitle() ?? "").Trim(); } catch (Exception) { }
             if (IsFront(sw, doc, path)) return true;
 
@@ -520,6 +520,28 @@ namespace Riscontro.Disegno
             }
             catch (Exception) { }
             return loaded;
+        }
+
+        /// <summary>
+        /// The document's path when a file is really there, "" otherwise.
+        ///
+        /// A PATH THAT IS NOT ON DISK IS NOT A NAME (full bench on 0.144.0,
+        /// 29/9/2026, group iges_solidi). A part reopened from an IGES with
+        /// LoadFile4 was never saved, yet GetPathName answered
+        /// «...\lavoro\gp3_solidi.SLDPRT», a file that does not exist: the stem
+        /// of the IGES with the part extension. CloseDoc given that path closed
+        /// the reopened part AND the original part the export was made from
+        /// («Parte2115», never saved), discarding its changes; the collateral
+        /// check saw it and said so, after the fact. Such a document is treated
+        /// as never saved: its title, under the collision rule.
+        /// </summary>
+        internal static string PathOnDisk(IModelDoc2 d)
+        {
+            string p = (d.GetPathName() ?? "").Trim();
+            if (p.Length == 0) return "";
+            bool there = false;
+            try { there = System.IO.File.Exists(p); } catch (Exception) { }
+            return there ? p : "";
         }
 
         private static Snapshot Read(IModelDoc2 d)
