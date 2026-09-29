@@ -101,15 +101,20 @@ namespace Riscontro.Disegno
             // righe e' un contratto che si rompe il giorno in cui qualcuno le
             // riordina — e non fallirebbe niente. Un oggetto per numero non si
             // rompe: costa quattro chiamate COM, che non le sente nessuno.
-            var prendi = new Func<Func<IMassProperty, object>, string, object>((leggi, cosa) =>
+            var prendi = new Func<Func<IMassProperty2, object>, string, object>((leggi, cosa) =>
             {
                 try
                 {
-                    // S2: a new object in system units with the bodies attached
-                    // (ApiHelpers.NewMassProperty). AddBodies answers a boolean:
-                    // without the bodies attached the measure is not of the part
-                    // one believes.
-                    var mp = ApiHelpers.NewMassProperty(modello, corpi, out bool attached);
+                    // S2: a new object in system units of the bodies asked for.
+                    // Since Z-C21.7 CreateMassProperty2 with the bodies as
+                    // SelectedItems, hidden ones included, and Recalculate
+                    // (ApiHelpers.NewPartMassProperty, with the probe numbers).
+                    // Without the bodies read back the measure is not of the
+                    // part one believes. The order trap above belongs to the
+                    // obsolete IMassProperty: the probe found IMassProperty2
+                    // free of it (O1: density 8000 read after Volume, O0 with
+                    // the old object: 1). One object per number stays anyway.
+                    var mp = ApiHelpers.NewPartMassProperty(modello, corpi, out bool attached);
                     if (mp == null || !attached) return null;
                     return leggi(mp);
                 }

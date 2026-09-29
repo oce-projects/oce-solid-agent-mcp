@@ -125,6 +125,27 @@ has been run yet.
   that must stay identical: `togliere/sopprimi_il_terzo_foro`,
   `togliere/lim_sopprimere_due_volte`,
   `lavorazioni/lim_nervatura_sulla_piastra_senza_pareti`.
+- **S2 / L17-3 (part readings), mass properties: `CreateMassProperty` ->
+  `CreateMassProperty2`.** New `ApiHelpers.NewPartMassProperty`: the selection
+  cleared, `CreateMassProperty2`, system units, `IncludeHiddenBodiesOrComponents`
+  true, the bodies as a typed `Body2[]` in `SelectedItems`, `Recalculate` always, the
+  bodies read back from `SelectedItems`. Used by `proprieta_di_massa` on a part, by
+  the per-part masses that check the assembly mass (`MassaDelPezzo`), and by the
+  bench's volume reader (`Banco/PortaDelCliente.cs`). `probe_mass_property2` on a
+  three-body AISI 304 part (16000 + 4000 + 1000 mm3, the last hidden): nothing
+  selected 21000 (N1 = M0), {A} without Recalculate still 21000 (N4), with it 16000
+  (N5 = M1), the hidden {C} 1000 (N7 = M2), {A, B, C} 21000 (N8 = M3), density 8000
+  throughout; the old order trap (density 1 after Volume) is absent (O1). Kept on the
+  obsolete call, with the reason in `WhyFrozen`: the ASSEMBLY mass (components not
+  probed) and the document STATE's mass field, because the new call measures what is
+  selected and the state reads the designer's selection after the mass: clearing it
+  there would erase the state's selection field, and a measure with the selection in
+  place was not probed. Frozen key removed: 1 (`Banco/PortaDelCliente.cs`). No
+  answer changes. Cases that must stay identical: `misura/massa_di_un_cubo_di_acciaio`
+  (200000 mm3, 1.6 kg, centre [0, 0, 10]), `misura/massa_senza_materiale_non_si_sa`,
+  `proprieta/the_material_reaches_every_configuration` (7800, 1.56 kg),
+  `assiemi/l_assieme_si_pesa_si_misura_si_manda` (1.0675 kg, sum of the parts
+  1.0675), `assiemi/due_basi_uguali_uno_step`, and the bench's client-door group.
 
 ---
 

@@ -60,7 +60,11 @@ namespace Riscontro.Disegno
         {
             try
             {
-                var mp = ApiHelpers.NewMassProperty(doc, null, out _);
+                // A PART document (a component's): CreateMassProperty2 since
+                // Z-C21.7 (ApiHelpers.NewPartMassProperty; the probe's whole-part
+                // reading N1 equals the obsolete call's M0). The assembly itself
+                // stays on the obsolete call below.
+                var mp = ApiHelpers.NewPartMassProperty(doc, null, out _);
                 if (mp == null) return null;
                 return mp.Mass;
             }

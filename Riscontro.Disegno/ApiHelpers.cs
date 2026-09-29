@@ -76,26 +76,103 @@ namespace Riscontro.Disegno
         // =====================================================================
 
         /// <summary>
-        /// A NEW mass-property object, in system units, with the given bodies
-        /// attached (none = every body of the document). Null if SOLIDWORKS does
-        /// not give one. <paramref name="bodiesAttached"/> is false when
-        /// AddBodies refused: the numbers would then be of the whole document,
-        /// not of the bodies asked for.
+        /// A NEW mass-property object of a PART, in system units, of the given
+        /// bodies (none = every solid body, hidden ones included). Null if
+        /// SOLIDWORKS does not give one, or if Recalculate fails.
+        /// <paramref name="bodiesAttached"/> is false when the bodies read back
+        /// from SelectedItems are not the ones given: the numbers would then be
+        /// of other bodies than those asked for.
         ///
-        /// One object per reading, as the callers do: IMassProperty changes its
-        /// answers depending on what was read before (measured, see
-        /// OperazioniMisura).
+        /// One object per reading, as the callers do: the obsolete IMassProperty
+        /// changed its answers depending on what was read before (measured, see
+        /// OperazioniMisura); the probe below found IMassProperty2 free of that
+        /// trap, and the callers keep one object per number anyway.
+        ///
+        /// Guide: IModelDocExtension~CreateMassProperty.html, «Obsolete.
+        /// Superseded by IModelDocExtension::CreateMassProperty2».
+        /// IModelDocExtension~CreateMassProperty2.html, Remarks, Part: «Before
+        /// calling this method, call IModelDocExtension::SelectByID2 to
+        /// pre-select the bodies. You can also specify more bodies after calling
+        /// this method by setting IMassProperty2::SelectedItems» (so the
+        /// selection is cleared first: a body left selected would be measured
+        /// alone). IMassProperty2~IncludeHiddenBodiesOrComponents.html: «After
+        /// setting this property to true, be sure to call
+        /// IMassProperty2::Recalculate before using the IMassProperty2
+        /// properties».
+        ///
+        /// MEASURED by the Z-C21.3 probe probe_mass_property2 (SOLIDWORKS 29.5.1,
+        /// 28/9/2026) on a part of AISI 304 with three bodies, A 16000, B 4000
+        /// and C 1000 mm3, C hidden. The obsolete call measured 21000 mm3 with no
+        /// bodies (M0, the hidden one included) and each set given to AddBodies
+        /// (M1 A 16000, M2 C 1000, M3 all 21000). CreateMassProperty2 with
+        /// nothing selected, IncludeHidden true and Recalculate: 21000 (N1 = M0);
+        /// SelectedItems Body2[]{A} WITHOUT Recalculate: 21000, the whole part
+        /// (N4); with Recalculate: 16000 (N5 = M1); {C} with IncludeHidden true
+        /// and Recalculate: 1000 (N7 = M2); {A, B, C}: 21000 (N8 = M3); density
+        /// 8000 and mass consistent in every case, and SelectedItems read back
+        /// as the bodies given. Hence: IncludeHidden true (the bridge counted the
+        /// hidden bodies), the bodies as a TYPED Body2[] (rule of Z-C21.3), and
+        /// Recalculate always.
+        ///
+        /// Parts only, and only where clearing the selection is harmless. The
+        /// assembly and the document state keep <see cref="NewMassProperty"/>
+        /// (see there why).
+        /// </summary>
+        internal static IMassProperty2 NewPartMassProperty(
+            IModelDoc2 part, IEnumerable<object> bodies, out bool bodiesAttached)
+        {
+            bodiesAttached = false;
+            part.ClearSelection2(true);
+            var massProperty = part.Extension.CreateMassProperty2() as IMassProperty2;
+            if (massProperty == null) return null;
+            // Explicit, not a habit: without it values come in document units,
+            // which on someone else's part can be inches and pounds.
+            massProperty.UseSystemUnits = true;
+            massProperty.IncludeHiddenBodiesOrComponents = true;
+            var typed = new List<Body2>();
+            if (bodies != null) foreach (var body in bodies) typed.Add((Body2)body);
+            Body2[] list = typed.ToArray();
+            if (list.Length > 0) massProperty.SelectedItems = list;
+            if (!massProperty.Recalculate()) return null;
+            if (list.Length == 0) bodiesAttached = true;
+            else
+            {
+                var readBack = massProperty.SelectedItems as object[];
+                bodiesAttached = readBack != null && readBack.Length == list.Length;
+            }
+            return massProperty;
+        }
+
+        /// <summary>
+        /// A NEW mass-property object through the OBSOLETE call, in system units,
+        /// with the given bodies attached (none = every body of the document).
+        /// Null if SOLIDWORKS does not give one. <paramref name="bodiesAttached"/>
+        /// is false when AddBodies refused: the numbers would then be of the
+        /// whole document, not of the bodies asked for.
         ///
         /// Guide: IModelDocExtension~CreateMassProperty.html, «Obsolete.
         /// Superseded by IModelDocExtension::CreateMassProperty2»; its Remarks:
         /// "If IMassProperty::AddBodies ... Not called: mass properties'
         /// calculations include all available bodies in the document".
-        /// Still the obsolete one: IModelDocExtension~CreateMassProperty2.html
-        /// works by SELECTION ("call IModelDocExtension::SelectByID2 to pre-select
-        /// the bodies ... IMassProperty2::SelectedItems"), not by AddBodies, and
-        /// that has not been measured (probe of Z-C21.3; the project has met
-        /// selection traps many times). After the probe only this method
-        /// changes.
+        ///
+        /// STILL USED, FOR TWO CALLERS, after Z-C21.7 moved the other part
+        /// readings to <see cref="NewPartMassProperty"/>:
+        ///   - the ASSEMBLY (OperazioniMisuraAssieme): the Z-C21.3 probe
+        ///     probe_mass_property2 measured CreateMassProperty2 on a part only;
+        ///     on an assembly it works on COMPONENTS
+        ///     (IModelDocExtension~CreateMassProperty2.html: «Before calling this
+        ///     method, call IModelDocExtension::SelectByID2 to pre-select the
+        ///     components») and IncludeHiddenBodiesOrComponents then decides
+        ///     about hidden components: not measured, while the assembly mass was
+        ///     measured with this call (the sum of the parts to the gram);
+        ///   - the DOCUMENT STATE (StatoDocumento.Massa): CreateMassProperty2
+        ///     measures what is SELECTED, so the probe cleared the selection
+        ///     first, and the state must not: it reads the designer's selection
+        ///     a few lines later (StatoDocumento.LaSelezione, the selection field
+        ///     of the state), and clearing it would erase what the designer
+        ///     points at.
+        ///     Measuring with a selection left in place was not probed (does
+        ///     SelectedItems replace a pre-selected body, or add to it?).
         /// </summary>
         internal static IMassProperty NewMassProperty(
             IModelDoc2 document, IEnumerable<object> bodies, out bool bodiesAttached)

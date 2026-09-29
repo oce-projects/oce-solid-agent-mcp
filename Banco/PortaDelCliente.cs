@@ -520,13 +520,29 @@ namespace ProvaSaldatura
             return string.IsNullOrEmpty(t) ? riga : t;
         }
 
-        /// <summary>Il volume in mm3 del documento, o 0.</summary>
+        /// <summary>
+        /// The volume in mm3 of the document (a part here), or 0.
+        ///
+        /// Z-C21.7 (S2 / L17-3): CreateMassProperty2, not the obsolete
+        /// CreateMassProperty, with the recipe the Z-C21.3 probe
+        /// probe_mass_property2 measured on a part: the selection cleared (a
+        /// pre-selected body would be measured alone,
+        /// IModelDocExtension~CreateMassProperty2.html), system units, hidden
+        /// bodies included, Recalculate; with nothing selected that gave
+        /// 21000 mm3 on its three-body part, the same as the obsolete call (N1 =
+        /// M0). A part without solid bodies gives no object (the page: «a part
+        /// with surface bodies only: Null»), hence 0 as before.
+        /// </summary>
         private static double VolumeDiProva(IModelDoc2 doc)
         {
             try
             {
-                var m = doc.Extension.CreateMassProperty();
-                return m == null ? 0 : m.Volume * 1e9;
+                doc.ClearSelection2(true);
+                var m = doc.Extension.CreateMassProperty2() as IMassProperty2;
+                if (m == null) return 0;
+                m.UseSystemUnits = true;
+                m.IncludeHiddenBodiesOrComponents = true;
+                return m.Recalculate() ? m.Volume * 1e9 : 0;
             }
             catch { return 0; }
         }

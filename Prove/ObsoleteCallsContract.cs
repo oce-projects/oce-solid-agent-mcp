@@ -96,7 +96,6 @@ namespace Prove.Contratti
             ["Banco/NumeriDelleQuote.cs|IDimension.GetSystemValue2"] = 1,
             ["Banco/NumeriDelleQuote.cs|IModelDocExtension.SaveAs"] = 1,
             ["Banco/Orfane.cs|IModelDocExtension.SaveAs"] = 1,
-            ["Banco/PortaDelCliente.cs|IModelDocExtension.CreateMassProperty"] = 1,
             ["Banco/PortaDelCliente.cs|IModelDocExtension.SaveAs"] = 1,
             ["Banco/ProvaNuove.cs|IModelDoc2.GraphicsRedraw2"] = 2,
             ["Riscontro.Disegno/ApiHelpers.Geometry.cs|IEdge.GetCurveParams2"] = 1,
@@ -179,7 +178,12 @@ namespace Prove.Contratti
                                                "offset plane (mark 0, Distance constraint, migrated in Z-C21.7), not the three-point plane: not measured yet",
             ["IModelDoc2.GetActiveConfiguration"] = "M44/C4-1: IConfigurationManager::ActiveConfiguration",
             ["IModelDoc2.GraphicsRedraw2"] = "N20/M44: IModelView::GraphicsRedraw; the two in OperazioniTondoTavola are OBSOLETE-MEASURED",
-            ["IModelDocExtension.CreateMassProperty"] = "S2: only in ApiHelpers.NewMassProperty and one bank reader; CreateMassProperty2 works by selection, probe in Z-C21.3",
+            ["IModelDocExtension.CreateMassProperty"] = "S2/L17-3: only in ApiHelpers.NewMassProperty, for two callers the Z-C21.3 probe did not cover. The ASSEMBLY " +
+                                                        "(OperazioniMisuraAssieme): probe_mass_property2 measured CreateMassProperty2 on a part only, and on an " +
+                                                        "assembly it works on components (hidden ones: IncludeHiddenBodiesOrComponents, not measured). The DOCUMENT " +
+                                                        "STATE (StatoDocumento.Massa): CreateMassProperty2 measures what is selected, the probe cleared the selection " +
+                                                        "first, and the state reads the designer's selection afterwards; a measure with the selection left in place " +
+                                                        "was not probed. The other part readings moved to CreateMassProperty2 in Z-C21.7 (N1 = M0, N5 = M1, N8 = M3)",
             ["IModelDocExtension.FinishRecordingUndoObject"] = "L17-4: superseded by FinishRecordingUndoObject2",
             ["IModelDocExtension.SaveAs"] = "L13-4/L13-8: superseded by SaveAs2/SaveAs3 (drawing export and bank harness)",
             ["INote.GetTextPoint"] = "superseded by INote::GetTextPoint2",
