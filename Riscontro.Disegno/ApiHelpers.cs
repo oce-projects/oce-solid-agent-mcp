@@ -34,41 +34,75 @@ namespace Riscontro.Disegno
         // =====================================================================
 
         /// <summary>
-        /// The value of a dimension in system units (metres, radians), in the
-        /// configuration that is active.
+        /// The value of a dimension of a PART in system units (metres,
+        /// radians), in the configuration that is active.
         ///
         /// Guide: IDimension~SystemValue.html, «Obsolete. Superseded by
-        /// IDimension::GetSystemValue3». The replacement is NOT used yet:
-        /// IDimension~GetSystemValue3.html declares `object GetSystemValue3(int
-        /// WhichConfigurations, object Config_names)`, and the shape of that
-        /// object (an array with one value per configuration?) has not been
-        /// measured (probe of Z-C21.3). A wrong cast there gives a plausible
-        /// wrong number, the worst kind of defect (memory "numero sbagliato e
-        /// plausibile"). After the probe this becomes
-        /// `((double[])d.GetSystemValue3(swThisConfiguration, null))[0]`,
-        /// compared once against SystemValue on the same part.
+        /// IDimension::GetSystemValue3, IDimension::IGetSystemValue3,
+        /// IDimension::SetSystemValue3, and IDimension::ISetSystemValue3»;
+        /// IDimension~GetSystemValue3.html, `object GetSystemValue3(int
+        /// WhichConfigurations, object Config_names)`, «The Config_names
+        /// argument is only used if whichConfigurations is set to
+        /// swSpecifyConfiguration».
+        ///
+        /// MEASURED by the Z-C21.3 probe probe_dimension_value3 (SOLIDWORKS
+        /// 29.5.1, 28/9/2026) on a linear and an angular dimension of a part:
+        /// GetSystemValue3(swThisConfiguration, null) is a Double[1] equal to
+        /// the obsolete SystemValue and GetSystemValue2("") in every stage (one
+        /// configuration: 0.01 m and 5 deg; a second configuration B at 0.025 m
+        /// and 8 deg, read with A active and then with B active). Until Z-C21.7
+        /// this was SystemValue.
+        ///
+        /// PARTS ONLY. In a drawing the same call reads the configuration that
+        /// is active in the MODEL, not the one the view shows (probe, drawing
+        /// stage: 0.01 from A while the view shows B, where SystemValue and
+        /// GetSystemValue2("") read 0.025): drawings read through
+        /// <see cref="ReadDimensionInView"/>.
         /// </summary>
         internal static double ReadDimension(IDimension dimension)
         {
-            return dimension.SystemValue;
+            return OneDimensionValue(
+                dimension.GetSystemValue3((int)swInConfigurationOpts_e.swThisConfiguration, null),
+                "swThisConfiguration");
         }
 
         /// <summary>
-        /// The value of a dimension in system units in a named configuration;
-        /// every call site today passes "" (the call it made before Z-C21.6).
+        /// The value of a dimension in system units in the configuration named
+        /// <paramref name="configurationName"/> (not empty: the active
+        /// configuration of a part is <see cref="ReadDimension"/>).
         ///
         /// Guide: IDimension~GetSystemValue2.html, «ConfigName Name of
-        /// configuration Obsolete. See IDimension::GetSystemValue3». Kept
-        /// separate from <see cref="ReadDimension"/> on purpose: the two
-        /// obsolete calls are not proven to answer the same thing (the page does
-        /// not say which configuration "" means, and in a drawing the model's
-        /// active configuration can differ from the one the view shows), and
-        /// merging them without the bank would change eleven readings at once.
-        /// Both collapse into GetSystemValue3 after the Z-C21.3 probe.
+        /// configuration Obsolete. See IDimension::GetSystemValue3»; the
+        /// replacement with swSpecifyConfiguration and the name in an array,
+        /// IDimension~GetSystemValue3.html (above). MEASURED by the same probe:
+        /// GetSystemValue3(swSpecifyConfiguration, {name})[0] equals
+        /// GetSystemValue2(name) for both configurations and both dimensions,
+        /// with either one active; with null names it answers null. Until
+        /// Z-C21.7 every call site passed "" to GetSystemValue2.
         /// </summary>
         internal static double ReadDimensionInConfiguration(IDimension dimension, string configurationName)
         {
-            return dimension.GetSystemValue2(configurationName ?? "");
+            if (string.IsNullOrEmpty(configurationName))
+                throw new ArgumentException("a configuration name is needed (the active configuration of a part is ReadDimension)");
+            return OneDimensionValue(
+                dimension.GetSystemValue3((int)swInConfigurationOpts_e.swSpecifyConfiguration, new[] { configurationName }),
+                configurationName);
+        }
+
+        /// <summary>
+        /// The one value of a GetSystemValue3 answer asked for one
+        /// configuration. Anything but a single number throws: a wrong cast of a
+        /// positional array gives a plausible wrong number, the worst kind of
+        /// defect, and the call sites already catch.
+        /// </summary>
+        private static double OneDimensionValue(object raw, string asked)
+        {
+            var values = raw as double[];
+            if (values == null && raw is object[] boxed && boxed.Length == 1 && boxed[0] is double one)
+                values = new[] { one };
+            if (values == null || values.Length != 1)
+                throw new InvalidOperationException("IDimension.GetSystemValue3 (" + asked + ") did not answer one value");
+            return values[0];
         }
 
         // =====================================================================

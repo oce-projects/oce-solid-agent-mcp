@@ -151,9 +151,9 @@ namespace Riscontro.Disegno
                                     e => (zero.Item2.Spigolo as IEntity).Select4(false, e) &&
                                          (f.Item2.Spigolo as IEntity).Select4(true, e), x, y, orizzontale);
                 if (q == null) { falliti.Add(cosa + " (la quota non e' nata)"); continue; }
-                if (!RilettaGiusta(modello, q, attesaMm, false, cosa, falliti)) continue;
+                if (!RilettaGiusta(modello, vista, q, attesaMm, false, cosa, falliti)) continue;
                 if (orizzontale) sotto++; else diLato++;
-                var descritta = DescriviQuota(q, f.Item2.Indice);
+                var descritta = DescriviQuota(q, f.Item2.Indice, vista);
                 descritta["orientamento"] = "lunghezza del tondo";
                 descritta["posizione_mm"] = DovEFinita(q);
                 nate.Add(descritta);
@@ -204,8 +204,8 @@ namespace Riscontro.Disegno
                 var q = QuotaFraDue(modello, disegno, vista, selMgr, e => a.Select2(false, e) && b.Select2(true, e),
                                     mezzo[0], mezzo[1], quotaDiametroOrizzontale);
                 if (q == null) { falliti.Add(cosa + " (la quota non e' nata)"); continue; }
-                if (!RilettaGiusta(modello, q, attesaMm, true, cosa, falliti)) continue;
-                var descritta = DescriviQuota(q, -1);
+                if (!RilettaGiusta(modello, vista, q, attesaMm, true, cosa, falliti)) continue;
+                var descritta = DescriviQuota(q, -1, vista);
                 descritta["orientamento"] = "diametro del tondo";
                 descritta["posizione_mm"] = DovEFinita(q);
                 nate.Add(descritta);
@@ -243,7 +243,7 @@ namespace Riscontro.Disegno
                                     cx, cy, quotaDiametroOrizzontale);
                 if (q == null) continue;
                 double letto = double.NaN; string prefisso = "";
-                try { letto = Math.Round(ApiHelpers.ReadDimensionInConfiguration(q.GetDimension2(0) as IDimension, "") * 1000.0, 3); } catch { }
+                try { letto = Math.Round(ApiHelpers.ReadDimensionInView(q.GetDimension2(0) as IDimension, vista) * 1000.0, 3); } catch { }
                 try { prefisso = q.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
                 CilindroDelTondo suo = null;
                 foreach (var c in cilindri)
@@ -260,7 +260,7 @@ namespace Riscontro.Disegno
                 if (!prefisso.Contains("<MOD-DIAM>") || suo == null) { TogliQuota(modello, q); esito.CoppieScartate++; continue; }
                 var mezzo = SulFoglio(suo.Meta, mu, tr);
                 try { if (mezzo != null) (q.GetAnnotation() as IAnnotation)?.SetPosition2(mezzo[0], mezzo[1], 0); } catch { }
-                var descritta = DescriviQuota(q, -1);
+                var descritta = DescriviQuota(q, -1, vista);
                 descritta["orientamento"] = "diametro del tondo (generatrici senza faccia, riconosciuto dal valore)";
                 descritta["posizione_mm"] = DovEFinita(q);
                 nate.Add(descritta);
@@ -439,12 +439,12 @@ namespace Riscontro.Disegno
         /// il simbolo)? Se no si toglie: un numero sbagliato e plausibile non
         /// resta in tavola.
         /// </summary>
-        private static bool RilettaGiusta(IModelDoc2 modello, IDisplayDimension q, double attesaMm, bool diametro,
+        private static bool RilettaGiusta(IModelDoc2 modello, IView vista, IDisplayDimension q, double attesaMm, bool diametro,
                                           string cosa, List<string> falliti)
         {
             double letto = double.NaN;
             string prefisso = "";
-            try { letto = ApiHelpers.ReadDimensionInConfiguration(q.GetDimension2(0) as IDimension, "") * 1000.0; } catch { }
+            try { letto = ApiHelpers.ReadDimensionInView(q.GetDimension2(0) as IDimension, vista) * 1000.0; } catch { }
             try { prefisso = q.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
             bool giusta = !double.IsNaN(letto) && Math.Abs(letto - attesaMm) <= 0.01 &&
                           (!diametro || prefisso.Contains("<MOD-DIAM>"));

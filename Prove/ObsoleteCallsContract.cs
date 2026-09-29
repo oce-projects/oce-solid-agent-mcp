@@ -95,8 +95,6 @@ namespace Prove.Contratti
             ["Banco/PortaDelCliente.cs|IModelDocExtension.SaveAs"] = 1,
             ["Banco/ProvaNuove.cs|IModelDoc2.GraphicsRedraw2"] = 2,
             ["Riscontro.Disegno/ApiHelpers.Geometry.cs|IEdge.GetCurveParams2"] = 1,
-            ["Riscontro.Disegno/ApiHelpers.cs|IDimension.GetSystemValue2"] = 1,
-            ["Riscontro.Disegno/ApiHelpers.cs|IDimension.SystemValue"] = 1,
             ["Riscontro.Disegno/ApiHelpers.cs|IModelDocExtension.CreateMassProperty"] = 1,
             ["Riscontro.Disegno/EsecutorePiano.cs|IModelDocExtension.FinishRecordingUndoObject"] = 1,
             ["Riscontro.Disegno/OperazioniAccoppia.cs|IAssemblyDoc.AddMate5"] = 1,
@@ -156,8 +154,10 @@ namespace Prove.Contratti
             ["IComponent2.ExcludeFromBOM"] = "L16-3: superseded by GetExcludeFromBOM2/SetExcludeFromBOM2, per configuration (pattern S8)",
             ["IConfiguration.ShowChildComponentsInBOM"] = "superseded by IConfiguration::ChildComponentDisplayInBOM; read-only use in the assembly state",
             ["ICurve.Evaluate"] = "M30: superseded by ICurve::Evaluate2 (sketch-text outline)",
-            ["IDimension.GetSystemValue2"] = "S1: only in ApiHelpers.ReadDimensionInConfiguration and one bank reader; GetSystemValue3 returns an object whose shape waits for the Z-C21.3 probe",
-            ["IDimension.SystemValue"] = "S1: only in ApiHelpers.ReadDimension; GetSystemValue3 waits for the Z-C21.3 probe",
+            ["IDimension.GetSystemValue2"] = "S1: only one bank reader left (Banco/NumeriDelleQuote), the value of a dimension already on a drawing, " +
+                                             "written back as a matching override. The library moved to GetSystemValue3 in Z-C21.7 (the view's " +
+                                             "configuration in a drawing, probe_dimension_value3); the bench keeps the call the Z-C21.3 probe found " +
+                                             "reading the view's configuration, so that its reading stays independent of the one under test",
             ["IDimensionTolerance.GetMaxValue"] = "L5-3: superseded by IDimensionTolerance::GetMaxValue2",
             ["IDimensionTolerance.GetMinValue"] = "L5-3: superseded by IDimensionTolerance::GetMinValue2",
             ["IDraftFeatureData.Angle"] = "L4-6: IDraftFeatureData2::Angle is current",

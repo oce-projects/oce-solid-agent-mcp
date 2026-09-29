@@ -163,6 +163,38 @@ has been run yet.
   DIVERGES note. No answer changes. Case that must stay identical:
   `saldature/il_cordone_va_fra_facce_che_si_toccano` (68 mm, side read back 4,
   volume 1264161.94 unchanged, the two refusals before it).
+- **S1, reading a dimension: `SystemValue` / `GetSystemValue2("")` -> `GetSystemValue3`,
+  and in a drawing the configuration of the view.** `ApiHelpers.ReadDimension` (parts:
+  the state's dimensions, `modifica_quota`, `lega_quota`, `tolleranza_quota`, the anchor
+  checks of `OperazioniAncora`) is now `GetSystemValue3(swThisConfiguration, null)[0]`;
+  `ReadDimensionInConfiguration` is `GetSystemValue3(swSpecifyConfiguration, {name})[0]`
+  and wants a name; the new `ReadDimensionInView` reads a drawing dimension in the
+  configuration its view references (the base view's, for a view that names none).
+  `probe_dimension_value3`: in a part the first form equals `SystemValue` and
+  `GetSystemValue2("")` everywhere (0.01 m / 5 deg in A, 0.025 m / 8 deg in B, with
+  either active), and the second equals `GetSystemValue2(name)`. In a DRAWING whose
+  view shows B while the part has A active, `SystemValue` and `GetSystemValue2("")` read
+  B (the view) but `GetSystemValue3(swThisConfiguration, null)` reads A, a plausible
+  wrong number; `(swSpecifyConfiguration, {B})` reads B. So every drawing caller now
+  passes its view: the existing dimensions of a view (`ChiaviGiaQuotate`), the
+  dimensions `quota_in_tavola` makes and reads back (`DescriviQuota`, the chamfer
+  dimension, through `QuotaIContorni`, `QuotaIFori`, `PosizioneDelForo`,
+  `QuotaGliSmussi`), the turned part (`OperazioniTondoTavola`, `RilettaGiusta`) and the
+  overridden dimensions of the drawing state (`StatoTavola`). An answer of another
+  shape throws, and every call site already catches. NOT PROBED: dimensions the
+  drawing owns (made by AddDimension, AddChamferDim, between silhouette edges) go
+  through the same call; the drawing cases are their first measure. The bench's own
+  reader (`Banco/NumeriDelleQuote.cs`) stays on `GetSystemValue2("")`, frozen with that
+  reason, so that it does not share the reading under test. Frozen keys removed: 2
+  (`ApiHelpers.cs` SystemValue and GetSystemValue2). No answer changes expected; no
+  bench case sets a view to a configuration other than the part's active one, the
+  situation the probe measured. Cases that must stay identical: the 14 `tavola/` cases
+  with `quota_in_tavola` (among them `la_tavola_si_quota`, `la_tavola_quota_fori_e_smusso`,
+  `l_albero_a_gradini_quotato_di_fianco`, `the_turned_diameter_is_not_an_orphan`),
+  `quote/le_quote_arrivano_dal_modello`, `quote/la_parete_ha_un_nome`,
+  `quote/la_variabile_non_scavalca_lo_smusso`, `quote/la_tolleranza_sulla_quota_del_modello`,
+  the `modifica_quota` cases of `asola/`, `estrusioni/`, `lavorazioni/` and `smusso/`
+  (the anchors), and the bench's dimension-numbers group.
 
 ---
 

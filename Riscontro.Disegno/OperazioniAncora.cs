@@ -750,7 +750,9 @@ namespace Riscontro.Disegno
                 if (q == null)
                     return MovementTestNotVerifiable(asse, "the anchor dimension was not kept when it was created");
                 double era;
-                try { era = ApiHelpers.ReadDimensionInConfiguration(q, ""); }
+                // A part: the active configuration (ApiHelpers.ReadDimension,
+                // GetSystemValue3 since Z-C21.7; it was GetSystemValue2("")).
+                try { era = ApiHelpers.ReadDimension(q); }
                 catch (Exception ex)
                 {
                     return MovementTestNotVerifiable(asse, "I cannot read the anchor dimension: " + ex.Message);
@@ -777,7 +779,7 @@ namespace Riscontro.Disegno
                     {
                         modello.EditRebuild3();
                         double mossa = era;
-                        try { mossa = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
+                        try { mossa = ApiHelpers.ReadDimension(q); } catch { }
                         if (Math.Abs(mossa - (era + 0.0001)) > 1e-9)
                             ferma = "rilette, la quota non si e' spostata";
                         else
@@ -804,7 +806,7 @@ namespace Riscontro.Disegno
                     return "Spostando la quota d'ancora «" + asse.Nome + "» di un decimo, il taglio va in errore (" + rotta +
                            "): lo schizzo non regge una modifica, e un'ancora che non regge una modifica non serve.";
                 double tornata = -1;
-                try { tornata = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
+                try { tornata = ApiHelpers.ReadDimension(q); } catch { }
                 if (Math.Abs(tornata - era) > 1e-9)
                     return "Dopo la prova di movimento la quota d'ancora «" + asse.Nome + "» non e' tornata al suo valore.";
             }
@@ -944,7 +946,7 @@ namespace Riscontro.Disegno
                 nata = quota?.GetDimension2(0);
                 if (nata == null) return -1;
                 try { quota.MarkedForDrawing = true; } catch { }
-                return ApiHelpers.ReadDimensionInConfiguration(nata, "") * 1000.0;
+                return ApiHelpers.ReadDimension(nata) * 1000.0;
             }
             catch { return -1; }
             finally
@@ -1299,7 +1301,7 @@ namespace Riscontro.Disegno
                     return false;
                 }
                 double readDeg;
-                try { readDeg = Unita.Gradi(ApiHelpers.ReadDimensionInConfiguration(quota.GetDimension2(0), "")); }
+                try { readDeg = Unita.Gradi(ApiHelpers.ReadDimension(quota.GetDimension2(0))); }
                 catch (Exception ex)
                 {
                     whyNot = "was born, but I cannot read its value back (" + ex.Message + ").";

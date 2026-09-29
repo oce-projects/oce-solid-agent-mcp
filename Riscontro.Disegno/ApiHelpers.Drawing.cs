@@ -62,6 +62,57 @@ namespace Riscontro.Disegno
             return views;
         }
 
+        // =====================================================================
+        //  S1 IN A DRAWING — A DIMENSION IN THE CONFIGURATION OF ITS VIEW
+        // =====================================================================
+
+        /// <summary>
+        /// The value in system units of a dimension shown in
+        /// <paramref name="view"/>, in the configuration that view shows.
+        ///
+        /// Guide: IView~ReferencedConfiguration.html, «Gets or sets the
+        /// configuration referenced by this drawing view.»; the reading is
+        /// <see cref="ReadDimensionInConfiguration"/> (GetSystemValue3 with
+        /// swSpecifyConfiguration). An empty name is asked of the base view,
+        /// as <see cref="ReferencedModelKey"/> does for the model name, and a
+        /// view that names no configuration at all throws: guessing one is what
+        /// this helper exists to stop.
+        ///
+        /// WHY THE VIEW'S CONFIGURATION (Z-C21.7, S1). The Z-C21.3 probe
+        /// probe_dimension_value3, drawing stage: a front view set to
+        /// configuration B (0.025 m, 8 deg) while the part had A active (0.01
+        /// m, 5 deg), the model dimensions brought in with
+        /// InsertModelAnnotations3. The obsolete SystemValue and
+        /// GetSystemValue2("") read B, the configuration of the view, which is
+        /// what every drawing reading here used until Z-C21.7;
+        /// GetSystemValue3(swThisConfiguration, null) read A, the model's
+        /// active one: a plausible wrong number. GetSystemValue3
+        /// (swSpecifyConfiguration, {B}) read B. So a drawing passes the
+        /// configuration of the view.
+        ///
+        /// NOT PROBED: the dimensions the DRAWING owns (made with AddDimension,
+        /// AddChamferDim or between silhouette edges), which most drawing
+        /// readings here are. They go through the same call; if SOLIDWORKS
+        /// answers them in another shape the reading throws and the caller's
+        /// catch turns it into "not read", and the drawing cases of the bench
+        /// (dimensions put in a view, the turned part, the chamfer) are the
+        /// first measure.
+        /// </summary>
+        internal static double ReadDimensionInView(IDimension dimension, IView view)
+        {
+            string configuration = null;
+            var v = view;
+            for (int level = 0; v != null && level < 8; level++)
+            {
+                configuration = v.ReferencedConfiguration;
+                if (!string.IsNullOrWhiteSpace(configuration)) break;
+                v = v.GetBaseView() as IView;
+            }
+            if (string.IsNullOrWhiteSpace(configuration))
+                throw new InvalidOperationException("the drawing view names no configuration to read the dimension in");
+            return ReadDimensionInConfiguration(dimension, configuration);
+        }
+
         /// <summary>
         /// The model and configuration a drawing view shows, as one key
         /// ("path|configuration", lower case), or null when the view does not
