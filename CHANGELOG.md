@@ -28,14 +28,11 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.13 (branch z-c21-13)
+## 0.120.0 — 29 September 2026 · library 0.144.0
 
 **What the online research of 29 September 2026 decided (TODO entry Z-C21.13, RAG
 note 82zz-decies), built on library 0.143.0 with the probes of the same afternoon.
-THE BENCH HAS NOT RUN on these changes.** The library, the bridge, the contract
-tests and the bench harness build; the contract run is green except the two
-bench-freshness checks, which only a bench run can turn green. Version numbers
-(VERSION.txt, AssemblyVersion) are not raised yet: that happens with the bench.
+** BENCH_0144_PLACEHOLDER
 
 - **C5-7, STEP AP242 through SOLIDWORKS MBD.** The library no longer writes
   `swStepAP = 242`: the probe `step_ap242` measured that SOLIDWORKS 2021 accepts it and
