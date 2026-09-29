@@ -180,18 +180,18 @@ namespace Riscontro.Disegno
 
         /// <summary>Each weld-from face or edge of a cosmetic weld bead (weld geometry mode).</summary>
         /// Guide: IFeatureManager~InsertCosmeticWeldBead2.html, «4 for each weld-from entity in WeldFromFaceOrEdgeSet».
-        /// DIVERGES: L9-3 — cordone_saldatura calls the OBSOLETE
-        /// InsertCosmeticWeldBead with both faces selected with no mark, which is
-        /// what that method's own example does (Insert_Cosmetic_Weld_Bead_Example:
-        /// SelectByID2(..., false, 0, ...) then (..., true, 0, ...)). The marks 4
-        /// and 8 belong to InsertCosmeticWeldBead2, which returned null in every
-        /// combination tried on 25/9/2026, never with these marks: that is the
-        /// remeasure before Z-C21.7 migrates it. Not used by the code yet.
+        /// Used by cordone_saldatura since Z-C21.7 (L9-3). Until then it called
+        /// the obsolete InsertCosmeticWeldBead with both faces selected with no
+        /// mark, because InsertCosmeticWeldBead2 had returned null in every
+        /// combination tried on 25/9/2026, none with these marks. The Z-C21.3
+        /// InsertCosmeticWeldBead2 probe measured them: marks 4/8 with the selection kept
+        /// make the bead (W1, W2: BeadSize 4 mm, the same bead as the obsolete
+        /// call), without marks (W4) or with the selection cleared (W3) no bead.
         public const int WeldBeadFrom = 4;
 
         /// <summary>Each weld-to face or edge of a cosmetic weld bead (weld geometry mode).</summary>
         /// Guide: IFeatureManager~InsertCosmeticWeldBead2.html, «8 for each weld-to entity in WeldToFaceOrEdgeSet».
-        /// DIVERGES: L9-3, as <see cref="WeldBeadFrom"/>.
+        /// Measured and used as <see cref="WeldBeadFrom"/>.
         public const int WeldBeadTo = 8;
 
         // ── ISimpleFilletFeatureData2, face fillet (raccordo_faccia) ────────

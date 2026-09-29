@@ -146,6 +146,23 @@ has been run yet.
   `proprieta/the_material_reaches_every_configuration` (7800, 1.56 kg),
   `assiemi/l_assieme_si_pesa_si_misura_si_manda` (1.0675 kg, sum of the parts
   1.0675), `assiemi/due_basi_uguali_uno_step`, and the bench's client-door group.
+- **L9-3, the cosmetic weld bead: `InsertCosmeticWeldBead` -> `InsertCosmeticWeldBead2`
+  with the marks 4 / 8.** `cordone_saldatura` selects the from face with
+  `SelectionMarks.WeldBeadFrom` (4) and the to face with `WeldBeadTo` (8) on a
+  SelectData, keeps the selection, and calls `InsertCosmeticWeldBead2(weld geometry,
+  Face2[]{from}, Face2[]{to}, size)`: case W1 of the Z-C21.3 weld bead probe,
+  decision A. On the trimmed T of the bench case W1 (and W2, the guide's example
+  literally) made one bead, BeadSize 4 mm, 68 mm long, the same as the obsolete call
+  (W0); without the marks (W4), with the selection cleared (W3) or with no selection
+  (W5, the call of 25 September) there is no bead: the "null in every combination" of
+  25 September was the missing marks. The return is an Object[1], on which `as
+  IFeature` is null, so the new bead is found in the tree as the probe counted it:
+  the beads by name before and after, sub-features included (it lives in the weld
+  folder); two new beads are a refusal. This was an OBSOLETE-MEASURED entry, not a
+  frozen one: the Measured entry goes. `SelectionMarks.WeldBeadFrom/To` lose their
+  DIVERGES note. No answer changes. Case that must stay identical:
+  `saldature/il_cordone_va_fra_facce_che_si_toccano` (68 mm, side read back 4,
+  volume 1264161.94 unchanged, the two refusals before it).
 
 ---
 

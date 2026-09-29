@@ -1907,6 +1907,13 @@ namespace Riscontro.Disegno
         // Quindi: una coppia di facce per chiamata, e il contatto si controlla
         // QUI, prima, perche' SOLIDWORKS non lo controlla — e un cordone fra
         // facce lontane finirebbe nella distinta come saldatura vera.
+        //
+        // WHAT THE NULL OF 25/9 WAS (the InsertCosmeticWeldBead2 probe of Z-C21.3, 28/9/2026):
+        // the marks. None of those calls selected the faces with the marks 4
+        // and 8 of the InsertCosmeticWeldBead2 page; with them (and the
+        // selection kept) the bead is born, and since Z-C21.7 (L9-3) this
+        // operation uses InsertCosmeticWeldBead2 that way. The rest above
+        // still holds: one pair of faces, the contact checked here.
         private Esito CordoneSaldatura(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
@@ -1966,26 +1973,62 @@ namespace Riscontro.Disegno
                     "fra due facce lontane nasce, con un lato diverso da quello chiesto), " +
                     "e in distinta finirebbe una saldatura che non esiste.");
 
+            // Z-C21.7 (L9-3): InsertCosmeticWeldBead2, not the obsolete
+            // InsertCosmeticWeldBead (IFeatureManager~InsertCosmeticWeldBead.html:
+            // «Obsolete. Superseded by IFeatureManager::InsertCosmeticWeldBead2»).
+            // IFeatureManager~InsertCosmeticWeldBead2.html, Remarks, weld
+            // geometry mode: «4 for each weld-from entity in
+            // WeldFromFaceOrEdgeSet, 8 for each weld-to entity in
+            // WeldToFaceOrEdgeSet»; «Return Value: Array of weld bead features».
+            // Exactly case W1 of the InsertCosmeticWeldBead2 probe of Z-C21.3 (decision A),
+            // on the trimmed T of the bench case: the two faces selected with
+            // the marks 4 and 8 on a SelectData, the same faces passed as typed
+            // Face2[] arrays, the selection KEPT through the call: one bead,
+            // BeadSize 4 mm, 68 mm long, the same bead as the obsolete call
+            // (W0). The marks are required: without them (W4) or with the
+            // selection cleared before the call (W3) there is no bead, which is
+            // what the null of 25/9/2026 was. The return is an Object[1] and
+            // `as IFeature` on it gives null, so the bead is taken from the
+            // tree, as the probe counted it (sub-features included: it lives in
+            // the weld folder).
             modello.ClearSelection2(true);
+            var selectionManager = modello.SelectionManager as ISelectionMgr;
+            var marks = new[] { SelectionMarks.WeldBeadFrom, SelectionMarks.WeldBeadTo };
             for (int i = 0; i < 2; i++)
-                if (!(facce[i] as IEntity).Select4(true, null))
+            {
+                var selectData = selectionManager?.CreateSelectData() as SelectData;
+                if (selectData == null)
+                    return Fallito("I could not prepare the selection of the two faces (CreateSelectData).");
+                selectData.Mark = marks[i];
+                if (!(facce[i] as IEntity).Select4(true, selectData))
                     return Fallito("La faccia «" + Str(a, nomi[i], "") + "» non si e' lasciata selezionare.");
+            }
 
+            var beadsBefore = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var bead in WeldBeadsInTree(modello)) beadsBefore.Add(WeldBeadName(bead));
             IFeature feature;
             try
             {
-                // OBSOLETE-MEASURED: il_cordone_va_fra_facce_che_si_toccano — InsertCosmeticWeldBead2
-                // returned null in every combination tried on 25/9/2026 (see the comment above).
-                // The faces are selected with no mark, as in the example of this very method
-                // (Insert_Cosmetic_Weld_Bead_Example). InsertCosmeticWeldBead2 wants marks 4
-                // (from) and 8 (to), SelectionMarks.WeldBeadFrom/WeldBeadTo, never tried: the
-                // remeasure before Z-C21.7 migrates it (L9-3).
-                feature = modello.FeatureManager.InsertCosmeticWeldBead(Unita.M(lato)) as IFeature;
+                modello.FeatureManager.InsertCosmeticWeldBead2(
+                    (int)swCosmeticWeldBeadMode_e.swCosmeticWeldBeadMode_WeldGeometry,
+                    new Face2[] { (Face2)facce[0] }, new Face2[] { (Face2)facce[1] }, Unita.M(lato));
+                var born = new List<IFeature>();
+                var bornNames = new List<string>();
+                foreach (var bead in WeldBeadsInTree(modello))
+                {
+                    string name = WeldBeadName(bead);
+                    if (!beadsBefore.Contains(name)) { born.Add(bead); bornNames.Add(name); }
+                }
+                if (born.Count > 1)
+                    return Fallito("InsertCosmeticWeldBead2 made " + born.Count + " weld beads instead of one (" +
+                                   string.Join(", ", bornNames) + "): take them back with undo, and tell me.");
+                feature = born.Count == 1 ? born[0] : null;
             }
             catch (Exception ex)
             {
                 return Fallito("Il cordone non e' riuscito: " + ex.Message);
             }
+            finally { try { modello.ClearSelection2(true); } catch { } }
             if (feature == null)
                 return Fallito(
                     "Il cordone non e' stato creato, e SOLIDWORKS non dice perche'. " +
@@ -2019,6 +2062,56 @@ namespace Riscontro.Disegno
                 ["corpo_da"] = corpoDa,
                 ["corpo_a"] = corpoA,
             });
+        }
+
+        /// <summary>
+        /// The cosmetic weld beads of the tree (type «CosmeticWeldBead», IFeature~GetTypeName2.html),
+        /// sub-features included: a bead does not sit at the top level but in
+        /// the weld folder (the InsertCosmeticWeldBead2 probe of Z-C21.3 found it under a
+        /// CosmeticWeldCutList and a CosmeticWeldSubFolder). The same walk as
+        /// the probe's, five levels deep at most, and like the probe's count
+        /// each name once: a bead reached twice is still one bead.
+        /// </summary>
+        private static List<IFeature> WeldBeadsInTree(IModelDoc2 modello)
+        {
+            var found = new List<IFeature>();
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    found.AddRange(CollectWeldBeads(f, 0));
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            var beads = new List<IFeature>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var bead in found)
+                if (seen.Add(WeldBeadName(bead))) beads.Add(bead);
+            return beads;
+        }
+
+        private static List<IFeature> CollectWeldBeads(IFeature feature, int depth)
+        {
+            var found = new List<IFeature>();
+            string type = "";
+            try { type = feature.GetTypeName2() ?? ""; } catch { }
+            if (type == "CosmeticWeldBead") found.Add(feature);
+            if (depth >= 5) return found;
+            IFeature sub = null;
+            try { sub = feature.GetFirstSubFeature() as IFeature; } catch { }
+            while (sub != null)
+            {
+                found.AddRange(CollectWeldBeads(sub, depth + 1));
+                try { sub = sub.GetNextSubFeature() as IFeature; } catch { sub = null; }
+            }
+            return found;
+        }
+
+        private static string WeldBeadName(IFeature bead)
+        {
+            try { return bead.Name ?? ""; } catch { return ""; }
         }
 
         /// <summary>I nomi delle lavorazioni dell'albero, nell'ordine.</summary>

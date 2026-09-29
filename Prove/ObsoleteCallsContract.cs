@@ -76,10 +76,6 @@ namespace Prove.Contratti
         {
             ["Riscontro.Disegno/OperazioniCentrini.cs|IDrawingDoc.AddCenterMark|le_croci_di_centro_sui_fori"] =
                 new MeasuredCall(1, "tried, fails: InsertCenterMark2/3 answer True and add nothing (probes of 17/9 and 26/9/2026)"),
-            ["Riscontro.Disegno/OperazioniSaldatura.cs|IFeatureManager.InsertCosmeticWeldBead|il_cordone_va_fra_facce_che_si_toccano"] =
-                new MeasuredCall(1, "tried, fails without marks: InsertCosmeticWeldBead2 returned null in every combination of 25/9/2026; " +
-                                    "not measured with the marks 4 (from) and 8 (to) of its Remarks (L9-3, SelectionMarks.WeldBeadFrom/To), " +
-                                    "to remeasure in Z-C21.7"),
             ["Riscontro.Disegno/OperazioniTondoTavola.cs|IModelDoc2.GraphicsRedraw2|l_albero_a_gradini_quotato_di_fianco"] =
                 new MeasuredCall(2, "not measured: IModelView::GraphicsRedraw never tried here; the case proves the redraw makes " +
                                     "ISilhouetteEdge.GetFace answer (N20, remeasure in Z-C21.7)"),
