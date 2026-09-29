@@ -296,6 +296,29 @@ namespace Riscontro.Disegno
                     "La chiamata e' andata a buon fine ma le viste sono sempre " + prima +
                     ": la tavola e' vuota. Non lo chiamo riuscito.");
 
+            // THE DRAWING IS REBUILT BEFORE ANSWERING (29/9/2026). The centre marks
+            // SOLIDWORKS puts on holes when it creates a view (document option
+            // swDetailingAutoInsertCenterMarksForHoles) were counted 3 in three full
+            // bench runs and alone, and 0 once in the full run on 0.142.0
+            // (le_croci_di_centro_sui_fori, step 7), with no change to this code or
+            // to the counter. The state read right after the views were made may
+            // come before the views are complete; a rebuild settles them, and the
+            // answer now carries the count, so a second zero comes with its number.
+            try { ((IModelDoc2)disegno).EditRebuild3(); } catch { }
+            int centreMarks = 0;
+            try
+            {
+                var vista = disegno.GetFirstView() as IView;          // the sheet itself
+                vista = vista == null ? null : vista.GetNextView() as IView;
+                while (vista != null)
+                {
+                    int n = ContaCroci.DellaVista(vista);
+                    if (n > 0) centreMarks += n;
+                    vista = vista.GetNextView() as IView;
+                }
+            }
+            catch { centreMarks = -1; }
+
             var misure = new Dictionary<string, object>
             {
                 ["diedro"] = "primo",
@@ -304,6 +327,7 @@ namespace Riscontro.Disegno
                 ["viste_dopo"] = dopo,
                 ["viste_create"] = dopo - prima,
                 ["nomi"] = NomiDelleViste(disegno),
+                ["centre_marks_after_rebuild"] = centreMarks >= 0 ? (object)centreMarks : null,
             };
             return SenzaFeature(misure);
         }

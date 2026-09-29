@@ -35,7 +35,14 @@ measured on 28 September 2026.** Every finding below was measured REAL by a prob
 first; each fix follows the call that the probe showed working, with its numbers,
 and cites its page of the API guide in the code. **The bench has not run on this
 branch yet**: the red-before and green-after of the new cases come from the probe
-numbers and from reasoning, not from a bench run. BENCH_0142_PLACEHOLDER
+numbers and from reasoning, not from a bench run. **Full bench on library 0.142.0,
+29/9/2026: 1932 tests, 1 failed**, and not in these fixes: `le_croci_di_centro_sui_fori`
+step 7 counted 0 centre marks instead of 3 right after `viste_standard`. It was
+green in the three full runs before and green again alone on the same library,
+and neither `viste_standard` nor the counter had changed. `viste_standard` now
+rebuilds the drawing before answering and reports `centre_marks_after_rebuild`.
+The green full bench of this entry is the one on 0.143.0 (entry 0.119.0), which
+contains it.
 
 Drawing (`OperazioniTavola.cs`, `StatoTavola.cs`):
 
