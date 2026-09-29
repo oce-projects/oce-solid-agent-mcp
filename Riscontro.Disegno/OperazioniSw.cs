@@ -1092,6 +1092,16 @@ namespace Riscontro.Disegno
                         dati[i * 3 + 1] = Unita.M(tratto.Punti[i][1]);
                         dati[i * 3 + 2] = 0;
                     }
+                    // STILL THE OBSOLETE CreateSpline after Z-C21.7 (L1-1): the
+                    // Z-C21.3 probe probe_spline3 printed «keep CreateSpline
+                    // frozen», but its layout verdict only counted
+                    // SimulateNaturalEnds false (CreateSpline3 with triples:
+                    // 8806.568 mm3 against 8808.586; with pairs: 27 or 28 splines
+                    // of 34 and no extrusion), while its own line for
+                    // CreateSpline3(triples, null, null, true) says SAME AS
+                    // BRIDGE (8808.586 mm3, the same box, every spline read back
+                    // exact). Not migrated here: the reason and the numbers are
+                    // in ObsoleteCallsContract.WhyFrozen, for a decision.
                     schizzi.CreateSpline(dati);
                     fatte++;
                 }

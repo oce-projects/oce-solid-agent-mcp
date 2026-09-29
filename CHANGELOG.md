@@ -196,6 +196,15 @@ has been run yet.
   the `modifica_quota` cases of `asola/`, `estrusioni/`, `lavorazioni/` and `smusso/`
   (the anchors), and the bench's dimension-numbers group.
 
+Not migrated: **L1-1, `CreateSpline`** stays frozen, as the Z-C21.3 decision says.
+Its `WhyFrozen` now carries the measure, and a discrepancy: `probe_spline3` printed
+"keep CreateSpline frozen" because `CreateSpline3` with SimulateNaturalEnds false
+gives 8806.568 mm3 against the bridge's 8808.586 (triples) or no extrusion (pairs),
+but that verdict only counted SimulateNaturalEnds false, and the same probe reports
+`CreateSpline3(triples, null, null, true)` (S5) and `CreateSpline2(triples, true)` (S2)
+as the same as the bridge: 8808.586 mm3, the same box, every spline read back exact.
+Left for a decision.
+
 ---
 
 ## 0.118.0 — 29 September 2026 · library 0.142.0
