@@ -109,11 +109,20 @@ namespace Riscontro.Disegno
 
             if (!SelezionaPiano(modello, piano))
                 return Fallito("Non riesco a selezionare il piano " + piano + ".");
+            // Z-C21.7 (L8-4): InsertSketchPicture2(file, false), not the obsolete
+            // InsertSketchPicture (ISketchManager~InsertSketchPicture.html:
+            // «Obsolete. Superseded by ISketchManager::InsertSketchPicture2»).
+            // HighestResolution false is what a part gets anyway (the Remarks
+            // quoted above). The Z-C21.3 probe probe_sketch_picture2 measured it
+            // as a drop-in: on the 400 x 200 PNG, P1 = P0 (pixel map 400 x 200,
+            // 120 x 60 mm at (10, 20), first row 119.7 mm); on the 4096 x 2048 PNG
+            // the same pixel map of 2048 x 1024 as the obsolete call, which is
+            // why the file-pixel readback of M11 below stays as it is.
             ISketchPicture foto = null;
             try
             {
                 modello.SketchManager.InsertSketch(true);
-                foto = modello.SketchManager.InsertSketchPicture(percorso) as ISketchPicture;
+                foto = modello.SketchManager.InsertSketchPicture2(percorso, false) as ISketchPicture;
             }
             catch (Exception ex)
             {
@@ -123,7 +132,7 @@ namespace Riscontro.Disegno
             if (foto == null)
             {
                 try { modello.SketchManager.InsertSketch(true); } catch { }
-                return Fallito("SOLIDWORKS non ha messo l'immagine (InsertSketchPicture ha risposto null): il file " +
+                return Fallito("SOLIDWORKS non ha messo l'immagine (InsertSketchPicture2 ha risposto null): il file " +
                                "c'e' ma forse non e' un'immagine vera. Prova a risalvarla in PNG.");
             }
             int w = 0, h = 0;

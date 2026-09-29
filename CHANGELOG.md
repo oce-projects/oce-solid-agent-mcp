@@ -97,6 +97,18 @@ has been run yet.
   changes. Cases that must stay identical: `tavola/la_tabella_fori_dice_dove_sono`
   (5 holes, 6 rows, positions verified) and
   `tavola/lim_tabella_fori_sulla_vista_di_fianco`.
+- **L8-4, the picture in a sketch: `InsertSketchPicture` -> `InsertSketchPicture2(file,
+  false)`.** `immagine_nello_schizzo` calls the replacement with HighestResolution
+  false, which is what a part gets anyway (the page's Remarks). `probe_sketch_picture2`:
+  a drop-in on the 400 x 200 PNG (P1 = P0: pixel map 400 x 200, 120 x 60 mm at
+  (10, 20), first row 119.7 mm), and on the 4096 x 2048 PNG the same 2048 x 1024
+  pixel map as the obsolete call (true is ignored in a part too, P2 = P1), so the
+  file-pixel readback of M11 added in library 0.142.0 stays as it is. The refusal on
+  a null return names the new method; its text is otherwise unchanged. Frozen key
+  removed: 1. No answer changes. Cases that must stay identical:
+  `piano/la_foto_sta_in_scala` (0.3 mm per pixel, 119.7 mm check) and
+  `piano/a_picture_over_2048_px_keeps_the_scale_of_its_file` (0.1 mm per file pixel,
+  SOLIDWORKS pixels 2048 x 1024).
 
 ---
 
