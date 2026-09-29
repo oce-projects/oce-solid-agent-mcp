@@ -265,17 +265,20 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// The sentence the answer carries when the profile library is still
-        /// LOADED after CloseDoc, hidden because an open document references it,
-        /// with the changes the insertion made (Z-C21.13 N11, the probe's H1d:
+        /// LOADED after CloseDoc, hidden (an open document references it, or,
+        /// for a library that was hidden before the call, the call did nothing:
+        /// the read back cannot tell the two apart), with the changes the insertion made (Z-C21.13 N11, the probe's H1d:
         /// the save flag then reads clean, and the edit is still in memory).
         /// </summary>
         private static string LibraryLeftLoaded(string name)
         {
             return "ATTENTION: the weldment profile library «" + name + "» is still loaded " +
-                   "in SOLIDWORKS, hidden, because an open document references it, and it " +
+                   "in SOLIDWORKS, hidden (an open document references it, or the close did " +
+                   "nothing), and it " +
                    "keeps the changes the insertion made even if its save flag reads clean. " +
-                   "Do not open it and save it: a save would rewrite the shared library. It is " +
-                   "unloaded when the documents that use it are closed.";
+                   "Do not open it and save it: a save would rewrite the shared library. If a " +
+                   "document uses it, it is unloaded when that document is closed; otherwise " +
+                   "close it by hand, without saving.";
         }
 
         /// <summary>

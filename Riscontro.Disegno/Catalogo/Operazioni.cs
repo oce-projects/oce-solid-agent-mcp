@@ -2182,8 +2182,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "SOLIDWORKS after the insertion, the answer carries "
                         + "«profile_library_warning»: close that library without saving, or a "
                         + "Ctrl+S would rewrite the shared library. The warning can carry a second "
-                        + "sentence: the library is still LOADED, hidden, because an open document "
-                        + "references it, with the insertion's changes in memory even if its save "
+                        + "sentence: the library is still LOADED, hidden (an open document references it, or the close did nothing), "
+                        + "with the insertion's changes in memory even if its save "
                         + "flag reads clean."
                         + "\n\nI refuse an empty «configurazione» when the profile file has several "
                         + "sizes, and list them: with an empty size SOLIDWORKS builds the size the file "
@@ -2422,7 +2422,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "still open and modified in SOLIDWORKS afterwards, "
                         + "«profile_library_warning»: close that library without saving. The warning "
                         + "or the refusal can also say that the library is still LOADED, hidden, "
-                        + "because an open document references it, with the changes in memory even "
+                        + "because an open document references it or the close did nothing, with the changes in memory even "
                         + "if its save flag reads clean.",
                     Precondizione = null,
                     Schema = O(

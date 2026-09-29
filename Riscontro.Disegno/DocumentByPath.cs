@@ -374,9 +374,14 @@ namespace Riscontro.Disegno
                 else
                 {
                     outcome.Result = CloseResult.StillLoadedHidden;
-                    outcome.Message = asked + " returned, and «" + label + "» is still loaded, hidden: another " +
-                                      "open document references it, and SOLIDWORKS keeps the model data of a " +
-                                      "referenced document" +
+                    outcome.Message = asked + " returned, and «" + label + "» is still loaded, hidden" +
+                                      (wasVisible
+                                          ? ": another open document references it, and SOLIDWORKS keeps the " +
+                                            "model data of a referenced document"
+                                          // Hidden before the call too: nothing here tells a
+                                          // referenced document from a call that did nothing.
+                                          : " as it was before the call: either another open document " +
+                                            "references it, or the call did nothing") +
                                       (outcome.HadUnsavedChanges
                                           ? ". It had unsaved changes, and its save flag is not to be believed " +
                                             "now: the N11 probe (29/9/2026) read it clean with the edit still in memory"
