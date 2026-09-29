@@ -32,7 +32,9 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 **What the online research of 29 September 2026 decided (TODO entry Z-C21.13, RAG
 note 82zz-decies), built on library 0.143.0 with the probes of the same afternoon.
-** BENCH_0144_PLACEHOLDER
+** **Full bench on library 0.144.0, 30/9/2026: 1941 tests, 0 failed**, after two
+fixes the first runs asked for (a path not on disk is not a name; never CloseDoc(""),
+both below). The 17-tooth gear with CreateSpline3 and AddToDB off: 8808.59 as before.
 
 - **C5-7, STEP AP242 through SOLIDWORKS MBD.** The library no longer writes
   `swStepAP = 242`: the probe `step_ap242` measured that SOLIDWORKS 2021 accepts it and
