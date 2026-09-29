@@ -162,14 +162,16 @@ namespace Riscontro.Disegno
             }
             string t = (title ?? "").Trim();
             string other = t.Length == 0 ? null : TitleCollision(t, otherPaths, otherTitles);
-            if (isActive)
-            {
-                // "" comes from the guide and was NOT measured by the N11 probe
-                // (review of Z-C21.13): if it closes nothing, the read back sees
-                // the document still open and the title is tried next, but only a
-                // title no other open document answers to.
-                return t.Length > 0 && other == null ? new[] { "", t } : new[] { "" };
-            }
+            // NEVER CloseDoc(""). The guide says the empty name closes the active
+            // document; the N11 probe never measured it, and the first full bench
+            // on 0.144.0 did: after LoadFile4 reopened an exported IGES/STEP, the
+            // reopened part answered as the active document, CloseDoc("") closed
+            // the ORIGINAL part of the export instead (never saved, changes
+            // discarded), and the title then closed the reopened one (groups
+            // iges_solidi and step_ap214_riletto). Until 0.143.0 the title alone
+            // was used, and the bench was green: the title it is, under the
+            // collision rule. isActive is kept in the signature for the callers.
+            _ = isActive;
             if (t.Length == 0)
             {
                 refusal = "the document has neither a path nor a title: there is no name to give CloseDoc";

@@ -225,17 +225,19 @@ namespace Prove.Contratti
 
             try
             {
-                // The guide: «an empty string (""), then the active document is
-                // closed without saving». In front, no name can point elsewhere.
-                // "" was not measured (review of Z-C21.13): the title follows it
-                // only when no other open document answers to that title.
-                var names = CloseNames(t, "", "Part7", true, new[] { @"C:\w\Part7.SLDPRT" }, new[] { "Part7" }, out refusal);
+                // NEVER CloseDoc(""): on the first full bench of 0.144.0 it closed
+                // the original part of an export instead of the reopened one that
+                // answered as active. In front or not, a document never saved is
+                // closed by its title, and refused when another document answers
+                // to that title.
+                string refusedWhy;
+                var names = CloseNames(t, "", "Part7", true, new[] { @"C:\w\Part7.SLDPRT" }, new[] { "Part7" }, out refusedWhy);
                 var alone = CloseNames(t, "", "Part7", true, new[] { @"C:\w\Base.SLDPRT" }, new[] { "Base.SLDPRT" }, out refusal);
-                Segna("a document never saved and in front is closed as the active document (CloseDoc with \"\")",
-                      Same(names, "") && Same(alone, "", "Part7"),
+                Segna("a document never saved and in front is closed by its title, never with CloseDoc(\"\")",
+                      names == null && !string.IsNullOrEmpty(refusedWhy) && Same(alone, "Part7"),
                       "title taken by another document " + Show(names) + ", title free " + Show(alone));
             }
-            catch (Exception ex) { Segna("a document never saved and in front is closed as the active document (CloseDoc with \"\")", false, ex.GetType().Name + ": " + ex.Message); }
+            catch (Exception ex) { Segna("a document never saved and in front is closed by its title, never with CloseDoc(\"\")", false, ex.GetType().Name + ": " + ex.Message); }
 
             try
             {
@@ -266,8 +268,11 @@ namespace Prove.Contratti
                 // saved, is titled «gear».
                 var notFront = CloseNames(t, "", "gear", false, new[] { @"C:\w\gear.SLDPRT" }, new[] { "gear.SLDPRT" }, out refusal);
                 var front = CloseNames(t, "", "gear", true, new[] { @"C:\w\gear.SLDPRT" }, new[] { "gear.SLDPRT" }, out refusal);
+                // In front or not, refused: CloseDoc("") is never used (it closed the
+                // original part on the first full bench of 0.144.0), and the title
+                // is shared. The reopened document stays open and the answer says so.
                 Segna("M4: the reopened STEP titled like its part is never closed by that title",
-                      notFront == null && Same(front, ""),
+                      notFront == null && front == null,
                       "not in front " + Show(notFront) + ", in front " + Show(front));
             }
             catch (Exception ex) { Segna("M4: the reopened STEP titled like its part is never closed by that title", false, ex.GetType().Name + ": " + ex.Message); }
