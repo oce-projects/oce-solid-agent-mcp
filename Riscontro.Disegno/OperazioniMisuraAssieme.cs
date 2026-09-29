@@ -306,6 +306,11 @@ namespace Riscontro.Disegno
                 try { found = c.GetBodies3((int)swBodyType_e.swSolidBody, out info) as object[]; }
                 catch { return -1; }
                 keys.Add(chiave);
+                // ZERO-E-ZERO: a real zero. Suppressed components and components whose
+                // model cannot be read are left out by PezziDellAssieme above, and a
+                // failed call returns -1; GetBodies3 answers null for a component that
+                // has no solid body (a surface-only or empty part), which is 0 solids in
+                // the STEP too.
                 bodies.Add(found == null ? 0 : found.Length);
                 userBodies.Add(UserBodiesIn(info));
             }
