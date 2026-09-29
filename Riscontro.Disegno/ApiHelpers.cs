@@ -112,6 +112,44 @@ namespace Riscontro.Disegno
         }
 
         // =====================================================================
+        //  S3 — IS A FEATURE SUPPRESSED (Z-C21.7)
+        // =====================================================================
+
+        /// <summary>
+        /// Whether <paramref name="feature"/> is suppressed in the configuration
+        /// that is active.
+        ///
+        /// Guide: IFeature~IsSuppressed.html, «Obsolete. Superseded by
+        /// IFeature::IsSuppressed2»; IFeature~IsSuppressed2.html, «Return Value
+        /// Array of Booleans indicating the suppression states for the feature
+        /// in the specified configurations».
+        ///
+        /// MEASURED by the Z-C21.3 probe probe_is_suppressed2 (SOLIDWORKS
+        /// 29.5.1, 28/9/2026) on a part with four configurations and a cut
+        /// suppressed in one of them only: IsSuppressed2(swThisConfiguration,
+        /// null) answers a Boolean[1] equal to the obsolete IsSuppressed() with
+        /// either configuration active ({False} with the cut active, {True}
+        /// with the configuration that suppresses it). With swAllConfiguration
+        /// and null names it answers one Boolean per configuration, in the
+        /// order of GetConfigurationNames; that form is not used here.
+        ///
+        /// Throws when the answer has another shape: a plausible false from a
+        /// wrong cast is worse than the exception every call site already
+        /// catches (the lesson of the wrong but plausible number, S1).
+        /// </summary>
+        internal static bool IsSuppressedHere(IFeature feature)
+        {
+            object raw = feature.IsSuppressed2((int)swInConfigurationOpts_e.swThisConfiguration, null);
+            var states = raw as bool[];
+            if (states == null && raw is object[] boxed && boxed.Length == 1 && boxed[0] is bool one)
+                states = new[] { one };
+            if (states == null || states.Length != 1)
+                throw new InvalidOperationException(
+                    "IFeature.IsSuppressed2(swThisConfiguration, null) did not answer one Boolean");
+            return states[0];
+        }
+
+        // =====================================================================
         //  S11 — MODIFYING A FEATURE DEFINITION
         // =====================================================================
 

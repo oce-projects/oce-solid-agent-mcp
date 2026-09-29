@@ -2327,7 +2327,9 @@ namespace Riscontro.Disegno
             // Si scrive solo quando e' vera: e' il caso raro, e
             // scriverla sempre costerebbe posto per dire «tutto
             // normale» ottanta volte.
-            try { if (f.IsSuppressed()) voceF["soppressa"] = true; } catch { }
+            // Read in the active configuration with IsSuppressed2 since Z-C21.7
+            // (S3, M44; ApiHelpers.IsSuppressedHere has the probe numbers).
+            try { if (ApiHelpers.IsSuppressedHere(f)) voceF["soppressa"] = true; } catch { }
 
             // UNA LAVORAZIONE IN ERRORE E UNA SANA ERANO
             // INDISTINGUIBILI, ed e' peggio della soppressa.

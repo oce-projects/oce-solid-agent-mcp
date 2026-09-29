@@ -490,7 +490,8 @@ namespace Riscontro.Disegno
                             if (mie[i].Select2(false, 0))
                             {
                                 try { modello.EditSuppress2(); } catch { }
-                                try { soppresso = mie[i].IsSuppressed(); } catch { }
+                                // IsSuppressed2 in the active configuration since Z-C21.7 (S3).
+                                try { soppresso = ApiHelpers.IsSuppressedHere(mie[i]); } catch { }
                             }
                         }
                         if (soppresso) soppressi.Add(nome);

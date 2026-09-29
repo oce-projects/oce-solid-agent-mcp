@@ -109,6 +109,22 @@ has been run yet.
   `piano/la_foto_sta_in_scala` (0.3 mm per pixel, 119.7 mm check) and
   `piano/a_picture_over_2048_px_keeps_the_scale_of_its_file` (0.1 mm per file pixel,
   SOLIDWORKS pixels 2048 x 1024).
+- **L6-3 / S3 / M44 (features), suppressed or not: `IFeature.IsSuppressed` ->
+  `IsSuppressed2(swThisConfiguration, null)[0]`.** One helper,
+  `ApiHelpers.IsSuppressedHere`, now answers for `sopprimi_lavorazione` (already
+  suppressed or active?), the «soppressa» flag of the document state
+  (`StatoDocumento`) and the rib's retreat (`NervaturaRitira`, a sketch that can only
+  be suppressed). `probe_is_suppressed2`, four configurations and a cut suppressed in
+  one: `(swThisConfiguration, null)` is a Boolean[1] equal to `IsSuppressed()` with
+  either configuration active ({False}, then {True}); `(swAllConfiguration, null)`
+  gives one Boolean per configuration in `GetConfigurationNames` order (not used). An
+  answer of another shape throws, and the call sites keep their catch. Frozen keys
+  removed: 2 (`OperazioniSw`, `StatoDocumento`); the undecided entry
+  `OperazioniNervatura.cs|IsSuppressed` goes too. The component reads
+  (`IComponent2.IsSuppressed`) are not obsolete and stay. No answer changes. Cases
+  that must stay identical: `togliere/sopprimi_il_terzo_foro`,
+  `togliere/lim_sopprimere_due_volte`,
+  `lavorazioni/lim_nervatura_sulla_piastra_senza_pareti`.
 
 ---
 

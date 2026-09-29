@@ -6207,8 +6207,11 @@ namespace Riscontro.Disegno
             string uid = Str(a, "feature_uid", "");
             bool riattiva = Bool(a, "riattiva", false);
 
+            // Z-C21.7 (S3): IsSuppressed2 in the active configuration, not the
+            // obsolete IsSuppressed; guide page and probe numbers in
+            // ApiHelpers.IsSuppressedHere.
             bool eraSoppressa = false;
-            try { eraSoppressa = f.IsSuppressed(); } catch { }
+            try { eraSoppressa = ApiHelpers.IsSuppressedHere(f); } catch { }
             if (eraSoppressa == !riattiva)
             {
                 // GIA' COM'E' CHIESTA: non e' un errore, ed e' importante non
