@@ -438,8 +438,14 @@ using System.Runtime.InteropServices;
 //          without same-name guesses (L12-8), material per configuration
 //          (M10), miter by default and trim bits (N25, L9-4), fillet and
 //          chamfer edges and vertex chamfers in the state (C7-2, N14, N29).
-[assembly: AssemblyVersion("0.142.0.0")]
-[assembly: AssemblyFileVersion("0.142.0.0")]
+// 0.143.0: Z-C21.7, the obsolete calls the Z-C21.3 probes decided, one per
+//          commit: offset planes through InsertRefPlane with mark 0, the edge
+//          flange through CreateDefinition, ExportToDWG2, InsertHoleTable3,
+//          InsertSketchPicture2, IsSuppressed2, CreateMassProperty2 for parts,
+//          InsertCosmeticWeldBead2 with marks 4/8, dimensions through
+//          GetSystemValue3 with the view's configuration in drawings.
+[assembly: AssemblyVersion("0.143.0.0")]
+[assembly: AssemblyFileVersion("0.143.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -454,4 +460,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.142.0")]
+[assembly: AssemblyInformationalVersion("0.143.0")]

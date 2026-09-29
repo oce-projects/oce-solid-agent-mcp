@@ -28,15 +28,14 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.7 (branch z-c21-7-migrazioni)
+## 0.119.0 — 29 September 2026 · library 0.143.0
 
 **The obsolete API calls that the Z-C21.3 probes of 28 September 2026 decided,
 migrated one per commit.** Each migration follows exactly the call the probe
 measured, cites its guide page and the probe numbers in the code, and takes its
-keys out of the exact ratchet of `Prove/ObsoleteCallsContract.cs`. **The bench
-has not run on this branch**: every bullet names the existing cases that must
-give the same answer (same volume, same box) on the next run, and none of them
-has been run yet.
+keys out of the exact ratchet of `Prove/ObsoleteCallsContract.cs`. Every
+bullet names the existing cases that must give the same answer (same volume,
+same box). BENCH_0143_PLACEHOLDER
 
 - **L8-1 / L2-4, the offset plane: `CreatePlaneAtOffset3` -> `InsertRefPlane`.**
   `crea_piano`, the second plane of `loft_fra_due_cerchi` and the plane of
