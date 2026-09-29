@@ -139,8 +139,9 @@ has been run yet.
   obsolete call, with the reason in `WhyFrozen`: the ASSEMBLY mass (components not
   probed) and the document STATE's mass field, because the new call measures what is
   selected and the state reads the designer's selection after the mass: clearing it
-  there would erase the state's selection field, and a measure with the selection in
-  place was not probed. Frozen key removed: 1 (`Banco/PortaDelCliente.cs`). No
+  there would erase the state's selection field, while left in place a pre-selected
+  body is measured alone (N2/N3: 16000 mm3 instead of 21000); whether `SelectedItems`
+  replaces a pre-selection was not probed. Frozen key removed: 1 (`Banco/PortaDelCliente.cs`). No
   answer changes. Cases that must stay identical: `misura/massa_di_un_cubo_di_acciaio`
   (200000 mm3, 1.6 kg, centre [0, 0, 10]), `misura/massa_senza_materiale_non_si_sa`,
   `proprieta/the_material_reaches_every_configuration` (7800, 1.56 kg),
@@ -183,7 +184,9 @@ has been run yet.
   overridden dimensions of the drawing state (`StatoTavola`). An answer of another
   shape throws, and every call site already catches. NOT PROBED: dimensions the
   drawing owns (made by AddDimension, AddChamferDim, between silhouette edges) go
-  through the same call; the drawing cases are their first measure. The bench's own
+  through the same call; the drawing cases are their first measure. Nor was a view of
+  an ASSEMBLY probed, where the view names an assembly configuration while a part
+  dimension shown in it may have no configuration of that name. The bench's own
   reader (`Banco/NumeriDelleQuote.cs`) stays on `GetSystemValue2("")`, frozen with that
   reason, so that it does not share the reading under test. Frozen keys removed: 2
   (`ApiHelpers.cs` SystemValue and GetSystemValue2). No answer changes expected; no
@@ -194,7 +197,7 @@ has been run yet.
   `quote/le_quote_arrivano_dal_modello`, `quote/la_parete_ha_un_nome`,
   `quote/la_variabile_non_scavalca_lo_smusso`, `quote/la_tolleranza_sulla_quota_del_modello`,
   the `modifica_quota` cases of `asola/`, `estrusioni/`, `lavorazioni/` and `smusso/`
-  (the anchors), and the bench's dimension-numbers group.
+  (the anchors) and `ponte/d3_tavola`, and the bench's dimension-numbers group.
 
 Not migrated: **L1-1, `CreateSpline`** stays frozen, as the Z-C21.3 decision says.
 Its `WhyFrozen` now carries the measure, and a discrepancy: `probe_spline3` printed

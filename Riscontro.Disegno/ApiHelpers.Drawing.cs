@@ -96,7 +96,9 @@ namespace Riscontro.Disegno
         /// answers them in another shape the reading throws and the caller's
         /// catch turns it into "not read", and the drawing cases of the bench
         /// (dimensions put in a view, the turned part, the chamfer) are the
-        /// first measure.
+        /// first measure. Nor was a view of an ASSEMBLY probed: its
+        /// ReferencedConfiguration names an assembly configuration, and a part
+        /// dimension shown in it may have no configuration of that name.
         /// </summary>
         internal static double ReadDimensionInView(IDimension dimension, IView view)
         {

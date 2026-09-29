@@ -178,7 +178,8 @@ namespace Prove.Contratti
                                                         "(OperazioniMisuraAssieme): probe_mass_property2 measured CreateMassProperty2 on a part only, and on an " +
                                                         "assembly it works on components (hidden ones: IncludeHiddenBodiesOrComponents, not measured). The DOCUMENT " +
                                                         "STATE (StatoDocumento.Massa): CreateMassProperty2 measures what is selected, the probe cleared the selection " +
-                                                        "first, and the state reads the designer's selection afterwards; a measure with the selection left in place " +
+                                                        "first, and the state reads the designer's selection afterwards; left in place, a pre-selected body is " +
+                                                        "measured alone (N2/N3: 16000 mm3 instead of 21000), and whether SelectedItems replaces a pre-selection " +
                                                         "was not probed. The other part readings moved to CreateMassProperty2 in Z-C21.7 (N1 = M0, N5 = M1, N8 = M3)",
             ["IModelDocExtension.FinishRecordingUndoObject"] = "L17-4: superseded by FinishRecordingUndoObject2",
             ["IModelDocExtension.SaveAs"] = "L13-4/L13-8: superseded by SaveAs2/SaveAs3 (drawing export and bank harness)",

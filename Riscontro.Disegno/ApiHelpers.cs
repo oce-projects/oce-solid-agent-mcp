@@ -204,9 +204,11 @@ namespace Riscontro.Disegno
         ///     first, and the state must not: it reads the designer's selection
         ///     a few lines later (StatoDocumento.LaSelezione, the selection field
         ///     of the state), and clearing it would erase what the designer
-        ///     points at.
-        ///     Measuring with a selection left in place was not probed (does
-        ///     SelectedItems replace a pre-selected body, or add to it?).
+        ///     points at. Left in place, the selection changes the number: the
+        ///     probe measured a pre-selected body A (N2 by SelectByID2, N3 by
+        ///     IBody2.Select2) giving 16000 mm3, A alone, not the 21000 of the
+        ///     whole part. Whether SelectedItems replaces such a pre-selection or
+        ///     adds to it, and what a selected FACE does, was not probed.
         /// </summary>
         internal static IMassProperty NewMassProperty(
             IModelDoc2 document, IEnumerable<object> bodies, out bool bodiesAttached)
