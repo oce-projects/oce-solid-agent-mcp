@@ -124,7 +124,6 @@ namespace Prove.Contratti
             ["Riscontro.Disegno/OperazioniSw.cs|IFeatureManager.FeatureCircularPattern5"] = 1,
             ["Riscontro.Disegno/OperazioniSw.cs|IFeatureManager.FeatureFillet3"] = 1,
             ["Riscontro.Disegno/OperazioniSw.cs|IFeatureManager.FeatureLinearPattern5"] = 1,
-            ["Riscontro.Disegno/OperazioniSw.cs|ISketchManager.CreateSpline"] = 1,
             ["Riscontro.Disegno/OperazioniTavola.cs|IDrawingDoc.InsertModelAnnotations2"] = 1,
             ["Riscontro.Disegno/OperazioniTavola.cs|IModelDocExtension.SaveAs"] = 2,
             ["Riscontro.Disegno/OperazioniTavola.cs|IView.GetDimensionCount"] = 1,
@@ -185,13 +184,6 @@ namespace Prove.Contratti
             ["IModelDocExtension.SaveAs"] = "L13-4/L13-8: superseded by SaveAs2/SaveAs3 (drawing export and bank harness)",
             ["INote.GetTextPoint"] = "superseded by INote::GetTextPoint2",
             ["ISketchManager.AutoInference"] = "superseded by the user preference swSketchInference; read and restored around the hole sketches",
-            ["ISketchManager.CreateSpline"] = "L1-1: superseded by CreateSpline2/CreateSpline3; NOT migrated in Z-C21.7. The Z-C21.3 probe probe_spline3 " +
-                                              "(the gear of the bench, 34 splines, S0 = the bridge: 8808.586 mm3) printed 'keep CreateSpline frozen': " +
-                                              "CreateSpline3 with SimulateNaturalEnds false gives 8806.568 with triples (S3, S7 with AddToDB off) and no " +
-                                              "extrusion with pairs (S4, S8: 27 of 34 splines). But that verdict only counted SimulateNaturalEnds false: " +
-                                              "the same probe says SAME AS BRIDGE for CreateSpline3(triples, null, null, true) (S5: 8808.586 mm3, the " +
-                                              "same box, every spline read back exact) and for CreateSpline2(triples, true) (S2). A candidate the " +
-                                              "verdict line missed, left for a decision",
             ["ISheetMetalFeatureData.KFactor"] = "superseded by ISheetMetalFeatureData::GetCustomBendAllowance/SetCustomBendAllowance (ICustomBendAllowance); read-only, the K-factor of the flat length. Found once the scanner followed the return type of DatiDellaLamiera",
             ["ISketchText.GetEdges"] = "superseded by ISketchText::GetEdges2 (stick-font text)",
             ["ITableAnnotation.GetColumnType2"] = "superseded by ITableAnnotation::GetColumnType3 (bill of materials)",

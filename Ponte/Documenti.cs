@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Riscontro.Disegno;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -97,12 +98,16 @@ namespace Oce.Solid.Agent.Ponte
             int vero = doc.GetType();
             if (vero != atteso)
             {
-                string titolo = doc.GetTitle();
-                // Appena nato e vuoto: chiuderlo non butta via lavoro di nessuno.
-                try { sw.CloseDoc(titolo); } catch { }
-                errore = "Il modello predefinito per un " + nomeTipo + " («" + modello +
-                         "») ha creato un documento di tipo " + NomeDelTipo(vero) +
-                         ". L'ho chiuso subito: era vuoto.";
+                // Just born and empty: closing it throws away nobody's work. By
+                // reference, not by title (Z-C21.13 N11): it is the active
+                // document, and a new document's title can be the stem of an
+                // open file. Read back before saying it is closed.
+                var closing = DocumentByPath.CloseAndReadBack(sw, doc);
+                errore = "The default template for a new " + TypeNameInEnglish(atteso) + " («" + modello +
+                         "») made a document of type " + TypeNameInEnglish(vero) + ". " +
+                         (closing.IsClosed
+                             ? "I closed it at once: it was empty."
+                             : "It was empty, and it is NOT closed: " + closing.Message + ".");
                 return null;
             }
 
@@ -282,26 +287,66 @@ namespace Oce.Solid.Agent.Ponte
                 return null;
             }
 
+            // THE HIDDEN DOCUMENTS IT WOULD TAKE WITH IT (Z-C21.13 N11).
+            // ISldWorks~CloseDoc.html: «This method also closes any non-active
+            // hidden documents», and the N11 probe (29/9/2026) saw CloseDoc of
+            // one document close a hidden part with an unsaved edit, which was
+            // lost (H4). The close action promises to throw away nobody's work,
+            // so the hidden documents with unsaved changes that no other open
+            // document holds are a refusal too.
+            var atRisk = DocumentByPath.UnsavedHiddenDocumentsAtRisk(sw, doc);
+            if (atRisk.Count > 0)
+            {
+                errore = "Not closing «" + titolo + "»: CloseDoc also closes the hidden documents that no " +
+                         "other open document uses, without saving them, and these have unsaved changes: «" +
+                         string.Join("», «", atRisk) + "». Save them first (a component is saved with the " +
+                         "assembly that uses it), or close by hand if those changes are to be thrown away.";
+                return null;
+            }
+
+            // BY PATH, OR FOR A DOCUMENT NEVER SAVED BY REFERENCE, NEVER BY TITLE
+            // (Z-C21.13 N11): with the extensions hidden Base.SLDPRT and
+            // Base.SLDASM have the same title, and nothing documents which one
+            // CloseDoc closes. DocumentByPath reads back whether it is gone.
             var id = Identita(doc);
             string percorso = Convert.ToString(id["percorso"] ?? "");
-            try { sw.CloseDoc(titolo); }
-            catch (Exception ex) { errore = "CloseDoc ha sollevato: " + ex.Message; return null; }
+            var closing = DocumentByPath.CloseAndReadBack(sw, doc);
+            if (closing.Result != DocumentByPath.CloseResult.Closed &&
+                closing.Result != DocumentByPath.CloseResult.StillLoadedHidden)
+            {
+                errore = "«" + titolo + "» is not closed: " + closing.Message + ".";
+                return null;
+            }
 
-            // RILETTO: non c'e' piu'?
+            // READ BACK from the bridge's side too: not among the visible documents.
             List<string> dopo;
             if (TrovaAperto(sw, string.IsNullOrEmpty(percorso) ? titolo : percorso, out dopo) != null)
             {
-                errore = "Ho chiesto di chiudere «" + titolo + "» ed e' ancora aperto.";
+                errore = "I asked to close «" + titolo + "» and it is still open (" + closing.Message + ").";
                 return null;
             }
             var davanti = DocumentoAttivo();
-            return new Dictionary<string, object>
+            var answer = new Dictionary<string, object>
             {
                 ["chiuso"] = titolo,
                 ["percorso"] = string.IsNullOrEmpty(percorso) ? null : percorso,
                 ["aperti_adesso"] = dopo.Count,
                 ["davanti_adesso"] = davanti == null ? null : Identita(davanti)["titolo"],
+                ["closed_by"] = closing.NamePassed == ""
+                    ? "the active document (CloseDoc with an empty name)"
+                    : closing.NamePassed,
             };
+            // ITS WINDOW IS GONE, ITS MODEL IS NOT: another open document
+            // references it (the N11 probe, H1). It had no unsaved changes, or
+            // it would have been refused above, so nothing is at risk; it is said.
+            if (closing.Result == DocumentByPath.CloseResult.StillLoadedHidden)
+            {
+                answer["still_loaded_hidden"] = true;
+                answer["still_loaded_reason"] = closing.Message;
+            }
+            if (closing.AlsoClosed.Count > 0) answer["also_closed"] = closing.AlsoClosed;
+            if (closing.AlsoClosedUnsaved.Count > 0) answer["also_closed_unsaved"] = closing.AlsoClosedUnsaved;
+            return answer;
         }
 
         /// <summary>
@@ -335,27 +380,29 @@ namespace Oce.Solid.Agent.Ponte
 
         // ── attrezzi ────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Brings <paramref name="doc"/> to the front by its file name or path,
+        /// or by title only when it was never saved and no other open document
+        /// answers to that title (Z-C21.13, pattern S18: ActivateDoc3.html warns
+        /// that a name without extension can fit a part and an assembly at once).
+        /// DocumentByPath reads back the active document by reference.
+        /// </summary>
         private Dictionary<string, object> PortaDavanti(ISldWorks sw, IModelDoc2 doc, out string errore)
         {
             errore = null;
-            int err = 0;
-            try
+            int activationErrors;
+            string problem;
+            if (!DocumentByPath.ActivateAndReadBack(sw, doc, out activationErrors, out problem))
             {
-                sw.ActivateDoc3(doc.GetTitle(), false,
-                    (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref err);
-            }
-            catch (Exception ex)
-            {
-                errore = "Non sono riuscito a portare davanti «" + doc.GetTitle() + "»: " + ex.Message;
+                errore = problem + ".";
                 return null;
             }
-            // RILETTO: davanti c'e' davvero lui?
+            // READ BACK from the bridge's side too: the identity it compares.
             var davanti = DocumentoAttivo();
             if (!StessoDocumento(Identita(davanti), Identita(doc)))
             {
-                errore = "Ho chiesto di portare davanti «" + doc.GetTitle() + "» e davanti " +
-                         "c'e' «" + Convert.ToString(Identita(davanti)?["titolo"] ?? "niente") +
-                         "» (errore di attivazione " + err + ").";
+                errore = "I asked to bring «" + doc.GetTitle() + "» to the front, and the active document " +
+                         "is «" + Convert.ToString(Identita(davanti)?["titolo"] ?? "nothing") + "».";
                 return null;
             }
             return Scheda(doc, davanti);
@@ -392,6 +439,18 @@ namespace Oce.Solid.Agent.Ponte
                 case (int)swDocumentTypes_e.swDocASSEMBLY: return "assieme";
                 case (int)swDocumentTypes_e.swDocDRAWING: return "tavola";
                 default: return "altro (" + tipo + ")";
+            }
+        }
+
+        /// <summary>The document type for the English messages of Z-C21.13.</summary>
+        private static string TypeNameInEnglish(int type)
+        {
+            switch (type)
+            {
+                case (int)swDocumentTypes_e.swDocPART: return "part";
+                case (int)swDocumentTypes_e.swDocASSEMBLY: return "assembly";
+                case (int)swDocumentTypes_e.swDocDRAWING: return "drawing";
+                default: return "type " + type;
             }
         }
 

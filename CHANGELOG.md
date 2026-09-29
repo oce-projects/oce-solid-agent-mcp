@@ -28,6 +28,95 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.13 (branch z-c21-13)
+
+**What the online research of 29 September 2026 decided (TODO entry Z-C21.13, RAG
+note 82zz-decies), built on library 0.143.0 with the probes of the same afternoon.
+THE BENCH HAS NOT RUN on these changes.** The library, the bridge, the contract
+tests and the bench harness build; the contract run is green except the two
+bench-freshness checks, which only a bench run can turn green. Version numbers
+(VERSION.txt, AssemblyVersion) are not raised yet: that happens with the bench.
+
+- **C5-7, STEP AP242 through SOLIDWORKS MBD.** The library no longer writes
+  `swStepAP = 242`: the probe `step_ap242` measured that SOLIDWORKS 2021 accepts it and
+  writes an AP203 file. AP242 now goes through `IModelDocExtension.PublishSTEP242File`
+  (help.solidworks.com/2017/english/api/sldworksapi/...imodeldocextension~publishstep242file.html;
+  help.solidworks.com/2017/English/WhatsNew/c_step_242_pmi_export.htm) with our document
+  brought to the front (COM identity, not the path) and the previous front document put
+  back. The answer is read as `swStep242Error_e`: 4 (MBDLicenseNotAvailable, what the
+  bench machine answers) is a refusal naming the SOLIDWORKS MBD licence and AP214/AP203;
+  1, 3 and unlisted values are refusals naming the code. A `.step` path is refused before
+  the call (the probe got InvalidPath), the default path ends in `.stp`, and a file
+  already at the path is moved aside and put back on a refusal (on 0.143.0 it was
+  replaced by an AP203 file). New measure `written_with`. Cases:
+  `esporta/lim_step_ap242_needs_the_mbd_licence` (machine-dependent: on a machine with
+  MBD it must become a success case), `esporta/lim_step_ap242_wants_a_stp_path`; contract
+  `Zc2113ExportUnitsContract` (the answers the bench cannot produce, the path rule, no
+  bare 242 near swStepAP).
+- **L17-7, document length units.** `MmPerUnitaDelDocumento` goes through the pure
+  `MmPerLengthUnit`, with the factors of the corrected probe `feet_inches`: angstrom
+  1E-07, nanometre 1E-06, microinch 2.54E-05 (swLengthUnit_e and the Custom-first order
+  from help.solidworks.com/2021/english/api/swconst/dp_units.htm). Feet-and-inches
+  answers NaN (its two readings disagree, 25.53 against 25.40). **Micron also answers NaN
+  now, instead of 0.001:** the same probe read it with the nanometre factor from both
+  readings, which contradicts a micrometre; until a second probe explains it the
+  comparison is skipped and said so. Contract only (no bench step sets units).
+- **L1-1, splines: `ISketchManager.CreateSpline` -> `CreateSpline3(triples, null, null,
+  true)`.** Natural ends true is S5 of the probe `spline3` (8808.586 mm3, the same as the
+  bridge; false gives 8806.568); guide:
+  help.solidworks.com/2023/English/api/sldworksapi/...ISketchManager~CreateSpline3.html,
+  help.solidworks.com/2022/english/api/sldworksapiprogguide/Overview/Splines.htm. AddToDB
+  off and DisplayWhenAdded on around the call, restored in a finally; the input stays
+  triples (pairs break the call, S4/S6/S8); a spline counts in `segmenti` only when a
+  segment comes back. Frozen key removed from `ObsoleteCallsContract`. Case
+  `estrusioni/la_ruota_da_diciassette_denti_si_fa` gains `misure.segmenti = 170` and must
+  keep 8808.59 +-0.5. Untested: natural ends true together with AddToDB off (the probe ran
+  S5 with AddToDB on); the bench must confirm it, also on the c4r gears for time.
+  Contract `Zc2113SplineCentreMarksContract`.
+- **Centre marks on views left bare by SOLIDWORKS (`viste_standard`).** The hole walk of
+  `croci_di_centro` is now a shared method, `MarkHolesOfView`, unchanged in behaviour;
+  `viste_standard` counts marks view by view after the rebuild and walks only views with
+  zero marks. New answer keys: `centre_marks_added_by_bridge` (always),
+  `holes_in_views_without_centre_marks`, `auto_centre_marks_option` (the document toggle
+  swDetailingAutoInsertCenterMarksForHoles, null when unreadable),
+  `holes_left_without_centre_mark`, `centre_marks_note`; `centre_marks_after_rebuild` is
+  null when a view cannot be counted. Sources: the silent-suppression mechanisms of the
+  second research round (help.solidworks.com/2018/English/solidworks/sldworks/t_Setting_Options_for_Center_Marks.htm,
+  help.solidworks.com/2020/English/api/sldworksapi/...IView~AutoInsertCenterMarks2.html).
+  No bench case can build a bare view (it happened only in long runs); contract
+  `Zc2113SplineCentreMarksContract`. Open: AddCenterMark put no mark back on 26/9 once the
+  automatic ones were deleted, so the remedy may add nothing, and the answer then says so;
+  the 17/9 verdict on AutoInsertCenterMarks2 was counted with GetCenterMarkCount, which
+  does not see automatic marks, and deserves a new probe.
+- **N11 / M4 / S18 / N8 / L13-3, documents closed and activated by path or reference,
+  never by title.** New public `Riscontro.Disegno.DocumentByPath`: a saved document is
+  closed by full path, then by file name with extension (the CloseDoc probe, A-G1 and
+  A-G3); a never-saved one with `CloseDoc("")` when it is the active document (the
+  ActivateDoc3/Close pages:
+  help.solidworks.com/2023/English/api/sldworksapi/...ISldWorks~ActivateDoc3.html,
+  help.solidworks.com/2019/english/api/sldworksapi/...IModelDoc2~Close.html), otherwise by
+  a title no other open document answers to, or refused (probe A-S: the stem collides).
+  Every close is read back (closed, still loaded hidden, still open, refused, failed) and
+  hidden documents that went with it are listed. `documento chiudi` also refuses when
+  hidden documents with unsaved changes would go with it (probe H4) and answers
+  `closed_by`, `still_loaded_hidden`, `still_loaded_reason`, `also_closed`,
+  `also_closed_unsaved`. Activation is by file name with extension, then path, with
+  swDontRebuildActiveDoc: this removes the swUserDecision dialog of
+  `SezioneProfilo.TelaioDiProva` (N8) and of the STEP/IGES reopen (L13-3). The reopened
+  STEP/IGES is no longer closed by its title, which with the default path is the part's
+  own stem (M4). The weldment profile library is closed by path; if it stays loaded,
+  hidden and dirty, `profile_library_warning` says so (probe H1d: the save flag lies).
+  No bench case (equal titles need Explorer's hide-extensions, a station setting that is
+  off here); contract `DocumentByPathContract`, 13 checks. Still open: which document
+  CloseDoc/ActivateDoc3 picks when two titles are really equal, CloseDoc by path on a
+  drawing, the bench's own teardown by title, and C4-3 (rebuild on activation).
+- **Contracts and counts.** Three new groups, 23 checks (6 + 4 + 13); `Prove/LEGGIMI.md`
+  now says 546 controls. `Banco/LEGGIMI.md`: `casi/esporta/` has 15 cases. The served
+  catalogue `Strumenti/catalogo.json` is regenerated from `Operazioni.cs` (esporta_step,
+  esporta_iges, viste_standard, croci_di_centro, membro_strutturale, telaio_rettangolare);
+  the `documento` tool text in `Strumenti/Attrezzi.cs` describes the new close and
+  activation.
+
 ## 0.119.0 — 29 September 2026 · library 0.143.0
 
 **The obsolete API calls that the Z-C21.3 probes of 28 September 2026 decided,

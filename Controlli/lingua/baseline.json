@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 147168,
-  "strings": 55784,
+  "comments": 147029,
+  "strings": 55706,
   "markdown": 33967,
-  "json_values": 55640,
-  "identifiers": 4800,
+  "json_values": 55576,
+  "identifiers": 4793,
   "json_keys": 443,
-  "protocol": 2169,
+  "protocol": 2168,
   "paths": 640,
   "transition": 0
  },
@@ -297,7 +297,7 @@
    "json_values": 84
   },
   "Banco/casi/esporta/step_ap214_riletto.json": {
-   "json_values": 134
+   "json_values": 104
   },
   "Banco/casi/esporta/the_iges_carries_the_solid_not_its_wireframe.json": {
    "json_values": 2
@@ -1299,8 +1299,8 @@
    "comments": 217
   },
   "Ponte/Documenti.cs": {
-   "comments": 405,
-   "strings": 288
+   "comments": 388,
+   "strings": 249
   },
   "Ponte/Forma.cs": {
    "comments": 489,
@@ -1479,7 +1479,7 @@
   },
   "Riscontro.Disegno/Catalogo/Operazioni.cs": {
    "comments": 869,
-   "strings": 17756
+   "strings": 17723
   },
   "Riscontro.Disegno/ErroriFeature.cs": {
    "comments": 164,
@@ -1536,7 +1536,7 @@
    "strings": 233
   },
   "Riscontro.Disegno/OperazioniCentrini.cs": {
-   "comments": 548,
+   "comments": 486,
    "strings": 222
   },
   "Riscontro.Disegno/OperazioniCorpi.cs": {
@@ -1568,7 +1568,7 @@
    "strings": 270
   },
   "Riscontro.Disegno/OperazioniEsporta.cs": {
-   "comments": 1167,
+   "comments": 1116,
    "strings": 518
   },
   "Riscontro.Disegno/OperazioniEtichetteTavola.cs": {
@@ -1669,7 +1669,7 @@
   },
   "Riscontro.Disegno/OperazioniSaldatura.cs": {
    "comments": 3128,
-   "strings": 1524
+   "strings": 1518
   },
   "Riscontro.Disegno/OperazioniSaldaturaTavola.cs": {
    "comments": 250,
@@ -1700,7 +1700,7 @@
    "strings": 221
   },
   "Riscontro.Disegno/OperazioniSw.cs": {
-   "comments": 15394,
+   "comments": 15385,
    "strings": 3336
   },
   "Riscontro.Disegno/OperazioniTabellaFori.cs": {
@@ -1798,7 +1798,7 @@
    "json_values": 7
   },
   "Strumenti/catalogo.json": {
-   "json_values": 18817
+   "json_values": 18783
   },
   "build.ps1": {
    "comments": 517,
@@ -3822,7 +3822,6 @@
    "apre",
    "apri",
    "apriIlPonte",
-   "archi",
    "archivi",
    "archivio",
    "archivioChiesto",
@@ -4013,7 +4012,6 @@
    "centrata_fra",
    "centrato",
    "centri",
-   "centriGia",
    "centri_x_mm",
    "centro",
    "centroCilindro",
@@ -4040,7 +4038,6 @@
    "cerchiAttaccati",
    "cerchiDopo",
    "cerchiPrima",
-   "cerchiQui",
    "cerchi_che_avevano_gia_la_croce",
    "cerchi_di_taglio",
    "cerchio",
@@ -4801,7 +4798,6 @@
    "giaCi",
    "giaEsisteva",
    "giaPrima",
-   "giaQui",
    "giaSaltate",
    "gia_quotate_altrove",
    "gioco",
@@ -4986,6 +4982,7 @@
    "la_foto_sta_in_scala",
    "la_nota_finisce_sul_foglio",
    "la_parete_ha_un_nome",
+   "la_ruota_da_diciassette_denti_si_fa",
    "la_sezione_taglia_il_pezzo",
    "la_staffa_destra_e_la_sinistra",
    "la_tavola_e_un_secondo_documento",
@@ -5146,7 +5143,6 @@
    "messaggio",
    "messaggioUri",
    "messe",
-   "messeQui",
    "messo",
    "metaPerIntere",
    "metodi",
@@ -5342,7 +5338,6 @@
    "non-esiste",
    "nonContiene",
    "nonDichiarate",
-   "nonFori",
    "nonGuardate",
    "nonGuardato",
    "nonLanciati",
@@ -6333,7 +6328,6 @@
    "titoliOk",
    "titolo",
    "titoloAttivo",
-   "titoloPrima",
    "tizio",
    "tocca",
    "toccarsiConta",
@@ -6354,7 +6348,6 @@
    "tondo_lunghezze_mm",
    "tondo_note",
    "torna",
-   "tornaA",
    "tornata",
    "tornate",
    "tornato",
@@ -8267,7 +8260,6 @@
    "legato",
    "legato_all_originale",
    "leggero",
-   "leggono",
    "lento",
    "lettera",
    "lettera_riletta",

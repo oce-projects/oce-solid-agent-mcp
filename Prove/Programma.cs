@@ -400,6 +400,9 @@ namespace Prove.Contratti
             Zc212DrawingContract.RunAll();
             AssembliesZc212terContract.RunAll();
             WeldmentConfigurationZc212terContract.RunAll();
+            Zc2113ExportUnitsContract.RunAll();
+            Zc2113SplineCentreMarksContract.RunAll();
+            DocumentByPathContract.RunAll();
             LanguageGateTests.All();
             IlLeggimiDiceQuantiSono();
 

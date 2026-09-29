@@ -2181,7 +2181,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nIf the weldment profile library is still open and modified in "
                         + "SOLIDWORKS after the insertion, the answer carries "
                         + "«profile_library_warning»: close that library without saving, or a "
-                        + "Ctrl+S would rewrite the shared library."
+                        + "Ctrl+S would rewrite the shared library. The warning can carry a second "
+                        + "sentence: the library is still LOADED, hidden, because an open document "
+                        + "references it, with the insertion's changes in memory even if its save "
+                        + "flag reads clean."
                         + "\n\nI refuse an empty «configurazione» when the profile file has several "
                         + "sizes, and list them: with an empty size SOLIDWORKS builds the size the file "
                         + "was saved on (measured: the 20 x 20 of the four in iso\\square tube.sldlfp). "
@@ -2417,7 +2420,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "measured now or remembered from an earlier frame («overhang_source»: "
                         + "«measured» or «archive»), and, if the weldment profile library is "
                         + "still open and modified in SOLIDWORKS afterwards, "
-                        + "«profile_library_warning»: close that library without saving.",
+                        + "«profile_library_warning»: close that library without saving. The warning "
+                        + "or the refusal can also say that the library is still LOADED, hidden, "
+                        + "because an open document references it, with the changes in memory even "
+                        + "if its save flag reads clean.",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",
@@ -2663,7 +2669,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "tutte. Raccordi e asole no: misurato, sugli archi la croce da codice "
                         + "non nasce.\n\nLE CROCI SI CONTANO ENUMERANDOLE: il contatore di "
                         + "SOLIDWORKS (GetCenterMarkCount) non vede quelle messe alla creazione "
-                        + "della vista, e diceva zero su un foglio che ne aveva tre.",
+                        + "della vista, e diceva zero su un foglio che ne aveva tre."
+                        + "\n\nThe walk over the holes is the one viste_standard also uses on views "
+                        + "left with no mark.",
                     Precondizione = "una tavola con almeno una vista",
                     Schema = O(
                         "type", "object",
@@ -3585,7 +3593,18 @@ namespace Riscontro.Disegno.Catalogo
                         + "scambiate. Nessuna misura se ne accorge, e il pezzo si taglia "
                         + "specchiato.\n\nLe viste si contano prima e dopo: se non ne nasce "
                         + "nessuna l'operazione fallisce, invece di lasciarti una tavola "
-                        + "vuota che sembra riuscita.",
+                        + "vuota che sembra riuscita."
+                        + "\n\nCENTRE MARKS ON HOLES. After the views are made the drawing is rebuilt, "
+                        + "and the answer gives centre_marks_after_rebuild: the marks SOLIDWORKS put "
+                        + "(null when a view cannot be counted). A view that shows holes end-on and has "
+                        + "no centre mark at all gets them from the bridge, through the same walk as the "
+                        + "centre-mark check: one mark per hole, each counted on the sheet. "
+                        + "centre_marks_added_by_bridge says how many; a view where SOLIDWORKS put some "
+                        + "marks is left as it is. When that happens the answer also gives "
+                        + "holes_in_views_without_centre_marks and auto_centre_marks_option (the document "
+                        + "option that inserts them, null when it cannot be read). A hole the bridge could "
+                        + "not mark is counted in holes_left_without_centre_mark, with centre_marks_note "
+                        + "saying what to do.",
                     Precondizione = "una tavola aperta e il pezzo aperto accanto",
                     Schema = O(
                         "type", "object",
@@ -4160,26 +4179,40 @@ namespace Riscontro.Disegno.Catalogo
                         + "rifiuto: rileggere lo STEP di un assieme apre una finestra e la chiamata "
                         + "non torna. An instance changed in the assembly (a cut: user bodies in "
                         + "GetBodies3's BodiesInfo) is a shape of its own and counts all its bodies; "
-                        + "the other instances count once per file and configuration.",
+                        + "the other instances count once per file and configuration."
+                        + "\n\nAP242 IS WRITTEN BY SOLIDWORKS MBD, not by a protocol number: in "
+                        + "SOLIDWORKS 2021 the protocol preference takes only 203 and 214, and 242 "
+                        + "written there gives an AP203 file (measured). I write AP242 through "
+                        + "PublishSTEP242File, with the part brought to the front. Without the MBD "
+                        + "licence (the bench machine has none) I refuse, saying so; AP214 and AP203 "
+                        + "are still available. With AP242 the path must end in .stp. When the file "
+                        + "is written, its FILE_SCHEMA is read back as for the other two.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "percorso", O(
                                 "type", "string",
-                                "description", "dove scrivere il file, estensione .step o .stp compresa. Se non "
-                                    + "lo dici si usa il percorso del pezzo con l'estensione cambiata."),
+                                "description", "where to write the file, extension included: .step or .stp for AP214 "
+                                    + "and AP203, only .stp for AP242 (a .step path is refused before writing). "
+                                    + "If you leave it out, the part's own path is used with the extension changed."),
                             "protocollo", O(
                                 "type", "string",
                                 "enum", A("AP214", "AP203", "AP242"),
-                                "description", "AP214 (predefinito) porta anche i colori; AP203 e' il piu' "
-                                    + "vecchio e il piu' accettato; AP242 e' il piu' nuovo e non tutti lo "
-                                    + "leggono."),
+                                "description", "AP214 (the default) also carries the colours; AP203 is the oldest and "
+                                    + "the most widely read. AP242 is not a protocol number: it is written only by "
+                                    + "SOLIDWORKS MBD (PublishSTEP242File), needs the SOLIDWORKS MBD licence and a "
+                                    + "path ending in .stp. Without the licence I refuse and say so, and a file "
+                                    + "already at the path stays as it was."),
                             "riapri_e_confronta", O(
                                 "type", "boolean",
                                 "description", "riapre il file appena scritto e confronta il volume col pezzo, "
                                     + "fallendo oltre un millesimo di scarto. Predefinito: falso, perche' "
-                                    + "costa un'apertura di documento.")),
+                                    + "costa un'apertura di documento."
+                                    + " The reopened file is closed by "
+                                    + "reference, never by its title (with the default path its title is the part's own "
+                                    + "stem); if it cannot be closed safely it stays open and the answer "
+                                    + "says so. The document that was in front is brought back by its path.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -4226,7 +4259,11 @@ namespace Riscontro.Disegno.Catalogo
                             "riapri_e_confronta", O(
                                 "type", "boolean",
                                 "description", "riapre il file appena scritto e confronta il volume col pezzo. "
-                                    + "Predefinito: falso.")),
+                                    + "Predefinito: falso."
+                                    + " The reopened file is closed by "
+                                    + "reference, never by its title (with the default path its title is the part's own "
+                                    + "stem); if it cannot be closed safely it stays open and the answer "
+                                    + "says so. The document that was in front is brought back by its path.")),
                         "required", A()),
                 },
                 new OperazioneDisegno

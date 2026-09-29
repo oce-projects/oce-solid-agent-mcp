@@ -362,7 +362,18 @@ namespace Oce.Solid.Agent.Strumenti
                     "Un file aperto in SOLA LETTURA lo dico sempre: di solito vuol " +
                     "dire che un collega lo ha aperto, e «disegna» non ci scrive.\n\n" +
                     "«chiudi» RIFIUTA un documento con modifiche non salvate: non " +
-                    "butto il lavoro di nessuno. Salvalo prima, o chiudilo a mano.",
+                    "butto il lavoro di nessuno. Salvalo prima, o chiudilo a mano.\n\n" +
+                    "Closing: a saved document is closed by its full path, and one never " +
+                    "saved as the active document or by a title that no other open " +
+                    "document answers to. It REFUSES when another open document answers " +
+                    "to an unsaved document's title, and when hidden documents with " +
+                    "unsaved changes that no other open document uses would go with it " +
+                    "(CloseDoc closes non-active hidden documents without saving). The " +
+                    "answer adds closed_by, still_loaded_hidden + still_loaded_reason " +
+                    "(window closed, model kept because another open document references " +
+                    "it), also_closed, also_closed_unsaved. Bringing forward: a saved " +
+                    "document comes forward by file name with extension or path, never " +
+                    "by title, and the active document is read back.",
                     Oggetto(
                         new Dictionary<string, object>
                         {
@@ -401,7 +412,9 @@ namespace Oce.Solid.Agent.Strumenti
                     // «chiudi» rifiuta un documento con modifiche non salvate,
                     // quindi chiude solo cio' che e' gia' tutto su disco, e non
                     // butta niente. NON e' idempotente: «nuovo» due volte fa due
-                    // documenti.
+                    // documenti. Still true for hidden documents (Z-C21.13 N11):
+                    // a close that would take hidden documents with unsaved
+                    // changes is refused.
                     soloLettura: false, distruttivo: false, idempotente: false),
 
                 // THE WHOLE API, READ BY REFLECTION (entry U1.1).

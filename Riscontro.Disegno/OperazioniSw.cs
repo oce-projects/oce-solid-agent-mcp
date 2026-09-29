@@ -1082,9 +1082,12 @@ namespace Riscontro.Disegno
             {
                 if (tratto.Spline)
                 {
-                    // CreateSpline vuole una terna x,y,z per punto, in un unico
-                    // vettore piatto. Verificato per riflessione: firma
-                    // CreateSpline(Object PointData) -> SketchSegment.
+                    // TRIPLES x,y,z per point, in metres, in one flat array
+                    // (ISketchManager~CreateSpline3.html, Remarks: "PointData
+                    // with at least six coordinates ... [start_pt_x, start_pt_y,
+                    // start_pt_z, end_pt_x, end_pt_y, end_pt_z]"). PAIRS break it
+                    // with no error: probe_spline3 (Z-C21.3) cases S4, S6 and S8,
+                    // 27 or 28 splines of 34 and no extrusion.
                     var dati = new double[tratto.Punti.Count * 3];
                     for (int i = 0; i < tratto.Punti.Count; i++)
                     {
@@ -1092,18 +1095,7 @@ namespace Riscontro.Disegno
                         dati[i * 3 + 1] = Unita.M(tratto.Punti[i][1]);
                         dati[i * 3 + 2] = 0;
                     }
-                    // STILL THE OBSOLETE CreateSpline after Z-C21.7 (L1-1): the
-                    // Z-C21.3 probe probe_spline3 printed «keep CreateSpline
-                    // frozen», but its layout verdict only counted
-                    // SimulateNaturalEnds false (CreateSpline3 with triples:
-                    // 8806.568 mm3 against 8808.586; with pairs: 27 or 28 splines
-                    // of 34 and no extrusion), while its own line for
-                    // CreateSpline3(triples, null, null, true) says SAME AS
-                    // BRIDGE (8808.586 mm3, the same box, every spline read back
-                    // exact). Not migrated here: the reason and the numbers are
-                    // in ObsoleteCallsContract.WhyFrozen, for a decision.
-                    schizzi.CreateSpline(dati);
-                    fatte++;
+                    if (CreateSplineThroughPoints(schizzi, dati) != null) fatte++;
                 }
                 else
                 {
@@ -1119,6 +1111,76 @@ namespace Riscontro.Disegno
                 }
             }
             return fatte;
+        }
+
+        /// <summary>
+        /// SimulateNaturalEnds of the spline call: TRUE, and it is a measure,
+        /// not a taste. probe_spline3 (Z-C21.3), case S5,
+        /// CreateSpline3(triples, null, null, true), gave the bench gear of the
+        /// obsolete CreateSpline exactly: 8808.586 mm3, box 37.787 x 10 x
+        /// 37.938 mm, all 34 splines read back within 1e-4 mm. FALSE (S3, and
+        /// S7 with AddToDB off) gives 8806.568 mm3, which
+        /// la_ruota_da_diciassette_denti_si_fa (8808.59 +-0.5) turns red. The
+        /// guide: "SimulateNaturalEnds with true for zero curvature end
+        /// conditions or false to maintain curvature at the ends".
+        /// </summary>
+        internal const bool SplineSimulateNaturalEnds = true;
+
+        /// <summary>
+        /// ONE 2D SPLINE THROUGH THE POINTS, with CreateSpline3 (L1-1, Z-C21.13).
+        ///
+        /// Up to library 0.143.0 this was the obsolete CreateSpline
+        /// (ISketchManager~CreateSpline.html: "Obsolete. Superseded by
+        /// ISketchManager::CreateSpline2", which CreateSpline3 supersedes in
+        /// turn). The probe's own verdict line printed "keep CreateSpline
+        /// frozen": its decision rule only counted SimulateNaturalEnds false,
+        /// while its S5 line (true) reproduced the gear exactly
+        /// (<see cref="SplineSimulateNaturalEnds"/>).
+        ///
+        /// ADDTODB OFF AND DISPLAYWHENADDED ON AROUND THE CALL.
+        /// ISketchManager~CreateSpline3.html, Remarks: "Does not work with
+        /// ISketchManager::AddToDB or ISketchManager::DisplayWhenAdded", and
+        /// both callers draw with AddToDB on and DisplayWhenAdded off
+        /// (EstrudiProfilo and the revolved profile). The probe measured the
+        /// switch with false (S7 = S3: the same volume, every spline exact), so
+        /// on this gear the state does not change the geometry; the pair true +
+        /// AddToDB off was not probed on its own, and the gear case is its
+        /// judge. The state is read first and put back right after the call,
+        /// whatever happens; if it cannot be read it is not touched.
+        ///
+        /// THE RETURN IS READ: "ISketchSegment or null if an error" (the guide).
+        /// The obsolete call's return was never read, and a spline that was not
+        /// born was counted all the same (L1-1, second half). The probe: 34
+        /// calls, 0 null, every return an ISketchSegment. Status is "empty for
+        /// 2D splines" (the guide; the probe read null) and is not used.
+        /// </summary>
+        private static ISketchSegment CreateSplineThroughPoints(ISketchManager sketches, double[] triples)
+        {
+            bool addToDbBefore = false, displayBefore = false, stateRead = false;
+            try
+            {
+                addToDbBefore = sketches.AddToDB;
+                displayBefore = sketches.DisplayWhenAdded;
+                stateRead = true;
+            }
+            catch { }
+            object created = null;
+            try
+            {
+                if (stateRead)
+                {
+                    try { sketches.AddToDB = false; sketches.DisplayWhenAdded = true; } catch { }
+                }
+                created = sketches.CreateSpline3(triples, null, null, SplineSimulateNaturalEnds, out _);
+            }
+            finally
+            {
+                if (stateRead)
+                {
+                    try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
+                }
+            }
+            return created as ISketchSegment;
         }
 
         /// <summary>

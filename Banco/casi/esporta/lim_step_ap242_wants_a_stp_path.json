@@ -1,0 +1,22 @@
+{
+  "nome": "lim_step_ap242_wants_a_stp_path",
+  "famiglia": "esporta",
+  "perche": "Z-C21.13, finding C5-7. STEP AP242 is written by IModelDocExtension.PublishSTEP242File, whose page asks for a .stp path (Path: «use .STP for the file name extension»); the probe probe_step_ap242 of 29/9/2026 measured a .step path answering 1, swPublishStep242_InvalidPath. The fix refuses a .step path for AP242 before calling anything, and says to use .stp. Unlike `lim_step_ap242_needs_the_mbd_licence`, this refusal does not depend on the licence of the machine: it comes before the call.",
+  "il_difetto_che_questo_caso_prende": "On 0.143.0 a .step path with AP242 went through SaveAs3 with swStepAP = 242, came out AP203, and was refused because AP242 was asked and AP203 came out, a message that says nothing about the extension: red there on the message. It also proves the path rule is wired into the STEP export, which the contract group of Z-C21.13 (the same rule without SOLIDWORKS) cannot see.",
+  "shared_argument_with_the_twin": "The reopen-and-compare flag is the argument in common with the twin, which the bench asks for (a twin must share at least one argument with the same value). The refusal comes before any writing.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+                     "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+    { "operazione": "esporta_step",
+      "argomenti": { "percorso": "{LAVORO}\\z_c21_13_ap242.step", "protocollo": "AP242",
+                     "riapri_e_confronta": true },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["PublishSTEP242File", ".stp path", "swPublishStep242_InvalidPath"],
+        "volume_invariato": true,
+        "nessuna_feature_in_piu": true,
+        "gemella": "step_ap214_riletto" } }
+  ]
+}

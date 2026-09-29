@@ -131,16 +131,24 @@ namespace Riscontro.Disegno
         /// no return value to read (ISldWorks~CloseDoc.html: «void CloseDoc(
         /// System.string Name)»), and names cases in which it does nothing:
         /// «the name of a document that is not open, then this method does
-        /// nothing». So the library is looked for again by path afterwards,
-        /// and if it is still there its dirty flag is read
-        /// (IModelDoc2~GetSaveFlag.html: «True if this document needs to be
-        /// saved, false if not»).
+        /// nothing». So the library is looked for again afterwards, and if it
+        /// is still there its dirty flag is read (IModelDoc2~GetSaveFlag.html:
+        /// «True if this document needs to be saved, false if not»).
+        ///
+        /// Z-C21.13 N11, what changed: it is closed by its PATH through
+        /// <see cref="DocumentByPath.CloseAndReadBack"/>, no longer by its
+        /// title, and the read back tells a library still open from one still
+        /// LOADED, hidden, because an open document references it. For that one the flag read
+        /// after the call is not believed: the N11 probe (29/9/2026, H1d) read
+        /// it clean with the edit still in memory, so the flag read before the
+        /// call decides.
         /// </summary>
         /// <returns>
         /// Null when the library is not left modified by us: closed, open and
         /// clean, or already modified before we touched it (that one is
         /// logged, it is not this operation's doing). Otherwise the sentence
-        /// that the answer must carry: the library is still open and modified.
+        /// that the answer must carry: the library is still open and modified,
+        /// or still loaded with the changes of the insertion.
         /// </returns>
         internal static string RichiudiLaLibreria(
             ISldWorks sw, string profilo, ComEra comEra, Action<string> log)
@@ -167,17 +175,13 @@ namespace Riscontro.Disegno
             var doc = DocumentoConPercorso(sw, profilo);
             if (doc == null) return null;
 
+            // Z-C21.13 N11: the library is found by PATH and closed by path
+            // (DocumentByPath); its title only names it in the log. Until
+            // library 0.143.0 it was closed by title, and a title with the
+            // extensions hidden can be another document's as well.
             string titolo = "";
-            try { titolo = doc.GetTitle(); } catch { }
-            if (string.IsNullOrWhiteSpace(titolo))
-            {
-                bool dirtyWithoutTitle = false;
-                try { dirtyWithoutTitle = doc.GetSaveFlag(); } catch { }
-                if (!dirtyWithoutTitle) return null;
-                log("[agente] the library «" + nome + "» is open and modified, and its " +
-                    "title cannot be read: I cannot close it.");
-                return LibraryLeftModified(nome);
-            }
+            try { titolo = doc.GetTitle() ?? ""; } catch { }
+            if (string.IsNullOrWhiteSpace(titolo)) titolo = nome;
 
             // ERA APERTA E PULITA, E ADESSO E' SPORCA.
             //
@@ -203,42 +207,75 @@ namespace Riscontro.Disegno
                 return null;
             }
 
-            try
+            // BY PATH, AND READ BACK (Z-C21.10 N31, Z-C21.13 N11): see the
+            // summary and DocumentByPath.
+            var closing = DocumentByPath.CloseAndReadBack(sw, doc);
+            if (closing.AlsoClosed.Count > 0)
+                log("[agent] closing the library «" + titolo + "» also closed: «" +
+                    string.Join("», «", closing.AlsoClosed) + "»" +
+                    (closing.AlsoClosedUnsaved.Count > 0
+                        ? " (unsaved changes discarded in «" + string.Join("», «", closing.AlsoClosedUnsaved) + "»)"
+                        : "") + ".");
+            switch (closing.Result)
             {
-                sw.CloseDoc(titolo);
-            }
-            catch (Exception ex)
-            {
-                log("[agente] I cannot close the library «" + titolo + "»: " +
-                    ex.Message + ". ATTENTION: it stays open and modified, saving it would rewrite it.");
-                return LibraryLeftModified(titolo);
-            }
+                case DocumentByPath.CloseResult.Closed:
+                    log(eraAperta
+                        ? "[agent] closed without saving the library «" + titolo +
+                          "»: it was already open but CLEAN, and the insertion modified " +
+                          "it. Leaving it there would leave it one Ctrl+S away from being " +
+                          "rewritten. Nothing is lost: reopen it and it is the same."
+                        : "[agent] closed without saving the library «" + titolo +
+                          "»: the insertion had opened it and left it modified.");
+                    return null;
 
-            // READ BACK, DO NOT TRUST THE CALL (Z-C21.10 N31): see the summary.
-            var stillThere = DocumentoConPercorso(sw, profilo);
-            if (stillThere != null)
-            {
-                bool stillDirty = true;   // unreadable is not clean
-                try { stillDirty = stillThere.GetSaveFlag(); } catch { }
-                if (stillDirty)
+                case DocumentByPath.CloseResult.StillLoadedHidden:
+                    // THE N11 PROBE, H1d: a referenced document stays loaded
+                    // after CloseDoc, and its save flag then reads CLEAN with
+                    // the edit still in memory. So the flag read before the
+                    // call decides, not the one read now.
+                    if (!sporcaAdesso)
+                    {
+                        log("[agent] " + closing.Message + ". It was clean: nothing to rewrite.");
+                        return null;
+                    }
+                    log("[agent] " + closing.Message + ".");
+                    return LibraryLeftLoaded(titolo);
+
+                case DocumentByPath.CloseResult.StillOpen:
                 {
-                    log("[agente] CloseDoc(«" + titolo + "») returned, and the library is " +
-                        "still open and modified: saving it would rewrite it.");
+                    // Still visible: the call did nothing, and this flag is
+                    // the one it had.
+                    bool stillDirty = true;   // unreadable is not clean
+                    try { stillDirty = doc.GetSaveFlag(); } catch { }
+                    if (!stillDirty)
+                    {
+                        log("[agent] " + closing.Message + ", but clean: nothing to rewrite.");
+                        return null;
+                    }
+                    log("[agent] " + closing.Message + " and modified: saving it would rewrite it.");
                     return LibraryLeftModified(titolo);
                 }
-                log("[agente] CloseDoc(«" + titolo + "») returned, and the library is " +
-                    "still open, but clean: nothing to rewrite.");
-                return null;
-            }
 
-            log(eraAperta
-                ? "[agente] closed without saving the library «" + titolo +
-                  "»: it was already open but CLEAN, and the insertion modified " +
-                  "it. Leaving it there would leave it one Ctrl+S away from being " +
-                  "rewritten. Nothing is lost: reopen it and it is the same."
-                : "[agente] closed without saving the library «" + titolo +
-                  "»: the insertion had opened it and left it modified.");
-            return null;
+                default:
+                    log("[agent] I cannot close the library «" + titolo + "»: " + closing.Message +
+                        (sporcaAdesso ? ". ATTENTION: it stays open and modified, saving it would rewrite it." : "."));
+                    return sporcaAdesso ? LibraryLeftModified(titolo) : null;
+            }
+        }
+
+        /// <summary>
+        /// The sentence the answer carries when the profile library is still
+        /// LOADED after CloseDoc, hidden because an open document references it,
+        /// with the changes the insertion made (Z-C21.13 N11, the probe's H1d:
+        /// the save flag then reads clean, and the edit is still in memory).
+        /// </summary>
+        private static string LibraryLeftLoaded(string name)
+        {
+            return "ATTENTION: the weldment profile library «" + name + "» is still loaded " +
+                   "in SOLIDWORKS, hidden, because an open document references it, and it " +
+                   "keeps the changes the insertion made even if its save flag reads clean. " +
+                   "Do not open it and save it: a save would rewrite the shared library. It is " +
+                   "unloaded when the documents that use it are closed.";
         }
 
         /// <summary>

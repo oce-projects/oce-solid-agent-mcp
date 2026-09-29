@@ -125,15 +125,66 @@ namespace Riscontro.Disegno
                     (int)swUserPreferenceOption_e.swDetailingNoOptionSpecified);
             }
             catch { }
-            switch (u)
+            return MmPerLengthUnit(u);
+        }
+
+        /// <summary>
+        /// Millimetres per unit of the swLengthUnit_e value <paramref name="unit"/>,
+        /// as IEquationMgr.get_Value answers in a document set to that unit, or
+        /// NaN when that is not known (Z-C21.13, finding L17-7). Kept apart from
+        /// the document, with no interop in the signature, so that the contract
+        /// group of Z-C21.13 in Prove can call it without SOLIDWORKS.
+        ///
+        /// THE FACTORS ARE MEASURED, not taken from the name of the unit. The
+        /// probe probe_feet_inches (rerun on 29/9/2026, SOLIDWORKS 2021 SP5.1): a
+        /// throwaway part with the global variables x = 12mm and y = 1000mm, the
+        /// unit system set to Custom and swUnitsLinear set in turn to every value
+        /// of swLengthUnit_e, then EvaluateAll, ForceRebuild3 and get_Value of the
+        /// two; the factor is 12 / x and 1000 / y, and the two must agree. The
+        /// control read back the factors already used here (mm 1, cm 10, m 1000,
+        /// in 25.4, ft 304.8, mil 0.0254). New from that run:
+        ///
+        ///   swANGSTROM   x 120000000, y 10000000000      1E-07 from both
+        ///   swNANOMETER  x 12000000,  y 1000000000       1E-06 from both
+        ///   swUIN        x 472440.94, y 39370078.74      2.54E-05 from both
+        ///
+        /// NaN ON PURPOSE, for two units the same run could not settle:
+        ///
+        ///   swFEETINCHES  x 0.47, y 39.37: 25.53 from x and 25.40 from y. They
+        ///                 look like inches cut to two decimals (the exact inches
+        ///                 are 0.4724 and 39.370), and a value cut that way does
+        ///                 not go back to the millimetres that were written: a
+        ///                 comparison to a millionth of a millimetre would refuse
+        ///                 every correct variable.
+        ///   swMICRON      x 12000000, y 1000000000: 1E-06 from both, the factor
+        ///                 of the nanometre and a thousand times smaller than the
+        ///                 micrometre. Until library 0.143.0 this switch said
+        ///                 0.001: with the reading of the probe, a correct 12 mm
+        ///                 comes back as 12000 mm and the variable is refused (a
+        ///                 consequence worked out from the probe, not run through
+        ///                 the global-variable operation on a micron document). The
+        ///                 number the probe read contradicts the unit it names:
+        ///                 until a second measurement explains it, «I do not
+        ///                 know» is the honest answer, not either factor.
+        ///
+        /// NaN makes the caller skip the comparison and say so, which is what a
+        /// unit it cannot convert deserves.
+        /// </summary>
+        private static double MmPerLengthUnit(int unit)
+        {
+            switch (unit)
             {
                 case (int)swLengthUnit_e.swMM: return 1.0;
                 case (int)swLengthUnit_e.swCM: return 10.0;
                 case (int)swLengthUnit_e.swMETER: return 1000.0;
                 case (int)swLengthUnit_e.swINCHES: return 25.4;
                 case (int)swLengthUnit_e.swFEET: return 304.8;
-                case (int)swLengthUnit_e.swMICRON: return 0.001;
                 case (int)swLengthUnit_e.swMIL: return 0.0254;
+                case (int)swLengthUnit_e.swANGSTROM: return 1E-07;
+                case (int)swLengthUnit_e.swNANOMETER: return 1E-06;
+                case (int)swLengthUnit_e.swUIN: return 2.54E-05;
+                case (int)swLengthUnit_e.swFEETINCHES: return double.NaN;
+                case (int)swLengthUnit_e.swMICRON: return double.NaN;
                 default: return double.NaN;
             }
         }

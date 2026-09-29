@@ -320,12 +320,11 @@ namespace Riscontro.Disegno
                 return null;
             }
 
-            string tornaA = null;
-            try
-            {
-                var attivo = sw.ActiveDoc as IModelDoc2;
-                if (attivo != null) tornaA = attivo.GetTitle();
-            }
+            // The document to go back to is kept by REFERENCE, not by title
+            // (Z-C21.13, pattern S18): DocumentByPath.ActivateAndReadBack
+            // brings it back by its path and reads back that it is in front.
+            IModelDoc2 previousFront = null;
+            try { previousFront = sw.ActiveDoc as IModelDoc2; }
             catch { }
 
             // THE TRIAL MEMBER OPENS THE PROFILE LIBRARY TOO (Z-C21.10 N31).
@@ -440,12 +439,28 @@ namespace Riscontro.Disegno
             }
             finally
             {
-                if (doc != null) { try { sw.CloseDoc(doc.GetTitle()); } catch { } }
+                // THE TRIAL DOCUMENT, BY REFERENCE (Z-C21.13 N11). It was never
+                // saved, so it has no path: it is closed as the active document
+                // it is, or by a title no other open document answers to, and
+                // read back. Until library 0.143.0 it was CloseDoc(its title),
+                // and a new part's title can be the stem of an open file.
+                if (doc != null)
+                {
+                    var closing = DocumentByPath.CloseAndReadBack(sw, doc);
+                    if (!closing.IsClosed || closing.AlsoClosed.Count > 0)
+                        log("[section] trial frame: " + closing.Message);
+                }
                 string leftModified = OperazioniSw.RichiudiLaLibreria(sw, profilo, libraryBefore, log);
                 if (leftModified != null) log("[sezione] " + leftModified);
-                if (!string.IsNullOrEmpty(tornaA))
+                // BACK TO THE DOCUMENT THAT WAS IN FRONT, by its path, with
+                // swDontRebuildActiveDoc: this was ActivateDoc3(title, false, 0),
+                // and 0 is swUserDecision, a dialog the call waits on (N8).
+                if (previousFront != null)
                 {
-                    try { int e = 0; sw.ActivateDoc3(tornaA, false, 0, ref e); } catch { }
+                    int activationErrors;
+                    string problem;
+                    if (!DocumentByPath.ActivateAndReadBack(sw, previousFront, out activationErrors, out problem))
+                        log("[section] " + problem);
                 }
             }
         }

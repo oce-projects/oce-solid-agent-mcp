@@ -824,10 +824,25 @@ namespace Riscontro.Disegno
             // ModelName names the ACTIVE document, and more than one session can
             // work on the same SOLIDWORKS: OUR document is brought to the front
             // first, checked, and the one that was in front goes back there.
-            string previousFront;
-            string activationProblem = BringToFront(modello, suo, out previousFront);
+            // Z-C21.13 (pattern S18): both documents are held by REFERENCE and
+            // brought to the front by path through DocumentByPath, never by title.
+            IModelDoc2 previousFront;
+            string activationProblem = BringToFront(modello, out previousFront);
+            // The one that was in front goes back there, even when bringing ours
+            // failed: a failed attempt may have brought another document forward.
+            Action putBackTheFront = () =>
+            {
+                if (previousFront == null) return;
+                int activationErrors;
+                string problem;
+                if (!DocumentByPath.ActivateAndReadBack(_sw, previousFront, out activationErrors, out problem))
+                    _log("[agent] flat pattern: " + problem);
+            };
             if (activationProblem != null)
+            {
+                putBackTheFront();
                 return Fallito("The flat pattern was not exported: " + activationProblem + ".");
+            }
             bool ok;
             try
             {
@@ -835,14 +850,7 @@ namespace Riscontro.Disegno
                                         true, null, false, false, 1, null);
             }
             catch (Exception ex) { return Fallito("Lo sviluppo non e' uscito: " + ex.Message); }
-            finally
-            {
-                if (previousFront != null)
-                {
-                    try { int e = 0; _sw.ActivateDoc3(previousFront, false, (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref e); }
-                    catch { }
-                }
-            }
+            finally { putBackTheFront(); }
             if (!ok || !File.Exists(dove) || new FileInfo(dove).Length == 0)
                 return Fallito("SOLIDWORKS dice di aver esportato lo sviluppo, ma il file «" + dove +
                                "» " + (File.Exists(dove) ? "e' vuoto." : "non c'e'."));
@@ -871,52 +879,35 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Brings <paramref name="document"/> (saved at <paramref name="path"/>)
-        /// to the front of SOLIDWORKS for a call that works on the ACTIVE
-        /// document (ExportToDWG2). Null when the active document is ours
-        /// afterwards, otherwise what went wrong; <paramref name="previousTitle"/>
-        /// is the title of the document that was in front before, when it was
-        /// another one, so that the caller can bring it back.
+        /// Brings <paramref name="document"/> to the front of SOLIDWORKS for a
+        /// call that works on the ACTIVE document (ExportToDWG2). Null when the
+        /// active document is ours afterwards, otherwise what went wrong;
+        /// <paramref name="previousFront"/> is the document that was in front
+        /// before, when it was another one, so that the caller can bring it back.
         ///
-        /// The same call as the bridge's PortaDavanti (Ponte/Documenti.cs):
-        /// ActivateDoc3 with the title and swDontRebuildActiveDoc, then the
-        /// active document read back. ISldWorks~ActivateDoc3.html: «This method
-        /// brings the document specified in Name to the foreground of
-        /// SOLIDWORKS and returns a pointer to the document»; the Z-C21.3 probe
-        /// of C4-4 measured it bringing even a hidden part forward (errors 0,
-        /// the active document is the part). The check is by path, never by
-        /// title: the page warns that a title without extension can name a part
-        /// and an assembly at once.
+        /// Z-C21.13 (pattern S18): through DocumentByPath.ActivateAndReadBack,
+        /// which gives ActivateDoc3 the file name with extension, then the full
+        /// path, never the title (ISldWorks~ActivateDoc3.html warns that a name
+        /// without extension can fit a part and an assembly at once), with
+        /// swDontRebuildActiveDoc, and reads back that the active document is
+        /// this very object. The page: «This method brings the document
+        /// specified in Name to the foreground of SOLIDWORKS and returns a
+        /// pointer to the document»; the Z-C21.3 probe of C4-4 measured it
+        /// bringing even a hidden part forward. The previous front is kept by
+        /// reference: until library 0.143.0 it was its title.
         /// </summary>
-        private string BringToFront(IModelDoc2 document, string path, out string previousTitle)
+        private string BringToFront(IModelDoc2 document, out IModelDoc2 previousFront)
         {
-            previousTitle = null;
-            Func<IModelDoc2, bool> isOurs = d =>
-            {
-                try { return d != null && string.Equals(d.GetPathName() ?? "", path, StringComparison.OrdinalIgnoreCase); }
-                catch { return false; }
-            };
+            previousFront = null;
             IModelDoc2 front = null;
             try { front = _sw.ActiveDoc as IModelDoc2; } catch { }
-            if (isOurs(front)) return null;
-            try { previousTitle = front?.GetTitle(); } catch { previousTitle = null; }
-
-            int errors = 0;
-            string title = "";
-            try
-            {
-                title = document.GetTitle() ?? "";
-                _sw.ActivateDoc3(title, false, (int)swRebuildOnActivation_e.swDontRebuildActiveDoc, ref errors);
-            }
-            catch (Exception ex) { return "ActivateDoc3 could not bring «" + title + "» to the front: " + ex.Message; }
-            try { front = _sw.ActiveDoc as IModelDoc2; } catch { front = null; }
-            if (!isOurs(front))
-            {
-                string other = "";
-                try { other = front?.GetTitle() ?? "nothing"; } catch { }
-                return "asked to bring «" + title + "» to the front, the active document is «" + other +
-                       "» (activation error " + errors + "), and ExportToDWG2 exports the active document";
-            }
+            // Ours already in front leaves nothing to put back (and if the two
+            // wrappers differ for one document, putting it back is harmless).
+            if (front != null && !ReferenceEquals(front, document)) previousFront = front;
+            int activationErrors;
+            string problem;
+            if (!DocumentByPath.ActivateAndReadBack(_sw, document, out activationErrors, out problem))
+                return problem + ", and ExportToDWG2 exports the active document";
             return null;
         }
 

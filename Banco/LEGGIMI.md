@@ -588,12 +588,14 @@ casi/corpi/       15   le booleane, il raccordo variabile, il filetto cosmetico;
                        l'unione di corpi che non si toccano rifiutata (Z-C18);
                        la booleana col corpo letto prima di un taglio
                        rifiutata (Z-C21.2)
-casi/esporta/     13   STL, STEP e IGES: il file riletto byte per byte,
+casi/esporta/     15   STL, STEP e IGES: il file riletto byte per byte,
                        e il volume riaperto in SOLIDWORKS; l'IGES di un
                        assieme rifiutato (Z-C20); lo STL con una faccia
                        rimasta selezionata e' il pezzo intero (Z-C21.2);
                        the IGES carries the solid, not its wireframe: its
-                       directory counted (Z-C21.10, N59)
+                       directory counted (Z-C21.10, N59);
+                       AP242 through SOLIDWORKS MBD, refused
+                       without its licence or with a .step path (Z-C21.13)
 casi/proprieta/   12   i due cassetti, e il codice che va in distinta; the
                        material reaches every configuration (Z-C21, M10)
 casi/testo/        6   incidere, e la scritta che esce dalla faccia

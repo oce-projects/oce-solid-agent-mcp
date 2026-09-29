@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -401,7 +402,7 @@ namespace Riscontro.Disegno
         // c'e' `SaveAs3` con `ExportData` a null, e tutto il resto sono
         // preferenze utente globali:
         //
-        //   swStepAP (int)                 203, 214, 242 — SENZA un enum
+        //   swStepAP (int)                 203, 214, with no enum (not 242: below)
         //   swIGESRepresentation (int)     swIGES_BREP = 3 (solidi),
         //                                  swIGES_TRMSRF = 0 (superfici)
         //   swIGESExportSolidAndSurface    on: «Specifies whether to export data
@@ -425,13 +426,36 @@ namespace Riscontro.Disegno
         // directory says what is in it (`IgesEntityCensus`): a file with no
         // solid and no surface is refused.
         //
-        // `swStepAP` E' IL CASO PIU' SCOMODO: i tre valori leciti NON hanno un
-        // enum in `swconst`, quindi il numero e' un letterale — e un letterale
-        // e' una cosa che si crede. Per questo dopo aver scritto il file si
-        // **rilegge il suo FILE_SCHEMA**, che dice quale protocollo e'
-        // davvero uscito: AP203 si dichiara «CONFIG_CONTROL_DESIGN», AP214
-        // «AUTOMOTIVE_DESIGN», AP242 col suo nome lungo. E' l'unico modo di
-        // sapere che il 214 chiesto e' il 214 ottenuto.
+        // `swStepAP` IS THE AWKWARD ONE: its values have no enum in `swconst`,
+        // so the number is a literal, and a literal is something one believes.
+        // That is why, after writing, the file's own FILE_SCHEMA is read back:
+        // it says which protocol really came out. AP203 declares
+        // «CONFIG_CONTROL_DESIGN», AP214 «AUTOMOTIVE_DESIGN», AP242 its long
+        // name. It is the only way to know that the 214 asked is the 214 got.
+        //
+        // ── AP242 IS NOT A VALUE OF swStepAP (Z-C21.13, finding C5-7) ────────
+        //
+        // The page lists two values only (estratto_swconst/
+        // FileSaveAsSTEPOptions.htm, «203 = STEP AP203 format», «214 = STEP
+        // AP214 format»), and until library 0.143.0 this code wrote 242 anyway.
+        // The probe probe_step_ap242 (29/9/2026, SOLIDWORKS 2021 SP5.1): 242 is
+        // accepted, read back as 242, SaveAs3 answers true with no error and no
+        // warning, and the file is AP203 (FILE_SCHEMA «CONFIG_CONTROL_DESIGN»);
+        // the junk value 999 does the same. The FILE_SCHEMA check refused that
+        // file, but for the wrong reason: «AP242 asked, AP203 out» sends one
+        // looking at the protocol preference, when AP242 has another door.
+        //
+        // The door is IModelDocExtension.PublishSTEP242File (page
+        // IModelDocExtension~PublishSTEP242File.html: «Exports the SOLIDWORKS
+        // MBD 3D part or assembly to a STEP 242 file», Path «use .STP for the
+        // file name extension», Return «Status as defined in
+        // swStep242Error_e»), SOLIDWORKS MBD, since 2017. The same probe: with a
+        // .step path it answers 1 (swPublishStep242_InvalidPath), with a .stp
+        // path 4 (swPublishStep242_MBDLicenseNotAvailable): the bench machine
+        // has no MBD licence. So AP242 never touches swStepAP, wants a .stp
+        // path, and on 4 is refused saying that AP214 and AP203 remain. On 0
+        // the file goes through the same FILE_SCHEMA check as the other two;
+        // that branch is not measured here, for want of the licence.
 
         private Esito EsportaScambio(
             IModelDoc2 modello, Dictionary<string, object> a, string operazione,
@@ -460,9 +484,45 @@ namespace Riscontro.Disegno
                     "L'IGES di un assieme non lo scrivo: non so verificare che dentro ci sia l'assieme intero (con " +
                     "certe impostazioni SOLIDWORKS scrive un file per componente). Per mandare l'assieme usa " +
                     "«esporta_step», che lo porta intero e lo controllo; per un pezzo solo, aprilo e chiedimi l'IGES li'.");
+
+            // THE PROTOCOL BEFORE THE PATH (Z-C21.13, C5-7): AP242 decides which
+            // extension the path may have.
+            int protocollo = 0;
+            string protocolloChiesto = null;
+            bool ap242 = false;
+            int rappresentazione = 0;
+            string rappresentazioneChiesta = null;
+            if (iges)
+            {
+                rappresentazioneChiesta = (Str(a, "rappresentazione", "solidi") ?? "solidi")
+                    .Trim().ToLowerInvariant();
+                if (rappresentazioneChiesta == "solidi")
+                    rappresentazione = (int)swIGESRepresentation_e.swIGES_BREP;
+                else if (rappresentazioneChiesta == "superfici")
+                    rappresentazione = (int)swIGESRepresentation_e.swIGES_TRMSRF;
+                else return Fallito(
+                    "Rappresentazione «" + rappresentazioneChiesta + "» sconosciuta: ci sono " +
+                    "«solidi» (BREP, quella che serve a chi deve lavorare il pezzo) e " +
+                    "«superfici».");
+            }
+            else
+            {
+                protocolloChiesto = (Str(a, "protocollo", "AP214") ?? "AP214")
+                    .Trim().ToUpperInvariant();
+                if (protocolloChiesto == "AP203") protocollo = 203;
+                else if (protocolloChiesto == "AP214") protocollo = 214;
+                // AP242 HAS NO swStepAP VALUE: written there, it gives an AP203
+                // file (the comment above this method). PublishSTEP242File
+                // writes it, further down.
+                else if (protocolloChiesto == "AP242") ap242 = true;
+                else return Fallito(
+                    "Protocollo «" + protocolloChiesto + "» sconosciuto: ci sono AP203, " +
+                    "AP214 (predefinito) e AP242.");
+            }
+
             string[] estensioniBuone = iges
                 ? new[] { ".iges", ".igs" }
-                : new[] { ".step", ".stp" };
+                : ap242 ? new[] { ".stp" } : new[] { ".step", ".stp" };
 
             // LA VERIFICA GIRA LO STESSO, E NON FERMA NIENTE. Il giudizio
             // viaggia con la risposta: chi manda un pezzo a un fornitore ha
@@ -488,6 +548,13 @@ namespace Riscontro.Disegno
                 dove = Path.ChangeExtension(suo, estensioniBuone[0]);
             }
 
+            // AP242 WANTS .stp, and is refused before the call otherwise (C5-7).
+            if (ap242)
+            {
+                string pathProblem = Step242PathProblem(dove);
+                if (pathProblem != null) return Fallito(pathProblem);
+            }
+
             string estensione = (Path.GetExtension(dove) ?? "").ToLowerInvariant();
             if (Array.IndexOf(estensioniBuone, estensione) < 0)
                 return Fallito(
@@ -502,35 +569,6 @@ namespace Riscontro.Disegno
             if (!Directory.Exists(cartella))
                 return Fallito("La cartella «" + cartella + "» non esiste: non la creo io.");
 
-            int protocollo = 0;
-            string protocolloChiesto = null;
-            int rappresentazione = 0;
-            string rappresentazioneChiesta = null;
-            if (iges)
-            {
-                rappresentazioneChiesta = (Str(a, "rappresentazione", "solidi") ?? "solidi")
-                    .Trim().ToLowerInvariant();
-                if (rappresentazioneChiesta == "solidi")
-                    rappresentazione = (int)swIGESRepresentation_e.swIGES_BREP;
-                else if (rappresentazioneChiesta == "superfici")
-                    rappresentazione = (int)swIGESRepresentation_e.swIGES_TRMSRF;
-                else return Fallito(
-                    "Rappresentazione «" + rappresentazioneChiesta + "» sconosciuta: ci sono " +
-                    "«solidi» (BREP, quella che serve a chi deve lavorare il pezzo) e " +
-                    "«superfici».");
-            }
-            else
-            {
-                protocolloChiesto = (Str(a, "protocollo", "AP214") ?? "AP214")
-                    .Trim().ToUpperInvariant();
-                if (protocolloChiesto == "AP203") protocollo = 203;
-                else if (protocolloChiesto == "AP214") protocollo = 214;
-                else if (protocolloChiesto == "AP242") protocollo = 242;
-                else return Fallito(
-                    "Protocollo «" + protocolloChiesto + "» sconosciuto: ci sono AP203, " +
-                    "AP214 (predefinito) e AP242.");
-            }
-
             var prima = LeggiPreferenzeScambio();
             int errori = 0, avvisi = 0;
             bool ok;
@@ -538,34 +576,45 @@ namespace Riscontro.Disegno
             try
             {
                 if (iges) igesTogglesNotOff = ImpostaPreferenzeIges(rappresentazione);
-                else ImpostaPreferenzeStep(protocollo);
+                else if (!ap242) ImpostaPreferenzeStep(protocollo);
 
-                if (File.Exists(dove))
+                if (ap242)
                 {
-                    try { File.Delete(dove); }
-                    catch (Exception ex)
+                    // C5-7: its own method, its own handling of a file already at
+                    // the path (see PublishStep242), and swStepAP left alone.
+                    string refusal = PublishStep242(modello, dove);
+                    if (refusal != null) return Fallito(refusal);
+                    ok = true;
+                }
+                else
+                {
+                    if (File.Exists(dove))
                     {
-                        return Fallito(
-                            "C'e' gia' un file li' e non riesco a sostituirlo (" + ex.Message +
-                            "): probabilmente e' aperto in un altro programma.");
+                        try { File.Delete(dove); }
+                        catch (Exception ex)
+                        {
+                            return Fallito(
+                                "C'e' gia' un file li' e non riesco a sostituirlo (" + ex.Message +
+                                "): probabilmente e' aperto in un altro programma.");
+                        }
                     }
-                }
 
-                // COME PER LO STL (rilievo L13-1). IModelDocExtension~SaveAs3.html,
-                // Remarks: «Exports the entire model, unless faces or bodies are
-                // selected, in which case, it exports only those». Per lo STEP di
-                // una parte non c'e' nessun conto dei corpi che se ne accorgerebbe,
-                // e quello dell'assieme prenderebbe un file con meno solidi.
-                modello.ClearSelection2(true);
-                try
-                {
-                    ok = modello.Extension.SaveAs3(
-                        dove,
-                        (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
-                        (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
-                        null, null, ref errori, ref avvisi);
+                    // COME PER LO STL (rilievo L13-1). IModelDocExtension~SaveAs3.html,
+                    // Remarks: «Exports the entire model, unless faces or bodies are
+                    // selected, in which case, it exports only those». Per lo STEP di
+                    // una parte non c'e' nessun conto dei corpi che se ne accorgerebbe,
+                    // e quello dell'assieme prenderebbe un file con meno solidi.
+                    modello.ClearSelection2(true);
+                    try
+                    {
+                        ok = modello.Extension.SaveAs3(
+                            dove,
+                            (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
+                            (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
+                            null, null, ref errori, ref avvisi);
+                    }
+                    catch (Exception ex) { return Fallito("File non scritto: " + ex.Message); }
                 }
-                catch (Exception ex) { return Fallito("File non scritto: " + ex.Message); }
             }
             finally { RimettiPreferenzeScambio(prima); }
 
@@ -626,6 +675,10 @@ namespace Riscontro.Disegno
             {
                 misure["formato"] = "STEP";
                 misure["protocollo_chiesto"] = protocolloChiesto;
+                // WHICH DOOR WROTE IT (C5-7): the two do not share their settings.
+                misure["written_with"] = ap242
+                    ? "IModelDocExtension.PublishSTEP242File (SOLIDWORKS MBD)"
+                    : "SaveAs3 with swStepAP = " + protocollo;
                 int entita;
                 string perche;
                 string schema = SchemaDelloStep(dove, out entita, out perche);
@@ -749,6 +802,245 @@ namespace Riscontro.Disegno
         private void ImpostaPreferenzeStep(int protocollo)
         {
             try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, protocollo); } catch { }
+        }
+
+        // =================================================================
+        // STEP AP242: PublishSTEP242File (Z-C21.13, finding C5-7)
+        // =================================================================
+
+        /// <summary>
+        /// Writes STEP AP242 at <paramref name="path"/> (a .stp path, checked
+        /// before by <see cref="Step242PathProblem"/>) through
+        /// IModelDocExtension.PublishSTEP242File. Null when the new file is
+        /// there, otherwise the refusal.
+        ///
+        /// A FILE ALREADY AT THE PATH IS MOVED ASIDE, NOT DELETED. SaveAs3's
+        /// branch deletes it first; here a refusal is the expected answer on
+        /// every machine without the MBD licence, the bench machine included,
+        /// and deleting first would destroy the file the user had there each
+        /// time (on 0.143.0 it was replaced by an AP203 file, and then the
+        /// export was refused). The previous file is renamed next to itself, put
+        /// back when nothing new came out, and deleted once the new one is
+        /// written.
+        /// </summary>
+        private string PublishStep242(IModelDoc2 document, string path)
+        {
+            string aside = null;
+            if (File.Exists(path))
+            {
+                aside = path + "." + Guid.NewGuid().ToString("N").Substring(0, 8) + ".previous";
+                try { File.Move(path, aside); }
+                catch (Exception ex)
+                {
+                    return "There is already a file at «" + path + "» and I cannot move it aside (" + ex.Message +
+                           "): it is probably open in another program. Nothing was written.";
+                }
+            }
+
+            string refusal;
+            try { refusal = WriteStep242(document, path); }
+            catch (Exception ex) { refusal = "STEP AP242 was not written: " + ex.Message; }
+
+            if (refusal == null)
+            {
+                if (aside != null)
+                {
+                    // A FileInfo and not File.Delete: the obsolete-call contract
+                    // cannot type the receiver «File», and counts it undecided.
+                    try { new FileInfo(aside).Delete(); }
+                    catch (Exception ex) { _log("[agent] STEP AP242: the previous file stays at " + aside + " (" + ex.Message + ")"); }
+                }
+                return null;
+            }
+
+            // NOTHING NEW CAME OUT. Whatever the refused call left at the path is
+            // not a checked AP242, and the file that was there goes back.
+            if (aside == null)
+            {
+                if (File.Exists(path))
+                    refusal += " The refused call left a file at «" + path + "»: it is not a checked AP242, do not send it.";
+                return refusal;
+            }
+            try
+            {
+                if (File.Exists(path)) new FileInfo(path).Delete();
+                File.Move(aside, path);
+                return refusal + " The file that was already at «" + path + "» is back in its place.";
+            }
+            catch (Exception ex)
+            {
+                return refusal + " The file that was already at «" + path + "» is now «" + aside +
+                       "»: I could not put it back (" + ex.Message + ").";
+            }
+        }
+
+        /// <summary>
+        /// The call itself, with OUR document in front of SOLIDWORKS while it
+        /// runs. The page of PublishSTEP242File does not say whether it works on
+        /// a document that is not the active one, the probe brought the part to
+        /// the front before calling it, and more than one session can work on
+        /// the same SOLIDWORKS: so our document goes to the front first, as for
+        /// the flat pattern (ExportToDWG2, OperazioniLamiera.cs), and the one
+        /// that was in front goes back there.
+        ///
+        /// The selection is cleared as for SaveAs3 (finding L13-1, whose page
+        /// says a selection limits what is exported). This page says nothing
+        /// about a selection; a face left selected must not get the chance to
+        /// decide what the file holds.
+        /// </summary>
+        private string WriteStep242(IModelDoc2 document, string path)
+        {
+            IModelDoc2 previousFront;
+            string activationProblem = BringDocumentToFront(document, out previousFront);
+            // The one that was in front goes back there, even when bringing ours
+            // failed: a failed attempt may have brought another document
+            // forward. By REFERENCE, through DocumentByPath (Z-C21.13, pattern
+            // S18): it was the title, which can be another document's too.
+            Action putBackTheFront = () =>
+            {
+                if (previousFront == null) return;
+                int activationErrors;
+                string problem;
+                if (!DocumentByPath.ActivateAndReadBack(_sw, previousFront, out activationErrors, out problem))
+                    _log("[agent] STEP AP242: " + problem);
+            };
+            if (activationProblem != null)
+            {
+                putBackTheFront();
+                return "STEP AP242 was not written: " + activationProblem + ".";
+            }
+            int code;
+            try
+            {
+                document.ClearSelection2(true);
+                code = document.Extension.PublishSTEP242File(path);
+            }
+            catch (Exception ex)
+            {
+                return "STEP AP242 was not written: PublishSTEP242File raised an exception: " + ex.Message;
+            }
+            finally { putBackTheFront(); }
+            string refusal = Step242Refusal(code, path);
+            if (refusal != null) return refusal;
+            if (!File.Exists(path))
+                return "PublishSTEP242File answered " + code + " (swPublishStep242_Success) and there is no file at «" +
+                       path + "».";
+            return null;
+        }
+
+        /// <summary>
+        /// Brings <paramref name="document"/> to the front of SOLIDWORKS. Null
+        /// when the active document is ours afterwards, otherwise what went
+        /// wrong; <paramref name="previousFront"/> is the document that was in
+        /// front, when it was another one, so that the caller can bring it back.
+        ///
+        /// The same call as BringToFront (OperazioniLamiera.cs) and the bridge's
+        /// PortaDavanti: DocumentByPath.ActivateAndReadBack (Z-C21.13, pattern
+        /// S18), which gives ActivateDoc3 the file name with extension and then
+        /// the full path of a saved part, and the title of a part never saved only when
+        /// no other open document answers to it (ISldWorks~ActivateDoc3.html
+        /// warns that a title without extension can name a part and an assembly
+        /// at once), with swDontRebuildActiveDoc, and reads back the COM
+        /// identity of the active document, which needs neither a path nor a
+        /// title: a STEP is also written from a part never saved.
+        /// </summary>
+        private string BringDocumentToFront(IModelDoc2 document, out IModelDoc2 previousFront)
+        {
+            previousFront = null;
+            IModelDoc2 front = null;
+            try { front = _sw.ActiveDoc as IModelDoc2; } catch { }
+            if (SameComObject(front, document)) return null;
+            previousFront = front;
+            int activationErrors;
+            string problem;
+            if (!DocumentByPath.ActivateAndReadBack(_sw, document, out activationErrors, out problem))
+                return problem;
+            return null;
+        }
+
+        /// <summary>
+        /// The same COM object? ReferenceEquals first, since .NET almost always
+        /// reuses one wrapper for one COM object; when it does not, the IUnknown
+        /// pointers, which are the real identity (as EsecutorePiano.StessoOggetto).
+        /// Both Release calls are needed: GetIUnknownForObject adds a reference,
+        /// and a count that does not go back is a document SOLIDWORKS cannot close.
+        /// </summary>
+        private static bool SameComObject(object a, object b)
+        {
+            if (a == null || b == null) return false;
+            if (ReferenceEquals(a, b)) return true;
+            IntPtr pa = IntPtr.Zero, pb = IntPtr.Zero;
+            try
+            {
+                pa = Marshal.GetIUnknownForObject(a);
+                pb = Marshal.GetIUnknownForObject(b);
+                return pa == pb;
+            }
+            catch { return false; }
+            finally
+            {
+                if (pa != IntPtr.Zero) Marshal.Release(pa);
+                if (pb != IntPtr.Zero) Marshal.Release(pb);
+            }
+        }
+
+        /// <summary>
+        /// Why <paramref name="path"/> cannot take STEP AP242, or null when it
+        /// can. IModelDocExtension~PublishSTEP242File.html, Path: «Full qualified
+        /// path to which to export the SOLIDWORKS MBD 3D part or assembly; use
+        /// .STP for the file name extension»; the probe probe_step_ap242 measured
+        /// a .step path answering 1 (swPublishStep242_InvalidPath). Refused here,
+        /// before the call, with the reason. No interop in the signature: the
+        /// contract group of Z-C21.13 calls it without SOLIDWORKS.
+        /// </summary>
+        private static string Step242PathProblem(string path)
+        {
+            string extension;
+            try { extension = (Path.GetExtension(path ?? "") ?? "").ToLowerInvariant(); }
+            catch (Exception ex) { return "I cannot read the path «" + path + "»: " + ex.Message; }
+            if (extension == ".stp") return null;
+            if (extension == ".step")
+                return "STEP AP242 is written by PublishSTEP242File, and its page asks for a .stp path " +
+                       "(«use .STP for the file name extension»): with a .step path it answers " +
+                       "swPublishStep242_InvalidPath (measured on 29/9/2026). Ask again with the same path " +
+                       "ending in .stp instead of «" + path + "».";
+            return "The path «" + path + "» ends in «" + extension + "», and STEP AP242 is written by " +
+                   "PublishSTEP242File, which wants a path ending in .stp.";
+        }
+
+        /// <summary>
+        /// The refusal for an answer of PublishSTEP242File, or null for success.
+        /// swStep242Error_e (its page in estratto_swconst): «Status codes for
+        /// exporting SOLIDWORKS MBD 3D PDF files to STEP 242»,
+        /// swPublishStep242_Success 0, swPublishStep242_InvalidPath 1,
+        /// swPublishStep242_UnknownError 3, swPublishStep242_MBDLicenseNotAvailable
+        /// 4. A value the enum does not list is not taken for a success. No
+        /// interop in the signature: the contract group of Z-C21.13 calls it
+        /// without SOLIDWORKS.
+        /// </summary>
+        private static string Step242Refusal(int code, string path)
+        {
+            switch (code)
+            {
+                case (int)swStep242Error_e.swPublishStep242_Success:
+                    return null;
+                case (int)swStep242Error_e.swPublishStep242_MBDLicenseNotAvailable:
+                    return "STEP AP242 is not available on this machine: PublishSTEP242File answered " + code +
+                           " (swPublishStep242_MBDLicenseNotAvailable). In SOLIDWORKS 2021 AP242 is written only " +
+                           "by SOLIDWORKS MBD («Publish STEP 242 File»), and it needs the SOLIDWORKS MBD licence, " +
+                           "which is not available on this machine. AP214 (the default, which also carries the colours) " +
+                           "and AP203 (the oldest and the most widely read) are available: ask for one of those.";
+                case (int)swStep242Error_e.swPublishStep242_InvalidPath:
+                    return "PublishSTEP242File refused the path «" + path + "»: it answered " + code +
+                           " (swPublishStep242_InvalidPath). Its page asks for a full path ending in .stp.";
+                case (int)swStep242Error_e.swPublishStep242_UnknownError:
+                    return "PublishSTEP242File failed without saying why: it answered " + code +
+                           " (swPublishStep242_UnknownError), and there is no AP242 file to check.";
+                default:
+                    return "PublishSTEP242File answered " + code + ", a value swStep242Error_e does not list " +
+                           "(0 success, 1 invalid path, 3 unknown error, 4 no MBD licence): I do not take it " +
+                           "for a success.";
+            }
         }
 
         /// <returns>
@@ -981,13 +1273,11 @@ namespace Riscontro.Disegno
         {
             comE = "";
             IModelDoc2 riaperto = null;
-            string titoloPrima = null;
-            try
-            {
-                var attivo = _sw.IActiveDoc2;
-                titoloPrima = attivo == null ? null : attivo.GetTitle();
-            }
+            // The document to go back to, by REFERENCE (Z-C21.13, pattern S18).
+            IModelDoc2 previousFront = null;
+            try { previousFront = _sw.IActiveDoc2; }
             catch { }
+            bool volumeRead = false;
             try
             {
                 int errori = 0;
@@ -1004,6 +1294,7 @@ namespace Riscontro.Disegno
                     return -1;
                 }
                 comE = "riaperto come pezzo e richiuso; volume letto dalla geometria tradotta";
+                volumeRead = true;
                 return v.Value;
             }
             catch (Exception ex)
@@ -1013,13 +1304,39 @@ namespace Riscontro.Disegno
             }
             finally
             {
+                // BY REFERENCE, AND READ BACK (Z-C21.13, findings M4 and N11).
+                // The imported document was never saved, and its title is the
+                // stem of the file: the stem of the part itself when the export
+                // sits next to it. CloseDoc(that title) could close the ORIGINAL,
+                // without saving. When LoadFile4 leaves it in front,
+                // DocumentByPath closes it with the empty name, which names the
+                // active document; when it does not, its title is used only if
+                // no other open document answers to it. The answer says
+                // «closed» only if the read back finds it gone.
                 if (riaperto != null)
                 {
-                    try { _sw.CloseDoc(riaperto.GetTitle()); } catch { }
+                    var closing = DocumentByPath.CloseAndReadBack(_sw, riaperto);
+                    if (!closing.IsClosed)
+                    {
+                        string notClosed = "the reopened document is NOT closed: " + closing.Message +
+                                           "; close it by hand, without saving";
+                        comE = volumeRead
+                            ? "reopened as a part, volume read from the translated geometry, and " + notClosed
+                            : comE + "; " + notClosed;
+                        _log("[agent] " + notClosed);
+                    }
+                    else if (closing.AlsoClosed.Count > 0)
+                        _log("[agent] closing the reopened file: " + closing.Message);
                 }
-                if (!string.IsNullOrEmpty(titoloPrima))
+                // Back to the document that was in front, by its path, with
+                // swDontRebuildActiveDoc: this was ActivateDoc3(title, false, 0),
+                // and 0 is swUserDecision, a dialog the call waits on (L13-3).
+                if (previousFront != null)
                 {
-                    try { _sw.ActivateDoc3(titoloPrima, false, 0, 0); } catch { }
+                    int activationErrors;
+                    string problem;
+                    if (!DocumentByPath.ActivateAndReadBack(_sw, previousFront, out activationErrors, out problem))
+                        _log("[agent] after reopening the file: " + problem);
                 }
             }
         }

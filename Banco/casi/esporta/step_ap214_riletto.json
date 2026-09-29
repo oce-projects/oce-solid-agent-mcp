@@ -2,7 +2,7 @@
   "nome": "step_ap214_riletto",
   "famiglia": "esporta",
   "perche": "IL VOLUME RILETTO DAL FILE, non la dimensione del file. Uno STEP scritto e mai riaperto e' una promessa: esiste, pesa, si apre in qualunque visualizzatore. L'unica misura che dice che la GEOMETRIA e' sopravvissuta alla traduzione e' riaprirlo in SOLIDWORKS e confrontare il volume -- ed e' quello che questo caso fa.",
-  "perche_il_protocollo_si_rilegge": "`swStepAP` vuole 203, 214 o 242 e in `swconst` quei tre valori NON hanno un enum: il numero e' un letterale, e un letterale e' una cosa che si crede. L'unica prova che il 214 chiesto e' il 214 ottenuto e' il FILE_SCHEMA scritto dentro il file, che per l'AP214 dice «AUTOMOTIVE_DESIGN».",
+  "perche_il_protocollo_si_rilegge": "`swStepAP` takes 203 or 214 (swconst help page FileSaveAsSTEPOptions.htm), and those values have NO enum in `swconst`: the number is a literal, and a literal is something one believes. The only proof that the 214 asked is the 214 got is the FILE_SCHEMA written inside the file, which for AP214 says «AUTOMOTIVE_DESIGN». 242 is not a value of `swStepAP`: written there it gives an AP203 file (Z-C21.13, finding C5-7), and AP242 goes through PublishSTEP242File instead.",
   "parte": { "nuova": true },
   "passi": [
     { "operazione": "estrudi_rettangolo",

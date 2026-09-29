@@ -305,19 +305,90 @@ namespace Riscontro.Disegno
             // come before the views are complete; a rebuild settles them, and the
             // answer now carries the count, so a second zero comes with its number.
             try { ((IModelDoc2)disegno).EditRebuild3(); } catch { }
-            int centreMarks = 0;
+            // Counted view by view. A view whose marks cannot be counted makes the
+            // total unknown (null), not smaller: up to library 0.143.0 such a view
+            // was skipped, and the total still looked like a count.
+            var views = new List<IView>();
             try
             {
-                var vista = disegno.GetFirstView() as IView;          // the sheet itself
-                vista = vista == null ? null : vista.GetNextView() as IView;
-                while (vista != null)
+                var sheet = disegno.GetFirstView() as IView;          // the sheet itself
+                var next = sheet == null ? null : sheet.GetNextView() as IView;
+                while (next != null)
                 {
-                    int n = ContaCroci.DellaVista(vista);
-                    if (n > 0) centreMarks += n;
-                    vista = vista.GetNextView() as IView;
+                    views.Add(next);
+                    next = next.GetNextView() as IView;
                 }
             }
-            catch { centreMarks = -1; }
+            catch { views = null; }
+            // ZERO-E-ZERO: the sum starts at zero and every counted view adds its
+            // own count; views that cannot be walked, or one view that cannot be
+            // counted, turn it to -1, which the answer gives as null.
+            int centreMarks = views == null ? -1 : 0;
+            var viewsWithoutMarks = new List<IView>();
+            if (views != null)
+            {
+                foreach (IView view in views)
+                {
+                    int n = ContaCroci.DellaVista(view);
+                    if (n < 0) { centreMarks = -1; continue; }
+                    if (centreMarks >= 0) centreMarks += n;
+                    if (n == 0) viewsWithoutMarks.Add(view);
+                }
+            }
+
+            // THE BRIDGE MARKS THE HOLES SOLIDWORKS LEFT BARE (Z-C21.13). A view
+            // that shows holes end-on and has no centre mark at all after the
+            // rebuild gets them from the walk the centre-mark operation uses
+            // (MarkHolesOfView, OperazioniCentrini.cs), and the answer says how
+            // many the bridge added. The online search of 29/9/2026 (RAG note
+            // 82zz-decies) found no documented fix, only conditions that suppress
+            // the automatic marks in silence: draft quality views ("Some edges may
+            // be missing, since not all model information is loaded in Draft
+            // quality"), large assembly mode. Only views with ZERO marks: where
+            // SOLIDWORKS put some, the view is left as it is. What the operation
+            // measured on 26/9/2026 still holds: once the automatic marks were
+            // deleted, AddCenterMark put none back; so a hole may stay bare, and
+            // then the answer says it. A view with no hole seen end-on (the front
+            // and side views of a plate) is walked and left untouched.
+            // ZERO-E-ZERO: the three counters below count what the walk found and
+            // did; with no view without marks, or no hole in them, zero is real.
+            int addedByBridge = 0;
+            int holesInViewsWithoutMarks = 0;
+            int holesLeftWithoutMark = 0;
+            object autoMarksOption = null;
+            if (viewsWithoutMarks.Count > 0)
+            {
+                IMathUtility mu = null;
+                try { mu = _sw.GetMathUtility() as IMathUtility; } catch { }
+                var selMgr = modello.SelectionManager as ISelectionMgr;
+                double size = DocumentCentreMarkSize(modello, Unita.M(DefaultCentreMarkSizeMm));
+                foreach (IView view in viewsWithoutMarks)
+                {
+                    var marks = MarkHolesOfView(modello, disegno, view, size, false, mu, selMgr);
+                    if (marks.Before < 0) continue;   // not counted this time: nothing was touched
+                    holesInViewsWithoutMarks += marks.Holes;
+                    addedByBridge += marks.Added;
+                    holesLeftWithoutMark += marks.LeftWithoutMark.Count;
+                }
+                if (addedByBridge > 0) { try { modello.EditRebuild3(); } catch { } }
+                // The document option that makes SOLIDWORKS put the marks, read only
+                // when it did not (DP_Detailing.htm of the swconst guide: the toggle
+                // with swDetailingNoOptionSpecified, one for parts and one for
+                // assemblies): a template with the option off explains a zero that
+                // no suppression does.
+                if (holesInViewsWithoutMarks > 0)
+                {
+                    bool assembly = percorsoSw.EndsWith(".sldasm", StringComparison.OrdinalIgnoreCase);
+                    try
+                    {
+                        autoMarksOption = modello.Extension.GetUserPreferenceToggle(
+                            (int)(assembly ? swUserPreferenceToggle_e.swDetailingAutoInsertCenterMarksForHolesAsm
+                                           : swUserPreferenceToggle_e.swDetailingAutoInsertCenterMarksForHoles),
+                            (int)swUserPreferenceOption_e.swDetailingNoOptionSpecified);
+                    }
+                    catch { }
+                }
+            }
 
             var misure = new Dictionary<string, object>
             {
@@ -327,8 +398,31 @@ namespace Riscontro.Disegno
                 ["viste_dopo"] = dopo,
                 ["viste_create"] = dopo - prima,
                 ["nomi"] = NomiDelleViste(disegno),
+                // The marks SOLIDWORKS put, after the rebuild and before the bridge.
                 ["centre_marks_after_rebuild"] = centreMarks >= 0 ? (object)centreMarks : null,
+                ["centre_marks_added_by_bridge"] = addedByBridge,
             };
+            if (holesInViewsWithoutMarks > 0)
+            {
+                misure["holes_in_views_without_centre_marks"] = holesInViewsWithoutMarks;
+                misure["auto_centre_marks_option"] = autoMarksOption;
+            }
+            if (holesLeftWithoutMark > 0)
+            {
+                misure["holes_left_without_centre_mark"] = holesLeftWithoutMark;
+                string option = "the document option that inserts centre marks on holes when a view is created " +
+                                "(Document Properties, Detailing)";
+                misure["centre_marks_note"] =
+                    "SOLIDWORKS put no centre mark on the " + holesInViewsWithoutMarks +
+                    (holesInViewsWithoutMarks == 1 ? " hole" : " holes") + " seen end-on in views without marks, and the bridge " +
+                    "added " + addedByBridge + ": on the other " + holesLeftWithoutMark + " AddCenterMark added nothing (measured " +
+                    "on 26/9/2026: once the automatic marks are deleted it puts none back). " +
+                    (autoMarksOption is bool optionOn
+                        ? (optionOn ? "The option that inserts them is on, so something suppressed them in silence (the documented " +
+                                      "cases: a draft quality view, large assembly mode): make the views again."
+                              : "Turn on " + option + " and make the views again.")
+                        : "Check " + option + ", which could not be read, and make the views again.");
+            }
             return SenzaFeature(misure);
         }
 

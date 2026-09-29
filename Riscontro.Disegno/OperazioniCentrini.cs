@@ -65,7 +65,7 @@ namespace Riscontro.Disegno
             // vista non fa nascere niente, 4 archi su 4. Le asole hanno due archi
             // e una croce sola in mezzo. Tutt'e due si rifiutano, con la misura.
             string su = (Str(a, "su", "fori") ?? "fori").Trim().ToLowerInvariant();
-            bool interi = true, archi = false;
+            bool interi = true;
             switch (su)
             {
                 case "": case "fori": break;
@@ -84,18 +84,8 @@ namespace Riscontro.Disegno
             // SENZA `dimensione_mm` la dimensione del documento: e' una
             // convenzione di studio, non un numero mio.
             bool suaDimensione = a != null && a.ContainsKey("dimensione_mm");
-            double dimensione = Unita.M(Num(a, "dimensione_mm", 2.5));
-            if (!suaDimensione)
-            {
-                try
-                {
-                    double doc = modello.Extension.GetUserPreferenceDouble(
-                        (int)swUserPreferenceDoubleValue_e.swDetailingCenterMarkSize,
-                        (int)swUserPreferenceOption_e.swDetailingNoOptionSpecified);
-                    if (doc > 0) dimensione = doc;
-                }
-                catch { }
-            }
+            double dimensione = Unita.M(Num(a, "dimensione_mm", DefaultCentreMarkSizeMm));
+            if (!suaDimensione) dimensione = DocumentCentreMarkSize(modello, dimensione);
             if (dimensione <= 0) return Fallito("«dimensione_mm» deve essere maggiore di zero.");
             bool linee = Bool(a, "linee_estese", false);
 
@@ -119,88 +109,32 @@ namespace Riscontro.Disegno
                     continue;
                 }
 
-                int prima = QuanteCroci(vista);
+                // The walk over the holes of the view is shared with the standard
+                // views (Z-C21.13): MarkHolesOfView, below. Only whole circles:
+                // the arcs and the slots were refused above.
+                var marks = MarkHolesOfView(modello, disegno, vista, dimensione, linee, mu, selMgr);
+                int prima = marks.Before;
                 if (prima < 0)
                     return Fallito(
                         "Non riesco a contare le croci di centro della vista «" + (nome ?? "?") +
                         "» prima di cominciare: senza quel numero non saprei dirti quali ho " +
                         "messo io. Non ho toccato niente.");
+                foreach (bool notSelectable in marks.LeftWithoutMark)
+                    nonNate.Add((nome ?? "?") + ": un cerchio" + (notSelectable ? " (non si e' lasciato selezionare)" : ""));
 
-                MathTransform tr = null;
-                try { tr = vista.ModelToViewTransform; } catch { }
-                var centriGia = CentriDelleCroci(vista);
-                int cerchiQui = 0, messeQui = 0, giaQui = 0, nonFori = 0;
-                int conto = prima;
-                foreach (var o in (vista.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]) ?? new object[0])
-                {
-                    var e = o as IEdge;
-                    ICurve c = null;
-                    try { c = e?.GetCurve() as ICurve; } catch { }
-                    if (c == null || !c.IsCircle()) continue;
-                    bool intero = false;
-                    try { intero = e.GetStartVertex() == null; } catch { }
-                    if (intero ? !interi : !archi) continue;
-                    // UN FORO VERO (revisione del 26/9/2026): il cerchio guarda chi legge
-                    // (il suo asse, portato sul foglio, e' perpendicolare al foglio) ed e'
-                    // un anello INTERNO di una faccia piana. Il bordo di un disco o la
-                    // testa di un albero sono cerchi interi ma non fori: prima diventavano
-                    // «fori senza croce» e l'operazione rifiutava un pezzo giusto.
-                    if (!EUnForoCheSiVede(e, c, mu, tr)) { nonFori++; continue; }
-                    cerchiQui++;
-
-                    // Il centro sul foglio, per non mettere due croci sullo stesso foro.
-                    double[] centro = null;
-                    try
-                    {
-                        var cp = c.CircleParams as double[];
-                        if (cp != null && mu != null && tr != null)
-                            centro = ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { cp[0], cp[1], cp[2] })).MultiplyTransform(tr)).ArrayData as double[];
-                    }
-                    catch { }
-                    if (centro != null && centriGia.Exists(q => StessoCentro(vista, q, centro)))
-                    { giaQui++; continue; }
-
-                    bool presa = false;
-                    try
-                    {
-                        modello.ClearSelection2(true);
-                        var sd = selMgr?.CreateSelectData() as SelectData;
-                        if (sd != null) { sd.View = (View)vista; presa = (e as IEntity).Select4(false, sd); }
-                    }
-                    catch { }
-                    if (presa)
-                        // OBSOLETE-MEASURED: le_croci_di_centro_sui_fori — IDrawingDoc.AddCenterMark is
-                        // obsolete; its replacements InsertCenterMark2/3 answer True and add nothing
-                        // (probes of 17/9 and 26/9/2026, see the summary of this file).
-                        try { disegno.AddCenterMark(dimensione, linee); } catch { }
-                    modello.ClearSelection2(true);
-                    int adesso = QuanteCroci(vista);
-                    if (adesso == conto + 1)
-                    {
-                        messeQui++;
-                        conto = adesso;
-                        if (centro != null) centriGia.Add(RelativoAllaVista(vista, centro));
-                    }
-                    else
-                    {
-                        nonNate.Add((nome ?? "?") + ": un cerchio" + (presa ? "" : " (non si e' lasciato selezionare)"));
-                        if (adesso >= 0) conto = adesso;
-                    }
-                }
-
-                int dopo = QuanteCroci(vista);
+                int dopo = marks.After;
                 totalePrima += prima;
                 totaleDopo += dopo < 0 ? prima : dopo;
-                gia += giaQui;
+                gia += marks.AlreadyMarked;
                 perVista.Add(new Dictionary<string, object>
                 {
                     ["vista"] = nome ?? "(senza nome)",
-                    ["cerchi"] = cerchiQui,
-                    ["cerchi_che_non_sono_fori"] = nonFori,
+                    ["cerchi"] = marks.Holes,
+                    ["cerchi_che_non_sono_fori"] = marks.CirclesThatAreNotHoles,
                     ["croci_prima"] = prima,
                     ["croci_dopo"] = NumeroOppureNull(dopo),
-                    ["croci_aggiunte"] = messeQui,
-                    ["cerchi_che_avevano_gia_la_croce"] = giaQui,
+                    ["croci_aggiunte"] = marks.Added,
+                    ["cerchi_che_avevano_gia_la_croce"] = marks.AlreadyMarked,
                 });
                 vista = vista.GetNextView() as IView;
             }
@@ -251,6 +185,148 @@ namespace Riscontro.Disegno
                 " (" + totalePrima + " -> " + totaleDopo + "), una per cerchio, contate sulla tavola.";
             _log("[agente] " + misure["giudizio"]);
             return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// The centre mark size when nobody asks for one, in mm: the value of
+        /// the operation's own default, used only when the document does not
+        /// say its own (<see cref="DocumentCentreMarkSize"/>).
+        /// </summary>
+        private const double DefaultCentreMarkSizeMm = 2.5;
+
+        /// <summary>
+        /// The centre mark size of the document (swDetailingCenterMarkSize), in
+        /// metres, or <paramref name="fallback"/> when it cannot be read or is
+        /// not positive. It is a house convention of the drawing template, not
+        /// a number of the bridge.
+        /// </summary>
+        private static double DocumentCentreMarkSize(IModelDoc2 model, double fallback)
+        {
+            try
+            {
+                double size = model.Extension.GetUserPreferenceDouble(
+                    (int)swUserPreferenceDoubleValue_e.swDetailingCenterMarkSize,
+                    (int)swUserPreferenceOption_e.swDetailingNoOptionSpecified);
+                if (size > 0) return size;
+            }
+            catch { }
+            return fallback;
+        }
+
+        /// <summary>What <see cref="MarkHolesOfView"/> found and did on one view.</summary>
+        private sealed class HoleCentreMarks
+        {
+            /// <summary>Marks before anything was touched, enumerated; -1 when they cannot be counted, and then nothing was touched.</summary>
+            public int Before = -1;
+            /// <summary>Marks at the end, enumerated; -1 when they cannot be counted.</summary>
+            public int After = -1;
+            // ZERO-E-ZERO: the four counters below count what the walk over the
+            // visible edges found; they are read only when Before is not -1, that
+            // is when the walk ran, and then a zero is a real zero.
+            /// <summary>Whole circles that are holes seen end-on in this view.</summary>
+            public int Holes;
+            /// <summary>Whole circles that are not holes: the rim of a disc, the end of a shaft.</summary>
+            public int CirclesThatAreNotHoles;
+            /// <summary>Marks added, each one seen in the recount right after its call.</summary>
+            public int Added;
+            /// <summary>Holes that already had a mark within half a millimetre of their centre.</summary>
+            public int AlreadyMarked;
+            /// <summary>One entry per hole left without a mark: true when its edge could not even be selected.</summary>
+            public List<bool> LeftWithoutMark = new List<bool>();
+        }
+
+        /// <summary>
+        /// THE CENTRE MARKS ON THE HOLES OF ONE VIEW, shared by croci_di_centro
+        /// and viste_standard (Z-C21.13; before, this walk lived inside
+        /// CrociDiCentro).
+        ///
+        /// For every WHOLE circle of the view that is a hole seen end-on
+        /// (<see cref="EUnForoCheSiVede"/>) and has no mark within half a
+        /// millimetre of its centre, the edge is selected in the view and
+        /// AddCenterMark is called; a mark counts as added only when the
+        /// enumerated count went up by exactly one right after the call. What
+        /// the file summary measured still holds: once SOLIDWORKS's own marks
+        /// were deleted, AddCenterMark put none back, so a hole left without a
+        /// mark is reported (<see cref="HoleCentreMarks.LeftWithoutMark"/>) and
+        /// each caller says it in its own words.
+        ///
+        /// When the marks cannot be counted first, nothing is touched and
+        /// Before is -1.
+        /// </summary>
+        private static HoleCentreMarks MarkHolesOfView(
+            IModelDoc2 model, IDrawingDoc drawing, IView view,
+            double size, bool extendedLines, IMathUtility mu, ISelectionMgr selMgr)
+        {
+            var marks = new HoleCentreMarks();
+            marks.Before = QuanteCroci(view);
+            if (marks.Before < 0) return marks;
+
+            MathTransform toSheet = null;
+            try { toSheet = view.ModelToViewTransform; } catch { }
+            var knownCentres = CentriDelleCroci(view);
+            var leftWithoutMark = new List<bool>();
+            int count = marks.Before;
+            foreach (var o in (view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]) ?? new object[0])
+            {
+                var e = o as IEdge;
+                ICurve c = null;
+                try { c = e?.GetCurve() as ICurve; } catch { }
+                if (c == null || !c.IsCircle()) continue;
+                bool whole = false;
+                try { whole = e.GetStartVertex() == null; } catch { }
+                // Only whole circles: on the arc of a fillet no mark is born from
+                // code (measured on 26/9/2026, 4 arcs of 4).
+                if (!whole) continue;
+                // A REAL HOLE (review of 26/9/2026): the circle faces the reader
+                // (its axis, taken onto the sheet, is normal to the sheet) and is an
+                // INNER loop of a planar face. The rim of a disc or the end of a
+                // shaft is a whole circle but not a hole: they used to become
+                // "holes without a mark" and a right part was refused.
+                if (!EUnForoCheSiVede(e, c, mu, toSheet)) { marks.CirclesThatAreNotHoles++; continue; }
+                marks.Holes++;
+
+                // The centre on the sheet, so that one hole never gets two marks.
+                double[] centre = null;
+                try
+                {
+                    var cp = c.CircleParams as double[];
+                    if (cp != null && mu != null && toSheet != null)
+                        centre = ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { cp[0], cp[1], cp[2] })).MultiplyTransform(toSheet)).ArrayData as double[];
+                }
+                catch { }
+                if (centre != null && knownCentres.Exists(q => StessoCentro(view, q, centre)))
+                { marks.AlreadyMarked++; continue; }
+
+                bool selected = false;
+                try
+                {
+                    model.ClearSelection2(true);
+                    var sd = selMgr?.CreateSelectData() as SelectData;
+                    if (sd != null) { sd.View = (View)view; selected = (e as IEntity).Select4(false, sd); }
+                }
+                catch { }
+                if (selected)
+                    // OBSOLETE-MEASURED: le_croci_di_centro_sui_fori — IDrawingDoc.AddCenterMark is
+                    // obsolete; its replacements InsertCenterMark2/3 answer True and add nothing
+                    // (probes of 17/9 and 26/9/2026, see the summary of this file).
+                    try { drawing.AddCenterMark(size, extendedLines); } catch { }
+                model.ClearSelection2(true);
+                int now = QuanteCroci(view);
+                if (now == count + 1)
+                {
+                    marks.Added++;
+                    count = now;
+                    if (centre != null) knownCentres.Add(RelativoAllaVista(view, centre));
+                }
+                else
+                {
+                    leftWithoutMark.Add(!selected);
+                    if (now >= 0) count = now;
+                }
+            }
+            marks.LeftWithoutMark = leftWithoutMark;
+            marks.After = QuanteCroci(view);
+            return marks;
         }
 
         /// <summary>
