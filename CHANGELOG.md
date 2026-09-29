@@ -76,7 +76,9 @@ bench-freshness checks, which only a bench run can turn green. Version numbers
 - **Centre marks on views left bare by SOLIDWORKS (`viste_standard`).** The hole walk of
   `croci_di_centro` is now a shared method, `MarkHolesOfView`, unchanged in behaviour;
   `viste_standard` counts marks view by view after the rebuild and walks only views with
-  zero marks. New answer keys: `centre_marks_added_by_bridge` (always),
+  zero marks that this call made (review: a view already on the sheet may be bare on
+  purpose, and is never marked; if the names of the views before cannot be read, no view
+  is marked). New answer keys: `centre_marks_added_by_bridge` (always),
   `holes_in_views_without_centre_marks`, `auto_centre_marks_option` (the document toggle
   swDetailingAutoInsertCenterMarksForHoles, null when unreadable),
   `holes_left_without_centre_mark`, `centre_marks_note`; `centre_marks_after_rebuild` is
@@ -91,7 +93,9 @@ bench-freshness checks, which only a bench run can turn green. Version numbers
 - **N11 / M4 / S18 / N8 / L13-3, documents closed and activated by path or reference,
   never by title.** New public `Riscontro.Disegno.DocumentByPath`: a saved document is
   closed by full path, then by file name with extension (the CloseDoc probe, A-G1 and
-  A-G3); a never-saved one with `CloseDoc("")` when it is the active document (the
+  A-G3); a never-saved one with `CloseDoc("")` when it is the active document (not
+  measured by the probe: if the read back finds it still open, its title follows, only
+  when no other open document answers to it) (the
   ActivateDoc3/Close pages:
   help.solidworks.com/2023/English/api/sldworksapi/...ISldWorks~ActivateDoc3.html,
   help.solidworks.com/2019/english/api/sldworksapi/...IModelDoc2~Close.html), otherwise by
@@ -111,7 +115,9 @@ bench-freshness checks, which only a bench run can turn green. Version numbers
   CloseDoc/ActivateDoc3 picks when two titles are really equal, CloseDoc by path on a
   drawing, the bench's own teardown by title, and C4-3 (rebuild on activation).
 - **Contracts and counts.** Three new groups, 23 checks (6 + 4 + 13); `Prove/LEGGIMI.md`
-  now says 546 controls. `Banco/LEGGIMI.md`: `casi/esporta/` has 15 cases. The served
+  now says 546 controls. The 526 it said before was 3 more than main runs today: main
+  (25cc619), built and run in a throw-away worktree on 29/9/2026, gives 523 with the same
+  count in every group, so the three groups add exactly 23. `Banco/LEGGIMI.md`: `casi/esporta/` has 15 cases. The served
   catalogue `Strumenti/catalogo.json` is regenerated from `Operazioni.cs` (esporta_step,
   esporta_iges, viste_standard, croci_di_centro, membro_strutturale, telaio_rettangolare);
   the `documento` tool text in `Strumenti/Attrezzi.cs` describes the new close and

@@ -97,6 +97,7 @@ namespace Prove.Contratti
             {
                 Change(0, "the shared walk not called", "MarkHolesOfView(", "NoWalk("),
                 Change(0, "every view walked, not only the bare ones", "if (n == 0) viewsWithoutMarks.Add(view);", "viewsWithoutMarks.Add(view);"),
+                Change(0, "the views already on the sheet walked too", "if (viewName == null || viewsBefore == null || viewsBefore.Contains(viewName)) continue;", ""),
                 Change(0, "the count of the bridge not answered", "[\"centre_marks_added_by_bridge\"] = addedByBridge,", ""),
                 Change(0, "a walk of its own", "if (viewsWithoutMarks.Count > 0)",
                        "if (viewsWithoutMarks.Count > 0) other.AddCenterMark(0.0025, false);\n            if (viewsWithoutMarks.Count > 0)"),
@@ -166,6 +167,8 @@ namespace Prove.Contratti
                     problems.Add("the standard views do not keep only the views with zero marks for the walk");
                 if (views.IndexOf(".AddCenterMark(", StringComparison.Ordinal) >= 0)
                     problems.Add("the standard views call AddCenterMark themselves: a copy of the walk");
+                if (!Regex.IsMatch(views, @"viewsBefore\.Contains\(\w+\)\)\s*continue\s*;"))
+                    problems.Add("the standard views also walk the views that were on the sheet before the call");
                 foreach (var key in new[] { "\"centre_marks_after_rebuild\"", "\"centre_marks_added_by_bridge\"" })
                     if (views.IndexOf(key, StringComparison.Ordinal) < 0) problems.Add("the answer of the standard views has no " + key);
             }

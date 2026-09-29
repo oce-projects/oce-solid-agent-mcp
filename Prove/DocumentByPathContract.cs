@@ -227,9 +227,13 @@ namespace Prove.Contratti
             {
                 // The guide: «an empty string (""), then the active document is
                 // closed without saving». In front, no name can point elsewhere.
+                // "" was not measured (review of Z-C21.13): the title follows it
+                // only when no other open document answers to that title.
                 var names = CloseNames(t, "", "Part7", true, new[] { @"C:\w\Part7.SLDPRT" }, new[] { "Part7" }, out refusal);
+                var alone = CloseNames(t, "", "Part7", true, new[] { @"C:\w\Base.SLDPRT" }, new[] { "Base.SLDPRT" }, out refusal);
                 Segna("a document never saved and in front is closed as the active document (CloseDoc with \"\")",
-                      Same(names, ""), Show(names));
+                      Same(names, "") && Same(alone, "", "Part7"),
+                      "title taken by another document " + Show(names) + ", title free " + Show(alone));
             }
             catch (Exception ex) { Segna("a document never saved and in front is closed as the active document (CloseDoc with \"\")", false, ex.GetType().Name + ": " + ex.Message); }
 

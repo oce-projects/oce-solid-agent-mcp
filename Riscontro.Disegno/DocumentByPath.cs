@@ -60,7 +60,9 @@ namespace Riscontro.Disegno
     /// saved, then the string is empty»): when it is the ACTIVE document it is
     /// closed with the empty name, which the guide gives for exactly that («an
     /// empty string (""), then the active document is closed without saving»),
-    /// so no name can point elsewhere; otherwise its title is used only when no
+    /// so no name can point elsewhere (the probe did not measure "": if the read
+    /// back finds it still open, its title follows under the rule below);
+    /// otherwise its title is used only when no
     /// other open document, hidden ones included, answers to it (same title, the
     /// same without extension, the same file name with or without extension),
     /// and when one does the call is REFUSED and the refusal says which one.
@@ -159,13 +161,20 @@ namespace Riscontro.Disegno
                 return fileName.Length > 0 && !SameName(fileName, p) ? new[] { p, fileName } : new[] { p };
             }
             string t = (title ?? "").Trim();
-            if (isActive) return new[] { "" };
+            string other = t.Length == 0 ? null : TitleCollision(t, otherPaths, otherTitles);
+            if (isActive)
+            {
+                // "" comes from the guide and was NOT measured by the N11 probe
+                // (review of Z-C21.13): if it closes nothing, the read back sees
+                // the document still open and the title is tried next, but only a
+                // title no other open document answers to.
+                return t.Length > 0 && other == null ? new[] { "", t } : new[] { "" };
+            }
             if (t.Length == 0)
             {
                 refusal = "the document has neither a path nor a title: there is no name to give CloseDoc";
                 return null;
             }
-            string other = TitleCollision(t, otherPaths, otherTitles);
             if (other != null)
             {
                 refusal = "«" + t + "» was never saved, so its title is the only name CloseDoc can take, " +

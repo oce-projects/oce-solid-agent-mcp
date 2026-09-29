@@ -278,6 +278,24 @@ namespace Riscontro.Disegno
             int prima = ContaViste(disegno);
             if (prima < 0)
                 return Fallito("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
+            // The views that were already on the sheet: the centre marks the bridge
+            // adds below go only on the views this call makes (Z-C21.13 review).
+            // Null when one name cannot be read: then no view is known to be new,
+            // and the bridge marks none.
+            var viewsBefore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var sheetBefore = disegno.GetFirstView() as IView;   // the sheet itself
+                var old = sheetBefore == null ? null : sheetBefore.GetNextView() as IView;
+                while (old != null)
+                {
+                    string oldName = old.GetName2();
+                    if (oldName == null) { viewsBefore = null; break; }
+                    viewsBefore.Add(oldName);
+                    old = old.GetNextView() as IView;
+                }
+            }
+            catch { viewsBefore = null; }
             bool ok;
             try { ok = disegno.Create1stAngleViews2(percorsoSw); }
             catch (Exception ex) { return Fallito("Viste non create: " + ex.Message); }
@@ -364,6 +382,12 @@ namespace Riscontro.Disegno
                 double size = DocumentCentreMarkSize(modello, Unita.M(DefaultCentreMarkSizeMm));
                 foreach (IView view in viewsWithoutMarks)
                 {
+                    // ONLY THE VIEWS THIS CALL MADE (Z-C21.13 review): a view that was
+                    // on the sheet before may be bare on purpose, and it is not ours
+                    // to mark. A view whose name cannot be read is not taken for new.
+                    string viewName = null;
+                    try { viewName = view.GetName2(); } catch { }
+                    if (viewName == null || viewsBefore == null || viewsBefore.Contains(viewName)) continue;
                     var marks = MarkHolesOfView(modello, disegno, view, size, false, mu, selMgr);
                     if (marks.Before < 0) continue;   // not counted this time: nothing was touched
                     holesInViewsWithoutMarks += marks.Holes;
