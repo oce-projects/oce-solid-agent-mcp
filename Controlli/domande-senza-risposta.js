@@ -83,6 +83,22 @@ for (const r of righe) {
   catch { illeggibili++; }
 }
 
+// EXPECTED KEYS (W3.1-bis.2, item 5). Every record is written by
+// `Strumenti/RegistroDelleDomande.cs` with `quando`, `tipo` and `nome`
+// (`simili` only when there are neighbours). A record without one of them is
+// a producer that renamed its keys: read with a fallback, every question
+// would count as "?" with an empty name, and the report would look like one.
+const withoutKeys = voci.filter(v => v === null || typeof v !== 'object' || Array.isArray(v) ||
+  ['quando', 'tipo', 'nome'].some(k => typeof v[k] !== 'string') ||
+  (v.simili !== undefined && !Array.isArray(v.simili)));
+if (withoutKeys.length) {
+  console.log('EXPECTED KEYS MISSING: ' + withoutKeys.length + ' of ' + voci.length +
+              ' records lack "quando", "tipo" or "nome" (strings). The first:');
+  console.log('    ' + JSON.stringify(withoutKeys[0]).slice(0, 200));
+  console.log('If the bridge renamed them, this reader is renamed in the same commit.');
+  process.exit(1);
+}
+
 if (perRighe) {
   for (const v of voci) {
     console.log('  ' + (v.quando || '?') + '  ' + (v.tipo || '?') + '  ' +

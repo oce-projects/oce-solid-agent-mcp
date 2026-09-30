@@ -23,13 +23,23 @@
 #       indipendenti verso lo stesso fatto, e se divergono e' uno dei due a
 #       essere marcio.
 #
+#  EXPECTED KEYS (W3.1-bis.2, item 5). A property of an object read with
+#  ConvertFrom-Json is $null when it is missing, without an error: after a
+#  rename of the catalogue keys every comparison below would run on empty
+#  sets and say that everything matches. So before anything else the
+#  catalogue must have `operazioni` and `famiglie`, and every operation `nome`
+#  and `famiglia`; otherwise this exits 1 and says which key is missing.
+#  `famiglie` is an object (family -> description): until 30/9/2026 it was
+#  read as a list, gave 0 declared families, and check 6 passed on nothing.
+#
 # =============================================================================
 
 [CmdletBinding()]
 param(
     [string]$Catalogo,
     [string]$Libreria,
-    [string]$Sorgente
+    [string]$Sorgente,
+    [string]$SwInstallPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,6 +65,64 @@ if (-not (Test-Path -LiteralPath $Catalogo)) {
     exit 1
 }
 $cat = Get-Content -LiteralPath $Catalogo -Raw -Encoding UTF8 | ConvertFrom-Json
+
+# The expected keys, before anything reads them (see the header).
+function Test-JsonKey($object, [string] $key) {
+    return ($object -is [System.Management.Automation.PSCustomObject]) -and
+           (@($object.PSObject.Properties | ForEach-Object { $_.Name }) -contains $key)
+}
+$missingKeys = New-Object System.Collections.Generic.List[string]
+# The key names, once: the messages below name them through these.
+$keyOperations = 'operazioni'
+$keyFamilies = 'famiglie'
+$keyName = 'nome'
+$keyFamily = 'famiglia'
+foreach ($key in $keyOperations, $keyFamilies) {
+    if (-not (Test-JsonKey $cat $key)) { $missingKeys.Add("the catalogue has no '$key'") }
+}
+if (Test-JsonKey $cat $keyOperations) {
+    $index = 0
+    foreach ($entry in @($cat.operazioni)) {
+        foreach ($key in $keyName, $keyFamily) {
+            if (-not (Test-JsonKey $entry $key) -or [string]::IsNullOrWhiteSpace([string]$entry.$key)) {
+                $missingKeys.Add("operation $index has no '$key'")
+            }
+        }
+        $index++
+    }
+}
+# The declared families, read here and compared in step 6. `famiglie` is an
+# object, family -> description, as Riscontro.Catalogo writes it; a list (of
+# names, or of objects with `nome`) is read too. The old reading, in step 6,
+# took the object for one element without `nome`, found 0 declared families,
+# and the comparison passed on nothing.
+$famiglieDichiarate = @()
+if (Test-JsonKey $cat $keyFamilies) {
+    $declaredFamilies = $cat.$keyFamilies
+    if ($declaredFamilies -is [System.Management.Automation.PSCustomObject]) {
+        $famiglieDichiarate = @($declaredFamilies.PSObject.Properties | ForEach-Object { $_.Name } | Sort-Object -Unique)
+    } elseif ($declaredFamilies -is [array]) {
+        $famiglieDichiarate = @(@(foreach ($f in $declaredFamilies) {
+            if ($f -is [string]) { $f }
+            elseif (Test-JsonKey $f $keyName) { $f.$keyName }
+            else { $missingKeys.Add("an entry of '$keyFamilies' is neither a name nor an object with '$keyName'") }
+        }) | Sort-Object -Unique)
+    } else {
+        $missingKeys.Add("'$keyFamilies' is neither an object nor a list")
+    }
+    if ($famiglieDichiarate.Count -eq 0) { $missingKeys.Add("'$keyFamilies' declares no family") }
+}
+if ($missingKeys.Count) {
+    Write-Host ("  [X] expected keys missing in " + $Catalogo + ": " + $missingKeys.Count) -ForegroundColor Red
+    $missingKeys | Select-Object -First 20 | ForEach-Object { Write-Host "       $_" -ForegroundColor DarkGray }
+    Write-Host ""
+    Write-Host ("A missing key would read as `$null and every check below would compare empty sets. " +
+                "If a key was renamed, this reader is renamed in the same commit.") -ForegroundColor Red
+    exit 1
+}
+Bene ("the catalogue has the expected keys ($keyOperations, $keyFamilies; $keyName and $keyFamily in every operation), " +
+      $famiglieDichiarate.Count + " declared families")
+
 $operazioni = @($cat.operazioni)
 $nomiCatalogo = @($operazioni | ForEach-Object { $_.nome } | Sort-Object -Unique)
 
@@ -71,6 +139,36 @@ if (-not (Test-Path -LiteralPath $Libreria)) {
     Write-Host "  [X] non trovo la libreria: $Libreria" -ForegroundColor Red
     exit 1
 }
+# THE INTEROP OF SOLIDWORKS, found where it is installed (30/9/2026). The
+# static initializer of OperazioniSw touches SolidWorks.Interop.swconst, and
+# a library loaded from its bytes has no folder to look for it in: without
+# this resolver the read of NomiEseguibili below died with a
+# TypeInitializationException on a machine where the interop is not in the
+# GAC, and the check never got past this step. Same default and same
+# variable as the .csproj files; -SwInstallPath wins.
+if (-not $SwInstallPath) { $SwInstallPath = $env:SW_INSTALL_PATH }
+if (-not $SwInstallPath) { $SwInstallPath = 'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS' }
+if (-not ('CatalogueCheckInterop' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.IO;
+using System.Reflection;
+public static class CatalogueCheckInterop
+{
+    public static void Resolve(string redist)
+    {
+        AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
+        {
+            var name = new AssemblyName(e.Name).Name;
+            if (!name.StartsWith("SolidWorks.Interop.", StringComparison.OrdinalIgnoreCase)) return null;
+            var file = Path.Combine(redist, name + ".dll");
+            return File.Exists(file) ? Assembly.Load(File.ReadAllBytes(file)) : null;
+        };
+    }
+}
+'@
+}
+[CatalogueCheckInterop]::Resolve((Join-Path $SwInstallPath 'api\redist'))
 # Load sui byte e non LoadFrom: la libreria puo' stare su un'unita' di rete,
 # dove LoadFrom fallisce con 0x80131515 nominando una dipendenza che non esiste.
 $asm = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($Libreria))
@@ -180,22 +278,17 @@ if ($senzaCampo -eq 0) { Bene "ogni operazione ha nome, famiglia, sommario, desc
 # E' il difetto gia' riparato una volta in esporta_catalogo.py: una famiglia
 # dichiarata e vuota arriva al modello come una porta che non apre su niente.
 $famiglieUsate = @($operazioni | ForEach-Object { $_.famiglia } | Sort-Object -Unique)
-$famiglieDichiarate = @()
-if ($cat.famiglie) {
-    $famiglieDichiarate = @($cat.famiglie | ForEach-Object {
-        if ($_ -is [string]) { $_ } else { $_.nome }
-    } | Sort-Object -Unique)
-}
+# (the declared families were read, and required not empty, in step 1)
 $vuote = @($famiglieDichiarate | Where-Object { $_ -notin $famiglieUsate })
 $nonDichiarate = @($famiglieUsate | Where-Object { $_ -notin $famiglieDichiarate })
 if ($vuote.Count) {
     Male ("famiglie dichiarate e VUOTE: " + ($vuote -join ", "))
     Nota "Al modello arrivano come una porta che non apre su niente."
 }
-if ($nonDichiarate.Count -and $famiglieDichiarate.Count) {
+if ($nonDichiarate.Count) {
     Male ("famiglie usate ma non dichiarate: " + ($nonDichiarate -join ", "))
 }
-if (-not $vuote.Count -and -not ($nonDichiarate.Count -and $famiglieDichiarate.Count)) {
+if (-not $vuote.Count -and -not $nonDichiarate.Count) {
     Bene ("le " + $famiglieUsate.Count + " famiglie tornano")
 }
 

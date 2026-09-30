@@ -253,7 +253,7 @@ internal static class Programma
             // flessione e farebbe leggere un numero piccolo e plausibile —
             // *il modo peggiore di sbagliare, perche' non somiglia a un
             // errore.*
-            object pianoRif = PianoDiRiferimento(doc, "Piano superiore");
+            object pianoRif = PianoDiRiferimento(doc, 2);
             if (pianoRif == null) { Console.WriteLine("  non trovo il piano di riferimento"); return 6; }
 
             int errF;
@@ -428,12 +428,14 @@ internal static class Programma
     /// subito: una selezione lasciata in giro cambia cosa fa la chiamata
     /// successiva, ed e' il genere di legame che non si vede.
     /// </summary>
-    private static object PianoDiRiferimento(IModelDoc2 doc, string nome)
+    // W3.1-bis.2 point 10: `which` is now the tree position of the base plane
+    // (1 = front, 2 = top, 3 = right), not its localized name — see
+    // SelectBasePlane below.
+    private static object PianoDiRiferimento(IModelDoc2 doc, int which)
     {
-        doc.ClearSelection2(true);
-        if (!doc.Extension.SelectByID2(nome, "PLANE", 0, 0, 0, false, 0, null, 0))
+        if (!SelectBasePlane(doc, which))
         {
-            Console.WriteLine("      non riesco a selezionare il piano <<" + nome + ">>");
+            Console.WriteLine("      could not select base plane #" + which);
             return null;
         }
         var sel = doc.SelectionManager as ISelectionMgr;
@@ -450,7 +452,7 @@ internal static class Programma
         var doc = (IModelDoc2)sw.NewDocument(modello, 0, 0, 0);
         if (doc == null) { Console.WriteLine("  NewDocument -> null"); return null; }
 
-        doc.Extension.SelectByID2("Piano superiore", "PLANE", 0, 0, 0, false, 0, null, 0);
+        SelectBasePlane(doc, 2);
         doc.SketchManager.InsertSketch(true);
         doc.SketchManager.CreateCornerRectangle(
             0, 0, 0, LunghezzaMm / 1000.0, LarghezzaMm / 1000.0, 0);
@@ -542,5 +544,27 @@ internal static class Programma
     {
         while (ex.InnerException != null) ex = ex.InnerException;
         return ex;
+    }
+
+    // W3.1-bis.2 point 10: base planes by position, not by their localized name.
+    // The first three RefPlane features of the tree, same rule as
+    // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
+    // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+    // BasePlane) recognises a base plane by its canonical normal through the
+    // world origin instead, because a template with an extra plane ahead of the
+    // three defaults fools a position-based rule with no error; this probe
+    // stays positional because it is a throwaway part on SOLIDWORKS' own
+    // default template and cannot reference the library (single-file compile,
+    // Controlli/costruisci-controlli.ps1).
+    private static bool SelectBasePlane(IModelDoc2 doc, int which)
+    {
+        int seen = 0;
+        var f = doc.FirstFeature() as IFeature;
+        while (f != null)
+        {
+            if (f.GetTypeName2() == "RefPlane" && ++seen == which) { doc.ClearSelection2(true); return f.Select2(false, 0); }
+            f = f.GetNextFeature() as IFeature;
+        }
+        return false;
     }
 }

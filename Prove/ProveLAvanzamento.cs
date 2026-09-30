@@ -199,7 +199,7 @@ namespace Prove.Contratti
             Action<object, double, string> passo = (f, n, m) =>
                 filoT.GetMethod("Passo", Ovunque).Invoke(f, new object[] { n, m });
             Func<object, string, object> leggi = (f, nome) =>
-                filoT.GetProperty(nome, Ovunque).GetValue(f);
+                ReflectionLog.Global.Property(filoT, nome, Ovunque).GetValue(f);
             Action<object, double> totale = (f, t) =>
                 filoT.GetProperty("Totale", Ovunque).SetValue(f, t);
 
@@ -554,9 +554,10 @@ namespace Prove.Contratti
         private static void Metti(Type tipo, object oggetto, string nome, object valore)
         {
             var prop = tipo.GetProperty(nome, Ovunque);
-            if (prop != null && prop.CanWrite) { prop.SetValue(oggetto, valore); return; }
+            if (prop != null && prop.CanWrite) { ReflectionLog.Global.Found(); prop.SetValue(oggetto, valore); return; }
             var campo = tipo.GetField(nome, Ovunque);
-            if (campo != null) { campo.SetValue(oggetto, valore); return; }
+            if (campo != null) { ReflectionLog.Global.Found(); campo.SetValue(oggetto, valore); return; }
+            ReflectionLog.Global.Missing("writable property or field", tipo, nome);
             Segna("il passo finto si puo' riempire: " + nome, false,
                   tipo.Name + " non ha ne' la proprieta' ne' il campo");
         }

@@ -88,7 +88,7 @@ namespace Prove.Contratti
 
         private static object Invoke(Type t, string method, object[] args)
         {
-            var m = t.GetMethod(method, Any);
+            var m = ReflectionLog.Global.Method(t, method, Any);
             if (m == null) throw new MissingMethodException(t.Name + "." + method);
             try { return m.Invoke(null, args); }
             catch (TargetInvocationException ex) { throw ex.InnerException ?? ex; }

@@ -76,7 +76,12 @@ namespace Prove.Contratti
             Type[] tipi;
             try { tipi = asm.GetTypes(); }
             catch (ReflectionTypeLoadException ex) { tipi = ex.Types.Where(t => t != null).ToArray(); }
-            return tipi.FirstOrDefault(t => t.Name == nome);
+            var found = tipi.FirstOrDefault(t => t.Name == nome);
+            // Every lookup by name is logged, and a null one turns
+            // ReflectionTests red at the end of the run (W3.1-bis.2).
+            if (found == null) ReflectionLog.Global.MissingType(asm, nome);
+            else ReflectionLog.Global.Found();
+            return found;
         }
     }
 }

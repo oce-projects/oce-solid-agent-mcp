@@ -107,12 +107,44 @@ function chiamata(nome, argomenti) {
 }
 
 // Il testo della risposta, e se era un errore.
+//
+// EXPECTED KEYS (W3.1-bis.2, item 5). An answer to tools/call carries
+// `result.content[0].text` (the MCP protocol). The first version read an
+// answer without it (a JSON-RPC `error`, or a renamed field) as "no error,
+// empty text", and every `!r.male` check passed on it. Now such an answer is
+// a failure of its own, whatever the check that reads it expects.
 function letto(r) {
   const c = r && r.result && r.result.content;
-  const testo = Array.isArray(c) && c.length && c[0].text ? c[0].text : '';
-  const male = !!(r && r.result && r.result.isError);
-  return { testo, male };
+  if (!Array.isArray(c) || c.length === 0 || !c[0] || typeof c[0].text !== 'string') {
+    guai++;
+    console.log('  NO   the answer has no result.content[0].text: ' + String(JSON.stringify(r)).slice(0, 160));
+    return { testo: '', male: true };
+  }
+  return { testo: c[0].text, male: !!r.result.isError };
 }
+
+// node Controlli\prova-x2.js --self-test: the reading above, seen failing on
+// answers without the expected keys, without SOLIDWORKS or the bridge.
+function selfTest() {
+  const cases = [
+    ['a normal answer', { result: { content: [{ type: 'text', text: 'ok' }] } }, false],
+    ['a refusal (isError), which is an answer', { result: { content: [{ type: 'text', text: 'no' }], isError: true } }, false],
+    ['a JSON-RPC error instead of a result', { error: { code: -32601, message: 'unknown tool' } }, true],
+    ['result with its fields renamed', { result: { contents: [{ body: 'x' }] } }, true],
+    ['an empty content', { result: { content: [] } }, true],
+  ];
+  let wrong = 0;
+  for (const [name, answer, counted] of cases) {
+    const before = guai;
+    letto(answer);
+    const got = guai > before;
+    if (got !== counted) wrong++;
+    console.log((got === counted ? '  ok  ' : '  XX  ') + name + ': ' + (got ? 'counted as a failure' : 'read'));
+  }
+  console.log(wrong === 0 ? 'The reading fails on every answer without the expected keys.' : wrong + ' cases not as expected.');
+  process.exit(wrong === 0 ? 0 : 1);
+}
+if (process.argv.includes('--self-test')) selfTest();
 
 async function main() {
   if (!fs.existsSync(PONTE)) {

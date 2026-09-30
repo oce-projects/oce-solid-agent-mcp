@@ -96,6 +96,31 @@ namespace ProvaSaldatura
             "ritrovare",
         };
 
+        /// <summary>
+        /// The keys a case may carry (Banco/case-keys.json, W3.1-bis.2 item 4),
+        /// loaded by the three runs that read cases: declared, mutations and
+        /// regression.
+        /// </summary>
+        private static CaseKeys _caseKeys;
+
+        /// <summary>
+        /// Loads the list of case keys, or says why it cannot as a bench error
+        /// and answers false: without the list no case is run, because a case
+        /// that cannot be checked is not a case that passed the check.
+        /// </summary>
+        private static bool LoadCaseKeys()
+        {
+            if (_caseKeys != null) return true;
+            var folder = BenchFolder();
+            var path = folder == null ? CaseKeys.FileName : Path.Combine(folder, CaseKeys.FileName);
+            try { _caseKeys = CaseKeys.Load(path); return true; }
+            catch (Exception ex)
+            {
+                ErroreDiBanco("case keys: the list is readable", Perche(ex));
+                return false;
+            }
+        }
+
         private static void ProvaCasiDichiarati()
         {
             Console.WriteLine();
@@ -132,6 +157,7 @@ namespace ProvaSaldatura
                 ErroreDiBanco("casi dichiarati: ce n'e' almeno uno", "nessun file in " + radiceCasi);
                 return;
             }
+            if (!LoadCaseKeys()) return;
 
             // ── DUE GIRI, E IL SECONDO E' LA VOCE F5 ──────────────────────
             //
@@ -165,18 +191,28 @@ namespace ProvaSaldatura
             {
                 if (EUnPianoENonUnCaso(f)) { piani.Add(Path.GetFileName(f)); continue; }
 
-                // SOLIDWORKS SE N'E' ANDATO: da qui in poi si dice cosa
-                // non si e' misurato, non si finge di averlo misurato
-                // (voce K17). `Saltata` non conta ne' come verde ne' come
-                // rosso, ed e' esattamente cio' che questi casi sono.
-                if (Sentinella.SeNEAndato)
+                // One case, one entry of the test ledger: its tests carry its
+                // name, and its expectations are counted on it (W3.1-bis.2, item 7).
+                using (var scope = Ledger.OpenCase(Path.GetFileNameWithoutExtension(f),
+                                                   Path.GetFileName(Path.GetDirectoryName(f)), "declared"))
                 {
-                    Saltata(Path.GetFileNameWithoutExtension(f), Sentinella.Referto());
-                    continue;
-                }
+                    // SOLIDWORKS SE N'E' ANDATO: da qui in poi si dice cosa
+                    // non si e' misurato, non si finge di averlo misurato
+                    // (voce K17). `Saltata` non conta ne' come verde ne' come
+                    // rosso, ed e' esattamente cio' che questi casi sono.
+                    if (Sentinella.SeNEAndato)
+                    {
+                        Saltata(Path.GetFileNameWithoutExtension(f), Sentinella.Referto());
+                        scope.Outcome = "skipped";
+                        continue;
+                    }
 
-                doveSta[Path.GetFileNameWithoutExtension(f)] = f;
-                comeEAndata[Path.GetFileNameWithoutExtension(f)] = CorriUnCaso(f, daControllare);
+                    doveSta[Path.GetFileNameWithoutExtension(f)] = f;
+                    bool green = CorriUnCaso(f, daControllare);
+                    comeEAndata[Path.GetFileNameWithoutExtension(f)] = green;
+                    // A bench error is not a red case (F4): nothing was measured.
+                    scope.Outcome = green ? "green" : scope.HasBenchErrors ? "bench_error" : "red";
+                }
             }
             Segna("i piani a mano si riconoscono e si saltano", true,
                   piani.Count == 0
@@ -253,6 +289,7 @@ namespace ProvaSaldatura
 
             int verdi = 0;
             foreach (var c in coppie)
+            using (Ledger.About(c.Caso))
             {
                 bool andata;
                 if (!comeEAndata.TryGetValue(c.Gemella, out andata))
@@ -638,6 +675,7 @@ namespace ProvaSaldatura
 
             var file = FileDeiCasi();
             if (file == null) return;
+            if (!LoadCaseKeys()) return;
             var schemi = SchemiDelCatalogo();
 
             var righe = new List<string>();
@@ -653,6 +691,10 @@ namespace ProvaSaldatura
                     caso = s.DeserializeObject(File.ReadAllText(percorso)) as Dictionary<string, object>;
                 }
                 catch (Exception ex) { ErroreDiBanco(nome, "JSON illeggibile: " + Perche(ex)); continue; }
+                // The same refusal as the normal run: a mutation of a case the
+                // bench would not run proves nothing (W3.1-bis.2, item 4).
+                var unknown = caso == null ? null : _caseKeys.Unknown(caso, _caseKeys.DeclaredRoot);
+                if (unknown != null && unknown.Count > 0) { ErroreDiBanco(nome, CaseKeys.Message(unknown)); continue; }
 
                 var mutazioni = Mutazioni(caso, schemi);
                 if (mutazioni.Count == 0)
@@ -853,13 +895,16 @@ namespace ProvaSaldatura
         {
             try
             {
-                var tOperazioni = _addin.GetType("Riscontro.Disegno.Catalogo.Operazioni", false);
-                var tNodo = _addin.GetType("Riscontro.Disegno.Catalogo.Nodo", false);
+                // Every lookup below goes through the reflection log: they fall
+                // back to null, and a renamed target would give fewer mutations
+                // in silence (W3.1-bis.2, item 3).
+                var tOperazioni = ReflectionLog.Global.TypeIn(_addin, "Riscontro.Disegno.Catalogo.Operazioni");
+                var tNodo = ReflectionLog.Global.TypeIn(_addin, "Riscontro.Disegno.Catalogo.Nodo");
                 if (tOperazioni == null || tNodo == null) return null;
-                var tutte = tOperazioni.GetField("Tutte",
+                var tutte = ReflectionLog.Global.Field(tOperazioni, "Tutte",
                     BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
                     as System.Collections.IEnumerable;
-                var json = tNodo.GetMethod("Json", BindingFlags.Public | BindingFlags.Static);
+                var json = ReflectionLog.Global.Method(tNodo, "Json", BindingFlags.Public | BindingFlags.Static);
                 if (tutte == null || json == null) return null;
 
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
@@ -867,8 +912,8 @@ namespace ProvaSaldatura
                 foreach (var o in tutte)
                 {
                     var tipo = o.GetType();
-                    string nome = Convert.ToString(tipo.GetField("Nome")?.GetValue(o));
-                    var schema = tipo.GetField("Schema")?.GetValue(o);
+                    string nome = Convert.ToString(ReflectionLog.Global.Field(tipo, "Nome")?.GetValue(o));
+                    var schema = ReflectionLog.Global.Field(tipo, "Schema")?.GetValue(o);
                     if (nome == null || schema == null) continue;
                     var testo = json.Invoke(null, new[] { schema }) as string;
                     if (testo == null) continue;
@@ -1243,6 +1288,12 @@ namespace ProvaSaldatura
             catch (Exception ex) { ErroreDiBanco(nome, "JSON illeggibile: " + Perche(ex)); return false; }
             if (caso == null) { ErroreDiBanco(nome, "il file non e' un oggetto JSON"); return false; }
 
+            // AN UNKNOWN KEY IS A CASE WRITTEN WRONG (W3.1-bis.2, item 4): the
+            // reader would skip it in silence, and whatever it asked for would
+            // never be checked. Refused before anything is built.
+            var unknown = _caseKeys.Unknown(caso, _caseKeys.DeclaredRoot);
+            if (unknown.Count > 0) { ErroreDiBanco(nome, CaseKeys.Message(unknown)); return false; }
+
             // Il nome del caso e' quello DENTRO il file, e deve combaciare col
             // nome del file: due nomi diversi per la stessa cosa fanno cercare
             // nel posto sbagliato quando una prova diventa rossa.
@@ -1562,6 +1613,7 @@ namespace ProvaSaldatura
                     foreach (var a in attese)
                     {
                         _attese++;
+                        Ledger.ExpectationAttempted();
                         var attesa = a as Dictionary<string, object>;
                         if (attesa == null)
                         { ErroreDiBanco(etichetta, "un'attesa non e' un oggetto"); return false; }
@@ -1579,6 +1631,7 @@ namespace ProvaSaldatura
                         // VERIFICATA vuol dire «ho misurato e ho confrontato»,
                         // non «e' andata bene»: una rossa e' verificata eccome.
                         _atteseVerificate++;
+                        Ledger.ExpectationChecked();
                         SegnaAttesa(etichetta + " · " + Testo(attesa, "cosa"), ok, dettaglio);
                         if (!ok) return false;
                     }
@@ -1740,14 +1793,14 @@ namespace ProvaSaldatura
             object statoOggetto;
             try { statoOggetto = LeggiStatoOggetto(doc); }
             catch (Exception ex) { perche = "non leggo lo stato: " + Perche(ex); return false; }
-            var firme = _tStato.GetProperty("Firme",
+            var firme = ReflectionLog.Global.Property(_tStato, "Firme",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.GetValue(statoOggetto) as System.Collections.IDictionary;
             if (firme == null) { perche = "lo stato della libreria non ha «Firme»"; return false; }
             foreach (var u in uid)
             {
                 var firma = firme.Contains(u) ? firme[u] : null;
-                var e = firma?.GetType().GetField("Entita")?.GetValue(firma);
+                var e = firma == null ? null : ReflectionLog.Global.Field(firma.GetType(), "Entita")?.GetValue(firma);
                 if (e == null) { perche = "nello stato non c'e' «" + u + "»"; return false; }
                 entita.Add(e);
             }

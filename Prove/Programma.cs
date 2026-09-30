@@ -413,6 +413,12 @@ namespace Prove.Contratti
             Zc2113PartDimensionContract.RunAll();
             Zc2111ComponentsContract.RunAll();
             LanguageGateTests.All();
+            CaseKeysTests.All();
+            BenchReportTests.All();
+            ConsumedStringsContract.RunAll();
+            SafetyNetSelfTests.All();
+            // Last group: it reads the lookup log that every group above fills.
+            ReflectionTests.All();
             IlLeggimiDiceQuantiSono();
 
             Console.WriteLine();

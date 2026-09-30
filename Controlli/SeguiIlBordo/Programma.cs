@@ -79,7 +79,7 @@ internal static class Programma
 
             // ── LA PIASTRA, con le sue due quote ────────────────────────
             _doc.ClearSelection2(true);
-            if (!_doc.Extension.SelectByID2("Piano frontale", "PLANE", 0, 0, 0, false, 0, null, 0))
+            if (!SelectBasePlane(_doc, 1))
             { Console.WriteLine("  non trovo «Piano frontale»"); return 4; }
             _doc.SketchManager.InsertSketch(true);
             var lati = _doc.SketchManager.CreateCornerRectangle(-0.100, -0.060, 0, 0.100, 0.060, 0) as object[];
@@ -453,5 +453,27 @@ internal static class Programma
     {
         return Mm(Math.Abs(b[3] - b[0])) + " x " + Mm(Math.Abs(b[4] - b[1])) + " x " + Mm(Math.Abs(b[5] - b[2])) +
                " (X " + Mm(b[0]) + ".." + Mm(b[3]) + ", Y " + Mm(b[1]) + ".." + Mm(b[4]) + ")";
+    }
+
+    // W3.1-bis.2 point 10: base planes by position, not by their localized name.
+    // The first three RefPlane features of the tree, same rule as
+    // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
+    // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+    // BasePlane) recognises a base plane by its canonical normal through the
+    // world origin instead, because a template with an extra plane ahead of the
+    // three defaults fools a position-based rule with no error; this probe
+    // stays positional because it is a throwaway part on SOLIDWORKS' own
+    // default template and cannot reference the library (single-file compile,
+    // Controlli/costruisci-controlli.ps1).
+    private static bool SelectBasePlane(IModelDoc2 doc, int which)
+    {
+        int seen = 0;
+        var f = doc.FirstFeature() as IFeature;
+        while (f != null)
+        {
+            if (f.GetTypeName2() == "RefPlane" && ++seen == which) { doc.ClearSelection2(true); return f.Select2(false, 0); }
+            f = f.GetNextFeature() as IFeature;
+        }
+        return false;
     }
 }

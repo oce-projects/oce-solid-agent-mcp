@@ -374,21 +374,43 @@ namespace Controlli.CorpoRotto
             }
         }
 
-        // I NOMI DEI PIANI CAMBIANO CON LA LINGUA, e provarne uno solo vuol
-        // dire un attrezzo che funziona su questa macchina e su nessun'altra.
+        // W3.1-bis.2 point 10: this used to try the plane's Italian name and
+        // then its English one, because the name only exists in the SOLIDWORKS
+        // UI language of the machine that created the part. It now selects by
+        // tree position instead (SelectBasePlane below), which needs no
+        // language at all.
         private static bool SelezionaPianoFrontale(IModelDoc2 doc)
         {
-            return Seleziona(doc, "Piano frontale") || Seleziona(doc, "Front Plane");
+            return SelectBasePlane(doc, 1);
         }
 
         private static bool SelezionaPianoSuperiore(IModelDoc2 doc)
         {
-            return Seleziona(doc, "Piano superiore") || Seleziona(doc, "Top Plane");
+            return SelectBasePlane(doc, 2);
         }
 
-        private static bool Seleziona(IModelDoc2 doc, string nome)
+        // The first three RefPlane features of the tree, same rule as
+        // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
+        // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+        // BasePlane) recognises a base plane by its canonical normal through the
+        // world origin instead, because a template with an extra plane ahead of
+        // the three defaults fools a position-based rule with no error; this
+        // probe stays positional because it is a throwaway part on SOLIDWORKS'
+        // own default template and cannot reference the library (single-file
+        // compile, Controlli/costruisci-controlli.ps1).
+        private static bool SelectBasePlane(IModelDoc2 doc, int which)
         {
-            try { return doc.Extension.SelectByID2(nome, "PLANE", 0, 0, 0, false, 0, null, 0); }
+            try
+            {
+                int seen = 0;
+                var f = doc.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    if (f.GetTypeName2() == "RefPlane" && ++seen == which) { doc.ClearSelection2(true); return f.Select2(false, 0); }
+                    f = f.GetNextFeature() as IFeature;
+                }
+                return false;
+            }
             catch { return false; }
         }
 

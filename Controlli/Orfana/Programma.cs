@@ -317,7 +317,7 @@ internal static class Programma
     private static IFeature Estrudi(IModelDoc2 doc, double x1, double y1, double x2, double y2, double alto)
     {
         doc.ClearSelection2(true);
-        if (!doc.Extension.SelectByID2("Piano superiore", "PLANE", 0, 0, 0, false, 0, null, 0)) return null;
+        if (!SelectBasePlane(doc, 2)) return null;
         doc.SketchManager.InsertSketch(true);
         doc.SketchManager.CreateCornerRectangle(x1, y1, 0, x2, y2, 0);
         doc.SketchManager.InsertSketch(true);
@@ -331,5 +331,27 @@ internal static class Programma
     {
         try { return doc.Extension.CreateMassProperty().Volume * 1e9; }
         catch { return double.NaN; }
+    }
+
+    // W3.1-bis.2 point 10: base planes by position, not by their localized name.
+    // The first three RefPlane features of the tree, same rule as
+    // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
+    // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+    // BasePlane) recognises a base plane by its canonical normal through the
+    // world origin instead, because a template with an extra plane ahead of the
+    // three defaults fools a position-based rule with no error; this probe
+    // stays positional because it is a throwaway part on SOLIDWORKS' own
+    // default template and cannot reference the library (single-file compile,
+    // Controlli/costruisci-controlli.ps1).
+    private static bool SelectBasePlane(IModelDoc2 doc, int which)
+    {
+        int seen = 0;
+        var f = doc.FirstFeature() as IFeature;
+        while (f != null)
+        {
+            if (f.GetTypeName2() == "RefPlane" && ++seen == which) { doc.ClearSelection2(true); return f.Select2(false, 0); }
+            f = f.GetNextFeature() as IFeature;
+        }
+        return false;
     }
 }

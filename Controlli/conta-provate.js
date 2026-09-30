@@ -30,9 +30,16 @@
 //
 //      node Controlli\conta-provate.js
 //      node Controlli\conta-provate.js --solo-orfane
+//      node Controlli\conta-provate.js --catalogue <file> --cases <folder> [--bench <folder>]
 //
-//  Esce 0 sempre: e' una misura, non un giudizio. Il giudizio lo dara' la
-//  guardia, quando ci sara'.
+//  EXIT CODES (W3.1-bis.2, item 5). It exits 0 once it has measured: the
+//  numbers are a measure, not a verdict. It exits 1 when what it reads is
+//  not there: an unreadable catalogue, a case file that does not parse, or
+//  an expected key that is missing (`operazioni` and `nome` in the
+//  catalogue; `nome`, `passi` or `costruisci`, and `operazione` in every
+//  step of a case or of a plan). The translation of W3.1-bis renames those
+//  keys, and a reader that falls back to an empty list prints zeros that
+//  look like a measure. A count read from nothing is not zero.
 // =============================================================================
 'use strict';
 
@@ -40,11 +47,35 @@ const fs = require('fs');
 const path = require('path');
 
 const RADICE = path.resolve(__dirname, '..');
-const CATALOGO = path.join(RADICE, 'Strumenti', 'catalogo.json');
-const CASI = path.join(RADICE, 'Banco', 'casi');
-const BANCO = path.join(RADICE, 'Banco');
+function optionValue(name, fallback) {
+  const i = process.argv.indexOf(name);
+  return i >= 0 && i + 1 < process.argv.length ? path.resolve(process.argv[i + 1]) : fallback;
+}
+const CATALOGO = optionValue('--catalogue', path.join(RADICE, 'Strumenti', 'catalogo.json'));
+const CASI = optionValue('--cases', path.join(RADICE, 'Banco', 'casi'));
+const BANCO = optionValue('--bench', path.join(RADICE, 'Banco'));
 
 const soloOrfane = process.argv.indexOf('--solo-orfane') >= 0;
+
+// Every expected key that is missing, with where. Printed all together, and
+// then the script exits 1 without printing the counts.
+const missingKeys = [];
+function expectKey(obj, key, kind, where) {
+  const ok = obj !== null && typeof obj === 'object' && !Array.isArray(obj) && Object.prototype.hasOwnProperty.call(obj, key) &&
+    (kind === 'array' ? Array.isArray(obj[key]) : typeof obj[key] === kind && obj[key] !== '');
+  if (!ok) missingKeys.push(where + ': no ' + kind + ' "' + key + '"');
+  return ok;
+}
+function stopIfMissing() {
+  if (missingKeys.length === 0) return;
+  console.log('EXPECTED KEYS MISSING (' + missingKeys.length + '):');
+  for (const m of missingKeys.slice(0, 40)) console.log('    ' + m);
+  if (missingKeys.length > 40) console.log('    ... ' + (missingKeys.length - 40) + ' more');
+  console.log('');
+  console.log('No counts are printed: they would be zeros read from nothing. If a key was');
+  console.log('renamed, this reader is renamed in the same commit (W3.1-bis.4 and .5).');
+  process.exit(1);
+}
 
 // ── LE OPERAZIONI CHE UN CLIENT VEDE ─────────────────────────────────────
 //
@@ -52,13 +83,18 @@ const soloOrfane = process.argv.indexOf('--solo-orfane') >= 0;
 // ed e' quello di cui `Provata = true` e' la promessa. L'esportatore lascia
 // gia' fuori le `Provata = false` e lo dice a voce mentre scrive il file.
 let catalogo;
-try { catalogo = JSON.parse(fs.readFileSync(CATALOGO, 'utf8')); }
+try { catalogo = JSON.parse(fs.readFileSync(CATALOGO, 'utf8').replace(/^\ufeff/, '')); }
 catch (e) {
-  console.log('non riesco a leggere ' + CATALOGO + ': ' + e.message);
-  console.log('si produce con  .\\bin\\Riscontro.Catalogo.exe Strumenti\\catalogo.json');
-  process.exit(0);
+  console.log('cannot read the catalogue ' + CATALOGO + ': ' + e.message);
+  console.log('it is written by  .\\bin\\Riscontro.Catalogo.exe Strumenti\\catalogo.json');
+  process.exit(1);
 }
-const operazioni = (catalogo.operazioni || []).map((o) => o.nome).sort();
+if (expectKey(catalogo, 'operazioni', 'array', 'catalogue')) {
+  if (catalogo.operazioni.length === 0) missingKeys.push('catalogue: "operazioni" is empty');
+  catalogo.operazioni.forEach((o, i) => expectKey(o, 'nome', 'string', 'catalogue, operation ' + i));
+}
+stopIfMissing();
+const operazioni = catalogo.operazioni.map((o) => o.nome).sort();
 
 // ── CHI LE ESERCITA ──────────────────────────────────────────────────────
 const daCasi = new Map();     // operazione -> [casi]
@@ -68,48 +104,65 @@ let quantiCasi = 0;
 
 function scorri(cartella) {
   let voci;
-  try { voci = fs.readdirSync(cartella, { withFileTypes: true }); } catch (e) { return; }
+  try { voci = fs.readdirSync(cartella, { withFileTypes: true }); }
+  catch (e) { missingKeys.push(cartella + ': cannot read the folder (' + e.message + ')'); return; }
   for (const v of voci) {
     const p = path.join(cartella, v.name);
     if (v.isDirectory()) { scorri(p); continue; }
     if (!v.name.endsWith('.json')) continue;
+    const where = path.relative(RADICE, p).replace(/\\/g, '/');
     let grezzo, j;
-    try { grezzo = fs.readFileSync(p, 'utf8'); j = JSON.parse(grezzo); } catch (e) { continue; }
+    try { grezzo = fs.readFileSync(p, 'utf8'); j = JSON.parse(grezzo.replace(/^\ufeff/, '')); }
+    catch (e) { missingKeys.push(where + ': does not parse (' + e.message + ')'); continue; }
 
     // UN PIANO E' UN ARRAY, UN CASO E' UN OGGETTO. La differenza e'
     // strutturale, come gia' scritto in `CasiDichiarati.cs`: non si indovina
     // dal nome del file.
-    if (Array.isArray(j)) { testoPiani += grezzo; continue; }
+    if (Array.isArray(j)) {
+      // a plan is read as text below, but its steps carry the same key
+      j.forEach((step, i) => expectKey(step, 'operazione', 'string', where + ', step ' + (i + 1)));
+      testoPiani += grezzo;
+      continue;
+    }
 
     quantiCasi++;
-    const nome = j.nome || path.basename(v.name, '.json');
+    expectKey(j, 'nome', 'string', where);
+    const nome = typeof j.nome === 'string' ? j.nome : path.basename(v.name, '.json');
+    // A case builds its part with `passi` (a normal run) or `costruisci` (a
+    // regression case): with neither, its operations would be counted as none.
+    const lists = ['passi', 'costruisci'].filter((k) => Object.prototype.hasOwnProperty.call(j, k));
+    if (lists.length === 0) missingKeys.push(where + ': neither "passi" nor "costruisci"');
     // I CASI DI REGRESSIONE NON SONO CASI DI UN GIRO NORMALE (25/9/2026). Il
     // loro `costruisci` gira solo con `-Regressione`, e questo script li
     // contava come «caso dichiarato»: il riconteggio del 24/9 diceva 72 su 73,
     // e il controllo di contratto sui casi VERDI dell'ultimo giro ha trovato
     // tre operazioni (foro_guidato, estrudi_su_faccia, raccordo_spigoli) che in
     // un giro normale non toccava nessuno. Adesso stanno in un modo a parte.
-    for (const passo of j.passi || []) {
-      const op = passo && passo.operazione;
-      if (!op) continue;
-      if (!daCasi.has(op)) daCasi.set(op, []);
-      if (daCasi.get(op).indexOf(nome) < 0) daCasi.get(op).push(nome);
-    }
-    for (const passo of j.costruisci || []) {
-      const op = passo && passo.operazione;
-      if (!op) continue;
-      if (!daRegressione.has(op)) daRegressione.set(op, []);
-      if (daRegressione.get(op).indexOf(nome) < 0) daRegressione.get(op).push(nome);
+    for (const key of lists) {
+      if (!expectKey(j, key, 'array', where)) continue;
+      const target = key === 'passi' ? daCasi : daRegressione;
+      j[key].forEach((passo, i) => {
+        if (!expectKey(passo, 'operazione', 'string', where + ', ' + key + ' ' + (i + 1))) return;
+        const op = passo.operazione;
+        if (!target.has(op)) target.set(op, []);
+        if (target.get(op).indexOf(nome) < 0) target.get(op).push(nome);
+      });
     }
   }
 }
 scorri(CASI);
+if (quantiCasi === 0) missingKeys.push(path.relative(RADICE, CASI) + ': no case at all');
+stopIfMissing();
 
 let testoCs = '';
 try {
   for (const f of fs.readdirSync(BANCO))
     if (f.endsWith('.cs')) testoCs += fs.readFileSync(path.join(BANCO, f), 'utf8');
-} catch (e) { }
+} catch (e) { missingKeys.push(path.relative(RADICE, BANCO) + ': cannot read the bench sources (' + e.message + ')'); }
+// Read from nothing, the bench's own C# would count as touching no operation
+// (W3.1-bis.2, item 5: the folder is renamed in W3.1-bis.6).
+if (testoCs === '') missingKeys.push(path.relative(RADICE, BANCO) + ': no C# source of the bench');
+stopIfMissing();
 
 function comeEProvata(op) {
   const virgolette = '"' + op + '"';

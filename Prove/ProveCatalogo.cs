@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using static Prove.Contratti.Programma;
 
 namespace Prove.Contratti
@@ -475,100 +477,380 @@ namespace Prove.Contratti
             var readme = Path.Combine(Radice(), "README.md");
             if (!File.Exists(readme))
             {
-                Segna("il README c'e'", false, readme);
+                Segna("the README exists", false, readme);
                 return;
             }
 
             string testo;
             try { testo = File.ReadAllText(readme); }
-            catch (Exception ex) { Segna("il README si legge", false, ex.Message); return; }
+            catch (Exception ex) { Segna("the README can be read", false, ex.Message); return; }
 
-            // IL LETTORE DEI NUMERI HA I DENTI? Un numero che non sa leggere lo
-            // salta in silenzio (-1 = «non e' un numero»), quindi ogni forma che
-            // non riconosce e' un buco dove il README puo' mentire.
-            Segna("il lettore dei numeri legge «settantatré» e «trentotto»",
-                  Numero("settantatré") == 73 && Numero("trentotto") == 38 && Numero("ventuno") == 21,
-                  "settantatré=" + Numero("settantatré") + ", trentotto=" + Numero("trentotto") +
-                  ", ventuno=" + Numero("ventuno"));
+            // BILINGUAL SINCE W3.1-bis.2 (30/9/2026). The README is going to be
+            // translated, and a reader that knew only Italian number words
+            // would read «ninety-nine drawing operations» as no number at all:
+            // the check would have stopped protecting without failing. So the
+            // reader knows English too, and two silences are red now:
+            //   * a word that LOOKS like a number and cannot be read (it used
+            //     to be skipped by «if (n < 0) continue»);
+            //   * a README in which no count can be read at all.
+            // The forms stay closed: «N operations», «N drawing operations»
+            // and «drawing operations are N» in English, and the two Italian
+            // ones above. «Six assembly operations» still does not count: the
+            // one English qualifier allowed between number and noun is
+            // «drawing».
+            NumberReaderReadsBothLanguages();
+            CountCheckSeenRed();
 
-            var trovati = new List<string>();
-            foreach (var forma in new[]
-            {
-                @"([a-zàèéìòù]+)\s+operazioni",
-                @"operazioni\s+di\s+disegno\s+sono\s+([a-zàèéìòù]+)",
-            })
-            {
-                foreach (System.Text.RegularExpressions.Match m in
-                         System.Text.RegularExpressions.Regex.Matches(
-                             testo, forma,
-                             System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                {
-                    int n = Numero(m.Groups[1].Value);
-                    // Non e' un numero scritto a parole: e' un aggettivo
-                    // qualunque («altre operazioni», «sessanta operazioni»).
-                    // Si tace, non si inventa un difetto.
-                    if (n < 0) continue;
-                    if (n != quante) trovati.Add("«" + m.Value.Replace("\n", " ") + "»");
-                }
-            }
-
-            Segna("il README dice quante sono le operazioni, e sono quelle vere",
-                  trovati.Count == 0,
-                  trovati.Count == 0
-                      ? "il catalogo ne ha " + quante
-                      : "il catalogo ne ha " + quante + ", il README dice " +
-                        string.Join(" e ", trovati));
+            int claims;
+            var findings = ReadmeCountFindings(testo, quante, out claims);
+            Segna("the README says how many operations there are, and they are the real ones",
+                  findings.Count == 0,
+                  findings.Count == 0
+                      ? "the catalogue has " + quante + ", the README says so " + claims + " times"
+                      : "the catalogue has " + quante + "; " + string.Join("; ", findings));
+            Segna("the README states the number of operations in a form this check reads",
+                  claims > 0,
+                  claims > 0 ? claims + " counts read"
+                             : "no «N operations» and no «drawing operations are N» in README.md: if the " +
+                               "README stops saying how many there are, this check must be changed on purpose");
         }
 
+        private const string ItalianNoun = "operazioni";
+        private const string EnglishNoun = "operations";
+
+        // A word of the window: letters, digits and apostrophes, with inner
+        // hyphens («ninety-nine»).
+        private const string Word = @"[\p{L}\p{Nd}'’]+(?:-[\p{L}\p{Nd}'’]+)*";
+
+        // Up to six words right before the noun: an English number takes up to
+        // four («one hundred and sixty-four») and the qualifier one more. A
+        // Markdown asterisk counts as a space.
+        private static readonly Regex CountBefore = new Regex(
+            @"(?<![\p{L}\p{Nd}'’-])(?<words>(?:" + Word + @"[\s*]+){1,6}?)(?<noun>" + ItalianNoun + "|" + EnglishNoun + @")\b",
+            RegexOptions.IgnoreCase);
+
+        private static readonly Regex CountAfter = new Regex(
+            @"(?<noun>" + ItalianNoun + @"\s+di\s+disegno\s+sono|drawing\s+operations\s+are)[\s*]+(?<words>" + Word +
+            @"(?:[\s*]+" + Word + @"){0,5})",
+            RegexOptions.IgnoreCase);
+
         /// <summary>
-        /// Un numero italiano scritto a parole, da 0 a 99. `-1` quando la
-        /// parola non e' un numero — che e' il caso normale e non un errore.
+        /// What the README says about the number of operations and is wrong
+        /// or unreadable; `claims` is how many counts it could read.
+        /// </summary>
+        private static List<string> ReadmeCountFindings(string text, int actual, out int claims)
+        {
+            var findings = new List<string>();
+            int read = 0;
+            Action<Match, List<string>, bool> judge = (m, words, before) =>
+            {
+                // the longest run of words next to the noun that is a number
+                for (int k = words.Count; k >= 1; k--)
+                {
+                    var candidate = before ? words.Skip(words.Count - k) : words.Take(k);
+                    int n = Numero(string.Join(" ", candidate));
+                    if (n < 0) continue;
+                    read++;
+                    if (n != actual) findings.Add("«" + Flat(m.Value) + "» says " + n);
+                    return;
+                }
+                var next = before ? words[words.Count - 1] : words[0];
+                if (LooksLikeNumber(next))
+                    findings.Add("«" + Flat(m.Value) + "»: «" + next + "» looks like a number and cannot be read");
+            };
+
+            foreach (Match m in CountBefore.Matches(text))
+            {
+                var words = Words(m.Groups["words"].Value);
+                if (m.Groups["noun"].Value.Equals(EnglishNoun, StringComparison.OrdinalIgnoreCase) && words.Count > 1 &&
+                    words[words.Count - 1].Equals("drawing", StringComparison.OrdinalIgnoreCase))
+                    words.RemoveAt(words.Count - 1);
+                if (words.Count > 0) judge(m, words, true);
+            }
+            foreach (Match m in CountAfter.Matches(text))
+            {
+                var words = Words(m.Groups["words"].Value);
+                if (words.Count > 0) judge(m, words, false);
+            }
+            claims = read;
+            return findings;
+        }
+
+        private static List<string> Words(string s)
+        {
+            return Regex.Split(s, @"[\s*]+").Where(w => w.Length > 0).ToList();
+        }
+
+        private static string Flat(string s)
+        {
+            return Regex.Replace(s, @"\s+", " ").Trim();
+        }
+
+        // ── THE SELF-TESTS ───────────────────────────────────────────────
+
+        private static void NumberReaderReadsBothLanguages()
+        {
+            // The Italian words are built from the reader's own lists: the
+            // Italian branch is transitional, and its tests add no Italian to
+            // the repository.
+            string it73accent = "settantatré";
+            string it73apostrophe = ItalianTens[5] + ItalianUnits[3] + "'";
+            string it38 = ItalianTens[1].Substring(0, ItalianTens[1].Length - 1) + ItalianUnits[8];
+            string it21 = ItalianTens[0].Substring(0, ItalianTens[0].Length - 1) + ItalianUnits[1];
+            string it94 = ItalianTens[7] + ItalianUnits[4];
+            string glued = ItalianUnits[2] + ItalianTens[4]; // a unit glued to a ten: not a number
+            var cases = new[]
+            {
+                Tuple.Create(it73accent, 73), Tuple.Create(it73apostrophe, 73), Tuple.Create(it38, 38),
+                Tuple.Create(it21, 21), Tuple.Create(it94, 94), Tuple.Create(glued, -1),
+                Tuple.Create("ninety-six", 96), Tuple.Create("ninety four", 94), Tuple.Create("twenty-one", 21),
+                Tuple.Create("thirty-eight", 38), Tuple.Create("seventy-three", 73), Tuple.Create("thirteen", 13),
+                Tuple.Create("one hundred and sixty-four", 164), Tuple.Create("a hundred", 100),
+                Tuple.Create("two hundred", 200), Tuple.Create("99", 99),
+                // not numbers: -1, and never a guess
+                Tuple.Create("ninety-fuor", -1), Tuple.Create(it38.Remove(it38.Length - 2, 1), -1),
+                Tuple.Create("the", -1), Tuple.Create("drawing", -1), Tuple.Create("two ninety-nine", -1),
+                Tuple.Create("hundred and", -1), Tuple.Create("zero hundred", -1),
+            };
+            var wrong = cases.Where(c => Numero(c.Item1) != c.Item2)
+                             .Select(c => c.Item1 + "=" + Numero(c.Item1) + " (expected " + c.Item2 + ")").ToList();
+            Segna("the number reader reads Italian and English number words, and nothing else",
+                  wrong.Count == 0,
+                  wrong.Count == 0 ? cases.Length + " of " + cases.Length + " words read as expected" : string.Join("; ", wrong));
+        }
+
+        private static void CountCheckSeenRed()
+        {
+            string it94 = ItalianTens[7] + ItalianUnits[4];
+            string it96 = ItalianTens[7] + ItalianUnits[6];
+            string it94misspelled = it94.Remove(it94.Length - 3, 1);
+            var cases = new[]
+            {
+                // text, actual count, red expected
+                Tuple.Create("It exposes ninety-six drawing operations as tools.", 94, true),
+                Tuple.Create("It exposes ninety-four drawing operations as tools.", 94, false),
+                Tuple.Create("Nine, not ninety-nine. The drawing operations are ninety-six, but", 94, true),
+                Tuple.Create("The drawing operations are **ninety-four**, but", 94, false),
+                Tuple.Create("There are one hundred and sixty-four operations.", 164, false),
+                Tuple.Create("There are one hundred and sixty-four operations.", 64, true),
+                Tuple.Create("The bench prints 99 operations in its header.", 94, true),
+                Tuple.Create("exposes " + it96 + "\n" + ItalianNoun + " as tools", 94, true),
+                Tuple.Create("exposes " + it94 + " " + ItalianNoun + " as tools", 94, false),
+                // the silence that used to be green: a number word that cannot be read
+                Tuple.Create("exposes " + it94misspelled + " " + ItalianNoun + " as tools", 94, true),
+                Tuple.Create("It exposes ninety-fuor drawing operations.", 94, true),
+                Tuple.Create("It exposes fourty drawing operations.", 40, true),
+                Tuple.Create("exposes " + ItalianUnits[2] + ItalianTens[4] + " " + ItalianNoun, 260, true),
+                Tuple.Create("exposes ultra" + ItalianTens[4] + " " + ItalianNoun, 160, true),
+                // words that are not numbers stay silent
+                Tuple.Create("the other operations, all operations, the drawing operations", 94, false),
+                Tuple.Create("many " + ItalianNoun + " and six assembly operations", 94, false),
+            };
+            var wrong = new List<string>();
+            foreach (var c in cases)
+            {
+                int claims;
+                bool red = ReadmeCountFindings(c.Item1, c.Item2, out claims).Count > 0;
+                if (red != c.Item3) wrong.Add("«" + Flat(c.Item1) + "» against " + c.Item2 + ": " + (red ? "red" : "green"));
+            }
+            int none;
+            bool blind = ReadmeCountFindings("A README that never says how many there are.", 94, out none).Count == 0 && none == 0;
+            if (!blind) wrong.Add("a README without any count was not seen as one");
+            Segna("the README count check turns red on fakes («ninety-six operations» against 94, a number it cannot read)",
+                  wrong.Count == 0,
+                  wrong.Count == 0 ? (cases.Length + 1) + " fakes ended as expected" : string.Join("; ", wrong));
+        }
+
+        // ── THE NUMBER READER ────────────────────────────────────────────
+
+        private static readonly string[] ItalianUnits =
+        {
+            "zero", "uno", "due", "tre", "quattro", "cinque", "sei", "sette",
+            "otto", "nove", "dieci", "undici", "dodici", "tredici",
+            "quattordici", "quindici", "sedici", "diciassette", "diciotto",
+            "diciannove",
+        };
+
+        private static readonly string[] ItalianTens =
+        {
+            "venti", "trenta", "quaranta", "cinquanta", "sessanta",
+            "settanta", "ottanta", "novanta",
+        };
+
+        private static readonly string[] EnglishUnits =
+        {
+            "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+            "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+            "seventeen", "eighteen", "nineteen",
+        };
+
+        private static readonly string[] EnglishTens =
+        {
+            "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
+        };
+
+        /// <summary>
+        /// A number written in words, in Italian from 0 to 99 as before and in
+        /// English from 0 to 999, or in digits. `-1` when the word is not a
+        /// number, which is the normal case and not an error. The Italian
+        /// hundreds are left out on purpose: the Italian branch only has to
+        /// last until the README is translated, and a hundred written in
+        /// Italian words is red below (it looks like a number and cannot be
+        /// read), not silent.
         /// </summary>
         private static int Numero(string parola)
         {
             if (string.IsNullOrWhiteSpace(parola)) return -1;
-            var p = parola.Trim().ToLowerInvariant();
+            var p = parola.Trim().ToLowerInvariant().Replace('’', '\'');
+            if (Regex.IsMatch(p, @"^\d{1,4}$")) return int.Parse(p, CultureInfo.InvariantCulture);
+            int n = ItalianNumber(p);
+            return n >= 0 ? n : EnglishNumber(p);
+        }
 
-            // «TRE» COMPOSTO SI SCRIVE «TRÉ»: ventitré, settantatré. Senza
-            // questa riga il numero scritto come si deve tornava -1, cioe'
-            // «non e' un numero», e il controllo del README TACEVA — il 25/9/2026
-            // il README stava per passare da settantaquattro a settantatré, e
-            // un «settantatré» sbagliato non l'avrebbe preso nessuno.
-            if (p.EndsWith("tré", StringComparison.Ordinal) && p.Length > 3)
-                p = p.Substring(0, p.Length - 1) + "e";
+        private static int ItalianNumber(string p)
+        {
+            if (p.IndexOf(' ') >= 0 || p.IndexOf('-') >= 0) return -1;
 
-            var unita = new[]
+            // A COMPOUND «TRE» IS WRITTEN WITH AN ACCENT: without this the
+            // number written properly came back as «not a number», and the
+            // README check kept QUIET. On 25/9/2026 the README was about to go
+            // from seventy-four to seventy-three, and a wrong seventy-three
+            // would have gone through. This repository also writes the accent
+            // as a vowel and an apostrophe, so that form is read too.
+            if (p.Length > 4 && p.EndsWith(ItalianUnits[3] + "'", StringComparison.Ordinal)) p = p.Substring(0, p.Length - 1);
+            else if (p.Length > 3 && p.EndsWith("tré", StringComparison.Ordinal)) p = p.Substring(0, p.Length - 1) + "e";
+            if (p.IndexOf('\'') >= 0) return -1;
+
+            return ItalianBelowHundred(p);
+        }
+
+        private static int ItalianBelowHundred(string p)
+        {
+            for (int i = 0; i < ItalianUnits.Length; i++)
+                if (p == ItalianUnits[i]) return i;
+            for (int d = 0; d < ItalianTens.Length; d++)
             {
-                "zero", "uno", "due", "tre", "quattro", "cinque", "sei", "sette",
-                "otto", "nove", "dieci", "undici", "dodici", "tredici",
-                "quattordici", "quindici", "sedici", "diciassette", "diciotto",
-                "diciannove",
-            };
-            for (int i = 0; i < unita.Length; i++)
-                if (p == unita[i]) return i;
+                int value = (d + 2) * 10;
+                if (p == ItalianTens[d]) return value;
 
-            var decine = new[]
-            {
-                "venti", "trenta", "quaranta", "cinquanta", "sessanta",
-                "settanta", "ottanta", "novanta",
-            };
-            for (int d = 0; d < decine.Length; d++)
-            {
-                int valore = (d + 2) * 10;
-                if (p == decine[d]) return valore;
-
-                // L'ELISIONE. «venti» + «uno» fa «ventuno», non «ventiuno»:
-                // davanti a «uno» e «otto» la decina perde la vocale finale.
-                // Senza questa riga «trentotto» — il numero sbagliato che ha
-                // fatto nascere il controllo — non verrebbe nemmeno letto.
-                var radice = decine[d].Substring(0, decine[d].Length - 1);
+                // THE ELISION. Before «uno» and «otto» the tens lose their last
+                // vowel: without this the thirty-eight that gave birth to the
+                // check would not even be read.
+                var root = ItalianTens[d].Substring(0, ItalianTens[d].Length - 1);
                 for (int u = 1; u <= 9; u++)
                 {
-                    bool elide = u == 1 || u == 8;
-                    if (p == (elide ? radice : decine[d]) + unita[u]) return valore + u;
+                    bool elides = u == 1 || u == 8;
+                    if (p == (elides ? root : ItalianTens[d]) + ItalianUnits[u]) return value + u;
                 }
             }
             return -1;
+        }
+
+        private static int EnglishNumber(string p)
+        {
+            var t = p.Split(new[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries);
+            int i = 0, total = 0;
+            bool hundreds = false;
+            if (t.Length >= 2 && t[1] == "hundred")
+            {
+                int h = t[0] == "a" ? 1 : Array.IndexOf(EnglishUnits, t[0]);
+                if (h < 1 || h > 9) return -1;
+                total = h * 100;
+                hundreds = true;
+                i = 2;
+                if (i < t.Length && t[i] == "and") { i++; if (i == t.Length) return -1; }
+            }
+            int left = t.Length - i;
+            if (left == 0) return hundreds ? total : -1;
+            if (left == 1)
+            {
+                int u = Array.IndexOf(EnglishUnits, t[i]);
+                int d = Array.IndexOf(EnglishTens, t[i]);
+                int v = u >= 0 ? u : d >= 0 ? (d + 2) * 10 : -1;
+                if (v < 0 || (hundreds && v == 0)) return -1;
+                return total + v;
+            }
+            if (left == 2)
+            {
+                int d = Array.IndexOf(EnglishTens, t[i]);
+                int u = Array.IndexOf(EnglishUnits, t[i + 1]);
+                if (d < 0 || u < 1 || u > 9) return -1;
+                return total + (d + 2) * 10 + u;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// A word that is meant as a number even if the reader cannot read it:
+        /// a digit, the root of a ten (at the start, or inside a longer Italian
+        /// word), an Italian unit glued to more letters, an English «-teen», a
+        /// hyphen joined to a number word, or one letter away from a number
+        /// word (six letters or more, so that short words such as «the» are
+        /// never taken for one). What it misses, measured: an Italian hundred
+        /// with nothing of a ten in it («a hundred and five» in Italian words);
+        /// the README says those in English or in digits.
+        /// </summary>
+        private static bool LooksLikeNumber(string word)
+        {
+            var w = word.ToLowerInvariant().Replace('’', '\'').Trim('\'');
+            if (w.Any(char.IsDigit)) return true;
+            var parts = w.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                if (NumberRoots.Any(r => part.StartsWith(r, StringComparison.Ordinal))) return true;
+                // inside a longer Italian word, the tens that English never
+                // writes («vent» is in «event», «quarant» in «quarantine»)
+                if (InnerRoots.Any(r => part.IndexOf(r, 1, StringComparison.Ordinal) > 0)) return true;
+                // a unit glued to more letters: the Italian hundreds
+                if (part.Length >= 6 && ItalianUnits.Skip(2).Take(8).Any(u => part.StartsWith(u, StringComparison.Ordinal))) return true;
+                if (part.EndsWith("teen", StringComparison.Ordinal) || part == "hundred" || part == "thousand") return true;
+                if (parts.Length > 1 && (EnglishUnits.Contains(part) || EnglishTens.Contains(part))) return true;
+                if (part.Length >= 6 && NumberWords.Any(n => NearlyEqual(part, n))) return true;
+            }
+            return false;
+        }
+
+        // The roots of the tens and of the teens, in both languages.
+        private static readonly string[] NumberRoots =
+            ItalianTens.Select(t => t.Substring(0, t.Length - 1))
+                       .Concat(ItalianUnits.Skip(11).Select(u => u.Substring(0, 5)))
+                       .Concat(EnglishTens)
+                       .Distinct().ToArray();
+
+        // thirty, fifty, sixty, seventy, eighty, ninety: twenty and forty are
+        // inside English words
+        private static readonly string[] InnerRoots =
+            new[] { 1, 3, 4, 5, 6, 7 }.Select(i => ItalianTens[i].Substring(0, ItalianTens[i].Length - 1)).ToArray();
+
+        private static readonly string[] NumberWords =
+            Enumerable.Range(0, 100).Select(ItalianWord).Concat(EnglishUnits).Concat(EnglishTens).Distinct().ToArray();
+
+        private static string ItalianWord(int n)
+        {
+            if (n < 20) return ItalianUnits[n];
+            var tens = ItalianTens[n / 10 - 2];
+            int u = n % 10;
+            if (u == 0) return tens;
+            return (u == 1 || u == 8 ? tens.Substring(0, tens.Length - 1) : tens) + ItalianUnits[u];
+        }
+
+        /// <summary>One edit apart: a letter changed, added, dropped, or two next ones swapped.</summary>
+        private static bool NearlyEqual(string a, string b)
+        {
+            if (a == b) return false;
+            if (Math.Abs(a.Length - b.Length) > 1) return false;
+            var d = new int[a.Length + 1, b.Length + 1];
+            for (int i = 0; i <= a.Length; i++) d[i, 0] = i;
+            for (int j = 0; j <= b.Length; j++) d[0, j] = j;
+            for (int i = 1; i <= a.Length; i++)
+                for (int j = 1; j <= b.Length; j++)
+                {
+                    int cost = a[i - 1] == b[j - 1] ? 0 : 1;
+                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
+                    if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1])
+                        d[i, j] = Math.Min(d[i, j], d[i - 2, j - 2] + 1);
+                }
+            return d[a.Length, b.Length] == 1;
         }
     }
 }

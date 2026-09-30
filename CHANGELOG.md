@@ -28,6 +28,166 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — W3.1-bis.2, the safety nets (branch w31bis-2)
+
+**The nets that must turn red when the translation of W3.1-bis renames a
+protocol name, a case key, a catalogue name or a namespace and breaks something
+in silence (TODO entry W3.1-bis, step .2, items 1-10).** Built on bridge
+0.123.0 / library 0.147.0; the version is not raised: no operation, message or
+tool of the bridge or the library changes. Every net was seen failing on fake
+cases, and where it could the seen-red stays as an automatic check (a contract
+group or a self-test). **Item 11 is NOT done**: the snapshot and the two
+reference bench runs come next, on SOLIDWORKS. **THE BENCH HAS NOT RUN** on
+this branch: the bench now refuses unknown case keys and writes a test ledger,
+and neither was seen on a real run. Prove.Contratti: 736 checks (693 before),
+only the three bench-freshness checks red (the last run is 0.146.0).
+
+- **Item 8, `<Deterministic>` (its own commit).** `Oce.Solid.Agent.csproj`,
+  `Banco/ProvaSaldatura.csproj` and `Prove/Prove.Contratti.csproj` build with
+  `<Deterministic>true</Deterministic>`: two builds of the same source give the
+  same bytes, so the IL before and after a translation lot can be compared.
+  None of them uses a version wildcard, and no code reads PE timestamps.
+  Measured with `Controlli/lingua/same-il.ps1 -OnProjects`: before the change
+  the three projects differed in bytes between two builds; after it, 0 lines and
+  identical bytes in all five projects. The bench and the contracts also get
+  `<PathMap>`, so `[CallerFilePath]` (item 7) embeds `Banco\File.cs`, not the
+  absolute path of the checkout.
+- **Item 1, the README counts in both languages.** `ProveCatalogo.Numero()`
+  reads Italian 0-99 (as before) and English 0-999 and digits, in the README
+  forms «N operations», «N drawing operations», «drawing operations are N».
+  The silent `if (n < 0) continue` is gone: a word that looks like a number
+  and cannot be read is red, and a README with no count read at all is red, so
+  the check cannot go blind after the translation. Seen red on every run by 17
+  fakes («ninety-six drawing operations» against 94, a misspelt Italian 94 that
+  used to be skipped, «fourty»...). Not done: Italian hundreds (the word for
+  100 is a new Italian protocol element the gate blocks); a hundred with a tens
+  root or a unit in it is red, not silent, and the rest is documented in the code.
+- **Item 2, the refusals that name a remedy, in both languages.**
+  `ProveIRifiuti` has a table of 29 Italian remedy words with their English
+  forms (90 in all). The share is now a floor kept as the exact fraction
+  236/935, so ONE new mute refusal is red (the header promised it, the code only
+  checked the absolute count). Every Italian word has English partners that
+  catch its sample; on the Italian refusals the English forms add nothing (209
+  of 817 either way, and 75 of 578 on the tree at b0587d6). Floor 234 -> 236:
+  two English refusals that really name a remedy. Seen red on fake sources on
+  every run (one more mute refusal: 236 of 936 is under the floor); by hand,
+  the English form «indicate » made the Italian-subset check red.
+- **Item 3, the names looked up by reflection (`Prove/ReflectionTests.cs`).**
+  Static: the literal names handed to `GetType`, `GetMethod`, `GetField`...
+  and to 19 helpers that pass them on (discovered, not listed) are extracted
+  from `Prove`, `Banco` and `Controlli` (333 names in 27 files) and must resolve
+  on the built bridge, library and catalogue exporter. Run time: the contract
+  helpers log every lookup by name through `ReflectionLog`, and the last group
+  is red if one came back null (399 lookups in a full run, none null). Seen red
+  on every run on fakes; by hand, `GetField("Riuscito")` renamed in
+  `Banco/Program.cs` gave «1 do not resolve». The bench has its own log,
+  `Banco/ReflectionLog.cs` (added by the review): a member name resolves as
+  soon as ANY type declares it, and 14 of the 58 direct member names of `Prove`
+  and `Banco` are declared by more than one type, so a stale name read with `?.`
+  (the schemas of the mutations, the catalogue count of the header, the
+  signatures of the state) could pass the static net and go on with null. Those
+  lookups go through the log, a full or partial run ends with the test «every
+  lookup by name that falls back to null found its target» (skipped with
+  `--libreria`, whose older library lacks newer names by design), a mutation or
+  regression run makes a miss a bench error, and a contract forbids a `?.`
+  read of a lookup anywhere else in `Banco/`. Both seen red on fakes on every
+  run; the bench-side test has not run yet (it needs SOLIDWORKS).
+- **Item 4, the bench refuses unknown case keys.** `Banco/case-keys.json`
+  lists, for 13 places in a case, the keys the bench reads, the documented
+  ones, the children and 184 frozen free keys (prose notes; 182 distinct keys
+  over 302 cases, none a misspelt schema key). `Banco/CaseKeys.cs` checks every
+  declared case, every mutation and every regression case before anything is
+  built: an unknown key is a bench error naming its path
+  (`passi[2].deve_fallire.volume_unchanged`). Contract `CaseKeysTests` (15
+  checks): every case of the tree is clean, the frozen list only shrinks
+  (`FrozenFreeCeiling` = 184, to 0 in W3.1-bis.4), no frozen entry is unused,
+  every read key is a literal the bench sources read. The review found that
+  last check green on a reader renamed alone: a doc comment still quoted the
+  key «document», and the self-tests of the bench WRITE every expectation key
+  in fake cases. Comments and writes («["key"] = ...», «{ "key", ... }») no
+  longer count as a reader; seen red with the reader of «document» and the
+  reader of the tolerance renamed alone. Seen red on every run: a
+  made-up key in each of the 13 contexts, a read key renamed as a wrong
+  translation in 12, 12 malformed lists. The pending case
+  `a_dimension_hidden_by_hand_does_not_count` would be refused as it stands.
+- **Item 5, JSON readers that fail when a key is missing.**
+  `conta-provate.js`, `controlla-catalogo.ps1`, `domande-senza-risposta.js`,
+  `prova-x2.js` and `detect-italian.js` exit non-zero on a missing or renamed
+  key instead of reading `|| []` or `$null` as nothing. `controlla-catalogo.ps1`
+  had a real silent defect: `famiglie` is an object and was read as a list, so
+  0 declared families were checked; it also gains an interop resolver
+  (`-SwInstallPath`, `SW_INSTALL_PATH`) and now runs to the end on this machine.
+  A lexicon without `content_words` used to leave the language gate blind with
+  exit 0. The permanent check is `Controlli/expected-keys-test.js` (28 cases
+  with a built library): against the old readers, 21 of 24 cases were not as
+  expected. The review added one: `conta-provate.js` read the bench's own C#
+  inside an empty `catch`, so a renamed folder counted as «touches nothing»;
+  now it exits 1 (`--bench <folder>` for the fake).
+- **Item 6, the strings another program looks for.**
+  `Controlli/lingua/consumed-strings.js` and its inventory
+  `consumed-strings.json` (39 entries, 46 runs): installer and bridge, the bench
+  report lines `banco.ps1` parses, the release script and this suite's summary,
+  the CI proof and the language gate, and the other pairs the TODO lists. Each
+  consumed string must be in a string literal (never a comment) of its producer;
+  consumers are bound by the SHA-1 of their literal, `--rebind` after a
+  translation lot. Contract `ConsumedStringsContract` runs `--self-test` (25
+  fakes: the string taken out, kept only in a comment, translated on one side,
+  a regex alternative no longer produced...), then the check, then a floor of
+  39 entries. By hand, translating the partial-run marker of `Banco/Program.cs` broke
+  two entries. Not done: producers are checked on the source literals, not on
+  the ldstr heap of the built assemblies.
+- **Item 7, the bench report names every test.** `Segna`, `SegnaAttesa`,
+  `Saltata` and `ErroreDiBanco` take the caller's file, member and line;
+  `Banco/TestLedger.cs` gives each test the identity `File.cs:Method:ordinal`
+  (plus `@case` and `#n`), keeps per case the outcome and the expectations
+  attempted and checked, and writes `Banco/resoconto/tests.json` in every mode.
+  One new console line (`test ledger: ...`) and, in full and partial runs, one
+  more test: «every test has its identity, file:method:ordinal». Existing lines
+  and what `banco.ps1` parses are unchanged. Contract `BenchReportTests` (10
+  checks): the source scanner on a probe of 14 call shapes and against the
+  compiler's `CallerMemberName`; a wrong member or a line without a call stays
+  unresolved, never guessed. By hand, the scanner agreed with Roslyn's syntax
+  trees on 2,421 real recording calls. Not done: the bench-side check seen red
+  on a real run (it needs the bench).
+- **Item 9, `Controlli/lingua/token-stream.js`.** The token streams of C#
+  (Roslyn from MSBuild), JavaScript (acorn, Node's own copy) and PowerShell (its
+  own parser), without comments and whitespace, literals compared by value;
+  modes identical, strings and renames (with a TSV map). `--self-test`: 31 of
+  31, with a failing case in every language for every mode; making the
+  identical mode accept everything gives 27 of 31. Not done: shell, YAML and
+  csproj (no tokenizer on this machine, nothing installed).
+- **Items 8 and 9 in the suite.** The self-tests of `token-stream.js`,
+  `expected-keys-test.js`, `prova-x2.js` and `same-il.ps1` ran only from the
+  pre-push hook; the new group `SafetyNetSelfTests` (4 checks) runs them with
+  the contracts, on every machine and on the CI runner. A self-test that says it
+  cannot run here (exit 2) is «not runnable here», never green. Seen red on
+  1/10/2026 with the identical mode of `token-stream.js` accepting everything.
+  `Controlli/lingua/same-il.ps1` (ildasm without line numbers, MVID and
+  banner normalized; modes Identical, Ldstr, Renames; `-SelfTest` 17 of 17)
+  stays a re-runnable command for the five projects (`-OnProjects`, about 6
+  minutes, needs MSBuild and the interop on disk).
+- **Item 10, the base planes by position, not by localized name.** Eight
+  probes of `Controlli/` selected a base plane by its Italian name (sometimes
+  with the English one as fallback): `CorpoRotto`, `DimXpert`, `Lamiera`,
+  `Mensola`, `Orfana`, `RaccordoDiFaccia`, `SeguiIlBordo`, `Spessore` (the TODO
+  says seven; `RaccordoDiFaccia` kept the old code in the batch of 28/9 that
+  gave its siblings the new rule). Each now takes the first, second or third
+  `RefPlane` feature of the tree, the rule `Nervatura`, `Riempimento` and
+  `TipoDellEstrusione` already used. The library itself left that rule in
+  Z-C21.5 for `Riferimenti.BasePlane` (by geometry): each new helper says so,
+  and moving the probes to the geometric rule would need `lib = $true` in
+  `costruisci-controlli.ps1`. All eight compile (`build.ps1` builds every
+  probe). **Not rerun on SOLIDWORKS**: «the same outcome as before» waits for a
+  free SOLIDWORKS.
+- **Not done in this step**: item 11 (snapshot and reference bench runs); the
+  bench-side null-lookup log seen on a real run; the ldstr cross-check of item 6; Italian hundreds
+  in `Numero()`; the probes of item 10 on SOLIDWORKS; `<Deterministic>` in
+  `Installer/Installa.csproj`; the silent readers outside `Controlli/`
+  (`.github/passi/quanto-non-ha-girato.ps1`, the answer readers of
+  `Banco/*.js`). The floors (`Pavimento` 236, 250 literal names, 300 lookups,
+  39 consumed strings) go down with the tree only with the reason written next
+  to them.
+
 ## 0.123.0 — 30 September 2026 · library 0.147.0
 
 **The four items the 0.122.0 entry listed as not done in Z-C21.5: the two «last

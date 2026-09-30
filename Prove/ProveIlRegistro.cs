@@ -175,14 +175,14 @@ namespace Prove.Contratti
 
             Func<object, string, string, object> annota = (reg, metodo, nome) =>
             {
-                var m = tipo.GetMethod(metodo,
+                var m = ReflectionLog.Global.Method(tipo, metodo,
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 return m.Invoke(reg, metodo == "OperazioneCheNonCe"
                     ? new object[] { nome, null }
                     : new object[] { nome });
             };
             Func<object, string, object> leggi = (reg, prop) =>
-                tipo.GetProperty(prop,
+                ReflectionLog.Global.Property(tipo, prop,
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(reg);
 

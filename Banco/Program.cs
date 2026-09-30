@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using SolidWorks.Interop.sldworks;
@@ -67,6 +68,12 @@ namespace ProvaSaldatura
         /// in testa al giro**, ed e' quella che ha permesso di capirlo.
         /// </remarks>
         private static string _libreria = LibreriaPredefinita();
+
+        /// <summary>
+        /// True when `--libreria` named another library: an older one may lack
+        /// names the bench looks up, by design (W3.1-bis.2, item 3).
+        /// </summary>
+        private static bool _anotherLibrary;
 
         private static string LibreriaPredefinita()
         {
@@ -218,6 +225,7 @@ namespace ProvaSaldatura
             if (dove >= 0 && dove + 1 < argomenti.Count)
             {
                 _libreria = argomenti[dove + 1];
+                _anotherLibrary = true;
                 argomenti.RemoveRange(dove, 2);
             }
             // `--lento`: le prove che costano MINUTI, non secondi.
@@ -414,17 +422,19 @@ namespace ProvaSaldatura
             // due col loro nome, contati tutti e due dalla libreria caricata.
             try
             {
-                var nomi = _tOperazioni.GetField("NomiEseguibili",
+                // Through the reflection log: these fall back to null, and the
+                // header would print a count of zero in silence (W3.1-bis.2, item 3).
+                var nomi = ReflectionLog.Global.Field(_tOperazioni, "NomiEseguibili",
                     BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string[];
                 int aCatalogo = -1;
-                var tutte = _addin.GetType("Riscontro.Disegno.Catalogo.Operazioni", false)?
-                    .GetField("Tutte", BindingFlags.Public | BindingFlags.Static)?
+                var catalogueType = ReflectionLog.Global.TypeIn(_addin, "Riscontro.Disegno.Catalogo.Operazioni");
+                var tutte = ReflectionLog.Global.Field(catalogueType, "Tutte", BindingFlags.Public | BindingFlags.Static)?
                     .GetValue(null) as System.Collections.IEnumerable;
                 if (tutte != null)
                 {
                     aCatalogo = 0;
                     foreach (var o in tutte)
-                        if (o.GetType().GetField("Provata")?.GetValue(o) as bool? == true) aCatalogo++;
+                        if (ReflectionLog.Global.Field(o.GetType(), "Provata")?.GetValue(o) as bool? == true) aCatalogo++;
                 }
                 if (nomi != null)
                     Console.WriteLine("eseguibili: " + nomi.Length + " operazioni (a catalogo: " +
@@ -474,6 +484,7 @@ namespace ProvaSaldatura
             {
                 if (_muta) IlGiroDelleMutazioni();
                 else IlGiroDellaRegressione();
+                ReflectionLogAsBenchError();
                 Console.WriteLine();
                 Console.WriteLine(new string('=', 76));
                 foreach (var r in _esiti) Console.WriteLine(r);
@@ -487,6 +498,9 @@ namespace ProvaSaldatura
                       (_erroriDiBanco > 0 ? ", " + _erroriDiBanco + " ERRORI DI BANCO" : "");
                 Console.WriteLine(soloMuta);
                 Console.WriteLine("attese verificate " + _atteseVerificate + " su " + _attese);
+                // No identity test here: it would count as one more case in
+                // the line above. The ledger still says how many are unresolved.
+                WriteTheTestLedger(_muta ? "mutations" : "regression");
                 ChiudiIlDiario(soloMuta);
                 if (_erroriDiBanco > 0) return 2;
                 return _falliti == 0 ? 0 : 1;
@@ -589,6 +603,8 @@ namespace ProvaSaldatura
             // fallire niente: la forma peggiore, perche' si legge come un
             // controllo.
             ControllaIlContoPerGruppo();
+            CheckTheTestIdentities();
+            CheckTheReflectionLog();
 
             var riepilogo =
                 (nonLanciati.Count > 0
@@ -635,6 +651,7 @@ namespace ProvaSaldatura
                               " — senza: " + _senzaDocumento);
             ScriviLeSenzaAttesa();
             ScriviIlContoPerGruppo();
+            WriteTheTestLedger(nonLanciati.Count > 0 || _soloFamiglie != null ? "partial" : "full");
 
             ChiudiIlDiario(riepilogo + " · " + conto);
 
@@ -877,7 +894,26 @@ namespace ProvaSaldatura
             return nome.Length >= 52 ? nome + "  " : nome.PadRight(52);
         }
 
-        private static void Segna(string nome, bool ok, string dettaglio = "")
+        // THE CALLER INFORMATION IS THE IDENTITY OF THE TEST (entry W3.1-bis.2,
+        // item 7): the compiler fills file, member and line at every call, and
+        // the test ledger turns them into File.cs:Method:ordinal. The four
+        // recording methods (this one, `SegnaAttesa`, `Saltata`, `ErroreDiBanco`)
+        // carry the attributes; nobody passes these arguments by hand.
+        private static void Segna(string nome, bool ok, string dettaglio = "",
+                                  [CallerFilePath] string callerFile = "",
+                                  [CallerMemberName] string callerMember = "",
+                                  [CallerLineNumber] int callerLine = 0)
+        {
+            RecordOutcome(nome, ok, dettaglio, callerFile, callerMember, callerLine);
+        }
+
+        /// <summary>
+        /// The body of `Segna`, with the caller information passed on:
+        /// `SegnaAttesa` records the test of ITS caller, and going through
+        /// `Segna` would name every expectation after `SegnaAttesa` itself.
+        /// </summary>
+        private static void RecordOutcome(string nome, bool ok, string dettaglio,
+                                          string callerFile, string callerMember, int callerLine)
         {
             // ZITTO: il modo `--muta` riesegue lo stesso caso decine di volte e
             // PRETENDE che diventi rosso (voce F6). Quei rossi non sono
@@ -957,6 +993,8 @@ namespace ProvaSaldatura
             _esiti.Add(riga);
             Console.WriteLine(riga);
             Diario(riga);
+            Ledger.Record(callerFile, callerMember, callerLine,
+                          ok ? TestLedger.Ok : TestLedger.Failed, nome, _gruppoInCorso);
         }
 
         /// <summary>
@@ -1004,10 +1042,13 @@ namespace ProvaSaldatura
         /// alzato a mano e dimenticato abbassato falsa tutto il conteggio da
         /// li' in avanti — e lo falserebbe in silenzio.
         /// </summary>
-        internal static void SegnaAttesa(string nome, bool ok, string dettaglio = "")
+        internal static void SegnaAttesa(string nome, bool ok, string dettaglio = "",
+                                         [CallerFilePath] string callerFile = "",
+                                         [CallerMemberName] string callerMember = "",
+                                         [CallerLineNumber] int callerLine = 0)
         {
             _attesaInCorso = true;
-            try { Segna(nome, ok, dettaglio); }
+            try { RecordOutcome(nome, ok, dettaglio, callerFile, callerMember, callerLine); }
             finally { _attesaInCorso = false; }
         }
 
@@ -1288,13 +1329,17 @@ namespace ProvaSaldatura
         /// si lancia e' peggio di una che non esiste — chi legge «88 prove, 0
         /// fallite» crede di aver provato tutto.
         /// </summary>
-        private static void Saltata(string nome, string perche)
+        private static void Saltata(string nome, string perche,
+                                    [CallerFilePath] string callerFile = "",
+                                    [CallerMemberName] string callerMember = "",
+                                    [CallerLineNumber] int callerLine = 0)
         {
             _saltate++;
             var riga = "  --   " + InColonna(nome) + "SALTATA: " + perche;
             _esiti.Add(riga);
             Console.WriteLine(riga);
             Diario(riga);
+            Ledger.Record(callerFile, callerMember, callerLine, TestLedger.Skipped, nome, _gruppoInCorso);
         }
 
         /// <summary>
@@ -1311,7 +1356,10 @@ namespace ProvaSaldatura
         /// Per questo ha un suo simbolo, un suo conteggio, e **il suo codice di
         /// uscita: 2**.
         /// </summary>
-        private static void ErroreDiBanco(string nome, string cosa)
+        private static void ErroreDiBanco(string nome, string cosa,
+                                          [CallerFilePath] string callerFile = "",
+                                          [CallerMemberName] string callerMember = "",
+                                          [CallerLineNumber] int callerLine = 0)
         {
             // Sotto `--muta` un caso mutato che non si puo' nemmeno eseguire
             // conta come «e' diventato rosso»: la mutazione ha morso lo stesso.
@@ -1322,6 +1370,140 @@ namespace ProvaSaldatura
             _esiti.Add(riga);
             Console.WriteLine(riga);
             Diario(riga);
+            Ledger.Record(callerFile, callerMember, callerLine, TestLedger.BenchError, nome, _gruppoInCorso);
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // THE TEST LEDGER (entry W3.1-bis.2, item 7)
+        //
+        // Every test by identity (File.cs:Method:ordinal), and the expectations
+        // checked per case, written to Banco/resoconto/tests.json at the end of
+        // the run. The console and the files banco.ps1 reads do not change.
+        //
+        // LAZY, like the table of the document measures: a static initializer
+        // runs before Main installs the resolver of the interop assemblies.
+        // The sources of the bench are scanned when the ledger is born, that
+        // is at the first test, a few seconds into the run: the identities
+        // must be computed on the sources this binary was built from.
+        // ══════════════════════════════════════════════════════════════════
+        private static TestLedger _ledger;
+
+        private static TestLedger Ledger
+        {
+            get
+            {
+                if (_ledger != null) return _ledger;
+                _ledger = new TestLedger(
+                    new[] { nameof(Segna), nameof(SegnaAttesa), nameof(Saltata), nameof(ErroreDiBanco) },
+                    ReadBenchSource);
+                var folder = BenchFolder();
+                if (folder != null)
+                    foreach (var f in Directory.GetFiles(folder, "*.cs")) _ledger.ScanSource(f);
+                return _ledger;
+            }
+        }
+
+        /// <summary>The folder of the bench (the parent of bin), or null.</summary>
+        private static string BenchFolder()
+        {
+            try
+            {
+                var bin = AppDomain.CurrentDomain.BaseDirectory;
+                var parent = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
+                return parent == null ? null : parent.FullName;
+            }
+            catch (Exception) { return null; }
+        }
+
+        /// <summary>
+        /// The source a test was recorded from: the file of that name in the
+        /// bench folder, next to the binary built from it; else the path the
+        /// compiler gave, when it exists (a relative one if the build maps its
+        /// paths). Null when neither exists, and the ledger says so for each
+        /// such test.
+        /// </summary>
+        private static string ReadBenchSource(string callerFile)
+        {
+            if (string.IsNullOrEmpty(callerFile)) return null;
+            var folder = BenchFolder();
+            var here = folder == null ? null : Path.Combine(folder, Path.GetFileName(callerFile));
+            if (here != null && File.Exists(here)) return File.ReadAllText(here);
+            return File.Exists(callerFile) ? File.ReadAllText(callerFile) : null;
+        }
+
+        /// <summary>
+        /// A test of its own, before the summary: every test of this run has an
+        /// identity. An unresolved one is a source edited after the build, or a
+        /// declaration the scan does not understand, and the comparison with
+        /// the reference runs would silently lose that test.
+        /// </summary>
+        private static void CheckTheTestIdentities()
+        {
+            var unresolved = Ledger.Tests.Where(t => t.Unresolved != null).ToList();
+            Segna("every test has its identity, file:method:ordinal", unresolved.Count == 0,
+                  unresolved.Count == 0
+                      ? Ledger.Tests.Count + " tests, each resolved on the sources of this binary"
+                      : unresolved.Count + " of " + Ledger.Tests.Count + " unresolved, the first: " +
+                        unresolved[0].Id + " (" + unresolved[0].Unresolved + ")");
+        }
+
+        /// <summary>
+        /// A test of its own, before the summary: every lookup by name that
+        /// would fall back to null in silence found its target (Banco/ReflectionLog.cs,
+        /// W3.1-bis.2 item 3). Against another library (`--libreria`) it is
+        /// skipped and says so: an older library lacks newer names by design.
+        /// </summary>
+        private static void CheckTheReflectionLog()
+        {
+            const string Rule = "every lookup by name that falls back to null found its target";
+            var verdict = ReflectionLog.Global.Verdict();
+            if (_anotherLibrary)
+            {
+                Saltata(Rule, "another library was named with --libreria" +
+                              (verdict == null ? "" : " (" + verdict + ")"));
+                return;
+            }
+            Segna(Rule, verdict == null,
+                  verdict ?? ReflectionLog.Global.Lookups + " lookups, none null");
+        }
+
+        /// <summary>
+        /// The same log at the end of a mutation or regression run, where a test
+        /// of its own would count as one more case: a miss is a bench error
+        /// (the bench could not read what it measures), and nothing is added
+        /// when every lookup found its target.
+        /// </summary>
+        private static void ReflectionLogAsBenchError()
+        {
+            var verdict = ReflectionLog.Global.Verdict();
+            if (verdict != null && !_anotherLibrary)
+                ErroreDiBanco("every lookup by name that falls back to null found its target", verdict);
+        }
+
+        /// <summary>
+        /// Writes Banco/resoconto/tests.json and says where. A ledger that cannot
+        /// be written is said on the console, like the other files of the report.
+        /// </summary>
+        private static void WriteTheTestLedger(string mode)
+        {
+            try
+            {
+                var folder = BenchFolder();
+                if (folder == null) { Console.WriteLine("(the test ledger has no folder to go to)"); return; }
+                var report = Path.Combine(folder, "resoconto");
+                Directory.CreateDirectory(report);
+                var file = Path.Combine(report, "tests.json");
+                var library = _addin != null ? _addin.GetName().Version.ToString() : "";
+                // File.WriteAllText without an encoding writes UTF-8 without a byte order mark.
+                File.WriteAllText(file, Ledger.Json(mode, library, DateTime.Now));
+                Console.WriteLine("test ledger: " + file + " (" + Ledger.Tests.Count + " tests, " +
+                                  Ledger.Cases.Count + " cases, " + Ledger.UnresolvedCount +
+                                  " identities unresolved)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("(the test ledger could not be written: " + ex.Message + ")");
+            }
         }
 
         /// <summary>

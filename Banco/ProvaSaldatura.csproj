@@ -11,6 +11,13 @@
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>bin\</OutputPath>
     <LangVersion>7.3</LangVersion>
+    <!-- Two builds of the same source give the same bytes (W3.1-bis.2,
+         Controlli\lingua\same-il.ps1). -->
+    <Deterministic>true</Deterministic>
+    <!-- [CallerFilePath] of the bench recorders gives the path as seen from the
+         repository, not the absolute path of this checkout: the same source
+         builds the same bytes in any folder (W3.1-bis.2, item 7). -->
+    <PathMap>$(MSBuildProjectDirectory)=Banco</PathMap>
     <!-- DOVE STA L'INTEROP, e si puo' scavalcare in tre modi.
          `LEGGIMI.md` documentava `set SW_REDIST=...`, ma quella variabile la
          leggeva solo `Program.cs` a tempo di ESECUZIONE, per l'AssemblyResolve:
@@ -56,7 +63,9 @@
     <Compile Include="..\Condiviso\Guinzaglio.cs" />
     <Compile Include="Attese.cs" />
     <Compile Include="AssiemeDiProva.cs" />
+    <Compile Include="CaseKeys.cs" />
     <Compile Include="CasiDichiarati.cs" />
+    <Compile Include="ReflectionLog.cs" />
     <Compile Include="Regressione.cs" />
     <Compile Include="PortaDelCliente.cs" />
     <Compile Include="Orfane.cs" />
@@ -65,6 +74,7 @@
     <Compile Include="ProvaNuove.cs" />
     <Compile Include="ProveSenzaIlPezzo.cs" />
     <Compile Include="Sessione.cs" />
+    <Compile Include="TestLedger.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

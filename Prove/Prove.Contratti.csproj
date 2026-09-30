@@ -40,6 +40,13 @@
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <LangVersion>7.3</LangVersion>
+    <!-- Two builds of the same source give the same bytes (W3.1-bis.2,
+         Controlli\lingua\same-il.ps1). -->
+    <Deterministic>true</Deterministic>
+    <!-- [CallerFilePath] of the bench recorders gives the path as seen from the
+         repository, not the absolute path of this checkout: the same source
+         builds the same bytes in any folder (W3.1-bis.2, item 7). -->
+    <PathMap>$(MSBuildProjectDirectory)=Prove</PathMap>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
   </PropertyGroup>
 
@@ -102,11 +109,24 @@
     <Compile Include="Zc2113PartDimensionContract.cs" />
     <Compile Include="Zc2111ComponentsContract.cs" />
     <Compile Include="LanguageGateTests.cs" />
+    <Compile Include="CaseKeysTests.cs" />
+    <Compile Include="ConsumedStringsContract.cs" />
+    <Compile Include="ReflectionTests.cs" />
+    <Compile Include="SafetyNetSelfTests.cs" />
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.
          Non una copia: una copia diverge, e il giorno che diverge la suite
          col CAD comincia a passare per ragioni che qui non si vedono. -->
     <Compile Include="..\Banco\Attese.cs">
       <Link>Attese.cs</Link>
+    </Compile>
+    <Compile Include="..\Banco\CaseKeys.cs">
+      <Link>CaseKeys.cs</Link>
+    </Compile>
+    <Compile Include="..\Banco\TestLedger.cs">
+      <Link>TestLedger.cs</Link>
+    </Compile>
+    <Compile Include="..\Banco\ReflectionLog.cs">
+      <Link>ReflectionLog.cs</Link>
     </Compile>
   </ItemGroup>
 

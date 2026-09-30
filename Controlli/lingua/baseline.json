@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 145450,
-  "strings": 54620,
+  "comments": 145292,
+  "strings": 54559,
   "markdown": 33942,
   "json_values": 55199,
-  "identifiers": 4794,
+  "identifiers": 4793,
   "json_keys": 443,
-  "protocol": 2164,
+  "protocol": 2162,
   "paths": 640,
   "transition": 0
  },
@@ -1032,8 +1032,8 @@
    "strings": 64
   },
   "Controlli/CorpoRotto/Programma.cs": {
-   "comments": 579,
-   "strings": 169
+   "comments": 562,
+   "strings": 165
   },
   "Controlli/DettaglioInTavola/Programma.cs": {
    "comments": 282,
@@ -1041,7 +1041,7 @@
   },
   "Controlli/DimXpert/Programma.cs": {
    "comments": 169,
-   "strings": 85
+   "strings": 83
   },
   "Controlli/Fazzoletto/Programma.cs": {
    "comments": 924,
@@ -1057,11 +1057,11 @@
   },
   "Controlli/Lamiera/Programma.cs": {
    "comments": 271,
-   "strings": 147
+   "strings": 145
   },
   "Controlli/Mensola/Programma.cs": {
    "comments": 855,
-   "strings": 239
+   "strings": 232
   },
   "Controlli/Modale/Programma.cs": {
    "comments": 170,
@@ -1085,7 +1085,7 @@
   },
   "Controlli/Orfana/Programma.cs": {
    "comments": 286,
-   "strings": 191
+   "strings": 189
   },
   "Controlli/ProvaInquadratura/Programma.cs": {
    "comments": 614,
@@ -1113,7 +1113,7 @@
   },
   "Controlli/RaccordoDiFaccia/Programma.cs": {
    "comments": 925,
-   "strings": 56
+   "strings": 54
   },
   "Controlli/Riempimento/Programma.cs": {
    "comments": 83,
@@ -1125,7 +1125,7 @@
   },
   "Controlli/SeguiIlBordo/Programma.cs": {
    "comments": 431,
-   "strings": 141
+   "strings": 139
   },
   "Controlli/Seleziona/Programma.cs": {
    "comments": 118,
@@ -1137,7 +1137,7 @@
   },
   "Controlli/Spessore/Programma.cs": {
    "comments": 481,
-   "strings": 177
+   "strings": 169
   },
   "Controlli/TestoNelPdf/Programma.cs": {
    "comments": 228,
@@ -1151,8 +1151,8 @@
    "comments": 228
   },
   "Controlli/conta-provate.js": {
-   "comments": 265,
-   "strings": 106
+   "comments": 248,
+   "strings": 104
   },
   "Controlli/conta-todo.js": {
    "comments": 905,
@@ -1357,8 +1357,8 @@
    "strings": 496
   },
   "Prove/ProveCatalogo.cs": {
-   "comments": 903,
-   "strings": 350
+   "comments": 779,
+   "strings": 320
   },
   "Prove/ProveEnumDiErrore.cs": {
    "comments": 300,
@@ -3131,7 +3131,6 @@
    "RigheNonJson",
    "RileggiIlComponente",
    "RilettaGiusta",
-   "Rimedi",
    "Rimetti",
    "RimettiLEquazione",
    "RimettiLaQuota",
@@ -3416,6 +3415,7 @@
    "Tipo",
    "TipoCieco",
    "TipoDelFazzoletto",
+   "TipoDellEstrusione",
    "TipoDi",
    "TipoDiAccoppiamento",
    "TipoFazzoletto",
@@ -4310,7 +4310,6 @@
    "davvero",
    "decimali",
    "decimaliLetti",
-   "decine",
    "decodificato",
    "decompressi",
    "deduzione",
@@ -9083,7 +9082,6 @@
    "tre_fori_passo_40",
    "tredici",
    "trenta",
-   "trentotto",
    "triangoli",
    "triangoli_come_li_so",
    "triangoli_controllati",
@@ -9143,7 +9141,6 @@
    "variazione_volume_mm3",
    "vede",
    "venti",
-   "ventuno",
    "verdi",
    "verifica",
    "verifica_geometria_corpo",

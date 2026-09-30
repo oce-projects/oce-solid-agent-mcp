@@ -168,7 +168,7 @@ namespace Prove.Contratti
 
         private static string[] Names(Type t, string method, object[] args, out string refusal)
         {
-            var m = t.GetMethod(method, Any);
+            var m = ReflectionLog.Global.Method(t, method, Any);
             if (m == null) throw new MissingMethodException(t.Name + "." + method);
             object result;
             try { result = m.Invoke(null, args); }

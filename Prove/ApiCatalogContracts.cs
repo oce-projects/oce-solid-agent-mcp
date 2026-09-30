@@ -119,7 +119,7 @@ namespace Prove.Contratti
 
         private static object Call(string method, params object[] args)
         {
-            var m = _catalog.GetMethod(method, BindingFlags.Public | BindingFlags.Static);
+            var m = ReflectionLog.Global.Method(_catalog, method, BindingFlags.Public | BindingFlags.Static);
             if (m == null) throw new MissingMethodException("ApiCatalog." + method);
             try { return m.Invoke(null, args); }
             catch (TargetInvocationException ex) { throw ex.InnerException ?? ex; }
@@ -127,7 +127,10 @@ namespace Prove.Contratti
 
         private static string Field(object answer, string name)
         {
-            var f = answer.GetType().GetField(name);
+            // A missing field reads as null, and null reads as «not an error»:
+            // the log turns that silence red at the end of the run (W3.1-bis.2).
+            var f = ReflectionLog.Global.Field(answer.GetType(), name,
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
             return f == null ? null : Convert.ToString(f.GetValue(answer));
         }
 
@@ -153,7 +156,7 @@ namespace Prove.Contratti
 
         private static string Const(string name)
         {
-            var f = _catalog.GetField(name, BindingFlags.Public | BindingFlags.Static);
+            var f = ReflectionLog.Global.Field(_catalog, name, BindingFlags.Public | BindingFlags.Static);
             return f == null ? null : Convert.ToString(f.GetValue(null));
         }
 

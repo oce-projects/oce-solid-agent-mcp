@@ -56,6 +56,26 @@ misura, un errore di banco e' una misura **mancata**. E il 2 vince sull'1: se il
 banco non ha potuto misurare, quante prove siano fallite e' una domanda a cui
 non si e' risposto.
 
+**The test ledger, `Banco/resoconto/tests.json`** (W3.1-bis.2, item 7), is
+written by the bench itself at the end of every run (full, partial, mutations,
+regression) and is not tracked. One line per test, named by where it is
+recorded: `File.cs:Method:ordinal`, the ordinal counting the recording calls of
+that method in source order, then `@case` while a case runs and `#2`, `#3` when
+the same call records again for the same case. One line per case, with its
+outcome and the expectations attempted and checked. The label is kept for the
+reader, but the identity does not depend on it, so a translated label is still
+the same test. The run checks that every identity resolved against the sources
+it was built from (a test of its own, before the summary line); a source edited
+after the build leaves the test unresolved and that check red.
+
+**The lookups by name that fall back to null** (W3.1-bis.2, item 3) go through
+`Banco/ReflectionLog.cs`: the schemas of the mutations, the catalogue count of
+the header, the signatures of the state. A full or partial run ends with one
+more test, «every lookup by name that falls back to null found its target»
+(skipped with `--libreria`: an older library lacks newer names by design); in a
+mutation or regression run a miss is a bench error. `Prove.Contratti` forbids a
+`?.` read of a lookup anywhere else in `Banco/`.
+
 > ### ⚠ NON LANCIARLO DENTRO UNA PIPELINE POWERSHELL
 >
 > `.\Banco\banco.ps1 ... | Select-Object -First 25` **uccide il giro a meta'**.
@@ -190,6 +210,17 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 | `activate_before` | `{ "document": path, "configuration": name }`: a configuration of ANOTHER open document made active before the step, read back (ShowConfiguration2 answers false on the one already active, so its answer decides nothing). It is how a drawing step finds its model on a configuration other than the one the views show (Z-C21.4, L16-2); a document that is not open, or a configuration that does not become the active one, is a bench error |
 | segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Banco\lavoro\`, ignorata da git); `{DATI}` i file d'ingresso versionati (`Banco\dati\`); `{SOLIDWORKS}` la cartella di installazione di SOLIDWORKS, per i file DI SERIE che non si versionano (i modelli di tabella; `SW_INSTALL_PATH` se non e' quella predefinita, voce Z-C21.2). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
 | `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella`, `la_differenza_e_il_pezzo` (vedi «Le coppie») |
+
+**A key the bench does not read is refused** (W3.1-bis.2, item 4). Every place
+of a case (the case, a step, an expectation, a must-fail block, an assembly, a
+component, a regression case...) admits only the keys listed for it in
+`Banco/case-keys.json`: the keys the loader reads, the prose keys it documents,
+and the free keys frozen on 30/9/2026. Any other key is a bench error before
+anything is built, because the loader would skip it in silence and whatever it
+asked for would never be checked. A new free note starts with `_` (for example
+`_seen_red_once`): admitted everywhere, never read. The frozen list only
+shrinks. `Prove.Contratti` (CaseKeysTests) applies the same rule to every case
+in a second, so a key written wrong is found before the bench runs.
 
 ### Un caso che gira su un ASSIEME — `casi/assiemi/` (voce GA0)
 

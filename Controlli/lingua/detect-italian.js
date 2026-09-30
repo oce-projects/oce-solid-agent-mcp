@@ -148,8 +148,36 @@ function readConfigFile(root, rev, name) {
   return JSON.parse(buf.toString('utf8').replace(/^\ufeff/, ''));
 }
 
+// The lists the detector reads (W3.1-bis.2, item 5). Each was read with
+// `|| []`: a list renamed or dropped from lexicon.json made the gate blind
+// to its words without a word of warning. A missing list now stops the gate
+// (exit 2); the core ones may not be empty either.
+const LEXICON_LISTS = ['function_words', 'elided_forms', 'content_words', 'workshop_words', 'weak_words',
+  'identifier_only_words', 'identifier_function_stop', 'english_allow', 'italian_suffixes', 'protocol_keys',
+  'exception_sentinels'];
+const LEXICON_NOT_EMPTY = ['function_words', 'elided_forms', 'content_words', 'italian_suffixes', 'exception_sentinels'];
+function checkLexicon(lex) {
+  if (lex === null || typeof lex !== 'object' || Array.isArray(lex)) fail('lexicon.json must be an object');
+  for (const k of LEXICON_LISTS) {
+    if (!Array.isArray(lex[k])) fail('lexicon.json: no list "' + k + '" (a missing list would make the gate blind to its words)');
+  }
+  for (const k of LEXICON_NOT_EMPTY) if (lex[k].length === 0) fail('lexicon.json: the list "' + k + '" is empty');
+  for (const s of lex.italian_suffixes) if (!s || typeof s.pattern !== 'string') fail('lexicon.json: an entry of "italian_suffixes" has no "pattern"');
+}
+
+// A baseline is { files: { path: { category: n } }, sets: { category: [...] } }.
+// A baseline without them would compare the tree with nothing.
+function checkBaseline(b, where) {
+  if (b === null || typeof b !== 'object' || Array.isArray(b)) fail(where + ': a baseline must be an object');
+  if (b.files === null || typeof b.files !== 'object' || Array.isArray(b.files)) fail(where + ': no "files" object');
+  if (b.sets === null || typeof b.sets !== 'object' || Array.isArray(b.sets)) fail(where + ': no "sets" object');
+  for (const c of SET_CATEGORIES) if (!Array.isArray(b.sets[c])) fail(where + ': no set "' + c + '"');
+  return b;
+}
+
 function loadConfig(root, configRev) {
   const lex = readConfigFile(root, configRev, 'lexicon.json');
+  checkLexicon(lex);
   const exc = readConfigFile(root, configRev, 'exceptions.json');
   const lower = (a) => (a || []).map(w => w.toLowerCase());
   const config = {
@@ -1430,13 +1458,13 @@ function loadBaseline(spec, root) {
         console.log('language gate: no baseline.json in ' + rev);
         return null;
       }
-      list.push(JSON.parse(buf.toString('utf8').replace(/^\ufeff/, '')));
+      list.push(checkBaseline(JSON.parse(buf.toString('utf8').replace(/^\ufeff/, '')), 'baseline.json of ' + rev));
     }
     return mergeBaselines(list);
   }
   const file = path.resolve(spec);
   if (!fs.existsSync(file)) { console.log('language gate: no baseline at ' + file); return null; }
-  return readJson(file);
+  return checkBaseline(readJson(file), file);
 }
 
 // The renames between two commits, as a JSON file { "new/path": "old/path" }

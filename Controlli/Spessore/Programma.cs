@@ -320,9 +320,12 @@ internal static class Programma
                                    double altezzaMm, bool unisci)
     {
         doc.ClearSelection2(true);
-        if (!doc.Extension.SelectByID2("Piano superiore", "PLANE", 0, 0, 0, false, 0, null, 0))
+        if (!SelectBasePlane(doc, 2))
         {
-            Console.WriteLine("  non trovo «Piano superiore» (modello in un'altra lingua?)");
+            // W3.1-bis.2 point 10: the plane is now found by tree position, so a
+            // failure here is no longer a language mismatch — the template has
+            // fewer than two reference planes, or none is a RefPlane feature.
+            Console.WriteLine("  top reference plane not found");
             return false;
         }
         doc.SketchManager.InsertSketch(true);
@@ -357,5 +360,27 @@ internal static class Programma
     {
         while (ex.InnerException != null) ex = ex.InnerException;
         return ex;
+    }
+
+    // W3.1-bis.2 point 10: base planes by position, not by their localized name.
+    // The first three RefPlane features of the tree, same rule as
+    // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
+    // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+    // BasePlane) recognises a base plane by its canonical normal through the
+    // world origin instead, because a template with an extra plane ahead of the
+    // three defaults fools a position-based rule with no error; this probe
+    // stays positional because it is a throwaway part on SOLIDWORKS' own
+    // default template and cannot reference the library (single-file compile,
+    // Controlli/costruisci-controlli.ps1).
+    private static bool SelectBasePlane(IModelDoc2 doc, int which)
+    {
+        int seen = 0;
+        var f = doc.FirstFeature() as IFeature;
+        while (f != null)
+        {
+            if (f.GetTypeName2() == "RefPlane" && ++seen == which) { doc.ClearSelection2(true); return f.Select2(false, 0); }
+            f = f.GetNextFeature() as IFeature;
+        }
+        return false;
     }
 }

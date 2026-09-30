@@ -515,8 +515,7 @@ internal static class ProbeRaccordoFaccia
             (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
         var doc = (IModelDoc2)_sw.NewDocument(tpl, 0, 0, 0);
         doc.ClearSelection2(true);
-        if (!doc.Extension.SelectByID2("Piano frontale", "PLANE", 0, 0, 0, false, 0, null, 0))
-            doc.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, false, 0, null, 0);
+        SelectBasePlane(doc, 1);
         var sm = doc.SketchManager;
         sm.InsertSketch(true);
         sm.CreateCornerRectangle(-0.02, -0.02, 0, 0.02, 0.02, 0);
@@ -569,5 +568,29 @@ internal static class ProbeRaccordoFaccia
             false, false, false, false, 0, 0, false, false, false, false,
             true, true, true, 0, 0, false);
         return doc;
+    }
+
+    // W3.1-bis.2 point 10: base planes by position, not by their localized name
+    // (this probe used to try the plane's Italian name, then its English one,
+    // which only ever works on those two SOLIDWORKS UI languages).
+    // The first three RefPlane features of the tree, same rule as
+    // Controlli/Nervatura, Controlli/Riempimento and Controlli/TipoDellEstrusione.
+    // Since Z-C21.5 the library itself (Riscontro.Disegno/Riferimenti.cs,
+    // BasePlane) recognises a base plane by its canonical normal through the
+    // world origin instead, because a template with an extra plane ahead of the
+    // three defaults fools a position-based rule with no error; this probe
+    // stays positional because it is a throwaway part on SOLIDWORKS' own
+    // default template and cannot reference the library (single-file compile,
+    // Controlli/costruisci-controlli.ps1).
+    private static bool SelectBasePlane(IModelDoc2 doc, int which)
+    {
+        int seen = 0;
+        var f = doc.FirstFeature() as IFeature;
+        while (f != null)
+        {
+            if (f.GetTypeName2() == "RefPlane" && ++seen == which) { doc.ClearSelection2(true); return f.Select2(false, 0); }
+            f = f.GetNextFeature() as IFeature;
+        }
+        return false;
     }
 }

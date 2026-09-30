@@ -1,0 +1,379 @@
+{
+  "about": [
+    "The keys a bench case may carry (entry W3.1-bis.2, item 4). The bench loader refuses any other key, and Prove.Contratti (CaseKeysTests) applies the same rule before the bench runs.",
+    "Every context is one place of a case. \"read\": the keys the loader reads, written as strings, as the reader writes them (each must appear as a literal in the bench sources). \"documented\": prose keys the loader never reads. \"children\": the key that leads to another context, as an object or as a list of objects. \"frozen_free\": notes with invented names written before this list existed; the list only shrinks, and a new note starts with an underscore, which is admitted anywhere and never read. Documented and frozen keys are written as keys, as the cases write them.",
+    "The renaming script of W3.1-bis.4 rewrites this file together with the cases, in the same commit: the keys of documented, frozen_free and children, and the strings of read."
+  ],
+  "format": 1,
+  "roots": {
+    "declared": "case",
+    "regression": "regression_case"
+  },
+  "contexts": {
+    "case": {
+      "read": [
+        "assieme",
+        "nome",
+        "passi",
+        "perche",
+        "rossa_prima_di"
+      ],
+      "documented": {
+        "famiglia": true,
+        "il_difetto_che_questo_caso_prende": true,
+        "parte": true
+      },
+      "children": {
+        "assieme": "assembly",
+        "parte": "start",
+        "passi": "step"
+      },
+      "frozen_free": {
+        "com_era_scritto_prima_e_perche_era_falso": true,
+        "come_e_stato_scelto": true,
+        "cosa_NON_prova_questo_caso": true,
+        "cosa_cambia_rispetto_alla_gemella": true,
+        "cosa_ha_detto_la_sonda_sul_cartiglio_di_questa_officina": true,
+        "cosa_ha_trovato_scriverlo": true,
+        "cosa_misura_adesso": true,
+        "cosa_non_e_misurato": true,
+        "cosa_non_puo_provare": true,
+        "da_guardare_al_primo_giro": true,
+        "da_verificare_al_primo_giro": true,
+        "dove_stanno_le_facce": true,
+        "e_a_cosa_serve_davvero_toccarsi_conta": true,
+        "e_il_TitleBlock_non_c_e": true,
+        "e_il_foglio_si_conta_a_parte": true,
+        "e_il_foro_senza_croce": true,
+        "e_la_gemella_e_nello_stesso_file": true,
+        "e_le_gemelle_sono_nello_stesso_file": true,
+        "e_questo_caso_e_uscito_rosso_due_volte_per_lo_stesso_motivo": true,
+        "e_se_il_corpo_nascosto_non_tassella": true,
+        "e_sono_quasi_tutte_PRPSHEET": true,
+        "gemella_di": true,
+        "gli_spigoli_per_dove_stanno": true,
+        "i_corpi_si_chiamano_per_nome": true,
+        "i_numeri": true,
+        "i_numeri_attesi": true,
+        "i_selettori_sono_misurati": true,
+        "il_conto_fatto_prima": true,
+        "il_diedro_e_tutta_la_difficolta": true,
+        "il_difetto_che_il_baricentro_prende": true,
+        "il_nome_ha_fatto_tre_giri_e_il_terzo_e_quello_giusto": true,
+        "il_numero": true,
+        "l_asola_e_un_poligono": true,
+        "la_gemella": true,
+        "la_lezione_dei_tre_giri": true,
+        "la_quota_si_nomina_per_genere": true,
+        "le_viste_si_chiamano_per_uid": true,
+        "on_a_machine_with_mbd": true,
+        "perche_CREARE_e_non_importare": true,
+        "perche_UN_accoppiamento_non_basta": true,
+        "perche_anche_lo_stato": true,
+        "perche_ci_vuole_capovolgi": true,
+        "perche_conta": true,
+        "perche_dal_terzo_passo_in_poi_serve_n": true,
+        "perche_due_fori": true,
+        "perche_due_numeri": true,
+        "perche_e_il_difetto_che_non_da_errore": true,
+        "perche_e_questa_legge_che_denuncia_il_taglio": true,
+        "perche_era_una_prova_finta": true,
+        "perche_i_byte": true,
+        "perche_i_centri": true,
+        "perche_i_centri_hanno_il_segno_meno": true,
+        "perche_i_due_numeri_non_sono_uguali": true,
+        "perche_i_numeri": true,
+        "perche_i_numeri_grezzi_restano_sani": true,
+        "perche_i_numeri_non_sono_scritti_qui": true,
+        "perche_i_punti_veri": true,
+        "perche_i_record": true,
+        "perche_i_valori_e_non_il_conto": true,
+        "perche_il_caso_accoppia_PRIMA_di_sostituire": true,
+        "perche_il_confronto_con_lo_stato": true,
+        "perche_il_cono_si_fa_per_primo": true,
+        "perche_il_cono_sta_a_duecento_millimetri": true,
+        "perche_il_conteggio_sta_in_DUE_posti": true,
+        "perche_il_controllo_serve_lo_stesso": true,
+        "perche_il_messaggio_deve_portare_i_numeri": true,
+        "perche_il_messaggio_elenca": true,
+        "perche_il_nome_si_controlla_prima": true,
+        "perche_il_numero_non_torna_esatto": true,
+        "perche_il_percorso_e_un_elenco_di_punti": true,
+        "perche_il_pezzo_ha_una_tasca": true,
+        "perche_il_piu_grande": true,
+        "perche_il_principale": true,
+        "perche_il_protocollo_si_rilegge": true,
+        "perche_il_ricalcolo": true,
+        "perche_il_seme_sta_al_centro": true,
+        "perche_il_volume_cresce": true,
+        "perche_inventarsi_la_misura_non_da_errore": true,
+        "perche_l_area_e_non_il_volume": true,
+        "perche_la_faccia_di_sotto_non_conta": true,
+        "perche_la_firma_non_era_stata_trovata": true,
+        "perche_la_frase": true,
+        "perche_la_gemella_e_la_scatola": true,
+        "perche_la_gemella_passa_a_mm_anche_se_e_il_predefinito": true,
+        "perche_la_gemella_passa_raggio_mm_anche_se_ha_un_predefinito": true,
+        "perche_la_larghezza_non_si_calcola": true,
+        "perche_la_y_e_l_invariante": true,
+        "perche_le_copie_si_contano_da_uno": true,
+        "perche_le_facce_e_non_la_lavorazione": true,
+        "perche_le_facce_si_scelgono_per_area": true,
+        "perche_lo_scarto": true,
+        "perche_lo_scostamento": true,
+        "perche_lo_spigolo_e_non_la_faccia": true,
+        "perche_lo_stesso_numero": true,
+        "perche_misurato_e_non_dedotto": true,
+        "perche_non_basta_che_fallisca": true,
+        "perche_non_basta_contarle": true,
+        "perche_non_basta_il_booleano": true,
+        "perche_non_basta_lasciar_fallire_solidworks": true,
+        "perche_non_c_e_il_volume": true,
+        "perche_non_ci_sono_i_byte": true,
+        "perche_non_ci_sono_le_posizioni": true,
+        "perche_non_e_centrato": true,
+        "perche_non_e_un_argomento_sbagliato": true,
+        "perche_non_finisce_con_le_croci_di_centro": true,
+        "perche_non_le_pareti_di_una_cava": true,
+        "perche_non_lo_indovino": true,
+        "perche_non_si_guarda_il_tratteggio": true,
+        "perche_non_si_segue_il_bordo": true,
+        "perche_non_uguale": true,
+        "perche_null_e_non_zero": true,
+        "perche_quella_faccia": true,
+        "perche_questo_caso_esiste": true,
+        "perche_questo_caso_vale_doppio": true,
+        "perche_questo_e_il_rifiuto_che_si_puo_scrivere": true,
+        "perche_qui_e_non_nel_catalogo": true,
+        "perche_serve_anche_l_ap203": true,
+        "perche_sfalsati": true,
+        "perche_si_cerca_il_nome_di_un_figlio": true,
+        "perche_si_chiede_la_NONA": true,
+        "perche_tre_soglie": true,
+        "perche_un_piano_obliquo_e_non_uno_dritto": true,
+        "perche_ventiquattro": true,
+        "questa_riga_diceva_5_ed_era_sbagliata": true,
+        "se_resta_verde_sulla_libreria_vecchia": true,
+        "shared_argument_with_the_twin": true,
+        "the_body_by_order": true,
+        "the_numbers": true,
+        "the_reply": true,
+        "un_operazione_senza_un_caso_non_e_provata": true,
+        "what_it_catches": true
+      }
+    },
+    "start": {
+      "read": [],
+      "documented": {
+        "nuova": true
+      },
+      "children": {},
+      "frozen_free": {}
+    },
+    "step": {
+      "read": [
+        "activate_before",
+        "argomenti",
+        "attese",
+        "deve_fallire",
+        "operazione",
+        "prima_nascondi",
+        "prima_seleziona",
+        "uid_dal_passo"
+      ],
+      "documented": {},
+      "children": {
+        "activate_before": "activate_before",
+        "attese": "expectation",
+        "deve_fallire": "must_fail"
+      },
+      "frozen_free": {
+        "com_era_prima": true,
+        "e_il_pezzo_si_dice_per_nome": true,
+        "e_volume_invariato_e_la_meta_che_conta": true,
+        "gli_spigoli_si_prendono_col_selettore": true,
+        "la_firma_si_scrive_a_mano_e_si_dice": true,
+        "la_gemella_differisce_per_il_percorso_e_non_e_quello_che_conta": true,
+        "lo_spigolo_per_dove_sta": true,
+        "perche_il_nome": true,
+        "perche_il_principale": true,
+        "perche_il_raggio_diverso": true,
+        "perche_la_tasca": true,
+        "perche_le_firme_finte": true,
+        "perche_x_0": true,
+        "quante_6_anche_qui": true,
+        "si_dicono_gli_spigoli_e_non_quanti": true,
+        "the_signature": true
+      }
+    },
+    "expectation": {
+      "read": [
+        "contiene",
+        "cosa",
+        "non_contiene",
+        "perche_questa_tolleranza",
+        "tolleranza",
+        "uguale"
+      ],
+      "documented": {
+        "perche": true
+      },
+      "children": {},
+      "frozen_free": {
+        "diceva_4_ed_era_quotatura_ripetuta": true,
+        "e_il_MENO_DUE_e_la_scoperta": true,
+        "e_il_campo_e_nuovo": true,
+        "e_questa_e_la_riga_che_conta": true,
+        "e_questo_dice_DOVE": true,
+        "e_questo_e_il_confronto": true,
+        "e_qui_mi_ero_sbagliato": true,
+        "il_confronto_lo_fa_il_codice": true,
+        "il_primo_numero_che_avevo_scritto_era_93643_36": true,
+        "il_sette_veniva_da_un_altro_pezzo": true,
+        "la_prima_stesura_cercava_vero_minuscolo": true,
+        "la_radice_e_non_la_parola_intera": true,
+        "misurato_come": true,
+        "misurato_qui_e_non_altrove": true,
+        "perche_1284": true,
+        "perche_24": true,
+        "perche_684": true,
+        "perche_DUE_e_non_uno": true,
+        "perche_conta": true,
+        "perche_dodici": true,
+        "perche_due": true,
+        "perche_esatto": true,
+        "perche_falso": true,
+        "perche_il_numero_non_e_quello_della_formula": true,
+        "perche_null": true,
+        "perche_quattro": true,
+        "perche_questo_true_NON_vuol_dire_montato": true,
+        "perche_solo_di_questo_foglio": true,
+        "perche_tre": true,
+        "perche_uno": true,
+        "perche_vero": true,
+        "perche_zero": true,
+        "se_un_giorno_diventasse_0": true,
+        "senza_estensione_e_non_per_pigrizia": true
+      }
+    },
+    "must_fail": {
+      "read": [
+        "gemella",
+        "il_messaggio_contiene",
+        "la_differenza_e_il_pezzo",
+        "nessuna_feature_in_piu",
+        "volume_invariato"
+      ],
+      "documented": {},
+      "children": {},
+      "frozen_free": {}
+    },
+    "activate_before": {
+      "read": [
+        "configuration",
+        "document"
+      ],
+      "documented": {},
+      "children": {},
+      "frozen_free": {}
+    },
+    "assembly": {
+      "read": [
+        "componenti",
+        "configurations",
+        "reopen_lightweight"
+      ],
+      "documented": {},
+      "children": {
+        "componenti": "component",
+        "configurations": "assembly_configuration"
+      },
+      "frozen_free": {}
+    },
+    "component": {
+      "read": [
+        "componenti",
+        "da_inserire",
+        "envelope",
+        "hidden",
+        "nome",
+        "passi",
+        "posizione_mm"
+      ],
+      "documented": {},
+      "children": {
+        "componenti": "component",
+        "passi": "component_step"
+      },
+      "frozen_free": {}
+    },
+    "component_step": {
+      "read": [
+        "argomenti",
+        "operazione"
+      ],
+      "documented": {},
+      "children": {},
+      "frozen_free": {}
+    },
+    "assembly_configuration": {
+      "read": [
+        "excluded_from_bom",
+        "name",
+        "suppressed"
+      ],
+      "documented": {},
+      "children": {},
+      "frozen_free": {}
+    },
+    "regression_case": {
+      "read": [
+        "costruisci",
+        "dopo",
+        "intento",
+        "modifica",
+        "perche_intento"
+      ],
+      "documented": {
+        "famiglia": true,
+        "nome": true,
+        "perche": true
+      },
+      "children": {
+        "costruisci": "regression_step",
+        "dopo": "regression_expectation"
+      },
+      "frozen_free": {
+        "perche_l_ancora": true,
+        "perche_non_e_la_lunghezza": true
+      }
+    },
+    "regression_step": {
+      "read": [
+        "argomenti",
+        "operazione"
+      ],
+      "documented": {},
+      "children": {},
+      "frozen_free": {}
+    },
+    "regression_expectation": {
+      "read": [
+        "come_prima",
+        "contiene",
+        "cosa",
+        "non_contiene",
+        "perche_questa_tolleranza",
+        "tolleranza",
+        "uguale"
+      ],
+      "documented": {
+        "perche": true
+      },
+      "children": {},
+      "frozen_free": {
+        "perche_questi_numeri": true
+      }
+    }
+  }
+}

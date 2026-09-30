@@ -78,8 +78,22 @@ namespace ProvaSaldatura
                 return;
             }
 
+            if (!LoadCaseKeys()) return;
+
+            // One regression case, one entry of the test ledger, with its
+            // outcome in English words (W3.1-bis.2, item 7).
             var esiti = new List<EsitoCaso>();
-            foreach (var f in file) esiti.Add(UnCaso(f));
+            foreach (var f in file)
+                using (var scope = Ledger.OpenCase(Path.GetFileNameWithoutExtension(f),
+                                                   Path.GetFileName(Path.GetDirectoryName(f)), "regression"))
+                {
+                    var e = UnCaso(f);
+                    scope.Outcome = scope.HasBenchErrors ? "bench_error"
+                                  : e.Come == Esito.Regge ? "holds"
+                                  : e.Come == Esito.SiStaccaELoDice ? "breaks_and_says_so"
+                                  : "breaks_silently";
+                    esiti.Add(e);
+                }
 
             int regge = esiti.Count(e => e.Come == Esito.Regge);
             int rumoroso = esiti.Count(e => e.Come == Esito.SiStaccaELoDice);
@@ -143,6 +157,14 @@ namespace ProvaSaldatura
             {
                 ErroreDiBanco(nome, "JSON illeggibile: " + Perche(ex));
                 fuori.Perche = "JSON illeggibile"; return fuori;
+            }
+
+            // An unknown key is a case written wrong (W3.1-bis.2, item 4).
+            var unknown = caso == null ? null : _caseKeys.Unknown(caso, _caseKeys.RegressionRoot);
+            if (unknown != null && unknown.Count > 0)
+            {
+                ErroreDiBanco(nome, CaseKeys.Message(unknown));
+                fuori.Perche = "unknown keys"; return fuori;
             }
 
             fuori.Intento = Testo(caso, "intento") ?? "?";
@@ -255,6 +277,7 @@ namespace ProvaSaldatura
                     var attesa = a as Dictionary<string, object>;
                     if (attesa == null) continue;
                     _attese++;
+                    Ledger.ExpectationAttempted();
                     string dettaglio;
                     bool ok;
                     var qui = doc;
@@ -281,6 +304,7 @@ namespace ProvaSaldatura
                         fuori.Perche = ex.Message; return fuori;
                     }
                     _atteseVerificate++;
+                    Ledger.ExpectationChecked();
                     if (!ok) rotte.Add(dettaglio);
                 }
 

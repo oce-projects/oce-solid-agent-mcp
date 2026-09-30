@@ -57,7 +57,7 @@ internal static class Programma
             if (doc == null) { Console.WriteLine("  NewDocument -> null"); return 4; }
 
             doc.ClearSelection2(true);
-            if (!doc.Extension.SelectByID2("Piano superiore", "PLANE", 0, 0, 0, false, 0, null, 0))
+            if (!SelectBasePlane(doc, 2))
             { Console.WriteLine("  non trovo «Piano superiore»"); return 4; }
             doc.SketchManager.InsertSketch(true);
             doc.SketchManager.CreateCornerRectangle(0, 0, 0, 0.100, 0.060, 0);
@@ -194,5 +194,31 @@ internal static class Programma
                 try { sw.CloseDoc(doc.GetTitle()); Dice("pezzo chiuso senza salvare"); } catch { }
             }
         }
+    }
+
+    // W3.1-bis.2 point 10: base planes by position, not by their localized name
+    // (a plane name is only valid in the SOLIDWORKS UI language of the machine
+    // that created the part). The first three RefPlane features of the
+    // tree, same rule as Controlli/Nervatura, Controlli/Riempimento and
+    // Controlli/TipoDellEstrusione. NOTE for whoever touches this next: since
+    // Z-C21.5 the bridge itself (Riscontro.Disegno/Riferimenti.cs, BasePlane)
+    // no longer trusts tree position either — it recognises a base plane by its
+    // canonical normal through the world origin, because a template with one
+    // extra plane ahead of the three defaults fools a position-based rule with
+    // no error. This probe still uses position because it is a throwaway part
+    // built by SOLIDWORKS' own default template and it cannot reference the
+    // library (single-file compile, see Controlli/costruisci-controlli.ps1);
+    // if the template ever grows a leading plane, this rule silently picks the
+    // wrong one.
+    private static bool SelectBasePlane(IModelDoc2 doc, int which)
+    {
+        int seen = 0;
+        var f = doc.FirstFeature() as IFeature;
+        while (f != null)
+        {
+            if (f.GetTypeName2() == "RefPlane" && ++seen == which) { doc.ClearSelection2(true); return f.Select2(false, 0); }
+            f = f.GetNextFeature() as IFeature;
+        }
+        return false;
     }
 }
