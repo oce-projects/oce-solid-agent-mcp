@@ -59,10 +59,13 @@ namespace Riscontro.Disegno
 
         /// <summary>La normale di un piano di riferimento, in coordinate del modello.</summary>
         /// <remarks>
-        /// I tre piani si scelgono per ordine nell'albero, non per nome (i nomi
-        /// sono localizzati): il primo e' il frontale, il secondo il superiore,
-        /// il terzo il destro. Le normali sono quelle dell'orientamento
-        /// standard di SolidWorks.
+        /// The canonical normal of each base plane, and since Z-C21.5 also the
+        /// rule that FINDS the plane (<see cref="BasePlane"/>): the plane of
+        /// that name is the reference plane with this normal, same sign,
+        /// through the world origin. Not the first, second or third RefPlane of
+        /// the tree, and not a name (the names are localized). Measured on the
+        /// template by the Z-C21.3 probe of C3-6: front (0, 0, 1), top
+        /// (0, 1, 0), right (1, 0, 0).
         /// </remarks>
         public static double[] NormaleDelPiano(string piano)
         {
@@ -72,6 +75,188 @@ namespace Riscontro.Disegno
                 case "destro": return new double[] { 1, 0, 0 };
                 default: return new double[] { 0, 0, 1 }; // frontale
             }
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // The three base planes, found by their geometry (scheme S19)
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The cosine above which a plane's normal is the canonical one. The
+        /// base planes read (0, 0, 1), (0, 1, 0) and (1, 0, 0) exactly (probe of
+        /// C3-6), so this only absorbs the representation error of doubles: a
+        /// plane turned by a tenth of a degree is not a base plane.
+        /// </summary>
+        private const double BasePlaneCosine = 0.999999;
+
+        /// <summary>
+        /// How far from the world origin, in metres, a base plane may pass. The
+        /// three base planes pass through it exactly (probe of C3-6: 0 mm), an
+        /// offset plane parallel to one of them does not (20 mm in the probe).
+        /// </summary>
+        private const double BasePlaneOffsetM = 1e-8;
+
+        /// <summary>
+        /// ONE OF THE THREE BASE PLANES, RECOGNISED BY ITS GEOMETRY (scheme S19:
+        /// findings L10-6, C3-6 and C3-6 extended; Z-C21.5).
+        ///
+        /// Until Z-C21.5 the bridge took «frontale / superiore / destro» as the
+        /// first / second / third RefPlane of the tree, in four places
+        /// (TrovaPianoBase, SelezionaPiano, the section of VistaDelPezzo and
+        /// specchia_componente). IPartDoc~IFirstFeature.html: «This method
+        /// returns features in the current order for the part, and this order
+        /// changes when the part is edited»; the same page rules out the names
+        /// too («you cannot assume that the first reference plane feature is
+        /// named Plane1»). A part template with one plane more before the three
+        /// default ones moved every sketch, offset plane, mirror and section of
+        /// the catalogue onto the wrong plane, with no error.
+        ///
+        /// THE RULE is in <see cref="BasePlaneIndex"/>: the plane whose normal
+        /// is the canonical one of that name (<see cref="NormaleDelPiano"/>),
+        /// with the same sign, and which passes through the world origin. The
+        /// normal and the origin come from IRefPlane.Transform
+        /// (<see cref="PlaneFrame"/>).
+        ///
+        /// Parts and assemblies alike (specchia_componente mirrors on the
+        /// assembly planes). The probe of C3-6 read the frames on a PART; on an
+        /// assembly the reading is not probed, and the bench cases of
+        /// specchia_componente (la_staffa_destra_e_la_sinistra,
+        /// the_mirrored_instance_turns_as_asked) mirror on the assembly's Right,
+        /// Top and Front planes: they are the check. An unknown name, or no
+        /// plane passing the rule, is null with <paramref name="reason"/> saying
+        /// which normal was looked for and how many planes were read.
+        /// </summary>
+        public static IFeature BasePlane(IModelDoc2 model, string name, out string reason)
+        {
+            reason = null;
+            if (Array.IndexOf(BasePlaneNames, name) < 0)
+            {
+                reason = "«" + name + "» is not a base plane: they are " + string.Join(", ", BasePlaneNames) + ".";
+                return null;
+            }
+            if (model == null) { reason = "There is no document."; return null; }
+
+            var features = new List<IFeature>();
+            var normals = new List<double[]>();
+            var origins = new List<double[]>();
+            int unread = 0;
+            try
+            {
+                var feature = model.FirstFeature() as IFeature;
+                while (feature != null)
+                {
+                    string type = "";
+                    try { type = feature.GetTypeName2(); } catch { }
+                    if (type == "RefPlane")
+                    {
+                        IRefPlane plane = null;
+                        try { plane = feature.GetSpecificFeature2() as IRefPlane; } catch { }
+                        double[] normal, origin;
+                        if (!PlaneFrame(plane, out normal, out origin)) unread++;
+                        features.Add(feature);
+                        normals.Add(normal);
+                        origins.Add(origin);
+                    }
+                    feature = feature.GetNextFeature() as IFeature;
+                }
+            }
+            catch (Exception ex)
+            {
+                reason = "The feature tree could not be read to the end (" + ex.Message + "), so the «" + name +
+                         "» plane was not looked for among all the planes.";
+                return null;
+            }
+
+            int index = BasePlaneIndex(normals, origins, name);
+            if (index >= 0) return features[index];
+            var wanted = NormaleDelPiano(name);
+            reason = "no reference plane of this document has the normal (" + string.Join(", ", wanted) +
+                     ") and passes through the origin, which is what the «" + name + "» plane is (" +
+                     features.Count + " reference planes read" +
+                     (unread > 0 ? ", " + unread + " of them without a readable transform" : "") + ").";
+            return null;
+        }
+
+        /// <summary>The names of the three base planes, in the catalogue's spelling.</summary>
+        public static readonly string[] BasePlaneNames = { "frontale", "superiore", "destro" };
+
+        /// <summary>
+        /// THE DECISION OF <see cref="BasePlane"/>, WITH NO INTEROP: which of the
+        /// reference planes, given in tree order by their unit normal and their
+        /// origin in metres (null = not read), is the base plane of that name.
+        /// -1 for an unknown name or when none qualifies. Pure, so that
+        /// Prove.Contratti checks it without SOLIDWORKS (Zc215IdentityContract).
+        ///
+        /// A plane qualifies with the canonical normal of the name, SAME SIGN,
+        /// and passing through the world origin. Measured by the Z-C21.3 probe of
+        /// C3-6 (28/9/2026, SOLIDWORKS 29.5.1) on the template: «Piano frontale»
+        /// normal (0, 0, 1), «Piano superiore» (0, 1, 0), «Piano destro»
+        /// (1, 0, 0), all three with origin (0, 0, 0); a plane offset 20 mm from
+        /// the front read (0, 0, 1) through (0, 0, 20), and a plane through three
+        /// points at y = 30 read (0, -1, 0): neither qualifies. The sign is
+        /// required because the side of an offset (OptionFlip), the direction of
+        /// an extrusion and the orientation of a sketch follow the normal: a
+        /// plane through the origin facing -Y would turn the work on the top
+        /// plane upside down.
+        ///
+        /// TWO PLANES QUALIFY only when a second plane coincides with a base
+        /// plane, normal and sign included. The first in the tree is taken: the
+        /// probe found every ReorderFeature that tried to put a plane or a sketch
+        /// before the base planes refused (its cases P1 and P2), so the first is
+        /// the template's own, and for a sketch, an offset, a mirror or a section
+        /// the two are the same plane. It is the only use of the tree order
+        /// left, and only between planes the geometry cannot tell apart.
+        /// </summary>
+        public static int BasePlaneIndex(IList<double[]> normals, IList<double[]> origins, string name)
+        {
+            if (normals == null || origins == null || Array.IndexOf(BasePlaneNames, name) < 0) return -1;
+            var wanted = NormaleDelPiano(name);
+            for (int i = 0; i < normals.Count && i < origins.Count; i++)
+            {
+                var normal = normals[i];
+                var origin = origins[i];
+                if (normal == null || origin == null || normal.Length < 3 || origin.Length < 3) continue;
+                if (Prodotto(normal, wanted) < BasePlaneCosine) continue;
+                if (Math.Abs(Prodotto(normal, origin)) > BasePlaneOffsetM) continue;
+                return i;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// The unit normal and the origin (metres) of a reference plane, in
+        /// world coordinates, from IRefPlane.Transform. False when unreadable.
+        ///
+        /// IRefPlane~Transform.html: «Gets the plane transform with respect to
+        /// the world»; its example (Get_the_Normal_and_Origin_of_a_Reference_
+        /// Plane_Using_Its_Transform_Example_VB.htm) takes the normal as
+        /// (0, 0, 1) and the origin as (0, 0, 0) through the transform, the
+        /// canonical position being the Front Plane. IMathTransform~ArrayData.html:
+        /// «The first 9 elements define the 3x3 rotation matrix. The next 3
+        /// elements define the translation component». So the NORMAL IS THE
+        /// THIRD ROW (indices 6, 7, 8), not the third column, measured on
+        /// 16/9/2026 on an oblique plane where the column gives a turned vector
+        /// (piano_per_tre_punti, OperazioniPiani); the ORIGIN is the translation
+        /// (indices 9, 10, 11), which is what the bench reads as
+        /// «ultimo_piano_mm» (piano_superiore_piu_100: [0, 100, 0]).
+        /// </summary>
+        public static bool PlaneFrame(IRefPlane plane, out double[] normal, out double[] origin)
+        {
+            normal = null;
+            origin = null;
+            if (plane == null) return false;
+            try
+            {
+                var transform = plane.Transform as IMathTransform;
+                var data = transform == null ? null : transform.ArrayData as double[];
+                if (data == null || data.Length < 12) return false;
+                double length = Math.Sqrt(data[6] * data[6] + data[7] * data[7] + data[8] * data[8]);
+                if (length < 1e-9) return false;
+                normal = new[] { data[6] / length, data[7] / length, data[8] / length };
+                origin = new[] { data[9], data[10], data[11] };
+                return true;
+            }
+            catch { return false; }
         }
 
         // ─────────────────────────────────────────────────────────────────

@@ -187,6 +187,7 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 | `tolleranza` | **assoluta**, in mm o mm³. Diversa da zero → serve `perche_questa_tolleranza`, altrimenti il caso e' **rotto** |
 | selettori | `@faccia(verso=…)`, `@faccia(piana=false)`, `@faccia(area~=907.92)`, `@faccia(verso=davanti,x~=150)` (x, y, z sono il punto che lo stato pubblica), `@spigolo(asse=Z,lungo~=100)`, `@spigolo(curvo=true,n=1)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)`, `@quota(angolare=true)` (l'unica quota in gradi, voce Z-C21.2) |
 | prima del passo | `prima_seleziona`: uid o selettori lasciati SELEZIONATI quando il passo parte, come li lascerebbe chi sta davanti a SOLIDWORKS (lo STL che esportava solo la faccia selezionata). `prima_nascondi`: corpi, o il corpo di una faccia, NASCOSTI prima del passo (il corpo nascosto che usciva dalla verifica delle sporgenze). Tutti e due si contano dopo averli fatti: una selezione non riuscita e' un errore di banco, non un verde (voce Z-C21.2) |
+| `activate_before` | `{ "document": path, "configuration": name }`: a configuration of ANOTHER open document made active before the step, read back (ShowConfiguration2 answers false on the one already active, so its answer decides nothing). It is how a drawing step finds its model on a configuration other than the one the views show (Z-C21.4, L16-2); a document that is not open, or a configuration that does not become the active one, is a bench error |
 | segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Banco\lavoro\`, ignorata da git); `{DATI}` i file d'ingresso versionati (`Banco\dati\`); `{SOLIDWORKS}` la cartella di installazione di SOLIDWORKS, per i file DI SERIE che non si versionano (i modelli di tabella; `SW_INSTALL_PATH` se non e' quella predefinita, voce Z-C21.2). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
 | `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella`, `la_differenza_e_il_pezzo` (vedi «Le coppie») |
 
@@ -213,6 +214,8 @@ operazioni dei casi**, salvata in `Banco\lavoro`, riaperta e inserita.
 | `nome` | entra nel nome del file: `<caso>_<nome>.sldprt` in `Banco\lavoro`. Il caso lo nomina con `{LAVORO}\<caso>_<nome>.sldprt` |
 | `posizione_mm` | dove va il **centro dell'ingombro**, non l'origine. Assente = nell'origine dell'assieme. **Non e' un accoppiamento**. `AddComponent5` posiziona il centro: un pezzo con l'origine su una faccia — qualunque cosa estrusa a una direzione sola — si ritrova l'origine spostata di meta' ingombro, e nello stato lo si rilegge come `origine_mm`. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a `[0, -2, 30]` |
 | `da_inserire` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `inserisci_componente`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
+| `configurations` | next to `componenti`: `[{ "name": …, "suppressed": [component names], "excluded_from_bom": [component names] }]`, made in this order after the components are in (Z-C21.4, L16-2 and L16-3). Each new configuration becomes the active one, is set while active (suppression, exclusion from the BOM of that configuration only) and every setting is read back; the last one made stays active. No operation of the catalogue suppresses a component or excludes it from the BOM in one configuration |
+| `componenti` inside a component | a SUB-ASSEMBLY instead of a part (Z-C21.5, L11-3 and L11-5): each child is built like a component (its own `nome`, `passi`, `posizione_mm` inside the sub-assembly) as `<case>_<name>_<child>.sldprt`, inserted into a new assembly, saved as `<case>_<name>.sldasm`, and that is inserted like a part. One level only. In the state a nested component is named with its whole path (`<case>_<name>-1/<case>_<name>_<child>-1`), so it sorts right after its sub-assembly |
 
 **`AddComponent5` vuole un documento gia' aperto**: la preparazione riapre
 **tutti** i componenti, anche quelli che non inserisce. Su un file chiuso
@@ -584,8 +587,10 @@ casi/frase/        2   la forma detta a parole, e quando tace
 casi/verifica/     7   com'e' venuto: solido, chiuso, sano; il corpo nascosto
                        che pende si vede (Z-C21.2); one sound body of two is
                        not the part (Z-C21.10, N61)
-casi/misura/      11   quanto pesa, in che scatola ci sta, quanto dista; the
-                       wall between two holes, measured as asked (Z-C21, M29)
+casi/misura/      12   quanto pesa, in che scatola ci sta, quanto dista; the
+                       wall between two holes, measured as asked (Z-C21, M29);
+                       a body named before the cut is not measured in place of
+                       another (Z-C21.5, S5)
 casi/corpi/       15   le booleane, il raccordo variabile, il filetto cosmetico;
                        l'unione di corpi che non si toccano rifiutata (Z-C18);
                        la booleana col corpo letto prima di un taglio
@@ -602,7 +607,7 @@ casi/proprieta/   12   i due cassetti, e il codice che va in distinta; the
                        material reaches every configuration (Z-C21, M10)
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-casi/assiemi/     12   inserire non e' accoppiare; un vincolo solo non basta;
+casi/assiemi/     16   inserire non e' accoppiare; un vincolo solo non basta;
                        due basi uguali e uno STEP: una forma per pezzo,
                        la massa per istanza (Z-C20);
                        il coperchio rifatto tiene i vincoli e li rompe;
@@ -615,8 +620,14 @@ casi/assiemi/     12   inserire non e' accoppiare; un vincolo solo non basta;
                        e slegato, su tre piani (GA11); da quali file dipende
                        l'assieme, e che ci sono (Z-B3); the interference array
                        is as long as the count (Z-C21.10, N34); the mirrored
-                       instance turns as asked (Z-C21, N26)
-casi/tavola/      40   il primo caso che arriva in TAVOLA (voce GT0);
+                       instance turns as asked (Z-C21, N26); the turned pin is
+                       mated by the directions of the assembly (Z-C21.5, M1);
+                       a component inside a sub-assembly is refused by
+                       fissa_componente and sostituisci_componente, and the
+                       state says it is nested (Z-C21.5, L11-3, L11-5); the
+                       component comes in with the configuration asked, and the
+                       replaced one says its configuration (Z-C21.4, L11-1, M18)
+casi/tavola/      41   il primo caso che arriva in TAVOLA (voce GT0);
                        un Ø8 passante e un Ø8 cieco, due richiami; la borchia
                        non e' un foro; l'albero smussato senza le gambe dello
                        smusso (revisione del 27/9, Z-C20);
@@ -665,7 +676,8 @@ casi/tavola/      40   il primo caso che arriva in TAVOLA (voce GT0);
                        first (Z-C21.10, N43); the turned diameter held by
                        silhouettes is not an orphan (Z-C21, N3); the position
                        frame reads its Ø back, and the flatness frame reads
-                       none (Z-C21.8, M38)
+                       none (Z-C21.8, M38); the BOM follows the configuration
+                       of the view, not the active one (Z-C21.4, L16-2, L16-3)
 casi/saldature/   13   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
@@ -693,7 +705,7 @@ casi/estrusioni/  10   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        (voce E18); a plane name that is not one of the three is
                        refused, never the front plane (Z-C21.10, N33); the
                        sketch of the L locked for real (Z-C21, M5)
-casi/lamiera/     12   la L si sviluppa lunga quanto il conto a mano; data al
+casi/lamiera/     13   la L si sviluppa lunga quanto il conto a mano; data al
                        contrario, i punti diventano le facce esterne; lo
                        sviluppo senza file rifiutato; il tratto piu' corto
                        delle pieghe rifiutato; la flangia a spigolo da 25
@@ -702,8 +714,10 @@ casi/lamiera/     12   la L si sviluppa lunga quanto il conto a mano; data al
                        l'orlo aperto che torna col conto, il chiuso misurato,
                        e l'aperto senza gioco rifiutato; la piega da schizzo
                        che alza meta' lamiera (ingombro dal conto, sviluppo
-                       invariato) e la piega a 180 rifiutata (voce GP18)
-casi/quote/        6   la variabile che non scavalca lo smusso, rifiutata e
+                       invariato) e la piega a 180 rifiutata (voce GP18); the
+                       axis and the planes of a sheet are the ones the calls
+                       made, not the flat pattern (Z-C21.5, S7)
+casi/quote/        7   la variabile che non scavalca lo smusso, rifiutata e
                        rimessa com'era (Z-C20); la piastra si quota da sola
                        con DimXpert, coi valori
                        giusti; con due riferimenti rifiuta (voce Z-H3); la
@@ -711,7 +725,10 @@ casi/quote/        6   la variabile che non scavalca lo smusso, rifiutata e
                        ISO 286 e ±0,05, IT14 rifiutato (voce Z-F2); le quote del
                        modello arrivano in tavola, e senza viste rifiuta (Z-C1-bis);
                        la parete ha un nome: variabile globale e quota legata,
-                       che seguono il cambio (Z-F1)
+                       che seguono il cambio (Z-F1); every part dimension
+                       reader (modifica_quota, tolleranza_quota, lega_quota)
+                       with the fourth configuration active, the before and
+                       after of S1 in parts (Z-C21.13)
 casi/regressione/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
 casi/ritrovare/    3   lo spigolo nominato con l'uid letto PRIMA di due fori si
                        ritrova per firma (stessa lunghezza, stesso punto) e il

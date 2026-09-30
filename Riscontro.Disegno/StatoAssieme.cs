@@ -95,6 +95,38 @@ namespace Riscontro.Disegno
             return voci;
         }
 
+        /// <summary>
+        /// THE NAMES OF THE TOP-LEVEL COMPONENTS (findings L11-3 and L11-5,
+        /// lot Z-C21.5), from IAssemblyDoc.GetComponents(true); null when the
+        /// list cannot be read, which is «I do not know», not «none».
+        ///
+        /// It is the one rule for «top level» in the library, for the same
+        /// reason as <see cref="ComponentiInOrdine"/>: the state publishes
+        /// «top_level» from it, and fissa_componente and sostituisci_componente
+        /// refuse a nested component with it. Two copies of the rule could
+        /// disagree, and a component the state calls top-level would be
+        /// refused, or the other way round.
+        ///
+        /// Name2 is unique inside an assembly, and for a component inside a
+        /// sub-assembly it carries the whole path («subAssem1-2/Part1-1»,
+        /// IComponent2~Name2.html, Remarks), so a nested component never
+        /// shares its name with a top-level one.
+        /// </summary>
+        internal static HashSet<string> TopLevelNames(object[] topLevel)
+        {
+            if (topLevel == null) return null;
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var o in topLevel)
+            {
+                var component = o as IComponent2;
+                if (component == null) continue;
+                string name = null;
+                try { name = component.Name2; } catch { }
+                if (!string.IsNullOrEmpty(name)) names.Add(name);
+            }
+            return names;
+        }
+
         /// <summary>Componenti, conteggi e configurazione di un assieme.</summary>
         private static void DescriviAssieme(IAssemblyDoc assieme, Dictionary<string, object> dati)
         {
@@ -120,10 +152,14 @@ namespace Riscontro.Disegno
                 return;
             }
 
+            // The top-level names serve twice: the count, and «top_level» on
+            // each component below (L11-3, Z-C21.5).
+            HashSet<string> topLevelNames = null;
             try
             {
                 var primi = assieme.GetComponents(true) as object[];
                 if (primi != null) dati["componenti_primo_livello"] = primi.Length;
+                topLevelNames = TopLevelNames(primi);
             }
             catch { }
 
@@ -141,6 +177,7 @@ namespace Riscontro.Disegno
             var elenco = new List<Dictionary<string, object>>();
             int soppressi = 0, leggeri = 0, fissi = 0;
             int contati = 0, appoggiati = 0;
+            int nested = 0;
             bool letturaGradiFallita = false;
             var liberi = new List<string>();
             for (int i = 0; i < voci.Count; i++)
@@ -151,6 +188,16 @@ namespace Riscontro.Disegno
                     ["uid"] = "C" + (i + 1),
                     ["nome"] = voci[i].Key,
                 };
+
+                // TOP LEVEL OR INSIDE A SUB-ASSEMBLY (L11-3, Z-C21.5). The list
+                // above holds every level, and some answers only hold for the
+                // top one: IsFixed «only applies to the top level of components»
+                // (IComponent2~IsFixed.html), and ReplaceComponents2 wants «a
+                // top-level component». Null when GetComponents(true) did not
+                // answer: «I do not know», not «no».
+                bool? topLevel = topLevelNames == null ? (bool?)null : topLevelNames.Contains(voci[i].Key);
+                voce["top_level"] = topLevel;
+                if (topLevel == false) nested++;
 
                 try
                 {
@@ -193,13 +240,23 @@ namespace Riscontro.Disegno
                 // fisso non si muove perche' qualcuno l'ha inchiodato, non
                 // perche' sia accoppiato. Confondere le due cose fa credere
                 // vincolato un assieme che non lo e'.
-                try
+                //
+                // NOT ON A NESTED COMPONENT (L11-3): the guide says IsFixed does
+                // not apply there («To get the actual state of sub-assemblies,
+                // you must get the IModelDoc2 object of the subassembly»), so
+                // its answer from the root is not published: the fixed flag is
+                // null, «not known from here», and the component is not counted.
+                if (topLevel == false) voce["fisso"] = null;
+                else
                 {
-                    bool f = c.IsFixed();
-                    voce["fisso"] = f;
-                    if (f) fissi++;
+                    try
+                    {
+                        bool f = c.IsFixed();
+                        voce["fisso"] = f;
+                        if (f) fissi++;
+                    }
+                    catch { }
                 }
-                catch { }
 
                 // ── DOVE STA L'ORIGINE, IN MM (parte di GA2) ────────────
                 //
@@ -324,7 +381,12 @@ namespace Riscontro.Disegno
                               Convert.ToString(voce["fisso"]).Equals(
                                   "True", StringComparison.OrdinalIgnoreCase);
                 int suoiAccoppiamenti = suoiAcc;
-                if (!eFisso)
+                // A NESTED COMPONENT IS NOT JUDGED HERE (L11-3): whether it is
+                // fixed is not known from the root (null above), and it moves
+                // with its sub-assembly, which is judged as one top-level
+                // component. Counting it as «not fixed» would call the second
+                // part of every rigid sub-assembly loose.
+                if (!eFisso && topLevel != false)
                 {
                     contati++;
                     if (suoiAccoppiamenti == 0)
@@ -351,6 +413,10 @@ namespace Riscontro.Disegno
             dati["componenti_soppressi"] = soppressi;
             dati["componenti_leggeri"] = leggeri;
             dati["componenti_fissi"] = fissi;
+            // How many components sit inside a sub-assembly (L11-3): they are
+            // left out of the fixed count above and of the count below.
+            // Written only when the top-level list was read, zero included.
+            if (topLevelNames != null) dati["nested_components"] = nested;
 
             // ── «QUESTO ASSIEME E' VINCOLATO?» IN UNA RIGA (voce GA5) ────
             //
@@ -379,6 +445,10 @@ namespace Riscontro.Disegno
                       (liberi.Count == 0 ? "" : " (" + string.Join(", ", liberi) + ")") +
                       ". Sono appoggiati li': si spostano se qualcuno li trascina, e " +
                       "l'assieme sembra montato senza esserlo.";
+                if (nested > 0)
+                    dati["giudizio_vincoli"] += " The " + nested + " component(s) inside sub-assemblies are " +
+                                                "not in this count: each moves with its sub-assembly, counted " +
+                                                "as one top-level component.";
             }
 
             // LA COSA CHE NON SI SA, DETTA. Non e' un dettaglio tecnico: chi

@@ -147,17 +147,30 @@ namespace Riscontro.Disegno
                     x = contorno[2] + distacco + diLato * passo;
                     y = (zero.Item2.CentroFoglio[1] + f.Item2.CentroFoglio[1]) / 2;
                 }
+                bool bornWithoutObject;
                 var q = QuotaFraDue(modello, disegno, vista, selMgr,
                                     e => (zero.Item2.Spigolo as IEntity).Select4(false, e) &&
-                                         (f.Item2.Spigolo as IEntity).Select4(true, e), x, y, orizzontale);
-                if (q == null) { falliti.Add(cosa + " (la quota non e' nata)"); continue; }
-                if (!RilettaGiusta(modello, q, attesaMm, false, cosa, falliti)) continue;
+                                         (f.Item2.Spigolo as IEntity).Select4(true, e), x, y, orizzontale,
+                                    out bornWithoutObject);
+                if (q == null && !bornWithoutObject) { falliti.Add(cosa + " (la quota non e' nata)"); continue; }
+                // BORN WITHOUT ITS OBJECT (finding N80, the site Z-C21.8/9 left
+                // out): the dimension is on the sheet and its value cannot be read
+                // back. It keeps its place (the next length goes one step
+                // further out), its row with the value unknown, and its key in
+                // `gia`: another view of the sheet must not dimension it again.
+                if (q != null && !RilettaGiusta(modello, q, attesaMm, false, cosa, falliti)) continue;
                 if (orizzontale) sotto++; else diLato++;
                 var descritta = DescriviQuota(q, f.Item2.Indice);
                 descritta["orientamento"] = "lunghezza del tondo";
                 descritta["posizione_mm"] = DovEFinita(q);
-                nate.Add(descritta);
-                esito.Lunghezze.Add(attesaMm);
+                if (q != null)
+                {
+                    nate.Add(descritta);
+                    esito.Lunghezze.Add(attesaMm);
+                }
+                else RecordBornWithoutObject(nate, descritta, falliti,
+                    "turned length " + attesaMm.ToString("0.##", Ci) + " (the dimension was born but SOLIDWORKS did not " +
+                    "hand it back: its value was not read back, check it on the sheet)");
                 gia.Add(chiave);
             }
 
@@ -201,15 +214,27 @@ namespace Riscontro.Disegno
                 var mezzo = SulFoglio(new[] { m[3] + tm * m[6], m[4] + tm * m[7], m[5] + tm * m[8] }, mu, tr);
                 if (mezzo == null) { falliti.Add(cosa + " (non so dove sta sul foglio)"); continue; }
                 var a = lette.Gruppi[scelta][0]; var b = lette.Gruppi[scelta][1];
+                bool bornWithoutObject;
                 var q = QuotaFraDue(modello, disegno, vista, selMgr, e => a.Select2(false, e) && b.Select2(true, e),
-                                    mezzo[0], mezzo[1], quotaDiametroOrizzontale);
-                if (q == null) { falliti.Add(cosa + " (la quota non e' nata)"); continue; }
-                if (!RilettaGiusta(modello, q, attesaMm, true, cosa, falliti)) continue;
+                                    mezzo[0], mezzo[1], quotaDiametroOrizzontale, out bornWithoutObject);
+                if (q == null && !bornWithoutObject) { falliti.Add(cosa + " (la quota non e' nata)"); continue; }
+                // BORN WITHOUT ITS OBJECT (N80), as the lengths above: the row
+                // with the value unknown, not in `tondo_diametri_mm` (which lists
+                // the diameters read back with their Ø), and the keys of this
+                // cylinder in `gia`, so that it is neither dimensioned again nor
+                // reported as not reached.
+                if (q != null && !RilettaGiusta(modello, q, attesaMm, true, cosa, falliti)) continue;
                 var descritta = DescriviQuota(q, -1);
                 descritta["orientamento"] = "diametro del tondo";
                 descritta["posizione_mm"] = DovEFinita(q);
-                nate.Add(descritta);
-                esito.Diametri.Add(attesaMm);
+                if (q != null)
+                {
+                    nate.Add(descritta);
+                    esito.Diametri.Add(attesaMm);
+                }
+                else RecordBornWithoutObject(nate, descritta, falliti,
+                    "turned diameter Ø" + attesaMm.ToString("0.##", Ci) + " (the dimension was born but SOLIDWORKS did not " +
+                    "hand it back: its value and its Ø symbol were not read back, check it on the sheet)");
                 gia.Add(chiave);
                 gia.Add(delCilindro);
             }
@@ -239,8 +264,26 @@ namespace Riscontro.Disegno
                 if (ia < 0) break;
                 var a = lette[ia]; var b = lette[ib];
                 if (a == null || b == null) continue;
+                bool bornWithoutObject;
                 var q = QuotaFraDue(modello, disegno, vista, selMgr, e => a.Select2(false, e) && b.Select2(true, e),
-                                    cx, cy, quotaDiametroOrizzontale);
+                                    cx, cy, quotaDiametroOrizzontale, out bornWithoutObject);
+                if (bornWithoutObject)
+                {
+                    // BORN WITHOUT ITS OBJECT (N80), and here it cannot be judged:
+                    // without the object there is no value to match to a
+                    // cylinder, no Ø to look for, and nothing to remove
+                    // (TogliQuota selects the annotation of the object). Until
+                    // library 0.145.0 this was «not born» and the next pair was
+                    // tried: the dimension stayed on the sheet unreported, and a
+                    // later pair of the same cylinder could dimension it a second
+                    // time. Now it is said, and no further pair is tried.
+                    RecordBornWithoutObject(nate, DescriviQuota(null, -1), falliti,
+                        "a dimension between two silhouette edges without a face (it was born but SOLIDWORKS did not " +
+                        "hand it back: it could not be read, matched to a cylinder or removed, and the remaining pairs " +
+                        "were not tried, so as not to dimension the same cylinder twice; it may be one of the diameters " +
+                        "reported as not reached. Check it on the sheet)");
+                    break;
+                }
                 if (q == null) continue;
                 double letto = double.NaN; string prefisso = "";
                 try { letto = Math.Round(ApiHelpers.ReadDimensionInConfiguration(q.GetDimension2(0) as IDimension, "") * 1000.0, 3); } catch { }
@@ -409,10 +452,23 @@ namespace Riscontro.Disegno
         /// <summary>
         /// Seleziona (con la vista nel SelectData) e fa nascere una quota ORIZZONTALE
         /// o VERTICALE, dichiarata; null se non nasce.
+        ///
+        /// «Not born» is the count of dimensions, asked FIRST (finding N80 of
+        /// Z-C21.8, at the one site that lot left out). When the count went up
+        /// and the call returned null, the dimension is on the sheet without its
+        /// object: the answer is null with <paramref name="bornWithoutObject"/>
+        /// true, and each caller describes it instead of taking it for «not
+        /// born». Until library 0.145.0 this read «q == null || not grown» and
+        /// answered null for both, so the three callers reported as missing a
+        /// dimension that was on the sheet and left its key out of `gia`: another
+        /// view, or another pair of silhouette edges, could then dimension the
+        /// same thing a second time.
         /// </summary>
         private IDisplayDimension QuotaFraDue(IModelDoc2 modello, IDrawingDoc disegno, IView vista, ISelectionMgr selMgr,
-                                              Func<SelectData, bool> seleziona, double x, double y, bool orizzontale)
+                                              Func<SelectData, bool> seleziona, double x, double y, bool orizzontale,
+                                              out bool bornWithoutObject)
         {
+            bornWithoutObject = false;
             int prima = ContaQuote(disegno);
             IDisplayDimension q = null;
             try
@@ -430,7 +486,8 @@ namespace Riscontro.Disegno
             }
             catch { }
             try { modello.ClearSelection2(true); } catch { }
-            if (q == null || NonCresciuta(disegno, prima, q)) return null;
+            if (NonCresciuta(disegno, prima, q)) return null;
+            bornWithoutObject = q == null;
             return q;
         }
 

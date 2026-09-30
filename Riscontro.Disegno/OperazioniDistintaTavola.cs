@@ -106,6 +106,19 @@ namespace Riscontro.Disegno
 
             double x = Unita.M(Num(a, "x_mm", 250));
             double y = Unita.M(Num(a, "y_mm", 200));
+            // THE CONFIGURATION IS STILL THE CALLER'S, OR EMPTY (Z-C21.4, finding
+            // M32, open). IView~InsertWeldmentTable.html: «Configuration Name of
+            // the "As Welded" configuration for the weldment cut-list table».
+            // The view's own configuration (IView.ReferencedConfiguration) is NOT
+            // passed in its place: the view shows the configuration that was
+            // active when it was made, and a part of the company template is born
+            // with the machined one active, not the as-welded one (Z-C21.3 probe
+            // of L8-5); what InsertWeldmentTable does with it was never measured, while
+            // the empty name makes the table of the bench case
+            // la_distinta_di_taglio_in_tavola. Which configuration SOLIDWORKS
+            // takes for the empty name is not measured either. A probe decides
+            // it first; the count it is compared with (CorpiNelleCartelleDiDistinta)
+            // is read in the part's active configuration.
             string configurazione = Str(a, "configurazione", "");
             string template = Str(a, "template", "");
 
@@ -480,6 +493,16 @@ namespace Riscontro.Disegno
         /// <summary>
         /// Quanti corpi stanno nelle cartelle di distinta di taglio del pezzo.
         /// `-1` quando non si e' potuto leggere — che non e' zero.
+        ///
+        /// ONE WELDMENT ONLY (Z-C21.4, finding M32, open). The walk is
+        /// FirstFeature / GetNextFeature, the top of the tree: the cut-list
+        /// folders of a sub-weldment are not descended into, so on a part with
+        /// sub-weldments their bodies are not counted and the comparison of
+        /// distinta_taglio_in_tavola can report a mismatch that is this count's.
+        /// Descending (GetFirstSubFeature of the sub-weldment folders) waits for
+        /// a probe on a part with a sub-weldment: whether those folders also
+        /// show up in the top-level walk, and would be counted twice, is not
+        /// known, and no bench case can build a sub-weldment yet.
         /// </summary>
         private static int CorpiNelleCartelleDiDistinta(IModelDoc2 pezzo)
         {

@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 146399,
-  "strings": 54802,
-  "markdown": 33967,
-  "json_values": 55208,
+  "comments": 145806,
+  "strings": 54719,
+  "markdown": 33942,
+  "json_values": 55199,
   "identifiers": 4788,
   "json_keys": 443,
-  "protocol": 2165,
+  "protocol": 2164,
   "paths": 640,
   "transition": 0
  },
@@ -1333,7 +1333,7 @@
    "strings": 16
   },
   "Prove/LEGGIMI.md": {
-   "markdown": 1616
+   "markdown": 1591
   },
   "Prove/LanguageGateTests.cs": {
    "comments": 1,
@@ -1385,8 +1385,8 @@
    "strings": 219
   },
   "Prove/ProveIlDocumento.cs": {
-   "comments": 261,
-   "strings": 49
+   "comments": 209,
+   "strings": 35
   },
   "Prove/ProveIlDocumentoRichiesto.cs": {
    "comments": 201,
@@ -1464,9 +1464,6 @@
   "Riscontro.Disegno/ApiHelpers.Drawing.cs": {
    "comments": 1
   },
-  "Riscontro.Disegno/ApiHelpers.cs": {
-   "comments": 3
-  },
   "Riscontro.Disegno/Catalogo/Esporta.cs": {
    "comments": 155
   },
@@ -1479,15 +1476,15 @@
   },
   "Riscontro.Disegno/Catalogo/Operazioni.cs": {
    "comments": 869,
-   "strings": 17422
+   "strings": 17413
   },
   "Riscontro.Disegno/ErroriFeature.cs": {
    "comments": 164,
    "strings": 200
   },
   "Riscontro.Disegno/EsecutorePiano.cs": {
-   "comments": 1790,
-   "strings": 136
+   "comments": 1736,
+   "strings": 132
   },
   "Riscontro.Disegno/FontePiano.cs": {
    "comments": 254
@@ -1556,8 +1553,8 @@
    "strings": 37
   },
   "Riscontro.Disegno/OperazioniDistintaBase.cs": {
-   "comments": 229,
-   "strings": 301
+   "comments": 225,
+   "strings": 293
   },
   "Riscontro.Disegno/OperazioniDistintaTavola.cs": {
    "comments": 656,
@@ -1684,12 +1681,12 @@
    "strings": 289
   },
   "Riscontro.Disegno/OperazioniSostituisci.cs": {
-   "comments": 646,
-   "strings": 180
+   "comments": 596,
+   "strings": 169
   },
   "Riscontro.Disegno/OperazioniSpecchiaComponente.cs": {
    "comments": 196,
-   "strings": 220
+   "strings": 217
   },
   "Riscontro.Disegno/OperazioniSporgenze.cs": {
    "comments": 625,
@@ -1700,8 +1697,8 @@
    "strings": 158
   },
   "Riscontro.Disegno/OperazioniSw.cs": {
-   "comments": 15276,
-   "strings": 3325
+   "comments": 14926,
+   "strings": 3291
   },
   "Riscontro.Disegno/OperazioniTabellaFori.cs": {
    "comments": 341,
@@ -1736,7 +1733,7 @@
    "strings": 9
   },
   "Riscontro.Disegno/Riferimenti.cs": {
-   "comments": 1209,
+   "comments": 1181,
    "strings": 247
   },
   "Riscontro.Disegno/Riscontro.Disegno.csproj": {
@@ -1776,7 +1773,7 @@
    "comments": 167
   },
   "Riscontro.Disegno/VistaDelPezzo.cs": {
-   "comments": 1560,
+   "comments": 1508,
    "strings": 57
   },
   "Strumenti/Attrezzi.cs": {
@@ -1798,7 +1795,7 @@
    "json_values": 7
   },
   "Strumenti/catalogo.json": {
-   "json_values": 18477
+   "json_values": 18468
   },
   "build.ps1": {
    "comments": 517,
@@ -2174,7 +2171,6 @@
    "DescriviTavola",
    "Descrizione",
    "Destra",
-   "Destro",
    "Dettaglio",
    "DettaglioFeature",
    "DettaglioInTavola",
@@ -2400,7 +2396,6 @@
    "FraseDelModale",
    "FraseDelloSpostamento",
    "Frasi",
-   "Frontale",
    "Fuori",
    "GUSCIO",
    "Gemella",
@@ -2812,6 +2807,7 @@
    "OperazionePredefinita",
    "OperazioneSconosciuta",
    "Operazioni",
+   "OperazioniAncora",
    "OperazioniAssieme",
    "OperazioniCorpi",
    "OperazioniDistintaTavola",
@@ -2824,6 +2820,7 @@
    "OperazioniMisuraAssieme",
    "OperazioniNervatura",
    "OperazioniPercorso",
+   "OperazioniPiani",
    "OperazioniPostoSulFoglio",
    "OperazioniQuoteNelPdf",
    "OperazioniQuoteTavola",
@@ -3374,7 +3371,6 @@
    "SulPianoPunto",
    "SulPonteVero",
    "Superficie",
-   "Superiore",
    "Sviluppo",
    "SviluppoAlSuoPosto",
    "SviluppoDxf",
@@ -3485,7 +3481,6 @@
    "Uguali",
    "UidCheNonEsistono",
    "UidDelloStato",
-   "UltimaFeature",
    "UltimaModificaNellAlberoDiLavoro",
    "UltimaModificaSenzaResoconto",
    "Ultimo",
@@ -4979,6 +4974,7 @@
    "la_sezione_taglia_il_pezzo",
    "la_staffa_destra_e_la_sinistra",
    "la_tavola_e_un_secondo_documento",
+   "la_tavola_esce_in_pdf",
    "la_tavola_quota_fori_e_smusso",
    "la_tavola_si_quota",
    "lamatura_mm",
@@ -5022,6 +5018,7 @@
    "lavoroVero",
    "le_croci_di_centro_sui_fori",
    "le_quote_arrivano_dal_modello",
+   "le_quote_arrivano_nel_pdf",
    "lega_quota",
    "legato",
    "leggeri",
@@ -5541,6 +5538,7 @@
    "pianoT",
    "piano_frontale_meno_250",
    "piano_per_tre_punti",
+   "piano_superiore_piu_100",
    "piastra",
    "piastra_forata",
    "piatta",
@@ -6305,7 +6303,6 @@
    "tipoBom",
    "tipoChiesto",
    "tipoColonna",
-   "tipoCreato",
    "tipoDettaglio",
    "tipoDoc",
    "tipoFeature",
@@ -7796,7 +7793,6 @@
    "davanti_adesso",
    "decimali_tolleranza",
    "del_modello_mm",
-   "dell",
    "della",
    "delle",
    "denominazione",

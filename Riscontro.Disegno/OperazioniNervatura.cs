@@ -420,15 +420,22 @@ namespace Riscontro.Disegno
             }
 
             int pianiPrima = ContaPiani(modello);
+            var namesBefore = FeatureNamesNow(modello);
+            IFeature returned = null;
             try
             {
-                ApiHelpers.InsertOffsetPlane(modello, distanzaMm);
+                returned = ApiHelpers.InsertOffsetPlane(modello, distanzaMm) as IFeature;
             }
             catch (Exception ex) { motivo = "Il piano della nervatura non e' nato: " + ex.Message; return null; }
             finally { try { modello.ClearSelection2(true); } catch { } }
 
+            // THE PLANE IS WHAT InsertRefPlane RETURNED, or else the ONE RefPlane
+            // born since the call (FeatureBorn, scheme S7, Z-C21.5). Until then
+            // it was the last feature of the tree, checked to be a RefPlane: on a
+            // sheet-metal part that is the flat pattern, and a plane that was
+            // born was refused and left in the tree.
             int pianiDopo = ContaPiani(modello);
-            var ultima = UltimaFeature(modello);
+            IFeature ultima = returned ?? FeatureBorn(modello, namesBefore, "RefPlane", out _);
             string tipo = "";
             try { tipo = ultima?.GetTypeName2() ?? ""; } catch { }
             if (pianiPrima < 0 || pianiDopo != pianiPrima + 1 || tipo != "RefPlane")

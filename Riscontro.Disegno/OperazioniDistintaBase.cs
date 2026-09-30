@@ -62,21 +62,60 @@ namespace Riscontro.Disegno
                     return Fallito("«tipo» e' uno fra «primo_livello» (predefinito), «solo_parti», «indentata», non «" + tipoChiesto + "».");
             }
 
-            // ── L'ASSIEME, LETTO PRIMA ──────────────────────────────────────
-            var attese = ComponentiPerVoce(assieme, tipoBom);
+            // ── THE ASSEMBLY, READ FIRST, IN THE CONFIGURATION OF THE VIEW ───
+            //
+            // Z-C21.4, finding L16-2. The table is inserted for the view's own
+            // configuration (IView.ReferencedConfiguration, passed to
+            // InsertBomTable4 below), while IAssemblyDoc~GetComponents.html
+            // «Gets all of the components in the active configuration of this
+            // assembly». Up to library 0.145.0 the expected items came from the
+            // ACTIVE configuration, so a table on another configuration was
+            // compared with another assembly: a false refusal when the two
+            // suppress different components, a false «they match» when the
+            // differences cancel out. ComponentsInViewConfiguration reads them
+            // in the view's configuration and puts the active one back.
+            string configurazione = "";
+            try { configurazione = vista.ReferencedConfiguration ?? ""; } catch { }
+            if (string.IsNullOrWhiteSpace(configurazione))
+                return Fallito(
+                    "I could not read which configuration of the assembly the view «" + (vista.GetName2() ?? "") +
+                    "» shows. The table is made for that configuration, and without its name the assembly could " +
+                    "be read in another one. No table was inserted.");
+            string activeAfterReading, readProblem;
+            var attese = ComponentsInViewConfiguration(assieme, tipoBom, configurazione,
+                                                      out activeAfterReading, out readProblem);
+            if (readProblem != null) return Fallito(readProblem);
             if (attese == null) return Fallito("Non riesco a leggere i componenti dell'assieme: senza, non posso confrontare la distinta.");
-            if (attese.Count == 0) return Fallito("L'assieme non ha componenti: la distinta sarebbe vuota.");
+            if (attese.Count == 0)
+                return Fallito(
+                    "In the configuration «" + configurazione + "» of the view the assembly has no component for the " +
+                    "BOM (every one is suppressed or excluded from the BOM): the table would be empty.");
 
             string modelloTabella = Str(a, "template", null);
             if (string.IsNullOrWhiteSpace(modelloTabella))
                 modelloTabella = PrimoModelloDiTabella((int)swUserPreferenceStringValue_e.swFileLocationsBOMTemplates, ".sldbomtbt");
-            string configurazione = "";
-            try { configurazione = vista.ReferencedConfiguration ?? ""; } catch { }
 
             int tabellePrima = TabelleDellaTavolaTutte(disegno);
             IBomTableAnnotation bom = null;
             try
             {
+                // THE CONFIGURATION IS NAMED FOR EVERY TYPE, THE TOP-LEVEL ONE
+                // INCLUDED, AND THAT IS STILL OPEN (Z-C21.4, finding L16-4).
+                // IView~InsertBomTable4.html: «If BomType is
+                // swBomType_TopLevelOnly, then do not specify Configuration.
+                // Instead, use IBomFeature::GetConfigurations ... and
+                // IBomFeature::SetConfigurations», and «If the BOM table is a
+                // parts-only or indented-style BOM and the Configuration
+                // specified is invalid, then the BOM is not created». Measured so
+                // far only with the active configuration named (the Z-C21.3 probe
+                // of envelopes and BOM children, 28/9/2026: ten tables, top-level and
+                // parts-only, on «Default», the active configuration: every one
+                // was created, none came back null). A
+                // top-level table on a configuration that is NOT the active one
+                // is step 5 of the bench case the_bom_follows_the_view_configuration:
+                // if it is made for another configuration, the comparison below
+                // refuses it, and this branch moves to the empty name plus
+                // SetConfigurations.
                 bom = vista.InsertBomTable4(false, 0.02, 0.28, (int)swBOMConfigurationAnchorType_e.swBOMConfigurationAnchor_TopLeft,
                                             tipoBom, configurazione, modelloTabella ?? "", false,
                                             (int)swNumberingType_e.swNumberingType_Detailed, false) as IBomTableAnnotation;
@@ -128,6 +167,11 @@ namespace Riscontro.Disegno
                 ["componenti_distinti_nell_assieme"] = attese.Count,
                 ["istanze_nell_assieme"] = istanze,
                 ["tabelle_prima"] = NumeroOppureNull(tabellePrima),
+                // L16-2: the configuration the table and the expected items were
+                // read in (the view's), and the active configuration of the
+                // assembly read again after it was put back.
+                ["configurazione"] = configurazione,
+                ["assembly_active_configuration"] = activeAfterReading,
             };
 
             string storto = null;
@@ -201,8 +245,17 @@ namespace Riscontro.Disegno
         /// «it returns only the immediate (one level) children», so it is walked
         /// level by level); a top-level table reads below the first level only
         /// under a promoting sub-assembly.
+        ///
+        /// IN WHICH CONFIGURATION (Z-C21.4, L16-2 and L16-3): GetComponents,
+        /// IsSuppressed and ReferencedConfiguration answer for the ACTIVE
+        /// configuration, so the caller activates the view's configuration first
+        /// (<see cref="ComponentsInViewConfiguration"/>). The exclusion from the
+        /// BOM is asked by name: <paramref name="topConfiguration"/> for a
+        /// top-level component, and for a child the configuration its parent
+        /// references, which is the configuration of the sub-assembly that holds
+        /// it (<see cref="ExcludedFromBomIn"/>).
         /// </summary>
-        private static Dictionary<string, int> ComponentiPerVoce(IAssemblyDoc assieme, int bomType)
+        private static Dictionary<string, int> ComponentiPerVoce(IAssemblyDoc assieme, int bomType, string topConfiguration)
         {
             try
             {
@@ -213,6 +266,9 @@ namespace Riscontro.Disegno
                 var isAssembly = new List<bool>();
                 var childDisplay = new List<int>();
                 var skipped = new List<bool>();
+                // The configuration each component references, one per index,
+                // so that a child can name the configuration of its parent.
+                var referencedConfigurations = new List<string>();
                 foreach (var o in (assieme.GetComponents(true) as object[]) ?? new object[0])
                 {
                     var top = o as IComponent2;
@@ -225,8 +281,14 @@ namespace Riscontro.Disegno
                     IComponent2 c = comps[i];
                     bool soppresso = false, escluso = false;
                     try { soppresso = c.IsSuppressed(); } catch { }
-                    try { escluso = c.ExcludeFromBOM; } catch { }
                     string configuration = c.ReferencedConfiguration ?? "";
+                    referencedConfigurations.Add(configuration);
+                    // A suppressed component is out of the BOM whatever its flag
+                    // says; the flag is read only on the others. An exclusion
+                    // that cannot be read is not taken as «included»: it throws,
+                    // and the whole reading answers null (the caller refuses).
+                    if (!soppresso)
+                        escluso = ExcludedFromBomIn(c, parents[i] < 0 ? topConfiguration : referencedConfigurations[parents[i]]);
                     IModelDoc2 doc = null;
                     try { doc = c.GetModelDoc2() as IModelDoc2; } catch { }   // null when suppressed or lightweight: a part, as before
                     bool assembly = doc is IAssemblyDoc;
@@ -260,6 +322,153 @@ namespace Riscontro.Disegno
                                         childDisplay.ToArray(), skipped.ToArray(), bomType);
             }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// THE EXPECTED BOM ITEMS, READ IN THE CONFIGURATION THE TABLE SHOWS
+        /// (Z-C21.4, finding L16-2). When the assembly's active configuration is
+        /// already the view's, it is read as it is. Otherwise the view's
+        /// configuration is activated with ShowConfiguration2, read, and the one
+        /// that was active is activated again; both moves are judged by READING
+        /// the active configuration back, never by the answer of
+        /// ShowConfiguration2 (it answers false when the configuration is already
+        /// the active one: the bench case of attiva_configurazione, 16/9/2026).
+        ///
+        /// Activating and not walking IConfiguration.GetRootComponent3 of the
+        /// view's configuration: IConfiguration~GetRootComponent3.html says «An
+        /// IComponent2 object is based on the currently active configuration; one
+        /// assembly configuration might suppress the component, while another
+        /// might display it», and the 2021 guide shows no getter for the
+        /// configuration a component references in a configuration that is not
+        /// the active one (IComponent2.ReferencedConfiguration takes no
+        /// configuration name). What the user sees
+        /// moves for the time of the reading only, and comes back before the
+        /// table is inserted.
+        ///
+        /// <paramref name="problem"/> is the refusal when the assembly could not
+        /// be read in that configuration or could not be put back (then
+        /// <paramref name="activeAfter"/> says where it stayed); null otherwise.
+        /// </summary>
+        private static Dictionary<string, int> ComponentsInViewConfiguration(
+            IAssemblyDoc assieme, int bomType, string viewConfiguration, out string activeAfter, out string problem)
+        {
+            problem = null;
+            var doc = assieme as IModelDoc2;
+            string activeBefore = ActiveConfigurationName(doc);
+            activeAfter = activeBefore;
+            if (string.IsNullOrEmpty(activeBefore))
+            {
+                problem = "I could not read which configuration of the assembly is active, so I cannot tell " +
+                          "whether it must be activated to read it in «" + viewConfiguration + "», the " +
+                          "configuration of the view. No table was inserted.";
+                return null;
+            }
+            if (string.Equals(activeBefore, viewConfiguration, StringComparison.Ordinal))
+                return ComponentiPerVoce(assieme, bomType, viewConfiguration);
+
+            Dictionary<string, int> items = null;
+            string activated = null;
+            // The answers of ShowConfiguration2 are kept for the messages only:
+            // the decision is the active configuration read back.
+            string activateAnswer = "not called", restoreAnswer = "not needed";
+            try
+            {
+                try { activateAnswer = doc.ShowConfiguration2(viewConfiguration) ? "true" : "false"; }
+                catch (Exception ex) { activateAnswer = "an exception: " + ex.Message; }
+                activated = ActiveConfigurationName(doc);
+                if (string.Equals(activated, viewConfiguration, StringComparison.Ordinal))
+                    items = ComponentiPerVoce(assieme, bomType, viewConfiguration);
+            }
+            finally
+            {
+                if (!string.Equals(ActiveConfigurationName(doc), activeBefore, StringComparison.Ordinal))
+                {
+                    try { restoreAnswer = doc.ShowConfiguration2(activeBefore) ? "true" : "false"; }
+                    catch (Exception ex) { restoreAnswer = "an exception: " + ex.Message; }
+                }
+                activeAfter = ActiveConfigurationName(doc);
+            }
+            if (!string.Equals(activeAfter, activeBefore, StringComparison.Ordinal))
+            {
+                problem = "To read the assembly in «" + viewConfiguration + "», the configuration of the view, I " +
+                          "activated it, and I could not put the assembly back: it was on «" + activeBefore +
+                          "» and reading it again it is on " +
+                          (string.IsNullOrEmpty(activeAfter) ? "a configuration I cannot read" : "«" + activeAfter + "»") +
+                          " (ShowConfiguration2 answered " + restoreAnswer + "). Activate «" + activeBefore +
+                          "» again in the assembly. No table was inserted.";
+                return null;
+            }
+            if (!string.Equals(activated, viewConfiguration, StringComparison.Ordinal))
+            {
+                problem = "The view shows the configuration «" + viewConfiguration + "» of the assembly, and I could " +
+                          "not activate it to read its components (ShowConfiguration2 answered " + activateAnswer +
+                          ", and reading it back the active one was " +
+                          (string.IsNullOrEmpty(activated) ? "unreadable" : "«" + activated + "»") + "). Comparing " +
+                          "the table with «" + activeBefore + "» would compare two different assemblies. No table " +
+                          "was inserted; the assembly is on «" + activeAfter + "», as before.";
+                return null;
+            }
+            return items;
+        }
+
+        /// <summary>The name of the active configuration of a document, or null when it cannot be read.</summary>
+        private static string ActiveConfigurationName(IModelDoc2 doc)
+        {
+            try
+            {
+                var manager = doc == null ? null : doc.ConfigurationManager;
+                IConfiguration active = manager == null ? null : manager.ActiveConfiguration;
+                return active == null ? null : active.Name;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Whether <paramref name="component"/> is excluded from the BOM in
+        /// <paramref name="ownerConfiguration"/>, a configuration of the assembly
+        /// that holds it (Z-C21.4, finding L16-3).
+        ///
+        /// OBSOLETE-MIGRATED: IComponent2~ExcludeFromBOM.html, «Obsolete.
+        /// Superseded by IComponent2::GetExcludeFromBOM2 and
+        /// IComponent2::SetExcludeFromBOM2»; the old property takes no
+        /// configuration. IComponent2~GetExcludeFromBOM2.html: «Config_names
+        /// Array of the names of configurations in whose BOMs this component is
+        /// excluded or included», «Return Value Array of values indicating
+        /// whether this component is: excluded (true) from - or - included (false)
+        /// in the BOMs of the specified configurations». The name is passed
+        /// (swSpecifyConfiguration, pattern S8: the name is always passed). When
+        /// that form does not answer one Boolean, swThisConfiguration with no
+        /// names is asked, the form the Z-C21.3 probe probe_is_suppressed2
+        /// measured equal to the obsolete getter for the sibling
+        /// IFeature.IsSuppressed2. Neither form was measured on GetExcludeFromBOM2
+        /// itself: the bench case the_bom_follows_the_view_configuration reads it
+        /// on a component excluded in a configuration that is not the active one.
+        /// Throws when neither form answers one Boolean: an exclusion that cannot
+        /// be read must not become «included».
+        /// </summary>
+        private static bool ExcludedFromBomIn(IComponent2 component, string ownerConfiguration)
+        {
+            bool? answer = null;
+            if (!string.IsNullOrEmpty(ownerConfiguration))
+                answer = OneBoolean(component.GetExcludeFromBOM2(
+                    (int)swInConfigurationOpts_e.swSpecifyConfiguration, new[] { ownerConfiguration }));
+            if (!answer.HasValue)
+                answer = OneBoolean(component.GetExcludeFromBOM2(
+                    (int)swInConfigurationOpts_e.swThisConfiguration, null));
+            if (!answer.HasValue)
+                throw new InvalidOperationException(
+                    "IComponent2.GetExcludeFromBOM2 did not answer one Boolean for «" + ownerConfiguration + "»");
+            return (bool)answer;
+        }
+
+        /// <summary>The single Boolean of an answer that is an array of one, or null.</summary>
+        private static bool? OneBoolean(object raw)
+        {
+            var flags = raw as bool[];
+            if (flags != null) return flags.Length == 1 ? flags[0] : (bool?)null;
+            var boxed = raw as object[];
+            if (boxed != null && boxed.Length == 1 && boxed[0] is bool one) return one;
+            return null;
         }
 
         /// <summary>

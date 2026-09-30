@@ -274,10 +274,19 @@ namespace Riscontro.Disegno
                 // primo cerchio, sul piano scelto
                 if (!SelezionaPiano(modello, piano))
                     return Fallito("Non ho trovato il piano «" + piano + "» nell'albero.");
+                // EACH OF THE THREE FEATURES IS THE ONE BORN SINCE ITS OWN CALL
+                // (Z-C21.5, finding N13, scheme S7): the first sketch, the plane
+                // (what InsertRefPlane returned, else the RefPlane born) and the
+                // second sketch. Until then the plane was the last feature of the
+                // tree (the flat pattern on a sheet-metal part, finding M9) and
+                // each sketch the last sketch of the tree, with nothing to tell a
+                // second sketch that was never born from the first one.
+                var beforeFirstSketch = FeatureNamesNow(modello);
                 schizzi.InsertSketch(true);
                 schizzi.CreateCircleByRadius(Unita.M(sfalsa1), 0, 0, Unita.M(d1 / 2));
                 schizzi.InsertSketch(false);
-                s1 = UltimoSchizzoFeature(modello);
+                s1 = FeatureBorn(modello, beforeFirstSketch, "ProfileFeature", out _);
+                modello.ClearSelection2(true);
 
                 // A plane at the distance asked, and the second circle on it.
                 // Z-C21.7 (L2-4): InsertRefPlane with the base plane selected
@@ -288,7 +297,8 @@ namespace Riscontro.Disegno
                 var basePlane = TrovaPianoBase(modello, piano);
                 if (basePlane == null || !ApiHelpers.SelectOffsetPlaneBase(modello, basePlane))
                     return Fallito("Non ho trovato il piano «" + piano + "» nell'albero.");
-                ApiHelpers.InsertOffsetPlane(modello, distanza);
+                var beforePlane = FeatureNamesNow(modello);
+                var planeReturned = ApiHelpers.InsertOffsetPlane(modello, distanza) as IFeature;
                 int pianiOra = ContaPiani(modello);
                 if (pianiPrima < 0 || pianiOra < 0)
                     return Fallito(
@@ -298,14 +308,16 @@ namespace Riscontro.Disegno
                     return Fallito(
                         "Il piano del secondo cerchio non e' stato creato, e nell'albero non " +
                         "ne e' comparso nessuno.");
-                var pianoNuovo = UltimaFeature(modello);
+                IFeature pianoNuovo = planeReturned ?? FeatureBorn(modello, beforePlane, "RefPlane", out _);
+                var beforeSecondSketch = FeatureNamesNow(modello);
                 modello.ClearSelection2(true);
                 if (pianoNuovo == null || !pianoNuovo.Select2(false, 0))
                     return Fallito("Non sono riuscito a selezionare il piano appena creato.");
                 schizzi.InsertSketch(true);
                 schizzi.CreateCircleByRadius(Unita.M(sfalsa2), 0, 0, Unita.M(d2 / 2));
                 schizzi.InsertSketch(false);
-                s2 = UltimoSchizzoFeature(modello);
+                s2 = FeatureBorn(modello, beforeSecondSketch, "ProfileFeature", out _);
+                modello.ClearSelection2(true);
             }
             catch (Exception ex)
             {

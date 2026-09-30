@@ -125,15 +125,37 @@ namespace Riscontro.Disegno
             int conDifetti = 0, conFessure = 0;
             var motivi = new List<string>();
 
-            for (int i = 0; i < grezzi.Length; i++)
+            // WHICH BODIES (Z-C21.5, scheme S5). Every body of the part, each
+            // labelled by its place in the list (the L12-3 note above is about
+            // those labels); or the ONE body «corpo_uid» names, resolved through
+            // the document state and its signature (BodyAskedFor: CorpiDaUid and
+            // FirmaCombacia), never as the body in that place of a GetBodies2
+            // made now. A uid is an identity, and a cut that renumbers the
+            // bodies must not move the check onto another body.
+            var labels = new List<string>();
+            var bodies = new List<IBody2>();
+            if (!string.IsNullOrWhiteSpace(soloQuesto))
             {
-                var corpo = grezzi[i] as IBody2;
-                if (corpo == null) continue;
+                IBody2 asked = BodyAskedFor(stato, a, soloQuesto.Trim(), out string refusal);
+                if (asked == null) return Fallito(refusal);
+                labels.Add(soloQuesto.Trim().ToUpperInvariant());
+                bodies.Add(asked);
+            }
+            else
+            {
+                for (int i = 0; i < grezzi.Length; i++)
+                {
+                    IBody2 inList = grezzi[i] as IBody2;
+                    if (inList == null) continue;
+                    labels.Add("C" + (i + 1));
+                    bodies.Add(inList);
+                }
+            }
 
-                string uid = "C" + (i + 1);
-                if (!string.IsNullOrEmpty(soloQuesto) &&
-                    !string.Equals(uid, soloQuesto, StringComparison.OrdinalIgnoreCase))
-                    continue;
+            for (int k = 0; k < bodies.Count; k++)
+            {
+                IBody2 corpo = bodies[k];
+                string uid = labels[k];
 
                 int tipo = Intero(() => corpo.GetType(), -1);
                 string comeSiChiama = NomeDelTipoDiCorpo(tipo);

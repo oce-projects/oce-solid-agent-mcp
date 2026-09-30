@@ -1,0 +1,56 @@
+{
+  "nome": "the_axis_and_the_planes_of_a_sheet",
+  "famiglia": "lamiera",
+  "perche": "Z-C21.5, scheme S7 (findings L8-6, M9 and N13). On a sheet-metal part the flat pattern stays at the bottom of the feature tree and SOLIDWORKS inserts every new feature before it. Until library 0.145.0 four operations took the feature they had just made as the LAST feature of the tree: crea_asse (IFeatureByPositionReverse(0), refused when it was not a RefAxis), crea_piano when the returned object was not a feature, piano_per_tre_punti (the feature it reported), loft_fra_due_cerchi (the plane of the second circle), and the cleaning of an orphan sketch. On a sheet the last feature is the flat pattern. Since Z-C21.5 each takes the object the call returned, or the ONE feature of the right type whose name was not in the tree before the call (OperazioniSw.FeatureBorn). IModelDoc2~IFeatureByPositionReverse.html: «SOLIDWORKS does not guarantee the name or positioning of default features».",
+  "il_difetto_che_questo_caso_prende": "Step 2: an axis made on the bend face of a sheet. The old library found the flat pattern at the bottom of the tree, refused the axis it had just made, naming the flat pattern as the last feature of the tree, and left the axis in the part. Steps 3 to 5 are the other operations of the scheme on the same sheet, with the numbers of their plain-part cases: an offset plane where it belongs, a plane through three points with the normal read back, and a loft whose second circle lies on the plane just made, not on the flat pattern.",
+  "se_resta_verde_sulla_libreria_vecchia": "Step 2 is the line that must be red on 0.145.0. If it is green there, IFeatureByPositionReverse(0) did not answer the flat pattern on this sheet, and the finding L8-6 was measured on another kind of sheet: say so in the TODO before trusting the rest of the scheme.",
+  "i_numeri": "The L of la_L_si_sviluppa (50 + 30, depth 40, thickness 2, radius 2), moved to x = 200 so that the loft at the origin does not touch it: the same 80.712 x 40 x 2 = 6456.96 mm3. The inner bend face is the only cylindrical face of radius 2 (the outer one is 4). The offset plane of step 3 is the one of piano_superiore_piu_100, at [0, 100, 0]. The loft of step 5 is the one of il_loft_non_e_un_cono (D40 to D20 over 50 mm on the Front plane, 36650.614 mm3 measured), a second body far from the sheet: 6456.96 + 36650.614 = 43107.574 mm3 in two bodies.",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "flangia_base",
+      "argomenti": { "piano": "frontale", "punti": [[200, 30], [200, 0], [250, 0]],
+                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+      "attese": [
+        { "cosa": "corpi", "uguale": 1 },
+        { "cosa": "volume_mm3", "uguale": 6456.96, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "the neutral fibre times depth and thickness, as in la_L_si_sviluppa (measured 6457.0)" } ] },
+
+    { "operazione": "crea_asse",
+      "argomenti": { "faccia_uid": "@faccia(piana=false,raggio_mm~=2)" },
+      "attese": [
+        { "cosa": "assi_creati", "uguale": 1,
+          "perche": "THE LINE THAT IS RED ON 0.145.0: the old library refused this step, because the last feature of the tree was the flat pattern and not the axis it had made" },
+        { "cosa": "volume_mm3", "uguale": 6456.96, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "the same sheet: a reference axis is no material" } ] },
+
+    { "operazione": "crea_piano",
+      "argomenti": { "piano": "superiore", "distanza_mm": 100 },
+      "attese": [
+        { "cosa": "ultimo_piano_mm", "uguale": [0, 100, 0], "tolleranza": 0.1,
+          "perche_questa_tolleranza": "the origin of the plane is read from a transform in metres, as in piano_superiore_piu_100",
+          "perche": "the Top plane found by its normal through the origin (scheme S19), and the plane born from it where it belongs, on a part whose tree ends with the flat pattern" } ] },
+
+    { "operazione": "piano_per_tre_punti",
+      "argomenti": { "punto1_mm": [0, 0, 20], "punto2_mm": [100, 0, 20],
+                     "punto3_mm": [0, 100, 20] },
+      "attese": [
+        { "cosa": "misure.normale_riletta", "uguale": [0, 0, 1], "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "a plane parallel to the Front plane: exact numbers, the tolerance is for the comparison of doubles",
+          "perche": "the normal is read from the plane the call returned; the feature reported is that plane or the one RefPlane born, no longer the flat pattern" },
+        { "cosa": "misure.scarto_gradi", "uguale": 0, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "the angle between the hand computation and the plane: under a hundredth of a degree they are the same plane" } ] },
+
+    { "operazione": "loft_fra_due_cerchi",
+      "argomenti": { "piano": "frontale", "diametro1_mm": 40, "diametro2_mm": 20,
+                     "distanza_mm": 50 },
+      "attese": [
+        { "cosa": "misure.materiale_aggiunto_mm3", "uguale": 36650.614, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "the loft of il_loft_non_e_un_cono, the same half cubic millimetre of tessellation noise",
+          "perche": "the second circle is on the plane the call made (what InsertRefPlane returned, or the RefPlane born), and each circle is the sketch born after its own call: the old library took the last feature of the tree as that plane, which here is the flat pattern" },
+        { "cosa": "misure.piani_aggiunti", "uguale": 1 },
+        { "cosa": "corpi", "uguale": 2,
+          "perche": "the sheet and the loft, which does not touch it" },
+        { "cosa": "volume_mm3", "uguale": 43107.574, "tolleranza": 1,
+          "perche_questa_tolleranza": "the sheet (6456.96) plus the loft (36650.614): one cubic millimetre covers the noise of both" } ] }
+  ]
+}

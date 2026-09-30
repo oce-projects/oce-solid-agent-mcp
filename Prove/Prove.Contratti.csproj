@@ -95,6 +95,8 @@
     <Compile Include="Zc2189WeldAssemblyContract.cs" />
     <Compile Include="Zc2189DrawingContract.cs" />
     <Compile Include="Zc2189MachiningContract.cs" />
+    <Compile Include="Zc215IdentityContract.cs" />
+    <Compile Include="Zc2113PartDimensionContract.cs" />
     <Compile Include="LanguageGateTests.cs" />
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.
          Non una copia: una copia diverge, e il giorno che diverge la suite

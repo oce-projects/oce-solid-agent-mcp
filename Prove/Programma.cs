@@ -406,6 +406,8 @@ namespace Prove.Contratti
             Zc2189WeldAssemblyContract.RunAll();
             Zc2189DrawingContract.RunAll();
             Zc2189MachiningContract.RunAll();
+            Zc215IdentityContract.RunAll();
+            Zc2113PartDimensionContract.RunAll();
             LanguageGateTests.All();
             IlLeggimiDiceQuantiSono();
 

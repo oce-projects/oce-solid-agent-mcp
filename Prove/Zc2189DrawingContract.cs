@@ -28,7 +28,9 @@ namespace Prove.Contratti
     ///          gives null, not the texts read before the break.
     ///   N80    quota_in_tavola. «Not born» is the count of dimensions, asked
     ///          first; a dimension born without its object is described, not
-    ///          answered with a second annotation.
+    ///          answered with a second annotation. The site the lot left out,
+    ///          QuotaFraDue of the turned view (OperazioniTondoTavola.cs), was
+    ///          done after library 0.145.0 and has its own check, red on 0.145.0.
     ///
     /// None of these paths can be driven from a bench case: SOLIDWORKS would
     /// have to answer false, null or throw on demand. So the pure rules are
@@ -282,6 +284,34 @@ namespace Prove.Contratti
                       objectFirst == 0 && described >= 5,
                       objectFirst + " sites asking the object first, RecordBornWithoutObject " + described +
                       " (definition and four calls expected)");
+            }
+
+            // N80 AT THE SITE THE LOT LEFT OUT: QuotaFraDue of the turned view
+            // (OperazioniTondoTavola.cs), whose three callers (lengths, diameters,
+            // pairs of silhouette edges without a face) took a dimension born
+            // without its object for «not born». Red on library 0.145.0: the
+            // guard was still «q == null || NonCresciuta(» and the callers had no
+            // second outcome to tell.
+            string turned = Read(dir, "OperazioniTondoTavola.cs");
+            if (turned != null)
+            {
+                int objectFirst = Count(turned, "== null || NonCresciuta(");
+                // The line right before the outcome is told is the count's own
+                // «not born».
+                int told = turned.IndexOf("bornWithoutObject = q == null;", StringComparison.Ordinal);
+                int lineStart = told < 0 ? -1 : turned.LastIndexOf('\n', told);
+                int previousStart = lineStart <= 0 ? -1 : turned.LastIndexOf('\n', lineStart - 1);
+                string previous = previousStart < 0 ? "" : turned.Substring(previousStart + 1, lineStart - previousStart - 1).Trim();
+                bool countFirst = told >= 0 && previous.StartsWith("if (NonCresciuta(", StringComparison.Ordinal) &&
+                                  previous.EndsWith(")) return null;", StringComparison.Ordinal);
+                int asked = Count(turned, "out bornWithoutObject);");
+                int notBornOnly = Count(turned, "if (q == null && !bornWithoutObject)");
+                int described = Count(turned, "RecordBornWithoutObject(");
+                Segna("N80 in the turned view: QuotaFraDue asks the count first, and its three callers describe a dimension born without its object",
+                      objectFirst == 0 && countFirst && asked == 3 && notBornOnly == 2 && described == 3,
+                      objectFirst + " sites asking the object first, count first and outcome told " + countFirst +
+                      ", callers reading the outcome " + asked + " (3 expected), «not born» only when not grown " +
+                      notBornOnly + " (2 expected), RecordBornWithoutObject " + described + " (3 expected)");
             }
         }
 

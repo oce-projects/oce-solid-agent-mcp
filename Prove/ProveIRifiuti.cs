@@ -207,8 +207,12 @@ namespace Prove.Contratti
         /// earlier lots had already written, and +7 is this branch: the refusals
         /// that now say «ask again», «remove it», «try again», «give in
         /// «asse_uid»», «write one of the four», «undo the step».
+        /// **232, Z-C21.4 and Z-C21.5 (branch z-c21-4-5): +2.** New refusals of
+        /// this branch that say what to do, such as the configuration check of
+        /// «inserisci_componente» («insert it without a configuration name, or
+        /// open the file again and retry»).
         /// </summary>
-        private const int Pavimento = 230;
+        private const int Pavimento = 232;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

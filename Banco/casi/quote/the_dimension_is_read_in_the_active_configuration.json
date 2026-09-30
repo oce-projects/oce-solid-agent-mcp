@@ -1,0 +1,63 @@
+{
+  "nome": "the_dimension_is_read_in_the_active_configuration",
+  "famiglia": "quote",
+  "perche": "TODO entry Z-C21.13, S1 in parts only. Every part dimension the bridge reads (modifica_quota before and after, tolleranza_quota, lega_quota before and after, the dimensions of the part state) goes through ApiHelpers.ReadDimension, which up to library 0.145.0 was the obsolete IDimension.SystemValue and now is GetSystemValue3(swThisConfiguration, null)[0]. The probe probe_dimension_value3 (28/9/2026) measured the two equal on a part, linear and angular, with either of two configurations active; the form with every configuration answers one value per configuration in the order of GetConfigurationNames, and its first value is the FIRST configuration, not the active one. The first migration of Z-C21.7 was benched on the drawing and dimension families only and withdrawn for the drawings; no case of those two families creates a configuration, so every part reading was made with the first configuration of the company template active.",
+  "il_difetto_che_questo_caso_prende": "This is the before and after of the migration: green on library 0.145.0 and green on the new one, with the same numbers. The active configuration is the fourth of four, so a reader that answered null, threw, or took a value that is not the active one's would show here as a missing or wrong value in the answers below (the value before a change, the nominal value of the tolerance, the value before the equation, the angle before the change), in millimetres and in degrees. modifica_quota writes every configuration, so the configurations never differ in this case: the probe, not the bench, is what shows that the value read is the active configuration's.",
+  "i_numeri": "Plate 100 x 60 x 20 = 120000 mm3; the 5 x 45 chamfer on a 100 edge takes 5 x 5 / 2 x 100 = 1250 (case l_angolo_dello_smusso_si_cambia_in_gradi): 118750. Depth 25: 150000 - 1250 = 148750. Depth 12 through the variable: 72000 - 1250 = 70750. Four configuration names after step 4: the two of the company template plus «Right» and «Left».",
+  "parte": { "nuova": true },
+  "passi": [
+    { "operazione": "estrudi_rettangolo",
+      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 120000 } ] },
+
+    { "operazione": "smusso_spigoli",
+      "argomenti": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 5, "angolo_gradi": 45 },
+      "attese": [ { "cosa": "volume_mm3", "uguale": 118750 } ] },
+
+    { "operazione": "crea_configurazione",
+      "argomenti": { "nome": "Right" },
+      "attese": [ { "cosa": "stato.configurazione", "uguale": "Right" } ] },
+
+    { "operazione": "crea_configurazione",
+      "argomenti": { "nome": "Left" },
+      "attese": [
+        { "cosa": "stato.configurazione", "uguale": "Left",
+          "perche": "the new configuration is activated by SOLIDWORKS: every reading below is made with the fourth configuration active, not the first" },
+        { "cosa": "quanti_nomi_di_configurazione", "uguale": 4 } ] },
+
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 25 },
+      "attese": [
+        { "cosa": "misure.prima_mm", "uguale": 20, "perche": "read before the change, through ReadDimension" },
+        { "cosa": "misure.adesso_mm", "uguale": 25, "perche": "read back after the rebuild, through ReadDimension" },
+        { "cosa": "volume_mm3", "uguale": 148750, "perche": "the independent measure: 100 x 60 x 25 less the chamfer" },
+        { "cosa": "stato.configurazione", "uguale": "Left", "perche": "reading a dimension does not move the active configuration" } ] },
+
+    { "operazione": "tolleranza_quota",
+      "argomenti": { "quota": "D1@Estrusione-Estrusione1", "tipo": "simmetrica", "valore_mm": 0.05 },
+      "attese": [
+        { "cosa": "misure.nominale_mm", "uguale": 25, "perche": "the nominal value is read through ReadDimension" },
+        { "cosa": "misure.limite_inferiore_mm", "uguale": 24.95, "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "four decimals, as in la_tolleranza_sulla_quota_del_modello" },
+        { "cosa": "misure.limite_superiore_mm", "uguale": 25.05, "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "four decimals, as in la_tolleranza_sulla_quota_del_modello" } ] },
+
+    { "operazione": "variabile_globale",
+      "argomenti": { "nome": "wall", "valore_mm": 12 },
+      "attese": [ { "cosa": "misure.valore_mm", "uguale": 12 } ] },
+
+    { "operazione": "lega_quota",
+      "argomenti": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "espressione": "\"wall\"" },
+      "attese": [
+        { "cosa": "misure.valore_prima_mm", "uguale": 25, "perche": "read before the equation, through ReadDimension" },
+        { "cosa": "misure.valore_dopo_mm", "uguale": 12, "perche": "read after the equation drives it, through ReadDimension" },
+        { "cosa": "volume_mm3", "uguale": 70750, "perche": "100 x 60 x 12 less the chamfer" } ] },
+
+    { "operazione": "modifica_quota",
+      "argomenti": { "quota": "@quota(angolare=true)", "valore_mm": 30 },
+      "attese": [
+        { "cosa": "misure.before_deg", "uguale": 45, "perche": "the angle of the chamfer, read in radians through ReadDimension and given in degrees" },
+        { "cosa": "misure.after_deg", "uguale": 30 },
+        { "cosa": "stato.configurazione", "uguale": "Left" } ] }
+  ]
+}

@@ -38,6 +38,15 @@ namespace Riscontro.Disegno
             string uid = Str(a, "componente", null);
             var c = PerUid(componenti, uid);
             if (c == null) return Fallito(NonTrovato(uid, "componente", componenti));
+            // TOP LEVEL ONLY (finding L11-3, lot Z-C21.5). Up to library 0.145.0
+            // a nested component was read with IsFixed from the root, which the
+            // guide says does not apply to it, and could come back «it was
+            // already free: nothing to change».
+            string notTopLevel = NotTopLevel(assieme, c, uid, componenti,
+                "fixing or freeing works on top-level components only: IsFixed «only applies to the top " +
+                "level of components» (IComponent2~IsFixed.html), and from the root «all of the " +
+                "components in the subassembly are allowed to move»");
+            if (notTopLevel != null) return Fallito(notTopLevel);
             bool prima = EFisso(c);
             if (prima == voglio)
                 return RiuscitoSenzaCreare(new Dictionary<string, object>
@@ -80,6 +89,49 @@ namespace Riscontro.Disegno
             };
             _log("[agente] " + NomeDi(c) + (dopo ? " fissato" : " liberato"));
             return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// THE TOP-LEVEL CHECK shared by fissa_componente (L11-3) and
+        /// sostituisci_componente (L11-5), lot Z-C21.5: null when
+        /// <paramref name="component"/> is a top-level component of
+        /// <paramref name="assembly"/>, otherwise the refusal, which names the
+        /// top-level sub-assembly that holds it and its uid.
+        ///
+        /// The C1..Cn list is built from GetComponents(false), every level
+        /// (the state lists them all on purpose), while both SOLIDWORKS calls
+        /// behind these operations work on the top level only. «Top level» is
+        /// decided by StatoDocumento.TopLevelNames, the same rule the state
+        /// uses for «top_level». A top-level list that cannot be read refuses
+        /// too: acting on a component that may be nested is the defect itself.
+        /// </summary>
+        private static string NotTopLevel(
+            IAssemblyDoc assembly, IComponent2 component, string uid,
+            List<KeyValuePair<string, IComponent2>> components, string why)
+        {
+            object[] topLevel = null;
+            try { topLevel = assembly.GetComponents(true) as object[]; } catch { }
+            var names = StatoDocumento.TopLevelNames(topLevel);
+            string name = NomeDi(component);
+            if (names == null || string.IsNullOrEmpty(name))
+                return "I could not tell whether «" + uid + "» is a top-level component (" +
+                       (names == null ? "IAssemblyDoc.GetComponents(true) did not answer" : "its name did not answer") +
+                       "), and " + why + ". Nothing was changed.";
+            if (names.Contains(name)) return null;
+
+            // Name2 of a nested component is the whole path, «subAssem1-2/Part1-1»
+            // (IComponent2~Name2.html): its first segment is the top-level
+            // sub-assembly that holds it.
+            int slash = name.IndexOf('/');
+            string holder = slash > 0 ? name.Substring(0, slash) : null;
+            string holderUid = null;
+            if (holder != null)
+                for (int i = 0; i < components.Count; i++)
+                    if (string.Equals(components[i].Key, holder, StringComparison.Ordinal)) { holderUid = "C" + (i + 1); break; }
+            return "«" + uid + "» («" + name + "») is not a top-level component: it sits inside the sub-assembly «" +
+                   (holder ?? "?") + "»" + (holderUid == null ? "" : " (" + holderUid + ")") + ", and " + why +
+                   ". Nothing was changed. Open that sub-assembly and do it there, or act on the sub-assembly " +
+                   "itself" + (holderUid == null ? "" : ", " + holderUid) + ".";
         }
     }
 }

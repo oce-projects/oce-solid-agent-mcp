@@ -29,21 +29,24 @@ namespace Prove.Contratti
     internal static class ProveIlDocumento
     {
         /// <summary>
-        /// Quante letture di `_sw.IActiveDoc2` ci sono in `EsecutorePiano.cs`,
-        /// senza contare i commenti.
+        /// How many reads of `_sw.IActiveDoc2` `EsecutorePiano.cs` has,
+        /// comments left out.
         ///
-        /// Cinque, dal 23/9/2026 (erano sei):
+        /// Two, since finding M19 (lot Z-C21.5; five before, six before 23/9/2026):
         ///
-        ///   riga 195  prende `documentoAtteso` — E' LA LETTURA BUONA
-        ///   riga 274  il documento su cui si SCRIVE, confrontato subito dopo
-        ///   riga 296  lo stato mandato alla fonte del piano (sola lettura)
-        ///   riga 335  ci apre sopra la voce di annullamento
-        ///   riga 444  il confronto «e' ancora quello?»
+        ///   documentoAtteso    taken ONCE at the start: THE GOOD READ
+        ///   modello            the document a step writes on, compared with
+        ///                      documentoAtteso right after («still the same?»)
         ///
-        /// Quella tolta era in `ControlliPreliminari`, che adesso **riceve** il
-        /// documento invece di ripescarlo.
+        /// The three M19 removed: the undo recording was STARTED on a fresh read
+        /// (and finished on documentoAtteso, two documents whenever the window
+        /// changed); the state sent to the plan source was read from the active
+        /// document; and the closing of the recording waited for the active
+        /// document to be documentoAtteso. All three now use the document held.
+        /// The one removed on 23/9/2026 was in `ControlliPreliminari`, which now
+        /// RECEIVES the document.
         /// </summary>
-        private const int Tetto = 5;
+        private const int Tetto = 2;
 
         internal static void Tutte()
         {
@@ -81,8 +84,8 @@ namespace Prove.Contratti
             Segna("il tetto e' quello vero, non uno comodo",
                   quante == Tetto,
                   quante == Tetto
-                      ? "cinque, e sono le cinque elencate nel commento"
-                      : "ne sono rimaste " + quante + ": se e' voluto, abbassa il tetto");
+                      ? quante + ", the ones listed in the comment"
+                      : quante + " left: if that is meant, lower the ceiling");
 
             // ── E CHI DECIDE NON SE LO RIPESCA ──────────────────────────
             //
@@ -103,6 +106,87 @@ namespace Prove.Contratti
             Segna("e dentro non se lo ripesca",
                   inizio >= 0 && !CorpoLegge(corpo),
                   "nessun `_sw.IActiveDoc2` nel corpo di ControlliPreliminari");
+
+            UndoOnTheDocumentHeld(righe);
+        }
+
+        /// <summary>
+        /// THE UNDO RECORDING AND THE STATE GO WITH THE DOCUMENT HELD (finding
+        /// M19, lot Z-C21.5). On library 0.145.0 the recording was started on
+        /// a fresh read of the active document and finished on documentoAtteso,
+        /// the state sent to the plan source was read from the active document,
+        /// and a step that moved the plan to a new document retargeted the
+        /// finish without closing the first recording. Checked on the source,
+        /// comments left out: no SOLIDWORKS can switch windows in the middle of
+        /// a plan on command, so a bench case cannot build it.
+        /// </summary>
+        private static void UndoOnTheDocumentHeld(string[] lines)
+        {
+            var code = new System.Text.StringBuilder();
+            foreach (var line in lines)
+            {
+                var trimmed = line.TrimStart();
+                if (trimmed.StartsWith("//", StringComparison.Ordinal)) continue;
+                code.Append(line).Append('\n');
+            }
+            string text = code.ToString();
+
+            int starts = Regex.Matches(text, @"\.\s*StartRecordingUndoObject\s*\(").Count;
+            int finishes = Regex.Matches(text, @"\.\s*FinishRecordingUndoObject2?\s*\(").Count;
+            string startBody = Body(text, "private static IModelDoc2 StartUndoRecording(");
+            string finishBody = Body(text, "private void FinishUndoRecording(");
+            Segna("the undo recording is started and finished in one place each",
+                  starts == 1 && finishes == 1 &&
+                  startBody != null && startBody.Contains("StartRecordingUndoObject") &&
+                  finishBody != null && Regex.IsMatch(finishBody, @"FinishRecordingUndoObject2?\s*\("),
+                  starts + " start and " + finishes + " finish call(s); StartUndoRecording " +
+                  (startBody == null ? "missing" : "found") + ", FinishUndoRecording " +
+                  (finishBody == null ? "missing" : "found"));
+
+            // With the two reads of the ceiling above, a state read that is not
+            // on the active document can only be on the document held.
+            Segna("it starts on the document held, and the state is not read from the active one (M19)",
+                  text.Contains("undoRecordedOn = StartUndoRecording(documentoAtteso)") &&
+                  !Regex.IsMatch(text, @"StatoDocumento\.Leggi\(\s*_sw\.IActiveDoc2"),
+                  "not on a fresh _sw.IActiveDoc2");
+
+            // The change of document: the old recording is closed and a new one
+            // opened BEFORE documentoAtteso moves.
+            int block = text.IndexOf("if (e.DocumentoNuovo != null)", StringComparison.Ordinal);
+            int move = block < 0 ? -1 : text.IndexOf("documentoAtteso = e.DocumentoNuovo;", block, StringComparison.Ordinal);
+            string between = move < 0 ? "" : text.Substring(block, move - block);
+            Segna("a step that changes document closes the recording and opens a new one",
+                  move > block &&
+                  between.Contains("FinishUndoRecording(undoRecordedOn)") &&
+                  between.Contains("undoRecordedOn = StartUndoRecording(e.DocumentoNuovo)"),
+                  move < 0 ? "the DocumentoNuovo block or its reassignment is missing"
+                           : "FinishUndoRecording, then StartUndoRecording on the new document, before the reassignment");
+
+            // The only finish call sits in FinishUndoRecording (checked above),
+            // so these two calls are all the closings there are.
+            Segna("and the plan closes the recording on the document that holds it",
+                  Regex.Matches(text, @"FinishUndoRecording\(undoRecordedOn\)").Count == 2,
+                  "FinishUndoRecording(undoRecordedOn) at the change of document and at the end, " +
+                  "not a finish on another document behind an active-document test");
+        }
+
+        /// <summary>The body of the method whose declaration starts with <paramref name="declaration"/>, braces counted; null if absent.</summary>
+        private static string Body(string text, string declaration)
+        {
+            int start = text.IndexOf(declaration, StringComparison.Ordinal);
+            if (start < 0) return null;
+            int depth = 0;
+            bool open = false;
+            for (int i = start; i < text.Length; i++)
+            {
+                if (text[i] == '{') { depth++; open = true; }
+                else if (text[i] == '}')
+                {
+                    depth--;
+                    if (open && depth == 0) return text.Substring(start, i - start + 1);
+                }
+            }
+            return null;
         }
 
         /// <summary>Il corpo del metodo, fino alla chiusura della graffa —

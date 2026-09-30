@@ -352,15 +352,15 @@ namespace Riscontro.Disegno
                 return null;
             }
 
-            var suQuale = PianoDiRiferimento(modello, piano);
+            var suQuale = PianoDiRiferimento(modello, piano, out string planeProblem);
             if (suQuale == null)
             {
-                // A name that is one of the three, and still no plane: the part
-                // has fewer than three reference planes at the top of the tree
-                // (N21, the same self-contradiction on a part).
-                motivo = Array.IndexOf(new[] { "frontale", "superiore", "destro" }, piano) >= 0
-                    ? "I cannot find the «" + piano + "» plane: the section takes the first three reference planes " +
-                      "of the tree as front, top and right, and this part has fewer of them."
+                // A name that is one of the three, and still no plane: no
+                // reference plane of the part has that plane's normal through
+                // the origin (Z-C21.5, scheme S19), and the reason says what was
+                // read (N21: never the self-contradiction of a list).
+                motivo = Array.IndexOf(Riferimenti.BasePlaneNames, piano) >= 0
+                    ? "I cannot find the «" + piano + "» plane: " + planeProblem
                     : "Non trovo il piano «" + piano + "». Ci sono: " +
                       "frontale, superiore, destro.";
                 return null;
@@ -413,53 +413,31 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Uno dei tre piani di riferimento, per nome.
+        /// One of the three base planes, by name. **An unknown name is null**,
+        /// not the front plane: a silent fallback here would section on a plane
+        /// other than the one asked and still call it «the section». It is the
+        /// lesson of `TrovaPianoBase`, where a final `: 1` sent any name to the
+        /// front plane.
         ///
-        /// Si contano i `RefPlane` nell'ordine dell'albero: i primi tre sono
-        /// frontale, superiore, destro. **Un nome sconosciuto torna null**, non
-        /// il frontale: un ripiego silenzioso qui vorrebbe dire sezionare su un
-        /// piano diverso da quello chiesto e chiamarlo lo stesso «sezione».
-        /// E' la stessa lezione di `TrovaPianoBase`, dove un `: 1` finale
-        /// faceva ripiegare sul frontale qualunque nome.
-        ///
-        /// BY POSITION, AND MEASURED NOT TRIGGERED OUT OF PROCESS (Z-C21.9,
-        /// finding C3-6). IPartDoc~IFirstFeature.html warns that the order of
+        /// BY GEOMETRY SINCE Z-C21.5 (scheme S19, finding C3-6). Until then the
+        /// RefPlanes were counted in tree order and the first three were front,
+        /// top and right. IPartDoc~IFirstFeature.html warns that the order of
         /// the features changes when the part is edited, and the same page
         /// forbids trusting the names («Plane1»). The Z-C21.3 probe of C3-6
-        /// (28/9/2026, SOLIDWORKS 29.5.1) compared this
-        /// position rule with a rule by geometry (normal and passage through
-        /// the origin) on the template as it comes, then after inserting a plane
-        /// and trying to move it before the top plane (P1), and a 3D sketch and a
-        /// plane before the front plane (P2): SAME plane all nine times, because
-        /// every ReorderFeature that tried to put a plane or a sketch before the
-        /// three base planes answered false. Only a part TEMPLATE built with an
-        /// extra plane first breaks the rule; recognising the plane by its
-        /// geometry is the fix, tracked as scheme S19 in Z-C21.5.
+        /// (28/9/2026, SOLIDWORKS 29.5.1) found the position rule and the
+        /// geometry rule on the SAME plane all nine times on the template as it
+        /// comes, because every ReorderFeature that tried to put a plane or a
+        /// sketch before the three base planes answered false: only a part
+        /// TEMPLATE built with an extra plane first breaks the position rule.
+        /// The plane is now the one with the canonical normal through the
+        /// origin (Riferimenti.BasePlane); <paramref name="reason"/> says why
+        /// when there is none.
         /// </summary>
-        private static object PianoDiRiferimento(IModelDoc2 modello, string quale)
+        private static IFeature PianoDiRiferimento(IModelDoc2 modello, string quale, out string reason)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return null;
-            int voluto = quale == "frontale" ? 1
-                       : quale == "superiore" ? 2
-                       : quale == "destro" ? 3
-                       : 0;
-            if (voluto == 0) return null;
-
-            int visti = 0;
-            IFeature f = parte.IFirstFeature();
-            while (f != null)
-            {
-                string tipo = "";
-                try { tipo = f.GetTypeName2(); } catch { }
-                if (tipo == "RefPlane")
-                {
-                    visti++;
-                    if (visti == voluto) return f;
-                }
-                try { f = f.IGetNextFeature(); } catch { return null; }
-            }
-            return null;
+            reason = "this document is not a part.";
+            if (!(modello is IPartDoc)) return null;
+            return Riferimenti.BasePlane(modello, quale, out reason);
         }
 
         /// <summary>I nomi dei piani su cui si puo' sezionare.</summary>

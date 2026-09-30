@@ -1451,6 +1451,22 @@ namespace ProvaSaldatura
                         // nascosto e' un fatto che lo stato deve vedere.
                         stato = LeggiStato(attuale);
                     }
+                    // «activate_before» (Z-C21.4, finding L16-2): a configuration of
+                    // ANOTHER open document made active when the step starts, as the
+                    // user leaves it by working on the model while the drawing is
+                    // open. attiva_configurazione acts on the current document only,
+                    // so without this field a drawing step could never find the
+                    // model on a configuration other than the one its views show.
+                    object toActivate;
+                    if (passo.TryGetValue("activate_before", out toActivate) && toActivate != null)
+                    {
+                        string perche;
+                        if (!ActivateBefore(toActivate, statoDegliUid, out perche))
+                        {
+                            ErroreDiBanco(etichetta, "«activate_before»: " + perche);
+                            return false;
+                        }
+                    }
 
                     double volumePrima = VolumeDelDocumento(attuale);
                     int featurePrima = QuanteFeature(stato);
@@ -1617,6 +1633,64 @@ namespace ProvaSaldatura
         /// body, false to show the body») e rilegge `IBody2.Visible`: un corpo
         /// che resta visibile farebbe verde un caso che non ha provato niente.
         /// </summary>
+        /// <summary>
+        /// «activate_before»: { "document": path of an open document, "configuration":
+        /// its name } (Z-C21.4, L16-2). The document is found among the open ones
+        /// by its full path, the configuration activated with ShowConfiguration2,
+        /// and the active configuration READ BACK: ShowConfiguration2 answers
+        /// false when the configuration is already the active one, so its answer
+        /// decides nothing.
+        /// </summary>
+        private static bool ActivateBefore(object raw, Dictionary<string, object> statoDegliUid, out string perche)
+        {
+            perche = null;
+            Dictionary<string, object> request;
+            try { request = Risolvi(raw, statoDegliUid) as Dictionary<string, object>; }
+            catch (Exception ex) { perche = ex.Message; return false; }
+            string path = request == null ? null : Testo(request, "document");
+            string configuration = request == null ? null : Testo(request, "configuration");
+            if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(configuration))
+            {
+                perche = "it needs «document» (a path) and «configuration» (a name)";
+                return false;
+            }
+            IModelDoc2 target = null;
+            try
+            {
+                var d = _sw.GetFirstDocument() as IModelDoc2;
+                for (int guard = 0; d != null && guard < 500; guard++)
+                {
+                    string own = null;
+                    try { own = d.GetPathName(); } catch { }
+                    if (!string.IsNullOrWhiteSpace(own) &&
+                        string.Equals(Path.GetFullPath(own), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase))
+                    { target = d; break; }
+                    d = d.GetNext() as IModelDoc2;
+                }
+            }
+            catch (Exception ex) { perche = "walking the open documents: " + Perche(ex); return false; }
+            if (target == null) { perche = "«" + path + "» is not open"; return false; }
+            bool answer;
+            try { answer = target.ShowConfiguration2(configuration); }
+            catch (Exception ex) { perche = "ShowConfiguration2(«" + configuration + "»): " + Perche(ex); return false; }
+            string active = null;
+            try
+            {
+                IConfigurationManager targetManager = target.ConfigurationManager;
+                IConfiguration activeNow = targetManager == null ? null : targetManager.ActiveConfiguration;
+                active = activeNow == null ? null : activeNow.Name;
+            }
+            catch { }
+            if (!string.Equals(active, configuration, StringComparison.Ordinal))
+            {
+                perche = "asked for «" + configuration + "» on «" + Path.GetFileName(path) + "» (ShowConfiguration2 " +
+                         "answered " + answer + "), and reading it back the active configuration is «" + (active ?? "?") + "»";
+                return false;
+            }
+            Console.WriteLine("       | before the step, «" + Path.GetFileName(path) + "» is on «" + active + "»");
+            return true;
+        }
+
         private static bool NascondiPrima(
             IModelDoc2 doc, object grezzo, Dictionary<string, object> statoDegliUid,
             out string perche)

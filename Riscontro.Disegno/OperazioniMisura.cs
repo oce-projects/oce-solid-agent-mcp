@@ -80,7 +80,7 @@ namespace Riscontro.Disegno
                 return Fallito("Questo documento non e' un pezzo ne' un assieme: non ha corpi da pesare. " +
                                "Aprimi il pezzo o l'assieme.");
 
-            var corpi = CorpiScelti(parte, Str(a, "corpo_uid", null), out string motivo);
+            var corpi = CorpiScelti(parte, stato, a, Str(a, "corpo_uid", null), out string motivo);
             if (corpi == null) return Fallito(motivo);
 
             // ── UNA MISURA NUOVA PER OGNI NUMERO, E NON E' PIGNOLERIA ────
@@ -235,7 +235,8 @@ namespace Riscontro.Disegno
                 return Fallito("Questo documento non e' un pezzo ne' un assieme: non ha corpi da misurare. " +
                                "Aprimi il pezzo o l'assieme.");
 
-            var corpi = CorpiScelti(parte, Str(a, "corpo_uid", null), out string motivo);
+            string askedUid = Str(a, "corpo_uid", null);
+            var corpi = CorpiScelti(parte, stato, a, askedUid, out string motivo);
             if (corpi == null) return Fallito(motivo);
             if (corpi.Count == 0)
                 return Fallito("Il pezzo non ha nessun corpo solido da misurare.");
@@ -251,7 +252,9 @@ namespace Riscontro.Disegno
                         ": GetExtremePoint non ha risposto.");
                 elenco.Add(new Dictionary<string, object>
                 {
-                    ["corpo"] = "C" + (i + 1),
+                    // The body asked for keeps its own uid: numbering the list
+                    // of one body said «C1» of the body «C2» (Z-C21.5, S5).
+                    ["corpo"] = string.IsNullOrWhiteSpace(askedUid) ? "C" + (i + 1) : askedUid.Trim().ToUpperInvariant(),
                     ["da_mm"] = new[] { Tondo(scatola[0]), Tondo(scatola[1]), Tondo(scatola[2]) },
                     ["a_mm"] = new[] { Tondo(scatola[3]), Tondo(scatola[4]), Tondo(scatola[5]) },
                     ["ingombro_mm"] = new[]
@@ -650,8 +653,18 @@ namespace Riscontro.Disegno
         /// identificativo. Null (con un motivo) quando l'identificativo non
         /// esiste: un elenco vuoto darebbe una risposta con dei numeri, e dei
         /// numeri su niente sono peggio di un rifiuto.
+        ///
+        /// A BODY ASKED FOR IS RESOLVED THROUGH THE DOCUMENT STATE AND ITS
+        /// SIGNATURE (Z-C21.5, scheme S5), as combina_corpi and the overhang check (OperazioniSporgenze) do:
+        /// <see cref="BodyAskedFor"/>. Until then «C2» was the second body of a
+        /// GetBodies2 made now (IPartDoc~GetBodies2.html, Remarks: «May vary the
+        /// order in which bodies are returned»), and a body named before a cut
+        /// that renumbers the bodies was measured in the place of another one,
+        /// with plausible numbers. ingombro_corpo and proprieta_di_massa both
+        /// come through here.
         /// </summary>
-        private static List<object> CorpiScelti(IPartDoc parte, string uid, out string motivo)
+        private List<object> CorpiScelti(
+            IPartDoc parte, StatoDocumento stato, Dictionary<string, object> a, string uid, out string motivo)
         {
             motivo = null;
             var fuori = new List<object>();
@@ -661,12 +674,16 @@ namespace Riscontro.Disegno
                 motivo = "Il pezzo non ha nessun corpo solido. Fai prima un'estrusione.";
                 return null;
             }
+            if (!string.IsNullOrWhiteSpace(uid))
+            {
+                var asked = BodyAskedFor(stato, a, uid.Trim(), out motivo);
+                if (asked == null) return null;
+                fuori.Add(asked);
+                return fuori;
+            }
             for (int i = 0; i < grezzi.Length; i++)
             {
                 if (grezzi[i] == null) continue;
-                if (!string.IsNullOrEmpty(uid) &&
-                    !string.Equals("C" + (i + 1), uid, StringComparison.OrdinalIgnoreCase))
-                    continue;
                 // SI TIENE L'OGGETTO COM'E' USCITO da `GetBodies2`, non
                 // ricastato: e' quello che `AddBodies` aggancia. Vedi il
                 // commento accanto ad `AddBodies`.
@@ -674,11 +691,45 @@ namespace Riscontro.Disegno
             }
             if (fuori.Count == 0)
             {
+                motivo = "The part answered GetBodies2 with no readable solid body: there is nothing to measure.";
+                return null;
+            }
+            return fuori;
+        }
+
+        /// <summary>
+        /// THE BODY A «corpo_uid» NAMES, through the document state and its
+        /// signature (Z-C21.5, scheme S5): <c>CorpiDaUid</c>, which calls
+        /// FirmaCombacia, the helper combina_corpi and OperazioniSporgenze already use.
+        /// Null with <paramref name="motivo"/> when the uid is not a solid body
+        /// of the state (the words of the old refusal, which the bench cases
+        /// read), or when it no longer names the body the plan looked at (a cut
+        /// renumbered the bodies, E4).
+        ///
+        /// The Z-C21.3 probe of L12-3 found the solids in the same order in its
+        /// four parts: that is a tolerance for the bench, not a licence to
+        /// resolve a uid by its position (the lesson of the wrong number that
+        /// looks plausible). ingombro_corpo, proprieta_di_massa and
+        /// verifica_geometria_corpo come through here.
+        /// </summary>
+        private IBody2 BodyAskedFor(StatoDocumento stato, Dictionary<string, object> a, string uid, out string motivo)
+        {
+            motivo = null;
+            StatoDocumento.FirmaEntita firma;
+            if (stato == null || !stato.Firme.TryGetValue(uid, out firma) || firma.Tipo != "BODY")
+            {
                 motivo = "Non trovo il corpo «" + uid + "». Gli identificativi dei corpi " +
                          "stanno nello stato del documento, dentro «corpi».";
                 return null;
             }
-            return fuori;
+            var corpi = CorpiDaUid(stato, new List<string> { uid }, a, out string perche);
+            if (corpi == null || corpi.Count != 1)
+            {
+                motivo = "«corpo_uid» «" + uid + "» no longer names the body the plan looked at, and I do not " +
+                         "measure another one in its place: " + perche;
+                return null;
+            }
+            return corpi[0];
         }
 
         /// <summary>

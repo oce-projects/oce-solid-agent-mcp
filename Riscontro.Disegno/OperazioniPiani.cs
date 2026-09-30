@@ -99,6 +99,7 @@ namespace Riscontro.Disegno
             var attesa = new[] { n[0] / modulo, n[1] / modulo, n[2] / modulo };
 
             int pianiPrima = ContaPiani(modello);
+            var namesBefore = FeatureNamesNow(modello);
             object grezzo;
             try
             {
@@ -122,7 +123,14 @@ namespace Riscontro.Disegno
                     "Il piano non e' stato creato, e nell'albero non ne e' comparso nessuno. " +
                     "SOLIDWORKS non dice perche'.");
 
-            var feature = UltimaFeature(modello);
+            // THE PLANE IS WHAT THE CALL RETURNED, or else the ONE RefPlane born
+            // since the call (FeatureBorn, scheme S7, Z-C21.5). Until then the
+            // feature reported was the last one of the tree: on a sheet-metal
+            // part the flat pattern, answered as the plane just made (finding
+            // M9), while the normal came from the returned object.
+            var feature = grezzo as IFeature;
+            if (feature == null)
+                feature = FeatureBorn(modello, namesBefore, "RefPlane", out _);
             var piano = grezzo as IRefPlane;
             if (piano == null && feature != null)
                 try { piano = feature.GetSpecificFeature2() as IRefPlane; } catch { }
@@ -186,21 +194,15 @@ namespace Riscontro.Disegno
         /// la rotazione. **La normale e' la terza RIGA**, indici 6, 7 e 8 —
         /// misurato, e la terza colonna su un piano obliquo da' un vettore
         /// girato. Vedi la nota in testa alla classe.
+        ///
+        /// One reading for the whole library since Z-C21.5:
+        /// Riferimenti.PlaneFrame, which the base planes are recognised by too
+        /// (scheme S19).
         /// </summary>
         private static double[] NormaleDelPiano(IRefPlane piano)
         {
-            if (piano == null) return null;
-            try
-            {
-                var t = piano.Transform as IMathTransform;
-                var d = t == null ? null : t.ArrayData as double[];
-                if (d == null || d.Length < 9) return null;
-                var n = new[] { d[6], d[7], d[8] };
-                double m = Math.Sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
-                if (m < 1e-9) return null;
-                return new[] { n[0] / m, n[1] / m, n[2] / m };
-            }
-            catch { return null; }
+            double[] normal, origin;
+            return Riferimenti.PlaneFrame(piano, out normal, out origin) ? normal : null;
         }
 
         private static double[] TernaMm(Dictionary<string, object> a, string chiave)

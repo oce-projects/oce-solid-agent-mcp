@@ -45,22 +45,35 @@ namespace Riscontro.Disegno
             new Dictionary<int, Riferimenti.Passo>();
 
         /// <summary>
-        /// Quante feature aveva l'albero quando questo passo e' cominciato.
+        /// How many features the tree had when this step began.
         ///
-        /// SERVE A UNA COSA SOLA, E SENZA DI ESSA LA CANCELLAZIONE E'
-        /// PERICOLOSA: permette a <see cref="SenzaLoSchizzo"/> di distinguere
-        /// «lo schizzo in fondo all'albero l'ho disegnato io adesso» da «lo
-        /// schizzo in fondo all'albero c'era gia'». Senza questo numero, un
-        /// passo che non riesce a creare nemmeno lo schizzo cancellerebbe
-        /// l'orfano lasciato dal passo PRECEDENTE — o uno schizzo di chi sta
-        /// lavorando al pezzo, che non ha chiesto niente a nessuno.
+        /// Until Z-C21.5 it was what let <see cref="SenzaLoSchizzo"/> tell a
+        /// sketch made by this step from one already there; that is now
+        /// <see cref="_featureNamesAtStepStart"/>, which says WHICH features
+        /// were born and not only that the tree grew. The count is still read
+        /// after a withdrawal (OperazioniAncora, OperazioniRipetiRiempimento):
+        /// a tree longer than at the start means the step left something in
+        /// the part.
         ///
-        /// Il valore di partenza e' int.MaxValue e NON zero: se nessuno l'ha
-        /// scritto, l'albero non puo' risultare «cresciuto» e la cancellazione
-        /// non parte. Un difetto nostro deve lasciare uno schizzo di troppo,
-        /// non cancellare la feature di qualcun altro.
+        /// The start value is int.MaxValue and NOT zero: if nobody wrote it,
+        /// the tree cannot look «grown». A defect of ours must leave one sketch
+        /// too many, never delete someone else's feature.
         /// </summary>
         private int _featureAllInizioDelPasso = int.MaxValue;
+
+        /// <summary>
+        /// The names of the features of the tree when this step began, or null
+        /// (not a part, tree unreadable, or not written yet).
+        ///
+        /// SINCE Z-C21.5 (scheme S7) this, and no longer the count above, is
+        /// what lets <see cref="SenzaLoSchizzo"/> tell a sketch made by this
+        /// step from one that was already there: the count only said that the
+        /// tree had grown, and the sketch was then taken as the last feature of
+        /// the tree, which on a sheet-metal part is the flat pattern. Null is
+        /// the safe default for the same reason int.MaxValue is above: with no
+        /// «before», nothing looks born and nothing is deleted.
+        /// </summary>
+        private HashSet<string> _featureNamesAtStepStart;
 
         public OperazioniSw(ISldWorks sw, Action<string> log)
         {
@@ -292,11 +305,13 @@ namespace Riscontro.Disegno
             // quando l'operazione fallisce, e la successiva erediterebbe gli
             // spostamenti di quella prima.
             _riancoraggi.Clear();
-            // La fotografia dell'albero PRIMA di toccare qualsiasi cosa. La
-            // legge solo SenzaLoSchizzo, e solo per non cancellare roba che
-            // c'era gia'. Sta qui e non dentro le singole operazioni perche'
-            // questo e' l'unico punto da cui passano tutte e trentasei.
+            // The picture of the tree BEFORE anything is touched: the count,
+            // read after a withdrawal, and the names, which say WHICH features
+            // this step made (Z-C21.5, scheme S7) and are what SenzaLoSchizzo
+            // reads, so as never to delete what was already there. Here and not
+            // in each operation, because every operation comes through here.
             _featureAllInizioDelPasso = ContaFeature(modello);
+            _featureNamesAtStepStart = FeatureNamesNow(modello);
             try
             {
                 switch (operazione)
@@ -4168,21 +4183,33 @@ namespace Riscontro.Disegno
             // THE SIDE IS A BIT, NOT A SIGN (probe G4/G5): the absolute
             // distance, with OptionFlip when the distance asked is negative.
             int pianiPrima = ContaPiani(modello);
+            var namesBefore = FeatureNamesNow(modello);
             IFeature feature = null;
+            int planesBorn = -1;
             try
             {
                 object grezzo = ApiHelpers.InsertOffsetPlane(modello, distanza);
                 feature = grezzo as IFeature;
                 // The return value is a RefPlane; the probe found it to be an
-                // IFeature as well, but the cast is not what decides: the tree
-                // does, as it did with CreatePlaneAtOffset3.
-                if (feature == null && pianiPrima >= 0 && ContaPiani(modello) > pianiPrima)
-                    feature = UltimaFeature(modello);
+                // IFeature as well. When the cast fails the plane is the ONE
+                // RefPlane born in the tree since the call (FeatureBorn, scheme
+                // S7, Z-C21.5), never the last feature of the tree: on a
+                // sheet-metal part that is the flat pattern (finding M9).
+                if (feature == null)
+                    feature = FeatureBorn(modello, namesBefore, "RefPlane", out planesBorn);
             }
             catch (Exception ex)
             {
                 return Fallito("Il piano non e' stato creato: " + ex.Message + comEra);
             }
+            if (feature == null && planesBorn > 1)
+                return Fallito(
+                    "InsertRefPlane returned no plane and " + planesBorn + " reference planes were born in the " +
+                    "tree: I do not pick one of them for you. Look at the part before going on." + comEra);
+            if (feature == null && namesBefore == null)
+                return Fallito(
+                    "InsertRefPlane returned no plane, and the feature tree could not be read to find one it " +
+                    "may have made. Look at the part before going on." + comEra);
             if (feature == null)
                 return Fallito(
                     "Il piano non e' stato creato, e nell'albero non ne e' " +
@@ -4203,18 +4230,19 @@ namespace Riscontro.Disegno
         /// essere un vicolo cieco: pretende un asse che esista gia', e fino
         /// alla 0.30.2 nessuna operazione del catalogo ne creava uno.
         ///
-        /// FIRME VERIFICATE sull'interop 29.5.1.1:
+        /// SIGNATURES CHECKED on the interop 29.5.1.1:
         ///   IModelDoc2.InsertAxis2(Boolean AutoSize) -> Boolean
-        ///   IModelDoc2.IFeatureByPositionReverse(Int32 Num) -> Feature
         ///   ISurface.IsCylinder(), ISurface.IsCone()
         ///
-        /// RITORNA BOOLEAN, NON UNA FEATURE — come il guscio. L'asse si
-        /// ritrova in coda all'albero, e siccome «in coda» e' una deduzione e
-        /// non un fatto, si RICONTROLLA che quella feature sia davvero di tipo
-        /// «RefAxis»: se non lo e', si fallisce invece di restituire un esito
-        /// che sembra giusto. «RefAxis» e' la stessa stringa con cui
-        /// StatoDocumento riconosce gli assi esistenti, quindi un asse che
-        /// passa questo controllo comparira' nello stato al passo dopo.
+        /// IT RETURNS A BOOLEAN, NOT A FEATURE, like the shell. Until Z-C21.5
+        /// the axis was taken as the last feature of the tree
+        /// (IFeatureByPositionReverse(0)) and refused when that was not a
+        /// «RefAxis»: on a sheet-metal part the last feature is the flat
+        /// pattern, and the operation refused an axis it had made and left it
+        /// in the tree (finding L8-6). The axis is now the ONE RefAxis born
+        /// since the call (FeatureBorn, scheme S7), wherever SOLIDWORKS put it.
+        /// «RefAxis» is the string StatoDocumento recognises axes by, so an axis
+        /// that passes here shows in the state at the next step.
         /// </summary>
         private Esito CreaAsse(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
@@ -4243,6 +4271,12 @@ namespace Riscontro.Disegno
             if (entita == null || !entita.SelectByMark(false, SelectionMarks.AxisFace))
                 return Fallito("Non sono riuscito a selezionare la faccia.");
 
+            var namesBefore = FeatureNamesNow(modello);
+            if (namesBefore == null)
+                return Fallito(
+                    "I cannot read the feature tree before making the axis, and without it I could not tell " +
+                    "the new axis from the ones already there. Nothing was changed.");
+
             bool creato;
             try { creato = modello.InsertAxis2(true); }
             catch (Exception ex) { return Fallito("L'asse non e' stato creato: " + ex.Message); }
@@ -4251,20 +4285,18 @@ namespace Riscontro.Disegno
                     "L'asse non e' stato creato. Di solito e' la faccia: non e' " +
                     "abbastanza cilindrica, o e' quella sbagliata.");
 
-            IFeature feature = null;
-            try { feature = modello.IFeatureByPositionReverse(0); } catch { }
+            // The ONE axis born since the call, not the last feature of the tree
+            // (finding L8-6, scheme S7).
+            int axesBorn;
+            IFeature feature = FeatureBorn(modello, namesBefore, "RefAxis", out axesBorn);
             if (feature == null)
                 return Fallito(
-                    "SolidWorks dice di aver creato l'asse ma non lo ritrovo " +
-                    "nell'albero per confermartelo. Guarda il pezzo prima di " +
-                    "fidarti del resto del piano.");
-
-            string tipoCreato = "";
-            try { tipoCreato = feature.GetTypeName2(); } catch { }
-            if (tipoCreato != "RefAxis")
-                return Fallito(
-                    "L'ultima feature dell'albero e' «" + tipoCreato + "», non un " +
-                    "asse. Non ti confermo un asse che non trovo.");
+                    (axesBorn < 0
+                        ? "SOLIDWORKS says it made the axis, but I cannot read the feature tree to find it"
+                        : axesBorn == 0
+                            ? "SOLIDWORKS says it made the axis, but no new RefAxis is in the feature tree"
+                            : "SOLIDWORKS says it made the axis, and " + axesBorn + " new RefAxis features are in the tree") +
+                    ": I do not confirm an axis I cannot point to. Look at the part before trusting the rest of the plan.");
 
             return Riuscito(feature, new Dictionary<string, object>
             {
@@ -4802,32 +4834,14 @@ namespace Riscontro.Disegno
         /// </summary>
         private static IFeature TrovaPianoBase(IModelDoc2 modello, string quale)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return null;
-            // TRE NOMI, E NIENT'ALTRO. Prima qui c'era un `: 1` finale che
-            // faceva ripiegare sul frontale QUALUNQUE nome sconosciuto: chi
-            // chiedeva di specchiare sul «piano medio» si prendeva il frontale
-            // senza che nessuno lo dicesse. Misurato il 10 settembre 2026: la
-            // prova «specchia su un piano che non esiste» non rifiutava.
-            int voluto = quale == "frontale" ? 1
-                       : quale == "superiore" ? 2
-                       : quale == "destro" ? 3
-                       : 0;
-            if (voluto == 0) return null;
-            int visti = 0;
-            IFeature f = parte.IFirstFeature();
-            while (f != null)
-            {
-                string tipo = "";
-                try { tipo = f.GetTypeName2(); } catch { }
-                if (tipo == "RefPlane")
-                {
-                    visti++;
-                    if (visti == voluto) return f;
-                }
-                try { f = (IFeature)f.GetNextFeature(); } catch { return null; }
-            }
-            return null;
+            if (!(modello is IPartDoc)) return null;
+            // THREE NAMES AND NOTHING ELSE: an unknown name is null, never the
+            // front plane (a final `: 1` did that until the measure of 10
+            // September 2026, «mirror on a plane that does not exist»).
+            // BY GEOMETRY, NOT BY POSITION (Z-C21.5, scheme S19): the plane with
+            // the canonical normal through the origin, Riferimenti.BasePlane.
+            // The callers keep their own refusal, which names the plane.
+            return Riferimenti.BasePlane(modello, quale, out _);
         }
 
         /// <summary>
@@ -5172,7 +5186,8 @@ namespace Riscontro.Disegno
             int featurePrima = ContaFeature(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
             double? volumePrima = VolumeMm3(modello);
-            if (corpiPrima < 0 || featurePrima < 0) return Fallito(VolumeNonLettoPrima("fare il guscio").Replace("il volume del pezzo", "i corpi del pezzo"));
+            var namesBefore = FeatureNamesNow(modello);
+            if (corpiPrima < 0 || featurePrima < 0 || namesBefore == null) return Fallito(VolumeNonLettoPrima("fare il guscio").Replace("il volume del pezzo", "i corpi del pezzo"));
 
             try
             {
@@ -5211,7 +5226,15 @@ namespace Riscontro.Disegno
                     "e' {1:0.#} mm3. Non e' il pezzo che ti ho promesso.",
                     volumePrima, volumeDopo));
 
-            var feature = UltimaFeature(modello);
+            // THE SHELL IS THE ONE FEATURE BORN SINCE THE CALL (FeatureBorn,
+            // scheme S7, Z-C21.5), not the last feature of the tree: on a
+            // sheet-metal part that is the flat pattern (finding M9).
+            int featuresBorn;
+            var feature = FeatureBorn(modello, namesBefore, null, out featuresBorn);
+            if (feature == null && featuresBorn > 1)
+                return Fallito(
+                    "The shell seems made, but " + featuresBorn + " features were born in the tree and I do not " +
+                    "pick one of them for you. Look at the part before going on.");
             if (feature == null)
                 return Fallito("Il guscio sembra creato ma non ritrovo la feature nell'albero.");
 
@@ -5260,13 +5283,6 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// L'ultima feature dell'albero, qualunque tipo abbia.
-        ///
-        /// NON filtra per tipo, a differenza di SelezionaSchizzoAppenaCreato:
-        /// li' si cerca uno schizzo e il tipo si conosce, qui si cerca «quello
-        /// che l'API ha appena creato senza dirmelo».
-        /// </summary>
-        /// <summary>
         /// Quanti piani di riferimento ha il pezzo, adesso, o **-1 se non si e'
         /// potuto leggere** (voce Z-C8): una feature che non dice il suo tipo,
         /// o un albero che si interrompe, lasciavano un numero piu' basso.
@@ -5296,18 +5312,124 @@ namespace Riscontro.Disegno
             return prima >= 0 && ora >= 0 ? (object)(ora - prima) : null;
         }
 
-        private static IFeature UltimaFeature(IModelDoc2 modello)
+        // ─────────────────────────────────────────────────────────────────
+        // The feature a call has just added (scheme S7, Z-C21.5)
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The names of the top-level features of a part, now: the «before» of
+        /// <see cref="FeatureBorn"/>, taken right before the call that adds a
+        /// feature. Null when the document is not a part or the tree cannot be
+        /// read to the end (a partial set would make an old feature look born).
+        /// </summary>
+        private static HashSet<string> FeatureNamesNow(IModelDoc2 modello)
         {
+            List<IFeature> features;
+            List<string> names, types;
+            if (!ReadFeatureTree(modello, out features, out names, out types)) return null;
+            return new HashSet<string>(names, StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// THE FEATURE A CALL HAS JUST ADDED, FOUND BY THE DIFFERENCE OF THE
+        /// TREE (scheme S7: findings L8-6, M9 and N13; Z-C21.5). The one feature
+        /// of type <paramref name="type"/> (any type when null) whose name was
+        /// not in <paramref name="before"/>. Null when none was born, when more
+        /// than one was, or when the tree cannot be read; <paramref name="born"/>
+        /// says how many of that type were born (-1: not read).
+        ///
+        /// WHY NOT THE LAST FEATURE OF THE TREE. On a sheet-metal part the tail
+        /// of the tree is the flat pattern (the FlatPattern feature at the bottom
+        /// of the tree, OperazioniLamiera), and SOLIDWORKS inserts a new feature
+        /// before it. The last feature is then the flat pattern: crea_asse
+        /// refused an axis it had made and left it in the tree,
+        /// piano_per_tre_punti reported the flat pattern as the plane it had
+        /// made, and the orphan sketch of a failed step was never taken away.
+        /// IModelDoc2~IFeatureByPositionReverse.html: «SOLIDWORKS does not
+        /// guarantee the name or positioning of default features». A feature
+        /// name is unique in a part, so the names that were not there before are
+        /// what the call added, wherever in the tree it went.
+        /// </summary>
+        private static IFeature FeatureBorn(IModelDoc2 modello, HashSet<string> before, string type, out int born)
+        {
+            born = -1;
+            List<IFeature> features;
+            List<string> names, types;
+            if (before == null || !ReadFeatureTree(modello, out features, out names, out types)) return null;
+            int index = BornFeatureIndex(names, types, before, type, out born);
+            return index >= 0 ? features[index] : null;
+        }
+
+        /// <summary>
+        /// The top-level features of a part in tree order, with their names and
+        /// types (an unreadable type is ""). False when the document is not a
+        /// part or the walk breaks: then nothing is returned rather than half a
+        /// tree.
+        /// </summary>
+        private static bool ReadFeatureTree(
+            IModelDoc2 modello, out List<IFeature> features, out List<string> names, out List<string> types)
+        {
+            var inTree = new List<IFeature>();
+            var theirNames = new List<string>();
+            var theirTypes = new List<string>();
+            features = inTree;
+            names = theirNames;
+            types = theirTypes;
             var parte = modello as IPartDoc;
-            if (parte == null) return null;
-            IFeature ultima = null;
+            if (parte == null) return false;
             try
             {
-                var f = parte.IFirstFeature();
-                while (f != null) { ultima = f; f = f.IGetNextFeature(); }
+                IFeature f = parte.IFirstFeature();
+                while (f != null)
+                {
+                    string kind = "";
+                    try { kind = f.GetTypeName2() ?? ""; } catch { }
+                    inTree.Add(f);
+                    theirNames.Add(f.Name);
+                    theirTypes.Add(kind);
+                    f = f.IGetNextFeature();
+                }
             }
-            catch { return null; }
-            return ultima;
+            catch { return false; }
+            return true;
+        }
+
+        /// <summary>
+        /// The positions, in tree order, of the features whose name is not in
+        /// <paramref name="before"/>: what was born since. Pure, like
+        /// <see cref="BornFeatureIndex"/>.
+        /// </summary>
+        internal static List<int> BornFeatureIndices(IList<string> names, ICollection<string> before)
+        {
+            var born = new List<int>();
+            if (names == null || before == null) return born;
+            for (int i = 0; i < names.Count; i++)
+                if (names[i] != null && !before.Contains(names[i])) born.Add(i);
+            return born;
+        }
+
+        /// <summary>
+        /// THE DECISION OF <see cref="FeatureBorn"/>, WITH NO INTEROP: the
+        /// position of the ONE born feature of that type (any type when null),
+        /// or -1 when there is none or more than one. Two born features of the
+        /// same type are two candidates, and taking the later would be «the last
+        /// in the tree» again. Pure, so that Prove.Contratti checks it without
+        /// SOLIDWORKS (Zc215IdentityContract).
+        /// </summary>
+        internal static int BornFeatureIndex(
+            IList<string> names, IList<string> types, ICollection<string> before, string type, out int born)
+        {
+            born = -1;
+            if (names == null || before == null) return -1;
+            int found = -1;
+            born = 0;
+            foreach (int i in BornFeatureIndices(names, before))
+            {
+                if (type != null && (types == null || i >= types.Count || types[i] != type)) continue;
+                born++;
+                found = i;
+            }
+            return born == 1 ? found : -1;
         }
 
         /// <summary>
@@ -6234,10 +6356,20 @@ namespace Riscontro.Disegno
         ///      schizzo in coda»: quando la feature nasce, dopo lo schizzo c'e'
         ///      lei.
         ///
-        ///   3. L'HO FATTO IO ADESSO? L'albero dev'essere CRESCIUTO da quando
-        ///      il passo e' cominciato (<see cref="_featureAllInizioDelPasso"/>).
-        ///      Se non e' cresciuto, lo schizzo in fondo c'era prima: e' di
-        ///      qualcun altro e non si tocca.
+        ///   3. DID THIS STEP MAKE IT? It must be born in this step: its name
+        ///      was not in the tree when the step began
+        ///      (<see cref="_featureNamesAtStepStart"/>). A sketch that was
+        ///      already there belongs to someone else and is not touched.
+        ///
+        ///   2 AND 3 SINCE Z-C21.5 (scheme S7): «the last feature» of 2 is the
+        ///   newest of the features BORN IN THIS STEP, not the last feature of
+        ///   the tree. On a sheet-metal part the tail of the tree is the flat
+        ///   pattern and a new feature goes before it: the old check found the
+        ///   flat pattern, which is no sketch, and left every orphan sketch of a
+        ///   failed step in the part. Among the features born in this step the
+        ///   newest is the last in tree order, because each was inserted after
+        ///   the one before it; a feature born after the sketch (the one the
+        ///   step wanted) still makes the check give up.
         ///
         ///   4. DIPENDE QUALCOSA DA LUI? `IGetChildCount` dev'essere zero, ed
         ///      e' il controllo che pesa di piu' dei quattro. Sempre il 14
@@ -6695,9 +6827,19 @@ namespace Riscontro.Disegno
         {
             if (modello == null) return LasciatoSchizzo;
 
-            // ── 2. l'ultima feature dell'albero, qualunque sia ──────────
-            IFeature ultima = UltimaFeature(modello);
-            if (ultima == null) return LasciatoSchizzo;
+            // ── 2 and 3. the newest feature BORN IN THIS STEP ───────────
+            // (Z-C21.5, scheme S7): not the last feature of the tree, which on
+            // a sheet-metal part is the flat pattern. Without the names of the
+            // step start, or with a tree that cannot be read, nobody knows what
+            // this step made, and nothing is deleted (Z-C8).
+            List<IFeature> features;
+            List<string> names, types;
+            if (_featureNamesAtStepStart == null ||
+                !ReadFeatureTree(modello, out features, out names, out types)) return LasciatoSchizzo;
+            var born = BornFeatureIndices(names, _featureNamesAtStepStart);
+            if (born.Count == 0) return LasciatoSchizzo;
+            IFeature ultima = features[born[born.Count - 1]];
+            int featureAdesso = features.Count;
 
             // ── 1. e dev'essere uno schizzo, e NON l'origine ────────────
             ISketch schizzo = null;
@@ -6706,13 +6848,6 @@ namespace Riscontro.Disegno
             string tipo = "";
             try { tipo = ultima.GetTypeName2(); } catch { }
             if (tipo == OrigineDelPezzo) return LasciatoSchizzo;
-
-            // ── 3. e dev'essere nato in questo passo ────────────────────
-            // Con un conteggio illeggibile non si sa se lo schizzo e' nato in
-            // questo passo, e non si cancella niente (voce Z-C8).
-            int featureAdesso = ContaFeature(modello);
-            if (featureAdesso < 0 || _featureAllInizioDelPasso < 0 ||
-                featureAdesso <= _featureAllInizioDelPasso) return LasciatoSchizzo;
 
             // ── 4. e non deve avere figli ───────────────────────────────
             try { if (ultima.IGetChildCount() > 0) return LasciatoSchizzo; }
@@ -6830,19 +6965,20 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Seleziona uno dei tre piani base SENZA usarne il nome.
+        /// Selects one of the three base planes WITHOUT using its name, with
+        /// mark 0.
         ///
-        /// In un'installazione italiana si chiamano Frontale/Superiore/Destro,
-        /// in una inglese Front/Top/Right: un SelectByID2("Front Plane", ...)
-        /// risponde False in silenzio e la feature a valle si costruisce su una
-        /// selezione vuota. I piani base sono le prime tre feature di tipo
-        /// RefPlane dell'albero, in ordine fisso, e quello non cambia con la
-        /// lingua.
+        /// The names are localized (Front/Top/Right in an English installation):
+        /// a SelectByID2 on the wrong name answers false in silence and the
+        /// feature downstream is built on an empty selection. Until Z-C21.5 the
+        /// base planes were taken as the first three RefPlane features of the
+        /// tree; since then they are recognised by their geometry, the canonical
+        /// normal through the origin (Riferimenti.BasePlane, scheme S19), which
+        /// no plane added before them can take.
         /// </summary>
         private bool SelezionaPiano(IModelDoc2 modello, string quale)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return false;
+            if (!(modello is IPartDoc)) return false;
             // THREE NAMES AND NOTHING ELSE (Z-C21.10, finding N33). Here too a
             // final `: 1` sent ANY unknown name to the front plane: the same
             // fallback TrovaPianoBase dropped after the measure of 10
@@ -6854,31 +6990,12 @@ namespace Riscontro.Disegno
             // (IFeature~Select2.html: «True if the feature was selected,
             // false if not»). The comparison stays Ordinal on purpose: the
             // Forma now rewrites every enum value in the catalogue's spelling
-            // (Ponte/Forma.cs, pattern S20).
-            int voluto = quale == "frontale" ? 1
-                       : quale == "superiore" ? 2
-                       : quale == "destro" ? 3
-                       : 0;
-            if (voluto == 0) return false;
-
-            int visti = 0;
-            IFeature f = parte.IFirstFeature();
-            while (f != null)
-            {
-                string tipo = "";
-                try { tipo = f.GetTypeName2(); } catch { }
-                if (tipo == "RefPlane")
-                {
-                    visti++;
-                    if (visti == voluto)
-                    {
-                        modello.ClearSelection2(true);
-                        return f.Select2(false, 0);
-                    }
-                }
-                try { f = (IFeature)f.GetNextFeature(); } catch { return false; }
-            }
-            return false;
+            // (Ponte/Forma.cs, pattern S20); Riferimenti.BasePlane compares
+            // Ordinal too.
+            IFeature f = Riferimenti.BasePlane(modello, quale, out _);
+            if (f == null) return false;
+            modello.ClearSelection2(true);
+            return f.Select2(false, 0);
         }
 
         private bool SelezionaFaccia(IFace2 faccia)

@@ -240,17 +240,16 @@ namespace Riscontro.Disegno
                 return Fallito("«orientation» is one of «" + string.Join("», «", MirrorOrientationNames) + "» (the first is " +
                                "the default), not «" + orientationAsked + "». Nothing was changed.");
 
-            IFeature pianoF = null;
-            int visti = 0;
-            var f = modello.FirstFeature() as IFeature;
-            while (f != null)
-            {
-                string t = "";
-                try { t = f.GetTypeName2(); } catch { }
-                if (t == "RefPlane" && ++visti == quale) { pianoF = f; break; }
-                f = f.GetNextFeature() as IFeature;
-            }
-            if (pianoF == null) return Fallito("Non trovo il piano " + piano + " dell'assieme.");
+            // THE ASSEMBLY PLANE BY ITS GEOMETRY, NOT AS THE N-TH RefPlane OF THE
+            // TREE (Z-C21.5, finding C3-6 extended, scheme S19): the plane with the
+            // canonical normal through the origin, Riferimenti.BasePlane. Counting
+            // the RefPlanes («the third in order») mirrored on another plane as
+            // soon as a plane sat before the default ones. Not N26, the
+            // orientation of the instance, fixed in Z-C21.2-ter.
+            IFeature pianoF = Riferimenti.BasePlane(modello, piano, out string planeProblem);
+            if (pianoF == null)
+                return Fallito("I cannot find the assembly's «" + piano + "» plane: " + planeProblem +
+                               " Nothing was changed.");
             var centroPrima = CentroDelComponente(c);
             if (centroPrima == null)
                 return Fallito("Non leggo dove sta «" + NomeDi(c) + "» nell'assieme: senza, non saprei verificare lo " +

@@ -104,9 +104,15 @@ namespace Riscontro.Disegno
 
             string versoA = Str(a, "faccia_a", null);
             string versoB = Str(a, "faccia_b", null);
-            var facciaA = FacciaVersoDi(compA, versoA, out string perche1);
+            // THE DIRECTIONS ARE THE ASSEMBLY'S (finding M1, lot Z-C21.5): the
+            // faces come from the bodies in the PART's coordinates, so each
+            // normal is turned by the component's Transform2 before it is
+            // compared with the direction asked for. ComponentAxes is the
+            // reading of Transform2 that finding N26 measured (the axes of a
+            // mirrored instance, OperazioniSpecchiaComponente.cs).
+            var facciaA = FacciaVersoDi(compA, versoA, ComponentAxes(compA), out string perche1);
             if (facciaA == null) return Fallito("Su «" + uidA + "»: " + perche1);
-            var facciaB = FacciaVersoDi(compB, versoB, out string perche2);
+            var facciaB = FacciaVersoDi(compB, versoB, ComponentAxes(compB), out string perche2);
             if (facciaB == null) return Fallito("Su «" + uidB + "»: " + perche2);
 
             string nomeTipo = Str(a, "tipo", "coincidente");
@@ -319,12 +325,22 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// The face of a component that looks in a direction, in the PART's own
-        /// coordinates, not the assembly's: IComponent2.GetBodies3 hands the
-        /// bodies in the space of the part (RAG 82zq: the lid at y 0..4 in the
-        /// part, 5..9 in the assembly), and no Transform2 is applied here yet.
-        /// That is finding M1 (lot Z-C21.5); until then the catalogue says so
-        /// (S16, Z-C21.9).
+        /// The face of a component that looks in a direction OF THE ASSEMBLY
+        /// (finding M1, lot Z-C21.5). IComponent2.GetBodies3 hands the bodies
+        /// in the space of the part (RAG 82zq: the lid at y 0..4 in the part,
+        /// 5..9 in the assembly), so IFace2.Normal is a direction of the part
+        /// file. Up to library 0.145.0 it was compared as it came, and on a
+        /// turned component «alto» took the face that looks up in the part
+        /// file, wherever it looks in the assembly: the mate went on another
+        /// face, with no error. Now each normal is turned into the assembly
+        /// with the component's axes (<paramref name="axes"/>, Transform2
+        /// applied to X, Y and Z with IMathVector.MultiplyTransform, see
+        /// ComponentAxes): n0 X' + n1 Y' + n2 Z' is what MultiplyTransform
+        /// gives for the vector n, read once per component instead of once
+        /// per face. Transform2 is given in relation to the root component
+        /// (IComponent2~Transform2.html, Remarks), so this holds for a
+        /// component inside a sub-assembly too. No axes, no face: guessing
+        /// the part's directions would be the old defect again.
         ///
         /// Fra piu' facce con lo stesso verso vince **la piu' grande**: e' lo
         /// stesso criterio che lo stato usa per le parti, e su un coperchio o
@@ -333,7 +349,7 @@ namespace Riscontro.Disegno
         /// saperlo, perche' *un caso in cui due valori diversi danno lo stesso
         /// risultato non tabella niente*.
         /// </summary>
-        private static IFace2 FacciaVersoDi(IComponent2 c, string verso, out string perche)
+        private static IFace2 FacciaVersoDi(IComponent2 c, string verso, double[][] axes, out string perche)
         {
             perche = null;
             if (string.IsNullOrWhiteSpace(verso))
@@ -347,6 +363,13 @@ namespace Riscontro.Disegno
             {
                 perche = "«" + verso + "» non e' un verso che conosco. Ci sono: " +
                          string.Join(", ", VersiConosciuti) + ".";
+                return null;
+            }
+            if (axes == null)
+            {
+                perche = "I cannot read how the component is turned in the assembly (IComponent2.Transform2 " +
+                         "did not answer), so I cannot tell which of its faces looks «" + verso + "» in the " +
+                         "assembly. Nothing was changed.";
                 return null;
             }
 
@@ -369,7 +392,9 @@ namespace Riscontro.Disegno
                 var f = b.GetFirstFace() as IFace2;
                 while (f != null)
                 {
-                    var n = ApiHelpers.NormalIfPlanar(f);   // S17: null, not 0,0,0, on a curved face
+                    // S17: null, not 0,0,0, on a curved face. Part space in,
+                    // assembly space out (M1).
+                    var n = InAssemblySpace(ApiHelpers.NormalIfPlanar(f), axes);
                     if (n != null &&
                         n[0] * voluta[0] + n[1] * voluta[1] + n[2] * voluta[2] > 0.99)
                     {
@@ -384,13 +409,34 @@ namespace Riscontro.Disegno
 
             if (vince == null)
             {
-                perche = "no flat face looks «" + verso +
-                         "». The directions are read on the part's own axes, not the " +
-                         "assembly's: on a rotated component, name the face by the " +
-                         "direction it has in the part file.";
+                perche = "no flat face looks «" + verso + "» in the assembly. The directions are " +
+                         "the assembly's: on a turned component a face is judged by where it looks " +
+                         "after the component's rotation, not by where it looks in the part file.";
                 return null;
             }
             return vince;
+        }
+
+        /// <summary>
+        /// M1: a direction of the part file turned into the assembly, with
+        /// the component's axes (X', Y', Z' as ComponentAxes reads them):
+        /// v0 X' + v1 Y' + v2 Z', normalised. Null if an input is not three
+        /// numbers, three vectors of three numbers, or the result has no
+        /// length. Pure, so that the arithmetic can be checked without CAD.
+        /// </summary>
+        internal static double[] InAssemblySpace(double[] partVector, double[][] axes)
+        {
+            if (partVector == null || partVector.Length < 3 || axes == null || axes.Length < 3) return null;
+            var turned = new double[3];
+            for (int k = 0; k < 3; k++)
+            {
+                if (axes[k] == null || axes[k].Length < 3) return null;
+                for (int i = 0; i < 3; i++) turned[i] += partVector[k] * axes[k][i];
+            }
+            double length = Math.Sqrt(turned[0] * turned[0] + turned[1] * turned[1] + turned[2] * turned[2]);
+            if (length < 1e-12 || double.IsNaN(length)) return null;
+            for (int i = 0; i < 3; i++) turned[i] /= length;
+            return turned;
         }
 
         private static readonly string[] VersiConosciuti =

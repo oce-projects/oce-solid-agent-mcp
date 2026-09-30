@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -77,26 +78,56 @@ namespace Riscontro.Disegno
 
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0), z = Num(a, "z_mm", 0);
             string configurazione = Str(a, "configurazione", "");
+            bool configurationAsked = !string.IsNullOrWhiteSpace(configurazione);
+
+            // ── THE CONFIGURATION ASKED FOR IS CHECKED BEFORE INSERTING ──────
+            //
+            // Z-C21.4, finding L11-1. Until library 0.145.0 «configurazione» went
+            // to AddComponent5 with UseConfigForPartReferences false, so it was
+            // never used (see the call below), and a name the file does not have
+            // was not refused either. The names are read from the open document
+            // itself (the insertion needs it open anyway) and compared whole:
+            // the two configurations of the company template share their first
+            // word and differ in the part in angle brackets, which belongs to
+            // the name (see NomeVeroDellaConfigurazione). A refusal here has
+            // inserted nothing.
+            if (configurationAsked)
+            {
+                var source = OpenDocumentAtPath(percorso);
+                var sourceConfigurations = source == null ? new List<string>() : NomiDelleConfigurazioni(source);
+                if (sourceConfigurations.Count == 0)
+                    return Fallito(
+                        "I could not read the configurations of «" + Path.GetFileName(percorso) + "», so I " +
+                        "cannot check «" + configurazione + "» before inserting it. Nothing was inserted: " +
+                        "insert it without a configuration name, or open the file again and retry.");
+                if (!sourceConfigurations.Contains(configurazione, StringComparer.Ordinal))
+                    return Fallito(
+                        "«" + Path.GetFileName(percorso) + "» has no configuration «" + configurazione +
+                        "». It has: «" + string.Join("», «", sourceConfigurations) + "»" +
+                        ". The name is compared whole, the part in angle brackets included. Nothing was inserted.");
+            }
 
             int prima = QuantiComponentiInAssieme(assieme);
 
             IComponent2 nato;
             try
             {
-                // THE NAME IN «configurazione» IS NOT USED TODAY (Z-C21.9, S16:
-                // this comment said the named configuration was taken, and a
-                // wrong name fell back to the active one; neither was measured).
-                // IAssemblyDoc~AddComponent5.html: «ExistingConfigName Name of the
-                // configuration of the loaded component; valid only if
-                // UseConfigForPartReferences = true», and the fourth argument
-                // below, UseConfigForPartReferences, is false. So the component
-                // comes in with the configuration SOLIDWORKS picks, and the
-                // answer gives the one it really references
-                // (ReferencedConfiguration, read below). Passing true is the fix,
-                // with a bench case that asks for a configuration that is not the
-                // active one.
+                // THE NAMED CONFIGURATION IS ASKED FOR WITH ITS SWITCH (Z-C21.4,
+                // L11-1). IAssemblyDoc~AddComponent5.html: «UseConfigForPartReferences
+                // If true, the configuration specified in ExistingConfigName is
+                // used» and «ExistingConfigName Name of the configuration of the
+                // loaded component; valid only if UseConfigForPartReferences =
+                // true». Up to library 0.145.0 the switch was false and the name
+                // was ignored: the component came in with ConfigOption 0,
+                // swAddComponentConfigOptions_CurrentSelectedConfig, which
+                // swAddComponentConfigOptions_e.html describes as «Add a part or
+                // assembly in its last saved configuration». Without a name that
+                // is still what happens. With a name, what the component really
+                // references is read back below and a different one is refused.
                 nato = assieme.AddComponent5(
-                    percorso, 0, "", false, configurazione ?? "",
+                    percorso,
+                    (int)swAddComponentConfigOptions_e.swAddComponentConfigOptions_CurrentSelectedConfig,
+                    "", configurationAsked, configurationAsked ? configurazione : "",
                     x / 1000.0, y / 1000.0, z / 1000.0) as IComponent2;
             }
             catch (Exception ex)
@@ -138,6 +169,21 @@ namespace Riscontro.Disegno
                     ", ma l'assieme aveva " + prima + " componenti e adesso ne ha " + dopo +
                     ". Non l'ho considerato inserito.");
 
+            // THE CONFIGURATION THE COMPONENT REALLY REFERENCES (Z-C21.4, L11-1),
+            // read on the component found again after the rebuild. When one was
+            // asked for, a different one (or one that cannot be read) is not the
+            // component that was asked for: it is taken out again, and «taken
+            // out» is said only after the components are counted again.
+            string referenced = null;
+            try { referenced = vero == null ? null : vero.ReferencedConfiguration; } catch { }
+            if (configurationAsked && !string.Equals(referenced, configurazione, StringComparison.Ordinal))
+                return Fallito(
+                    "I asked SOLIDWORKS for «" + Path.GetFileName(percorso) + "» in configuration «" +
+                    configurazione + "», and the new component references " +
+                    (string.IsNullOrWhiteSpace(referenced) ? "a configuration I could not read" : "«" + referenced + "»") +
+                    ". It is not the component you asked for." +
+                    TakeOutInsertedComponent(modello, assieme, vero, prima));
+
             var misure = new Dictionary<string, object>
             {
                 ["componenti_prima"] = prima,
@@ -146,12 +192,7 @@ namespace Riscontro.Disegno
 
             if (!string.IsNullOrWhiteSpace(nome)) misure["componente"] = nome;
 
-            try
-            {
-                var cfg = vero == null ? null : vero.ReferencedConfiguration;
-                if (!string.IsNullOrWhiteSpace(cfg)) misure["configurazione"] = cfg;
-            }
-            catch { }
+            if (!string.IsNullOrWhiteSpace(referenced)) misure["configurazione"] = referenced;
 
             // ── E' VINCOLATO? LE MISURE CHE FUNZIONANO DAVVERO ──────────
             //
@@ -492,6 +533,17 @@ namespace Riscontro.Disegno
 
         private bool EAperto(string percorso)
         {
+            return OpenDocumentAtPath(percorso) != null;
+        }
+
+        /// <summary>
+        /// The open document whose path is <paramref name="percorso"/>, or null.
+        /// The same walk EAperto always made, by full path, so that the
+        /// configuration check of L11-1 reads the very document the insertion
+        /// will use.
+        /// </summary>
+        private IModelDoc2 OpenDocumentAtPath(string percorso)
+        {
             try
             {
                 var d = _sw.GetFirstDocument() as IModelDoc2;
@@ -503,12 +555,46 @@ namespace Riscontro.Disegno
                     if (!string.IsNullOrWhiteSpace(suo) &&
                         string.Equals(Path.GetFullPath(suo), Path.GetFullPath(percorso),
                                       StringComparison.OrdinalIgnoreCase))
-                        return true;
+                        return d;
                     d = d.GetNext() as IModelDoc2;
                 }
             }
             catch { }
-            return false;
+            return null;
+        }
+
+        /// <summary>
+        /// Takes out the component this step inserted when it references another
+        /// configuration than the one asked for (Z-C21.4, L11-1), and returns the
+        /// tail of the refusal. «Taken out» only when the top-level components,
+        /// counted again, are as many as before the insertion. DeleteSelection2
+        /// and not EditDelete, which can open a confirmation window (the rule of
+        /// TogliLoSpecchio and TogliLaTabellaDiTaglio); the component is selected
+        /// with its own Select4 (SelezionaIlComponente says why).
+        /// </summary>
+        private static string TakeOutInsertedComponent(
+            IModelDoc2 modello, IAssemblyDoc assieme, IComponent2 component, int countBefore)
+        {
+            bool deleted = false;
+            try
+            {
+                modello.ClearSelection2(true);
+                if (SelezionaIlComponente(component))
+                    deleted = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                modello.ClearSelection2(true);
+                modello.EditRebuild3();
+            }
+            catch { }
+            int countNow = QuantiComponentiInAssieme(assieme);
+            if (!deleted)
+                return " DeleteSelection2 did not take it out: it is still in the assembly, remove it yourself.";
+            if (countBefore >= 0 && countNow == countBefore)
+                return " I took it out: the assembly has " + countNow + " components again, as before.";
+            if (countBefore < 0 || countNow < 0)
+                return " DeleteSelection2 answered true, but I could not count the components again to check " +
+                       "that it is gone: look at the assembly before going on.";
+            return " DeleteSelection2 answered true, but the assembly has " + countNow + " components and had " +
+                   countBefore + " before: look at it before going on.";
         }
 
         /// <summary>

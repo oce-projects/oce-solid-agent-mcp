@@ -244,6 +244,9 @@ namespace ProvaSaldatura
             // ricordo.*
             var percorsi = new List<string>();
             var posizioni = new List<double[]>();
+            // The file of each component by its name in the case, for the
+            // «configurations» of step 7 (Z-C21.4), which name components.
+            var pathByComponentName = new Dictionary<string, string>(StringComparer.Ordinal);
             for (int i = 0; i < componenti.Count; i++)
             {
                 var c = componenti[i] as Dictionary<string, object>;
@@ -253,14 +256,24 @@ namespace ProvaSaldatura
                     return null;
                 }
                 string suoNome = Testo(c, "nome") ?? ("comp" + (i + 1));
+                // A component with a list of components of its own is a
+                // SUB-ASSEMBLY (Z-C21.5, L11-3/L11-5): see BuildSubassembly.
+                var children = Elenco(c, "componenti");
                 string percorso = Path.Combine(
-                    Attese.Lavoro, NomeDiFile(nome) + "_" + NomeDiFile(suoNome) + ".sldprt");
+                    Attese.Lavoro, NomeDiFile(nome) + "_" + NomeDiFile(suoNome) +
+                                   (children != null ? ".sldasm" : ".sldprt"));
+                pathByComponentName[suoNome] = percorso;
 
-                if (!CostruisciESalva(nome + " · componente «" + suoNome + "»", c, percorso))
+                if (children != null)
+                {
+                    if (!BuildSubassembly(nome + " · sub-assembly «" + suoNome + "»",
+                                          NomeDiFile(nome) + "_" + NomeDiFile(suoNome), children, percorso, fuori))
+                        return null;
+                }
+                else if (!CostruisciESalva(nome + " · componente «" + suoNome + "»", c, percorso))
                     return null;
 
-                fuori.FileDaCancellare.Add(percorso);
-                fuori.TitoliDaChiudere.Add(Path.GetFileName(percorso));
+                Register(fuori, percorso);
 
                 if (!DaInserire(c)) continue;
                 percorsi.Add(percorso);
@@ -340,7 +353,178 @@ namespace ProvaSaldatura
                 return null;
             }
 
+            // ── 7. the configurations of the assembly, when the case asks ──
+            var configurations = Elenco(assieme, "configurations");
+            if (configurations != null &&
+                !PrepareConfigurations(nome, doc, ass, configurations, pathByComponentName))
+                return null;
+
             return fuori;
+        }
+
+        /// <summary>
+        /// THE CONFIGURATIONS A CASE ASKS OF ITS ASSEMBLY (Z-C21.4, findings
+        /// L16-2 and L16-3): «configurations»: [{ "name": ..., "suppressed":
+        /// [component names], "excluded_from_bom": [component names] }], made in
+        /// this order after the components are in. No operation of the catalogue
+        /// suppresses a component or excludes it from the BOM in one
+        /// configuration, and without this a BOM read in the wrong configuration
+        /// could not be written as a case.
+        ///
+        /// IConfigurationManager.AddConfiguration2 ACTIVATES the new
+        /// configuration (measured on parts by crea_configurazione, read back
+        /// here on the assembly), so each one is set while it is the active one:
+        /// IComponent2.SetSuppression2 acts on the active configuration, and
+        /// SetExcludeFromBOM2 is given swThisConfiguration. Every setting is READ
+        /// BACK (IsSuppressed, GetExcludeFromBOM2) before the case runs. The last
+        /// configuration made stays active; a step that needs another one active
+        /// asks for it with «activate_before».
+        /// </summary>
+        private static bool PrepareConfigurations(
+            string nome, IModelDoc2 doc, IAssemblyDoc ass, List<object> configurations,
+            Dictionary<string, string> pathByComponentName)
+        {
+            var manager = doc.ConfigurationManager;
+            if (manager == null)
+            {
+                ErroreDiBanco(nome, "«configurations»: the assembly gives no ConfigurationManager");
+                return false;
+            }
+            for (int i = 0; i < configurations.Count; i++)
+            {
+                var one = configurations[i] as Dictionary<string, object>;
+                string name = one == null ? null : Testo(one, "name");
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    ErroreDiBanco(nome, "«configurations» " + (i + 1) + " has no «name»");
+                    return false;
+                }
+                IConfiguration made = null;
+                try { made = manager.AddConfiguration2(name, "", "", 0, "", "", true) as IConfiguration; }
+                catch (Exception ex)
+                {
+                    ErroreDiBanco(nome, "AddConfiguration2(«" + name + "»): " + Perche(ex));
+                    return false;
+                }
+                string active = null;
+                try
+                {
+                    IConfiguration activeNow = manager.ActiveConfiguration;
+                    active = activeNow == null ? null : activeNow.Name;
+                }
+                catch { }
+                if (made == null || !string.Equals(active, name, StringComparison.Ordinal))
+                {
+                    ErroreDiBanco(nome, "AddConfiguration2(«" + name + "») answered " +
+                                        (made == null ? "null" : "«" + made.Name + "»") + " and the active " +
+                                        "configuration is «" + (active ?? "?") + "»: the settings of this " +
+                                        "configuration would land on another one");
+                    return false;
+                }
+
+                foreach (var componentName in TextsOf(one, "suppressed"))
+                {
+                    var component = ComponentOfCase(nome, ass, componentName, pathByComponentName);
+                    if (component == null) return false;
+                    int answer = -1;
+                    try { answer = component.SetSuppression2((int)swComponentSuppressionState_e.swComponentSuppressed); }
+                    catch (Exception ex)
+                    {
+                        ErroreDiBanco(nome, "SetSuppression2 on «" + componentName + "»: " + Perche(ex));
+                        return false;
+                    }
+                    bool suppressed = false;
+                    try { suppressed = component.IsSuppressed(); } catch { }
+                    if (!suppressed)
+                    {
+                        ErroreDiBanco(nome, "«" + componentName + "» is not suppressed in «" + name +
+                                            "» after SetSuppression2 (answer " + answer + ")");
+                        return false;
+                    }
+                }
+
+                foreach (var componentName in TextsOf(one, "excluded_from_bom"))
+                {
+                    var component = ComponentOfCase(nome, ass, componentName, pathByComponentName);
+                    if (component == null) return false;
+                    int answer = -1;
+                    object readBack = null;
+                    try
+                    {
+                        answer = component.SetExcludeFromBOM2(
+                            true, (int)swInConfigurationOpts_e.swThisConfiguration, null);
+                        readBack = component.GetExcludeFromBOM2(
+                            (int)swInConfigurationOpts_e.swThisConfiguration, null);
+                    }
+                    catch (Exception ex)
+                    {
+                        ErroreDiBanco(nome, "SetExcludeFromBOM2 on «" + componentName + "»: " + Perche(ex));
+                        return false;
+                    }
+                    if (!OnlyTrue(readBack))
+                    {
+                        ErroreDiBanco(nome, "«" + componentName + "» is not excluded from the BOM of «" + name +
+                                            "» after SetExcludeFromBOM2 (answer " + answer + ")");
+                        return false;
+                    }
+                }
+                Console.WriteLine("       | assembly configuration «" + name + "» made" +
+                                  (TextsOf(one, "suppressed").Count + TextsOf(one, "excluded_from_bom").Count > 0
+                                      ? ": suppressed [" + string.Join(", ", TextsOf(one, "suppressed")) +
+                                        "], out of the BOM [" + string.Join(", ", TextsOf(one, "excluded_from_bom")) + "]"
+                                      : ""));
+            }
+            try { doc.EditRebuild3(); } catch { }
+            return true;
+        }
+
+        /// <summary>The texts of a list field of a case object; empty when the field is absent.</summary>
+        private static List<string> TextsOf(Dictionary<string, object> one, string field)
+        {
+            var list = new List<string>();
+            var raw = one == null ? null : Elenco(one, field);
+            if (raw == null) return list;
+            foreach (var x in raw) if (x != null) list.Add(Convert.ToString(x, CultureInfo.InvariantCulture));
+            return list;
+        }
+
+        /// <summary>Whether a GetExcludeFromBOM2 answer is one Boolean, and true.</summary>
+        private static bool OnlyTrue(object answer)
+        {
+            var flags = answer as bool[];
+            if (flags != null) return flags.Length == 1 && flags[0];
+            var boxed = answer as object[];
+            return boxed != null && boxed.Length == 1 && boxed[0] is bool b && b;
+        }
+
+        /// <summary>
+        /// The top-level component of the assembly made from the case component
+        /// called <paramref name="componentName"/>, found by its FILE, never by
+        /// its position; null (after ErroreDiBanco) when there is none.
+        /// </summary>
+        private static IComponent2 ComponentOfCase(
+            string nome, IAssemblyDoc ass, string componentName, Dictionary<string, string> pathByComponentName)
+        {
+            string path;
+            if (!pathByComponentName.TryGetValue(componentName, out path))
+            {
+                ErroreDiBanco(nome, "«configurations» names «" + componentName + "», which is not a component of the case");
+                return null;
+            }
+            object[] all = null;
+            try { all = ass.GetComponents(true) as object[]; } catch { }
+            foreach (var o in all ?? new object[0])
+            {
+                var c = o as IComponent2;
+                string own = null;
+                try { own = c?.GetPathName(); } catch { }
+                if (!string.IsNullOrWhiteSpace(own) &&
+                    string.Equals(Path.GetFullPath(own), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase))
+                    return c;
+            }
+            ErroreDiBanco(nome, "«configurations» names «" + componentName + "», and no component of the assembly " +
+                                "uses its file (it has «da_inserire» false?)");
+            return null;
         }
 
         /// <summary>
@@ -476,8 +660,8 @@ namespace ProvaSaldatura
                     stato = LeggiStato(doc);
                 }
 
-                int e = 0, w = 0;
-                doc.Extension.SaveAs(percorso, 0, 1, null, ref e, ref w);
+                int e, w;
+                SaveTo(doc, percorso, out e, out w);
                 // SI GUARDA IL FILE, NON IL CODICE DI RITORNO. `SaveAs` scrive
                 // due interi che raccontano cosa pensa SOLIDWORKS di aver
                 // fatto; l'unica prova che il file ci sia e' che ci sia.
@@ -495,6 +679,143 @@ namespace ProvaSaldatura
                 return false;
             }
             finally { Chiudi(doc); }
+        }
+
+        /// <summary>
+        /// The one SaveAs of this file (IModelDocExtension.SaveAs, frozen for
+        /// Z-C21.7 as L13-4/L13-8): a part component and a sub-assembly are
+        /// saved the same way, and the caller looks at the FILE, not at the
+        /// two numbers.
+        /// </summary>
+        private static void SaveTo(IModelDoc2 doc, string path, out int errors, out int warnings)
+        {
+            int e = 0, w = 0;
+            doc.Extension.SaveAs(path, 0, 1, null, ref e, ref w);
+            errors = e;
+            warnings = w;
+        }
+
+        /// <summary>
+        /// A file the preparation made: deleted at the end, and its document
+        /// closed by title. The components and the parts of a sub-assembly
+        /// (Z-C21.5) are registered here, in one place: the two lists are the
+        /// whole cleanup, and a file missing from them is the file the next
+        /// round finds already there.
+        /// </summary>
+        private static void Register(Preparazione p, string path)
+        {
+            p.FileDaCancellare.Add(path);
+            p.TitoliDaChiudere.Add(Path.GetFileName(path));
+        }
+
+        /// <summary>
+        /// A SUB-ASSEMBLY COMPONENT (Z-C21.5, findings L11-3 and L11-5): a
+        /// component of the case with a list of components of its own instead
+        /// of steps. Each child is a part built and saved like any component, as
+        /// «&lt;stem&gt;_&lt;child&gt;.sldprt», inserted into a new assembly at its
+        /// «posizione_mm», and that assembly is saved as
+        /// <paramref name="path"/> («&lt;stem&gt;.sldasm»), which the caller then
+        /// registers and inserts like a part. Without it no case could hold a
+        /// component inside a sub-assembly, and fissa_componente and
+        /// sostituisci_componente, which work on the top level only, could not
+        /// be seen refusing one.
+        ///
+        /// The children are registered here, BEFORE the caller registers the
+        /// sub-assembly: the files are reopened in that order, parts first. The
+        /// sub-assembly is closed by its title at the end like a part: it is
+        /// registered after it is saved, so the title no longer changes. If
+        /// this fails before the save, the new assembly is closed here, since
+        /// nothing else knows it. One level only: a sub-assembly inside a
+        /// sub-assembly is refused, no case needs it yet.
+        /// </summary>
+        private static bool BuildSubassembly(
+            string label, string stem, List<object> children, string path, Preparazione fuori)
+        {
+            if (children.Count == 0)
+            {
+                ErroreDiBanco(label, "the list of components is empty: a sub-assembly with nothing inside proves nothing");
+                return false;
+            }
+            var childPaths = new List<string>();
+            var childPositions = new List<double[]>();
+            for (int k = 0; k < children.Count; k++)
+            {
+                var child = children[k] as Dictionary<string, object>;
+                if (child == null)
+                {
+                    ErroreDiBanco(label, "component " + (k + 1) + " is not an object");
+                    return false;
+                }
+                if (Elenco(child, "componenti") != null)
+                {
+                    ErroreDiBanco(label, "a sub-assembly inside a sub-assembly is not supported by the bench");
+                    return false;
+                }
+                string childName = Testo(child, "nome") ?? ("comp" + (k + 1));
+                string childPath = Path.Combine(Attese.Lavoro, stem + "_" + NomeDiFile(childName) + ".sldprt");
+                if (!CostruisciESalva(label + " · component «" + childName + "»", child, childPath))
+                    return false;
+                Register(fuori, childPath);
+                childPaths.Add(childPath);
+                childPositions.Add(PosizioneMm(child));
+            }
+
+            IModelDoc2 sub;
+            try { sub = NuovoAssieme(); }
+            catch (Exception ex)
+            {
+                ErroreDiBanco(label, "the new sub-assembly: " + Perche(ex));
+                return false;
+            }
+            string failure = FillAndSave(sub, childPaths, childPositions, path, label);
+            if (failure == null) return true;
+            ErroreDiBanco(label, failure);
+            Chiudi(sub);
+            return false;
+        }
+
+        /// <summary>
+        /// The body of <see cref="BuildSubassembly"/> once the new assembly
+        /// exists: the parts opened and inserted, counted, the assembly saved
+        /// and its file looked at. Null when it all went, otherwise what did
+        /// not (an error of the bench, not a red test).
+        /// </summary>
+        private static string FillAndSave(
+            IModelDoc2 sub, List<string> childPaths, List<double[]> childPositions, string path, string label)
+        {
+            var subAssembly = sub as IAssemblyDoc;
+            if (subAssembly == null) return "the new document is not an IAssemblyDoc";
+            // AddComponent5 wants the document open, as in the main assembly.
+            foreach (var p in childPaths)
+                if (!Apri(p, label)) return "a part of the sub-assembly did not open again (the line above says which)";
+            for (int k = 0; k < childPaths.Count; k++)
+            {
+                var at = childPositions[k];
+                IComponent2 inserted = null;
+                try
+                {
+                    inserted = subAssembly.AddComponent5(
+                        childPaths[k], 0, "", false, "",
+                        at[0] / 1000.0, at[1] / 1000.0, at[2] / 1000.0) as IComponent2;
+                }
+                catch (Exception ex)
+                {
+                    return "AddComponent5 on «" + Path.GetFileName(childPaths[k]) + "»: " + Perche(ex);
+                }
+                if (inserted == null)
+                    return "AddComponent5 answered null on «" + Path.GetFileName(childPaths[k]) +
+                           "»: the component did not go in";
+            }
+            try { sub.EditRebuild3(); } catch { }
+            int count = QuantiComponenti(subAssembly);
+            if (count != childPaths.Count)
+                return "inserted " + childPaths.Count + " components and the sub-assembly has " + count;
+
+            int e, w;
+            SaveTo(sub, path, out e, out w);
+            if (!File.Exists(path))
+                return "saved without errors (e=" + e + ", w=" + w + ") but «" + path + "» is not there";
+            return null;
         }
 
         private static IModelDoc2 NuovoAssieme()
@@ -522,8 +843,12 @@ namespace ProvaSaldatura
             try
             {
                 int e = 0, w = 0;
+                // A sub-assembly (Z-C21.5) opens as an assembly, a component as a part.
+                int type = percorso.EndsWith(".sldasm", StringComparison.OrdinalIgnoreCase)
+                    ? (int)swDocumentTypes_e.swDocASSEMBLY
+                    : (int)swDocumentTypes_e.swDocPART;
                 var d = _sw.OpenDoc6(
-                    percorso, (int)swDocumentTypes_e.swDocPART,
+                    percorso, type,
                     (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref e, ref w);
                 if (d == null)
                 {

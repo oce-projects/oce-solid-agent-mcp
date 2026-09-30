@@ -76,6 +76,13 @@ namespace Riscontro.Disegno
             string uid = Str(a, "componente", null);
             var comp = PerUid(componenti, uid);
             if (comp == null) return Fallito(NonTrovato(uid, "componente", componenti));
+            // TOP LEVEL ONLY (finding L11-5, lot Z-C21.5), with the check that
+            // fissa_componente uses. Up to library 0.145.0 a nested component
+            // went to ReplaceComponents2 as it was.
+            string notTopLevel = NotTopLevel(assieme, comp, uid, componenti,
+                "ReplaceComponents2 wants a top-level component: «The component must be a top-level " +
+                "component. It cannot be a component of a sub-assembly» (IAssemblyDoc~ReplaceComponents2.html)");
+            if (notTopLevel != null) return Fallito(notTopLevel);
 
             string nuovo = Str(a, "percorso", null);
             if (string.IsNullOrWhiteSpace(nuovo))
@@ -105,6 +112,26 @@ namespace Riscontro.Disegno
 
             bool tutte = Bool(a, "tutte_le_istanze", true);
             string configurazione = Str(a, "configurazione", "");
+
+            // A CONFIGURATION THE NEW FILE DOES NOT HAVE IS REFUSED BEFORE THE
+            // SWAP (Z-C21.4, finding M18). Up to library 0.145.0 any name went to
+            // ReplaceComponents2 and nothing checked it. The names are read from
+            // the new file's open document, the one the swap uses, and compared
+            // whole (the part in angle brackets belongs to the name).
+            if (!string.IsNullOrWhiteSpace(configurazione))
+            {
+                var newDocument = OpenDocumentAtPath(nuovo);
+                var newConfigurations = newDocument == null ? new List<string>() : NomiDelleConfigurazioni(newDocument);
+                if (newConfigurations.Count == 0)
+                    return Fallito(
+                        "I could not read the configurations of «" + Path.GetFileName(nuovo) + "», so I cannot " +
+                        "check «" + configurazione + "» before the swap. Nothing was replaced.");
+                if (!newConfigurations.Contains(configurazione))
+                    return Fallito(
+                        "«" + Path.GetFileName(nuovo) + "» has no configuration «" + configurazione + "». It has: " +
+                        string.Join(", ", newConfigurations.ConvertAll(n => "«" + n + "»")) + ". The name is compared " +
+                        "whole, the part in angle brackets included. Nothing was replaced.");
+            }
 
             // ── `ReAttachMates` NON E' UNA SCELTA: E' SEMPRE `false` ─────
             //
@@ -138,6 +165,13 @@ namespace Riscontro.Disegno
             int quantiPrima = componenti.Count;
             int problemiPrima = QuantiProblemi(modello);
 
+            // THE TARGET, WRITTEN DOWN BEFORE THE CALL (finding L11-5): its
+            // name, and the components that ALREADY use the new file. After
+            // the call these tell the component that took the target's place
+            // from one that was on the new file all along.
+            string targetName = NomeDi(comp);
+            var onNewFileBefore = NamesOnFile(grezzi, nuovo);
+
             bool risposta;
             try
             {
@@ -146,13 +180,21 @@ namespace Riscontro.Disegno
                     return Fallito(
                         "Non sono riuscito a selezionare «" + uid + "»: senza selezione " +
                         "la sostituzione lavorerebbe su quello che capita, o su niente.");
-                // `MatchName`, MAI `ManuallySelect`. L'altro valore di
-                // `swReplaceComponentsConfiguration_e` apre una finestra per far
-                // scegliere la configurazione a mano — e **una finestra modale
-                // appende la chiamata COM all'infinito**, con il ponte e il
-                // client dietro. E' la trappola gia' pagata con `AddDimension`
-                // (memoria: «API SolidWorks che aprono finestre»), e da qui non
-                // c'e' nessuno che possa premere OK.
+                // MatchName, NOT ManuallySelect, UNTIL A PROBE (Z-C21.4, findings
+                // M18 and N57). This comment used to say that ManuallySelect opens
+                // a window to pick the configuration by hand, and a modal window
+                // hangs the COM call for ever (the trap of AddDimension). That was
+                // never measured, and the guide says otherwise:
+                // swReplaceComponentsConfiguration_e.html, «ManuallySelect 1 = Use
+                // the specified configuration», «MatchName 0 = Let SOLIDWORKS
+                // attempt to match the configuration of the old components with a
+                // configuration in the replacement component». So a non-empty
+                // «configurazione» may not be what the component ends up with:
+                // it is checked before the call (a name the file lacks is
+                // refused) and the configuration really referenced is read back
+                // after it, with a mismatch flagged. Moving to ManuallySelect
+                // waits for the N57 probe in a throwaway container: a window here
+                // would hang the bench and the bridge with nobody to close it.
                 //
                 // UNSAVED EDITS ARE NOT LOST (finding L11-4, NOT REAL). The doubt
                 // was that replacing a component whose part, old or new, has
@@ -177,29 +219,46 @@ namespace Riscontro.Disegno
             try { modello.EditRebuild3(); } catch { }
 
             // ── E SI CONTA DOPO ─────────────────────────────────────────
-            var dopoComp = StatoDocumento.ComponentiInOrdine(
-                assieme.GetComponents(false) as object[]);
+            object[] rawAfter = null;
+            try { rawAfter = assieme.GetComponents(false) as object[]; } catch { }
+            var dopoComp = StatoDocumento.ComponentiInOrdine(rawAfter);
             int accDopo = AccoppiamentiInTutto(dopoComp);
 
-            // LA MISURA NON E' IL `Boolean`. Si guarda se **qualche componente
-            // usa davvero il file nuovo**: e' l'unica cosa che dice che la
-            // sostituzione e' avvenuta.
-            bool ceLaFatta = false;
-            foreach (var v in dopoComp)
-            {
-                string suo = null;
-                try { suo = v.Value.GetPathName(); } catch { }
-                if (!string.IsNullOrWhiteSpace(suo) &&
-                    string.Equals(Path.GetFullPath(suo), Path.GetFullPath(nuovo),
-                                  StringComparison.OrdinalIgnoreCase))
-                { ceLaFatta = true; break; }
-            }
+            // THE MEASURE IS NOT THE BOOLEAN, AND NOT «SOME COMPONENT USES THE
+            // NEW FILE» EITHER (finding L11-5, lot Z-C21.5). Up to library
+            // 0.145.0 any component on the new file made the swap «done»: with
+            // the new part already mounted elsewhere, a swap that changed
+            // nothing was reported as made. Now the question is about the
+            // TARGET: (a) a component is on the new file that was not on it
+            // before, and (b) the target's old name no longer designates a
+            // component on another file. (b) holds whether SOLIDWORKS renames
+            // the replaced component after the new file (the name is gone) or
+            // keeps its name (it now uses the new file, and it is the one in
+            // (a)); which of the two it does is a user option, and the check
+            // does not depend on it.
+            var onNewFileAfter = NamesOnFile(rawAfter, nuovo);
+            var tookThePlace = new List<string>();
+            foreach (var n in onNewFileAfter)
+                if (!onNewFileBefore.Contains(n)) tookThePlace.Add(n);
+            tookThePlace.Sort(StringComparer.Ordinal);
+            bool targetGone;
+            string targetNow = PathOfNamed(rawAfter, targetName, out targetGone);
+            bool targetOnNewFile = targetGone || SameFile(targetNow, nuovo);
+            bool ceLaFatta = targetName != null && tookThePlace.Count > 0 && targetOnNewFile;
 
             if (!ceLaFatta)
                 return Fallito(
-                    "Mi e' stato risposto «" + (risposta ? "si'" : "no") + "» ma nessun " +
-                    "componente dell'assieme usa «" + Path.GetFileName(nuovo) + "». " +
-                    "Non l'ho considerata fatta.");
+                    "ReplaceComponents2 answered " + (risposta ? "true" : "false") + ", but " +
+                    (targetName == null
+                        ? "the name of «" + uid + "» did not answer before the call, so I cannot tell what became of it"
+                        : !targetOnNewFile
+                            ? "«" + uid + "» («" + targetName + "») still uses «" +
+                              (string.IsNullOrWhiteSpace(targetNow) ? "(no path)" : Path.GetFileName(targetNow)) + "»"
+                            : "no component took up «" + Path.GetFileName(nuovo) + "» that was not on it before" +
+                              (onNewFileBefore.Count == 0 ? "" : " (" + onNewFileBefore.Count + " already used it, " +
+                                                                 "and they do not count)")) +
+                    ". I did not count it as done. Read the assembly state again: if something did change, " +
+                    "undo the step with «annulla»; if nothing did, ask again with the new file open.");
 
             var misure = new Dictionary<string, object>
             {
@@ -211,7 +270,39 @@ namespace Riscontro.Disegno
                 ["accoppiamenti_prima"] = accPrima,
                 ["accoppiamenti_dopo"] = accDopo,
                 ["accoppiamenti_persi"] = Math.Max(0, accPrima - accDopo),
+                // L11-5: the components that took up the new file with this
+                // swap, by name (the replaced one, and its other instances when
+                // all instances were asked for). The C1..Cn numbers follow the
+                // names, so read the state again before naming a component by uid.
+                ["took_its_place"] = tookThePlace.ToArray(),
             };
+
+            // THE CONFIGURATION, READ BACK (Z-C21.4, findings M18 and N57): the
+            // one each component that took up the new file references now, one
+            // name when they agree, all of them when they do not. When one was
+            // asked for, «configuration_as_asked» says whether every one of them
+            // references it; a mismatch is FLAGGED (the verdict opens with it),
+            // not undone: the swap has happened, and the way back is «annulla».
+            var referencedNow = new List<string>();
+            bool referencedUnread = false;
+            foreach (var v in dopoComp)
+            {
+                if (!tookThePlace.Contains(v.Key)) continue;
+                string itsConfiguration = null;
+                try { itsConfiguration = v.Value.ReferencedConfiguration; } catch { }
+                if (string.IsNullOrWhiteSpace(itsConfiguration)) { referencedUnread = true; continue; }
+                if (!referencedNow.Contains(itsConfiguration)) referencedNow.Add(itsConfiguration);
+            }
+            if (referencedNow.Count == 1 && !referencedUnread) misure["configurazione"] = referencedNow[0];
+            else if (referencedNow.Count > 0) misure["configurazione"] = referencedNow.ToArray();
+            bool? configurationAsAsked = null;
+            if (!string.IsNullOrWhiteSpace(configurazione))
+            {
+                configurationAsAsked = !referencedUnread && referencedNow.Count == 1 &&
+                                       string.Equals(referencedNow[0], configurazione, StringComparison.Ordinal);
+                misure["configuration_asked"] = configurazione;
+                misure["configuration_as_asked"] = (bool)configurationAsAsked;
+            }
 
             // ── I VINCOLI CI SONO ANCORA. FUNZIONANO? ───────────────────
             //
@@ -253,6 +344,17 @@ namespace Riscontro.Disegno
                            accPrima + ", adesso ne ha " + accDopo + ". Il pezzo nuovo e' " +
                            "dentro e **non e' vincolato**: l'assieme sembra montato e non " +
                            "lo e'. Rimettili con «accoppia», oppure «annulla».";
+            if (configurationAsAsked == false)
+                giudizio = "WARNING: you asked for the configuration «" + configurazione + "», and the new " +
+                           "component references " +
+                           (referencedNow.Count == 0
+                               ? "a configuration I could not read"
+                               : string.Join(", ", referencedNow.ConvertAll(n => "«" + n + "»"))) +
+                           (referencedUnread && referencedNow.Count > 0 ? " (and one I could not read)" : "") +
+                           ". SOLIDWORKS matched the configuration of the old component by name; the choice " +
+                           "that takes the named one is not used yet (see «configuration_as_asked»). Do not " +
+                           "build on it as if it were «" + configurazione + "»: «annulla» takes the swap back. " +
+                           giudizio;
             misure["giudizio"] = giudizio;
             _log("[agente] " + giudizio);
 
@@ -313,6 +415,61 @@ namespace Riscontro.Disegno
                 if (suoi > 0) n += suoi;
             }
             return n;
+        }
+
+        /// <summary>
+        /// L11-5: the names (Name2) of the components, among those of
+        /// GetComponents, whose file is <paramref name="path"/>. A component
+        /// whose name or path does not answer is left out.
+        /// </summary>
+        private static HashSet<string> NamesOnFile(object[] components, string path)
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var o in components ?? new object[0])
+            {
+                var component = o as IComponent2;
+                if (component == null) continue;
+                string name = null, itsPath = null;
+                try { name = component.Name2; itsPath = component.GetPathName(); } catch { }
+                if (!string.IsNullOrEmpty(name) && SameFile(itsPath, path)) names.Add(name);
+            }
+            return names;
+        }
+
+        /// <summary>
+        /// L11-5: the file of the component called <paramref name="name"/>,
+        /// among those of GetComponents; <paramref name="gone"/> is true when
+        /// no component has that name any more (false, and null returned,
+        /// when there is no name to look for).
+        /// </summary>
+        private static string PathOfNamed(object[] components, string name, out bool gone)
+        {
+            gone = false;
+            if (string.IsNullOrEmpty(name)) return null;
+            foreach (var o in components ?? new object[0])
+            {
+                var component = o as IComponent2;
+                if (component == null) continue;
+                string itsName = null;
+                try { itsName = component.Name2; } catch { }
+                if (!string.Equals(itsName, name, StringComparison.Ordinal)) continue;
+                string itsPath = null;
+                try { itsPath = component.GetPathName(); } catch { }
+                return itsPath;
+            }
+            gone = true;
+            return null;
+        }
+
+        /// <summary>Two paths name the same file (full paths, case ignored); false if either is empty or not a path.</summary>
+        private static bool SameFile(string a, string b)
+        {
+            if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) return false;
+            try
+            {
+                return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
         }
     }
 }

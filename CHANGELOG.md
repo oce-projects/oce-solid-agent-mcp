@@ -28,6 +28,102 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.4 and Z-C21.5 (branch z-c21-4-5)
+
+**The configuration is always passed (TODO entry Z-C21.4) and identity by the
+object, not by position (Z-C21.5), with the ids the audit rounds assigned to
+Z-C21.5 (S19, C3-6 extended), the verdicts of the Z-C21.3 probes, S1 in parts only
+(Z-C21.13) and the turned-view leftover of the Z-C21.8/9 review.** Built on bridge
+0.121.0 / library 0.145.0; the version is not raised yet. **THE BENCH HAS NOT RUN
+on this branch** (no SOLIDWORKS while it was written): the eight new cases are
+written red on 0.145.0 by the guide or by the code, not by a measurement, and the
+contract `Prove.Contratti` is green except for the two checks that ask for a bench
+run newer than the sources. `build.ps1`, the contract project and the bench project compile.
+
+- **L11-1, `inserisci_componente`:** `configurazione` is checked against the
+  configurations of the open file before inserting (names compared whole) and a
+  name the file lacks is refused with nothing inserted. AddComponent5 gets
+  UseConfigForPartReferences true and the named CurrentSelectedConfig option; the
+  configuration the new component references is read back, and a different one
+  takes the component out again (said removed only after counting the components).
+  Case `assiemi/the_component_comes_in_with_the_configuration_asked`.
+- **L16-2 and L16-3, `distinta_base_in_tavola`:** the view's configuration is read
+  first; when the assembly has another one active, the view's is activated for the
+  reading and the previous one put back in a finally, each read back; the step
+  refuses before inserting the table if either switch fails. New answer keys
+  `configurazione` and «assembly_active_configuration». The obsolete
+  `IComponent2.ExcludeFromBOM` is replaced by `GetExcludeFromBOM2` in the owner
+  configuration; an unreadable exclusion refuses instead of meaning «included»
+  (Frozen key removed). Bench builder: `configurations` in `assieme` and the step
+  key «activate_before». Case `tavola/the_bom_follows_the_view_configuration`; its
+  step 5 doubles as the L16-4 probe (top-level table on a configuration that is not
+  active), which stays open.
+- **M18, `sostituisci_componente`:** a configuration the new file lacks is refused
+  before the swap; after it, the configuration of the component(s) that took the
+  place is read back into `configurazione`, with «configuration_asked» and
+  «configuration_as_asked»; a mismatch opens the verdict with a WARNING and the swap
+  stays. The ManuallySelect switch waits for the N57 probe. Case
+  `assiemi/the_replaced_component_says_its_configuration`.
+- **M32, `distinta_taglio_in_tavola`:** not changed, documented: the catalogue no
+  longer says an empty configuration is the view's, and says what the comparison
+  counts (top-level cut-list folders, active configuration).
+- **L8-5 closed as NOT REAL** by the Z-C21.3 probe (comment in
+  `OperazioniProprieta.cs`); the ForceRebuild3 before the weldment Get6 loop stays
+  as a defence. L17-1/M10 and L6-3/S3 verified already fixed.
+- **S7, the feature a call made:** `FeatureNamesNow` / `FeatureBorn` take the one
+  feature of the type whose name was not there before the call; the old last-feature helper and
+  every `IFeatureByPositionReverse(0)` are gone. Used by `crea_piano`, `crea_asse`
+  (L8-6: on sheet metal it no longer finds the flat pattern), `piano_per_tre_punti`,
+  `guscio`, `loft_fra_due_cerchi` (N13), the rib offset plane and `SenzaLoSchizzo`.
+  Case `lamiera/the_axis_and_the_planes_of_a_sheet`, contract
+  `Zc215IdentityContract`. The two «last sketch of its type» lookups
+  (`SchizzoAppenaCreato`, `UltimoSchizzoFeature`) are left for a follow-up.
+- **S19 and C3-6 extended, base planes by geometry:** `Riferimenti.BasePlane` finds
+  front, top and right by their normal (same sign) through the origin, as probe
+  C3-6 read them, the first in the tree on a tie; used by `TrovaPianoBase`,
+  `SelezionaPiano`, the part view section and `specchia_componente` (no more counting
+  RefPlanes in tree order). On an assembly the plane transform was not probed: the
+  existing mirror cases are the check. Contract `Zc215IdentityContract`.
+- **S5, bodies by signature:** `ingombro_corpo`, `proprieta_di_massa` and
+  `verifica_geometria_corpo` resolve «corpo_uid» through the state and FirmaCombacia
+  and refuse a uid that now names another body; the answer names the body by the uid
+  asked (it said C1 for C2). Case `misura/a_body_named_before_the_cut_is_not_measured`.
+- **M1, `accoppia`:** face directions are judged in assembly space (Transform2 of
+  the component); an unreadable placement refuses. Case
+  `assiemi/the_turned_pin_is_mated_by_assembly_directions`.
+- **L11-3 and L11-5, nested components:** `fissa_componente` and
+  `sostituisci_componente` refuse a component inside a sub-assembly and name the
+  sub-assembly; the swap counts as done only when a component newly on the new file
+  exists and the target left its old file («took_its_place»). The assembly state
+  writes «top_level» (bool, null if unknown) on every component and
+  «nested_components»; `fisso` is null on a nested component, and
+  the counts of fixed, non-fixed and resting components and the
+  constrained verdict count top-level components only. The bench builder makes
+  sub-assemblies. Case `assiemi/a_component_inside_a_sub_assembly_is_refused`.
+- **M19, undo recording:** started on the document of the plan, finished on the
+  document that holds it, closed and reopened when a step makes a new document; the
+  state is read from the plan's document; `_sw.IActiveDoc2` reads in
+  `EsecutorePiano.cs` go from 5 to 2. Contract `ProveIlDocumento` (+4 checks). A live
+  probe through the bridge is still to run.
+- **M4 and L13-3 closed as already fixed in 0.144.0** by `DocumentByPath`.
+- **S1 in parts:** `ApiHelpers.ReadDimension` reads GetSystemValue3(swThisConfiguration,
+  null) through `OneDimensionValue`, which throws on any answer that is not one
+  number; the obsolete `IDimension.SystemValue` is gone (Frozen key removed). The
+  drawing readers stay on GetSystemValue2, since drawing-owned dimensions answer null
+  (probe_dimension_drawing_owned). The part state writes null, not 0, for a
+  dimension it cannot read. Contract `Zc2113PartDimensionContract`, before/after case
+  `quote/the_dimension_is_read_in_the_active_configuration` (green on 0.145.0 by
+  design).
+- **N80 in the turned view (`OperazioniTondoTavola.cs`):** `QuotaFraDue` asks
+  `NonCresciuta` first; a dimension born without its object is recorded by its three
+  callers instead of dropped, and the silhouette-pair loop stops on it. Contract
+  check in `Zc2189DrawingContract`; no bench case can make SOLIDWORKS do it.
+- **Integration:** catalogue texts of the operations above rewritten in English;
+  new undecided obsolete-scanner calls removed by typing their receivers
+  (`IConfiguration`, casts of `bool?`) instead of raising the frozen counts; floor of
+  refusals with a remedy 230 -> 232; Prove/LEGGIMI 636 checks; Banco/LEGGIMI case
+  counts; language baseline lowered.
+
 ## 0.121.0 — 30 September 2026 · library 0.145.0
 
 **Returns and messages (TODO entry Z-C21.8), and the catalogue, comments and RAG

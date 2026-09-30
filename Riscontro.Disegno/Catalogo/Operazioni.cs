@@ -1021,7 +1021,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "di base perde una faccia intera. Rimette il valore di prima e dice "
                         + "quale smusso o raccordo.\n\nUNA QUOTA ANGOLARE (lo stato la scrive in "
                         + "«gradi») si cambia in GRADI: «valore_mm» porta i gradi, e la risposta "
-                        + "dice «before_deg» e «after_deg» invece di «prima_mm» e «adesso_mm».\n\n"
+                        + "dice «before_deg» e «after_deg» invece di «prima_mm» e «adesso_mm». "
+                        + "A dimension the document state lists with its value null (not 0) could "
+                        + "not be read from SOLIDWORKS; modifica_quota refuses it before changing "
+                        + "anything.\n\n"
                         + "RIFIUTA le quote di sola lettura (non le scavalco, anche se SOLIDWORKS "
                         + "lo permetterebbe), quelle guidate, che misurano e non comandano, e "
                         + "quelle intere, come le copie di una ripetizione.",
@@ -1941,7 +1944,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "L'asse di un foro punta NELLO SPESSORE della piastra: ripetere "
                         + "lungo quello non fa una fila.\n\nSolo facce cilindriche o coniche: "
                         + "una faccia piana non ha un asse. Nello stato del documento sono "
-                        + "quelle con «piana: false».",
+                        + "quelle con «piana: false»."
+                        + "\n\nOn a sheet-metal part too: the axis is the one the call made, wherever "
+                        + "SOLIDWORKS puts it in the tree (before the flat pattern).",
                     Precondizione = "corpo_solido_e_faccia",
                     Schema = O(
                         "type", "object",
@@ -1986,6 +1991,9 @@ namespace Riscontro.Disegno.Catalogo
                     Descrizione =
                         "Crea un piano di riferimento parallelo a un piano base (frontale, "
                         + "superiore o destro) e spostato di una quota lungo la sua normale. "
+                        + "The base plane is found by its geometry (its normal through the "
+                        + "origin), not by its place in the tree, so a template with an extra plane "
+                        + "before the three default ones does not move it. "
                         + "Serve per costruire uno schizzo a una certa altezza o profondita' "
                         + "senza toccare il piano base — «un piano parallelo al superiore, a "
                         + "600 mm» per lavorare a meta' altezza di un montante.\n\nDistanza "
@@ -2843,7 +2851,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "the call returned nothing) stays: it is listed with its values null and "
                         + "named in spigoli_non_quotati, since its value was not read back. For a hole "
                         + "it does not trigger the fallback diameter dimension, which would be a second "
-                        + "annotation on the same hole."
+                        + "annotation on the same hole. The same holds in the turned view: a length or "
+                        + "a diameter born without its object is not in tondo_lunghezze_mm or "
+                        + "tondo_diametri_mm (they list what was read back), is not dimensioned again in "
+                        + "another view and is not reported as not reached; one born between two "
+                        + "silhouette edges without a face cannot be matched to a cylinder, so no further "
+                        + "pair is tried, and its line in spigoli_non_quotati says so."
                         + "\n\nMI RIFIUTO SE LO SPIGOLO CHIESTO NON ESISTE nella vista, e ti dico "
                         + "quanti ne mostra. Un indice che non c'e' e' l'errore piu' facile da "
                         + "fare quotando alla cieca. E rifiuto una vista in cui non resta niente "
@@ -3006,7 +3019,15 @@ namespace Riscontro.Disegno.Catalogo
                         + "children in the BOM (ChildComponentDisplayInBOM): in a top-level table a "
                         + "sub-assembly that promotes its children is replaced by them; in a parts-only "
                         + "table a sub-assembly that hides its children is one item. The indented table "
-                        + "counts every part.",
+                        + "counts every part."
+                        + "\n\nIN WHICH CONFIGURATION: the table is made for the configuration the view "
+                        + "shows, and the assembly is read in that same one. When the assembly has another "
+                        + "configuration active, I activate the view's for the reading and put the active "
+                        + "one back, reading it again: the answer gives the view's configuration and "
+                        + "«assembly_active_configuration», the active one after the reading. If the view's "
+                        + "configuration cannot be activated, or the active one cannot be put back, I refuse "
+                        + "before inserting the table and say where the assembly stayed. The exclusion from "
+                        + "the BOM is read in the configuration of the assembly that holds each component.",
                     Precondizione = "una tavola con una vista di un assieme salvato",
                     Schema = O(
                         "type", "object",
@@ -3519,7 +3540,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "di tabella di casa ne ha 17, e la tabella usciva dal foglio. «colonne» "
                         + "ne sceglie altre per intestazione, o «tutte». Poi misuro la tabella e "
                         + "la metto in un posto libero dentro la cornice, fuori dalle viste e dal "
-                        + "cartiglio; se non c'e' posto la tolgo e lo dico.",
+                        + "cartiglio; se non c'e' posto la tolgo e lo dico."
+                        + "\n\nWHAT THE COMPARISON COUNTS: the bodies of the cut-list folders at the top "
+                        + "of the part's tree, in the part's active configuration. The folders of a "
+                        + "sub-weldment are not descended into, and the view's configuration is not "
+                        + "activated for the count (finding M32, open): on a part with sub-weldments, or "
+                        + "with the view on another configuration, a mismatch can be the count's and not "
+                        + "the table's.",
                     Precondizione = "una tavola con una vista di un saldato che ha gia' la distinta di taglio",
                     Schema = O(
                         "type", "object",
@@ -3539,7 +3566,10 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "le intestazioni delle colonne da tenere, o [\"tutte\"]. Vuoto = numero, quantita', lunghezza, angoli, descrizione."),
                             "configurazione", O(
                                 "type", "string",
-                                "description", "quale configurazione del pezzo. Vuota = quella della vista."),
+                                "description", "which configuration of the part: the guide asks for the "
+                                    + "name of the «As Welded» configuration. Passed as given. Empty: "
+                                    + "passed empty and SOLIDWORKS picks it; which one has not been "
+                                    + "measured, and it is not necessarily the view's (finding M32, open)."),
                             "template", O(
                                 "type", "string",
                                 "description", "il modello di tabella. Vuoto = quello dell'installazione.")),
@@ -3766,7 +3796,12 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
                                     + "dici li guarda tutti. Gli identificativi stanno nello stato del "
                                     + "documento, dentro «corpi». With it the verdict speaks for that "
-                                    + "body only; «bodies_in_part» still says how many bodies the part has.")),
+                                    + "body only; «bodies_in_part» still says how many bodies the part has. "
+                                    + "The identifier is resolved through the document state and checked "
+                                    + "against its signature (centre and box): if the part changed since "
+                                    + "and it now names another body, the step is refused. Only the solid "
+                                    + "bodies of the state have an identifier; to check sheet bodies too, "
+                                    + "leave corpo_uid out.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -3871,7 +3906,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nSU UN ASSIEME peso l'assieme intero (i componenti soppressi no, e "
                         + "te li elenco) e controllo la massa contro la somma dei pezzi letti uno "
                         + "per uno: se non combaciano mi fermo. Se un pezzo non ha materiale, la "
-                        + "massa e' null e ti dico quale.",
+                        + "massa e' null e ti dico quale."
+                        + "\n\nWITH «corpo_uid», a body named from an earlier reading of the state is "
+                        + "checked against its signature (centre and box): if the part changed since and "
+                        + "the identifier now names another body, the step is refused instead of weighing "
+                        + "the other one.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -3879,7 +3918,10 @@ namespace Riscontro.Disegno.Catalogo
                             "corpo_uid", O(
                                 "type", "string",
                                 "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
-                                    + "dici li pesa tutti insieme.")),
+                                    + "dici li pesa tutti insieme. A body named from an earlier reading of "
+                                    + "the state is checked against its signature (centre and box): if the "
+                                    + "part changed since and the identifier now names another body, the "
+                                    + "step is refused instead of weighing the other one.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -3910,7 +3952,12 @@ namespace Riscontro.Disegno.Catalogo
                             "corpo_uid", O(
                                 "type", "string",
                                 "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
-                                    + "dici misura tutti i corpi e la scatola che li contiene.")),
+                                    + "dici misura tutti i corpi e la scatola che li contiene. A body named "
+                                    + "from an earlier reading of the state is checked against its "
+                                    + "signature (centre and box) before it is measured: if the part "
+                                    + "changed since and the identifier now names another body, the step "
+                                    + "is refused instead of measuring the other one. The answer names the "
+                                    + "body by the identifier asked.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -4453,13 +4500,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "sono quelli che «guarda_il_pezzo» elenca come C1, C2, ... e quegli "
                         + "identificativi sono STABILI (al contrario di quelli delle facce di "
                         + "una parte, che si rinumerano a ogni lettura)."
-                        + "\n\nTHE DIRECTIONS ARE THOSE OF THE PART'S OWN FILE, not of the assembly: "
-                        + "the faces are read from the component's bodies, which come in the part's own "
-                        + "coordinates (measured), and no rotation is applied to them yet. On a component "
-                        + "that is not rotated the two are the same; on a rotated or mirrored one «alto» "
-                        + "is the face that looks up in the part file, which may not be the one that "
-                        + "looks up in the assembly. If no flat face looks that way I say so instead of "
-                        + "taking one at random.\n\nFra piu' facce nello stesso "
+                        + "\n\nTHE DIRECTIONS ARE THE ASSEMBLY'S: the faces come from the component's "
+                        + "bodies in the part's own coordinates, and each normal is turned with the "
+                        + "component's placement in the assembly (Transform2) before it is compared, so "
+                        + "on a turned or mirrored component «alto» is the face that looks up in the "
+                        + "assembly. If no flat face looks that way I say so instead of taking one at "
+                        + "random; if the placement of the component cannot be read, I refuse without "
+                        + "touching anything.\n\nFra piu' facce nello stesso "
                         + "verso prendo LA PIU' GRANDE: su un coperchio o una piastra e' "
                         + "quella che vuoi.\n\nQUELLO CHE NON TI SO DIRE, e te lo dico: **di "
                         + "quanto i componenti restino ancora liberi**. SOLIDWORKS non mi da' "
@@ -4481,8 +4528,8 @@ namespace Riscontro.Disegno.Catalogo
                             "faccia_a", O(
                                 "type", "string",
                                 "description", "quale sua faccia, per verso: alto, basso, destra, "
-                                    + "sinistra, davanti, dietro. Directions of the part's own file, not of "
-                                    + "the assembly: they differ on a rotated component."),
+                                    + "sinistra, davanti, dietro. Directions of the assembly: on a turned "
+                                    + "component, the face that looks that way after the rotation."),
                             "componente_b", O(
                                 "type", "string",
                                 "description", "l'identificativo del secondo componente."),
@@ -4526,6 +4573,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "dell'originale col «suffisso» (predefinito «_spec»), nella stessa cartella."
                         + "\n\nMI RIFIUTO se non mi dici «modo» (ti spiego i tre), se il piano non e' uno "
                         + "dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono)."
+                        + "\n\nThe three planes are recognised by their geometry (the plane's normal "
+                        + "through the origin), not by their place in the tree nor by their name: if no "
+                        + "plane of the assembly has that normal through the origin, I refuse and say "
+                        + "what I read."
                         + "\n\nFor an instance of the same file the orientation of the new instance is "
                         + "SET («orientation», default mirrored_x_mirrored_y) and then CHECKED on the "
                         + "axes of the instance (Transform2): the centre is the same in all four "
@@ -4582,7 +4633,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "componente libero con zero accoppiamenti e' appoggiato, si muove."
                         + "\n\nMI RIFIUTO se non mi dici «fisso» (true o false: sono due cose "
                         + "opposte, non c'e' un verso d'ufficio) o se il componente non c'e' "
-                        + "(ti dico quali ci sono).",
+                        + "(ti dico quali ci sono)."
+                        + "\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly "
+                        + "(«top_level»: false in the state) is refused, and the refusal names the "
+                        + "sub-assembly that holds it and its uid; IsFixed and FixComponent work on the "
+                        + "top level only. Open the sub-assembly to fix one of its parts, or fix the "
+                        + "sub-assembly itself.",
                     Precondizione = "un assieme aperto con almeno un componente",
                     Schema = O(
                         "type", "object",
@@ -4622,12 +4678,22 @@ namespace Riscontro.Disegno.Catalogo
                         + "Se gli dai lo stesso file che c'e' gia' mi rifiuto: riuscirebbe e "
                         + "non cambierebbe niente, e tu crederesti di aver cambiato il "
                         + "pezzo."
-                        + "\n\nTHE CONFIGURATION IS NOT CHECKED YET. I ask SOLIDWORKS to match the "
-                        + "configuration of the old component with one of the new file (its "
-                        + "«match name» choice) and I pass «configurazione» along with it; which of "
-                        + "the two SOLIDWORKS follows has not "
-                        + "been measured, and the answer does not read it back. After the swap, read "
-                        + "«configurazione» of the component in the assembly state before trusting it.",
+                        + "\n\nTHE CONFIGURATION IS CHECKED, NOT YET CHOSEN. A «configurazione» the new "
+                        + "file does not have is refused before the swap, and nothing changes. The swap "
+                        + "asks SOLIDWORKS to match the configuration of the old component with one of "
+                        + "the new file (its «match name» choice); the choice that uses the named "
+                        + "configuration waits for a probe that shows it opens no window. So after the "
+                        + "swap I read back the configuration the new component references and give it "
+                        + "in the answer («configurazione»), and, when you asked for one, "
+                        + "«configuration_as_asked»: false means SOLIDWORKS took another one, the verdict "
+                        + "opens with a WARNING, and the swap stays (undo it if the size matters)."
+                        + "\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly is refused "
+                        + "before the call (ReplaceComponents2 wants a top-level component). The swap "
+                        + "counts as done only when a component took up the new file that was not on it "
+                        + "before AND the chosen component no longer uses its old file: another component "
+                        + "already mounted on the new file does not count. «took_its_place» names the "
+                        + "component(s) that took it; the C1..Cn numbers follow the names, so read the "
+                        + "state again before naming one by uid.",
                     Precondizione = "un assieme aperto, e il file nuovo gia' aperto",
                     Schema = O(
                         "type", "object",
@@ -4642,11 +4708,12 @@ namespace Riscontro.Disegno.Catalogo
                                     + "SOLIDWORKS."),
                             "configurazione", O(
                                 "type", "string",
-                                "description", "a configuration of the new file. Passed to SOLIDWORKS "
-                                    + "together with the «match name» choice, and NOT verified: the guide "
-                                    + "says an empty name means the default configuration of the new file, "
-                                    + "and which one wins has not been measured. Check the assembly state "
-                                    + "afterwards."),
+                                "description", "a configuration of the new file, whole name. Refused "
+                                    + "before the swap if the file does not have it. SOLIDWORKS matches "
+                                    + "the old component's configuration by name, so the one you get may "
+                                    + "differ: the answer reads it back («configuration_as_asked»). "
+                                    + "Empty: not checked; the guide says an empty name means the default "
+                                    + "configuration of the new file."),
                             "tutte_le_istanze", O(
                                 "type", "boolean",
                                 "description", "vero (predefinito): se lo stesso pezzo e' montato piu' "
@@ -4683,15 +4750,17 @@ namespace Riscontro.Disegno.Catalogo
                         + "percorso, e su un file chiuso l'inserimento risponde «non fatto» "
                         + "senza dire perche'. I percorsi che puoi usare sono quelli in "
                         + "«documenti_aperti» dello stato: copiali da li'."
-                        + "\n\n«configurazione» IS NOT HONOURED YET. The name goes to SOLIDWORKS in a "
-                        + "field the guide calls «valid only if UseConfigForPartReferences = true», and "
-                        + "that switch is passed false: by the guide the name is then not used, and the "
-                        + "component comes in with the configuration SOLIDWORKS picks by itself, with no "
-                        + "error for a wrong name (which configuration that is has not been measured on "
-                        + "this bridge). The answer "
-                        + "carries «configurazione», the configuration the new component really "
-                        + "references: compare it with the one you wanted before building on it, or you "
-                        + "may have mounted a part of another size.\n\nATTENZIONE SULLE "
+                        + "\n\n«configurazione» chooses the configuration of the part to mount. The name "
+                        + "is checked against the configurations of the open file BEFORE inserting, "
+                        + "compared whole (the part in angle brackets included): a name the file does "
+                        + "not have is refused and nothing is inserted. Then SOLIDWORKS is asked for it "
+                        + "(UseConfigForPartReferences true) and the configuration the new component "
+                        + "really references is read back: if it is another one, the component is taken "
+                        + "out again and the step is refused, and the refusal says whether the removal "
+                        + "was confirmed by counting the components. Without a name the component comes "
+                        + "in with the file's last saved configuration "
+                        + "(swAddComponentConfigOptions_CurrentSelectedConfig), and the answer's "
+                        + "«configurazione» says which one.\n\nATTENZIONE SULLE "
                         + "COORDINATE, perche' i due numeri non tornano e non e' un errore: "
                         + "«x_mm, y_mm, z_mm» posizionano il **centro dell'ingombro**; "
                         + "«origine_mm», che ti rispondo io e che rileggerai nello stato, e' "
@@ -4725,10 +4794,11 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "dove va il CENTRO dell'ingombro, in mm. Predefinito 0."),
                             "configurazione", O(
                                 "type", "string",
-                                "description", "NOT honoured yet (see the description): the component "
-                                    + "comes in with the configuration SOLIDWORKS picks, right name or "
-                                    + "wrong, and no error. The answer's «configurazione» says which one "
-                                    + "it references: compare it.")),
+                                "description", "the configuration of the part to mount, by its whole "
+                                    + "name (the part in angle brackets included). A name the file does "
+                                    + "not have is refused before inserting; the component comes in with "
+                                    + "it, read back, or is taken out again. Empty: the file's last saved "
+                                    + "configuration.")),
                         "required", A("percorso")),
                 },
                 new OperazioneDisegno

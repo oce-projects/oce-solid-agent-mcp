@@ -114,6 +114,22 @@ namespace Riscontro.Disegno
                 if (configurazione == null) return Fallito(perche);
             }
 
+            // NO ACTIVATION AROUND THIS, ON PURPOSE (Z-C21.4, finding L8-5, NOT
+            // REAL). The doubt was that writing and reading the properties of a
+            // configuration that was never activated would move the active one,
+            // or read stale values, and needed ShowConfiguration2 before and a
+            // restore after. The Z-C21.3 probe of L8-5, Get6 on a configuration
+            // never activated (28/9/2026, SOLIDWORKS 2021 SP5.1, company part
+            // template), did
+            // Add3, Get6 with UseCached false, Get6 of a formula property and
+            // ForceRebuild3 on configurations never activated, through this very
+            // get_CustomPropertyManager(name) and through
+            // IConfiguration.CustomPropertyManager: six cases, the active
+            // configuration never moved, and the formula resolved to the same
+            // value before and after activating that configuration. Activating
+            // here would change what the user sees and add a restore that can
+            // fail, to fix nothing: do not add it without a probe that shows a
+            // case the one above did not cover.
             ICustomPropertyManager cassetto;
             try
             {

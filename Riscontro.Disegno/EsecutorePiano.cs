@@ -269,10 +269,20 @@ namespace Riscontro.Disegno
             // preme Ctrl+Z subito dopo, torna com'era prima, non a meta'.
             // (StartRecordingUndoObject/FinishRecordingUndoObject esistono
             // nella 2021: verificato per riflessione sull'interop 29.5.1.1.)
+            //
+            // ON THE DOCUMENT HELD, AND WRITTEN DOWN (finding M19, lot
+            // Z-C21.5). Up to library 0.145.0 the recording was started on a
+            // fresh read of _sw.IActiveDoc2 and finished on documentoAtteso:
+            // two documents whenever the window changed in between. Now it is
+            // started on documentoAtteso itself, and undoRecordedOn remembers
+            // which document holds it: that is the one it is finished on, and
+            // when a step moves the plan to a new document the recording is
+            // closed there and a new one opened on the new document (see
+            // DocumentoNuovo below), never retargeted in silence.
+            IModelDoc2 undoRecordedOn = null;
             await _sulThreadSw(() =>
             {
-                var m = _sw.IActiveDoc2;
-                try { m?.Extension.StartRecordingUndoObject(); } catch { }
+                undoRecordedOn = StartUndoRecording(documentoAtteso);
                 return null;
             });
 
@@ -292,8 +302,11 @@ namespace Riscontro.Disegno
                         break;
                     }
 
+                    // The state of the document the plan works on (M19), not
+                    // of whatever window is in front: a changed window is
+                    // caught right before the step writes, below.
                     var stato = (Dictionary<string, object>)await _sulThreadSw(() =>
-                        StatoDocumento.Leggi(_sw.IActiveDoc2)?.Dati);
+                        StatoDocumento.Leggi(documentoAtteso)?.Dati);
 
                     var prossimo = await _fonte.ProssimoAsync(stato);
 
@@ -397,9 +410,18 @@ namespace Riscontro.Disegno
                             // resta un motivo per fermarsi.
                             if (e.DocumentoNuovo != null)
                             {
+                                // THE UNDO RECORDING FOLLOWS, EXPLICITLY (M19):
+                                // the steps so far are closed as one entry on
+                                // the document they changed, and the steps to
+                                // come are recorded on the new one.
+                                if (!StessoOggetto(undoRecordedOn, e.DocumentoNuovo))
+                                {
+                                    FinishUndoRecording(undoRecordedOn);
+                                    undoRecordedOn = StartUndoRecording(e.DocumentoNuovo);
+                                }
                                 documentoAtteso = e.DocumentoNuovo;
-                                _log("[agente] da qui in poi si lavora su «" +
-                                     Identita(documentoAtteso) + "»");
+                                _log("[agente] from here on the plan works on «" +
+                                     Identita(documentoAtteso) + "», with its own undo entry");
                             }
                         }
                         return e;
@@ -449,26 +471,64 @@ namespace Riscontro.Disegno
                         catch { }
                     }
 
-                    // Si chiude la voce di annullamento sul documento GIUSTO:
-                    // se l'utente e' passato a un'altra finestra, chiuderla li'
-                    // raggrupperebbe sotto il nostro nome modifiche che non
-                    // sono nostre.
-                    // Si chiude sull'OGGETTO che si era aperto, non su quello
-                    // che ha lo stesso nome: fra l'apertura e la chiusura il
-                    // pezzo puo' essersi salvato e aver cambiato nome.
-                    if (StessoOggetto(_sw.IActiveDoc2, documentoAtteso))
-                    {
-                        try
-                        {
-                            documentoAtteso.Extension.FinishRecordingUndoObject(_nomeAnnullamento);
-                        }
-                        catch { }
-                    }
+                    // THE RECORDING IS CLOSED ON THE DOCUMENT IT WAS OPENED ON
+                    // (M19): the object written down at the start (or at the
+                    // last change of document), not the one with the same name
+                    // (it may have been saved and renamed in between) and not
+                    // the active one. Up to library 0.145.0 the closing waited
+                    // for documentoAtteso to be the active document, so a plan
+                    // stopped because the window changed left the recording
+                    // open. The recording belongs to its document (it is a
+                    // member of IModelDocExtension), so another window being in
+                    // front does not move it; what FinishRecordingUndoObject
+                    // answers is read, not assumed.
+                    FinishUndoRecording(undoRecordedOn);
                     return null;
                 });
             }
 
             return risultato;
+        }
+
+        /// <summary>
+        /// M19: starts the undo recording on <paramref name="document"/> and
+        /// returns it, the document that now holds the recording; null when
+        /// there is no document or the call threw (then nothing is recorded,
+        /// and nothing is finished later). StartRecordingUndoObject is void:
+        /// there is no answer to read.
+        /// </summary>
+        private static IModelDoc2 StartUndoRecording(IModelDoc2 document)
+        {
+            if (document == null) return null;
+            try
+            {
+                document.Extension.StartRecordingUndoObject();
+                return document;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// M19: finishes the undo recording on the document that holds it, the
+        /// one <see cref="StartUndoRecording"/> returned; nothing when null.
+        /// The only call to FinishRecordingUndoObject in this file (still the
+        /// obsolete one, frozen for Z-C21.7 as L17-4). Its answer, «True if
+        /// recording of the SOLIDWORKS Undo object ends, false if not»
+        /// (IModelDocExtension~FinishRecordingUndoObject.html), is read and a
+        /// false one is logged: a recording left open would take in whatever is
+        /// done to that document next.
+        /// </summary>
+        private void FinishUndoRecording(IModelDoc2 recordedOn)
+        {
+            if (recordedOn == null) return;
+            bool ended = false;
+            string failure = null;
+            try { ended = recordedOn.Extension.FinishRecordingUndoObject(_nomeAnnullamento); }
+            catch (Exception ex) { failure = ex.Message; }
+            if (!ended)
+                _log("[agente] the undo entry «" + _nomeAnnullamento + "» on «" + Identita(recordedOn) +
+                     "» did not close (FinishRecordingUndoObject " +
+                     (failure == null ? "answered false" : "threw: " + failure) + ")");
         }
 
         /// <summary>

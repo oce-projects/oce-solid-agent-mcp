@@ -2120,21 +2120,31 @@ namespace Riscontro.Disegno
             int tipo = 0;
             try { tipo = d.GetType(); } catch { }
 
+            // A VALUE THAT CANNOT BE READ IS NULL, NOT ZERO (Z-C21.13 follow-up,
+            // S1 in parts). ApiHelpers.ReadDimension moved to GetSystemValue3,
+            // which throws on an answer that is not one number (shapes the probe
+            // did not see: a driven dimension, a suppressed feature). Until
+            // library 0.145.0 the angle stayed at the 0 it was initialised to,
+            // «0 degrees», a plausible wrong number, and a linear dimension that
+            // threw dropped the dimensions of the whole feature, because the only
+            // catch was the one around the walk in QuoteDellaFeature. Now the
+            // row stays, with its name and a null value: not read, not zero.
+            object readValue = null;
             if (tipo == Angolare)
             {
-                double gradi = 0;
-                try { gradi = ApiHelpers.ReadDimension(d) * 180.0 / Math.PI; } catch { }
+                try { readValue = Math.Round(ApiHelpers.ReadDimension(d) * 180.0 / Math.PI, 3); } catch { }
                 return new Dictionary<string, object>
                 {
                     ["nome"] = nome,
-                    ["gradi"] = Math.Round(gradi, 3),
+                    ["gradi"] = readValue,
                 };
             }
 
+            try { readValue = Math.Round(Unita.Mm(ApiHelpers.ReadDimension(d)), 3); } catch { }
             return new Dictionary<string, object>
             {
                 ["nome"] = nome,
-                ["mm"] = Math.Round(Unita.Mm(ApiHelpers.ReadDimension(d)), 3),
+                ["mm"] = readValue,
             };
         }
 

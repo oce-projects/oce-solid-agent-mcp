@@ -1237,6 +1237,13 @@ namespace Riscontro.Disegno
                 try { if (!c.UpdateCutList()) folderUpdatesFalse++; }
                 catch { folderUpdatesUnread++; }
             }
+            // THE REBUILD BEFORE THE Get6 READS BELOW STAYS (Z-C21.4, pattern S8
+            // «Get6 without ForceRebuild3»). The Z-C21.3 probe of L8-5 (Get6 on
+            // a configuration never activated, case R4) found ForceRebuild3 after Get6
+            // not needed on a configuration never activated: the values were
+            // already right. That probe did not build a configuration that is
+            // really out of date, so the call is kept as a defence and is not
+            // removed without a probe that does.
             try { modello.ForceRebuild3(false); } catch { }
             if (!automatica)
                 return rifiuta(AutomaticCutListRefusal(automaticCutListSet, giaEsisteva));

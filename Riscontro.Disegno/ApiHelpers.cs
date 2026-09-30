@@ -34,37 +34,85 @@ namespace Riscontro.Disegno
         // =====================================================================
 
         /// <summary>
-        /// The value of a dimension in system units (metres, radians), in the
-        /// configuration that is active.
+        /// The value of a dimension of a PART in system units (metres,
+        /// radians), in the configuration that is active.
         ///
-        /// Guide: IDimension~SystemValue.html, «Obsolete. Superseded by
-        /// IDimension::GetSystemValue3». The replacement is NOT used yet:
-        /// IDimension~GetSystemValue3.html declares `object GetSystemValue3(int
-        /// WhichConfigurations, object Config_names)`, and the shape of that
-        /// object (an array with one value per configuration?) has not been
-        /// measured (probe of Z-C21.3). A wrong cast there gives a plausible
-        /// wrong number, the worst kind of defect (memory "numero sbagliato e
-        /// plausibile"). After the probe this becomes
-        /// `((double[])d.GetSystemValue3(swThisConfiguration, null))[0]`,
-        /// compared once against SystemValue on the same part.
+        /// OBSOLETE, MIGRATED (Z-C21.13 follow-up, S1 in parts only). Until
+        /// library 0.145.0 this was IDimension.SystemValue. Guide:
+        /// IDimension~SystemValue.html, «Obsolete. Superseded by
+        /// IDimension::GetSystemValue3»; IDimension~GetSystemValue3.html,
+        /// `object GetSystemValue3(int WhichConfigurations, object
+        /// Config_names)`, «The Config_names argument is only used if
+        /// whichConfigurations is set to swSpecifyConfiguration».
+        ///
+        /// MEASURED by the probe probe_dimension_value3 (SOLIDWORKS
+        /// 29.5.1, 28/9/2026) on a linear and an angular dimension of a part
+        /// with three configurations: GetSystemValue3(swThisConfiguration,
+        /// null) is a Double[1] equal to SystemValue and to GetSystemValue2("")
+        /// in every stage (0.01 m and 5 deg in the first configuration, 0.025 m
+        /// and 8 deg in a second one, read with either of them active); the
+        /// form with every configuration answers one value per configuration
+        /// in the order of GetConfigurationNames, and is not used here.
+        ///
+        /// PARTS ONLY. In a drawing the same call reads the configuration
+        /// active in the MODEL, not the one the view shows (same probe,
+        /// --drawing stage), and on the dimensions the drawing owns it answers
+        /// null in every form (probe probe_dimension_drawing_owned,
+        /// 30/9/2026, 21 dimensions out of 21). The first migration of Z-C21.7
+        /// moved the drawing readers too and was withdrawn when the drawing
+        /// cases failed (0.143.0, 29/9/2026: 12 failures, dimensions made and
+        /// discarded by the readback). Every caller of this method
+        /// reads a part (modifica_quota, lega_quota, tolleranza_quota and the
+        /// part state: each one reaches it only after a part check); the
+        /// drawing readers stay on <see cref="ReadDimensionInConfiguration"/>.
+        ///
+        /// An answer that is not one number throws (<see cref="OneDimensionValue"/>):
+        /// the shapes the probe did not see (a driven dimension, a dimension of
+        /// a suppressed feature) must not become a plausible wrong number.
         /// </summary>
         internal static double ReadDimension(IDimension dimension)
         {
-            return dimension.SystemValue;
+            return OneDimensionValue(
+                dimension.GetSystemValue3((int)swInConfigurationOpts_e.swThisConfiguration, null));
+        }
+
+        /// <summary>
+        /// The one value of a GetSystemValue3 answer asked for the active
+        /// configuration: a Double[1] as the probe measured, or an Object[1]
+        /// holding a double (what a late-bound array of one can arrive as).
+        /// Anything else throws, and the message says what came back: a wrong
+        /// cast of a positional array gives a plausible wrong number, the worst
+        /// kind of defect. No interop in the signature, so that the contracts
+        /// can call it on the built library.
+        /// </summary>
+        internal static double OneDimensionValue(object answer)
+        {
+            var values = answer as double[];
+            if (values == null && answer is object[] boxed && boxed.Length == 1 && boxed[0] is double one)
+                values = new[] { one };
+            if (values == null || values.Length != 1)
+                throw new InvalidOperationException(
+                    "IDimension.GetSystemValue3(swThisConfiguration, null) did not answer one value (it answered " +
+                    (answer == null ? "null" : answer is Array list ? "an array of " + list.Length : "something that is not an array") +
+                    ")");
+            return values[0];
         }
 
         /// <summary>
         /// The value of a dimension in system units in a named configuration;
         /// every call site today passes "" (the call it made before Z-C21.6).
+        /// Used by the drawing readers (quota_in_tavola, the turned view, the
+        /// drawing state) and by the anchor checks.
         ///
         /// Guide: IDimension~GetSystemValue2.html, «ConfigName Name of
-        /// configuration Obsolete. See IDimension::GetSystemValue3». Kept
-        /// separate from <see cref="ReadDimension"/> on purpose: the two
-        /// obsolete calls are not proven to answer the same thing (the page does
-        /// not say which configuration "" means, and in a drawing the model's
-        /// active configuration can differ from the one the view shows), and
-        /// merging them without the bank would change eleven readings at once.
-        /// Both collapse into GetSystemValue3 after the Z-C21.3 probe.
+        /// configuration Obsolete. See IDimension::GetSystemValue3». It stays
+        /// on the obsolete call, MEASURED: on the dimensions a drawing owns
+        /// (AddDimension, AddChamferDim, between silhouettes) GetSystemValue3
+        /// answers null in every form, while GetSystemValue2("") reads the
+        /// configuration the view shows (probe
+        /// probe_dimension_drawing_owned, 30/9/2026, verdict
+        /// «abandon S1 in drawings»). The part reader moved to GetSystemValue3
+        /// alone (<see cref="ReadDimension"/>).
         /// </summary>
         internal static double ReadDimensionInConfiguration(IDimension dimension, string configurationName)
         {
