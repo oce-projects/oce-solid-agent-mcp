@@ -28,7 +28,9 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.4 and Z-C21.5 (branch z-c21-4-5)
+## 0.122.0 — 30 September 2026 · library 0.146.0
+
+BENCH_0146_PLACEHOLDER
 
 **The configuration is always passed (TODO entry Z-C21.4) and identity by the
 object, not by position (Z-C21.5), with the ids the audit rounds assigned to

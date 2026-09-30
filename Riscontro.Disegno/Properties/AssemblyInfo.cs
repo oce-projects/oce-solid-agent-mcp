@@ -455,8 +455,13 @@ using System.Runtime.InteropServices;
 //          it was" after a reread, and the catalogue texts and comments that
 //          said the wrong thing corrected (the probe NOT-REAL findings now carry
 //          their measure).
-[assembly: AssemblyVersion("0.145.0.0")]
-[assembly: AssemblyFileVersion("0.145.0.0")]
+// 0.146.0: Z-C21.4 and Z-C21.5, the configuration always passed (components,
+//          BOM, replacement, materials) and identity by the object (standard
+//          planes recognised by their geometry, bodies by signature, features by
+//          what the call returned), plus dimension readings in parts through
+//          GetSystemValue3 (drawings stay on GetSystemValue2).
+[assembly: AssemblyVersion("0.146.0.0")]
+[assembly: AssemblyFileVersion("0.146.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -471,4 +476,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.145.0")]
+[assembly: AssemblyInformationalVersion("0.146.0")]
