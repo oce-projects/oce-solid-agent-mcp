@@ -73,7 +73,7 @@ case or a contract test that is red on 0.144.0.
   `saldature/the_trim_refuses_an_unknown_end_condition`). The gusset null-path
   message no longer blames geometry; three comments now say library 0.139.0.
 - **Drawing returns (L13-6, L16-1, M38, M40, M41, N47, N80).** `esporta_pdf` reads
-  the SetSheets answer and refuses before writing; the page counter
+  the SetSheets answer and reports it (`set_sheets_answer`): the first full bench on 0.145.0 measured false on PDFs that came out complete, so the page count of the written file decides, not the answer; the page counter
   (`CountPdfPages`) answers -1, not 0, when it cannot count, and
   `PdfPageCountRefusal` refuses both an uncounted and a wrong count. The weld symbol
   is refused with fewer than two texts; the gtol frame reads its Ø back

@@ -992,12 +992,16 @@ namespace Riscontro.Disegno
             // sheets are set to export to PDF, false if not». Until library
             // 0.144.0 the answer was dropped, and a false went on to the export
             // with whatever sheets SOLIDWORKS kept: the one-page PDF of a
-            // three-sheet drawing that this operation exists to prevent. Nothing
-            // is written yet, so the refusal leaves the disk as it was.
+            // three-sheet drawing that this operation exists to prevent.
+            //
+            // BUT THE ANSWER LIES (full bench on 0.145.0, 30/9/2026): SetSheets
+            // answered false in la_tavola_esce_in_pdf and le_quote_arrivano_nel_pdf,
+            // whose PDFs came out right in every run up to 0.144.0, when the answer
+            // was dropped. So a false is not a refusal: it is said in the answer
+            // («set_sheets_answer»), and the page count read from the written file
+            // against the sheets of the drawing (PdfPageCountRefusal below) decides.
             if (!everySheetAsked)
-                return Fallito(
-                    "SOLIDWORKS did not accept the request to export every sheet (IExportPdfData.SetSheets " +
-                    "answered false): the PDF could come out with the current sheet only. Nothing was written.");
+                _log("[agent] IExportPdfData.SetSheets answered false; the page count of the written PDF decides");
 
             if (File.Exists(dove))
             {
@@ -1037,6 +1041,9 @@ namespace Riscontro.Disegno
                 ["fogli"] = fogli,
                 ["pagine"] = pagine > 0 ? (object)pagine : null,
                 ["byte"] = new FileInfo(dove).Length,
+                // L13-6: what SetSheets answered; false has been measured on PDFs
+                // that came out complete, so the page count above is the check.
+                ["set_sheets_answer"] = everySheetAsked,
                 // L13-7: the Warnings of the save, decoded, also on a success.
                 ["save_warnings"] = SaveWarningsForAnswer(avvisi),
             };
