@@ -30,17 +30,15 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ## 0.122.0 — 30 September 2026 · library 0.146.0
 
-BENCH_0146_PLACEHOLDER
-
 **The configuration is always passed (TODO entry Z-C21.4) and identity by the
 object, not by position (Z-C21.5), with the ids the audit rounds assigned to
 Z-C21.5 (S19, C3-6 extended), the verdicts of the Z-C21.3 probes, S1 in parts only
 (Z-C21.13) and the turned-view leftover of the Z-C21.8/9 review.** Built on bridge
-0.121.0 / library 0.145.0; the version is not raised yet. **THE BENCH HAS NOT RUN
-on this branch** (no SOLIDWORKS while it was written): the eight new cases are
-written red on 0.145.0 by the guide or by the code, not by a measurement, and the
-contract `Prove.Contratti` is green except for the two checks that ask for a bench
-run newer than the sources. `build.ps1`, the contract project and the bench project compile.
+0.121.0 / library 0.145.0. **Full bench on library 0.146.0, 30/9/2026: 2085 tests,
+0 failed.** A first run was stopped: it had been started without rebuilding the
+bench, and this lot changes `Banco/AssiemeDiProva.cs` and `Banco/CasiDichiarati.cs`.
+The eight new cases were written red on 0.145.0 by the guide or by the code, not by
+a measurement; on 0.146.0 they are green.
 
 - **L11-1, `inserisci_componente`:** `configurazione` is checked against the
   configurations of the open file before inserting (names compared whole) and a
@@ -123,7 +121,7 @@ run newer than the sources. `build.ps1`, the contract project and the bench proj
 - **Integration:** catalogue texts of the operations above rewritten in English;
   new undecided obsolete-scanner calls removed by typing their receivers
   (`IConfiguration`, casts of `bool?`) instead of raising the frozen counts; floor of
-  refusals with a remedy 230 -> 232; Prove/LEGGIMI 636 checks; Banco/LEGGIMI case
+  refusals with a remedy 230 -> 232; Prove/LEGGIMI 639 checks (636 before the bench summary adds its own); Banco/LEGGIMI case
   counts; language baseline lowered.
 - **Review:** the exclusion from the BOM falls back to the unnamed form when the
   named GetExcludeFromBOM2 throws, not only when it answers something that is not one
