@@ -35,7 +35,7 @@ sketch of its type» lookups (S7), N7, N23 and C4-3.** Built on bridge 0.122.0 /
 library 0.146.0; the version is not raised yet. **THE BENCH HAS NOT RUN on this
 branch** (no SOLIDWORKS while it was written): the one new case,
 `saldature/the_end_cap_skips_a_drilled_wall`, and every existing case these
-changes touch are unmeasured until the next bench. Prove.Contratti: 657 checks,
+changes touch are unmeasured until the next bench. Prove.Contratti: 658 checks,
 only the bench-freshness checks red.
 
 - **S7, the sketch just drawn (`SchizzoAppenaCreato`, `SelezionaSchizzoAppenaCreato`,
@@ -70,9 +70,12 @@ only the bench-freshness checks red.
   (red on 0.146.0 by construction: four faces instead of two went to the cap).
 - **N23, the hole point (`AncoraIFori`).** Of the sketch points within 1e-7 m
   of the hole it kept the last one found. Now all are collected and
-  `SameHolePoint` proves they are one point (within 1e-9 m, the file's own
-  point tolerance) or refuses, naming every candidate in millimetres. Contract
-  `Zc215HolePointIdentityContract` (7 checks); no bench case can place two
+  `SameHolePoint` proves they are one point by the sketch point's own ID
+  (`ISketchPoint.GetID`, unique within a sketch: ISketchPoint~GetID.html) or
+  refuses, naming every candidate in millimetres with its ID. Two points at the
+  same coordinates with two IDs are two points (two coincident holes) and are
+  refused; an ID that cannot be read proves nothing. Contract
+  `Zc215HolePointIdentityContract` (8 checks); no bench case can place two
   sketch points that close on purpose.
 - **C4-3, a document opened or activated with a pending rebuild (the bridge's
   open and activate tools, through `PortaDavanti`).** 0.144.0 (`DocumentByPath`) had already fixed the name

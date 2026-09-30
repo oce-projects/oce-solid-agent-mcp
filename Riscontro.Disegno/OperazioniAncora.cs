@@ -692,12 +692,20 @@ namespace Riscontro.Disegno
                     // NelloSchizzo's own transform carries some numerical
                     // slack). Up to library 0.146.0 the loop just kept the LAST
                     // one it found: a guess. SameHolePoint proves the candidates
-                    // are the same point (all within this file's own, much
-                    // tighter, point-identity tolerance) instead of picking one;
-                    // when it cannot, the call is refused and names every one
-                    // found, in millimetres.
+                    // are the same point by the sketch point's own ID, not by
+                    // how close they are: two points at the same coordinates are
+                    // still two points (two coincident holes in a Hole Wizard
+                    // sketch). When it cannot prove it, the call is refused and
+                    // names every candidate, in millimetres, with its ID.
+                    var candidateXY = new List<double[]>();
+                    var candidateIds = new List<long[]>();
+                    foreach (ISketchPoint c in candidati)
+                    {
+                        candidateXY.Add(new[] { c.X, c.Y });
+                        candidateIds.Add(SketchPointId(c));
+                    }
                     string ambiguity;
-                    if (!SameHolePoint(candidati.Select(p => new[] { p.X, p.Y }).ToArray(), out ambiguity))
+                    if (!SameHolePoint(candidateXY.ToArray(), candidateIds.ToArray(), out ambiguity))
                     {
                         motivo = "Hole " + (i + 1) + ": " + ambiguity;
                         return false;
@@ -734,49 +742,83 @@ namespace Riscontro.Disegno
         /// <summary>
         /// N23: are the sketch points AncoraIFori found within its search
         /// window the SAME point, or an ambiguity to refuse instead of guess?
-        /// Two points prove to be the same one only when every candidate sits
-        /// within <see cref="SameHolePointToleranceM"/> of the first — the
-        /// tolerance this file already uses elsewhere to match a sketch point
-        /// to a computed one (see the 1e-9 m comparisons above), a hundred
-        /// times tighter than the 1e-7 m search window itself, which carries
-        /// the slack of NelloSchizzo's own transform. Pure (coordinates only,
-        /// no interop), so Prove.Contratti can drive the duplicate case a bench
-        /// case cannot build on purpose: two real hole positions 1e-7 m apart,
-        /// inside the same positioning sketch, are not something a JSON case
-        /// can ask SOLIDWORKS to build.
+        ///
+        /// SAME POINT MEANS SAME ID, NOT SAME PLACE. ISketchPoint~GetID.html,
+        /// Remarks: «Each point within a specific sketch has a unique ID», an
+        /// ordered pair whose «combination ... is always unique within a
+        /// specific sketch». All candidates come from one GetSketchPoints2 of
+        /// one sketch, so equal IDs are one point met more than once, and
+        /// different IDs are different points however close they sit: two
+        /// points at the very same coordinates are two holes on top of each
+        /// other in a Hole Wizard sketch, and anchoring either one would be the
+        /// guess this file's own rule refuses. A candidate
+        /// whose ID could not be read (null) proves nothing either.
+        ///
+        /// Pure (numbers only, no interop), so Prove.Contratti can drive the
+        /// duplicate case a bench case cannot build on purpose.
         /// <paramref name="candidatesXY"/> holds one {x, y} pair per candidate,
-        /// in metres; empty or null answers false with no ambiguity text (the
-        /// caller's own "no candidate" refusal covers that case).
+        /// in metres, only for the message; <paramref name="candidateIds"/> the
+        /// matching {i1, i2} IDs (<see cref="SketchPointId"/>). Empty or null
+        /// answers false with no ambiguity text (the caller's own "no
+        /// candidate" refusal covers that case).
         /// </summary>
-        internal static bool SameHolePoint(double[][] candidatesXY, out string ambiguity)
+        internal static bool SameHolePoint(double[][] candidatesXY, long[][] candidateIds, out string ambiguity)
         {
             ambiguity = null;
             if (candidatesXY == null || candidatesXY.Length == 0) return false;
             if (candidatesXY.Length == 1) return true;
-            double x0 = candidatesXY[0][0], y0 = candidatesXY[0][1];
-            for (int c = 1; c < candidatesXY.Length; c++)
+
+            bool unreadId = candidateIds == null || candidateIds.Length != candidatesXY.Length;
+            for (int c = 0; !unreadId && c < candidateIds.Length; c++)
+                if (candidateIds[c] == null || candidateIds[c].Length < 2) unreadId = true;
+            bool sameId = !unreadId;
+            for (int c = 1; sameId && c < candidateIds.Length; c++)
+                if (candidateIds[c][0] != candidateIds[0][0] || candidateIds[c][1] != candidateIds[0][1])
+                    sameId = false;
+            if (sameId) return true;
+
+            // A plain loop, not a LINQ projection: the obsolete-call scanner of
+            // Prove.Contratti reads a bare ".Select(" on an untyped receiver as
+            // the old selection call.
+            var found = new List<string>();
+            for (int c = 0; c < candidatesXY.Length; c++)
             {
-                if (Math.Abs(candidatesXY[c][0] - x0) >= SameHolePointToleranceM ||
-                    Math.Abs(candidatesXY[c][1] - y0) >= SameHolePointToleranceM)
-                {
-                    // A plain loop, not a LINQ projection: the obsolete-call
-                    // scanner of Prove.Contratti reads a bare ".Select(" on an
-                    // untyped receiver as the old selection call.
-                    var coordinates = new List<string>();
-                    foreach (double[] q in candidatesXY)
-                        coordinates.Add(string.Format(CultureInfo.InvariantCulture, "({0:0.######}, {1:0.######})",
-                                                      q[0] * 1000.0, q[1] * 1000.0));
-                    ambiguity = candidatesXY.Length + " sketch points answer to the same position, and they are " +
-                                "not the same point: I will not guess which one is the hole's. Coordinates found " +
-                                "(mm): " + string.Join(", ", coordinates) + ".";
-                    return false;
-                }
+                double[] q = candidatesXY[c];
+                long[] id = candidateIds != null && c < candidateIds.Length ? candidateIds[c] : null;
+                found.Add(string.Format(CultureInfo.InvariantCulture, "({0:0.######}, {1:0.######}) ID {2}",
+                                        q[0] * 1000.0, q[1] * 1000.0,
+                                        id != null && id.Length >= 2 ? id[0] + "," + id[1] : "unread"));
             }
-            return true;
+            ambiguity = candidatesXY.Length + " sketch points answer to the same position, and " +
+                        (unreadId
+                            ? "the ID of at least one could not be read, so nothing proves they are the same point"
+                            : "their IDs differ, so they are not the same point") +
+                        ": I will not guess which one is the hole's. Points found (mm): " +
+                        string.Join("; ", found) + ".";
+            return false;
         }
 
-        /// <summary>This file's own point-identity tolerance (metres), see <see cref="SameHolePoint"/>.</summary>
-        private const double SameHolePointToleranceM = 1e-9;
+        /// <summary>
+        /// The ID of a sketch point, {i1, i2} (ISketchPoint~GetID.html, Return
+        /// Value: «Array with two longs or two integers ... identifying this
+        /// sketch point ID»), or null when it cannot be read: null is «not
+        /// known», and <see cref="SameHolePoint"/> does not prove anything with
+        /// it.
+        /// </summary>
+        private static long[] SketchPointId(ISketchPoint point)
+        {
+            try
+            {
+                var pair = point == null ? null : point.GetID() as Array;
+                if (pair == null || pair.Length < 2) return null;
+                return new[]
+                {
+                    Convert.ToInt64(pair.GetValue(0), CultureInfo.InvariantCulture),
+                    Convert.ToInt64(pair.GetValue(1), CultureInfo.InvariantCulture),
+                };
+            }
+            catch (Exception) { return null; }
+        }
 
         /// <summary>
         /// The anchor of a guided hole is read before the diameter is known (the

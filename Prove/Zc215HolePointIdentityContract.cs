@@ -16,17 +16,16 @@ namespace Prove.Contratti
     /// inside that window silently REPLACED the first: whichever the loop over
     /// `GetSketchPoints2()` visited last won, with nothing said. The fix,
     /// `OperazioniSw.SameHolePoint`, refuses instead of guessing UNLESS every
-    /// candidate is provably the same point — within this file's own point-
-    /// identity tolerance (1e-9 m, a hundred times tighter, already used
-    /// elsewhere in the same file to match a sketch point to a computed one).
+    /// candidate is provably the same point: the same sketch point ID
+    /// (ISketchPoint~GetID.html, Remarks: «Each point within a specific sketch
+    /// has a unique ID»). Two points at the very same coordinates with two IDs
+    /// are two points, and are refused; so is a candidate whose ID was not read.
     ///
-    /// NO BENCH CASE CAN BUILD THE AMBIGUOUS CASE ON PURPOSE: it needs two real
-    /// sketch points 1e-7 m apart inside the same positioning sketch, which is
-    /// not a shape a JSON bench case can ask SOLIDWORKS to build (and even if
-    /// it could, floating-point placement that exact is not something the bench
-    /// controls). `SameHolePoint` takes plain coordinates, no interop, exactly
-    /// so this group can drive it directly, as Zc215IdentityContract does for
-    /// the other identity rules of this lot.
+    /// NO BENCH CASE CAN BUILD THE AMBIGUOUS CASE ON PURPOSE: it needs two
+    /// sketch points inside the same 1e-7 m window of one positioning sketch,
+    /// which no JSON case can ask SOLIDWORKS to stage. `SameHolePoint` takes
+    /// plain numbers, no interop, exactly so this group can drive it directly,
+    /// as Zc215IdentityContract does for the other identity rules of this lot.
     /// </summary>
     internal static class Zc215HolePointIdentityContract
     {
@@ -67,58 +66,74 @@ namespace Prove.Contratti
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             if (method == null) { Segna("OperazioniSw.SameHolePoint is there", false, ""); return; }
 
-            Func<double[][], object[]> call = candidates =>
+            Func<double[][], long[][], object[]> call = (candidates, ids) =>
             {
-                var args = new object[] { candidates, null };
+                var args = new object[] { candidates, ids, null };
                 bool same = (bool)method.Invoke(null, args);
-                return new object[] { same, args[1] as string };
+                return new object[] { same, args[2] as string };
             };
 
-            var noCandidates = call(new double[0][]);
+            var noCandidates = call(new double[0][], new long[0][]);
             Segna("no candidate: false, and nothing to say (the caller's own refusal covers it)",
                   (bool)noCandidates[0] == false && noCandidates[1] == null,
                   Show(noCandidates));
 
-            var one = call(new[] { new[] { 0.05, 0.03 } });
+            var one = call(new[] { new[] { 0.05, 0.03 } }, new[] { new long[] { 1, 7 } });
             Segna("one candidate: it is the point, no ambiguity",
                   (bool)one[0] && one[1] == null, Show(one));
 
-            var exactTwin = call(new[] { new[] { 0.05, 0.03 }, new[] { 0.05, 0.03 } });
-            Segna("two candidates at the exact same coordinates: the same point",
-                  (bool)exactTwin[0] && exactTwin[1] == null, Show(exactTwin));
+            // THE SAME POINT MET TWICE: one ID, so one point.
+            var sameId = call(new[] { new[] { 0.05, 0.03 }, new[] { 0.05 + 4e-10, 0.03 } },
+                              new[] { new long[] { 1, 7 }, new long[] { 1, 7 } });
+            Segna("two candidates with the same ID: the same point",
+                  (bool)sameId[0] && sameId[1] == null, Show(sameId));
 
-            // WITHIN THE POINT-IDENTITY TOLERANCE (1e-9 m) BUT NOT BIT-EQUAL:
-            // still proved the same point. A coincident relation can leave two
-            // entities a hair apart in floating point without them being two
-            // different positions.
-            var withinTolerance = call(new[] { new[] { 0.05, 0.03 }, new[] { 0.05 + 4e-10, 0.03 - 4e-10 } });
-            Segna("two candidates 4e-10 m apart (inside the point-identity tolerance): still the same point",
-                  (bool)withinTolerance[0] && withinTolerance[1] == null, Show(withinTolerance));
+            // THE SAME PLACE IS NOT THE SAME POINT: bit-equal coordinates, two
+            // IDs. The first draft of this lot (1e-9 m apart = the same point)
+            // said yes here, and anchored one of two coincident holes by guess.
+            var twinPlace = call(new[] { new[] { 0.05, 0.03 }, new[] { 0.05, 0.03 } },
+                                 new[] { new long[] { 1, 7 }, new long[] { 1, 8 } });
+            Segna("two candidates at the exact same coordinates with two IDs: refused, two points",
+                  (bool)twinPlace[0] == false && (string)twinPlace[1] != null &&
+                  ((string)twinPlace[1]).Contains("IDs differ"),
+                  Show(twinPlace));
 
-            // INSIDE THE COARSE 1e-7 m SEARCH WINDOW, BUT NOT THE SAME POINT:
-            // the case the bench cannot build, and the one 0.146.0 got wrong by
-            // silently keeping whichever the loop visited last.
-            var ambiguousPair = call(new[] { new[] { 0.05, 0.03 }, new[] { 0.05 + 5e-8, 0.03 } });
-            Segna("two candidates 5e-8 m apart (inside the 1e-7 search window, not the point-identity one): refused",
+            // INSIDE THE COARSE 1e-7 m SEARCH WINDOW, TWO POINTS: the case
+            // 0.146.0 got wrong by silently keeping whichever came last.
+            var ambiguousPair = call(new[] { new[] { 0.05, 0.03 }, new[] { 0.05 + 5e-8, 0.03 } },
+                                     new[] { new long[] { 1, 7 }, new long[] { 1, 9 } });
+            Segna("two candidates 5e-8 m apart with two IDs: refused, naming both",
                   (bool)ambiguousPair[0] == false && (string)ambiguousPair[1] != null &&
-                  ((string)ambiguousPair[1]).Contains("2"),
+                  ((string)ambiguousPair[1]).StartsWith("2 ") &&
+                  ((string)ambiguousPair[1]).Contains("ID 1,7") && ((string)ambiguousPair[1]).Contains("ID 1,9"),
                   Show(ambiguousPair));
+
+            // AN ID THAT WAS NOT READ PROVES NOTHING, even at the same place.
+            var unread = call(new[] { new[] { 0.05, 0.03 }, new[] { 0.05, 0.03 } },
+                              new[] { new long[] { 1, 7 }, null });
+            Segna("two candidates, one ID not read: refused, and the refusal says so",
+                  (bool)unread[0] == false && (string)unread[1] != null &&
+                  ((string)unread[1]).Contains("could not be read") && ((string)unread[1]).Contains("unread"),
+                  Show(unread));
 
             // THE ODD ONE OUT IS CAUGHT EVEN WHEN THE OTHER TWO AGREE.
             var oneOfThreeDiffers = call(new[]
             {
                 new[] { 0.05, 0.03 },
+                new[] { 0.05, 0.03 },
                 new[] { 0.05 + 5e-8, 0.03 },
-                new[] { 0.05 + 5e-8, 0.03 },
-            });
-            Segna("three candidates, two of them agreeing and one not: still refused, naming all three",
+            }, new[] { new long[] { 1, 7 }, new long[] { 1, 7 }, new long[] { 2, 7 } });
+            Segna("three candidates, two with one ID and one with another: refused, naming all three",
                   (bool)oneOfThreeDiffers[0] == false && (string)oneOfThreeDiffers[1] != null &&
-                  ((string)oneOfThreeDiffers[1]).Contains("3"),
+                  ((string)oneOfThreeDiffers[1]).StartsWith("3 ") &&
+                  ((string)oneOfThreeDiffers[1]).Contains("ID 2,7"),
                   Show(oneOfThreeDiffers));
 
             // MILLIMETRES IN THE MESSAGE, NOT METRES: what a person reads.
             Segna("the refusal says the coordinates in millimetres",
-                  ((string)ambiguousPair[1]).Contains("(mm)"), (string)ambiguousPair[1]);
+                  (string)ambiguousPair[1] != null && ((string)ambiguousPair[1]).Contains("(mm)") &&
+                  ((string)ambiguousPair[1]).Contains("(50.00005, 30)"),
+                  (string)ambiguousPair[1]);
         }
 
         private static string Show(object[] result)
