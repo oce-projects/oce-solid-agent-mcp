@@ -3,7 +3,7 @@
   "famiglia": "assiemi",
   "perche": "LA VOCE GA4 ERA BLOCCATA SU UN'INCOGNITA CHE NON C'ERA. Diceva: «quali marche di selezione serva usare, la riflessione non lo dice», e ci appendeva la stima. Non serve nessuna marca: si selezionano le due facce con Select4(append) e AddMate5 risponde swAddMateError_NoError. Scoperto dentro una sonda scritta per un'altra domanda -- le sonde vanno lette tutte, non solo per la riga che si era andati a cercare.",
   "perche_questo_caso_esiste": "Per provare che accoppiare CAMBIA qualcosa di misurabile. Il conteggio degli accoppiamenti sale, e «appoggiato» -- che era true su un componente inserito e non vincolato -- diventa false. Senza questa coppia di misure, «ho accoppiato» sarebbe solo una frase.",
-  "perche_UN_accoppiamento_non_basta": "E' la riga che questo caso porta con se'. Un coincidente fra due facce toglie tre gradi di liberta' su sei: il coperchio non puo' piu' staccarsi dalla base ne' inclinarsi, ma PUO' ANCORA SCORRERE nel piano e girare attorno alla normale. L'assieme sembra montato e non lo e'. Il caso pretende che il ponte NON dichiari vincolato un pezzo con un accoppiamento solo, e che dica a voce alta di non sapere quanto resti libero.",
+  "perche_UN_accoppiamento_non_basta": "The line this case carries. A coincident between two faces takes three degrees of freedom of six: the lid can no longer come off the base or tilt, but it CAN STILL SLIDE in the plane and turn about the normal. The assembly looks mounted and is not. The case wants the bridge NOT to call a part held by one mate constrained, and (since Z-C14, which measures the directions by moving the lid and rebuilding) to say out loud which directions are still free: TX, TZ and RY.",
   "assieme": {
     "componenti": [
       { "nome": "base",
@@ -31,13 +31,17 @@
           "perche": "LA MISURA, e non il valore di ritorno: AddMate5 risponde un Mate2 E scrive un ErrorStatus, e nessuno dei due dice che l'accoppiamento esiste. Lo dice il conteggio, su tutti e due i componenti." },
         { "cosa": "misure.appoggiato_b", "uguale": false,
           "perche": "IL CERCHIO SI CHIUDE. Nel caso «inserire_non_e_accoppiare» questo stesso campo era true su un componente appena inserito. Adesso c'e' un accoppiamento e diventa false: e' la prova che i due casi misurano la stessa cosa e che accoppiare la cambia." },
-        { "cosa": "misure.giudizio", "contiene": ["non te lo so dire", "cinque su sei"],
-          "perche": "IL ROSSO CHE CONTA DAVVERO. Un coincidente toglie tre gradi su sei: il coperchio non si stacca piu' ma scorre ancora nel piano e gira attorno alla normale. Se un giorno questa frase sparisse dalla risposta, il ponte starebbe lasciando credere che un accoppiamento solo basti -- e un assieme che sembra montato senza esserlo e' esattamente il difetto che questo progetto insegue." },
+        { "cosa": "misure.giudizio", "contiene": ["still free in TX, TZ, RY"],
+          "perche": "THE RED THAT REALLY COUNTS. A coincident takes three degrees of six: the lid no longer lifts or tilts, but it still slides in the plane and turns about the normal. Up to library 0.147.0 the answer said it could not tell how free the lid still was; since Z-C14 the directions are measured (each move put back by the mates is blocked), and the answer must NAME the three that are still free. If this sentence ever left the answer, the bridge would be letting one mate pass for enough -- and an assembly that looks mounted without being so is exactly the defect this project hunts." },
+        { "cosa": "misure.blocked_directions_after[1]", "uguale": ["TY", "RX", "RZ"],
+          "perche": "Z-C14, field by field: the coincident puts back the lid's move along Y and its turns about X and Z, and only those (the probe zc14/probe_mate_dof read the same three on two blocks). Written in the order of the test, TX TY TZ RX RY RZ." },
+        { "cosa": "misure.degrees_removed[1]", "uguale": 3,
+          "perche": "three directions blocked by this mate and none before it: the lid had no mate" },
         { "cosa": "stato.componenti[1].accoppiamenti", "uguale": 1,
           "perche": "lo stato e l'operazione devono dire lo stesso numero: due letture che divergono sono peggio di una sola" },
         { "cosa": "stato.assieme_vincolato", "uguale": true,
           "perche_questo_true_NON_vuol_dire_montato": "«vincolato» qui significa, alla lettera, «ogni componente non fisso ha almeno un accoppiamento» -- ed e' vero: il coperchio ne ha uno. NON significa «non si muove piu'». E' per questo che lo stato porta anche «cosa_non_so_dei_vincoli», e l'attesa qui sotto pretende che ci sia: un campo che dice true senza la sua avvertenza accanto sarebbe una mezza verita' che nessuno correggerebbe." },
-        { "cosa": "stato.cosa_non_so_dei_vincoli", "contiene": ["almeno un accoppiamento", "cinque su sei"] }
+        { "cosa": "stato.cosa_non_so_dei_vincoli", "contiene": ["at least one mate", "three of the six"] }
       ] }
   ]
 }

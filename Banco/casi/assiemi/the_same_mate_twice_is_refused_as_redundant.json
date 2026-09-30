@@ -1,0 +1,90 @@
+{
+  "nome": "the_same_mate_twice_is_refused_as_redundant",
+  "famiglia": "assiemi",
+  "perche": "TODO entry Z-C14, «the second number for a mate». `accoppia` judged a mate by the mate count before and after, and a REDUNDANT mate raises the count too: the same coincident twice gives two mates and blocks nothing new. Nothing in SOLIDWORKS sees it (probe zc14/probe_mate_dof, 30/9/2026): AddMate5 answers NoError, GetWhatsWrongCount stays 0, the mate feature's error is 0, GetConstrainedStatus answers 2 as before, and GetRemainingDOFs answers Unavailable in every state (RAG note 82d, §7). What the probe found to work is a perturbation test: the component is moved 5 mm along X, Y, Z and turned 5 degrees about X, Y, Z of the assembly, one move at a time with a rebuild after each, and a direction the mates put back is blocked. On these two blocks it read 0 blocked with no mate, 3 (TY, RX, RZ) with one coincident, 3 again with the same coincident repeated, and 4 with a parallel of the front faces added.",
+  "il_difetto_che_questo_caso_prende": "A mate that constrains nothing, accepted as a success because the count went up: the model reads «mated» and believes the lid is held more than it is. And the other way round: a direction read by the whole transform instead of the direction moved. The probe's first rule did that and read the rotations of the parallel step free, because the solver put each rotation back by turning about another point and slid the block 1.7-2.4 mm along a free direction; step 4 is that state.",
+  "se_resta_verde_sulla_libreria_vecchia": "It does not: on library 0.147.0 step 1 passes (its expectations are only what that library already answered), and step 2 is accepted -- the count goes from 1 to 2 on both blocks, which was the whole judgement -- so the refusal it must be is a success, and the case is red there. Steps 3 and 4 are never reached on 0.147.0.",
+  "why_the_first_mate_is_checked_on_old_fields_only": "A field an answer does not have is a bench error, not a red (Banco/LEGGIMI.md). Had step 1 asked for the directions, 0.147.0 would stop there with a bench error and never show the redundant mate accepted. The first mate's own directions are read in step 4 as «blocked_directions_before» (the three the refusal left), and the same coincident on other blocks is checked field by field in `un_accoppiamento_non_basta`.",
+  "i_numeri": "Both blocks are 40 x 40 x 20, extruded up from the Top plane and centred: the origin of each is the centre of its bottom face. The base is inserted first (SOLIDWORKS fixes the first component inserted) with its box centred on the assembly origin, so it spans y -10 to +10 and its top face is at y = +10. The lid's box is centred at (100, 100, 100), so its origin starts at y = 90. The coincident, opposite, puts the lid's bottom face on the base's top face: its origin goes to y = 10, and x and z stay free. A coincident between two flat faces with normal Y blocks the move along Y and the turns about X and Z: TY, RX, RZ, leaving TX, TZ and RY free. The parallel of the two front faces (normal Z, aligned) blocks the turns about X and Y: of those only RY is new, so it removes one degree and leaves TX and TZ free. These are the probe's blocks, positions and mates, and the probe read exactly those directions.",
+  "assieme": {
+    "componenti": [
+      { "nome": "base",
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 40, "larghezza_mm": 40, "spessore_mm": 20, "centrato": true } }
+        ] },
+      { "nome": "lid",
+        "posizione_mm": [100, 100, 100],
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 40, "larghezza_mm": 40, "spessore_mm": 20, "centrato": true } }
+        ] }
+    ]
+  },
+  "passi": [
+    { "operazione": "accoppia",
+      "argomenti": {
+        "componente_a": "C1", "faccia_a": "alto",
+        "componente_b": "C2", "faccia_b": "basso",
+        "tipo": "coincidente", "allineamento": "opposto"
+      },
+      "attese": [
+        { "cosa": "stato.componenti[0].fisso", "uguale": true,
+          "perche": "A FACT FIRST: the base is fixed (SOLIDWORKS fixes the first component inserted), so the lid is read against a part that does not move, as in the probe, and a redundant mate can be judged at all. If this were false the rest of the case would measure something else." },
+        { "cosa": "misure.accoppiamenti_dopo", "uguale": [1, 1],
+          "perche": "the first mate is there, counted on both blocks" },
+        { "cosa": "stato.componenti[1].origine_mm[1]", "uguale": 10, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "the origin is written rounded to the thousandth of a mm, and y is a blocked direction: the test of the directions cannot leave the lid off it",
+          "perche": "the lid's bottom face is on the base's top face at y = 10" } ] },
+
+    { "operazione": "accoppia",
+      "argomenti": {
+        "componente_a": "C1", "faccia_a": "alto",
+        "componente_b": "C2", "faccia_b": "basso",
+        "tipo": "coincidente", "allineamento": "opposto"
+      },
+      "deve_fallire": {
+        "il_messaggio_contiene": ["REDUNDANT", "before the mate blocked in TY, RX, RZ", "blocked nothing new",
+                                  "NoError", "GetWhatsWrongCount is 0", "I took out the mate I had just made",
+                                  "C2 has 1 again, as before"],
+        "gemella": "the_same_mate_twice_is_refused_as_redundant",
+        "la_differenza_e_il_pezzo": "the same mate on the assembly that already has it: the twin is step 1 of this case, where the lid had no mate yet and the coincident blocked TY, RX and RZ" } },
+
+    { "operazione": "verifica_interferenze",
+      "argomenti": {},
+      "attese": [
+        { "cosa": "stato.componenti[1].accoppiamenti", "uguale": 1,
+          "perche": "THE REFUSAL LEFT THE ASSEMBLY AS IT WAS: the redundant mate was made, measured and taken out, and the state, which counts the mates on its own, reads one on the lid again. A refusal that left the second mate in would be a refusal that lies. This step only reads (the check changes nothing): a refused step has no expectations of its own." },
+        { "cosa": "stato.componenti[1].accoppiamenti_tipi", "uguale": ["coincidente"],
+          "perche": "and the one left is the first coincident" },
+        { "cosa": "stato.componenti[1].origine_mm[1]", "uguale": 10, "tolleranza": 0.01,
+          "perche_questa_tolleranza": "the origin is written rounded to the thousandth of a mm, and y is blocked",
+          "perche": "two tests of the directions and a removal later, the lid still sits on the base" },
+        { "cosa": "misure.quante", "uguale": 0,
+          "perche": "the blocks stand apart in x and z (the lid's box is centred at x = z = 100): nothing interferes, and the number says the check ran" } ] },
+
+    { "operazione": "accoppia",
+      "argomenti": {
+        "componente_a": "C1", "faccia_a": "davanti",
+        "componente_b": "C2", "faccia_b": "davanti",
+        "tipo": "parallelo", "allineamento": "allineato"
+      },
+      "attese": [
+        { "cosa": "misure.accoppiamenti_prima", "uguale": [1, 1],
+          "perche": "counted by the operation before this mate: one each, so the redundant mate of step 2 is really gone" },
+        { "cosa": "misure.accoppiamenti_dopo", "uguale": [2, 2],
+          "perche": "the parallel is there" },
+        { "cosa": "misure.direction_test[0]", "contiene": ["fixed"],
+          "perche": "the fixed base is not moved: it is fully blocked by definition, and the answer says so instead of pretending it was measured" },
+        { "cosa": "misure.blocked_directions_before[1]", "uguale": ["TY", "RX", "RZ"],
+          "perche": "THE FIRST MATE'S DIRECTIONS, as the refusal left them: the coincident blocks the move along Y and the turns about X and Z (the probe's S1). Written in the order of the test, TX TY TZ RX RY RZ." },
+        { "cosa": "misure.blocked_directions_after[1]", "uguale": ["TY", "RX", "RY", "RZ"],
+          "perche": "THE RULE OF THE MOVED DIRECTION, in SOLIDWORKS: here the solver puts the turns back by sliding the block along a free direction (1.7-2.4 mm in the probe's S3), and the turns still read blocked because only the angle is judged for a turn. Judged on the whole transform they would read free." },
+        { "cosa": "misure.degrees_removed[1]", "uguale": 1,
+          "perche": "RY is the only direction the parallel adds: RX was blocked already" },
+        { "cosa": "misure.mate_verdict", "uguale": "removes",
+          "perche": "a mate that blocks something new is kept: the other side of the refusal of step 2" },
+        { "cosa": "misure.giudizio", "contiene": ["still free in TX, TZ"],
+          "perche": "and the answer names what the lid can still do: slide in the plane" } ] }
+  ]
+}

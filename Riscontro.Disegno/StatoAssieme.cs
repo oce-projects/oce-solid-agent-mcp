@@ -454,14 +454,16 @@ namespace Riscontro.Disegno
             // LA COSA CHE NON SI SA, DETTA. Non e' un dettaglio tecnico: chi
             // legge «assieme_vincolato: true» deve sapere che vuol dire «ogni
             // componente ha almeno un accoppiamento», NON «non si muove piu'».
-            // Un accoppiamento solo lascia liberi cinque gradi su sei, e questo
-            // stato non li vede.
+            // One coincident mate leaves three of the six directions free (probe
+            // zc14, 30/9/2026: TX, TZ and RY stay free), and this state does not
+            // see them; «accoppia» measures them when it makes a mate (Z-C14).
             if (letturaGradiFallita)
                 dati["cosa_non_so_dei_vincoli"] =
-                    "SOLIDWORKS non mi da' i gradi di liberta' residui (risponde «non " +
-                    "disponibile» su ogni componente, fisso o libero che sia). Quindi " +
-                    "«vincolato» qui vuol dire «ha almeno un accoppiamento», non «non si " +
-                    "muove piu'»: un accoppiamento solo ne lascia liberi cinque su sei.";
+                    "SOLIDWORKS does not give the remaining degrees of freedom (it answers " +
+                    "«unavailable» on every component, fixed or free). So «vincolato» here " +
+                    "means «has at least one mate», not «does not move any more»: one " +
+                    "coincident mate leaves three of the six directions free (measured). " +
+                    "«accoppia» says which directions each mate blocks.";
 
             // ── L'ESPLOSO, E NON E' UN VEZZO (voce GA8) ──────────────────
             //

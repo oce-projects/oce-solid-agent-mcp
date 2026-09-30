@@ -645,7 +645,7 @@ casi/proprieta/   12   i due cassetti, e il codice che va in distinta; the
                        material reaches every configuration (Z-C21, M10)
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-casi/assiemi/     21   inserire non e' accoppiare; un vincolo solo non basta;
+casi/assiemi/     22   inserire non e' accoppiare; un vincolo solo non basta;
                        due basi uguali e uno STEP: una forma per pezzo,
                        la massa per istanza (Z-C20);
                        il coperchio rifatto tiene i vincoli e li rompe;
@@ -668,7 +668,9 @@ casi/assiemi/     21   inserire non e' accoppiare; un vincolo solo non basta;
                        a lightweight assembly has a box and is weighed when
                        asked, the envelope does not weigh, the hidden component
                        is not in the STEP, the lightweight STEP says the export
-                       resolved them (Z-C21.11, N5, N27)
+                       resolved them (Z-C21.11, N5, N27); the same mate twice
+                       is refused as redundant and taken out, and a parallel
+                       after it blocks RY only (Z-C14)
 casi/tavola/      42   il primo caso che arriva in TAVOLA (voce GT0);
                        un Ø8 passante e un Ø8 cieco, due richiami; la borchia
                        non e' un foro; l'albero smussato senza le gambe dello

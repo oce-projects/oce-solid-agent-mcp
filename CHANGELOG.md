@@ -188,6 +188,90 @@ only the three bench-freshness checks red (the last run is 0.146.0).
   39 consumed strings) go down with the tree only with the reason written next
   to them.
 
+## Unreleased — Z-C14, the second number of a mate (branch z-c14)
+
+**`accoppia` now measures which directions a mate blocks, and refuses a
+REDUNDANT mate (TODO entry Z-C14, RAG note 82d).** Built on bridge 0.123.0 /
+library 0.147.0; the version is not raised yet. **THE BENCH HAS NOT RUN on this
+branch** (no SOLIDWORKS while it was written): the new case and the four
+existing cases that call `accoppia` are unmeasured until the next bench.
+Prove.Contratti: 708 checks run in this worktree (710 with `TODO_MD` pointing at
+the TODO, which a worktree does not have), only the two bench-freshness checks
+red plus the README count: a worktree of main built the same way runs 690 of
+the 693 its README states, so the README says 693 + 18 = 711, the 18 being the
+new group (17 as written, one added by the review).
+
+- **Why.** The mate count before/after was the whole judgement, and a redundant
+  mate raises it too. Nothing in SOLIDWORKS sees one: probe
+  `zc14/probe_mate_dof` (30/9/2026, two 40 x 40 x 20 blocks, C1 fixed) read the
+  same coincident added twice as AddMate5 NoError, GetWhatsWrongCount 0, mate
+  feature error 0 and GetConstrainedStatus 2, as for the first one;
+  GetRemainingDOFs answers Unavailable in every state.
+- **The perturbation test (`ReadBlockedDirections`).** Each non-fixed
+  top-level component of the pair is moved 5 mm along X, Y, Z and turned 5
+  degrees about X, Y, Z of the assembly through its origin, one move at a time:
+  IComponent2.Transform2 set from IMathUtility.CreateTransform, EditRebuild3,
+  Transform2 read again. Only the moved direction is judged
+  (`DirectionBlocked`): a translation is blocked when it is back within
+  0.01 mm along its axis, a turn when the angle is back within 0.01 degree. The
+  probe's first rule judged the whole transform and read the parallel's turns
+  free, because the solver put each turn back while sliding the block 1.667 and
+  2.435 mm along a free direction. The probe read 0 blocked with no mate, 3
+  (TY, RX, RZ) with one coincident, 3 again with the same coincident repeated,
+  4 with a parallel added, 6 fully mated. After each move the component goes
+  back where the move started; at the end it gets its original transform, is
+  rebuilt and read, and the drift left is reported. Cost: 13 rebuilds per
+  non-fixed component per reading, read before AddMate5 and after it.
+- **Never a guess.** A transform that cannot be set or read, a set that did not
+  move by the step asked, a rebuild answering false or an orientation that does
+  not come back makes the reading «unknown» with the reason, and the mate is
+  kept. A fixed component is not moved (fully blocked by definition); a
+  component inside a sub-assembly is not moved either (unknown).
+- **The verdict (`MateVerdict`).** «removes» when any direction is newly
+  blocked; «redundant» only when nothing is new and one side is anchored (fixed
+  or already 6/6 blocked); «not_judged» with two free components (moving one
+  can drag the other); «unknown» on an unreadable or self-contradicting reading
+  or an anchored mate that reads zero blocked. A redundant mate is taken out by
+  the object AddMate5 returned (`mate as IFeature`, Select2, DeleteSelection2,
+  both counts read again, `MateRemovalNote`) and the step is refused, saying
+  which directions were already blocked and that AddMate5 NoError and
+  GetWhatsWrongCount 0 do not see it.
+- **The answer** adds `blocked_directions_before`, `blocked_directions_after`,
+  `degrees_removed`, `direction_test`, `residual_drift_mm`,
+  `residual_drift_deg` (per component, in the order of the counts) and
+  `mate_verdict`; `giudizio` is now in English and names what is still free.
+  The catalogue entry says what is measured, the refusal, when the test stays
+  unknown and the cost.
+- **Not measured yet, for the first bench:** `mate as IFeature` on the object
+  AddMate5 returns (the guide and probe zd345 confirm it for GetMates objects),
+  Select2 + DeleteSelection2 on a mate feature, EditRebuild3 answering true
+  during the test, GetWhatsWrongCount 0 after the repeated coincident.
+- **Bench:** new case `assiemi/the_same_mate_twice_is_refused_as_redundant`
+  (red on 0.147.0 at step 2: the same coincident again is accepted because the
+  count goes from 1 to 2; step 4 is the probe's parallel state and checks the
+  rule of the moved direction inside SOLIDWORKS); `un_accoppiamento_non_basta`
+  now wants «still free in TX, TZ, RY», blocked TY, RX, RZ and 3 degrees
+  removed. Banco/LEGGIMI: assemblies 21 to 22.
+- **Contracts:** `Zc14MateDirectionsContract`, 17 checks as written (18 after the review): the probe's S3 rows
+  against both rules, six source rules each seen red on changed copies of the
+  real source (26 mutants), and the pure rules by reflection on the built
+  library (`MovedForTest`, `DirectionBlocked`, `MateVerdict`,
+  `MateRemovalNote`).
+- **Review of the branch (30/9/2026), two fixes before the first bench.**
+  (1) The probe named three outcomes of a move -- BLOCKED, free, ELSEWHERE --
+  and the first code kept two: a move the mates put back only in part read
+  «free». A face up to 8 degrees off the axis (the face is chosen with a dot
+  above 0.99) puts a translation back only in part, and a direction read free
+  before and after a mate that holds it is a mate called redundant and taken
+  out. Now a move that after the rebuild is neither back (`DirectionBlocked`)
+  nor where it was moved (`MoveTookEffect` on the same reading) makes the
+  reading unknown and the mate is kept; none of the probe's rows fell there.
+  (2) The test set back only the component it moved; a rebuild can carry a
+  component mated to it along. The other top-level non-fixed components are
+  now read before the test, any that is away from where it was is set back in
+  the same final rebuild (still 13 rebuilds), and what is left is said in the
+  answer. One more contract check (18) and six more mutants (32).
+
 ## 0.123.0 — 30 September 2026 · library 0.147.0
 
 **The four items the 0.122.0 entry listed as not done in Z-C21.5: the two «last

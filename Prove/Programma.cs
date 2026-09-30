@@ -412,6 +412,7 @@ namespace Prove.Contratti
             Zc215HolePointIdentityContract.RunAll();
             Zc2113PartDimensionContract.RunAll();
             Zc2111ComponentsContract.RunAll();
+            Zc14MateDirectionsContract.RunAll();
             LanguageGateTests.All();
             CaseKeysTests.All();
             BenchReportTests.All();

@@ -57,8 +57,8 @@
         { "cosa": "misure.stato_gradi_di_liberta", "uguale": "non disponibile",
           "perche": "QUESTA ATTESA CUSTODISCE UN ERRORE CHE E' STATO FATTO DAVVERO. Il primo giro pretendeva «gradi_di_liberta_residui uguale 6» e ha misurato 2 -- e 2 non era un conteggio: era `swRemainingDofs_Unavailable`. Il ritorno di GetRemainingDOFs e' uno STATO, non un numero, e su questo assieme dice «non disponibile» su OGNI componente, fisso o libero che sia. Il ponte intanto stampava «ha ancora 2 gradi di liberta' su 6»: numero inventato, unita' inventata, e identico per un pezzo inchiodato e uno che ballava. Se un giorno questo campo smettesse di dire «non disponibile», vorrebbe dire che SOLIDWORKS ha cominciato a fornire l'informazione -- e allora il conteggio si puo' pubblicare. Finche' dice questo, non si puo'.",
           "misurato_come": "sonda DofProva2, quattro condizioni: assieme appena costruito, componente selezionato, assieme salvato su disco, e dopo un accoppiamento coincidente vero (AddMate5 con swAddMateError_NoError). Sempre «non disponibile», sempre con tutti e sei gli status a swDofStatus_Unused." },
-        { "cosa": "stato.cosa_non_so_dei_vincoli", "contiene": ["non disponibile", "cinque su sei"],
-          "perche": "chi legge «assieme_vincolato: true» deve sapere che vuol dire «ogni componente ha almeno un accoppiamento», NON «non si muove piu'». Un accoppiamento solo ne lascia liberi cinque su sei, e questo stato non li vede. La cosa che non si sa va detta, non sottintesa." },
+        { "cosa": "stato.cosa_non_so_dei_vincoli", "contiene": ["unavailable", "three of the six"],
+          "perche": "chi legge «assieme_vincolato: true» deve sapere che vuol dire «ogni componente ha almeno un accoppiamento», NON «non si muove piu'». One coincident mate leaves three of the six directions free (measured, Z-C14), and this state does not see them. What is not known is said, not implied." },
         { "cosa": "misure.giudizio", "contiene": ["appoggiato"],
           "perche": "l'avvertimento viaggia con la risposta, non solo nel catalogo: chi legge questa risposta potrebbe non aver mai letto la descrizione dell'operazione" }
       ] }

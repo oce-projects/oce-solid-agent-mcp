@@ -2,11 +2,11 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 145292,
-  "strings": 54559,
+  "comments": 145282,
+  "strings": 54452,
   "markdown": 33942,
-  "json_values": 55199,
-  "identifiers": 4793,
+  "json_values": 55010,
+  "identifiers": 4799,
   "json_keys": 443,
   "protocol": 2162,
   "paths": 640,
@@ -174,7 +174,7 @@
    "json_values": 549
   },
   "Banco/casi/assiemi/inserire_non_e_accoppiare.json": {
-   "json_values": 783
+   "json_values": 761
   },
   "Banco/casi/assiemi/l_assieme_dice_da_che_file_dipende.json": {
    "json_values": 78
@@ -192,7 +192,7 @@
    "json_values": 279
   },
   "Banco/casi/assiemi/un_accoppiamento_non_basta.json": {
-   "json_values": 307
+   "json_values": 187
   },
   "Banco/casi/coppie/asola_30x9.json": {
    "json_values": 30
@@ -1476,7 +1476,7 @@
   },
   "Riscontro.Disegno/Catalogo/Operazioni.cs": {
    "comments": 869,
-   "strings": 17413
+   "strings": 17367
   },
   "Riscontro.Disegno/ErroriFeature.cs": {
    "comments": 164,
@@ -1510,7 +1510,7 @@
   },
   "Riscontro.Disegno/OperazioniAccoppia.cs": {
    "comments": 360,
-   "strings": 243
+   "strings": 217
   },
   "Riscontro.Disegno/OperazioniAncora.cs": {
    "comments": 1637,
@@ -1755,8 +1755,8 @@
    "strings": 85
   },
   "Riscontro.Disegno/StatoAssieme.cs": {
-   "comments": 1699,
-   "strings": 178
+   "comments": 1689,
+   "strings": 143
   },
   "Riscontro.Disegno/StatoDocumento.cs": {
    "comments": 6163,
@@ -1795,7 +1795,7 @@
    "json_values": 7
   },
   "Strumenti/catalogo.json": {
-   "json_values": 18468
+   "json_values": 18421
   },
   "build.ps1": {
    "comments": 517,
@@ -2538,6 +2538,7 @@
    "LaSelezione",
    "LaSoglia",
    "LaVersioneDelFile",
+   "Lamiera",
    "Larga",
    "Larghezza",
    "LarghezzaMm",
@@ -2637,6 +2638,7 @@
    "Membro",
    "MembroStrutturale",
    "Meno",
+   "Mensola",
    "MessaggioDiAggancio",
    "Metodo",
    "MetodoSconosciuto",
@@ -2841,6 +2843,7 @@
    "Opzione",
    "Ordine",
    "OrdineDelleLavorazioni",
+   "Orfana",
    "Orientamento",
    "OrigineDelComponenteMm",
    "OrigineDelPezzo",
@@ -3088,6 +3091,7 @@
    "Raccogli",
    "Racconta",
    "Raccordo",
+   "RaccordoDiFaccia",
    "RaccordoFaccia",
    "RaccordoFacciaQuasiParallele",
    "RaccordoProva",
@@ -3120,6 +3124,7 @@
    "Riconosci",
    "Ricontrolla",
    "RicordaIlProcesso",
+   "Riempimento",
    "RiempimentoFuoriPiano",
    "RiempimentoMinimo",
    "RiepilogoDelloStato",
@@ -3321,6 +3326,7 @@
    "Specchia",
    "SpecchiaComponente",
    "Specchio",
+   "Spessore",
    "SpessoreMm",
    "SpessoreStaDentro",
    "Spie",
