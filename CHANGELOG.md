@@ -30,16 +30,14 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ## 0.121.0 — 30 September 2026 · library 0.145.0
 
-BENCH_0145_PLACEHOLDER
-
 **Returns and messages (TODO entry Z-C21.8), and the catalogue, comments and RAG
 notes that said the wrong thing (Z-C21.9), with the findings the audit rounds
 Z-C21.10 and Z-C21.12 assigned to them and the NOT-REAL findings of the Z-C21.3
-probes.** Built on bridge 0.120.0 / library 0.144.0; no version bump yet. **The
-bench has NOT run on this branch** (no SOLIDWORKS during the work): the four new
-bench cases and the two changed ones below are unrun, and `Prove.Contratti` is
-green except the two bench-freshness checks. Every behaviour change has a bench
-case or a contract test that is red on 0.144.0.
+probes.** Built on bridge 0.120.0 / library 0.144.0. **Full bench on library 0.145.0,
+30/9/2026: 1986 tests, 0 failed**, after the first run had shown that
+IExportPdfData.SetSheets answers false on PDFs that come out complete (the L13-6
+bullet below says what changed). Every behaviour change has a bench case or a
+contract test that is red on 0.144.0.
 
 - **Export and save warnings (L13-7).** The note that `ErrorCodeDecoder` had no
   callers was stale (`SaveErrorNames` already decoded the SaveAs3 Errors). What was
