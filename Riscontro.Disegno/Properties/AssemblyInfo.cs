@@ -451,8 +451,12 @@ using System.Runtime.InteropServices;
 //          unknown), the gear spline through CreateSpline3 with natural ends,
 //          centre marks added when a new view has none, documents closed and
 //          brought to the front by path, not by title.
-[assembly: AssemblyVersion("0.144.0.0")]
-[assembly: AssemblyFileVersion("0.144.0.0")]
+// 0.145.0: Z-C21.8 and Z-C21.9, returns read and acted on, every "put back as
+//          it was" after a reread, and the catalogue texts and comments that
+//          said the wrong thing corrected (the probe NOT-REAL findings now carry
+//          their measure).
+[assembly: AssemblyVersion("0.145.0.0")]
+[assembly: AssemblyFileVersion("0.145.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -467,4 +471,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.144.0")]
+[assembly: AssemblyInformationalVersion("0.145.0")]

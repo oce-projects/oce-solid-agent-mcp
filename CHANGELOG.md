@@ -28,7 +28,9 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.8 and Z-C21.9 (branch z-c21-8-9)
+## 0.121.0 — 30 September 2026 · library 0.145.0
+
+BENCH_0145_PLACEHOLDER
 
 **Returns and messages (TODO entry Z-C21.8), and the catalogue, comments and RAG
 notes that said the wrong thing (Z-C21.9), with the findings the audit rounds
