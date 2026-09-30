@@ -466,8 +466,11 @@ using System.Runtime.InteropServices;
 //          assembly read once: lightweight parts measured and never called
 //          suppressed, envelopes out of the mass, hidden components out of the
 //          STEP count, and the indented BOM compared with the tree SOLIDWORKS writes.
-[assembly: AssemblyVersion("0.147.0.0")]
-[assembly: AssemblyFileVersion("0.147.0.0")]
+// 0.148.0: Z-C14, `accoppia` measures the directions a mate blocks (the
+//          perturbation test measured on 30/9/2026) and refuses a redundant
+//          mate; and the safety nets of W3.1-bis.2 around the library.
+[assembly: AssemblyVersion("0.148.0.0")]
+[assembly: AssemblyFileVersion("0.148.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -482,4 +485,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.147.0")]
+[assembly: AssemblyInformationalVersion("0.148.0")]

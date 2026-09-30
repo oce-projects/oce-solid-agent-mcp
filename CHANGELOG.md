@@ -28,7 +28,13 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — W3.1-bis.2, the safety nets (branch w31bis-2)
+## 0.124.0 — 1 October 2026 · library 0.148.0
+
+BENCH_0148_PLACEHOLDER
+
+Two lots, merged as two squashed commits: W3.1-bis.2 (the safety nets before the English renames) and Z-C14 (the second number of a mate).
+
+### W3.1-bis.2, the safety nets (branch w31bis-2)
 
 **The nets that must turn red when the translation of W3.1-bis renames a
 protocol name, a case key, a catalogue name or a namespace and breaks something
@@ -188,7 +194,7 @@ only the three bench-freshness checks red (the last run is 0.146.0).
   39 consumed strings) go down with the tree only with the reason written next
   to them.
 
-## Unreleased — Z-C14, the second number of a mate (branch z-c14)
+### Z-C14, the second number of a mate (branch z-c14)
 
 **`accoppia` now measures which directions a mate blocks, and refuses a
 REDUNDANT mate (TODO entry Z-C14, RAG note 82d).** Built on bridge 0.123.0 /
