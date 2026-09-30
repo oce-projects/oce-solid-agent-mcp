@@ -956,20 +956,6 @@ namespace Riscontro.Disegno
         /// si misura, e la si rimette — `SetBendState` non fa niente (nota in
         /// testa, trappola 1).
         ///
-        /// For a caller that has no way to report a flat pattern left
-        /// unsuppressed: it gets NaN in that case too, so that no length is
-        /// taken from a part left flattened. The callers in this file use the
-        /// overload with <c>flatPatternProblem</c> and say it in the answer.
-        /// </summary>
-        private static double LunghezzaSviluppata(IModelDoc2 modello, out double volume)
-        {
-            string flatPatternProblem;
-            double length = LunghezzaSviluppata(modello, out volume, out flatPatternProblem);
-            return flatPatternProblem == null ? length : double.NaN;
-        }
-
-        /// <summary>
-        /// As <see cref="LunghezzaSviluppata(IModelDoc2, out double)"/>;
         /// <paramref name="flatPatternProblem"/> is null when the flat pattern
         /// was unsuppressed and suppressed again as asked, otherwise the reason.
         ///

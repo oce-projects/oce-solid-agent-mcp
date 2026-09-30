@@ -83,11 +83,18 @@ namespace Riscontro.Disegno
             IComponent2 nato;
             try
             {
-                // ConfigOption 0 = usa la configurazione nominata (o l'attiva se
-                // la stringa e' vuota). Non si passa un nome inventato: una
-                // configurazione che non esiste **non da' errore**, prende
-                // l'attiva. E' la stessa trappola gia' pagata con i profili di
-                // saldatura e con `attiva_configurazione`.
+                // THE NAME IN «configurazione» IS NOT USED TODAY (Z-C21.9, S16:
+                // this comment said the named configuration was taken, and a
+                // wrong name fell back to the active one; neither was measured).
+                // IAssemblyDoc~AddComponent5.html: «ExistingConfigName Name of the
+                // configuration of the loaded component; valid only if
+                // UseConfigForPartReferences = true», and the fourth argument
+                // below, UseConfigForPartReferences, is false. So the component
+                // comes in with the configuration SOLIDWORKS picks, and the
+                // answer gives the one it really references
+                // (ReferencedConfiguration, read below). Passing true is the fix,
+                // with a bench case that asks for a configuration that is not the
+                // active one.
                 nato = assieme.AddComponent5(
                     percorso, 0, "", false, configurazione ?? "",
                     x / 1000.0, y / 1000.0, z / 1000.0) as IComponent2;

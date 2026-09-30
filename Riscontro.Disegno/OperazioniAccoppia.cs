@@ -155,8 +155,9 @@ namespace Riscontro.Disegno
                 // THE DISTANCE MATE ENDS ON THE SIDE ASKED FOR WITH Flip = false
                 // (finding N10, NOT REAL). The Z-C21.3 probe of N10 (28/9/2026)
                 // mated a 10 mm block at 30 mm starting from above (s = +90 mm)
-                // and from below (s = -110 mm), anti-aligned and aligned, with
-                // mark 0 and with the guide's mark 1: every Flip = false variant
+                // and from below (s = -110 mm), anti-aligned (and aligned, from
+                // above only), with mark 0 and with the guide's mark 1: every
+                // Flip = false variant
                 // ended at s = +30 mm, the requested side, IMate2.Flipped False;
                 // Flip = true sent it to s = -30 mm. So Flip stays false, and
                 // Transform2 is not reread against the side.

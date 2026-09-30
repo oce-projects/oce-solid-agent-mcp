@@ -276,13 +276,19 @@ namespace Riscontro.Disegno
                 // view, and left both. The view goes first, then the circle; each
                 // is said removed only after its reread (RemoveNewView reads the
                 // views again, RemoveSheetSketchSegment counts the sheet sketch).
-                bool viewRemoved = RemoveNewView(modello, nomeDettaglio);
+                // ONLY A VIEW THAT WAS NOT THERE BEFORE IS DELETED: with no view
+                // returned, the name comes from the last view of the chain, and a
+                // name read before the call is a view of the user.
+                bool viewIsNew = !nomiViste.Contains(nomeDettaglio);
+                bool viewRemoved = viewIsNew && RemoveNewView(modello, nomeDettaglio);
                 bool circleRemoved = RemoveSheetSketchSegment(modello, disegno, cerchio, segmentsBefore);
                 return Fallito(
                     "The view «" + nomeDettaglio + "» was born, but on «" + nomeBersaglio +
                     "» the detail circles are still " + cerchiDopo + ": the circle did not become a detail. " +
                     (viewRemoved ? "I removed the view"
-                                 : "I could not remove the view «" + nomeDettaglio + "» (remove it — " + Frasi.CosiSiRitira + ")") +
+                     : !viewIsNew ? "The view I read, «" + nomeDettaglio + "», was on the sheet before this step, so I " +
+                                    "did not delete it: find the new view and remove it — " + Frasi.CosiSiRitira
+                     : "I could not remove the view «" + nomeDettaglio + "» (remove it — " + Frasi.CosiSiRitira + ")") +
                     SheetLineRemovedOrNot(circleRemoved, "circle"));
             }
 

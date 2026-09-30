@@ -97,6 +97,7 @@ namespace Prove.Contratti
             TrimEndCondition(sw);
             CutListItems(sw);
             WeldmentRemoval(sw);
+            MirrorRemoval(sw);
             AutomaticCutListRefusal(sw);
             InterferenceVerdict(sw);
             InterferenceSettings(sw);
@@ -449,6 +450,31 @@ namespace Prove.Contratti
                       gone + " | " + bodies);
             }
             catch (Exception ex) { Segna("N30: WeldmentRemovalNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
+        }
+
+        // ── The component mirror a refusal removes: said removed after a reread ──
+        // TogliLoSpecchio said «the assembly is as it was» on the answer of
+        // DeleteSelection2 alone, and L11-7 gave it one more caller. Now the tree
+        // is read again: removed only when the mirror is no longer in it.
+        private static void MirrorRemoval(Type sw)
+        {
+            try
+            {
+                Func<bool, bool?, string, string> note = (del, still, file) =>
+                    (string)Call(sw, "MirrorRemovalNote", "MirrorComponent1", del, still, file);
+                var gone = note(true, false, null);
+                var stillThere = note(true, true, null);
+                var unread = note(true, null, null);
+                var refused = note(false, null, "Bracket_left.SLDPRT");
+                Segna("L11-7/M42: the component mirror is said removed only when the tree read again lacks it",
+                      gone.Contains("I removed") && gone.Contains("it is gone") &&
+                      !stillThere.Contains("I removed") && stillThere.Contains("still in the tree") &&
+                      !unread.Contains("I removed") && unread.Contains("could not read the tree") &&
+                      !refused.Contains("I removed") && refused.Contains("did not remove") &&
+                      refused.Contains("Bracket_left.SLDPRT"),
+                      gone + " | " + stillThere + " | " + unread + " | " + refused);
+            }
+            catch (Exception ex) { Segna("L11-7/M42: MirrorRemovalNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── N15: the refusal when the automatic cut list does not turn on ────

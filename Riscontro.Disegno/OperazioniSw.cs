@@ -3647,8 +3647,8 @@ namespace Riscontro.Disegno
             if (esito != 0)
                 return Fallito(
                     "SolidWorks ha rifiutato il valore " + valore + " " + unita + " per «" +
-                    nomeQuota + "» (codice " + esito + ": " + ErrorCodeDecoder.SetValueStatus(esito) + "). Di solito e' una " +
-                    "quota governata da un'equazione o da una relazione.");
+                    nomeQuota + "» (codice " + esito + ": " + ErrorCodeDecoder.SetValueStatus(esito) + "). " +
+                    SetValueRefusalCause(esito));
 
             bool ricostruito;
             try { ricostruito = modello.EditRebuild3(); }
@@ -3928,6 +3928,41 @@ namespace Riscontro.Disegno
             if (!SelezionaSpigoli(modello, a, stato, raggio, out quanti, out perche))
                 return Fallito(perche);
             return EseguiRaccordo(modello, raggio, quanti, volumeBefore);
+        }
+
+        /// <summary>
+        /// What to do about a value that IDimension.SetSystemValue3 refused, by
+        /// its status (Z-C21.8, finding L5-6). IDimension~SetSystemValue3.html:
+        /// «Success indicator value as defined in swSetValueReturnStatus_e».
+        /// Until the review of this lot every refusal said «usually a dimension
+        /// governed by an equation or a relation», also for a value out of range,
+        /// a frozen feature or a model not loaded. The status name is already in
+        /// the message (ErrorCodeDecoder.SetValueStatus); this is the remedy that
+        /// goes with it. Only what the enum name says is said: none of these
+        /// statuses was provoked on purpose by a probe. No interop type in the
+        /// signature: Prove.Contratti calls it by reflection.
+        /// </summary>
+        internal static string SetValueRefusalCause(int status)
+        {
+            switch (status)
+            {
+                case (int)swSetValueReturnStatus_e.swSetValue_InvalidValue:
+                    return "SOLIDWORKS does not take this value for this dimension: ask for a value the " +
+                           "geometry allows (not zero or negative for a length).";
+                case (int)swSetValueReturnStatus_e.swSetValue_DrivenDimension:
+                    return "It is a DRIVEN dimension: its value follows the geometry, it is not set. Change the " +
+                           "dimension that drives it.";
+                case (int)swSetValueReturnStatus_e.swSetValue_ModelNotLoaded:
+                    return "The model that owns the dimension is not loaded: open it, then ask again.";
+                case (int)swSetValueReturnStatus_e.swSetValue_FrozenFeatureOwner:
+                    return "The feature that owns the dimension is FROZEN: move the freeze bar below it, then " +
+                           "ask again.";
+                case (int)swSetValueReturnStatus_e.swSetValue_Failure:
+                    return "SOLIDWORKS gives no reason: check whether an equation or a relation drives the " +
+                           "dimension, then ask again.";
+                default:
+                    return "Read the status above, then ask again.";
+            }
         }
 
         /// <summary>
@@ -4254,14 +4289,17 @@ namespace Riscontro.Disegno
         ///       RevOffset1, RevOffset2, Offset1, Offset2, D2PatternSeedOnly,
         ///       SyncSubAssemblies) -> Feature
         ///
-        /// I «MARK» DELLA SELEZIONE NON SONO VERIFICABILI PER RIFLESSIONE:
-        /// non stanno nei metadati, sono comportamento a runtime. Qui si usa
-        /// Mark 1 per la prima direzione e Mark 4 per la lavorazione, che e'
-        /// quello che fa gia' `RipetiCircolare` e funziona; Mark 2 per la
-        /// seconda direzione e' un'analogia con i nomi dei parametri, NON una
-        /// certezza. Una ripetizione nella direzione sbagliata e' un pezzo
-        /// che sembra giusto: va misurata su una griglia 2x2 prima di
-        /// fidarsene.
+        /// THE MARKS ARE MEASURED, NOT GUESSED (Z-C21.9, finding L7-5, not
+        /// real). Mark 1 for the first direction, mark 2 for the second and
+        /// mark 4 for the feature (SelectionMarks.LinearPatternDirection1/2,
+        /// LinearPatternFeatures; IFeatureManager~FeatureLinearPattern5.html,
+        /// «1 to mark Direction 1», «2 to mark Direction 2»). Reflection cannot
+        /// check them, they are behaviour; the Z-C21.3 probe of L7-5 and M16
+        /// (28/9/2026) did: a row along an edge and along an axis of crea_asse
+        /// (L0-L5, six ways of selecting), and a grid on two edges and on two
+        /// axes (G0-G3), each with the expected removed volume and the new hole
+        /// centres where they should be. Until Z-C21.9 this note called mark 2
+        /// an analogy still to be measured on a grid.
         ///
         /// GeometryPattern resta FALSE. Copiare solo la forma e' piu' veloce
         /// e piu' fragile: un foro filettato ripetuto cosi' perde il filetto

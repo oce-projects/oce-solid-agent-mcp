@@ -2,10 +2,10 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 146484,
-  "strings": 54865,
+  "comments": 146399,
+  "strings": 54802,
   "markdown": 33967,
-  "json_values": 55238,
+  "json_values": 55208,
   "identifiers": 4788,
   "json_keys": 443,
   "protocol": 2165,
@@ -1479,7 +1479,7 @@
   },
   "Riscontro.Disegno/Catalogo/Operazioni.cs": {
    "comments": 869,
-   "strings": 17452
+   "strings": 17422
   },
   "Riscontro.Disegno/ErroriFeature.cs": {
    "comments": 164,
@@ -1524,7 +1524,7 @@
    "strings": 266
   },
   "Riscontro.Disegno/OperazioniAssieme.cs": {
-   "comments": 1212,
+   "comments": 1178,
    "strings": 201
   },
   "Riscontro.Disegno/OperazioniCambiaEstrusione.cs": {
@@ -1689,7 +1689,7 @@
   },
   "Riscontro.Disegno/OperazioniSpecchiaComponente.cs": {
    "comments": 196,
-   "strings": 242
+   "strings": 220
   },
   "Riscontro.Disegno/OperazioniSporgenze.cs": {
    "comments": 625,
@@ -1700,8 +1700,8 @@
    "strings": 158
   },
   "Riscontro.Disegno/OperazioniSw.cs": {
-   "comments": 15327,
-   "strings": 3336
+   "comments": 15276,
+   "strings": 3325
   },
   "Riscontro.Disegno/OperazioniTabellaFori.cs": {
    "comments": 341,
@@ -1798,7 +1798,7 @@
    "json_values": 7
   },
   "Strumenti/catalogo.json": {
-   "json_values": 18507
+   "json_values": 18477
   },
   "build.ps1": {
    "comments": 517,

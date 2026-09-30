@@ -803,6 +803,11 @@ namespace Riscontro.Disegno
             try
             {
                 string archivio;
+                // "" IS THE ACTIVE CONFIGURATION (finding L17-1, NOT REAL). The
+                // Z-C21.3 probe of L17-1 and M10 (28/9/2026) read "" against each
+                // configuration name, activating each in turn: "" followed the
+                // active configuration four times out of four. So the material field is
+                // the material of the active configuration only.
                 var letto = parte.GetMaterialPropertyName2("", out archivio);
                 if (!string.IsNullOrWhiteSpace(letto)) materiale = letto;
             }

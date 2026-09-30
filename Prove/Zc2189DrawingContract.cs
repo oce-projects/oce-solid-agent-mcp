@@ -244,6 +244,20 @@ namespace Prove.Contratti
                       ", view removal " + viewRemoved);
             }
 
+            // M41, the other edge of the fallback: with no view returned, the
+            // view read is the last of the chain, and a name that was on the
+            // sheet before the call is a view of the user. Neither refusal
+            // deletes it.
+            if (section != null && detail != null)
+            {
+                bool sectionGuarded = section.Contains("!nomiViste.Contains(nomeSezione) && RemoveNewView(");
+                bool detailGuarded = detail.Contains("bool viewIsNew = !nomiViste.Contains(nomeDettaglio);") &&
+                                     detail.Contains("viewIsNew && RemoveNewView(");
+                Segna("M41: a refusal never deletes a view that was on the sheet before the call",
+                      sectionGuarded && detailGuarded,
+                      "section guarded " + sectionGuarded + ", detail guarded " + detailGuarded);
+            }
+
             string texts = Read(dir, "OperazioniTestiQuote.cs");
             string dims = Read(dir, "OperazioniQuoteTavola.cs");
             if (texts != null && dims != null)

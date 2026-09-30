@@ -116,8 +116,28 @@ case or a contract test that is red on 0.144.0.
 - **Two historical lines of this file corrected in place, marked:** the gusset entry
   of 0.115.0 said 0.138.0 (N69), and the UseGlobal note of 0.53.0 claimed a measure
   that could not tell the branches apart (L8-3).
-- **Contracts.** New groups `Zc2189WeldAssemblyContract` (28 checks),
-  `Zc2189DrawingContract` (12), `Zc2189MachiningContract` (24): 610 checks in all.
+- **Adversarial review of the branch.**
+  - `modifica_quota` (L5-6, left out of the first pass): a value SetSystemValue3
+    refuses gets the remedy of its own swSetValueReturnStatus_e
+    (`SetValueRefusalCause`), instead of «usually an equation or a relation» for
+    every status.
+  - The component mirror a refusal removes is said removed only after the tree is
+    read again and no longer holds it (`MirrorRemovalNote`); it said «the assembly is
+    as it was» on the answer of DeleteSelection2 alone, and L11-7 had added a caller.
+  - `vista_sviluppo` refuses before placing the view when the flat pattern of the
+    part does not toggle (M24); the overload that answered only NaN is gone.
+  - `sezione_in_tavola` and `dettaglio_in_tavola` never delete a view that was on
+    the sheet before the call: with no view returned, the fallback «last view of
+    the chain» could have been a view of the user (M41).
+  - `inserisci_componente`: the catalogue quoted the guide («in its last saved
+    configuration») with words that are not on any page of the extracted guide; the
+    quote is gone, and the comment next to AddComponent5 no longer says the named
+    configuration is taken.
+  - Comments tightened to what the probes measured: N10 (aligned from above only),
+    L12-3 (measured after ForceRebuild3, and verifica_geometria_corpo does not
+    rebuild), the linear pattern marks (L7-5, grids G0-G3), L17-1 in the state.
+- **Contracts.** New groups `Zc2189WeldAssemblyContract` (29 checks),
+  `Zc2189DrawingContract` (13), `Zc2189MachiningContract` (27): 615 checks in all.
   `ProveIRifiuti` learned the English imperatives of the rewritten refusals: floor
   217 -> 230 (with the same detector HEAD counts 223, so +7 is this branch). The
   frozen obsolete and undecided counts only went down: the tolerance limits are read

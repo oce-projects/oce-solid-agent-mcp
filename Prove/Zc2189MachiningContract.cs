@@ -17,6 +17,8 @@ namespace Prove.Contratti
     ///          refused definition is read back before anything is said
     ///          (ExtrusionReadBackTail, M42). sopprimi_istanza reads the same
     ///          answer for its three pattern families.
+    ///   L5-6   modifica_quota. A refused value gets the remedy of its own
+    ///          swSetValueReturnStatus_e (SetValueRefusalCause).
     ///   L5-7   tolleranza_quota. Every displayed dimension answers for itself
     ///          (ToleranceDecimalsFault), not the last one of the loop; the
     ///          tolerance put back is read back (M42).
@@ -61,7 +63,7 @@ namespace Prove.Contratti
         internal static void RunAll()
         {
             Gruppo("machining and anchor returns and messages the bench cannot reach (Z-C21.8, Z-C21.9: " +
-                   "L5-5, L5-7, L12-9, L17-8, M24, M35, M36, M37, M42, M43, N16, N49, N53, N56, C7-3, C9-6)");
+                   "L5-5, L5-6, L5-7, L12-9, L17-8, M24, M35, M36, M37, M42, M43, N16, N49, N53, N56, C7-3, C9-6)");
 
             CallSites();
 
@@ -106,6 +108,28 @@ namespace Prove.Contratti
             ConstrainedStatus(sw);
             NumberedPattern(sw);
             RemovalTails(sw);
+            SetValueRefusal(sw);
+        }
+
+        // ── L5-6: a refused dimension value, by its status ───────────────────
+        // modifica_quota said «usually a dimension governed by an equation or a
+        // relation» for every status of SetSystemValue3. Each status gets its own
+        // remedy now; the codes are swSetValueReturnStatus_e (1 Failure, 2
+        // InvalidValue, 3 DrivenDimension, 4 ModelNotLoaded, 5 FrozenFeatureOwner).
+        private static void SetValueRefusal(Type sw)
+        {
+            const string rule = "L5-6: a value SetSystemValue3 refuses gets the remedy of its own status";
+            try
+            {
+                var texts = new[] { 1, 2, 3, 4, 5, 99 }.Select(s => (string)Call(sw, "SetValueRefusalCause", s)).ToList();
+                bool distinct = texts.Take(5).Distinct().Count() == 5;
+                bool named = texts[2].Contains("DRIVEN") && texts[4].Contains("FROZEN") && texts[3].Contains("not loaded") &&
+                             texts[1].Contains("does not take this value");
+                bool noBlanket = texts.Take(5).Count(t => t.Contains("equation")) == 1;   // only the reasonless Failure
+                bool unknown = !string.IsNullOrEmpty(texts[5]);
+                Segna(rule, distinct && named && noBlanket && unknown, string.Join(" | ", texts));
+            }
+            catch (Exception ex) { Segna(rule, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static object Call(Type t, string method, params object[] args)
@@ -421,6 +445,19 @@ namespace Prove.Contratti
                       !bare && unsuppress && suppress && reported >= 5,
                       "bare call " + bare + ", unsuppress kept " + unsuppress + ", suppress kept " + suppress +
                       ", answers that report it " + reported);
+
+                // And no caller is left without the reason: the overload that
+                // answered only NaN is gone, and the flat-pattern view of a drawing
+                // refuses before placing the view when the flat pattern did not
+                // toggle (vista_sviluppo called the NaN-only overload until the
+                // review of this lot).
+                bool nanOnly = Regex.IsMatch(sheet, @"double LunghezzaSviluppata\(IModelDoc2 \w+, out double \w+\)");
+                string flatView = Read(dir, "OperazioniSviluppoTavola.cs");
+                bool viewReports = flatView != null &&
+                                   Regex.IsMatch(flatView, @"LunghezzaSviluppata\(\w+, out double _, out string flatPatternProblem\);") &&
+                                   flatView.Contains("if (flatPatternProblem != null)");
+                Segna("M24: every caller of the flat length gets the reason, vista_sviluppo included",
+                      !nanOnly && viewReports, "NaN-only overload " + nanOnly + ", vista_sviluppo reports it " + viewReports);
             }
 
             string properties = Read(dir, "OperazioniProprieta.cs");
@@ -450,6 +487,9 @@ namespace Prove.Contratti
                 bool mass = Regex.IsMatch(main, @"return MassOfBodies\(readings, out \w+, out \w+\);");
                 Segna("M37/M43: fillet and chamfer check the volume, and MassaDi goes through MassOfBodies",
                       fillet && chamfer && mass, "fillet " + fillet + ", chamfer " + chamfer + ", MassOfBodies " + mass);
+                bool byStatus = Regex.IsMatch(main, @"SetValueRefusalCause\(\w+\)\);");
+                Segna("L5-6: modifica_quota words its refusal by the status of SetSystemValue3", byStatus,
+                      byStatus ? "SetValueRefusalCause is called" : "SetValueRefusalCause is not called");
             }
 
             string bodies = Read(dir, "OperazioniCorpi.cs");

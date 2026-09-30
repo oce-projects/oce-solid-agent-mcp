@@ -63,7 +63,13 @@ namespace Riscontro.Disegno
             bool nascondiPieghe = Bool(a, "nascondi_pieghe", false);
 
             // ── LO SVILUPPO DEL PEZZO, MISURATO PRIMA ────────────────────────
-            double lungoPezzo = LunghezzaSviluppata(pezzo, out double _);
+            // Z-C21.8, finding M24: a flat pattern that did not unsuppress, or
+            // did not suppress again, stops the step here, before the drawing is
+            // touched; the part may be left flattened, and the refusal says so.
+            double lungoPezzo = LunghezzaSviluppata(pezzo, out double _, out string flatPatternProblem);
+            if (flatPatternProblem != null)
+                return Fallito("Before placing the view, I measured the flat length of the part and " +
+                               flatPatternProblem + ". I did not place the view.");
 
             int prima = ContaViste(disegno);
             object grezza = null;

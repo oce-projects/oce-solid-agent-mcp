@@ -1491,9 +1491,10 @@ namespace Riscontro.Disegno.Catalogo
                                     "genere")),
                             "asse_uid", O(
                                 "type", "string",
-                                "description", "la direzione dei giri: uno spigolo DRITTO che corre lungo la faccia "
-                                    + "di contorno («E1», «E2»...), per esempio il suo bordo lungo, oppure "
-                                    + "un asse gia' nel documento that lies along the face. Serve sempre: senza, la ripetizione non nasce"),
+                                "description", "the direction of the loops: a STRAIGHT edge that runs along the "
+                                    + "boundary face («E1», «E2»...), for example its long edge, or an axis "
+                                    + "already in the document that lies along the face. Always needed: without "
+                                    + "it the pattern is not born"),
                             "asse_rif", O(
                                 "type", "object",
                                 "description", "the direction, when a previous step of this plan makes the axis "
@@ -2934,7 +2935,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "la vista nasce ma non e' uno sviluppo, o se misura un'altra cosa dallo "
                         + "sviluppo del pezzo: in those cases I remove it, and say so only after "
                         + "reading the views of the drawing again; if it is still there, I ask you to "
-                        + "remove it.",
+                        + "remove it. I also refuse, before placing any view, when the flat pattern of the "
+                        + "part does not unsuppress (or suppress again) while I measure its flat length: "
+                        + "the part may then be left flattened, and the message says so.",
                     Precondizione = "una tavola e, aperto, un pezzo di lamiera salvato su disco",
                     Schema = O(
                         "type", "object",
@@ -4529,7 +4532,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "orientations and cannot tell them apart. The answer carries «orientation» "
                         + "and «new_axes» (x, y, z unit vectors). «orientation» with an opposite-hand "
                         + "mode is refused, and so is a value that is not one of the four."
-                        + "\n\nA mirror born with a rebuild error (GetErrorCode2) is refused and removed.",
+                        + "\n\nA mirror born with a rebuild error (GetErrorCode2) is refused and removed. "
+                        + "Whenever a refusal removes the mirror it made, it says so only after reading the "
+                        + "tree again and not finding it there; otherwise it asks you to remove it.",
                     Precondizione = "un assieme aperto con almeno un componente",
                     Schema = O(
                         "type", "object",
@@ -4680,9 +4685,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "«documenti_aperti» dello stato: copiali da li'."
                         + "\n\n«configurazione» IS NOT HONOURED YET. The name goes to SOLIDWORKS in a "
                         + "field the guide calls «valid only if UseConfigForPartReferences = true», and "
-                        + "that switch is passed false: the component comes in with the configuration "
-                        + "SOLIDWORKS picks by itself (the guide: «in its last saved configuration»), "
-                        + "whatever name you write, right or wrong, and without an error. The answer "
+                        + "that switch is passed false: by the guide the name is then not used, and the "
+                        + "component comes in with the configuration SOLIDWORKS picks by itself, with no "
+                        + "error for a wrong name (which configuration that is has not been measured on "
+                        + "this bridge). The answer "
                         + "carries «configurazione», the configuration the new component really "
                         + "references: compare it with the one you wanted before building on it, or you "
                         + "may have mounted a part of another size.\n\nATTENZIONE SULLE "

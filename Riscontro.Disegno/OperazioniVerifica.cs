@@ -100,7 +100,10 @@ namespace Riscontro.Disegno
             // the order of swSolidBody every time, and only the tail (the sheets)
             // is beyond the state's numbers. Before the rebuild the probe could
             // not read the bodies at all (RPC_E_SERVERFAULT on every body), which
-            // is the «unstable order» its verdict names.
+            // is the «unstable order» its verdict names. This operation does not
+            // rebuild before reading, and the probe measured the order only after
+            // ForceRebuild3: on a part not rebuilt since its bodies were made, the
+            // order is not measured.
             var grezzi = parte.GetBodies2((int)swBodyType_e.swAllBodies, false) as object[];
             if (grezzi == null || grezzi.Length == 0)
                 return Fallito(

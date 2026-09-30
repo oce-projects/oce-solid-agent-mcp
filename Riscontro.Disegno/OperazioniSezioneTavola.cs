@@ -332,7 +332,10 @@ namespace Riscontro.Disegno
             // conta come vista, e non mostra niente.
             // LA VISTA VUOTA SI TOGLIE (revisione del 26/9/2026): restando, la sua
             // lettera «A» faceva rifiutare il rimedio che il messaggio stesso indica.
-            bool vuotaTolta = tratteggi == 0 && RemoveNewView(modello, nomeSezione);
+            // Only a view that was not on the sheet before is deleted: with no
+            // view returned, the name comes from the last view of the chain, and
+            // a name read before the call is a view of the user (Z-C21.8, M41).
+            bool vuotaTolta = tratteggi == 0 && !nomiViste.Contains(nomeSezione) && RemoveNewView(modello, nomeSezione);
             if (tratteggi == 0)
                 return Fallito(
                     (vuotaTolta ? "Ho tolto la vista «" + nomeSezione + "»: " : "") +

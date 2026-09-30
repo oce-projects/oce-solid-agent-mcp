@@ -427,21 +427,72 @@ namespace Riscontro.Disegno
         /// lo tolgo per conto di nessuno — ma lo dico, perche' con lo stesso suffisso
         /// lo specchio non rinasce. La coda della frase di rifiuto.
         /// </summary>
+        /// <summary>
+        /// Removes the mirror this step made and returns the tail of the
+        /// refusal: «removed» only after the tree is read again and the mirror
+        /// is no longer in it (Z-C21.8, the rule of M42; until the review of
+        /// this lot it said «the assembly is as it was» on the answer of
+        /// DeleteSelection2 alone, and L11-7 added a caller).
+        /// </summary>
         private static string TogliLoSpecchio(IModelDoc2 modello, IFeature f, string fileNuovo)
         {
-            bool tolto = false;
+            string name = SafeNome(f);
+            bool deleted = false;
             try
             {
                 modello.ClearSelection2(true);
                 if (f != null && f.Select2(false, 0))
-                    tolto = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                    deleted = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                 modello.ClearSelection2(true);
                 modello.EditRebuild3();
             }
             catch { }
-            string file = string.IsNullOrEmpty(fileNuovo) ? "" :
-                " Il file «" + Path.GetFileName(fileNuovo) + "» e' rimasto sul disco: cancellalo, o usa un altro «suffisso».";
-            return (tolto ? " Ho tolto lo specchio: l'assieme e' com'era." : " Lo specchio «" + SafeNome(f) + "» e' rimasto nell'assieme: toglilo tu.") + file;
+            bool? stillInTree = deleted ? FeatureStillInTree(modello, name) : (bool?)null;
+            return MirrorRemovalNote(name, deleted, stillInTree,
+                                     string.IsNullOrEmpty(fileNuovo) ? null : Path.GetFileName(fileNuovo));
+        }
+
+        /// <summary>
+        /// Whether a feature of that name is still in the tree: null when the
+        /// name is unknown or the tree cannot be walked to the end.
+        /// </summary>
+        private static bool? FeatureStillInTree(IModelDoc2 modello, string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            try
+            {
+                var f = modello.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    if (string.Equals(f.Name, name, StringComparison.Ordinal)) return true;
+                    f = f.GetNextFeature() as IFeature;
+                }
+                return false;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// The words of <see cref="TogliLoSpecchio"/>: «removed» only when the
+        /// deletion answered true AND the tree read again no longer holds the
+        /// mirror. <paramref name="stillInTree"/> null is «not read».
+        /// <paramref name="leftFile"/> is the file of the new component left on
+        /// disk, or null. No interop type in the signature: Prove.Contratti
+        /// calls it by reflection.
+        /// </summary>
+        internal static string MirrorRemovalNote(string name, bool deleted, bool? stillInTree, string leftFile)
+        {
+            string mirror = "the mirror «" + (name ?? "?") + "»";
+            string file = string.IsNullOrEmpty(leftFile) ? "" :
+                " The file «" + leftFile + "» stayed on the disk: delete it, or use another «suffisso».";
+            if (!deleted)
+                return " DeleteSelection2 did not remove " + mirror + ": it is still in the assembly, remove it yourself." + file;
+            if (stillInTree == false)
+                return " I removed " + mirror + ": reading the tree again, it is gone." + file;
+            if (stillInTree == true)
+                return " DeleteSelection2 answered true, but " + mirror + " is still in the tree: remove it yourself." + file;
+            return " DeleteSelection2 answered true, but I could not read the tree again to check that " + mirror +
+                   " is gone: look at the assembly before going on." + file;
         }
 
         private static string SafeNome(IFeature f)
