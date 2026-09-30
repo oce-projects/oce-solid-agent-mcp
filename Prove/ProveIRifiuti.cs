@@ -211,8 +211,14 @@ namespace Prove.Contratti
         /// this branch that say what to do, such as the configuration check of
         /// «inserisci_componente» («insert it without a configuration name, or
         /// open the file again and retry»).
+        /// **234, Z-C21.11 (branch z-c21-11): +2.** New refusals of lightweight
+        /// components that say what to do (the mass: «Resolve them in SOLIDWORKS,
+        /// or ask me again with ...»; the BOM's lightweight sub-assembly and the
+        /// box's lightweight part without solid bodies: «Resolve it and ask
+        /// again»), less the old mass refusal «nothing to weigh», whose remedy
+        /// moved to the first of them.
         /// </summary>
-        private const int Pavimento = 232;
+        private const int Pavimento = 234;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.

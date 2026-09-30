@@ -610,6 +610,9 @@ namespace Riscontro.Disegno
         {
             var parte = modello as IPartDoc;
             var assieme = modello as IAssemblyDoc;   // voce Z-D6: anche l'assieme si manda
+            // Z-C21.11: how many components were lightweight before the export,
+            // read right before SaveAs3 (the probe saw the export resolve them).
+            int lightweightBeforeExport = -1;
             if (parte == null && assieme == null)
                 return Fallito(
                     "Questo documento non e' un pezzo ne' un assieme: STEP e IGES si esportano da una " +
@@ -753,6 +756,7 @@ namespace Riscontro.Disegno
                     // una parte non c'e' nessun conto dei corpi che se ne accorgerebbe,
                     // e quello dell'assieme prenderebbe un file con meno solidi.
                     modello.ClearSelection2(true);
+                    if (assieme != null) lightweightBeforeExport = LightweightCount(assieme);
                     try
                     {
                         ok = modello.Extension.SaveAs3(
@@ -869,10 +873,20 @@ namespace Riscontro.Disegno
                 // puo' (apre un modale): si contano i solidi nel testo.
                 if (assieme != null)
                 {
-                    int attesi = SolidiAttesiNellAssieme(assieme);
+                    var hiddenLeftOut = new List<string>();
+                    int attesi = SolidiAttesiNellAssieme(assieme, hiddenLeftOut);
                     int nelFile = SolidiNelloStep(dove);
                     misure["solidi_attesi"] = attesi >= 0 ? (object)attesi : null;
                     misure["solidi_nel_file"] = nelFile >= 0 ? (object)nelFile : null;
+                    // Z-C21.11: hidden components are not written (measured), and the
+                    // export resolved lightweight components (measured): both are said.
+                    if (hiddenLeftOut.Count > 0)
+                        misure["hidden_components_not_exported"] = hiddenLeftOut.ToArray();
+                    int lightweightAfterExport = LightweightCount(assieme);
+                    if (lightweightBeforeExport > 0 && lightweightAfterExport >= 0 && lightweightAfterExport < lightweightBeforeExport)
+                        misure["lightweight_resolved_by_the_export"] =
+                            (lightweightBeforeExport - lightweightAfterExport) + " component(s) were lightweight before the " +
+                            "export and SOLIDWORKS resolved them to write the file; they stay resolved.";
                     if (attesi >= 0 && nelFile >= 0 && nelFile < attesi)
                         return Fallito(
                             "Lo STEP dell'assieme ha " + nelFile + " solidi e i pezzi non soppressi ne hanno " +

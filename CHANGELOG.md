@@ -28,15 +28,16 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.5 leftovers (branch z-c21-11)
+## Unreleased — Z-C21.5 leftovers and Z-C21.11 (branch z-c21-11)
 
 **The four items the 0.122.0 entry listed as not done in Z-C21.5: the two «last
-sketch of its type» lookups (S7), N7, N23 and C4-3.** Built on bridge 0.122.0 /
-library 0.146.0; the version is not raised yet. **THE BENCH HAS NOT RUN on this
-branch** (no SOLIDWORKS while it was written): the one new case,
-`saldature/the_end_cap_skips_a_drilled_wall`, and every existing case these
-changes touch are unmeasured until the next bench. Prove.Contratti: 662 checks,
-only the bench-freshness checks red.
+sketch of its type» lookups (S7), N7, N23 and C4-3; and Z-C21.11, the assembly
+components that were not read: lightweight, envelope and hidden (N5, N27, M23).**
+Built on bridge 0.122.0 / library 0.146.0; the version is not raised yet. **THE
+BENCH HAS NOT RUN on this branch** (no SOLIDWORKS while it was written): the
+seven new cases (`saldature/the_end_cap_skips_a_drilled_wall` and the six of
+Z-C21.11 below) and every existing case these changes touch are unmeasured until
+the next bench. Prove.Contratti: 688 checks, only the bench-freshness checks red.
 
 - **S7, the sketch just drawn (`SchizzoAppenaCreato`, `SelezionaSchizzoAppenaCreato`,
   `BloccaSchizzo`).** They took the LAST `ProfileFeature` of the tree. Now the
@@ -108,6 +109,86 @@ only the bench-freshness checks red.
   tree cannot be read). Contract `Zc215SketchIdentityContract` +2 checks (no such
   loop in the library; seen red on a copy with the old loop), 6 in all. The rib
   and bend cases of the bench are the judges of unchanged behaviour.
+
+**Z-C21.11, which components of an assembly count.** Two probes on 30/9/2026
+(SOLIDWORKS 2021 SP5.1, `probe_alleggeriti` and the indented-BOM probe; RAG note
+82zz_undecies) measured:
+a lightweight component answers `IsSuppressed()` TRUE and `GetModelDoc2` null,
+while `GetSuppression2` says 1 (lightweight), `GetBodies3` gives its bodies with
+the right volume, `Transform2` is there and `IsHidden(false)` is false; an
+assembly reopened with OpenDoc6 Silent|OverrideDefaultLoadLightweight|LoadLightweight
+(193), nothing of it left loaded, has every component lightweight; an envelope
+(InsertEnvelope, or `CompConfigProperties6` with IsEnvelope true) is left out of
+the assembly's `CreateMassProperty` and written to the STEP; a hidden component
+(`Visible` = swComponentHidden) is weighed and NOT written to the STEP; the STEP
+export resolved every lightweight component; no material reader answered on a
+component, resolved or not; the indented BOM (Detailed) writes the tree, not the
+parts: A + 3 x S_show(2 B) + B gives A 1, S_show 3, S_show > B 2, B 1.
+
+- **One reader, `AssemblyComponents` (new file).** The load state from
+  `GetSuppression2` (suppressed, lightweight, resolved, unknown), part or
+  sub-assembly from the extension of the saved path (so a lightweight one keeps
+  its kind), `IsEnvelope`, hidden = `IsHidden(false)` here or on a parent,
+  `GetModelDoc2` only for a resolved component. `PezziDellAssieme`, which asked
+  `IsSuppressed` and so took every lightweight part for suppressed, is gone; the
+  mass and the box go through `ComponentsOrRefusal`, which refuses when a load
+  state cannot be read.
+- **`proprieta_di_massa` on an assembly.** Envelopes are left out of the sum of
+  the parts as SOLIDWORKS leaves them out of the mass (they made a right
+  assembly refuse with a gap, N27), named in `envelope_components`; hidden parts
+  are weighed and named in `hidden_components_weighed`; lightweight parts refuse
+  the step with their names (their material cannot be read), unless the new
+  boolean argument `resolve_lightweight` is true: then
+  `IAssemblyDoc.ResolveAllLightWeightComponents(false)`, the list is read again,
+  a part still lightweight refuses, and `lightweight_resolved_on_request` says
+  what was resolved. The old list of components whose document was not read is gone. The step used to
+  refuse «nothing to weigh, all suppressed» on an assembly opened lightweight.
+- **`ingombro_corpo` on an assembly.** Lightweight parts are measured through
+  `GetBodies3` without resolving them (`lightweight_components_measured`);
+  envelopes and hidden parts are in the box and named (`envelope_components`,
+  `hidden_components`). A throw of `GetBodies3`, or a lightweight part that
+  answers no solid body, refuses instead of leaving the part out of the box (a
+  partial box answered as a success, N5). The step used to have no box on an
+  assembly opened lightweight and a partial one with one part lightweight.
+- **`esporta_step` of an assembly.** Hidden components are left out of the
+  expected solids and named in `hidden_components_not_exported` (the old count
+  asked for them and refused a right file); lightweight parts count (the count
+  is made after the export, which resolves them); `GetLightWeightComponentCount`
+  is read before and after `SaveAs3`, and `lightweight_resolved_by_the_export`
+  says how many the export resolved; envelopes are written and counted.
+- **`distinta_base_in_tavola`.** Suppressed by `GetSuppression2`, not
+  `IsSuppressed` (a lightweight sub-assembly and all its children were left out);
+  a sub-assembly by its extension; a lightweight sub-assembly that is not
+  suppressed refuses with a reason (its BOM option is in its document), and so
+  does an unreadable load state, the reason passed to the answer. The INDENTED
+  table is now compared with the measured tree (M23): siblings grouped by file
+  and configuration, the children of ONE instance under a sub-assembly row, a
+  Hide sub-assembly one row with nothing under it, a Promote one no row; until
+  0.146.0 every indented table of an assembly with a sub-assembly was refused.
+  New answer key `counted_as`. Catalogue texts of the four operations say it,
+  in English.
+- **Bench.** The assembly builder has three new keys, `envelope`, `hidden` (per
+  component, read back) and `reopen_lightweight` (saves, closes every document
+  of the case, checks nothing is left loaded, reopens with 193 and checks
+  `GetLightWeightComponentCount`), and a repeated child `nome` inside a
+  sub-assembly is a second instance of one part (Banco/LEGGIMI.md). Six new
+  cases: `assiemi/the_lightweight_assembly_has_a_box`,
+  `the_lightweight_assembly_is_weighed_when_asked`, `the_envelope_does_not_weigh`,
+  `the_hidden_component_is_not_in_the_step` (each red on 0.146.0: no box, the
+  wrong refusal, the envelope in the sum, two solids expected for one), and
+  `the_lightweight_step_says_the_export_resolved_them` (green on 0.146.0 except
+  for the new answer field, as the case says); `tavola/the_indented_bom_follows_the_tree`
+  (red on 0.146.0: 2 flat items against 4 rows). Unmeasured risks: whether the
+  bench's own state reading resolves lightweight components, and whether the
+  station's «resolve lightweight: prompt» option opens a modal.
+- **Contracts.** New group `Zc2111ComponentsContract`, 26 checks: nine source
+  rules, each seen red on changed copies of the real source (no `IsSuppressed()`
+  in the library, the reader and its four users, mass, box, STEP count and
+  answer, BOM), and by reflection `LoadFromSuppression2`, the extension rules and
+  `ExpectedBomItems` on the indented probe trees. `AssembliesZc212terContract`:
+  the indented T_hide check follows the M23 measurement (A 1, S_hide 1).
+  Refusal floor 232 -> 234; the undecided obsolete-call count of
+  `OperazioniMisuraAssieme.cs|Add` 2 -> 1 (the new loops type their receivers).
 
 ## 0.122.0 — 30 September 2026 · library 0.146.0
 

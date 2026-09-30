@@ -31,7 +31,9 @@ namespace Prove.Contratti
     /// library looks where the files were saved (Searchflag false).
     ///
     /// On library 0.141.0 every check but L12-8 is red because the method is
-    /// missing, and L12-8 is red because the call passes Searchflag true.
+    /// missing, and L12-8 is red because the call passes Searchflag true. The
+    /// indented check of N27 follows the M23 measurement since Z-C21.11 and is
+    /// red on library 0.146.0, which still counted every part there.
     /// </summary>
     internal static class AssembliesZc212terContract
     {
@@ -189,6 +191,8 @@ namespace Prove.Contratti
         //   T_env  (A + envelopes E, F)         both: A 1 (the envelopes read ExcludeFromBOM true)
         // The old count refused T_prom top level (2 instances against 3 pieces)
         // and T_hide parts only (3 instances against 2 pieces).
+        // The Z-C21.11 probe of the indented table (M23, 30/9/2026), Detailed numbering:
+        //   T_hide indented: A 1, S_hide 1 (the old count, every part: A 1, B 2, refused it)
         private const int PartsOnly = 1, TopLevelOnly = 2, Indented = 3;
         private const int Hide = 1, Show = 2, Promote = 3;
 
@@ -226,10 +230,16 @@ namespace Prove.Contratti
                 Segna("N27: and the six tables it already read right are still read the same",
                       all, string.Join("; ", lines));
 
+                // Measured on 30/9/2026 (M23, the Z-C21.11 probe of the indented BOM):
+                // the indented table of T_hide is A 1, S_hide 1, the hiding
+                // sub-assembly one row with nothing under it. Up to library
+                // 0.146.0 this check pinned the old count (A 1, B 2), written when
+                // the indented table had not been measured; Zc2111ComponentsContract
+                // checks the other indented trees.
                 lines.Clear();
                 all = true;
-                check("T_hide indented", Indented, hide, "A 1, B 2");
-                Segna("N27: the indented table, not measured, keeps the old count (every part, all levels)",
+                check("T_hide indented", Indented, hide, "A 1, S_hide 1");
+                Segna("N27/M23: the indented table of T_hide, as measured: the hiding sub-assembly is one row with nothing under it",
                       all, string.Join("; ", lines));
             }
             catch (Exception ex) { Segna("N27: ExpectedBomItems can be called", false, ex.GetType().Name + ": " + ex.Message); }

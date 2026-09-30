@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 145499,
-  "strings": 54693,
+  "comments": 145450,
+  "strings": 54620,
   "markdown": 33942,
   "json_values": 55199,
-  "identifiers": 4793,
+  "identifiers": 4794,
   "json_keys": 443,
-  "protocol": 2165,
+  "protocol": 2164,
   "paths": 640,
   "transition": 0
  },
@@ -1609,8 +1609,8 @@
    "strings": 418
   },
   "Riscontro.Disegno/OperazioniMisuraAssieme.cs": {
-   "comments": 420,
-   "strings": 242
+   "comments": 371,
+   "strings": 169
   },
   "Riscontro.Disegno/OperazioniNervatura.cs": {
    "comments": 770,
@@ -2810,6 +2810,7 @@
    "OperazioniAncora",
    "OperazioniAssieme",
    "OperazioniCorpi",
+   "OperazioniDistintaBase",
    "OperazioniDistintaTavola",
    "OperazioniEsporta",
    "OperazioniFori",
@@ -4963,6 +4964,7 @@
    "l_aletta_cresce_dalla_faccia",
    "l_angolo_dello_smusso_si_cambia_in_gradi",
    "l_asse_riconosciuto",
+   "l_assieme_si_pesa_si_misura_si_manda",
    "l_ordine_cambia_il_pezzo",
    "la_L_si_sviluppa",
    "la_borchia_non_e_un_foro",
@@ -5337,7 +5339,6 @@
    "nonGuardate",
    "nonGuardato",
    "nonLanciati",
-   "nonLetti",
    "nonMarcate",
    "nonNate",
    "nonPosso",
@@ -7685,7 +7686,6 @@
    "componenti_leggeri",
    "componenti_non_elencati",
    "componenti_non_fissi",
-   "componenti_non_letti",
    "componenti_pesati",
    "componenti_prima",
    "componenti_primo_livello",

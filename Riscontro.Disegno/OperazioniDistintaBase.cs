@@ -166,6 +166,11 @@ namespace Riscontro.Disegno
                 ["quantita_in_tabella"] = quantitaLetta ? (object)quantitaTot : null,
                 ["componenti_distinti_nell_assieme"] = attese.Count,
                 ["istanze_nell_assieme"] = istanze,
+                // M23: for an indented table the items are the ROWS expected (the
+                // tree, see IndentedLevel) and the instances their quantity sum.
+                ["counted_as"] = tipoBom == (int)swBomType_e.swBomType_Indented
+                    ? "indented: expected rows of the tree and the sum of their quantities (a child row counts one instance of its parent)"
+                    : "items of the table and the sum of their quantities",
                 ["tabelle_prima"] = NumeroOppureNull(tabellePrima),
                 // L16-2: the configuration the table and the expected items were
                 // read in (the view's), and the active configuration of the
@@ -239,8 +244,8 @@ namespace Riscontro.Disegno
         /// single item in the BOM» and Hide as «Child components might be listed
         /// individually»: in the parts-only tables it was the other way round
         /// (Hide gave the single item, Show the two B), and the code follows the
-        /// tables SOLIDWORKS wrote. The indented table was not measured and
-        /// keeps the old count (every part, all levels).
+        /// tables SOLIDWORKS wrote. The indented table follows the tree measured
+        /// for M23 (see IndentedLevel).
         /// The tree is read with IComponent2.GetChildren (IComponent2~GetChildren.html:
         /// «it returns only the immediate (one level) children», so it is walked
         /// level by level); a top-level table reads below the first level only
@@ -255,8 +260,10 @@ namespace Riscontro.Disegno
         /// references, which is the configuration of the sub-assembly that holds
         /// it (<see cref="ExcludedFromBomIn"/>).
         /// </summary>
-        private static Dictionary<string, int> ComponentiPerVoce(IAssemblyDoc assieme, int bomType, string topConfiguration)
+        private static Dictionary<string, int> ComponentiPerVoce(IAssemblyDoc assieme, int bomType, string topConfiguration,
+                                                                 out string readProblem)
         {
+            readProblem = null;
             try
             {
                 bool topLevelOnly = bomType == (int)swBomType_e.swBomType_TopLevelOnly;
@@ -280,7 +287,19 @@ namespace Riscontro.Disegno
                 {
                     IComponent2 c = comps[i];
                     bool soppresso = false, escluso = false;
-                    try { soppresso = c.IsSuppressed(); } catch { }
+                    // SUPPRESSED BY GetSuppression2, NOT BY IsSuppressed (Z-C21.11,
+                    // probe zc2111/probe_alleggeriti, 30/9/2026): IsSuppressed answers
+                    // TRUE on a LIGHTWEIGHT component, as the programming guide says
+                    // (Overview/Work_with_Lightweight_Components.htm), so a lightweight
+                    // sub-assembly and all its children were left out of the BOM.
+                    var item = AssemblyComponents.Describe(c);
+                    if (item.Load == ComponentLoad.Unknown)
+                    {
+                        readProblem = "I could not read whether «" + item.Name + "» is suppressed, lightweight or " +
+                                      "resolved (GetSuppression2): the expected BOM cannot be counted.";
+                        return null;
+                    }
+                    soppresso = item.Load == ComponentLoad.Suppressed;
                     string configuration = c.ReferencedConfiguration ?? "";
                     referencedConfigurations.Add(configuration);
                     // A suppressed component is out of the BOM whatever its flag
@@ -289,12 +308,25 @@ namespace Riscontro.Disegno
                     // and the whole reading answers null (the caller refuses).
                     if (!soppresso)
                         escluso = ExcludedFromBomIn(c, parents[i] < 0 ? topConfiguration : referencedConfigurations[parents[i]]);
-                    IModelDoc2 doc = null;
-                    try { doc = c.GetModelDoc2() as IModelDoc2; } catch { }   // null when suppressed or lightweight: a part, as before
-                    bool assembly = doc is IAssemblyDoc;
+                    // A SUB-ASSEMBLY BY ITS FILE EXTENSION (finding M23): GetModelDoc2 is
+                    // null on a lightweight component (measured), which counted a
+                    // lightweight sub-assembly as a part. Its BOM option lives in its
+                    // document: a lightweight sub-assembly that is not suppressed cannot
+                    // say it, and the reading stops instead of taking «Show». (Measured:
+                    // reopening the drawing resolved the lightweight sub-assemblies it
+                    // shows, so this is the rare case.)
+                    IModelDoc2 doc = item.Document;
+                    bool assembly = item.IsSubAssembly;
                     int display = -1;
-                    if (assembly)
+                    if (assembly && !soppresso)
                     {
+                        if (doc == null)
+                        {
+                            readProblem = "The sub-assembly «" + item.Name + "» is lightweight: how it shows its children " +
+                                          "in a BOM (show, hide, promote) is in its document, which is not loaded. Resolve it " +
+                                          "and ask again.";
+                            return null;
+                        }
                         try
                         {
                             var cfg = doc.GetConfigurationByName(configuration) as IConfiguration;
@@ -321,7 +353,11 @@ namespace Riscontro.Disegno
                 return ExpectedBomItems(keys.ToArray(), parents.ToArray(), isAssembly.ToArray(),
                                         childDisplay.ToArray(), skipped.ToArray(), bomType);
             }
-            catch { return null; }
+            catch (Exception ex)
+            {
+                readProblem = "Reading the components for the BOM failed: " + ex.Message;
+                return null;
+            }
         }
 
         /// <summary>
@@ -363,8 +399,13 @@ namespace Riscontro.Disegno
                           "configuration of the view. No table was inserted.";
                 return null;
             }
+            string readProblem;
             if (string.Equals(activeBefore, viewConfiguration, StringComparison.Ordinal))
-                return ComponentiPerVoce(assieme, bomType, viewConfiguration);
+            {
+                var asIs = ComponentiPerVoce(assieme, bomType, viewConfiguration, out readProblem);
+                if (asIs == null && readProblem != null) problem = readProblem + " No table was inserted.";
+                return asIs;
+            }
 
             Dictionary<string, int> items = null;
             string activated = null;
@@ -377,7 +418,10 @@ namespace Riscontro.Disegno
                 catch (Exception ex) { activateAnswer = "an exception: " + ex.Message; }
                 activated = ActiveConfigurationName(doc);
                 if (string.Equals(activated, viewConfiguration, StringComparison.Ordinal))
-                    items = ComponentiPerVoce(assieme, bomType, viewConfiguration);
+                {
+                    items = ComponentiPerVoce(assieme, bomType, viewConfiguration, out readProblem);
+                    if (items == null && readProblem != null) problem = readProblem + " No table was inserted.";
+                }
             }
             finally
             {
@@ -518,6 +562,13 @@ namespace Riscontro.Disegno
                 }
                 return items;
             }
+            if (bomType == (int)swBomType_e.swBomType_Indented)
+            {
+                var top = new List<int>();
+                for (int i = 0; i < n; i++) if (parents[i] < 0) top.Add(i);
+                IndentedLevel(top, "", keys, parents, isAssembly, childDisplay, skipped, items, 0);
+                return items;
+            }
             bool partsOnly = bomType == (int)swBomType_e.swBomType_PartsOnly;
             for (int i = 0; i < n; i++)
             {
@@ -533,6 +584,74 @@ namespace Riscontro.Disegno
                 CountBomItem(items, keys[i]);
             }
             return items;
+        }
+
+        /// <summary>
+        /// THE INDENTED TABLE (finding M23, measured on 30/9/2026 by the Z-C21.11
+        /// probe of the indented BOM on the tables SOLIDWORKS wrote, Detailed
+        /// numbering). Up to library 0.146.0 an indented table was compared as the
+        /// flat list of parts, so every indented table of an assembly with a
+        /// sub-assembly was refused (A + 3 S_show + B: 4 rows against 2 «items»). The
+        /// rows SOLIDWORKS writes: siblings grouped by file and configuration, one row
+        /// per group with the group's count; under a sub-assembly row the children of
+        /// ONE instance, one level deeper (A + 3 S_show(2 B) + B: A 1, S_show 3,
+        /// S_show > B 2, B 1 — the child row says 2, not 6); a Hide sub-assembly is a
+        /// row with no children below; a Promote sub-assembly has no row and its
+        /// children stand at its level; two levels (A + 2 N, N = S_show + B): A 1, N 2,
+        /// N > S_show 1, N > S_show > B 2, N > B 1. Each row is an item here, keyed by
+        /// the keys above it and its own (« > » between them), valued by its
+        /// quantity: the caller's checks (rows = items, quantity sum = values) then
+        /// read the indented table as they read the others.
+        /// </summary>
+        private static void IndentedLevel(List<int> siblings, string above, string[] keys, int[] parents, bool[] isAssembly,
+                                          int[] childDisplay, bool[] skipped, Dictionary<string, int> items, int depth)
+        {
+            if (depth > keys.Length) return;
+            const int hide = (int)swChildComponentInBOMOption_e.swChildComponent_Hide;
+            var flat = FlattenPromoted(siblings, parents, isAssembly, childDisplay, skipped, 0);
+            // One group per key: its count and its first member (the children
+            // of ONE instance stand under the row).
+            var order = new List<string>();
+            var count = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var firstOf = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (int i in flat)
+            {
+                string k = keys[i] ?? "";
+                if (!count.ContainsKey(k)) { count[k] = 0; firstOf[k] = i; order.Add(k); }
+                count[k]++;
+            }
+            foreach (var k in order)
+            {
+                string row = above.Length == 0 ? k : above + " > " + k;
+                items[row] = count[k];
+                int first = firstOf[k];
+                if (!isAssembly[first] || childDisplay[first] == hide) continue;
+                var children = new List<int>();
+                for (int j = 0; j < keys.Length; j++) if (parents[j] == first) children.Add(j);
+                IndentedLevel(children, row, keys, parents, isAssembly, childDisplay, skipped, items, depth + 1);
+            }
+        }
+
+        /// <summary>M23: the components of a level with the suppressed and excluded left out, and a Promote sub-assembly replaced by its children (recursively).</summary>
+        private static List<int> FlattenPromoted(List<int> list, int[] parents, bool[] isAssembly, int[] childDisplay, bool[] skipped,
+                                                 int depth)
+        {
+            var into = new List<int>();
+            if (depth > parents.Length) return into;
+            const int promote = (int)swChildComponentInBOMOption_e.swChildComponent_Promote;
+            foreach (int i in list)
+            {
+                if (skipped[i]) continue;
+                if (isAssembly[i] && childDisplay[i] == promote)
+                {
+                    var children = new List<int>();
+                    for (int j = 0; j < parents.Length; j++) if (parents[j] == i) children.Add(j);
+                    into.AddRange(FlattenPromoted(children, parents, isAssembly, childDisplay, skipped, depth + 1));
+                    continue;
+                }
+                into.Add(i);
+            }
+            return into;
         }
 
         /// <summary>N27: whether a sub-assembly above this component hides its children in the BOM.</summary>

@@ -177,6 +177,7 @@
     <Compile Include="ApiHelpers.Drawing.cs" />
     <Compile Include="ErrorCodeDecoder.cs" />
     <Compile Include="SelectionMarks.cs" />
+    <Compile Include="AssemblyComponents.cs" />
     <Compile Include="DocumentByPath.cs" />
     <Compile Include="FormaChiusa.cs" />
     <Compile Include="FormaAParole.cs" />

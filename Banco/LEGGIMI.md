@@ -216,6 +216,13 @@ operazioni dei casi**, salvata in `Banco\lavoro`, riaperta e inserita.
 | `da_inserire` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `inserisci_componente`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
 | `configurations` | next to `componenti`: `[{ "name": …, "suppressed": [component names], "excluded_from_bom": [component names] }]`, made in this order after the components are in (Z-C21.4, L16-2 and L16-3). Each new configuration becomes the active one, is set while active (suppression, exclusion from the BOM of that configuration only) and every setting is read back; the last one made stays active. No operation of the catalogue suppresses a component or excludes it from the BOM in one configuration |
 | `componenti` inside a component | a SUB-ASSEMBLY instead of a part (Z-C21.5, L11-3 and L11-5): each child is built like a component (its own `nome`, `passi`, `posizione_mm` inside the sub-assembly) as `<case>_<name>_<child>.sldprt`, inserted into a new assembly, saved as `<case>_<name>.sldasm`, and that is inserted like a part. One level only. In the state a nested component is named with its whole path (`<case>_<name>-1/<case>_<name>_<child>-1`), so it sorts right after its sub-assembly |
+| a repeated child `nome` | inside a sub-assembly, two children with the same `nome` are two instances of ONE part, built and registered from the first; the later one brings only its `posizione_mm`, and `passi` of its own are a bench error (Z-C21.11, M23) |
+| `envelope` | on a component: `true` makes it an envelope once inserted (Select4, then IAssemblyDoc.CompConfigProperties6 with IsEnvelope true, as the Z-C21.3 probe of 28/9/2026), read back with IsEnvelope. Top-level parts only, not with `da_inserire` false, not on a child of a sub-assembly (Z-C21.11, N27) |
+| `hidden` | on a component: `true` hides it (IComponent2.Visible = swComponentHidden), read back with IsHidden(false). Top level only, not with `da_inserire` false, not on a child of a sub-assembly (Z-C21.11) |
+| `reopen_lightweight` | next to `componenti`: `true` saves the assembly as `{LAVORO}\<case>.sldasm`, closes it and every document of its components (checked by path: nothing of the case stays loaded), reopens it with OpenDoc6 Silent, OverrideDefaultLoadLightweight and LoadLightweight (193), and checks GetLightWeightComponentCount > 0 and the top-level count. The case runs on the reopened document. It is the last step of the preparation, after `configurations`; not with any component at `da_inserire` false (Z-C21.11, N5) |
+
+The three new keys take only a JSON Boolean: any other value is a bench error,
+never read as false, and so is every read-back that does not say what was asked.
 
 **`AddComponent5` vuole un documento gia' aperto**: la preparazione riapre
 **tutti** i componenti, anche quelli che non inserisce. Su un file chiuso
@@ -607,7 +614,7 @@ casi/proprieta/   12   i due cassetti, e il codice che va in distinta; the
                        material reaches every configuration (Z-C21, M10)
 casi/testo/        6   incidere, e la scritta che esce dalla faccia
 casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-casi/assiemi/     16   inserire non e' accoppiare; un vincolo solo non basta;
+casi/assiemi/     21   inserire non e' accoppiare; un vincolo solo non basta;
                        due basi uguali e uno STEP: una forma per pezzo,
                        la massa per istanza (Z-C20);
                        il coperchio rifatto tiene i vincoli e li rompe;
@@ -626,8 +633,12 @@ casi/assiemi/     16   inserire non e' accoppiare; un vincolo solo non basta;
                        fissa_componente and sostituisci_componente, and the
                        state says it is nested (Z-C21.5, L11-3, L11-5); the
                        component comes in with the configuration asked, and the
-                       replaced one says its configuration (Z-C21.4, L11-1, M18)
-casi/tavola/      41   il primo caso che arriva in TAVOLA (voce GT0);
+                       replaced one says its configuration (Z-C21.4, L11-1, M18);
+                       a lightweight assembly has a box and is weighed when
+                       asked, the envelope does not weigh, the hidden component
+                       is not in the STEP, the lightweight STEP says the export
+                       resolved them (Z-C21.11, N5, N27)
+casi/tavola/      42   il primo caso che arriva in TAVOLA (voce GT0);
                        un Ø8 passante e un Ø8 cieco, due richiami; la borchia
                        non e' un foro; l'albero smussato senza le gambe dello
                        smusso (revisione del 27/9, Z-C20);
@@ -677,7 +688,8 @@ casi/tavola/      41   il primo caso che arriva in TAVOLA (voce GT0);
                        silhouettes is not an orphan (Z-C21, N3); the position
                        frame reads its Ø back, and the flatness frame reads
                        none (Z-C21.8, M38); the BOM follows the configuration
-                       of the view, not the active one (Z-C21.4, L16-2, L16-3)
+                       of the view, not the active one (Z-C21.4, L16-2, L16-3);
+                       the indented BOM follows the tree (Z-C21.11, M23)
 casi/saldature/   14   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone

@@ -3027,7 +3027,19 @@ namespace Riscontro.Disegno.Catalogo
                         + "children in the BOM (ChildComponentDisplayInBOM): in a top-level table a "
                         + "sub-assembly that promotes its children is replaced by them; in a parts-only "
                         + "table a sub-assembly that hides its children is one item. The indented table "
-                        + "counts every part."
+                        + "is compared with the rows of the assembly tree, as SOLIDWORKS writes them "
+                        + "(measured): siblings with the same file and configuration make one row with their "
+                        + "count; under a sub-assembly row stand the children of ONE instance, one level "
+                        + "deeper (a sub-assembly used 3 times with 2 B inside: its row says 3, the B row "
+                        + "under it says 2); a sub-assembly that hides its children is one row with nothing "
+                        + "under it, and one that promotes them has no row and its children stand at its "
+                        + "level. «counted_as» in the answer says how the expected items were counted."
+                        + "\n\nA LIGHTWEIGHT SUB-ASSEMBLY REFUSES: how it shows its children in a BOM is in "
+                        + "its document, which is not loaded; resolve it and ask again. A component is "
+                        + "suppressed by its load state (GetSuppression2: IsSuppressed answers true on a "
+                        + "lightweight component, measured), and a sub-assembly is recognised by its file "
+                        + "extension, so a lightweight one is not taken for a part. A component whose load "
+                        + "state cannot be read refuses the step."
                         + "\n\nIN WHICH CONFIGURATION: the table is made for the configuration the view "
                         + "shows, and the assembly is read in that same one. When the assembly has another "
                         + "configuration active, I activate the view's for the reading and put the active "
@@ -3915,6 +3927,17 @@ namespace Riscontro.Disegno.Catalogo
                         + "te li elenco) e controllo la massa contro la somma dei pezzi letti uno "
                         + "per uno: se non combaciano mi fermo. Se un pezzo non ha materiale, la "
                         + "massa e' null e ti dico quale."
+                        + "\n\nWHICH COMPONENTS WEIGH ON AN ASSEMBLY (measured). Suppressed components do "
+                        + "not weigh, and they are listed. ENVELOPES do not weigh: SOLIDWORKS leaves them out "
+                        + "of the assembly mass, the sum of the parts leaves them out too, and the answer names "
+                        + "them in «envelope_components». HIDDEN components weigh, as SOLIDWORKS weighs them, "
+                        + "and are named in «hidden_components_weighed». LIGHTWEIGHT parts refuse the step: "
+                        + "SOLIDWORKS would weigh them, but their material cannot be read while they are "
+                        + "lightweight, so a part without material would weigh as water unseen, and the sum of "
+                        + "the parts cannot read them. Resolve them in SOLIDWORKS, or pass "
+                        + "«resolve_lightweight»: true and I resolve them first; they stay resolved, and "
+                        + "«lightweight_resolved_on_request» says so. If one is still lightweight after that, I "
+                        + "refuse. A component whose load state cannot be read refuses the step too."
                         + "\n\nWITH «corpo_uid», a body named from an earlier reading of the state is "
                         + "checked against its signature (centre and box): if the part changed since and "
                         + "the identifier now names another body, the step is refused instead of weighing "
@@ -3929,7 +3952,14 @@ namespace Riscontro.Disegno.Catalogo
                                     + "dici li pesa tutti insieme. A body named from an earlier reading of "
                                     + "the state is checked against its signature (centre and box): if the "
                                     + "part changed since and the identifier now names another body, the "
-                                    + "step is refused instead of weighing the other one.")),
+                                    + "step is refused instead of weighing the other one."),
+                            "resolve_lightweight", O(
+                                "type", "boolean",
+                                "default", false,
+                                "description", "assembly only: when some parts are lightweight, resolve them "
+                                    + "first (ResolveAllLightWeightComponents) instead of refusing. Default false. "
+                                    + "They stay resolved, and the answer says so in "
+                                    + "«lightweight_resolved_on_request».")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -3952,7 +3982,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "misura non dice come girarlo."
                         + "\n\nSU UN ASSIEME misuro ogni pezzo nel posto in cui sta nell'assieme "
                         + "e la scatola che li contiene tutti; i componenti soppressi no, e te "
-                        + "li elenco.",
+                        + "li elenco."
+                        + "\n\nON AN ASSEMBLY, LIGHTWEIGHT PARTS ARE MEASURED without resolving them: "
+                        + "GetBodies3 reads the bodies of a lightweight part (measured), and the answer names "
+                        + "them in «lightweight_components_measured». Envelopes and hidden components are in "
+                        + "the box too, named in «envelope_components» and «hidden_components». A component "
+                        + "whose load state cannot be read refuses the step.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -4359,6 +4394,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "non torna. An instance changed in the assembly (a cut: user bodies in "
                         + "GetBodies3's BodiesInfo) is a shape of its own and counts all its bodies; "
                         + "the other instances count once per file and configuration."
+                        + " WHICH COMPONENTS THE FILE HOLDS (measured): HIDDEN components are not written "
+                        + "by SOLIDWORKS, so they are left out of the expected count and named in "
+                        + "«hidden_components_not_exported». LIGHTWEIGHT components are resolved by "
+                        + "SOLIDWORKS to write the file and stay resolved; the count is made after the "
+                        + "export, and «lightweight_resolved_by_the_export» says how many were resolved. "
+                        + "Envelopes are written and counted."
                         + "\n\nAP242 IS WRITTEN BY SOLIDWORKS MBD, not by a protocol number: in "
                         + "SOLIDWORKS 2021 the protocol preference takes only 203 and 214, and 242 "
                         + "written there gives an AP203 file (measured). I write AP242 through "

@@ -1,0 +1,52 @@
+{
+  "nome": "the_lightweight_assembly_is_weighed_when_asked",
+  "famiglia": "assiemi",
+  "perche": "Z-C21.11, finding N5. On an assembly opened lightweight, library 0.146.0 took every part for suppressed (IComponent2.IsSuppressed answers true on a lightweight component) and refused the mass with nothing to weigh. The probe zc2111/probe_alleggeriti (30/9/2026) measured that SOLIDWORKS weighs lightweight parts, but that their material cannot be read while they are lightweight (GetModelDoc2 is null, and IComponent2.GetMaterialUserName, GetMaterialIdName and IBody2.GetMaterialPropertyName answered nothing even on resolved parts), and that on an assembly where every part is lightweight CreateMassProperty gave nothing at all. So proprieta_di_massa now refuses on lightweight parts and names them, and with «resolve_lightweight»: true it resolves them first (IAssemblyDoc.ResolveAllLightWeightComponents(false): swResolveOk on the probe, and GetLightWeightComponentCount 0 after it), reads them again and weighs the assembly. The bench reopens the assembly lightweight («reopen_lightweight»).",
+  "il_difetto_che_questo_caso_prende": "The mass refused as if the parts were suppressed; a refusal that does not say the parts are lightweight nor how to go on; the flag that does not resolve them, or resolves them and does not say so; a mass that leaves a resolved part out, or weighs a part without its material.",
+  "se_resta_verde_sulla_libreria_vecchia": "It cannot: on 0.146.0 step 1 refuses too, but saying there is no component to weigh because they are all suppressed, which does not contain «are lightweight» nor «resolve_lightweight»: the step is red on the message. Step 2 would refuse the same way, since 0.146.0 does not know the flag.",
+  "i_numeri": "Base 120 x 80 x 10 (96000 mm3) and lid 120 x 80 x 4 (38400 mm3), both AISI 304 (8000 kg/m3, read back by the probe): 0.768 + 0.3072 = 1.0752 kg, 134400 mm3. Two parts, both lightweight after the reopen, both resolved by step 2.",
+  "assieme": {
+    "reopen_lightweight": true,
+    "componenti": [
+      { "nome": "base",
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } },
+          { "operazione": "applica_materiale", "argomenti": { "materiale": "AISI 304" } }
+        ] },
+      { "nome": "lid",
+        "posizione_mm": [0, 7, 0],
+        "passi": [
+          { "operazione": "estrudi_rettangolo",
+            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } },
+          { "operazione": "applica_materiale", "argomenti": { "materiale": "AISI 304" } }
+        ] }
+    ]
+  },
+  "passi": [
+    { "operazione": "proprieta_di_massa",
+      "argomenti": {},
+      "deve_fallire": {
+        "il_messaggio_contiene": ["are lightweight", "_base-1", "_lid-1", "resolve_lightweight"],
+        "gemella": "the_lightweight_assembly_is_weighed_when_asked" } },
+
+    { "operazione": "proprieta_di_massa",
+      "argomenti": { "resolve_lightweight": true },
+      "attese": [
+        { "cosa": "misure.massa_kg", "uguale": 1.0752, "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "rounded to four decimals: 96000 mm3 x 8000 + 38400 mm3 x 8000 = 1.0752 kg",
+          "perche": "THE LINE THAT TAKES N5: the whole assembly, weighed once its parts are resolved, with their material" },
+        { "cosa": "misure.somma_dei_pezzi_kg", "uguale": 1.0752, "tolleranza": 0.0001,
+          "perche_questa_tolleranza": "the same: the independent check, part by part, reads each resolved document",
+          "perche": "the sum of the parts can read them only resolved" },
+        { "cosa": "misure.componenti_pesati", "uguale": 2 },
+        { "cosa": "misure.volume_mm3", "uguale": 134400, "tolleranza": 0.5,
+          "perche_questa_tolleranza": "96000 + 38400, rounded to the hundredth" },
+        { "cosa": "misure.componenti_soppressi", "uguale": [],
+          "perche": "a lightweight part is not a suppressed one" },
+        { "cosa": "misure.lightweight_resolved_on_request", "contiene": ["2 lightweight part(s) resolved on request"],
+          "perche": "the change to the assembly that the flag asked for is said" },
+        { "cosa": "stato.componenti_leggeri", "uguale": 0,
+          "perche": "they stay resolved after the step, as the answer says" } ] }
+  ]
+}

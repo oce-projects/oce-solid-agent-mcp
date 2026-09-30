@@ -411,6 +411,7 @@ namespace Prove.Contratti
             Zc215ActivationRebuildContract.RunAll();
             Zc215HolePointIdentityContract.RunAll();
             Zc2113PartDimensionContract.RunAll();
+            Zc2111ComponentsContract.RunAll();
             LanguageGateTests.All();
             IlLeggimiDiceQuantiSono();
 

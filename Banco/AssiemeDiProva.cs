@@ -229,6 +229,56 @@ namespace ProvaSaldatura
                 return null;
             }
 
+            // ── 0. the keys of Z-C21.11, read before anything is built ────
+            //
+            // «envelope» and «hidden» on a component, «reopen_lightweight» on
+            // the assembly: the three states in which a component answers the
+            // component readers differently (lightweight, envelope, hidden),
+            // measured by the probe zc2111/probe_alleggeriti (30/9/2026) and the
+            // Z-C21.3 probe of envelopes and BOM children (28/9/2026). No operation of the catalogue
+            // makes a component an envelope, hides it or loads it lightweight,
+            // so without them none of the three could be written as a case.
+            // They are read here, before the first file is written: a key
+            // written wrong is a bench error that leaves nothing behind. A key
+            // that is not true or false is refused, never read as false: a case
+            // that asked for an envelope and ran on a normal part would measure
+            // another assembly and look right.
+            bool reopenLightweight;
+            if (!FlagOf(nome, assieme, "reopen_lightweight", out reopenLightweight)) return null;
+            var envelopeNames = new List<string>();
+            var hiddenNames = new List<string>();
+            for (int i = 0; i < componenti.Count; i++)
+            {
+                var one = componenti[i] as Dictionary<string, object>;
+                if (one == null) continue;   // said by the loop below, with its number
+                string itsName = Testo(one, "nome") ?? ("comp" + (i + 1));
+                bool envelope, hidden;
+                if (!FlagOf(nome, one, "envelope", out envelope) || !FlagOf(nome, one, "hidden", out hidden))
+                    return null;
+                bool isSubassembly = Elenco(one, "componenti") != null;
+                if (envelope && isSubassembly)
+                {
+                    ErroreDiBanco(nome, "«envelope» on the sub-assembly «" + itsName + "»: an envelope was " +
+                                        "measured on a part only (probe of 28/9/2026)");
+                    return null;
+                }
+                if ((envelope || hidden) && !DaInserire(one))
+                {
+                    ErroreDiBanco(nome, "«" + itsName + "» asks «envelope» or «hidden» with «da_inserire» false: " +
+                                        "the preparation does not insert it, so it cannot make it either");
+                    return null;
+                }
+                if (reopenLightweight && !DaInserire(one))
+                {
+                    ErroreDiBanco(nome, "«reopen_lightweight» closes every document of the components, and «" +
+                                        itsName + "» («da_inserire» false) is there to be inserted by a step, " +
+                                        "which needs its document open");
+                    return null;
+                }
+                if (envelope) envelopeNames.Add(itsName);
+                if (hidden) hiddenNames.Add(itsName);
+            }
+
             // ── 1-3. i componenti, uno per uno, costruiti e salvati ───────
             //
             // `da_inserire: false` COSTRUISCE MA NON INSERISCE, ed e' il modo in
@@ -353,13 +403,354 @@ namespace ProvaSaldatura
                 return null;
             }
 
+            // ── 6b. envelopes and hidden components, when the case asks ──
+            //
+            // After the count and before «configurations»: each is set in the
+            // configuration active now, and read back (Z-C21.11). A failure here
+            // closes and deletes what the preparation made (see Abandon).
+            if (!MakeEnvelopes(nome, doc, ass, envelopeNames, pathByComponentName) ||
+                !HideComponents(nome, ass, hiddenNames, pathByComponentName))
+            {
+                ButtaViaLaPreparazione(fuori);
+                return null;
+            }
+
             // ── 7. the configurations of the assembly, when the case asks ──
             var configurations = Elenco(assieme, "configurations");
             if (configurations != null &&
                 !PrepareConfigurations(nome, doc, ass, configurations, pathByComponentName))
                 return null;
 
+            // ── 8. saved, closed and reopened lightweight, when the case asks ──
+            //
+            // Last, so that the file holds everything above (envelopes, hidden
+            // components, configurations: the last one made stays the active
+            // one, and the assembly reopens on it). From here the case runs on
+            // the REOPENED document: the one built above is closed.
+            if (reopenLightweight)
+            {
+                IModelDoc2 reopened = ReopenLightweight(nome, doc, percorsi.Count, fuori);
+                if (reopened == null) return null;
+                fuori.Documento = reopened;
+            }
+
             return fuori;
+        }
+
+        /// <summary>
+        /// A TRUE/FALSE KEY OF A CASE OBJECT (Z-C21.11): absent is false, a JSON
+        /// Boolean is itself, anything else is a bench error (never read as
+        /// false: the case would run on another assembly and look right).
+        /// </summary>
+        private static bool FlagOf(string nome, Dictionary<string, object> map, string key, out bool value)
+        {
+            value = false;
+            object raw;
+            if (map == null || !map.TryGetValue(key, out raw) || raw == null) return true;
+            if (raw is bool flag) { value = flag; return true; }
+            ErroreDiBanco(nome, "«" + key + "» is «" + Convert.ToString(raw, CultureInfo.InvariantCulture) +
+                                "», not true or false");
+            return false;
+        }
+
+        /// <summary>
+        /// THE COMPONENTS A CASE ASKS AS ENVELOPES (Z-C21.11, finding N27):
+        /// «envelope»: true on a component (a part; see the checks at step 0).
+        ///
+        /// As the Z-C21.3 probe of envelopes and BOM children (28/9/2026, T_env,
+        /// the component «F»): the component is selected with IComponent2.Select4,
+        /// then IAssemblyDoc.CompConfigProperties6(swComponentFullyResolved,
+        /// swComponentRigidSolving, Visibility true, UseNamedConfiguration true,
+        /// the configuration it references, ExcludeFromBOM false, IsEnvelope
+        /// true, swAlwaysInclude) acts on the selection; the probe read
+        /// IsEnvelope true after it, and CreateMassProperty of the assembly left
+        /// it out (16000 mm3 of 26000). Here the component is found again after a
+        /// rebuild, by its file, and IsEnvelope is READ BACK: an envelope that
+        /// did not take is a bench error, never a case run on a normal part.
+        /// </summary>
+        private static bool MakeEnvelopes(string nome, IModelDoc2 doc, IAssemblyDoc ass, List<string> names,
+                                          Dictionary<string, string> pathByComponentName)
+        {
+            foreach (var componentName in names)
+            {
+                IComponent2 component = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«envelope»");
+                if (component == null) return false;
+                string configuration = null;
+                try { configuration = component.ReferencedConfiguration; } catch { }
+                if (string.IsNullOrEmpty(configuration))
+                {
+                    ErroreDiBanco(nome, "«envelope»: I could not read which configuration «" + componentName +
+                                        "» references (ReferencedConfiguration), and CompConfigProperties6 is given it");
+                    return false;
+                }
+                bool selected = false;
+                try
+                {
+                    doc.ClearSelection2(true);
+                    selected = component.Select4(false, null, false);
+                }
+                catch (Exception ex)
+                {
+                    ErroreDiBanco(nome, "«envelope»: selecting «" + componentName + "»: " + Perche(ex));
+                    return false;
+                }
+                if (!selected)
+                {
+                    ErroreDiBanco(nome, "«envelope»: Select4 did not select «" + componentName + "», and " +
+                                        "CompConfigProperties6 acts on the selected component");
+                    return false;
+                }
+                bool answer = false;
+                try
+                {
+                    answer = ass.CompConfigProperties6(
+                        (int)swComponentSuppressionState_e.swComponentFullyResolved,
+                        (int)swComponentSolvingOption_e.swComponentRigidSolving,
+                        true, true, configuration, false, true,
+                        (int)swASMSLDPRTCompPref_e.swAlwaysInclude);
+                }
+                catch (Exception ex)
+                {
+                    try { doc.ClearSelection2(true); } catch { }
+                    ErroreDiBanco(nome, "CompConfigProperties6 on «" + componentName + "»: " + Perche(ex));
+                    return false;
+                }
+                try { doc.ClearSelection2(true); } catch { }
+                try { doc.EditRebuild3(); } catch { }
+                IComponent2 again = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«envelope»");
+                if (again == null) return false;
+                bool isEnvelope = false;
+                try { isEnvelope = again.IsEnvelope(); } catch { }
+                if (!isEnvelope)
+                {
+                    ErroreDiBanco(nome, "«" + componentName + "» is not an envelope after CompConfigProperties6 " +
+                                        "(it answered " + answer + ", and IsEnvelope reads false or cannot be read)");
+                    return false;
+                }
+                Console.WriteLine("       | component «" + componentName + "» made an envelope (IsEnvelope read back)");
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// THE COMPONENTS A CASE ASKS HIDDEN (Z-C21.11): «hidden»: true on a
+        /// component. As the probe zc2111/probe_alleggeriti (30/9/2026, T_hid):
+        /// IComponent2.Visible = swComponentHidden (0); the probe read Visible 0
+        /// and IsHidden(false) true, CreateMassProperty of the assembly weighed
+        /// it and the STEP did not write it. Here IsHidden(false) is READ BACK
+        /// on the component found again by its file (false, so that a
+        /// lightweight component is not taken for hidden: IComponent2~IsHidden.html).
+        /// </summary>
+        private static bool HideComponents(string nome, IAssemblyDoc ass, List<string> names,
+                                           Dictionary<string, string> pathByComponentName)
+        {
+            foreach (var componentName in names)
+            {
+                IComponent2 component = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«hidden»");
+                if (component == null) return false;
+                try { component.Visible = (int)swComponentVisibilityState_e.swComponentHidden; }
+                catch (Exception ex)
+                {
+                    ErroreDiBanco(nome, "«hidden»: IComponent2.Visible on «" + componentName + "»: " + Perche(ex));
+                    return false;
+                }
+                IComponent2 again = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«hidden»");
+                if (again == null) return false;
+                bool hiddenNow = false;
+                try { hiddenNow = again.IsHidden(false); } catch { }
+                if (!hiddenNow)
+                {
+                    ErroreDiBanco(nome, "«" + componentName + "» is not hidden after IComponent2.Visible = " +
+                                        "swComponentHidden (IsHidden(false) reads false or cannot be read)");
+                    return false;
+                }
+                Console.WriteLine("       | component «" + componentName + "» hidden (IsHidden(false) read back)");
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// THE ASSEMBLY REOPENED LIGHTWEIGHT (Z-C21.11, finding N5):
+        /// «reopen_lightweight»: true next to the list of components.
+        ///
+        /// Measured by the probe zc2111/probe_alleggeriti (30/9/2026): an
+        /// assembly reopened with OpenDoc6 options Silent | OverrideDefaultLoadLightweight
+        /// | LoadLightweight (1 | 64 | 128 = 193), after EVERY document of it was
+        /// closed, came back with all its components lightweight
+        /// (GetLightWeightComponentCount 4 of 4); a part still loaded as a
+        /// document came back resolved. So:
+        ///   1. the assembly is saved as «&lt;case&gt;.sldasm» under Banco\lavoro
+        ///      and registered like the parts (deleted at the end, closed by
+        ///      title);
+        ///   2. it is closed by reference, then every loaded document whose FILE
+        ///      is one of the case's is closed, twice (a part stays loaded while a
+        ///      sub-assembly that holds it is open, as in ButtaViaLaPreparazione);
+        ///   3. nothing of the case may still be loaded, looked at by path: a
+        ///      leftover would come back resolved and the case would measure a
+        ///      resolved assembly believing it lightweight;
+        ///   4. it is reopened; a warning «already open» is a bench error for
+        ///      the same reason, and so are a count of lightweight components
+        ///      that is not above zero and a count of top-level components that
+        ///      is not the one built.
+        /// The documents of the components stay closed: a step that needs one
+        /// open (inserisci_componente) cannot follow, which step 0 refuses. Any
+        /// failure closes and deletes what the preparation made.
+        /// </summary>
+        private static IModelDoc2 ReopenLightweight(string nome, IModelDoc2 doc, int topLevelCount, Preparazione fuori)
+        {
+            string path = Path.Combine(Attese.Lavoro, NomeDiFile(nome) + ".sldasm");
+            int e = 0, w = 0;
+            try { SaveTo(doc, path, out e, out w); }
+            catch (Exception ex)
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: saving the assembly: " + Perche(ex));
+                return Abandon(fuori);
+            }
+            if (!File.Exists(path))
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: saved without errors (e=" + e + ", w=" + w + ") but «" +
+                                    path + "» is not there");
+                return Abandon(fuori);
+            }
+            Register(fuori, path);
+
+            Chiudi(doc);
+            for (int round = 0; round < 2; round++)
+                foreach (IModelDoc2 loaded in LoadedDocumentsOf(fuori.FileDaCancellare) ?? new List<IModelDoc2>())
+                    Chiudi(loaded);
+            // As the probe, before looking: the COM wrappers of the closed
+            // documents are let go, so that nothing of this process keeps one.
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            List<IModelDoc2> still = LoadedDocumentsOf(fuori.FileDaCancellare);
+            if (still == null || still.Count > 0)
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: " + (still == null
+                    ? "I could not read which documents are loaded (GetFirstDocument, GetNext, GetPathName)"
+                    : "still loaded after closing: " + string.Join(", ", FileNamesOf(still))) +
+                    ". Reopened now, those would come back resolved.");
+                return Abandon(fuori);
+            }
+
+            const int options = (int)swOpenDocOptions_e.swOpenDocOptions_Silent |
+                                (int)swOpenDocOptions_e.swOpenDocOptions_OverrideDefaultLoadLightweight |
+                                (int)swOpenDocOptions_e.swOpenDocOptions_LoadLightweight;   // 193, as the probe
+            int errors = 0, warnings = 0;
+            IModelDoc2 reopened;
+            try
+            {
+                reopened = _sw.OpenDoc6(path, (int)swDocumentTypes_e.swDocASSEMBLY, options, "",
+                                        ref errors, ref warnings) as IModelDoc2;
+            }
+            catch (Exception ex)
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: OpenDoc6: " + Perche(ex));
+                return Abandon(fuori);
+            }
+            if (reopened == null)
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: OpenDoc6 answered null (e=" + errors + ", w=" + warnings + ")");
+                return Abandon(fuori);
+            }
+            // From here the cleanup closes the reopened document.
+            fuori.Documento = reopened;
+            if ((warnings & (int)swFileLoadWarning_e.swFileLoadWarning_AlreadyOpen) != 0)
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: OpenDoc6 warned that the assembly was already open " +
+                                    "(w=" + warnings + "): it was not reopened, so it is not lightweight");
+                return Abandon(fuori);
+            }
+            IAssemblyDoc reopenedAssembly = reopened as IAssemblyDoc;
+            if (reopenedAssembly == null)
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: the reopened document is not an IAssemblyDoc");
+                return Abandon(fuori);
+            }
+            int lightweight = -1;
+            try { lightweight = reopenedAssembly.GetLightWeightComponentCount(); } catch { }
+            if (lightweight <= 0)
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: after OpenDoc6 (options " + options + ") " +
+                                    "GetLightWeightComponentCount " + (lightweight < 0 ? "could not be read" : "answered 0") +
+                                    ": the case would run on a resolved assembly");
+                return Abandon(fuori);
+            }
+            int count = QuantiComponenti(reopenedAssembly);
+            if (count != topLevelCount)
+            {
+                ErroreDiBanco(nome, "«reopen_lightweight»: the assembly was built with " + topLevelCount +
+                                    " top-level components and reopens with " + count);
+                return Abandon(fuori);
+            }
+            Console.WriteLine("       | assembly saved as «" + Path.GetFileName(path) + "», closed with its components " +
+                              "and reopened lightweight: " + lightweight + " lightweight component(s)");
+            return reopened;
+        }
+
+        /// <summary>
+        /// The loaded documents (ISldWorks.GetFirstDocument, then IModelDoc2.GetNext)
+        /// whose file is one of <paramref name="paths"/>, compared as full paths.
+        /// Null when the list cannot be read, or a document does not say its path:
+        /// «I could not look» is not «nothing is loaded».
+        /// </summary>
+        private static List<IModelDoc2> LoadedDocumentsOf(List<string> paths)
+        {
+            var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in paths)
+            {
+                try { wanted.Add(Path.GetFullPath(p)); }
+                catch (ArgumentException) { }
+            }
+            var found = new List<IModelDoc2>();
+            IModelDoc2 d;
+            try { d = _sw.GetFirstDocument() as IModelDoc2; }
+            catch (Exception) { return null; }
+            for (int guard = 0; d != null; guard++)
+            {
+                if (guard > 10000) return null;
+                string own;
+                try { own = d.GetPathName(); }
+                catch (Exception) { return null; }
+                // A document never saved has no path, and none of the case's is
+                // one: every file of the case is on disk before it is opened.
+                if (!string.IsNullOrWhiteSpace(own))
+                {
+                    try { if (wanted.Contains(Path.GetFullPath(own))) found.Add(d); }
+                    catch (ArgumentException) { return null; }
+                }
+                IModelDoc2 next;
+                try { next = d.GetNext() as IModelDoc2; }
+                catch (Exception) { return null; }
+                d = next;
+            }
+            return found;
+        }
+
+        /// <summary>The file names of some documents, for a message.</summary>
+        private static List<string> FileNamesOf(List<IModelDoc2> docs)
+        {
+            var names = new List<string>();
+            foreach (IModelDoc2 one in docs)
+            {
+                string own = "?";
+                try { own = Path.GetFileName(one.GetPathName()); } catch { }
+                names.Add(own);
+            }
+            return names;
+        }
+
+        /// <summary>
+        /// A preparation that stopped half-way (Z-C21.11): what it made is closed
+        /// and deleted here, since the caller gets null and has nothing to hand
+        /// to ButtaViaLaPreparazione. A document left open would be found by the
+        /// next case, and a file left in Banco\lavoro would be found by the next
+        /// round.
+        /// </summary>
+        private static IModelDoc2 Abandon(Preparazione p)
+        {
+            ButtaViaLaPreparazione(p);
+            return null;
         }
 
         /// <summary>
@@ -424,7 +815,7 @@ namespace ProvaSaldatura
 
                 foreach (var componentName in TextsOf(one, "suppressed"))
                 {
-                    var component = ComponentOfCase(nome, ass, componentName, pathByComponentName);
+                    var component = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«configurations»");
                     if (component == null) return false;
                     int answer = -1;
                     try { answer = component.SetSuppression2((int)swComponentSuppressionState_e.swComponentSuppressed); }
@@ -445,7 +836,7 @@ namespace ProvaSaldatura
 
                 foreach (var componentName in TextsOf(one, "excluded_from_bom"))
                 {
-                    var component = ComponentOfCase(nome, ass, componentName, pathByComponentName);
+                    var component = ComponentOfCase(nome, ass, componentName, pathByComponentName, "«configurations»");
                     if (component == null) return false;
                     int answer = -1;
                     object readBack = null;
@@ -501,14 +892,17 @@ namespace ProvaSaldatura
         /// The top-level component of the assembly made from the case component
         /// called <paramref name="componentName"/>, found by its FILE, never by
         /// its position; null (after ErroreDiBanco) when there is none.
+        /// <paramref name="askedBy"/> is the key of the case that names it
+        /// («configurations», «envelope», «hidden»), for the message.
         /// </summary>
         private static IComponent2 ComponentOfCase(
-            string nome, IAssemblyDoc ass, string componentName, Dictionary<string, string> pathByComponentName)
+            string nome, IAssemblyDoc ass, string componentName, Dictionary<string, string> pathByComponentName,
+            string askedBy)
         {
             string path;
             if (!pathByComponentName.TryGetValue(componentName, out path))
             {
-                ErroreDiBanco(nome, "«configurations» names «" + componentName + "», which is not a component of the case");
+                ErroreDiBanco(nome, askedBy + " names «" + componentName + "», which is not a component of the case");
                 return null;
             }
             object[] all = null;
@@ -522,7 +916,7 @@ namespace ProvaSaldatura
                     string.Equals(Path.GetFullPath(own), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase))
                     return c;
             }
-            ErroreDiBanco(nome, "«configurations» names «" + componentName + "», and no component of the assembly " +
+            ErroreDiBanco(nome, askedBy + " names «" + componentName + "», and no component of the assembly " +
                                 "uses its file (it has «da_inserire» false?)");
             return null;
         }
@@ -727,6 +1121,9 @@ namespace ProvaSaldatura
         /// this fails before the save, the new assembly is closed here, since
         /// nothing else knows it. One level only: a sub-assembly inside a
         /// sub-assembly is refused, no case needs it yet.
+        /// Two children with the same name are two instances of ONE part
+        /// (Z-C21.11): it is built from the first, and the second brings only
+        /// its «posizione_mm».
         /// </summary>
         private static bool BuildSubassembly(
             string label, string stem, List<object> children, string path, Preparazione fuori)
@@ -738,6 +1135,8 @@ namespace ProvaSaldatura
             }
             var childPaths = new List<string>();
             var childPositions = new List<double[]>();
+            // The child names already built here (Z-C21.11, finding M23).
+            var builtHere = new HashSet<string>(StringComparer.Ordinal);
             for (int k = 0; k < children.Count; k++)
             {
                 var child = children[k] as Dictionary<string, object>;
@@ -751,11 +1150,42 @@ namespace ProvaSaldatura
                     ErroreDiBanco(label, "a sub-assembly inside a sub-assembly is not supported by the bench");
                     return false;
                 }
+                // Z-C21.11: «envelope» and «hidden» act on top-level components
+                // only (they are found by file among GetComponents(true)); inside
+                // a sub-assembly they would be read by nobody, and the case
+                // would run on another assembly.
+                if (child.ContainsKey("envelope") || child.ContainsKey("hidden"))
+                {
+                    ErroreDiBanco(label, "«envelope» and «hidden» act on top-level components only, and component " +
+                                         (k + 1) + " is inside a sub-assembly");
+                    return false;
+                }
                 string childName = Testo(child, "nome") ?? ("comp" + (k + 1));
                 string childPath = Path.Combine(Attese.Lavoro, stem + "_" + NomeDiFile(childName) + ".sldprt");
-                if (!CostruisciESalva(label + " · component «" + childName + "»", child, childPath))
-                    return false;
-                Register(fuori, childPath);
+                // A NAME ALREADY BUILT HERE IS ONE MORE INSTANCE OF THE SAME PART
+                // (Z-C21.11, finding M23): the indented BOM of «A + 3 x S(2 B) + B»
+                // needs two instances of ONE file inside S, and the file name comes
+                // from the child name. The part is built and registered once, from
+                // the first child with that name; a later one brings only its
+                // «posizione_mm», and steps of its own are refused rather than
+                // ignored.
+                if (builtHere.Contains(childName))
+                {
+                    if (Elenco(child, "passi") != null)
+                    {
+                        ErroreDiBanco(label, "component «" + childName + "» repeats a name already built in this " +
+                                             "sub-assembly and brings steps of its own: a repeated name is one more " +
+                                             "instance of the same part, built once from the first");
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (!CostruisciESalva(label + " · component «" + childName + "»", child, childPath))
+                        return false;
+                    Register(fuori, childPath);
+                    builtHere.Add(childName);
+                }
                 childPaths.Add(childPath);
                 childPositions.Add(PosizioneMm(child));
             }
