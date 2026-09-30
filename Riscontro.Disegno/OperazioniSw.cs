@@ -617,6 +617,9 @@ namespace Riscontro.Disegno
             bool centrato = Bool(a, "centrato", true);
             string piano = Str(a, "piano", "frontale");
 
+            // The names of the tree before the sketch: the sketch selected below
+            // is the one born since (scheme S7), not the last of the tree.
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaPiano(modello, piano))
                 return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
 
@@ -641,7 +644,7 @@ namespace Riscontro.Disegno
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
             // e la feature lavora su cio' che e' selezionato.
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             var feature = Estrudi(modello, spessore, unisci: true);
@@ -1013,6 +1016,9 @@ namespace Riscontro.Disegno
             bool simmetrico = Bool(a, "simmetrico", false);
             string piano = Str(a, "piano", "frontale");
 
+            // Before the sketch: it is selected, and locked after the
+            // extrusion, as the one sketch born since (scheme S7).
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaPiano(modello, piano))
                 return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
 
@@ -1038,7 +1044,7 @@ namespace Riscontro.Disegno
             }
             schizzi.InsertSketch(false);
 
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             var feature = Estrudi(modello, spessore, unisci: true, simmetrico: simmetrico);
@@ -1050,7 +1056,7 @@ namespace Riscontro.Disegno
             // object[]: the typed array was measured only after the feature).
             string notaBlocco;
             int fixedRelations;
-            bool bloccato = BloccaSchizzo(modello, out notaBlocco, out fixedRelations);
+            bool bloccato = BloccaSchizzo(modello, sketchNamesBefore, out notaBlocco, out fixedRelations);
 
             var misure = new Dictionary<string, object>
             {
@@ -1242,14 +1248,29 @@ namespace Riscontro.Disegno
         /// A failure does not fail the operation: the part is right all the same,
         /// it is only editable by mistake. It goes in the result (the note says
         /// why) and the plan goes on.
+        ///
+        /// WHICH SKETCH (scheme S7, Z-C21.5): the one ProfileFeature born since
+        /// <paramref name="namesBeforeSketch"/>, the names the caller took before
+        /// opening the sketch, found again in the tree after the feature as the
+        /// probe found it. A sketch used by a feature stays in the top-level
+        /// walk of IFirstFeature (measured 14/9/2026, see SenzaLoSchizzo), and
+        /// the feature itself is no ProfileFeature, so it is still the one born.
+        /// Until library 0.146.0 it was the last sketch of the tree.
         /// </summary>
-        private bool BloccaSchizzo(IModelDoc2 modello, out string nota, out int fixedRelations)
+        private bool BloccaSchizzo(IModelDoc2 modello, HashSet<string> namesBeforeSketch, out string nota, out int fixedRelations)
         {
             nota = null;
             fixedRelations = 0;
-            IFeature sketchFeature = SchizzoAppenaCreato(modello);
+            int sketchesBorn;
+            IFeature sketchFeature = SchizzoAppenaCreato(modello, namesBeforeSketch, out sketchesBorn);
             var schizzo = sketchFeature?.GetSpecificFeature2() as ISketch;
-            if (schizzo == null) { nota = "sketch not found after the feature"; return false; }
+            if (schizzo == null)
+            {
+                nota = sketchesBorn > 1
+                    ? sketchesBorn + " sketches born since the sketch was opened: which one to lock is not known"
+                    : "sketch not found after the feature";
+                return false;
+            }
             int before = FixedRelationCount(schizzo);
             if (before < 0) { nota = "the relations of the sketch cannot be read"; return false; }
 
@@ -1799,6 +1820,8 @@ namespace Riscontro.Disegno
             double altezza = Num(a, "altezza_mm");
             string piano = Str(a, "piano", "frontale");
 
+            // The names before the sketch (scheme S7): see EstrudiRettangolo.
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaPiano(modello, piano))
                 return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
 
@@ -1818,7 +1841,7 @@ namespace Riscontro.Disegno
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
             // e la feature lavora su cio' che e' selezionato.
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             var feature = Estrudi(modello, altezza, unisci: true);
@@ -2232,6 +2255,8 @@ namespace Riscontro.Disegno
                             (2 * Math.Min(du, dv)).ToString("0.##") + " mm.");
             if (senzaSperanza != null) return Fallito(senzaSperanza);
 
+            // The names before the sketch (scheme S7): see EstrudiRettangolo.
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
             var schizzi = modello.SketchManager;
             schizzi.InsertSketch(true);
@@ -2297,7 +2322,7 @@ namespace Riscontro.Disegno
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
             // e la feature lavora su cio' che e' selezionato.
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             var feature = Taglia(modello, passante, profondita);
@@ -2489,6 +2514,8 @@ namespace Riscontro.Disegno
                             (2 * du).ToString("0.##") + " x " + (2 * dv).ToString("0.##") + " mm.");
             if (senzaSperanza != null) return Fallito(senzaSperanza);
 
+            // The names before the sketch (scheme S7): see EstrudiRettangolo.
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
             var schizzi = modello.SketchManager;
             schizzi.InsertSketch(true);
@@ -2557,7 +2584,7 @@ namespace Riscontro.Disegno
 
             // Lo schizzo va SELEZIONATO: uscire dallo schizzo non lo seleziona,
             // e la feature lavora su cio' che e' selezionato.
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             var feature = Taglia(modello, passante, profondita);
@@ -2724,6 +2751,8 @@ namespace Riscontro.Disegno
                             (2 * du).ToString("0.##") + " x " + (2 * dv).ToString("0.##") + " mm.");
             if (senzaSperanza != null) return Fallito(senzaSperanza);
 
+            // The names before the sketch (scheme S7): see EstrudiRettangolo.
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
 
             double? volumePrima = VolumeMm3(modello);
@@ -2797,7 +2826,7 @@ namespace Riscontro.Disegno
             }
             if (!disegnato) return Fallito(errore + SenzaLoSchizzo(modello));
 
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             var feature = Taglia(modello, passante, profondita);
@@ -3405,6 +3434,8 @@ namespace Riscontro.Disegno
             if (corpiPrima < 0 || volumePrima == null)
                 return Fallito(VolumeNonLettoPrima("fare il rialzo"));
 
+            // The names before the sketch (scheme S7): see EstrudiRettangolo.
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
 
             var schizzi = modello.SketchManager;
@@ -3437,7 +3468,7 @@ namespace Riscontro.Disegno
             }
             if (!disegnato) return Fallito((errore ?? "schizzo non riuscito") + SenzaLoSchizzo(modello));
 
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             var feature = Estrudi(modello, altezza, unisci: unisci);
@@ -4917,6 +4948,9 @@ namespace Riscontro.Disegno
 
             double angolo = Num(a, "angolo_gradi", 360);
             string piano = Str(a, "piano", "frontale");
+            // Before the sketch: it is selected, and locked after the
+            // revolve, as the one sketch born since (scheme S7).
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaPiano(modello, piano))
                 return Fallito($"Non ho trovato il piano «{piano}» nell'albero.");
 
@@ -4951,7 +4985,7 @@ namespace Riscontro.Disegno
 
             if (!asseCreato)
                 return Fallito("Non sono riuscito a disegnare l'asse di rivoluzione." + SenzaLoSchizzo(modello));
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             IFeature feature;
@@ -5000,7 +5034,7 @@ namespace Riscontro.Disegno
 
             string notaBlocco;
             int fixedRelations;
-            bool bloccato = BloccaSchizzo(modello, out notaBlocco, out fixedRelations);
+            bool bloccato = BloccaSchizzo(modello, sketchNamesBefore, out notaBlocco, out fixedRelations);
             var revolveMeasures = new Dictionary<string, object>
             {
                 ["schizzo_bloccato"] = bloccato,
@@ -6236,52 +6270,89 @@ namespace Riscontro.Disegno
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Lo schizzo appena chiuso, SELEZIONATO, pronto da estrudere o tagliare.
+        /// THE SKETCH A CALLER HAS JUST DRAWN AND CLOSED, BY THE DIFFERENCE OF
+        /// THE TREE (scheme S7, Z-C21.5): the one ProfileFeature whose name was
+        /// not in <paramref name="namesBeforeSketch"/>, the names the caller
+        /// took with <see cref="FeatureNamesNow"/> BEFORE it selected the plane
+        /// or face and opened the sketch. Null when none was born, when more
+        /// than one was, when the names were not taken or the tree cannot be
+        /// read, and on anything but a part; <paramref name="born"/> says how
+        /// many sketches were born (-1: not read). The decision is
+        /// <see cref="BornFeatureIndex"/>, the same as for the planes and axes.
         ///
-        /// PERCHE' SERVE
-        /// `InsertSketch(false)` esce dallo schizzo ma NON lo lascia
-        /// selezionato, e FeatureExtrusion3 lavora su cio' che e' selezionato:
-        /// senza questo passaggio la feature non nasce e basta. E' successo il
-        /// 7 settembre 2026 alla prima estrusione vera: nell'albero restava
-        /// «(-) Schizzo1» non consumato e il piano si fermava con «l'estrusione
-        /// non e' stata creata», senza altra spiegazione. I parametri erano
-        /// giusti: mancava la selezione.
+        /// UNTIL LIBRARY 0.146.0 it was the LAST ProfileFeature of the tree,
+        /// which is the new sketch only when SOLIDWORKS puts it at the bottom
+        /// and when it is born at all: a sketch that was not born left the
+        /// previous one, a sketch an earlier step had already used, to be
+        /// selected in its place. IPartDoc~IFirstFeature.html
+        /// (Remarks): «this order changes when the part is edited» and «you
+        /// should not assume that Sketch1 always appears before Sketch2».
         ///
-        /// Si cerca l'ultima feature di tipo ProfileFeature — cioe' l'ultimo
-        /// schizzo dell'albero, che e' quello appena creato — e NON per nome:
-        /// i nomi delle feature sono tradotti («Schizzo1» contro «Sketch1») e
-        /// una SelectByID2 con il nome sbagliato risponde false in silenzio.
+        /// THE NAMES ARE READ, NEVER WRITTEN. Feature names are localized (an
+        /// Italian installation says «Schizzo1» where an English one says
+        /// «Sketch1») and a SelectByID2 on a name we made up answers false in
+        /// silence. Here a name is only compared with the names read from the
+        /// same tree a moment before, and the feature is then selected as an
+        /// object. IFeature~Name.html (Remarks): a new name «must be unique in
+        /// the FeatureManager design tree», so a name that was not there before
+        /// is a feature that was not there before. The type only narrows:
+        /// IFeature~GetTypeName2.html lists ProfileFeature under Sketch, with
+        /// ISketch as its specific feature (3DProfileFeature is the 3D sketch).
+        ///
+        /// Not ISketchManager.ActiveSketch taken as a feature while the sketch
+        /// is still open: only a guide example does that cast
+        /// (Rename_Active_Sketch_Example_VB.htm, «Set swFeat = swSketch» after
+        /// GetActiveSketch2), no Remarks says it, and nothing here can measure
+        /// it today; the names before and after are what FeatureBorn already
+        /// uses for every other feature a call makes.
         /// </summary>
-        private static IFeature SchizzoAppenaCreato(IModelDoc2 modello)
+        private static IFeature SchizzoAppenaCreato(IModelDoc2 modello, HashSet<string> namesBeforeSketch, out int born)
         {
-            var parte = modello as IPartDoc;
-            if (parte == null) return null;
-            IFeature ultimo = null;
-            try
-            {
-                var f = parte.IFirstFeature();
-                while (f != null)
-                {
-                    try
-                    {
-                        if (f.GetTypeName2() == "ProfileFeature") ultimo = f;
-                    }
-                    catch { }
-                    f = f.IGetNextFeature();
-                }
-            }
-            catch { return null; }
-            return ultimo;
+            return FeatureBorn(modello, namesBeforeSketch, "ProfileFeature", out born);
         }
 
-        /// <summary>Seleziona lo schizzo appena chiuso. False se non ci riesce.</summary>
-        private bool SelezionaSchizzoAppenaCreato(IModelDoc2 modello, out string errore)
+        /// <summary>
+        /// Why the sketch just drawn could not be identified. With none born the
+        /// caller's own sentence, the one it has always said; with an unreadable
+        /// tree the same sentence and why; with two or more born, how many:
+        /// two candidates, and taking the later would be «the last sketch of the
+        /// tree» again. Pure, so that Prove.Contratti checks it without
+        /// SOLIDWORKS (Zc215SketchIdentityContract).
+        /// </summary>
+        internal static string SketchNotIdentified(int born, string notFound)
+        {
+            if (born > 1)
+                return born + " sketches were born since this sketch was opened, and nothing tells which " +
+                       "one was just drawn: none is taken.";
+            if (born < 0)
+                return notFound + " The feature tree could not be read before or after the sketch, so the " +
+                       "new sketch cannot be told from the others.";
+            return notFound;
+        }
+
+        /// <summary>
+        /// Selects the sketch just closed, ready to be extruded or cut. False
+        /// when it cannot be identified or selected.
+        ///
+        /// WHY IT IS NEEDED. `InsertSketch(false)` leaves the sketch but does
+        /// NOT leave it selected, and FeatureExtrusion3 works on what is
+        /// selected: without this step the feature is simply not born. It
+        /// happened on 7 September 2026 at the first real extrusion: the sketch
+        /// stayed in the tree, unused, and the plan stopped saying that the
+        /// extrusion was not created, with no other explanation. The
+        /// parameters were right: the selection was missing.
+        ///
+        /// WHICH SKETCH: the one born since <paramref name="namesBeforeSketch"/>
+        /// (<see cref="SchizzoAppenaCreato"/>), never the last of the tree.
+        /// </summary>
+        private bool SelezionaSchizzoAppenaCreato(IModelDoc2 modello, HashSet<string> namesBeforeSketch, out string errore)
         {
             errore = null;
-            var schizzo = SchizzoAppenaCreato(modello);
+            int born;
+            var schizzo = SchizzoAppenaCreato(modello, namesBeforeSketch, out born);
             if (schizzo == null)
             {
-                errore = "Non ritrovo lo schizzo che ho appena creato.";
+                errore = SketchNotIdentified(born, "Non ritrovo lo schizzo che ho appena creato.");
                 return false;
             }
             try

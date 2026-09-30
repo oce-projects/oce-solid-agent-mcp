@@ -104,6 +104,16 @@ namespace Riscontro.Disegno
             int corpiPrima = ContaCorpiSolidi(modello);
             if (volumePrima == null) return Fallito(VolumeNonLettoPrima("fare il tubo"));
 
+            // THE PATH IS THE ONE 3D SKETCH BORN SINCE HERE (scheme S7, Z-C21.5):
+            // the names of the tree are taken before the sketch is opened, and
+            // the path is the 3DProfileFeature whose name was not among them
+            // (OperazioniSw.FeatureBorn). Until library 0.146.0 it was the last
+            // sketch of the tree, 2D or 3D, whatever step had made it.
+            // IFeature~GetTypeName2.html lists 3DProfileFeature under Sketch,
+            // with ISketch as its specific feature; the frame path, drawn with
+            // the same Insert3DSketch, was read back as a 3DProfileFeature (bench
+            // case `r12_telaio_col_profilo_piu_sottile`).
+            var pathNamesBefore = FeatureNamesNow(modello);
             var schizzi = modello.SketchManager;
             bool disegnato = false;
             string errore = null;
@@ -133,9 +143,11 @@ namespace Riscontro.Disegno
             if (!disegnato)
                 return Fallito("Il percorso non e' stato disegnato: " + errore + SenzaLoSchizzo(modello));
 
-            var percorso = UltimoSchizzoFeature(modello);
+            int pathsBorn;
+            IFeature percorso = FeatureBorn(modello, pathNamesBefore, "3DProfileFeature", out pathsBorn);
             if (percorso == null)
-                return Fallito("Non ritrovo lo schizzo del percorso appena fatto." + SenzaLoSchizzo(modello));
+                return Fallito(SketchNotIdentified(pathsBorn, "Non ritrovo lo schizzo del percorso appena fatto.") +
+                               SenzaLoSchizzo(modello));
 
             modello.ClearSelection2(true);
             // MARCA 4: il percorso. Vedi la tabella nella nota in testa.
@@ -421,25 +433,6 @@ namespace Riscontro.Disegno
         }
 
         // =================================================================
-
-        /// <summary>L'ultima feature di schizzo dell'albero.</summary>
-        private static IFeature UltimoSchizzoFeature(IModelDoc2 modello)
-        {
-            IFeature ultimo = null;
-            try
-            {
-                var f = modello.FirstFeature() as IFeature;
-                while (f != null)
-                {
-                    var tipo = f.GetTypeName2();
-                    if (tipo == "ProfileFeature" || tipo == "3DProfileFeature") ultimo = f;
-                    f = f.GetNextFeature() as IFeature;
-                }
-            }
-            catch { }
-            try { modello.ClearSelection2(true); } catch { }
-            return ultimo;
-        }
 
         private static List<double[]> Punti(Dictionary<string, object> a, string chiave)
         {

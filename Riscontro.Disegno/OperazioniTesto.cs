@@ -138,6 +138,10 @@ namespace Riscontro.Disegno
             double areaFaccia = 0;
             try { areaFaccia = faccia.GetArea() * 1e6; } catch { }
 
+            // The names of the tree before the sketch: the sketch engraved below
+            // is the one born since (scheme S7, OperazioniSw.SchizzoAppenaCreato),
+            // not the last sketch of the tree.
+            var sketchNamesBefore = FeatureNamesNow(modello);
             if (!SelezionaFaccia(faccia)) return Fallito("Non sono riuscito a selezionare la faccia.");
 
             var schizzi = modello.SketchManager;
@@ -230,7 +234,7 @@ namespace Riscontro.Disegno
                     scatolaTesto[4] - scatolaTesto[1],
                     dove, SenzaLoSchizzo(modello)));
 
-            if (!SelezionaSchizzoAppenaCreato(modello, out string erroreSel))
+            if (!SelezionaSchizzoAppenaCreato(modello, sketchNamesBefore, out string erroreSel))
                 return Fallito(erroreSel + SenzaLoSchizzo(modello));
 
             IFeature feature;

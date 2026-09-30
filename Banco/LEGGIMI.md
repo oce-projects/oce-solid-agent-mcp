@@ -678,7 +678,7 @@ casi/tavola/      41   il primo caso che arriva in TAVOLA (voce GT0);
                        frame reads its Ø back, and the flatness frame reads
                        none (Z-C21.8, M38); the BOM follows the configuration
                        of the view, not the active one (Z-C21.4, L16-2, L16-3)
-casi/saldature/   13   la distinta conta le barre, e i due numeri vengono da
+casi/saldature/   14   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
                        va fra facce che si toccano ad angolo; il tappo chiude
@@ -696,7 +696,8 @@ casi/saldature/   13   la distinta conta le barre, e i due numeri vengono da
                        N31, N32); a member group is mitred by default, an
                        empty profile size names the sizes, the trim extends
                        a short bar (Z-C21, N25, L9-4); the trim refuses an
-                       end condition it does not know (Z-C21.8, N22)
+                       end condition it does not know (Z-C21.8, N22); the end
+                       cap leaves out a drilled wall (Z-C21.5, N7)
 casi/estrusioni/  10   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        l'ingombro, estremita' comprese, ed e' un poligono; la
                        ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta

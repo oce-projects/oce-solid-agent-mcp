@@ -2411,7 +2411,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "TAPPO. Non ha un valore predefinito, perche' e' una scelta di "
                         + "progetto: chiedilo, e chiedi SOLO quello. Il materiale non serve "
                         + "— lo si applica dopo con la sua operazione, e non cambia la forma "
-                        + "del tappo.",
+                        + "del tappo."
+                        + "\n\nA PLANAR FACE WITH A HOLE MACHINED INTO IT IS NOT AN OPEN END. "
+                        + "A drilled side wall of a tube (its outer and its inner face) is "
+                        + "looked at and left out, and the answer counts it in "
+                        + "machined_faces_skipped. An open end is a face whose void was made "
+                        + "by the bar itself, so an end whose inner edges were chamfered or "
+                        + "counterbored is left out the same way. When a face cannot be told "
+                        + "apart, nothing is capped and the answer says why.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -2428,7 +2435,8 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "object",
                                 "description", "le facce di estremita' da tappare, da un passo precedente\n\nGeneri "
                                     + "ammessi:\n- estremita_libere: le facce di estremita' ancora aperte "
-                                    + "delle barre di quel passo, quelle che si tappano",
+                                    + "delle barre di quel passo, quelle che si tappano"
+                                    + " (a wall with a hole machined into it is not an end: it is left out)",
                                 "properties", O(
                                     "passo", O(
                                         "type", "integer",

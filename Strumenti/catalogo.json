@@ -2091,7 +2091,7 @@
    "nome": "tappo_estremita",
    "famiglia": "saldature",
    "sommario": "Chiude con un tappo le estremita' aperte delle barre cave.",
-   "descrizione": "Chiude con un tappo le estremita' aperte di una barra cava. Si mette sulle facce di estremita' create da un passo precedente, oppure sulle barre che ci sono gia' nel documento («C1», «C2»...).\n\nL'UNICA COSA CHE PUO' MANCARE E' LO SPESSORE DEL TAPPO. Non ha un valore predefinito, perche' e' una scelta di progetto: chiedilo, e chiedi SOLO quello. Il materiale non serve — lo si applica dopo con la sua operazione, e non cambia la forma del tappo.",
+   "descrizione": "Chiude con un tappo le estremita' aperte di una barra cava. Si mette sulle facce di estremita' create da un passo precedente, oppure sulle barre che ci sono gia' nel documento («C1», «C2»...).\n\nL'UNICA COSA CHE PUO' MANCARE E' LO SPESSORE DEL TAPPO. Non ha un valore predefinito, perche' e' una scelta di progetto: chiedilo, e chiedi SOLO quello. Il materiale non serve — lo si applica dopo con la sua operazione, e non cambia la forma del tappo.\n\nA PLANAR FACE WITH A HOLE MACHINED INTO IT IS NOT AN OPEN END. A drilled side wall of a tube (its outer and its inner face) is looked at and left out, and the answer counts it in machined_faces_skipped. An open end is a face whose void was made by the bar itself, so an end whose inner edges were chamfered or counterbored is left out the same way. When a face cannot be told apart, nothing is capped and the answer says why.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2104,7 +2104,7 @@
      },
      "estremita_rif": {
       "type": "object",
-      "description": "le facce di estremita' da tappare, da un passo precedente\n\nGeneri ammessi:\n- estremita_libere: le facce di estremita' ancora aperte delle barre di quel passo, quelle che si tappano",
+      "description": "le facce di estremita' da tappare, da un passo precedente\n\nGeneri ammessi:\n- estremita_libere: le facce di estremita' ancora aperte delle barre di quel passo, quelle che si tappano (a wall with a hole machined into it is not an end: it is left out)",
       "properties": {
        "passo": {
         "type": "integer",

@@ -529,31 +529,45 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Le facce di ESTREMITA' ancora aperte delle barre di un passo:
-        /// quelle che si tappano.
+        /// The OPEN END faces of the bars a step made: the ones an end cap
+        /// closes.
         ///
-        /// COME SI RICONOSCE UN'ESTREMITA', E PERCHE' NON SI INDOVINA
-        /// Una barra e' un profilo estruso lungo un segmento. Le facce che
-        /// contano sono quelle PIANE la cui normale corre lungo l'asse della
-        /// barra: sono i due tagli. Tutto il resto e' la superficie laterale.
+        /// HOW AN END IS RECOGNISED, AND WHY IT IS NOT GUESSED
+        /// A bar is a profile swept along a segment. The faces that count are
+        /// the PLANAR ones across the axis of the bar: the two cuts. Everything
+        /// else is the side of the bar.
         ///
-        /// L'asse della barra qui non lo sappiamo (i segmenti sono nel piano,
-        /// non nella feature), quindi si usa un invariante piu' robusto: una
-        /// faccia di estremita' di un profilo CAVO ha piu' di un contorno —
-        /// il perimetro esterno e quello del vuoto. E' esattamente cio' che si
-        /// tappa. Su un profilo pieno di estremita' da tappare non ce ne sono,
-        /// e dirlo e' la risposta giusta.
+        /// The axis of the bar is not known here (the segments are in the
+        /// sketch, not in the feature), so a sturdier invariant is used: the
+        /// end face of a HOLLOW profile has more than one loop, the outer
+        /// outline and the outline of the void, and the void was made by the
+        /// feature that made the outer walls or the end itself. That is exactly what is
+        /// capped. A solid profile has no end to cap, and saying so is the
+        /// right answer.
         ///
-        /// Le facce tagliate a quartabuono restano piane e cave: si tappano
-        /// anche quelle, ed e' corretto — un telaio con gli angoli a 45 ha
-        /// comunque le estremita' aperte dove non incontra un'altra barra.
+        /// The second half of the invariant is finding N7 (Z-C21.5): «planar
+        /// with more than one loop» alone also holds for a side wall of a tube
+        /// with a hole drilled through it, and until library 0.146.0 both faces
+        /// of the drilled wall went to InsertEndCapFeature3 as ends to cap. See
+        /// <see cref="InnerLoopsAreTheProfileVoid"/> for the rule.
+        ///
+        /// Mitred faces stay planar and hollow: they are capped too, and that
+        /// is right, a frame with 45 degree corners still has open ends where
+        /// a bar meets no other bar.
+        ///
+        /// <paramref name="machinedFaces"/> counts the planar faces with more
+        /// than one loop that were NOT taken, because an inner loop of theirs
+        /// was made by another feature (a drilled wall counts twice: its outer
+        /// and its inner face). Null is returned, with the reason, when a face
+        /// could not be told apart: see <see cref="OpenEndsOnly"/>.
         /// </summary>
-        public static List<IFace2> EstremitaLibere(Passo passo, out string motivo)
+        public static List<IFace2> EstremitaLibere(Passo passo, out int machinedFaces, out string motivo)
         {
+            machinedFaces = 0;
             motivo = null;
             var facce = FacceDi(passo, out motivo);
             if (facce == null) return null;
-            return SoloEstremita(facce);
+            return OpenEndsOnly(facce, out machinedFaces, out motivo);
         }
 
         /// <summary>
@@ -569,18 +583,29 @@ namespace Riscontro.Disegno
         ///
         /// Adesso lo stato del documento porta i corpi con il loro
         /// identificativo, e questa e' la strada che li usa.
+        ///
+        /// The same rule as <see cref="EstremitaLibere"/>, and the same
+        /// <paramref name="machinedFaces"/>. A body whose faces cannot be read
+        /// stops the step (Z-C21.5, with N7): skipping it left that bar
+        /// uncapped while the answer counted the caps of the others.
         /// </summary>
         public static List<IFace2> EstremitaLibereDi(
-            IEnumerable<IBody2> corpi, out string motivo)
+            IEnumerable<IBody2> corpi, out int machinedFaces, out string motivo)
         {
+            machinedFaces = 0;
             motivo = null;
             var facce = new List<IFace2>();
             foreach (var corpo in corpi)
             {
                 object[] elenco;
                 try { elenco = corpo.GetFaces() as object[]; }
-                catch { continue; }
-                if (elenco == null) continue;
+                catch { elenco = null; }
+                if (elenco == null)
+                {
+                    motivo = "I could not read the faces of one of the bodies, so I cannot say " +
+                             "which of its ends are open: nothing was capped.";
+                    return null;
+                }
                 foreach (var o in elenco)
                 {
                     var f = o as IFace2;
@@ -592,27 +617,257 @@ namespace Riscontro.Disegno
                 motivo = "I corpi indicati non hanno facce leggibili.";
                 return null;
             }
-            return SoloEstremita(facce);
+            return OpenEndsOnly(facce, out machinedFaces, out motivo);
         }
 
         /// <summary>
-        /// Fra un mucchio di facce, quelle che sono estremita' aperte di un
-        /// profilo cavo: PIANE e con piu' di un contorno (il perimetro esterno
-        /// e quello del vuoto). Su un profilo pieno non ce ne sono, e dirlo e'
-        /// la risposta giusta.
+        /// Out of a heap of faces, the open ends of a hollow profile: PLANAR,
+        /// with more than one loop, and every inner loop the void of the
+        /// profile (<see cref="InnerLoopsAreTheProfileVoid"/>). A solid profile
+        /// has none, and an empty list is the right answer there.
+        ///
+        /// A FACE THAT CANNOT BE TOLD APART STOPS EVERYTHING. Taking it would
+        /// cap a drilled wall (InsertEndCapFeature3 wants «one or more end
+        /// faces of a structural member», IFeatureManager~InsertEndCapFeature3
+        /// .html, Remarks); leaving it out would leave an end open while the
+        /// answer counts the caps. Either way the step would say it worked on
+        /// a part that is not what was asked, so null comes back with the
+        /// reason (memory «a check never seen firing»: a check that cannot
+        /// look must not say yes). The same holds for a planar face whose loop
+        /// count does not answer: until library 0.146.0 it was skipped.
         /// </summary>
-        private static List<IFace2> SoloEstremita(IEnumerable<IFace2> facce)
+        private static List<IFace2> OpenEndsOnly(
+            IEnumerable<IFace2> faces, out int machinedFaces, out string reason)
         {
-            var fuori = new List<IFace2>();
-            foreach (var f in facce)
+            machinedFaces = 0;
+            reason = null;
+            var ends = new List<IFace2>();
+            foreach (IFace2 face in faces)
             {
-                if (Normale(f) == null) continue;  // non piana: e' il fianco
-                int contorni;
-                try { contorni = f.GetLoopCount(); }
-                catch { continue; }
-                if (contorni > 1) fuori.Add(f);
+                if (Normale(face) == null) continue;  // not planar: a side of the bar
+                int loops;
+                try { loops = face.GetLoopCount(); }   // IFace2~GetLoopCount.html: «Number of loops in this face»
+                catch (Exception ex)
+                {
+                    reason = CannotTellEndsApart("the number of loops (" + ex.Message + ")");
+                    return null;
+                }
+                if (loops < 2) continue;
+
+                string unread;
+                bool? isVoid = InnerLoopsAreTheProfileVoid(face, out unread);
+                if (isVoid == null)
+                {
+                    reason = CannotTellEndsApart(unread);
+                    return null;
+                }
+                if (isVoid == true) ends.Add(face);
+                else machinedFaces++;
             }
-            return fuori;
+            return ends;
+        }
+
+        private static string CannotTellEndsApart(string what)
+        {
+            return "On a planar face with a hole in it I could not read " + what + ", so I cannot " +
+                   "tell an open end of a bar from a wall with a hole machined into it: nothing was capped.";
+        }
+
+        /// <summary>
+        /// ARE THE INNER LOOPS OF THIS PLANAR FACE THE VOID OF A HOLLOW
+        /// PROFILE, OR HOLES MACHINED INTO A WALL? (finding N7, Z-C21.5)
+        ///
+        /// WHY LOCAL GEOMETRY CANNOT TELL. The top wall of a square tube with a
+        /// round hole drilled through it is, seen from the wall, the end of a
+        /// prism: planar, two loops, every neighbour square to it (the two side
+        /// walls and the two end faces of the bar all contain the direction of
+        /// the hole). Its inner face, the ceiling of the tube, is the same. No
+        /// normal, no direction and no loop count separates them from the true
+        /// end of the tube; only the WHOLE bar does, and the axis of the bar is
+        /// not known here.
+        ///
+        /// WHAT DOES TELL: WHO MADE THE WALLS OF THE HOLE. At an open end the
+        /// faces across the inner loop are the inner walls of the tube, made by
+        /// the same feature (the structural member) that made the outer walls
+        /// across the outer loop, or the end face itself. A drilled hole has a
+        /// wall made by the cut. So an inner loop is the void of the profile
+        /// when every face across it was made by a feature that also made a
+        /// face across the outer loop or the face itself, and a machined hole
+        /// otherwise. IFace2~GetFeature.html, Remarks: a face «can be owned by
+        /// several features» and GetFeature returns «Only the oldest feature
+        /// from the face ... the first owning feature in the FeatureManager
+        /// design tree». The wall of the hole was born in the cut, so its
+        /// oldest owner is the cut; the walls of the tube keep the member as
+        /// oldest owner even after a cut or a trim changed them. The state
+        /// reads the same thing (StatoDocumento, LavorazioneId: a fillet
+        /// shrinks three faces and all three still answer the extrusion,
+        /// measured 14/9/2026; and the faces of a bar all answered the member,
+        /// measured 10/9/2026, see «da_lavorazione» there). Features are
+        /// compared by IFeature.GetID, «unique within the document»
+        /// (IFeature~GetID.html), not by name.
+        ///
+        /// WHY BOTH, AND NOT ONE FEATURE: an end trimmed by taglia_membri
+        /// belongs to the trim while the walls around it still belong to the
+        /// member; an end whose OUTER edges were filleted or chamfered has the
+        /// fillet across its outer loop, while the end face itself still
+        /// answers the member; a cope that cuts the outline of an end adds its
+        /// own faces around the outer loop without touching the void. In all
+        /// three the void is still the member's, and the end is still an end.
+        ///
+        /// THE FACE ACROSS AN EDGE is reached through the partner coedge, as
+        /// Select_Tangent_Faces_Example_VB.htm does: «use the partner coedge
+        /// to get the partner loop, which provides access to the partner
+        /// face» (ICoEdge~GetPartner.html, ICoEdge~GetLoop.html,
+        /// ILoop2~GetFace.html). No COM identity is compared. The outer loop is
+        /// ILoop2.IsOuter (ILoop2~IsOuter.html: «True if the loop is the
+        /// outermost loop»); the same page warns that some faces have no clear
+        /// outer loop, so a planar face that does not answer exactly one outer
+        /// loop is not guessed either.
+        ///
+        /// KNOWN LIMITS, both on the side of saying so rather than capping the
+        /// wrong face. (1) One feature that makes a hole in a wall AND cuts the
+        /// outline of the same face, or makes the face itself (a single cut
+        /// that drills a wall and notches its edge, or mills a flat and drills
+        /// it; a pattern whose instances do both), passes as a void. No
+        /// operation of the catalogue does that in one feature. (2) An end
+        /// whose void was machined at the mouth (a chamfer or a fillet on the
+        /// INNER edges of the end, a counterbore) is not taken for an open end:
+        /// it is counted in machinedFaces, and when no end is left the step
+        /// says why instead of capping.
+        ///
+        /// NOT MEASURED ON SOLIDWORKS when written (no CAD available): the
+        /// bench case saldature/the_end_cap_skips_a_drilled_wall is the proof.
+        ///
+        /// True: every inner loop is the void. False: at least one inner loop
+        /// is a machined hole. Null: something could not be read, and
+        /// <paramref name="unread"/> says what.
+        /// </summary>
+        private static bool? InnerLoopsAreTheProfileVoid(IFace2 face, out string unread)
+        {
+            unread = null;
+            object[] loops;
+            try { loops = face.GetLoops() as object[]; }   // IFace2~GetLoops.html: «Array of all of the loops on the face»
+            catch (Exception ex)
+            {
+                unread = "the loops (" + ex.Message + ")";
+                return null;
+            }
+            if (loops == null || loops.Length < 2)
+            {
+                unread = "the loops";
+                return null;
+            }
+
+            HashSet<int> outerOwners = null;
+            int outerLoops = 0;
+            var innerLoops = new List<ILoop2>();
+            foreach (var o in loops)
+            {
+                ILoop2 loop = o as ILoop2;
+                if (loop == null)
+                {
+                    unread = "one of the loops";
+                    return null;
+                }
+                bool isOuter;
+                try { isOuter = loop.IsOuter(); }
+                catch (Exception ex)
+                {
+                    unread = "which loop is the outer one (" + ex.Message + ")";
+                    return null;
+                }
+                if (!isOuter) { innerLoops.Add(loop); continue; }
+                outerLoops++;
+                outerOwners = OwnersAcross(loop, out unread);
+                if (outerOwners == null) return null;
+            }
+            if (outerLoops != 1 || innerLoops.Count == 0)
+            {
+                unread = "which loop is the outer one (" + outerLoops + " of " + loops.Length +
+                         " answered that they are)";
+                return null;
+            }
+            int? ownId = OwnerId(face);
+            if (ownId == null)
+            {
+                unread = "the feature that made it";
+                return null;
+            }
+            // The features that may have made the void: those around the
+            // outer loop, and the one that made the face.
+            var allowed = new HashSet<int>(outerOwners);
+            allowed.Add((int)ownId);
+
+            foreach (ILoop2 inner in innerLoops)
+            {
+                var innerOwners = OwnersAcross(inner, out unread);
+                if (innerOwners == null) return null;
+                if (!innerOwners.IsSubsetOf(allowed)) return false;   // a hole made by another feature
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// The ID of the feature that owns a face, the oldest of its owners
+        /// (IFace2~GetFeature.html, Remarks), or null when it cannot be read.
+        /// </summary>
+        private static int? OwnerId(IFace2 face)
+        {
+            try
+            {
+                IFeature owner = face == null ? null : face.GetFeature() as IFeature;
+                return owner == null ? (int?)null : owner.GetID();
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// The IDs of the features that made the faces across the edges of a
+        /// loop (the oldest owner of each, IFace2~GetFeature.html). Null when
+        /// one of them cannot be read, with <paramref name="unread"/> saying
+        /// what: a set with a face missing would make «made by the member»
+        /// true by leaving out the one face that says otherwise.
+        /// </summary>
+        private static HashSet<int> OwnersAcross(ILoop2 loop, out string unread)
+        {
+            unread = null;
+            object[] coedges;
+            try { coedges = loop.GetCoEdges() as object[]; }   // ILoop2~GetCoEdges.html: «Array of coedges»
+            catch (Exception ex)
+            {
+                unread = "the edges of one of the loops (" + ex.Message + ")";
+                return null;
+            }
+            if (coedges == null || coedges.Length == 0)
+            {
+                // ILoop2~GetEdges.html: a singular loop (a single vertex) has
+                // no edges. It is not the void of a profile, nor a hole with a
+                // wall: it is not guessed.
+                unread = "the edges of one of the loops";
+                return null;
+            }
+
+            var owners = new HashSet<int>();
+            foreach (var c in coedges)
+            {
+                IFace2 across = null;
+                try
+                {
+                    ICoEdge coedge = c as ICoEdge;
+                    ICoEdge partner = coedge == null ? null : coedge.GetPartner() as ICoEdge;
+                    ILoop2 partnerLoop = partner == null ? null : partner.GetLoop() as ILoop2;
+                    across = partnerLoop == null ? null : partnerLoop.GetFace() as IFace2;
+                }
+                catch { across = null; }
+                int? id = OwnerId(across);
+                if (id == null)
+                {
+                    unread = "the feature that made a face next to it";
+                    return null;
+                }
+                owners.Add((int)id);
+            }
+            return owners;
         }
 
         // ─────────────────────────────────────────────────────────────────

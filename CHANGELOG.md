@@ -28,6 +28,64 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.5 leftovers (branch z-c21-11)
+
+**The four items the 0.122.0 entry listed as not done in Z-C21.5: the two «last
+sketch of its type» lookups (S7), N7, N23 and C4-3.** Built on bridge 0.122.0 /
+library 0.146.0; the version is not raised yet. **THE BENCH HAS NOT RUN on this
+branch** (no SOLIDWORKS while it was written): the one new case,
+`saldature/the_end_cap_skips_a_drilled_wall`, and every existing case these
+changes touch are unmeasured until the next bench. Prove.Contratti: 657 checks,
+only the bench-freshness checks red.
+
+- **S7, the sketch just drawn (`SchizzoAppenaCreato`, `SelezionaSchizzoAppenaCreato`,
+  `BloccaSchizzo`).** They took the LAST `ProfileFeature` of the tree. Now the
+  sketch is the one `ProfileFeature` born since the caller took
+  `FeatureNamesNow` just before selecting the plane or face
+  (`FeatureBorn`, the same decision 0.146.0 uses for planes and axes). The nine
+  callers are the rectangle, profile, circle, cylindrical cut, rectangular cut,
+  slot, extrusion on a face, revolve and text operations; the profile extrusion
+  and the revolve lock the sketch found the same way. Messages are kept: none
+  born says the old sentence, an unreadable tree adds why, two or more born is a
+  new refusal instead of taking the later (`SketchNotIdentified`). The cast of
+  `ISketchManager.ActiveSketch` to `IFeature` was not used: only a VBA example
+  does it, no Remarks says it. Contract `Zc215SketchIdentityContract` (4 checks,
+  seen red on 8 mutants of the source); no bench case can be red on 0.146.0 by
+  construction (no operation moves the rollback bar or leaves a sketch unborn).
+- **S7, the sweep path (`UltimoSchizzoFeature`, deleted).** `sweep_circolare`
+  took the last sketch of the tree, 2D or 3D. Now the path is the one
+  `3DProfileFeature` born since the names taken before `Insert3DSketch`; the old
+  sentence is kept through `SketchNotIdentified`. Covered by the same contract.
+- **N7, an end cap on a drilled wall (`tappo_estremita`).** «Planar with more
+  than one loop» also held for both faces of a tube wall with a hole drilled in
+  it, and they went to `InsertEndCapFeature3` as ends. `Riferimenti.OpenEndsOnly`
+  now takes such a face only when every face across each inner loop was made
+  (oldest owner, `IFace2.GetFeature`, compared by `IFeature.GetID`) by a feature
+  that also made a face across the outer loop or the face itself. The faces left
+  out are counted in the new `misure.machined_faces_skipped`; a face that cannot
+  be read stops the step, and so does a body whose faces cannot be read (it used
+  to be skipped). The "no open end" refusal is rewritten in English and counts
+  the faces left out. Catalogue: the description and the `estremita_libere`
+  genre say it. New bench case `saldature/the_end_cap_skips_a_drilled_wall`
+  (red on 0.146.0 by construction: four faces instead of two went to the cap).
+- **N23, the hole point (`AncoraIFori`).** Of the sketch points within 1e-7 m
+  of the hole it kept the last one found. Now all are collected and
+  `SameHolePoint` proves they are one point (within 1e-9 m, the file's own
+  point tolerance) or refuses, naming every candidate in millimetres. Contract
+  `Zc215HolePointIdentityContract` (7 checks); no bench case can place two
+  sketch points that close on purpose.
+- **C4-3, a document opened or activated with a pending rebuild (the bridge's
+  open and activate tools, through `PortaDavanti`).** 0.144.0 (`DocumentByPath`) had already fixed the name
+  half (the path and the extension instead of `GetTitle()`). What was left: the
+  `Errors` bitmask of `ActivateDoc3` was thrown away. Now
+  `Sessione.NeedsRebuildAfterActivation` tests `swDocNeedsRebuildWarning` and
+  `PortaDavanti` calls `EditRebuild3` before answering, with
+  `rebuilt_on_activation` and its reason in the answer (ActivateDoc3.html,
+  Remarks). Contract `Zc215ActivationRebuildContract` (10 checks); no bench case
+  can stage a document left stale by a separate activation. Not done here: the
+  library's own activations (`OperazioniEsporta`, `OperazioniLamiera`,
+  `SezioneProfilo`) still receive `Errors` and never look at it.
+
 ## 0.122.0 — 30 September 2026 · library 0.146.0
 
 **The configuration is always passed (TODO entry Z-C21.4) and identity by the

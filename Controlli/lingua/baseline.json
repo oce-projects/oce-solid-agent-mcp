@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 145806,
-  "strings": 54719,
+  "comments": 145527,
+  "strings": 54693,
   "markdown": 33942,
   "json_values": 55199,
-  "identifiers": 4788,
+  "identifiers": 4792,
   "json_keys": 443,
-  "protocol": 2164,
+  "protocol": 2165,
   "paths": 640,
   "transition": 0
  },
@@ -1621,7 +1621,7 @@
    "strings": 216
   },
   "Riscontro.Disegno/OperazioniPercorso.cs": {
-   "comments": 354,
+   "comments": 347,
    "strings": 365
   },
   "Riscontro.Disegno/OperazioniPiani.cs": {
@@ -1666,7 +1666,7 @@
   },
   "Riscontro.Disegno/OperazioniSaldatura.cs": {
    "comments": 3063,
-   "strings": 1457
+   "strings": 1431
   },
   "Riscontro.Disegno/OperazioniSaldaturaTavola.cs": {
    "comments": 240,
@@ -1697,7 +1697,7 @@
    "strings": 158
   },
   "Riscontro.Disegno/OperazioniSw.cs": {
-   "comments": 14926,
+   "comments": 14832,
    "strings": 3291
   },
   "Riscontro.Disegno/OperazioniTabellaFori.cs": {
@@ -1733,7 +1733,7 @@
    "strings": 9
   },
   "Riscontro.Disegno/Riferimenti.cs": {
-   "comments": 1181,
+   "comments": 1003,
    "strings": 247
   },
   "Riscontro.Disegno/Riscontro.Disegno.csproj": {
@@ -4885,6 +4885,7 @@
    "il_rialzo_cresce_e_non_e_un_taglio",
    "il_taglio_accorcia_la_barra",
    "il_taglio_senza_gioco_non_eredita",
+   "il_tappo_chiude_il_tubo",
    "illeggibili",
    "immagine",
    "immagine_nello_schizzo",
@@ -4977,6 +4978,7 @@
    "la_tavola_esce_in_pdf",
    "la_tavola_quota_fori_e_smusso",
    "la_tavola_si_quota",
+   "la_tolleranza_sulla_quota_del_modello",
    "lamatura_mm",
    "lamiera",
    "larghezza",
@@ -5116,6 +5118,7 @@
    "massa",
    "massaKg",
    "massa_di_un_cubo_di_acciaio",
+   "massa_senza_materiale_non_si_sa",
    "massimo",
    "matematica",
    "materiale",
@@ -5742,6 +5745,7 @@
    "r01b_quattro_fori_restano_dove_sono",
    "r03_tasca_centrata",
    "r03b_tasca_resta_dov_era",
+   "r12_telaio_col_profilo_piu_sottile",
    "r16_asola_che_sborda",
    "raccogli",
    "racconta",
@@ -7093,6 +7097,7 @@
    "Disinstalla",
    "Disinstallare",
    "Disinstallato",
+   "Documenti",
    "DocumentoNuovo",
    "DocumentoSenzaFile",
    "DoveStavaEDoveSta",

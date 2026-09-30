@@ -407,6 +407,9 @@ namespace Prove.Contratti
             Zc2189DrawingContract.RunAll();
             Zc2189MachiningContract.RunAll();
             Zc215IdentityContract.RunAll();
+            Zc215SketchIdentityContract.RunAll();
+            Zc215ActivationRebuildContract.RunAll();
+            Zc215HolePointIdentityContract.RunAll();
             Zc2113PartDimensionContract.RunAll();
             LanguageGateTests.All();
             IlLeggimiDiceQuantiSono();

@@ -96,6 +96,9 @@
     <Compile Include="Zc2189DrawingContract.cs" />
     <Compile Include="Zc2189MachiningContract.cs" />
     <Compile Include="Zc215IdentityContract.cs" />
+    <Compile Include="Zc215SketchIdentityContract.cs" />
+    <Compile Include="Zc215ActivationRebuildContract.cs" />
+    <Compile Include="Zc215HolePointIdentityContract.cs" />
     <Compile Include="Zc2113PartDimensionContract.cs" />
     <Compile Include="LanguageGateTests.cs" />
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.

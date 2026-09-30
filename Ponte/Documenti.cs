@@ -39,6 +39,10 @@ namespace Oce.Solid.Agent.Ponte
     ///    sola lettura SENZA chiedere niente (Z-B2). Si dice, sempre.
     ///  - `ActivateDoc3` riuscito non vuol dire «davanti c'e' quello»: si
     ///    rilegge il documento attivo.
+    ///  - `ActivateDoc3` with swDontRebuildActiveDoc does not rebuild by
+    ///    itself: if Errors carries swDocNeedsRebuildWarning, EditRebuild3 is
+    ///    called here, or a first read-only step right after would measure
+    ///    stale geometry (C4-3).
     /// </summary>
     internal sealed partial class Sessione
     {
@@ -398,6 +402,20 @@ namespace Oce.Solid.Agent.Ponte
         /// answers to that title (Z-C21.13, pattern S18: ActivateDoc3.html warns
         /// that a name without extension can fit a part and an assembly at once).
         /// DocumentByPath reads back the active document by reference.
+        ///
+        /// C4-3: DocumentByPath always asks ActivateDoc3 with
+        /// swDontRebuildActiveDoc (finding N8: swUserDecision opens a dialog
+        /// that waits on a person). ActivateDoc3.html (ISldWorks): «If the
+        /// document needs a rebuild upon activation, and you have specified
+        /// Option with swRebuildOnActivation_e.swDontRebuildActiveDoc, then the
+        /// activated document is not rebuilt, and Errors contains
+        /// swActivateDocError_e.swDocNeedsRebuildWarning. You can then rebuild
+        /// the document using IModelDoc2::EditRebuild3.» Up to library 0.146.0
+        /// <paramref name="doc"/>'s caller got this activation for free but the
+        /// bit was thrown away: a read-only step right after (`proprieta_di_massa`,
+        /// `ingombro`) would measure stale geometry, since the executor's own
+        /// rebuild only runs after a successful step (EsecutorePiano.cs), too
+        /// late for the very first one.
         /// </summary>
         private Dictionary<string, object> PortaDavanti(ISldWorks sw, IModelDoc2 doc, out string errore)
         {
@@ -417,7 +435,50 @@ namespace Oce.Solid.Agent.Ponte
                          "is «" + Convert.ToString(Identita(davanti)?["titolo"] ?? "nothing") + "».";
                 return null;
             }
-            return Scheda(doc, davanti);
+
+            bool needsRebuild = NeedsRebuildAfterActivation(activationErrors);
+            bool rebuiltOnActivation = false;
+            string rebuildFault = null;
+            if (needsRebuild)
+            {
+                // IModelDoc2~EditRebuild3.html, Return Value: "True if only those
+                // features that need to be rebuilt are rebuilt in the active
+                // configuration in the model, false if not".
+                try
+                {
+                    rebuiltOnActivation = doc.EditRebuild3();
+                    if (!rebuiltOnActivation) rebuildFault = "EditRebuild3 answered false";
+                }
+                catch (Exception ex) { rebuildFault = "EditRebuild3 threw: " + ex.Message; }
+            }
+
+            var scheda = Scheda(doc, davanti);
+            if (needsRebuild)
+            {
+                scheda["rebuilt_on_activation"] = rebuiltOnActivation;
+                scheda["rebuilt_on_activation_reason"] =
+                    "ActivateDoc3 reported swDocNeedsRebuildWarning: with swDontRebuildActiveDoc it does not " +
+                    "rebuild on activation by itself, " +
+                    (rebuiltOnActivation
+                        ? "so it was rebuilt here before answering."
+                        : "and the rebuild asked here failed (" + rebuildFault + "): what is read from it now " +
+                          "may be stale geometry.");
+            }
+            return scheda;
+        }
+
+        /// <summary>
+        /// C4-3: does the bitmask ActivateDoc3 filled in <c>Errors</c> (with
+        /// swDontRebuildActiveDoc) say the document was left un-rebuilt?
+        /// <paramref name="activationErrors"/> is -1 when ActivateDoc3 was not
+        /// called at all — <see cref="DocumentByPath.ActivateAndReadBack"/>
+        /// skips the call when the document is already in front — and that is
+        /// not a warning to act on: nothing was skipped.
+        /// </summary>
+        internal static bool NeedsRebuildAfterActivation(int activationErrors)
+        {
+            return activationErrors >= 0 &&
+                   (activationErrors & (int)swActivateDocError_e.swDocNeedsRebuildWarning) != 0;
         }
 
         private Dictionary<string, object> Scheda(IModelDoc2 doc, object attivo)

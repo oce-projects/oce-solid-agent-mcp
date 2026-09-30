@@ -1356,9 +1356,9 @@ namespace Riscontro.Disegno
         private Esito TappoEstremita(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            int quante;
+            int quante, machinedFaces;
             string perche;
-            var facce = FacceDalRiferimento(a, "estremita_rif", stato, out quante, out perche);
+            var facce = FacceDalRiferimento(a, "estremita_rif", stato, out quante, out machinedFaces, out perche);
             if (facce == null) return Fallito(perche);
 
             double spessore = Num(a, "spessore_mm", 0);
@@ -1405,6 +1405,11 @@ namespace Riscontro.Disegno
             {
                 ["estremita_tappate"] = selezionate,
                 ["spessore_mm"] = spessore,
+                // N7: planar faces with an inner loop made by another feature
+                // (a drilled wall counts twice, outer and inner face), looked
+                // at and NOT capped. A true zero: every face was read, or the
+                // step stopped (Riferimenti.OpenEndsOnly).
+                ["machined_faces_skipped"] = machinedFaces,
             });
         }
 
@@ -3012,23 +3017,31 @@ namespace Riscontro.Disegno
             return fuori;
         }
 
-        /// <summary>Le facce di estremita' indicate da un riferimento.</summary>
+        /// <summary>
+        /// Le facce di estremita' indicate da un riferimento.
+        ///
+        /// <paramref name="machinedFaces"/>: the planar faces with an inner loop made
+        /// by another feature that were not taken for open ends (finding N7,
+        /// Riferimenti.InnerLoopsAreTheProfileVoid). Counted over faces that were
+        /// all read: a face that could not be told apart stops the step instead.
+        /// </summary>
         private IFace2[] FacceDalRiferimento(
             Dictionary<string, object> a, string campo, StatoDocumento stato,
-            out int quante, out string motivo)
+            out int quante, out int machinedFaces, out string motivo)
         {
             quante = 0;
+            machinedFaces = 0;
             motivo = null;
             List<IFace2> facce;
-            string dove;
+            string whichBars;
 
             if (HaRiferimento(a, campo))
             {
                 int numero;
                 var passo = PassoCitato(a, campo, out numero, out motivo);
                 if (passo == null) return null;
-                facce = Riferimenti.EstremitaLibere(passo, out motivo);
-                dove = "del passo " + numero;
+                facce = Riferimenti.EstremitaLibere(passo, out machinedFaces, out motivo);
+                whichBars = "of step " + numero;
             }
             else
             {
@@ -3046,18 +3059,25 @@ namespace Riscontro.Disegno
                 }
                 var corpi = CorpiDaUid(stato, uid, a, out motivo);
                 if (corpi == null) return null;
-                facce = Riferimenti.EstremitaLibereDi(corpi, out motivo);
-                dove = "dei corpi " + string.Join(", ", uid);
+                facce = Riferimenti.EstremitaLibereDi(corpi, out machinedFaces, out motivo);
+                whichBars = "of bodies " + string.Join(", ", uid);
             }
 
             if (facce == null) return null;
             quante = facce.Count;
             if (quante == 0)
             {
+                // Rewritten in English with N7: the faces left out are counted,
+                // or a drilled solid bar would read «no open ends» with no word
+                // about the holes that were looked at and left out.
                 motivo =
-                    "Le barre " + dove + " non hanno estremita' aperte da tappare: " +
-                    "o sono di profilo pieno, o le estremita' sono gia' chiuse dal " +
-                    "trattamento d'angolo.";
+                    "The bars " + whichBars + " have no open end to cap: either their profile " +
+                    "is solid, or their ends are already closed by the corner treatment." +
+                    (machinedFaces > 0
+                        ? " " + machinedFaces + " planar face(s) whose inner outline was made by a later " +
+                          "feature (a hole machined into a wall, or a machined mouth of a tube) were " +
+                          "looked at and left out: I do not cap those."
+                        : "");
                 return null;
             }
             return facce.ToArray();

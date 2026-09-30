@@ -675,17 +675,34 @@ namespace Riscontro.Disegno
                 for (int i = 0; i < posizioni.Count; i++)
                 {
                     var atteso = NelloSchizzo(matematica, trasformazione, assi, offsetM, posizioni[i]);
-                    ISketchPoint suo = null;
+                    var candidati = new List<ISketchPoint>();
                     foreach (var o in punti)
                     {
                         var p = o as ISketchPoint;
-                        if (p != null && atteso != null && Math.Abs(p.X - atteso[0]) < 1e-7 && Math.Abs(p.Y - atteso[1]) < 1e-7) suo = p;
+                        if (p != null && atteso != null && Math.Abs(p.X - atteso[0]) < 1e-7 && Math.Abs(p.Y - atteso[1]) < 1e-7)
+                            candidati.Add(p);
                     }
-                    if (suo == null)
+                    if (candidati.Count == 0)
                     {
                         motivo = "Non ritrovo nello schizzo il punto del foro " + (i + 1) + ".";
                         return false;
                     }
+                    // N23: MORE THAN ONE SKETCH POINT CAN ANSWER TO THE SAME
+                    // SEARCH WINDOW (1e-7 m above — loose on purpose, since
+                    // NelloSchizzo's own transform carries some numerical
+                    // slack). Up to library 0.146.0 the loop just kept the LAST
+                    // one it found: a guess. SameHolePoint proves the candidates
+                    // are the same point (all within this file's own, much
+                    // tighter, point-identity tolerance) instead of picking one;
+                    // when it cannot, the call is refused and names every one
+                    // found, in millimetres.
+                    string ambiguity;
+                    if (!SameHolePoint(candidati.Select(p => new[] { p.X, p.Y }).ToArray(), out ambiguity))
+                    {
+                        motivo = "Hole " + (i + 1) + ": " + ambiguity;
+                        return false;
+                    }
+                    var suo = candidati[0];
                     var suaMisura = new Dictionary<string, object>();
                     if (!ApplicaAncora(modello, ancore[i], suo, assi, offsetM, posizioni[i][0], posizioni[i][1],
                                        suaMisura, out motivo, pretendiDefinito: false))
@@ -713,6 +730,53 @@ namespace Riscontro.Disegno
                 try { modello.ClearSelection2(true); } catch { }
             }
         }
+
+        /// <summary>
+        /// N23: are the sketch points AncoraIFori found within its search
+        /// window the SAME point, or an ambiguity to refuse instead of guess?
+        /// Two points prove to be the same one only when every candidate sits
+        /// within <see cref="SameHolePointToleranceM"/> of the first — the
+        /// tolerance this file already uses elsewhere to match a sketch point
+        /// to a computed one (see the 1e-9 m comparisons above), a hundred
+        /// times tighter than the 1e-7 m search window itself, which carries
+        /// the slack of NelloSchizzo's own transform. Pure (coordinates only,
+        /// no interop), so Prove.Contratti can drive the duplicate case a bench
+        /// case cannot build on purpose: two real hole positions 1e-7 m apart,
+        /// inside the same positioning sketch, are not something a JSON case
+        /// can ask SOLIDWORKS to build.
+        /// <paramref name="candidatesXY"/> holds one {x, y} pair per candidate,
+        /// in metres; empty or null answers false with no ambiguity text (the
+        /// caller's own "no candidate" refusal covers that case).
+        /// </summary>
+        internal static bool SameHolePoint(double[][] candidatesXY, out string ambiguity)
+        {
+            ambiguity = null;
+            if (candidatesXY == null || candidatesXY.Length == 0) return false;
+            if (candidatesXY.Length == 1) return true;
+            double x0 = candidatesXY[0][0], y0 = candidatesXY[0][1];
+            for (int c = 1; c < candidatesXY.Length; c++)
+            {
+                if (Math.Abs(candidatesXY[c][0] - x0) >= SameHolePointToleranceM ||
+                    Math.Abs(candidatesXY[c][1] - y0) >= SameHolePointToleranceM)
+                {
+                    // A plain loop, not a LINQ projection: the obsolete-call
+                    // scanner of Prove.Contratti reads a bare ".Select(" on an
+                    // untyped receiver as the old selection call.
+                    var coordinates = new List<string>();
+                    foreach (double[] q in candidatesXY)
+                        coordinates.Add(string.Format(CultureInfo.InvariantCulture, "({0:0.######}, {1:0.######})",
+                                                      q[0] * 1000.0, q[1] * 1000.0));
+                    ambiguity = candidatesXY.Length + " sketch points answer to the same position, and they are " +
+                                "not the same point: I will not guess which one is the hole's. Coordinates found " +
+                                "(mm): " + string.Join(", ", coordinates) + ".";
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>This file's own point-identity tolerance (metres), see <see cref="SameHolePoint"/>.</summary>
+        private const double SameHolePointToleranceM = 1e-9;
 
         /// <summary>
         /// The anchor of a guided hole is read before the diameter is known (the
