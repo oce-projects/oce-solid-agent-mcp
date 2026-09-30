@@ -611,7 +611,7 @@ namespace Riscontro.Disegno
             var parte = modello as IPartDoc;
             var assieme = modello as IAssemblyDoc;   // voce Z-D6: anche l'assieme si manda
             // Z-C21.11: how many components were lightweight before the export,
-            // read right before SaveAs3 (the probe saw the export resolve them).
+            // read right before the export (the probe saw SaveAs3 resolve them).
             int lightweightBeforeExport = -1;
             if (parte == null && assieme == null)
                 return Fallito(
@@ -729,6 +729,10 @@ namespace Riscontro.Disegno
                 if (iges) igesTogglesNotOff = ImpostaPreferenzeIges(rappresentazione);
                 else if (!ap242) ImpostaPreferenzeStep(protocollo);
 
+                // Before either door (review of Z-C21.11): PublishSTEP242File
+                // writes an assembly too, and whatever it resolves is said the same way.
+                if (assieme != null) lightweightBeforeExport = LightweightCount(assieme);
+
                 if (ap242)
                 {
                     // C5-7: its own method, its own handling of a file already at
@@ -756,7 +760,6 @@ namespace Riscontro.Disegno
                     // una parte non c'e' nessun conto dei corpi che se ne accorgerebbe,
                     // e quello dell'assieme prenderebbe un file con meno solidi.
                     modello.ClearSelection2(true);
-                    if (assieme != null) lightweightBeforeExport = LightweightCount(assieme);
                     try
                     {
                         ok = modello.Extension.SaveAs3(

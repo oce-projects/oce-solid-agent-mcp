@@ -3937,7 +3937,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "the parts cannot read them. Resolve them in SOLIDWORKS, or pass "
                         + "«resolve_lightweight»: true and I resolve them first; they stay resolved, and "
                         + "«lightweight_resolved_on_request» says so. If one is still lightweight after that, I "
-                        + "refuse. A component whose load state cannot be read refuses the step too."
+                        + "refuse. A component whose load state cannot be read refuses the step too, and so "
+                        + "does one that is neither a part nor a sub-assembly by its file extension or its "
+                        + "document."
                         + "\n\nWITH «corpo_uid», a body named from an earlier reading of the state is "
                         + "checked against its signature (centre and box): if the part changed since and "
                         + "the identifier now names another body, the step is refused instead of weighing "
@@ -3987,7 +3989,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "GetBodies3 reads the bodies of a lightweight part (measured), and the answer names "
                         + "them in «lightweight_components_measured». Envelopes and hidden components are in "
                         + "the box too, named in «envelope_components» and «hidden_components». A component "
-                        + "whose load state cannot be read refuses the step.",
+                        + "whose load state cannot be read refuses the step, and so does one that is neither a "
+                        + "part nor a sub-assembly by its file extension or its document.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",

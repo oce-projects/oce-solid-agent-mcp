@@ -120,6 +120,19 @@ namespace Prove.Contratti
                        "if (item.Load != ComponentLoad.Suppressed)"),
                 Change(Shared, "the state not read with GetSuppression2", "state = c.GetSuppression2();", "state = c.IsSuppressed() ? 0 : 2;"));
 
+            // Review of Z-C21.11: with the kind read from the extension alone, a
+            // resolved component whose saved path ends otherwise was neither a
+            // part nor a sub-assembly, and left the mass, the box and the STEP
+            // count in silence (0.146.0 read the kind from the document).
+            Checked(sources, "kind",
+                "a component whose extension does not say its kind takes it from its document, and one without either is not skipped",
+                KindProblems,
+                "Describe falls back to «Document is IPartDoc / IAssemblyDoc»; ComponentsOrRefusal refuses on " +
+                "AssemblyComponents.KindUnknown; the STEP count gives -1 on a component that is neither",
+                Change(Shared, "no fallback to the document", "item.IsSubAssembly = item.Document is IAssemblyDoc;", ""),
+                Change(Measures, "a component of unknown kind skipped by the mass and the box", ".Where(AssemblyComponents.KindUnknown)", ".Where(c => false)"),
+                Change(Measures, "a component of unknown kind skipped by the STEP count", "if (item.IsSubAssembly) continue; return -1; }", "continue; }"));
+
             Checked(sources, "four readers",
                 "the assembly mass, box, STEP count and BOM read their components through AssemblyComponents",
                 ReadersProblems,
@@ -145,6 +158,8 @@ namespace Prove.Contratti
                 RegexChange(Measures, "no resolution when asked", @"(\w+)\.ResolveAllLightWeightComponents\(false\);", "$1.GetLightWeightComponentCount();"),
                 RegexChange(Measures, "the list not read again after resolving", @"(ResolveAllLightWeightComponents\(false\);[\s\S]*?)ComponentsOrRefusal\(", "${1}OldList("),
                 Change(Measures, "envelopes not named", "\"envelope_components\"", "\"envelopes\""),
+                RegexChange(Measures, "a refusal after resolving that does not say it", @"return RefuseAfterResolving\(resolvedOnRequest,", "return Fallito("),
+                Change(Measures, "the refusal helper that drops what was resolved", "message + \" \" + resolvedOnRequest", "message"),
                 Change(Catalogue, "the argument not false by default in the catalogue", "\"default\", false", "\"default\", true"));
 
             Checked(sources, "box",
@@ -266,6 +281,34 @@ namespace Prove.Contratti
             return problems;
         }
 
+        internal static List<string> KindProblems(IDictionary<string, string> sources)
+        {
+            var problems = new List<string>();
+            var shared = CodeOnly(sources[Shared]);
+            var describe = MemberBody(shared, "Describe");
+            if (describe == null) problems.Add("AssemblyComponents.Describe is not in " + Shared);
+            else
+            {
+                if (!Regex.IsMatch(describe, @"if\s*\(\s*!\s*\w+\.IsPart\s*&&\s*!\s*\w+\.IsSubAssembly\s*&&\s*\w+\.Document\s*!=\s*null\s*\)"))
+                    problems.Add("Describe does not look at the document when the extension says neither part nor sub-assembly");
+                if (!Regex.IsMatch(describe, @"\.IsPart\s*=\s*\w+\.Document\s+is\s+IPartDoc\s*;"))
+                    problems.Add("Describe does not take a part from its document");
+                if (!Regex.IsMatch(describe, @"\.IsSubAssembly\s*=\s*\w+\.Document\s+is\s+IAssemblyDoc\s*;"))
+                    problems.Add("Describe does not take a sub-assembly from its document");
+            }
+            var unknown = MemberBody(shared, "KindUnknown");
+            if (unknown == null || !Regex.IsMatch(unknown, @"!\s*\w+\.IsPart\s*&&\s*!\s*\w+\.IsSubAssembly"))
+                problems.Add("AssemblyComponents.KindUnknown does not say «neither a part nor a sub-assembly»");
+            var measures = CodeOnly(sources[Measures]);
+            var helper = MemberBody(measures, "ComponentsOrRefusal");
+            if (helper == null || !Regex.IsMatch(helper, @"\.Where\(\s*AssemblyComponents\.KindUnknown\s*\)[\s\S]*?return\s+null\s*;"))
+                problems.Add("ComponentsOrRefusal does not refuse on a component of unknown kind");
+            var count = MemberBody(measures, StepCountMember);
+            if (count == null || !Regex.IsMatch(count, @"if\s*\(\s*!\s*\w+\.IsPart\s*\)\s*\{\s*if\s*\(\s*\w+\.IsSubAssembly\s*\)\s*continue\s*;\s*return\s+-1\s*;\s*\}"))
+                problems.Add(StepCountMember + " does not give -1 on a component that is neither a part nor a sub-assembly");
+            return problems;
+        }
+
         internal static List<string> ReadersProblems(IDictionary<string, string> sources)
         {
             var problems = new List<string>();
@@ -320,6 +363,17 @@ namespace Prove.Contratti
             else if (gate.Success && resolve < gate.Index) problems.Add("the resolution comes before the refusal");
             else if (body.IndexOf("ComponentsOrRefusal(", resolve, StringComparison.Ordinal) < 0)
                 problems.Add("the list is not read again after the resolution");
+            // Review of Z-C21.11: a refusal after the resolution says it too (the
+            // parts stay resolved), directly or through RefuseAfterResolving.
+            if (resolve >= 0)
+            {
+                foreach (Match refusal in Regex.Matches(body.Substring(resolve), @"return\s+Fallito\(([\s\S]*?)\);"))
+                    if (refusal.Groups[1].Value.IndexOf("resolv", StringComparison.OrdinalIgnoreCase) < 0)
+                        problems.Add("a refusal after the resolution does not say the parts were resolved: " + OneLine(refusal.Value));
+                var helper = MemberBody(CodeOnly(sources[Measures]), "RefuseAfterResolving");
+                if (helper == null || !Regex.IsMatch(helper, @"\+\s*resolvedOnRequest\b"))
+                    problems.Add("RefuseAfterResolving does not add what was resolved to the refusal");
+            }
 
             if (gate.Success)
             {

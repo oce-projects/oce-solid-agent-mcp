@@ -54,6 +54,16 @@ namespace Riscontro.Disegno
                           "counts, so no " + what + ".";
                 return null;
             }
+            // Neither a part nor a sub-assembly, by path or by document (review of
+            // Z-C21.11): skipping it would give a partial answer as a success.
+            var kindless = all.Where(AssemblyComponents.KindUnknown).ToList();
+            if (kindless.Count > 0)
+            {
+                refusal = "I could not tell whether " + string.Join(", ", AssemblyComponents.Names(kindless)) +
+                          " is a part or a sub-assembly: its saved path (GetPathName) ends neither in .sldprt nor in " +
+                          ".sldasm and its document is not loaded. Resolve it in SOLIDWORKS and ask again; no " + what + ".";
+                return null;
+            }
             return all;
         }
 
@@ -140,7 +150,7 @@ namespace Riscontro.Disegno
             var envelopes = all.Where(c => c.IsPart && c.Load != ComponentLoad.Suppressed && c.Envelope).ToList();
             var pezzi = all.Where(c => c.IsPart && c.Load == ComponentLoad.Resolved && !c.Envelope).ToList();
             if (pezzi.Count == 0)
-                return Fallito(
+                return RefuseAfterResolving(resolvedOnRequest,
                     "The assembly has no part to weigh" +
                     (soppressi.Length > 0 ? ": suppressed " + string.Join(", ", soppressi) : "") +
                     (envelopes.Count > 0 ? "; envelopes (SOLIDWORKS leaves them out of the mass) " +
@@ -181,7 +191,7 @@ namespace Riscontro.Disegno
             }
 
             if (noDocument.Count > 0)
-                return Fallito(
+                return RefuseAfterResolving(resolvedOnRequest,
                     "I could not read the document of " + string.Join(", ", noDocument) + " (resolved, but GetModelDoc2 " +
                     "answered null): its material is not known, so no mass.");
 
@@ -201,7 +211,7 @@ namespace Riscontro.Disegno
             object v0 = prendi(p => p.Volume);
             object c0 = prendi(p => p.CenterOfMass);
             if (m0 == null || v0 == null)
-                return Fallito("SOLIDWORKS non ha dato le proprieta' di massa dell'assieme. Non ti do numeri a meta'.");
+                return RefuseAfterResolving(resolvedOnRequest, "SOLIDWORKS non ha dato le proprieta' di massa dell'assieme. Non ti do numeri a meta'.");
             double massa = Convert.ToDouble(m0);
 
             var misure = new Dictionary<string, object>
@@ -245,7 +255,7 @@ namespace Riscontro.Disegno
                     double scarto = massa > 0 ? Math.Abs(somma - massa) / massa : double.NaN;
                     misure["scarto_sulla_somma"] = double.IsNaN(scarto) ? null : (object)Math.Round(scarto, 6);
                     if (double.IsNaN(scarto) || scarto > 0.001)
-                        return Fallito(
+                        return RefuseAfterResolving(resolvedOnRequest,
                             "La massa dell'assieme (" + massa.ToString("0.####") + " kg) e la somma dei suoi pezzi (" +
                             somma.ToString("0.####") + " kg) non combaciano: una delle due letture non e' quella che " +
                             "sembra (un materiale messo sul componente nell'assieme? un componente contato due volte?). " +
@@ -261,6 +271,18 @@ namespace Riscontro.Disegno
             _log("[agente] massa dell'assieme: " + pezzi.Count + " pezzi, " +
                  (senzaMateriale.Count > 0 ? "senza materiale" : massa.ToString("0.###") + " kg"));
             return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// A refusal of the assembly mass that comes AFTER «resolve_lightweight»
+        /// resolved parts (review of Z-C21.11): the parts stay resolved, and the
+        /// refusal says so as the success does, instead of changing the assembly
+        /// without a word.
+        /// </summary>
+        private Esito RefuseAfterResolving(string resolvedOnRequest, string message)
+        {
+            string said = resolvedOnRequest == null ? message : message + " " + resolvedOnRequest;
+            return Fallito(said);
         }
 
         /// <summary>
@@ -416,8 +438,11 @@ namespace Riscontro.Disegno
             if (all == null) return -1;
             foreach (AssemblyComponent item in all)
             {
-                if (!item.IsPart || item.Load == ComponentLoad.Suppressed) continue;
+                if (item.Load == ComponentLoad.Suppressed) continue;
                 if (item.Load == ComponentLoad.Unknown) return -1;
+                // A sub-assembly holds no solid of its own (its parts are in the
+                // list); a component of unknown kind makes the count unknown.
+                if (!item.IsPart) { if (item.IsSubAssembly) continue; return -1; }
                 if (item.Hidden) { if (hiddenLeftOut != null) hiddenLeftOut.Add(item.Name); continue; }
                 var c = item.Component;
                 string chiave;

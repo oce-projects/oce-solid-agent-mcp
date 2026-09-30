@@ -97,6 +97,18 @@ namespace Riscontro.Disegno
             {
                 try { item.Document = c.GetModelDoc2() as IModelDoc2; } catch (Exception) { }
             }
+            // A PATH THAT IS NEITHER .sldprt NOR .sldasm (review of Z-C21.11): the
+            // kind comes from the document when it is loaded, as up to library
+            // 0.146.0 (GetModelDoc2 is IPartDoc or IAssemblyDoc). Without this, a
+            // resolved component whose saved path has another extension was
+            // neither a part nor a sub-assembly and left the mass, the box and
+            // the STEP count in silence. When neither the path nor the document
+            // tells, both stay false and the readers refuse (see KindUnknown).
+            if (!item.IsPart && !item.IsSubAssembly && item.Document != null)
+            {
+                item.IsPart = item.Document is IPartDoc;
+                item.IsSubAssembly = item.Document is IAssemblyDoc;
+            }
             return item;
         }
 
@@ -152,6 +164,17 @@ namespace Riscontro.Disegno
                 current = parent;
             }
             return false;
+        }
+
+        /// <summary>
+        /// A component that is not suppressed and is neither a part nor a
+        /// sub-assembly, by its saved path or by its document (review of
+        /// Z-C21.11). Leaving it out would be the partial answer of finding N5
+        /// again, so the readers that decide what counts refuse on it.
+        /// </summary>
+        internal static bool KindUnknown(AssemblyComponent item)
+        {
+            return item != null && item.Load != ComponentLoad.Suppressed && !item.IsPart && !item.IsSubAssembly;
         }
 
         /// <summary>The names of the components in the list, for an answer.</summary>

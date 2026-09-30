@@ -37,7 +37,7 @@ Built on bridge 0.122.0 / library 0.146.0; the version is not raised yet. **THE
 BENCH HAS NOT RUN on this branch** (no SOLIDWORKS while it was written): the
 seven new cases (`saldature/the_end_cap_skips_a_drilled_wall` and the six of
 Z-C21.11 below) and every existing case these changes touch are unmeasured until
-the next bench. Prove.Contratti: 688 checks, only the bench-freshness checks red.
+the next bench. Prove.Contratti: 690 checks, only the bench-freshness checks red.
 
 - **S7, the sketch just drawn (`SchizzoAppenaCreato`, `SelezionaSchizzoAppenaCreato`,
   `BloccaSchizzo`).** They took the LAST `ProfileFeature` of the tree. Now the
@@ -132,7 +132,11 @@ parts: A + 3 x S_show(2 B) + B gives A 1, S_show 3, S_show > B 2, B 1.
   `GetModelDoc2` only for a resolved component. `PezziDellAssieme`, which asked
   `IsSuppressed` and so took every lightweight part for suppressed, is gone; the
   mass and the box go through `ComponentsOrRefusal`, which refuses when a load
-  state cannot be read.
+  state cannot be read. Review: when the extension is neither .sldprt nor
+  .sldasm the kind comes from the document, as up to 0.146.0 (a resolved
+  component with another extension was otherwise dropped in silence from the
+  mass, the box and the STEP count); a component of unknown kind by both
+  refuses the mass and the box and makes the STEP count unknown (null).
 - **`proprieta_di_massa` on an assembly.** Envelopes are left out of the sum of
   the parts as SOLIDWORKS leaves them out of the mass (they made a right
   assembly refuse with a gap, N27), named in `envelope_components`; hidden parts
@@ -141,7 +145,8 @@ parts: A + 3 x S_show(2 B) + B gives A 1, S_show 3, S_show > B 2, B 1.
   boolean argument `resolve_lightweight` is true: then
   `IAssemblyDoc.ResolveAllLightWeightComponents(false)`, the list is read again,
   a part still lightweight refuses, and `lightweight_resolved_on_request` says
-  what was resolved. The old list of components whose document was not read is gone. The step used to
+  what was resolved (review: a refusal that comes after the resolution says it
+  too, since the parts stay resolved). The old list of components whose document was not read is gone. The step used to
   refuse «nothing to weigh, all suppressed» on an assembly opened lightweight.
 - **`ingombro_corpo` on an assembly.** Lightweight parts are measured through
   `GetBodies3` without resolving them (`lightweight_components_measured`);
@@ -154,8 +159,9 @@ parts: A + 3 x S_show(2 B) + B gives A 1, S_show 3, S_show > B 2, B 1.
   expected solids and named in `hidden_components_not_exported` (the old count
   asked for them and refused a right file); lightweight parts count (the count
   is made after the export, which resolves them); `GetLightWeightComponentCount`
-  is read before and after `SaveAs3`, and `lightweight_resolved_by_the_export`
-  says how many the export resolved; envelopes are written and counted.
+  is read before and after the export (`SaveAs3`, or `PublishSTEP242File` for
+  AP242: review), and `lightweight_resolved_by_the_export` says how many the
+  export resolved; envelopes are written and counted.
 - **`distinta_base_in_tavola`.** Suppressed by `GetSuppression2`, not
   `IsSuppressed` (a lightweight sub-assembly and all its children were left out);
   a sub-assembly by its extension; a lightweight sub-assembly that is not
@@ -181,9 +187,9 @@ parts: A + 3 x S_show(2 B) + B gives A 1, S_show 3, S_show > B 2, B 1.
   (red on 0.146.0: 2 flat items against 4 rows). Unmeasured risks: whether the
   bench's own state reading resolves lightweight components, and whether the
   station's «resolve lightweight: prompt» option opens a modal.
-- **Contracts.** New group `Zc2111ComponentsContract`, 26 checks: nine source
+- **Contracts.** New group `Zc2111ComponentsContract`, 28 checks: ten source
   rules, each seen red on changed copies of the real source (no `IsSuppressed()`
-  in the library, the reader and its four users, mass, box, STEP count and
+  in the library, the reader, the kind of a component, its four users, mass, box, STEP count and
   answer, BOM), and by reflection `LoadFromSuppression2`, the extension rules and
   `ExpectedBomItems` on the indented probe trees. `AssembliesZc212terContract`:
   the indented T_hide check follows the M23 measurement (A 1, S_hide 1).
