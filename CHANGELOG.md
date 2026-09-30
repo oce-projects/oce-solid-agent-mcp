@@ -30,16 +30,13 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ## 0.123.0 — 30 September 2026 · library 0.147.0
 
-BENCH_0147_PLACEHOLDER
-
 **The four items the 0.122.0 entry listed as not done in Z-C21.5: the two «last
 sketch of its type» lookups (S7), N7, N23 and C4-3; and Z-C21.11, the assembly
 components that were not read: lightweight, envelope and hidden (N5, N27, M23).**
-Built on bridge 0.122.0 / library 0.146.0; the version is not raised yet. **THE
-BENCH HAS NOT RUN on this branch** (no SOLIDWORKS while it was written): the
-seven new cases (`saldature/the_end_cap_skips_a_drilled_wall` and the six of
-Z-C21.11 below) and every existing case these changes touch are unmeasured until
-the next bench. Prove.Contratti: 690 checks, only the bench-freshness checks red.
+Built on bridge 0.122.0 / library 0.146.0. **Full bench on library 0.147.0,
+30/9/2026: 2139 tests, 0 failed** (1754 expectations checked), the seven new cases
+(`saldature/the_end_cap_skips_a_drilled_wall` and the six of Z-C21.11 below)
+green. Prove.Contratti: 693 checks, 0 failed.
 
 - **S7, the sketch just drawn (`SchizzoAppenaCreato`, `SelezionaSchizzoAppenaCreato`,
   `BloccaSchizzo`).** They took the LAST `ProfileFeature` of the tree. Now the
@@ -186,9 +183,10 @@ parts: A + 3 x S_show(2 B) + B gives A 1, S_show 3, S_show > B 2, B 1.
   wrong refusal, the envelope in the sum, two solids expected for one), and
   `the_lightweight_step_says_the_export_resolved_them` (green on 0.146.0 except
   for the new answer field, as the case says); `tavola/the_indented_bom_follows_the_tree`
-  (red on 0.146.0: 2 flat items against 4 rows). Unmeasured risks: whether the
-  bench's own state reading resolves lightweight components, and whether the
-  station's «resolve lightweight: prompt» option opens a modal.
+  (red on 0.146.0: 2 flat items against 4 rows). The two risks named before the
+  bench did not happen: the bench's state reading left the parts lightweight
+  (two components still counted lightweight after the box), and the station's «resolve
+  lightweight: prompt» option opened no dialog.
 - **Contracts.** New group `Zc2111ComponentsContract`, 28 checks: ten source
   rules, each seen red on changed copies of the real source (no `IsSuppressed()`
   in the library, the reader, the kind of a component, its four users, mass, box, STEP count and
