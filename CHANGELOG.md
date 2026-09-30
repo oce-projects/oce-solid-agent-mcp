@@ -28,7 +28,9 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — Z-C21.5 leftovers and Z-C21.11 (branch z-c21-11)
+## 0.123.0 — 30 September 2026 · library 0.147.0
+
+BENCH_0147_PLACEHOLDER
 
 **The four items the 0.122.0 entry listed as not done in Z-C21.5: the two «last
 sketch of its type» lookups (S7), N7, N23 and C4-3; and Z-C21.11, the assembly
