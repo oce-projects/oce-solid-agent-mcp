@@ -176,11 +176,13 @@ namespace Riscontro.Disegno
             facciaA = FacciaVersoDi(testedA, versoA, ComponentAxes(testedA), out perche1);
             if (facciaA == null)
                 return Fallito("On «" + uidA + "», after the test of its directions: " + perche1 +
-                               DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB));
+                               DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
+                               " Nothing was mated. Read the assembly state again and ask for the mate once more.");
             facciaB = FacciaVersoDi(testedB, versoB, ComponentAxes(testedB), out perche2);
             if (facciaB == null)
                 return Fallito("On «" + uidB + "», after the test of its directions: " + perche2 +
-                               DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB));
+                               DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
+                               " Nothing was mated. Read the assembly state again and ask for the mate once more.");
 
             object mate;
             int errore = 0;

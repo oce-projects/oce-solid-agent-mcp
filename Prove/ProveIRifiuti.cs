@@ -228,8 +228,13 @@ namespace Prove.Contratti
         /// with the Italian words alone and 209 with both lists, and on the tree
         /// of 25/9/2026 (library 0.117.0, still Italian) 75 and 75 of 578, the
         /// same percentage. A check below keeps it so.
+        /// **238, merge of W3.1-bis.2 with Z-C14 (1/10/2026): +2.** Z-C14 added two
+        /// refusals of `accoppia` (a face not found again after the test of the
+        /// directions) that named no remedy: the share net of W3.1-bis.2 caught
+        /// them on the merge (236 of 937 under 236 of 935), and both now end with
+        /// «ask for the mate once more».
         /// </summary>
-        private const int Pavimento = 236;
+        private const int Pavimento = 238;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -243,8 +248,8 @@ namespace Prove.Contratti
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 236;
-        private const int ShareFloorWithText = 935;
+        private const int ShareFloorWithRemedy = 238;   // 1/10/2026, merge with Z-C14: 238 of 937
+        private const int ShareFloorWithText = 937;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.
