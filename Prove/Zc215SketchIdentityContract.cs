@@ -97,6 +97,20 @@ namespace Prove.Contratti
 
         private static readonly Regex OpeningRx = new Regex(@"\.Insert(?:3D)?Sketch\(\s*true\s*\)", RegexOptions.Compiled);
 
+        private static readonly Regex LastNewOfType = new Regex(
+            @"GetTypeName2\s*\(\s*\)\s*==\s*[^&;)]+&&\s*!\s*\w+\s*\.\s*Contains\s*\(\s*\w+\s*\.\s*Name\s*\)\s*\)\s*\w+\s*=\s*\w+\s*;",
+            RegexOptions.Compiled);
+
+        /// <summary>Every «if (type matches and the name is new) keep it» loop body, as file:line.</summary>
+        private static List<string> LastNewOfTypeLoops(Dictionary<string, string> sources)
+        {
+            var found = new List<string>();
+            foreach (var kv in sources)
+                foreach (Match m in LastNewOfType.Matches(kv.Value))
+                    found.Add(kv.Key + ":" + (kv.Value.Substring(0, m.Index).Split('\n').Length));
+            return found;
+        }
+
         internal static void RunAll()
         {
             Gruppo("the sketch just drawn is the one born since its caller opened it (Z-C21.5 S7, sketch lookups)");
@@ -161,6 +175,19 @@ namespace Prove.Contratti
             var red = SeenRed(sources, changes);
             Segna("the sketch lookup check turns red on each changed copy", red.Count == 0,
                   red.Count == 0 ? changes.Length + " changes, each one red" : string.Join(" | ", red));
+
+            // ── NO LOOP KEEPS THE LAST NEW FEATURE OF A TYPE ─────────────
+            // Review of the Z-C21.5 leftovers: the sketched bend (OperazioniLamiera)
+            // and the rib (OperazioniNervatura) walked the tree and kept the LAST
+            // feature of a type whose name was new, so two born gave one of them
+            // without a word. Both now go through FeatureBorn.
+            var loops = LastNewOfTypeLoops(sources);
+            Segna("no library loop keeps the last new feature of a type (the sketched bend, the rib)", loops.Count == 0,
+                  loops.Count == 0 ? "none in " + sources.Count + " files" : string.Join(" | ", loops));
+            var oldLoop = new Dictionary<string, string>(sources, StringComparer.OrdinalIgnoreCase);
+            oldLoop["OperazioniLamiera.cs"] = (oldLoop.ContainsKey("OperazioniLamiera.cs") ? oldLoop["OperazioniLamiera.cs"] : "") +
+                "\n// seeded: if (f.GetTypeName2() == \"ProfileFeature\" && !before.Contains(f.Name)) sketch = f;\n";
+            Segna("that check turns red on a copy with the old loop of the sketched bend", LastNewOfTypeLoops(oldLoop).Count == 1);
 
             // ── THE BUILT LIBRARY ────────────────────────────────────────
             var library = Path.Combine(Radice(), Library, "bin", "Release", "Riscontro.Disegno.dll");

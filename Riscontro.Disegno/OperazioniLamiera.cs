@@ -706,13 +706,9 @@ namespace Riscontro.Disegno
                 return Fallito("Before bending, I measured the flat length and " + flatProblemBefore +
                                ". I did not make the bend.");
             var scatolaPrima = ScatolaDelPezzoMm(modello);
-            var schizziPrima = new HashSet<string>();
-            try
-            {
-                var f = modello.FirstFeature() as IFeature;
-                while (f != null) { if (f.GetTypeName2() == "ProfileFeature") schizziPrima.Add(f.Name); f = f.GetNextFeature() as IFeature; }
-            }
-            catch { }
+            // The names of the tree before the sketch (Z-C21.5, S7): null when the
+            // tree cannot be read, and then no sketch is taken for the new one.
+            var schizziPrima = FeatureNamesNow(modello);
 
             modello.ClearSelection2(true);
             if (!(faccia as IEntity).Select4(false, null))
@@ -735,21 +731,16 @@ namespace Riscontro.Disegno
             }
             finally { modello.SketchManager.AddToDB = addPrima; }
             modello.SketchManager.InsertSketch(true);
-            // Come per la flangia a spigolo: in una lamiera l'ultima lavorazione e'
-            // lo sviluppo, e lo schizzo nuovo e' quello che prima non c'era.
-            IFeature schizzo = null;
-            try
-            {
-                var f = modello.FirstFeature() as IFeature;
-                while (f != null)
-                {
-                    if (f.GetTypeName2() == "ProfileFeature" && !schizziPrima.Contains(f.Name)) schizzo = f;
-                    f = f.GetNextFeature() as IFeature;
-                }
-            }
-            catch { }
+            // As for the edge flange: on sheet metal the last feature is the flat
+            // pattern, and the new sketch is the one that was not there before.
+            // Z-C21.5 (S7, review of the leftovers): the ONE born, through
+            // FeatureBorn. The loop that was here kept the LAST new sketch, so two
+            // born would have given one of them without a word.
+            int sketchesBorn;
+            IFeature schizzo = FeatureBorn(modello, schizziPrima, "ProfileFeature", out sketchesBorn);
             if (schizzo == null)
-                return Fallito("Non ritrovo lo schizzo della linea di piega appena fatto." + SenzaLoSchizzo(modello));
+                return Fallito(SketchNotIdentified(sketchesBorn, "Non ritrovo lo schizzo della linea di piega appena fatto.") +
+                               SenzaLoSchizzo(modello));
 
             modello.ClearSelection2(true);
             schizzo.Select2(false, 0);
@@ -854,6 +845,11 @@ namespace Riscontro.Disegno
                 string problem;
                 if (!DocumentByPath.ActivateAndReadBack(_sw, previousFront, out activationErrors, out problem))
                     _log("[agent] flat pattern: " + problem);
+                else
+                {
+                    string stale = DocumentByPath.PutBackNeedsRebuild(previousFront, activationErrors);
+                    if (stale != null) _log("[agent] flat pattern: " + stale);
+                }
             };
             if (activationProblem != null)
             {
@@ -926,6 +922,10 @@ namespace Riscontro.Disegno
             string problem;
             if (!DocumentByPath.ActivateAndReadBack(_sw, document, out activationErrors, out problem))
                 return problem + ", and ExportToDWG2 exports the active document";
+            // C4-3: brought here with swDontRebuildActiveDoc, so a pending rebuild
+            // is done now, before the flat pattern is written from it.
+            string rebuilt = DocumentByPath.RebuildIfActivationAsked(document, activationErrors);
+            if (rebuilt != null) _log("[agent] " + rebuilt);
             return null;
         }
 

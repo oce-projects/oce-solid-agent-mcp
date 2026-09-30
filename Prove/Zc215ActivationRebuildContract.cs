@@ -49,6 +49,7 @@ namespace Prove.Contratti
             Gruppo("C4-3: a pending rebuild left by ActivateDoc3 is not lost");
 
             SourceWiring();
+            LibraryWiring();
 
             var bridge = PonteOppureNonQui("Sessione.NeedsRebuildAfterActivation, in full");
             if (bridge == null) return;
@@ -76,6 +77,68 @@ namespace Prove.Contratti
                   needs(SwDocNeedsRebuildWarning));
             Segna("both bits together (3): the warning bit still fires",
                   needs(SwGenericActivateError | SwDocNeedsRebuildWarning));
+        }
+
+        /// <summary>
+        /// THE LIBRARY'S OWN ACTIVATIONS (review of the Z-C21.5 leftovers): every
+        /// DocumentByPath.ActivateAndReadBack outside DocumentByPath.cs acts on the
+        /// bitmask within the next lines: RebuildIfActivationAsked when OUR
+        /// document was brought forward to be exported, PutBackNeedsRebuild when
+        /// the user's document was put back. Then, by reflection on the built
+        /// library, the bit test DocumentByPath.NeedsRebuildAfterActivation on
+        /// the same shapes as the bridge's.
+        /// </summary>
+        private static void LibraryWiring()
+        {
+            var dir = Path.Combine(Radice(), "Riscontro.Disegno");
+            var loose = new System.Collections.Generic.List<string>();
+            int calls = 0;
+            try
+            {
+                foreach (var file in Directory.GetFiles(dir, "*.cs", SearchOption.TopDirectoryOnly))
+                {
+                    if (string.Equals(Path.GetFileName(file), "DocumentByPath.cs", StringComparison.OrdinalIgnoreCase)) continue;
+                    var lines = File.ReadAllLines(file);
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        if (!lines[i].Contains("DocumentByPath.ActivateAndReadBack(")) continue;
+                        calls++;
+                        bool acts = false;
+                        for (int k = i; k < Math.Min(lines.Length, i + 14) && !acts; k++)
+                            acts = lines[k].Contains("RebuildIfActivationAsked(") || lines[k].Contains("PutBackNeedsRebuild(");
+                        if (!acts) loose.Add(Path.GetFileName(file) + ":" + (i + 1));
+                    }
+                }
+            }
+            catch (Exception ex) { Segna("the library sources read", false, ex.Message); return; }
+            Segna("every library ActivateAndReadBack acts on swDocNeedsRebuildWarning (rebuild ours, say it on the user's)",
+                  calls > 0 && loose.Count == 0,
+                  calls == 0 ? "no call found: moved or renamed" : loose.Count == 0 ? calls + " calls" : "not acting: " + string.Join(", ", loose));
+
+            var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
+            if (!File.Exists(library)) { NonQui("DocumentByPath.NeedsRebuildAfterActivation", library + " is missing: build the library first"); return; }
+            try
+            {
+                var redist = DoveStaLInterop();
+                if (redist != null)
+                {
+                    AppDomain.CurrentDomain.AssemblyResolve += (sender, a) =>
+                    {
+                        var name = new AssemblyName(a.Name).Name;
+                        if (!name.StartsWith("SolidWorks.Interop", StringComparison.OrdinalIgnoreCase)) return null;
+                        var f = Path.Combine(redist, name + ".dll");
+                        return File.Exists(f) ? Assembly.LoadFrom(f) : null;
+                    };
+                }
+                var type = Assembly.Load(File.ReadAllBytes(library)).GetType("Riscontro.Disegno.DocumentByPath", false);
+                var method = type == null ? null : type.GetMethod("NeedsRebuildAfterActivation", BindingFlags.Public | BindingFlags.Static);
+                if (method == null) { Segna("DocumentByPath.NeedsRebuildAfterActivation is there", false, "not found"); return; }
+                Func<int, bool> needs = e => (bool)method.Invoke(null, new object[] { e });
+                Segna("library bit test: -1, 0 and swGenericActivateError alone ask nothing; the warning bit, alone or with 1, asks a rebuild",
+                      !needs(-1) && !needs(0) && !needs(SwGenericActivateError) && needs(SwDocNeedsRebuildWarning) &&
+                      needs(SwGenericActivateError | SwDocNeedsRebuildWarning));
+            }
+            catch (Exception ex) { Segna("the library loads", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         /// <summary>

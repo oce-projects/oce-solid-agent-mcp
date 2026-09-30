@@ -465,6 +465,11 @@ namespace Riscontro.Disegno
                     string problem;
                     if (!DocumentByPath.ActivateAndReadBack(sw, previousFront, out activationErrors, out problem))
                         log("[section] " + problem);
+                    else
+                    {
+                        string stale = DocumentByPath.PutBackNeedsRebuild(previousFront, activationErrors);
+                        if (stale != null) log("[section] " + stale);
+                    }
                 }
             }
         }

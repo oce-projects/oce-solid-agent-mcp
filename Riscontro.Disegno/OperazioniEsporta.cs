@@ -1059,6 +1059,11 @@ namespace Riscontro.Disegno
                 string problem;
                 if (!DocumentByPath.ActivateAndReadBack(_sw, previousFront, out activationErrors, out problem))
                     _log("[agent] STEP AP242: " + problem);
+                else
+                {
+                    string stale = DocumentByPath.PutBackNeedsRebuild(previousFront, activationErrors);
+                    if (stale != null) _log("[agent] STEP AP242: " + stale);
+                }
             };
             if (activationProblem != null)
             {
@@ -1111,6 +1116,10 @@ namespace Riscontro.Disegno
             string problem;
             if (!DocumentByPath.ActivateAndReadBack(_sw, document, out activationErrors, out problem))
                 return problem;
+            // C4-3: brought here with swDontRebuildActiveDoc, so a pending rebuild
+            // is done now, before the file is written from it.
+            string rebuilt = DocumentByPath.RebuildIfActivationAsked(document, activationErrors);
+            if (rebuilt != null) _log("[agent] " + rebuilt);
             return null;
         }
 
@@ -1479,6 +1488,11 @@ namespace Riscontro.Disegno
                     string problem;
                     if (!DocumentByPath.ActivateAndReadBack(_sw, previousFront, out activationErrors, out problem))
                         _log("[agent] after reopening the file: " + problem);
+                    else
+                    {
+                        string stale = DocumentByPath.PutBackNeedsRebuild(previousFront, activationErrors);
+                        if (stale != null) _log("[agent] after reopening the file: " + stale);
+                    }
                 }
             }
         }

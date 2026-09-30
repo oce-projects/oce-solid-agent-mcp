@@ -2,11 +2,11 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 145527,
+  "comments": 145499,
   "strings": 54693,
   "markdown": 33942,
   "json_values": 55199,
-  "identifiers": 4792,
+  "identifiers": 4793,
   "json_keys": 443,
   "protocol": 2165,
   "paths": 640,
@@ -1597,7 +1597,7 @@
    "strings": 275
   },
   "Riscontro.Disegno/OperazioniLamiera.cs": {
-   "comments": 885,
+   "comments": 865,
    "strings": 723
   },
   "Riscontro.Disegno/OperazioniMateriale.cs": {
@@ -1613,7 +1613,7 @@
    "strings": 242
   },
   "Riscontro.Disegno/OperazioniNervatura.cs": {
-   "comments": 778,
+   "comments": 770,
    "strings": 493
   },
   "Riscontro.Disegno/OperazioniNotaTavola.cs": {
@@ -2811,6 +2811,7 @@
    "OperazioniAssieme",
    "OperazioniCorpi",
    "OperazioniDistintaTavola",
+   "OperazioniEsporta",
    "OperazioniFori",
    "OperazioniGuardie",
    "OperazioniInterferenze",

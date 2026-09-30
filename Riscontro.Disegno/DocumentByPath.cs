@@ -672,6 +672,70 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// C4-3 for the library's own activations (review of the Z-C21.5
+        /// leftovers, 30/9/2026): does the bitmask ActivateDoc3 filled in say the
+        /// document was left un-rebuilt? ISldWorks~ActivateDoc3.html, Remarks: «If
+        /// the document needs a rebuild upon activation, and you have specified
+        /// Option with swRebuildOnActivation_e.swDontRebuildActiveDoc, then the
+        /// activated document is not rebuilt, and Errors contains
+        /// swActivateDocError_e.swDocNeedsRebuildWarning. You can then rebuild the
+        /// document using IModelDoc2::EditRebuild3.» -1 means ActivateDoc3 was not
+        /// called (<see cref="ActivateAndReadBack"/> skips it when the document is
+        /// already in front): nothing was skipped. The same rule as the bridge's
+        /// Sessione.NeedsRebuildAfterActivation (Ponte/Documenti.cs).
+        /// </summary>
+        public static bool NeedsRebuildAfterActivation(int activationErrors)
+        {
+            return activationErrors >= 0 &&
+                   (activationErrors & (int)swActivateDocError_e.swDocNeedsRebuildWarning) != 0;
+        }
+
+        /// <summary>
+        /// OUR document, just brought to the front to be exported: when ActivateDoc3
+        /// says it was left un-rebuilt, it is rebuilt with EditRebuild3 before
+        /// anything is written from it, since the export writes the model as it is
+        /// and a stale model would go into the file. Null when no rebuild was
+        /// needed; otherwise one sentence for the step's log. Never throws.
+        /// IModelDoc2~EditRebuild3.html, Return Value: «True if only those features
+        /// that need to be rebuilt are rebuilt in the active configuration in the
+        /// model, false if not». A false answer is said, not turned into a refusal:
+        /// a part with a feature in error answers false on every rebuild, and it
+        /// was exported the same way before this change.
+        /// </summary>
+        public static string RebuildIfActivationAsked(IModelDoc2 doc, int activationErrors)
+        {
+            if (doc == null || !NeedsRebuildAfterActivation(activationErrors)) return null;
+            string label = "?";
+            try { label = Label(PathOnDisk(doc), doc.GetTitle()); } catch (Exception) { }
+            try
+            {
+                bool rebuilt = doc.EditRebuild3();
+                return "ActivateDoc3 reported swDocNeedsRebuildWarning for «" + label + "»: rebuilt with EditRebuild3 " +
+                       "before the export (" + (rebuilt ? "it answered true" : "it answered false: some feature did not rebuild") + ")";
+            }
+            catch (Exception ex)
+            {
+                return "ActivateDoc3 reported swDocNeedsRebuildWarning for «" + label + "», and EditRebuild3 threw (" +
+                       ex.Message + "): the export writes the model as it is";
+            }
+        }
+
+        /// <summary>
+        /// The document that was in front, put back there after an export: when
+        /// ActivateDoc3 says it needs a rebuild, that is SAID and not done. It is
+        /// the user's document as they left it, and a rebuild nobody asked for is a
+        /// change to it. Null when there is nothing to say.
+        /// </summary>
+        public static string PutBackNeedsRebuild(IModelDoc2 doc, int activationErrors)
+        {
+            if (doc == null || !NeedsRebuildAfterActivation(activationErrors)) return null;
+            string label = "?";
+            try { label = Label(PathOnDisk(doc), doc.GetTitle()); } catch (Exception) { }
+            return "«" + label + "» is back in front, and ActivateDoc3 reported swDocNeedsRebuildWarning for it: it " +
+                   "is left as it was, not rebuilt here";
+        }
+
+        /// <summary>
         /// The swActivateDocError_e names of the bits set in the Errors of
         /// ActivateDoc3 (a bitmask: swActivateDocError_e, «Remarks Bitmask»), from
         /// the interop enum itself, as ErrorCodeDecoder does for the save masks.

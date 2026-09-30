@@ -35,7 +35,7 @@ sketch of its type» lookups (S7), N7, N23 and C4-3.** Built on bridge 0.122.0 /
 library 0.146.0; the version is not raised yet. **THE BENCH HAS NOT RUN on this
 branch** (no SOLIDWORKS while it was written): the one new case,
 `saldature/the_end_cap_skips_a_drilled_wall`, and every existing case these
-changes touch are unmeasured until the next bench. Prove.Contratti: 658 checks,
+changes touch are unmeasured until the next bench. Prove.Contratti: 662 checks,
 only the bench-freshness checks red.
 
 - **S7, the sketch just drawn (`SchizzoAppenaCreato`, `SelezionaSchizzoAppenaCreato`,
@@ -85,9 +85,29 @@ only the bench-freshness checks red.
   `PortaDavanti` calls `EditRebuild3` before answering, with
   `rebuilt_on_activation` and its reason in the answer (ActivateDoc3.html,
   Remarks). Contract `Zc215ActivationRebuildContract` (10 checks); no bench case
-  can stage a document left stale by a separate activation. Not done here: the
-  library's own activations (`OperazioniEsporta`, `OperazioniLamiera`,
-  `SezioneProfilo`) still receive `Errors` and never look at it.
+  can stage a document left stale by a separate activation.
+- **C4-3 in the library's own activations** (left open by the first review, done
+  after it). The six `DocumentByPath.ActivateAndReadBack` calls of
+  `OperazioniEsporta`, `OperazioniLamiera` and `SezioneProfilo` now read the
+  bitmask through `DocumentByPath.NeedsRebuildAfterActivation`. OUR document,
+  brought forward to be exported (STEP AP242, flat pattern DWG), is rebuilt with
+  `EditRebuild3` first (`RebuildIfActivationAsked`), and the step's log says so;
+  a false answer is said, not a refusal, since a part with a feature in error
+  answers false on every rebuild and was exported the same way before. The
+  user's document, put back in front afterwards, is only reported
+  (`PutBackNeedsRebuild`): a rebuild nobody asked for would change it. Contract
+  `Zc215ActivationRebuildContract` +2 checks (every library call acts on the bit;
+  the library's bit test by reflection), 12 in all.
+- **Two more «last new feature of a type» loops** (seen by the first review
+  outside the rows). The sketched bend (`OperazioniLamiera`) and the rib
+  (`OperazioniNervatura`, its sketch and the `Rib` itself) kept the LAST feature
+  of the type whose name was new. Now both go through `FeatureBorn`: two sketches
+  born refuse with `SketchNotIdentified`, two ribs from one `InsertRib` refuse and
+  go back out with the rest, and a step taken away removes every feature of the
+  type it made, not one. The bend's «before» is `FeatureNamesNow` (null when the
+  tree cannot be read). Contract `Zc215SketchIdentityContract` +2 checks (no such
+  loop in the library; seen red on a copy with the old loop), 6 in all. The rib
+  and bend cases of the bench are the judges of unchanged behaviour.
 
 ## 0.122.0 — 30 September 2026 · library 0.146.0
 

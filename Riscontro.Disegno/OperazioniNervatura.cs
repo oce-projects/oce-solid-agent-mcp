@@ -200,8 +200,8 @@ namespace Riscontro.Disegno
             if (sk == null || matematica == null)
             {
                 try { if (modello.SketchManager.ActiveSketch != null) modello.SketchManager.InsertSketch(true); } catch { }
-                var aperto = NervaturaNuovaDelTipo(modello, "ProfileFeature", schizziPrima);
-                if (aperto != null) mie.Add(aperto);
+                // Everything born of that type goes back out, not just one.
+                mie.AddRange(FeaturesBornOfType(modello, "ProfileFeature", schizziPrima));
                 return Fallito("Lo schizzo della nervatura non si e' aperto." + NervaturaRitira(modello, mie, foto));
             }
             var tr = sk.ModelToSketchTransform;
@@ -219,10 +219,13 @@ namespace Riscontro.Disegno
             }
             finally { modello.SketchManager.AddToDB = addPrima; }
             modello.SketchManager.InsertSketch(true);
-            var schizzo = NervaturaNuovaDelTipo(modello, "ProfileFeature", schizziPrima);
+            int sketchesBorn;
+            var schizzo = NervaturaNuovaDelTipo(modello, "ProfileFeature", schizziPrima, out sketchesBorn);
             if (schizzo != null) mie.Add(schizzo);
+            else mie.AddRange(FeaturesBornOfType(modello, "ProfileFeature", schizziPrima));
             if (linea == null || schizzo == null)
-                return Fallito("La linea della nervatura non e' nata nello schizzo." + NervaturaRitira(modello, mie, foto));
+                return Fallito(SketchNotIdentified(sketchesBorn, "La linea della nervatura non e' nata nello schizzo.") +
+                               NervaturaRitira(modello, mie, foto));
 
             // L'ALBERO DOPO LO SCHIZZO: e' come deve essere prima di OGNI
             // tentativo. Un tentativo fallito che lascia una feature di un altro
@@ -241,8 +244,18 @@ namespace Riscontro.Disegno
                 tentativi++;
                 string alzato = NervaturaInserisci(modello, schizzo, spessore, gira);
                 try { modello.EditRebuild3(); } catch { }
-                var nata = NervaturaNuovaDelTipo(modello, "Rib", ribPrima);
+                int ribsBorn;
+                var nata = NervaturaNuovaDelTipo(modello, "Rib", ribPrima, out ribsBorn);
                 string verso = gira ? "materiale girato" : "materiale dritto";
+                if (nata == null && ribsBorn > 1)
+                {
+                    // Two ribs from one call: which one is ours is not known, so
+                    // none is kept and every one goes back out.
+                    mie.AddRange(FeaturesBornOfType(modello, "Rib", ribPrima));
+                    return Fallito(ribsBorn + " rib features were born from one InsertRib call (" + verso +
+                                   "), and nothing tells which one is the rib asked for: none is kept." +
+                                   NervaturaRitira(modello, mie, foto));
+                }
                 if (nata == null)
                 {
                     esiti.Add(verso + ": nessuna nervatura" + (alzato == null ? "" : " (" + alzato + ")"));
@@ -577,21 +590,32 @@ namespace Riscontro.Disegno
             return nuove;
         }
 
-        /// <summary>L'ultima feature di quel tipo che prima non c'era, o null.</summary>
-        private static IFeature NervaturaNuovaDelTipo(IModelDoc2 modello, string tipo, HashSet<string> prima)
+        /// <summary>
+        /// The ONE feature of that type whose name was not in <paramref name="prima"/>,
+        /// or null; <paramref name="born"/> says how many were born (-1: the tree
+        /// was not read). Z-C21.5 (S7, review of the leftovers, 30/9/2026): this
+        /// kept the LAST new one, so two born would have given one of them without
+        /// a word; now it is <see cref="FeatureBorn"/>, which answers null for two.
+        /// </summary>
+        private static IFeature NervaturaNuovaDelTipo(IModelDoc2 modello, string tipo, HashSet<string> prima, out int born)
         {
-            IFeature nuova = null;
-            try
-            {
-                var f = modello.FirstFeature() as IFeature;
-                while (f != null)
-                {
-                    if (f.GetTypeName2() == tipo && !prima.Contains(f.Name)) nuova = f;
-                    f = f.GetNextFeature() as IFeature;
-                }
-            }
-            catch { }
-            return nuova;
+            return FeatureBorn(modello, prima, tipo, out born);
+        }
+
+        /// <summary>
+        /// Every feature of that type whose name was not in <paramref name="prima"/>,
+        /// in tree order: what goes back out when a step is taken away. Empty when
+        /// the tree cannot be read.
+        /// </summary>
+        private static List<IFeature> FeaturesBornOfType(IModelDoc2 modello, string tipo, HashSet<string> prima)
+        {
+            var nuove = new List<IFeature>();
+            List<IFeature> features;
+            List<string> names, types;
+            if (prima == null || !ReadFeatureTree(modello, out features, out names, out types)) return nuove;
+            foreach (int i in BornFeatureIndices(names, prima))
+                if (i < types.Count && types[i] == tipo) nuove.Add(features[i]);
+            return nuove;
         }
 
         private static string NervaturaNome(IFeature f)
