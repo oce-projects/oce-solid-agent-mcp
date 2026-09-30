@@ -394,6 +394,10 @@ namespace Riscontro.Disegno
                     gruppo.GapForOtherGroups = giocoMm / 1000.0;
                 }
 
+                // Option 1, as the real member (OperazioniSaldatura, where the
+                // measure is): 0 and 3 give no feature, and 1 and 2 gave the
+                // same bodies on the round tube and on the square one in every
+                // scene of the L9-6 probe (28/9/2026).
                 var feature = doc.FeatureManager.InsertStructuralWeldment5(
                     Path: profilo,
                     ConnectedSegmentsOption: 1,

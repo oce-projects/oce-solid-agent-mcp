@@ -104,7 +104,11 @@ namespace Riscontro.Disegno.Catalogo
                         "Un cilindro pieno centrato sull'origine.",
                     Descrizione =
                         "Crea un cilindro pieno: cerchio su un piano, estruso. E' "
-                        + "l'operazione per perni, spine, boccole, dischi.",
+                        + "l'operazione per perni, spine, boccole, dischi."
+                        + "\n\nOn a part that already has a body, the new cylinder merges with the "
+                        + "bodies it touches (merge and automatic body selection are on, as the guide "
+                        + "describes them); it cannot merge with a body it does not touch, and the "
+                        + "document state counts the bodies afterwards.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -149,7 +153,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nThe result says whether the sketch is locked: true only when every segment "
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
-                        + "locked, «sketch_lock_note» with the reason.",
+                        + "locked, «sketch_lock_note» with the reason."
+                        + "\n\nOn a part that already has a body, the new shape merges with the bodies "
+                        + "it touches (merge and automatic body selection are on, as the guide describes "
+                        + "them); it cannot merge with a body it does not touch, and the document state "
+                        + "counts the bodies afterwards.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -204,7 +212,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "squadrate."
                         + "\n\n«piano» takes «frontale», «superiore» or «destro» (the case of "
                         + "the letters does not matter); any other name is refused, it never "
-                        + "falls back to the front plane.",
+                        + "falls back to the front plane."
+                        + "\n\nOn a part that already has a body, the new plate merges with the bodies "
+                        + "it touches (merge and automatic body selection are on, as the guide describes "
+                        + "them); it cannot merge with a body it does not touch, and the document state "
+                        + "counts the bodies afterwards.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -279,7 +291,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nThe result says whether the sketch is locked: true only when every segment "
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
-                        + "locked, «sketch_lock_note» with the reason.",
+                        + "locked, «sketch_lock_note» with the reason."
+                        + "\n\nOn a part that already has a body, the new bar merges with the bodies it "
+                        + "touches (merge and automatic body selection are on, as the guide describes "
+                        + "them); it cannot merge with a body it does not touch, and the document state "
+                        + "counts the bodies afterwards.",
                     Precondizione = "documento_senza_corpo",
                     Schema = O(
                         "type", "object",
@@ -1041,7 +1057,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "quel diametro (IT5..IT11, fino a 500 mm) e che il segno sia quello della lettera "
                         + "(H da zero in su, h da zero in giu'). Se non torna la rimetto com'era e te lo dico."
                         + "\n\nI DECIMALI: imposto quelli della tolleranza sulla quota. Misurato: senza, un H7 "
-                        + "su 10 usciva in tavola «10 H7 +0 / 0» — in officina vuol dire «esatta».\n\nLa "
+                        + "su 10 usciva in tavola «10 H7 +0 / 0» — in officina vuol dire «esatta». The "
+                        + "tolerance decimals are set and read back on EVERY displayed copy of the "
+                        + "dimension; one that does not take them is a refusal, and the tolerance is put "
+                        + "back and read back. precision_status reports a SetPrecision3 answer of 1, 2 "
+                        + "or 4 (about values I leave unchanged).\n\nLa "
                         + "risposta porta scostamenti e limiti (10,000 / 10,015 per un Ø10 H7).\n\nMI RIFIUTO "
                         + "per un grado IT fuori da 5..11 o una quota oltre 500 mm (non li so riscontrare), per "
                         + "una bilaterale con l'inferiore sopra il superiore, e quando il riscontro non torna.",
@@ -1156,7 +1176,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "loop (a rounded block: 1 edge selected, 8 faces made). The document state "
                         + "says so for every fillet: «selected_edges» is how many edges were selected, "
                         + "«faces» how many faces the fillet made. The answer carries «selected_edges» "
-                        + "and «faces» too, read the same way.",
+                        + "and «faces» too, read the same way."
+                        + "\n\nI refuse when the volume of the part does not change after the fillet is "
+                        + "made: the feature is in the tree and worked nothing, and I say it is still "
+                        + "there to undo. On a concave edge the volume grows, and that is fine. "
+                        + "material_change_mm3 gives the change (after minus before); volume_not_read "
+                        + "says when the volume could not be read.",
                     Precondizione = "corpo_solido_e_spigolo",
                     Schema = O(
                         "type", "object",
@@ -1397,9 +1422,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "(«feature_uid» o «feature_rif»), la faccia di contorno su cui sta "
                         + "(«faccia_uid» o «faccia_rif») e una DIREZIONE, cioe' uno spigolo dritto "
                         + "che corre lungo la faccia («asse_uid», per esempio il suo bordo lungo) "
-                        + "oppure un asse fatto con «crea_asse» («asse_rif»). La direzione orienta "
-                        + "i giri. Misurato con uno spigolo della faccia di contorno; un asse e' "
-                        + "accettato, ma nessuna prova l'ha ancora usato.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un "
+                        + "or an axis that lies along that face («asse_rif»). The axis of a hole "
+                        + "drilled into the face, as «crea_asse» makes it, runs across the face and is "
+                        + "refused. The direction orients the loops. Measured with an edge of the "
+                        + "boundary face; an axis lying along the face is accepted, but no test has "
+                        + "used one yet.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un "
                         + "cerchio di copie attorno a un asse, «ripeti_circolare». La disposizione e' "
                         + "solo circolare: quadrata, poligonale e a perforazione non sono provate."
                         + "\n\nMI RIFIUTO SE MANCA LA DIREZIONE: senza, SOLIDWORKS non crea niente e "
@@ -1466,13 +1493,14 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "string",
                                 "description", "la direzione dei giri: uno spigolo DRITTO che corre lungo la faccia "
                                     + "di contorno («E1», «E2»...), per esempio il suo bordo lungo, oppure "
-                                    + "un asse gia' nel documento. Serve sempre: senza, la ripetizione non nasce"),
+                                    + "un asse gia' nel documento that lies along the face. Serve sempre: senza, la ripetizione non nasce"),
                             "asse_rif", O(
                                 "type", "object",
-                                "description", "la direzione, se l'asse lo crea un passo precedente di questo "
-                                    + "piano con «crea_asse». Uno OPPURE l'altro.\n\nGeneri ammessi:\n- "
-                                    + "asse: l'asse creato dal passo, dal centro di un foro o di un "
-                                    + "albero",
+                                "description", "the direction, when a previous step of this plan makes the axis "
+                                    + "with «crea_asse»: only an axis that lies along the boundary face works "
+                                    + "(for example the axis of a shaft lying on it); the axis of a hole "
+                                    + "drilled into the face runs across it and is refused. One OR the "
+                                    + "other.\n\nAllowed kinds:\n- asse: the axis made by that step",
                                 "properties", O(
                                     "passo", O(
                                         "type", "integer",
@@ -1523,7 +1551,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "angle-distance «lato1_mm» + «angolo_gradi», distance-distance «lato1_mm» + "
                         + "«lato2_mm», and a vertex chamfer (made by hand) «vertex_distances_mm», its "
                         + "three distances along the corner's edges. The answer carries «selected_edges» "
-                        + "and «faces» too, read the same way.",
+                        + "and «faces» too, read the same way."
+                        + "\n\nI refuse when the volume of the part does not change after the chamfer is "
+                        + "made: the feature is in the tree and worked nothing, and I say it is still "
+                        + "there to undo. On a concave edge the volume grows, and that is fine. "
+                        + "material_change_mm3 gives the change (after minus before); volume_not_read "
+                        + "says when the volume could not be read.",
                     Precondizione = "corpo_solido_e_spigolo",
                     Schema = O(
                         "type", "object",
@@ -2038,7 +2071,18 @@ namespace Riscontro.Disegno.Catalogo
                         + "un saldato (la lavorazione «Saldatura», se manca) e la distinta e' quella "
                         + "automatica di SOLIDWORKS, che separa le barre per lunghezza. La risposta "
                         + "porta le voci — descrizione, lunghezza, quantita' — e la somma delle "
-                        + "quantita' deve essere il numero delle barre, se no lo dice.",
+                        + "quantita' deve essere il numero delle barre, se no lo dice."
+                        + "\n\nThe answer says what SOLIDWORKS answered: automatic_cut_list_set (null "
+                        + "when the cut list was automatic already), automatic_update_set and "
+                        + "cut_list_updated. When the cut list did not update, the warning field of the "
+                        + "answer says the numbers may be stale. Each item gets bodies_equal, and the "
+                        + "same warning field speaks when "
+                        + "an item QUANTITY differs from the bodies of its folder, when one item holds "
+                        + "bodies of different volume, or when the folders hold a different number of "
+                        + "bodies than the part. A cut list that is not automatic (made by hand or "
+                        + "before library 0.124.0) is refused: delete it first. When a refusal removes "
+                        + "the weldment feature this step added, the message says whether IsWeldment "
+                        + "reads false again.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -2279,13 +2323,14 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
-                                "description", "le barre da accorciare, per identificativo preso dallo stato del "
-                                    + "documento (C1, C2...). Usa questo per corpi che ci sono GIA'; "
-                                    + "l'altro campo per corpi che li crea un passo precedente di questo "
-                                    + "piano. Uno o l'altro, mai tutti e due."),
+                                "description", "the bars to trim or extend (a bar that stops short grows to "
+                                    + "the other one), by the identifier of the document state (C1, "
+                                    + "C2...). Use this for bodies that exist ALREADY; the other field for "
+                                    + "bodies a previous step of this plan creates. One or the other, never "
+                                    + "both."),
                             "corpi_da_tagliare_rif", O(
                                 "type", "object",
-                                "description", "le barre da accorciare, create da un passo precedente\n\nGeneri "
+                                "description", "the bars to trim or extend, made by a previous step\n\nGeneri "
                                     + "ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
                                 "properties", O(
                                     "passo", O(
@@ -2330,7 +2375,10 @@ namespace Riscontro.Disegno.Catalogo
                                     "testa1",
                                     "testa2",
                                     "taglio"),
-                                "description", "come si chiude il taglio (predefinito: taglio)"),
+                                "description", "come si chiude il taglio (predefinito: taglio). Any other "
+                                    + "word is refused before the part is touched, a word meaning no "
+                                    + "corner included: the trim/extend has no such corner type, and none "
+                                    + "was measured. The answer names the condition used in end_condition."),
                             "gioco_mm", O(
                                 "type", "number",
                                 "description", "gioco lasciato (predefinito: 0). Il gioco che passi e' "
@@ -2389,10 +2437,17 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "spessore del tappo"),
                             "rientro_mm", O(
                                 "type", "number",
-                                "description", "quanto rientra dal filo (predefinito: 0)"),
+                                "description", "NOT a depth: the side gap between the cap and the inside of "
+                                    + "the tube wall, on every side. The cap always sits flush with the end "
+                                    + "of the bar. 0 or absent: half the wall thickness per side (measured on "
+                                    + "an 80 x 80 x 5 tube, 70 x 70 inside: 65 x 65 caps); a value above 0 is "
+                                    + "that gap. A cap that fills the whole inside with no gap cannot be asked "
+                                    + "for yet."),
                             "smusso_mm", O(
                                 "type", "number",
-                                "description", "smusso del bordo (predefinito: nessuno)")),
+                                "description", "IGNORED today: the corner treatment of the cap is off, and "
+                                    + "without it SOLIDWORKS drops the chamfer (measured: 2 mm gives the same "
+                                    + "volume as none). The cap corners stay sharp whatever the value.")),
                         "required", A(
                             "spessore_mm")),
                 },
@@ -2530,7 +2585,15 @@ namespace Riscontro.Disegno.Catalogo
                         + "corrente, e una tavola da tre fogli esce in officina come una "
                         + "pagina sola senza dare nessun errore. Dopo aver scritto il file "
                         + "si CONTANO le pagine e si confrontano con i fogli: se non "
-                        + "tornano, te lo dico.\n\nCon «cerca» il PDF si RILEGGE: dimmi le "
+                        + "tornano, te lo dico.\n\nI REFUSE when SOLIDWORKS does not accept "
+                        + "the request for every sheet (IExportPdfData.SetSheets answers false), "
+                        + "before writing anything; and when the pages of the written file "
+                        + "cannot be counted, saying where the file is: without that count, the "
+                        + "check this operation exists for did not run.\n\nThe answer carries "
+                        + "save_warnings (the swFileSaveWarning_e names, or «none») and "
+                        + "save_warnings_note when the drawing needed a rebuild, had rebuild "
+                        + "errors, or had views needing an update. A failed save gives the error "
+                        + "and warning names next to the raw codes.\n\nCon «cerca» il PDF si RILEGGE: dimmi le "
                         + "scritte che devono esserci (il numero di disegno, il nome del "
                         + "pezzo) e ti dico quali ci sono («trovati») e quali no "
                         + "(«non_trovati»). Il testo nel PDF e' scritto come indici di "
@@ -2732,12 +2795,20 @@ namespace Riscontro.Disegno.Catalogo
                         + "nasce nessuna te lo dico, e ti dico quali spigoli ho provato."
                         + "\n\nDOVE FINISCONO: fuori dalla vista — le orizzontali sotto, le "
                         + "verticali di lato, dentro la cornice del foglio — dalle piu' piccole "
-                        + "alle piu' grandi. Non so se si accavallano col disegno: quotare BENE "
-                        + "e' un mestiere, e questa operazione mette quote giuste, non una "
-                        + "tavola d'autore."
+                        + "alle piu' grandi."
+                        + "\n\nOVERLAPS ARE CHECKED AND REPORTED, not avoided: the true rectangle of "
+                        + "every dimension text, read back from SOLIDWORKS, against the other texts of "
+                        + "the whole drawing and against the lines of the part in this view. "
+                        + "«testi_che_si_accavallano» lists each overlap, and the answer also gives "
+                        + "their count and how many texts were read; null, not 0, means the texts "
+                        + "could not be read, or the walk over the dimensions of the drawing broke off "
+                        + "before the end, so overlaps are unknown. Dimension lines, "
+                        + "extension lines and the title block are not checked. The dimensions are "
+                        + "correct; a well laid out drawing is still a trade."
                         + "\n\nFORI E SMUSSI LI QUOTO DA SOLO, in ogni vista che li mostra, anche "
-                        + "se non li chiedi: i fori col RICHIAMO DEL FORO («4× Ø8 PASSANTE», uno "
-                        + "per diametro) e la posizione dai due bordi di riferimento, quello a "
+                        + "se non li chiedi: i fori col RICHIAMO DEL FORO («4× Ø8 PASSANTE», one "
+                        + "callout per diameter AND depth: two through Ø8 and two blind Ø8 get two "
+                        + "callouts, never one «4×») e la posizione dai due bordi di riferimento, quello a "
                         + "sinistra e quello in basso; gli smussi con la QUOTA DA SMUSSO («5 x "
                         + "45°»), non coi loro spigoli — l'ipotenusa e i tratti accorciati "
                         + "dallo smusso non si quotano. Un foro cieco porta la profondita' "
@@ -2767,6 +2838,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "sheet», or «current sheet only» when the drawing did not hand over "
                         + "its sheets), hidden_dimensions_not_counted, "
                         + "views_of_other_models_not_counted."
+                        + "\n\nA DIMENSION BORN WITHOUT ITS OBJECT (the count of dimensions went up, "
+                        + "the call returned nothing) stays: it is listed with its values null and "
+                        + "named in spigoli_non_quotati, since its value was not read back. For a hole "
+                        + "it does not trigger the fallback diameter dimension, which would be a second "
+                        + "annotation on the same hole."
                         + "\n\nMI RIFIUTO SE LO SPIGOLO CHIESTO NON ESISTE nella vista, e ti dico "
                         + "quanti ne mostra. Un indice che non c'e' e' l'errore piu' facile da "
                         + "fare quotando alla cieca. E rifiuto una vista in cui non resta niente "
@@ -2856,7 +2932,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "lunghezza dello sviluppo. La vista va in un posto libero del foglio (misurata "
                         + "a scala 2:1 a 300/90 mm cadeva nel cartiglio).\n\nMI RIFIUTO se il pezzo non e' di lamiera, se "
                         + "la vista nasce ma non e' uno sviluppo, o se misura un'altra cosa dallo "
-                        + "sviluppo del pezzo: in quei casi la tolgo.",
+                        + "sviluppo del pezzo: in those cases I remove it, and say so only after "
+                        + "reading the views of the drawing again; if it is still there, I ask you to "
+                        + "remove it.",
                     Precondizione = "una tavola e, aperto, un pezzo di lamiera salvato su disco",
                     Schema = O(
                         "type", "object",
@@ -2882,12 +2960,15 @@ namespace Riscontro.Disegno.Catalogo
                         + "lunghezza a destra.\n\nIL GIUNTO LO TROVO IO: fra gli spigoli che la vista "
                         + "mostra, quello in cui un corpo tocca l'altro (il piu' lungo). Il simbolo "
                         + "si sposta fuori dal pezzo, dalla parte di «lato», oltre le quote gia' "
-                        + "messe.\n\nSI RILEGGE: simbolo, gola, lunghezza, «tutto attorno». Il "
+                        + "messe.\n\nSI RILEGGE: simbolo, gola, lunghezza, «tutto attorno». The "
+                        + "count of its texts is checked too: a code the library does not draw leaves "
+                        + "one text (the throat) instead of two, and that symbol is refused. Il "
                         + "codice del simbolo e' quello della libreria di SOLIDWORKS («<WELD-FILL>» "
                         + "per l'angolo): misurato, con un codice sbagliato il simbolo nasce lo "
                         + "stesso, si rilegge uguale, e non disegna il triangolo.\n\nMI RIFIUTO se "
                         + "il pezzo ha un corpo solo, se nella vista non si vede nessun giunto, e se "
-                        + "il simbolo nato non e' quello chiesto (in quel caso lo tolgo).",
+                        + "il simbolo nato non e' quello chiesto (in that case I remove it, and say "
+                        + "so only after counting the weld symbols of the drawing again).",
                     Precondizione = "una tavola con una vista di un saldato in cui si vede il giunto fra due corpi",
                     Schema = O(
                         "type", "object",
@@ -2947,7 +3028,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "un'altra vista). Se ogni voce ha gia' il suo palloncino altrove, non ne mette e "
                         + "risponde «niente da aggiungere».\n\nMI RIFIUTO se in tavola non c'e' ancora una distinta base (la bollatura "
                         + "porta il suo numero di voce: mettila prima con «distinta_base_in_tavola») o se "
-                        + "dietro la vista non c'e' un assieme.",
+                        + "dietro la vista non c'e' un assieme."
+                        + "\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 "
+                        + "runs. balloons_returned is the number of notes AutoBalloon5 returned (null "
+                        + "when it returned no array), and balloons_count_note appears when it disagrees "
+                        + "with the count in the view.",
                     Precondizione = "una tavola con la distinta base e una vista dell'assieme",
                     Schema = O(
                         "type", "object",
@@ -3026,11 +3111,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "di bordo della vista dal «lato» chiesto: la «caratteristica», l'ampiezza della zona in mm "
                         + "e i «riferimenti» (fino a tre lettere di datum, nell'ordine primario, secondario, "
                         + "terziario). «diametro» mette il Ø davanti al valore (una zona cilindrica, per la "
-                        + "posizione di un asse).\n\nSimbolo, valore e riferimenti si RILEGGONO dalla cornice."
+                        + "posizione di un asse).\n\nSimbolo, valore e riferimenti si RILEGGONO dalla cornice, "
+                        + "and so does the Ø (diameter_read, from IGtol.GetFrameDiameterSymbols)."
                         + "\n\nMI RIFIUTO se una tolleranza di forma (rettilineita', planarita', circolarita', "
                         + "cilindricita') cita un datum, se una di orientamento o di posizione non ne cita nessuno, "
                         + "se un datum citato non c'e' in tavola (mettilo prima con «datum_in_tavola»), e se la "
-                        + "cornice nata non dice cio' che si e' chiesto.",
+                        + "cornice nata non dice cio' che si e' chiesto, Ø included: such a frame, or one "
+                        + "that cannot be filled, is removed from the sheet, and said removed only after "
+                        + "the frames of the drawing are counted again.",
                     Precondizione = "una tavola con una vista, e i datum che si citano gia' messi",
                     Schema = O(
                         "type", "object",
@@ -3144,7 +3232,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "perche' sul foglio la vista e' in scala.\n\n"
                         + "TI DICO SE E' NATA contando le viste prima e dopo, non "
                         + "perche' l'API ha risposto un oggetto: puo' rispondere senza "
-                        + "aver fatto niente.\n\n"
+                        + "aver fatto niente. The view I then read (hatch, letter) is the "
+                        + "one the call returned; the last view of the sheet only when it "
+                        + "returned none, and view_read_from says which. When the section "
+                        + "is not born, or the cutting line cannot be selected, the line I "
+                        + "drew is removed from the sheet, said removed only after the "
+                        + "sheet sketch is counted again.\n\n"
                         + "E MI RIFIUTO SE NON C'E' TRATTEGGIO. Una sezione senza "
                         + "tratteggio e' una linea di taglio caduta fuori dal "
                         + "materiale: sul foglio resta una vista che sembra buona e non "
@@ -3224,9 +3317,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "vista che sembra buona.\n\n"
                         + "E TI DICO SE IL CERCHIO E' DIVENTATO UN DETTAGLIO, contando le "
                         + "circonferenze di dettaglio sulla vista di partenza prima e "
-                        + "dopo. Se non sale, sul foglio resta un cerchio disegnato a mano "
-                        + "accanto a una vista che non gli e' legata — e nessun errore lo "
-                        + "direbbe.\n\n"
+                        + "dopo. If it does not go up I refuse, and remove both the new view "
+                        + "and the circle, each said removed only after a reread: left there, "
+                        + "they would be a hand-drawn circle next to a view tied to nothing, "
+                        + "and no error would say so. The view I read is the one the call "
+                        + "returned (view_read_from); when the detail is not born, the "
+                        + "circle I drew is removed.\n\n"
                         + "LA LETTERA E' UNA SOLA PER TAVOLA: se «etichetta» e' gia' di una "
                         + "sezione o di un altro dettaglio mi rifiuto e ti dico quelle usate. "
                         + "La lettera vera te la rileggo («etichetta_riletta»).\n\n"
@@ -3336,6 +3432,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "out (a sum over part of the list would be smaller than the truth) and "
                         + "«cosa_non_so» says what was missing; a count of zero with "
                         + "interferences in the list is refused instead of answered «none»."
+                        + "\n\nPOSSIBLE interferences (IsPossibleInterference) are counted apart: "
+                        + "certain_interferences and possible_interferences, and the verdict counts "
+                        + "only the certain ones in its alarm (both null when a flag could not be read). "
+                        + "The count of components looked at excludes suppressed components "
+                        + "(suppressed_components). The two settings echoed in the answer (touching "
+                        + "faces, and interferences inside multibody parts) are the values SOLIDWORKS "
+                        + "reads back; if one reads back different from the request, the check is "
+                        + "refused."
                         + "\n\nNon modifica "
                         + "niente: si puo' chiedere anche con «misura».",
                     Precondizione = "un assieme aperto con almeno due componenti",
@@ -3523,7 +3627,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "come PRIMO PASSO di una tavola: una vista si aggancia al percorso "
                         + "del pezzo, quindi un pezzo mai salvato non si puo' mettere in "
                         + "tavola.\n\nIl file scritto si rilegge: percorso e dimensione stanno "
-                        + "nelle misure.",
+                        + "nelle misure."
+                        + "\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or "
+                        + "«none») and save_warnings_note when the model needed a rebuild, had "
+                        + "rebuild errors, or had views needing an update. A failed save gives the "
+                        + "error and warning names next to the raw codes.",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",
@@ -3640,6 +3748,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "(«body C2»; «part» when you ask for the whole part). «bodies_in_part» "
                         + "always counts every body of the part: a sound body of a part of two "
                         + "is still a part whose STL is two separate shells."
+                        + "\n\nA body whose defect check (Check3) or gap count (Diagnose) cannot be read "
+                        + "is not called sound: its defect list is null with defects_not_read, and the "
+                        + "printable verdict is false with the reason."
                         + "\n\nATTENZIONE a cosa NON "
                         + "guarda: lo spessore delle pareti e le sovrasporgenze. Un guscio da "
                         + "tre decimi passa di qui senza una parola.",
@@ -3900,9 +4011,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "e' che non serve nominare uno spigolo, bastano le due facce."
                         + "\n\nSu uno spigolo ESTERNO toglie materiale, in un angolo interno "
                         + "ne aggiunge: nella risposta c'e' di quanto e' cambiato il volume "
-                        + "e da che parte. Quando le due facce sono piane, a 90 gradi, e si "
-                        + "toccano su uno spigolo, accanto c'e' anche il conto a mano "
-                        + "(lunghezza per r^2 per (1 - pi/4)).\n\nMI RIFIUTO PRIMA DI "
+                        + "e da che parte."
+                        + "\n\nTHE HAND CALCULATION IS A CHECK, NOT A SIDE NOTE. When the two faces are "
+                        + "flat, at 90 degrees and touch along an edge, the expected change is edge "
+                        + "length x r^2 x (1 - pi/4), read before the fillet («expected_change_abs_mm3»). "
+                        + "A volume change further from it than 0.05 mm3 (or one ten-thousandth of it, "
+                        + "whichever is larger) is refused: the fillet is removed, the part is checked "
+                        + "back, and the answer says so. On any other pair of faces the expected change "
+                        + "is null and nothing is compared.\n\nMI RIFIUTO PRIMA DI "
                         + "PROVARE quando la stessa faccia e' in tutti e due gli insiemi "
                         + "(per i bordi di una faccia sola c'e' «raccordo_spigoli»), e "
                         + "quando le due facce sono piane e PARALLELE: se guardano dalla "
@@ -4124,7 +4240,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "pezzo esce 25,4 volte piu' piccolo e nessun errore lo dice.\n\nDopo "
                         + "aver scritto RILEGGE IL FILE: quanti triangoli dice di avere e se "
                         + "la sua dimensione torna con quel numero. Un STL che non torna e' un "
-                        + "file che si apre e non e' il pezzo.",
+                        + "file che si apre e non e' il pezzo."
+                        + "\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or "
+                        + "«none») and save_warnings_note when the model needed a rebuild or had "
+                        + "rebuild errors; preferences_not_restored names any user preference that "
+                        + "could not be put back. A failed save gives the error and warning names "
+                        + "next to the raw codes.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -4186,7 +4307,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "PublishSTEP242File, with the part brought to the front. Without the MBD "
                         + "licence (the bench machine has none) I refuse, saying so; AP214 and AP203 "
                         + "are still available. With AP242 the path must end in .stp. When the file "
-                        + "is written, its FILE_SCHEMA is read back as for the other two.",
+                        + "is written, its FILE_SCHEMA is read back as for the other two."
+                        + "\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or "
+                        + "«none»; null for AP242, whose call has no warnings mask) and "
+                        + "save_warnings_note when the model needed a rebuild or had rebuild errors; "
+                        + "preferences_not_restored names any user preference that could not be put "
+                        + "back. A failed save gives the error and warning names next to the raw codes.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -4241,7 +4367,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "After turning the three options off I read them again: "
                         + "«iges_options_not_off» lists any that stayed on or could not be read "
                         + "(empty is the proof they were off), and «iges_options_warning» says "
-                        + "what to do.",
+                        + "what to do."
+                        + "\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or "
+                        + "«none») and save_warnings_note when the model needed a rebuild or had "
+                        + "rebuild errors; preferences_not_restored names any user preference that "
+                        + "could not be put back. A failed save gives the error and warning names "
+                        + "next to the raw codes.",
                     Precondizione = "corpo_solido",
                     Schema = O(
                         "type", "object",
@@ -4318,11 +4449,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "faccia in basso di C2 sulla faccia in alto di C1». I componenti "
                         + "sono quelli che «guarda_il_pezzo» elenca come C1, C2, ... e quegli "
                         + "identificativi sono STABILI (al contrario di quelli delle facce di "
-                        + "una parte, che si rinumerano a ogni lettura).\n\nI versi sono "
-                        + "quelli dell'ASSIEME, non del pezzo: se un componente e' ruotato, "
-                        + "la sua faccia «in alto» e' quella che guarda in alto **nel "
-                        + "montaggio**. Se non trovo nessuna faccia piana in quel verso te lo "
-                        + "dico invece di prenderne una a caso.\n\nFra piu' facce nello stesso "
+                        + "una parte, che si rinumerano a ogni lettura)."
+                        + "\n\nTHE DIRECTIONS ARE THOSE OF THE PART'S OWN FILE, not of the assembly: "
+                        + "the faces are read from the component's bodies, which come in the part's own "
+                        + "coordinates (measured), and no rotation is applied to them yet. On a component "
+                        + "that is not rotated the two are the same; on a rotated or mirrored one «alto» "
+                        + "is the face that looks up in the part file, which may not be the one that "
+                        + "looks up in the assembly. If no flat face looks that way I say so instead of "
+                        + "taking one at random.\n\nFra piu' facce nello stesso "
                         + "verso prendo LA PIU' GRANDE: su un coperchio o una piastra e' "
                         + "quella che vuoi.\n\nQUELLO CHE NON TI SO DIRE, e te lo dico: **di "
                         + "quanto i componenti restino ancora liberi**. SOLIDWORKS non mi da' "
@@ -4331,7 +4465,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "servono di solito tre. Ti dico quanti ne ha adesso, non quanto "
                         + "basti.\n\nNon conto sulla risposta: conto gli accoppiamenti dei due "
                         + "componenti prima e dopo, e se non sono aumentati te lo dico invece "
-                        + "di dichiarare fatto.",
+                        + "di dichiarare fatto.\n\nIf one of the two faces cannot be selected, the "
+                        + "step is refused and AddMate5 is not called.",
                     Precondizione = "un assieme aperto con almeno due componenti",
                     Schema = O(
                         "type", "object",
@@ -4343,7 +4478,8 @@ namespace Riscontro.Disegno.Catalogo
                             "faccia_a", O(
                                 "type", "string",
                                 "description", "quale sua faccia, per verso: alto, basso, destra, "
-                                    + "sinistra, davanti, dietro. Versi dell'ASSIEME."),
+                                    + "sinistra, davanti, dietro. Directions of the part's own file, not of "
+                                    + "the assembly: they differ on a rotated component."),
                             "componente_b", O(
                                 "type", "string",
                                 "description", "l'identificativo del secondo componente."),
@@ -4392,7 +4528,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "axes of the instance (Transform2): the centre is the same in all four "
                         + "orientations and cannot tell them apart. The answer carries «orientation» "
                         + "and «new_axes» (x, y, z unit vectors). «orientation» with an opposite-hand "
-                        + "mode is refused, and so is a value that is not one of the four.",
+                        + "mode is refused, and so is a value that is not one of the four."
+                        + "\n\nA mirror born with a rebuild error (GetErrorCode2) is refused and removed.",
                     Precondizione = "un assieme aperto con almeno un componente",
                     Schema = O(
                         "type", "object",
@@ -4479,9 +4616,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "«inserisci_componente»: copia il percorso da «documenti_aperti».\n\n"
                         + "Se gli dai lo stesso file che c'e' gia' mi rifiuto: riuscirebbe e "
                         + "non cambierebbe niente, e tu crederesti di aver cambiato il "
-                        + "pezzo.\n\nLa configurazione la scelgo per NOME corrispondente: non "
-                        + "apro finestre per farti scegliere, perche' una finestra aperta da "
-                        + "qui non la chiuderebbe nessuno.",
+                        + "pezzo."
+                        + "\n\nTHE CONFIGURATION IS NOT CHECKED YET. I ask SOLIDWORKS to match the "
+                        + "configuration of the old component with one of the new file (its "
+                        + "«match name» choice) and I pass «configurazione» along with it; which of "
+                        + "the two SOLIDWORKS follows has not "
+                        + "been measured, and the answer does not read it back. After the swap, read "
+                        + "«configurazione» of the component in the assembly state before trusting it.",
                     Precondizione = "un assieme aperto, e il file nuovo gia' aperto",
                     Schema = O(
                         "type", "object",
@@ -4496,8 +4637,11 @@ namespace Riscontro.Disegno.Catalogo
                                     + "SOLIDWORKS."),
                             "configurazione", O(
                                 "type", "string",
-                                "description", "quale configurazione del pezzo nuovo. Vuota = quella "
-                                    + "col nome corrispondente."),
+                                "description", "a configuration of the new file. Passed to SOLIDWORKS "
+                                    + "together with the «match name» choice, and NOT verified: the guide "
+                                    + "says an empty name means the default configuration of the new file, "
+                                    + "and which one wins has not been measured. Check the assembly state "
+                                    + "afterwards."),
                             "tutte_le_istanze", O(
                                 "type", "boolean",
                                 "description", "vero (predefinito): se lo stesso pezzo e' montato piu' "
@@ -4533,10 +4677,15 @@ namespace Riscontro.Disegno.Catalogo
                         + "COMPONENTE DEV'ESSERE GIA' APERTO in SOLIDWORKS: io lo cerco per "
                         + "percorso, e su un file chiuso l'inserimento risponde «non fatto» "
                         + "senza dire perche'. I percorsi che puoi usare sono quelli in "
-                        + "«documenti_aperti» dello stato: copiali da li'.\n\nE «configurazione» "
-                        + "va scritta esatta o lasciata vuota: una configurazione che non "
-                        + "esiste NON DA' ERRORE, prende quella attiva del componente, e ti "
-                        + "ritrovi montato un pezzo di un'altra misura.\n\nATTENZIONE SULLE "
+                        + "«documenti_aperti» dello stato: copiali da li'."
+                        + "\n\n«configurazione» IS NOT HONOURED YET. The name goes to SOLIDWORKS in a "
+                        + "field the guide calls «valid only if UseConfigForPartReferences = true», and "
+                        + "that switch is passed false: the component comes in with the configuration "
+                        + "SOLIDWORKS picks by itself (the guide: «in its last saved configuration»), "
+                        + "whatever name you write, right or wrong, and without an error. The answer "
+                        + "carries «configurazione», the configuration the new component really "
+                        + "references: compare it with the one you wanted before building on it, or you "
+                        + "may have mounted a part of another size.\n\nATTENZIONE SULLE "
                         + "COORDINATE, perche' i due numeri non tornano e non e' un errore: "
                         + "«x_mm, y_mm, z_mm» posizionano il **centro dell'ingombro**; "
                         + "«origine_mm», che ti rispondo io e che rileggerai nello stato, e' "
@@ -4570,9 +4719,10 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "dove va il CENTRO dell'ingombro, in mm. Predefinito 0."),
                             "configurazione", O(
                                 "type", "string",
-                                "description", "quale configurazione del componente usare, scritta "
-                                    + "ESATTA. Vuota o assente = quella attiva del componente. Un "
-                                    + "nome sbagliato non da' errore: prende l'attiva.")),
+                                "description", "NOT honoured yet (see the description): the component "
+                                    + "comes in with the configuration SOLIDWORKS picks, right name or "
+                                    + "wrong, and no error. The answer's «configurazione» says which one "
+                                    + "it references: compare it.")),
                         "required", A("percorso")),
                 },
                 new OperazioneDisegno
@@ -4653,8 +4803,10 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "il diametro del secondo."),
                             "distanza_mm", O(
                                 "type", "number",
-                                "description", "quanto dista il secondo cerchio dal primo. Negativo per "
-                                    + "andare dall'altra parte."),
+                                "description", "how far the second circle is from the first, in mm. "
+                                    + "Greater than zero: the second circle goes on the side the chosen "
+                                    + "plane faces (+Z for frontale, +Y for superiore, +X for destro). A "
+                                    + "negative or zero distance is refused."),
                             "sfalsa1_mm", O(
                                 "type", "number",
                                 "description", "di quanto spostare di lato il primo cerchio. Predefinito 0."),
@@ -4688,7 +4840,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "«larghezza_mm» divided by the FILE's pixel width. «solidworks_pixels» is the map "
                         + "SOLIDWORKS holds, and «compression» says when the two differ. I also refuse when "
                         + "the file's pixel size cannot be read and SOLIDWORKS holds 2048 px or more on a "
-                        + "side, and when the picture SOLIDWORKS holds does not have the file's shape.",
+                        + "side, and when the picture SOLIDWORKS holds does not have the file's shape. "
+                        + "I also refuse when SetSize or SetOrigin answers false, or when the width, "
+                        + "height or lower left corner read back is more than 0.01 mm from what was "
+                        + "asked; the picture then stays in the sketch, to be removed.",
                     Precondizione = "un pezzo aperto (anche vuoto)",
                     Schema = O(
                         "type", "object",
@@ -4774,7 +4929,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "tratto piu' corto delle pieghe che lo mangiano (un lato da 1 mm con un "
                         + "raggio da 2): SOLIDWORKS darebbe una lavorazione rossa senza dire quale "
                         + "lato. E rifiuta una flangia che nasce in errore o che aggiunge meno "
-                        + "della meta' del materiale del conto a mano.",
+                        + "della meta' del materiale del conto a mano."
+                        + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
+                        + "measure the flat length, the answer says so in flat_pattern_problem (the "
+                        + "part may be left flattened).",
                     Precondizione = "una parte senza corpi, o a cui aggiungere una lamiera",
                     Schema = O(
                         "type", "object",
@@ -4815,7 +4973,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "spessore e la lunghezza dello spigolo), e la lunghezza riletta dalla "
                         + "flangia.\n\nMI RIFIUTO se la lunghezza non lascia niente di dritto "
                         + "(non oltre raggio + spessore), se lo spigolo non e' dritto o non sta sul "
-                        + "bordo della lamiera, e se la flangia nasce senza aggiungere materiale.",
+                        + "bordo della lamiera, e se la flangia nasce senza aggiungere materiale."
+                        + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
+                        + "measure the flat length, the answer says so in flat_pattern_problem (the "
+                        + "part may be left flattened).",
                     Precondizione = "una parte di lamiera",
                     Schema = O(
                         "type", "object",
@@ -4847,7 +5008,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "al millesimo; per il chiuso il conto usa un raggio di 0,05 mm, misurato "
                         + "con spessore 2, e si dice ma non decide.\n\nMI RIFIUTO se l'orlo non "
                         + "lascia niente di dritto, se «aperto» non ha gioco, se lo spigolo non e' "
-                        + "dritto o non sta sul bordo, e se l'orlo nasce senza aggiungere materiale.",
+                        + "dritto o non sta sul bordo, e se l'orlo nasce senza aggiungere materiale."
+                        + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
+                        + "measure the flat length, the answer says so in flat_pattern_problem (the "
+                        + "part may be left flattened).",
                     Precondizione = "una parte di lamiera",
                     Schema = O(
                         "type", "object",
@@ -4886,7 +5050,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "lamiera: volume e sviluppo restano quelli di prima, e se cambiano la "
                         + "risposta lo dice.\n\nMI RIFIUTO se l'angolo non sta fra 0 e 180 gradi "
                         + "esclusi, se la faccia non e' piana, se un estremo della linea non sta "
-                        + "sulla faccia, e se la piega nasce senza piegare niente.",
+                        + "sulla faccia, e se la piega nasce senza piegare niente."
+                        + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
+                        + "measure the flat length, the answer says so in flat_pattern_problem (the "
+                        + "part may be left flattened), and before bending I refuse if that happens.",
                     Precondizione = "una parte di lamiera",
                     Schema = O(
                         "type", "object",
@@ -4920,7 +5087,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "clicchi — misurato. Si rifiuta prima di chiamare.\n\nIl DXF si RILEGGE: "
                         + "il suo ingombro deve avere per lato lungo lo sviluppo misurato sul "
                         + "pezzo, se no si rifiuta — un DXF di un'altra cosa si apre uguale. Senza "
-                        + "«percorso» va accanto al pezzo, col suo nome.",
+                        + "«percorso» va accanto al pezzo, col suo nome."
+                        + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
+                        + "measure the flat length, the answer says so in flat_pattern_problem (the "
+                        + "part may be left flattened).",
                     Precondizione = "una parte di lamiera, salvata",
                     Schema = O(
                         "type", "object",
@@ -5108,7 +5278,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "tolta con «riattiva».\n\nNON TUTTE LE RIPETIZIONI SANNO FARLO: "
                         + "quelle guidate da uno schizzo, da una catena o da una quota non "
                         + "hanno le copie numerate. Uno specchio ha una copia sola: si toglie "
-                        + "cancellandolo.\n\nDA UNA GRIGLIA A DUE DIREZIONI NON TOLGO COPIE "
+                        + "cancellandolo. A FILL pattern and a TABLE-driven pattern do skip "
+                        + "instances, but a fill pattern skips them by (row, column) and a table "
+                        + "pattern by the rows of its table: I do not translate a copy number into "
+                        + "those, and I refuse them by name.\n\nDA UNA GRIGLIA A DUE DIREZIONI NON TOLGO COPIE "
                         + "(lineare, circolare o guidata da curva): SOLIDWORKS le numera riga per "
                         + "riga, e un numero solo non dice quale posizione. Mi rifiuto anche se "
                         + "dopo la modifica la ripetizione va in errore, resta senza facce, o "
@@ -5232,7 +5405,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "cambiato una revisione che invece e' rimasta quella di prima."
                         + "\n\nDOPO AVER SCRITTO RILEGGO. Il comando risponde un codice, non "
                         + "il valore: se rileggendo non trovo quello che ho scritto fallisco "
-                        + "invece di confermarti una scheda dati che non e' quella che credi.",
+                        + "invece di confermarti una scheda dati che non e' quella che credi."
+                        + "\n\nA value written as a formula (for example \"SW-Mass@part.SLDPRT\") is "
+                        + "checked as the TEXT written, and resolved_value gives what SOLIDWORKS "
+                        + "evaluates it to, when the two differ.",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",

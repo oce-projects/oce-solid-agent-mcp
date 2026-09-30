@@ -101,14 +101,40 @@ namespace Riscontro.Disegno
             double volumeTotale = 0;
             bool volumiLetti = true;
             var coinvolti = new List<string>();
+            // N38: how many of the interferences read are only POSSIBLE, and
+            // their volume; null when the flag of one of them could not be read.
+            int? possibleCount = 0;
+            double possibleVolume = 0;
+            // N18: the three settings as SOLIDWORKS reads them back.
+            bool? coincidenceRead = null, multibodyRead = null, ignoredShownRead = null;
 
             try
             {
                 // Le impostazioni PRIMA di contare: cambiano il verdetto, non la
                 // sua presentazione.
+                //
+                // AND THEY ARE READ BACK (finding N18). The three are get/set
+                // properties (IInterferenceDetectionMgr~TreatCoincidenceAsInterference.html,
+                // ~IncludeMultibodyPartInterferences.html, ~ShowIgnoredInterferences.html:
+                // «Gets or sets ...»). Until library 0.144.0 each setter sat in an
+                // empty catch and the answer repeated the values asked for: a
+                // setter that failed gave a verdict on another question, signed
+                // with the question asked. Now the answer gives what SOLIDWORKS
+                // reads back, and a value that reads back different stops the
+                // count (InterferenceSettingsProblem).
                 try { gestore.TreatCoincidenceAsInterference = toccarsiConta; } catch { }
                 try { gestore.IncludeMultibodyPartInterferences = dentroLeParti; } catch { }
                 try { gestore.ShowIgnoredInterferences = false; } catch { }
+                try { coincidenceRead = gestore.TreatCoincidenceAsInterference; } catch { }
+                try { multibodyRead = gestore.IncludeMultibodyPartInterferences; } catch { }
+                try { ignoredShownRead = gestore.ShowIgnoredInterferences; } catch { }
+                string settingsProblem = InterferenceSettingsProblem(
+                    toccarsiConta, coincidenceRead, dentroLeParti, multibodyRead, ignoredShownRead);
+                if (settingsProblem != null)
+                    return Fallito(
+                        "SOLIDWORKS did not take the settings of the interference check: " + settingsProblem +
+                        ". The count would answer another question than the one asked, so I did not count. " +
+                        "Ask again; if it repeats, check with Interference Detection in SOLIDWORKS.");
 
                 try { quante = gestore.GetInterferenceCount(); }
                 catch (Exception ex) { return Fallito("Non riesco a contare le interferenze: " + ex.Message); }
@@ -146,8 +172,17 @@ namespace Riscontro.Disegno
                         bool letto = VolumeDellInterferenzaMm3(interferenza, out volume);
                         if (!letto) volumiLetti = false; else volumeTotale += volume;
 
-                        bool forse = false;
+                        bool? forse = null;
                         try { forse = interferenza.IsPossibleInterference; } catch { }
+                        // N38: counted apart, not rounded up to a certain one.
+                        // IInterference~IsPossibleInterference.html: «True if
+                        // this is a possible interference, false if not».
+                        if (forse == null) possibleCount = null;
+                        else if (forse == true)
+                        {
+                            if (possibleCount.HasValue) possibleCount++;
+                            if (letto) possibleVolume += volume;
+                        }
 
                         var voce = new Dictionary<string, object>
                         {
@@ -156,7 +191,8 @@ namespace Riscontro.Disegno
                         };
                         // «Possibile» vuol dire che SOLIDWORKS non e' sicuro:
                         // si riporta com'e' invece di arrotondarlo a un si'.
-                        if (forse) voce["solo_possibile"] = true;
+                        if (forse == true) voce["solo_possibile"] = true;
+                        else if (forse == null) voce["possible_not_read"] = true;
                         trovate.Add(voce);
                     }
                 }
@@ -192,16 +228,59 @@ namespace Riscontro.Disegno
                 try { gestore.Done(); } catch { }
             }
 
+            // N18: the components the check looks at are the ones that are not
+            // suppressed. Until library 0.144.0 the count of components looked
+            // at took every component, suppressed ones included. GetSuppression2
+            // answers swComponentSuppressionState_e, as in StatoAssieme.
+            // The components are read from the array GetComponents gave, the
+            // same ones the list above was built from.
+            var states = new List<int?>();
+            foreach (var o in grezzi ?? new object[0])
+            {
+                var component = o as IComponent2;
+                if (component == null) continue;
+                int? state = null;
+                try { state = component.GetSuppression2(); } catch { }
+                states.Add(state);
+            }
+            int suppressedComponents;
+            int lookedAt = ComponentsLookedAt(states.ToArray(), out suppressedComponents);
+
+            // N38: certain and possible apart, only when every counted
+            // interference was read and each said which it is.
+            int? possible = interferencesRead == quante ? possibleCount : null;
+            object certainOut = null, possibleOut = null;
+            if (possible is int possibleKnown)
+            {
+                certainOut = quante - possibleKnown;
+                possibleOut = possibleKnown;
+            }
+
             var misure = new Dictionary<string, object>
             {
                 ["quante"] = quante,
                 // How many of the counted interferences the array actually gave:
                 // equal to «quante» when the list and the count agree (N34).
                 ["interferences_read"] = interferencesRead,
-                ["componenti_guardati"] = componenti.Count,
-                ["toccarsi_conta"] = toccarsiConta,
-                ["dentro_le_parti"] = dentroLeParti,
+                ["certain_interferences"] = certainOut,
+                ["possible_interferences"] = possibleOut,
+                ["componenti_guardati"] = NumeroOppureNull(lookedAt),
+                ["suppressed_components"] = NumeroOppureNull(suppressedComponents),
+                // N18: as SOLIDWORKS reads them back after setting them (the
+                // check above stops when they differ from the request).
+                ["toccarsi_conta"] = coincidenceRead,
+                ["dentro_le_parti"] = multibodyRead,
             };
+            if (suppressedComponents > 0)
+                misure["suppressed_note"] =
+                    suppressedComponents + (suppressedComponents == 1 ? " component is" : " components are") +
+                    " suppressed and not in the check: SOLIDWORKS does not look at them. Unsuppress them to " +
+                    "have them checked.";
+            if (coincidenceRead == null || multibodyRead == null || ignoredShownRead == null)
+                misure["settings_not_read_back"] =
+                    "I could not read back every setting of the check (TreatCoincidenceAsInterference, " +
+                    "IncludeMultibodyPartInterferences, ShowIgnoredInterferences): those were set as asked " +
+                    "but not confirmed, and the answer gives null for them.";
             if (trovate.Count > 0) misure["interferenze"] = trovate.ToArray();
             if (coinvolti.Count > 0) misure["componenti_coinvolti"] = coinvolti.ToArray();
             if (quante > 0 && volumiLetti) misure["volume_totale_mm3"] = Math.Round(volumeTotale, 3);
@@ -231,7 +310,7 @@ namespace Riscontro.Disegno
             if (quante == 0)
             {
                 misure["giudizio"] =
-                    "Nessuna interferenza fra i " + componenti.Count + " componenti" +
+                    "Nessuna interferenza fra i " + (lookedAt >= 0 ? lookedAt : componenti.Count) + " componenti" +
                     (toccarsiConta
                         ? ", e le facce che si toccano erano contate come interferenza."
                         : ". ATTENZIONE a cosa vuol dire: le facce che si TOCCANO non " +
@@ -242,19 +321,113 @@ namespace Riscontro.Disegno
                 return RiuscitoSenzaCreare(misure);
             }
 
-            misure["giudizio"] =
-                "ATTENZIONE: " + quante + (quante == 1 ? " INTERFERENZA" : " INTERFERENZE") +
-                (volumiLetti
-                    ? ", per " + Math.Round(volumeTotale, 2).ToString(CultureInfo.InvariantCulture) +
+            misure["giudizio"] = InterferenceVerdict(
+                quante, possible, volumiLetti, volumeTotale, possibleVolume, coinvolti);
+            _log("[agente] " + misure["giudizio"]);
+            return RiuscitoSenzaCreare(misure);
+        }
+
+        /// <summary>
+        /// The verdict when SOLIDWORKS counted interferences (a count above
+        /// zero), with the certain and the POSSIBLE ones apart (finding N38).
+        ///
+        /// IInterference~IsPossibleInterference.html: «True if this is a
+        /// possible interference, false if not». Until library 0.144.0 the flag
+        /// was written next to each interference, but the count and the volume
+        /// of the verdict took the possible ones as certain: one possible
+        /// interference gave the alarm of a certain one. Now the head counts
+        /// the certain ones, the possible ones follow in a sentence of their
+        /// own, and when every one is only possible the verdict says that
+        /// instead. `possible` is null when it is not known (a flag unread, or
+        /// a list shorter than the count): the head then counts them all, as
+        /// before, and says it could not tell. No interop type in the
+        /// signature: Prove.Contratti calls it by reflection.
+        /// </summary>
+        internal static string InterferenceVerdict(
+            int counted, int? possible, bool volumesRead, double totalVolume, double possibleVolume,
+            List<string> involved)
+        {
+            string among = involved != null && involved.Count > 0 ? string.Join(", ", involved) : null;
+            int possibleN = possible.GetValueOrDefault();
+            int certain = counted - possibleN;
+            double certainVolume = possible.HasValue ? totalVolume - possibleVolume : totalVolume;
+            string possibleVolumeText = volumesRead
+                ? ", " + Math.Round(possibleVolume, 2).ToString(CultureInfo.InvariantCulture) + " mm3"
+                : "";
+
+            if (possible.HasValue && certain <= 0)
+                return "SOLIDWORKS found " + counted + (counted == 1 ? " POSSIBLE interference" : " POSSIBLE interferences") +
+                       possibleVolumeText + (among != null ? " among: " + among : "") + ", and no certain one: " +
+                       "it is not sure that these parts occupy the same space (IsPossibleInterference). Look at " +
+                       "them with Interference Detection in SOLIDWORKS before you decide.";
+
+            string head =
+                "ATTENZIONE: " + certain + (certain == 1 ? " INTERFERENZA" : " INTERFERENZE") +
+                (volumesRead
+                    ? ", per " + Math.Round(certainVolume, 2).ToString(CultureInfo.InvariantCulture) +
                       " mm3 in tutto"
                     : "") +
-                (coinvolti.Count > 0 ? " fra: " + string.Join(", ", coinvolti) : "") +
+                (among != null ? " fra: " + among : "") +
                 ". I pezzi occupano lo stesso spazio: l'assieme si apre, si ricostruisce " +
                 "e si esporta lo stesso — **non c'e' nessun errore da nessuna parte**, e " +
                 "in officina non entrano. Guarda il volume: pochi centesimi di mm3 sono " +
                 "due facce che si sfiorano, migliaia sono un pezzo dentro l'altro.";
-            _log("[agente] " + misure["giudizio"]);
-            return RiuscitoSenzaCreare(misure);
+            if (!possible.HasValue)
+                return head + " Whether some of them are only POSSIBLE interferences I could not read " +
+                       "(IsPossibleInterference): they are all counted as certain here.";
+            if (possibleN > 0)
+                return head + " Besides these, " + possibleN +
+                       (possibleN == 1 ? " POSSIBLE interference" : " POSSIBLE interferences") +
+                       possibleVolumeText + ": SOLIDWORKS is not sure about " +
+                       (possibleN == 1 ? "it" : "them") + " (IsPossibleInterference), look before " +
+                       "counting " + (possibleN == 1 ? "it" : "them") + ".";
+            return head;
+        }
+
+        /// <summary>
+        /// How many components the interference check looks at: the ones that
+        /// are not suppressed (finding N18). `states` holds the
+        /// swComponentSuppressionState_e answer of GetSuppression2 for each
+        /// component, null where it could not be read; then the count is -1,
+        /// «not known», and so is `suppressed`. No interop type in the
+        /// signature: Prove.Contratti calls it by reflection.
+        /// </summary>
+        internal static int ComponentsLookedAt(int?[] states, out int suppressed)
+        {
+            suppressed = 0;
+            if (states == null) { suppressed = -1; return -1; }
+            int looked = 0;
+            foreach (var s in states)
+            {
+                if (!(s is int state)) { suppressed = -1; return -1; }
+                if (state == (int)swComponentSuppressionState_e.swComponentSuppressed) suppressed++;
+                else looked++;
+            }
+            return looked;
+        }
+
+        /// <summary>
+        /// What is wrong with the settings of the check as SOLIDWORKS reads them
+        /// back (finding N18), or null. A value that reads back DIFFERENT from
+        /// the request is a problem: the count would answer another question.
+        /// A value that cannot be read back (null) is not: the setter did not
+        /// throw, and the answer says it is unconfirmed. Ignored interferences
+        /// are asked NOT shown. No interop type in the signature.
+        /// </summary>
+        internal static string InterferenceSettingsProblem(
+            bool coincidenceAsked, bool? coincidenceRead, bool multibodyAsked, bool? multibodyRead,
+            bool? ignoredShownRead)
+        {
+            var problems = new List<string>();
+            if (coincidenceRead is bool coincidence && coincidence != coincidenceAsked)
+                problems.Add("TreatCoincidenceAsInterference reads " + coincidence.ToString().ToLowerInvariant() +
+                             " where the request asked " + coincidenceAsked.ToString().ToLowerInvariant());
+            if (multibodyRead is bool multibody && multibody != multibodyAsked)
+                problems.Add("IncludeMultibodyPartInterferences reads " + multibody.ToString().ToLowerInvariant() +
+                             " where the request asked " + multibodyAsked.ToString().ToLowerInvariant());
+            if (ignoredShownRead == true)
+                problems.Add("ShowIgnoredInterferences reads true where it was set to false");
+            return problems.Count == 0 ? null : string.Join("; ", problems);
         }
 
         /// <summary>

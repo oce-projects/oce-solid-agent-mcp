@@ -405,6 +405,16 @@ namespace Riscontro.Disegno
 
             try
             {
+                // TYPE AFTER ChangeStandard, and the guide's rule on the order does
+                // not apply: IWizardHoleFeatureData2~ChangeStandard.html, Remarks,
+                // «If changing the standard requires you to change the type, then
+                // you must call IWizardHoleFeatureData2::Type before calling
+                // IWizardHoleFeatureData2::ChangeStandard». Here the standard does
+                // not change: HoleWizard5 already created the hole with
+                // StandardIndex NormaISO, and this passes the same NormaISO. The
+                // Type written below is the measured type correction of step 3 in
+                // the note at the top, not an effect of a change of standard
+                // (audit finding L4-1, not real).
                 if (!cieco && !d.ChangeStandard(NormaISO, genere.Elemento, taglia))
                 {
                     try { d.ReleaseSelectionAccess(); } catch { }

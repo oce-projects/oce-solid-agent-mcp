@@ -156,6 +156,18 @@ namespace Oce.Solid.Agent.Ponte
             // GIA' APERTO: non si riapre, si porta davanti. Riaprirlo darebbe un
             // avviso «gia' aperto» e nessun cambiamento, che si legge come un
             // successo solo se si sa cosa guardare.
+            //
+            // A PART LOADED HIDDEN BY AN ASSEMBLY IS FOUND AND SHOWN TOO
+            // (finding C4-4, measured: it works). ISldWorks~GetOpenDocumentByName.html
+            // says «Only call this method for a document that has already been
+            // opened in its own window», and the doubt was a false refusal for a
+            // part the assembly holds without a window. The Z-C21.3 probe of
+            // C4-4 (28/9/2026) closed the part's window with the assembly
+            // holding it: GetOpenDocumentByName gave the same object (Visible
+            // False), and ActivateDoc3 in PortaDavanti brought it to the front,
+            // errors 0, Visible True afterwards. The
+            // guide's way (a Visible filter, then OpenDoc6) ended the same, with
+            // swFileLoadWarning_AlreadyOpen. So no filter here.
             var gia = sw.GetOpenDocumentByName(percorso) as IModelDoc2;
             if (gia != null)
             {

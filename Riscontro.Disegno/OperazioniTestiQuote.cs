@@ -31,7 +31,16 @@ namespace Riscontro.Disegno
             public double[][] Angoli;    // quattro punti sul foglio, metri
         }
 
-        /// <summary>I testi di tutte le quote della tavola, col loro rettangolo.</summary>
+        /// <summary>
+        /// I testi di tutte le quote della tavola, col loro rettangolo; null
+        /// when the walk over views and dimensions broke off (Z-C21.8, finding
+        /// N47). GetFirstView, GetNextView, GetFirstDisplayDimension5 and
+        /// GetNext5 sit outside the try of each dimension: an exception there
+        /// used to end the walk with the texts read so far, handed over as all
+        /// the texts of the drawing, and quota_in_tavola counted overlaps on
+        /// that part as if it were the whole. A dimension whose texts cannot be
+        /// read is still skipped inside the walk, as before.
+        /// </summary>
         private static List<TestoDiQuota> TestiDelleQuote(IDrawingDoc disegno)
         {
             var fuori = new List<TestoDiQuota>();
@@ -52,6 +61,16 @@ namespace Riscontro.Disegno
                             // confrontare, e non si inventano; se non se ne legge nessuno,
                             // quota_in_tavola dice null («non lo so»), non «nessuno si accavalla».
                             int n = dati == null ? 0 : dati.GetTextCount();
+                            // A POINT ON THE SHEET, NOT AN OFFSET (Z-C21.3, finding C3-1,
+                            // NOT REAL). Every GetTextPositionAtIndex page says «Gets the
+                            // text item offset relative to the note text point»; for the
+                            // texts of a display dimension that sentence does not hold.
+                            // The Z-C21.3 probe of C3-1 (28/9/2026): a toleranced 100
+                            // (6 texts) and a plain 10 (1 text) moved with SetPosition2 by
+                            // (20, 10) mm, then with their view by (30, -10) mm, and every
+                            // text position moved by exactly the same; each stayed within
+                            // 8 mm of IAnnotation.GetPosition while lying 260-310 mm from
+                            // the sheet origin. So p is used as it is, in sheet metres.
                             for (int i = 0; i < n; i++)
                             {
                                 var p = dati.GetTextPositionAtIndex(i) as double[];
@@ -92,7 +111,7 @@ namespace Riscontro.Disegno
                     v = v.GetNextView() as IView;
                 }
             }
-            catch { }
+            catch { return null; }   // N47: a list cut short is not the list of the drawing
             return fuori;
         }
 
@@ -108,6 +127,9 @@ namespace Riscontro.Disegno
         /// </summary>
         private List<string> TestiCheSiAccavallano(IDrawingDoc disegno, IView vista, List<TestoDiQuota> testi)
         {
+            // Texts not read (N47) give no overlaps to report, and the caller
+            // says «not known» instead of a count.
+            if (testi == null) return null;
             var fuori = new List<string>();
             const double margine = 0.0003;
             // I PEZZI DI UNA STESSA QUOTA NON SI CONFRONTANO FRA LORO (visto al

@@ -18,14 +18,16 @@ namespace Riscontro.Disegno
     /// Qui diventano due domande che si possono fare da sole, per esempio
     /// dopo una modifica per verificare solo quella.
     ///
-    /// ── LE UNITA' SI DICHIARANO, SEMPRE ─────────────────────────────────
+    /// ── THE UNITS ARE STATED, ALWAYS ────────────────────────────────────
     ///
-    /// `UseSystemUnits = true` si scrive ESPLICITAMENTE: senza, i valori
-    /// arrivano nelle unita' del DOCUMENTO, che sul pezzo di un altro possono
-    /// essere pollici e libbre — e nessuno se ne accorgerebbe, perche' 0,468
-    /// e 1,03 sono tutti e due numeri credibili. Con `UseSystemUnits` la
-    /// risposta e' in metri e chilogrammi, e la conversione a millimetri la
-    /// facciamo noi, in un punto solo.
+    /// `UseSystemUnits = true` is written EXPLICITLY (ApiHelpers), but not
+    /// because the values would otherwise come in the units of the document:
+    /// IMassProperty~UseSystemUnits.html, Remarks, «The default value is True.
+    /// Thus, system units (meters, radians, and kilograms) are used» (Z-C21.9,
+    /// finding N74; the same words on IMassProperty2~UseSystemUnits.html). The
+    /// line stays as a statement of the units the numbers are read in, at no
+    /// cost. The answer is in metres and kilograms, and the conversion to
+    /// millimetres is ours, in one place.
     ///
     /// ── LA TRAPPOLA DELLE DUE GRAFIE ────────────────────────────────────
     ///
@@ -341,6 +343,20 @@ namespace Riscontro.Disegno
             object p1, p2;
             try { metri = modello.ClosestDistance(entA, entB, out p1, out p2); }
             catch (Exception ex) { return Fallito("La misura non e' riuscita: " + ex.Message); }
+
+            // «NO SOLUTION» IS SAID AS SUCH (Z-C21.8, finding L12-9).
+            // IModelDoc2~ClosestDistance.html: «Distance in meters between Point1
+            // and Point2; -1.0 if no solution». The check on the two points below
+            // refuses it too (a distance between two points is never negative,
+            // so the gap is at least a metre), but with a sentence about a
+            // distance of «-1000 mm» contradicted by its own points, or about
+            // points that are missing, which sends the reader to the wrong place.
+            if (metri < 0)
+                return Fallito(
+                    "SOLIDWORKS found no closest distance between «" + uidA + "» and «" + uidB +
+                    "»: ClosestDistance answered " + metri.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                    ", which its guide page gives as «no solution». Check that both are faces, edges or vertices " +
+                    "of the model, and ask again with the identifiers read from the state now.");
 
             var puntoA = p1 as double[];
             var puntoB = p2 as double[];

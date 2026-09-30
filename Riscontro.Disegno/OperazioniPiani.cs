@@ -43,11 +43,22 @@ namespace Riscontro.Disegno
     /// sbagliati danno lo stesso risultato non tabella niente*: il piano
     /// obliquo sta nella sonda apposta.
     ///
-    /// ── E `UseGlobal` NON FA NIENTE ───────────────────────────────────
+    /// ── `UseGlobal` DOES NOT MOVE THE NORMAL; IT TURNS THE PLANE'S X AXIS ──
     ///
-    /// Provato `true` e `false` sugli stessi tre punti: stessa trasformazione,
-    /// numero per numero. Non si espone — un parametro non si espone finche'
-    /// non lo si e' visto cambiare il risultato.
+    /// Tried `true` and `false` on the same three points: the same transform,
+    /// number for number. That measure does not decide what UseGlobal does:
+    /// all three point sets above have P1->P2 = (100, 0, 0), along the global
+    /// X axis, and on those the two branches coincide by construction (audit
+    /// finding L8-3). IModelDoc2~CreatePlaneFixed2.html, Remarks: «The x-axis
+    /// of the planes' coordinate system are a vector from P1 to P2 or a vector
+    /// projected from the x-axis of the global coordinate system onto the
+    /// plane», and with true «This does not reorient the plane. Instead, it
+    /// rotates the plane coordinate system about P1 until the x-axis of the
+    /// plane aligns with the projected vector». So the NORMAL, the only thing
+    /// read back here, is the same either way; the plane's own X axis is not.
+    /// Nothing in the catalogue draws on a plane made here, so today the
+    /// difference cannot be seen: `true` stays, unexposed, and the probe with
+    /// P1->P2 along Y is due the day an operation uses the plane's own axes.
     /// </summary>
     public partial class OperazioniSw
     {
@@ -96,7 +107,8 @@ namespace Riscontro.Disegno
                     punti[0].Select(Unita.M).ToArray(),
                     punti[1].Select(Unita.M).ToArray(),
                     punti[2].Select(Unita.M).ToArray(),
-                    // Misurato: non cambia niente. Vedi la nota in testa.
+                    // UseGlobal: same normal either way; it turns only the
+                    // plane's own X axis (see the note at the top, L8-3).
                     true);
             }
             catch (Exception ex) { return Fallito("Il piano non e' stato creato: " + ex.Message); }

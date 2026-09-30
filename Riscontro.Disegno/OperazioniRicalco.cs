@@ -59,6 +59,50 @@ namespace Riscontro.Disegno
         private const int PictureSideKeptInPart = 2048;
 
         /// <summary>
+        /// How far the size and the origin read back may be from the ones asked,
+        /// in mm (Z-C21.8, finding M36). The Z-F5 measure of 27/9/2026 read the
+        /// 120 x 60 mm picture at (10, 20) back exactly; the bench case
+        /// la_foto_sta_in_scala holds the same numbers to a hundredth.
+        /// </summary>
+        private const double PicturePlacementToleranceMm = 0.01;
+
+        /// <summary>
+        /// What is wrong with the placement of a sketch picture, in words, or
+        /// null when it is where it was asked (Z-C21.8, finding M36): SetSize or
+        /// SetOrigin answering false, a placement that could not be read back, or
+        /// a width, height or origin read back more than
+        /// <see cref="PicturePlacementToleranceMm"/> away from the one asked. All
+        /// in mm. Kept apart from the document so that Prove.Contratti can call
+        /// it without SOLIDWORKS.
+        /// </summary>
+        internal static string PicturePlacementFault(
+            bool sizeSet, bool originSet, bool placementRead,
+            double askedWidthMm, double askedHeightMm, double askedXMm, double askedYMm,
+            double readWidthMm, double readHeightMm, double readXMm, double readYMm)
+        {
+            var faults = new List<string>();
+            if (!sizeSet) faults.Add("SetSize answered false");
+            if (!originSet) faults.Add("SetOrigin answered false");
+            if (!placementRead)
+                faults.Add("the size and the origin could not be read back");
+            else
+            {
+                Func<double, string> mm = v => v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+                if (!(Math.Abs(readWidthMm - askedWidthMm) <= PicturePlacementToleranceMm) ||
+                    !(Math.Abs(readHeightMm - askedHeightMm) <= PicturePlacementToleranceMm))
+                    faults.Add("the size read back is " + mm(readWidthMm) + " x " + mm(readHeightMm) + " mm instead of " +
+                               mm(askedWidthMm) + " x " + mm(askedHeightMm));
+                if (!(Math.Abs(readXMm - askedXMm) <= PicturePlacementToleranceMm) ||
+                    !(Math.Abs(readYMm - askedYMm) <= PicturePlacementToleranceMm))
+                    faults.Add("the lower left corner read back is at (" + mm(readXMm) + ", " + mm(readYMm) + ") mm instead of (" +
+                               mm(askedXMm) + ", " + mm(askedYMm) + ")");
+            }
+            return faults.Count == 0
+                ? null
+                : "The picture did not go where it was asked: " + string.Join("; ", faults) + ".";
+        }
+
+        /// <summary>
         /// The pixel size of the image FILE, from its header: GDI+ with
         /// validateImageData = false reads the size without decoding the
         /// pixels. False when the file cannot be read as an image.
@@ -139,15 +183,23 @@ namespace Riscontro.Disegno
             double lw = 0, lh = 0, ox = 0, oy = 0;
             bool misura = false;
             double distanza = double.NaN;
+            // THE TWO ANSWERS ARE KEPT, AND THE PLACEMENT IS READ BACK (Z-C21.8,
+            // finding M36). ISketchPicture~SetSize.html: «True if the size of the
+            // picture is set, false if not»; ~SetOrigin.html: «True if the origin
+            // is set, false if not». Both answers were dropped, the width was
+            // checked within 1% and the origin not at all. PicturePlacementFault
+            // below judges all four numbers against what was asked.
+            bool sizeSet = false, originSet = false, placementRead = false;
             try
             {
                 foto.GetPixelmapSize(ref w, ref h);
                 if (w > 0 && h > 0)
                 {
-                    foto.SetSize(Unita.M(larghezza), Unita.M(larghezza * h / w), true);
-                    foto.SetOrigin(Unita.M(x), Unita.M(y));
+                    sizeSet = foto.SetSize(Unita.M(larghezza), Unita.M(larghezza * h / w), true);
+                    originSet = foto.SetOrigin(Unita.M(x), Unita.M(y));
                     foto.GetSize(ref lw, ref lh);
                     foto.GetOrigin(ref ox, ref oy);
+                    placementRead = true;
                     // LA SCALA VERIFICATA: prima e ultima colonna della prima riga.
                     // GetPointOnSketchFromPixel vuole (colonna, riga), al contrario
                     // del nome dei suoi argomenti (misurato).
@@ -198,9 +250,12 @@ namespace Riscontro.Disegno
 
             double mmPerPixel = larghezza / pixelWidth;
             double larghezzaLetta = lw * 1000, altezzaLetta = lh * 1000;
-            if (Math.Abs(larghezzaLetta - larghezza) > larghezza * 0.01)
-                return Fallito("Ho chiesto l'immagine larga " + larghezza.ToString("0.###") + " mm e rileggendola e' larga " +
-                               larghezzaLetta.ToString("0.###") + ": la scala non ha preso.");
+            string placementFault = PicturePlacementFault(
+                sizeSet, originSet, placementRead,
+                larghezza, larghezza * h / w, x, y,
+                larghezzaLetta, altezzaLetta, ox * 1000, oy * 1000);
+            if (placementFault != null)
+                return Fallito(placementFault + " Remove it (" + pictureName + ") and try again.");
             // The scale check is on the pixel map SOLIDWORKS holds: those are the
             // pixels GetPointOnSketchFromPixel takes.
             double attesa = (w - 1) * (larghezza / w);

@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 147029,
-  "strings": 55706,
+  "comments": 146484,
+  "strings": 54865,
   "markdown": 33967,
-  "json_values": 55576,
-  "identifiers": 4793,
+  "json_values": 55238,
+  "identifiers": 4788,
   "json_keys": 443,
-  "protocol": 2168,
+  "protocol": 2165,
   "paths": 640,
   "transition": 0
  },
@@ -681,7 +681,7 @@
    "json_values": 109
   },
   "Banco/casi/ripeti/lim_riempimento_senza_direzione.json": {
-   "json_values": 75
+   "json_values": 13
   },
   "Banco/casi/ripeti/salta_la_seconda_copia.json": {
    "json_values": 404
@@ -1479,15 +1479,15 @@
   },
   "Riscontro.Disegno/Catalogo/Operazioni.cs": {
    "comments": 869,
-   "strings": 17723
+   "strings": 17452
   },
   "Riscontro.Disegno/ErroriFeature.cs": {
    "comments": 164,
    "strings": 200
   },
   "Riscontro.Disegno/EsecutorePiano.cs": {
-   "comments": 1801,
-   "strings": 139
+   "comments": 1790,
+   "strings": 136
   },
   "Riscontro.Disegno/FontePiano.cs": {
    "comments": 254
@@ -1512,24 +1512,24 @@
    "strings": 59
   },
   "Riscontro.Disegno/OperazioniAccoppia.cs": {
-   "comments": 372,
-   "strings": 265
+   "comments": 360,
+   "strings": 243
   },
   "Riscontro.Disegno/OperazioniAncora.cs": {
    "comments": 1637,
-   "strings": 845
+   "strings": 815
   },
   "Riscontro.Disegno/OperazioniAnnotazioniTavola.cs": {
    "comments": 442,
-   "strings": 294
+   "strings": 266
   },
   "Riscontro.Disegno/OperazioniAssieme.cs": {
    "comments": 1212,
    "strings": 201
   },
   "Riscontro.Disegno/OperazioniCambiaEstrusione.cs": {
-   "comments": 375,
-   "strings": 188
+   "comments": 367,
+   "strings": 177
   },
   "Riscontro.Disegno/OperazioniCartiglio.cs": {
    "comments": 902,
@@ -1545,14 +1545,14 @@
   },
   "Riscontro.Disegno/OperazioniDettaglioTavola.cs": {
    "comments": 384,
-   "strings": 274
+   "strings": 196
   },
   "Riscontro.Disegno/OperazioniDimXpert.cs": {
    "comments": 101,
    "strings": 49
   },
   "Riscontro.Disegno/OperazioniDipendenze.cs": {
-   "comments": 128,
+   "comments": 84,
    "strings": 37
   },
   "Riscontro.Disegno/OperazioniDistintaBase.cs": {
@@ -1596,11 +1596,11 @@
    "strings": 153
   },
   "Riscontro.Disegno/OperazioniIstanze.cs": {
-   "comments": 937,
-   "strings": 312
+   "comments": 922,
+   "strings": 275
   },
   "Riscontro.Disegno/OperazioniLamiera.cs": {
-   "comments": 892,
+   "comments": 885,
    "strings": 723
   },
   "Riscontro.Disegno/OperazioniMateriale.cs": {
@@ -1608,7 +1608,7 @@
    "strings": 30
   },
   "Riscontro.Disegno/OperazioniMisura.cs": {
-   "comments": 1072,
+   "comments": 1031,
    "strings": 418
   },
   "Riscontro.Disegno/OperazioniMisuraAssieme.cs": {
@@ -1624,11 +1624,11 @@
    "strings": 216
   },
   "Riscontro.Disegno/OperazioniPercorso.cs": {
-   "comments": 398,
-   "strings": 383
+   "comments": 354,
+   "strings": 365
   },
   "Riscontro.Disegno/OperazioniPiani.cs": {
-   "comments": 337,
+   "comments": 309,
    "strings": 110
   },
   "Riscontro.Disegno/OperazioniPostoSulFoglio.cs": {
@@ -1648,8 +1648,8 @@
    "strings": 3
   },
   "Riscontro.Disegno/OperazioniQuoteTavola.cs": {
-   "comments": 3288,
-   "strings": 682
+   "comments": 3271,
+   "strings": 675
   },
   "Riscontro.Disegno/OperazioniRaccordoFaccia.cs": {
    "comments": 743,
@@ -1657,27 +1657,27 @@
   },
   "Riscontro.Disegno/OperazioniRicalco.cs": {
    "comments": 131,
-   "strings": 141
+   "strings": 129
   },
   "Riscontro.Disegno/OperazioniRiordina.cs": {
    "comments": 165,
    "strings": 145
   },
   "Riscontro.Disegno/OperazioniRipetiRiempimento.cs": {
-   "comments": 701,
-   "strings": 463
+   "comments": 656,
+   "strings": 418
   },
   "Riscontro.Disegno/OperazioniSaldatura.cs": {
-   "comments": 3128,
-   "strings": 1518
+   "comments": 3063,
+   "strings": 1457
   },
   "Riscontro.Disegno/OperazioniSaldaturaTavola.cs": {
-   "comments": 250,
+   "comments": 240,
    "strings": 204
   },
   "Riscontro.Disegno/OperazioniSezioneTavola.cs": {
    "comments": 625,
-   "strings": 345
+   "strings": 294
   },
   "Riscontro.Disegno/OperazioniSformo.cs": {
    "comments": 343,
@@ -1697,10 +1697,10 @@
   },
   "Riscontro.Disegno/OperazioniSviluppoTavola.cs": {
    "comments": 233,
-   "strings": 221
+   "strings": 158
   },
   "Riscontro.Disegno/OperazioniSw.cs": {
-   "comments": 15385,
+   "comments": 15327,
    "strings": 3336
   },
   "Riscontro.Disegno/OperazioniTabellaFori.cs": {
@@ -1708,20 +1708,20 @@
    "strings": 223
   },
   "Riscontro.Disegno/OperazioniTavola.cs": {
-   "comments": 2090,
-   "strings": 775
+   "comments": 2019,
+   "strings": 757
   },
   "Riscontro.Disegno/OperazioniTestiQuote.cs": {
    "comments": 243,
    "strings": 6
   },
   "Riscontro.Disegno/OperazioniTesto.cs": {
-   "comments": 503,
+   "comments": 456,
    "strings": 266
   },
   "Riscontro.Disegno/OperazioniTolleranzaQuota.cs": {
    "comments": 190,
-   "strings": 202
+   "strings": 116
   },
   "Riscontro.Disegno/OperazioniTondoTavola.cs": {
    "comments": 862,
@@ -1762,7 +1762,7 @@
    "strings": 178
   },
   "Riscontro.Disegno/StatoDocumento.cs": {
-   "comments": 6185,
+   "comments": 6163,
    "strings": 37
   },
   "Riscontro.Disegno/StatoTavola.cs": {
@@ -1798,7 +1798,7 @@
    "json_values": 7
   },
   "Strumenti/catalogo.json": {
-   "json_values": 18783
+   "json_values": 18507
   },
   "build.ps1": {
    "comments": 517,
@@ -1912,7 +1912,6 @@
    "BASI",
    "Banco",
    "Bene",
-   "Binario",
    "BloccaSchizzo",
    "Blocco",
    "BloccoDaIncollare",
@@ -2057,7 +2056,6 @@
    "ContaGliAccoppiamenti",
    "ContaNoteDelFoglio",
    "ContaNoteDelleViste",
-   "ContaPaginePdf",
    "ContaPiani",
    "ContaQuote",
    "ContaViste",
@@ -2191,7 +2189,6 @@
    "Dice",
    "DichiaratoDalRiempimento",
    "Difetti",
-   "DifettiDelCorpo",
    "DifferenzaNelPezzo",
    "Dillo",
    "DimensioniDelFoglio",
@@ -2460,8 +2457,6 @@
    "ITipo",
    "Identita",
    "IdentitaDelloStato",
-   "IgesRappresentazione",
-   "IgesSolidiESuperfici",
    "Ignorato",
    "IlBancoLaConsulta",
    "IlBancoLoUsa",
@@ -2673,7 +2668,6 @@
    "ModelloInLocale",
    "ModificaQuota",
    "Mostra",
-   "MostraInfo",
    "Muori",
    "Muta",
    "Mutazione",
@@ -2770,7 +2764,6 @@
    "NonRaggiunti",
    "NonSiAnnullano",
    "NonToccaStdout",
-   "NonTraslare",
    "NonTrovato",
    "NonVerificabile",
    "Norma",
@@ -2834,8 +2827,11 @@
    "OperazioniPostoSulFoglio",
    "OperazioniQuoteNelPdf",
    "OperazioniQuoteTavola",
+   "OperazioniRaccordoFaccia",
+   "OperazioniRipetiRiempimento",
    "OperazioniSaldatura",
    "OperazioniSformo",
+   "OperazioniSporgenze",
    "OperazioniSw",
    "OperazioniTabellaFori",
    "OperazioniTavola",
@@ -2932,8 +2928,6 @@
    "PotaLeCopie",
    "Precondizione",
    "PredefinitoDichiarato",
-   "PreferenzeScambio",
-   "PreferenzeStl",
    "Preferito",
    "Prefisso",
    "PrefissoCopia",
@@ -3043,7 +3037,6 @@
    "QUADRO",
    "QUADRO_COPIA",
    "QUI",
-   "Qualita",
    "Quando",
    "QuandoSiPuoGuardare",
    "Quante",
@@ -3143,8 +3136,6 @@
    "Rimetti",
    "RimettiLEquazione",
    "RimettiLaQuota",
-   "RimettiPreferenzeScambio",
-   "RimettiPreferenzeStl",
    "RiordinaLavorazione",
    "RipetiCircolare",
    "RipetiLineare",
@@ -3446,8 +3437,6 @@
    "TogliIlTaglio",
    "TogliLaTabella",
    "TogliLaTabellaDiTaglio",
-   "TogliLaVista",
-   "TogliLavorazioniNuove",
    "TogliLeAncore",
    "TogliLoSpecchio",
    "TogliQuota",
@@ -3939,6 +3928,7 @@
    "blocchi",
    "blocchiDiTesto",
    "blocco",
+   "boccola_cava",
    "bollati",
    "bollatura",
    "bonifica",
@@ -4080,6 +4070,7 @@
    "cilindrica",
    "cilindriche",
    "cilindro",
+   "cilindro_d40_lungo_50",
    "cima",
    "cinque",
    "circonferenze_dopo",
@@ -4891,6 +4882,7 @@
    "il_dettaglio_ingrandisce",
    "il_fazzoletto_sta_nell_angolo",
    "il_foro_guidato_segue_la_tabella",
+   "il_foro_sul_fianco_resta_a_meta_spessore",
    "il_loft_non_e_un_cono",
    "il_messaggio_contiene",
    "il_pezzo_e_cresciuto",
@@ -4973,6 +4965,7 @@
    "l_albero_a_gradini_quotato_di_fianco",
    "l_aletta_cresce_dalla_faccia",
    "l_angolo_dello_smusso_si_cambia_in_gradi",
+   "l_asse_riconosciuto",
    "l_ordine_cambia_il_pezzo",
    "la_L_si_sviluppa",
    "la_borchia_non_e_un_foro",
@@ -5060,6 +5053,7 @@
    "lim_griglia_non_si_conta_come_una_fila",
    "lim_nervatura_fuori_dal_suo_piano",
    "lim_nervatura_sulla_piastra_senza_pareti",
+   "lim_profilo_a_cavallo_dell_asse",
    "lim_quota_che_fa_uscire_l_asola",
    "lim_quota_che_non_lascia_stare_il_raccordo",
    "lim_raccordo_faccia_fra_facce_che_si_danno_le_spalle",
@@ -5154,6 +5148,7 @@
    "mezzo",
    "mezzoU",
    "mezzoV",
+   "mezzo_cilindro_180",
    "miVede",
    "miei",
    "migliore",
@@ -7853,7 +7848,6 @@
    "dipende",
    "dipendenze",
    "dipendono",
-   "direbbe",
    "direzione",
    "direzione_di_stampa",
    "disegna",
@@ -8953,11 +8947,9 @@
    "sostituisci_componente",
    "sostituzioni",
    "sotto",
-   "sottovincolato",
    "sottrai",
    "sottrai_un_cubo_dall_altro",
    "sovrasporgenze",
-   "sovravincolato",
    "sparirebbe",
    "specchia",
    "specchia_componente",

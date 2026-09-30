@@ -90,6 +90,17 @@ namespace Riscontro.Disegno
             // TUTTI I TIPI, non solo i solidi. Un pezzo che ha per errore un
             // corpo di foglio e' proprio il caso che questa operazione esiste
             // per dire, e chiedendo solo i solidi non lo si vedrebbe mai.
+            //
+            // THE «C» NUMBERS STILL MATCH THE STATE'S FOR THE SOLIDS (Z-C21.9,
+            // finding L12-3, measured not real). The state numbers the bodies of
+            // GetBodies2(swSolidBody); here they come from swAllBodies. The
+            // Z-C21.3 probe of L12-3 (28/9/2026, SOLIDWORKS 29.5.1) built
+            // four parts, solid and sheet bodies in the orders S F, F S, S F S and
+            // F S F: after ForceRebuild3 swAllBodies gave the solids FIRST and in
+            // the order of swSolidBody every time, and only the tail (the sheets)
+            // is beyond the state's numbers. Before the rebuild the probe could
+            // not read the bodies at all (RPC_E_SERVERFAULT on every body), which
+            // is the «unstable order» its verdict names.
             var grezzi = parte.GetBodies2((int)swBodyType_e.swAllBodies, false) as object[];
             if (grezzi == null || grezzi.Length == 0)
                 return Fallito(
@@ -129,10 +140,11 @@ namespace Riscontro.Disegno
 
                 int check = Intero(() => corpo.Check(), int.MinValue);
                 int check2 = Intero(() => corpo.Check2(), int.MinValue);
-                var difetti = DifettiDelCorpo(corpo);
+                // null: Check3 could not be read (Z-C21.8, finding N16).
+                var difetti = BodyFaultNames(corpo);
                 int fessure = Intero(() => Fessure(corpo), -1);
 
-                if (difetti.Count > 0) conDifetti++;
+                if (difetti != null && difetti.Count > 0) conDifetti++;
                 if (fessure > 0) conFessure++;
 
                 var voce = new Dictionary<string, object>
@@ -142,7 +154,7 @@ namespace Riscontro.Disegno
                     ["facce"] = Intero(() => corpo.GetFaceCount(), -1),
                     ["chiuso"] = fessure == 0,
                     ["fessure"] = fessure,
-                    ["difetti"] = difetti.Count,
+                    ["difetti"] = difetti == null ? null : (object)difetti.Count,
                     // I NUMERI GREZZI RESTANO, e non e' ridondanza: quando un
                     // giorno una versione di SOLIDWORKS cambiera' una delle due
                     // convenzioni, e' da qui che lo si vedra' invece che da un
@@ -150,7 +162,8 @@ namespace Riscontro.Disegno
                     ["check_grezzo"] = check,
                     ["check2_grezzo"] = check2,
                 };
-                if (difetti.Count > 0) voce["difetti_elenco"] = difetti.ToArray();
+                if (difetti != null && difetti.Count > 0) voce["difetti_elenco"] = difetti.ToArray();
+                if (difetti == null) voce["defects_not_read"] = DefectsNotRead;
                 elenco.Add(voce);
 
                 if (tipo != (int)swBodyType_e.swSolidBody)
@@ -159,7 +172,16 @@ namespace Riscontro.Disegno
                 if (fessure > 0)
                     motivi.Add("il corpo " + uid + " ha " + fessure +
                                (fessure == 1 ? " fessura" : " fessure") + ": non e' chiuso");
-                if (difetti.Count > 0)
+                // NOT COUNTED IS NOT CLOSED (Z-C21.8, with N16): `Fessure` answers
+                // -1 when Diagnose gives nothing, and the closed field was already
+                // false, but no reason was added and the verdict could stay «can
+                // be printed».
+                if (fessure < 0)
+                    motivi.Add("the gaps of body " + uid + " could not be counted (Diagnose gave no answer): " +
+                               "not counted is not closed");
+                if (difetti == null)
+                    motivi.Add("the defects of body " + uid + " could not be read: " + DefectsNotRead);
+                else if (difetti.Count > 0)
                     motivi.Add("il corpo " + uid + " ha " + difetti.Count +
                                (difetti.Count == 1 ? " difetto: " : " difetti: ") +
                                string.Join(", ", difetti));
@@ -246,14 +268,22 @@ namespace Riscontro.Disegno
         /// `swBodyCorrupt = 1` a `swEdgeTouchEdge = 36` — e lo zero NON e' fra
         /// quelli: un codice che l'enum non conosce si dice cosi', invece di
         /// scriverlo come se fosse un nome.
+        ///
+        /// NULL WHEN CHECK3 CANNOT BE READ (Z-C21.8, finding N16). Until library
+        /// 0.144.0 an exception, or a Check3 that gave no IFaultEntity, returned
+        /// the EMPTY list, the same answer as a body with no fault: a body whose
+        /// check could not be read was declared sound. The sound solid of
+        /// Controlli\CorpoRotto (15/9/2026) answers an IFaultEntity with Count 0,
+        /// not null, so null is «not read» and becomes a reason of the refusal.
+        /// A fault list that breaks off half way is not read either.
         /// </summary>
-        private static List<string> DifettiDelCorpo(IBody2 corpo)
+        private static List<string> BodyFaultNames(IBody2 corpo)
         {
             var fuori = new List<string>();
             try
             {
                 var f = corpo.Check3 as IFaultEntity;
-                if (f == null) return fuori;
+                if (f == null) return null;
                 int n = f.Count;
                 for (int k = 0; k < n; k++)
                 {
@@ -261,9 +291,13 @@ namespace Riscontro.Disegno
                     fuori.Add(NomeDelDifetto(codice));
                 }
             }
-            catch { }
+            catch { return null; }
             return fuori;
         }
+
+        /// <summary>The reason given when Check3 cannot be read (finding N16).</summary>
+        private const string DefectsNotRead =
+            "Check3 gave no fault list for this body, and a check that could not be read is not a sound body";
 
         private static string NomeDelDifetto(int codice)
         {

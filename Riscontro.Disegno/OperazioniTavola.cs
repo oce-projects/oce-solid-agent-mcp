@@ -978,14 +978,26 @@ namespace Riscontro.Disegno
             if (pdf == null)
                 return Fallito("Questa installazione non espone le opzioni di esportazione PDF.");
 
+            bool everySheetAsked;
             try
             {
                 pdf.ViewPdfAfterSaving = false;
                 // TUTTI i fogli, esplicitamente. E' il difetto che questa
                 // operazione esiste per non fare.
-                pdf.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
+                everySheetAsked = pdf.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
             }
             catch (Exception ex) { return Fallito("Non riesco a chiedere tutti i fogli: " + ex.Message); }
+            // THE ANSWER OF SetSheets IS READ (Z-C21.8, finding L13-6).
+            // IExportPdfData~SetSheets.html, Return Value: «True if the drawings
+            // sheets are set to export to PDF, false if not». Until library
+            // 0.144.0 the answer was dropped, and a false went on to the export
+            // with whatever sheets SOLIDWORKS kept: the one-page PDF of a
+            // three-sheet drawing that this operation exists to prevent. Nothing
+            // is written yet, so the refusal leaves the disk as it was.
+            if (!everySheetAsked)
+                return Fallito(
+                    "SOLIDWORKS did not accept the request to export every sheet (IExportPdfData.SetSheets " +
+                    "answered false): the PDF could come out with the current sheet only. Nothing was written.");
 
             if (File.Exists(dove))
             {
@@ -1010,14 +1022,14 @@ namespace Riscontro.Disegno
             catch (Exception ex) { return Fallito("PDF non scritto: " + ex.Message); }
 
             if (!ok || !File.Exists(dove))
-                return Fallito("Il PDF non e' stato scritto (codice " + errori + ").");
+                // L13-7: the codes by their swFileSaveError_e / swFileSaveWarning_e
+                // names (ErrorCodeDecoder), the raw number kept for a search.
+                return Fallito("Il PDF non e' stato scritto (codice " + errori + SaveErrorNames(errori) + ")." +
+                               SaveWarningsTail(avvisi));
 
-            int pagine = ContaPaginePdf(dove);
-            if (pagine > 0 && pagine != fogli)
-                return Fallito(
-                    "Il PDF e' uscito con " + pagine + " pagine e la tavola ha " + fogli +
-                    " fogli. Il file c'e' e non e' quello che ti serve: guardalo prima " +
-                    "di mandarlo in officina." + " (" + dove + ")");
+            int pagine = CountPdfPages(dove);
+            string pagesRefusal = PdfPageCountRefusal(pagine, fogli, dove);
+            if (pagesRefusal != null) return Fallito(pagesRefusal);
 
             var misure = new Dictionary<string, object>
             {
@@ -1025,7 +1037,11 @@ namespace Riscontro.Disegno
                 ["fogli"] = fogli,
                 ["pagine"] = pagine > 0 ? (object)pagine : null,
                 ["byte"] = new FileInfo(dove).Length,
+                // L13-7: the Warnings of the save, decoded, also on a success.
+                ["save_warnings"] = SaveWarningsForAnswer(avvisi),
             };
+            string pdfWarningAdvice = SaveWarningsAdvice(avvisi);
+            if (pdfWarningAdvice != null) misure["save_warnings_note"] = pdfWarningAdvice;
 
             // IL PDF SI RILEGGE, SE SI CHIEDE COSA DEVE CONTENERE (voci GT3-bis,
             // Z-C9). Misurato il 24/9/2026: il testo della tavola esce come
@@ -1132,7 +1148,7 @@ namespace Riscontro.Disegno
                     return Fallito(
                         "Il documento non e' stato salvato: **la cartella non esiste** — «" +
                         cartella + "». SOLIDWORKS non la crea, e il suo codice di errore " +
-                        "(" + errori + ") non lo dice. Creala, o dammi un percorso dentro " +
+                        "(" + errori + SaveErrorNames(errori) + ") non lo dice. Creala, o dammi un percorso dentro " +
                         "una cartella che c'e'.");
 
                 bool solaLettura = false;
@@ -1148,15 +1164,22 @@ namespace Riscontro.Disegno
                         "SOLA LETTURA — «" + dove + "». Toglila, o fai il check-out se " +
                         "sta in un PDM.");
 
-                return Fallito("Il documento non e' stato salvato (codice " + errori + ").");
+                // L13-7: the codes by their enum names (ErrorCodeDecoder).
+                return Fallito("Il documento non e' stato salvato (codice " + errori + SaveErrorNames(errori) + ")." +
+                               SaveWarningsTail(avvisi));
             }
 
             var misure = new Dictionary<string, object>
             {
                 ["percorso"] = dove,
                 ["byte"] = new FileInfo(dove).Length,
+                // The raw mask stays: bench cases read it (misure.avvisi = 0).
                 ["avvisi"] = avvisi,
+                // L13-7: and its swFileSaveWarning_e names.
+                ["save_warnings"] = SaveWarningsForAnswer(avvisi),
             };
+            string saveWarningAdvice = SaveWarningsAdvice(avvisi);
+            if (saveWarningAdvice != null) misure["save_warnings_note"] = saveWarningAdvice;
             return SenzaFeature(misure);
         }
 
@@ -1642,16 +1665,18 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Quante pagine ha davvero il PDF appena scritto.
+        /// How many pages the PDF just written really has, or -1 when they
+        /// cannot be counted.
         ///
-        /// Si legge il file e si contano gli oggetti «/Type /Page» che non
-        /// sono «/Type /Pages» (il nodo dell'albero). E' grezzo — un PDF con
-        /// flussi compressi puo' nascondere gli oggetti — e per questo un
-        /// risultato zero NON viene trattato come errore: vuol dire «non
-        /// sono riuscito a contare», non «zero pagine». Meglio una misura che
-        /// a volte tace di una che a volte mente.
+        /// The file is read and the «/Type /Page» objects that are not
+        /// «/Type /Pages» (the node of the page tree) are counted. It is crude:
+        /// a PDF with compressed object streams can hide them. A PDF has at
+        /// least one page, so finding none means «I could not count», not
+        /// «zero pages»: ZERO-E-ZERO, the unknown is -1 (Z-C21.8, finding
+        /// L13-6; until library 0.144.0 it was 0, and the caller skipped the
+        /// check on it without a word).
         /// </summary>
-        private static int ContaPaginePdf(string percorso)
+        private static int CountPdfPages(string percorso)
         {
             try
             {
@@ -1671,12 +1696,29 @@ namespace Riscontro.Disegno
                     }
                     i = j;
                 }
-                return n;
+                return n > 0 ? n : -1;
             }
-            // ZERO-E-ZERO: legge un FILE, non il CAD, e zero qui vuol gia' dire
-            // «non ho potuto contare» (lo dice il commento del metodo): chi
-            // chiama controlla `pagine > 0` e scrive null.
-            catch { return 0; }
+            catch { return -1; }
+        }
+
+        /// <summary>
+        /// Why the PDF just written cannot be handed over, or null when its
+        /// pages match the sheets (Z-C21.8, finding L13-6). Counting the pages
+        /// is the one check of esporta_pdf that can fail, so a count that could
+        /// not be taken is a refusal, not a pass: the file stays where it was
+        /// written, and the message says so.
+        /// </summary>
+        internal static string PdfPageCountRefusal(int pages, int sheets, string path)
+        {
+            if (pages < 0)
+                return "The PDF is written (" + path + "), but I cannot count its pages, so I cannot say " +
+                       "that all " + sheets + (sheets == 1 ? " sheet is" : " sheets are") + " in it: that " +
+                       "check is the reason this operation exists. Open the file and look before sending it.";
+            if (pages != sheets)
+                return "The PDF came out with " + pages + (pages == 1 ? " page" : " pages") + " and the drawing has " +
+                       sheets + (sheets == 1 ? " sheet" : " sheets") + ". The file is there and it is not the one " +
+                       "you need: look at it before sending it to the shop. (" + path + ")";
+            return null;
         }
     }
 }

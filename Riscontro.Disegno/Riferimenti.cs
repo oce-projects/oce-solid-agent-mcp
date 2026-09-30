@@ -665,6 +665,15 @@ namespace Riscontro.Disegno
         /// naturale punta in fuori dall'asse: se la faccia la rovescia, il
         /// materiale sta FUORI dal cilindro, ed e' un foro.
         ///
+        /// The guide page says why this works (Z-C21.9, finding L10-7):
+        /// IFace2~FaceInSurfaceSense.html, Remarks, «True if face normal and
+        /// surface normal are in the opposite direction», and «The normal vector
+        /// of faces, however, are directed away from the body material». The
+        /// face normal of a hole wall points into the hole, away from the
+        /// material, so against the cylinder's own outward normal: true. The
+        /// same page is the reason IFace2.Normal is taken as the outward normal
+        /// everywhere (ApiHelpers.NormalIfPlanar).
+        ///
         /// Misurato, non dedotto (`Controlli\ForoOppureRaccordo`, 15/9/2026):
         /// su una piastra con un foro Ø12 e un raccordo R5, la parete del foro
         /// risponde **true** e la superficie del raccordo **false**.

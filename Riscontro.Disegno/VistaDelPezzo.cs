@@ -336,11 +336,33 @@ namespace Riscontro.Disegno
                 return null;
             }
 
+            // AN ASSEMBLY OR A DRAWING IS SAID AS SUCH (Z-C21.8, finding N21).
+            // PianoDiRiferimento walks the features of a PART (IPartDoc), and on
+            // any other document it found no plane: the refusal then said «I
+            // cannot find the front plane; there are: front, top, right», and
+            // contradicted itself. The document is named instead.
+            if (!(modello is IPartDoc))
+            {
+                int kind = -1;
+                try { kind = modello.GetType(); } catch { kind = -1; }
+                motivo = "The section is taken on a part, and the document in front is " +
+                         (kind == (int)swDocumentTypes_e.swDocASSEMBLY ? "an assembly"
+                          : kind == (int)swDocumentTypes_e.swDocDRAWING ? "a drawing" : "not a part") +
+                         ": open the part and ask again.";
+                return null;
+            }
+
             var suQuale = PianoDiRiferimento(modello, piano);
             if (suQuale == null)
             {
-                motivo = "Non trovo il piano «" + piano + "». Ci sono: " +
-                         "frontale, superiore, destro.";
+                // A name that is one of the three, and still no plane: the part
+                // has fewer than three reference planes at the top of the tree
+                // (N21, the same self-contradiction on a part).
+                motivo = Array.IndexOf(new[] { "frontale", "superiore", "destro" }, piano) >= 0
+                    ? "I cannot find the «" + piano + "» plane: the section takes the first three reference planes " +
+                      "of the tree as front, top and right, and this part has fewer of them."
+                    : "Non trovo il piano «" + piano + "». Ci sono: " +
+                      "frontale, superiore, destro.";
                 return null;
             }
 
@@ -399,6 +421,20 @@ namespace Riscontro.Disegno
         /// piano diverso da quello chiesto e chiamarlo lo stesso «sezione».
         /// E' la stessa lezione di `TrovaPianoBase`, dove un `: 1` finale
         /// faceva ripiegare sul frontale qualunque nome.
+        ///
+        /// BY POSITION, AND MEASURED NOT TRIGGERED OUT OF PROCESS (Z-C21.9,
+        /// finding C3-6). IPartDoc~IFirstFeature.html warns that the order of
+        /// the features changes when the part is edited, and the same page
+        /// forbids trusting the names («Plane1»). The Z-C21.3 probe of C3-6
+        /// (28/9/2026, SOLIDWORKS 29.5.1) compared this
+        /// position rule with a rule by geometry (normal and passage through
+        /// the origin) on the template as it comes, then after inserting a plane
+        /// and trying to move it before the top plane (P1), and a 3D sketch and a
+        /// plane before the front plane (P2): SAME plane all nine times, because
+        /// every ReorderFeature that tried to put a plane or a sketch before the
+        /// three base planes answered false. Only a part TEMPLATE built with an
+        /// extra plane first breaks the rule; recognising the plane by its
+        /// geometry is the fix, tracked as scheme S19 in Z-C21.5.
         /// </summary>
         private static object PianoDiRiferimento(IModelDoc2 modello, string quale)
         {

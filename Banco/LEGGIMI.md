@@ -570,12 +570,14 @@ casi/piano/        7   DOVE finisce il piano, non la distanza chiesta; la foto
                        {DATI}: Banco/dati/, versionata); a picture over 2048 px
                        keeps the scale of its file (Z-C21, M11)
 casi/specchia/     2   il foro deve comparire dall'altra parte
-casi/ripeti/      13   la direzione, che e' il dubbio vero; l'asse riconosciuto
+casi/ripeti/      15   la direzione, che e' il dubbio vero; l'asse riconosciuto
                        per identita', e rifiutato se si e' spostato (voce E4);
                        la copia tolta da una griglia rifiutata (Z-C21.2);
                        il riempimento che fa quattordici fori, e rifiutato
                        senza direzione, su una faccia curva e con la direzione
-                       fuori dalla faccia (W1.1)
+                       fuori dalla faccia (W1.1); the linear pattern along an
+                       axis from crea_asse, and the circular pattern around a
+                       straight edge (Z-C21.9, L7-5 and M16)
 casi/asse/         2   l'asse dalla parete di un foro
 casi/togliere/     5   sopprimere, riaccendere, cancellare
 casi/frase/        2   la forma detta a parole, e quando tace
@@ -614,7 +616,7 @@ casi/assiemi/     12   inserire non e' accoppiare; un vincolo solo non basta;
                        l'assieme, e che ci sono (Z-B3); the interference array
                        is as long as the count (Z-C21.10, N34); the mirrored
                        instance turns as asked (Z-C21, N26)
-casi/tavola/      39   il primo caso che arriva in TAVOLA (voce GT0);
+casi/tavola/      40   il primo caso che arriva in TAVOLA (voce GT0);
                        un Ø8 passante e un Ø8 cieco, due richiami; la borchia
                        non e' un foro; l'albero smussato senza le gambe dello
                        smusso (revisione del 27/9, Z-C20);
@@ -661,8 +663,10 @@ casi/tavola/      39   il primo caso che arriva in TAVOLA (voce GT0);
                        distinta di taglio dice se ha confrontato (Z-C21.2);
                        the second sheet does not repeat the dimensions of the
                        first (Z-C21.10, N43); the turned diameter held by
-                       silhouettes is not an orphan (Z-C21, N3)
-casi/saldature/   12   la distinta conta le barre, e i due numeri vengono da
+                       silhouettes is not an orphan (Z-C21, N3); the position
+                       frame reads its Ø back, and the flatness frame reads
+                       none (Z-C21.8, M38)
+casi/saldature/   13   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
                        va fra facce che si toccano ad angolo; il tappo chiude
@@ -679,7 +683,8 @@ casi/saldature/   12   la distinta conta le barre, e i due numeri vengono da
                        whatever the case, any other word refused (Z-C21.10,
                        N31, N32); a member group is mitred by default, an
                        empty profile size names the sizes, the trim extends
-                       a short bar (Z-C21, N25, L9-4)
+                       a short bar (Z-C21, N25, L9-4); the trim refuses an
+                       end condition it does not know (Z-C21.8, N22)
 casi/estrusioni/  10   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        l'ingombro, estremita' comprese, ed e' un poligono; la
                        ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta

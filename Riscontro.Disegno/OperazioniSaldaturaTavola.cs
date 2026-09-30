@@ -138,20 +138,16 @@ namespace Riscontro.Disegno
             else if (dueLati != (simmetricoLetto == (int)swWeldSymbolSymmetric_e.swWeldSymmetric)) sbagliato.Add("«entrambi i lati» non e' come chiesto");
             if (attaccate == 0) sbagliato.Add("non e' attaccato a nessuno spigolo");
             if (attaccate < 0) sbagliato.Add("non si rilegge a cosa e' attaccato");
+            string textsWrong = WeldSymbolTextsWrong(testi);
+            if (textsWrong != null) sbagliato.Add(textsWrong);
             if (sbagliato.Count > 0)
             {
                 // UN SIMBOLO SBAGLIATO NON SI LASCIA IN TAVOLA: si stampa e manda il
-                // saldatore a fare un'altra saldatura. DeleteSelection2 e non
-                // EditDelete (la seconda puo' aprire una finestra di conferma).
-                bool tolto = false;
-                try
-                {
-                    modello.ClearSelection2(true);
-                    if (an != null && an.Select3(false, null))
-                        tolto = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                    modello.ClearSelection2(true);
-                }
-                catch { }
+                // saldatore a fare un'altra saldatura. Removed through
+                // RemoveNewAnnotation, next to the tolerance frame: «removed» is
+                // said only when the weld symbols of the drawing, counted again,
+                // are back to the count before the insertion (Z-C21.8, M38).
+                bool tolto = RemoveNewAnnotation(modello, an, () => SimboliDiSaldaturaInTavola(disegno), prima);
                 return Fallito("Il simbolo di saldatura e' nato ma " + string.Join("; ", sbagliato) +
                                (tolto ? ": l'ho tolto." : ": toglilo — " + Frasi.CosiSiRitira + "."));
             }
@@ -174,6 +170,32 @@ namespace Riscontro.Disegno
                 ["simboli_dopo"] = NumeroOppureNull(dopo),
                 ["posizione_mm"] = pos,
             });
+        }
+
+        /// <summary>
+        /// What the text count of a new weld symbol says is wrong with it, or
+        /// null when the symbol was drawn (Z-C21.8, finding L16-1).
+        ///
+        /// The discriminant is the one measured when the operation was written
+        /// (26/9/2026, see the header): with a code the gtol.sym library does
+        /// not know, the symbol is born all the same, its code reads back equal,
+        /// and nothing is drawn — IWeldSymbol.GetTextCount gives 1, the throat
+        /// alone. With a known code the drawn symbol is one text more, 2. The
+        /// bench case of this operation asserts that count, but until library
+        /// 0.144.0 the operation itself never looked at it, so a
+        /// symbol with no triangle was answered as done. A count that cannot be
+        /// read is wrong too, as an attached count that cannot be read is: the
+        /// one check that sees the missing symbol did not run.
+        /// </summary>
+        internal static string WeldSymbolTextsWrong(int texts)
+        {
+            if (texts < 0)
+                return "its texts cannot be read back (IWeldSymbol.GetTextCount), so I cannot tell whether the " +
+                       "symbol was drawn";
+            if (texts < 2)
+                return "it has " + texts + (texts == 1 ? " text" : " texts") + " where a drawn symbol makes 2: " +
+                       "SOLIDWORKS kept the code as text and drew no symbol";
+            return null;
         }
 
         /// <summary>

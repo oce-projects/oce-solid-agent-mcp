@@ -145,8 +145,19 @@ namespace Riscontro.Disegno
 
             // SI RILEGGE SEMPRE. `Add3` risponde un codice, non il valore: il
             // valore lo dice solo chi lo rilegge.
-            string letto = LeggiProprieta(cassetto, nome);
-            if (letto != valore)
+            //
+            // THE TEXT WRITTEN IS COMPARED WITH THE TEXT READ (Z-C21.8, finding
+            // M35). ICustomPropertyManager~Get6.html gives two values: ValOut,
+            // the text of the property, and ResolvedValOut, «Evaluated value».
+            // The check compared the EVALUATED value with the text written, so a
+            // formula came back as its result and an exact write was refused:
+            // the Z-C21.3 probe of L8-5 wrote «"SW-Mass@@...SLDPRT"» and read
+            // ValOut the same text, ResolvedValOut «0.016». The text is compared
+            // with ValOut (PropertyWrittenAsAsked); the evaluated value is
+            // reported next to it when it differs («resolved_value»).
+            string letto, risolto;
+            bool presente = ReadPropertyBack(cassetto, nome, out letto, out risolto);
+            if (!PropertyWrittenAsAsked(valore, presente, letto))
                 return Fallito(
                     "Ho scritto «" + valore + "» in «" + nome + "» e rileggendo trovo " +
                     (letto == null ? "il vuoto" : "«" + letto + "»") + ". Non ti confermo " +
@@ -198,6 +209,8 @@ namespace Riscontro.Disegno
                     (siVedeDiLa ? "SI VEDE." : "NON si vede."),
             };
             if (sullaConfigurazione) misure["configurazione"] = configurazione;
+            if (risolto != null && !string.Equals(risolto, letto, StringComparison.Ordinal))
+                misure["resolved_value"] = risolto;
 
             _log("[agente] proprieta' «" + nome + "» = «" + letto + "» su " +
                  (sullaConfigurazione ? configurazione : "documento"));
@@ -408,6 +421,42 @@ namespace Riscontro.Disegno
                 return risolto ?? valore;
             }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// The property read back both ways: <paramref name="written"/> is
+        /// ValOut, the text of the property, and <paramref name="resolved"/> is
+        /// ResolvedValOut, the evaluated value (ICustomPropertyManager~Get6.html).
+        /// False when Get6 answers NotPresent or cannot be asked.
+        /// </summary>
+        private static bool ReadPropertyBack(
+            ICustomPropertyManager cassetto, string nome, out string written, out string resolved)
+        {
+            written = null;
+            resolved = null;
+            try
+            {
+                string valOut, resolvedValOut;
+                bool wasResolved, linkToProperty;
+                int result = cassetto.Get6(nome, false, out valOut, out resolvedValOut,
+                                           out wasResolved, out linkToProperty);
+                if (result == (int)swCustomInfoGetResult_e.swCustomInfoGetResult_NotPresent) return false;
+                written = valOut ?? "";
+                resolved = resolvedValOut;
+                return true;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// True when the text read back (ValOut) is the text written (Z-C21.8,
+        /// finding M35). The evaluated value takes no part: for a formula it is
+        /// the result, not the text. Kept apart from the document so that
+        /// Prove.Contratti can call it without SOLIDWORKS.
+        /// </summary>
+        internal static bool PropertyWrittenAsAsked(string written, bool present, string readBack)
+        {
+            return present && string.Equals(written ?? "", readBack ?? "", StringComparison.Ordinal);
         }
 
         private static string NomeEsitoProprieta(int codice)

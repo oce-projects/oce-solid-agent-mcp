@@ -1,7 +1,7 @@
 {
   "nome": "lim_riempimento_senza_direzione",
   "famiglia": "ripeti",
-  "perche": "LA GUIDA DICE LA DIREZIONE FACOLTATIVA, LA SONDA NO. IFillPatternFeatureData, Remarks: senza la marca 1 «SOLIDWORKS chooses a direction reference appropriate for the specified layout». La sonda del 28/9/2026 (Controlli/Riempimento/Programma.cs, tentativo A2: stessa piastra sul superiore, stesse selezioni meno lo spigolo) ha avuto NULL da CreateFeature, senza eccezione e senza messaggio. L'operazione rifiuta PRIMA di selezionare niente, dice che senza direzione non nasce e nomina la strada: uno spigolo dritto della faccia o un asse di «crea_asse». La gemella e' lo stesso passo con lo spigolo lungo.",
+  "perche": "THE GUIDE CALLS THE DIRECTION OPTIONAL, THE PROBE DOES NOT. IFillPatternFeatureData, Remarks: without mark 1 «SOLIDWORKS chooses a direction reference appropriate for the specified layout». The probe of 28/9/2026 (Controlli/Riempimento/Programma.cs, attempt A2: the same plate on the top plane, the same selections without the edge) got NULL from CreateFeature, with no exception and no message. The operation refuses BEFORE selecting anything, says that without a direction the pattern is not born, and names the way: a straight edge along the face, or an axis lying along it. Until library 0.144.0 it named «an axis made with crea_asse», which on a hole runs across the face and is refused by the next check (Z-C21.9, finding N62); the message is now in English, hence the words below. The twin is the same step with the long edge.",
   "parte": { "nuova": true },
   "passi": [
     { "operazione": "estrudi_rettangolo",
@@ -21,7 +21,7 @@
                      "faccia_uid": "@faccia(verso=alto)",
                      "passo_mm": 17.0240490494193, "copie_per_giro": 10, "margine_mm": 0 },
       "deve_fallire": {
-        "il_messaggio_contiene": ["senza una direzione", "spigolo dritto"],
+        "il_messaggio_contiene": ["without a direction", "straight edge", "lies along that face"],
         "volume_invariato": true,
         "nessuna_feature_in_piu": true,
         "gemella": "il_riempimento_fa_quattordici_fori" } }

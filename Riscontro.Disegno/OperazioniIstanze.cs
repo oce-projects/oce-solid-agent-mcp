@@ -102,8 +102,8 @@ namespace Riscontro.Disegno
             var dati = LeggiDefinizione(ripetizione, out ISaltaIstanze porta, out string perche);
             if (dati == null)
                 return Fallito(
-                    "Non so togliere copie da «" + uid + "»" +
-                    (string.IsNullOrEmpty(tipo) ? "" : " (e' " + tipo + ")") + ": " + perche);
+                    "I do not remove copies from «" + uid + "»" +
+                    (string.IsNullOrEmpty(tipo) ? "" : " (type " + tipo + ")") + ": " + perche);
 
             // ── UNA GRIGLIA NON SI CONTA COME UNA FILA (voce Z-C21.2, M6) ──
             //
@@ -170,7 +170,14 @@ namespace Riscontro.Disegno
                 // guaio `ReleaseSelectionAccess`: senza, la feature resta
                 // bloccata e le operazioni dopo falliscono per un motivo che
                 // non ha piu' niente a che vedere con questa.
-                porta.Apri(dati, modello);
+                //
+                // THE ACCESS IS READ (Z-C21.8, the rule of L5-5): each family's
+                // AccessSelections.html, «True if the selections are
+                // successfully accessed, false if not». A refused access stops
+                // before anything is written, with nothing to release.
+                if (!porta.Apri(dati, modello))
+                    return Fallito("SOLIDWORKS did not give access to the definition of «" + uid +
+                                   "» (AccessSelections answered false): nothing was written, the pattern is as it was.");
                 porta.Scrivi(dati, DaScrivere(nuove));
                 fatto = ApiHelpers.ModifyAndVerify(ripetizione, dati, modello).Applied;
                 if (!fatto) porta.Chiudi(dati);
@@ -307,7 +314,11 @@ namespace Riscontro.Disegno
             {
                 var d = ripetizione.GetDefinition();
                 if (d == null) return "Non sono riuscito a rimettere le cose com'erano.";
-                porta.Apri(d, modello);
+                // The access is read (Z-C21.8, rule of L5-5): refused, nothing
+                // can be written back.
+                if (!porta.Apri(d, modello))
+                    return "I could not put the skipped copies back: AccessSelections answered false. Check the " +
+                           "pattern, and undo the step (" + Frasi.CosiSiRitira + ").";
                 porta.Scrivi(d, DaScrivere(comEra));
                 // S11: Applied alone is not the verdict (IFeature~ModifyDefinition.html,
                 // Remarks: it can return true and leave a new rebuild error). The
@@ -321,7 +332,18 @@ namespace Riscontro.Disegno
                     return "I put the pattern definition back, but I could not read whether it rebuilds " +
                            "without errors: check the pattern.";
                 if (change.Applied)
-                    return "Ho rimesso la ripetizione com'era.";
+                {
+                    // «Put back» after a reread (Z-C21.8, finding M42's rule): the
+                    // skipped copies read from a fresh definition must be the ones
+                    // read before the change.
+                    int[] now = null;
+                    try { now = porta.Leggi(ripetizione.GetDefinition()); } catch { now = null; }
+                    if (now != null && now.OrderBy(x => x).SequenceEqual((comEra ?? new int[0]).OrderBy(x => x)))
+                        return "Ho rimesso la ripetizione com'era.";
+                    return "I put the pattern definition back, but reading it back the skipped copies are " +
+                           (now == null ? "not readable" : "[" + Elenco(now) + "]") + " instead of [" +
+                           Elenco(comEra ?? new int[0]) + "]: check the pattern.";
+                }
                 porta.Chiudi(d);
             }
             catch { }
@@ -346,7 +368,8 @@ namespace Riscontro.Disegno
         {
             int[] Leggi(object dati);
             void Scrivi(object dati, int[] copie);
-            void Apri(object dati, IModelDoc2 modello);
+            // The answer of AccessSelections (Z-C21.8, rule of L5-5).
+            bool Apri(object dati, IModelDoc2 modello);
             void Chiudi(object dati);
             // Voce Z-C21.2: le lavorazioni ripetute (PatternFeatureArray), e
             // se la ripetizione e' una griglia a due direzioni (null se no).
@@ -358,7 +381,7 @@ namespace Riscontro.Disegno
         {
             public int[] Leggi(object d) { return Numeri(((ILinearPatternFeatureData)d).SkippedItemArray); }
             public void Scrivi(object d, int[] c) { ((ILinearPatternFeatureData)d).SkippedItemArray = c; }
-            public void Apri(object d, IModelDoc2 m) { ((ILinearPatternFeatureData)d).AccessSelections(m, null); }
+            public bool Apri(object d, IModelDoc2 m) { return ((ILinearPatternFeatureData)d).AccessSelections(m, null); }
             public void Chiudi(object d) { ((ILinearPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ILinearPatternFeatureData)d).PatternFeatureArray; }
             public string Griglia(object d)
@@ -375,7 +398,7 @@ namespace Riscontro.Disegno
         {
             public int[] Leggi(object d) { return Numeri(((ICircularPatternFeatureData)d).SkippedItemArray); }
             public void Scrivi(object d, int[] c) { ((ICircularPatternFeatureData)d).SkippedItemArray = c; }
-            public void Apri(object d, IModelDoc2 m) { ((ICircularPatternFeatureData)d).AccessSelections(m, null); }
+            public bool Apri(object d, IModelDoc2 m) { return ((ICircularPatternFeatureData)d).AccessSelections(m, null); }
             public void Chiudi(object d) { ((ICircularPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ICircularPatternFeatureData)d).PatternFeatureArray; }
             // ANCHE LA CIRCOLARE PUO' AVERE DUE DIREZIONI (revisione di Z-C21.2,
@@ -413,7 +436,7 @@ namespace Riscontro.Disegno
         //   ICurveDrivenPatternFeatureData   si'
         //   IFillPatternFeatureData          si'
         //   ITablePatternFeatureData         si'
-        //   IDerivedPatternFeatureData       si'
+        //   IDerivedPatternFeatureData       si'   (an assembly pattern: never here, C7-3)
         //   ISketchPatternFeatureData        NO
         //   IChainPatternFeatureData         NO
         //   IDimPatternFeatureData           NO
@@ -428,7 +451,7 @@ namespace Riscontro.Disegno
         {
             public int[] Leggi(object d) { return Numeri(((ICurveDrivenPatternFeatureData)d).SkippedItemArray); }
             public void Scrivi(object d, int[] c) { ((ICurveDrivenPatternFeatureData)d).SkippedItemArray = c; }
-            public void Apri(object d, IModelDoc2 m) { ((ICurveDrivenPatternFeatureData)d).AccessSelections(m, null); }
+            public bool Apri(object d, IModelDoc2 m) { return ((ICurveDrivenPatternFeatureData)d).AccessSelections(m, null); }
             public void Chiudi(object d) { ((ICurveDrivenPatternFeatureData)d).ReleaseSelectionAccess(); }
             public object Semi(object d) { return ((ICurveDrivenPatternFeatureData)d).PatternFeatureArray; }
             // E LA GUIDATA DA CURVA (revisione di Z-C21.2): Dir2Specified.html,
@@ -452,10 +475,10 @@ namespace Riscontro.Disegno
             perche = null;
             object grezzo;
             try { grezzo = ripetizione.GetDefinition(); }
-            catch (Exception ex) { perche = "non riesco a leggerne la definizione: " + ex.Message; return null; }
+            catch (Exception ex) { perche = "I cannot read its definition: " + ex.Message; return null; }
             if (grezzo == null)
             {
-                perche = "SOLIDWORKS non me ne da' la definizione.";
+                perche = "SOLIDWORKS gives no definition for it.";
                 return null;
             }
 
@@ -463,17 +486,40 @@ namespace Riscontro.Disegno
             else if (grezzo is ICircularPatternFeatureData) porta = new SaltaCircolare();
             else if (grezzo is ICurveDrivenPatternFeatureData) porta = new SaltaCurva();
 
-            if (porta == null)
-            {
-                // LO SPECCHIO NON HA COPIE NUMERATE, e lo si dice invece di
-                // rispondere «tipo sconosciuto»: e' l'errore che uno fa.
-                perche =
-                    "non e' una ripetizione con le copie numerate. Le operazioni da cui " +
-                    "si possono togliere copie sono «ripeti_lineare» e «ripeti_circolare». " +
-                    "Uno specchio ha una copia sola e si toglie cancellandolo.";
-                return null;
-            }
-            return grezzo;
+            if (porta == null) perche = NotANumberedPattern(grezzo is IFillPatternFeatureData, grezzo is ITablePatternFeatureData);
+            return porta == null ? null : grezzo;
+        }
+
+        /// <summary>
+        /// Why the copies of this pattern are not removed here, by family
+        /// (Z-C21.8, finding C7-3). The refusal stays right; what it said was
+        /// wrong. «Not a pattern with numbered copies» was said of every family
+        /// but linear, circular and curve-driven, and a FILL pattern and a
+        /// TABLE pattern do skip instances: IFillPatternFeatureData~SkippedItemArray.html,
+        /// «contains the (row_id, column_id) of each pattern instance to skip»,
+        /// and ITablePatternFeatureData~SkippedItemArray.html, «the skipped items
+        /// for this table-driven pattern feature». They are not numbered as one
+        /// row of copies, and a copy number is not translated into their
+        /// positions here. The derived pattern also has the array, but it is an
+        /// assembly pattern and sopprimi_istanza runs on parts (DocumentoRichiesto
+        /// «parte»), so it is not named. Kept apart from the document so that
+        /// Prove.Contratti can call it without SOLIDWORKS.
+        /// </summary>
+        internal static string NotANumberedPattern(bool fill, bool table)
+        {
+            const string instead =
+                " Copies are removed here from «ripeti_lineare» and «ripeti_circolare» patterns " +
+                "(and curve-driven ones), whose copies are counted 1, 2, 3 along one row.";
+            if (fill)
+                return "it is a FILL pattern: SOLIDWORKS skips its instances by (row, column), not by one copy " +
+                       "number, and I do not translate a copy number into a row and a column." + instead +
+                       " Remove the instance of the fill pattern by hand.";
+            if (table)
+                return "it is a TABLE-driven pattern: its instances are the rows of its table, not copies " +
+                       "counted along one row." + instead + " Remove the row of the table by hand.";
+            return "it is not a pattern with numbered copies: patterns driven by a sketch, a chain or a " +
+                   "dimension keep no list of skipped instances, and a mirror has one copy only, removed by " +
+                   "deleting it." + instead;
         }
 
         /// <summary>

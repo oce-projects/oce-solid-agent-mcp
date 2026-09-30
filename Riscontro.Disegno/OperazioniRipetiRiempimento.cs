@@ -124,14 +124,21 @@ namespace Riscontro.Disegno
             // reference»); la sonda A2 del 28/9/2026 dice NULL senza di lei, e
             // senza nessun messaggio. Un rifiuto qui costa zero; un NULL dopo aver
             // selezionato mezzo pezzo costa un turno a indovinare.
+            //
+            // NOT «AN AXIS MADE WITH crea_asse» (Z-C21.9, finding N62). The
+            // sentence sent the caller to crea_asse, whose axis on a hole runs
+            // THROUGH the face of the hole, not along it (the catalogue says so
+            // for crea_asse itself): the check below («the direction does not lie
+            // in the plane of the boundary face») then refused it, 90 degrees
+            // out, and a turn was lost. The kind of axis that works is named.
             if (!HaRiferimento(a, "asse_rif") && string.IsNullOrEmpty(Str(a, "asse_uid", "")))
                 return Fallito(
-                    "Manca la direzione: senza una direzione la ripetizione a riempimento non " +
-                    "nasce. La guida API la dice facoltativa, ma misurato su SOLIDWORKS 29.5.1 " +
-                    "(28/9/2026) senza lo spigolo di direzione SOLIDWORKS risponde vuoto e non " +
-                    "dice perche'. Indica in «asse_uid» uno spigolo dritto della faccia di " +
-                    "contorno (nello stato «E1», «E2»...), per esempio il suo bordo lungo, " +
-                    "oppure in «asse_rif» un asse fatto con «crea_asse».");
+                    "The direction is missing: without a direction the fill pattern is not born. The API guide " +
+                    "calls it optional, but measured on SOLIDWORKS 29.5.1 (28/9/2026) without the direction edge " +
+                    "SOLIDWORKS answers nothing and says nothing. Give in «asse_uid» a straight edge that runs " +
+                    "along the boundary face (in the state «E1», «E2»...), for example its long edge, or in " +
+                    "«asse_rif» an axis that lies along that face. The axis of a hole drilled into the face does " +
+                    "not do: it runs across the face, and a direction that leaves the face is refused.");
 
             // ── LA FACCIA DI CONTORNO, E DEVE ESSERE PIANA ──
             string facciaUid = Str(a, "faccia_uid", "");
@@ -160,12 +167,17 @@ namespace Riscontro.Disegno
             {
                 modello.ClearSelection2(true);
 
-                // 1. LA DIREZIONE PASSA DAL SUO AIUTANTE, che controlla che lo
-                //    spigolo sia dritto e che sia ancora quello (firma, E19) — la
-                //    stessa difesa di «ripeti_lineare». Poi la si rilegge dalla
-                //    selezione e si ricomincia: l'ordine dell'esempio e della
-                //    sonda A e' lavorazione, direzione, contorno, e l'aiutante con
-                //    la marca 1 seleziona da capo invece di aggiungere.
+                // 1. THE DIRECTION GOES THROUGH ITS HELPER, which checks that the
+                //    edge is straight and still the same one (signature, E19), the
+                //    same defence as «ripeti_lineare». Then it is read back from
+                //    the selection and the selection starts again: the order of
+                //    the example and of probe A is feature, direction, boundary.
+                //    The direction is the ONLY thing selected here because this
+                //    call passes append: false, not because of mark 1 (Z-C21.9,
+                //    finding N65: this said «the helper with mark 1 selects from
+                //    scratch», the old signature). With append: true,
+                //    DirezioneSelezionataPerRiempimento, which reads
+                //    GetSelectedObject6(1), would read another object.
                 if (!SelezionaAsse(modello, a, "asse", stato, SelectionMarks.FillPatternDirection, append: false, out errore))
                     return Fallito("Direzione: " + errore);
                 object direzione = DirezioneSelezionataPerRiempimento(modello);
@@ -479,12 +491,16 @@ namespace Riscontro.Disegno
             if (lavorazioni < 0 || _featureAllInizioDelPasso < 0)
                 return " L'ho tolta, ma non ho potuto ricontare l'albero per controllare che il " +
                        "pezzo sia com'era: guardalo.";
-            if (lavorazioni > _featureAllInizioDelPasso) return resta;
+            // Removed by DeleteSelection2: from here the pattern is gone, and
+            // «still in the part» would be false (Z-C21.9, finding C9-6).
+            if (lavorazioni > _featureAllInizioDelPasso)
+                return RemovedButTreeLonger(lavorazioni - _featureAllInizioDelPasso);
             double? volumeDopo = VolumeMm3(modello);
             if (volumePrima == null || volumeDopo == null)
                 return " L'ho tolta, ma non ho potuto rimisurare il volume per controllare che il " +
                        "pezzo sia com'era: guardalo.";
-            if (Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.01) return resta;
+            if (Math.Abs(volumeDopo.GetValueOrDefault() - volumePrima.GetValueOrDefault()) > 0.01)
+                return RemovedButVolumeChanged(volumeDopo.GetValueOrDefault(), volumePrima.GetValueOrDefault());
             return " L'ho tolta: il pezzo e' com'era prima di questo passo.";
         }
     }

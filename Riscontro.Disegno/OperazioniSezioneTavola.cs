@@ -186,6 +186,10 @@ namespace Riscontro.Disegno
             // ── LA LINEA, SULLO SCHIZZO DEL FOGLIO ──────────────────────
             try { disegno.EditSheet(); } catch { }
 
+            // The segments of the sheet sketch before the line, so that a line
+            // left behind by a refusal can be removed and the removal checked
+            // (Z-C21.8, finding M41).
+            int segmentsBefore = SheetSketchSegmentCount(disegno);
             ISketchSegment linea = null;
             try
             {
@@ -207,20 +211,21 @@ namespace Riscontro.Disegno
             try { modello.SketchManager.InsertSketch(true); } catch { }
 
             bool presa = false;
+            string selectError = null;
             try
             {
                 modello.ClearSelection2(true);
                 presa = linea.Select4(false, null);
             }
-            catch (Exception ex)
-            {
-                return Fallito("Non sono riuscito a selezionare la linea di taglio: " + ex.Message);
-            }
+            catch (Exception ex) { selectError = ex.Message; }
             if (!presa)
                 return Fallito(
-                    "La linea di taglio c'e' ma non si lascia selezionare, e " +
-                    "«CreateSectionViewAt5» prende il taglio dalla selezione: senza, " +
-                    "farebbe qualcosa di diverso da quello che hai chiesto.");
+                    (selectError != null
+                        ? "I could not select the cutting line (" + selectError + ")"
+                        : "The cutting line is there but does not let itself be selected") +
+                    ", and CreateSectionViewAt5 takes the cut from the selection: without it, it would do " +
+                    "something other than what you asked" +
+                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(modello, disegno, linea, segmentsBefore), "cutting line"));
 
             // ── LA SEZIONE, A FIANCO ────────────────────────────────────
             double xSezione, ySezione;
@@ -261,17 +266,33 @@ namespace Riscontro.Disegno
 
             if (visteDopo <= vistePrima)
                 return Fallito(
-                    "Nessuna vista in piu': la sezione NON e' nata (erano " + vistePrima +
-                    ", sono " + visteDopo + "). «CreateSectionViewAt5» " +
-                    (esplosa != null ? "e' andata in errore: " + esplosa
-                                     : nata == null ? "non ha risposto un oggetto"
-                                                    : "ha risposto un oggetto") + ".");
+                    "No view more: the section was NOT born (there were " + vistePrima +
+                    ", there are " + visteDopo + "). CreateSectionViewAt5 " +
+                    (esplosa != null ? "failed: " + esplosa
+                                     : nata == null ? "returned no object"
+                                                    : "returned an object") +
+                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(modello, disegno, linea, segmentsBefore), "cutting line"));
+
+            // THE SECTION IS THE VIEW CreateSectionViewAt5 RETURNS (Z-C21.8, finding
+            // M41). CreateSectionViewAt5.html, Return Value: «Section view». Until
+            // library 0.144.0 the bridge read the LAST view of the chain instead,
+            // which is the new one only as long as SOLIDWORKS appends it there. The
+            // count of views stays the check that something was born; the last
+            // view is only the fallback when the call returned no view, and the
+            // answer says which one was read.
+            IView sectionView = nata as IView;
+            string viewReadFrom = "returned by CreateSectionViewAt5";
+            if (sectionView == null)
+            {
+                sectionView = ultima;
+                viewReadFrom = "last view of the sheet (CreateSectionViewAt5 returned no view)";
+            }
 
             string nomeSezione = "";
             int tipoSezione = -1;
             int tratteggi = -1;
-            try { nomeSezione = ultima.GetName2() ?? ""; } catch { }
-            try { tipoSezione = ultima.Type; } catch { }
+            try { nomeSezione = sectionView.GetName2() ?? ""; } catch { }
+            try { tipoSezione = sectionView.Type; } catch { }
             // ── IL CONTATORE GIUSTO E' `GetFaceHatchCount` ──────────────
             //
             // La voce GT4 prescriveva `GetSolidHatchCount() > 0`, e il
@@ -296,13 +317,13 @@ namespace Riscontro.Disegno
             // appoggiato al contatore sbagliato e' una guardia che dice
             // sempre di no, ed e' indistinguibile da una che funziona finche'
             // non la si usa.*
-            try { tratteggi = ultima.GetFaceHatchCount(); } catch { }
+            try { tratteggi = sectionView.GetFaceHatchCount(); } catch { }
 
             // L'altro si legge lo stesso e si riporta: vale zero su una
             // sezione buona, e averlo accanto e' cio' che impedisce a
             // qualcuno di riprovarci fra sei mesi.
             int solidi = -1;
-            try { int q; ultima.GetSolidHatchCount(out q); solidi = q; } catch { }
+            try { int q; sectionView.GetSolidHatchCount(out q); solidi = q; } catch { }
 
             // ── IL TRATTEGGIO, E QUI SI FALLISCE ────────────────────────
             //
@@ -311,7 +332,7 @@ namespace Riscontro.Disegno
             // conta come vista, e non mostra niente.
             // LA VISTA VUOTA SI TOGLIE (revisione del 26/9/2026): restando, la sua
             // lettera «A» faceva rifiutare il rimedio che il messaggio stesso indica.
-            bool vuotaTolta = tratteggi == 0 && TogliLaVista(modello, nomeSezione);
+            bool vuotaTolta = tratteggi == 0 && RemoveNewView(modello, nomeSezione);
             if (tratteggi == 0)
                 return Fallito(
                     (vuotaTolta ? "Ho tolto la vista «" + nomeSezione + "»: " : "") +
@@ -325,10 +346,11 @@ namespace Riscontro.Disegno
                     "Sposta il taglio con «a_mm».");
 
             // LA LETTERA EFFETTIVA, riletta dalla vista (Z-C13).
-            string letteraLetta = LetteraDellaVista(ultima);
+            string letteraLetta = LetteraDellaVista(sectionView);
             var fuori = new Dictionary<string, object>
             {
                 ["etichetta_riletta"] = letteraLetta,
+                ["view_read_from"] = viewReadFrom,
                 ["vista_sezionata"] = nomeBersaglio,
                 ["viste_prima"] = vistePrima,
                 ["viste_dopo"] = visteDopo,
@@ -368,6 +390,60 @@ namespace Riscontro.Disegno
             _log("[agente] sezione «" + nomeSezione + "» da «" + nomeBersaglio + "»: " +
                  tratteggi + " tratteggi, viste " + vistePrima + " -> " + visteDopo);
             return SenzaFeature(fuori);
+        }
+
+        /// <summary>
+        /// How many segments the sketch of the sheet has (the first «view» of
+        /// the drawing IS the sheet, see the header), or -1 when it cannot be
+        /// read. The cutting line of sezione_in_tavola and the circle of
+        /// dettaglio_in_tavola are drawn there.
+        /// </summary>
+        private static int SheetSketchSegmentCount(IDrawingDoc drawing)
+        {
+            try
+            {
+                var sketch = (drawing.GetFirstView() as IView)?.GetSketch() as ISketch;
+                if (sketch == null) return -1;
+                var segments = sketch.GetSketchSegments() as object[];
+                return segments == null ? 0 : segments.Length;   // ZERO-E-ZERO: null is a sheet sketch with no segment
+            }
+            catch { return -1; }
+        }
+
+        /// <summary>
+        /// Removes a segment this operation drew on the sheet sketch and then did
+        /// not use (Z-C21.8, finding M41: the cutting line or the detail circle
+        /// was left on the sheet by every refusal after it was drawn). True only
+        /// when the sheet sketch, counted again, is back to
+        /// <paramref name="segmentsBefore"/>; DeleteSelection2 and not
+        /// EditDelete, which can open a confirmation window.
+        /// </summary>
+        private static bool RemoveSheetSketchSegment(IModelDoc2 model, IDrawingDoc drawing, ISketchSegment segment, int segmentsBefore)
+        {
+            if (segment == null || segmentsBefore < 0) return false;
+            // Already gone (taken along by a view removed first): the count says so.
+            if (SheetSketchSegmentCount(drawing) == segmentsBefore) return true;
+            bool deleted = false;
+            try
+            {
+                model.ClearSelection2(true);
+                if (segment.Select4(false, null))
+                    deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
+            }
+            catch { }
+            if (!deleted) return false;
+            int now = SheetSketchSegmentCount(drawing);
+            return now >= 0 && now == segmentsBefore;
+        }
+
+        /// <summary>The end of a refusal that removed the segment it drew, or tried to.</summary>
+        private static string SheetLineRemovedOrNot(bool removed, string what)
+        {
+            return removed
+                ? ". I removed the " + what + " I had drawn."
+                : ". I could not confirm that the " + what + " I drew is gone: look at the sheet and, if it is " +
+                  "there, remove it — " + Frasi.CosiSiRitira + ".";
         }
     }
 }

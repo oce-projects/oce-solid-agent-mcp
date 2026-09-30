@@ -28,6 +28,104 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.8 and Z-C21.9 (branch z-c21-8-9)
+
+**Returns and messages (TODO entry Z-C21.8), and the catalogue, comments and RAG
+notes that said the wrong thing (Z-C21.9), with the findings the audit rounds
+Z-C21.10 and Z-C21.12 assigned to them and the NOT-REAL findings of the Z-C21.3
+probes.** Built on bridge 0.120.0 / library 0.144.0; no version bump yet. **The
+bench has NOT run on this branch** (no SOLIDWORKS during the work): the four new
+bench cases and the two changed ones below are unrun, and `Prove.Contratti` is
+green except the two bench-freshness checks. Every behaviour change has a bench
+case or a contract test that is red on 0.144.0.
+
+- **Export and save warnings (L13-7).** The note that `ErrorCodeDecoder` had no
+  callers was stale (`SaveErrorNames` already decoded the SaveAs3 Errors). What was
+  missing is now there: the Warnings mask is decoded by `swFileSaveWarning_e` name
+  on STL, STEP/IGES, `esporta_pdf` and `salva_documento`; the answers carry
+  `save_warnings` (null for AP242, whose call has no mask) and `save_warnings_note`
+  when the model needed a rebuild, had rebuild errors or had views needing an update;
+  failure messages give the names next to the raw codes.
+- **User preferences put back only as read (N17).** `UserPreferenceSnapshot`
+  replaces the fixed 0/false defaults of the STL and exchange exports: only
+  preferences actually read are written back, the Set answers are read, toggles are
+  read back, and `preferences_not_restored` names any that did not go back
+  (swSTLQuality was written as 0, out of its 1..3 range, after a failed read).
+- **Assembly returns (L11-7, M39, Select4 in `accoppia`, N18, N38).** The component
+  mirror reads its rebuild error and removes a mirror born in error; `bollatura`
+  refuses before AutoBalloon5 when the view cannot be selected and reports
+  `balloons_returned` / `balloons_count_note`; `accoppia` refuses when a face cannot
+  be selected, without calling AddMate5; `verifica_interferenze` reads its three
+  settings back (refusing on a difference), leaves suppressed components out of the
+  count, and counts POSSIBLE interferences apart (`certain_interferences`,
+  `possible_interferences`). Open: when SOLIDWORKS 2021 flags an interference as
+  possible was never measured.
+- **Weldment returns (N15, N41, N30, N19, N22, N69).** `distinta_taglio` reads
+  SetAutomaticCutList, SetAutomaticUpdate and UpdateCutList, checks every cut-list
+  item against the bodies of its folder (QUANTITY, equal volumes, total bodies) as
+  warnings, and refuses a cut list that is not automatic. A refusal removes only
+  the weldment feature this step added (never features picked by new name, which
+  could delete the renamed solid-bodies folder) and says whether IsWeldment reads
+  false again. `taglia_membri` refuses an end condition that is not one of the
+  four, before touching the part (case
+  `saldature/the_trim_refuses_an_unknown_end_condition`). The gusset null-path
+  message no longer blames geometry; three comments now say library 0.139.0.
+- **Drawing returns (L13-6, L16-1, M38, M40, M41, N47, N80).** `esporta_pdf` reads
+  the SetSheets answer and refuses before writing; the page counter
+  (`CountPdfPages`) answers -1, not 0, when it cannot count, and
+  `PdfPageCountRefusal` refuses both an uncounted and a wrong count. The weld symbol
+  is refused with fewer than two texts; the gtol frame reads its Ø back
+  (`diameter_read`, case `tavola/the_position_frame_reads_its_diameter_back`); every
+  removal (view, annotation, sheet sketch segment) is said done only after a
+  recount. The section and the detail read the view the call returned
+  (`view_read_from`) and remove the line or circle they drew on a refusal. A broken
+  walk over the drawing's dimensions answers null, not a partial count; a dimension
+  born without its object is kept and listed, and no longer triggers a second
+  diameter dimension on a hole. Residual: the same `q == null || NonCresciuta`
+  pattern in `OperazioniTondoTavola.cs`.
+- **Machining and anchor returns (L5-5, L5-7, L12-9, L17-8, M24, M35, M36, M37,
+  M42, M43, N16, N21, N49, N53, N56, C7-3, C9-6).** AccessSelections answers are
+  read; the tolerance decimals are set and read back on every displayed dimension
+  (`precision_status` reports 1, 2 and 4); ClosestDistance -1 is refused; Get6
+  NotPresent is skipped; `scrivi_proprieta` compares the written text with ValOut
+  (`resolved_value`); the picture placement is read back to 0.01 mm; the edge
+  fillet and chamfer refuse an unchanged volume (`material_change_mm3`); «put back»
+  and «nothing touched» are said only after a reread in `cambia_estrusione`,
+  `tolleranza_quota`, `riordina_lavorazione` and `sopprimi_istanza`; the mass sums
+  every body or fails; a defect check that cannot be read is not «sound»; the flat
+  pattern suppression answers are reported (`flat_pattern_problem`); direct
+  sketch-point casts are gone; all seven constrained states are named; a removed
+  feature is no longer said to be «still in the part».
+- **Catalogue text (S15, S16, L1-3, N4, N12, N44, N62, N64, N81 and the texts of
+  the items above).** `accoppia` directions are those of the part's own file;
+  `sostituisci_componente` and `inserisci_componente` no longer promise a
+  configuration they do not honour; the extrusions say they merge with bodies they
+  touch; `tappo_estremita` says that its gap is the side gap, not a depth, and that
+  its chamfer is ignored today; `loft_fra_due_cerchi` takes a positive distance only; `quota_in_tavola`
+  names its overlap fields and gives one hole callout per diameter AND depth;
+  `raccordo_faccia` describes its hand calculation as the check it is;
+  `ripeti_riempimento` asks for an axis that lies along the face.
+- **Comments that said the wrong thing, and NOT-REAL findings closed with the probe
+  numbers (L2-1, L4-1, L7-2, L10-7, L14-1, L15-2, L17-5, C3-1, C3-4, C4-4, C6-2,
+  L9-6, L11-4, L12-3, C3-6, M16, M33, L7-5, N10, N60, N65, N71, N72, N74).** Each
+  comment now cites the measure (for example N10: every Flip=false variant ends at
+  s=+30 from +90 and from -110; L9-6: ConnectedSegmentsOption 1 and 2 identical on
+  the round tube in every scene). L7-5 and M16 also get a bench case each
+  (`ripeti/the_linear_pattern_follows_a_reference_axis`,
+  `ripeti/the_circular_pattern_turns_around_a_straight_edge`).
+- **Two historical lines of this file corrected in place, marked:** the gusset entry
+  of 0.115.0 said 0.138.0 (N69), and the UseGlobal note of 0.53.0 claimed a measure
+  that could not tell the branches apart (L8-3).
+- **Contracts.** New groups `Zc2189WeldAssemblyContract` (28 checks),
+  `Zc2189DrawingContract` (12), `Zc2189MachiningContract` (24): 610 checks in all.
+  `ProveIRifiuti` learned the English imperatives of the rewritten refusals: floor
+  217 -> 230 (with the same detector HEAD counts 223, so +7 is this branch). The
+  frozen obsolete and undecided counts only went down: the tolerance limits are read
+  in one helper instead of three call sites, and nullable `.Value` became
+  `GetValueOrDefault()` on the new lines.
+
+---
+
 ## 0.120.0 — 29 September 2026 · library 0.144.0
 
 **What the online research of 29 September 2026 decided (TODO entry Z-C21.13, RAG
@@ -819,7 +917,8 @@ there.
   arguments as its twin: the difference is the part, and it is declared (see
   the bench entry below) instead of carried by a dummy `distanza_mm: 0`.
 - **`fazzoletto` (weldment gusset) is back in the catalogue, measured** (entry
-  GP20). Until library 0.138.0 it never created a gusset: it passed
+  GP20). Until library 0.139.0 (this line said 0.138.0 until Z-C21.9, finding
+  N69: the fix is in 0.140.0) it never created a gusset: it passed
   `InsertGussetFeature3` a polygon profile with both short sides at zero
   (`ProfileD3 = ProfileD4 = 0`) and no selection mark, and SOLIDWORKS returned
   null without a reason. The API help (InsertGussetFeature3 Remarks: "select two
@@ -5757,6 +5856,14 @@ non lo dice.
 
 `UseGlobal` provato `true` e `false`: stessa trasformazione, numero per numero.
 Non si espone.
+
+> **Rectified in Z-C21.9 (finding L8-3):** that measure could not tell the two
+> branches apart. All three point sets had P1->P2 along the global X axis, and
+> there the two coincide by construction. IModelDoc2~CreatePlaneFixed2.html,
+> Remarks: with `true` the plane is not reoriented, its own X axis is turned to
+> the projected global X. So the normal is the same either way and the plane's
+> X axis is not; nothing in the catalogue can see that yet (comment in
+> `OperazioniPiani.cs`).
 
 **Le altre due parti di GP9 restano aperte, con la ragione scritta**: nessuna
 operazione del catalogo consuma un sistema di coordinate o un punto di

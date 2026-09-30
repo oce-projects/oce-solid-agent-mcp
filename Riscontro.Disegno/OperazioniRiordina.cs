@@ -68,6 +68,32 @@ namespace Riscontro.Disegno
             catch { return -1; }
         }
 
+        /// <summary>
+        /// What differs between the tree read before a move and the tree read
+        /// now, in words, or null when it is the same (Z-C21.8, finding M42): the
+        /// order of the features and the volume. A volume that cannot be read,
+        /// before or now, is not «the same»: the sentence that says nothing
+        /// changed needs both. Kept apart from the document so that
+        /// Prove.Contratti can call it without SOLIDWORKS.
+        /// </summary>
+        internal static string TreeReadBackFault(
+            IList<string> orderBefore, IList<string> orderNow, double? volumeBefore, double? volumeNow)
+        {
+            var off = new List<string>();
+            bool sameOrder = orderBefore != null && orderNow != null && orderBefore.Count == orderNow.Count;
+            for (int i = 0; sameOrder && i < orderBefore.Count; i++)
+                if (!string.Equals(orderBefore[i], orderNow[i], StringComparison.Ordinal)) sameOrder = false;
+            if (!sameOrder)
+                off.Add("the order was «" + (orderBefore == null ? "not read" : string.Join(", ", orderBefore)) +
+                        "» and is «" + (orderNow == null ? "not read" : string.Join(", ", orderNow)) + "»");
+            if (volumeBefore == null || volumeNow == null)
+                off.Add("the volume could not be read " + (volumeBefore == null ? "before" : "now"));
+            else if (Math.Abs(volumeBefore.GetValueOrDefault() - volumeNow.GetValueOrDefault()) >= 0.01)
+                off.Add("the volume was " + volumeBefore.GetValueOrDefault().ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+                        " mm3 and is " + volumeNow.GetValueOrDefault().ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+            return off.Count == 0 ? null : string.Join("; ", off);
+        }
+
         private Esito RiordinaLavorazione(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
             if (!(modello is IPartDoc))
@@ -112,10 +138,21 @@ namespace Riscontro.Disegno
             }
             catch (Exception ex) { return Fallito("Lo spostamento non e' riuscito: " + ex.Message); }
             if (!fatto)
+            {
+                // «NOTHING TOUCHED» IS READ BACK FIRST (Z-C21.8, finding M42): the
+                // order of the tree and the volume, against the ones read before
+                // the call. Measured on 27/9/2026 that a refused move touches
+                // nothing, and the sentence stays for that case only.
+                string changed = TreeReadBackFault(ordinePrima, OrdineDelleLavorazioni(modello), volumePrima, VolumeMm3(modello));
+                if (changed != null)
+                    return Fallito("SOLIDWORKS did not move «" + nomeF + "» " + (dove == "prima" ? "before" : "after") + " «" + nomeG +
+                                   "» (ReorderFeature answered false), and reading the part back it is not as it was: " + changed +
+                                   ". Look at the tree, and undo the step (" + Frasi.CosiSiRitira + ").");
                 return Fallito("SOLIDWORKS non sposta «" + nomeF + "» " + dove + " di «" + nomeG + "» (misurato: succede " +
                                "quando la lavorazione dipende da una che verrebbe dopo, per esempio un foro sulla " +
                                "faccia di un'estrusione messo prima dell'estrusione). Non ho toccato niente: spostala " +
                                "rispetto a una lavorazione che viene dopo quelle da cui dipende.");
+            }
             try { modello.ForceRebuild3(false); } catch { }
             int erroriDopo = LavorazioniInErrore(modello);
             if (erroriPrima >= 0 && erroriDopo > erroriPrima)
@@ -129,9 +166,27 @@ namespace Riscontro.Disegno
                     modello.ForceRebuild3(false);
                 }
                 catch { }
+                // «PUT BACK» IS SAID AFTER READING IT BACK (Z-C21.8, finding
+                // M42): ReorderFeature answering true for the move back is not
+                // the tree as it was. The order, the volume and the features in
+                // error are read again.
+                string backFault = null;
+                if (rimessa)
+                {
+                    backFault = TreeReadBackFault(ordinePrima, OrdineDelleLavorazioni(modello), volumePrima, VolumeMm3(modello));
+                    int errorsNow = LavorazioniInErrore(modello);
+                    if (backFault == null && errorsNow != erroriPrima)
+                        backFault = "features in error: " + (errorsNow < 0 ? "not counted" : errorsNow.ToString()) +
+                                    " instead of " + erroriPrima;
+                }
+                string tail = !rimessa
+                    ? "Non sono riuscito a rimetterla: " + Frasi.CosiSiRitira + "."
+                    : backFault == null
+                        ? "L'ho rimessa dov'era."
+                        : "I moved it back, but reading the part back it is not as it was: " + backFault +
+                          ". Undo the step (" + Frasi.CosiSiRitira + ").";
                 return Fallito("Spostata " + dove + " di «" + nomeG + "», «" + nomeF + "» ha rotto " + (erroriDopo - erroriPrima) +
-                               " lavorazioni (" + erroriDopo + " in errore invece di " + erroriPrima + "). " +
-                               (rimessa ? "L'ho rimessa dov'era." : "Non sono riuscito a rimetterla: " + Frasi.CosiSiRitira + ".") +
+                               " lavorazioni (" + erroriDopo + " in errore invece di " + erroriPrima + "). " + tail +
                                " Di solito una lavorazione a valle si appoggiava a una faccia che adesso non c'e' ancora.");
             }
             var ordineDopo = OrdineDelleLavorazioni(modello);

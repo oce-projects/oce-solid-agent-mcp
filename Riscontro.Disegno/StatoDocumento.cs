@@ -1517,8 +1517,15 @@ namespace Riscontro.Disegno
                     {
                         string valore, risolto;
                         bool eraRisolto, collegata;
-                        cassetto.Get6(nome, false, out valore, out risolto,
-                                      out eraRisolto, out collegata);
+                        // THE RESULT CODE IS READ (Z-C21.8, finding L17-8).
+                        // ICustomPropertyManager~Get6.html: «Result code as
+                        // defined in swCustomInfoGetResult_e». The names come
+                        // from GetNames, so NotPresent should not happen (the
+                        // audit said so, L9-7); if it does, the name is left out
+                        // instead of being written as an empty property.
+                        int esito = cassetto.Get6(nome, false, out valore, out risolto,
+                                                  out eraRisolto, out collegata);
+                        if (esito == (int)swCustomInfoGetResult_e.swCustomInfoGetResult_NotPresent) continue;
                         fuori[nome] = risolto ?? valore ?? "";
                     }
                     catch { }
@@ -2147,9 +2154,11 @@ namespace Riscontro.Disegno
         /// <summary>
         /// La massa del pezzo in kg, o null se non si puo' dire.
         ///
-        /// UseSystemUnits si scrive ESPLICITAMENTE: senza, il valore arriva
-        /// nelle unita' del documento, che sul pezzo di un altro possono
-        /// essere pollici e libbre, e nessuno se ne accorgerebbe.
+        /// UseSystemUnits is written EXPLICITLY (ApiHelpers.NewMassProperty) as
+        /// a statement of the units, not as a fix: IMassProperty~UseSystemUnits.html,
+        /// «The default value is True. Thus, system units (meters, radians, and
+        /// kilograms) are used» (Z-C21.9, finding N74; until library 0.144.0
+        /// this comment said the value would otherwise come in document units).
         /// </summary>
         private static double? Massa(IModelDoc2 modello, List<IBody2> corpi)
         {

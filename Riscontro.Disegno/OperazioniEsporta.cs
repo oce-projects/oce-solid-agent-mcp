@@ -134,6 +134,7 @@ namespace Riscontro.Disegno
 
             // ── 3. LE PREFERENZE: lette, imposte, rimesse ────────────────
             var prima = LeggiPreferenzeStl();
+            List<string> preferencesNotRestored = null;
             string posato = null;
             int errori = 0, avvisi = 0;
             bool ok;
@@ -186,14 +187,15 @@ namespace Riscontro.Disegno
             {
                 // SEMPRE, anche se l'esportazione e' andata male: le
                 // preferenze sono della macchina di chi disegna, e lasciarle
-                // cambiate vuol dire cambiargli il CAD senza dirglielo.
-                RimettiPreferenzeStl(prima);
+                // cambiate vuol dire cambiargli il CAD senza dirglielo. Only
+                // the ones that were read go back (N17).
+                preferencesNotRestored = RestorePreferences(prima);
             }
 
             if (!ok || !File.Exists(posato))
                 return Fallito(
                     "Lo STL non e' stato scritto (codice " + errori + SaveErrorNames(errori) + "). " +
-                    "Il file non c'e': " + posato);
+                    "Il file non c'e': " + posato + SaveWarningsTail(avvisi));
 
             long quantoPesa = new FileInfo(posato).Length;
 
@@ -216,7 +218,13 @@ namespace Riscontro.Disegno
                 ["triangoli_dalla_geometria"] = triangoliDelPezzo >= 0
                     ? (object)triangoliDelPezzo : null,
                 ["verifica"] = giudizio,
+                // L13-7: the Warnings of SaveAs3, decoded, also on a success.
+                ["save_warnings"] = SaveWarningsForAnswer(avvisi),
             };
+            string stlWarningAdvice = SaveWarningsAdvice(avvisi);
+            if (stlWarningAdvice != null) misure["save_warnings_note"] = stlWarningAdvice;
+            string stlPreferencesNote = PreferencesNotRestoredNote(preferencesNotRestored);
+            if (stlPreferencesNote != null) misure["preferences_not_restored"] = stlPreferencesNote;
             if (!stampabile)
                 misure["esportato_comunque"] =
                     "L'hai chiesto tu con «esporta_comunque»: il file c'e' e il pezzo " +
@@ -249,24 +257,124 @@ namespace Riscontro.Disegno
         // LE PREFERENZE STL, lette e rimesse
         // =================================================================
 
-        private sealed class PreferenzeStl
+        /// <summary>
+        /// The user preferences an export changes, as they were READ before it,
+        /// and nothing else (finding N17).
+        ///
+        /// Until library 0.144.0 the snapshot had one field per preference with
+        /// its default value, 0 or false, and a read that threw left that
+        /// default in place: the restore then wrote 0 into swSTLQuality, which is
+        /// out of its range (swSTLQuality_e has Coarse, Fine and Custom, from 1),
+        /// or false into a toggle the user had on. A preference is now written
+        /// back only if its value was read. The answers of the writes are read
+        /// too: ISldWorks~SetUserPreferenceIntegerValue.html, «True if
+        /// UserPreferenceValue is set, false if not»; SetUserPreferenceToggle
+        /// returns nothing (C# «void»), so a toggle is read again with the
+        /// getter. The preferences that did not go back are returned by name,
+        /// for the answer.
+        ///
+        /// No interop type in the members: the getters and setters come in as
+        /// delegates, so Prove.Contratti can exercise it by reflection.
+        /// </summary>
+        internal sealed class UserPreferenceSnapshot
         {
-            public int Qualita;
-            public int Unita;
-            public bool Binario;
-            public bool MostraInfo;
-            public bool NonTraslare;
+            // Preference -> the value read before the export.
+            private readonly Dictionary<int, int> _integers = new Dictionary<int, int>();
+            private readonly Dictionary<int, bool> _toggles = new Dictionary<int, bool>();
+            private readonly Dictionary<int, string> _integerNames = new Dictionary<int, string>();
+            private readonly Dictionary<int, string> _toggleNames = new Dictionary<int, string>();
+
+            /// <summary>Reads one integer preference; a read that throws leaves it out of the restore.</summary>
+            internal void ReadInteger(int preference, string name, Func<int, int> get)
+            {
+                try
+                {
+                    int value = get(preference);
+                    _integers[preference] = value;
+                    _integerNames[preference] = name;
+                }
+                catch { }
+            }
+
+            /// <summary>Reads one toggle; a read that throws leaves it out of the restore.</summary>
+            internal void ReadToggle(int preference, string name, Func<int, bool> get)
+            {
+                try
+                {
+                    bool value = get(preference);
+                    _toggles[preference] = value;
+                    _toggleNames[preference] = name;
+                }
+                catch { }
+            }
+
+            /// <summary>How many preferences were read, and so will be written back.</summary>
+            internal int ReadCount => _integers.Count + _toggles.Count;
+
+            /// <summary>
+            /// Writes back every preference that was read, and only those.
+            /// Returns the names of the ones that did not go back: the integer
+            /// setter answered false or threw, or the toggle does not read back
+            /// as it was.
+            /// </summary>
+            internal List<string> Restore(
+                Func<int, int, bool> setInteger, Action<int, bool> setToggle, Func<int, bool> getToggle)
+            {
+                var notRestored = new List<string>();
+                foreach (int preference in _integers.Keys)
+                {
+                    int before = _integers[preference];
+                    bool set = false;
+                    try { set = setInteger(preference, before); } catch { }
+                    if (!set) notRestored.Add(_integerNames[preference]);
+                }
+                foreach (int preference in _toggles.Keys)
+                {
+                    bool before = _toggles[preference];
+                    bool back = false;
+                    try { setToggle(preference, before); back = getToggle(preference) == before; } catch { }
+                    if (!back) notRestored.Add(_toggleNames[preference]);
+                }
+                return notRestored;
+            }
         }
 
-        private PreferenzeStl LeggiPreferenzeStl()
+        /// <summary>The five STL preferences that ImpostaPreferenzeStl writes, read first (N17).</summary>
+        private UserPreferenceSnapshot LeggiPreferenzeStl()
         {
-            var p = new PreferenzeStl();
-            try { p.Qualita = _sw.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swSTLQuality); } catch { }
-            try { p.Unita = _sw.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swExportStlUnits); } catch { }
-            try { p.Binario = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLBinaryFormat); } catch { }
-            try { p.MostraInfo = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLShowInfoOnSave); } catch { }
-            try { p.NonTraslare = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLDontTranslateToPositive); } catch { }
+            var p = new UserPreferenceSnapshot();
+            foreach (var i in new[] { swUserPreferenceIntegerValue_e.swSTLQuality, swUserPreferenceIntegerValue_e.swExportStlUnits })
+                p.ReadInteger((int)i, i.ToString(), _sw.GetUserPreferenceIntegerValue);
+            foreach (var t in new[]
+            {
+                swUserPreferenceToggle_e.swSTLBinaryFormat,
+                swUserPreferenceToggle_e.swSTLShowInfoOnSave,
+                swUserPreferenceToggle_e.swSTLDontTranslateToPositive,
+            })
+                p.ReadToggle((int)t, t.ToString(), _sw.GetUserPreferenceToggle);
             return p;
+        }
+
+        /// <summary>
+        /// Writes back the preferences of a snapshot through ISldWorks (N17),
+        /// and returns the names of those that did not go back.
+        /// </summary>
+        private List<string> RestorePreferences(UserPreferenceSnapshot snapshot)
+        {
+            if (snapshot == null) return new List<string>();
+            return snapshot.Restore(
+                _sw.SetUserPreferenceIntegerValue, _sw.SetUserPreferenceToggle, _sw.GetUserPreferenceToggle);
+        }
+
+        /// <summary>
+        /// The note for the answer when some preferences of the user did not go
+        /// back after the export (N17), or null when all of them did.
+        /// </summary>
+        internal static string PreferencesNotRestoredNote(List<string> names)
+        {
+            if (names == null || names.Count == 0) return null;
+            return "I could not put back " + string.Join(", ", names) + " as they were before this export: " +
+                   "check them in System Options > Export, they are the user's settings.";
         }
 
         private void ImpostaPreferenzeStl(int qualita, bool binario)
@@ -296,14 +404,53 @@ namespace Riscontro.Disegno
             return names == null ? "" : ": " + names;
         }
 
-        private void RimettiPreferenzeStl(PreferenzeStl p)
+        /// <summary>
+        /// The Warnings mask of a save, for the answer (finding L13-7): the
+        /// swFileSaveWarning_e names through ErrorCodeDecoder, or «none» with
+        /// its reason when the mask is 0, a zero that was read. Until library
+        /// 0.144.0 the warnings of SaveAs3 were never looked at, and the two
+        /// save calls of the drawing gave the raw number or nothing.
+        /// swFileSaveWarning_e.html: «These warnings do not cause the File,
+        /// Save operation to fail. Bitmask.» So they go in the answer of a
+        /// success, and in the message of a failure, never in a refusal of
+        /// their own.
+        /// </summary>
+        internal static string SaveWarningsForAnswer(int mask)
         {
-            if (p == null) return;
-            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swSTLQuality, p.Qualita); } catch { }
-            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swExportStlUnits, p.Unita); } catch { }
-            try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLBinaryFormat, p.Binario); } catch { }
-            try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLShowInfoOnSave, p.MostraInfo); } catch { }
-            try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSTLDontTranslateToPositive, p.NonTraslare); } catch { }
+            return ErrorCodeDecoder.FileSaveWarnings(mask) ?? "none (the Warnings mask of the save is 0)";
+        }
+
+        /// <summary>
+        /// The tail of a failure message with the warnings of the save, or ""
+        /// when the mask is 0 (L13-7).
+        /// </summary>
+        private static string SaveWarningsTail(int mask)
+        {
+            var names = ErrorCodeDecoder.FileSaveWarnings(mask);
+            return names == null ? "" : " Warnings of the save: " + names + ".";
+        }
+
+        /// <summary>
+        /// What a warning of the save means for the file just written, or null
+        /// when none of the warnings says the file may be out of date (L13-7).
+        /// The bits are read by their enum names, never by number:
+        /// swFileSaveWarning_e.html gives swFileSaveWarning_RebuildError 1,
+        /// swFileSaveWarning_NeedsRebuild 2 and swFileSaveWarning_ViewsNeedUpdate
+        /// 4 (the Z-C21.12 audit corrected a note that gave NeedsRebuild as 1).
+        /// </summary>
+        internal static string SaveWarningsAdvice(int mask)
+        {
+            var parts = new List<string>();
+            if ((mask & (int)swFileSaveWarning_e.swFileSaveWarning_RebuildError) != 0)
+                parts.Add("the model had rebuild errors");
+            if ((mask & (int)swFileSaveWarning_e.swFileSaveWarning_NeedsRebuild) != 0)
+                parts.Add("the model needed a rebuild");
+            if ((mask & (int)swFileSaveWarning_e.swFileSaveWarning_ViewsNeedUpdate) != 0)
+                parts.Add("some drawing views needed an update");
+            if (parts.Count == 0) return null;
+            return "SOLIDWORKS warned, while writing the file, that " + string.Join(" and ", parts) +
+                   ": the file may not show the model as it is now. Rebuild it (Ctrl+Q) and write the " +
+                   "file again before sending it.";
         }
 
         // =================================================================
@@ -570,6 +717,7 @@ namespace Riscontro.Disegno
                 return Fallito("La cartella «" + cartella + "» non esiste: non la creo io.");
 
             var prima = LeggiPreferenzeScambio();
+            List<string> preferencesNotRestored = null;
             int errori = 0, avvisi = 0;
             bool ok;
             List<string> igesTogglesNotOff = null;
@@ -616,10 +764,11 @@ namespace Riscontro.Disegno
                     catch (Exception ex) { return Fallito("File non scritto: " + ex.Message); }
                 }
             }
-            finally { RimettiPreferenzeScambio(prima); }
+            finally { preferencesNotRestored = RestorePreferences(prima); }   // only what was read (N17)
 
             if (!ok || !File.Exists(dove))
-                return Fallito("Il file non e' stato scritto (codice " + errori + SaveErrorNames(errori) + "): " + dove);
+                return Fallito("Il file non e' stato scritto (codice " + errori + SaveErrorNames(errori) + "): " + dove +
+                               SaveWarningsTail(avvisi));
 
             long quantoPesa = new FileInfo(dove).Length;
             var misure = new Dictionary<string, object>
@@ -628,6 +777,19 @@ namespace Riscontro.Disegno
                 ["byte"] = quantoPesa,
                 ["verifica"] = giudizio,
             };
+            // L13-7: the Warnings of SaveAs3, decoded, also on a success. The
+            // AP242 door (PublishSTEP242File) has no Warnings mask to read, so
+            // the field is null there, not «none».
+            if (ap242)
+                misure["save_warnings"] = null;
+            else
+            {
+                misure["save_warnings"] = SaveWarningsForAnswer(avvisi);
+                string exchangeWarningAdvice = SaveWarningsAdvice(avvisi);
+                if (exchangeWarningAdvice != null) misure["save_warnings_note"] = exchangeWarningAdvice;
+            }
+            string exchangePreferencesNote = PreferencesNotRestoredNote(preferencesNotRestored);
+            if (exchangePreferencesNote != null) misure["preferences_not_restored"] = exchangePreferencesNote;
 
             if (iges)
             {
@@ -763,19 +925,6 @@ namespace Riscontro.Disegno
             return SenzaFeature(misure);
         }
 
-        private sealed class PreferenzeScambio
-        {
-            public int StepAp;
-            public int IgesRappresentazione;
-            public bool IgesSolidiESuperfici;
-            // N59: the IGES toggles turned off for the export, as the user had
-            // them. Only the ones actually read are here: a toggle whose read
-            // failed is not written back, so that a failed read does not turn
-            // into «off» in the user's profile.
-            public readonly Dictionary<swUserPreferenceToggle_e, bool> IgesTogglesBefore =
-                new Dictionary<swUserPreferenceToggle_e, bool>();
-        }
-
         /// <summary>
         /// The IGES toggles the export turns off (N59), one list for read, set
         /// and restore. FileSaveAsIGESOptions.htm: «IGES wireframe (3D curves)»,
@@ -788,14 +937,21 @@ namespace Riscontro.Disegno
             swUserPreferenceToggle_e.swIGESExportSketchEntities,
         };
 
-        private PreferenzeScambio LeggiPreferenzeScambio()
+        /// <summary>
+        /// The STEP and IGES preferences the export may write, read first (N17).
+        /// The N59 IGES toggles were already restored only when read; the
+        /// protocol, the representation and the solid-and-surface toggle were
+        /// written back as 0 or false after a failed read until library 0.144.0.
+        /// </summary>
+        private UserPreferenceSnapshot LeggiPreferenzeScambio()
         {
-            var p = new PreferenzeScambio();
-            try { p.StepAp = _sw.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP); } catch { }
-            try { p.IgesRappresentazione = _sw.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation); } catch { }
-            try { p.IgesSolidiESuperfici = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface); } catch { }
+            var p = new UserPreferenceSnapshot();
+            foreach (var i in new[] { swUserPreferenceIntegerValue_e.swStepAP, swUserPreferenceIntegerValue_e.swIGESRepresentation })
+                p.ReadInteger((int)i, i.ToString(), _sw.GetUserPreferenceIntegerValue);
+            p.ReadToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface,
+                swUserPreferenceToggle_e.swIGESExportSolidAndSurface.ToString(), _sw.GetUserPreferenceToggle);
             foreach (var t in IgesTogglesTurnedOff)
-                try { p.IgesTogglesBefore[t] = _sw.GetUserPreferenceToggle((int)t); } catch { }
+                p.ReadToggle((int)t, t.ToString(), _sw.GetUserPreferenceToggle);
             return p;
         }
 
@@ -1073,20 +1229,6 @@ namespace Riscontro.Disegno
                 if (on) notOff.Add(t.ToString());
             }
             return notOff;
-        }
-
-        private void RimettiPreferenzeScambio(PreferenzeScambio p)
-        {
-            if (p == null) return;
-            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, p.StepAp); } catch { }
-            try { _sw.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swIGESRepresentation, p.IgesRappresentazione); } catch { }
-            try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swIGESExportSolidAndSurface, p.IgesSolidiESuperfici); } catch { }
-            foreach (var t in IgesTogglesTurnedOff)
-            {
-                bool before;
-                if (!p.IgesTogglesBefore.TryGetValue(t, out before)) continue;   // never read: left alone
-                try { _sw.SetUserPreferenceToggle((int)t, before); } catch { }
-            }
         }
 
         /// <summary>

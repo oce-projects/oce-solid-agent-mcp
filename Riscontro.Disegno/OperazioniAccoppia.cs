@@ -137,8 +137,29 @@ namespace Riscontro.Disegno
             try
             {
                 modello.ClearSelection2(true);
-                (facciaA as IEntity).Select4(true, null);
-                (facciaB as IEntity).Select4(true, null);
+                // THE TWO SELECTIONS ARE READ (Z-C21.8, «Select4 in accoppia»).
+                // IEntity~Select4.html, Return Value: «True if entity is
+                // selected, false if not». Until library 0.144.0 both answers
+                // were dropped, and AddMate5 ran on whatever the selection held:
+                // one face only, or a face left selected by an earlier step or
+                // by hand. The finally below clears the selection on this exit
+                // too.
+                bool selectedA = (facciaA as IEntity).Select4(true, null);
+                bool selectedB = selectedA && (facciaB as IEntity).Select4(true, null);
+                if (!selectedA || !selectedB)
+                    return Fallito(
+                        "I could not select the «" + (selectedA ? versoB : versoA) + "» face of " +
+                        (selectedA ? uidB : uidA) + " (IEntity.Select4 answered false), so AddMate5 was " +
+                        "not called: it would have mated whatever else was selected. Nothing was " +
+                        "changed. Read the assembly state again and ask for the mate once more.");
+                // THE DISTANCE MATE ENDS ON THE SIDE ASKED FOR WITH Flip = false
+                // (finding N10, NOT REAL). The Z-C21.3 probe of N10 (28/9/2026)
+                // mated a 10 mm block at 30 mm starting from above (s = +90 mm)
+                // and from below (s = -110 mm), anti-aligned and aligned, with
+                // mark 0 and with the guide's mark 1: every Flip = false variant
+                // ended at s = +30 mm, the requested side, IMate2.Flipped False;
+                // Flip = true sent it to s = -30 mm. So Flip stays false, and
+                // Transform2 is not reread against the side.
                 mate = assieme.AddMate5(
                     tipo, align, false,
                     Unita.M(distanza), Unita.M(distanza), Unita.M(distanza),
@@ -297,8 +318,12 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// La faccia di un componente che guarda in un verso, in coordinate
-        /// dell'ASSIEME.
+        /// The face of a component that looks in a direction, in the PART's own
+        /// coordinates, not the assembly's: IComponent2.GetBodies3 hands the
+        /// bodies in the space of the part (RAG 82zq: the lid at y 0..4 in the
+        /// part, 5..9 in the assembly), and no Transform2 is applied here yet.
+        /// That is finding M1 (lot Z-C21.5); until then the catalogue says so
+        /// (S16, Z-C21.9).
         ///
         /// Fra piu' facce con lo stesso verso vince **la piu' grande**: e' lo
         /// stesso criterio che lo stato usa per le parti, e su un coperchio o
@@ -358,9 +383,10 @@ namespace Riscontro.Disegno
 
             if (vince == null)
             {
-                perche = "non c'e' nessuna faccia piana che guardi verso «" + verso +
-                         "». Il componente potrebbe essere ruotato rispetto a come lo " +
-                         "immagini: i versi sono quelli dell'ASSIEME, non del pezzo.";
+                perche = "no flat face looks «" + verso +
+                         "». The directions are read on the part's own axes, not the " +
+                         "assembly's: on a rotated component, name the face by the " +
+                         "direction it has in the part file.";
                 return null;
             }
             return vince;

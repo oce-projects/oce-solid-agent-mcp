@@ -423,6 +423,22 @@ namespace Riscontro.Disegno
                     bool visto = false;
                     foreach (var a in attaccati)
                     {
+                        // A NULL ENTITY IS SKIPPED, AND THE COUNT DOES NOT CHANGE
+                        // (Z-C21.3, finding C3-4: null seen, harmless; the filter is
+                        // Z-C21.8). IAnnotation~GetAttachedEntities3.html: «swSelNOTHING
+                        // | NULL (annotation is dangling or unsupported)». The Z-C21.3
+                        // probe of C3-4 (28/9/2026), a dimension on the top
+                        // edge of a block: with the block suppressed, and again with
+                        // it deleted (IsDangling true), GetAttachedEntities3 gave one
+                        // null of type 1, not swSelNOTHING. IsSame(null, edge)
+                        // answered swObjectNotSame, and the orphan count was 1 with
+                        // and without this filter, 0 with the block back. So the
+                        // filter only saves one COM call per visible entity: the
+                        // plain null passed here answered NotSame, while in the same
+                        // probe a null wrapped in a DispatchWrapper threw
+                        // RPC_E_SERVERFAULT, which through the catch below would have
+                        // turned the whole view into «not known».
+                        if (a == null) continue;
                         foreach (var vv in visibili)
                             if (sw.IsSame(a, vv) == (int)swObjectEquality.swObjectSame) { visto = true; break; }
                         if (visto) break;

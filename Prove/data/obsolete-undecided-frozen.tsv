@@ -67,7 +67,6 @@ Riscontro.Disegno/MaterialiSolidWorks.cs|Select	2
 Riscontro.Disegno/MaterialiSolidWorks.cs|Text	1
 Riscontro.Disegno/OperazioniAccoppia.cs|Select	1
 Riscontro.Disegno/OperazioniAccoppia.cs|Value	2
-Riscontro.Disegno/OperazioniAncora.cs|Value	2
 Riscontro.Disegno/OperazioniCambiaEstrusione.cs|Value	2
 Riscontro.Disegno/OperazioniCartiglio.cs|GetText	1
 Riscontro.Disegno/OperazioniCartiglio.cs|Name	1
@@ -110,13 +109,12 @@ Riscontro.Disegno/OperazioniQuoteTavola.cs|Text	2
 Riscontro.Disegno/OperazioniQuoteTavola.cs|Value	17
 Riscontro.Disegno/OperazioniRaccordoFaccia.cs|Value	12
 Riscontro.Disegno/OperazioniRiordina.cs|Value	2
-Riscontro.Disegno/OperazioniRipetiRiempimento.cs|Value	4
+Riscontro.Disegno/OperazioniRipetiRiempimento.cs|Value	2
 Riscontro.Disegno/OperazioniSaldatura.cs|Add	2
 Riscontro.Disegno/OperazioniSaldatura.cs|GetFeature	1
 Riscontro.Disegno/OperazioniSaldatura.cs|Name	1
 Riscontro.Disegno/OperazioniSaldatura.cs|Select	1
-Riscontro.Disegno/OperazioniSaldatura.cs|Select2	1
-Riscontro.Disegno/OperazioniSaldatura.cs|Value	22
+Riscontro.Disegno/OperazioniSaldatura.cs|Value	19
 Riscontro.Disegno/OperazioniSformo.cs|GetBodies2	1
 Riscontro.Disegno/OperazioniSformo.cs|Value	1
 Riscontro.Disegno/OperazioniSostituisci.cs|Value	2
@@ -136,7 +134,7 @@ Riscontro.Disegno/OperazioniTavola.cs|GetFirstDisplayDimension	1
 Riscontro.Disegno/OperazioniTavola.cs|Text	1
 Riscontro.Disegno/OperazioniTesto.cs|Value	4
 Riscontro.Disegno/OperazioniTolleranzaQuota.cs|Text	1
-Riscontro.Disegno/OperazioniTolleranzaQuota.cs|Type	8
+Riscontro.Disegno/OperazioniTolleranzaQuota.cs|Type	6
 Riscontro.Disegno/OperazioniTolleranzaQuota.cs|Value	2
 Riscontro.Disegno/OperazioniTondoTavola.cs|Add	24
 Riscontro.Disegno/OperazioniTondoTavola.cs|Select	2

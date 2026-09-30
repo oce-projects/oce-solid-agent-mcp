@@ -14,13 +14,22 @@ namespace Riscontro.Disegno
     /// Non e' il lavoro quotidiano di un'officina prismatica, ma senza queste
     /// due il catalogo non sa fare niente che non sia dritto.
     ///
-    /// ── IL PROFILO E' UN NUMERO, NON UNO SCHIZZO ──────────────────────
+    /// ── THE PROFILE IS A NUMBER, NOT A SKETCH ─────────────────────────
     ///
-    /// `InsertProtrusionSwept4` ha **`CircularProfile` + `CircularProfileDiameter`**:
-    /// con quelli lo schizzo del profilo non serve, basta il percorso. E' la
-    /// forma giusta per questo progetto — un diametro e' un numero che il
-    /// modello linguistico puo' dire, uno schizzo di profilo sarebbe una cosa
-    /// che non ha modo di indirizzare.
+    /// A circular profile given by its diameter (`CircularProfile` +
+    /// `CircularProfileDiameter`) needs no profile sketch, only the path: a
+    /// diameter is a number the language model can say, a profile sketch is
+    /// something it has no way to point at.
+    ///
+    /// THE CALL IS OBSOLETE, and this is not the form to copy:
+    /// IFeatureManager~InsertProtrusionSwept4.html, Remarks: «SOLIDWORKS 2018
+    /// introduces a new sweep architecture, making this method obsolete. See
+    /// Sweep Features and SweepFeatureData Objects to create this swept-boss or
+    /// base feature.» It stays here only until the migration of finding L2-3
+    /// (lot Z-C21.7): CreateDefinition(swFmSweep) -> ISweepFeatureData with
+    /// the same CircularProfile and CircularProfileDiameter, the path selected
+    /// with mark 4 BEFORE CreateDefinition, and the bench case
+    /// tubo_dritto_area_per_lunghezza unchanged to the seventh digit.
     ///
     /// Per la stessa ragione **il percorso e' un elenco di punti** e non uno
     /// schizzo da nominare: nello stato del documento gli schizzi non hanno un
@@ -240,11 +249,15 @@ namespace Riscontro.Disegno
                 return Fallito(
                     "Servono «diametro1_mm» e «diametro2_mm», tutti e due maggiori di zero. " +
                     "Per una transizione da tondo a punta non c'e' questa operazione.");
+            // N12 (Z-C21.9): the catalogue promised «negative for the other side»
+            // while this refused it as "missing". The catalogue now says what the
+            // code does: greater than zero, on the side the plane faces.
             if (distanza <= 0)
-                return Fallito(
-                    "Manca «distanza_mm»: quanto dista il secondo cerchio dal primo. A " +
-                    "distanza zero i due cerchi sono sullo stesso piano e non c'e' niente " +
-                    "da raccordare.");
+                return Fallito(string.Format(CultureInfo.InvariantCulture,
+                    "«distanza_mm» must be greater than zero (it is {0:0.###}): how far the " +
+                    "second circle is from the first, on the side the chosen plane faces. At " +
+                    "zero both circles lie on the same plane and there is nothing to join; the " +
+                    "other side is not offered.", distanza));
 
             double sfalsa1 = Num(a, "sfalsa1_mm", 0);
             double sfalsa2 = Num(a, "sfalsa2_mm", 0);

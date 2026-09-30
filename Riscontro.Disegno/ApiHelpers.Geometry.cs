@@ -170,8 +170,12 @@ namespace Riscontro.Disegno
         // =====================================================================
 
         /// <summary>
-        /// The outward normal of a PLANAR face, as SOLIDWORKS gives it (not
-        /// normalised), or null if the face is not planar.
+        /// The outward UNIT normal of a PLANAR face, or null if the face is not
+        /// planar. This helper does not re-normalise it: SOLIDWORKS gives it
+        /// already of length 1, IFace2~Normal.html, «Gets the unit normal vector
+        /// for any planar face» (Z-C21.9, finding N71: this line said «not
+        /// normalised» until library 0.144.0). Riferimenti.Normale normalises it
+        /// again, a harmless no-op kept as a defence.
         ///
         /// Guide: IFace2~Normal.html, Remarks: «If the face is not a planar
         /// face, then this property returns 0,0,0.» A zero vector gives a zero
@@ -179,10 +183,15 @@ namespace Riscontro.Disegno
         /// letting the tangent edge of a fillet pass as a sharp edge (C2-1).
         /// Guide: ISurface~IsPlane.html for the test.
         ///
-        /// IFace2.Normal is already the OUTWARD normal of the face (it follows
-        /// the sense in which the face uses its surface); the surface's own
-        /// PlaneParams would point inwards for half the faces of a solid
-        /// (Riferimenti.Normale, where this helper comes from).
+        /// OUTWARD BY THE GUIDE, NOT ONLY BY MEASURE (Z-C21.9, finding L10-7):
+        /// IFace2~FaceInSurfaceSense.html, Remarks, «the underlying surface
+        /// geometry can have an orientation where its normal vector points
+        /// toward or away from the body material. The normal vector of faces,
+        /// however, are directed away from the body material». So IFace2.Normal
+        /// is the OUTWARD normal of the face, while the surface's own PlaneParams
+        /// would point inwards for half the faces of a solid (Riferimenti.Normale,
+        /// where this helper comes from; OperazioniSporgenze measured IFace2.Normal
+        /// leaving the material on six faces out of six, 16/9/2026).
         /// </summary>
         internal static double[] NormalIfPlanar(IFace2 face)
         {

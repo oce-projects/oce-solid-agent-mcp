@@ -153,6 +153,16 @@ namespace Riscontro.Disegno
                 // client dietro. E' la trappola gia' pagata con `AddDimension`
                 // (memoria: «API SolidWorks che aprono finestre»), e da qui non
                 // c'e' nessuno che possa premere OK.
+                //
+                // UNSAVED EDITS ARE NOT LOST (finding L11-4, NOT REAL). The doubt
+                // was that replacing a component whose part, old or new, has
+                // unsaved changes would drop them. The Z-C21.3 probe of L11-4
+                // (28/9/2026) edited the old part (16000 -> 32000 mm3), the new
+                // one (9000 -> 18000), or both, without saving, and called
+                // ReplaceComponents2 as here: true every time, the assembly took
+                // the new part's unsaved volume, and both parts kept their edits
+                // in memory, still dirty (the files on disk untouched). So
+                // nothing is saved first.
                 risposta = assieme.ReplaceComponents2(
                     nuovo, configurazione ?? "", tutte,
                     (int)swReplaceComponentsConfiguration_e.swReplaceComponentsConfiguration_MatchName,

@@ -382,7 +382,25 @@ namespace Riscontro.Disegno
             try
             {
                 modello.ClearSelection2(true);
-                modello.Extension.SelectByID2(vista.GetName2(), "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0);
+                // THE VIEW MUST BE SELECTED, AND THE ANSWER SAYS SO (finding
+                // M39). IDrawingDoc~AutoBalloon5.html, Remarks: «automatically
+                // inserts BOM balloons for bill of materials items in selected
+                // drawing views. If a drawing sheet is selected, BOM balloons are
+                // automatically inserted for all of the drawing views on that
+                // drawing sheet». Until library 0.144.0 the answer of
+                // SelectByID2 was dropped: with the view not selected,
+                // AutoBalloon5 worked on nothing, or on whatever else was
+                // selected, and only the count below noticed.
+                bool viewSelected = modello.Extension.SelectByID2(
+                    vista.GetName2(), "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0);
+                if (!viewSelected)
+                {
+                    modello.ClearSelection2(true);
+                    return Fallito(
+                        "I could not select the view «" + vista.GetName2() + "» (SelectByID2 answered " +
+                        "false), and AutoBalloon5 balloons the SELECTED views only: nothing was changed. " +
+                        "Name the view in «vista» as the drawing state lists it, and ask again.");
+                }
                 var opt = disegno.CreateAutoBalloonOptions() as AutoBalloonOptions;
                 opt.Layout = layout;
                 opt.IgnoreMultiple = true;
@@ -395,15 +413,23 @@ namespace Riscontro.Disegno
             modello.ClearSelection2(true);
             int dopo = PalloncinidellaVista(vista);
             var visibili = ComponentiVisibili(vista);
+            // WHAT AutoBalloon5 RETURNED, COUNTED (M39). IDrawingDoc~AutoBalloon5.html,
+            // Return Value: «Array of INotes». Until library 0.144.0 the array
+            // was kept and never looked at. -1 when no array came back: that is
+            // not «zero balloons», it is an answer that says nothing.
+            int returnedNotes = BalloonNotesReturned(nati);
             var misure = new Dictionary<string, object>
             {
                 ["vista"] = vista.GetName2(),
                 ["palloncini_prima"] = NumeroOppureNull(prima),
                 ["palloncini_dopo"] = NumeroOppureNull(dopo),
                 ["palloncini_messi"] = prima >= 0 && dopo >= 0 ? (object)(dopo - prima) : null,
+                ["balloons_returned"] = NumeroOppureNull(returnedNotes),
                 ["componenti_visibili"] = NumeroOppureNull(visibili),
                 ["numeri"] = NumeriDeiPalloncini(vista).ToArray(),
             };
+            string countNote = BalloonCountNote(returnedNotes, prima, dopo);
+            if (countNote != null) misure["balloons_count_note"] = countNote;
             if (prima < 0 || dopo < 0)
                 return Fallito("Non riesco a contare i palloncini della vista: non so se la bollatura e' nata. Guarda la tavola.");
             if (dopo <= prima)
@@ -523,6 +549,39 @@ namespace Riscontro.Disegno
                 return n;
             }
             catch { return -1; }
+        }
+
+        /// <summary>
+        /// How many notes AutoBalloon5 returned (finding M39): the non-null
+        /// items of its array, or -1 when it returned no array. No interop type
+        /// in the signature, so that Prove.Contratti can call it by reflection.
+        /// </summary>
+        internal static int BalloonNotesReturned(object returned)
+        {
+            var notes = returned as object[];
+            if (notes == null) return -1;
+            int n = 0;
+            foreach (var o in notes) if (o != null) n++;
+            return n;
+        }
+
+        /// <summary>
+        /// The note for the answer when the array AutoBalloon5 returned and the
+        /// balloons counted in the view before and after do not tell the same
+        /// story (M39); null when they agree or when the view could not be
+        /// counted (that case has its own refusal). -1 is «not known».
+        /// </summary>
+        internal static string BalloonCountNote(int returned, int before, int after)
+        {
+            if (before < 0 || after < 0) return null;
+            if (returned < 0)
+                return "AutoBalloon5 returned no array of notes: the balloons placed were counted in the view " +
+                       "instead (" + (after - before) + ").";
+            if (returned != after - before)
+                return "AutoBalloon5 returned " + returned + (returned == 1 ? " note" : " notes") + ", and the " +
+                       "view has " + (after - before) + " balloons more than before: look at the view before " +
+                       "trusting either number.";
+            return null;
         }
 
         private static List<string> NumeriDeiPalloncini(IView vista)

@@ -54,13 +54,19 @@ namespace Riscontro.Disegno
         /// Guide: IFeatureManager~FeatureLinearPattern5.html, «1 to mark Direction 1».
         /// DIVERGES: L7-5 — the table pairs IFeature::Select2 only with marks 4,
         /// 2097152 and 8388608; the axis branch selects an axis FEATURE with
-        /// Select2 and this mark. No bank case uses an axis here (all use an
-        /// edge); measure before relying on it.
+        /// Select2 and this mark. Measured to work (Z-C21.9, L7-5 not real): the
+        /// Z-C21.3 probe of L7-5 and M16 (28/9/2026) made the right pattern with
+        /// an axis of crea_asse selected this way, by identity and by step
+        /// reference, as a row and as a grid (its cases L1, L2, G1, G2); the
+        /// bench case the_linear_pattern_follows_a_reference_axis holds the row. The edge branch (SelectByMark) was the only one the
+        /// bench used before.
         public const int LinearPatternDirection1 = 1;
 
         /// <summary>Direction 2 of a linear pattern (a grid).</summary>
         /// Guide: IFeatureManager~FeatureLinearPattern5.html, «2 to mark Direction 2».
-        /// DIVERGES: L7-5, as for Direction 1.
+        /// DIVERGES: L7-5, as for Direction 1, and measured the same way: the
+        /// probe's grids G1 and G2 took the second axis with Select2 and this
+        /// mark and came out right.
         public const int LinearPatternDirection2 = 2;
 
         /// <summary>The features to pattern.</summary>
@@ -71,6 +77,14 @@ namespace Riscontro.Disegno
 
         /// <summary>The axis of a circular pattern.</summary>
         /// Guide: IFeatureManager~FeatureCircularPattern5.html, «Directly selecting a feature or axis using IFeature::Select2 1 to mark the direction axis».
+        /// DIVERGES: M16 — a straight EDGE as the axis is selected with
+        /// IEntity.SelectByMark and this mark, a way the table does not list.
+        /// Measured to work (Z-C21.9, M16 not real): the Z-C21.3 probe of L7-5
+        /// and M16 (28/9/2026) turned four copies around the
+        /// corner edge of a square hole exactly (its case C1, the bridge's call;
+        /// IEntity.Select4 with this mark too, C3), while SelectByID2 of the edge
+        /// by a point did not select it (C2). The bench case
+        /// the_circular_pattern_turns_around_a_straight_edge holds it.
         public const int CircularPatternAxis = 1;
 
         /// <summary>The features to pattern.</summary>

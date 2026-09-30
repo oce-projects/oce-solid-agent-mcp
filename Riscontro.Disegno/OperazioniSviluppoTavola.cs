@@ -43,6 +43,11 @@ namespace Riscontro.Disegno
             var percorsoSw = PercorsoCanonico(percorsoModello);
             if (percorsoSw == null)
                 return Fallito("«" + percorsoModello + "» non risulta aperto: la vista nascerebbe vuota.");
+            // A part loaded hidden (no window of its own) answers here as well:
+            // the C4-4 probe of 28/9/2026 read, on the object GetOpenDocumentByName
+            // gave for a hidden part, the same IPartDoc, configuration, features,
+            // volume and bodies as on the visible one (the guide's «opened in its
+            // own window» did not matter).
             var pezzo = _sw.GetOpenDocumentByName(percorsoSw) as IModelDoc2;
             if (!(pezzo is IPartDoc))
                 return Fallito("«" + percorsoSw + "» non e' una parte: lo sviluppo e' di una parte di lamiera.");
@@ -77,11 +82,16 @@ namespace Riscontro.Disegno
 
             bool piatta = false;
             try { piatta = vista.IsFlatPatternView(); } catch { }
+            // THE ANSWER OF RemoveNewView IS READ at every refusal below (Z-C21.8,
+            // finding M40): «I removed it» only when the view is no longer in the
+            // drawing, which RemoveNewView checks by reading the views again. Until
+            // library 0.144.0 four of these five refusals said removed whatever
+            // the removal did.
             if (!piatta)
             {
-                TogliLaVista(modello, nome);
-                return Fallito("La vista «" + nome + "» e' nata ma non e' uno sviluppo (IsFlatPatternView falso): " +
-                               "l'ho tolta.");
+                bool removedNotFlat = RemoveNewView(modello, nome);
+                return Fallito("The view «" + nome + "» was born but is not a flat pattern (IsFlatPatternView false)" +
+                               ViewRemovedOrNot(removedNotFlat));
             }
             int pieghe = -1;
             try { pieghe = vista.GetBendLineCount(); } catch { }
@@ -95,8 +105,10 @@ namespace Riscontro.Disegno
             string dove, motivoPosto;
             if (!SviluppoAlSuoPosto(disegno, vista, a.ContainsKey("x_mm") || a.ContainsKey("y_mm"), out dove, out motivoPosto))
             {
-                TogliLaVista(modello, nome);
-                return Fallito(motivoPosto + " Ho tolto la vista.");
+                bool removedNoPlace = RemoveNewView(modello, nome);
+                return Fallito(motivoPosto + (removedNoPlace
+                    ? " I removed the view."
+                    : " Remove the view — " + Frasi.CosiSiRitira + "."));
             }
 
             // ── L'INGOMBRO DAGLI SPIGOLI VISIBILI ────────────────────────────
@@ -124,23 +136,23 @@ namespace Riscontro.Disegno
             misure["dentro_il_foglio"] = true;
             if (ingombro == null)
             {
-                TogliLaVista(modello, nome);
-                return Fallito("La vista dello sviluppo e' nata ma non riesco a misurarne gli spigoli: senza " +
-                               "misura non so se e' lo sviluppo giusto, e l'ho tolta.");
+                bool removedUnmeasured = RemoveNewView(modello, nome);
+                return Fallito("The flat-pattern view was born but I cannot measure its edges: without a measure " +
+                               "I cannot tell whether it is the right flat pattern" + ViewRemovedOrNot(removedUnmeasured));
             }
             if (!double.IsNaN(lungoPezzo) && Math.Abs(ingombro[0] - lungoPezzo) > 0.1)
             {
-                TogliLaVista(modello, nome);
+                bool removedOther = RemoveNewView(modello, nome);
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
-                    "La vista dello sviluppo misura {0:0.###} mm sul lato lungo e lo sviluppo del pezzo " +
-                    "{1:0.###}: non e' lo sviluppo di questo pezzo (o non e' sviluppato), e l'ho tolta.",
-                    ingombro[0], lungoPezzo));
+                    "The flat-pattern view measures {0:0.###} mm on its long side and the flat pattern of the part " +
+                    "{1:0.###} mm: it is not the flat pattern of this part (or the part is not flattened)",
+                    ingombro[0], lungoPezzo) + ViewRemovedOrNot(removedOther));
             }
             if (double.IsNaN(lungoPezzo))
             {
                 // SENZA LO SVILUPPO DEL PEZZO NON C'E' RISCONTRO (revisione del
                 // 26/9/2026): la vista potrebbe essere di un'altra cosa.
-                bool tolta = TogliLaVista(modello, nome);
+                bool tolta = RemoveNewView(modello, nome);
                 return Fallito("Non riesco a misurare lo sviluppo del pezzo (la lavorazione «FlatPattern» non si lascia " +
                                "misurare), e senza non so dire se la vista mostra lo sviluppo giusto. " +
                                (tolta ? "Ho tolto la vista." : "Togli la vista: " + Frasi.CosiSiRitira + "."));
@@ -245,6 +257,17 @@ namespace Riscontro.Disegno
             // La posizione della vista non e' per forza il centro del contorno:
             // si sposta del tanto che serve all'angolo in basso a sinistra.
             try { vista.Position = new[] { p[0] + basso[0] - o[0], p[1] + basso[1] - o[1] }; } catch { }
+            // GetOutline IS READ RIGHT AFTER Position, with no rebuild, and that is
+            // measured (Z-C21.3, finding L14-1, NOT REAL). IView~Position.html
+            // asks for IModelDoc2::EditRebuild3 «to see these changes», which is
+            // about the graphics. The Z-C21.3 probe of L14-1 (28/9/2026), a free
+            // named view moved by (20, 10) mm: the outline read at once had moved
+            // by exactly (20, 10) at both corners, and EditRebuild3 or
+            // GraphicsRedraw2 in between changed nothing. The flat-pattern view is
+            // a free view like that one. A projected view ALIGNED to its parent is
+            // not: asked (20, 20), it moved (0, 20) (same probe). The check below
+            // judges the outline where the view actually is, so even then it
+            // would judge the place it landed in, not the one asked.
             var o2 = vista.GetOutline() as double[];
             string ancora = o2 == null ? "non si legge" : foglio.Tocca(o2[0], o2[1], o2[2], o2[3]);
             if (ancora != null)
@@ -256,12 +279,21 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// The end of a refusal that removed the new view, or tried to (M40):
+        /// «removed» only when RemoveNewView found it gone on a reread.
+        /// </summary>
+        private static string ViewRemovedOrNot(bool removed)
+        {
+            return removed ? ": I removed it." : ": I could not remove it, remove it — " + Frasi.CosiSiRitira + ".";
+        }
+
+        /// <summary>
         /// Toglie una vista appena messa, per nome. `DeleteSelection2` e non
         /// `EditDelete`: la seconda puo' chiedere conferma con una finestra, e
         /// una chiamata COM che aspetta una finestra non torna (vedi
         /// OperazioniSw, «DeleteSelection2 E NON EditDelete»).
         /// </summary>
-        private static bool TogliLaVista(IModelDoc2 disegno, string nome)
+        private static bool RemoveNewView(IModelDoc2 disegno, string nome)
         {
             if (string.IsNullOrEmpty(nome)) return false;
             try

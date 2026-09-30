@@ -300,7 +300,7 @@ namespace Riscontro.Disegno
                 // La prima tavola guardata non quotava i fori: ne' il diametro
                 // ne' la posizione, cioe' proprio cio' che in officina serve di
                 // piu'. Il diametro con il RICHIAMO DEL FORO (`AddHoleCallout2`,
-                // «Ø8 PASSANTE»), uno per diametro, col numero dei fori uguali
+                // «Ø8 PASSANTE»), one per diameter AND depth (QuotaIFori), col numero dei fori uguali
                 // davanti («4× »: il prefisso si aggiunge a quello che c'e', che
                 // e' il simbolo del diametro — sostituirlo lo cancellava,
                 // misurato). La posizione con quote dai due spigoli di
@@ -556,11 +556,16 @@ namespace Riscontro.Disegno
                 // campi fra loro: mettere qui il paragone gia' fatto e' l'unico
                 // modo perche' diventi una riga verificabile.
                 ["contorno_cresciuto"] = ContornoCresciuto(contorno, dopoContorno),
-                ["testi_letti"] = testiDelleQuote.Count,
-                ["testi_che_si_accavallano"] = accavallati.ToArray(),
+                // A WALK THAT BROKE OFF IS «NOT KNOWN» (Z-C21.8, finding N47):
+                // TestiDelleQuote gives null then, and the three fields are null,
+                // not the count of the texts read before the break.
+                ["testi_letti"] = testiDelleQuote == null ? null : (object)testiDelleQuote.Count,
+                ["testi_che_si_accavallano"] = accavallati == null ? null : accavallati.ToArray(),
                 // Nessun testo letto su una tavola con quote e' «non lo so», non
                 // «nessuno si accavalla» (revisione del 26/9/2026).
-                ["quanti_testi_si_accavallano"] = testiDelleQuote.Count == 0 && dopo > 0 ? null : (object)accavallati.Count,
+                ["quanti_testi_si_accavallano"] = testiDelleQuote == null || accavallati == null ||
+                                                  (testiDelleQuote.Count == 0 && dopo > 0)
+                    ? null : (object)accavallati.Count,
                 ["distacco_usato_mm"] = Math.Round(distacco * 1000, 2),
                 ["passo_usato_mm"] = Math.Round(passo * 1000, 2),
 
@@ -1162,14 +1167,18 @@ namespace Riscontro.Disegno
                 }
                 catch { }
                 modello.ClearSelection2(true);
-                if (q == null || NonCresciuta(disegno, quotePrima, q))
+                if (NonCresciuta(disegno, quotePrima, q))
                 {
                     falliti.Add("diametro esterno Ø" + dm + " (la quota non e' nata)");
                     continue;
                 }
+                // BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80): the count went up and
+                // q is null. The dimension is on the sheet, so it goes on as the
+                // others with its value unknown, not refused as a wrong value it
+                // cannot be shown to be (see RecordBornWithoutObject).
                 var descritta = DescriviQuota(q, c.Indice);
                 object letto = descritta.ContainsKey("mm") ? descritta["mm"] : null;
-                if (!(letto is double) || Math.Abs((double)letto - c.DiametroMm) > 0.01)
+                if (q != null && (!(letto is double) || Math.Abs((double)letto - c.DiametroMm) > 0.01))
                 {
                     bool tolta = false;
                     try
@@ -1186,7 +1195,10 @@ namespace Riscontro.Disegno
                 }
                 descritta["orientamento"] = "diametro esterno";
                 descritta["posizione_mm"] = DovEFinita(q);
-                nate.Add(descritta);
+                if (q != null) nate.Add(descritta);
+                else RecordBornWithoutObject(nate, descritta, falliti,
+                    "external diameter Ø" + dm + " (the dimension was born but SOLIDWORKS did not hand it back: " +
+                    "its value was not read back, check it on the sheet)");
                 diametri.Add(new Dictionary<string, object> { ["diametro_mm"] = Math.Round(c.DiametroMm, 2), ["diametro_riletto_mm"] = letto });
                 gia.Add(chiave);
                 if (suo != null) gia.Add(suo);
@@ -1195,8 +1207,10 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// I FORI: un richiamo per diametro (col numero dei fori uguali davanti)
-        /// e le quote di posizione dai due spigoli di riferimento, in parallelo.
+        /// THE HOLES: one callout per diameter AND depth (through, blind with its
+        /// depth, or unknown), with the count of equal holes in front, and the
+        /// position dimensions from the two reference edges, in parallel
+        /// (finding N81: the catalogue said one per diameter).
         /// </summary>
         private void QuotaIFori(
             IModelDoc2 modello, IDrawingDoc disegno, List<Cerchio> cerchi, List<Spigolo> tutti,
@@ -1257,6 +1271,17 @@ namespace Riscontro.Disegno
 
                 int quotePrima = ContaQuote(disegno);
                 IDisplayDimension richiamo = null;
+                // THE DIALOG OF THE GUIDE DOES NOT OPEN HERE (Z-C21.9, finding L15-2,
+                // NOT REAL). IDrawingDoc~AddHoleCallout2.html, Remarks: «When you call
+                // this method, the user must click OK in the dialog that shows the
+                // system-generated hole callout». The call runs inside the try of
+                // QuotaInTavola that switched swInputDimValOnCreate off, and it has
+                // come back in every bench case with holes run so far: the four
+                // drawing cases that dimension holes (two equal holes, one through
+                // and one blind; the blind hole that states its depth; the turned
+                // bush; the plate with holes and chamfer), all green on library
+                // 0.144.0. A modal window would have hung the COM call instead of
+                // failing it.
                 try
                 {
                     modello.ClearSelection2(true);
@@ -1266,10 +1291,18 @@ namespace Riscontro.Disegno
                 }
                 catch { }
                 string come = "richiamo del foro";
-                if (richiamo == null || NonCresciuta(disegno, quotePrima, richiamo))
+                // THE COUNT DECIDES, NOT THE OBJECT (Z-C21.8, finding N80). Until
+                // library 0.144.0 a null object sent the hole to the fallback even
+                // when the count of dimensions had gone up: the callout was on the
+                // sheet, and the fallback put a diameter dimension on the same hole.
+                bool calloutNotBorn = NonCresciuta(disegno, quotePrima, richiamo);
+                bool fellBack = false;
+                if (calloutNotBorn)
                 {
                     // Senza richiamo (un foro che non viene da un taglio
                     // riconoscibile), il diametro semplice.
+                    fellBack = true;
+                    richiamo = null;   // an object from a call that made nothing is not the dimension
                     try
                     {
                         modello.ClearSelection2(true);
@@ -1279,12 +1312,18 @@ namespace Riscontro.Disegno
                         come = "quota di diametro";
                     }
                     catch { }
+                    calloutNotBorn = NonCresciuta(disegno, quotePrima, richiamo);
                 }
-                if (richiamo == null || NonCresciuta(disegno, quotePrima, richiamo))
+                if (calloutNotBorn)
                 {
                     falliti.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (il richiamo non e' nato)");
                     continue;
                 }
+                // BORN WITHOUT ITS OBJECT (N80): with richiamo null from here on, the
+                // writes and reads below fail inside their own try and leave their
+                // values unknown (the «N×» is then reported as not stuck, the depth
+                // of a blind hole as missing), the positions are still placed as
+                // dimensions of their own, and the row says why its values are null.
                 string countPrefix = g.Value.Count > 1 ? g.Value.Count.ToString(Ci) + "×" : null;
                 if (countPrefix != null)
                 {
@@ -1338,7 +1377,11 @@ namespace Riscontro.Disegno
                 var descritto = DescriviQuota(richiamo, capo.Indice);
                 descritto["orientamento"] = come;
                 descritto["posizione_mm"] = DovEFinita(richiamo);
-                nate.Add(descritto);
+                if (richiamo != null) nate.Add(descritto);
+                else RecordBornWithoutObject(nate, descritto, falliti,
+                    "holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the " + (fellBack ? "diameter dimension" : "hole callout") +
+                    " was born but SOLIDWORKS did not hand it back: nothing could be written on it or read from it, " +
+                    "check it on the sheet)");
                 // LA PROFONDITA' DEL FORO CIECO (voce GT12, punto 1): il richiamo
                 // di SOLIDWORKS la mette da se' nel suffisso — misurato il 26/9/2026,
                 // «<MOD-DIAM>8» + «<HOLE-DEPTH>5» per un Ø8 profondo 5, «PASSANTE»
@@ -1369,10 +1412,12 @@ namespace Riscontro.Disegno
                     ["prefix_read"] = prefixRead,
                     ["come"] = come,
                     ["diametro_riletto_mm"] = descritto.ContainsKey("mm") ? descritto["mm"] : null,
-                    ["passante"] = come == "richiamo del foro" ? (object)passante : capo.Passante,
+                    // Null, not false, for a callout born without its object (N80):
+                    // its suffix was never read.
+                    ["passante"] = richiamo == null ? null : come == "richiamo del foro" ? (object)passante : capo.Passante,
                     ["profondita_mm"] = profondita,
                     ["profondita_da"] = profonditaDa,
-                    ["suffisso_del_richiamo"] = suffisso,
+                    ["suffisso_del_richiamo"] = richiamo == null ? null : suffisso,
                     // LA STESSA COSA LETTA DALLA GEOMETRIA, sempre: il cilindro del
                     // foro e il suo altro cerchio. Accanto a quella del richiamo, per
                     // chi vuole confrontarle.
@@ -1507,11 +1552,13 @@ namespace Riscontro.Disegno
                 }
             }
             catch { }
-            if (quota == null || NonCresciuta(disegno, quotePrima, quota))
+            if (NonCresciuta(disegno, quotePrima, quota))
             {
                 falliti.Add("posizione del foro a " + attesoMm.ToString("0.##", Ci) + " mm (la quota non e' nata)");
                 return;
             }
+            // A quota null here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80):
+            // described with its value unknown, see RecordBornWithoutObject.
             var descritta = DescriviQuota(quota, foro.Indice);
             descritta["orientamento"] = orizzontale ? "posizione orizzontale del foro" : "posizione verticale del foro";
             descritta["posizione_mm"] = DovEFinita(quota);
@@ -1520,7 +1567,10 @@ namespace Riscontro.Disegno
                 Math.Abs(Convert.ToDouble(mm, Ci) - attesoMm) > 0.05)
                 descritta["attenzione"] = "vale " + Convert.ToDouble(mm, Ci).ToString("0.##", Ci) + " invece di " +
                                           attesoMm.ToString("0.##", Ci) + ": forse misura al bordo del foro e non al centro";
-            nate.Add(descritta);
+            if (quota != null) nate.Add(descritta);
+            else RecordBornWithoutObject(nate, descritta, falliti,
+                "hole position at " + attesoMm.ToString("0.##", Ci) + " mm (the dimension was born but SOLIDWORKS " +
+                "did not hand it back: its value was not read back, check it on the sheet)");
         }
 
         /// <summary>
@@ -1578,11 +1628,16 @@ namespace Riscontro.Disegno
                         quota = disegno.AddChamferDim(x, y, 0) as IDisplayDimension;
                 }
                 catch { }
-                if (quota == null || NonCresciuta(disegno, quotePrima, quota))
+                if (NonCresciuta(disegno, quotePrima, quota))
                 {
                     falliti.Add("smusso «" + s.DiSmusso + "» (la quota da smusso non e' nata)");
                     continue;
                 }
+                // A quota null here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80).
+                // AddChamferDim.html, Return Value: «Pointer to the newly created
+                // chamfer dimension»; when it is null and the count went up, the
+                // dimension is there and its two values cannot be read: the reads
+                // below fail inside their try, and angle, side and width stay null.
                 var descritta = DescriviQuota(quota, s.Indice);
                 descritta["orientamento"] = "quota da smusso";
                 descritta["posizione_mm"] = DovEFinita(quota);
@@ -1620,7 +1675,10 @@ namespace Riscontro.Disegno
                     ["larghezza_faccia_mm"] = larghezza.HasValue ? (object)Math.Round(larghezza.Value * 1000.0, 3) : null,
                 };
                 smussi.Add(riga);
-                nate.Add(descritta);
+                if (quota != null) nate.Add(descritta);
+                else RecordBornWithoutObject(nate, descritta, falliti,
+                    "chamfer «" + s.DiSmusso + "» (the chamfer dimension was born but SOLIDWORKS did not hand it " +
+                    "back: its values were not read back, check it on the sheet)");
                 gia.Add(chiave);
             }
         }
@@ -1727,6 +1785,29 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
+        /// A dimension BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80): the count
+        /// of dimensions went up and the call returned null. <see cref="NonCresciuta"/>
+        /// is asked first, and only a dimension that did not grow is «not born»;
+        /// one that grew goes on as the others, described through
+        /// <see cref="DescriviQuota"/> with null (as the edge dimensions of
+        /// QuotaInTavola always were), and here it gets its row and a line of
+        /// «spigoli_non_quotati» saying that its values were not read back.
+        /// Until library 0.144.0 the other call sites asked «null or not grown»
+        /// and took such a dimension for missing: the hole callout then fell
+        /// back to a diameter dimension on the same hole, two annotations for
+        /// one hole, and the others reported as not born a dimension that was on
+        /// the sheet. The lists come in as IList because the obsolete-call
+        /// contract cannot read a generic parameter type, and an Add on a
+        /// receiver it cannot type is counted as undecided.
+        /// </summary>
+        private static void RecordBornWithoutObject(System.Collections.IList born, Dictionary<string, object> row,
+                                                    System.Collections.IList failed, string failure)
+        {
+            born.Add(row);
+            failed.Add(failure);
+        }
+
+        /// <summary>
         /// Nome e VALORE di una quota appena nata, il valore riletto da
         /// SOLIDWORKS e non quello che credevo di aver chiesto.
         ///
@@ -1743,8 +1824,10 @@ namespace Riscontro.Disegno
                 // La quota c'e' — il conteggio e' salito — ma l'oggetto non e'
                 // tornato. Si dice, invece di far sparire la riga: un elenco
                 // piu' corto del conteggio farebbe cercare un difetto che non
-                // c'e'.
-                fuori["nome"] = "(nata, ma AddDimension non ha risposto l'oggetto)";
+                // c'e'. Every call that places a dimension can end here (N80), not
+                // only AddDimension, so the text names none.
+                fuori["nome"] = "(born, but the call that placed it did not hand the object back)";
+                fuori["mm"] = null;   // not read, not zero
                 return fuori;
             }
             try

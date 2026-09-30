@@ -125,8 +125,11 @@ namespace Riscontro.Disegno
             part.ClearSelection2(true);
             var massProperty = part.Extension.CreateMassProperty2() as IMassProperty2;
             if (massProperty == null) return null;
-            // Explicit, not a habit: without it values come in document units,
-            // which on someone else's part can be inches and pounds.
+            // Explicit as a statement of the units, not as a fix (Z-C21.9,
+            // finding N74): IMassProperty2~UseSystemUnits.html, «The default
+            // value is true. Thus, system units (meters, radians, and
+            // kilograms) are used by default». Setting it costs nothing and says
+            // on this line what the numbers below are in.
             massProperty.UseSystemUnits = true;
             massProperty.IncludeHiddenBodiesOrComponents = true;
             var typed = new List<Body2>();
@@ -182,8 +185,11 @@ namespace Riscontro.Disegno
             bodiesAttached = false;
             var massProperty = document.Extension.CreateMassProperty() as IMassProperty;
             if (massProperty == null) return null;
-            // Explicit, not a habit: without it values come in document units,
-            // which on someone else's part can be inches and pounds.
+            // Explicit as a statement of the units, not as a fix (Z-C21.9,
+            // finding N74): IMassProperty~UseSystemUnits.html, «The default value
+            // is True. Thus, system units (meters, radians, and kilograms) are
+            // used». Setting it costs nothing and says on this line what the
+            // numbers below are in.
             massProperty.UseSystemUnits = true;
             var list = bodies == null ? new object[0] : bodies.ToArray();
             bodiesAttached = list.Length == 0 || massProperty.AddBodies(list);
@@ -345,9 +351,22 @@ namespace Riscontro.Disegno
         /// IFeatureManager::CreateFeature and the Remarks in
         /// ILinearPatternFeatureData»; IFeatureManager~FeatureFillet3.html,
         /// «use IFeatureManager::CreateDefinition, IFeatureManager::CreateFeature»).
-        /// The selection goes BEFORE CreateDefinition: measured on the face
-        /// fillet (RAG note 82zz-quinquies), which is why it is a parameter and
-        /// not something the caller does "somewhere before".
+        ///
+        /// THE ORDER OF THE SELECTION DEPENDS ON THE FEATURE, and this helper
+        /// makes it BEFORE CreateDefinition (Z-C21.9, finding N72). Until
+        /// library 0.144.0 this comment said that order was «measured on the
+        /// face fillet», and it was not: the face fillet selects AFTER
+        /// CreateDefinition and Initialize, just before CreateFeature (probe
+        /// Controlli\RaccordoDiFaccia\Programma.cs, step 4 of its recipe, and
+        /// OperazioniRaccordoFaccia, 28/9/2026), and that is the order measured
+        /// to work there. The only feature measured
+        /// both ways is the fill pattern: selections before CreateDefinition (A)
+        /// and after it (C) gave the same pattern (OperazioniRipetiRiempimento,
+        /// probe of 28/9/2026). A migration through this helper (FeatureFillet3
+        /// in Z-C21.7 above all) must use the order its own feature was measured
+        /// with; for a fillet that is after Initialize, which this helper does
+        /// not offer yet. The selection stays a parameter so that it is not
+        /// something the caller does "somewhere before".
         ///
         /// The migrations of Z-C21.7 (FeatureFillet3, LinearPattern5,
         /// CircularPattern5, Swept4, EdgeFlange2) go through here, one per

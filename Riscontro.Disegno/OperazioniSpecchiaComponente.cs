@@ -265,11 +265,12 @@ namespace Riscontro.Disegno
             foreach (var v in componenti) primaNomi.Add(v.Key);
 
             IFeature nuova = null;
+            ApiHelpers.FeatureCreation creation = null;
             try
             {
                 // S10: CreateDefinition -> fill -> CreateFeature, and the error code
                 // of what was born, through ApiHelpers.CreateFeatureFromDefinition.
-                var creation = ApiHelpers.CreateFeatureFromDefinition<IMirrorComponentFeatureData>(
+                creation = ApiHelpers.CreateFeatureFromDefinition<IMirrorComponentFeatureData>(
                     modello.FeatureManager, (int)swFeatureNameID_e.swFmMirrorComponent, dati =>
                 {
                     dati.MirrorPlane = pianoF;
@@ -307,6 +308,24 @@ namespace Riscontro.Disegno
             if (nuova == null)
                 return Fallito("SOLIDWORKS non ha creato lo specchio (CreateFeature ha risposto null). Se il file «" +
                                Path.GetFileNameWithoutExtension(fileOriginale) + suffisso + "» c'e' gia', cambia «suffisso».");
+
+            // THE ERROR CODE OF THE MIRROR THAT WAS BORN (finding L11-7).
+            // IFeatureManager~CreateFeature.html: «Use IFeature::GetErrorCode2
+            // to get any errors». ApiHelpers.CreateFeatureFromDefinition reads it
+            // right after CreateFeature, but until library 0.144.0 this caller
+            // kept only the feature, so a mirror born in error went on to the
+            // component checks and could pass them. It is read again after the
+            // rebuild above, because a rebuild can put a feature in error (the
+            // same rule as ModifyAndVerify). A warning is not an error
+            // (IFeature~GetErrorCode2.html, «IsWarning»). When CreateFeature
+            // answers null there is no feature to ask, and the message above
+            // says what else to check.
+            // If the second reading cannot be made, the first one decides.
+            string mirrorError = ApiHelpers.RebuildError(nuova, out bool mirrorErrorKnown);
+            if (mirrorError == null && !mirrorErrorKnown && creation != null) mirrorError = creation.ErrorPhrase;
+            if (mirrorError != null)
+                return Fallito("The component mirror «" + SafeNome(nuova) + "» was born in error: " + mirrorError +
+                               "." + TogliLoSpecchio(modello, nuova, null));
 
             // IL COMPONENTE NUOVO: quello che prima non c'era.
             object[] dopo = null;

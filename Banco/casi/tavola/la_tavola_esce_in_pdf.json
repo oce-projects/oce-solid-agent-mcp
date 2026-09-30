@@ -69,7 +69,7 @@
           "perche": "IL ROSSO NELLA STESSA CORSA: una scritta che nella tavola non c'e' NON deve trovarsi. Senza questa riga, un decodificatore che «trova» tutto passerebbe la riga sopra" },
         { "cosa": "misure.fogli", "uguale": 1 },
         { "cosa": "misure.pagine", "uguale": 1,
-          "perche": "LE PAGINE SI CONTANO NEL FILE SCRITTO, non si ricopiano dai fogli: `ContaPaginePdf` apre il PDF e conta gli oggetti «/Type /Page». E' la misura che prende il PDF di un foglio solo quando la tavola ne ha tre -- il difetto per cui questa operazione esiste" },
+          "perche": "LE PAGINE SI CONTANO NEL FILE SCRITTO, non si ricopiano dai fogli: `CountPdfPages` apre il PDF e conta gli oggetti «/Type /Page». E' la misura che prende il PDF di un foglio solo quando la tavola ne ha tre -- il difetto per cui questa operazione esiste" },
         { "cosa": "misure.percorso", "contiene": ["la_tavola_esce_in_pdf", ".pdf"],
           "perche": "accanto alla tavola, col suo nome: e' dove chi lo cerca lo va a cercare" } ] }
   ]

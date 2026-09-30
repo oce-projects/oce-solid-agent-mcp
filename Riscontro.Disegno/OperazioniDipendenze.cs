@@ -17,10 +17,14 @@ namespace Riscontro.Disegno
     ///
     ///  * `IModelDocExtension.GetDependencies(true, true, false, true, false)` da'
     ///    un elenco PIATTO a coppie: nome, percorso, nome, percorso.
-    ///  * **Il parametro che si chiama «elenca i riferimenti rotti» NON segna
-    ///    niente**: il file che non c'e' compare col suo percorso, come gli
-    ///    altri. L'unico modo di sapere che manca e' guardare il disco
-    ///    (`File.Exists`). Una firma che promette e non mantiene.
+    ///  * **ListBrokenRefs puts broken references IN the list; it does not MARK
+    ///    them** (finding N60). IModelDocExtension~GetDependencies.html says only
+    ///    «ListBrokenRefs — True to get broken references, false to not»: the
+    ///    parameter includes them, and nothing on the page promises a mark.
+    ///    Measured: the missing file is listed with its path like the others,
+    ///    so the only way to know it is missing is to look at the disk
+    ///    (`File.Exists`). (This bullet used to call the signature one that
+    ///    «promises and does not deliver»: the guide promises no mark.)
     ///  * Riaperto con un file mancante: `OpenDoc6` errori 2, il componente
     ///    risulta SOPPRESSO (`GetSuppression2` 0) e `GetModelDoc2` null.
     ///    `GetDocumentDependencies2` sul file chiuso da' lo stesso elenco.
@@ -64,8 +68,10 @@ namespace Riscontro.Disegno
                     string nome = Convert.ToString(voci[i]);
                     string percorso = Convert.ToString(voci[i + 1]);
                     if (string.IsNullOrWhiteSpace(percorso) || !visti.Add(percorso)) continue;
-                    // IL DISCO, NON IL PARAMETRO: «ListBrokenRefs» non segna i
-                    // mancanti (misurato), quindi si guarda se il file c'e'.
+                    // THE DISK, NOT THE PARAMETER (N60): ListBrokenRefs includes
+                    // broken references in the list without marking them (the
+                    // guide promises no mark; measured), so the disk says
+                    // whether the file is there.
                     bool esiste = false;
                     try { esiste = File.Exists(percorso); } catch { }
                     if (!esiste) mancanti.Add(percorso);

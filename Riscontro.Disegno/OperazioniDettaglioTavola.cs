@@ -161,6 +161,10 @@ namespace Riscontro.Disegno
             // ── IL CERCHIO, SULLO SCHIZZO DEL FOGLIO ────────────────────
             try { disegno.EditSheet(); } catch { }
 
+            // As for the section: the sheet sketch counted before the circle, so
+            // that a circle left behind by a refusal can be removed and the
+            // removal checked (Z-C21.8, finding M41).
+            int segmentsBefore = SheetSketchSegmentCount(disegno);
             ISketchSegment cerchio = null;
             try
             {
@@ -183,20 +187,21 @@ namespace Riscontro.Disegno
             try { modello.SketchManager.InsertSketch(true); } catch { }
 
             bool presa = false;
+            string selectError = null;
             try
             {
                 modello.ClearSelection2(true);
                 presa = cerchio.Select4(false, null);
             }
-            catch (Exception ex)
-            {
-                return Fallito("Non sono riuscito a selezionare il cerchio: " + ex.Message);
-            }
+            catch (Exception ex) { selectError = ex.Message; }
             if (!presa)
                 return Fallito(
-                    "Il cerchio c'e' ma non si lascia selezionare, e «CreateDetailViewAt4» " +
-                    "prende la zona dalla selezione: senza, farebbe qualcosa di diverso da " +
-                    "quello che hai chiesto.");
+                    (selectError != null
+                        ? "I could not select the detail circle (" + selectError + ")"
+                        : "The detail circle is there but does not let itself be selected") +
+                    ", and CreateDetailViewAt4 takes the zone from the selection: without it, it would do " +
+                    "something other than what you asked" +
+                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(modello, disegno, cerchio, segmentsBefore), "circle"));
 
             // ── IL DETTAGLIO, A FIANCO ──────────────────────────────────
             double xDettaglio = xMax + largo * 0.8;
@@ -230,16 +235,28 @@ namespace Riscontro.Disegno
 
             if (visteDopo <= vistePrima)
                 return Fallito(
-                    "Nessuna vista in piu': il dettaglio NON e' nato (erano " + vistePrima +
-                    ", sono " + visteDopo + "). «CreateDetailViewAt4» " +
-                    (esplosa != null ? "e' andata in errore: " + esplosa
-                                     : nata == null ? "non ha risposto un oggetto"
-                                                    : "ha risposto un oggetto") + ".");
+                    "No view more: the detail was NOT born (there were " + vistePrima +
+                    ", there are " + visteDopo + "). CreateDetailViewAt4 " +
+                    (esplosa != null ? "failed: " + esplosa
+                                     : nata == null ? "returned no object"
+                                                    : "returned an object") +
+                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(modello, disegno, cerchio, segmentsBefore), "circle"));
+
+            // THE DETAIL IS THE VIEW CreateDetailViewAt4 RETURNS (Z-C21.8, finding
+            // M41), as for the section: the last view of the chain only when the
+            // call returned no view, and the answer says which one was read.
+            IView detailView = nata as IView;
+            string viewReadFrom = "returned by CreateDetailViewAt4";
+            if (detailView == null)
+            {
+                detailView = ultima;
+                viewReadFrom = "last view of the sheet (CreateDetailViewAt4 returned no view)";
+            }
 
             string nomeDettaglio = "";
             int tipoDettaglio = -1;
-            try { nomeDettaglio = ultima.GetName2() ?? ""; } catch { }
-            try { tipoDettaglio = ultima.Type; } catch { }
+            try { nomeDettaglio = detailView.GetName2() ?? ""; } catch { }
+            try { tipoDettaglio = detailView.Type; } catch { }
 
             int cerchiDopo = -1;
             try { int quanti; cerchiDopo = bersaglio.GetDetailCircleCount2(out quanti); }
@@ -253,16 +270,27 @@ namespace Riscontro.Disegno
             // resterebbe un cerchio disegnato a mano accanto a una vista in
             // piu' che non gli e' legata.
             if (cerchiPrima >= 0 && cerchiDopo >= 0 && cerchiDopo <= cerchiPrima)
+            {
+                // NEITHER IS LEFT ON THE SHEET (Z-C21.8, finding M41): until library
+                // 0.144.0 this refusal described the loose circle and the unlinked
+                // view, and left both. The view goes first, then the circle; each
+                // is said removed only after its reread (RemoveNewView reads the
+                // views again, RemoveSheetSketchSegment counts the sheet sketch).
+                bool viewRemoved = RemoveNewView(modello, nomeDettaglio);
+                bool circleRemoved = RemoveSheetSketchSegment(modello, disegno, cerchio, segmentsBefore);
                 return Fallito(
-                    "La vista «" + nomeDettaglio + "» e' nata, ma su «" + nomeBersaglio +
-                    "» le circonferenze di dettaglio sono ancora " + cerchiDopo +
-                    ": il cerchio non e' diventato un dettaglio, e sul foglio resta " +
-                    "disegnato a mano accanto a una vista che non gli e' legata.");
+                    "The view «" + nomeDettaglio + "» was born, but on «" + nomeBersaglio +
+                    "» the detail circles are still " + cerchiDopo + ": the circle did not become a detail. " +
+                    (viewRemoved ? "I removed the view"
+                                 : "I could not remove the view «" + nomeDettaglio + "» (remove it — " + Frasi.CosiSiRitira + ")") +
+                    SheetLineRemovedOrNot(circleRemoved, "circle"));
+            }
 
-            string letteraLetta = LetteraDellaVista(ultima);
+            string letteraLetta = LetteraDellaVista(detailView);
             var fuori = new Dictionary<string, object>
             {
                 ["etichetta_riletta"] = letteraLetta,
+                ["view_read_from"] = viewReadFrom,
                 ["vista_dettagliata"] = nomeBersaglio,
                 ["viste_prima"] = vistePrima,
                 ["viste_dopo"] = visteDopo,

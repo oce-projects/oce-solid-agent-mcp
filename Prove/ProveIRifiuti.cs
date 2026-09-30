@@ -193,8 +193,22 @@ namespace Prove.Contratti
         /// orientation ends with the call that removes the mirror, and the name of
         /// that helper holds a remedy word, like the other refusals of that file
         /// that remove it.
+        /// **230, Z-C21.8 and Z-C21.9 (30/9/2026, branch z-c21-8-9): +13, and most
+        /// of it is the detector.** The refusals are being rewritten in English
+        /// (W3.1-bis) and the list of remedy words below was Italian only: a
+        /// refusal that named its remedy in Italian counted, the same refusal
+        /// saying «remove it» did not. On this branch that took the count DOWN to 212
+        /// with no message made worse. The English forms added below are the
+        /// imperatives the new messages actually use, picked by reading them one
+        /// by one; «check that» was tried and left out because it caught «I
+        /// cannot check that», which is not a remedy. Measured with a replica of
+        /// this detector: with the English words, HEAD (0.144.0) counts 223 and
+        /// this branch 230. So +6 is the detector learning the English that
+        /// earlier lots had already written, and +7 is this branch: the refusals
+        /// that now say «ask again», «remove it», «try again», «give in
+        /// «asse_uid»», «write one of the four», «undo the step».
         /// </summary>
-        private const int Pavimento = 217;
+        private const int Pavimento = 230;
 
         /// <summary>
         /// Le aperture con cui questo codice dice no.
@@ -222,6 +236,16 @@ namespace Prove.Contratti
             // che legge il pavimento crede che qualcuno abbia lavorato.
             "so fare", "per esempio", "dimmi", "dimmela", "puoi ",
             "ti serve", "va scritt", "si indica",
+
+            // ADDED ON 30/9/2026 (Z-C21.8 and Z-C21.9): the English forms, since
+            // the refusals are being rewritten in English. Imperatives only,
+            // with the word that follows, so that «I removed the view» or «does
+            // not give access» do not count as a remedy.
+            "remove it", "remove the ", "remove «", "try again", "try a ",
+            "use «", "use the ", "ask again", "ask me again", "give in «",
+            "show the ", "undo the step", "write one of", "for example",
+            "save it", "save the ", "open the ", "delete it", "delete the ",
+            "leave «", "name the ", "take them back",
         };
 
         internal static void Tutte()

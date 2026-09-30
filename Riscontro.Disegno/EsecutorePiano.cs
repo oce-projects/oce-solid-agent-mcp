@@ -659,8 +659,18 @@ namespace Riscontro.Disegno
             // passare da una chiamata COM che col modale aperto potrebbe anche
             // non tornare.
             //
-            // `CommandInProgress` resta accanto: non costa niente, e copre un
-            // comando interattivo che non disabilita la finestra.
+            // `CommandInProgress` stays next to it, but it is NOT a guard
+            // against an interactive command (audit finding L17-5, real; the
+            // sentence here said it was, with no measure behind it). It is a
+            // switch an out-of-process client sets for itself:
+            // ISldWorks~CommandInProgress.html, «Improves performance of
+            // out-of-process applications by informing SOLIDWORKS that a
+            // sequence of API calls will be made by the out-of-process
+            // application», and «Set to True before calling the sequence of
+            // API calls, then set to false after». With a modal window open it
+            // reads false (the Z-C3 measure above). So it fires only when some
+            // other program driving SOLIDWORKS left it true, and the refusal
+            // says exactly that.
             try
             {
                 int cornice = (_sw.Frame() as IFrame)?.GetHWnd() ?? 0;
@@ -672,7 +682,10 @@ namespace Riscontro.Disegno
             try
             {
                 if (_sw.CommandInProgress)
-                    return "SOLIDWORKS e' occupato in un comando: chiudilo e riprova.";
+                    return "SOLIDWORKS says a sequence of API calls is in progress " +
+                           "(ISldWorks.CommandInProgress is true): another program driving " +
+                           "SOLIDWORKS set it and has not cleared it. Let that program finish, " +
+                           "or close it, then ask again.";
             }
             catch { }
 

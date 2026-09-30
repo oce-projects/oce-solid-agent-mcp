@@ -128,7 +128,7 @@ namespace Riscontro.Disegno
                     "Ritirala — {4}.", spessore, raggio, t, r, Frasi.CosiSiRitira));
 
             double? volumePiegato = VolumeMm3(modello);
-            double sviluppo = LunghezzaSviluppata(modello, out double volumeSviluppato);
+            double sviluppo = LunghezzaSviluppata(modello, out double volumeSviluppato, out string flatPatternProblem);
 
             // IL CONTO A MANO, nelle due convenzioni. Misurato: con la L data
             // dall'alto verso destra lo spessore va a DESTRA del verso di
@@ -176,6 +176,9 @@ namespace Riscontro.Disegno
                 ["lunghezza_sviluppo_a_mano_mm"] = Math.Round(atteso, 3),
                 ["i_punti_sono_le_facce"] = convenzione,
             };
+            // Z-C21.8, finding M24: the flat pattern that SetSuppression2 did not
+            // unsuppress, or did not suppress again, is said in the answer.
+            if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;
 
             // IL CONTROLLO CHE DA' SENSO ALLA FAMIGLIA: lo sviluppo di SOLIDWORKS
             // contro il conto a mano. Se divergono, il DXF che andra' al laser
@@ -347,7 +350,7 @@ namespace Riscontro.Disegno
                     "conto: non e' la flangia chiesta. Ritirala — {3}.",
                     flangia.Name, aggiunto.Value, volumeAtteso, Frasi.CosiSiRitira));
 
-            double sviluppo = LunghezzaSviluppata(modello, out double _);
+            double sviluppo = LunghezzaSviluppata(modello, out double _, out string flatPatternProblem);
             var misure = new Dictionary<string, object>
             {
                 ["lunghezza_mm"] = letta >= 0 ? (object)Math.Round(letta, 3) : null,
@@ -367,6 +370,7 @@ namespace Riscontro.Disegno
             if (letta >= 0 && Math.Abs(letta - lunghezza) > 0.01)
                 misure["attenzione_lunghezza"] = string.Format(CultureInfo.InvariantCulture,
                     "Ho chiesto {0:0.###} mm allo spigolo esterno e la flangia dice {1:0.###}.", lunghezza, letta);
+            if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;   // M24
             return Riuscito(flangia, misure);
         }
 
@@ -432,7 +436,13 @@ namespace Riscontro.Disegno
             public IEdge Spigolo;
             public IFace2 Testa, Larga;
             public double[] P0, P1;
-            /// <summary>La normale USCENTE della faccia larga, di lunghezza 1.</summary>
+            /// <summary>
+            /// The OUTWARD normal of the broad face, unit length. Outward by
+            /// definition, not by luck: IFace2~FaceInSurfaceSense.html, Remarks,
+            /// «The normal vector of faces, however, are directed away from the
+            /// body material» (audit finding L10-7, not real). The flag on that
+            /// page is about the underlying surface, and is not needed here.
+            /// </summary>
             public double[] Normale;
             public double LungoM;
         }
@@ -597,7 +607,7 @@ namespace Riscontro.Disegno
                     "L'orlo «{0}» e' nell'albero ma ha aggiunto {1:0.##} mm3 invece dei {2:0.##} del conto: " +
                     "non e' l'orlo chiesto. Ritiralo — {3}.", orlo.Name, aggiunto.Value, volumeAtteso, Frasi.CosiSiRitira));
 
-            double sviluppo = LunghezzaSviluppata(modello, out double _);
+            double sviluppo = LunghezzaSviluppata(modello, out double _, out string flatPatternProblem);
             var misure = new Dictionary<string, object>
             {
                 ["tipo"] = tipo,
@@ -617,6 +627,7 @@ namespace Riscontro.Disegno
                     (tipo == "chiuso" ? " (per il chiuso il conto usa un raggio interno di 0,05 mm, misurato " +
                                         "con spessore 2)" : "") + ": prima del taglio controlla lo sviluppo.",
                     aggiunto.Value, volumeAtteso);
+            if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;   // M24
             return Riuscito(orlo, misure);
         }
 
@@ -688,7 +699,12 @@ namespace Riscontro.Disegno
                 return Fallito("La linea di piega e' lunga meno di un millimetro: i due punti coincidono.");
 
             double? volumePrima = VolumeMm3(modello);
-            double sviluppoPrima = LunghezzaSviluppata(modello, out double _);
+            double sviluppoPrima = LunghezzaSviluppata(modello, out double _, out string flatProblemBefore);
+            // Z-C21.8, finding M24: a flat pattern that did not toggle as asked
+            // stops the step before the bend, the only thing touched so far.
+            if (flatProblemBefore != null)
+                return Fallito("Before bending, I measured the flat length and " + flatProblemBefore +
+                               ". I did not make the bend.");
             var scatolaPrima = ScatolaDelPezzoMm(modello);
             var schizziPrima = new HashSet<string>();
             try
@@ -763,7 +779,7 @@ namespace Riscontro.Disegno
                                "prima: non si e' piegato niente. Ritirala — " + Frasi.CosiSiRitira + ".");
 
             double? volumeDopo = VolumeMm3(modello);
-            double sviluppoDopo = LunghezzaSviluppata(modello, out double _);
+            double sviluppoDopo = LunghezzaSviluppata(modello, out double _, out string flatPatternProblem);
             Func<double[], object> arrotonda = s => s == null ? null : (object)Array.ConvertAll(s, x => Math.Round(x, 3));
             var misure = new Dictionary<string, object>
             {
@@ -775,6 +791,7 @@ namespace Riscontro.Disegno
                 ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
                 ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppoDopo) ? null : (object)Math.Round(sviluppoDopo, 3),
             };
+            if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;   // M24
             // UNA PIEGA NON AGGIUNGE LAMIERA: volume e sviluppo restano quelli di
             // prima. Se cambiano, il pezzo non e' quello che si crede.
             if (!volumeDopo.HasValue || !volumePrima.HasValue) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
@@ -857,7 +874,7 @@ namespace Riscontro.Disegno
 
             // SI RILEGGE IL DXF: l'ingombro scritto nel file contro lo sviluppo
             // misurato sul pezzo. Un DXF di un'altra cosa si apre uguale.
-            double sviluppo = LunghezzaSviluppata(modello, out double _);
+            double sviluppo = LunghezzaSviluppata(modello, out double _, out string flatPatternProblem);
             var ingombro = IngombroDelDxf(dove);
             var misure = new Dictionary<string, object>
             {
@@ -866,6 +883,7 @@ namespace Riscontro.Disegno
                 ["ingombro_dxf_mm"] = ingombro,
                 ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
             };
+            if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;   // M24
             if (ingombro != null && !double.IsNaN(sviluppo))
             {
                 double lato = Math.Max(ingombro[0], ingombro[1]);
@@ -937,10 +955,37 @@ namespace Riscontro.Disegno
         /// si riesce. Si toglie la soppressione alla lavorazione «FlatPattern»,
         /// si misura, e la si rimette — `SetBendState` non fa niente (nota in
         /// testa, trappola 1).
+        ///
+        /// For a caller that has no way to report a flat pattern left
+        /// unsuppressed: it gets NaN in that case too, so that no length is
+        /// taken from a part left flattened. The callers in this file use the
+        /// overload with <c>flatPatternProblem</c> and say it in the answer.
         /// </summary>
         private static double LunghezzaSviluppata(IModelDoc2 modello, out double volume)
         {
+            string flatPatternProblem;
+            double length = LunghezzaSviluppata(modello, out volume, out flatPatternProblem);
+            return flatPatternProblem == null ? length : double.NaN;
+        }
+
+        /// <summary>
+        /// As <see cref="LunghezzaSviluppata(IModelDoc2, out double)"/>;
+        /// <paramref name="flatPatternProblem"/> is null when the flat pattern
+        /// was unsuppressed and suppressed again as asked, otherwise the reason.
+        ///
+        /// THE TWO ANSWERS OF SetSuppression2 ARE READ (Z-C21.8, finding M24).
+        /// IFeature~SetSuppression2.html: «True if successful, false if not».
+        /// Both were dropped: an unsuppress that did not happen measured the
+        /// FOLDED part as the flat one, and a suppress that did not happen left
+        /// the part flattened after an answer that said nothing. Now a refused
+        /// unsuppress gives NaN and the reason, and a refused suppress at the end
+        /// gives the reason too. The other half of M24, the length from the true
+        /// box and not from GetBodyBox (S6), is below.
+        /// </summary>
+        private static double LunghezzaSviluppata(IModelDoc2 modello, out double volume, out string flatPatternProblem)
+        {
             volume = double.NaN;
+            flatPatternProblem = null;
             IFeature sviluppo = null;
             try
             {
@@ -953,10 +998,23 @@ namespace Riscontro.Disegno
             }
             catch { }
             if (sviluppo == null) return double.NaN;
+            string flatName = "FlatPattern";
+            try { flatName = sviluppo.Name; } catch { flatName = "FlatPattern"; }
+            // True from the moment the unsuppress may have happened: a call that
+            // threw leaves the state unknown, and the finally suppresses again.
+            bool mayBeUnsuppressed = false;
             try
             {
-                sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swUnSuppressFeature,
+                mayBeUnsuppressed = true;
+                bool unsuppressed = sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swUnSuppressFeature,
                     (int)swInConfigurationOpts_e.swThisConfiguration, null);
+                if (!unsuppressed)
+                {
+                    mayBeUnsuppressed = false;
+                    flatPatternProblem = "SetSuppression2 did not unsuppress the flat pattern «" + flatName +
+                                         "», so the flat length was not measured";
+                    return double.NaN;
+                }
                 modello.EditRebuild3();
                 volume = VolumeMm3(modello) ?? double.NaN;   // NaN qui vuol gia' dire «non lo so»
                 var corpi = (modello as IPartDoc)?.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
@@ -970,13 +1028,21 @@ namespace Riscontro.Disegno
             catch { return double.NaN; }
             finally
             {
-                try
+                if (mayBeUnsuppressed)
                 {
-                    sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swSuppressFeature,
-                        (int)swInConfigurationOpts_e.swThisConfiguration, null);
-                    modello.EditRebuild3();
+                    bool suppressedAgain = false;
+                    try
+                    {
+                        suppressedAgain = sviluppo.SetSuppression2((int)swFeatureSuppressionAction_e.swSuppressFeature,
+                            (int)swInConfigurationOpts_e.swThisConfiguration, null);
+                        modello.EditRebuild3();
+                    }
+                    catch { suppressedAgain = false; }
+                    if (!suppressedAgain)
+                        flatPatternProblem = "SetSuppression2 did not suppress the flat pattern «" + flatName +
+                                             "» again after measuring it: the part may be left flattened, look at " +
+                                             "it before going on";
                 }
-                catch { }
             }
         }
 

@@ -482,7 +482,15 @@ namespace Riscontro.Disegno
                 feature = modello.FeatureManager.FeatureFillet3(
                     Options: (int)(swFeatureFilletOptions_e.swFeatureFilletVarRadiusType |
                                    swFeatureFilletOptions_e.swFeatureFilletPropagate),
-                    R1: Unita.M(r1),
+                    // R1 IS NOT READ FOR A VARIABLE RADIUS (Z-C21.8, finding M37):
+                    // IFeatureManager~FeatureFillet3.html, «R1 Uniform radius of
+                    // the symmetric fillet; valid only if: Ftyp !=
+                    // swFeatureFilletType_e.swFeatureFilletType_VariableRadius».
+                    // The radii are the two of `Radii` below. The Z-C21.3 probe of
+                    // L7-7 measured 277.694 mm3 with R1 = the first radius; the
+                    // bench case raccordo_che_cambia_raggio (277.7) is the check
+                    // that R1 = 0, as the page asks, changes nothing.
+                    R1: 0,
                     R2: 0,
                     Rho: 0,
                     Ftyp: (int)swFeatureFilletType_e.swFeatureFilletType_VariableRadius,

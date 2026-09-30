@@ -67,13 +67,25 @@ namespace Riscontro.Disegno
     /// controllano a vicenda, e nessuna delle due e' una costante scritta a
     /// mano.
     ///
-    /// ── E `Alignment` NON FA NIENTE ───────────────────────────────────
+    /// ── `Alignment` MOVES NOTHING ON FREE TEXT ───────────────────────
     ///
-    /// La voce lo dava per «non verificato nel significato pratico». Provati
-    /// tutti e cinque i valori 0..4 sulla stessa scritta: la scatola torna
-    /// **identica al millesimo** in tutti e cinque. Non e' un parametro che non
-    /// si e' capito: e' un parametro che questa chiamata ignora. Percio' non si
-    /// espone, e si passa 0.
+    /// Narrowed in Z-C21.9 (finding C6-2). IModelDoc2~InsertSketchText.html:
+    /// «Alignment 0 = Left 1 = Center 2 = Right 3 = Fully justified». It is the
+    /// justification of the text, not a way to make the text follow a curve:
+    /// that takes the edge or sketch segment selected with mark 1 (Remarks:
+    /// «If you want to align the text with an edge or sketch segment, you must
+    /// select the edge or sketch segment with a mark of 1»), and the guide's
+    /// own example Align_Text_with_Line selects the line with mark 1 and still
+    /// passes Alignment 0.
+    ///
+    /// Measured on 16/9/2026 on FREE text, one line and nothing selected, which
+    /// is what incidi_testo writes: the five values 0..4 gave the same box to
+    /// the thousandth of a millimetre (4 is outside the documented range). So
+    /// on free text the justification has nothing to move; with a curve
+    /// selected it was not measured, and this operation never selects one.
+    /// Hence the argument is not exposed, and 0 is passed. Until Z-C21.9 this
+    /// note said the call ignores the argument altogether, which the page
+    /// does not support.
     /// </summary>
     public partial class OperazioniSw
     {
@@ -146,7 +158,8 @@ namespace Riscontro.Disegno
                 scritta = modello.InsertSketchText(
                     punto[0], punto[1], punto[2],
                     testo,
-                    // Alignment: misurato, non fa niente. Vedi la nota in testa.
+                    // Alignment (justification): on free text it moves nothing,
+                    // measured; see the note at the top.
                     0,
                     0,   // FlipDirection
                     0,   // HorizontalMirror

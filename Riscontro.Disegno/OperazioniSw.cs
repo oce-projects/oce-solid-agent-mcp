@@ -80,6 +80,10 @@ namespace Riscontro.Disegno
         ///
         /// Allora lo si DICE, sempre e con le stesse parole. Un rifiuto che
         /// tace lascia credere che il pezzo sia intatto.
+        ///
+        /// Only where the cut is really still in the part (Z-C21.9, finding
+        /// C9-6): once DeleteSelection2 has removed it, TogliIlTaglio answers
+        /// with RemovedButTreeLonger or RemovedButVolumeChanged instead.
         /// </summary>
         private const string RestaNelPezzo =
             " Il taglio pero' e' gia' stato fatto: ritiralo — " + Frasi.CosiSiRitira + ".";
@@ -3273,22 +3277,47 @@ namespace Riscontro.Disegno
             volumeMm3 = 0;
             centroMm = new double[3];
             if (corpi == null || corpi.Length == 0) return false;
-            var somma = new double[3];
+            var readings = new List<double[]>();
             try
             {
                 foreach (var c in corpi)
-                {
-                    var mp = (c as IBody2)?.GetMassProperties(1000.0) as double[];
-                    if (mp == null || mp.Length < 4) continue;
-                    double v = mp[3] * 1e9;
-                    if (v <= 0) continue;
-                    volumeMm3 += v;
-                    for (int i = 0; i < 3; i++) somma[i] += Unita.Mm(mp[i]) * v;
-                }
+                    readings.Add((c as IBody2)?.GetMassProperties(1000.0) as double[]);
             }
             catch { return false; }
-            if (volumeMm3 <= 0) return false;
-            for (int i = 0; i < 3; i++) centroMm[i] = somma[i] / volumeMm3;
+            return MassOfBodies(readings, out volumeMm3, out centroMm);
+        }
+
+        /// <summary>
+        /// The volume (mm3) and the volume-weighted centre (mm) of the bodies
+        /// whose IBody2.GetMassProperties readings are given, one per body; false
+        /// when ANY of them cannot be used (Z-C21.8, finding M43).
+        ///
+        /// A BODY THAT CANNOT BE MEASURED IS NOT SKIPPED. Until library 0.144.0
+        /// a missing, short or non-positive reading was skipped with a
+        /// `continue`, and the sum of the others was given as the whole: a
+        /// partial volume and a centre of part of the bodies, from which
+        /// sposta_corpi then drew its diagnosis of the move. VolumeMm3 already
+        /// had the rule (a body that gives no mass properties makes the whole
+        /// null); this is the same rule. Kept apart from the document so that
+        /// Prove.Contratti can call it without SOLIDWORKS.
+        /// </summary>
+        internal static bool MassOfBodies(IList<double[]> readings, out double volumeMm3, out double[] centreMm)
+        {
+            volumeMm3 = 0;
+            centreMm = new double[3];
+            if (readings == null || readings.Count == 0) return false;
+            var weighted = new double[3];
+            double total = 0;
+            foreach (var mp in readings)
+            {
+                if (mp == null || mp.Length < 4) return false;
+                double v = mp[3] * 1e9;
+                if (!(v > 0)) return false;
+                total += v;
+                for (int i = 0; i < 3; i++) weighted[i] += Unita.Mm(mp[i]) * v;
+            }
+            volumeMm3 = total;
+            for (int i = 0; i < 3; i++) centreMm[i] = weighted[i] / total;
             return true;
         }
 
@@ -3892,9 +3921,56 @@ namespace Riscontro.Disegno
             double raggio = Num(a, "raggio_mm");
             int quanti;
             string perche;
+            // The volume before, for the check of M37 in EseguiRaccordo; read
+            // before the edges are selected (GetMassProperties on the bodies,
+            // which does not touch the selection).
+            double? volumeBefore = VolumeMm3(modello);
             if (!SelezionaSpigoli(modello, a, stato, raggio, out quanti, out perche))
                 return Fallito(perche);
-            return EseguiRaccordo(modello, raggio, quanti);
+            return EseguiRaccordo(modello, raggio, quanti, volumeBefore);
+        }
+
+        /// <summary>
+        /// A FILLET OR A CHAMFER MUST MOVE THE VOLUME OF THE PART (Z-C21.8,
+        /// finding M37): the fault in words, or null. raccordo_spigoli and
+        /// smusso_spigoli had no check on the volume at all, while
+        /// raccordo_variabile had one: a feature that leaves the volume where it
+        /// was has worked nothing, and the tree says otherwise. The SIGN is not
+        /// judged: on a concave edge a fillet or a chamfer ADDS material. A
+        /// volume that could not be read, before or after, is not a fault here:
+        /// the answer says «not read» instead. Kept apart from the document so
+        /// that Prove.Contratti can call it without SOLIDWORKS.
+        /// </summary>
+        internal static string EdgeFeatureVolumeFault(double? volumeBefore, double? volumeAfter)
+        {
+            if (volumeBefore == null || volumeAfter == null) return null;
+            if (Math.Abs(volumeAfter.GetValueOrDefault() - volumeBefore.GetValueOrDefault()) >= 0.01) return null;
+            return "the volume of the part did not change (" +
+                   volumeAfter.GetValueOrDefault().ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " mm3 before and after)";
+        }
+
+        /// <summary>
+        /// The volume check of <see cref="EdgeFeatureVolumeFault"/> applied to a
+        /// fillet or a chamfer just born: null when it passes (the change, or
+        /// the note that the volume was not read, goes into
+        /// <paramref name="measures"/>), the refusal otherwise.
+        /// </summary>
+        private string EdgeFeatureVolumeCheck(
+            IModelDoc2 modello, string what, double? volumeBefore, Dictionary<string, object> measures)
+        {
+            try { modello.EditRebuild3(); } catch { }
+            double? volumeAfter = VolumeMm3(modello);
+            string unchanged = EdgeFeatureVolumeFault(volumeBefore, volumeAfter);
+            if (unchanged != null)
+                return "The " + what + " was created, but " + unchanged + ": it worked nothing, and the tree says " +
+                       "otherwise. It is still in the part: undo it (" + Frasi.CosiSiRitira + ").";
+            if (volumeBefore == null || volumeAfter == null)
+                measures["volume_not_read"] = "The volume of the part could not be read " +
+                                              (volumeBefore == null ? "before" : "after") +
+                                              " the " + what + ", so the " + what + " was not checked against it.";
+            else
+                measures["material_change_mm3"] = Math.Round(volumeAfter.GetValueOrDefault() - volumeBefore.GetValueOrDefault(), 2);
+            return null;
         }
 
         /// <summary>
@@ -3921,6 +3997,18 @@ namespace Riscontro.Disegno
         /// giuste»: gli enum dello smusso sono DUE e hanno gli stessi numeri
         /// con significati diversi — `swSketchChamferType_e` vale per lo
         /// schizzo, `swChamferType_e` per la feature. Qui serve il secondo.
+        ///
+        /// THE TWO SIDES GO IN Width AND OtherDist, NOT WHERE THE GUIDE PUTS
+        /// THEM. IFeatureManager~InsertFeatureChamfer.html gives Width only for
+        /// swChamferAngleDistance and OtherDist only for swChamferEqualDistance,
+        /// and says «VertexChamDist1 — If ChamferType is swChamferDistanceDistance
+        /// or swChamferVertex, then specify a value for the distance on first
+        /// side». Measured otherwise: Banco/casi/smusso/smusso_3x6_cianfrino
+        /// asks 3 and 6 on a 100 mm edge and gets 119100 mm3 exactly (120000
+        /// minus 3 x 6 / 2 x 100); an ignored second side would leave 119550,
+        /// and a SOLIDWORKS reading VertexChamDist1/2 = 0 would make no chamfer
+        /// at all (audit finding L7-2, not real). Moving to VertexChamDist1/2
+        /// means running that case before and after.
         /// </summary>
         private Esito SmussoSpigoli(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
@@ -3931,6 +4019,8 @@ namespace Riscontro.Disegno
 
             int quanti;
             string perche;
+            // The volume before, for the check of M37 below (EdgeFeatureVolumeCheck).
+            double? volumeBefore = VolumeMm3(modello);
             // Il limite «meta' dello spigolo» vale anche per lo smusso: il lato
             // piu' lungo dei due e' quello che non ci puo' stare.
             if (!SelezionaSpigoli(modello, a, stato,
@@ -3972,6 +4062,10 @@ namespace Riscontro.Disegno
             SelectedEdgesAndFaces(feature, quanti, misure);
             if (dueLati) misure["secondo_lato_mm"] = secondoLato;
             else misure["angolo_gradi"] = angolo;
+            // After the counts, which SelectedEdgesAndFaces reads right after
+            // creation as the probe did: the check rebuilds before measuring.
+            string chamferUnchanged = EdgeFeatureVolumeCheck(modello, "chamfer", volumeBefore, misure);
+            if (chamferUnchanged != null) return Fallito(chamferUnchanged);
             return Riuscito(feature, misure);
         }
 
@@ -4297,11 +4391,15 @@ namespace Riscontro.Disegno
         ///       ScopeOptions) -> Feature
         ///   swFeatureScope_e: AllBodies = 0
         ///
-        /// I MARK, come per la ripetizione lineare, non sono verificabili per
-        /// riflessione: Mark 1 al piano e Mark 4 alla lavorazione sono
-        /// l'analogia con `RipetiCircolare`. Da misurare specchiando un foro
-        /// NON centrato: deve comparire dall'altra parte del piano, non
-        /// sovrapposto all'originale.
+        /// THE MARKS ARE THE GUIDE'S, AND MEASURED: the plane with mark 2 and
+        /// the features with mark 1 (SelectionMarks.MirrorFeaturePlane and
+        /// MirrorFeatureFeatures). IFeatureManager~InsertMirrorFeature2.html,
+        /// Remarks table: «Features to be mirrored 1», «Plane or planar face 2».
+        /// Until 0.35.0 this used the pattern's 1 and 4, and no mirror was
+        /// created. The off-centre hole the old note asked for is the bench
+        /// case specchia/foro_specchiato_sul_destro: a hole at (60, 25) mirrored
+        /// on the right plane gives holes at x -60 and 60, y 25 and 25,
+        /// 475476.11 mm3, one body.
         ///
         /// Si specchia la LAVORAZIONE, non il corpo: `BMirrorBody` resta
         /// false. Specchiare un corpo intero e' il caso piu' comune in
@@ -4464,6 +4562,14 @@ namespace Riscontro.Disegno
             // accetta uno spigolo lineare come direzione di una ripetizione
             // lineare e come asse di una circolare.
             //
+            // The circular half is measured, not only accepted (Z-C21.9,
+            // finding M16, not real): the Z-C21.3 probe of L7-5 and M16 (28/9/2026)
+            // turned four copies exactly around a straight edge selected with
+            // SelectByMark and mark 1, the call below, although the marks table
+            // of FeatureCircularPattern5.html names only features and axes
+            // (SelectionMarks.CircularPatternAxis); bench case
+            // the_circular_pattern_turns_around_a_straight_edge.
+            //
             // DEVE ESSERE DRITTO, E SI CONTROLLA. Uno spigolo curvo non da'
             // errore: da' la direzione della tangente in un punto che nessuno
             // ha scelto, cioe' un pezzo che sembra giusto.
@@ -4532,8 +4638,9 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// La lavorazione da ripetere o specchiare, con Mark 4: per
-        /// riferimento a un passo precedente oppure per identificativo.
+        /// The feature to pattern or mirror, selected with the mark the caller
+        /// passes (4 for the patterns, 1 for the mirror: see the parameter),
+        /// by reference to a previous step or by identifier.
         ///
         /// In un metodo solo perche' ripetizione lineare, ripetizione
         /// circolare e specchio la nominano nello stesso identico modo, e tre
@@ -4701,8 +4808,22 @@ namespace Riscontro.Disegno
         /// schizzo del profilo (`ISketchManager.CreateCenterLine`, verificata
         /// per riflessione: stessa firma di CreateLine), e poi si seleziona lo
         /// schizzo intero, come gia' si fa per estrusioni e tagli.
-        /// `UseAutoSelect: true` legge dallo schizzo il profilo chiuso e
-        /// l'unica linea di costruzione che contiene.
+        ///
+        /// THE AXIS IS THE ONLY CENTERLINE OF THE SKETCH, AND THAT IS A MEASURE,
+        /// NOT UseAutoSelect. The guide asks for two selections
+        /// (IFeatureManager~FeatureRevolve2.html, Remarks: «the sketch to
+        /// revolve, using Mark = 0» and «the axis of revolution, using Mark = 4
+        /// or 16»); only the sketch is selected here, and SOLIDWORKS takes its
+        /// single centerline as the axis. Measured by the revolve cases of the
+        /// bench (Banco/casi/rivoluzione): four with their volume to half a
+        /// cubic millimetre and one body (cilindro_d40_lungo_50 62831.853 mm3,
+        /// mezzo_cilindro_180, boccola_cava, albero_a_gradini) and the refusal
+        /// lim_profilo_a_cavallo_dell_asse; a wrong axis would not give those
+        /// volumes (audit finding L2-1, not real). UseAutoSelect is about
+        /// BODIES, not the axis: «True to automatically select all bodies and
+        /// have the feature affect those bodies» (same page). Adding the
+        /// centerline with mark 4 would follow the guide to the letter, and
+        /// needs those cases run before and after.
         ///
         /// FIRMA VERIFICATA sull'interop 29.5.1.1, usata COSI' e non
         /// «aggiornata» a un numero piu' alto:
@@ -5805,8 +5926,12 @@ namespace Riscontro.Disegno
             return true;
         }
 
-        /// <summary>Il raccordo vero e proprio, su cio' che e' gia' selezionato.</summary>
-        private Esito EseguiRaccordo(IModelDoc2 modello, double raggio, int quantiSpigoli)
+        /// <summary>
+        /// The fillet itself, on what is already selected. <paramref name="volumeBefore"/>
+        /// is the volume read before the selection, for EdgeFeatureVolumeCheck
+        /// (Z-C21.8, finding M37).
+        /// </summary>
+        private Esito EseguiRaccordo(IModelDoc2 modello, double raggio, int quantiSpigoli, double? volumeBefore)
         {
             var opzioni = (int)(swFeatureFilletOptions_e.swFeatureFilletUniformRadius |
                                 swFeatureFilletOptions_e.swFeatureFilletPropagate);
@@ -5833,6 +5958,10 @@ namespace Riscontro.Disegno
                 ["spigoli"] = quantiSpigoli,
             };
             SelectedEdgesAndFaces(feature, quantiSpigoli, measures);
+            // After the counts, which SelectedEdgesAndFaces reads right after
+            // creation as the probe did: the check rebuilds before measuring.
+            string filletUnchanged = EdgeFeatureVolumeCheck(modello, "fillet", volumeBefore, measures);
+            if (filletUnchanged != null) return Fallito(filletUnchanged);
             return Riuscito(feature, measures);
         }
 
@@ -6382,6 +6511,17 @@ namespace Riscontro.Disegno
         /// `swDelete_Absorbed` toglie anche lo schizzo assorbito: senza, resta
         /// nell'albero uno schizzo orfano che non fa niente e confonde chi
         /// legge lo stato.
+        ///
+        /// A SHARED SKETCH IS SPARED, MEASURED (Z-C21.9, finding M33, not real).
+        /// DeleteSelection2.html says nothing about a sketch that two features
+        /// use, and the audit called the effect undocumented. The Z-C21.3 probe
+        /// probe_shared_sketch_delete (SOLIDWORKS 29.5.1) measured it: with two
+        /// extrusions on the same sketch (A 16000 mm3, B on top, 24000 in all),
+        /// deleting B with swDelete_Absorbed left the sketch alive, with A as its
+        /// only child and no error, and the volume went from 24000 to 16000, A
+        /// intact (option 0, the guide's, gave the same). The control, one
+        /// extrusion on its own sketch, took the sketch with it. Deleting A
+        /// first is refused here anyway: the probe read IGetChildCount 1 on A.
         /// </summary>
         private Esito EliminaLavorazione(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)

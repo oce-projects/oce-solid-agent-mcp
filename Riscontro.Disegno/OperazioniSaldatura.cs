@@ -770,6 +770,17 @@ namespace Riscontro.Disegno
                 // QUATTRO corpi — una barra per segmento, che e' quello che
                 // serve alla distinta di taglio.
                 //
+                // AND ON THE ROUND TUBE TOO (finding L9-6, NOT REAL). The doubt
+                // was that option 2 might differ from 1 on a round profile. The
+                // Z-C21.3 probe of 28/9/2026 (saldature probe_connected_segments,
+                // TUBO METRICO BHP 42 X 3 against TUBO STRUTTURALE QUADRO
+                // 80X80X5) built, with each option, an L with no corner
+                // treatment, the default one, miter, butt 1 and butt 2, and a T:
+                // option 1 and option 2 gave the same result in every scene, two
+                // bodies each, volume difference 0 mm3, the same faces (the round
+                // L 257296.44 mm3 with no treatment; the square control gave the
+                // same as the measure of 9 September). So 1 stays.
+                //
                 // Anche i gruppi vanno tipizzati, per la stessa ragione dei
                 // segmenti qui sopra.
                 feature = modello.FeatureManager.InsertStructuralWeldment5(
@@ -903,9 +914,23 @@ namespace Riscontro.Disegno
             var contro = CorpiDalRiferimento(a, "corpi_di_taglio_rif", stato, out nContro, out perche);
             if (contro == null) return Fallito(perche);
 
-            int codice;
-            if (!TrattamentiAngolo.TryGetValue(Str(a, "condizione", "taglio"), out codice))
-                codice = 4; // swEndConditionTrim
+            // AN END CONDITION THAT IS NOT ONE OF THE FOUR IS REFUSED (finding
+            // N22). Until library 0.144.0 an unknown word fell back to Trim in
+            // silence, and the answer did not say which condition was used.
+            // «nessuno» is in the shared table of corner treatments (it means
+            // «no corner treatment» for a member group), but the catalogue
+            // offers four conditions for this operation, the trim/extend of
+            // SOLIDWORKS has no «none» corner type, and no probe ever trimmed
+            // with swEndConditionNone (the Z-C21.3 trim probe measured 1, 2, 3
+            // and 4): so it is refused here too, rather than documented.
+            string askedCondition = (Str(a, "condizione", "taglio") ?? "").Trim();
+            if (askedCondition.Length == 0) askedCondition = "taglio";   // empty reads as absent
+            int codice = TrimEndCondition(askedCondition);
+            if (codice < 0)
+                return Fallito(
+                    "«condizione» can be «taglio» (the default), «quartabuono», «testa1» or «testa2», and " +
+                    "it says «" + askedCondition + "». I do not fall back to «taglio» for you: write one of " +
+                    "the four, or leave «condizione» out for «taglio». Nothing was changed.");
             double gioco = Num(a, "gioco_mm", 0);
 
             // IL BIT DEL GIOCO SI ACCENDE SEMPRE, ANCHE CON ZERO (voce Z-C21.2,
@@ -1033,6 +1058,7 @@ namespace Riscontro.Disegno
                     ["corpi_tagliati"] = nDa,
                     ["corpi_di_taglio"] = nContro,
                     ["gioco_mm"] = gioco,
+                    ["end_condition"] = askedCondition.ToLowerInvariant(),   // N22: the one used
                     ["variazione_volume_mm3"] = null,
                     ["volume_non_riletto"] = NotaVolumeNonRiletto,
                 });
@@ -1050,6 +1076,7 @@ namespace Riscontro.Disegno
                 ["corpi_tagliati"] = nDa,
                 ["corpi_di_taglio"] = nContro,
                 ["gioco_mm"] = gioco,
+                ["end_condition"] = askedCondition.ToLowerInvariant(),   // N22: the one used
                 // Negativo = tolto (taglio), positivo = aggiunto (estensione).
                 ["variazione_volume_mm3"] = Math.Round(variazione, 2),
             });
@@ -1127,18 +1154,25 @@ namespace Riscontro.Disegno
             bool? eraSaldato = null;
             try { eraSaldato = parte.IsWeldment(); } catch { }
             var lavorazioniPrima = new HashSet<string>(NomiDelleLavorazioni(modello));
+            // THE FEATURE InsertWeldmentFeature RETURNS IS KEPT (finding N30):
+            // IFeatureManager~InsertWeldmentFeature.html, Return Value: «Pointer
+            // to the IFeature object». It is the one thing a refusal below takes
+            // away again.
+            IFeature weldmentAdded = null;
             if (eraSaldato != true)
             {
-                try { modello.FeatureManager.InsertWeldmentFeature(); } catch { }
+                try { weldmentAdded = modello.FeatureManager.InsertWeldmentFeature() as IFeature; } catch { }
                 try { modello.ForceRebuild3(false); } catch { }
             }
-            // SE DA QUI SI FALLISCE, la lavorazione «Saldatura» messa adesso si
-            // toglie: un rifiuto non lascia il pezzo trasformato (revisione del
-            // 26/9/2026).
+            // IF A STEP BELOW FAILS, the weldment feature added here is removed
+            // again, and the message says whether that worked, read back from
+            // IsWeldment (review of 26/9/2026; N30).
             Func<string, Esito> rifiuta = testo =>
             {
-                if (eraSaldato != true) TogliLavorazioniNuove(modello, lavorazioniPrima);
-                return Fallito(testo);
+                string undo = eraSaldato != true
+                    ? RemoveAddedWeldment(modello, parte, weldmentAdded, lavorazioniPrima, corpiSolidi.Length)
+                    : "";
+                return Fallito(testo + undo);
             };
             bool saldato = false;
             try { saldato = parte.IsWeldment(); } catch { }
@@ -1149,7 +1183,29 @@ namespace Riscontro.Disegno
                     "voce sola manderebbe in officina le lunghezze sbagliate.");
 
             // ── 2. LA DISTINTA AUTOMATICA ───────────────────────────────────
+            //
+            // THE FOUR ANSWERS ARE READ (findings N15, N41). Until library
+            // 0.144.0 SetAutomaticCutList, SetAutomaticUpdate and both
+            // UpdateCutList calls were dropped:
+            //   - IBodyFolder~SetAutomaticCutList.html: «True if enabled, false
+            //     if not»; Remarks: it returns false if the part has no weldment
+            //     feature, or if «a cut list folder already exists in the part.
+            //     You must delete the cut list before you can enable automatic
+            //     generation». It is asked only when GetAutomaticCutList reads
+            //     false: a new weldment part has the automatic cut list already
+            //     (~GetAutomaticCutList.html, «By default, a cut list is
+            //     automatically generated in new weldment parts»), and there the
+            //     cut list folders that exist would make it answer false;
+            //   - ~SetAutomaticUpdate.html: «True if successful, false if not»;
+            //   - ~UpdateCutList.html: «True if the automatically generated cut
+            //     list is successfully updated, false if not». A false one means
+            //     that the quantities and lengths read below may be those of
+            //     before the last change (N41): the answer says so.
             bool automatica = false;
+            bool alreadyAutomatic = false;
+            bool? automaticCutListSet = null;      // null: not asked, it was on already
+            bool? automaticUpdateSet = null;
+            bool? cutListUpdated = null;
             try
             {
                 var f0 = modello.FirstFeature() as IFeature;
@@ -1160,9 +1216,10 @@ namespace Riscontro.Disegno
                         var bf = f0.GetSpecificFeature2() as IBodyFolder;
                         if (bf != null)
                         {
-                            bf.SetAutomaticCutList(true);
-                            bf.SetAutomaticUpdate(true);
-                            bf.UpdateCutList();
+                            try { alreadyAutomatic = bf.GetAutomaticCutList(); } catch { }
+                            if (!alreadyAutomatic) automaticCutListSet = bf.SetAutomaticCutList(true);
+                            automaticUpdateSet = bf.SetAutomaticUpdate(true);
+                            cutListUpdated = bf.UpdateCutList();
                             automatica = bf.GetAutomaticCutList();
                         }
                     }
@@ -1170,13 +1227,19 @@ namespace Riscontro.Disegno
                 }
             }
             catch { }
+            // Each item folder is refreshed too; their answers are counted and
+            // given back, not judged: the guide ties UpdateCutList to «the
+            // automatically generated cut list», and what an item folder answers
+            // was never measured.
+            int folderUpdatesFalse = 0, folderUpdatesUnread = 0;
             foreach (var c in CartelleDistinta(modello))
-                try { c.UpdateCutList(); } catch { }
+            {
+                try { if (!c.UpdateCutList()) folderUpdatesFalse++; }
+                catch { folderUpdatesUnread++; }
+            }
             try { modello.ForceRebuild3(false); } catch { }
             if (!automatica)
-                return rifiuta(
-                    "Non riesco ad accendere la distinta automatica sulla cartella «Corpi solidi»: senza, le " +
-                    "barre non si separano per lunghezza.");
+                return rifiuta(AutomaticCutListRefusal(automaticCutListSet, giaEsisteva));
 
             // ── 3. LE VOCI, LETTE ───────────────────────────────────────────
             var cartelle = CartelleDistinta(modello);
@@ -1186,12 +1249,16 @@ namespace Riscontro.Disegno
             int? quantitaTotale = 0;
             var voci = new List<object>();
             var lunghezze = new List<object>();
+            var itemProblems = new List<string>();
             IFeature primaCartella = null;
             foreach (var c in cartelle)
             {
                 int corpi = -1;
                 try { corpi = c.GetBodyCount(); } catch { }
                 if (corpi < 0) corpiInDistinta = null; else if (corpiInDistinta.HasValue) corpiInDistinta += corpi;
+                // BODY BY BODY, NOT ONLY THE SUM (N15): the volumes of the bodies
+                // of this item, null when one of them cannot be read.
+                double[] itemVolumes = VolumesOfFolderBodies(c);
                 IFeature fc = null;
                 try { fc = c.GetFeature() as IFeature; } catch { }
                 if (primaCartella == null) primaCartella = fc;
@@ -1218,12 +1285,17 @@ namespace Riscontro.Disegno
                 bool qNum = int.TryParse((quantita ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out q);
                 if (!qNum) quantitaTotale = null; else if (quantitaTotale.HasValue) quantitaTotale += q;
                 if (lNum) lunghezze.Add(Math.Round(l, 2));
+                string itemProblem = CutListItemProblem(descrizione, corpi, qNum ? (int?)q : null, itemVolumes);
+                if (itemProblem != null) itemProblems.Add(itemProblem);
                 voci.Add(new Dictionary<string, object>
                 {
                     ["descrizione"] = descrizione,
                     ["lunghezza_mm"] = lNum ? (object)Math.Round(l, 2) : lunghezza,
                     ["quantita"] = qNum ? (object)q : quantita,
                     ["corpi"] = NumeroOppureNull(corpi),
+                    // N15: true when every body of the item has the same volume;
+                    // null when a volume could not be read (or the item has none).
+                    ["bodies_equal"] = BodiesAreEqual(itemVolumes),
                 });
             }
 
@@ -1236,12 +1308,39 @@ namespace Riscontro.Disegno
                 ["quantita_totale"] = quantitaTotale,
                 ["gia_esisteva"] = giaEsisteva,
                 ["reso_saldato"] = eraSaldato.HasValue ? (object)!eraSaldato.Value : null,
+                // N15, N41: what SOLIDWORKS answered, read and not assumed. A
+                // null automatic_cut_list_set means it was not asked: the cut
+                // list was automatic already.
+                ["automatic_cut_list_set"] = automaticCutListSet,
+                ["automatic_update_set"] = automaticUpdateSet,
+                ["cut_list_updated"] = cutListUpdated,
+                ["item_folders_update_false"] = folderUpdatesFalse,
+                ["item_folders_update_unread"] = folderUpdatesUnread,
             };
             // LA SOMMA DELLE QUANTITA' E' IL NUMERO DELLE BARRE: se no, qualcosa
             // manca o e' contato due volte, e lo si dice.
+            var warnings = new List<string>();
             if (quantitaTotale.HasValue && quantitaTotale.Value != corpiSolidi.Length)
-                misure["attenzione"] = "La distinta dice " + quantitaTotale.Value + " barre in tutto e il pezzo ha " +
-                                       corpiSolidi.Length + " corpi: prima di andare in officina, controlla.";
+                warnings.Add("La distinta dice " + quantitaTotale.GetValueOrDefault() + " barre in tutto e il pezzo ha " +
+                             corpiSolidi.Length + " corpi: prima di andare in officina, controlla.");
+            // N15: the bodies the item folders hold, against the bodies of the
+            // part (a body in no item, or in two, does not show in the sum of
+            // the quantities if the QUANTITY of an item is wrong the other way).
+            if (corpiInDistinta is int heldBodies && heldBodies != corpiSolidi.Length)
+                warnings.Add("The cut list folders hold " + heldBodies + " bodies and the part has " +
+                             corpiSolidi.Length + ": check the cut list before it goes to the shop.");
+            foreach (var p in itemProblems)
+                warnings.Add(p + ": check the cut list before it goes to the shop.");
+            // N41: a refresh that did not go through leaves the numbers of before.
+            if (cutListUpdated == false)
+                warnings.Add("SOLIDWORKS did not update the cut list (UpdateCutList answered false): the " +
+                             "quantities and lengths above may be those of before the last change. Rebuild " +
+                             "the part (Ctrl+Q) and ask for the cut list again.");
+            if (automaticUpdateSet == false)
+                warnings.Add("SOLIDWORKS did not turn on the automatic update of the cut list " +
+                             "(SetAutomaticUpdate answered false): after a change to the bars, ask for the cut " +
+                             "list again before reading it.");
+            if (warnings.Count > 0) misure["attenzione"] = string.Join(" ", warnings);
             // Una distinta che c'era gia' non e' una feature creata adesso.
             if (primaCartella != null && !giaEsisteva) return Riuscito(primaCartella, misure);
             return SenzaFeature(misure);
@@ -1306,8 +1405,8 @@ namespace Riscontro.Disegno
         // Il fazzoletto (voce GP20)
         // ─────────────────────────────────────────────────────────────────
         //
-        // NON E' MAI NATO UN FAZZOLETTO FINO ALLA LIBRERIA 0.138.0, E LA CAUSA
-        // ERA IL PROFILO DEGENERE.
+        // NO GUSSET WAS EVER BORN UP TO LIBRARY 0.139.0 (the fix is in 0.140.0,
+        // finding N69), AND THE CAUSE WAS THE DEGENERATE PROFILE.
         //
         // Il metodo spedito passava `BIsProfile = true` (poligono) con
         // `ProfileD3 = ProfileAngle = ProfileD4 = 0` e nessuna marca: un
@@ -1446,8 +1545,8 @@ namespace Riscontro.Disegno
                     return Fallito(
                         "Un profilo «poligonale» senza «lato3_mm» e «lato4_mm», o con uno dei due a zero, " +
                         "e' degenere: il poligono si chiude su se stesso e SOLIDWORKS non crea niente, " +
-                        "senza dire perche'. E' il difetto per cui questa operazione non ha mai creato " +
-                        "un fazzoletto fino alla libreria 0.138.0 (voce GP20). Dai i due lati corti, " +
+                        "senza dire perche'. This is the defect that kept this operation from ever " +
+                        "creating a gusset up to library 0.139.0 (entry GP20). Dai i due lati corti, " +
                         "oppure usa «profilo»: «triangolare».");
                 double corto = Math.Min(lato1, lato2);
                 if (lato3 >= corto || lato4 >= corto)
@@ -1464,8 +1563,8 @@ namespace Riscontro.Disegno
                     "triangolare (il predefinito), oppure il poligonale con «lato3_mm» e «lato4_mm».");
 
             // ── LA POSIZIONE LUNGO LO SPIGOLO (rilievo C1-1) ────────────────
-            // Fino alla 0.138.0 un valore sconosciuto finiva in silenzio al
-            // centro, e la risposta ripeteva la stringa ricevuta.
+            // Up to library 0.139.0 (N69) an unknown value went to the centre
+            // in silence, and the answer repeated the string it was given.
             string posizione = (Str(a, "posizione", "centro") ?? "").Trim().ToLowerInvariant();
             int dove;
             switch (posizione)
@@ -1601,10 +1700,19 @@ namespace Riscontro.Disegno
                 try { modello.ClearSelection2(true); } catch { }
             }
 
+            // WHAT TO TRY NEXT, WITHOUT BLAMING THE GEOMETRY (finding N19).
+            // Until library 0.144.0 this said «usually the sides do not fit on
+            // the faces». Nobody measured that: the two causes of a null gusset
+            // that WERE measured (GP20, M27: the polygon with zero short sides,
+            // and faces selected without mark 1) are parameters, and both are
+            // excluded before the call now. Shorter sides stay a suggestion, said
+            // as one. The selection is cleared in the finally above on every
+            // exit of the call, the refusals inside it included.
             string alternativa =
-                " Di solito i lati non ci stanno sulle facce: prova lati piu' corti" +
-                (poligono ? ", o il profilo «triangolare»" : "") + ". Se ti serve solo " +
-                "documentare la saldatura fra queste due facce, c'e' «cordone_saldatura».";
+                " Shorter sides may fit where these did not" +
+                (poligono ? ", and so may the «triangolare» profile" : "") + ": that is a " +
+                "suggestion, not a measured cause. If you only need to document the weld between these " +
+                "two faces, there is «cordone_saldatura».";
             if (feature == null)
             {
                 int adesso = ContaFeature(modello);
@@ -1614,9 +1722,12 @@ namespace Riscontro.Disegno
                 return Fallito(
                     (eccezione != null
                         ? "Il fazzoletto non e' riuscito: " + eccezione + "."
-                        : "SOLIDWORKS non ha creato il fazzoletto, e non dice perche' (le due facce sono " +
-                          "piane, fanno angolo e si toccano per " +
-                          contatto.ToString("0.##", CultureInfo.InvariantCulture) + " mm).") +
+                        : "SOLIDWORKS did not create the gusset and gives no reason. The two causes measured " +
+                          "so far are ruled out before the call: the profile is not a degenerate polygon, and " +
+                          "the two faces were selected with mark 1 (entry GP20). The faces are planar, meet " +
+                          "at an angle and touch for " +
+                          contatto.ToString("0.##", CultureInfo.InvariantCulture) + " mm, so the cause is " +
+                          "not one I know.") +
                     alternativa + coda);
             }
 
@@ -1803,12 +1914,15 @@ namespace Riscontro.Disegno
             if (lavorazioni < 0)
                 return " L'ho tolto, ma non ho potuto ricontare l'albero per controllare che il pezzo " +
                        "sia com'era: guardalo.";
-            if (lavorazioni > featurePrima) return FazzolettoRestaNelPezzo;
+            // Removed by DeleteSelection2: from here the gusset is gone, and
+            // «still in the part» would be false (Z-C21.9, finding C9-6).
+            if (lavorazioni > featurePrima) return RemovedButTreeLonger(lavorazioni - featurePrima);
             double? volumeDopo = VolumeMm3(modello);
             if (volumePrima == null || volumeDopo == null)
                 return " L'ho tolto, ma non ho potuto rimisurare il volume per controllare che il pezzo " +
                        "sia com'era: guardalo.";
-            if (Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.01) return FazzolettoRestaNelPezzo;
+            if (Math.Abs(volumeDopo.GetValueOrDefault() - volumePrima.GetValueOrDefault()) > 0.01)
+                return RemovedButVolumeChanged(volumeDopo.GetValueOrDefault(), volumePrima.GetValueOrDefault());
             return " L'ho tolto: il pezzo e' com'era prima di questo passo.";
         }
 
@@ -2172,38 +2286,188 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Toglie le lavorazioni nate dopo `prima` (la «Saldatura» e le cartelle
-        /// di distinta messe da un'operazione che poi rifiuta). DeleteSelection2,
-        /// non EditDelete. Al meglio: quelle che non si lasciano togliere restano,
-        /// e l'albero lo dice.
+        /// Removes the weldment feature that distinta_taglio added before a
+        /// refusal, and returns the tail of the refusal message: what was done,
+        /// read back (finding N30).
+        ///
+        /// Until library 0.144.0 the cleanup deleted every top-level feature
+        /// whose name was not there before, and dropped the answers of Select2
+        /// and DeleteSelection2. A name is not an identity: inserting the
+        /// weldment feature renames folders of the tree, and a renamed folder
+        /// has a «new» name. Now only the IFeature that InsertWeldmentFeature
+        /// returned is removed (or, if it returned none, the one new feature
+        /// of type «WeldmentFeature», the type IFeature~GetTypeName2.html lists
+        /// for it), both answers are read, and IsWeldment is read again after
+        /// the rebuild: the message says the part is as it was only when
+        /// IsWeldment reads false. DeleteSelection2, never EditDelete (a modal
+        /// dialog would hang the COM call). Guide:
+        /// IModelDocExtension~DeleteSelection2.html, «True if the selected item
+        /// is deleted, false if not».
         /// </summary>
-        private static void TogliLavorazioniNuove(IModelDoc2 modello, HashSet<string> prima)
+        private static string RemoveAddedWeldment(
+            IModelDoc2 modello, IPartDoc parte, IFeature added, HashSet<string> namesBefore, int bodiesBefore)
+        {
+            IFeature target = added ?? NewWeldmentFeature(modello, namesBefore);
+            if (target == null)
+            {
+                bool? stillWeldment = null;
+                try { stillWeldment = parte.IsWeldment(); } catch { }
+                if (stillWeldment == false) return "";   // nothing was added: not a weldment, as before
+                return " I cannot find the weldment feature I added, so the part stayed a weldment (IsWeldment " +
+                       (stillWeldment == true ? "reads true" : "cannot be read") + "): remove that feature from " +
+                       "the tree by hand.";
+            }
+            string name = null;
+            try { name = target.Name; } catch { }
+            bool selected = false, deleted = false;
+            try
+            {
+                modello.ClearSelection2(true);
+                selected = target.Select2(false, 0);
+                if (selected)
+                    deleted = modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+            }
+            catch { }
+            finally { try { modello.ClearSelection2(true); } catch { } }
+            try { modello.ForceRebuild3(false); } catch { }
+            bool? weldmentAfter = null;
+            try { weldmentAfter = parte.IsWeldment(); } catch { }
+            return WeldmentRemovalNote(name, selected, deleted, weldmentAfter, bodiesBefore, ContaCorpiSolidi(modello));
+        }
+
+        /// <summary>The top-level feature of type «WeldmentFeature» that was not there before, or null (N30).</summary>
+        private static IFeature NewWeldmentFeature(IModelDoc2 modello, HashSet<string> namesBefore)
         {
             try
             {
-                var nuove = new List<IFeature>();
                 var f = modello.FirstFeature() as IFeature;
                 while (f != null)
                 {
-                    string n = null;
-                    try { n = f.Name; } catch { }
-                    if (n != null && !prima.Contains(n)) nuove.Add(f);
+                    string type = null, name = null;
+                    try { type = f.GetTypeName2(); name = f.Name; } catch { }
+                    if (type == "WeldmentFeature" && name != null && !namesBefore.Contains(name)) return f;
                     f = f.GetNextFeature() as IFeature;
                 }
-                for (int i = nuove.Count - 1; i >= 0; i--)
-                {
-                    try
-                    {
-                        modello.ClearSelection2(true);
-                        if (nuove[i].Select2(false, 0))
-                            modello.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                    }
-                    catch { }
-                }
-                modello.ClearSelection2(true);
-                modello.ForceRebuild3(false);
             }
             catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// The tail of the refusal of distinta_taglio after the weldment feature
+        /// it added was removed, or not (N30). «The part is as it was» only when
+        /// the deletion answered true AND IsWeldment reads false again; a count
+        /// of bodies that changed is said too. -1 bodies is «not read». No
+        /// interop type in the signature: Prove.Contratti calls it by reflection.
+        /// </summary>
+        internal static string WeldmentRemovalNote(
+            string name, bool selected, bool deleted, bool? weldmentAfter, int bodiesBefore, int bodiesAfter)
+        {
+            string feature = "the weldment feature «" + (name ?? "?") + "» I had added";
+            if (!selected)
+                return " I could not select " + feature + " (Select2 answered false): the part stayed a " +
+                       "weldment. Remove that feature from the tree by hand.";
+            if (!deleted)
+                return " SOLIDWORKS did not delete " + feature + " (DeleteSelection2 answered false): the part " +
+                       "stayed a weldment. Remove that feature from the tree by hand.";
+            if (weldmentAfter == true)
+                return " I deleted " + feature + ", but IsWeldment still reads true: the part stayed a " +
+                       "weldment. Look at the tree.";
+            if (weldmentAfter == null)
+                return " I deleted " + feature + ", but I could not read IsWeldment again: look at the tree " +
+                       "before going on.";
+            if (bodiesBefore >= 0 && bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
+                return " I deleted " + feature + " and IsWeldment reads false again, but the part has " +
+                       bodiesAfter + " bodies where it had " + bodiesBefore + ": look at the tree.";
+            return " I removed " + feature + ": IsWeldment reads false again" +
+                   (bodiesAfter >= 0 ? ", and the part has its " + bodiesAfter + " bodies." : ".");
+        }
+
+        /// <summary>
+        /// The refusal when the automatic cut list does not turn on (N15): the
+        /// answer of SetAutomaticCutList (null when it was not asked) and
+        /// whether a cut list was there before this step decide the words.
+        /// IBodyFolder~SetAutomaticCutList.html, Remarks: false «if the part
+        /// does not contain a weldment feature» or if «a cut list folder already
+        /// exists in the part. You must delete the cut list before you can
+        /// enable automatic generation». The second is the cut list of a
+        /// library older than 0.124.0, made with InsertWeldmentCutList2 and
+        /// all the bodies in one item (GT2), or one made by hand.
+        /// </summary>
+        internal static string AutomaticCutListRefusal(bool? setAnswer, bool cutListExisted)
+        {
+            if (setAnswer == false && cutListExisted)
+                return "This part already has a cut list that is not automatic (made by hand, or by this " +
+                       "operation before library 0.124.0), and SetAutomaticCutList answered false, as the " +
+                       "guide says it does while a cut list folder exists. Delete that cut list and ask again: " +
+                       "I do not read its items, which may put bars of different lengths in one item.";
+            if (setAnswer == false)
+                return "SOLIDWORKS did not turn on the automatic cut list (SetAutomaticCutList answered false; " +
+                       "the guide says it does when the part has no weldment feature or already has a cut list " +
+                       "folder). Without it the bars are not split by length, and one item with every bar " +
+                       "would send the wrong lengths to the shop.";
+            return "The automatic cut list is not on (GetAutomaticCutList reads false" +
+                   (setAnswer == true ? " although SetAutomaticCutList answered true" : "") +
+                   "): without it the bars are not split by length, and one item with every bar would send " +
+                   "the wrong lengths to the shop.";
+        }
+
+        /// <summary>
+        /// The volumes in mm3 of the bodies of one cut list folder (N15), or null
+        /// when the folder gives no array or a body does not answer.
+        /// IBody2.GetMassProperties gives the volume in m3 at index 3.
+        /// </summary>
+        private static double[] VolumesOfFolderBodies(IBodyFolder folder)
+        {
+            try
+            {
+                var bodies = folder.GetBodies() as object[];
+                if (bodies == null) return null;
+                var volumes = new double[bodies.Length];
+                for (int i = 0; i < bodies.Length; i++)
+                {
+                    var mp = (bodies[i] as IBody2)?.GetMassProperties(1000.0) as double[];
+                    if (mp == null || mp.Length < 4) return null;
+                    volumes[i] = mp[3] * 1e9;
+                }
+                return volumes;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Whether the bodies of one cut list item have the same volume, within
+        /// half a mm3 or a ten-thousandth (N15); null when the volumes are not
+        /// known or there are none.
+        /// </summary>
+        internal static bool? BodiesAreEqual(double[] volumesMm3)
+        {
+            if (volumesMm3 == null || volumesMm3.Length == 0) return null;
+            double min = volumesMm3.Min(), max = volumesMm3.Max();
+            return max - min <= Math.Max(0.5, Math.Abs(max) * 1e-4);
+        }
+
+        /// <summary>
+        /// What is wrong with one item of the cut list, body by body (N15), or
+        /// null. Two checks the sum of the quantities cannot make: the QUANTITY
+        /// of the item against the bodies its folder holds, and bodies of
+        /// different volume in one item — the defect of GT2, four bars of 1000
+        /// and 800 in one item «QUANTITY 4», where the quantity was right and
+        /// the lengths were not. -1 bodies, a null quantity or null volumes are
+        /// «not read», and do not accuse.
+        /// </summary>
+        internal static string CutListItemProblem(string description, int bodies, int? quantity, double[] volumesMm3)
+        {
+            string item = string.IsNullOrWhiteSpace(description) ? "An item of the cut list" : "The cut list item «" + description + "»";
+            if (quantity is int said && bodies >= 0 && said != bodies)
+                return item + " says QUANTITY " + said + " and its folder holds " + bodies +
+                       (bodies == 1 ? " body" : " bodies");
+            if (BodiesAreEqual(volumesMm3) == false)
+                return item + " holds bodies of different volume, from " +
+                       volumesMm3.Min().ToString("0.##", CultureInfo.InvariantCulture) + " to " +
+                       volumesMm3.Max().ToString("0.##", CultureInfo.InvariantCulture) +
+                       " mm3: it puts in one item bars that are not equal";
+            return null;
         }
 
         private static string NomeDelCorpo(IFace2 faccia)
@@ -2281,6 +2545,26 @@ namespace Riscontro.Disegno
                 { "testa2", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt2 },
                 { "taglio", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionTrim },
             };
+
+        /// <summary>
+        /// The end condition of taglia_membri, as swSolidworksWeldmentEndCondOptions_e
+        /// (IFeatureManager~InsertWeldmentTrimFeature2.html, «End condition as
+        /// defined by swSolidworksWeldmentEndCondOptions_e»), for the four words
+        /// the catalogue offers, whatever their case; -1 for anything else,
+        /// «nessuno» included (finding N22: see TagliaMembri). No interop type in
+        /// the signature: Prove.Contratti calls it by reflection.
+        /// </summary>
+        internal static int TrimEndCondition(string asked)
+        {
+            switch ((asked ?? "").Trim().ToLowerInvariant())
+            {
+                case "taglio": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionTrim;
+                case "quartabuono": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionMiter;
+                case "testa1": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt1;
+                case "testa2": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt2;
+                default: return -1;
+            }
+        }
 
         private class Segmento
         {

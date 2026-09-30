@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -43,15 +44,33 @@ namespace Riscontro.Disegno
             }
         }
 
-        /// <summary>Scrive fine e profondita' nella definizione e la applica; true se ModifyDefinition risponde true.</summary>
-        private static bool ScriviEstrusione(IModelDoc2 modello, IFeature f, int fine, double profonditaM)
+        /// <summary>
+        /// Writes the end condition and the depth into the definition and
+        /// applies it: true when ModifyDefinition answers true.
+        /// <paramref name="refusedBy"/> names the step that said no when it is
+        /// false.
+        ///
+        /// THE ACCESS IS READ (Z-C21.8, finding L5-5).
+        /// IExtrudeFeatureData2~AccessSelections.html: «True if the selections
+        /// were accessed successfully, false if not»; its Remarks: it «puts the
+        /// model into a rollback state», which ModifyDefinition or
+        /// ReleaseSelectionAccess restore. The answer was dropped, and a
+        /// refused access went on to write and apply the definition. Now a
+        /// refused access stops here, before anything is written, and nothing
+        /// is released because nothing was accessed.
+        /// </summary>
+        private static bool ScriviEstrusione(IModelDoc2 modello, IFeature f, int fine, double profonditaM, out string refusedBy)
         {
+            refusedBy = null;
             var dati = f.GetDefinition() as IExtrudeFeatureData2;
-            if (dati == null) return false;
+            if (dati == null) { refusedBy = "GetDefinition gave no extrusion definition"; return false; }
+            bool access;
+            try { access = dati.AccessSelections(modello, null); }
+            catch (Exception ex) { refusedBy = "AccessSelections threw: " + ex.Message; return false; }
+            if (!access) { refusedBy = "AccessSelections answered false"; return false; }
             bool fatto = false;
             try
             {
-                dati.AccessSelections(modello, null);
                 dati.SetEndCondition(true, fine);
                 // ANCHE IL PIANO MEDIO HA LA SUA PROFONDITA' (revisione del 27/9/2026):
                 // senza, il ripristino rimetteva la condizione e lasciava la misura nuova.
@@ -61,10 +80,72 @@ namespace Riscontro.Disegno
                 // The verdict on errors stays with the caller, which rebuilds
                 // and counts the features in error (LavorazioniInErrore).
                 fatto = ApiHelpers.ModifyAndVerify(f, dati, modello).Applied;
+                if (!fatto) refusedBy = "ModifyDefinition answered false";
             }
-            catch { fatto = false; }
+            catch (Exception ex) { fatto = false; refusedBy = "writing the definition threw: " + ex.Message; }
             if (!fatto) { try { dati.ReleaseSelectionAccess(); } catch { } }
             return fatto;
+        }
+
+        /// <summary>
+        /// The tail of the refusal when the new definition was not applied: the
+        /// feature and the part READ BACK, never assumed (Z-C21.8, finding M42).
+        /// IFeature~ModifyDefinition.html, Remarks: «this method may leave the
+        /// feature in an unpredictable state due to errors». Until library
+        /// 0.144.0 the refusal said that nothing had been touched, without
+        /// looking.
+        /// </summary>
+        private static string ExtrusionReadBack(IModelDoc2 modello, IFeature f, int endBefore, double depthBeforeM, double? volumeBefore)
+        {
+            int endNow = -1;
+            double depthNowM = double.NaN;
+            try
+            {
+                var now = f.GetDefinition() as IExtrudeFeatureData2;
+                if (now != null)
+                {
+                    endNow = now.GetEndCondition(true);
+                    depthNowM = now.GetDepth(true);
+                }
+            }
+            catch { endNow = -1; }
+            return ExtrusionReadBackTail(endBefore, Unita.Mm(depthBeforeM), volumeBefore,
+                                         endNow, Unita.Mm(depthNowM), VolumeMm3(modello));
+        }
+
+        /// <summary>
+        /// The words of <see cref="ExtrusionReadBack"/>, kept apart from the
+        /// document so that Prove.Contratti can call it without SOLIDWORKS.
+        /// «Nothing changed» only when the end condition, the depth (for the
+        /// conditions that have one) and the volume read now are the ones read
+        /// before; -1 for an end condition and null for a volume mean «not
+        /// read», and then the tail says so instead of guessing.
+        /// </summary>
+        internal static string ExtrusionReadBackTail(
+            int endBefore, double depthBeforeMm, double? volumeBefore,
+            int endNow, double depthNowMm, double? volumeNow)
+        {
+            if (endNow < 0 || volumeNow == null || volumeBefore == null)
+                return " I could not read it back (end condition " + (endNow < 0 ? "not read" : "«" + NomeDellaFine(endNow) + "»") +
+                       ", volume " + (volumeNow == null ? "not read" : volumeNow.GetValueOrDefault().ToString("0.##", CultureInfo.InvariantCulture) + " mm3") +
+                       "): look at the feature before going on.";
+            bool withDepth = endBefore == (int)swEndConditions_e.swEndCondBlind ||
+                             endBefore == (int)swEndConditions_e.swEndCondMidPlane;
+            bool sameEnd = endNow == endBefore;
+            bool sameDepth = !withDepth || (!double.IsNaN(depthNowMm) && Math.Abs(depthNowMm - depthBeforeMm) <= 0.001);
+            bool sameVolume = Math.Abs(volumeNow.GetValueOrDefault() - volumeBefore.GetValueOrDefault()) < 0.01;
+            string volumeText = volumeNow.GetValueOrDefault().ToString("0.##", CultureInfo.InvariantCulture) + " mm3";
+            if (sameEnd && sameDepth && sameVolume)
+                return " Read back: still «" + NomeDellaFine(endNow) + "»" +
+                       (withDepth ? ", " + depthNowMm.ToString("0.###", CultureInfo.InvariantCulture) + " mm deep" : "") +
+                       ", and the volume is the one before (" + volumeText + "): nothing changed.";
+            bool depthNowShown = endNow == (int)swEndConditions_e.swEndCondBlind ||
+                                 endNow == (int)swEndConditions_e.swEndCondMidPlane;
+            return " Read back, it is now «" + NomeDellaFine(endNow) + "»" +
+                   (depthNowShown && !double.IsNaN(depthNowMm) ? ", " + depthNowMm.ToString("0.###", CultureInfo.InvariantCulture) + " mm deep" : "") +
+                   ", with a volume of " + volumeText + " instead of " +
+                   volumeBefore.GetValueOrDefault().ToString("0.##", CultureInfo.InvariantCulture) + " mm3: the feature is not as it was. " +
+                   "Look at it, and undo the step (" + Frasi.CosiSiRitira + ").";
         }
 
         private Esito CambiaEstrusione(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
@@ -134,6 +215,9 @@ namespace Riscontro.Disegno
                 try { taglio = !prima.IsBossFeature(); }
                 catch (Exception ex)
                 {
+                    // «Nothing touched» needs no reread here (Z-C21.8, finding
+                    // M42): up to this line the feature has only been read
+                    // (GetDefinition, IsBossFeature), never accessed or modified.
                     return Fallito("Non riesco a sapere se «" + f.Name + "» e' un taglio o un rialzo (" + ex.Message +
                                    "): non la tocco. Non ho toccato niente.");
                 }
@@ -198,9 +282,13 @@ namespace Riscontro.Disegno
             // LE GUARDIE DI modifica_quota: corpi, aperture, smussi, errori.
             var foto = FotografaIlPezzo(modello);
             double? volumePrima = foto.Volume;
-            if (!ScriviEstrusione(modello, f, fineChiesta, chiedeProfondita ? Unita.M(profondita) : profPrima))
-                return Fallito("SOLIDWORKS non accetta la definizione nuova di «" + f.Name + "» (ModifyDefinition ha risposto " +
-                               "false). Non ho toccato niente.");
+            string refusedBy;
+            if (!ScriviEstrusione(modello, f, fineChiesta, chiedeProfondita ? Unita.M(profondita) : profPrima, out refusedBy))
+            {
+                try { modello.ForceRebuild3(false); } catch { }
+                return Fallito("SOLIDWORKS did not take the new definition of «" + f.Name + "» (" + refusedBy + ")." +
+                               ExtrusionReadBack(modello, f, finePrima, profPrima, volumePrima));
+            }
             bool ricostruito = false;
             try { ricostruito = modello.ForceRebuild3(false); } catch { }
             int erroriDopo = LavorazioniInErrore(modello);
@@ -209,7 +297,7 @@ namespace Riscontro.Disegno
             string rotto = CosaSiERotto(modello, foto, ricostruito, false);
             if (rotto != null)
             {
-                bool rimessa = ScriviEstrusione(modello, f, finePrima, profPrima);
+                bool rimessa = ScriviEstrusione(modello, f, finePrima, profPrima, out _);
                 try { modello.ForceRebuild3(false); } catch { }
                 return Fallito("Con la definizione nuova di «" + f.Name + "» " + rotto + "." +
                                ETornatoComEra(modello, foto, rimessa, "la definizione di prima (" + NomeDellaFine(finePrima) + ")"));

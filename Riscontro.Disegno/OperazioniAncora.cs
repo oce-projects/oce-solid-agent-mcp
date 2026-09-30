@@ -491,8 +491,21 @@ namespace Riscontro.Disegno
                     var linea = mezzeria as ISketchLine;
                     if (linea == null) { motivo = "La mezzeria fra «" + asse.Fra1.Uid + "» e «" + asse.Fra2.Uid + "» non e' nata."; return false; }
 
-                    bool r1 = Relazione(modello, (ISketchPoint)linea.GetStartPoint2(), asse.Fra1.Spigolo, "sgCOINCIDENT");
-                    bool r2 = Relazione(modello, (ISketchPoint)linea.GetEndPoint2(), asse.Fra2.Spigolo, "sgCOINCIDENT");
+                    // THE ENDS ARE CHECKED (Z-C21.8, finding N49): ISketchLine~
+                    // GetStartPoint2.html, «Start sketch point or NULL if operation
+                    // fails». A null end made the relation fail and the refusal
+                    // count relations, which pointed at the wrong thing.
+                    var centreLineStart = linea.GetStartPoint2() as ISketchPoint;
+                    var centreLineEnd = linea.GetEndPoint2() as ISketchPoint;
+                    if (centreLineStart == null || centreLineEnd == null)
+                    {
+                        motivo = "The centre line between «" + asse.Fra1.Uid + "» and «" + asse.Fra2.Uid + "» gives no " +
+                                 (centreLineStart == null ? "start" : "end") + " point (GetStartPoint2 / GetEndPoint2 " +
+                                 "answered null): I cannot centre along «" + asse.Nome + "».";
+                        return false;
+                    }
+                    bool r1 = Relazione(modello, centreLineStart, asse.Fra1.Spigolo, "sgCOINCIDENT");
+                    bool r2 = Relazione(modello, centreLineEnd, asse.Fra2.Spigolo, "sgCOINCIDENT");
                     bool r3 = Relazione(modello, mezzeria, asse.Fra1.Spigolo, "sgPERPENDICULAR");
                     bool r4 = Relazione(modello, punto, mezzeria, "sgATMIDDLE");
                     int relDopo = RelazioniDelloSchizzo(schizzi);
@@ -580,12 +593,10 @@ namespace Riscontro.Disegno
         {
             motivo = null;
             int stato = -1;
-            try { stato = schizzi.ActiveSketch.GetConstrainedStatus(); } catch { }
+            try { stato = schizzi.ActiveSketch.GetConstrainedStatus(); } catch { stato = -1; }
             if (stato != (int)swConstrainedStatus_e.swFullyConstrained)
             {
-                motivo = "Con l'ancora lo schizzo dovrebbe essere completamente definito, e non lo e' (stato " +
-                         stato.ToString(CultureInfo.InvariantCulture) + ": " + NomeDelloStato(stato) + "). Non taglio: " +
-                         "alla prima modifica del pezzo il profilo andrebbe dove lo mette il risolutore.";
+                motivo = ConstrainedStatusRefusal(stato);
                 return false;
             }
             string malate, notRead;
@@ -634,6 +645,29 @@ namespace Riscontro.Disegno
                 modello.ClearSelection2(true);
                 if (!featSchizzo.Select2(false, 0)) { motivo = "Non riesco a selezionare lo schizzo dei fori."; return false; }
                 modello.EditSketch();
+                // EDIT MODE IS READ BACK, NOT ASSUMED (Z-C21.8, finding N56).
+                // IModelDoc2~EditSketch.html returns nothing: «If the selection is
+                // a feature, its underlying sketch is placed in edit mode». The
+                // flag was set without looking, and a sketch that did not open
+                // went on to ActiveSketch.ModelToSketchTransform and a .NET null
+                // reference. Now the open sketch must be there, and must be the
+                // positioning sketch when its name can be read.
+                var openSketch = gestore.ActiveSketch;
+                string openName = null, expectedName = null;
+                try { openName = (openSketch as IFeature)?.Name; } catch { openName = null; }
+                try { expectedName = featSchizzo.Name; } catch { expectedName = null; }
+                bool anotherSketch = openName != null && expectedName != null &&
+                                     !string.Equals(openName, expectedName, StringComparison.Ordinal);
+                if (openSketch == null || anotherSketch)
+                {
+                    inModifica = openSketch != null;   // another sketch is open: the finally closes it
+                    motivo = openSketch == null
+                        ? "The positioning sketch of the holes did not open for editing (EditSketch returns nothing, " +
+                          "and no sketch is active after it): I cannot anchor the holes."
+                        : "Editing the positioning sketch «" + expectedName + "» opened «" + openName + "» instead: I " +
+                          "cannot anchor the holes.";
+                    return false;
+                }
                 inModifica = true;
                 var matematica = _sw.GetMathUtility() as IMathUtility;
                 var trasformazione = gestore.ActiveSketch.ModelToSketchTransform;
@@ -669,6 +703,12 @@ namespace Riscontro.Disegno
             catch (Exception ex) { motivo = "L'ancora dei fori non e' riuscita: " + ex.Message; return false; }
             finally
             {
+                // THE SELECTION IS CLEARED BEFORE THE SKETCH IS CLOSED (Z-C21.8,
+                // finding N56): InsertSketch(true) toggles the sketch, and with no
+                // sketch open it starts a new one on the selected plane or face.
+                // The anchoring leaves points and edges selected behind it; with
+                // the selection empty, the toggle can only close.
+                try { modello.ClearSelection2(true); } catch { }
                 if (inModifica) { try { gestore.InsertSketch(true); } catch { } }
                 try { modello.ClearSelection2(true); } catch { }
             }
@@ -715,15 +755,54 @@ namespace Riscontro.Disegno
             return null;
         }
 
-        private static string NomeDelloStato(int stato)
+        /// <summary>
+        /// The refusal for an anchor sketch that is not fully defined, by its
+        /// status (Z-C21.8, finding N53). swConstrainedStatus_e.html has seven
+        /// values; the old name covered four (under, over, no solution, invalid
+        /// solution) and had only an «I do not know» for swUnknownConstraint 1
+        /// and swAutosolveOff 7. With automatic solving off the refusal said the
+        /// profile «would go where the solver puts it», which is not the
+        /// trouble: the solver is not running. -1 is a status that could not be
+        /// read. Kept apart from the document so that Prove.Contratti can call it
+        /// without SOLIDWORKS.
+        /// </summary>
+        internal static string ConstrainedStatusRefusal(int status)
         {
-            switch (stato)
+            string code = status.ToString(CultureInfo.InvariantCulture);
+            switch (status)
             {
-                case (int)swConstrainedStatus_e.swUnderConstrained: return "sottovincolato";
-                case (int)swConstrainedStatus_e.swOverConstrained: return "sovravincolato";
-                case (int)swConstrainedStatus_e.swNoSolution: return "senza soluzione";
-                case (int)swConstrainedStatus_e.swInvalidSolution: return "soluzione non valida";
-                default: return "non so";
+                case (int)swConstrainedStatus_e.swAutosolveOff:
+                    return "The anchor sketch cannot tell whether it is fully defined: automatic solving of sketches " +
+                           "is off (status " + code + ", swAutosolveOff), so SOLIDWORKS is not solving it. I do not cut. " +
+                           "Turn automatic solving of sketches back on, or cut without an anchor.";
+                case (int)swConstrainedStatus_e.swUnknownConstraint:
+                    return "SOLIDWORKS does not know whether the anchor sketch is fully defined (status " + code +
+                           ", swUnknownConstraint). I do not cut: a sketch that is not known to be fully defined may " +
+                           "move at the first change of the part.";
+                case -1:
+                    return "I could not read whether the anchor sketch is fully defined (GetConstrainedStatus gave no " +
+                           "answer). I do not cut: a sketch that is not known to be fully defined may move at the first " +
+                           "change of the part.";
+                default:
+                    return "With the anchor the sketch should be fully defined, and it is not (status " + code + ": " +
+                           ConstrainedStatusName(status) + "). I do not cut: at the first change of the part the profile " +
+                           "would go where the solver puts it.";
+            }
+        }
+
+        /// <summary>The name of a swConstrainedStatus_e value, all seven (finding N53).</summary>
+        internal static string ConstrainedStatusName(int status)
+        {
+            switch (status)
+            {
+                case (int)swConstrainedStatus_e.swUnknownConstraint: return "unknown";
+                case (int)swConstrainedStatus_e.swUnderConstrained: return "under defined";
+                case (int)swConstrainedStatus_e.swFullyConstrained: return "fully defined";
+                case (int)swConstrainedStatus_e.swOverConstrained: return "over defined";
+                case (int)swConstrainedStatus_e.swNoSolution: return "no solution";
+                case (int)swConstrainedStatus_e.swInvalidSolution: return "invalid solution";
+                case (int)swConstrainedStatus_e.swAutosolveOff: return "automatic solving off";
+                default: return "not a swConstrainedStatus_e value";
             }
         }
 
@@ -897,13 +976,49 @@ namespace Riscontro.Disegno
             if (lavorazioni < 0 || _featureAllInizioDelPasso < 0)
                 return " L'ho tolto, con il suo schizzo, ma non ho potuto ricontare " +
                        "l'albero per controllare che il pezzo sia com'era: guardalo.";
-            if (lavorazioni > _featureAllInizioDelPasso) return RestaNelPezzo;
+            if (lavorazioni > _featureAllInizioDelPasso)
+                return RemovedButTreeLonger(lavorazioni - _featureAllInizioDelPasso);
             double? volumeDopo = VolumeMm3(modello);
             if (volumePrima == null || volumeDopo == null)
                 return " L'ho tolto, con il suo schizzo, ma non ho potuto rimisurare il " +
                        "volume per controllare che il pezzo sia com'era: guardalo.";
-            if (Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.01) return RestaNelPezzo;
+            if (Math.Abs(volumeDopo.GetValueOrDefault() - volumePrima.GetValueOrDefault()) > 0.01)
+                return RemovedButVolumeChanged(volumeDopo.GetValueOrDefault(), volumePrima.GetValueOrDefault());
             return " L'ho tolto, con il suo schizzo: il pezzo e' com'era prima di questo passo.";
+        }
+
+        /// <summary>
+        /// The tail of a refusal when DeleteSelection2 said it removed what the
+        /// step had made, and the tree read back is still LONGER than before the
+        /// step (Z-C21.9, finding C9-6). Something of this step is still there,
+        /// but not necessarily the feature that was removed: until library
+        /// 0.144.0 the three removal helpers (TogliIlTaglio, TogliIlRiempimento,
+        /// TogliIlFazzoletto) answered «it is still in the part: undo it» about
+        /// a feature that was gone. The same words as the face fillet
+        /// (TogliIlRaccordoDiFaccia): the features in excess, counted.
+        /// </summary>
+        internal static string RemovedButTreeLonger(int extraFeatures)
+        {
+            return " I tried to remove it, but the tree still has " +
+                   extraFeatures.ToString(CultureInfo.InvariantCulture) +
+                   (extraFeatures == 1 ? " feature" : " features") + " more than before this step: undo " +
+                   (extraFeatures == 1 ? "it" : "them") + " (" + Frasi.CosiSiRitira + ").";
+        }
+
+        /// <summary>
+        /// The tail of a refusal when DeleteSelection2 removed what the step had
+        /// made and the tree is back as it was, but the volume read back is not
+        /// the one before the step (Z-C21.9, finding C9-6). The removed feature
+        /// is gone, so the sentence says so and gives the new volume, as the
+        /// face fillet does (TogliIlRaccordoDiFaccia), instead of «it is still in
+        /// the part: undo it».
+        /// </summary>
+        internal static string RemovedButVolumeChanged(double volumeNowMm3, double volumeBeforeMm3)
+        {
+            return " I removed it, but the volume is now " +
+                   volumeNowMm3.ToString("0.##", CultureInfo.InvariantCulture) + " mm3 instead of " +
+                   volumeBeforeMm3.ToString("0.##", CultureInfo.InvariantCulture) +
+                   ": look at the part before going on.";
         }
 
         /// <summary>
@@ -1055,8 +1170,11 @@ namespace Riscontro.Disegno
             // FONDE (misurato: le coincidenze non aggiungono relazioni). Si
             // chiedono lo stesso, per il caso in cui un arrotondamento le
             // lasciasse a parte; il conto che vale e' quello delle altre cinque.
-            Relazione(modello, (ISketchPoint)linea.GetStartPoint2(), (ISketchPoint)arcoA.GetCenterPoint2(), "sgCOINCIDENT");
-            Relazione(modello, (ISketchPoint)linea.GetEndPoint2(), (ISketchPoint)arcoB.GetCenterPoint2(), "sgCOINCIDENT");
+            // The points go in with `as` (Z-C21.8, finding N49): a null point
+            // makes `Relazione` answer false without an exception, and these two
+            // relations are optional by design, so their answer is not needed.
+            Relazione(modello, linea.GetStartPoint2() as ISketchPoint, arcoA.GetCenterPoint2() as ISketchPoint, "sgCOINCIDENT");
+            Relazione(modello, linea.GetEndPoint2() as ISketchPoint, arcoB.GetCenterPoint2() as ISketchPoint, "sgCOINCIDENT");
 
             // LE QUOTE: il raggio e la mezzeria (la lunghezza fra i centri).
             string e2;
@@ -1221,19 +1339,29 @@ namespace Riscontro.Disegno
                     errore = "Il rettangolo del rialzo non ha i suoi quattro lati.";
                     return false;
                 }
+                // THE ENDS ARE CHECKED (Z-C21.8, finding N49): ISketchLine~
+                // GetStartPoint2.html, «Start sketch point or NULL if operation
+                // fails». A null end reached .X and gave the bare .NET message;
+                // the twin in CentroDelRettangolo already skipped nulls.
+                const string noEnd =
+                    "A side of the rectangle of the boss gives no end point (GetStartPoint2 / GetEndPoint2 answered " +
+                    "null): I cannot anchor the rectangle.";
                 var angoli = new List<double[]>();
                 foreach (var s in creati)
                 {
                     var l = (ISketchLine)s;
-                    var a0 = (ISketchPoint)l.GetStartPoint2(); var a1 = (ISketchPoint)l.GetEndPoint2();
+                    var a0 = l.GetStartPoint2() as ISketchPoint;
+                    var a1 = l.GetEndPoint2() as ISketchPoint;
+                    if (a0 == null || a1 == null) { errore = noEnd; return false; }
                     bool orizzontale = Math.Abs(a0.Y - a1.Y) < 1e-9;
                     RelazioneSola(modello, s, orizzontale ? "sgHORIZONTAL2D" : "sgVERTICAL2D");
                     angoli.Add(new[] { a0.X, a0.Y, a0.Z });
                 }
                 // Le due quote: un lato per verso, col testo fuori dal rettangolo.
-                var p0 = (ISketchPoint)((ISketchLine)creati[0]).GetStartPoint2();
-                var p1 = (ISketchPoint)((ISketchLine)creati[0]).GetEndPoint2();
-                var q1 = (ISketchPoint)((ISketchLine)creati[1]).GetEndPoint2();
+                var p0 = ((ISketchLine)creati[0]).GetStartPoint2() as ISketchPoint;
+                var p1 = ((ISketchLine)creati[0]).GetEndPoint2() as ISketchPoint;
+                var q1 = ((ISketchLine)creati[1]).GetEndPoint2() as ISketchPoint;
+                if (p0 == null || p1 == null || q1 == null) { errore = noEnd; return false; }
                 var daQuotare = new List<Quota>
                 {
                     Quota.Su(creati[0], new[] { (p0.X + p1.X) / 2 + (p1.X - q1.X) * 0.2, (p0.Y + p1.Y) / 2 + (p1.Y - q1.Y) * 0.2, 0.0 }),
@@ -1454,7 +1582,7 @@ namespace Riscontro.Disegno
             {
                 var l = o as ISketchLine;
                 if (l == null) continue;
-                foreach (var p in new[] { (ISketchPoint)l.GetStartPoint2(), (ISketchPoint)l.GetEndPoint2() })
+                foreach (var p in new[] { l.GetStartPoint2() as ISketchPoint, l.GetEndPoint2() as ISketchPoint })
                 {
                     if (p == null) continue;
                     if (Math.Abs(p.X - p1[0]) < 1e-9 && Math.Abs(p.Y - p1[1]) < 1e-9) a1 = p;
@@ -1475,8 +1603,13 @@ namespace Riscontro.Disegno
             var dl = diagonale as ISketchLine;
             if (dl == null) return null;
             try { diagonale.ConstructionGeometry = true; } catch { return null; }
-            if (!Relazione(modello, (ISketchPoint)dl.GetStartPoint2(), a1, "sgCOINCIDENT")) return null;
-            if (!Relazione(modello, (ISketchPoint)dl.GetEndPoint2(), a2, "sgCOINCIDENT")) return null;
+            // `as` and a null check (Z-C21.8, finding N49); null is «nothing
+            // born», which the caller already refuses in words.
+            var diagonalStart = dl.GetStartPoint2() as ISketchPoint;
+            var diagonalEnd = dl.GetEndPoint2() as ISketchPoint;
+            if (diagonalStart == null || diagonalEnd == null) return null;
+            if (!Relazione(modello, diagonalStart, a1, "sgCOINCIDENT")) return null;
+            if (!Relazione(modello, diagonalEnd, a2, "sgCOINCIDENT")) return null;
             try
             {
                 schizzi.AddToDB = true;

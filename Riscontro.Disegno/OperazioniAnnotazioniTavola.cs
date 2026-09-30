@@ -197,6 +197,52 @@ namespace Riscontro.Disegno
             catch { return -1; }
         }
 
+        /// <summary>
+        /// Removes an annotation this operation has just placed, and says it is
+        /// gone only when a recount agrees (Z-C21.8, finding M38). The deletion
+        /// is DeleteSelection2, not EditDelete (the second can open a
+        /// confirmation window, and a COM call waiting on a window does not
+        /// come back). Its answer alone is not enough: true is claimed only
+        /// when <paramref name="count"/>, read again, is back to
+        /// <paramref name="countBefore"/>, the count taken before the
+        /// annotation was inserted. With either count unreadable the answer is
+        /// false, and the caller asks the user to remove it.
+        /// </summary>
+        private static bool RemoveNewAnnotation(IModelDoc2 model, IAnnotation annotation, Func<int> count, int countBefore)
+        {
+            if (annotation == null || countBefore < 0) return false;
+            bool deleted = false;
+            try
+            {
+                model.ClearSelection2(true);
+                if (annotation.Select3(false, null))
+                    deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
+            }
+            catch { }
+            if (!deleted) return false;
+            int now = count();
+            return now >= 0 && now == countBefore;
+        }
+
+        /// <summary>
+        /// What the diameter flag read back from a tolerance frame says is
+        /// wrong, or null (Z-C21.8, finding M38). <paramref name="read"/> is
+        /// the first value of IGtol.GetFrameDiameterSymbols: 1 for a Ø in front
+        /// of the first tolerance value, 0 for none, -1 when it could not be
+        /// read. An unreadable flag is wrong only when the Ø was asked: that is
+        /// the claim the answer would make (a cylindrical zone) without having
+        /// seen it.
+        /// </summary>
+        internal static string GtolDiameterWrong(bool asked, int read)
+        {
+            if (read < 0)
+                return asked ? "the Ø in front of the value cannot be read back (IGtol.GetFrameDiameterSymbols)" : null;
+            if ((read == 1) != asked)
+                return asked ? "the value has no Ø in front, and it was asked" : "the value has a Ø in front, and it was not asked";
+            return null;
+        }
+
         /// <summary>Le lettere dei datum gia' in tavola.</summary>
         private static List<string> LettereDeiDatum(IDrawingDoc disegno)
         {
@@ -518,8 +564,14 @@ namespace Riscontro.Disegno
             }
             catch (Exception ex)
             {
-                return Fallito("La cornice e' nata ma non si lascia compilare (" + ex.Message + "): toglila — " +
-                               Frasi.CosiSiRitira + ".");
+                // A FRAME THAT CANNOT BE FILLED IS NOT LEFT ON THE SHEET (M38),
+                // as a wrong one below.
+                IAnnotation emptyFrame = null;
+                try { emptyFrame = gtol.GetAnnotation() as IAnnotation; } catch { }
+                bool removedEmpty = RemoveNewAnnotation(modello, emptyFrame,
+                                                        () => AnnotazioniDellaTavola(disegno, "gtol"), prima);
+                return Fallito("The tolerance frame was born but does not let itself be filled (" + ex.Message + ")" +
+                               (removedEmpty ? ": I removed it." : ": remove it — " + Frasi.CosiSiRitira + "."));
             }
             // LA RILETTURA: il simbolo come codice, i valori come stringhe.
             int simboloLetto = -1;
@@ -532,6 +584,19 @@ namespace Riscontro.Disegno
                 if (fv != null) foreach (var x in fv) valoriLetti.Add(Convert.ToString(x, CultureInfo.InvariantCulture) ?? "");
             }
             catch { }
+            // THE Ø IS READ BACK TOO (Z-C21.8, finding M38). IGtol~GetFrameSymbols2.html:
+            // «Use this method with IGtol::GetFrameDiameterSymbols, which determines
+            // whether diameter symbols are displayed»; GetFrameDiameterSymbols.html:
+            // «an array of two Booleans ... retval [0] = True if the first tolerance
+            // value has a diameter symbol». Until library 0.144.0 the answer
+            // echoed the argument there, not the frame.
+            int frameDiameterFlag = -1;
+            try
+            {
+                var fd = gtol.GetFrameDiameterSymbols(1) as System.Collections.IEnumerable;
+                if (fd != null) foreach (var x in fd) { frameDiameterFlag = Convert.ToBoolean(x, CultureInfo.InvariantCulture) ? 1 : 0; break; }
+            }
+            catch { }
             var an = gtol.GetAnnotation() as IAnnotation;
             var pos = Sposta(an, disegno, vista, lato, Math.Max(15, occupata + 12), 0, 10 * (2 + riferimenti.Count), 8);
             int attaccate = -1;
@@ -541,13 +606,21 @@ namespace Riscontro.Disegno
             string valoreLetto = valoriLetti.Count > 0 ? valoriLetti[0] : "";
             var riferimentiLetti = new List<string>();
             for (int i = 2; i < valoriLetti.Count && i < 5; i++) if (!string.IsNullOrWhiteSpace(valoriLetti[i])) riferimentiLetti.Add(valoriLetti[i].Trim());
+            string diameterWrong = GtolDiameterWrong(diametro, frameDiameterFlag);
             if (simboloLetto != codice || valoreLetto.Trim() != testoValore ||
-                string.Join(",", riferimentiLetti) != string.Join(",", riferimenti))
+                string.Join(",", riferimentiLetti) != string.Join(",", riferimenti) || diameterWrong != null)
+            {
+                // A WRONG FRAME IS NOT LEFT ON THE SHEET (Z-C21.8, finding M38): it
+                // would be printed and read in the shop. Removed as saldatura_in_tavola
+                // removes a wrong weld symbol, and said removed only after a recount.
+                bool removed = RemoveNewAnnotation(modello, an, () => AnnotazioniDellaTavola(disegno, "gtol"), prima);
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
-                    "La cornice e' nata ma non dice cio' che ho chiesto: simbolo {0} (chiesto {1}), valore «{2}» " +
-                    "(chiesto «{3}»), riferimenti «{4}» (chiesti «{5}»). Toglila — {6}.",
+                    "The tolerance frame was born but does not say what I asked: symbol {0} (asked {1}), value «{2}» " +
+                    "(asked «{3}»), datums «{4}» (asked «{5}»){6}. {7}",
                     simboloLetto, codice, valoreLetto, testoValore, string.Join(",", riferimentiLetti),
-                    string.Join(",", riferimenti), Frasi.CosiSiRitira));
+                    string.Join(",", riferimenti), diameterWrong == null ? "" : "; " + diameterWrong,
+                    removed ? "I removed it." : "Remove it — " + Frasi.CosiSiRitira + "."));
+            }
             var misure = new Dictionary<string, object>
             {
                 ["caratteristica"] = caratteristica,
@@ -557,6 +630,9 @@ namespace Riscontro.Disegno
                 ["riferimenti"] = riferimenti.ToArray(),
                 ["riferimenti_riletti"] = riferimentiLetti.ToArray(),
                 ["diametro"] = diametro,
+                // The Ø as read back from the frame (M38): null when it could not be
+                // read and was not asked, which GtolDiameterWrong lets through.
+                ["diameter_read"] = frameDiameterFlag < 0 ? null : (object)(frameDiameterFlag == 1),
                 ["lato"] = Str(a, "lato", "destra"),
                 ["cornici_prima"] = NumeroOppureNull(prima),
                 ["cornici_dopo"] = NumeroOppureNull(dopo),
