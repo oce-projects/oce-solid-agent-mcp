@@ -1628,12 +1628,6 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Nasconde i corpi di «prima_nascondi» (voce Z-C21.2) con
-        /// `IBody2.HideBody(true)` (IBody2~HideBody.html: «True to hide the
-        /// body, false to show the body») e rilegge `IBody2.Visible`: un corpo
-        /// che resta visibile farebbe verde un caso che non ha provato niente.
-        /// </summary>
-        /// <summary>
         /// «activate_before»: { "document": path of an open document, "configuration":
         /// its name } (Z-C21.4, L16-2). The document is found among the open ones
         /// by its full path, the configuration activated with ShowConfiguration2,
@@ -1691,6 +1685,12 @@ namespace ProvaSaldatura
             return true;
         }
 
+        /// <summary>
+        /// Nasconde i corpi di «prima_nascondi» (voce Z-C21.2) con
+        /// `IBody2.HideBody(true)` (IBody2~HideBody.html: «True to hide the
+        /// body, false to show the body») e rilegge `IBody2.Visible`: un corpo
+        /// che resta visibile farebbe verde un caso che non ha provato niente.
+        /// </summary>
         private static bool NascondiPrima(
             IModelDoc2 doc, object grezzo, Dictionary<string, object> statoDegliUid,
             out string perche)

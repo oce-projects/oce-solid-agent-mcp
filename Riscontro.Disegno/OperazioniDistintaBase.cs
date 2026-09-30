@@ -449,9 +449,19 @@ namespace Riscontro.Disegno
         private static bool ExcludedFromBomIn(IComponent2 component, string ownerConfiguration)
         {
             bool? answer = null;
+            // The named form is the one asked first, and a throw from it falls
+            // back like an answer that is not one Boolean: neither form was
+            // measured on this getter, and a COM error on the named one must not
+            // make every BOM with a child refuse while the other form answers.
             if (!string.IsNullOrEmpty(ownerConfiguration))
-                answer = OneBoolean(component.GetExcludeFromBOM2(
-                    (int)swInConfigurationOpts_e.swSpecifyConfiguration, new[] { ownerConfiguration }));
+            {
+                try
+                {
+                    answer = OneBoolean(component.GetExcludeFromBOM2(
+                        (int)swInConfigurationOpts_e.swSpecifyConfiguration, new[] { ownerConfiguration }));
+                }
+                catch (System.Runtime.InteropServices.COMException) { answer = null; }
+            }
             if (!answer.HasValue)
                 answer = OneBoolean(component.GetExcludeFromBOM2(
                     (int)swInConfigurationOpts_e.swThisConfiguration, null));

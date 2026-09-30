@@ -123,6 +123,14 @@ run newer than the sources. `build.ps1`, the contract project and the bench proj
   (`IConfiguration`, casts of `bool?`) instead of raising the frozen counts; floor of
   refusals with a remedy 230 -> 232; Prove/LEGGIMI 636 checks; Banco/LEGGIMI case
   counts; language baseline lowered.
+- **Review:** the exclusion from the BOM falls back to the unnamed form when the
+  named GetExcludeFromBOM2 throws, not only when it answers something that is not one
+  Boolean (a COM error there made every BOM with a child refuse); the summary of the
+  bench's `NascondiPrima` is back on its method (the new `ActivateBefore` had been
+  inserted between them). Still open from the audit list of Z-C21.5 and not in this
+  lot: N7 (a drilled tube's side face taken for an open end), N23 (the last coincident
+  sketch point of a hole kept without saying it was ambiguous) and C4-3 (rebuild on
+  activation).
 
 ## 0.121.0 — 30 September 2026 · library 0.145.0
 
