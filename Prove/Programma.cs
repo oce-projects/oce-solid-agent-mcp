@@ -1337,16 +1337,24 @@ namespace Prove.Contratti
 
                 // E se il residuo c'e', lo si DICE — senza accusare: sapere
                 // che e' vecchio spiega un log confuso di sei mesi fa.
+                var leftoverCheck = "e si sa se accanto all'eseguibile c'e' un residuo vecchio";
                 if (ProdottoDaBuild(accantoAlBanco))
                 {
                     string v3 = Versione(accantoAlBanco);
-                    Segna("e si sa se accanto all'eseguibile c'e' un residuo vecchio", true,
+                    Segna(leftoverCheck, true,
                           string.Equals(v1, v3, StringComparison.Ordinal)
                               ? "ce n'e' una, ed e' allineata (" + v3 + ")"
                               : "ce n'e' una FERMA A " + v3 + " contro " + v1 +
                                 ": non la usa piu' nessuno, ma se un log vecchio " +
                                 "non torna, e' lei");
                 }
+                // Said when there is none as well: a check that only exists
+                // on the machines with a leftover makes the count of a full
+                // run depend on the machine, and the count check on the readme
+                // of the contracts then accuses a right document (1/10/2026:
+                // 765 on the main checkout, 764 in a fresh worktree).
+                else
+                    Segna(leftoverCheck, true, "there is none: nothing stale next to the executable");
             }
 
             // ── E IL TERZO NUMERO, QUELLO CHE NESSUNO GUARDA ─────────────
