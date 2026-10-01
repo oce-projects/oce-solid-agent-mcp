@@ -52,6 +52,7 @@ compared, and the comparison says so.
 | `--skip-script <id>` | record one registry entry as skipped by the caller |
 | `--with-probes` | also run the registry entries marked `probe` |
 | `--show <n>` | differences printed per section (all of them are counted) |
+| `--window <n>` | `compare`: the snapshot was taken before rename window `<n>` of W3.1-bis; its case folders, case names, case keys and the case part of the test identities (`File.cs:Method:ordinal@<case>`) are read through that window's renames, by the script of the window itself. Only window 1 (`Controlli/lingua/window-1-cases.js`, W3.1-bis.4) is known |
 
 Exit codes: 0 the snapshot is written, or no difference anywhere; 1 a
 difference outside the unstable list (or a self-test check not as expected);
@@ -283,9 +284,12 @@ folder kept). It runs with
 ## What it does not do
 
 - Renamed identities: the comparison matches tests, cases, literals and
-  assertions by identity, exactly. From W3.1-bis.4 on, files, methods, case
-  names and keys are renamed by the name map of W3.1-bis.3; reading that map
-  into the comparison is still to be written.
+  assertions by identity, exactly. `--window 1` reads the case folders, case
+  names and case keys of a snapshot taken before window 1 through its renames
+  (W3.1-bis.4); it is not in the self-test, and was seen on the real tree on
+  1/10/2026: the assertions of the snapshot of that day matched one for one.
+  The renames of windows 2 and 3 (protocol names, files and methods of the
+  sources) are still to be read.
 - The reflection read of the tools and the stdio read are two ways to the same
   answers; their equality on one bridge has to be seen once with SOLIDWORKS
   closed (`take` twice, once with each `--tools-from`, and compare).

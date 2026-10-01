@@ -885,7 +885,8 @@ function runReverseProof(opts) {
     fs.mkdirSync(dir, { recursive: true });
     const tar = path.join(tmp, path.basename(dir) + '.tar');
     git(opts.root, ['archive', '--format=tar', '-o', tar, rev]);
-    const r = cp.spawnSync('tar', ['-xf', tar, '-C', dir], { encoding: 'utf8' });
+    // relative paths: GNU tar reads «C:» as a remote host
+    const r = cp.spawnSync('tar', ['-xf', path.join('..', path.basename(tar))], { cwd: dir, encoding: 'utf8' });
     if (r.status !== 0) cannot('tar could not extract ' + rev + ': ' + r.stderr);
   };
   const head = path.join(tmp, 'head');
