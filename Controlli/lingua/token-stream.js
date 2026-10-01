@@ -94,7 +94,10 @@ function loadAcorn() {
   return null;
 }
 let acorn = loadAcorn();
-if (!acorn && !process.execArgv.includes('--expose-internals')) {
+// Restarted with --expose-internals only when run as a program: required as a
+// module (snapshot.js uses the Roslyn helpers), it must not restart its
+// caller. A JavaScript stream asked for without a parser then says so.
+if (!acorn && require.main === module && !process.execArgv.includes('--expose-internals')) {
   const r = cp.spawnSync(process.execPath, ['--expose-internals', __filename].concat(process.argv.slice(2)), { stdio: 'inherit' });
   process.exit(r.status === null ? 2 : r.status);
 }
@@ -411,31 +414,43 @@ function findFacades() {
   return null;
 }
 
-let roslynHelper = null;
-function csharpHelper() {
-  if (roslynHelper) return roslynHelper;
+// Compiles a C# program with the csc.exe of the Roslyn folder, against Roslyn
+// itself, once: the executable is kept in the temp directory under a hash of
+// its source and of that Roslyn, and reused. Returns { exe, roslyn }; the
+// program is started with the Roslyn folder as its first argument, so that it
+// can resolve the Roslyn assemblies from there. extraRefs are more assemblies
+// to reference (a name alone is looked up by csc in the framework folder).
+// Also used by snapshot.js.
+function compileRoslynProgram(source, name, extraRefs) {
   const roslyn = findRoslyn();
   if (!roslyn) cannot('no Roslyn: MSBuild\\Current\\Bin\\Roslyn not found (set ROSLYN_DIR)');
   const stamp = fs.statSync(path.join(roslyn, 'Microsoft.CodeAnalysis.CSharp.dll'));
-  const hash = crypto.createHash('sha256').update(CSHARP_HELPER).update(roslyn).update(String(stamp.size) + ':' + stamp.mtimeMs).digest('hex').slice(0, 16);
+  const extra = extraRefs || [];
+  const hash = crypto.createHash('sha256').update(source).update(roslyn).update(String(stamp.size) + ':' + stamp.mtimeMs)
+    .update(extra.join('|')).digest('hex').slice(0, 16);
   const dir = path.join(os.tmpdir(), 'token-stream-roslyn', hash);
-  const exe = path.join(dir, 'TokenStreamRoslyn.exe');
+  const exe = path.join(dir, name + '.exe');
   if (!fs.existsSync(exe)) {
     const facades = findFacades();
     if (!facades) cannot('no netstandard.dll facade to compile the Roslyn helper against');
     fs.mkdirSync(dir, { recursive: true });
-    const src = path.join(dir, 'TokenStreamRoslyn.cs');
-    fs.writeFileSync(src, CSHARP_HELPER, 'utf8');
+    const src = path.join(dir, name + '.cs');
+    fs.writeFileSync(src, source, 'utf8');
     const refs = [path.join(roslyn, 'Microsoft.CodeAnalysis.dll'), path.join(roslyn, 'Microsoft.CodeAnalysis.CSharp.dll'),
       path.join(roslyn, 'System.Collections.Immutable.dll'), path.join(facades, 'netstandard.dll')];
     if (fs.existsSync(path.join(facades, 'System.Runtime.dll'))) refs.push(path.join(facades, 'System.Runtime.dll'));
     const tmpExe = exe + '.' + process.pid + '.tmp';
     const r = cp.spawnSync(path.join(roslyn, 'csc.exe'), ['-nologo', '-optimize+', '-target:exe', '-out:' + tmpExe]
-      .concat(refs.map(x => '-r:' + x)).concat([src]), { encoding: 'utf8' });
-    if (r.status !== 0) cannot('the Roslyn helper does not compile:\n' + (r.stdout || '') + (r.stderr || ''));
+      .concat(refs.concat(extra).map(x => '-r:' + x)).concat([src]), { encoding: 'utf8' });
+    if (r.status !== 0) cannot('the helper ' + name + ' does not compile:\n' + (r.stdout || '') + (r.stderr || ''));
     try { fs.renameSync(tmpExe, exe); } catch (e) { if (!fs.existsSync(exe)) throw e; }
   }
-  roslynHelper = { exe, roslyn };
+  return { exe, roslyn };
+}
+
+let roslynHelper = null;
+function csharpHelper() {
+  if (!roslynHelper) roslynHelper = compileRoslynProgram(CSHARP_HELPER, 'TokenStreamRoslyn');
   return roslynHelper;
 }
 
@@ -991,4 +1006,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { loadMap, explained, compareStreams, tokenizeAll, words };
+module.exports = { loadMap, explained, compareStreams, tokenizeAll, words, compileRoslynProgram, GateError };

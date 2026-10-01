@@ -11,16 +11,17 @@ namespace Prove.Contratti
     /// <summary>
     /// THE NETS OF W3.1-bis.2 THAT LIVE AS SCRIPTS, SEEN RED ON EVERY RUN.
     ///
-    /// Four checks of the translation are scripts, not contracts: the token
+    /// Five checks of the translation are scripts, not contracts: the token
     /// streams of C#, JavaScript and PowerShell (`token-stream.js`), the
     /// disassembled assemblies (`same-il.ps1`), the JSON readers of the checks
     /// that must exit 1 when an expected key is missing
-    /// (`expected-keys-test.js`), and the reading of the bridge's answers in
-    /// `prova-x2.js`. Each one has a self-test that feeds it fake cases, one
-    /// per way of failing, and expects red where it must and green where it
-    /// must. The pre-push hook runs three of them, but a hook is a
-    /// convenience of one clone: here they run with the suite, on every
-    /// machine and on the CI runner.
+    /// (`expected-keys-test.js`), the reading of the bridge's answers in
+    /// `prova-x2.js`, and the snapshot every later step of W3.1-bis is
+    /// compared with (`snapshot.js`, item 11). Each one has a self-test that
+    /// feeds it fake cases, one per way of failing, and expects red where it
+    /// must and green where it must. The pre-push hook runs three of them, but
+    /// a hook is a convenience of one clone: here they run with the suite, on
+    /// every machine and on the CI runner.
     ///
     /// A self-test that cannot run on this machine (no Node, no Roslyn from
     /// MSBuild, no ildasm: exit 2) is «not runnable here», never green.
@@ -67,6 +68,14 @@ namespace Prove.Contratti
                     Arguments = "--self-test",
                     Summary = new Regex(@"The reading fails on every answer without the expected keys\."),
                     Enough = m => true,
+                },
+                new SelfTest
+                {
+                    Title = "snapshot.js: a changed literal, a vanished assertion target, a changed outcome and a count dropped to 0 are red, an unstable case is apart",
+                    Exe = "node", Script = Path.Combine(root, "Controlli", "lingua", "snapshot.js"),
+                    Arguments = "--self-test",
+                    Summary = new Regex(@"(\d+) of (\d+) checks as expected"),
+                    Enough = m => m.Groups[1].Value == m.Groups[2].Value && int.Parse(m.Groups[2].Value) >= 28,
                 },
                 new SelfTest
                 {

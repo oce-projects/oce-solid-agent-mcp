@@ -28,6 +28,150 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — W3.1-bis.2 item 11, the snapshot tool (branch `w31bis-2-foto`)
+
+Tooling only: the bridge and the library are unchanged, so `VERSION.txt` is
+not raised (the practice of W3.1-bis.2 on its branch).
+
+### The snapshot every later step of W3.1-bis is compared with
+
+- **`Controlli/lingua/snapshot.js`** (`take` / `compare` / `--self-test`).
+  `take` writes a snapshot directory (default `note-interne/lingua/snapshots/<date>`,
+  ignored by git: the tool and its format are versioned, the snapshot is not)
+  with six sections:
+  - the **catalogue**, copied as it is, with its raw and normalized sha256 and
+    one hash per operation and per family;
+  - the **tools** of the built bridge (`initialize` + `tools/list`), over stdio
+    as a client asks them, or **by reflection when SOLIDWORKS is running**:
+    started as a program the bridge attaches to SOLIDWORKS at once, so then its
+    assembly is loaded and the protocol dispatcher (found by its shape, never
+    the entry point) is called directly. The source used is recorded;
+  - every **`Fallito(...)` call** of the `<Compile>` items of the library and
+    the bridge, named `file:method:ordinal`, and every string unit
+    (`file:member:sN`, `+` chains joined, run-time values as holes), read
+    through Roslyn: a comment is never a literal;
+  - every **textual assertion** of the cases (`il_messaggio_contiene`,
+    `contiene`, `non_contiene`, textual `uguale`, found through the contexts of
+    `Banco/case-keys.json`) with the case, path, step and operation, all the
+    string units that contain it (ignoring case, as the bench does), the
+    message templates that satisfy it across a run-time value, and the list of
+    assertions with no candidate;
+  - the **tests** of TWO reference ledgers: identity, label, outcome, and per
+    case the outcome and the expectations attempted and checked, with the
+    **unstable** cases and tests (a different outcome or count between the
+    two runs);
+  - the exit code and the counts of every **script** of `Controlli/` and
+    `.github/passi/` that runs without SOLIDWORKS.
+- `compare` reports every difference per category (tests by
+  `file:method:ordinal`, never by the label text), prints the unstable cases
+  apart, and exits 1 on any difference outside the unstable list, 3 when a
+  section was not compared, 2 on a missing input. A snapshot is written as
+  `<out>.partial-<pid>` and renamed at the end. Children never inherit
+  `GIT_INDEX_FILE`/`GIT_DIR`: `expected-keys-test.js` builds a throw-away
+  repository and wrote its index over the one such a variable named.
+- **`Controlli/lingua/snapshot-scripts.json`** names all 82 scripts and
+  programs of those folders: 36 run, 46 skipped, each with the reason (32
+  SOLIDWORKS probes, the installer test, the release and history-rewriting
+  tools, the hooks, anything that edits tracked files or pushes). A script it
+  does not name stops the tool. Entries carry `needs`, `varies_with` and
+  `volatile_lines` with their reasons (`rinomina-prodotto.js` walks the file
+  system and counts ignored files: three masked lines).
+- **`Controlli/lingua/snapshot.md`**: usage, exit codes, the format of every
+  file of a snapshot directory, the template rule, the registry, what counts
+  as a difference, and what the tool does not do (renamed identities through
+  the name map of W3.1-bis.3 are not followed yet).
+- `token-stream.js` can be required as a module (it restarts itself with
+  `--expose-internals` only when it is the main module) and exports
+  `compileRoslynProgram` and `GateError`; its own helper's cache hash is
+  unchanged.
+
+### Seen red
+
+- `--self-test`: 18 of 18 on a fake tree and fake ledgers. A changed refusal
+  literal, the literal or the template behind an assertion gone, a changed
+  outcome, a count dropped to 0, a catalogue change and a tool change are red;
+  the same tree, a translated label and a move of the unstable case alone are
+  green; one ledger, a missing ledger, a missing snapshot file and a script the
+  registry does not name are refused (exit 2). Eight mutations of a copy of the
+  tool were each seen red.
+- It runs with the suite: `SafetyNetSelfTests` has a fifth self-test
+  (`N of M checks as expected`, at least 28 since the review below). Seen red
+  in the suite by expecting the wrong exit code in one check: 17 of 18, NO.
+  **Prove.Contratti: 762 checks** (761 + this one; every self-test is one
+  check whatever its result).
+
+### The adversarial review: four ways to make `compare` say "same" when it was not
+
+Tried on a copy of the real tree against a snapshot of it, with the saved
+ledger. Renaming a catalogue operation, translating a refusal, flipping a test
+outcome under the same label, changing the expectations of a case, a missing
+or truncated ledger were already caught. These were not, and are fixed (the
+snapshot format becomes 2, and a snapshot of format 1 is refused):
+
+- **A literal inside a refusal that the text of the call shows as a hole.**
+  `text` renders `cond ? "a" : "b"`, `string.Format("...", x)` or a helper
+  call as `{*}`, so translating the branch "the outline is not complete" of
+  the slot refusal compared as 0 differences. 185 of the 1071 calls hold such
+  a literal, and 235 have no constant text at all. Every call now carries
+  `inner`, the text of each string unit inside its arguments, and a change
+  there is a difference.
+- **The literal behind an assertion gone while another one still contains
+  the words.** The mate type a case asserts with `uguale` translated in
+  `StatoAssieme.cs`: the same word is in the catalogue descriptions, so the
+  assertion stayed "satisfied" and the compare said 0 differences, while the
+  bench would go red. Now every member (`file:member`) whose units satisfied
+  an assertion in the snapshot must still satisfy it; a unit renumbered or
+  reworded in the same member that still holds the words is not a loss.
+- **A ledger that is not of a full run, or with unnamed tests.** A `partial`
+  ledger that happened to miss nothing compared as 0 differences, and so did
+  one with `identities_unresolved` above 0. Both are now a difference.
+- **A `varies_with` added to the registry after the snapshot** excused every
+  other count of that script: an input absent from the snapshot compared as
+  "changed". Only an input recorded then and now, with another value, excuses
+  counts now.
+- Smaller: `--tools-timeout` (the stdio read was fixed at 90 s, now also
+  proved: a bridge that never answers is stopped and the tool exits 2, a
+  bridge that ends at once exits 2, a broken pipe no longer ends the tool with
+  exit 1, "a difference"); a request of the bridge to the client is not taken
+  for an answer; a `TODO_MD` naming a missing file stops the tool instead of
+  falling back to the default TODO.
+- The self-test grows from 18 to 28 checks, one per hole above plus the same
+  ledger twice (no unstable case, "not measured"), the excuse of a recorded
+  input that moved, and no folder left by a take that stopped. Each new check
+  was seen red on its own mutation of a copy of the tool (six mutations, each
+  27 of 28). With two different ledgers the unstable case and test are listed
+  apart, with the tests of that case; with one ledger twice the list is empty
+  and the snapshot says it was not measured.
+- Contracts on this branch were run with `PROVE_SENZA_INTEROP=1` only, because
+  a full bench was running on SOLIDWORKS and the groups that start the bridge
+  attach to it: 593 checks, 18 not runnable here, 9 red, none of them new: the
+  bench-freshness check of `Banco` (the bench report predates the last commit
+  on `Banco`), and 8 library checks (N59 x2, N26, N16, the six moves, the rule
+  per direction, «elsewhere», the redundant decision) whose type initializer
+  needs the SOLIDWORKS interop that the simulated mode hides.
+
+### The first snapshot is a proof run only
+
+Taken on the real tree with the one saved ledger (the full bench of library
+0.148.0) given twice, so its unstable list is empty by construction and it says so:
+99 operations, 9 tools (by reflection, SOLIDWORKS was running), 1071
+`Fallito` calls in 101 files, 11841 string units, 693 textual assertions in
+303 cases (9 satisfied only by a template, 77 with no satisfying literal,
+mostly SOLIDWORKS data such as materials and component names), 2161 tests in
+284 cases, 36 scripts run. A compare of the same tree against it: 0
+differences. Taken again after the review, on the committed tree (format 2,
+nothing uncommitted, about 4 minutes), with the same numbers; the compare of
+all six sections with the ledger: 0 differences, exit 0. Two TODO probes exit
+1 in it (`conta-todo.js`: boxes outside the `####` level; `percorsi-del-todo.js`:
+bench outputs that exist only in the main checkout), which the real snapshot
+records as they are. The real snapshot, with the ledger of the bench now running as
+the second one and the tools read over stdio with SOLIDWORKS closed, is taken
+after that bench ends. The test «every lookup by name that falls back to null
+found its target» will be listed unstable (skipped on 0.124.0, run on
+0.124.1): a bench change, not flakiness.
+
+---
+
 ## 0.124.1 — 1 October 2026 · library 0.148.0 (unchanged)
 
 **Full bench on bridge 0.124.1 / library 0.148.0, 1/10/2026: 2160 tests, 0 failed**
