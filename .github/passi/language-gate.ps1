@@ -224,8 +224,10 @@ try {
         if (-not (Test-GitObject "${c}:$baselineRel")) {
             Write-Output "  LANGUAGE GATE: $short has the detector but no $baselineRel"; $failed = $true; continue
         }
-        $raise = Get-Trailer $c 'Language-Baseline-Raise'
-        $configSigned = Get-Trailer $c 'Language-Gate-Config-Change'
+        # @(): one signature comes back as a bare string, and [0] of a
+        # string is its first letter
+        $raise = @(Get-Trailer $c 'Language-Baseline-Raise')
+        $configSigned = @(Get-Trailer $c 'Language-Gate-Config-Change')
         $own = Get-Detector $c
 
         # a. the tree against its own baseline
