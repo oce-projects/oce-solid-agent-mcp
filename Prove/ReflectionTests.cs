@@ -164,6 +164,7 @@ namespace Prove.Contratti
 
             var names = ExtractFromTree();
             BenchReadsNoLookupInSilence();
+            BenchChecksItsLogOnAFullRun();
             bool built = ResolveOnBuiltAssemblies(names);
             RuntimeLog(built);
         }
@@ -176,6 +177,30 @@ namespace Prove.Contratti
         /// </summary>
         private static readonly Regex SilentLookup = new Regex(
             @"\.(?:GetField|GetProperty|GetMethod|GetNestedType|GetEvent)\((?:[^()]|\([^()]*\))*\)\s*\?\.");
+
+        /// <summary>
+        /// THE BENCH'S OWN LOG CHECK RUNS ON A FULL BENCH (1/10/2026). banco.ps1
+        /// always passes --libreria with the default path, and the bench took any
+        /// --libreria for «another library»: the check was skipped on every full
+        /// run. Now only a different file counts; this reads the source, and is
+        /// seen red on a copy where every --libreria is «another» again.
+        /// </summary>
+        private static void BenchChecksItsLogOnAFullRun()
+        {
+            const string Label = "on a full bench (banco.ps1 passes --libreria with the default path) the bench's lookup log is checked, not skipped";
+            var file = Path.Combine(Radice(), "Banco", "Program.cs");
+            if (!File.Exists(file)) { Segna(Label, false, "Banco/Program.cs not found"); return; }
+            var code = WithoutComments(File.ReadAllText(file));
+            Func<string, bool> ok = c =>
+                Regex.IsMatch(c, @"_anotherLibrary\s*=\s*!\s*SameLibraryPath\s*\(\s*\w+\s*,\s*\w+\s*\(\s*\)\s*\)\s*;") &&
+                !Regex.IsMatch(c, @"_anotherLibrary\s*=\s*true\s*;");
+            var mutant = Regex.Replace(code, @"_anotherLibrary\s*=\s*!\s*SameLibraryPath\s*\([^;]*;", "_anotherLibrary = true;");
+            bool good = ok(code), seenRed = !ok(mutant);
+            Segna(Label, good && seenRed,
+                  !good ? "Banco/Program.cs does not compare the --libreria path with the default one before skipping"
+                        : !seenRed ? "the check did not turn red on the copy where every --libreria is another library"
+                                   : "only a different library file skips the check (seen red on the old line)");
+        }
 
         private static void BenchReadsNoLookupInSilence()
         {

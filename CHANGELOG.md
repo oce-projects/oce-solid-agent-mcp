@@ -28,6 +28,29 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.124.1 — 1 October 2026 · library 0.148.0 (unchanged)
+
+BENCH_01241_PLACEHOLDER
+
+### The bench's lookup log runs on a full bench
+
+- **The bench took any `--libreria` for «another library»** (W3.1-bis.2, item 3).
+  `banco.ps1` always passes `--libreria`, with the same path as the bench's
+  default, so the end-of-run test «every lookup by name that falls back to null
+  found its target» was skipped on every full bench (seen on the bench of 0.148.0).
+  Now only a different library file counts as another (`SameLibraryPath`, full
+  paths without case); an older library named by hand still skips the test. A
+  contract check in `ReflectionTests` reads the source and is seen red on the old
+  line. Prove.Contratti: 761 checks. The bench has not run on this change yet.
+- **W3.1-bis.2 item 10 rerun on SOLIDWORKS:** the eight probes that moved from base
+  planes by localized name to base planes by position (`CorpoRotto`, `DimXpert`, `Lamiera`,
+  `Mensola`, `Orfana`, `RaccordoDiFaccia`, `SeguiIlBordo`, `Spessore`) were run old (built from
+  2df71c4) and new, one at a time: the same output line for line (titles, paths and
+  times normalized). `Spessore` needs SOLIDWORKS Utilities loaded (`--carica`): its first
+  thickness analysis after loading the add-in answers differently from the next ones,
+  old and new alike; with the add-in already loaded the two versions give the same
+  numbers.
+
 ## 0.124.0 — 1 October 2026 · library 0.148.0
 
 **Full bench on library 0.148.0, 1/10/2026: 2159 tests, 0 failed** (1771 expectations

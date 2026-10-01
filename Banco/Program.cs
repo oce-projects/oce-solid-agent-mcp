@@ -75,6 +75,22 @@ namespace ProvaSaldatura
         /// </summary>
         private static bool _anotherLibrary;
 
+        /// <summary>
+        /// The same library file? Full paths compared without case (Windows
+        /// paths); a path that cannot be read is «not the same», so an odd
+        /// --libreria still counts as another library and skips what an older
+        /// library could not pass.
+        /// </summary>
+        internal static bool SameLibraryPath(string a, string b)
+        {
+            try
+            {
+                return string.Equals(Path.GetFullPath(a ?? ""), Path.GetFullPath(b ?? ""),
+                                     StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception) { return false; }
+        }
+
         private static string LibreriaPredefinita()
         {
             var accanto = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".";
@@ -225,7 +241,13 @@ namespace ProvaSaldatura
             if (dove >= 0 && dove + 1 < argomenti.Count)
             {
                 _libreria = argomenti[dove + 1];
-                _anotherLibrary = true;
+                // ONLY A DIFFERENT FILE IS «ANOTHER LIBRARY» (1/10/2026). banco.ps1
+                // always passes --libreria, with the same path as
+                // LibreriaPredefinita, so taking every --libreria for another
+                // library skipped the reflection-log test on every full bench
+                // (seen on the bench of 0.148.0, where the test was reported as
+                // skipped). A net that never runs is not a net.
+                _anotherLibrary = !SameLibraryPath(_libreria, LibreriaPredefinita());
                 argomenti.RemoveRange(dove, 2);
             }
             // `--lento`: le prove che costano MINUTI, non secondi.
