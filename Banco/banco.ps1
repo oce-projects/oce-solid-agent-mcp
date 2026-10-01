@@ -145,7 +145,13 @@ $eseguibile = Join-Path $Banco "bin\ProvaSaldatura.exe"
 if (-not (Test-Path $eseguibile)) { Muori 2 ("non trovo " + $eseguibile) }
 
 $inizio = Get-Date
-$uscita = Join-Path $Banco "ultimo-giro.txt"
+# The live output goes to a LOCAL file and is copied next to the bench at the
+# end. Written straight onto a network drive, one SMB hiccup («semaphore
+# timeout») made Tee-Object throw and killed the whole run: on 24/9/2026 at 535
+# checks and on 2/10/2026 after four hours.
+$outputNextToBench = Join-Path $Banco "ultimo-giro.txt"
+$uscita = Join-Path $env:TEMP "oce-bench-last-run.txt"
+if (Test-Path $outputNextToBench) { Remove-Item $outputNextToBench -Force -ErrorAction SilentlyContinue }
 # "Continue" SOLO QUI, E CON UN MOTIVO MISURATO. Con $ErrorActionPreference a
 # "Stop", la PRIMA riga che il banco scrive su stderr diventa un errore
 # terminante di PowerShell: lo script muore a questa riga con un
@@ -174,6 +180,13 @@ $ErrorActionPreference = "Continue"
 $codice = $LASTEXITCODE
 $ErrorActionPreference = $primaEra
 $durata = (Get-Date) - $inizio
+
+# The copy next to the bench, retried: the network drive may be busy for a few
+# seconds; the local file stays the one this script reads.
+for ($tentativo = 1; $tentativo -le 5; $tentativo++) {
+    try { Copy-Item $uscita $outputNextToBench -Force -ErrorAction Stop; break }
+    catch { if ($tentativo -eq 5) { Write-Warning ("could not copy the run output to " + $outputNextToBench + ": " + $_.Exception.Message + " (it stays in " + $uscita + ")") } else { Start-Sleep -Seconds 10 } }
+}
 
 # UN GIRO CHE NON HA SCRITTO NIENTE NON E' UN GIRO. Se il banco muore prima
 # della prima riga -- una libreria che non si carica, un interop che non c'e'

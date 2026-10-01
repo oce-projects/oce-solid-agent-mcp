@@ -507,21 +507,24 @@ namespace ProvaSaldatura
                   reordered && Math.Abs(VolumeDiProva(part) - volumeAfterPlan1) < 0.01, Corto(plan2Text));
             if (!reordered) return;
 
-            // Its own entry is not empty: that is what makes it the last plan.
+            // Measured on the bench of 1/10/2026: a reorder does not land in the
+            // undo entry the executor records (FinishRecordingUndoObject answers
+            // False), so nobody knows what sits on top of the undo stack. The
+            // safe answer is to refuse without pressing, and say why.
             object recorded = Mcp.Dentro(plan2, "undo_entry_recorded");
-            Segna("undo case a: plan 2 says it left a non-empty undo entry (undo_entry_recorded true)",
-                  recorded is bool && (bool)recorded,
+            Segna("undo case a: plan 2 says it left no undo entry of its own (undo_entry_recorded false)",
+                  recorded is bool && !(bool)recorded,
                   "undo_entry_recorded = " + (recorded == null ? "(absent)" : Convert.ToString(recorded)));
 
             var undoText = TestoDiRisposta(Mcp.Chiedi(p, 43, Chiamata(43, "annulla", "{}")));
             var undo = Mcp.Ogg(undoText);
             object done = Mcp.Dentro(undo, "annullato");
-            Segna("undo case a: `annulla` withdraws the last plan, the reorder",
-                  done is bool && (bool)done, Corto(undoText));
+            Segna("undo case a: `annulla` refuses without pressing: the top of the undo stack is unknown",
+                  !(done is bool && (bool)done), Corto(undoText));
 
             var afterUndo = FeaturesOf(part);
-            Segna("undo case a: and the holes are in their first order again, read by the bench through COM",
-                  Before(afterUndo, cuts[0], cuts[1]),
+            Segna("undo case a: and the reorder is still there, read by the bench through COM",
+                  Before(afterUndo, cuts[1], cuts[0]),
                   "positions " + IndexOf(afterUndo, cuts[0]) + " and " + IndexOf(afterUndo, cuts[1]));
             bool allThere = true;
             foreach (var f in afterPlan1) if (IndexOf(afterUndo, f.Item1) < 0) allThere = false;
