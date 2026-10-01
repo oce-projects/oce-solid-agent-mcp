@@ -454,12 +454,20 @@ namespace ProvaSaldatura
                    "\",\"rispetto_a_uid\":\"" + cuts[0] + "\",\"dove\":\"prima\"}}]}";
         }
 
-        /// <summary>The cuts a plan added, read through COM, in tree order.</summary>
+        /// <summary>
+        /// The cuts a plan added, read through COM, in tree order. GetTypeName2
+        /// answers «ICE» (Instant3D) for every extrusion after the base, cut or
+        /// boss (measured 28/9/2026), so «Cut» alone found none of the two holes
+        /// of the cylindrical cuts and the first bench of these cases was red on
+        /// its own reading (1/10/2026). The
+        /// plans here add only cuts after the base, and the callers also check
+        /// the volume.
+        /// </summary>
         private static List<string> NewCuts(List<Tuple<string, string>> before, List<Tuple<string, string>> after)
         {
             var cuts = new List<string>();
             foreach (var f in after)
-                if (f.Item2 == "Cut" && !before.Exists(b => b.Item1 == f.Item1)) cuts.Add(f.Item1);
+                if ((f.Item2 == "Cut" || f.Item2 == "ICE") && !before.Exists(b => b.Item1 == f.Item1)) cuts.Add(f.Item1);
             return cuts;
         }
 
