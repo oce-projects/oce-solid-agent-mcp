@@ -183,6 +183,27 @@ literals of the sources, 971 messages and 1011 comments that quote a code name.
   calls in `OperazioniSw.Esegui`, `Attrezzi.Chiama` and `Attese`, the cases of
   `Banco/cases/aliases`, the contract.
 
+### The tasks of the autonomous run (D9)
+
+- **The measured fields are real**: the tables of `Banco/tasks/*.md` named 14
+  fields no operation writes (`holes` for every way of making a hole,
+  `holes_on_circle`, `slots`, `hems`, `cut_list_rows`, the three
+  `envelope_*`, `mirrored`, `bom_quantity_total`, `cut_list_matches`,
+  `geometry_check_ok`, `export_succeeded`, `bodies_in_file`, `volume_mismatch`)
+  and six more a field under another name (`interferences` is the list, the
+  count is `how_many`; `balloons_placed`; `length_mm` and `width_mm` that no
+  sheet-metal step writes). 20 rows are rewritten on what the bridge and the
+  bench do write (`diameters_mm`, `bounding_box_mm`, `measurements.<field>`
+  of a named step).
+- **`Banco/tasks/run-autonomous.ps1`** hands each task to `claude -p` with the
+  bridge as the only MCP server and keeps the transcript and the state of the
+  finished part; **`Banco/tasks/score-autonomous.js`** scores RIGHT, WRONG or
+  NOT DONE per session, the median per task, and `--compare` is the threshold
+  of D9 (at most one task of fifteen worse). Self-test without SOLIDWORKS; the
+  run itself needs SOLIDWORKS and has not been made. The commands are in
+  `Banco/tasks/README.md`. The Italian version of the tasks is not in the
+  repository.
+
 ### The renames (old → new)
 
 The full list is the map (`Controlli/lingua/name-map.tsv`): 205 arguments and

@@ -18,9 +18,9 @@ It doesn't say which STEP protocol (AP214, AP203, AP242): the catalogue has a de
 
 | what | expected value | tolerance | why |
 |---|---|---|---|
-| measurements.export_succeeded | true | — | the file must be written |
-| measurements.bodies_in_file | 17 | — | the same body count as the part (task 07): a lower number means the export lost or merged bodies along the way, a defect that may not jump out when the file is opened in a generic viewer |
-| measurements.volume_mismatch | < 0.001 | — | the reopen-and-compare check must find the volume difference between the part and the freshly written file within one-thousandth: beyond that threshold the operation itself flags it as failed |
+| measurements.file_format (of the `export_step` step) | STEP | — | the file must be written, and read back as STEP |
+| measurements.solids_in_file | 17 | — | the same body count as the part (task 07): a lower number means the export lost or merged bodies along the way, a defect that may not jump out when the file is opened in a generic viewer |
+| measurements.deviation_relative | < 0.001 | — | the reopen-and-compare check must find the volume difference between the part and the freshly written file within one-thousandth: beyond that threshold the operation itself flags it as failed |
 
 ## What this measurement does not see
 

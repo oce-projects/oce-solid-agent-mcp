@@ -74,3 +74,42 @@ tolleranza senza motivo e' un'attesa che si allarga finche' non passa.
   in questa officina si e' fatta davvero o si farebbe: una staffa, un telaio,
   una piastra forata, un coperchio. *Un banco costruito su pezzi inventati
   misura quanto il modello sa fare pezzi inventati.*
+
+## The autonomous run of D9 (W3.1-bis.5)
+
+The runner exists now, and the scorer beside it; the Z-G9 bench is still to be
+written on top of them. `run-autonomous.ps1` hands each task (its first
+blockquote) to `claude -p` with the bridge as the only MCP server, keeps the
+transcript and, at the end of each session, the state of the document in front
+read by a fresh bridge; `score-autonomous.js` reads the tables above and says
+RIGHT, WRONG or NOT DONE per session and the median per task. A row the scorer
+cannot read (one component of an assembly) is listed BY HAND with its session.
+`score-autonomous.js --self-test` checks the reading of the tables and of the
+outcomes without SOLIDWORKS.
+
+**The measured fields are the ones the bridge writes.** Fourteen rows named a
+field no operation writes (`holes_on_circle`, `cut_list_rows`,
+`export_succeeded`...) and six more a field written under another name or not
+at all (`interferences` is the list, the count is `how_many`; `balloons` is
+the operation, the count is `balloons_placed`): W3.1-bis.5 rewrote them on the
+real fields, naming the step whose answer holds them.
+
+The threshold of D9: every task ×3 on the Italian version (median per task of
+the bridge before the rename against the bridge after it, at most one task of
+fifteen worse), ×1 on the English version (a signal, not a threshold). The
+Italian version is not in the repository; `<it>` below is its folder.
+
+```powershell
+# before: the bridge of the snapshot (the catalogue before the rename), built in a worktree of 9384b2c
+.\Banco\tasks\run-autonomous.ps1 -Language it -TasksDir <it> -Repeats 3 -Label before `
+    -Bridge <worktree of 9384b2c>\bin\oce-solid-agent-mcp.exe -Between '<close the documents>'
+# after: this bridge
+.\Banco\tasks\run-autonomous.ps1 -Language it -TasksDir <it> -Repeats 3 -Label after -Between '<close the documents>'
+.\Banco\tasks\run-autonomous.ps1 -Language en -Repeats 1 -Label after -Between '<close the documents>'
+node Banco\tasks\score-autonomous.js Banco\report\autonomous\<stamp>-it-before
+node Banco\tasks\score-autonomous.js Banco\report\autonomous\<stamp>-it-after
+node Banco\tasks\score-autonomous.js Banco\report\autonomous\<stamp>-en-after
+node Banco\tasks\score-autonomous.js --compare Banco\report\autonomous\<stamp>-it-before Banco\report\autonomous\<stamp>-it-after
+```
+
+If the run after is worse, the name is changed, not the threshold.

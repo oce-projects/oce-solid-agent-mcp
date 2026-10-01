@@ -20,8 +20,8 @@ It doesn't say how many rows the BOM should have: that depends on a choice made 
 |---|---|---|---|
 | measurements.views_created | 3 | — | the three standard views asked for, not a single view and not an exploded view never requested |
 | measurements.sheets | 1 | — | a single A3 sheet |
-| measurements.bom_quantity_total | 3 | — | two brackets plus one plate, whatever the row count: one row of quantity 2 plus one of quantity 1, or three rows of quantity 1 each, both sum to 3 |
-| measurements.balloons | 3 | — | one balloon per part physically shown in the view, not one per BOM row: even if the two brackets share a row, on the view they are two distinct parts and each gets its own number |
+| measurements.quantity_in_table (of the `drawing_bom` step) | 3 | — | two brackets plus one plate, whatever the row count: one row of quantity 2 plus one of quantity 1, or three rows of quantity 1 each, both sum to 3 |
+| measurements.balloons_placed (of the `balloons` step) | 3 | — | one balloon per part physically shown in the view, not one per BOM row: even if the two brackets share a row, on the view they are two distinct parts and each gets its own number |
 
 ## What this measurement does not see
 

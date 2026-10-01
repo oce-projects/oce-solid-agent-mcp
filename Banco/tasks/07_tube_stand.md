@@ -19,7 +19,7 @@ It doesn't say how to group the calls (the frame as one piece or bar by bar, the
 | what | expected value | tolerance | why |
 |---|---|---|---|
 | bodies | 17 | — | 4 frame bars (two of 1000, two of 600) + 1 crossbar + 4 feet + 4 gussets + 4 caps = 17. A different number says which group was skipped: 13 means the caps are missing, 9 means both gussets and caps are missing |
-| measurements.cut_list_rows | 6 | — | bars group by identical shape, not by name: two 1000 mitred sides (1 row, qty 2); two 600 mitred sides (1 row, qty 2); the crossbar, 600 but with square-cut ends instead of a mitre — a different shape, so its own row (qty 1); four identical feet (1 row, qty 4); four identical gussets (1 row, qty 4); four identical caps (1 row, qty 4). Six rows in total |
+| measurements.distinct_entries (of the `cut_list` step) | 6 | — | bars group by identical shape, not by name: two 1000 mitred sides (1 row, qty 2); two 600 mitred sides (1 row, qty 2); the crossbar, 600 but with square-cut ends instead of a mitre — a different shape, so its own row (qty 1); four identical feet (1 row, qty 4); four identical gussets (1 row, qty 4); four identical caps (1 row, qty 4). Six rows in total |
 | measurements.bodies_in_cut_list | 17 | — | the sum of every row's quantity (2+2+1+4+4+4) must equal the body count: if it doesn't, some row has grouped bodies that aren't really identical, or lost some |
 | measurements.already_existed | false | — | the cut list is born in this plan, as in task 06 |
 

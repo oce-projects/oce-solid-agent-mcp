@@ -20,8 +20,7 @@ It doesn't say how to get the even spacing (a purpose-built axis, or around the 
 |---|---|---|---|
 | volume_mm3 | 221,614.23 | ± 2 | disc π×80²×12 = 241,274.32; minus the centre bore π×20²×12 = 15,079.64; minus six holes of π×4.5²×12 = 763.41 each (4,580.47 total). 241,274.32 − 15,079.64 − 4,580.47 = 221,614.21 (the one-cent difference is cascading π rounding). The tolerance covers only that, not a seventh hole forgotten or double-counted |
 | bodies | 1 | — | a bored disc is ONE part |
-| measurements.holes | 7 | — | the centre bore plus the six bolt-circle holes: all seven are literally "holes", and the total count takes all of them |
-| measurements.holes_on_circle | 6 | — | a separate entry on purpose: the centre bore (for the shaft) is not one of the six bolt-circle holes (for the screws). Two different vocabularies in the same part, and the count must not blur them |
+| diameters_mm | [9, 9, 9, 9, 9, 9, 40, 160] | ± 0.02 | every cylindrical face of the part, smallest first: the six bolt-circle holes for the screws, the centre bore for the shaft, the rim of the disc. The two families stay apart by diameter (six of 9, one of 40), which is what a count of "holes" and of "holes on the circle" wanted to say, on fields the bench really reads. To confirm at the first run: SOLIDWORKS may split the rim into two faces, and the list would then carry 160 twice |
 
 ## What this measurement does not see
 

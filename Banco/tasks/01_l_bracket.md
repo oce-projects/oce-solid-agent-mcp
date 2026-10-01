@@ -22,7 +22,7 @@ It names no operation and doesn't say which plane to start from. If it did, obed
 |---|---|---|---|
 | volume_mm3 | 67,782 | ± 200 | 120×50×8 = 48,000 (long leg) + 52×50×8 = 20,800 (short leg, 60 total height minus the 8 of thickness it sits on) − 2 through holes (2 × π × 4.5² × 8 = 1,018) = 67,782. The tolerance covers rounding and a minimal fillet, not a different reading of the task |
 | bodies | 1 | — | a bracket is ONE part: two bodies means the legs never joined, a defect that doesn't show on screen |
-| measurements.holes | 2 | — | two, not one and not four |
+| diameters_mm | [9, 9] | ± 0.02 | the bench reads every cylindrical face of the part: the two through holes of 9 and nothing else, not one and not four (no operation writes a count of holes for every way of making one: `hole_wizard` counts its own positions, `cylindrical_cut` none) |
 
 ## What this measurement does not see
 
