@@ -66,6 +66,10 @@
   { "script": "Controlli/lingua/name-map-extract.js", "skip": "without an option it rewrites the tracked Controlli/lingua/name-map.tsv from the tree" },
   { "script": "Controlli/lingua/window-1-cases.js", "run": true, "args": ["--check"] },
   { "script": "Controlli/lingua/window-1-cases.js", "skip": "without --check it is rename window 1 itself: it moves and rewrites the bench cases of the tree (and --reverse-proof extracts two trees into a temporary folder and runs the window backwards there)" },
+  { "script": "Controlli/lingua/window-2-surface.js", "run": true, "args": ["--check"] },
+  { "script": "Controlli/lingua/window-2-surface.js", "skip": "without --check it is rename window 2 itself: it rewrites the catalogue, the cases and the sources of the tree (and the proofs extract two trees into a temporary folder and run the window there)" },
+  { "script": "Controlli/lingua/update-names-in-notes.js", "run": true, "args": ["--self-test"] },
+  { "script": "Controlli/lingua/update-names-in-notes.js", "skip": "without --self-test it rewrites the notes it is given (the TODO, the memories, the RAG): files outside the repository, named by the owner at the merge" },
 
   { "script": "Controlli/ProvaRuota/", "run": true, "probe": true, "program": "Controlli/ProvaRuota/bin/ProvaRuota.exe", "needs": ["Controlli/ProvaRuota/bin/ProvaRuota.exe"] },
   { "script": "Controlli/ProvaSagoma/", "run": true, "probe": true, "program": "Controlli/ProvaSagoma/bin/ProvaSagoma.exe", "needs": ["Controlli/ProvaSagoma/bin/ProvaSagoma.exe"] },

@@ -52,7 +52,7 @@ compared, and the comparison says so.
 | `--skip-script <id>` | record one registry entry as skipped by the caller |
 | `--with-probes` | also run the registry entries marked `probe` |
 | `--show <n>` | differences printed per section (all of them are counted) |
-| `--window <n>` | `compare`: the snapshot was taken before rename window `<n>` of W3.1-bis; its case folders, case names, case keys and the case part of the test identities (`File.cs:Method:ordinal@<case>`) are read through that window's renames, by the script of the window itself. Only window 1 (`Controlli/lingua/window-1-cases.js`, W3.1-bis.4) is known |
+| `--window <n>` | `compare`: the snapshot was taken before rename window `<n>` of W3.1-bis; its case folders, case names, case keys and the case part of the test identities (`File.cs:Method:ordinal@<case>`) are read through that window's renames, by the script of the window itself. Window 1 (`Controlli/lingua/window-1-cases.js`, W3.1-bis.4); window 2 (`Controlli/lingua/window-2-surface.js`, W3.1-bis.5) reads through window 1 first and then renames the operation, the path (`what`) and the value of every assertion, the snapshot's copy of the catalogue (rewritten as the window rewrites `Strumenti/catalogo.json`) and the list of tools (names, titles, schemas, the names the descriptions quote) |
 
 Exit codes: 0 the snapshot is written, or no difference anywhere; 1 a
 difference outside the unstable list (or a self-test check not as expected);
@@ -288,8 +288,12 @@ folder kept). It runs with
   names and case keys of a snapshot taken before window 1 through its renames
   (W3.1-bis.4); it is not in the self-test, and was seen on the real tree on
   1/10/2026: the assertions of the snapshot of that day matched one for one.
-  The renames of windows 2 and 3 (protocol names, files and methods of the
-  sources) are still to be read.
+  `--window 2` adds the renames of window 2 (W3.1-bis.5): the operations,
+  paths and values of the assertions, the catalogue and the tools, read by
+  `window-2-surface.js` itself (`snapshotRenames`). The renames of window 3
+  (files and methods of the sources) are still to be read: the literals
+  section compares the string units of the sources, and a renamed name is a
+  changed literal there.
 - The reflection read of the tools and the stdio read are two ways to the same
   answers; their equality on one bridge has to be seen once with SOLIDWORKS
   closed (`take` twice, once with each `--tools-from`, and compare).
