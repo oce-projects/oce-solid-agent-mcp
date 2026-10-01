@@ -4,12 +4,12 @@
   "why": "Un identificativo che non c'e' va rifiutato, non risposto con una scatola vuota o con quella di tutto il pezzo. Una misura su niente che esce come una misura e' il difetto che non da' errore: i numeri ci sono, sono plausibili, e non sono del corpo che qualcuno ha chiesto.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "ingombro_corpo",
-      "arguments": { "corpo_uid": "C9" },
+    { "operation": "body_bounding_box",
+      "arguments": { "body_uid": "C9" },
       "must_fail": {
         "message_includes": ["Non trovo il corpo", "C9"],
         "volume_unchanged": true,

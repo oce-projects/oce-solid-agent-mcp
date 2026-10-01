@@ -104,7 +104,7 @@ bridge is up, and its last line is exactly:
 
 Match that substring, case-insensitively. Before it you get the SOLIDWORKS
 version, the library version, where the catalogue was loaded from, and — if a
-part is open — a measurement of it: `volume_mm3`, `corpi_totali`. **The
+part is open — a measurement of it: `volume_mm3`, `bodies_total`. **The
 SOLIDWORKS version line means the bridge has talked to SOLIDWORKS; the volume
 means it has also read a part.** That is the difference between "the process
 started" and "it works", and it is the whole reason this flag exists.
@@ -112,9 +112,9 @@ started" and "it works", and it is the whole reason this flag exists.
 With SOLIDWORKS open and **no document**, it says
 `[prova] nessun documento aperto: agganciato, niente da misurare.` and still
 exits 0 — attached and nothing to measure is a working bridge. From 0.87.0 the
-model can start a part itself, with the `documento` tool (`azione: "nuovo"`),
+model can start a part itself, with the `document` tool (`action: "create"`),
 instead of asking the user to click File > New; from 0.88.0 it can also close
-one (`azione: "chiudi"`), and it refuses to close a document with unsaved
+one (`action: "close"`), and it refuses to close a document with unsaved
 changes. (Before 0.86.0
 this case exited 1, and the installer reported a successful install as
 unconfirmed.)

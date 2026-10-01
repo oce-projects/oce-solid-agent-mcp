@@ -34,7 +34,7 @@ namespace Riscontro.Disegno
     {
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-        /// <summary>L'indice dell'equazione che assegna «nome», o -1.</summary>
+        /// <summary>L'indice dell'equazione che assegna «name», o -1.</summary>
         private static int EquazioneDi(IEquationMgr em, string nome)
         {
             string testa = "\"" + nome + "\"";
@@ -48,7 +48,7 @@ namespace Riscontro.Disegno
             return -1;
         }
 
-        /// <summary>Scrive (o riscrive) l'equazione «nome» = destra; l'indice, o -1 se SOLIDWORKS la rifiuta.</summary>
+        /// <summary>Scrive (o riscrive) l'equazione «name» = destra; l'indice, o -1 se SOLIDWORKS la rifiuta.</summary>
         private static int ScriviEquazione(IEquationMgr em, string nome, string destra)
         {
             string eq = "\"" + nome + "\" = " + destra;
@@ -82,29 +82,29 @@ namespace Riscontro.Disegno
         {
             if (!(modello is IPartDoc))
                 return Fallito("Le variabili globali le metto su un pezzo (le parti le quotano). Aprimi il pezzo.");
-            string nome = (Str(a, "nome", "") ?? "").Trim();
+            string nome = (Str(a, "name", "") ?? "").Trim();
             if (!NomeDiVariabileBuono(nome))
-                return Fallito("«nome» e' il nome della variabile: lettere, cifre e «_», comincia con una lettera " +
+                return Fallito("«name» e' il nome della variabile: lettere, cifre e «_», comincia con una lettera " +
                                "(per esempio «parete», «gioco», «raggio_angolo»), non «" + nome + "».");
             double valore; string errore;
-            string espressione = Str(a, "espressione", null);
-            bool numero = a != null && a.ContainsKey("valore_mm");
+            string espressione = Str(a, "expression", null);
+            bool numero = a != null && a.ContainsKey("value_mm");
             if (numero == !string.IsNullOrWhiteSpace(espressione))
-                return Fallito("Dimmi O «valore_mm» (un numero in millimetri) O «espressione» (per esempio " +
+                return Fallito("Dimmi O «value_mm» (un numero in millimetri) O «expression» (per esempio " +
                                "«2 * \"parete\" + 1mm»), uno dei due.");
             string destra;
             if (numero)
             {
-                if (!NumObbligatorio(a, "valore_mm", out valore, out errore)) return Fallito(errore);
+                if (!NumObbligatorio(a, "value_mm", out valore, out errore)) return Fallito(errore);
                 destra = valore.ToString("0.######", Inv) + "mm";
             }
             else { valore = double.NaN; destra = espressione.Trim(); }
 
             var em = modello.GetEquationMgr() as IEquationMgr;
             if (em == null) return Fallito("Non leggo le equazioni di questo pezzo (GetEquationMgr non risponde).");
-            // LE GUARDIE DI modifica_quota (revisione avversariale del 27/9/2026):
+            // LE GUARDIE DI set_dimension (revisione avversariale del 27/9/2026):
             // una variabile che guida delle quote cambia la geometria come una
-            // quota, e una quota legata modifica_quota non la cambia piu'.
+            // quota, e una quota legata set_dimension non la cambia piu'.
             var foto = FotografaIlPezzo(modello);
             if (foto.Corpi < 0)
                 return Fallito("Non riesco a contare i corpi del pezzo prima di cambiare la variabile: senza, non " +
@@ -145,17 +145,17 @@ namespace Riscontro.Disegno
             double? volumeDopo = VolumeMm3(modello);
             var misure = new Dictionary<string, object>
             {
-                ["nome"] = nome,
-                ["equazione"] = em.get_Equation(i),
-                ["valore_mm"] = double.IsNaN(lettoMm) ? null : (object)Math.Round(lettoMm, 6),
-                ["nuova"] = nuova,
-                ["quote_guidate"] = QuoteGuidateDa(em, nome),
-                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["unita"] = "millimetri (il valore di una variabile di lunghezza, riletto nelle unita' del documento e portato in mm)",
+                ["name"] = nome,
+                ["equation"] = em.get_Equation(i),
+                ["value_mm"] = double.IsNaN(lettoMm) ? null : (object)Math.Round(lettoMm, 6),
+                ["is_new"] = nuova,
+                ["driven_dimensions"] = QuoteGuidateDa(em, nome),
+                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["units"] = "millimetri (il valore di una variabile di lunghezza, riletto nelle unita' del documento e portato in mm)",
             };
             if (double.IsNaN(lettoMm))
-                misure["attenzione"] = "Non so in che unita' e' il documento: la variabile vale " + letto.ToString("0.######", Inv) +
+                misure["warning"] = "Non so in che unita' e' il documento: la variabile vale " + letto.ToString("0.######", Inv) +
                                        " nelle sue unita', e non l'ho confrontata col valore chiesto.";
             return RiuscitoSenzaCreare(misure);
         }
@@ -165,12 +165,12 @@ namespace Riscontro.Disegno
         {
             if (!(modello is IPartDoc))
                 return Fallito("Lego le quote di un pezzo. Aprimi il pezzo.");
-            string nomeQuota = (Str(a, "quota", "") ?? "").Trim();
-            string espressione = (Str(a, "espressione", "") ?? "").Trim();
+            string nomeQuota = (Str(a, "dimension", "") ?? "").Trim();
+            string espressione = (Str(a, "expression", "") ?? "").Trim();
             if (string.IsNullOrWhiteSpace(nomeQuota))
-                return Fallito("Dimmi «quota»: il nome della quota dallo stato del documento (per esempio «D1@Schizzo1»).");
+                return Fallito("Dimmi «dimension»: il nome della quota dallo stato del documento (per esempio «D1@Schizzo1»).");
             if (string.IsNullOrWhiteSpace(espressione))
-                return Fallito("Dimmi «espressione»: a cosa legarla, per esempio «\"parete\"» o «2 * \"parete\"».");
+                return Fallito("Dimmi «expression»: a cosa legarla, per esempio «\"parete\"» o «2 * \"parete\"».");
             var quota = TrovaQuota(modello, nomeQuota, out string dove);
             if (quota == null)
                 return Fallito("Non trovo la quota «" + nomeQuota + "» in questo documento." + (dove == null ? "" : " Ci sono: " + dove + "."));
@@ -202,7 +202,7 @@ namespace Riscontro.Disegno
             int i = ScriviEquazione(em, nomeEq, espressione);
             if (i < 0)
                 return Fallito("SOLIDWORKS non accetta «\"" + nomeEq + "\" = " + espressione + "». Controlla che le " +
-                               "variabili fra virgolette esistano (le crei con «variabile_globale»).");
+                               "variabili fra virgolette esistano (le crei con «global_variable»).");
             try { em.EvaluateAll(); } catch { }
             bool ricostruito = false;
             try { ricostruito = modello.ForceRebuild3(false); } catch { }
@@ -230,32 +230,32 @@ namespace Riscontro.Disegno
             double dopoSistema = ApiHelpers.ReadDimension(quota);
             var misure = new Dictionary<string, object>
             {
-                ["quota"] = nomeEq,
-                ["equazione"] = em.get_Equation(i),
-                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["giudizio"] = "La quota «" + nomeEq + "» adesso la guida «" + espressione + "»: cambiando la variabile " +
-                               "cambia lei. Con «modifica_quota» non si cambia piu' (e' guidata).",
+                ["dimension"] = nomeEq,
+                ["equation"] = em.get_Equation(i),
+                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["verdict"] = "La quota «" + nomeEq + "» adesso la guida «" + espressione + "»: cambiando la variabile " +
+                               "cambia lei. Con «set_dimension» non si cambia piu' (e' guidata).",
             };
             if (angolare)
             {
-                misure["valore_prima_gradi"] = Math.Round(primaSistema * 180.0 / Math.PI, 4);
-                misure["valore_dopo_gradi"] = Math.Round(dopoSistema * 180.0 / Math.PI, 4);
+                misure["value_before_deg"] = Math.Round(primaSistema * 180.0 / Math.PI, 4);
+                misure["value_after_deg"] = Math.Round(dopoSistema * 180.0 / Math.PI, 4);
             }
             else
             {
-                misure["valore_prima_mm"] = Math.Round(Unita.Mm(primaSistema), 4);
-                misure["valore_dopo_mm"] = Math.Round(Unita.Mm(dopoSistema), 4);
+                misure["value_before_mm"] = Math.Round(Unita.Mm(primaSistema), 4);
+                misure["value_after_mm"] = Math.Round(Unita.Mm(dopoSistema), 4);
             }
             // UN LEGAME CHE NE SOSTITUISCE UN ALTRO SI DICE (revisione del 27/9/2026):
             // prima si riscriveva in silenzio.
-            if (vecchia != null) misure["legame_sostituito"] = vecchia;
+            if (vecchia != null) misure["link_replaced"] = vecchia;
             return RiuscitoSenzaCreare(misure);
         }
 
         /// <summary>
         /// Rimette le equazioni com'erano: la vecchia riscritta, o la nuova tolta
-        /// (con «dopo», per rimettere il valore di una quota slegata); poi ricalcola
+        /// (con «after», per rimettere il valore di una quota slegata); poi ricalcola
         /// e ricostruisce. Vero se RILEGGENDO le equazioni sono quelle di prima —
         /// il numero che Delete risponde non si crede.
         /// </summary>
@@ -286,7 +286,7 @@ namespace Riscontro.Disegno
             return fatto;
         }
 
-        /// <summary>Le equazioni che usano «nome» a destra, con la quota che guidano e il suo valore.</summary>
+        /// <summary>Le equazioni che usano «name» a destra, con la quota che guidano e il suo valore.</summary>
         private static object[] QuoteGuidateDa(IEquationMgr em, string nome)
         {
             var fuori = new List<object>();
@@ -303,9 +303,9 @@ namespace Riscontro.Disegno
                 try { v = em.get_Value(i); } catch { }
                 fuori.Add(new Dictionary<string, object>
                 {
-                    ["guidata"] = sinistra,
-                    ["equazione"] = eq,
-                    ["valore"] = double.IsNaN(v) ? null : (object)Math.Round(v, 6),
+                    ["driven"] = sinistra,
+                    ["equation"] = eq,
+                    ["value_text"] = double.IsNaN(v) ? null : (object)Math.Round(v, 6),
                 });
             }
             return fuori.ToArray();
@@ -313,9 +313,9 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// Per lo stato: le equazioni del documento (le prime venti), o null se non ce
-        /// ne sono; in «totale» quante sono davvero, perche' chi legge sappia che
+        /// ne sono; in «total» quante sono davvero, perche' chi legge sappia che
         /// l'elenco e' tagliato (revisione del 27/9/2026: le ultime quote guidate
-        /// sparivano senza dirlo). Il «valore» e' nelle unita' del documento.
+        /// sparivano senza dirlo). Il «value_text» e' nelle unita' del documento.
         /// </summary>
         internal static object[] EquazioniDelDocumento(IModelDoc2 modello, out int totale)
         {
@@ -336,9 +336,9 @@ namespace Riscontro.Disegno
                     try { g = em.get_GlobalVariable(i); } catch { }
                     fuori.Add(new Dictionary<string, object>
                     {
-                        ["equazione"] = eq,
-                        ["valore"] = double.IsNaN(v) ? null : (object)Math.Round(v, 6),
-                        ["variabile_globale"] = g,
+                        ["equation"] = eq,
+                        ["value_text"] = double.IsNaN(v) ? null : (object)Math.Round(v, 6),
+                        ["global_variable"] = g,
                     });
                 }
                 return fuori.ToArray();

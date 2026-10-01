@@ -1,1 +1,1 @@
-[{"operazione":"estrudi_sezione","argomenti":{"tipo":"tubolare","larghezza_mm":80,"altezza_mm":80,"parete_mm":5,"lunghezza_mm":1000,"piano":"superiore"}}]
+[{"operation":"extrude_section","arguments":{"variant":"tubular","width_mm":80,"height_mm":80,"wall_mm":5,"length_mm":1000,"plane":"top"}}]

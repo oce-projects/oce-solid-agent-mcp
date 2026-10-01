@@ -4,9 +4,9 @@
   "why": "VOCE GP18. Un lato lungo 1 mm con un raggio di 2: la piega si mangia tutto il tratto dritto. SOLIDWORKS darebbe una lavorazione rossa senza dire quale lato; l'operazione lo dice prima, col numero.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "flangia_base",
-      "arguments": { "piano": "frontale", "punti": [[0, 1], [0, 0], [50, 0]],
-                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+    { "operation": "base_flange",
+      "arguments": { "plane": "front", "points": [[0, 1], [0, 0], [50, 0]],
+                     "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "must_fail": {
         "message_includes": ["non resta niente di dritto"],
         "volume_unchanged": true,

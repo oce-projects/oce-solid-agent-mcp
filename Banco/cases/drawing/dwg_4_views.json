@@ -1,8 +1,8 @@
 [
  {
-  "operazione": "viste_standard",
-  "argomenti": {
-   "modello": "{BANCO}/pezzo/contenitore_c.SLDPRT"
+  "operation": "standard_views",
+  "arguments": {
+   "model": "{BANCO}/pezzo/contenitore_c.SLDPRT"
   }
  }
 ]

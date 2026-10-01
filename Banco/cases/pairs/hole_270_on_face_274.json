@@ -5,34 +5,34 @@
   "start": { "new_part": true },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 314,
-        "larghezza_mm": 274,
-        "spessore_mm": 52,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 314,
+        "width_mm": 274,
+        "thickness_mm": 52,
+        "centered": true
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 4473872 },
-        { "what": "stato.ingombro_da_mm", "equal_to": [-157, -137, 0] },
-        { "what": "ingombro_mm", "equal_to": [314, 274, 52] }
+        { "what": "state.bounding_box_from_mm", "equal_to": [-157, -137, 0] },
+        { "what": "bounding_box_mm", "equal_to": [314, 274, 52] }
       ]
     },
     {
-      "operation": "taglio_cilindrico",
+      "operation": "cylindrical_cut",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
+        "face_uid": "@face(normal=front)",
         "x_mm": 0,
         "y_mm": 0,
-        "diametro_mm": 270,
-        "passante": true
+        "diameter_mm": 270,
+        "through_all": true
       },
       "expect": [
-        { "what": "misure.tolti_mm3", "equal_to": 2977287.37,
+        { "what": "measurements.removed_mm3", "equal_to": 2977287.37,
           "tolerance": 0.5,
           "tolerance_why": "pi*135^2*52: il conto ha pi dentro, e l'operazione arrotonda al centesimo" },
-        { "what": "corpi", "equal_to": 1 }
+        { "what": "bodies", "equal_to": 1 }
       ]
     }
   ]

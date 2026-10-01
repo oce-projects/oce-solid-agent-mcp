@@ -158,7 +158,7 @@ namespace Controlli.SezioneInTavola
 
             // ── IL TRATTEGGIO: DUE NUMERI, E PRIMA E DOPO IL RICALCOLO ──
             //
-            // Misurato il 23/9/2026 perche' l'operazione `sezione_in_tavola`
+            // Misurato il 23/9/2026 perche' l'operazione `section_view`
             // si e' rifiutata al primo uso vero dicendo «non ha tratteggio»
             // su un taglio che attraversa una piastra piena. Delle due l'una:
             // o il tratteggio non c'e' finche' la tavola non si ricalcola, o

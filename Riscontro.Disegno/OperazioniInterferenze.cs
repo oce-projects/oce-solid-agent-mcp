@@ -80,8 +80,8 @@ namespace Riscontro.Disegno
                     (componenti.Count == 1 ? " componente" : " componenti") +
                     ": ce ne vogliono almeno due perche' uno possa toccare l'altro.");
 
-            bool toccarsiConta = Bool(a, "toccarsi_conta", false);
-            bool dentroLeParti = Bool(a, "dentro_le_parti", false);
+            bool toccarsiConta = Bool(a, "touching_counts", false);
+            bool dentroLeParti = Bool(a, "inside_parts", false);
 
             IInterferenceDetectionMgr gestore;
             try { gestore = assieme.InterferenceDetectionManager as IInterferenceDetectionMgr; }
@@ -149,7 +149,7 @@ namespace Riscontro.Disegno
                 // interferences». The count IS the size of the array. With a null
                 // list, a shorter one, or an item that is not an IInterference,
                 // `volumiLetti` stayed true: the partial sum went into
-                // volume_totale_mm3 and into the verdict («2 INTERFERENZE, per 0
+                // volume_total_mm3 and into the verdict («2 INTERFERENZE, per 0
                 // mm3 in tutto», riuscita:true when GetInterferences threw). Now
                 // any of the three makes the volume unknown
                 // (`InterferenceListProblem`), and `interferences_read` says how
@@ -191,7 +191,7 @@ namespace Riscontro.Disegno
                         };
                         // «Possibile» vuol dire che SOLIDWORKS non e' sicuro:
                         // si riporta com'e' invece di arrotondarlo a un si'.
-                        if (forse == true) voce["solo_possibile"] = true;
+                        if (forse == true) voce["only_possible"] = true;
                         else if (forse == null) voce["possible_not_read"] = true;
                         trovate.Add(voce);
                     }
@@ -258,18 +258,18 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["quante"] = quante,
+                ["how_many"] = quante,
                 // How many of the counted interferences the array actually gave:
-                // equal to «quante» when the list and the count agree (N34).
+                // equal to «how_many» when the list and the count agree (N34).
                 ["interferences_read"] = interferencesRead,
                 ["certain_interferences"] = certainOut,
                 ["possible_interferences"] = possibleOut,
-                ["componenti_guardati"] = NumeroOppureNull(lookedAt),
+                ["components_checked"] = NumeroOppureNull(lookedAt),
                 ["suppressed_components"] = NumeroOppureNull(suppressedComponents),
                 // N18: as SOLIDWORKS reads them back after setting them (the
                 // check above stops when they differ from the request).
-                ["toccarsi_conta"] = coincidenceRead,
-                ["dentro_le_parti"] = multibodyRead,
+                ["touching_counts"] = coincidenceRead,
+                ["inside_parts"] = multibodyRead,
             };
             if (suppressedComponents > 0)
                 misure["suppressed_note"] =
@@ -281,17 +281,17 @@ namespace Riscontro.Disegno
                     "I could not read back every setting of the check (TreatCoincidenceAsInterference, " +
                     "IncludeMultibodyPartInterferences, ShowIgnoredInterferences): those were set as asked " +
                     "but not confirmed, and the answer gives null for them.";
-            if (trovate.Count > 0) misure["interferenze"] = trovate.ToArray();
-            if (coinvolti.Count > 0) misure["componenti_coinvolti"] = coinvolti.ToArray();
-            if (quante > 0 && volumiLetti) misure["volume_totale_mm3"] = Math.Round(volumeTotale, 3);
+            if (trovate.Count > 0) misure["interferences"] = trovate.ToArray();
+            if (coinvolti.Count > 0) misure["components_involved"] = coinvolti.ToArray();
+            if (quante > 0 && volumiLetti) misure["volume_total_mm3"] = Math.Round(volumeTotale, 3);
             if (listProblem != null)
-                misure["cosa_non_so"] =
+                misure["what_is_not_known"] =
                     "SOLIDWORKS did not give me the whole list of interferences (" + listProblem +
                     "): I read " + interferencesRead + " of " + quante + ". The count comes from " +
                     "GetInterferenceCount; the total volume would be the sum of a part of the list, " +
                     "so I left it out instead of writing one smaller than the truth.";
             else if (quante > 0 && !volumiLetti)
-                misure["cosa_non_so"] =
+                misure["what_is_not_known"] =
                     "Di almeno una interferenza non sono riuscito a leggere il volume: " +
                     "il conteggio e' giusto, la somma no. Non l'ho scritta, invece di " +
                     "scriverne una piu' piccola del vero.";
@@ -309,21 +309,21 @@ namespace Riscontro.Disegno
             // ── IL GIUDIZIO ─────────────────────────────────────────────
             if (quante == 0)
             {
-                misure["giudizio"] =
+                misure["verdict"] =
                     "Nessuna interferenza fra i " + (lookedAt >= 0 ? lookedAt : componenti.Count) + " componenti" +
                     (toccarsiConta
                         ? ", e le facce che si toccano erano contate come interferenza."
                         : ". ATTENZIONE a cosa vuol dire: le facce che si TOCCANO non " +
                           "sono state contate. Un albero in un foro dello stesso " +
                           "diametro risulta a posto qui, e in officina non entra: se e' " +
-                          "quello che ti interessa, richiedimelo con «toccarsi_conta».");
-                _log("[agente] " + misure["giudizio"]);
+                          "quello che ti interessa, richiedimelo con «touching_counts».");
+                _log("[agente] " + misure["verdict"]);
                 return RiuscitoSenzaCreare(misure);
             }
 
-            misure["giudizio"] = InterferenceVerdict(
+            misure["verdict"] = InterferenceVerdict(
                 quante, possible, volumiLetti, volumeTotale, possibleVolume, coinvolti);
-            _log("[agente] " + misure["giudizio"]);
+            _log("[agente] " + misure["verdict"]);
             return RiuscitoSenzaCreare(misure);
         }
 

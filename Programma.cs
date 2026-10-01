@@ -192,15 +192,15 @@ namespace Oce.Solid.Agent
                         },
                         ["instructions"] =
                             "Un ponte verso SOLIDWORKS. Prima di proporre " +
-                            "qualunque cosa chiama «guarda_il_pezzo»: gli " +
+                            "qualunque cosa chiama «inspect_part»: gli " +
                             "identificativi delle facce e degli spigoli nascono " +
                             "li' e valgono per quella lettura. Dopo ogni " +
                             "modifica il pezzo cambia e vanno riletti.\n\n" +
-                            "Se la forma e' in dubbio, «guarda_il_pezzo» con " +
-                            "«viste» ti fa VEDERE il pezzo: l'elenco delle facce " +
+                            "Se la forma e' in dubbio, «inspect_part» con " +
+                            "«views» ti fa VEDERE il pezzo: l'elenco delle facce " +
                             "dice quante sono e quanto misurano, non com'e' " +
                             "fatto.\n\n" +
-                            "Se quello che hai disegnato non va, «annulla» ritira " +
+                            "Se quello che hai disegnato non va, «undo» ritira " +
                             "l'ultimo piano tutto intero: non serve rifare il " +
                             "pezzo da capo.",
                     });
@@ -355,7 +355,7 @@ namespace Oce.Solid.Agent
                    "pretende, e mentre lavora non legge stdin. Quando questa " +
                    "riga e' arrivata, quella richiesta era gia' finita. Se la " +
                    "risposta non ti serve piu', buttala: il documento e' nello " +
-                   "stato in cui quel piano l'ha lasciato, e «guarda_il_pezzo» " +
+                   "stato in cui quel piano l'ha lasciato, e «inspect_part» " +
                    "te lo dice.";
         }
 
@@ -418,7 +418,7 @@ namespace Oce.Solid.Agent
             var stato = sessione.Stato(out var errore);
             if (stato == null) { Protocollo.Nota("[prova] " + errore); return 1; }
 
-            foreach (var chiave in new[] { "titolo", "tipo", "volume_mm3", "corpi_totali" })
+            foreach (var chiave in new[] { "document_title", "kind", "volume_mm3", "bodies_total" })
                 if (stato.TryGetValue(chiave, out var v))
                     Protocollo.Nota("[prova] " + chiave + " = " + v);
 

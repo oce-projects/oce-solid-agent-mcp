@@ -9,7 +9,7 @@ namespace Riscontro.Disegno
     /// <summary>
     /// UN PIANO PER TRE PUNTI. (voce GP9)
     ///
-    /// `crea_piano` sa fare solo il piano SFALSATO da uno dei tre standard:
+    /// `create_plane` sa fare solo il piano SFALSATO da uno dei tre standard:
     /// serve a tutto cio' che e' allineato agli assi, e a niente altro. Un foro
     /// inclinato, una faccia obliqua, una staffa a 30 gradi non hanno nessun
     /// piano su cui disegnare.
@@ -66,7 +66,7 @@ namespace Riscontro.Disegno
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
             var punti = new List<double[]>();
-            foreach (var chiave in new[] { "punto1_mm", "punto2_mm", "punto3_mm" })
+            foreach (var chiave in new[] { "point1_mm", "point2_mm", "point3_mm" })
             {
                 var p = TernaMm(a, chiave);
                 if (p == null)
@@ -145,16 +145,16 @@ namespace Riscontro.Disegno
             double[] letta = NormaleDelPiano(piano);
             var misure = new Dictionary<string, object>
             {
-                ["punti_mm"] = punti.Select(p => p.Select(x => Math.Round(x, 4)).ToArray()).ToArray(),
-                ["normale_calcolata"] = attesa.Select(x => Math.Round(x, 6)).ToArray(),
-                ["piani_prima"] = NumeroOppureNull(pianiPrima),
-                ["piani_adesso"] = NumeroOppureNull(pianiDopo),
+                ["points_mm"] = punti.Select(p => p.Select(x => Math.Round(x, 4)).ToArray()).ToArray(),
+                ["normal_computed"] = attesa.Select(x => Math.Round(x, 6)).ToArray(),
+                ["planes_before"] = NumeroOppureNull(pianiPrima),
+                ["planes_now"] = NumeroOppureNull(pianiDopo),
             };
 
             if (letta == null)
             {
-                misure["normale_riletta"] = null;
-                misure["attenzione"] =
+                misure["normal_reread"] = null;
+                misure["warning"] =
                     "Il piano c'e' ma non sono riuscito a rileggerne l'orientamento, quindi " +
                     "non ti posso garantire che sia quello dei tre punti che mi hai dato.";
             }
@@ -166,8 +166,8 @@ namespace Riscontro.Disegno
                     letta[0] * attesa[0] + letta[1] * attesa[1] + letta[2] * attesa[2]);
                 if (coseno > 1) coseno = 1;
                 double scarto = Math.Acos(coseno) * 180.0 / Math.PI;
-                misure["normale_riletta"] = letta.Select(x => Math.Round(x, 6)).ToArray();
-                misure["scarto_gradi"] = Math.Round(scarto, 4);
+                misure["normal_reread"] = letta.Select(x => Math.Round(x, 6)).ToArray();
+                misure["deviation_deg"] = Math.Round(scarto, 4);
                 if (scarto > 0.01)
                     return Fallito(string.Format(
                         CultureInfo.InvariantCulture,

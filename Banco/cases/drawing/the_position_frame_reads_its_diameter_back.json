@@ -1,49 +1,49 @@
 {
   "name": "the_position_frame_reads_its_diameter_back",
   "family": "drawing",
-  "why": "Z-C21.8, finding M38. tolleranza_geometrica_in_tavola puts the Ø on a frame through IGtol.SetFrameSymbols (TolDia1), and until library 0.144.0 its answer carried only the argument it had been handed: the frame itself was never asked. IGtol~GetFrameSymbols2.html: «Use this method with IGtol::GetFrameDiameterSymbols, which determines whether diameter symbols are displayed»; IGtol~GetFrameDiameterSymbols.html: «retval [0] = True if the first tolerance value has a diameter symbol». The fix reads that flag back into «diameter_read», refuses a frame whose Ø is not the one asked, and removes that frame from the sheet, saying it is removed only after the frames of the drawing are counted again.",
-  "defect_caught": "Step 6 asks a position tolerance WITH the Ø: «misure.diameter_read» must be true, read from the frame. On library 0.144.0 that expectation is RED, because the field does not exist. Step 7 is the other side: a flatness frame WITHOUT the Ø must read false, so a reread that answered true whatever the frame says would be red there.",
+  "why": "Z-C21.8, finding M38. geometric_tolerance puts the Ø on a frame through IGtol.SetFrameSymbols (TolDia1), and until library 0.144.0 its answer carried only the argument it had been handed: the frame itself was never asked. IGtol~GetFrameSymbols2.html: «Use this method with IGtol::GetFrameDiameterSymbols, which determines whether diameter symbols are displayed»; IGtol~GetFrameDiameterSymbols.html: «retval [0] = True if the first tolerance value has a diameter symbol». The fix reads that flag back into «diameter_read», refuses a frame whose Ø is not the one asked, and removes that frame from the sheet, saying it is removed only after the frames of the drawing are counted again.",
+  "defect_caught": "Step 6 asks a position tolerance WITH the Ø: «measurements.diameter_read» must be true, read from the frame. On library 0.144.0 that expectation is RED, because the field does not exist. Step 7 is the other side: a flatness frame WITHOUT the Ø must read false, so a reread that answered true whatever the frame says would be red there.",
   "_the_numbers": "Plate 120 x 80 x 10 = 96000 mm3, centred, extruded up from the top plane, the same part and the same datum A as the drawing case of datum, roughness and tolerance frames. swGtolGeomCharSymbol_e (swconst, swGtolGeomCharSymbol_e.html): swGcsPOSITION 23, swGcsFLAT 15.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 96000, "why": "120 x 80 x 10" } ] },
 
-    { "operation": "salva_documento",
-      "arguments": { "percorso": "{LAVORO}\\the_position_frame_reads_its_diameter_back.sldprt" },
-      "expect": [ { "what": "misure.avvisi", "equal_to": 0, "why": "a view hangs on the FILE of the part" } ] },
+    { "operation": "save_document",
+      "arguments": { "path": "{LAVORO}\\the_position_frame_reads_its_diameter_back.sldprt" },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view hangs on the FILE of the part" } ] },
 
-    { "operation": "crea_disegno",
-      "arguments": { "formato": "A3" },
-      "expect": [ { "what": "stato.tipo", "equal_to": "tavola", "why": "from here on the bench works on the drawing" } ] },
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "from here on the bench works on the drawing" } ] },
 
-    { "operation": "viste_standard",
-      "arguments": { "modello": "{LAVORO}\\the_position_frame_reads_its_diameter_back.sldprt" },
-      "expect": [ { "what": "misure.viste_create", "equal_to": 3, "why": "front, top, side" } ] },
+    { "operation": "standard_views",
+      "arguments": { "model": "{LAVORO}\\the_position_frame_reads_its_diameter_back.sldprt" },
+      "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "front, top, side" } ] },
 
-    { "operation": "datum_in_tavola",
-      "arguments": { "vista": "V1", "lato": "basso", "lettera": "A" },
+    { "operation": "datum",
+      "arguments": { "view": "V1", "side": "bottom", "letter": "A" },
       "expect": [
-        { "what": "misure.lettera_riletta", "equal_to": "A", "why": "the datum the position frame refers to" } ] },
+        { "what": "measurements.letter_reread", "equal_to": "A", "why": "the datum the position frame refers to" } ] },
 
-    { "operation": "tolleranza_geometrica_in_tavola",
-      "arguments": { "vista": "V1", "lato": "destra", "caratteristica": "posizione", "valore_mm": 0.1,
-                     "riferimenti": ["A"], "diametro": true },
+    { "operation": "geometric_tolerance",
+      "arguments": { "view": "V1", "side": "right", "characteristic": "position", "value_mm": 0.1,
+                     "references": ["A"], "diameter": true },
       "expect": [
-        { "what": "misure.diameter_read", "equal_to": true,
+        { "what": "measurements.diameter_read", "equal_to": true,
           "why": "THE LINE THAT IS RED ON 0.144.0, first so that the old library stops here: the Ø read back from the frame with GetFrameDiameterSymbols, not the argument" },
-        { "what": "misure.simbolo_riletto", "equal_to": 23, "why": "swGcsPOSITION, read back from the frame as a code" },
-        { "what": "misure.valore_riletto", "equal_to": "0.1", "why": "the width of the zone, read back as the frame prints it" },
-        { "what": "misure.riferimenti_riletti", "includes": ["A"], "why": "the datum, read back" },
-        { "what": "misure.cornici_dopo", "equal_to": 1, "why": "one frame on the sheet: the one just made, kept because it says what was asked" } ] },
+        { "what": "measurements.symbol_reread", "equal_to": 23, "why": "swGcsPOSITION, read back from the frame as a code" },
+        { "what": "measurements.value_reread", "equal_to": "0.1", "why": "the width of the zone, read back as the frame prints it" },
+        { "what": "measurements.references_reread", "includes": ["A"], "why": "the datum, read back" },
+        { "what": "measurements.frames_after", "equal_to": 1, "why": "one frame on the sheet: the one just made, kept because it says what was asked" } ] },
 
-    { "operation": "tolleranza_geometrica_in_tavola",
-      "arguments": { "vista": "V2", "lato": "alto", "caratteristica": "planarita", "valore_mm": 0.02 },
+    { "operation": "geometric_tolerance",
+      "arguments": { "view": "V2", "side": "top", "characteristic": "flatness", "value_mm": 0.02 },
       "expect": [
-        { "what": "misure.diameter_read", "equal_to": false,
+        { "what": "measurements.diameter_read", "equal_to": false,
           "why": "THE OTHER SIDE: no Ø asked, and the frame says none. A reread that answered true whatever the frame says is red here" },
-        { "what": "misure.simbolo_riletto", "equal_to": 15, "why": "swGcsFLAT" },
-        { "what": "misure.cornici_dopo", "equal_to": 2, "why": "the second frame of the drawing" } ] }
+        { "what": "measurements.symbol_reread", "equal_to": 15, "why": "swGcsFLAT" },
+        { "what": "measurements.frames_after", "equal_to": 2, "why": "the second frame of the drawing" } ] }
   ]
 }

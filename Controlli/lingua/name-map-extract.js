@@ -198,14 +198,14 @@ const LAYOUT = {
   // the tool list is the string array of Strumenti/ that holds this tool
   toolAnchor: 'api_search',
   // the argument of a tool whose values are its sub-actions
-  subActionArgument: 'azione',
+  subActionArgument: 'action',
   // the code that writes the answers (semantic model of its dictionaries)
   answerGroups: ['library', 'bridge'],
 };
 const CATALOGUE = {
-  operations: 'operazioni', families: 'famiglie', name: 'nome', family: 'famiglia', schema: 'schema',
+  operations: 'operations', families: 'families', name: 'name', family: 'family', schema: 'schema',
   // keys whose name-like values are catalogue enumerations of their own
-  valueKeys: ['precondizione', 'documento'],
+  valueKeys: ['precondition', 'document'],
 };
 const CASE = {
   family: 'family', name: 'name', twin: 'twin', what: 'what', equals: 'equal_to',
@@ -213,7 +213,7 @@ const CASE = {
 };
 // The keys of a step of a plan (a file of the cases whose root is a list):
 // the protocol of the bridge, renamed with it in window 2 (.5).
-const PLAN = { operation: 'operazione', args: 'argomenti' };
+const PLAN = { operation: 'operation', args: 'arguments' };
 
 // C# compilation groups: the first that names a file wins. Semantic groups
 // get a compilation (the BCL and the groups they reference); the others are

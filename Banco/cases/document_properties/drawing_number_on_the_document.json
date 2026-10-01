@@ -5,25 +5,25 @@
   "_why_also_the_state": "L'operazione rilegge da sola e risponde il valore: se il caso guardasse solo quello, un'operazione che si tiene il valore in una variabile e non tocca il file passerebbe. Lo stato del documento e' letto da un'altra parte del codice, e legge dal documento vero.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "scrivi_proprieta",
-      "arguments": { "nome": "Revisione", "valore": "A" },
+    { "operation": "set_property",
+      "arguments": { "name": "Revision", "value_text": "A" },
       "expect": [
-        { "what": "misure.proprieta", "equal_to": "Revisione" },
-        { "what": "misure.valore", "equal_to": "A" },
-        { "what": "misure.dove", "includes": ["documento"] },
-        { "what": "stato.proprieta.Revisione", "equal_to": "A",
+        { "what": "measurements.property", "equal_to": "Revision" },
+        { "what": "measurements.value_text", "equal_to": "A" },
+        { "what": "measurements.location", "includes": ["document"] },
+        { "what": "state.property.Revision", "equal_to": "A",
           "why": "il valore va letto dal documento, non dalla risposta dell'operazione che l'ha scritto" },
         { "what": "volume_mm3", "equal_to": 200000,
           "why": "scrivere una proprieta' non tocca la geometria: se il volume cambia, l'operazione sta facendo dell'altro" } ] },
-    { "operation": "scrivi_proprieta",
-      "arguments": { "nome": "Revisione", "valore": "B" },
+    { "operation": "set_property",
+      "arguments": { "name": "Revision", "value_text": "B" },
       "expect": [
-        { "what": "misure.valore", "equal_to": "B",
+        { "what": "measurements.value_text", "equal_to": "B",
           "why": "LA SECONDA SCRITTURA SOSTITUISCE. Con «solo se nuova» SOLIDWORKS lascerebbe «A» e risponderebbe lo stesso: una revisione che non cambia senza che nessuno dia errore." },
-        { "what": "stato.proprieta.Revisione", "equal_to": "B" } ] }
+        { "what": "state.property.Revision", "equal_to": "B" } ] }
   ]
 }

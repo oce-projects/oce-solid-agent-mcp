@@ -4,11 +4,11 @@
   "why": "La gemella del caso a zero gradi, ed e' QUESTA a vedere la rotazione. Sulla piastra larga 40 l'asola girata di 90 gradi sporge di 5,5 mm da tutte e due le coste -- y da -25,5 a +25,5 contro una semialtezza di 20 -- e le due calotte cadono fuori: resta il rettangolo 40 x 11. Se la rotazione non venisse applicata, questo caso e quello a zero gradi darebbero LO STESSO NUMERO.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 40, "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 40, "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 160000 } ] },
-    { "operation": "asola",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 90, "passante": true },
+    { "operation": "slot",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 90, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 151200, "tolerance": 1.0,
           "tolerance_why": "160000 meno il solo rettangolo 40 x 11 x 20 = 8800. Le due calotte cadono fuori dal materiale: il millimetro cubo copre il modo in cui SOLIDWORKS taglia sul bordo" } ] }

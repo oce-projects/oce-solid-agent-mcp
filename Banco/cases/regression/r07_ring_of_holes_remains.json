@@ -6,30 +6,30 @@
   "intent_why": "la corona sta a Ø80 perche' lo dice la flangia che ci si accoppia, non il pezzo. Ingrossare l'esterno non la tocca: i sei centri restano dove sono.",
   "build": [
     {
-      "operation": "estrudi_cerchio",
-      "arguments": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 }
+      "operation": "extrude_circle",
+      "arguments": { "plane": "front", "diameter_mm": 100, "height_mm": 50 }
     },
     {
-      "operation": "foro_guidato",
+      "operation": "hole_wizard",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
-        "taglia": "M8",
-        "passante": true,
-        "posizioni": [ { "x_mm": 40, "y_mm": 0 }, { "x_mm": 20, "y_mm": 34.641 },
+        "face_uid": "@face(normal=front)",
+        "size": "M8",
+        "through_all": true,
+        "positions": [ { "x_mm": 40, "y_mm": 0 }, { "x_mm": 20, "y_mm": 34.641 },
                        { "x_mm": -20, "y_mm": 34.641 }, { "x_mm": -40, "y_mm": 0 },
                        { "x_mm": -20, "y_mm": -34.641 }, { "x_mm": 20, "y_mm": -34.641 } ]
       }
     }
   ],
-  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 140 },
+  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 140 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [140, 140, 50],
+    { "what": "bounding_box_mm", "equal_to": [140, 140, 50],
       "tolerance": 0.02,
       "tolerance_why": "l'ingombro di un cilindro si legge con GetExtremePoint" },
-    { "what": "centri_x_mm", "same_as_before": true,
+    { "what": "centers_x_mm", "same_as_before": true,
       "tolerance": 0.05,
       "tolerance_why": "sei fori piu' il cilindro esterno, che sta in (0,0): 40*cos(60) = 20 esatto" },
-    { "what": "centri_y_mm", "same_as_before": true,
+    { "what": "centers_y_mm", "same_as_before": true,
       "tolerance": 0.05,
       "tolerance_why": "40*sin(60) = 34,6410: il centesimo copre l'arrotondamento" }
   ]

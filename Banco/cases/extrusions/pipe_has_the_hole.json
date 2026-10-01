@@ -1,19 +1,19 @@
 {
   "name": "pipe_has_the_hole",
   "family": "extrusions",
-  "why": "VOCE Z-C6. `estrudi_profilo` e' a catalogo con `Provata = true`, e fino al 24/9/2026 la toccavano solo tre piani a mano (`bridge/c2_*`) che non pretendono niente. Il caso e' quello del piano `c2_pipe_from_catalog`: due cerchi concentrici, e il secondo dev'essere un BUCO.",
+  "why": "VOCE Z-C6. `extrude_profile` e' a catalogo con `Provata = true`, e fino al 24/9/2026 la toccavano solo tre piani a mano (`bridge/c2_*`) che non pretendono niente. Il caso e' quello del piano `c2_pipe_from_catalog`: due cerchi concentrici, e il secondo dev'essere un BUCO.",
   "defect_caught": "Due contorni uno dentro l'altro si possono leggere in due modi: una corona (il secondo toglie) o due cilindri sovrapposti (il secondo aggiunge, e sparisce dentro il primo). Nel secondo caso il pezzo esce PIENO, la ricostruzione e' pulita, e un tubo da 60x5 diventa una barra tonda da 60. Il volume lo distingue di tre volte.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_profilo",
-      "arguments": { "piano": "superiore", "spessore_mm": 100,
-                     "contorni": [ { "cerchio": [0, 0], "diametro_mm": 60 },
-                                   { "cerchio": [0, 0], "diametro_mm": 50 } ] },
+    { "operation": "extrude_profile",
+      "arguments": { "plane": "top", "thickness_mm": 100,
+                     "contours": [ { "circle": [0, 0], "diameter_mm": 60 },
+                                   { "circle": [0, 0], "diameter_mm": 50 } ] },
       "expect": [
-        { "what": "corpi", "equal_to": 1 },
+        { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 86393.8, "tolerance": 0.1,
           "tolerance_why": "pi/4 * (60^2 - 50^2) * 100 = pi/4 * 1100 * 100 = 86393,798. Il decimo copre l'arrotondamento; un tubo PIENO darebbe 282743,3 e un tubo da 60x4 (Ø52 dentro) 70371,7: la misura sbagliata piu' vicina sta a sedicimila mm3." },
-        { "what": "ingombro_mm", "equal_to": [60, 100, 60], "tolerance": 0.01,
+        { "what": "bounding_box_mm", "equal_to": [60, 100, 60], "tolerance": 0.01,
           "tolerance_why": "estruso dal piano superiore, quindi lungo Y. Simmetrico in X e Z, quindi l'ordine non dipende dal verso" } ] }
   ]
 }

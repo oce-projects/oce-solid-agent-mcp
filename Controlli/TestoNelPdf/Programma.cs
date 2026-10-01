@@ -88,7 +88,7 @@ internal static class Programma
                  (n2 == null ? "(non nata)" : n2.GetText()) + "»");
             if (n1 == null || n2 == null) { Console.WriteLine("  una nota non e' nata"); return 4; }
 
-            // ── IL PDF, come lo scrive esporta_pdf ──────────────────────
+            // ── IL PDF, come lo scrive export_pdf ──────────────────────
             var dati = sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData) as IExportPdfData;
             if (dati == null) { Console.WriteLine("  niente opzioni PDF"); return 4; }
             dati.ViewPdfAfterSaving = false;
@@ -113,7 +113,7 @@ internal static class Programma
             Console.WriteLine();
             Console.WriteLine("      flussi compressi " + flussi + ", decompressi " + decompressi +
                               ", blocchi di testo (BT) " + blocchiDiTesto + ", /ToUnicode " + toUnicode);
-            Console.WriteLine("      pdftotext: " + (estratto == null ? "non disponibile" : estratto.Length + " caratteri estratti"));
+            Console.WriteLine("      pdftotext: " + (estratto == null ? "unavailable" : estratto.Length + " caratteri estratti"));
             Console.WriteLine("      decodificato con le CMap: " + decodificato.Length + " caratteri");
             Console.WriteLine();
             Console.WriteLine("      cerca          grezzo  flussi  cmap    pdftotext");

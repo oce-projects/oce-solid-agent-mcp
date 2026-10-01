@@ -18,7 +18,7 @@ namespace Prove.Contratti
     /// the edge distances and the angle 0.
     ///
     /// No bench case can build this: no operation of the bridge makes a
-    /// vertex chamfer (smusso_spigoli takes edges). So the decision is kept in
+    /// vertex chamfer (chamfer_edges takes edges). So the decision is kept in
     /// StatoDocumento.ChamferSizes, which takes the reads as functions and no
     /// interop type, and this group calls it on the BUILT library by
     /// reflection, with the numbers of the probe: no SOLIDWORKS. The
@@ -99,15 +99,15 @@ namespace Prove.Contratti
                 // not ask for it: «relevant only for an angle-distance type».
                 var dd = Read(method, 2, new[] { 0.003, 0.006 }, 45 * Math.PI / 180, new[] { 0.0, 0.0, 0.0 });
                 Segna("N29: the edge chamfers keep their sizes, read by type (probe C9 5 x 30, C1 3 x 6)",
-                      ad.Written == "{angolo_gradi=30, lato1_mm=5}" && ad.Asked == "edge 0, angle" &&
-                      dd.Written == "{lato1_mm=3, lato2_mm=6}" && dd.Asked == "edge 0, edge 1",
+                      ad.Written == "{angle_deg=30, leg1_mm=5}" && ad.Asked == "edge 0, angle" &&
+                      dd.Written == "{leg1_mm=3, leg2_mm=6}" && dd.Asked == "edge 0, edge 1",
                       "angle-distance " + ad.Written + " asking " + ad.Asked +
                       "; distance-distance " + dd.Written + " asking " + dd.Asked);
 
                 // swChamferEqualDistance (16), not measured: the reading of before.
                 var eq = Read(method, 16, new[] { 0.002, 0.002 }, 0.0, new[] { 0.0, 0.0, 0.0 });
                 Segna("N29: a type the rule does not know keeps the reading of before",
-                      eq.Written == "{lato1_mm=2}" && eq.Asked == "edge 0, edge 1, angle",
+                      eq.Written == "{leg1_mm=2}" && eq.Asked == "edge 0, edge 1, angle",
                       "equal distance 2: " + eq.Written + " asking " + eq.Asked);
             }
             catch (Exception ex) { Segna("N29: ChamferSizes can be called", false, ex.GetType().Name + ": " + ex.Message); }

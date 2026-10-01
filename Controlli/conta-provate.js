@@ -35,9 +35,9 @@
 //  EXIT CODES (W3.1-bis.2, item 5). It exits 0 once it has measured: the
 //  numbers are a measure, not a verdict. It exits 1 when what it reads is
 //  not there: an unreadable catalogue, a case file that does not parse, or
-//  an expected key that is missing (`operazioni` and `nome` in the
+//  an expected key that is missing (`operations` and `name` in the
 //  catalogue; `name`, `steps` or `build`, and `operation` in every step of
-//  a case; `operazione` in every step of a plan, which is the bridge's
+//  a case; `operation` in every step of a plan, which is the bridge's
 //  protocol and is renamed with it in W3.1-bis.5). The translation of W3.1-bis renames those
 //  keys, and a reader that falls back to an empty list prints zeros that
 //  look like a measure. A count read from nothing is not zero.
@@ -90,12 +90,12 @@ catch (e) {
   console.log('it is written by  .\\bin\\Riscontro.Catalogo.exe Strumenti\\catalogo.json');
   process.exit(1);
 }
-if (expectKey(catalogo, 'operazioni', 'array', 'catalogue')) {
-  if (catalogo.operazioni.length === 0) missingKeys.push('catalogue: "operazioni" is empty');
-  catalogo.operazioni.forEach((o, i) => expectKey(o, 'nome', 'string', 'catalogue, operation ' + i));
+if (expectKey(catalogo, 'operations', 'array', 'catalogue')) {
+  if (catalogo.operations.length === 0) missingKeys.push('catalogue: "operations" is empty');
+  catalogo.operations.forEach((o, i) => expectKey(o, 'name', 'string', 'catalogue, operation ' + i));
 }
 stopIfMissing();
-const operazioni = catalogo.operazioni.map((o) => o.nome).sort();
+const operazioni = catalogo.operations.map((o) => o.name).sort();
 
 // ── CHI LE ESERCITA ──────────────────────────────────────────────────────
 const daCasi = new Map();     // operazione -> [casi]
@@ -121,7 +121,7 @@ function scorri(cartella) {
     // dal nome del file.
     if (Array.isArray(j)) {
       // a plan is read as text below, but its steps carry the same key
-      j.forEach((step, i) => expectKey(step, 'operazione', 'string', where + ', step ' + (i + 1)));
+      j.forEach((step, i) => expectKey(step, 'operation', 'string', where + ', step ' + (i + 1)));
       testoPiani += grezzo;
       continue;
     }
@@ -137,7 +137,7 @@ function scorri(cartella) {
     // loro `costruisci` gira solo con `-Regressione`, e questo script li
     // contava come «caso dichiarato»: il riconteggio del 24/9 diceva 72 su 73,
     // e il controllo di contratto sui casi VERDI dell'ultimo giro ha trovato
-    // tre operazioni (foro_guidato, estrudi_su_faccia, raccordo_spigoli) che in
+    // tre operazioni (hole_wizard, extrude_on_face, fillet_edges) che in
     // un giro normale non toccava nessuno. Adesso stanno in un modo a parte.
     for (const key of lists) {
       if (!expectKey(j, key, 'array', where)) continue;
@@ -210,5 +210,5 @@ if (perModo['NIENTE'].length === 0) {
   for (const o of perModo['NIENTE']) console.log('    ' + o);
   console.log('');
   console.log('Per ognuna: o un caso dichiarato in Banco\\cases\\, oppure Provata = false,');
-  console.log('che la toglie dal catalogo come gia\' succede a croci_di_centro.');
+  console.log('che la toglie dal catalogo come gia\' succede a center_marks.');
 }

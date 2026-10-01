@@ -87,19 +87,19 @@ namespace Prove.Contratti
             catch (TargetInvocationException ex) { throw ex.InnerException ?? ex; }
         }
 
-        // ── N32: the frame's «misure», whatever the case ─────────────────────
+        // ── N32: the frame's «measured_as», whatever the case ─────────────────────
         private static void FrameReading(Type sw)
         {
             try
             {
-                string a = (string)Call(sw, "FrameReading", "Ingombro");
-                string b = (string)Call(sw, "FrameReading", " INTERASSE ");
+                string a = (string)Call(sw, "FrameReading", "Overall");
+                string b = (string)Call(sw, "FrameReading", " CENTER_DISTANCE ");
                 string c = (string)Call(sw, "FrameReading", (object)null);
-                string d = (string)Call(sw, "FrameReading", "esterno");
-                Segna("N32: «Ingombro» and « INTERASSE » read as the catalogue spells them",
-                      a == "ingombro" && b == "interasse", "«" + a + "», «" + b + "»");
-                Segna("N32: a missing «misure» is «ingombro», any other word is no reading",
-                      c == "ingombro" && d == null, "null -> «" + c + "», «esterno» -> " + (d ?? "null"));
+                string d = (string)Call(sw, "FrameReading", "outer");
+                Segna("N32: «Overall» and « CENTER_DISTANCE » read as the catalogue spells them",
+                      a == "overall" && b == "center_distance", "«" + a + "», «" + b + "»");
+                Segna("N32: a missing «measured_as» is «overall», any other word is no reading",
+                      c == "overall" && d == null, "null -> «" + c + "», «outer» -> " + (d ?? "null"));
             }
             catch (Exception ex) { Segna("N32: FrameReading can be called", false, ex.GetType().Name + ": " + ex.Message); }
         }

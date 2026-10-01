@@ -80,15 +80,15 @@ namespace Riscontro.Disegno
         private static readonly Dictionary<string, GenereDiForo> GeneriDiForo =
             new Dictionary<string, GenereDiForo>(StringComparer.OrdinalIgnoreCase)
         {
-            ["filettato"] = new GenereDiForo
+            ["threaded"] = new GenereDiForo
             {
                 Generico = (int)swWzdGeneralHoleTypes_e.swWzdTap,
                 Elemento = (int)swWzdHoleStandardFastenerTypes_e.swStandardISOTappedHole,
                 TipoPassante = (int)swWzdHoleTypes_e.swTapThruCosmeticThread,
                 TipoCieco = (int)swWzdHoleTypes_e.swTapBlindCosmeticThread,
-                Umano = "filettato",
+                Umano = "threaded",
             },
-            ["passaggio"] = new GenereDiForo
+            ["clearance"] = new GenereDiForo
             {
                 Generico = (int)swWzdGeneralHoleTypes_e.swWzdHole,
                 Elemento = (int)swWzdHoleStandardFastenerTypes_e.swStandardISOScrewClearances,
@@ -96,7 +96,7 @@ namespace Riscontro.Disegno
                 TipoCieco = (int)swWzdHoleTypes_e.swHoleBlind,
                 Umano = "di passaggio per vite",
             },
-            ["lamato"] = new GenereDiForo
+            ["counterbore"] = new GenereDiForo
             {
                 Generico = (int)swWzdGeneralHoleTypes_e.swWzdCounterBore,
                 Elemento = (int)swWzdHoleStandardFastenerTypes_e.swStandardISOSocketHeadCap,
@@ -104,7 +104,7 @@ namespace Riscontro.Disegno
                 TipoCieco = (int)swWzdHoleTypes_e.swCounterBoreBlind,
                 Umano = "lamato per vite a testa cilindrica ISO 4762",
             },
-            ["svasato"] = new GenereDiForo
+            ["countersink"] = new GenereDiForo
             {
                 Generico = (int)swWzdGeneralHoleTypes_e.swWzdCounterSink,
                 Elemento = (int)swWzdHoleStandardFastenerTypes_e.swStandardISOSocketCTSKFlatHead,
@@ -122,25 +122,25 @@ namespace Riscontro.Disegno
         private Esito ForoGuidato(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            var faccia = RisolviFaccia(stato, a, Str(a, "faccia_uid", ""), out string motivo);
+            var faccia = RisolviFaccia(stato, a, Str(a, "face_uid", ""), out string motivo);
             if (faccia == null) return Fallito(motivo);
 
             double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
             if (assi == null) return Fallito(errore);
 
-            string genereNome = Str(a, "tipo", "passaggio");
+            string genereNome = Str(a, "variant", "clearance");
             GenereDiForo genere;
             if (!GeneriDiForo.TryGetValue(genereNome, out genere))
                 return Fallito(
                     "Non conosco il tipo di foro «" + genereNome + "». " +
                     "So fare: filettato, passaggio, lamato, svasato.");
 
-            string taglia = (Str(a, "taglia", "") ?? "").Trim();
+            string taglia = (Str(a, "size", "") ?? "").Trim();
             if (taglia.Length == 0)
                 return Fallito("Manca la taglia del foro (per esempio «M8»).");
 
-            bool passante = Bool(a, "passante", true);
-            double profondita = Num(a, "profondita_mm", 0);
+            bool passante = Bool(a, "through_all", true);
+            double profondita = Num(a, "depth_mm", 0);
             if (!passante && profondita <= 0)
                 return Fallito(
                     "Un foro cieco vuole la profondita'. Dimmela, oppure di' che " +
@@ -158,7 +158,7 @@ namespace Riscontro.Disegno
             // IL VOLUME SI LEGGE SEMPRE (voce Z-C21.2, rilievo L4-3), non solo
             // con le ancore: e' il controllo con cui il commento in testa dice di
             // aver scoperto il foro da due pollici, e senza il foro in errore
-            // passava come «posizioni_non_verificate».
+            // passava come «positions_not_checked».
             double? volumePrima = VolumeMm3(modello);
 
             // ── 1. si crea PASSANTE, sempre ──────────────────────────────
@@ -259,10 +259,10 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["tipo"] = genere.Umano,
-                ["taglia"] = taglia,
-                ["fori"] = posizioni.Count,
-                ["passante"] = passante,
+                ["kind"] = genere.Umano,
+                ["size"] = taglia,
+                ["holes"] = posizioni.Count,
+                ["through_all"] = passante,
             };
 
             // ── 6b. l'ancora, a fori posizionati ─────────────────────────
@@ -289,11 +289,11 @@ namespace Riscontro.Disegno
                     Math.Max(definizione.ThruTapDrillDiameter, definizione.TapDrillDiameter),
                     Math.Max(definizione.ThruHoleDiameter, definizione.HoleDiameter)) * 1000.0;
                 if (diametroForo > 0)
-                    misure["diametro_lavorato_mm"] = Math.Round(diametroForo, 2);
+                    misure["diameter_machined_mm"] = Math.Round(diametroForo, 2);
                 if (definizione.ThreadDiameter > 0)
-                    misure["filetto_mm"] = Math.Round(definizione.ThreadDiameter * 1000, 2);
+                    misure["thread_mm"] = Math.Round(definizione.ThreadDiameter * 1000, 2);
                 if (definizione.CounterBoreDiameter > 0)
-                    misure["lamatura_mm"] =
+                    misure["counterbore_mm"] =
                         Math.Round(definizione.CounterBoreDiameter * 1000, 2) + "x" +
                         Math.Round(definizione.CounterBoreDepth * 1000, 2);
                 widestDiameter = diametroForo;
@@ -336,7 +336,7 @@ namespace Riscontro.Disegno
             }
 
             // ── 7. si controlla che i fori siano dove sono stati chiesti ──
-            if (!passante) misure["profondita_mm"] = profondita;
+            if (!passante) misure["depth_mm"] = profondita;
 
             // TRE ESITI, NON DUE. «Non ho potuto guardare» e' una risposta
             // diversa da «ho guardato e va bene», e finche' erano la stessa il
@@ -362,8 +362,8 @@ namespace Riscontro.Disegno
                 assiTrovati, nonPosso, assi, offsetM, posizioni, out string dovePosizioni);
 
             if (esito == EsitoPosizioni.Sbagliate) return Fallito(dovePosizioni);
-            if (esito == EsitoPosizioni.Verificate) misure["posizioni_verificate"] = true;
-            else misure["posizioni_non_verificate"] = dovePosizioni;
+            if (esito == EsitoPosizioni.Verificate) misure["positions_checked"] = true;
+            else misure["positions_not_checked"] = dovePosizioni;
 
             return Riuscito(feature, misure, NormaleDellaFaccia(faccia));
         }
@@ -475,9 +475,9 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// Le ancore dei fori (voce E18), una per posizione nello stesso ordine.
-        /// `ancore` resta null se nessuna posizione ne ha una (il vecchio modo);
+        /// `anchors` resta null se nessuna posizione ne ha una (il vecchio modo);
         /// false col motivo se qualcuna ce l'ha e qualcuna no, o se un'ancora e'
-        /// sbagliata. Un foro solo con x_mm/y_mm in cima prende `ancora` in cima.
+        /// sbagliata. Un foro solo con x_mm/y_mm in cima prende `anchor` in cima.
         /// </summary>
         private bool LeggiLeAncoreDeiFori(
             Dictionary<string, object> a, StatoDocumento stato, IFace2 faccia, double[] assi, double offsetM,
@@ -487,18 +487,18 @@ namespace Riscontro.Disegno
             errore = null;
             var grezze = new List<object>();
             object lista;
-            if (a.TryGetValue("posizioni", out lista) && lista is System.Collections.IEnumerable)
+            if (a.TryGetValue("positions", out lista) && lista is System.Collections.IEnumerable)
                 foreach (var voce in (System.Collections.IEnumerable)lista)
                 {
                     var m = voce as Dictionary<string, object>;
                     object anc = null;
-                    if (m != null) m.TryGetValue("ancora", out anc);
+                    if (m != null) m.TryGetValue("anchor", out anc);
                     grezze.Add(anc);
                 }
             else
             {
                 object anc;
-                a.TryGetValue("ancora", out anc);
+                a.TryGetValue("anchor", out anc);
                 grezze.Add(anc);
             }
             int conAncora = grezze.Count(g => g != null);
@@ -512,11 +512,11 @@ namespace Riscontro.Disegno
             }
             ancore = new List<Ancoraggio>();
             object firme;
-            a.TryGetValue("_firme", out firme);
+            a.TryGetValue("_signatures", out firme);
             for (int i = 0; i < posizioni.Count; i++)
             {
-                var sua = new Dictionary<string, object> { ["ancora"] = grezze[i] };
-                if (firme != null) sua["_firme"] = firme;
+                var sua = new Dictionary<string, object> { ["anchor"] = grezze[i] };
+                if (firme != null) sua["_signatures"] = firme;
                 string motivo;
                 // Il raggio non si sa ancora (lo decide la tabella): 0 qui, e il
                 // controllo dello scavalcamento si rifa' a foro nato.
@@ -535,7 +535,7 @@ namespace Riscontro.Disegno
             var fuori = new List<double[]>();
 
             object grezzo;
-            if (a != null && a.TryGetValue("posizioni", out grezzo) && grezzo != null)
+            if (a != null && a.TryGetValue("positions", out grezzo) && grezzo != null)
             {
                 var lista = grezzo as System.Collections.IEnumerable;
                 if (lista == null) { errore = "Le posizioni dei fori non sono leggibili."; return null; }
@@ -554,7 +554,7 @@ namespace Riscontro.Disegno
             else
             {
                 // Un foro solo si puo' chiedere anche con x_mm/y_mm in piano,
-                // come fa taglio_cilindrico: e' la forma che il modello
+                // come fa cylindrical_cut: e' la forma che il modello
                 // conosce gia'.
                 double x, y;
                 if (!NumObbligatorio(a, "x_mm", out x, out errore)) return null;
@@ -750,7 +750,7 @@ namespace Riscontro.Disegno
         /// invece di tornare una lista vuota che somiglia a «nessun foro
         /// fuori posto». La versione precedente tornava `null` — cioe' «tutto
         /// a posto» — in quattro strade in cui non aveva guardato niente, e chi
-        /// la chiamava scriveva `posizioni_verificate = true` senza condizione.
+        /// la chiamava scriveva `positions_checked = true` senza condizione.
         /// </summary>
         private List<double[]> AssiDeiFori(
             IFeature feature, double diametroMm, out string nonPosso)

@@ -28,6 +28,299 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — W3.1-bis.5, rename window 2: the MCP surface (branch w31bis-5)
+
+Bridge 0.126.0 · library 0.150.0.
+
+**The second of the three rename windows of W3.1-bis (TODO entry W3.1-bis.5):
+the protocol of the bridge is English.** The seven tools and their
+sub-actions, the 99 operations and their 12 families, every argument and every
+value an argument takes, the selectors, the fields and the values of the
+answers, the keys of `Strumenti/catalogo.json`, the MCP resources and the tool
+titles get the English names of the name map (`Controlli/lingua/name-map.tsv`,
+W3.1-bis.3), and so do the bench cases that speak that protocol, the readers of
+the catalogue and every code name quoted in a message, a comment or a document.
+The texts themselves (descriptions, messages, comments) stay in the language
+they were written in: only the names inside them change. Classes, files and
+folders of the code are window 3 (W3.1-bis.6).
+
+### The script of the window
+
+- **`Controlli/lingua/window-2-surface.js`**, driven by the map (types tool,
+  sub_action, operation, catalogue_family, argument, enum_value,
+  catalogue_key, response_field, response_value, selector), in one pass over
+  every tracked text file but the excluded ones (this CHANGELOG, the map and its
+  extractor, the gate: `detect-italian.js`, its lexicon, its exceptions and
+  baseline, `language-gate.ps1`; window 1's script):
+  - the catalogue token by token: keys, families, operation names, schema
+    properties, enums, `required`, the examples, and the code names in the
+    descriptions; `Riscontro.Disegno/Catalogo/Operazioni.cs` gets the same
+    renames, so the catalogue the library exports is byte for byte the one the
+    script writes;
+  - every case and plan: operations, arguments (by the operation of the step),
+    values (by the enum of the argument), selectors
+    (`@faccia(verso=davanti)` → `@face(normal=front)`), the paths and the
+    values of the expectations, the pieces a message must contain, and the
+    code names in the free notes;
+  - the string literals of the C#, JavaScript and PowerShell sources by their
+    code context (an argument read with `Str(a, "…")`, a field written with
+    `misure["…"]`, a step of a plan, a key of an answer), with a table of
+    sites (`CS_SITES`) for the words that have two senses in the map (`a_mm` is
+    `throat_mm` in `drawing_weld_symbol` and `offset_mm` in `section_view`;
+    `formato` is `paper_size` for `create_drawing` and `set_sheet`,
+    `sheet_format` for `title_block`); every row of the table must be used by
+    the run, or it stops;
+  - the code names in messages, comments and documents: only between
+    backticks, guillemets or quotes, as a whole snake_case token, a selector or
+    a resource URI. **A common word is never replaced inside prose** («la
+    quota», «il foro» stay as they are), and the names an Italian SOLIDWORKS
+    gives (`Taglio-Estrusione1`, «Piano frontale»; class
+    `solidworks-localized` of `exceptions.json`) are never touched.
+- JSON is rewritten token by token: indentation, line ends, key order and the
+  hand-made layout of every case stay byte for byte.
+- `--reverse` runs the window backwards with the ledger the forward run writes
+  (`Controlli/lingua/window-2-reverse.json`, 122 entries in 34 files): the words
+  the map read backwards would not give back, a name that was already English
+  before the window (`feature`, `faces`, `orientation`) or a form the map merges with another.
+  `--reverse-proof <rev>` and `--forward-proof <rev>` compare the JSON files of
+  the window (catalogue, cases, plans, tasks) with another revision; `--check`
+  says whether the tree is after the window (it is in the snapshot registry);
+  `--todo` and `--notes` rename the code names of notes outside the repository.
+  A forward run on a tree that is already after the window stops (it would
+  read the English names as the names before it): `--check` is the second run.
+- **`Controlli/lingua/update-names-in-notes.js`** drives `--notes` and `--todo`
+  on explicit paths (the TODO, the CLAUDE.md files, `INSTALL-FOR-AI.md` copies,
+  the memories, the RAG notes), with `--dry-run`, `--list` and `--self-test`.
+  It touches code names only (decision D10).
+- `snapshot.js compare --window 2` reads a snapshot taken before the window
+  through its renames (operations, paths and values of the assertions, the
+  catalogue, the tools), so a renamed name is the same one, not one gone and
+  one new.
+
+### What changed
+
+606 files rewritten by the script, 431 of them the cases and plans of the
+bench: 1374 operations, 695 catalogue keys,
+1078 argument blocks and 394 plan keys, 1425 expectation paths, 113
+expectation values, 43 message pieces, 281 free notes of cases, 4356 string
+literals of the sources, 971 messages and 1011 comments that quote a code name.
+
+- **The readers of the catalogue in the same commit**:
+  `Controlli/conta-provate.js` and `Controlli/controlla-catalogo.ps1` read
+  `operations`, `families`, `name`, `family`; the bridge, the bench, the
+  contracts and `Controlli/expected-keys-test.js` read the English keys too.
+  Same counts as the snapshot of 1/10/2026.
+- **The resources**: `catalog://operations` and `catalog://operation/{name}`
+  (were `catalogo://operazioni`, `catalogo://operazione/{nome}`).
+- **The tool titles**: «Inspect the open part», «List the operations»,
+  «Describe an operation», «Build in the part», «Measure the part, without
+  touching it», «Withdraw the last plan», «Open, create or pick the document».
+- **The arguments the bench writes in place**: an initializer reads as an
+  answer unless the line says otherwise, and where the map gives the field and
+  the argument different names the site table says which one the line is:
+  `paper_size` for `create_drawing` (`Banco/NumeriDelleQuote.cs`,
+  `Banco/Orfane.cs`), `variant` for `hole_wizard` (`Banco/Program.cs`,
+  `Banco/ProvaNuove.cs`), `measured_as` and the segment ends `start`/`end`
+  inside `rectangular_frame` (`Banco/Program.cs`). The library echoes the
+  paper size as `paper_size` (`create_drawing`, `set_sheet`) and the sheet
+  format of `title_block` as `sheet_format` (the notes of the map).
+- **The facings**: the face a selector or a mate names by its normal
+  (`up`, `down`, `right`, `left`, `front`, `back`), in the selectors, in the
+  `facing` field of the state, in `face_a`/`face_b` of `mate` and in the bench
+  (`Banco/Attese.cs` maps `normal` to `facing`).
+- **D12, the examples of the catalogue with a SOLIDWORKS name**: they were
+  copied from cases run on an Italian installation (`Taglio-Estrusione1`,
+  `Svuota1`, `Foglio1`, `D1@Schizzo2`); they now carry the name an English
+  installation gives (`Cut-Extrude1`, `Shell1`, `Sheet1`, `D1@Sketch2`), and
+  the description of the argument says that the name is the installation's, in
+  its language, to be copied from the state (8 arguments of 8 operations).
+- The README section «Language» is rewritten: what is English, what comes from
+  SOLIDWORKS in the language of the installation.
+
+### The renames (old → new)
+
+The full list is the map (`Controlli/lingua/name-map.tsv`): 205 arguments and
+689 answer fields are not repeated here.
+
+**Tools** (7)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `annulla` | `undo` | `descrivi_operazione` | `describe_operation` |
+| `disegna` | `build` | `documento` | `document` |
+| `elenco_operazioni` | `list_operations` | `guarda_il_pezzo` | `inspect_part` |
+| `misura` | `measure` | | |
+
+**Sub-actions** (5)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `apri` | `open` | `attiva` | `activate` |
+| `chiudi` | `close` | `elenca` | `list` |
+| `nuovo` | `create` | | |
+
+**Operations** (99)
+
+| Italian | English | Italian | English | Italian | English |
+|---|---|---|---|---|---|
+| `accoppia` | `mate` | `applica_materiale` | `apply_material` | `asola` | `slot` |
+| `attiva_configurazione` | `activate_configuration` | `attiva_foglio` | `activate_sheet` | `bollatura` | `balloons` |
+| `cambia_estrusione` | `edit_extrusion` | `cartiglio` | `title_block` | `combina_corpi` | `combine_bodies` |
+| `cordone_saldatura` | `weld_bead` | `crea_asse` | `create_axis` | `crea_configurazione` | `create_configuration` |
+| `crea_disegno` | `create_drawing` | `crea_piano` | `create_plane` | `croci_di_centro` | `center_marks` |
+| `datum_in_tavola` | `datum` | `dettaglio_in_tavola` | `detail_view` | `dipendenze` | `file_dependencies` |
+| `distanza_minima` | `minimum_distance` | `distinta_base_in_tavola` | `drawing_bom` | `distinta_taglio` | `cut_list` |
+| `distinta_taglio_in_tavola` | `drawing_cut_list` | `elimina_lavorazione` | `delete_feature` | `esporta_iges` | `export_iges` |
+| `esporta_pdf` | `export_pdf` | `esporta_step` | `export_step` | `esporta_stl` | `export_stl` |
+| `estrudi_cerchio` | `extrude_circle` | `estrudi_profilo` | `extrude_profile` | `estrudi_rettangolo` | `extrude_rectangle` |
+| `estrudi_sezione` | `extrude_section` | `estrudi_su_faccia` | `extrude_on_face` | `fazzoletto` | `gusset` |
+| `filettatura_cosmetica` | `cosmetic_thread` | `fissa_componente` | `fix_component` | `flangia_base` | `base_flange` |
+| `flangia_spigolo` | `edge_flange` | `foro_guidato` | `hole_wizard` | `guscio` | `shell` |
+| `immagine_nello_schizzo` | `sketch_picture` | `imposta_foglio` | `set_sheet` | `incidi_testo` | `engrave_text` |
+| `ingombro_corpo` | `body_bounding_box` | `inserisci_componente` | `insert_component` | `lega_quota` | `link_dimension` |
+| `loft_fra_due_cerchi` | `loft_two_circles` | `membro_strutturale` | `structural_member` | `misura_fra_entita` | `measure_between` |
+| `modifica_quota` | `set_dimension` | `nervatura` | `rib` | `nota_in_tavola` | `note` |
+| `nuovo_foglio` | `new_sheet` | `orlo` | `hem` | `piano_per_tre_punti` | `plane_three_points` |
+| `piega_da_schizzo` | `sketched_bend` | `profili_saldatura` | `weldment_profiles` | `proprieta_di_massa` | `mass_properties` |
+| `quota_in_tavola` | `drawing_dimension` | `quote_dal_modello` | `model_dimensions` | `raccordo_faccia` | `fillet_face` |
+| `raccordo_spigoli` | `fillet_edges` | `raccordo_variabile` | `variable_fillet` | `riordina_lavorazione` | `reorder_feature` |
+| `ripeti_circolare` | `circular_pattern` | `ripeti_lineare` | `linear_pattern` | `ripeti_riempimento` | `fill_pattern` |
+| `rivoluzione` | `revolve` | `rugosita_in_tavola` | `surface_finish` | `ruota_dentata` | `spur_gear` |
+| `saldatura_in_tavola` | `drawing_weld_symbol` | `salva_documento` | `save_document` | `schema_di_quote` | `dimension_scheme` |
+| `scrivi_proprieta` | `set_property` | `sezione_in_tavola` | `section_view` | `sformo` | `draft` |
+| `smusso_spigoli` | `chamfer_edges` | `sopprimi_istanza` | `suppress_instance` | `sopprimi_lavorazione` | `suppress_feature` |
+| `sostituisci_componente` | `replace_component` | `specchia` | `mirror` | `specchia_componente` | `mirror_component` |
+| `sposta_corpi` | `move_bodies` | `sviluppo_dxf` | `flat_pattern_dxf` | `sweep_circolare` | `circular_sweep` |
+| `tabella_fori_in_tavola` | `hole_table` | `taglia_membri` | `trim_members` | `taglio_cilindrico` | `cylindrical_cut` |
+| `taglio_rettangolare` | `rectangular_cut` | `tappo_estremita` | `end_cap` | `telaio_rettangolare` | `rectangular_frame` |
+| `tolleranza_geometrica_in_tavola` | `geometric_tolerance` | `tolleranza_quota` | `dimension_tolerance` | `variabile_globale` | `global_variable` |
+| `verifica_geometria_corpo` | `check_body_geometry` | `verifica_interferenze` | `interference_check` | `verifica_sovrasporgenze` | `check_overhangs` |
+| `vista_modello` | `model_view` | `vista_sviluppo` | `flat_pattern_view` | `viste_standard` | `standard_views` |
+
+**Catalogue families** (12)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `assiemi` | `assemblies` | `esportazioni` | `exports` |
+| `estrusioni` | `extrusions` | `identita` | `identity` |
+| `lamiera` | `sheet_metal` | `lavorazioni` | `features` |
+| `proprieta` | `physical_properties` | `quote` | `dimensions` |
+| `riferimenti` | `references` | `saldature` | `weldments` |
+| `tavola` | `drawing` | `verifiche` | `checks` |
+
+**Catalogue keys** (9)
+
+| Italian | English | Italian | English | Italian | English |
+|---|---|---|---|---|---|
+| `descrizione` | `details` | `documento` | `document` | `esempio` | `example` |
+| `famiglia` | `family` | `famiglie` | `families` | `nome` | `name` |
+| `operazioni` | `operations` | `precondizione` | `precondition` | `sommario` | `summary` |
+
+**Selectors** (20)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `@corpo` | `@body` | `@faccia` | `@face` |
+| `@quota` | `@dimension` | `@spigolo` | `@edge` |
+| `angolare` | `angular` | `asse` | `axis` |
+| `curvo` | `curved` | `diametro_mm` | `diameter_mm` |
+| `lungo` | `length` | `nome` | `name` |
+| `piana` | `planar` | `raggio_mm` | `radius_mm` |
+| `tipo` | `kind` | `verso` | `normal` |
+| `verso=alto` | `normal=up` | `verso=basso` | `normal=down` |
+| `verso=davanti` | `normal=front` | `verso=destra` | `normal=right` |
+| `verso=dietro` | `normal=back` | `verso=sinistra` | `normal=left` |
+
+**Enum values (argument=value)** (128)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `caratteristica=cilindricita` | `characteristic=cylindricity` | `caratteristica=circolarita` | `characteristic=circularity` |
+| `caratteristica=concentricita` | `characteristic=concentricity` | `caratteristica=inclinazione` | `characteristic=angularity` |
+| `caratteristica=oscillazione_circolare` | `characteristic=circular_runout` | `caratteristica=oscillazione_totale` | `characteristic=total_runout` |
+| `caratteristica=parallelismo` | `characteristic=parallelism` | `caratteristica=perpendicolarita` | `characteristic=perpendicularity` |
+| `caratteristica=planarita` | `characteristic=flatness` | `caratteristica=posizione` | `characteristic=position` |
+| `caratteristica=profilo_linea` | `characteristic=profile_of_line` | `caratteristica=profilo_superficie` | `characteristic=profile_of_surface` |
+| `caratteristica=rettilineita` | `characteristic=straightness` | `caratteristica=simmetria` | `characteristic=symmetry` |
+| `condizione=quartabuono` | `end_condition=miter` | `condizione=taglio` | `end_condition=cut` |
+| `condizione=testa1` | `end_condition=butt1` | `condizione=testa2` | `end_condition=butt2` |
+| `disposizione=cerchio` | `layout=circle` | `disposizione=quadrato` | `layout=square` |
+| `disposizione=sopra` | `layout=above` | `disposizione=sotto` | `layout=below` |
+| `documento=assieme` | `document=assembly` | `documento=nessuno` | `document=none` |
+| `documento=parte` | `document=part` | `documento=parte/assieme` | `document=part/assembly` |
+| `documento=qualunque` | `document=any` | `documento=tavola` | `document=drawing` |
+| `dove=dopo` | `placement=after` | `dove=prima` | `placement=before` |
+| `genere=asse` | `kind=axis` | `genere=corpi` | `kind=bodies` |
+| `genere=estremita_libere` | `kind=free_ends` | `genere=faccia_del_foro` | `kind=hole_face` |
+| `genere=faccia_di_fondo` | `kind=pocket_floor` | `genere=faccia_inferiore` | `kind=bottom_face` |
+| `genere=faccia_superiore` | `kind=top_face` | `genere=spigoli_inferiori` | `kind=bottom_edges` |
+| `genere=spigoli_laterali` | `kind=side_edges` | `genere=spigoli_superiori` | `kind=top_edges` |
+| `genere=tutti_gli_spigoli` | `kind=all_edges` | `lato=alto` | `side=top` |
+| `lato=basso` | `side=bottom` | `lato=destra` | `side=right` |
+| `lato=sinistra` | `side=left` | `lavorazione=asportazione` | `process=material_removal` |
+| `lavorazione=qualsiasi` | `process=any` | `lavorazione=senza_asportazione` | `process=no_removal` |
+| `misure=ingombro` | `measured_as=overall` | `misure=interasse` | `measured_as=center_distance` |
+| `modo=istanza` | `mode=instance` | `modo=opposto_legato` | `mode=opposite_linked` |
+| `modo=opposto_slegato` | `mode=opposite_unlinked` | `operazione=interseca` | `operation=intersect` |
+| `operazione=sottrai` | `operation=subtract` | `operazione=unisci` | `operation=union` |
+| `origine=alto_destra` | `origin=top_right` | `origine=alto_sinistra` | `origin=top_left` |
+| `origine=basso_destra` | `origin=bottom_right` | `origine=basso_sinistra` | `origin=bottom_left` |
+| `piano=destro` | `plane=right` | `piano=frontale` | `plane=front` |
+| `piano=superiore` | `plane=top` | `posizione=centro` | `position=center` |
+| `posizione=fine` | `position=end` | `posizione=inizio` | `position=start` |
+| `precondizione=corpo_solido` | `precondition=solid_body` | `precondizione=corpo_solido_e_faccia` | `precondition=solid_body_and_face` |
+| `precondizione=corpo_solido_e_spigolo` | `precondition=solid_body_and_edge` | `precondizione=documento_senza_corpo` | `precondition=document_without_body` |
+| `precondizione=feature_e_direzione` | `precondition=feature_and_direction` | `profilo=poligonale` | `profile=polygonal` |
+| `profilo=triangolare` | `profile=triangular` | `qualita=grossolana` | `quality=coarse` |
+| `rappresentazione=solidi` | `representation=solids` | `rappresentazione=superfici` | `representation=surfaces` |
+| `su=fori` | `applies_to=holes` | `tipo=accoppiamento` | `variant=fit` |
+| `tipo=angolare` | `variant=angle` | `tipo=angolo` | `variant=fillet` |
+| `tipo=aperto` | `variant=open` | `tipo=asola` | `variant=slot` |
+| `tipo=assieme` | `variant=assembly` | `tipo=bilaterale` | `variant=bilateral` |
+| `tipo=chiuso` | `variant=closed` | `tipo=esagono` | `variant=hexagon` |
+| `tipo=filettato` | `variant=threaded` | `tipo=indentata` | `variant=indented` |
+| `tipo=lamato` | `variant=counterbore` | `tipo=mezza_v` | `variant=half_v` |
+| `tipo=nessuna` | `variant=none` | `tipo=parte` | `variant=part` |
+| `tipo=passaggio` | `variant=clearance` | `tipo=piatto` | `variant=flat` |
+| `tipo=primo_livello` | `variant=top_level` | `tipo=simmetrica` | `variant=symmetric` |
+| `tipo=solo_parti` | `variant=parts_only` | `tipo=svasato` | `variant=countersink` |
+| `tipo=testa` | `variant=butt` | `tipo=tondo` | `variant=round` |
+| `tipo=tubo` | `variant=tube` | `tipo=tubolare` | `variant=tubular` |
+| `tolleranza=geometrica` | `tolerance=geometric` | `tolleranza=piu_meno` | `tolerance=plus_minus` |
+| `trattamento_angolo=nessuno` | `corner_treatment=none` | `trattamento_angolo=quartabuono` | `corner_treatment=miter` |
+| `trattamento_angolo=testa1` | `corner_treatment=butt1` | `trattamento_angolo=testa2` | `corner_treatment=butt2` |
+| `verso=orizzontale` | `orientation=horizontal` | `verso=verticale` | `orientation=vertical` |
+| `vista=destra` | `view=right` | `vista=dietro` | `view=back` |
+| `vista=dimetrica` | `view=dimetric` | `vista=fronte` | `view=front` |
+| `vista=isometrica` | `view=isometric` | `vista=sinistra` | `view=left` |
+| `vista=sopra` | `view=top` | `vista=sotto` | `view=bottom` |
+| `vista=trimetrica` | `view=trimetric` | `viste=destra` | `views=right` |
+| `viste=dimetrica` | `views=dimetric` | `viste=frontale` | `views=front` |
+| `viste=inferiore` | `views=bottom` | `viste=isometrica` | `views=isometric` |
+| `viste=posteriore` | `views=back` | `viste=sinistra` | `views=left` |
+| `viste=superiore` | `views=top` | `viste=trimetrica` | `views=trimetric` |
+
+**Response values** (48)
+
+| Italian | English | Italian | English | Italian | English |
+|---|---|---|---|---|---|
+| `Catalogo delle operazioni` | `Operation catalog` | `Destra` | `Right` | `Montaggio` | `Assembly` |
+| `Revisione` | `Revision` | `Sinistra` | `Left` | `Una operazione` | `Single operation` |
+| `assieme` | `assembly` | `assieme illeggibile` | `unreadable assembly` | `binario` | `binary` |
+| `centro` | `center` | `cerchio` | `circle` | `chiesta` | `requested` |
+| `chiuso` | `closed` | `cieca` | `blind` | `completamente definito` | `fully defined` |
+| `composito` | `composite` | `diametro del tondo` | `round diameter` | `diametro esterno` | `outer diameter` |
+| `documento` | `document` | `esterne` | `outer` | `esterno` | `outer` |
+| `estrusione` | `extrusion` | `frontale` | `front` | `il documento` | `the document` |
+| `ingombro` | `overall` | `interne` | `inner` | `interno` | `inner` |
+| `linee` | `lines` | `lunghezza del tondo` | `round length` | `millimetri e chilogrammi` | `millimeter kilogram` |
+| `nessuno` | `none` | `non disponibile` | `unavailable` | `orizzontale` | `horizontal` |
+| `passante` | `through_all` | `piano medio` | `mid plane` | `poligonale` | `polygonal` |
+| `primo` | `first` | `quartabuono` | `miter` | `quota da smusso` | `chamfer dimension` |
+| `solidi` | `solids` | `solido` | `solid` | `taglio` | `cut` |
+| `tavola` | `drawing` | `tavola illeggibile` | `unreadable drawing` | `terzo` | `third` |
+| `triangolare` | `triangular` | `unisci` | `merge` | `verticale` | `vertical` |
+
 ## Unreleased — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
 
 **The first of the three rename windows of W3.1-bis (TODO entry W3.1-bis.4):

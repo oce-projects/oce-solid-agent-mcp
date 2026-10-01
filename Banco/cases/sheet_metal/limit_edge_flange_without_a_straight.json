@@ -4,12 +4,12 @@
   "why": "Una flangia lunga 4 allo spigolo esterno, con raggio 2 e spessore 2: la piega consuma tutto, non resta niente di dritto. Si rifiuta PRIMA di toccare il pezzo, col conto che dice fin dove si puo' scendere.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "flangia_base",
-      "arguments": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
-                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
-      "expect": [ { "what": "corpi", "equal_to": 1 } ] },
-    { "operation": "flangia_spigolo",
-      "arguments": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "lunghezza_mm": 4 },
+    { "operation": "base_flange",
+      "arguments": { "plane": "front", "points": [[0, 30], [0, 0], [50, 0]],
+                     "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
+      "expect": [ { "what": "bodies", "equal_to": 1 } ] },
+    { "operation": "edge_flange",
+      "arguments": { "edge_uid": "@edge(axis=Z,x~=50,y~=0)", "length_mm": 4 },
       "must_fail": {
         "message_includes": ["niente di dritto", "piu' lunga di 4 mm"],
         "volume_unchanged": true,

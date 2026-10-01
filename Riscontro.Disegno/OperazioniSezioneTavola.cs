@@ -40,7 +40,7 @@ namespace Riscontro.Disegno
     ///    viste si comportano diversamente.
     /// 3. **Lo schizzo del foglio non e' `GetTemplateSketch()`** — quello e' il
     ///    cartiglio. «Template» li' vuol dire *formato*. La linea finisce nello
-    ///    schizzo della prima «vista», che E' il foglio.
+    ///    schizzo della prima «view», che E' il foglio.
     ///
     /// ── IL TRATTEGGIO E' IL CONTROLLO CHE CONTA ─────────────────────────
     ///
@@ -76,13 +76,13 @@ namespace Riscontro.Disegno
             if (disegno == null)
                 return Fallito(
                     "Il documento attivo non e' una tavola: una vista di sezione sta " +
-                    "su un foglio di tavola. Crea prima la tavola con «crea_disegno».");
+                    "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
 
             // ── LA VISTA DA SEZIONARE ───────────────────────────────────
             //
-            // La PRIMA «vista» del foglio e' il foglio stesso (tipo 1), e si
+            // La PRIMA «view» del foglio e' il foglio stesso (tipo 1), e si
             // salta. Chi la prendesse per una vista sezionerebbe il foglio.
-            string chiesta = VistaChiestaPerNome(disegno, Str(a, "vista", null));
+            string chiesta = VistaChiestaPerNome(disegno, Str(a, "view", null));
             IView bersaglio = null;
             var nomiViste = new List<string>();
             int vistePrima = 0;
@@ -113,7 +113,7 @@ namespace Riscontro.Disegno
             if (bersaglio == null)
                 return Fallito(chiesta == null
                     ? "Sul foglio non c'e' nessuna vista da sezionare: mettici prima " +
-                      "le viste con «viste_standard»."
+                      "le viste con «standard_views»."
                     : "Non trovo la vista «" + chiesta + "». Sul foglio ci sono: " +
                       (nomiViste.Count == 0 ? "nessuna vista" : string.Join(", ", nomiViste)) + ".");
 
@@ -129,20 +129,20 @@ namespace Riscontro.Disegno
 
             // ── DOVE TAGLIARE ───────────────────────────────────────────
             //
-            // Di serie: in mezzo alla vista. `a_mm` sposta la linea, in
+            // Di serie: in mezzo alla vista. `offset_mm` sposta la linea, in
             // millimetri di FOGLIO — non del modello: sul foglio la vista e'
             // in scala, e mescolare le due misure e' il modo piu' rapido di
             // tagliare dove non si voleva.
-            string verso = (Str(a, "verso", "verticale") ?? "verticale").Trim().ToLowerInvariant();
-            if (verso != "verticale" && verso != "orizzontale")
+            string verso = (Str(a, "orientation", "vertical") ?? "vertical").Trim().ToLowerInvariant();
+            if (verso != "vertical" && verso != "horizontal")
                 return Fallito(
-                    "«verso» dice come corre la linea di taglio e vale «verticale» o " +
-                    "«orizzontale»: ho letto «" + verso + "».");
+                    "«orientation» dice come corre la linea di taglio e vale «vertical» o " +
+                    "«horizontal»: ho letto «" + verso + "».");
 
-            double scostoM = Num(a, "a_mm", 0) / 1000.0;
-            string etichetta = Str(a, "etichetta", "A");
+            double scostoM = Num(a, "offset_mm", 0) / 1000.0;
+            string etichetta = Str(a, "label", "A");
             if (string.IsNullOrWhiteSpace(etichetta)) etichetta = "A";
-            double profonditaM = Num(a, "profondita_mm", 0) / 1000.0;
+            double profonditaM = Num(a, "depth_mm", 0) / 1000.0;
             // DUE «A-A» SULLA STESSA TAVOLA (voce Z-C13): si rifiuta prima.
             string doppia = LetteraGiaUsata(disegno, etichetta);
             if (doppia != null) return Fallito(doppia);
@@ -154,15 +154,15 @@ namespace Riscontro.Disegno
             // esattamente sul bordo e' un caso limite gratuito, e il caso
             // limite di questa API e' una sezione vuota che non lo dice.
             double x1, y1, x2, y2;
-            if (verso == "verticale")
+            if (verso == "vertical")
             {
                 double x = (xMin + xMax) / 2.0 + scostoM;
                 if (x <= xMin || x >= xMax)
                     return Fallito(
-                        "Con «a_mm» = " + Num(a, "a_mm", 0) + " la linea di taglio cade " +
+                        "Con «offset_mm» = " + Num(a, "offset_mm", 0) + " la linea di taglio cade " +
                         "FUORI dalla vista, e una sezione tagliata fuori dal materiale " +
                         "esce vuota senza dare nessun errore. La vista e' larga " +
-                        Math.Round(largo * 1000, 1) + " mm sul foglio, quindi «a_mm» sta " +
+                        Math.Round(largo * 1000, 1) + " mm sul foglio, quindi «offset_mm» sta " +
                         "fra " + Math.Round(-largo * 500, 1) + " e " +
                         Math.Round(largo * 500, 1) + ".");
                 x1 = x; y1 = yMin - alto * 0.1;
@@ -173,10 +173,10 @@ namespace Riscontro.Disegno
                 double y = (yMin + yMax) / 2.0 + scostoM;
                 if (y <= yMin || y >= yMax)
                     return Fallito(
-                        "Con «a_mm» = " + Num(a, "a_mm", 0) + " la linea di taglio cade " +
+                        "Con «offset_mm» = " + Num(a, "offset_mm", 0) + " la linea di taglio cade " +
                         "FUORI dalla vista, e una sezione tagliata fuori dal materiale " +
                         "esce vuota senza dare nessun errore. La vista e' alta " +
-                        Math.Round(alto * 1000, 1) + " mm sul foglio, quindi «a_mm» sta " +
+                        Math.Round(alto * 1000, 1) + " mm sul foglio, quindi «offset_mm» sta " +
                         "fra " + Math.Round(-alto * 500, 1) + " e " +
                         Math.Round(alto * 500, 1) + ".");
                 x1 = xMin - largo * 0.1; y1 = y;
@@ -229,7 +229,7 @@ namespace Riscontro.Disegno
 
             // ── LA SEZIONE, A FIANCO ────────────────────────────────────
             double xSezione, ySezione;
-            if (verso == "verticale")
+            if (verso == "vertical")
             {
                 xSezione = xMax + largo * 0.8;
                 ySezione = (yMin + yMax) / 2.0;
@@ -344,45 +344,45 @@ namespace Riscontro.Disegno
                     "una sezione senza tratteggio e' una linea di taglio caduta fuori " +
                     "dal materiale: sul foglio c'e' una vista che sembra buona e non " +
                     "mostra niente. La linea l'ho tracciata " +
-                    (verso == "verticale" ? "in verticale a x=" : "in orizzontale a y=") +
-                    Math.Round((verso == "verticale" ? x1 : y1) * 1000, 2) + " mm di foglio. " +
-                    "Sposta il taglio con «a_mm».");
+                    (verso == "vertical" ? "in verticale a x=" : "in orizzontale a y=") +
+                    Math.Round((verso == "vertical" ? x1 : y1) * 1000, 2) + " mm di foglio. " +
+                    "Sposta il taglio con «offset_mm».");
 
             // LA LETTERA EFFETTIVA, riletta dalla vista (Z-C13).
             string letteraLetta = LetteraDellaVista(sectionView);
             var fuori = new Dictionary<string, object>
             {
-                ["etichetta_riletta"] = letteraLetta,
+                ["label_reread"] = letteraLetta,
                 ["view_read_from"] = viewReadFrom,
-                ["vista_sezionata"] = nomeBersaglio,
-                ["viste_prima"] = vistePrima,
-                ["viste_dopo"] = visteDopo,
-                ["vista_sezione"] = nomeSezione,
-                ["tipo_vista"] = tipoSezione,
+                ["view_sectioned"] = nomeBersaglio,
+                ["views_before"] = vistePrima,
+                ["views_after"] = visteDopo,
+                ["view_section"] = nomeSezione,
+                ["view_kind"] = tipoSezione,
                 // IL NUMERO CRUDO NON SI LASCIA SOLO: chi legge non ha la
                 // tabella di `swDrawingViewTypes_e` sottomano.
-                ["e_una_sezione"] = tipoSezione == (int)swDrawingViewTypes_e.swDrawingSectionView,
-                ["etichetta"] = etichetta,
-                ["verso"] = verso,
-                ["linea_taglio_mm"] = new object[]
+                ["is_section"] = tipoSezione == (int)swDrawingViewTypes_e.swDrawingSectionView,
+                ["label"] = etichetta,
+                ["facing"] = verso,
+                ["cut_line_mm"] = new object[]
                 {
                     Math.Round(x1 * 1000, 2), Math.Round(y1 * 1000, 2),
                     Math.Round(x2 * 1000, 2), Math.Round(y2 * 1000, 2),
                 },
-                // DUE NUMERI, E IL SECONDO E' ZERO DI SUO. `tratteggi` e' il
+                // DUE NUMERI, E IL SECONDO E' ZERO DI SUO. `hatches` e' il
                 // conto delle campiture di faccia, che e' quello che dice se
-                // il taglio ha incontrato materiale; `tratteggi_solidi` e'
+                // il taglio ha incontrato materiale; `hatches_solids` e'
                 // l'altro contatore, che su una sezione vale zero — sta qui
                 // per non far riprovare a nessuno la strada gia' misurata.
-                ["tratteggi"] = tratteggi,
-                ["tratteggi_solidi"] = solidi,
-                ["profondita_mm"] = Math.Round(profonditaM * 1000, 2),
-                ["cosa_non_guarda"] =
+                ["hatches"] = tratteggi,
+                ["hatches_solids"] = solidi,
+                ["depth_mm"] = Math.Round(profonditaM * 1000, 2),
+                ["what_it_does_not_check"] =
                     "SE QUELLA E' LA SEZIONE CHE SERVIVA. So dirti che il taglio ha " +
                     "incontrato materiale (il tratteggio c'e'), non che passa per la " +
                     "cavita' che volevi mostrare: una sezione tagliata dieci millimetri " +
                     "piu' in la' e' altrettanto valida e non fa vedere il foro. " +
-                    "Scegli «a_mm» guardando il pezzo, non a caso.\n" +
+                    "Scegli «offset_mm» guardando il pezzo, non a caso.\n" +
                     "Non guardo se la vista di sezione si accavalla con le altre o col " +
                     "cartiglio, ne' se la scala del foglio la fa uscire dal formato. " +
                     "Non guardo le frecce e l'etichetta sulla vista di partenza: " +
@@ -398,8 +398,8 @@ namespace Riscontro.Disegno
         /// <summary>
         /// How many segments the sketch of the sheet has (the first «view» of
         /// the drawing IS the sheet, see the header), or -1 when it cannot be
-        /// read. The cutting line of sezione_in_tavola and the circle of
-        /// dettaglio_in_tavola are drawn there.
+        /// read. The cutting line of section_view and the circle of
+        /// detail_view are drawn there.
         /// </summary>
         private static int SheetSketchSegmentCount(IDrawingDoc drawing)
         {

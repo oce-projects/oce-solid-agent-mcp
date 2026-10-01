@@ -17,7 +17,7 @@ node Banco\corri_piani.js Banco\cases\bridge\e2_case_a.json
 
 ## Il blocco di partenza — `e2_block.json`
 
-`estrudi_rettangolo` {frontale, 100 x 60 x 20, centrato}
+`extrude_rectangle` {frontale, 100 x 60 x 20, centrato}
 
 | | |
 |---|---|
@@ -43,8 +43,8 @@ Si cita **F6**, la faccia di destra, e poi si allunga il pezzo.
 
 | passo | atteso |
 |---|---|
-| `modifica_quota D1@Schizzo1 100 → 160` | riuscita, volume **192.000** = 120.000 · 160/100 |
-| `taglio_cilindrico` Ø10 su **F6** | **riuscita, e DICE di quanto si e' spostata** |
+| `set_dimension D1@Schizzo1 100 → 160` | riuscita, volume **192.000** = 120.000 · 160/100 |
+| `cylindrical_cut` Ø10 su **F6** | **riuscita, e DICE di quanto si e' spostata** |
 
 **Fino alla 0.25.2 era un RIFIUTO**, e la voce E2 l'aveva scritto cosi':
 
@@ -90,7 +90,7 @@ nel messaggio non cambi per sbaglio.
 
 ### La preparazione — `e2_pocket.json`
 
-`taglio_rettangolare` sulla faccia in alto (F1), tasca 40 x 40 centrata in Y,
+`rectangular_cut` sulla faccia in alto (F1), tasca 40 x 40 centrata in Y,
 profondita' 8.
 
 | | atteso |
@@ -108,8 +108,8 @@ profondita' 8.
 
 | passo | atteso |
 |---|---|
-| `modifica_quota D1@Estrusione-Estrusione1 20 → 12` | riuscita, volume **59.200** |
-| `taglio_cilindrico` Ø10 prof. 4 su **F5** (il fondo della tasca) | «riuscita», **e il pezzo e' sbagliato** |
+| `set_dimension D1@Estrusione-Estrusione1 20 → 12` | riuscita, volume **59.200** |
+| `cylindrical_cut` Ø10 prof. 4 su **F5** (il fondo della tasca) | «succeeded», **e il pezzo e' sbagliato** |
 
 ### Cosa succede, e perche' nessuno se ne accorge
 
@@ -150,7 +150,7 @@ mezzo foro profondo 2 invece di un foro intero profondo 4.
 Il pezzo giusto si ottiene rileggendo lo stato dopo la modifica e citando il
 fondo con il suo identificativo NUOVO (`e2_case_b_correct.json`, che cita F3).
 
-> Ricostruzione pulita, nessun errore, nessun avviso, «riuscita: true». Il
+> Ricostruzione pulita, nessun errore, nessun avviso, «succeeded: true». Il
 > difetto non e' «si rifiuta un lavoro legittimo»: e' **«si lavora sulla faccia
 > sbagliata dicendo che e' andata bene»**.
 

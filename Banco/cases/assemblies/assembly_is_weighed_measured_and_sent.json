@@ -1,54 +1,54 @@
 {
   "name": "assembly_is_weighed_measured_and_sent",
   "family": "assemblies",
-  "why": "VOCI Z-D1 e Z-D6. Le prime domande su una scatola stagna sono «quanto pesa» e «in che scatola ci sta», e la seconda cosa che si fa e' mandarla al fornitore. proprieta_di_massa, ingombro_corpo ed esporta_step rifiutavano un assieme («non e' un pezzo»). Una base 120x80x10 in AISI 304 e un coperchio 120x80x4 in S235JR appoggiato sopra (y = 7). Misurato il 27/9/2026 (prova0089 zd1): la massa dell'assieme e' ESATTAMENTE la somma dei pezzi; i corpi dei componenti arrivano nello spazio della PARTE e vanno portati nell'assieme; lo STEP dell'assieme ha un MANIFOLD_SOLID_BREP per corpo, e rileggerlo apre un modale.",
+  "why": "VOCI Z-D1 e Z-D6. Le prime domande su una scatola stagna sono «quanto pesa» e «in che scatola ci sta», e la seconda cosa che si fa e' mandarla al fornitore. mass_properties, body_bounding_box ed export_step rifiutavano un assieme («non e' un pezzo»). Una base 120x80x10 in AISI 304 e un coperchio 120x80x4 in S235JR appoggiato sopra (y = 7). Misurato il 27/9/2026 (prova0089 zd1): la massa dell'assieme e' ESATTAMENTE la somma dei pezzi; i corpi dei componenti arrivano nello spazio della PARTE e vanno portati nell'assieme; lo STEP dell'assieme ha un MANIFOLD_SOLID_BREP per corpo, e rileggerlo apre un modale.",
   "defect_caught": "L'assieme rifiutato; la massa che non somma i pezzi (o li somma due volte); l'ingombro calcolato nello spazio delle parti (il coperchio a y 0..4 invece di 5..9: 120 x 10 x 80 invece di 120 x 14 x 80); uno STEP che perde un componente; la rilettura dello STEP d'assieme che appende il ponte.",
   "assembly": {
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } },
-          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } },
+          { "operation": "apply_material", "arguments": { "material": "AISI 304" } }
         ] },
       { "name": "coperchio",
         "position_mm": [0, 7, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } },
-          { "operation": "applica_materiale", "arguments": { "materiale": "S235JR" } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } },
+          { "operation": "apply_material", "arguments": { "material": "S235JR" } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "proprieta_di_massa",
+    { "operation": "mass_properties",
       "arguments": {},
       "expect": [
-        { "what": "misure.massa_kg", "equal_to": 1.0675, "tolerance": 0.0001,
+        { "what": "measurements.mass_kg", "equal_to": 1.0675, "tolerance": 0.0001,
           "tolerance_why": "arrotondata a quattro decimali: 0,768 (96000 mm3 x 8000) + 0,29952 (38400 mm3 x 7800) = 1,06752",
           "why": "l'assieme intero, coi materiali dei pezzi" },
-        { "what": "misure.somma_dei_pezzi_kg", "equal_to": 1.0675, "tolerance": 0.0001,
+        { "what": "measurements.sum_of_parts_kg", "equal_to": 1.0675, "tolerance": 0.0001,
           "tolerance_why": "la stessa: il controllo indipendente, pezzo per pezzo",
           "why": "la massa dell'assieme contro la somma dei suoi pezzi letti uno per uno" },
-        { "what": "misure.componenti_pesati", "equal_to": 2 },
-        { "what": "misure.volume_mm3", "equal_to": 134400, "tolerance": 0.5,
+        { "what": "measurements.components_weighed", "equal_to": 2 },
+        { "what": "measurements.volume_mm3", "equal_to": 134400, "tolerance": 0.5,
           "tolerance_why": "96000 + 38400, arrotondato al centesimo" } ] },
-    { "operation": "ingombro_corpo",
+    { "operation": "body_bounding_box",
       "arguments": {},
       "expect": [
-        { "what": "misure.ingombro_mm", "equal_to": [120, 14, 80], "tolerance": 0.01,
+        { "what": "measurements.bounding_box_mm", "equal_to": [120, 14, 80], "tolerance": 0.01,
           "tolerance_why": "punti estremi veri, arrotondati",
           "why": "la base da -5 a 5, il coperchio da 5 a 9: 14 in altezza. Nello spazio delle parti sarebbe 10" } ] },
-    { "operation": "esporta_step",
-      "arguments": { "percorso": "{LAVORO}\\assembly_is_weighed_measured_and_sent.step" },
+    { "operation": "export_step",
+      "arguments": { "path": "{LAVORO}\\assembly_is_weighed_measured_and_sent.step" },
       "expect": [
-        { "what": "misure.solidi_nel_file", "equal_to": 2, "why": "un MANIFOLD_SOLID_BREP per pezzo" },
-        { "what": "misure.solidi_attesi", "equal_to": 2, "why": "i corpi dei pezzi non soppressi" },
-        { "what": "misure.protocollo_uscito", "equal_to": "AP214" } ] },
-    { "operation": "esporta_step",
-      "arguments": { "percorso": "{LAVORO}\\assembly_is_weighed_measured_and_sent.step", "riapri_e_confronta": true },
+        { "what": "measurements.solids_in_file", "equal_to": 2, "why": "un MANIFOLD_SOLID_BREP per pezzo" },
+        { "what": "measurements.solids_expected", "equal_to": 2, "why": "i corpi dei pezzi non soppressi" },
+        { "what": "measurements.protocol_returned", "equal_to": "AP214" } ] },
+    { "operation": "export_step",
+      "arguments": { "path": "{LAVORO}\\assembly_is_weighed_measured_and_sent.step", "reopen_and_compare": true },
       "must_fail": {
-        "message_includes": ["riapri_e_confronta", "Nuovo documento"],
+        "message_includes": ["reopen_and_compare", "Nuovo documento"],
         "twin": "assembly_is_weighed_measured_and_sent" } }
   ]
 }

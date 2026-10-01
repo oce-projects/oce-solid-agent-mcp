@@ -139,7 +139,7 @@ namespace Controlli.ProvaInquadratura
         }
 
         private static readonly string[] Viste =
-            { "isometrica", "frontale", "superiore", "destra" };
+            { "isometric", "front", "top", "right" };
 
         private static void Prova(ISldWorks sw, string nome, Action<IModelDoc2> costruisci)
         {
@@ -318,7 +318,7 @@ namespace Controlli.ProvaInquadratura
                 doc = sw.NewDocument(modello, 0, 0, 0) as IModelDoc2;
                 if (doc == null) { Segna("il righello ci vede bene", false, "parte non creata"); return; }
 
-                byte[] png = Scatta(doc, "isometrica");
+                byte[] png = Scatta(doc, "isometric");
                 if (png == null) { Segna("il righello ci vede bene", false, "niente immagine"); return; }
 
                 int quanti = 0;
@@ -331,7 +331,7 @@ namespace Controlli.ProvaInquadratura
                 Segna("il righello ci vede bene", quanti == 0,
                       quanti == 0
                           ? "su un documento vuoto non vede nessun pezzo"
-                          : quanti + " pixel di «pezzo» su un documento VUOTO: la soglia mente");
+                          : quanti + " pixel di «part» su un documento VUOTO: la soglia mente");
                 if (quanti != 0) Deponi("righello", "vuoto", png);
             }
             catch (Exception ex)

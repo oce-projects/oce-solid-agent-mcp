@@ -54,12 +54,12 @@ namespace Riscontro.Disegno
             double fx = 0, fy = 0;
             switch (lato)
             {
-                case "alto": fy = 1; break;
-                case "basso": fy = -1; break;
-                case "sinistra": fx = -1; break;
-                case "destra": fx = 1; break;
+                case "top": fy = 1; break;
+                case "bottom": fy = -1; break;
+                case "left": fx = -1; break;
+                case "right": fx = 1; break;
                 default:
-                    motivo = "«lato» e' uno fra alto, basso, sinistra, destra, non «" + lato + "».";
+                    motivo = "«side» e' uno fra alto, basso, sinistra, destra, non «" + lato + "».";
                     return null;
             }
             IMathUtility mu = null; MathTransform tr = null;
@@ -103,7 +103,7 @@ namespace Riscontro.Disegno
         /// <summary>
         /// Quanto e' gia' occupato, in mm dallo spigolo verso l'esterno, dalle
         /// annotazioni della vista che stanno da quella parte e all'altezza dello
-        /// spigolo (le quote messe da `quota_in_tavola`, i datum, le cornici). Zero
+        /// spigolo (le quote messe da `drawing_dimension`, i datum, le cornici). Zero
         /// se non c'e' niente.
         ///
         /// NATO GUARDANDO IL PNG (26/9/2026): la bandierina del datum 12 mm sotto
@@ -151,16 +151,16 @@ namespace Riscontro.Disegno
             if (disegno == null)
             {
                 motivo = "Il documento attivo non e' una tavola: le annotazioni stanno su una vista. Crea prima la " +
-                         "tavola con «crea_disegno».";
+                         "tavola con «create_drawing».";
                 return null;
             }
             var nomi = NomiDelleViste(disegno);
             if (nomi.Count == 0)
             {
-                motivo = "La tavola non ha viste: metti prima le viste con «viste_standard».";
+                motivo = "La tavola non ha viste: metti prima le viste con «standard_views».";
                 return null;
             }
-            var vista = RisolviVista(disegno, nomi, Str(a, "vista", null), out motivo);
+            var vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
             if (motivo == null && vista == null) motivo = "Non riesco a prendere la vista.";
             return vista;
         }
@@ -189,7 +189,7 @@ namespace Riscontro.Disegno
                 var v = disegno.GetFirstView() as IView;
                 while (v != null)
                 {
-                    n += tipo == "rugosita" ? v.GetSFSymbolCount() : tipo == "datum" ? v.GetDatumTagCount() : v.GetGTolCount();
+                    n += tipo == "surface_finish" ? v.GetSFSymbolCount() : tipo == "datum" ? v.GetDatumTagCount() : v.GetGTolCount();
                     v = v.GetNextView() as IView;
                 }
                 return n;
@@ -352,7 +352,7 @@ namespace Riscontro.Disegno
         }
 
         // ──────────────────────────────────────────────────────────────────
-        // rugosita_in_tavola
+        // surface_finish
         // ──────────────────────────────────────────────────────────────────
         private Esito RugositaInTavola(IModelDoc2 modello, Dictionary<string, object> a)
         {
@@ -365,20 +365,20 @@ namespace Riscontro.Disegno
             if (ra <= 0 || ra > 100)
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
                     "«ra_um» e' la rugosita' Ra in micrometri, fra 0 e 100: {0:0.###} non lo e'.", ra));
-            string lavorazione = Str(a, "lavorazione", "asportazione");
-            int tipo = lavorazione == "asportazione" ? (int)swSFSymType_e.swSFMachining_Req
-                     : lavorazione == "qualsiasi" ? (int)swSFSymType_e.swSFBasic
-                     : lavorazione == "senza_asportazione" ? (int)swSFSymType_e.swSFDont_Machine : -1;
+            string lavorazione = Str(a, "process", "material_removal");
+            int tipo = lavorazione == "material_removal" ? (int)swSFSymType_e.swSFMachining_Req
+                     : lavorazione == "any" ? (int)swSFSymType_e.swSFBasic
+                     : lavorazione == "no_removal" ? (int)swSFSymType_e.swSFDont_Machine : -1;
             if (tipo < 0)
-                return Fallito("«lavorazione» e' asportazione, qualsiasi o senza_asportazione, non «" + lavorazione + "».");
-            var lato = SpigoloDelLato(vista, Str(a, "lato", "alto"), out motivo);
+                return Fallito("«process» e' asportazione, qualsiasi o no_removal, non «" + lavorazione + "».");
+            var lato = SpigoloDelLato(vista, Str(a, "side", "top"), out motivo);
             if (lato == null) return Fallito(motivo);
 
             string testoRa = ra.ToString("0.###", CultureInfo.InvariantCulture);
             double occupata = FasciaOccupata(vista, lato);
-            int prima = AnnotazioniDellaTavola(disegno, "rugosita");
+            int prima = AnnotazioniDellaTavola(disegno, "surface_finish");
             if (!SelezionaNellaVista(modello, vista, lato.Spigolo))
-                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "lato", "alto") + "».");
+                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "top") + "».");
             object grezzo;
             try
             {
@@ -390,7 +390,7 @@ namespace Riscontro.Disegno
             modello.ClearSelection2(true);
             var simbolo = grezzo as ISFSymbol;
             if (simbolo == null) return Fallito("SOLIDWORKS non ha creato il simbolo di rugosita' e non ha detto perche'.");
-            int dopo = AnnotazioniDellaTavola(disegno, "rugosita");
+            int dopo = AnnotazioniDellaTavola(disegno, "surface_finish");
             string letto = null;
             try { letto = simbolo.GetText((int)swSurfaceFinishSymbolText_e.swSFSymbolMaximumRoughness); } catch { }
             var an = simbolo.GetAnnotation() as IAnnotation;
@@ -406,22 +406,22 @@ namespace Riscontro.Disegno
             var misure = new Dictionary<string, object>
             {
                 ["ra_um"] = testoRa,
-                ["ra_riletto"] = letto,
-                ["lavorazione"] = lavorazione,
-                ["lato"] = Str(a, "lato", "alto"),
-                ["simboli_prima"] = NumeroOppureNull(prima),
-                ["simboli_dopo"] = NumeroOppureNull(dopo),
-                ["posizione_mm"] = pos,
-                ["attaccato_allo_spigolo"] = attaccate > 0,
+                ["ra_reread"] = letto,
+                ["feature"] = lavorazione,
+                ["side"] = Str(a, "side", "top"),
+                ["symbols_before"] = NumeroOppureNull(prima),
+                ["symbols_after"] = NumeroOppureNull(dopo),
+                ["position_mm"] = pos,
+                ["attached_to_edge"] = attaccate > 0,
             };
             if (prima >= 0 && dopo >= 0 && dopo != prima + 1)
-                misure["attenzione"] = "I simboli di rugosita' della tavola sono passati da " + prima + " a " + dopo +
+                misure["warning"] = "I simboli di rugosita' della tavola sono passati da " + prima + " a " + dopo +
                                        ": ne aspettavo uno in piu'.";
             return SenzaFeature(misure);
         }
 
         // ──────────────────────────────────────────────────────────────────
-        // datum_in_tavola
+        // datum
         // ──────────────────────────────────────────────────────────────────
         private Esito DatumInTavola(IModelDoc2 modello, Dictionary<string, object> a)
         {
@@ -429,9 +429,9 @@ namespace Riscontro.Disegno
             IDrawingDoc disegno;
             var vista = VistaPerAnnotare(modello, a, out disegno, out motivo);
             if (vista == null) return Fallito(motivo);
-            string lettera = (Str(a, "lettera", "A") ?? "").Trim().ToUpperInvariant();
+            string lettera = (Str(a, "letter", "A") ?? "").Trim().ToUpperInvariant();
             if (lettera.Length != 1 || lettera[0] < 'A' || lettera[0] > 'Z')
-                return Fallito("«lettera» e' una lettera sola, dalla A alla Z, non «" + Str(a, "lettera", "") + "».");
+                return Fallito("«letter» e' una lettera sola, dalla A alla Z, non «" + Str(a, "letter", "") + "».");
             // DUE DATUM CON LA STESSA LETTERA non danno errore, e ogni tolleranza che
             // cita quella lettera diventa ambigua (trappola scritta in Z-E6).
             var gia = LettereDeiDatum(disegno);
@@ -439,13 +439,13 @@ namespace Riscontro.Disegno
                 return Fallito("In tavola c'e' gia' un datum «" + lettera + "»: due riferimenti con la stessa lettera " +
                                "rendono ambigua ogni tolleranza che lo cita. Usa un'altra lettera (ci sono gia': " +
                                string.Join(", ", gia) + ").");
-            var lato = SpigoloDelLato(vista, Str(a, "lato", "basso"), out motivo);
+            var lato = SpigoloDelLato(vista, Str(a, "side", "bottom"), out motivo);
             if (lato == null) return Fallito(motivo);
 
             double occupata = FasciaOccupata(vista, lato);
             int prima = AnnotazioniDellaTavola(disegno, "datum");
             if (!SelezionaNellaVista(modello, vista, lato.Spigolo))
-                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "lato", "basso") + "».");
+                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "bottom") + "».");
             object grezzo;
             try { grezzo = modello.InsertDatumTag2(); }
             catch (Exception ex) { return Fallito("Il datum non e' nato: " + ex.Message); }
@@ -468,42 +468,42 @@ namespace Riscontro.Disegno
                                (etichettato ? "" : " (SetLabel ha risposto no)") + ": toglilo — " + Frasi.CosiSiRitira + ".");
             var misure = new Dictionary<string, object>
             {
-                ["lettera"] = lettera,
-                ["lettera_riletta"] = letta,
-                ["lato"] = Str(a, "lato", "basso"),
-                ["datum_prima"] = NumeroOppureNull(prima),
-                ["datum_dopo"] = NumeroOppureNull(dopo),
-                ["posizione_mm"] = pos,
-                ["attaccato_allo_spigolo"] = attaccate > 0,
+                ["letter"] = lettera,
+                ["letter_reread"] = letta,
+                ["side"] = Str(a, "side", "bottom"),
+                ["datum_before"] = NumeroOppureNull(prima),
+                ["datum_after"] = NumeroOppureNull(dopo),
+                ["position_mm"] = pos,
+                ["attached_to_edge"] = attaccate > 0,
             };
             return SenzaFeature(misure);
         }
 
         // ──────────────────────────────────────────────────────────────────
-        // tolleranza_geometrica_in_tavola
+        // geometric_tolerance
         // ──────────────────────────────────────────────────────────────────
         private static readonly Dictionary<string, int> Caratteristiche = new Dictionary<string, int>
         {
-            ["rettilineita"] = (int)swGtolGeomCharSymbol_e.swGcsSTRAIGHT,
-            ["planarita"] = (int)swGtolGeomCharSymbol_e.swGcsFLAT,
-            ["circolarita"] = (int)swGtolGeomCharSymbol_e.swGcsROUND,
-            ["cilindricita"] = (int)swGtolGeomCharSymbol_e.swGcsCYL,
-            ["profilo_linea"] = (int)swGtolGeomCharSymbol_e.swGcsLINEPROF,
-            ["profilo_superficie"] = (int)swGtolGeomCharSymbol_e.swGcsSURFPROF,
-            ["inclinazione"] = (int)swGtolGeomCharSymbol_e.swGcsANG,
-            ["perpendicolarita"] = (int)swGtolGeomCharSymbol_e.swGcsPERP,
-            ["parallelismo"] = (int)swGtolGeomCharSymbol_e.swGcsPARALLEL,
-            ["posizione"] = (int)swGtolGeomCharSymbol_e.swGcsPOSITION,
-            ["concentricita"] = (int)swGtolGeomCharSymbol_e.swGcsCONC,
-            ["simmetria"] = (int)swGtolGeomCharSymbol_e.swGcsSYMMETRY,
-            ["oscillazione_circolare"] = (int)swGtolGeomCharSymbol_e.swGcsCIRCRUNOUT,
-            ["oscillazione_totale"] = (int)swGtolGeomCharSymbol_e.swGcsTOTALRUNOUT,
+            ["straightness"] = (int)swGtolGeomCharSymbol_e.swGcsSTRAIGHT,
+            ["flatness"] = (int)swGtolGeomCharSymbol_e.swGcsFLAT,
+            ["circularity"] = (int)swGtolGeomCharSymbol_e.swGcsROUND,
+            ["cylindricity"] = (int)swGtolGeomCharSymbol_e.swGcsCYL,
+            ["profile_of_line"] = (int)swGtolGeomCharSymbol_e.swGcsLINEPROF,
+            ["profile_of_surface"] = (int)swGtolGeomCharSymbol_e.swGcsSURFPROF,
+            ["angularity"] = (int)swGtolGeomCharSymbol_e.swGcsANG,
+            ["perpendicularity"] = (int)swGtolGeomCharSymbol_e.swGcsPERP,
+            ["parallelism"] = (int)swGtolGeomCharSymbol_e.swGcsPARALLEL,
+            ["position"] = (int)swGtolGeomCharSymbol_e.swGcsPOSITION,
+            ["concentricity"] = (int)swGtolGeomCharSymbol_e.swGcsCONC,
+            ["symmetry"] = (int)swGtolGeomCharSymbol_e.swGcsSYMMETRY,
+            ["circular_runout"] = (int)swGtolGeomCharSymbol_e.swGcsCIRCRUNOUT,
+            ["total_runout"] = (int)swGtolGeomCharSymbol_e.swGcsTOTALRUNOUT,
         };
 
         /// <summary>Le tolleranze di FORMA non hanno riferimenti (ISO 1101); le altre ne vogliono.</summary>
         private static bool EDiForma(string c)
         {
-            return c == "rettilineita" || c == "planarita" || c == "circolarita" || c == "cilindricita";
+            return c == "straightness" || c == "flatness" || c == "circularity" || c == "cylindricity";
         }
 
         private Esito TolleranzaGeometricaInTavola(IModelDoc2 modello, Dictionary<string, object> a)
@@ -512,41 +512,41 @@ namespace Riscontro.Disegno
             IDrawingDoc disegno;
             var vista = VistaPerAnnotare(modello, a, out disegno, out motivo);
             if (vista == null) return Fallito(motivo);
-            string caratteristica = Str(a, "caratteristica", "");
+            string caratteristica = Str(a, "characteristic", "");
             int codice;
             if (!Caratteristiche.TryGetValue(caratteristica, out codice))
-                return Fallito("«caratteristica» e' una fra " + string.Join(", ", Caratteristiche.Keys) +
+                return Fallito("«characteristic» e' una fra " + string.Join(", ", Caratteristiche.Keys) +
                                ", non «" + caratteristica + "».");
             double valore;
-            if (!NumObbligatorio(a, "valore_mm", out valore, out motivo)) return Fallito(motivo);
-            if (valore <= 0) return Fallito("«valore_mm» e' l'ampiezza della zona di tolleranza: deve essere maggiore di zero.");
+            if (!NumObbligatorio(a, "value_mm", out valore, out motivo)) return Fallito(motivo);
+            if (valore <= 0) return Fallito("«value_mm» e' l'ampiezza della zona di tolleranza: deve essere maggiore di zero.");
             string testoValore = valore.ToString("0.###", CultureInfo.InvariantCulture);
 
             var riferimenti = new List<string>();
-            foreach (var r in Lista(a, "riferimenti")) if (!string.IsNullOrWhiteSpace(r)) riferimenti.Add(r.Trim().ToUpperInvariant());
+            foreach (var r in Lista(a, "references")) if (!string.IsNullOrWhiteSpace(r)) riferimenti.Add(r.Trim().ToUpperInvariant());
             if (riferimenti.Count > 3)
                 return Fallito("Una cornice cita al massimo tre riferimenti (primario, secondario, terziario).");
             if (EDiForma(caratteristica) && riferimenti.Count > 0)
                 return Fallito("La tolleranza di " + caratteristica + " e' di FORMA: non si riferisce a nessun datum " +
-                               "(ISO 1101). Togli «riferimenti», oppure scegli una tolleranza di orientamento o di " +
+                               "(ISO 1101). Togli «references», oppure scegli una tolleranza di orientamento o di " +
                                "posizione.");
             if (!EDiForma(caratteristica) && riferimenti.Count == 0)
                 return Fallito("La tolleranza di " + caratteristica + " si misura rispetto a un riferimento: dai almeno una lettera " +
-                               "in «riferimenti» (un datum messo con «datum_in_tavola»).");
+                               "in «references» (un datum messo con «datum»).");
             var gia = LettereDeiDatum(disegno);
             foreach (var r in riferimenti)
                 if (!gia.Contains(r))
                     return Fallito("La tolleranza cita il datum «" + r + "» e in tavola non c'e'" +
                                    (gia.Count == 0 ? " nessun datum" : " (ci sono: " + string.Join(", ", gia) + ")") +
-                                   ". Mettilo prima con «datum_in_tavola».");
-            bool diametro = a != null && a.ContainsKey("diametro") && Convert.ToBoolean(a["diametro"], CultureInfo.InvariantCulture);
-            var lato = SpigoloDelLato(vista, Str(a, "lato", "destra"), out motivo);
+                                   ". Mettilo prima con «datum».");
+            bool diametro = a != null && a.ContainsKey("diameter") && Convert.ToBoolean(a["diameter"], CultureInfo.InvariantCulture);
+            var lato = SpigoloDelLato(vista, Str(a, "side", "right"), out motivo);
             if (lato == null) return Fallito(motivo);
 
             double occupata = FasciaOccupata(vista, lato);
             int prima = AnnotazioniDellaTavola(disegno, "gtol");
             if (!SelezionaNellaVista(modello, vista, lato.Spigolo))
-                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "lato", "destra") + "».");
+                return Fallito("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "right") + "».");
             object grezzo;
             try { grezzo = modello.InsertGtol(); }
             catch (Exception ex) { return Fallito("La cornice di tolleranza non e' nata: " + ex.Message); }
@@ -611,7 +611,7 @@ namespace Riscontro.Disegno
                 string.Join(",", riferimentiLetti) != string.Join(",", riferimenti) || diameterWrong != null)
             {
                 // A WRONG FRAME IS NOT LEFT ON THE SHEET (Z-C21.8, finding M38): it
-                // would be printed and read in the shop. Removed as saldatura_in_tavola
+                // would be printed and read in the shop. Removed as drawing_weld_symbol
                 // removes a wrong weld symbol, and said removed only after a recount.
                 bool removed = RemoveNewAnnotation(modello, an, () => AnnotazioniDellaTavola(disegno, "gtol"), prima);
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
@@ -623,21 +623,21 @@ namespace Riscontro.Disegno
             }
             var misure = new Dictionary<string, object>
             {
-                ["caratteristica"] = caratteristica,
-                ["simbolo_riletto"] = simboloLetto,
-                ["valore_mm"] = testoValore,
-                ["valore_riletto"] = valoreLetto,
-                ["riferimenti"] = riferimenti.ToArray(),
-                ["riferimenti_riletti"] = riferimentiLetti.ToArray(),
-                ["diametro"] = diametro,
+                ["characteristic"] = caratteristica,
+                ["symbol_reread"] = simboloLetto,
+                ["value_mm"] = testoValore,
+                ["value_reread"] = valoreLetto,
+                ["references"] = riferimenti.ToArray(),
+                ["references_reread"] = riferimentiLetti.ToArray(),
+                ["diameter"] = diametro,
                 // The Ø as read back from the frame (M38): null when it could not be
                 // read and was not asked, which GtolDiameterWrong lets through.
                 ["diameter_read"] = frameDiameterFlag < 0 ? null : (object)(frameDiameterFlag == 1),
-                ["lato"] = Str(a, "lato", "destra"),
-                ["cornici_prima"] = NumeroOppureNull(prima),
-                ["cornici_dopo"] = NumeroOppureNull(dopo),
-                ["posizione_mm"] = pos,
-                ["attaccata_allo_spigolo"] = attaccate > 0,
+                ["side"] = Str(a, "side", "right"),
+                ["frames_before"] = NumeroOppureNull(prima),
+                ["frames_after"] = NumeroOppureNull(dopo),
+                ["position_mm"] = pos,
+                ["attached_to_edge"] = attaccate > 0,
             };
             return SenzaFeature(misure);
         }

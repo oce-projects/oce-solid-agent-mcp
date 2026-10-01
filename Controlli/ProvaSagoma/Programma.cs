@@ -65,7 +65,7 @@ namespace Controlli.ProvaSagoma
 
             // Un quadrato ha quattro vertici e il quarto NON e' un doppione:
             // togliere sempre l'ultimo sarebbe l'errore facile da fare qui.
-            Conta("quadrato",
+            Conta("square",
                 FormaChiusa.Anello(P(new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 10 }, new[] { 0.0, 10 })), 4);
             Console.WriteLine();
         }
@@ -101,7 +101,7 @@ namespace Controlli.ProvaSagoma
         {
             Console.WriteLine("Gli incroci");
 
-            Pulito("quadrato", P(
+            Pulito("square", P(
                 new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 10 }, new[] { 0.0, 10 }));
 
             // L'elle e' concava. Un controllo scritto male confonde «concavo»

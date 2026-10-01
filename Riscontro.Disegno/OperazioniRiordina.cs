@@ -20,7 +20,7 @@ namespace Riscontro.Disegno
     ///
     /// LE LAVORAZIONI SI INDICANO PER NOME, come in tutto il ponte, e il nome si
     /// controlla col `feature_id` che lo stato ha dato (un nome si rinomina,
-    /// l'ID no): `LavorazioneEQuella`, la stessa difesa di `sopprimi_lavorazione`.
+    /// l'ID no): `LavorazioneEQuella`, la stessa difesa di `suppress_feature`.
     /// Dopo lo spostamento si ricostruisce e si contano le lavorazioni in errore:
     /// se sono aumentate, la lavorazione torna dov'era e ci si rifiuta.
     /// </summary>
@@ -99,13 +99,13 @@ namespace Riscontro.Disegno
             if (!(modello is IPartDoc))
                 return Fallito("Riordino l'albero di un pezzo. Aprimi il pezzo.");
             string uid = (Str(a, "feature_uid", "") ?? "").Trim();
-            string rispetto = (Str(a, "rispetto_a_uid", "") ?? "").Trim();
-            string dove = (Str(a, "dove", "") ?? "").Trim().ToLowerInvariant();
+            string rispetto = (Str(a, "relative_to_uid", "") ?? "").Trim();
+            string dove = (Str(a, "placement", "") ?? "").Trim().ToLowerInvariant();
             if (uid.Length == 0 || rispetto.Length == 0)
-                return Fallito("Dimmi «feature_uid» (la lavorazione da spostare) e «rispetto_a_uid» (quella accanto a " +
+                return Fallito("Dimmi «feature_uid» (la lavorazione da spostare) e «relative_to_uid» (quella accanto a " +
                                "cui metterla): i nomi stanno nello stato, dentro «feature».");
-            if (dove != "prima" && dove != "dopo")
-                return Fallito("«dove» e' «prima» o «dopo» di «" + rispetto + "», non «" + dove + "».");
+            if (dove != "before" && dove != "after")
+                return Fallito("«placement» e' «before» o «after» di «" + rispetto + "», non «" + dove + "».");
             if (string.Equals(uid, rispetto, StringComparison.OrdinalIgnoreCase))
                 return Fallito("«" + uid + "» non si sposta rispetto a se stessa: indica un'altra lavorazione.");
             string motivo;
@@ -134,7 +134,7 @@ namespace Riscontro.Disegno
             try
             {
                 fatto = modello.Extension.ReorderFeature(nomeF, nomeG,
-                    dove == "prima" ? (int)swMoveLocation_e.swMoveBefore : (int)swMoveLocation_e.swMoveAfter);
+                    dove == "before" ? (int)swMoveLocation_e.swMoveBefore : (int)swMoveLocation_e.swMoveAfter);
             }
             catch (Exception ex) { return Fallito("Lo spostamento non e' riuscito: " + ex.Message); }
             if (!fatto)
@@ -145,7 +145,7 @@ namespace Riscontro.Disegno
                 // nothing, and the sentence stays for that case only.
                 string changed = TreeReadBackFault(ordinePrima, OrdineDelleLavorazioni(modello), volumePrima, VolumeMm3(modello));
                 if (changed != null)
-                    return Fallito("SOLIDWORKS did not move «" + nomeF + "» " + (dove == "prima" ? "before" : "after") + " «" + nomeG +
+                    return Fallito("SOLIDWORKS did not move «" + nomeF + "» " + (dove == "before" ? "before" : "after") + " «" + nomeG +
                                    "» (ReorderFeature answered false), and reading the part back it is not as it was: " + changed +
                                    ". Look at the tree, and undo the step (" + Frasi.CosiSiRitira + ").");
                 return Fallito("SOLIDWORKS non sposta «" + nomeF + "» " + dove + " di «" + nomeG + "» (misurato: succede " +
@@ -191,7 +191,7 @@ namespace Riscontro.Disegno
             }
             var ordineDopo = OrdineDelleLavorazioni(modello);
             int iF = ordineDopo.IndexOf(nomeF), iG = ordineDopo.IndexOf(nomeG);
-            bool alPosto = iF >= 0 && iG >= 0 && (dove == "prima" ? iF < iG : iF > iG);
+            bool alPosto = iF >= 0 && iG >= 0 && (dove == "before" ? iF < iG : iF > iG);
             if (!alPosto)
                 return Fallito("SOLIDWORKS dice di aver spostato «" + nomeF + "», ma nell'albero sta ancora " +
                                (iF < iG ? "prima" : "dopo") + " di «" + nomeG + "». Non e' successo quello che volevi.");
@@ -199,21 +199,21 @@ namespace Riscontro.Disegno
             int corpiDopo = ContaCorpiSolidi(modello);
             var misure = new Dictionary<string, object>
             {
-                ["spostata"] = nomeF,
-                ["dove"] = dove,
-                ["rispetto_a"] = nomeG,
-                ["ordine_prima"] = ordinePrima.ToArray(),
-                ["ordine_dopo"] = ordineDopo.ToArray(),
-                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["corpi_prima"] = corpiPrima >= 0 ? (object)corpiPrima : null,
-                ["corpi_dopo"] = corpiDopo >= 0 ? (object)corpiDopo : null,
-                ["lavorazioni_in_errore"] = erroriDopo >= 0 ? (object)erroriDopo : null,
+                ["moved"] = nomeF,
+                ["location"] = dove,
+                ["relative_to"] = nomeG,
+                ["order_before"] = ordinePrima.ToArray(),
+                ["order_after"] = ordineDopo.ToArray(),
+                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["bodies_before"] = corpiPrima >= 0 ? (object)corpiPrima : null,
+                ["bodies_after"] = corpiDopo >= 0 ? (object)corpiDopo : null,
+                ["features_in_error"] = erroriDopo >= 0 ? (object)erroriDopo : null,
             };
             // L'ORDINE CAMBIATO SENZA CHE IL PEZZO CAMBI si dice: di solito vuol dire
             // che le due lavorazioni non si toccano, e spostarle non serviva.
             if (volumePrima != null && volumeDopo != null && Math.Abs(volumePrima.Value - volumeDopo.Value) < 0.01 && corpiPrima == corpiDopo)
-                misure["attenzione"] = "L'ordine e' cambiato ma il pezzo no (stesso volume, stessi corpi): quelle due " +
+                misure["warning"] = "L'ordine e' cambiato ma il pezzo no (stesso volume, stessi corpi): quelle due " +
                                        "lavorazioni non si toccano, e l'ordine fra loro non conta.";
             _log("[agente] " + nomeF + " spostata " + dove + " di " + nomeG);
             return RiuscitoSenzaCreare(misure);

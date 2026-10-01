@@ -13,7 +13,7 @@ namespace ProvaSaldatura
     /// «La quota viene dal modello, non puo' mentire» vale finche' nessuno
     /// scrive sopra il numero. Lo stato della tavola conta dalla libreria
     /// 0.118.0 le quote il cui numero stampato non e' quello del modello
-    /// (`quote_numero_non_del_modello`), con le due letture misurate il
+    /// (`dimensions_with_number_not_from_model`), con le due letture misurate il
     /// 25/9/2026: `GetOverride` e `ShowDimensionValue`.
     ///
     /// Un caso dichiarato non puo' farlo: nessuna operazione del catalogo
@@ -40,21 +40,21 @@ namespace ProvaSaldatura
                 if (!File.Exists(file)) { ErroreDiBanco("numeri", "il pezzo non si salva (e=" + e + ")"); return; }
 
                 string errore;
-                Esegui(pezzo, "crea_disegno", new Dictionary<string, object> { ["formato"] = "A3" },
+                Esegui(pezzo, "create_drawing", new Dictionary<string, object> { ["paper_size"] = "A3" },
                        out errore, out tavola);
-                if (tavola == null) { ErroreDiBanco("numeri", "crea_disegno: " + errore); return; }
-                if (Esegui(tavola, "viste_standard", new Dictionary<string, object> { ["modello"] = file }, out errore) == null)
-                { ErroreDiBanco("numeri", "viste_standard: " + errore); return; }
+                if (tavola == null) { ErroreDiBanco("numeri", "create_drawing: " + errore); return; }
+                if (Esegui(tavola, "standard_views", new Dictionary<string, object> { ["model"] = file }, out errore) == null)
+                { ErroreDiBanco("numeri", "standard_views: " + errore); return; }
                 foreach (var vista in new[] { "V1", "V2" })
-                    if (Esegui(tavola, "quota_in_tavola", new Dictionary<string, object> { ["vista"] = vista }, out errore) == null)
-                    { ErroreDiBanco("numeri", "quota_in_tavola " + vista + ": " + errore); return; }
+                    if (Esegui(tavola, "drawing_dimension", new Dictionary<string, object> { ["view"] = vista }, out errore) == null)
+                    { ErroreDiBanco("numeri", "drawing_dimension " + vista + ": " + errore); return; }
 
                 var prima = LeggiStato(tavola);
-                object zero = prima.ContainsKey("quote_numero_non_del_modello_totali")
-                    ? prima["quote_numero_non_del_modello_totali"] : "(manca)";
+                object zero = prima.ContainsKey("dimensions_with_number_not_from_model_total")
+                    ? prima["dimensions_with_number_not_from_model_total"] : "(manca)";
                 Segna("numeri: sulla tavola appena quotata nessuna quota stampa un numero non del modello",
-                      Convert.ToString(zero) == "0" && !prima.ContainsKey("attenzione_numeri"),
-                      "quote_numero_non_del_modello_totali " + Convert.ToString(zero));
+                      Convert.ToString(zero) == "0" && !prima.ContainsKey("warning_numbers"),
+                      "dimensions_with_number_not_from_model_total " + Convert.ToString(zero));
 
                 // TRE QUOTE, UNA PER STRADA. Si prendono le prime tre del foglio,
                 // vista dopo vista: quali siano non conta, conta che siano tre.
@@ -77,25 +77,25 @@ namespace ProvaSaldatura
                 tavola.ForceRebuild3(false);
 
                 var dopo = LeggiStato(tavola);
-                object tre = dopo.ContainsKey("quote_numero_non_del_modello_totali")
-                    ? dopo["quote_numero_non_del_modello_totali"] : "(manca)";
-                var elenco = dopo.ContainsKey("quote_numero_non_del_modello")
-                    ? dopo["quote_numero_non_del_modello"] as IEnumerable : null;
+                object tre = dopo.ContainsKey("dimensions_with_number_not_from_model_total")
+                    ? dopo["dimensions_with_number_not_from_model_total"] : "(manca)";
+                var elenco = dopo.ContainsKey("dimensions_with_number_not_from_model")
+                    ? dopo["dimensions_with_number_not_from_model"] as IEnumerable : null;
                 int sovrascritte = 0, conTesto = 0, spente = 0;
                 if (elenco != null)
                     foreach (var o in elenco)
                     {
                         var voce = o as Dictionary<string, object>;
-                        string come = voce != null && voce.ContainsKey("come") ? Convert.ToString(voce["come"]) : "";
+                        string come = voce != null && voce.ContainsKey("how") ? Convert.ToString(voce["how"]) : "";
                         if (come.StartsWith("numero sovrascritto", StringComparison.Ordinal)) sovrascritte++;
                         else if (come.Contains("«99»")) conTesto++;
                         else if (come.StartsWith("valore spento", StringComparison.Ordinal)) spente++;
                     }
                 Segna("numeri: falsificate tre quote (sovrascritta col suo stesso valore, testo, spenta), lo stato ne dice tre e avvisa",
                       Convert.ToString(tre) == "3" && sovrascritte == 1 && conTesto == 1 && spente == 1 &&
-                      dopo.ContainsKey("attenzione_numeri"),
+                      dopo.ContainsKey("warning_numbers"),
                       "totale " + Convert.ToString(tre) + ": sovrascritte " + sovrascritte + ", col testo " + conTesto +
-                      ", spente " + spente + ", avviso " + (dopo.ContainsKey("attenzione_numeri") ? "si'" : "no"));
+                      ", spente " + spente + ", avviso " + (dopo.ContainsKey("warning_numbers") ? "si'" : "no"));
             }
             catch (Exception ex) { ErroreDiBanco("numeri", Perche(ex)); }
             finally

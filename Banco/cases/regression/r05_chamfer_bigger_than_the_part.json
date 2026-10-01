@@ -6,20 +6,20 @@
   "intent_why": "lo smusso e' 2 x 45 su uno spigolo orizzontale e lo spessore va a 1: non c'e' nessun ancoraggio che possa salvarlo. L'unica risposta giusta e' un errore che si legge.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
-                     "spessore_mm": 20, "centrato": true }
+      "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120,
+                     "thickness_mm": 20, "centered": true }
     },
     {
-      "operation": "smusso_spigoli",
+      "operation": "chamfer_edges",
       "arguments": {
-        "spigoli_uid": [ "@spigolo(asse=X,lungo~=200,n=1)" ],
-        "lato_mm": 2, "angolo_gradi": 45
+        "edges_uid": [ "@edge(axis=X,length~=200,n=1)" ],
+        "leg_mm": 2, "angle_deg": 45
       }
     }
   ],
-  "modify": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 1 },
+  "modify": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "value_mm": 1 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [200, 120, 1] }
+    { "what": "bounding_box_mm", "equal_to": [200, 120, 1] }
   ]
 }

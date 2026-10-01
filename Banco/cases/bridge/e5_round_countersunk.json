@@ -1,4 +1,4 @@
 [
- { "operazione": "estrudi_cerchio", "argomenti": { "piano": "superiore", "diametro_mm": 40, "altezza_mm": 20 } },
- { "operazione": "foro_guidato", "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "tipo": "svasato", "taglia": "M8", "posizioni": [{ "x_mm": 0, "y_mm": 0 }], "passante": true } }
+ { "operation": "extrude_circle", "arguments": { "plane": "top", "diameter_mm": 40, "height_mm": 20 } },
+ { "operation": "hole_wizard", "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "variant": "countersink", "size": "M8", "positions": [{ "x_mm": 0, "y_mm": 0 }], "through_all": true } }
 ]

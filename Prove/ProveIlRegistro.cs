@@ -82,15 +82,15 @@ namespace Prove.Contratti
                 (string)riga.Invoke(null, new object[] { quando, t, n, s });
 
             // ── una riga normale ──────────────────────────────────────────
-            var normale = fai("operazione", "ripiega_lamiera",
+            var normale = fai("operation", "ripiega_lamiera",
                               new[] { "piega_lamiera" });
             Segna("la riga porta quando, tipo e nome",
-                  normale.Contains("\"quando\":\"2026-09-23T21:30:00\"") &&
-                  normale.Contains("\"tipo\":\"operazione\"") &&
-                  normale.Contains("\"nome\":\"ripiega_lamiera\""),
+                  normale.Contains("\"timestamp\":\"2026-09-23T21:30:00\"") &&
+                  normale.Contains("\"kind\":\"operation\"") &&
+                  normale.Contains("\"name\":\"ripiega_lamiera\""),
                   normale);
             Segna("e i nomi vicini, che sono la meta' utile della misura",
-                  normale.Contains("piega_lamiera") && normale.Contains("simili"),
+                  normale.Contains("piega_lamiera") && normale.Contains("similar"),
                   "distingue «ha sbagliato a scrivere» da «chiede una cosa che non c'e'»");
             Segna("sta su UNA riga sola, che e' cio' che JSONL vuol dire",
                   !normale.Contains("\n") && !normale.Contains("\r"),
@@ -103,7 +103,7 @@ namespace Prove.Contratti
             // POI -- non la riga, il file. Per questo si serializza con lo
             // stesso `Protocollo.InJson` del resto del ponte invece di
             // incollare virgolette a mano.
-            var cattivo = fai("operazione", "taglia\"a\"meta" + "\n" + "riga2", null);
+            var cattivo = fai("operation", "taglia\"a\"meta" + "\n" + "riga2", null);
             Segna("un nome con le virgolette non spezza la riga",
                   !cattivo.Contains("\n") && !cattivo.Contains("\r"),
                   cattivo);
@@ -111,14 +111,14 @@ namespace Prove.Contratti
                   SiRilegge(cattivo, "taglia\"a\"meta" + "\n" + "riga2"),
                   "il nome torna indietro identico, a capo compreso");
 
-            // ── `simili` c'e' solo quando c'e' qualcosa ───────────────────
+            // ── `similar` c'e' solo quando c'e' qualcosa ───────────────────
             var senza = fai("strumento", "guarda_la_tavola", null);
-            Segna("senza nomi vicini il campo «simili» non compare",
-                  !senza.Contains("simili"),
+            Segna("senza nomi vicini il campo «similar» non compare",
+                  !senza.Contains("similar"),
                   "un campo vuoto in ogni riga e' rumore che poi qualcuno conta");
             var vuoti = fai("strumento", "guarda_la_tavola", new string[0]);
             Segna("e nemmeno con un elenco vuoto",
-                  !vuoti.Contains("simili"),
+                  !vuoti.Contains("similar"),
                   "zero e assente sono la stessa cosa, e si scrivono uguale");
         }
 
@@ -143,7 +143,7 @@ namespace Prove.Contratti
                 var d = daJson.Invoke(null, new object[] { riga })
                         as Dictionary<string, object>;
                 object n;
-                return d != null && d.TryGetValue("nome", out n) &&
+                return d != null && d.TryGetValue("name", out n) &&
                        Convert.ToString(n) == nomeAtteso;
             }
             catch { return false; }

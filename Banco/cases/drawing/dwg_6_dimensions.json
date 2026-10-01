@@ -1,8 +1,8 @@
 [
  {
-  "operazione": "quote_dal_modello",
-  "argomenti": {
-   "tutte_le_quote": true
+  "operation": "model_dimensions",
+  "arguments": {
+   "all_dimensions": true
   }
  }
 ]

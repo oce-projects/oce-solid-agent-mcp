@@ -1,3 +1,3 @@
 [
- { "operazione": "taglio_rettangolare", "argomenti": { "faccia_uid": "F1", "x_mm": 5, "y_mm": -5, "lunghezza_mm": 20, "larghezza_mm": 20, "passante": false, "profondita_mm": 5 } }
+ { "operation": "rectangular_cut", "arguments": { "face_uid": "F1", "x_mm": 5, "y_mm": -5, "length_mm": 20, "width_mm": 20, "through_all": false, "depth_mm": 5 } }
 ]

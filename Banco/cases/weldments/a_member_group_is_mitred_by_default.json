@@ -1,35 +1,35 @@
 {
   "name": "a_member_group_is_mitred_by_default",
   "family": "weldments",
-  "why": "ENTRY Z-C21.3 (the probe verdicts), finding N25. The catalogue promises the 45 degree miter when the corner treatment is not given (telaio_rettangolare says so in its schema, membro_strutturale for a closed path). Up to library 0.141.0 the group was left as CreateStructuralMemberGroup makes it, and the answer said the treatment was not given. The Z-C21.3 probe of the member group (28/9/2026) read that fresh group on every call: ApplyCornerTreatment False, CornerTreatmentType 0, that is NO corner treatment, and the two bars of an L interpenetrate. The library now sets ApplyCornerTreatment true with swEndConditionMiter when the argument is absent, and says in the answer that it was the default.",
+  "why": "ENTRY Z-C21.3 (the probe verdicts), finding N25. The catalogue promises the 45 degree miter when the corner treatment is not given (rectangular_frame says so in its schema, structural_member for a closed path). Up to library 0.141.0 the group was left as CreateStructuralMemberGroup makes it, and the answer said the treatment was not given. The Z-C21.3 probe of the member group (28/9/2026) read that fresh group on every call: ApplyCornerTreatment False, CornerTreatmentType 0, that is NO corner treatment, and the two bars of an L interpenetrate. The library now sets ApplyCornerTreatment true with swEndConditionMiter when the argument is absent, and says in the answer that it was the default.",
   "defect_caught": "Step 1 is the probe's L without the corner treatment argument: it must come out mitred. On library 0.141.0 it comes out with the bars interpenetrating: volume 1322960.17 instead of 1322967.37 (red), and the answer does not say the miter. Step 2 is the same L asked with no corner treatment on purpose, far from the first: its volume is the probe's interpenetrating L, so the 7.2 mm3 between the two numbers is the corner and not noise.",
   "_the_numbers": "Measured by the probe on the same L of TUBO STRUTTURALE QUADRO 80X80X5 (segments (0,0,0)-(500,0,0) and (500,0,0)-(500,0,400), one group, ConnectedSegmentsOption 1): no corner treatment (N0, N2) volume 1322960.17 mm3, bar A ends at X 500 and bar B at Z 0; miter (N1) volume 1322967.37 mm3, bar A to X 540, bar B to Z -40, two 45 degree faces. Every closed corner holds 900 x 1469.956 = 1322960.4 mm3 by hand; the 7.2 mm3 of the miter are the corner radii of the tube meeting on the 45 degree faces. The second L is 1000 mm away along Y and touches nothing: step 2 reads 1322967.37 + 1322960.17 = 2645927.54.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "membro_strutturale",
-      "arguments": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
-                     "configurazione": "80X80X5",
-                     "segmenti": [ { "da": [0, 0, 0], "a": [500, 0, 0] },
-                                   { "da": [500, 0, 0], "a": [500, 0, 400] } ] },
+    { "operation": "structural_member",
+      "arguments": { "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configuration": "80X80X5",
+                     "segments": [ { "start": [0, 0, 0], "end": [500, 0, 0] },
+                                   { "start": [500, 0, 0], "end": [500, 0, 400] } ] },
       "expect": [
-        { "what": "corpi", "equal_to": 2 },
+        { "what": "bodies", "equal_to": 2 },
         { "what": "volume_mm3", "equal_to": 1322967.37, "tolerance": 0.5,
           "tolerance_why": "the probe's miter volume on this very L (N1); the interpenetrating L is 1322960.17, 7.2 mm3 away, so half a mm3 tells the two corners apart and covers the rounding of the answer",
           "why": "the corner is mitred though nobody asked: the default the catalogue promises" },
-        { "what": "misure.trattamento_angolo", "equal_to": "quartabuono",
+        { "what": "measurements.corner_treatment", "equal_to": "miter",
           "why": "the answer names the treatment that was applied, the default included" } ] },
 
-    { "operation": "membro_strutturale",
-      "arguments": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
-                     "configurazione": "80X80X5",
-                     "trattamento_angolo": "nessuno",
-                     "segmenti": [ { "da": [0, 1000, 0], "a": [500, 1000, 0] },
-                                   { "da": [500, 1000, 0], "a": [500, 1000, 400] } ] },
+    { "operation": "structural_member",
+      "arguments": { "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configuration": "80X80X5",
+                     "corner_treatment": "none",
+                     "segments": [ { "start": [0, 1000, 0], "end": [500, 1000, 0] },
+                                   { "start": [500, 1000, 0], "end": [500, 1000, 400] } ] },
       "expect": [
-        { "what": "corpi", "equal_to": 4 },
+        { "what": "bodies", "equal_to": 4 },
         { "what": "volume_mm3", "equal_to": 2645927.54, "tolerance": 0.5,
           "tolerance_why": "the mitred L of step 1 plus the probe's interpenetrating L (N2, 1322960.17); half a mm3 as in step 1",
           "why": "asked on purpose, no corner treatment stays possible: the default does not overwrite a choice" },
-        { "what": "misure.trattamento_angolo", "equal_to": "nessuno" } ] }
+        { "what": "measurements.corner_treatment", "equal_to": "none" } ] }
   ]
 }

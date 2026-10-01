@@ -11,14 +11,14 @@ namespace Controlli.ForoOppureRaccordo
     ///
     /// ── PERCHE' LA DOMANDA ────────────────────────────────────────────────
     ///
-    /// `Riferimenti` risolve il ruolo `faccia_del_foro` cercando le facce
+    /// `Riferimenti` risolve il ruolo `hole_face` cercando le facce
     /// cilindriche lasciate da un passo: se ne trova **una** la restituisce, se
     /// ne trova **piu' d'una** rifiuta.
     ///
     /// Tutte e due i rami hanno un problema, e il primo e' il piu' grave:
     ///
     ///   * **un raccordo lascia facce cilindriche.** Se un passo ne lascia
-    ///     esattamente una, `faccia_del_foro` la restituisce **senza dire
+    ///     esattamente una, `hole_face` la restituisce **senza dire
     ///     niente** — e chi aveva chiesto la parete di un foro si ritrova la
     ///     superficie di un raccordo. Un difetto che non da' errore.
     ///   * quattro fori uguali fanno scattare il rifiuto, ed e' giusto: «la»
@@ -71,7 +71,7 @@ namespace Controlli.ForoOppureRaccordo
                 Console.WriteLine("=== una faccia cilindrica e' un foro o un raccordo? ===");
                 Console.WriteLine();
                 Console.WriteLine("  {0,-6} {1,-10} {2,-12} {3,-10} {4}",
-                                  "uid", "diametro", "FaceInSurf", "area", "da");
+                                  "uid", "diameter", "FaceInSurf", "area", "da");
 
                 var parte = doc as IPartDoc;
                 var corpi = parte.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];

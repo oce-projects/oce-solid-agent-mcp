@@ -64,9 +64,9 @@ namespace Oce.Solid.Agent.Strumenti
             try
             {
                 var radice = Mcp.Protocollo.DaJson(File.ReadAllText(Percorso));
-                _famiglie = Prendi(radice, "famiglie") as Dictionary<string, object>
+                _famiglie = Prendi(radice, "families") as Dictionary<string, object>
                             ?? new Dictionary<string, object>();
-                var elenco = Prendi(radice, "operazioni") as object[];
+                var elenco = Prendi(radice, "operations") as object[];
                 if (elenco != null)
                     foreach (var o in elenco)
                         if (o is Dictionary<string, object> voce) _operazioni.Add(voce);
@@ -100,14 +100,14 @@ namespace Oce.Solid.Agent.Strumenti
         {
             if (string.IsNullOrWhiteSpace(nome)) return null;
             return _operazioni.FirstOrDefault(o =>
-                string.Equals(Convert.ToString(Prendi(o, "nome")), nome,
+                string.Equals(Convert.ToString(Prendi(o, "name")), nome,
                     StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
         /// La famiglia di un'operazione, o `null` se l'operazione non c'e'.
         ///
-        /// Serve allo strumento `misura`, che deve poter dire di NO a
+        /// Serve allo strumento `measure`, che deve poter dire di NO a
         /// un'operazione che tocca il pezzo — e per dirlo deve sapere di che
         /// famiglia e'. E' un METODO NUOVO e non un parametro in piu' su
         /// `Trova`: il banco e le prove chiamano questa classe per riflessione,
@@ -117,25 +117,25 @@ namespace Oce.Solid.Agent.Strumenti
         public string Famiglia(string nome)
         {
             var op = Trova(nome);
-            return op == null ? null : Convert.ToString(Prendi(op, "famiglia"));
+            return op == null ? null : Convert.ToString(Prendi(op, "family"));
         }
 
         public IEnumerable<string> Nomi =>
-            _operazioni.Select(o => Convert.ToString(Prendi(o, "nome")));
+            _operazioni.Select(o => Convert.ToString(Prendi(o, "name")));
 
         /// <summary>
         /// L'elenco corto: nome e una riga, raggruppato per famiglia.
         ///
         /// Non si mandano gli schemi interi: sono decine di migliaia di
         /// caratteri, e chi legge ne usa due o tre. Lo schema si chiede quando
-        /// serve, con `descrivi_operazione` — e' il catalogo a due livelli,
+        /// serve, con `describe_operation` — e' il catalogo a due livelli,
         /// che qui vale per lo stesso motivo per cui vale nel server.
         /// </summary>
         public object Elenco(string famigliaVoluta)
         {
             var perFamiglia = new List<object>();
             var famiglie = _operazioni
-                .Select(o => Convert.ToString(Prendi(o, "famiglia")))
+                .Select(o => Convert.ToString(Prendi(o, "family")))
                 .Distinct()
                 .OrderBy(f => f, StringComparer.Ordinal);
 
@@ -146,29 +146,29 @@ namespace Oce.Solid.Agent.Strumenti
                     continue;
 
                 var voci = _operazioni
-                    .Where(o => Convert.ToString(Prendi(o, "famiglia")) == f)
+                    .Where(o => Convert.ToString(Prendi(o, "family")) == f)
                     .Select(o => new Dictionary<string, object>
                     {
-                        ["nome"] = Prendi(o, "nome"),
-                        ["fa"] = Prendi(o, "sommario"),
+                        ["name"] = Prendi(o, "name"),
+                        ["does"] = Prendi(o, "summary"),
                     })
                     .ToArray();
 
                 perFamiglia.Add(new Dictionary<string, object>
                 {
-                    ["famiglia"] = f,
-                    ["serve_a"] = Prendi(_famiglie, f),
-                    ["operazioni"] = voci,
+                    ["family"] = f,
+                    ["purpose"] = Prendi(_famiglie, f),
+                    ["operations"] = voci,
                 });
             }
 
             return new Dictionary<string, object>
             {
-                ["totale"] = _operazioni.Count,
-                ["famiglie"] = perFamiglia,
-                ["come_si_usa"] =
-                    "Chiedi «descrivi_operazione» per avere lo schema completo " +
-                    "di quella che ti serve, poi «disegna».",
+                ["total"] = _operazioni.Count,
+                ["families"] = perFamiglia,
+                ["how_to_use_it"] =
+                    "Chiedi «describe_operation» per avere lo schema completo " +
+                    "di quella che ti serve, poi «build».",
             };
         }
 
@@ -178,11 +178,11 @@ namespace Oce.Solid.Agent.Strumenti
             if (op == null) return null;
             return new Dictionary<string, object>
             {
-                ["nome"] = Prendi(op, "nome"),
-                ["famiglia"] = Prendi(op, "famiglia"),
-                ["serve_prima"] = Prendi(op, "precondizione"),
-                ["descrizione"] = Prendi(op, "descrizione"),
-                ["argomenti"] = Prendi(op, "schema"),
+                ["name"] = Prendi(op, "name"),
+                ["family"] = Prendi(op, "family"),
+                ["precondition"] = Prendi(op, "precondition"),
+                ["details"] = Prendi(op, "details"),
+                ["arguments"] = Prendi(op, "schema"),
             };
         }
 
@@ -192,7 +192,7 @@ namespace Oce.Solid.Agent.Strumenti
         ///
         /// SI CONFRONTANO LE RADICI, non le parole. Il primo tentativo
         /// cercava la parola intera dentro il nome, e su «asole» non
-        /// trovava «asola» — cioe' falliva proprio nel caso per cui era
+        /// trovava «slot» — cioe' falliva proprio nel caso per cui era
         /// stato scritto: chi sbaglia un nome quasi sempre ne ha in mente
         /// uno vicino, e lo sbaglia di una lettera.
         /// </summary>

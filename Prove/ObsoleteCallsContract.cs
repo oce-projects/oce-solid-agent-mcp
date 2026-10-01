@@ -247,7 +247,7 @@ namespace Prove.Contratti
                 "IFeature f = null; f.Select2(false, 0);",
                 "var list = new List<int>(); list.Add(1);",
                 "// quota.SystemValue is obsolete, see the guide",
-                "var s = \"quota.SystemValue\";",
+                "var s = \"dimension.SystemValue\";",
                 "var s = $\"quota.SystemValue {x}\";",
                 "IPartDoc parte = null; var b = parte.GetBodies2(0, false);",
             };

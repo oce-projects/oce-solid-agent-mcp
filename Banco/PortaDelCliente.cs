@@ -28,7 +28,7 @@ namespace ProvaSaldatura
     /// Tutto cio' che sta FRA il cliente e la libreria, con un documento vero
     /// davanti: i controlli preliminari, la traduzione fra JSON e argomenti, i
     /// rifiuti su operazioni che il documento aperto non ammette, e
-    /// `guarda_il_pezzo`, che non passa nemmeno dall'esecutore.
+    /// `inspect_part`, che non passa nemmeno dall'esecutore.
     ///
     /// `Prove.Contratti` parla gia' al ponte sullo stdio, ma **senza
     /// SOLIDWORKS**: li' ogni piano muore su «non c'e' nessun documento
@@ -38,7 +38,7 @@ namespace ProvaSaldatura
     ///
     /// ── E UNO DEVE ESSERE ROSSO PER COSTRUZIONE ──────────────────────────
     ///
-    /// Un piano che chiede un'operazione di `assiemi` con una PARTE aperta
+    /// Un piano che chiede un'operazione di `assemblies` con una PARTE aperta
     /// dev'essere rifiutato, e la risposta deve dire **su cosa si sta
     /// lavorando** — non una frase fissa. Un controllo mai visto scattare non
     /// e' un controllo, e un rifiuto che non nomina il documento non si
@@ -84,31 +84,31 @@ namespace ProvaSaldatura
                                        string.Join(" | ", p.Viste.ToArray()));
                 if (r == null) return;
 
-                // ── 1. guarda_il_pezzo VEDE IL DOCUMENTO CHE HA APERTO IL BANCO ──
+                // ── 1. inspect_part VEDE IL DOCUMENTO CHE HA APERTO IL BANCO ──
                 //
                 // Non «risponde qualcosa»: risponde di QUESTO pezzo. E' la
                 // prova che il ponte e il banco stanno guardando la stessa
                 // sessione di SOLIDWORKS, ed e' la premessa di tutto il resto.
-                var testo = TestoDiRisposta(Mcp.Chiedi(p, 2, Chiamata(2, "guarda_il_pezzo", "{}")));
-                Segna("porta: guarda_il_pezzo nomina il documento del banco",
+                var testo = TestoDiRisposta(Mcp.Chiedi(p, 2, Chiamata(2, "inspect_part", "{}")));
+                Segna("porta: inspect_part nomina il documento del banco",
                       testo.IndexOf(titolo, StringComparison.OrdinalIgnoreCase) >= 0,
                       titolo + " — " + Corto(testo));
 
                 // ── 2. UN PIANO CHE RIESCE, E IL BANCO RILEGGE IL PEZZO ──
                 //
-                // La risposta del ponte dice «riuscita». Il banco non si fida
+                // La risposta del ponte dice «succeeded». Il banco non si fida
                 // della parola: apre lo stesso documento con la COM e misura
                 // il volume. E' l'unica cosa che questo gruppo puo' fare e la
                 // suite di contratto no.
                 double volumePrima = VolumeDiProva(doc);
-                var fatto = TestoDiRisposta(Mcp.Chiedi(p, 3, Chiamata(3, "disegna",
-                    "{\"passi\":[{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":" +
-                    "{\"lunghezza_mm\":120,\"larghezza_mm\":80,\"spessore_mm\":10}}]}")));
+                var fatto = TestoDiRisposta(Mcp.Chiedi(p, 3, Chiamata(3, "build",
+                    "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
+                    "{\"length_mm\":120,\"width_mm\":80,\"thickness_mm\":10}}]}")));
                 double volumeDopo = VolumeDiProva(doc);
 
-                Segna("porta: il piano riesce", fatto.IndexOf("\"riuscita\":true",
+                Segna("porta: il piano riesce", fatto.IndexOf("\"succeeded\":true",
                           StringComparison.OrdinalIgnoreCase) >= 0 ||
-                      fatto.IndexOf("\"riuscita\": true", StringComparison.OrdinalIgnoreCase) >= 0,
+                      fatto.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0,
                       Corto(fatto));
 
                 // 120 x 80 x 10 = 96.000 mm3, e il pezzo partiva vuoto.
@@ -118,32 +118,32 @@ namespace ProvaSaldatura
                       " mm3 (atteso +96000)");
 
                 // ── 3. ROSSO PER COSTRUZIONE: un'operazione di assieme su una parte ──
-                var rifiuto = TestoDiRisposta(Mcp.Chiedi(p, 4, Chiamata(4, "disegna",
-                    "{\"passi\":[{\"operazione\":\"inserisci_componente\",\"argomenti\":" +
-                    "{\"percorso\":\"C:\\\\non\\\\esiste.SLDPRT\"}}]}")));
+                var rifiuto = TestoDiRisposta(Mcp.Chiedi(p, 4, Chiamata(4, "build",
+                    "{\"steps\":[{\"operation\":\"insert_component\",\"arguments\":" +
+                    "{\"path\":\"C:\\\\non\\\\esiste.SLDPRT\"}}]}")));
 
-                // SOLO `riuscita: false`, e niente `||` di scorta. La prima
+                // SOLO `succeeded: false`, e niente `||` di scorta. La prima
                 // stesura accettava anche una risposta che contenesse la
-                // parola «assieme» da qualche parte: sarebbe passata pure
+                // parola «assembly» da qualche parte: sarebbe passata pure
                 // con un piano RIUSCITO che la nominasse. *Un `||` messo per
                 // sicurezza e' un `||` che un giorno regge da solo.*
-                bool rifiutato = rifiuto.IndexOf("\"riuscita\":false",
+                bool rifiutato = rifiuto.IndexOf("\"succeeded\":false",
                                      StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                 rifiuto.IndexOf("\"riuscita\": false",
+                                 rifiuto.IndexOf("\"succeeded\": false",
                                      StringComparison.OrdinalIgnoreCase) >= 0;
                 Segna("porta: un'operazione di assieme su una PARTE e' rifiutata",
                       rifiutato, Corto(rifiuto));
 
                 // E NON DEVE ESSERE RIUSCITA. Sembra la stessa cosa detta
-                // due volte e non lo e': `riuscita` potrebbe mancare del
+                // due volte e non lo e': `succeeded` potrebbe mancare del
                 // tutto — una risposta malformata, un errore di protocollo —
                 // e allora la riga qui sopra sarebbe rossa per il motivo
                 // giusto ma per la ragione sbagliata. Questa dice che la
-                // parola «true» accanto a «riuscita» non c'e'.
+                // parola «true» accanto a «succeeded» non c'e'.
                 Segna("porta: e non e' riuscita per sbaglio",
-                      rifiuto.IndexOf("\"riuscita\":true",
+                      rifiuto.IndexOf("\"succeeded\":true",
                           StringComparison.OrdinalIgnoreCase) < 0 &&
-                      rifiuto.IndexOf("\"riuscita\": true",
+                      rifiuto.IndexOf("\"succeeded\": true",
                           StringComparison.OrdinalIgnoreCase) < 0,
                       Corto(rifiuto));
 
@@ -153,7 +153,7 @@ namespace ProvaSaldatura
                 // stessa risposta arriverebbe con qualunque documento davanti,
                 // compreso quello sbagliato. Nominare il documento e' cio' che
                 // distingue un controllo che guarda da uno che recita.
-                // IL TITOLO, NON LA PAROLA «parte». «parte» sta in qualunque
+                // IL TITOLO, NON LA PAROLA «part». «part» sta in qualunque
                 // frase fissa sui tipi di documento, e accettarla vorrebbe
                 // dire promuovere proprio la risposta che questa riga esiste
                 // per bocciare.
@@ -169,7 +169,7 @@ namespace ProvaSaldatura
                 // la risposta a quella, la notifica non ha risposto E il ponte
                 // e' vivo.
                 Mcp.Scrivi(p, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
-                var dopoLaNotifica = Mcp.Chiedi(p, 5, Chiamata(5, "guarda_il_pezzo", "{}"));
+                var dopoLaNotifica = Mcp.Chiedi(p, 5, Chiamata(5, "inspect_part", "{}"));
                 Segna("porta: il ponte e' ancora vivo dopo una notifica",
                       dopoLaNotifica != null,
                       dopoLaNotifica != null ? "" : "niente risposta alla domanda dopo la notifica");
@@ -207,7 +207,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// LO STRUMENTO «documento», DALLA PORTA DEL CLIENTE (voci Z-B1, Z-B2,
+        /// LO STRUMENTO «document», DALLA PORTA DEL CLIENTE (voci Z-B1, Z-B2,
         /// Z-B5, Z-B6).
         ///
         /// Il ponte ha smesso di aver bisogno di una persona per cominciare:
@@ -215,7 +215,7 @@ namespace ProvaSaldatura
         /// — il banco rilegge dalla COM quale documento c'e' davanti, invece di
         /// credere alla risposta — e due rossi per costruzione: un file che non
         /// esiste non cambia il documento davanti, e dopo un cambio di documento
-        /// «disegna» si rifiuta finche' non si e' guardato di nuovo.
+        /// «build» si rifiuta finche' non si e' guardato di nuovo.
         /// </summary>
         private static void IlCicloDelDocumento(Mcp.Ponte p, string titolo,
                                                 ref string nuovoTitolo, ref string salvato)
@@ -227,16 +227,16 @@ namespace ProvaSaldatura
             };
 
             // ── elenca: c'e' il documento del banco, ed e' davanti ─────────
-            var elenco = TestoDiRisposta(Mcp.Chiedi(p, 6, Chiamata(6, "documento", "{\"azione\":\"elenca\"}")));
-            Segna("documento: «elenca» nomina il documento del banco",
+            var elenco = TestoDiRisposta(Mcp.Chiedi(p, 6, Chiamata(6, "document", "{\"action\":\"list\"}")));
+            Segna("documento: «list» nomina il documento del banco",
                   elenco.IndexOf(titolo, StringComparison.OrdinalIgnoreCase) >= 0, Corto(elenco));
 
             // ── nuovo: una parte vuota, davanti, e il banco lo verifica ────
-            var nuovo = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 7, Chiamata(7, "documento",
-                "{\"azione\":\"nuovo\",\"tipo\":\"parte\"}"))));
-            nuovoTitolo = Convert.ToString(Mcp.Dentro(nuovo, "titolo"));
+            var nuovo = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 7, Chiamata(7, "document",
+                "{\"action\":\"create\",\"variant\":\"part\"}"))));
+            nuovoTitolo = Convert.ToString(Mcp.Dentro(nuovo, "document_title"));
             var attivo = _sw.IActiveDoc2;
-            Segna("documento: «nuovo» crea una parte e la porta davanti, riletto dalla COM",
+            Segna("documento: «create» crea una parte e la porta davanti, riletto dalla COM",
                   !string.IsNullOrEmpty(nuovoTitolo) && attivo != null &&
                   attivo.GetTitle() == nuovoTitolo &&
                   attivo.GetType() == (int)SolidWorks.Interop.swconst.swDocumentTypes_e.swDocPART,
@@ -248,27 +248,27 @@ namespace ProvaSaldatura
             // ── ROSSO PER COSTRUZIONE: disegna subito dopo, senza guardare ─
             //
             // Il documento davanti e' cambiato per mano del ponte stesso. Quello
-            // che era stato guardato non vale piu', e «disegna» deve dirlo invece
+            // che era stato guardato non vale piu', e «build» deve dirlo invece
             // di scrivere in un pezzo che il modello non ha mai visto.
-            var subito = TestoDiRisposta(Mcp.Chiedi(p, 8, Chiamata(8, "disegna",
-                "{\"passi\":[{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":" +
-                "{\"lunghezza_mm\":10,\"larghezza_mm\":10,\"spessore_mm\":10}}]}")));
-            Segna("documento: dopo un cambio di documento «disegna» pretende di guardare prima",
+            var subito = TestoDiRisposta(Mcp.Chiedi(p, 8, Chiamata(8, "build",
+                "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
+                "{\"length_mm\":10,\"width_mm\":10,\"thickness_mm\":10}}]}")));
+            Segna("documento: dopo un cambio di documento «build» pretende di guardare prima",
                   subito.IndexOf("non ho ancora guardato", StringComparison.OrdinalIgnoreCase) >= 0 &&
                   (attivo == null || VolumeDiProva(attivo) < 0.001),
                   Corto(subito));
 
             // ── attiva: si torna al documento del banco ───────────────────
-            var torna = TestoDiRisposta(Mcp.Chiedi(p, 9, Chiamata(9, "documento",
-                "{\"azione\":\"attiva\",\"percorso\":\"" + titolo + "\"}")));
-            Segna("documento: «attiva» riporta davanti il documento del banco",
+            var torna = TestoDiRisposta(Mcp.Chiedi(p, 9, Chiamata(9, "document",
+                "{\"action\":\"activate\",\"path\":\"" + titolo + "\"}")));
+            Segna("documento: «activate» riporta davanti il documento del banco",
                   davanti() == titolo, "davanti «" + davanti() + "» — " + Corto(torna));
 
             // ── ROSSO: un file che non esiste non cambia niente ───────────
             var inesistente = Path.Combine(Attese.Lavoro, "non-esiste-" + Guid.NewGuid().ToString("N") + ".sldprt");
-            var no = TestoDiRisposta(Mcp.Chiedi(p, 10, Chiamata(10, "documento",
-                "{\"azione\":\"apri\",\"percorso\":\"" + inesistente.Replace("\\", "\\\\") + "\"}")));
-            Segna("documento: «apri» su un file che non esiste rifiuta, e davanti resta quello di prima",
+            var no = TestoDiRisposta(Mcp.Chiedi(p, 10, Chiamata(10, "document",
+                "{\"action\":\"open\",\"path\":\"" + inesistente.Replace("\\", "\\\\") + "\"}")));
+            Segna("documento: «open» su un file che non esiste rifiuta, e davanti resta quello di prima",
                   no.IndexOf("non esiste", StringComparison.OrdinalIgnoreCase) >= 0 && davanti() == titolo,
                   "davanti «" + davanti() + "» — " + Corto(no));
 
@@ -276,7 +276,7 @@ namespace ProvaSaldatura
             //    riapre dal ponte, e il percorso deve essere quello chiesto ─
             salvato = Path.Combine(Attese.Lavoro, "porta_documento.sldprt");
             try { if (File.Exists(salvato)) { File.SetAttributes(salvato, FileAttributes.Normal); File.Delete(salvato); } } catch { }
-            // IL RIFERIMENTO PRESO DOPO «nuovo», non una ricerca per nome.
+            // IL RIFERIMENTO PRESO DOPO «create», non una ricerca per nome.
             // `GetOpenDocumentByName` con il titolo di un documento MAI SALVATO
             // torna null — misurato: la prima stesura salvava cosi', riceveva
             // e=0 w=0 da una chiamata mai fatta, e il file non c'era.
@@ -292,17 +292,17 @@ namespace ProvaSaldatura
             _sw.CloseDoc(daSalvare.GetTitle());
             nuovoTitolo = null;
 
-            var aperto = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 11, Chiamata(11, "documento",
-                "{\"azione\":\"apri\",\"percorso\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
-            var percorsoAperto = Convert.ToString(Mcp.Dentro(aperto, "percorso"));
+            var aperto = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 11, Chiamata(11, "document",
+                "{\"action\":\"open\",\"path\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
+            var percorsoAperto = Convert.ToString(Mcp.Dentro(aperto, "path"));
             var att = _sw.IActiveDoc2;
-            Segna("documento: «apri» apre il file chiesto e lo porta davanti, riletto dalla COM",
+            Segna("documento: «open» apre il file chiesto e lo porta davanti, riletto dalla COM",
                   string.Equals(percorsoAperto, salvato, StringComparison.OrdinalIgnoreCase) &&
                   att != null && string.Equals(att.GetPathName(), salvato, StringComparison.OrdinalIgnoreCase),
                   "risposta «" + percorsoAperto + "», davanti «" + (att == null ? "(niente)" : att.GetPathName()) + "»");
             Segna("documento: e un file scrivibile non e' dichiarato in sola lettura",
-                  Convert.ToString(Mcp.Dentro(aperto, "sola_lettura")).Equals("False", StringComparison.OrdinalIgnoreCase),
-                  Convert.ToString(Mcp.Dentro(aperto, "sola_lettura")));
+                  Convert.ToString(Mcp.Dentro(aperto, "read_only")).Equals("False", StringComparison.OrdinalIgnoreCase),
+                  Convert.ToString(Mcp.Dentro(aperto, "read_only")));
 
             // ── Z-B2: lo stesso file con l'attributo di sola lettura ───────
             //
@@ -313,13 +313,13 @@ namespace ProvaSaldatura
             // il silenzio che la voce vuole vedere detto.
             _sw.CloseDoc(Path.GetFileName(salvato));
             File.SetAttributes(salvato, FileAttributes.ReadOnly);
-            var soloLettura = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 12, Chiamata(12, "documento",
-                "{\"azione\":\"apri\",\"percorso\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
+            var soloLettura = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 12, Chiamata(12, "document",
+                "{\"action\":\"open\",\"path\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
             Segna("documento: un file in sola lettura si apre e il ponte LO DICE",
-                  Convert.ToString(Mcp.Dentro(soloLettura, "sola_lettura")).Equals("True", StringComparison.OrdinalIgnoreCase) &&
-                  Mcp.Dentro(soloLettura, "attenzione") != null,
-                  Corto(Convert.ToString(Mcp.Dentro(soloLettura, "attenzione")) + " | sola_lettura=" +
-                        Convert.ToString(Mcp.Dentro(soloLettura, "sola_lettura"))));
+                  Convert.ToString(Mcp.Dentro(soloLettura, "read_only")).Equals("True", StringComparison.OrdinalIgnoreCase) &&
+                  Mcp.Dentro(soloLettura, "warning") != null,
+                  Corto(Convert.ToString(Mcp.Dentro(soloLettura, "warning")) + " | read_only=" +
+                        Convert.ToString(Mcp.Dentro(soloLettura, "read_only"))));
 
             // ── chiudi (voce Z-B1): il ROSSO prima, su un documento sporco ──
             //
@@ -336,9 +336,9 @@ namespace ProvaSaldatura
                 }
                 return false;
             };
-            var sporco = TestoDiRisposta(Mcp.Chiedi(p, 13, Chiamata(13, "documento",
-                "{\"azione\":\"chiudi\",\"percorso\":\"" + titolo + "\"}")));
-            Segna("documento: «chiudi» su un documento con modifiche non salvate rifiuta, e resta aperto",
+            var sporco = TestoDiRisposta(Mcp.Chiedi(p, 13, Chiamata(13, "document",
+                "{\"action\":\"close\",\"path\":\"" + titolo + "\"}")));
+            Segna("documento: «close» su un documento con modifiche non salvate rifiuta, e resta aperto",
                   sporco.IndexOf("modifiche non salvate", StringComparison.OrdinalIgnoreCase) >= 0 && aperto2(titolo),
                   "ancora aperto " + aperto2(titolo) + " — " + Corto(sporco));
 
@@ -346,49 +346,49 @@ namespace ProvaSaldatura
             // Il titolo porta l'estensione o no a seconda di come Windows mostra
             // i file: si confronta il gambo del nome.
             string gambo = Path.GetFileNameWithoutExtension(salvato);
-            var chiuso = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 14, Chiamata(14, "documento",
-                "{\"azione\":\"chiudi\",\"percorso\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
+            var chiuso = Mcp.Ogg(TestoDiRisposta(Mcp.Chiedi(p, 14, Chiamata(14, "document",
+                "{\"action\":\"close\",\"path\":\"" + salvato.Replace("\\", "\\\\") + "\"}"))));
             bool sparito = _sw.GetOpenDocumentByName(salvato) == null;
-            Segna("documento: «chiudi» su un documento senza modifiche lo chiude, riletto dalla COM",
-                  sparito && Convert.ToString(Mcp.Dentro(chiuso, "chiuso"))
+            Segna("documento: «close» su un documento senza modifiche lo chiude, riletto dalla COM",
+                  sparito && Convert.ToString(Mcp.Dentro(chiuso, "closed"))
                                  .StartsWith(gambo, StringComparison.OrdinalIgnoreCase),
-                  "sparito dalla COM " + sparito + " — chiuso «" + Convert.ToString(Mcp.Dentro(chiuso, "chiuso")) + "»");
+                  "sparito dalla COM " + sparito + " — chiuso «" + Convert.ToString(Mcp.Dentro(chiuso, "closed")) + "»");
         }
 
         /// <summary>
-        /// `annulla` TELLS THE TRUTH (Z-C21.14), from the client's door.
+        /// `undo` TELLS THE TRUTH (Z-C21.14), from the client's door.
         ///
-        /// `annulla` lives in the bridge, not in the library, so its cases are
+        /// `undo` lives in the bridge, not in the library, so its cases are
         /// here, where the bridge runs with a real document in front.
         /// Banco/prova_annulla.js has the first three refusals; it is a script
         /// run by hand, and these four are part of the full bench. Each is
-        /// written against the description of `annulla` in Strumenti/Attrezzi.cs
+        /// written against the description of `undo` in Strumenti/Attrezzi.cs
         /// (it withdraws the last plan, whole, only while the part is as that
         /// plan left it; and the paragraph added in Z-C21.14) and read back
         /// through COM.
         ///
         ///  a. plan 1 builds a plate with two holes; plan 2 only reorders the
-        ///     holes (`riordina_lavorazione`: same volume, same feature count,
-        ///     its own undo entry on top). Plan 2 is the last plan, so `annulla`
+        ///     holes (`reorder_feature`: same volume, same feature count,
+        ///     its own undo entry on top). Plan 2 is the last plan, so `undo`
         ///     must withdraw it: the reorder goes, every plan-1 feature stays.
         ///     RED ON BRIDGE 0.124.1, by the code path: plan 2 did not build, so
         ///     the memory `_ultimoPiano` was set to null there (`haCostruito`
-        ///     false) and `annulla` answered that it had no plan to withdraw;
+        ///     false) and `undo` answered that it had no plan to withdraw;
         ///     the answer of plan 2 had no `undo_entry_recorded` either. (Red on
         ///     the first version of this lot too: it refused before pressing.)
-        ///  b. a plan on a saved part ends with `crea_disegno`, so the drawing
-        ///     is in front; the part comes back with the tool `documento`,
-        ///     action `attiva`; `annulla` must withdraw the plan from the part.
+        ///  b. a plan on a saved part ends with `create_drawing`, so the drawing
+        ///     is in front; the part comes back with the tool `document`,
+        ///     action `activate`; `undo` must withdraw the plan from the part.
         ///     RED ON BRIDGE 0.124.1, by the code path, for the reason the live
         ///     probe M19 measured in its phase N: the state after the plan was
         ///     read on the window in front (Attrezzi.cs:2113, `_sessione.Stato`),
         ///     the drawing, whose volume and feature count did not change, so
-        ///     `haCostruito` was false, no memory was written, and `annulla`
+        ///     `haCostruito` was false, no memory was written, and `undo`
         ///     answered that it had no plan to withdraw («NOTHING TO WITHDRAW
         ///     (haCostruito false: no memory written)» in the probe); and the
         ///     answer of the plan named no document in front.
-        ///  c. plan 1 builds a plate; a `misura` (`proprieta_di_massa`) follows;
-        ///     `annulla` must withdraw plan 1, since a measure is not a plan and
+        ///  c. plan 1 builds a plate; a `measure` (`mass_properties`) follows;
+        ///     `undo` must withdraw plan 1, since a measure is not a plan and
         ///     writes nothing. This case DECIDES review F3: the measure's undo
         ///     recording is empty and SOLIDWORKS answers false for it (probe M19,
         ///     H4a/H4b); whether that leaves an entry on the stack is undecided,
@@ -398,8 +398,8 @@ namespace ProvaSaldatura
         ///     memory was set to null, and the answer was that there was no plan.
         ///  d. two bridge processes on the same part (review F14): bridge 1
         ///     builds a plate with two holes, bridge 2 reorders the holes, bridge
-        ///     1 calls `annulla`. The part no longer reads as bridge 1's plan
-        ///     left it, so `annulla` must refuse BEFORE pressing, and the reorder
+        ///     1 calls `undo`. The part no longer reads as bridge 1's plan
+        ///     left it, so `undo` must refuse BEFORE pressing, and the reorder
         ///     must still be there. RED ON BRIDGE 0.124.1, by the code path:
         ///     volume and count were as plan 1 left them, so it pressed, took
         ///     away bridge 2's reorder, which a redo does not put back (probe
@@ -437,21 +437,21 @@ namespace ProvaSaldatura
             }
         }
 
-        /// <summary>The plate with two through holes far apart, as a `disegna` plan.</summary>
+        /// <summary>The plate with two through holes far apart, as a `build` plan.</summary>
         private const string PlateWithTwoHoles =
-            "{\"passi\":[" +
-            "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{\"piano\":\"superiore\"," +
-            "\"lunghezza_mm\":120,\"larghezza_mm\":80,\"spessore_mm\":10,\"centrato\":true}}," +
-            "{\"operazione\":\"taglio_cilindrico\",\"argomenti\":{\"faccia_rif\":{\"passo\":1," +
-            "\"genere\":\"faccia_superiore\"},\"x_mm\":-30,\"y_mm\":0,\"diametro_mm\":10,\"passante\":true}}," +
-            "{\"operazione\":\"taglio_cilindrico\",\"argomenti\":{\"faccia_rif\":{\"passo\":1," +
-            "\"genere\":\"faccia_superiore\"},\"x_mm\":30,\"y_mm\":0,\"diametro_mm\":10,\"passante\":true}}]}";
+            "{\"steps\":[" +
+            "{\"operation\":\"extrude_rectangle\",\"arguments\":{\"plane\":\"top\"," +
+            "\"length_mm\":120,\"width_mm\":80,\"thickness_mm\":10,\"centered\":true}}," +
+            "{\"operation\":\"cylindrical_cut\",\"arguments\":{\"face_ref\":{\"step\":1," +
+            "\"kind\":\"top_face\"},\"x_mm\":-30,\"y_mm\":0,\"diameter_mm\":10,\"through_all\":true}}," +
+            "{\"operation\":\"cylindrical_cut\",\"arguments\":{\"face_ref\":{\"step\":1," +
+            "\"kind\":\"top_face\"},\"x_mm\":30,\"y_mm\":0,\"diameter_mm\":10,\"through_all\":true}}]}";
 
-        /// <summary>The `disegna` plan that puts the second hole before the first.</summary>
+        /// <summary>The `build` plan that puts the second hole before the first.</summary>
         private static string ReorderPlan(List<string> cuts)
         {
-            return "{\"passi\":[{\"operazione\":\"riordina_lavorazione\",\"argomenti\":{\"feature_uid\":\"" + cuts[1] +
-                   "\",\"rispetto_a_uid\":\"" + cuts[0] + "\",\"dove\":\"prima\"}}]}";
+            return "{\"steps\":[{\"operation\":\"reorder_feature\",\"arguments\":{\"feature_uid\":\"" + cuts[1] +
+                   "\",\"relative_to_uid\":\"" + cuts[0] + "\",\"placement\":\"before\"}}]}";
         }
 
         /// <summary>
@@ -482,15 +482,15 @@ namespace ProvaSaldatura
         private static void UndoWithdrawsTheLastPlanEvenIfItOnlyReordered(Mcp.Ponte p, ref IModelDoc2 part)
         {
             part = NuovaParte();
-            var look = TestoDiRisposta(Mcp.Chiedi(p, 40, Chiamata(40, "guarda_il_pezzo", "{}")));
+            var look = TestoDiRisposta(Mcp.Chiedi(p, 40, Chiamata(40, "inspect_part", "{}")));
             if (Mcp.Ogg(look) == null)
             {
-                ErroreDiBanco("undo honesty, case a", "guarda_il_pezzo gave no state: " + Corto(look));
+                ErroreDiBanco("undo honesty, case a", "inspect_part gave no state: " + Corto(look));
                 return;
             }
 
             var before = FeaturesOf(part);
-            var plan1 = TestoDiRisposta(Mcp.Chiedi(p, 41, Chiamata(41, "disegna", PlateWithTwoHoles)));
+            var plan1 = TestoDiRisposta(Mcp.Chiedi(p, 41, Chiamata(41, "build", PlateWithTwoHoles)));
             var afterPlan1 = FeaturesOf(part);
             var cuts = NewCuts(before, afterPlan1);
             Segna("undo case a: plan 1 builds a plate with two holes, read by the bench through COM",
@@ -500,7 +500,7 @@ namespace ProvaSaldatura
 
             // Plan 2: the second hole before the first. Same volume, same count.
             double volumeAfterPlan1 = VolumeDiProva(part);
-            var plan2Text = TestoDiRisposta(Mcp.Chiedi(p, 42, Chiamata(42, "disegna", ReorderPlan(cuts))));
+            var plan2Text = TestoDiRisposta(Mcp.Chiedi(p, 42, Chiamata(42, "build", ReorderPlan(cuts))));
             var plan2 = Mcp.Ogg(plan2Text);
             bool reordered = Before(FeaturesOf(part), cuts[1], cuts[0]);
             Segna("undo case a: plan 2 reorders the two holes, read by the bench through COM",
@@ -516,10 +516,10 @@ namespace ProvaSaldatura
                   recorded is bool && !(bool)recorded,
                   "undo_entry_recorded = " + (recorded == null ? "(absent)" : Convert.ToString(recorded)));
 
-            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 43, Chiamata(43, "annulla", "{}")));
+            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 43, Chiamata(43, "undo", "{}")));
             var undo = Mcp.Ogg(undoText);
-            object done = Mcp.Dentro(undo, "annullato");
-            Segna("undo case a: `annulla` refuses without pressing: the top of the undo stack is unknown",
+            object done = Mcp.Dentro(undo, "undone");
+            Segna("undo case a: `undo` refuses without pressing: the top of the undo stack is unknown",
                   !(done is bool && (bool)done), Corto(undoText));
 
             var afterUndo = FeaturesOf(part);
@@ -538,7 +538,7 @@ namespace ProvaSaldatura
         private static void UndoAfterAnotherWindowCameInFront(
             Mcp.Ponte p, ref IModelDoc2 part, ref string saved, ref string drawingTitle)
         {
-            // crea_disegno wants a part saved on disk.
+            // create_drawing wants a part saved on disk.
             part = NuovaParte();
             string path = Path.Combine(Attese.Lavoro, "client_door_undo_drawing.sldprt");
             RemoveQuietly(path);
@@ -553,18 +553,18 @@ namespace ProvaSaldatura
             saved = path;
             string json = path.Replace("\\", "\\\\");
 
-            var look = TestoDiRisposta(Mcp.Chiedi(p, 50, Chiamata(50, "guarda_il_pezzo", "{}")));
+            var look = TestoDiRisposta(Mcp.Chiedi(p, 50, Chiamata(50, "inspect_part", "{}")));
             if (Mcp.Ogg(look) == null)
             {
-                ErroreDiBanco("undo honesty, case b", "guarda_il_pezzo gave no state: " + Corto(look));
+                ErroreDiBanco("undo honesty, case b", "inspect_part gave no state: " + Corto(look));
                 return;
             }
 
-            var planText = TestoDiRisposta(Mcp.Chiedi(p, 51, Chiamata(51, "disegna",
-                "{\"passi\":[" +
-                "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{\"piano\":\"superiore\"," +
-                "\"lunghezza_mm\":100,\"larghezza_mm\":60,\"spessore_mm\":10,\"centrato\":true}}," +
-                "{\"operazione\":\"crea_disegno\",\"argomenti\":{}}]}")));
+            var planText = TestoDiRisposta(Mcp.Chiedi(p, 51, Chiamata(51, "build",
+                "{\"steps\":[" +
+                "{\"operation\":\"extrude_rectangle\",\"arguments\":{\"plane\":\"top\"," +
+                "\"length_mm\":100,\"width_mm\":60,\"thickness_mm\":10,\"centered\":true}}," +
+                "{\"operation\":\"create_drawing\",\"arguments\":{}}]}")));
             var plan = Mcp.Ogg(planText);
             IModelDoc2 front = _sw.IActiveDoc2;
             bool drawingInFront = front != null &&
@@ -575,10 +575,10 @@ namespace ProvaSaldatura
             if (!drawingInFront) return;
 
             string named = Convert.ToString(Mcp.Dentro(plan, "document_in_front")) ?? "";
-            Segna("undo case b: the answer of `disegna` says which document is in front",
+            Segna("undo case b: the answer of `build` says which document is in front",
                   named.Length > 0 && named.IndexOf(drawingTitle, StringComparison.OrdinalIgnoreCase) >= 0,
                   "document_in_front «" + named + "», the bench sees «" + drawingTitle + "»");
-            object volumeAfter = Mcp.Dentro(plan, "volume_dopo_mm3");
+            object volumeAfter = Mcp.Dentro(plan, "volume_after_mm3");
             double volumeAnswered;
             bool readable = volumeAfter != null &&
                 double.TryParse(Convert.ToString(volumeAfter, System.Globalization.CultureInfo.InvariantCulture),
@@ -586,25 +586,25 @@ namespace ProvaSaldatura
                                 System.Globalization.CultureInfo.InvariantCulture, out volumeAnswered) &&
                 Math.Abs(volumeAnswered - 60000) < 1;
             // 100 x 60 x 10 = 60000 mm3, and the part started empty.
-            Segna("undo case b: and its volume_dopo_mm3 is the part's (60000 mm3), not the drawing's",
-                  readable, "volume_dopo_mm3 = " + (volumeAfter == null ? "(absent)" : Convert.ToString(volumeAfter)));
+            Segna("undo case b: and its volume_after_mm3 is the part's (60000 mm3), not the drawing's",
+                  readable, "volume_after_mm3 = " + (volumeAfter == null ? "(absent)" : Convert.ToString(volumeAfter)));
 
             string extrusion = null;
             foreach (var f in FeaturesOf(part)) if (f.Item2 == "Extrusion") extrusion = f.Item1;
 
-            var back = TestoDiRisposta(Mcp.Chiedi(p, 52, Chiamata(52, "documento",
-                "{\"azione\":\"attiva\",\"percorso\":\"" + json + "\"}")));
+            var back = TestoDiRisposta(Mcp.Chiedi(p, 52, Chiamata(52, "document",
+                "{\"action\":\"activate\",\"path\":\"" + json + "\"}")));
             IModelDoc2 nowInFront = _sw.IActiveDoc2;
             bool partInFront = nowInFront != null &&
                 string.Equals(nowInFront.GetPathName(), path, StringComparison.OrdinalIgnoreCase);
-            Segna("undo case b: `documento` with `attiva` brings the part back to the front, read by the bench through COM",
+            Segna("undo case b: `document` with `activate` brings the part back to the front, read by the bench through COM",
                   partInFront, "in front «" + (nowInFront == null ? "(nothing)" : nowInFront.GetPathName()) + "» — " + Corto(back));
             if (!partInFront) return;
 
-            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 53, Chiamata(53, "annulla", "{}")));
+            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 53, Chiamata(53, "undo", "{}")));
             var undo = Mcp.Ogg(undoText);
-            object done = Mcp.Dentro(undo, "annullato");
-            Segna("undo case b: `annulla` withdraws the plan from the part, the drawing having been in front",
+            object done = Mcp.Dentro(undo, "undone");
+            Segna("undo case b: `undo` withdraws the plan from the part, the drawing having been in front",
                   done is bool && (bool)done, Corto(undoText));
             var left = FeaturesOf(part);
             Segna("undo case b: and the bench reads the part empty again: the extrusion is gone",
@@ -618,16 +618,16 @@ namespace ProvaSaldatura
         private static void UndoAfterAMeasure(Mcp.Ponte p, ref IModelDoc2 part)
         {
             part = NuovaParte();
-            var look = TestoDiRisposta(Mcp.Chiedi(p, 70, Chiamata(70, "guarda_il_pezzo", "{}")));
+            var look = TestoDiRisposta(Mcp.Chiedi(p, 70, Chiamata(70, "inspect_part", "{}")));
             if (Mcp.Ogg(look) == null)
             {
-                ErroreDiBanco("undo honesty, case c", "guarda_il_pezzo gave no state: " + Corto(look));
+                ErroreDiBanco("undo honesty, case c", "inspect_part gave no state: " + Corto(look));
                 return;
             }
 
-            var plan = TestoDiRisposta(Mcp.Chiedi(p, 71, Chiamata(71, "disegna",
-                "{\"passi\":[{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{\"piano\":\"superiore\"," +
-                "\"lunghezza_mm\":80,\"larghezza_mm\":50,\"spessore_mm\":10,\"centrato\":true}}]}")));
+            var plan = TestoDiRisposta(Mcp.Chiedi(p, 71, Chiamata(71, "build",
+                "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":{\"plane\":\"top\"," +
+                "\"length_mm\":80,\"width_mm\":50,\"thickness_mm\":10,\"centered\":true}}]}")));
             string extrusion = null;
             foreach (var f in FeaturesOf(part)) if (f.Item2 == "Extrusion") extrusion = f.Item1;
             // 80 x 50 x 10 = 40000 mm3, and the part started empty.
@@ -637,13 +637,13 @@ namespace ProvaSaldatura
                   " mm3 — " + Corto(plan));
             if (extrusion == null) return;
 
-            var measureText = TestoDiRisposta(Mcp.Chiedi(p, 72, Chiamata(72, "misura",
-                "{\"passi\":[{\"operazione\":\"proprieta_di_massa\",\"argomenti\":{}}]}")));
+            var measureText = TestoDiRisposta(Mcp.Chiedi(p, 72, Chiamata(72, "measure",
+                "{\"steps\":[{\"operation\":\"mass_properties\",\"arguments\":{}}]}")));
             object measureEntry = Mcp.Dentro(Mcp.Ogg(measureText), "undo_entry_recorded");
 
-            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 73, Chiamata(73, "annulla", "{}")));
-            object done = Mcp.Dentro(Mcp.Ogg(undoText), "annullato");
-            Segna("undo case c: after a measure, `annulla` still withdraws the plan",
+            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 73, Chiamata(73, "undo", "{}")));
+            object done = Mcp.Dentro(Mcp.Ogg(undoText), "undone");
+            Segna("undo case c: after a measure, `undo` still withdraws the plan",
                   done is bool && (bool)done,
                   "the measure answered undo_entry_recorded = " +
                   (measureEntry == null ? "(absent)" : Convert.ToString(measureEntry)) + " — " + Corto(undoText));
@@ -658,14 +658,14 @@ namespace ProvaSaldatura
             Mcp.Ponte p, string bridgeExe, ref IModelDoc2 part, ref Mcp.Ponte second)
         {
             part = NuovaParte();
-            var look = TestoDiRisposta(Mcp.Chiedi(p, 60, Chiamata(60, "guarda_il_pezzo", "{}")));
+            var look = TestoDiRisposta(Mcp.Chiedi(p, 60, Chiamata(60, "inspect_part", "{}")));
             if (Mcp.Ogg(look) == null)
             {
-                ErroreDiBanco("undo honesty, case d", "guarda_il_pezzo gave no state: " + Corto(look));
+                ErroreDiBanco("undo honesty, case d", "inspect_part gave no state: " + Corto(look));
                 return;
             }
             var before = FeaturesOf(part);
-            var plan1 = TestoDiRisposta(Mcp.Chiedi(p, 61, Chiamata(61, "disegna", PlateWithTwoHoles)));
+            var plan1 = TestoDiRisposta(Mcp.Chiedi(p, 61, Chiamata(61, "build", PlateWithTwoHoles)));
             var afterPlan1 = FeaturesOf(part);
             var cuts = NewCuts(before, afterPlan1);
             Segna("undo case d: bridge 1 builds a plate with two holes, read by the bench through COM",
@@ -684,20 +684,20 @@ namespace ProvaSaldatura
                 ErroreDiBanco("undo honesty, case d", "the second bridge did not start or did not answer initialize");
                 return;
             }
-            var look2 = TestoDiRisposta(Mcp.Chiedi(second, 2, Chiamata(2, "guarda_il_pezzo", "{}")));
-            var reorderText = TestoDiRisposta(Mcp.Chiedi(second, 3, Chiamata(3, "disegna", ReorderPlan(cuts))));
+            var look2 = TestoDiRisposta(Mcp.Chiedi(second, 2, Chiamata(2, "inspect_part", "{}")));
+            var reorderText = TestoDiRisposta(Mcp.Chiedi(second, 3, Chiamata(3, "build", ReorderPlan(cuts))));
             bool reordered = Before(FeaturesOf(part), cuts[1], cuts[0]);
             Segna("undo case d: bridge 2 reorders the two holes, read by the bench through COM",
                   reordered, Corto(reorderText) + " (it looked: " + Corto(look2) + ")");
             if (!reordered) return;
 
-            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 62, Chiamata(62, "annulla", "{}")));
+            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 62, Chiamata(62, "undo", "{}")));
             var undo = Mcp.Ogg(undoText);
             object refused = Mcp.Dentro(undo, "refused_before_pressing");
-            object done = Mcp.Dentro(undo, "annullato");
-            Segna("undo case d: bridge 1's `annulla` refuses BEFORE pressing: the part is not as its plan left it",
+            object done = Mcp.Dentro(undo, "undone");
+            Segna("undo case d: bridge 1's `undo` refuses BEFORE pressing: the part is not as its plan left it",
                   refused is bool && (bool)refused && done is bool && !(bool)done &&
-                  (Convert.ToString(Mcp.Dentro(undo, "motivo")) ?? "").IndexOf("order", StringComparison.OrdinalIgnoreCase) >= 0,
+                  (Convert.ToString(Mcp.Dentro(undo, "reason")) ?? "").IndexOf("order", StringComparison.OrdinalIgnoreCase) >= 0,
                   Corto(undoText));
 
             var afterUndo = FeaturesOf(part);
@@ -808,9 +808,9 @@ namespace ProvaSaldatura
             double volumePrima = VolumeDiProva(doc), volumeDopo;
             try
             {
-                conModale = TestoDiRisposta(Mcp.Chiedi(p, 30, Chiamata(30, "disegna",
-                    "{\"passi\":[{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":" +
-                    "{\"lunghezza_mm\":20,\"larghezza_mm\":20,\"spessore_mm\":5}}]}")));
+                conModale = TestoDiRisposta(Mcp.Chiedi(p, 30, Chiamata(30, "build",
+                    "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
+                    "{\"length_mm\":20,\"width_mm\":20,\"thickness_mm\":5}}]}")));
             }
             finally
             {
@@ -833,12 +833,12 @@ namespace ProvaSaldatura
             // lavora. Un'operazione che legge soltanto, per non cambiare il pezzo
             // su cui il resto del gruppo conta.
             bool abilitata = IsWindowEnabled(cornice);
-            var senza = TestoDiRisposta(Mcp.Chiedi(p, 31, Chiamata(31, "disegna",
-                "{\"passi\":[{\"operazione\":\"proprieta_di_massa\",\"argomenti\":{}}]}")));
+            var senza = TestoDiRisposta(Mcp.Chiedi(p, 31, Chiamata(31, "build",
+                "{\"steps\":[{\"operation\":\"mass_properties\",\"arguments\":{}}]}")));
             Segna("modale: chiuso il modale, lo stesso ponte torna a lavorare",
                   abilitata && senza.IndexOf("finestra aperta", StringComparison.OrdinalIgnoreCase) < 0 &&
-                  (senza.IndexOf("\"riuscita\":true", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   senza.IndexOf("\"riuscita\": true", StringComparison.OrdinalIgnoreCase) >= 0),
+                  (senza.IndexOf("\"succeeded\":true", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   senza.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0),
                   "finestra abilitata " + abilitata + " — " + Corto(senza));
         }
 

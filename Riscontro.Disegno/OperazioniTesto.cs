@@ -79,7 +79,7 @@ namespace Riscontro.Disegno
     /// passes Alignment 0.
     ///
     /// Measured on 16/9/2026 on FREE text, one line and nothing selected, which
-    /// is what incidi_testo writes: the five values 0..4 gave the same box to
+    /// is what engrave_text writes: the five values 0..4 gave the same box to
     /// the thousandth of a millimetre (4 is outside the documented range). So
     /// on free text the justification has nothing to move; with a curve
     /// selected it was not measured, and this operation never selects one.
@@ -95,30 +95,30 @@ namespace Riscontro.Disegno
         private Esito IncidiTesto(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string testo = Str(a, "testo", null);
+            string testo = Str(a, "text", null);
             if (string.IsNullOrEmpty(testo))
-                return Fallito("Manca il «testo» da incidere.");
+                return Fallito("Manca il «text» da incidere.");
 
-            var faccia = RisolviFaccia(stato, a, Str(a, "faccia_uid", ""), out string motivo);
+            var faccia = RisolviFaccia(stato, a, Str(a, "face_uid", ""), out string motivo);
             if (faccia == null) return Fallito(motivo);
 
             double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
             if (assi == null) return Fallito(errore);
 
-            double altezza = Num(a, "altezza_mm", 5);
+            double altezza = Num(a, "height_mm", 5);
             if (altezza <= 0)
                 return Fallito("Un testo di altezza nulla o negativa non e' un testo.");
-            double profondita = Num(a, "profondita_mm", 0.5);
+            double profondita = Num(a, "depth_mm", 0.5);
             if (profondita <= 0)
                 return Fallito(
                     "Una marcatura di profondita' nulla non lascia segno. Se volevi solo " +
                     "un'annotazione e non una lavorazione, questa non e' l'operazione.");
 
-            bool inRilievo = Bool(a, "in_rilievo", false);
+            bool inRilievo = Bool(a, "raised", false);
             double xMm = Num(a, "x_mm", 0);
             double yMm = Num(a, "y_mm", 0);
             string font = Str(a, "font", null);
-            bool grassetto = Bool(a, "grassetto", false);
+            bool grassetto = Bool(a, "bold", false);
 
             int corpiPrima = ContaCorpiSolidi(modello);
             double? volumePrima = VolumeMm3(modello);
@@ -228,7 +228,7 @@ namespace Riscontro.Disegno
                     "«{0}» alto {1:0.###} mm occupa {2:0.##} x {3:0.##} mm e {4} Non lo " +
                     "incido: la parte che esce sparirebbe senza che niente dia errore, e " +
                     "nel pezzo resterebbe una scritta monca. Sposta l'ancora, abbassa " +
-                    "«altezza_mm», o accorcia il testo.{5}",
+                    "«height_mm», o accorcia il testo.{5}",
                     testo, altezza,
                     scatolaTesto[3] - scatolaTesto[0],
                     scatolaTesto[4] - scatolaTesto[1],
@@ -263,16 +263,16 @@ namespace Riscontro.Disegno
             if (dopo == null || corpiDopo < 0)
                 return Riuscito(feature, new Dictionary<string, object>
                 {
-                    ["testo"] = testo,
-                    ["altezza_mm"] = altezza,
-                    ["profondita_mm"] = profondita,
-                    ["in_rilievo"] = inRilievo,
-                    ["contorni"] = contorni,
-                    ["larghezza_scritta_mm"] = Tondo(scatolaTesto[3] - scatolaTesto[0]),
-                    ["altezza_scritta_mm"] = Tondo(scatolaTesto[4] - scatolaTesto[1]),
-                    [inRilievo ? "materiale_aggiunto_mm3" : "materiale_tolto_mm3"] = null,
-                    ["corpi"] = NumeroOppureNull(corpiDopo),
-                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                    ["text"] = testo,
+                    ["height_mm"] = altezza,
+                    ["depth_mm"] = profondita,
+                    ["raised"] = inRilievo,
+                    ["contours"] = contorni,
+                    ["width_written_mm"] = Tondo(scatolaTesto[3] - scatolaTesto[0]),
+                    ["height_written_mm"] = Tondo(scatolaTesto[4] - scatolaTesto[1]),
+                    [inRilievo ? "material_added_mm3" : "material_removed_mm3"] = null,
+                    ["bodies"] = NumeroOppureNull(corpiDopo),
+                    ["volume_not_reread"] = NotaVolumeNonRiletto,
                 }, NormaleDellaFaccia(faccia));
             double mosso = inRilievo ? dopo.Value - volumePrima.Value : volumePrima.Value - dopo.Value;
 
@@ -295,21 +295,21 @@ namespace Riscontro.Disegno
             double areaLettere = mosso / profondita;
             var misure = new Dictionary<string, object>
             {
-                ["testo"] = testo,
-                ["altezza_mm"] = altezza,
-                ["profondita_mm"] = profondita,
-                ["in_rilievo"] = inRilievo,
-                ["contorni"] = contorni,
-                ["larghezza_scritta_mm"] = Tondo(scatolaTesto[3] - scatolaTesto[0]),
-                ["altezza_scritta_mm"] = Tondo(scatolaTesto[4] - scatolaTesto[1]),
-                [inRilievo ? "materiale_aggiunto_mm3" : "materiale_tolto_mm3"] = Tondo(mosso),
+                ["text"] = testo,
+                ["height_mm"] = altezza,
+                ["depth_mm"] = profondita,
+                ["raised"] = inRilievo,
+                ["contours"] = contorni,
+                ["width_written_mm"] = Tondo(scatolaTesto[3] - scatolaTesto[0]),
+                ["height_written_mm"] = Tondo(scatolaTesto[4] - scatolaTesto[1]),
+                [inRilievo ? "material_added_mm3" : "material_removed_mm3"] = Tondo(mosso),
                 // L'AREA DELLE LETTERE, che e' il volume diviso la profondita'.
                 // Non si puo' prevedere dalla stringa -- dipende dal font -- ma
                 // va col QUADRATO dell'altezza, e quel rapporto e' l'unica cosa
                 // che due marcature diverse hanno in comune.
-                ["area_lettere_mm2"] = Tondo(areaLettere),
-                ["area_su_altezza_quadra"] = Tondo(areaLettere / (altezza * altezza), 4),
-                ["corpi"] = corpiDopo,
+                ["area_letters_mm2"] = Tondo(areaLettere),
+                ["area_over_height_squared"] = Tondo(areaLettere / (altezza * altezza), 4),
+                ["bodies"] = corpiDopo,
             };
             if (!string.IsNullOrWhiteSpace(font)) misure["font"] = font;
 
@@ -322,7 +322,7 @@ namespace Riscontro.Disegno
                 areaScatola = lati[0] * lati[1];
             }
             bool facciaPiena = areaScatola > 0 && Math.Abs(areaFaccia - areaScatola) / areaScatola < 0.01;
-            misure["cosa_non_guarda"] = string.Format(
+            misure["what_it_does_not_check"] = string.Format(
                 CultureInfo.InvariantCulture,
                 "Ho controllato che la scritta stia dentro la SCATOLA della faccia{0} E non " +
                 "guardo se la scritta finisce sopra un'altra lavorazione.",

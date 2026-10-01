@@ -41,7 +41,7 @@ namespace Prove.Contratti
                   "tre ore di silenzio, nessun allarme");
 
             // ── UNA CHIAMATA NORMALE NON LO FA SCATTARE ──────────────────
-            g.Comincia("estrudi_rettangolo", t0);
+            g.Comincia("extrude_rectangle", t0);
             Segna("una chiamata di 30 secondi non e' appesa",
                   g.Appesa(t0.AddSeconds(30)) == null,
                   "soglia 90 s");
@@ -57,7 +57,7 @@ namespace Prove.Contratti
             // E IL REFERTO DICE QUALE, che e' tutto il punto: il 23/9/2026 il
             // giro e' rimasto appeso e nessuno sapeva dentro cosa.
             Segna("e il referto NOMINA la chiamata",
-                  referto != null && referto.Contains("estrudi_rettangolo"),
+                  referto != null && referto.Contains("extrude_rectangle"),
                   "senza il nome sarebbe un allarme senza indirizzo");
 
             Segna("e dice da quanto, coi secondi",

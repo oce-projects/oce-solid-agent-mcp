@@ -364,7 +364,7 @@ namespace Oce.Solid.Agent.Ponte
         /// NON si azzera `_sw` qui, ed e' una scelta.
         ///
         /// Azzerarlo sembrava igiene — l'oggetto COM e' morto comunque — ma
-        /// rende `Agganciata` falsa, e allora `disegna` risponde «Il ponte non
+        /// rende `Agganciata` falsa, e allora `build` risponde «Il ponte non
         /// e' agganciato a SolidWorks»: vero, generico, e **peggiore** del
         /// messaggio che questa funzione ha appena costruito. Si sarebbe
         /// sostituita la causa con un sintomo, un giro dopo averla trovata.
@@ -445,8 +445,8 @@ namespace Oce.Solid.Agent.Ponte
             try { percorso = Convert.ToString(Chiama(doc, "GetPathName")); } catch { }
             return new Dictionary<string, object>
             {
-                ["titolo"] = titolo ?? "",
-                ["percorso"] = percorso ?? "",
+                ["document_title"] = titolo ?? "",
+                ["path"] = percorso ?? "",
             };
         }
 
@@ -467,16 +467,16 @@ namespace Oce.Solid.Agent.Ponte
             Dictionary<string, object> a, Dictionary<string, object> b)
         {
             if (a == null || b == null) return false;
-            string pa = Convert.ToString(a.ContainsKey("percorso") ? a["percorso"] : "");
-            string pb = Convert.ToString(b.ContainsKey("percorso") ? b["percorso"] : "");
+            string pa = Convert.ToString(a.ContainsKey("path") ? a["path"] : "");
+            string pb = Convert.ToString(b.ContainsKey("path") ? b["path"] : "");
             if (!string.IsNullOrWhiteSpace(pa) || !string.IsNullOrWhiteSpace(pb))
                 return string.Equals(
                     (pa ?? "").Trim().Replace('/', '\\'),
                     (pb ?? "").Trim().Replace('/', '\\'),
                     StringComparison.OrdinalIgnoreCase);
 
-            string ta = Convert.ToString(a.ContainsKey("titolo") ? a["titolo"] : "");
-            string tb = Convert.ToString(b.ContainsKey("titolo") ? b["titolo"] : "");
+            string ta = Convert.ToString(a.ContainsKey("document_title") ? a["document_title"] : "");
+            string tb = Convert.ToString(b.ContainsKey("document_title") ? b["document_title"] : "");
             return !string.IsNullOrWhiteSpace(ta) &&
                    string.Equals(ta, tb, StringComparison.Ordinal);
         }
@@ -504,7 +504,7 @@ namespace Oce.Solid.Agent.Ponte
         /// firme.
         ///
         /// Fino alla 0.25.2 il flag era cablato a `true` e la si pagava anche
-        /// per la lettura «prima» di `disegna`, che serve solo a sapere su
+        /// per la lettura «before» di `build`, che serve solo a sapere su
         /// quale documento si lavora, quanto volume c'era e quante lavorazioni
         /// erano in errore: tre cose che l'ancora non riguarda. Quello stato
         /// non torna nemmeno a chi legge.
@@ -523,10 +523,10 @@ namespace Oce.Solid.Agent.Ponte
         /// THE STATE OF A GIVEN DOCUMENT, not of the window in front (Z-C21.14).
         ///
         /// After a plan the document in front may be another one: a
-        /// `crea_disegno` puts its drawing in front, another session or the
+        /// `create_drawing` puts its drawing in front, another session or the
         /// person may bring a window forward. The live probe M19 (1/10/2026,
         /// line BRIDGE-R1 (X2)) measured what reading the front window did to
-        /// «annulla»: the plan's part was compared with the numbers of the
+        /// «undo»: the plan's part was compared with the numbers of the
         /// other document and a right undo was refused. This reads the plan's
         /// own document, by the reference the executor kept. Without the
         /// anchor: the caller wants the volume, the feature count and the
@@ -933,8 +933,8 @@ namespace Oce.Solid.Agent.Ponte
                 AncheSuTavole = true,
 
                 // E il terzo, per la stessa ragione esatta. Il catalogo del
-                // ponte porta `inserisci_componente`, `accoppia`,
-                // `sostituisci_componente` e `verifica_interferenze`: fino al
+                // ponte porta `insert_component`, `mate`,
+                // `replace_component` e `interference_check`: fino al
                 // 18/9/2026 le ELENCAVA e l'esecutore le avrebbe rifiutate
                 // prima del primo passo, senza che niente lo dicesse.
                 // Il banco non poteva accorgersene: chiama la libreria, non il
@@ -1002,7 +1002,7 @@ namespace Oce.Solid.Agent.Ponte
             var sparito = SolidWorksECheSeNeEAndato();
             if (sparito == null) return originale;
 
-            // ZERO-E-ZERO: `esiti` e' la nostra lista, non una lettura dal CAD.
+            // ZERO-E-ZERO: `outcomes` e' la nostra lista, non una lettura dal CAD.
             int fatti = esiti == null ? 0 : esiti.Count;
             return sparito +
                    " Si e' fermato dopo " + fatti +

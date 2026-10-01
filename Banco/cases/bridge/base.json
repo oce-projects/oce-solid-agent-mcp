@@ -1,11 +1,11 @@
 [
  {
-  "operazione": "rivoluzione",
-  "argomenti": {
-   "piano": "frontale",
-   "contorni": [
+  "operation": "revolve",
+  "arguments": {
+   "plane": "front",
+   "contours": [
     {
-     "vertici": [
+     "vertices": [
       [
        0,
        0
@@ -57,7 +57,7 @@
      ]
     }
    ],
-   "asse": [
+   "axis": [
     [
      0,
      0
@@ -67,7 +67,7 @@
      100
     ]
    ],
-   "angolo_gradi": 360
+   "angle_deg": 360
   }
  }
 ]

@@ -5,24 +5,24 @@
   "_why_two_numbers": "l'operazione riporta sia il materiale tolto DAVVERO sia il conto rifatto a mano, e il caso li pretende tutti e due. Il raccordo vero non e' esattamente una spazzata lineare del raggio -- misurati 277,7 contro 277,5 di conto, lo 0,07% -- e per questo il conto a mano si chiama «quello che ci si aspetta» e non «quello giusto».",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "spessore_mm": 40, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 40, "width_mm": 40,
+                     "thickness_mm": 40, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 64000 } ] },
-    { "operation": "raccordo_variabile",
-      "arguments": { "spigolo_uid": "@spigolo(asse=Z,lungo~=40,n=1)",
-                     "raggio_inizio_mm": 3, "raggio_fine_mm": 8 },
+    { "operation": "variable_fillet",
+      "arguments": { "edge_uid": "@edge(axis=Z,length~=40,n=1)",
+                     "start_radius_mm": 3, "end_radius_mm": 8 },
       "expect": [
-        { "what": "misure.raggio_inizio_mm", "equal_to": 3 },
-        { "what": "misure.raggio_fine_mm", "equal_to": 8 },
-        { "what": "misure.materiale_tolto_mm3", "equal_to": 277.7, "tolerance": 0.5,
+        { "what": "measurements.radius_start_mm", "equal_to": 3 },
+        { "what": "measurements.radius_end_mm", "equal_to": 8 },
+        { "what": "measurements.material_removed_mm3", "equal_to": 277.7, "tolerance": 0.5,
           "tolerance_why": "e' il numero MISURATO su questo pezzo; il mezzo millimetro cubo copre l'arrotondamento della risposta, non un margine di opinione" },
-        { "what": "misure.tolto_che_ci_si_aspetta_mm3", "equal_to": 277.55, "tolerance": 0.1,
+        { "what": "measurements.expected_removed_mm3", "equal_to": 277.55, "tolerance": 0.1,
           "tolerance_why": "40 * 32,333 * 0,214602: e' un conto chiuso, e la decima di mm3 e' l'arrotondamento" },
-        { "what": "misure.come_si_conta", "includes": ["ordine di grandezza", "non e' esattamente una spazzata lineare"],
+        { "what": "measurements.how_it_is_counted", "includes": ["ordine di grandezza", "non e' esattamente una spazzata lineare"],
           "why": "il conto a mano si dichiara approssimato dove viene riportato, non in una nota che nessuno legge" },
         { "what": "volume_mm3", "equal_to": 63722.3, "tolerance": 0.5,
           "tolerance_why": "64.000 meno i 277,7 tolti: il volume del pezzo lo conferma dall'altra parte" },
-        { "what": "corpi", "equal_to": 1 } ] }
+        { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

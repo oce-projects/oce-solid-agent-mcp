@@ -14,7 +14,7 @@ namespace Riscontro.Disegno
     /// Fino alla 0.91.0 `StatoDocumento.Leggi` aveva un `if (parte == null)` che
     /// rispondeva, per QUALUNQUE assieme:
     ///
-    ///     corpo_solido: false
+    ///     solid_body: false
     ///     nota: "documento di assieme: l'assistente non lo modifica ancora"
     ///
     /// e tornava. Era onesto — nessuna operazione di assieme esisteva — ma
@@ -68,7 +68,7 @@ namespace Riscontro.Disegno
         /// ── PERCHE' STA IN UN METODO E NON DENTRO `DescriviAssieme` ──────
         ///
         /// Questo ordine **e' il significato di `C1`**. Lo stato lo usa per
-        /// numerare, e `accoppia` (voce GA4) lo usa per ritrovare il componente
+        /// numerare, e `mate` (voce GA4) lo usa per ritrovare il componente
         /// che l'utente ha nominato. Se le due liste fossero costruite in due
         /// posti, basterebbe che una cambiasse perche' **`C1` volesse dire due
         /// cose diverse** — e allora si accoppierebbe il componente sbagliato
@@ -102,7 +102,7 @@ namespace Riscontro.Disegno
         ///
         /// It is the one rule for «top level» in the library, for the same
         /// reason as <see cref="ComponentiInOrdine"/>: the state publishes
-        /// «top_level» from it, and fissa_componente and sostituisci_componente
+        /// «top_level» from it, and fix_component and replace_component
         /// refuse a nested component with it. Two copies of the rule could
         /// disagree, and a component the state calls top-level would be
         /// refused, or the other way round.
@@ -132,7 +132,7 @@ namespace Riscontro.Disegno
         {
             if (assieme == null)
             {
-                dati["nota"] = "assieme illeggibile";
+                dati["note"] = "unreadable assembly";
                 return;
             }
 
@@ -148,7 +148,7 @@ namespace Riscontro.Disegno
             try { tutti = assieme.GetComponents(false) as object[]; } catch { }
             if (tutti == null)
             {
-                dati["nota"] = "l'assieme non ha risposto all'elenco dei componenti";
+                dati["note"] = "l'assieme non ha risposto all'elenco dei componenti";
                 return;
             }
 
@@ -158,12 +158,12 @@ namespace Riscontro.Disegno
             try
             {
                 var primi = assieme.GetComponents(true) as object[];
-                if (primi != null) dati["componenti_primo_livello"] = primi.Length;
+                if (primi != null) dati["components_top_level"] = primi.Length;
                 topLevelNames = TopLevelNames(primi);
             }
             catch { }
 
-            dati["quanti_componenti"] = tutti.Length;
+            dati["how_many_components"] = tutti.Length;
 
             // ── L'ORDINE STABILE ─────────────────────────────────────────
             //
@@ -186,7 +186,7 @@ namespace Riscontro.Disegno
                 var voce = new Dictionary<string, object>
                 {
                     ["uid"] = "C" + (i + 1),
-                    ["nome"] = voci[i].Key,
+                    ["name"] = voci[i].Key,
                 };
 
                 // TOP LEVEL OR INSIDE A SUB-ASSEMBLY (L11-3, Z-C21.5). The list
@@ -204,11 +204,11 @@ namespace Riscontro.Disegno
                     var p = c.GetPathName();
                     if (!string.IsNullOrWhiteSpace(p))
                     {
-                        voce["percorso"] = p;
+                        voce["path"] = p;
                         // IL FILE C'E'? (voce Z-B3) Un componente il cui file manca
                         // sul disco l'assieme lo mostra soppresso, e nient'altro lo
                         // dice. Si scrive solo quando manca: e' il caso raro.
-                        if (!System.IO.File.Exists(p)) voce["file_mancante"] = true;
+                        if (!System.IO.File.Exists(p)) voce["file_missing"] = true;
                     }
                 }
                 catch { }
@@ -216,7 +216,7 @@ namespace Riscontro.Disegno
                 try
                 {
                     var cfg = c.ReferencedConfiguration;
-                    if (!string.IsNullOrWhiteSpace(cfg)) voce["configurazione"] = cfg;
+                    if (!string.IsNullOrWhiteSpace(cfg)) voce["configuration"] = cfg;
                 }
                 catch { }
 
@@ -227,7 +227,7 @@ namespace Riscontro.Disegno
                 try
                 {
                     int stato = c.GetSuppression2();
-                    voce["stato"] = NomeDelloStato(stato);
+                    voce["state"] = NomeDelloStato(stato);
                     if (stato == (int)swComponentSuppressionState_e.swComponentSuppressed) soppressi++;
                     if (stato == (int)swComponentSuppressionState_e.swComponentLightweight ||
                         stato == (int)swComponentSuppressionState_e.swComponentFullyLightweight)
@@ -246,13 +246,13 @@ namespace Riscontro.Disegno
                 // you must get the IModelDoc2 object of the subassembly»), so
                 // its answer from the root is not published: the fixed flag is
                 // null, «not known from here», and the component is not counted.
-                if (topLevel == false) voce["fisso"] = null;
+                if (topLevel == false) voce["grounded"] = null;
                 else
                 {
                     try
                     {
                         bool f = c.IsFixed();
-                        voce["fisso"] = f;
+                        voce["grounded"] = f;
                         if (f) fissi++;
                     }
                     catch { }
@@ -260,18 +260,18 @@ namespace Riscontro.Disegno
 
                 // ── DOVE STA L'ORIGINE, IN MM (parte di GA2) ────────────
                 //
-                // IL CAMPO SI CHIAMA `origine_mm` E NON `posizione_mm`, ED E'
+                // IL CAMPO SI CHIAMA `origin_mm` E NON `position_mm`, ED E'
                 // LA RIPARAZIONE DI UN DIFETTO CHE NON DAVA ERRORE.
                 //
                 // Misurato il 17/9/2026: **`AddComponent5(x, y, z)` posiziona il
                 // CENTRO dell'ingombro del componente, non la sua origine.** Un
                 // pezzo estruso a una direzione sola — che e' quello che fa
-                // `estrudi_rettangolo` — ha l'origine su una faccia, non a meta'
+                // `extrude_rectangle` — ha l'origine su una faccia, non a meta'
                 // spessore: inserito a `(0, 0, 30)`, la sua origine finisce a
                 // `(0, -2, 30)` se e' spesso 4, a `(0, -5, 0)` se e' spesso 10 e
                 // lo si chiede a zero. Previsto prima di misurarlo, e misurato.
                 //
-                // Chiamare questo campo «posizione» invitava a confrontarlo con
+                // Chiamare questo campo «position» invitava a confrontarlo con
                 // il punto CHIESTO, e i due non coincidono quasi mai: nessuno
                 // dei due numeri e' sbagliato, sono due cose diverse, e niente
                 // lo diceva. Il nome adesso lo dice.
@@ -293,7 +293,7 @@ namespace Riscontro.Disegno
                 // indici fossero altri, diventa rosso qui invece che in
                 // officina.
                 var dove = PosizioneDelComponenteMm(c);
-                if (dove != null) voce["origine_mm"] = dove;
+                if (dove != null) voce["origin_mm"] = dove;
 
                 // Gli accoppiamenti: per ora il CONTEGGIO. Il formato di quello
                 // che `GetMates()` restituisce e' `Object` e va accertato prima
@@ -305,7 +305,7 @@ namespace Riscontro.Disegno
                 // che separa «zero» da «non ho potuto leggere» guardando se il
                 // componente risponde ancora al proprio nome.
                 int suoiAcc = OperazioniSw.AccoppiamentiDi(c);
-                if (suoiAcc >= 0) voce["accoppiamenti"] = suoiAcc;
+                if (suoiAcc >= 0) voce["mates"] = suoiAcc;
 
                 // ── CHE ACCOPPIAMENTI (voce Z-D3) ───────────────────────
                 // Misurato il 27/9/2026 (`prova0089 zd345`): `GetMates` da' oggetti
@@ -314,11 +314,11 @@ namespace Riscontro.Disegno
                 // questo pezzo, incernierato o appoggiato?» si legge qui.
                 // Zero accoppiamenti (contati sopra) e' un elenco vuoto; un GetMates
                 // null con accoppiamenti contati, o illeggibili, e' «non lo so».
-                if (suoiAcc == 0) voce["accoppiamenti_tipi"] = new string[0];
+                if (suoiAcc == 0) voce["mates_kinds"] = new string[0];
                 else if (suoiAcc > 0)
                 {
                     var tipi = TipiDegliAccoppiamenti(c);
-                    voce["accoppiamenti_tipi"] = tipi;   // null se non si leggono
+                    voce["mates_kinds"] = tipi;   // null se non si leggono
                 }
 
                 // ── SOTTOASSIEME, VISIBILE, TRASPARENTE (voce Z-D4) ─────
@@ -327,16 +327,16 @@ namespace Riscontro.Disegno
                 try
                 {
                     var suo = c.GetModelDoc2();
-                    voce["e_sottoassieme"] = suo == null ? null : (object)(suo is IAssemblyDoc);
+                    voce["is_sub_assembly"] = suo == null ? null : (object)(suo is IAssemblyDoc);
                 }
-                catch { voce["e_sottoassieme"] = null; }
+                catch { voce["is_sub_assembly"] = null; }
                 // `Visible` e' swComponentVisibilityState_e: 1 visibile, 0 nascosto.
                 try
                 {
                     int vis = c.Visible;
-                    voce["visibile"] = vis == 1 ? (object)true : vis == 0 ? (object)false : null;
+                    voce["visible"] = vis == 1 ? (object)true : vis == 0 ? (object)false : null;
                 }
-                catch { voce["visibile"] = null; }
+                catch { voce["visible"] = null; }
                 // LA TRASPARENZA NON E' UN CAMPO DEL COMPONENTE (accertato il
                 // 23/9): sta in `MaterialPropertyValues`, posizione 7, e c'e' solo
                 // se il componente ha un aspetto suo (misurato: 0,75 dopo
@@ -344,14 +344,14 @@ namespace Riscontro.Disegno
                 // diversi, non alternativi.
                 try
                 {
-                    if (!c.HasMaterialPropertyValues()) voce["trasparente"] = false;
+                    if (!c.HasMaterialPropertyValues()) voce["transparent"] = false;
                     else
                     {
                         var mpv = c.MaterialPropertyValues as double[];
-                        voce["trasparente"] = mpv != null && mpv.Length > 7 ? (object)(mpv[7] > 0) : null;
+                        voce["transparent"] = mpv != null && mpv.Length > 7 ? (object)(mpv[7] > 0) : null;
                     }
                 }
-                catch { voce["trasparente"] = null; }
+                catch { voce["transparent"] = null; }
 
                 // ── I GRADI DI LIBERTA' RESIDUI (voce GA5) ───────────────
                 //
@@ -366,8 +366,8 @@ namespace Riscontro.Disegno
                 // inserito e' normalmente fisso, quindi l'errore scatterebbe
                 // sempre, su ogni assieme.
                 var gradi = OperazioniSw.GradiDiLiberta(c);
-                voce["stato_gradi_di_liberta"] = gradi.Stato;
-                if (gradi.Disponibile) voce["gradi_di_liberta_residui"] = gradi.Quanti;
+                voce["degrees_of_freedom_state"] = gradi.Stato;
+                if (gradi.Disponibile) voce["degrees_of_freedom_remaining"] = gradi.Quanti;
                 else letturaGradiFallita = true;
 
                 // «E' APPOGGIATO?» SI RISPONDE CON DUE COSE CHE FUNZIONANO.
@@ -377,8 +377,8 @@ namespace Riscontro.Disegno
                 // un componente **non fisso** con **zero accoppiamenti** e'
                 // appoggiato li'. Non si sa di quanto sia libero, e non lo si
                 // dice: *un numero inventato e' peggio di un numero assente*.
-                bool eFisso = voce.ContainsKey("fisso") &&
-                              Convert.ToString(voce["fisso"]).Equals(
+                bool eFisso = voce.ContainsKey("grounded") &&
+                              Convert.ToString(voce["grounded"]).Equals(
                                   "True", StringComparison.OrdinalIgnoreCase);
                 int suoiAccoppiamenti = suoiAcc;
                 // A NESTED COMPONENT IS NOT JUDGED HERE (L11-3): whether it is
@@ -391,28 +391,28 @@ namespace Riscontro.Disegno
                     contati++;
                     if (suoiAccoppiamenti == 0)
                     {
-                        voce["appoggiato"] = true;
+                        voce["resting"] = true;
                         appoggiati++;
                         if (liberi.Count < 8) liberi.Add(voci[i].Key);
                     }
-                    else if (suoiAccoppiamenti > 0) voce["appoggiato"] = false;
+                    else if (suoiAccoppiamenti > 0) voce["resting"] = false;
                 }
 
                 if (elenco.Count < MaxComponenti) elenco.Add(voce);
             }
 
-            dati["componenti"] = elenco;
+            dati["components"] = elenco;
             if (voci.Count > MaxComponenti)
-                dati["componenti_non_elencati"] = voci.Count - MaxComponenti;
+                dati["components_not_listed"] = voci.Count - MaxComponenti;
 
             // I CONTEGGI SI SCRIVONO ANCHE QUANDO VALGONO ZERO.
             // «soppressi: 0» e' un'informazione; l'assenza del campo si legge
             // come «non l'ho guardato», e sono due cose diverse. E' la stessa
             // riga che il README difende per la regressione: *un conteggio che
             // sparisce quando e' zero e' un conteggio che nessuno controlla.*
-            dati["componenti_soppressi"] = soppressi;
-            dati["componenti_leggeri"] = leggeri;
-            dati["componenti_fissi"] = fissi;
+            dati["components_suppressed"] = soppressi;
+            dati["components_lightweight"] = leggeri;
+            dati["components_grounded"] = fissi;
             // How many components sit inside a sub-assembly (L11-3): they are
             // left out of the fixed count above and of the count below.
             // Written only when the top-level list was read, zero included.
@@ -430,12 +430,12 @@ namespace Riscontro.Disegno
             // su cosa e' calcolato e' un numero di cui fidarsi per sbaglio.*
             if (contati > 0)
             {
-                dati["componenti_non_fissi"] = contati;
-                dati["componenti_appoggiati"] = appoggiati;
-                dati["assieme_vincolato"] = appoggiati == 0;
-                if (liberi.Count > 0) dati["componenti_ancora_liberi"] = liberi;
+                dati["components_not_grounded"] = contati;
+                dati["components_resting"] = appoggiati;
+                dati["assembly_constrained"] = appoggiati == 0;
+                if (liberi.Count > 0) dati["components_still_free"] = liberi;
 
-                dati["giudizio_vincoli"] = appoggiati == 0
+                dati["verdict_constraints"] = appoggiati == 0
                     ? "Tutti i " + contati + (contati == 1 ? " componente non fisso ha" : " componenti non fissi hanno") +
                       " almeno un accoppiamento. Di QUANTO siano ancora liberi non " +
                       "lo so: SOLIDWORKS non fornisce i gradi di liberta' residui da qui."
@@ -446,24 +446,24 @@ namespace Riscontro.Disegno
                       ". Sono appoggiati li': si spostano se qualcuno li trascina, e " +
                       "l'assieme sembra montato senza esserlo.";
                 if (nested > 0)
-                    dati["giudizio_vincoli"] += " The " + nested + " component(s) inside sub-assemblies are " +
+                    dati["verdict_constraints"] += " The " + nested + " component(s) inside sub-assemblies are " +
                                                 "not in this count: each moves with its sub-assembly, counted " +
                                                 "as one top-level component.";
             }
 
             // LA COSA CHE NON SI SA, DETTA. Non e' un dettaglio tecnico: chi
-            // legge «assieme_vincolato: true» deve sapere che vuol dire «ogni
+            // legge «assembly_constrained: true» deve sapere che vuol dire «ogni
             // componente ha almeno un accoppiamento», NON «non si muove piu'».
             // One coincident mate leaves three of the six directions free (probe
             // zc14, 30/9/2026: TX, TZ and RY stay free), and this state does not
-            // see them; «accoppia» measures them when it makes a mate (Z-C14).
+            // see them; «mate» measures them when it makes a mate (Z-C14).
             if (letturaGradiFallita)
-                dati["cosa_non_so_dei_vincoli"] =
+                dati["what_is_not_known_about_constraints"] =
                     "SOLIDWORKS does not give the remaining degrees of freedom (it answers " +
                     "«unavailable» on every component, fixed or free). So «vincolato» here " +
                     "means «has at least one mate», not «does not move any more»: one " +
                     "coincident mate leaves three of the six directions free (measured). " +
-                    "«accoppia» says which directions each mate blocks.";
+                    "«mate» says which directions each mate blocks.";
 
             // ── L'ESPLOSO, E NON E' UN VEZZO (voce GA8) ──────────────────
             //
@@ -486,7 +486,7 @@ namespace Riscontro.Disegno
                 var cfg = doc == null ? null : doc.GetActiveConfiguration() as IConfiguration;
                 if (cfg != null)
                 {
-                    dati["configurazione"] = cfg.Name;
+                    dati["configuration"] = cfg.Name;
                     DescriviLaDistinta(cfg, dati);
                 }
             }
@@ -500,8 +500,8 @@ namespace Riscontro.Disegno
             // Un modello che legge «vedo quattro componenti ma non so
             // accoppiarli» sa cosa puo' chiedere; uno che legge «non lo modifico»
             // puo' solo smettere.
-            dati["corpo_solido"] = false;
-            dati["cosa_non_so_ancora_fare"] =
+            dati["solid_body"] = false;
+            dati["what_cannot_be_done_yet"] =
                 "Di questo assieme so dire com'e' fatto, non cambiarlo: inserire " +
                 "componenti, accoppiarli e leggerne i gradi di liberta' residui " +
                 "non sono ancora operazioni. Le posizioni dei componenti non " +
@@ -569,19 +569,19 @@ namespace Riscontro.Disegno
 
             // Ogni campo il suo try: su una configurazione vera basta che uno
             // non risponda perche' un try unico li faccia sparire tutti.
-            try { d["codice_da"] = NomeDellaFonteDelCodice(cfg.BOMPartNoSource); } catch { }
-            try { d["usa_nome_alternativo"] = cfg.UseAlternateNameInBOM; } catch { }
+            try { d["part_number_source"] = NomeDellaFonteDelCodice(cfg.BOMPartNoSource); } catch { }
+            try { d["use_alternative_name"] = cfg.UseAlternateNameInBOM; } catch { }
             try
             {
                 var n = cfg.AlternateName;
-                if (!string.IsNullOrWhiteSpace(n)) d["nome_alternativo"] = n;
+                if (!string.IsNullOrWhiteSpace(n)) d["alternative_name"] = n;
             }
             catch { }
-            try { d["usa_descrizione"] = cfg.UseDescriptionInBOM; } catch { }
-            try { d["mostra_i_figli"] = cfg.ShowChildComponentsInBOM; } catch { }
-            try { d["come_mostra_i_figli"] = cfg.ChildComponentDisplayInBOM; } catch { }
+            try { d["use_details_in_bom"] = cfg.UseDescriptionInBOM; } catch { }
+            try { d["shows_children"] = cfg.ShowChildComponentsInBOM; } catch { }
+            try { d["child_display_mode"] = cfg.ChildComponentDisplayInBOM; } catch { }
 
-            if (d.Count > 0) dati["distinta"] = d;
+            if (d.Count > 0) dati["bom"] = d;
         }
 
         /// <summary>
@@ -694,13 +694,13 @@ namespace Riscontro.Disegno
         /// dieci centimetri, senza nessun errore. Chi legge lo stato deve
         /// poterlo sapere prima di credere a una posizione.
         ///
-        /// ── E `esploso` DA SOLO NON BASTA ───────────────────────────────
+        /// ── E `exploded_view` DA SOLO NON BASTA ───────────────────────────────
         ///
         /// Misurato il 17/9/2026, quattro sonde: `CreateExplodedView()` risponde
         /// `True`, `IsExploded` diventa `si'`, e **niente si muove** — il passo
         /// che nasce si chiama «Catena1» e ha distanza 0 mm. Un esploso in cui
         /// nessun componente si sposta e' un esploso che non serve a niente, e
-        /// `esploso: true` da solo lo farebbe sembrare fatto.
+        /// `exploded_view: true` da solo lo farebbe sembrare fatto.
         ///
         /// Percio' si scrive anche **quanto si e' spostato il componente che si
         /// e' spostato di piu'**, in millimetri: e' la differenza fra le due
@@ -719,8 +719,8 @@ namespace Riscontro.Disegno
             try { esploso = doc.Extension.IsExploded(out quale); }
             catch { return; }   // se non si puo' leggere non si inventa un falso
 
-            dati["esploso"] = esploso;
-            if (esploso && !string.IsNullOrWhiteSpace(quale)) dati["vista_esplosa"] = quale;
+            dati["exploded_view"] = esploso;
+            if (esploso && !string.IsNullOrWhiteSpace(quale)) dati["view_exploded"] = quale;
 
             try
             {
@@ -728,9 +728,9 @@ namespace Riscontro.Disegno
                 if (cfg != null)
                 {
                     int viste = assieme.GetExplodedViewCount2(cfg.Name);
-                    if (viste > 0) dati["viste_esplose"] = viste;
+                    if (viste > 0) dati["views_exploded"] = viste;
                     int passi = cfg.GetNumberOfExplodeSteps();
-                    if (passi > 0) dati["passi_di_esploso"] = passi;
+                    if (passi > 0) dati["exploded_view_steps"] = passi;
                 }
             }
             catch { }
@@ -759,9 +759,9 @@ namespace Riscontro.Disegno
             catch { }
 
             if (!letto) return;
-            dati["esploso_sposta_al_massimo_mm"] = Math.Round(massimo, 3);
+            dati["exploded_view_max_move_mm"] = Math.Round(massimo, 3);
             if (massimo < 0.001)
-                dati["cosa_non_so_dell_esploso"] =
+                dati["what_is_not_known_about_exploded_view"] =
                     "La vista esplosa c'e' ed e' mostrata, ma NESSUN componente si " +
                     "sposta: lo scostamento massimo e' zero. Un esploso che non " +
                     "separa niente non serve a una tavola di montaggio. Su questa " +

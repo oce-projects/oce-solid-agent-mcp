@@ -2,27 +2,27 @@
   "name": "r12_frame_with_a_thinner_profile",
   "family": "regression",
   "why": "Un telaio saldato a cui si cambia il PROFILO: il tubo passa da 80 a 60. Il quartabuono agli angoli si rifa' con facce diverse, e se un angolo non si chiude due barre si fondono in un corpo solo o ne resta una staccata. Quattro barre devono restare quattro.",
-  "_why_it_is_not_the_length": "La voce F8 qui chiedeva «telaio 1000x800, 1000 -> 1400». NON E' ESPRIMIBILE OGGI: il percorso di un telaio e' un `3DProfileFeature`, e lo stato non ne pubblica le quote -- `modifica_quota` non ha niente da nominare. Le uniche quote che lo stato espone sono quelle del PROFILO del tubo (D1 = 80, D2 = 6, D3 = 5), ed e' quella che si cambia qui. Scoperto misurando, dopo che due casi erano stati classificati male indovinando il nome.",
+  "_why_it_is_not_the_length": "La voce F8 qui chiedeva «telaio 1000x800, 1000 -> 1400». NON E' ESPRIMIBILE OGGI: il percorso di un telaio e' un `3DProfileFeature`, e lo stato non ne pubblica le quote -- `set_dimension` non ha niente da nominare. Le uniche quote che lo stato espone sono quelle del PROFILO del tubo (D1 = 80, D2 = 6, D3 = 5), ed e' quella che si cambia qui. Scoperto misurando, dopo che due casi erano stati classificati male indovinando il nome.",
   "intent": "ancorato_a_assoluto",
   "intent_why": "il percorso del telaio non cambia: restano quattro barre disposte come prima, e il baricentro di un telaio simmetrico resta dov'e'. Se un angolo si perde, la simmetria va via e si vede.",
   "build": [
     {
-      "operation": "telaio_rettangolare",
+      "operation": "rectangular_frame",
       "arguments": {
-        "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
-        "configurazione": "80X80X5",
-        "lunghezza_mm": 1000,
-        "larghezza_mm": 800,
-        "piano": "frontale",
-        "misure": "ingombro",
-        "centrato": true
+        "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "80X80X5",
+        "length_mm": 1000,
+        "width_mm": 800,
+        "plane": "front",
+        "measured_as": "overall",
+        "centered": true
       }
     }
   ],
-  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 60 },
+  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 60 },
   "after": [
-    { "what": "corpi", "equal_to": 4 },
-    { "what": "centro_massa_mm", "same_as_before": true,
+    { "what": "bodies", "equal_to": 4 },
+    { "what": "center_of_mass_mm", "same_as_before": true,
       "tolerance": 0.5,
       "tolerance_why": "il baricentro di un telaio simmetrico sta al centro e ci resta: mezzo millimetro su un pezzo da un metro e' molto meno di quanto si sposterebbe se un angolo si perdesse" }
   ]

@@ -56,15 +56,15 @@ const QUESTIONS = 'Controlli/domande-senza-risposta.js';
 const PROBE_X2 = 'Controlli/prova-x2.js';
 const GATE = 'Controlli/lingua/detect-italian.js';
 const KEY = {
-  operations: 'operazioni', families: 'famiglie', name: 'nome', family: 'famiglia',
-  when: 'quando', kind: 'tipo', similar: 'simili',
+  operations: 'operations', families: 'families', name: 'name', family: 'family',
+  when: 'timestamp', kind: 'kind', similar: 'similar',
 };
 // The keys of a bench case, renamed by window 1 (W3.1-bis.4), and of a step of
 // a plan, which is the bridge's protocol (window 2). A case written with the
 // names of before the window is the wrong key each check feeds the reader.
 const CASE = { name: 'name', family: 'family', steps: 'steps', build: 'build', operation: 'operation', args: 'arguments' };
-const PLAN = { operation: 'operazione', args: 'argomenti' };
-const BEFORE = { name: 'nome', steps: 'passi', operation: 'operazione' };
+const PLAN = { operation: 'operation', args: 'arguments' };
+const BEFORE = { name: 'nome', steps: 'passi', operation: 'operazione', operations: 'operazioni', families: 'famiglie', family: 'famiglia', kind: 'tipo' };
 const label = (script) => path.basename(script).replace(/\.(js|ps1)$/, '');
 const q = (s) => '"' + s + '"';
 
@@ -99,10 +99,10 @@ const operations = realCatalogue[KEY.operations];
 const firstOp = operations[0];
 const withFirst = (op) => Object.assign({}, realCatalogue, { [KEY.operations]: [op].concat(operations.slice(1)) });
 
-const catalogueNoOps = write('catalogue-no-ops.json', renamed(realCatalogue, KEY.operations, 'operations'));
-const catalogueNoName = write('catalogue-no-name.json', withFirst(renamed(firstOp, KEY.name, 'name')));
-const catalogueNoFamilies = write('catalogue-no-families.json', renamed(realCatalogue, KEY.families, 'families'));
-const catalogueNoFamily = write('catalogue-no-family.json', withFirst(renamed(firstOp, KEY.family, 'family')));
+const catalogueNoOps = write('catalogue-no-ops.json', renamed(realCatalogue, KEY.operations, BEFORE.operations));
+const catalogueNoName = write('catalogue-no-name.json', withFirst(renamed(firstOp, KEY.name, BEFORE.name)));
+const catalogueNoFamilies = write('catalogue-no-families.json', renamed(realCatalogue, KEY.families, BEFORE.families));
+const catalogueNoFamily = write('catalogue-no-family.json', withFirst(renamed(firstOp, KEY.family, BEFORE.family)));
 const catalogueEmpty = write('catalogue-empty.json', Object.assign({}, realCatalogue, { [KEY.operations]: [] }));
 const catalogueNoDeclared = write('catalogue-no-declared-families.json', Object.assign({}, realCatalogue, { [KEY.families]: {} }));
 
@@ -117,13 +117,13 @@ const casesNoOperation = path.dirname(write('cases-no-operation/a.json',
 const casesNoName = path.dirname(write('cases-no-name/a.json', renamed(goodCase, CASE.name, BEFORE.name)));
 const casesBroken = path.dirname(write('cases-broken/a.json', '{ ' + q(CASE.name) + ': "a_fake_case", '));
 const casesPlanNoOperation = path.dirname(write('cases-plan-no-operation/a.json', goodCase));
-write('cases-plan-no-operation/plan.json', [renamed(planStep, PLAN.operation, CASE.operation)]);
+write('cases-plan-no-operation/plan.json', [renamed(planStep, PLAN.operation, BEFORE.operation)]);
 const casesNone = path.join(work, 'cases-none');
 fs.mkdirSync(casesNone, { recursive: true });
 
 const record = { [KEY.when]: '2026-09-30T10:00:00', [KEY.kind]: 'x', [KEY.name]: 'y', [KEY.similar]: ['z'] };
 const registryGood = write('registry-good.jsonl', JSON.stringify(record) + '\n');
-const registryRenamed = write('registry-renamed.jsonl', JSON.stringify(renamed(renamed(record, KEY.kind, 'kind'), KEY.name, 'name')) + '\n');
+const registryRenamed = write('registry-renamed.jsonl', JSON.stringify(renamed(renamed(record, KEY.kind, BEFORE.kind), KEY.name, BEFORE.name)) + '\n');
 
 // the gate reads its lexicon from a checkout: a tiny git repository
 function gateRoot(name, mutateLexicon) {
@@ -177,7 +177,7 @@ const cases = [
 
 // With a built library, the catalogue check runs to its end: a declared
 // family that no operation uses must turn it red (the old reading of
-// `famiglie` passed it), and the real catalogue must pass. Without the
+// `families` passed it), and the real catalogue must pass. Without the
 // library these two are skipped, and the run says so.
 const libraryIndex = process.argv.indexOf('--library');
 const library = libraryIndex >= 0 ? path.resolve(process.argv[libraryIndex + 1])

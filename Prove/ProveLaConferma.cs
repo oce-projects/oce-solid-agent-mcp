@@ -48,8 +48,8 @@ namespace Prove.Contratti
                 // deve arrivare per primo e' la DOMANDA del ponte.
                 Scrivi(p,
                     "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"disegna\",\"arguments\":{\"passi\":[" +
-                    "{\"operazione\":\"elimina_lavorazione\",\"argomenti\":" +
+                    "{\"name\":\"build\",\"arguments\":{\"steps\":[" +
+                    "{\"operation\":\"delete_feature\",\"arguments\":" +
                     "{\"feature_uid\":\"Taglio-Estrusione1\"}}]}}}");
 
                 // La domanda deve arrivare prima di qualunque risposta.
@@ -76,7 +76,7 @@ namespace Prove.Contratti
                     // LA DOMANDA DEVE DIRE COSA SI STA PER PERDERE. «Confermi?»
                     // da solo e' un pulsante, non una domanda.
                     Segna("e la domanda nomina l'operazione",
-                          messaggio != null && messaggio.Contains("elimina_lavorazione"),
+                          messaggio != null && messaggio.Contains("delete_feature"),
                           Corto(messaggio));
                     Segna("e dice che non si annulla",
                           messaggio != null &&
@@ -130,8 +130,8 @@ namespace Prove.Contratti
 
                 var risposta = Ogg(Chiedi(q, 31,
                     "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"disegna\",\"arguments\":{\"passi\":[" +
-                    "{\"operazione\":\"elimina_lavorazione\",\"argomenti\":" +
+                    "{\"name\":\"build\",\"arguments\":{\"steps\":[" +
+                    "{\"operation\":\"delete_feature\",\"arguments\":" +
                     "{\"feature_uid\":\"Taglio-Estrusione1\"}}]}}}"));
 
                 // Senza SOLIDWORKS il piano si ferma subito dopo, e va bene: la

@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.Ponte
     ///
     /// Il ponte offre trentasei operazioni con schemi dettagliati e poi, fino
     /// alla 0.9.0, non guardava se gli argomenti li rispettassero: lo schema
-    /// serviva solo a suggerire. Uno `spessore_mm` dimenticato arrivava a `Num()`
+    /// serviva solo a suggerire. Uno `thickness_mm` dimenticato arrivava a `Num()`
     /// come zero e diventava un'estrusione di spessore nullo, che SOLIDWORKS
     /// rifiuta con un messaggio suo — nel migliore dei casi.
     ///
@@ -43,9 +43,9 @@ namespace Oce.Solid.Agent.Ponte
         /// problema e' del controllo, e fermare l'operazione vorrebbe dire far
         /// pagare a chi disegna un difetto nostro.
         ///
-        /// IT ALSO REWRITES, IN <paramref name="argomenti"/> ITSELF, every enum
+        /// IT ALSO REWRITES, IN <paramref name="arguments"/> ITSELF, every enum
         /// value spelled differently from the catalogue (Z-C21.10, pattern
-        /// S20): «Superiore» is accepted and goes on as «superiore». The caller
+        /// S20): «Superiore» is accepted and goes on as «top». The caller
         /// hands the same dictionary to the library, so whatever passes here
         /// reaches the library spelled as the catalogue spells it. See the
         /// enum block in <see cref="Sbaglia"/> for why.
@@ -79,14 +79,14 @@ namespace Oce.Solid.Agent.Ponte
             // ── 2. quello che c'e', ma della forma sbagliata ─────────────
             //
             // OVER A COPY OF THE ENTRIES, because an enum value can be
-            // rewritten in `argomenti` on the way (see Sbaglia). On .NET
+            // rewritten in `arguments` on the way (see Sbaglia). On .NET
             // Framework even overwriting an existing key bumps the
             // dictionary's version, and the next MoveNext of a foreach over
             // that same dictionary throws InvalidOperationException.
             foreach (var voce in argomenti.ToList())
             {
                 // Le chiavi che cominciano con il trattino basso non sono
-                // parametri dell'operazione: sono roba nostra («_firme»), e lo
+                // parametri dell'operazione: sono roba nostra («_signatures»), e lo
                 // schema giustamente non le nomina.
                 if (voce.Key.StartsWith("_")) continue;
 
@@ -118,7 +118,7 @@ namespace Oce.Solid.Agent.Ponte
         /// oggetti annidati, e fino alla 0.25.2 non lo faceva.
         ///
         /// LA PROMESSA CHE NON ERA MANTENUTA. La descrizione dello strumento
-        /// `disegna` dice al modello: «Il piano viene controllato TUTTO prima di
+        /// `build` dice al modello: «Il piano viene controllato TUTTO prima di
         /// cominciare: se un passo qualunque ha un nome sbagliato o argomenti
         /// che non rispettano lo schema, non viene eseguito niente e il
         /// documento resta com'era». `PianoInMemoria` ripete la stessa
@@ -126,9 +126,9 @@ namespace Oce.Solid.Agent.Ponte
         ///
         /// Ma il controllo si fermava al primo livello: per `type: "object"`
         /// verificava che fosse un oggetto e basta, senza guardare il `required`
-        /// e le `properties` dentro. Lo schema di `ripeti_lineare` dichiara
-        /// `feature_rif` come oggetto con `required: ["passo", "genere"]`, e un
-        /// piano di quattro passi il cui quarto scrive `feature_rif: {}`
+        /// e le `properties` dentro. Lo schema di `linear_pattern` dichiara
+        /// `feature_ref` come oggetto con `required: ["step", "kind"]`, e un
+        /// piano di quattro passi il cui quarto scrive `feature_ref: {}`
         /// passava tutta la validazione preventiva. I primi tre passi venivano
         /// costruiti nel documento, poi il quarto falliva.
         ///
@@ -183,7 +183,7 @@ namespace Oce.Solid.Agent.Ponte
 
                 case "string":
                     // Un numero dove va una stringa NON si rifiuta: chi scrive
-                    // «configurazione: 80» intende «"80"», e rifiutarlo sarebbe
+                    // «configuration: 80» intende «"80"», e rifiutarlo sarebbe
                     // pignoleria che costa un giro a chi disegna.
                     break;
             }
@@ -197,12 +197,12 @@ namespace Oce.Solid.Agent.Ponte
             // compares Ordinal: `SelezionaPiano` read «Superiore» as an
             // unknown name and fell back to the front plane (the box on the
             // wrong plane, riuscita:true, finding N33), and
-            // `telaio_rettangolare` read «Ingombro» as not-«ingombro», that
+            // `rectangular_frame` read «Ingombro» as not-«overall», that
             // is the centreline branch (a 1080x880 frame for 1000x800, N32).
             // Teaching every comparison in the library to ignore case would
             // leave the next one to be forgotten; rewriting the value here
             // covers them all, because this is the one door every step of
-            // «disegna» comes through (Strumenti/Attrezzi.cs).
+            // «build» comes through (Strumenti/Attrezzi.cs).
             //
             // An exact match wins. Otherwise the one value that differs only
             // in case. Two such values (a catalogue spelling one word two
@@ -234,7 +234,7 @@ namespace Oce.Solid.Agent.Ponte
         /// un livello piu' giu'.
         ///
         /// Il nome del campo si scrive per esteso — «feature_rif.passo» — o chi
-        /// legge il messaggio non sa dove guardare: lo stesso nome «passo» puo'
+        /// legge il messaggio non sa dove guardare: lo stesso nome «step» puo'
         /// stare sotto tre riferimenti diversi nello stesso schema.
         /// </summary>
         private static string Annidato(
@@ -260,7 +260,7 @@ namespace Oce.Solid.Agent.Ponte
 
             // ── quello che c'e', ma della forma sbagliata ──
             // Over a copy, as in Controlla: an enum value such as
-            // «faccia_rif.genere» can be rewritten in `valore` on the way.
+            // «faccia_rif.genere» can be rewritten in `value_text` on the way.
             foreach (var voce in valore.ToList())
             {
                 if (voce.Key.StartsWith("_")) continue;
@@ -283,7 +283,7 @@ namespace Oce.Solid.Agent.Ponte
         /// <summary>
         /// Un intero JSON e' un numero. Il difetto piu' facile da scrivere in
         /// questo file e' un `type: number` che rifiuta il `20` di
-        /// `"spessore_mm": 20` perche' il deserializzatore l'ha fatto `int`.
+        /// `"thickness_mm": 20` perche' il deserializzatore l'ha fatto `int`.
         /// </summary>
         private static bool UnNumero(object v)
         {

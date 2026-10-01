@@ -100,22 +100,22 @@ namespace Riscontro.Disegno
             // ── I NUMERI, prima di toccare qualunque cosa ──
             double passo, copieGrezze;
             string errore;
-            if (!NumObbligatorio(a, "passo_mm", out passo, out errore))
+            if (!NumObbligatorio(a, "pitch_mm", out passo, out errore))
                 return Fallito(errore + " E' la distanza fra un giro di copie e il successivo, " +
                                "in mm: metti per esempio due volte il diametro del foro.");
             if (passo <= 0)
-                return Fallito("«passo_mm» deve essere maggiore di zero: e' la distanza fra un giro " +
+                return Fallito("«pitch_mm» deve essere maggiore di zero: e' la distanza fra un giro " +
                                "di copie e il successivo. Metti per esempio due volte il diametro del foro.");
-            if (!NumObbligatorio(a, "copie_per_giro", out copieGrezze, out errore))
+            if (!NumObbligatorio(a, "copies_per_turn", out copieGrezze, out errore))
                 return Fallito(errore + " E' quante copie stanno su ogni giro attorno al centro " +
                                "della faccia: per esempio 10.");
             int copiePerGiro = (int)copieGrezze;
             if (copiePerGiro < 1 || Math.Abs(copieGrezze - copiePerGiro) > 1e-9)
-                return Fallito("«copie_per_giro» e' un numero intero da 1 in su, non " +
+                return Fallito("«copies_per_turn» e' un numero intero da 1 in su, non " +
                                copieGrezze.ToString(CultureInfo.InvariantCulture) + ": per esempio 10.");
-            double margine = Num(a, "margine_mm", 0);
+            double margine = Num(a, "margin_mm", 0);
             if (margine < 0)
-                return Fallito("«margine_mm» non puo' essere negativo: e' quanto le copie restano " +
+                return Fallito("«margin_mm» non puo' essere negativo: e' quanto le copie restano " +
                                "lontane dal bordo della faccia. Metti 0 per arrivare al bordo.");
 
             // ── LA DIREZIONE E' OBBLIGATORIA, E SI DICE PRIMA ──
@@ -125,23 +125,23 @@ namespace Riscontro.Disegno
             // senza nessun messaggio. Un rifiuto qui costa zero; un NULL dopo aver
             // selezionato mezzo pezzo costa un turno a indovinare.
             //
-            // NOT «AN AXIS MADE WITH crea_asse» (Z-C21.9, finding N62). The
-            // sentence sent the caller to crea_asse, whose axis on a hole runs
+            // NOT «AN AXIS MADE WITH create_axis» (Z-C21.9, finding N62). The
+            // sentence sent the caller to create_axis, whose axis on a hole runs
             // THROUGH the face of the hole, not along it (the catalogue says so
-            // for crea_asse itself): the check below («the direction does not lie
+            // for create_axis itself): the check below («the direction does not lie
             // in the plane of the boundary face») then refused it, 90 degrees
             // out, and a turn was lost. The kind of axis that works is named.
-            if (!HaRiferimento(a, "asse_rif") && string.IsNullOrEmpty(Str(a, "asse_uid", "")))
+            if (!HaRiferimento(a, "axis_ref") && string.IsNullOrEmpty(Str(a, "axis_uid", "")))
                 return Fallito(
                     "The direction is missing: without a direction the fill pattern is not born. The API guide " +
                     "calls it optional, but measured on SOLIDWORKS 29.5.1 (28/9/2026) without the direction edge " +
-                    "SOLIDWORKS answers nothing and says nothing. Give in «asse_uid» a straight edge that runs " +
+                    "SOLIDWORKS answers nothing and says nothing. Give in «axis_uid» a straight edge that runs " +
                     "along the boundary face (in the state «E1», «E2»...), for example its long edge, or in " +
-                    "«asse_rif» an axis that lies along that face. The axis of a hole drilled into the face does " +
+                    "«axis_ref» an axis that lies along that face. The axis of a hole drilled into the face does " +
                     "not do: it runs across the face, and a direction that leaves the face is refused.");
 
             // ── LA FACCIA DI CONTORNO, E DEVE ESSERE PIANA ──
-            string facciaUid = Str(a, "faccia_uid", "");
+            string facciaUid = Str(a, "face_uid", "");
             string motivo;
             var contorno = RisolviFaccia(stato, a, facciaUid, out motivo);
             if (contorno == null) return Fallito("Faccia di contorno: " + motivo);
@@ -162,14 +162,14 @@ namespace Riscontro.Disegno
 
             IFeature seme = null;
             IFeature feature = null;
-            string direzioneDetta = HaRiferimento(a, "asse_rif") ? "la direzione del passo citato" : "«" + Str(a, "asse_uid", "") + "»";
+            string direzioneDetta = HaRiferimento(a, "axis_ref") ? "la direzione del passo citato" : "«" + Str(a, "axis_uid", "") + "»";
             try
             {
                 modello.ClearSelection2(true);
 
                 // 1. THE DIRECTION GOES THROUGH ITS HELPER, which checks that the
                 //    edge is straight and still the same one (signature, E19), the
-                //    same defence as «ripeti_lineare». Then it is read back from
+                //    same defence as «linear_pattern». Then it is read back from
                 //    the selection and the selection starts again: the order of
                 //    the example and of probe A is feature, direction, boundary.
                 //    The direction is the ONLY thing selected here because this
@@ -178,7 +178,7 @@ namespace Riscontro.Disegno
                 //    scratch», the old signature). With append: true,
                 //    DirezioneSelezionataPerRiempimento, which reads
                 //    GetSelectedObject6(1), would read another object.
-                if (!SelezionaAsse(modello, a, "asse", stato, SelectionMarks.FillPatternDirection, append: false, out errore))
+                if (!SelezionaAsse(modello, a, "axis", stato, SelectionMarks.FillPatternDirection, append: false, out errore))
                     return Fallito("Direzione: " + errore);
                 object direzione = DirezioneSelezionataPerRiempimento(modello);
                 if (direzione == null)
@@ -227,14 +227,14 @@ namespace Riscontro.Disegno
                 if (dati == null)
                     return Fallito("SOLIDWORKS non mi ha dato la definizione di una ripetizione a " +
                                    "riempimento (CreateDefinition vuoto). Non ho toccato il pezzo. " +
-                                   "Per copie in fila o in griglia usa «ripeti_lineare».");
+                                   "Per copie in fila o in griglia usa «linear_pattern».");
                 ScalariDelRiempimento(dati, Unita.M(passo), copiePerGiro, Unita.M(margine));
                 feature = modello.FeatureManager.CreateFeature(dati) as IFeature;
             }
             catch (Exception ex)
             {
                 return Fallito("La ripetizione a riempimento non e' riuscita: " + ex.Message +
-                               ". Per copie in fila o in griglia usa «ripeti_lineare».");
+                               ". Per copie in fila o in griglia usa «linear_pattern».");
             }
             finally
             {
@@ -247,9 +247,9 @@ namespace Riscontro.Disegno
                     "perche'. Le tre selezioni c'erano (lavorazione, direzione, contorno): di " +
                     "solito vuol dire che nessuna copia entra nella faccia -- il passo e' troppo " +
                     "grande o il margine troppo largo -- oppure che la lavorazione non sta su " +
-                    "quella faccia. Prova un «passo_mm» piu' piccolo o «margine_mm» 0; per copie " +
-                    "in fila o in griglia c'e' «ripeti_lineare», per un cerchio attorno a un asse " +
-                    "«ripeti_circolare».");
+                    "quella faccia. Prova un «pitch_mm» piu' piccolo o «margin_mm» 0; per copie " +
+                    "in fila o in griglia c'e' «linear_pattern», per un cerchio attorno a un asse " +
+                    "«circular_pattern».");
 
             // ── E ADESSO SI MISURA IL PEZZO ──
             bool ricostruito = false;
@@ -271,8 +271,8 @@ namespace Riscontro.Disegno
             string rotto = CosaSiERotto(modello, prima, ricostruito, true);
             if (rotto != null)
                 return Fallito(
-                    "La ripetizione a riempimento e' nata, ma " + rotto + ". Prova un «margine_mm» " +
-                    "piu' largo, perche' le copie restino lontane dal bordo, o un «passo_mm» piu' " +
+                    "La ripetizione a riempimento e' nata, ma " + rotto + ". Prova un «margin_mm» " +
+                    "piu' largo, perche' le copie restino lontane dal bordo, o un «pitch_mm» piu' " +
                     "grande, perche' non si tocchino." + TogliIlRiempimento(modello, feature, volumePrima));
 
             // COSA DICHIARA LA FEATURE, riletto con IFeature::GetDefinition
@@ -298,8 +298,8 @@ namespace Riscontro.Disegno
             if (facceRipetizione == 0)
                 return Fallito(
                     "La ripetizione a riempimento e' nata ma non possiede nessuna faccia: nessuna " +
-                    "copia e' entrata nella faccia di contorno. Prova un «passo_mm» piu' piccolo " +
-                    "o «margine_mm» 0." + TogliIlRiempimento(modello, feature, volumePrima));
+                    "copia e' entrata nella faccia di contorno. Prova un «pitch_mm» piu' piccolo " +
+                    "o «margin_mm» 0." + TogliIlRiempimento(modello, feature, volumePrima));
             int copie = facceRipetizione > 0 && facceSeme > 0 && facceRipetizione % facceSeme == 0
                 ? facceRipetizione / facceSeme : -1;
             misure["copies_made"] = NumeroOppureNull(copie);

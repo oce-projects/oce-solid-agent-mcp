@@ -4,11 +4,11 @@
   "why": "LA ROTAZIONE VA VISTA, E IL VOLUME NON LA VEDE: girare un'asola non cambia quanto materiale toglie. Per renderla osservabile serve una piastra STRETTA, dove l'asola ci sta per il lungo e non per il largo. Questo e' il caso a zero gradi, e sta tutta dentro.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 40, "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 40, "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 160000 } ] },
-    { "operation": "asola",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 0, "passante": true },
+    { "operation": "slot",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 149299.34, "tolerance": 0.5,
           "tolerance_why": "160000 meno 535,0332 per 20: il conto ha pi dentro" } ] }

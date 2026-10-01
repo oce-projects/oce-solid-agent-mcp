@@ -5,21 +5,21 @@
   "_the_edges_by_where_they_are": "La L va da x -2 a 50 e da y -2 a 30: lo spigolo in fondo al lato da 50 sulla faccia interna sta a x = 50, y = 0, lungo Z per 40.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "flangia_base",
-      "arguments": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
-                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+    { "operation": "base_flange",
+      "arguments": { "plane": "front", "points": [[0, 30], [0, 0], [50, 0]],
+                     "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "expect": [
-        { "what": "misure.lunghezza_sviluppo_mm", "equal_to": 80.712, "tolerance": 0.01,
+        { "what": "measurements.flat_pattern_length_mm", "equal_to": 80.712, "tolerance": 0.01,
           "tolerance_why": "la L di the_L_flattens: (50 - 2) + (30 - 2) + pi/2 * 3" } ] },
-    { "operation": "flangia_spigolo",
-      "arguments": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "lunghezza_mm": 25 },
+    { "operation": "edge_flange",
+      "arguments": { "edge_uid": "@edge(axis=Z,x~=50,y~=0)", "length_mm": 25 },
       "expect": [
-        { "what": "misure.lunghezza_mm", "equal_to": 25, "tolerance": 0.01,
+        { "what": "measurements.length_mm", "equal_to": 25, "tolerance": 0.01,
           "tolerance_why": "riletta dalla flangia in metri" },
-        { "what": "misure.volume_mm3", "equal_to": 1736.99, "tolerance": 0.5,
+        { "what": "measurements.volume_mm3", "equal_to": 1736.99, "tolerance": 0.5,
           "tolerance_why": "(25 - 2 - 2) + pi/2 * (2 + 0,5 * 2) - (2 + 2) = 21,712 mm di sviluppo in piu', per 2 di spessore e 40 di spigolo. Misurato con la sonda a 22 e 32: 1497 e 2297, uguali al conto" },
-        { "what": "misure.lunghezza_sviluppo_mm", "equal_to": 102.424, "tolerance": 0.01,
+        { "what": "measurements.flat_pattern_length_mm", "equal_to": 102.424, "tolerance": 0.01,
           "tolerance_why": "80,712 + 21,712: la striscia spianata e' il lato lungo del pezzo sviluppato" },
-        { "what": "corpi", "equal_to": 1 } ] }
+        { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

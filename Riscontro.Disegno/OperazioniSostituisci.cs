@@ -73,23 +73,23 @@ namespace Riscontro.Disegno
             if (componenti.Count == 0)
                 return Fallito("L'assieme non ha componenti da sostituire.");
 
-            string uid = Str(a, "componente", null);
+            string uid = Str(a, "component", null);
             var comp = PerUid(componenti, uid);
-            if (comp == null) return Fallito(NonTrovato(uid, "componente", componenti));
+            if (comp == null) return Fallito(NonTrovato(uid, "component", componenti));
             // TOP LEVEL ONLY (finding L11-5, lot Z-C21.5), with the check that
-            // fissa_componente uses. Up to library 0.145.0 a nested component
+            // fix_component uses. Up to library 0.145.0 a nested component
             // went to ReplaceComponents2 as it was.
             string notTopLevel = NotTopLevel(assieme, comp, uid, componenti,
                 "ReplaceComponents2 wants a top-level component: «The component must be a top-level " +
                 "component. It cannot be a component of a sub-assembly» (IAssemblyDoc~ReplaceComponents2.html)");
             if (notTopLevel != null) return Fallito(notTopLevel);
 
-            string nuovo = Str(a, "percorso", null);
+            string nuovo = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(nuovo))
                 return Fallito(
-                    "Non mi hai detto con cosa sostituirlo: «percorso» e' il percorso " +
+                    "Non mi hai detto con cosa sostituirlo: «path» e' il percorso " +
                     "completo del file nuovo, e dev'essere gia' aperto. Li trovi in " +
-                    "«documenti_aperti» dello stato.");
+                    "«documents_open» dello stato.");
             if (!File.Exists(nuovo))
                 return Fallito("Il file «" + nuovo + "» non esiste. " + CosaEAperto());
             if (!EAperto(nuovo))
@@ -110,8 +110,8 @@ namespace Riscontro.Disegno
                     "riuscirebbe e non cambierebbe niente: se volevi un altro pezzo, " +
                     "e' il percorso a essere sbagliato.");
 
-            bool tutte = Bool(a, "tutte_le_istanze", true);
-            string configurazione = Str(a, "configurazione", "");
+            bool tutte = Bool(a, "all_instances", true);
+            string configurazione = Str(a, "configuration", "");
 
             // A CONFIGURATION THE NEW FILE DOES NOT HAVE IS REFUSED BEFORE THE
             // SWAP (Z-C21.4, finding M18). Up to library 0.145.0 any name went to
@@ -189,7 +189,7 @@ namespace Riscontro.Disegno
                 // the specified configuration», «MatchName 0 = Let SOLIDWORKS
                 // attempt to match the configuration of the old components with a
                 // configuration in the replacement component». So a non-empty
-                // «configurazione» may not be what the component ends up with:
+                // «configuration» may not be what the component ends up with:
                 // it is checked before the call (a name the file lacks is
                 // refused) and the configuration really referenced is read back
                 // after it, with a mismatch flagged. Moving to ManuallySelect
@@ -258,18 +258,18 @@ namespace Riscontro.Disegno
                               (onNewFileBefore.Count == 0 ? "" : " (" + onNewFileBefore.Count + " already used it, " +
                                                                  "and they do not count)")) +
                     ". I did not count it as done. Read the assembly state again: if something did change, " +
-                    "undo the step with «annulla»; if nothing did, ask again with the new file open.");
+                    "undo the step with «undo»; if nothing did, ask again with the new file open.");
 
             var misure = new Dictionary<string, object>
             {
-                ["componente"] = uid,
-                ["da"] = string.IsNullOrWhiteSpace(vecchio) ? "(senza percorso)" : Path.GetFileName(vecchio),
-                ["a"] = Path.GetFileName(nuovo),
-                ["componenti_prima"] = quantiPrima,
-                ["componenti_dopo"] = dopoComp.Count,
-                ["accoppiamenti_prima"] = accPrima,
-                ["accoppiamenti_dopo"] = accDopo,
-                ["accoppiamenti_persi"] = Math.Max(0, accPrima - accDopo),
+                ["component"] = uid,
+                ["source"] = string.IsNullOrWhiteSpace(vecchio) ? "(senza percorso)" : Path.GetFileName(vecchio),
+                ["target"] = Path.GetFileName(nuovo),
+                ["components_before"] = quantiPrima,
+                ["components_after"] = dopoComp.Count,
+                ["mates_before"] = accPrima,
+                ["mates_after"] = accDopo,
+                ["mates_lost"] = Math.Max(0, accPrima - accDopo),
                 // L11-5: the components that took up the new file with this
                 // swap, by name (the replaced one, and its other instances when
                 // all instances were asked for). The C1..Cn numbers follow the
@@ -282,7 +282,7 @@ namespace Riscontro.Disegno
             // name when they agree, all of them when they do not. When one was
             // asked for, «configuration_as_asked» says whether every one of them
             // references it; a mismatch is FLAGGED (the verdict opens with it),
-            // not undone: the swap has happened, and the way back is «annulla».
+            // not undone: the swap has happened, and the way back is «undo».
             var referencedNow = new List<string>();
             bool referencedUnread = false;
             foreach (var v in dopoComp)
@@ -293,8 +293,8 @@ namespace Riscontro.Disegno
                 if (string.IsNullOrWhiteSpace(itsConfiguration)) { referencedUnread = true; continue; }
                 if (!referencedNow.Contains(itsConfiguration)) referencedNow.Add(itsConfiguration);
             }
-            if (referencedNow.Count == 1 && !referencedUnread) misure["configurazione"] = referencedNow[0];
-            else if (referencedNow.Count > 0) misure["configurazione"] = referencedNow.ToArray();
+            if (referencedNow.Count == 1 && !referencedUnread) misure["configuration"] = referencedNow[0];
+            else if (referencedNow.Count > 0) misure["configuration"] = referencedNow.ToArray();
             bool? configurationAsAsked = null;
             if (!string.IsNullOrWhiteSpace(configurazione))
             {
@@ -313,14 +313,14 @@ namespace Riscontro.Disegno
             int problemiDopo = QuantiProblemi(modello);
             if (problemiPrima >= 0 && problemiDopo >= 0)
             {
-                misure["problemi_prima"] = problemiPrima;
-                misure["problemi_dopo"] = problemiDopo;
+                misure["problems_before"] = problemiPrima;
+                misure["problems_after"] = problemiDopo;
             }
             bool rotti = problemiPrima >= 0 && problemiDopo > problemiPrima;
 
             // ── IL GIUDIZIO, che e' il punto della voce ─────────────────
             string giudizio;
-            string fatto = "Sostituito «" + misure["da"] + "» con «" + misure["a"] +
+            string fatto = "Sostituito «" + misure["source"] + "» con «" + misure["target"] +
                            "» su " + uid + ". ";
             if (rotti)
                 // IL CASO PEGGIORE, E NON E' «PERSI»: i vincoli ci sono ancora e
@@ -331,8 +331,8 @@ namespace Riscontro.Disegno
                            " problemi contro i " + problemiPrima + " di prima: **qualcuno " +
                            "di quei vincoli e' in ERRORE**, perche' puntava a una faccia " +
                            "del pezzo vecchio. Un vincolo rotto e' peggio di un vincolo " +
-                           "assente: sembra che tenga. Toglilo e rimettilo con «accoppia», " +
-                           "oppure «annulla».";
+                           "assente: sembra che tenga. Toglilo e rimettilo con «mate», " +
+                           "oppure «undo».";
             else if (accPrima == 0)
                 giudizio = fatto + "Non c'erano accoppiamenti da conservare.";
             else if (accDopo >= accPrima)
@@ -343,7 +343,7 @@ namespace Riscontro.Disegno
                 giudizio = fatto + "**GLI ACCOPPIAMENTI SI SONO PERSI**: ne aveva " +
                            accPrima + ", adesso ne ha " + accDopo + ". Il pezzo nuovo e' " +
                            "dentro e **non e' vincolato**: l'assieme sembra montato e non " +
-                           "lo e'. Rimettili con «accoppia», oppure «annulla».";
+                           "lo e'. Rimettili con «mate», oppure «undo».";
             if (configurationAsAsked == false)
                 giudizio = "WARNING: you asked for the configuration «" + configurazione + "», and the new " +
                            "component references " +
@@ -353,9 +353,9 @@ namespace Riscontro.Disegno
                            (referencedUnread && referencedNow.Count > 0 ? " (and one I could not read)" : "") +
                            ". SOLIDWORKS matched the configuration of the old component by name; the choice " +
                            "that takes the named one is not used yet (see «configuration_as_asked»). Do not " +
-                           "build on it as if it were «" + configurazione + "»: «annulla» takes the swap back. " +
+                           "build on it as if it were «" + configurazione + "»: «undo» takes the swap back. " +
                            giudizio;
-            misure["giudizio"] = giudizio;
+            misure["verdict"] = giudizio;
             _log("[agente] " + giudizio);
 
             return RiuscitoSenzaCreare(misure);

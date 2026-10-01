@@ -9,19 +9,19 @@
         "name": "base",
         "steps": [
           {
-            "operation": "estrudi_rettangolo",
+            "operation": "extrude_rectangle",
             "arguments": {
-              "piano": "superiore",
-              "lunghezza_mm": 120,
-              "larghezza_mm": 80,
-              "spessore_mm": 10,
-              "centrato": true
+              "plane": "top",
+              "length_mm": 120,
+              "width_mm": 80,
+              "thickness_mm": 10,
+              "centered": true
             }
           },
           {
-            "operation": "applica_materiale",
+            "operation": "apply_material",
             "arguments": {
-              "materiale": "AISI 304"
+              "material": "AISI 304"
             }
           }
         ]
@@ -35,19 +35,19 @@
         ],
         "steps": [
           {
-            "operation": "estrudi_rettangolo",
+            "operation": "extrude_rectangle",
             "arguments": {
-              "piano": "superiore",
-              "lunghezza_mm": 120,
-              "larghezza_mm": 80,
-              "spessore_mm": 4,
-              "centrato": true
+              "plane": "top",
+              "length_mm": 120,
+              "width_mm": 80,
+              "thickness_mm": 4,
+              "centered": true
             }
           },
           {
-            "operation": "applica_materiale",
+            "operation": "apply_material",
             "arguments": {
-              "materiale": "S235JR"
+              "material": "S235JR"
             }
           }
         ]
@@ -56,50 +56,50 @@
   },
   "steps": [
     {
-      "operation": "inserisci_componente",
+      "operation": "insert_component",
       "arguments": {
-        "percorso": "{LAVORO}\\two_equal_bases_one_step_base.sldprt",
+        "path": "{LAVORO}\\two_equal_bases_one_step_base.sldprt",
         "x_mm": 200,
         "y_mm": 0,
         "z_mm": 0
       },
       "expect": [
         {
-          "what": "misure.componenti_dopo",
+          "what": "measurements.components_after",
           "equal_to": 3
         }
       ]
     },
     {
-      "operation": "proprieta_di_massa",
+      "operation": "mass_properties",
       "arguments": {},
       "expect": [
         {
-          "what": "misure.massa_kg",
+          "what": "measurements.mass_kg",
           "equal_to": 1.8355,
           "tolerance": 0.0001,
           "tolerance_why": "arrotondata a quattro decimali: 2 x 0,768 + 0,29952 = 1,83552",
           "why": "la massa conta le ISTANZE: due basi pesano due volte"
         },
         {
-          "what": "misure.componenti_pesati",
+          "what": "measurements.components_weighed",
           "equal_to": 3
         }
       ]
     },
     {
-      "operation": "esporta_step",
+      "operation": "export_step",
       "arguments": {
-        "percorso": "{LAVORO}\\two_equal_bases_one_step.step"
+        "path": "{LAVORO}\\two_equal_bases_one_step.step"
       },
       "expect": [
         {
-          "what": "misure.solidi_nel_file",
+          "what": "measurements.solids_in_file",
           "equal_to": 2,
           "why": "MISURATO il 28/9/2026: con la base due volte e il coperchio una, lo STEP ha 2 solidi — la forma di un pezzo si scrive una volta sola, le istanze sono occorrenze"
         },
         {
-          "what": "misure.solidi_attesi",
+          "what": "measurements.solids_expected",
           "equal_to": 2,
           "why": "i pezzi UNICI (percorso e configurazione), non le istanze"
         }

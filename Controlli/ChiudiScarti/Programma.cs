@@ -106,7 +106,7 @@ namespace Controlli.ChiudiScarti
 
             // IL CONTROLLO CHE E' DAVVERO SUCCESSO. Si ricontano i documenti:
             // CloseDoc non torna niente, e senza ricontare non si distingue
-            // «chiuso» da «chiamato».
+            // «closed» da «chiamato».
             int restano = 0;
             var d2 = (IModelDoc2)sw.GetFirstDocument();
             while (d2 != null) { restano++; d2 = (IModelDoc2)d2.GetNext(); }

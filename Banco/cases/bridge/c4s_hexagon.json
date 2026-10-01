@@ -1,11 +1,11 @@
 [
  {
-  "operazione": "estrudi_sezione",
-  "argomenti": {
-   "piano": "superiore",
-   "tipo": "esagono",
-   "chiave_mm": 30,
-   "lunghezza_mm": 100
+  "operation": "extrude_section",
+  "arguments": {
+   "plane": "top",
+   "variant": "hexagon",
+   "across_flats_mm": 30,
+   "length_mm": 100
   }
  }
 ]

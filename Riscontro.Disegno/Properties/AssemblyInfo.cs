@@ -27,34 +27,34 @@ using System.Runtime.InteropServices;
 // fossero. Qui e' vero (due blocchi di documentazione in
 // `OperazioniSostituisci.cs`, riscritti perche' dicevano una cosa che il banco
 // ha poi smentito), e il numero si muove lo stesso.
-// 0.95.0: `croci_di_centro` (operazione 64) e le croci nello stato della tavola.
+// 0.95.0: `center_marks` (operazione 64) e le croci nello stato della tavola.
 // 0.96.0: l'esploso nello stato dell'assieme, col millimetro accanto al booleano.
-// 0.97.0: `nuovo_foglio` e `attiva_foglio` (voce GT1), col diedro riletto.
-// 0.98.0: `cartiglio` (voce GT3) e `verifica_interferenze` (GA10); e
+// 0.97.0: `new_sheet` e `activate_sheet` (voce GT1), col diedro riletto.
+// 0.98.0: `title_block` (voce GT3) e `interference_check` (GA10); e
 //         `AncheSuAssiemi`, perche' l'esecutore rifiutava ogni assieme mentre
 //         il catalogo ne prometteva quattro operazioni.
-// 0.98.1: il rifiuto di `quote_dal_modello` dice quante quote sono MARCATE,
+// 0.98.1: il rifiuto di `model_dimensions` dice quante quote sono MARCATE,
 //         non solo quante ce ne sono: senza quel dato la diagnosi resta divisa
 //         in due, e il 18/9 c'e' voluta una sonda apposta per dividerla.
 // 0.98.2: i sei contatori di annotazione per vista (voce Z-E1), piu' i sei del
 //         FOGLIO a parte — perche' `InsertNote` scrive li', e contando solo le
 //         viste `note` sarebbe un campo che non puo' diventare vero.
-// 0.98.3: `cartiglio` distingue «la proprieta' non c'e'» da «c'e' sul modello e
+// 0.98.3: `title_block` distingue «la proprieta' non c'e'» da «c'e' sul modello e
 //         il cartiglio la mostra vuota» — due diagnosi opposte che prima
 //         finivano nello stesso elenco, e mandavano a riparare la cosa
 //         sbagliata.
-// 0.98.4: `viste_standard` non sorteggia piu' il pezzo. Metteva in tavola le
+// 0.98.4: `standard_views` non sorteggia piu' il pezzo. Metteva in tavola le
 //         viste del PRIMO documento aperto — un ordine che nessuno dichiara — e
 //         con piu' di un pezzo aperto faceva la tavola di un altro pezzo senza
 //         dare nessun errore. Adesso: uno solo, quello; due o piu', rifiuta.
-// 0.98.5: `salva_documento` guarda PERCHE' non ha salvato invece di riportare
+// 0.98.5: `save_document` guarda PERCHE' non ha salvato invece di riportare
 //         un codice: la cartella che non esiste e il file in sola lettura si
 //         vedono da qui, e il codice di `SaveAs` non li dice.
-// 0.99.0: `quota_in_tavola` (voce K10) — LE QUOTE IN TAVOLA SI CREANO.
+// 0.99.0: `drawing_dimension` (voce K10) — LE QUOTE IN TAVOLA SI CREANO.
 //         `InsertModelAnnotations*` non ne porta nessuna fuori processo, ma
 //         `AddDimension` sugli spigoli della vista si', e coi valori giusti.
 //         Ogni quota viene RILETTA: risponde quanto misura, non «fatto».
-// 0.100.0: `nota_in_tavola` (voce E2-bis) — una nota di testo sul foglio.
+// 0.100.0: `note` (voce E2-bis) — una nota di testo sul foglio.
 //          `InsertNote` risponde, `InsertNewNote3` e' `Void` e non fa niente.
 //          Le note si contano SUL FOGLIO e non nelle viste: contarle nel posto
 //          sbagliato avrebbe letto 0 con la nota al suo posto, e quel falso
@@ -85,7 +85,7 @@ using System.Runtime.InteropServices;
 //          vedeva perche' il banco gira su una scrivania pulita. Facce e
 //          spigoli sono l'89% del carico e le voci sono gia' asciutte:
 //          l'unica leva e' QUANTE. Adesso ~13.300, il 17% di margine.
-// 0.104.0: `sezione_in_tavola` (voce GT4) — la prima vista di sezione. La
+// 0.104.0: `section_view` (voce GT4) — la prima vista di sezione. La
 //          linea di taglio non si passa in firma: si disegna sul foglio e si
 //          lascia selezionata, e `CreateSectionViewAt5` prende quella.
 //          IL CONTATORE DEL TRATTEGGIO NON E' QUELLO CHE LA VOCE
@@ -93,7 +93,7 @@ using System.Runtime.InteropServices;
 //          vera, prima e dopo il ricalcolo. Si legge `GetFaceHatchCount`, e
 //          l'altro si riporta lo stesso nella risposta perche' nessuno
 //          ripercorra la strada gia' misurata.
-// 0.105.0: `dettaglio_in_tavola` (voce GT4, l'altra meta'). E qui 'per
+// 0.105.0: `detail_view` (voce GT4, l'altra meta'). E qui 'per
 //          analogia' sarebbe stato sbagliato due volte su tre: 'Showtype'
 //          vuole swDetCircleShowType_e, e il conto delle circonferenze di
 //          dettaglio e' il VALORE DI RITORNO di GetDetailCircleCount2, non
@@ -121,9 +121,9 @@ using System.Runtime.InteropServices;
 //          descrizioni mute e' un tetto in Prove/ProveILimiti.cs, ed e'
 //          passato da 12 a ZERO.
 // 0.108.0: `DocumentoRichiesto` su ogni operazione del catalogo (voce
-//          Z-D0-ter): «parte», «assieme», «tavola», o piu' d'uno. La
-//          famiglia era un'approssimazione, e `verifiche` lo dimostrava
-//          da sola -- `cartiglio` vuole una tavola, `verifica_interferenze`
+//          Z-D0-ter): «part», «assembly», «drawing», o piu' d'uno. La
+//          famiglia era un'approssimazione, e `checks` lo dimostrava
+//          da sola -- `title_block` vuole una tavola, `interference_check`
 //          un assieme, le altre sei una parte. Quel fatto viveva nella
 //          testa di chi aveva scritto l'operazione e in una frase di prosa
 //          che nessun controllo legge. Adesso sta nel JSON, e un modello
@@ -133,9 +133,9 @@ using System.Runtime.InteropServices;
 //          schema dice quali campi sono leciti, non quale combinazione
 //          costruisce un pezzo.
 //          Sono 24 e non 71 apposta: gli altri casi usano selettori che
-//          vivono solo nel banco (@faccia, @spigolo) o i segnaposto
+//          vivono solo nel banco (@face, @edge) o i segnaposto
 //          {LAVORO}/{PROFILI}. Copiarli avrebbe dato 24 esempi buoni e 47
-//          TRAPPOLE -- un modello che copia @faccia(verso=alto) riceve un
+//          TRAPPOLE -- un modello che copia @face(normal=up) riceve un
 //          rifiuto che non capisce, e poi non si fida piu' del catalogo.
 // 0.110.0: il guinzaglio anche nella libreria (voce Z-C4), la STESSA
 //          classe che usa il banco -- due meccanismi di scadenza che si
@@ -145,14 +145,14 @@ using System.Runtime.InteropServices;
 //          riga non-JSON lo rompe; e **non uccide il processo**, perche'
 //          il ponte e' un servizio di qualcun altro mentre il banco e' un
 //          giro che o finisce o non serve.
-// 0.111.0: `applica_materiale.materiale` vale S235JR se non detto e
-//          `combina_corpi.operazione` vale unisci (voce Z-G3), e la
+// 0.111.0: `apply_material.material` vale S235JR se non detto e
+//          `combine_bodies.operation` vale unisci (voce Z-G3), e la
 //          risposta DICE che l'ha scelto il ponte. Questa nota mancava:
 //          la versione era stata alzata e raccontata solo nel CHANGELOG
 //          del ponte (0.84.0). Scritta il 24/9/2026 con la 0.112.0.
 // 0.112.0: la cartella dei profili di saldatura non ha piu' un percorso
 //          predefinito. `CartellaDeiProfili()` torna null senza
-//          PROFILI_SALDATURA, e `profili_saldatura` distingue «non so dove
+//          PROFILI_SALDATURA, e `weldment_profiles` distingue «non so dove
 //          sia» da «li' non c'e'»: prima i due casi davano lo stesso
 //          messaggio, con un percorso vuoto fra virgolette. Il ripiego era
 //          il disco di una postazione sola: non aiutava nessun altro e
@@ -165,7 +165,7 @@ using System.Runtime.InteropServices;
 //          rilettura, non una prova.
 // 0.113.0: tre cose misurate dalle sonde del 24/9/2026, tutte e tre senza
 //          errore da nessuna parte prima di oggi.
-//          - `modifica_quota` RIFIUTA se la quota nuova fa uscire
+//          - `set_dimension` RIFIUTA se la quota nuova fa uscire
 //            un'apertura dal materiale (voce E18, pezzo c): contate le
 //            aperture chiuse delle facce piane prima e dopo, se calano
 //            rimette il valore di prima e rilegge il volume. Era il caso
@@ -174,40 +174,40 @@ using System.Runtime.InteropServices;
 //            e' ABILITATA (voce Z-C3): `CommandInProgress` resta falso con
 //            un modale aperto, misurato con `Controlli/Modale`.
 //          - Due descrizioni del catalogo che si proclamavano sole
-//            (`quote_dal_modello`, `estrudi_su_faccia`) dicono il vero
+//            (`model_dimensions`, `extrude_on_face`) dicono il vero
 //            (voce Z-C15): le ha trovate il controllo di contratto nuovo.
 //          E prima del primo banco verde, sulla stessa versione mai
 //          committata (il giro del 24/9 sera e' morto per un singhiozzo di
 //          S:, e un giro nuovo serviva comunque):
-//          - la famiglia LAMIERA: `flangia_base`, `sviluppo_dxf` (voce GP18),
+//          - la famiglia LAMIERA: `base_flange`, `flat_pattern_dxf` (voce GP18),
 //            dalla sonda che ha misurato lo sviluppo al centesimo;
-//          - `schema_di_quote`, DimXpert dal nucleo (voce Z-H3);
-//          - `esporta_pdf` con «cerca»: il PDF si rilegge, decodificando le
+//          - `dimension_scheme`, DimXpert dal nucleo (voce Z-H3);
+//          - `export_pdf` con «search»: il PDF si rilegge, decodificando le
 //            /ToUnicode (voci GT3-bis, Z-C9);
 //          - lo stato della tavola conta le quote senza spigolo (voce Z-A2);
-//          - la descrizione di `estrudi_sezione` dice che l'asola e' un
+//          - la descrizione di `extrude_section` dice che l'asola e' un
 //            poligono circoscritto: il primo giro lo ha scoperto col caso nuovo.
 // 0.114.0: gli ASSI si controllano per identita' e due operazioni di
 //          saldatura che non avevano mai fatto niente.
 //          - Lo stato di un asse porta un punto sulla retta e la direzione, e
-//            `asse_uid` si confronta con la firma del piano (voce E4, la parte
+//            `axis_uid` si confronta con la firma del piano (voce E4, la parte
 //            degli assi): un asse rifatto altrove col nome di prima si
 //            rifiuta, invece di ripetere attorno a quello nuovo.
-//          - `taglia_membri` passava i corpi come `object[]`, e SOLIDWORKS
+//          - `trim_members` passava i corpi come `object[]`, e SOLIDWORKS
 //            rispondeva con una feature che nell'albero non entrava: la T
-//            restava identica e l'operazione diceva `corpi_tagliati: 1`. Con
+//            restava identica e l'operazione diceva `bodies_trimmed: 1`. Con
 //            `Body2[]` il taglio nasce, e una guardia pretende che la feature
 //            sia nell'albero e che il volume cambi (voce Z-C6).
-//          - `cordone_saldatura` non aveva mai creato un cordone: prende DUE
+//          - `weld_bead` non aveva mai creato un cordone: prende DUE
 //            facce invece di due insiemi di corpi, usa la chiamata per
 //            selezione (l'unica che lo crea), controlla prima che le facce si
 //            tocchino ad angolo e rilegge il lato dalla feature.
-//          - `fazzoletto` esce dal catalogo (`Provata = false`): non nasce in
+//          - `gusset` esce dal catalogo (`Provata = false`): non nasce in
 //            nessuna delle sedici varianti provate.
 // 0.115.0: LA TAVOLA QUOTATA, GUARDATA (voce GT11). Chiesta una tavola da
 //          vedere, la tavola — col banco verde — aveva quattro difetti:
 //          - i numeri delle quote verticali SOPRA le linee di richiamo: la
-//            trasformazione modello-foglio di `quota_in_tavola` usava la matrice
+//            trasformazione modello-foglio di `drawing_dimension` usava la matrice
 //            trasposta (Y specchiata nelle viste ruotate) e sommava la posizione
 //            della vista al posto della traslazione (5 mm di errore). Adesso
 //            `MathPoint.MultiplyTransform`;
@@ -219,8 +219,8 @@ using System.Runtime.InteropServices;
 //            un'altra vista, leggendolo dagli spigoli delle quote che ci sono.
 //          E le quote restano dentro la cornice del foglio, e la vista si puo'
 //          dire con l'identificativo dello stato («V2»).
-// 0.116.0: L'ANCORA (voce E18, pezzi a e b). `taglio_cilindrico` e
-//          `taglio_rettangolare` prendono `ancora`: per ogni asse della faccia
+// 0.116.0: L'ANCORA (voce E18, pezzi a e b). `cylindrical_cut` e
+//          `rectangular_cut` prendono `anchor`: per ogni asse della faccia
 //          una quota dal centro a uno spigolo, oppure il centro a meta' fra due
 //          spigoli opposti. Senza, x_mm/y_mm restano assoluti e un foro a 20
 //          dal bordo resta dov'era quando la piastra si allunga. Le regole
@@ -249,15 +249,15 @@ using System.Runtime.InteropServices;
 //          caso col modello, perche' guarda la sovrascrittura e non i valori.
 //          E L'ASOLA (voce E18): lo schizzo nasce definito — tangenze, raggi
 //          uguali, mezzeria fra i centri quotata, raggio quotato, orizzontale o
-//          verticale — e si corregge con modifica_quota; prende `ancora`, e
+//          verticale — e si corregge con set_dimension; prende `anchor`, e
 //          obliqua quota l'angolo contro lo spigolo d'ancora con
 //          AddSpecificDimension (Extension.AddDimension torna null li').
-// 0.119.0: IL RIALZO ANCORATO (voce E18). `estrudi_su_faccia` prende `ancora`:
+// 0.119.0: IL RIALZO ANCORATO (voce E18). `extrude_on_face` prende `anchor`:
 //          il punto e' il centro del contorno, e vale per un contorno solo,
 //          tondo (diametro quotato, ancora sul centro) o rettangolare
 //          allineato (orizzontali e verticali, due quote, centro costruito con
 //          la diagonale). Per un contorno qualunque un rifiuto che dice perche'.
-//          E `foro_guidato`, l'ultimo pezzo: un'ancora per posizione (tutte o
+//          E `hole_wizard`, l'ultimo pezzo: un'ancora per posizione (tutte o
 //          nessuna), messa nello schizzo dei punti di HoleWizard dopo il
 //          posizionamento; definito si guarda dopo l'ultimo punto, lo
 //          scavalcamento col raggio vero a foro nato.
@@ -265,59 +265,59 @@ using System.Runtime.InteropServices;
 //          raccordo variabile, filetto cosmetico, direzione di una ripetizione
 //          e ancora: se l'uid e' cambiato fra la lettura e adesso, si cerca lo
 //          spigolo con la stessa lunghezza nello stesso punto — uno solo, mai
-//          il piu' vicino — e si dice in `riancoraggi`. `LunghezzaMm` da' la
+//          il piu' vicino — e si dice in `reanchors`. `LunghezzaMm` da' la
 //          lunghezza VERA (GetLength3), non la corda: il bordo di un foro era
 //          «lungo 0» nello stato. FirmaCombacia confronta anche la lunghezza.
 // 0.121.0: LO SMUSSO CHE NON CI STA (caso r05, l'ultimo silenzio della
-//          regressione). modifica_quota rifiuta, e rimette il valore, se una
+//          regressione). set_dimension rifiuta, e rimette il valore, se una
 //          lavorazione che non e' un taglio perde facce e dopo di lei c'e' uno
 //          smusso o un raccordo: e' lui che si prende una faccia intera, e
 //          SOLIDWORKS non lo segnala. RimettiLaQuota estratto (due guardie).
-// 0.122.0: `flangia_spigolo` (voce GP18, terza su sette). La flangia a spigolo
+// 0.122.0: `edge_flange` (voce GP18, terza su sette). La flangia a spigolo
 //          nasce solo con un RETTANGOLO di profilo sul piano della flangia (la
 //          faccia di testa): dieci tentativi della sonda, i primi otto null, il
 //          nono una flangia vuota. Lunghezza allo spigolo virtuale esterno =
-//          profilo + T; volume in piu' confrontato col conto a mano. E `orlo`
+//          profilo + T; volume in piu' confrontato col conto a mano. E `hem`
 //          (quarta su sette): sullo spigolo selezionato, nessuno schizzo;
 //          l'aperto e' la piega a 180 gradi col raggio = meta' del gioco.
 //          `SpigoloDiBordo` estratto, per flangia e orlo.
-// 0.123.0: `piega_da_schizzo` (voce GP18, quinta su sette): la lamiera si
+// 0.123.0: `sketched_bend` (voce GP18, quinta su sette): la lamiera si
 //          piega lungo una linea tracciata su una faccia (InsertSheetMetal3dBend
 //          con lo schizzo selezionato, al primo colpo). Volume e sviluppo
 //          restano; l'ingombro prima e dopo dice quale lato e' rimasto fermo.
 //          Il jog no: sette varianti di selezione, niente.
-// 0.124.0: `tabella_fori_in_tavola` (voce GT5). Le tabelle nascono (la sonda
+// 0.124.0: `hole_table` (voce GT5). Le tabelle nascono (la sonda
 //          unica del 26/9: generali, revisioni, fori; la distinta di taglio no).
 //          La tabella fori vuole il vertice d'origine col marchio 1 e la faccia
 //          col marchio 2, SELEZIONATI nella vista: coi marchi scambiati nasce
 //          vuota senza errore, quindi si pretende righe = fori + 1 e ogni
-//          posizione si rilegge contro il pezzo. `quota_in_tavola` lascia i fori
+//          posizione si rilegge contro il pezzo. `drawing_dimension` lascia i fori
 //          alla tabella quando c'e' (la tabella sta sul FOGLIO, non sulla vista).
-//          `RisolviVista` estratto da quota_in_tavola. E `rugosita_in_tavola`,
-//          `datum_in_tavola`, `tolleranza_geometrica_in_tavola` (voci GT6, GT8):
+//          `RisolviVista` estratto da drawing_dimension. E `surface_finish`,
+//          `datum`, `geometric_tolerance` (voci GT6, GT8):
 //          attaccate allo spigolo di bordo del lato chiesto (selezionato nella
 //          vista), poi SPOSTATE fuori dal pezzo, oltre le quote gia' messe e fuori
 //          dalle altre viste — tutto trovato guardando il PNG. Riletti Ra,
 //          lettera, simbolo, valore e riferimenti.
-// 0.125.0: `distinta_taglio` giusta (voce GT2). Metteva TUTTE le barre in una
+// 0.125.0: `cut_list` giusta (voce GT2). Metteva TUTTE le barre in una
 //          voce («4 x 1000» per un telaio 1000 x 800) e il caso era verde.
 //          Causa: il pezzo non era un saldato. Adesso mette la lavorazione
 //          «Saldatura» se manca, accende la distinta automatica sulla cartella
 //          dei corpi, legge le voci (descrizione, lunghezza, quantita') e
 //          controlla che le quantita' sommino ai corpi. Con la stessa cura nasce
-//          `distinta_taglio_in_tavola`: Provata (e prende la vista per uid,
-//          V1, come le altre operazioni di tavola). E `vista_sviluppo` (voce
+//          `drawing_cut_list`: Provata (e prende la vista per uid,
+//          V1, come le altre operazioni di tavola). E `flat_pattern_view` (voce
 //          GT13): la lamiera distesa in tavola; l'ingombro dagli spigoli
 //          visibili (il contorno della vista diceva 92,6 per 80,7) contro lo
 //          sviluppo misurato sul pezzo prima di mettere la vista. E
-//          `saldatura_in_tavola` (voce GT7): il simbolo ISO sul giunto fra due
+//          `drawing_weld_symbol` (voce GT7): il simbolo ISO sul giunto fra due
 //          corpi, che l'operazione trova da se'; il codice e' quello di
 //          gtol.sym (`<WELD-FILL>`) — con un codice sbagliato il simbolo nasceva
 //          e si rileggeva uguale, senza triangolo. GUARDANDO I PNG, col banco
 //          verde: la distinta (17 colonne del modello di tabella) usciva dal
 //          foglio e lo sviluppo cadeva nel cartiglio — adesso si nascondono le
 //          colonne che in officina non servono e tabella e vista vanno in un
-//          posto libero (OperazioniPostoSulFoglio). E GT12: `quota_in_tavola`
+//          posto libero (OperazioniPostoSulFoglio). E GT12: `drawing_dimension`
 //          rilegge la profondita' del foro cieco dal richiamo e guarda il
 //          rettangolo vero di ogni testo (IDisplayData) contro gli altri testi e
 //          le linee del pezzo (i pezzi di una stessa quota — il richiamo «Ø8 ↧5»
@@ -329,75 +329,75 @@ using System.Runtime.InteropServices;
 //          (le mette SOLIDWORKS creando la vista) e GetCenterMarkCount non le
 //          contava — si contano enumerandole, nello stato e nell'operazione, che
 //          diventa un controllo (da codice una croce nuova non nasce, misurato).
-//          Z-F2: `tolleranza_quota` (±, bilaterale, accoppiamento ISO riscontrato
+//          Z-F2: `dimension_tolerance` (±, bilaterale, accoppiamento ISO riscontrato
 //          sulla tabella ISO 286-1) coi decimali della tolleranza impostati — senza,
-//          in tavola usciva «10 H7 +0 / 0». GT9: `distinta_base_in_tavola`
+//          in tavola usciva «10 H7 +0 / 0». GT9: `drawing_bom`
 //          (InsertBomTable4 sulla vista, confrontata coi componenti dell'assieme,
-//          messa in un posto libero) e `bollatura` (i palloncini: AutoBalloon5, contati dopo).
-// 0.126.0: Z-C9, la meta' «oggetti»: `esporta_pdf` rilegge il testo del PDF e
+//          messa in un posto libero) e `balloons` (i palloncini: AutoBalloon5, contati dopo).
+// 0.126.0: Z-C9, la meta' «oggetti»: `export_pdf` rilegge il testo del PDF e
 //          pretende che ogni numero stampato dalle quote ci sia (una quota su un
 //          livello che non si stampa conta nel documento e in officina non
 //          arriva). Visto scattare: il richiamo Ø12 su un livello non
 //          stampabile, «12 (sulla tavola 1, nel PDF 0)».
-//          `palloncini` diventa `bollatura` (lessico d'officina) e dice quali
+//          `palloncini` diventa `balloons` (lessico d'officina) e dice quali
 //          voci della distinta restano senza palloncino in TUTTA la tavola
 //          (visto sullo Starlink: il disco coperto nell'isometrica). Una vista
 //          dove ogni voce e' gia' bollata altrove non e' piu' un errore.
-//          `quota_in_tavola`: un cerchio e' un foro solo se guarda chi legge ED e'
+//          `drawing_dimension`: un cerchio e' un foro solo se guarda chi legge ED e'
 //          anello interno di una faccia piana (la boccola tornita: il contorno
 //          Ø30 prendeva «Ø30 ↧30»); il contorno ha la quota di diametro, i cerchi
 //          di taglio si dicono. Passante/profondita' anche dalla geometria, fori
 //          raggruppati per diametro e profondita', e il ripiego senza richiamo
 //          scrive la profondita' nel testo.
-// 0.127.0: GT14, il pezzo tondo visto di fianco. `quota_in_tavola` sulla vista
+// 0.127.0: GT14, il pezzo tondo visto di fianco. `drawing_dimension` sulla vista
 //          longitudinale di un albero o di una boccola: lunghezze fra le facce
 //          (due cerchi di taglio, in parallelo dalla prima faccia) e diametri
 //          dalle due generatrici di ogni cilindro (il Ø lo mette SOLIDWORKS),
 //          riletti; le generatrici senza faccia provate a coppie e tenute solo
 //          se il valore e' un diametro vero del pezzo; i diametri che la vista
-//          non espone, detti. `esporta_pdf` conta le quote di cui il testo non
+//          non espone, detti. `export_pdf` conta le quote di cui il testo non
 //          si legge (non controllate) invece di saltarle in silenzio.
-// 0.128.0: Z-D1 e Z-D6, l'assieme intero. `proprieta_di_massa` sull'assieme
+// 0.128.0: Z-D1 e Z-D6, l'assieme intero. `mass_properties` sull'assieme
 //          (CreateMassProperty senza corpi) controllata contro la somma dei
-//          pezzi; `ingombro_corpo` coi corpi dei componenti portati
-//          nell'assieme (arrivano nello spazio della parte); `esporta_step` e
-//          `esporta_iges` dell'assieme, con i solidi dello STEP contati contro
+//          pezzi; `body_bounding_box` coi corpi dei componenti portati
+//          nell'assieme (arrivano nello spazio della parte); `export_step` e
+//          `export_iges` dell'assieme, con i solidi dello STEP contati contro
 //          quelli dei pezzi (rileggerlo apre un modale). Soppressi esclusi e detti.
 // 0.129.0: Z-D3, Z-D4, Z-D5. Lo stato dell'assieme dice i TIPI degli
 //          accoppiamenti per nome (GetMates da' IMate2), se un componente e' un
 //          sotto-assieme, se e' visibile e se e' trasparente (MaterialPropertyValues
-//          [7]); operazione nuova `fissa_componente` (FixComponent/UnfixComponent
+//          [7]); operazione nuova `fix_component` (FixComponent/UnfixComponent
 //          sul componente selezionato, riletti con IsFixed; anche il primo
 //          componente, che SOLIDWORKS fissa da solo, si lascia liberare).
-// 0.130.0: Z-F1, variabili globali ed equazioni. `variabile_globale` (un
-//          valore in mm o un'espressione) e `lega_quota` (la quota guidata da
+// 0.130.0: Z-F1, variabili globali ed equazioni. `global_variable` (un
+//          valore in mm o un'espressione) e `link_dimension` (la quota guidata da
 //          un'espressione), rilette dai VALORI (get_Status non si legge);
 //          «spessore» e' un nome gia' preso nel SOLIDWORKS in italiano. Lo stato
 //          elenca le equazioni del pezzo.
-// 0.131.0: Z-F3, `riordina_lavorazione`: ReorderFeature prima o dopo un'altra
+// 0.131.0: Z-F3, `reorder_feature`: ReorderFeature prima o dopo un'altra
 //          lavorazione, nome controllato col feature_id, ordine e volume riletti;
 //          uno spostamento che rompe una lavorazione a valle si rimette dov'era.
-// 0.132.0: Z-F5, `immagine_nello_schizzo`: una foto o uno schizzo a mano in uno
+// 0.132.0: Z-F5, `sketch_picture`: una foto o uno schizzo a mano in uno
 //          schizzo su un piano, in scala (SetSize con l'aspetto bloccato,
 //          SetOrigin), verificata con GetPointOnSketchFromPixel — che vuole
 //          (colonna, riga), al contrario del nome dei suoi argomenti. Un PDF non
 //          entra. Il banco legge {DATI} (Banco\dati\, versionata).
-// 0.133.0: GA11, `specchia_componente`: IMirrorComponentFeatureData con array
+// 0.133.0: GA11, `mirror_component`: IMirrorComponentFeatureData con array
 //          tipizzati; istanza, opposto legato (MirrorStock) o slegato, sempre
 //          chiesto; verificati il centro contro lo specchio e, per gli opposti, il
 //          legame letto dall'albero del file nuovo.
-// 0.134.0: Z-F4, `cambia_estrusione`: GetDefinition come IExtrudeFeatureData2,
+// 0.134.0: Z-F4, `edit_extrusion`: GetDefinition come IExtrudeFeatureData2,
 //          SetEndCondition/SetDepth, ModifyDefinition — il cieco passante, un'altra
 //          profondita', la piastra che cresce; riletti definizione, volume ed
 //          errori, e rimessa com'era se rompe qualcosa a valle.
-// 0.135.0: Z-B3, `dipendenze`: i file da cui dipende il documento
+// 0.135.0: Z-B3, `file_dependencies`: i file da cui dipende il documento
 //          (GetDependencies) e quali mancano, detto dal DISCO — il parametro
 //          «ListBrokenRefs» non segna niente (misurato). Lo stato dell'assieme
-//          dice `file_mancante` per il componente il cui file non c'e'.
+//          dice `file_missing` per il componente il cui file non c'e'.
 // 0.136.0: la revisione avversariale del 27/9/2026 (voce Z-C20). Le guardie di
-//          modifica_quota in un posto solo (OperazioniGuardie.cs) e usate da
-//          variabile_globale, lega_quota e cambia_estrusione, col ripristino;
-//          cambia_estrusione tiene il piano medio; in tavola il «gia' quotato»
+//          set_dimension in un posto solo (OperazioniGuardie.cs) e usate da
+//          global_variable, link_dimension e edit_extrusion, col ripristino;
+//          edit_extrusion tiene il piano medio; in tavola il «gia' quotato»
 //          si legge prima della chiamata e per CILINDRO, il tondo conta solo le
 //          facce piane (gli smussi si dicono), la borchia non e' un foro;
 //          IGES dell'assieme rifiutato; massa per configurazione del componente;
@@ -406,7 +406,7 @@ using System.Runtime.InteropServices;
 //          the loaded interop, with what is known of each member from
 //          api_knowledge.json.
 // 0.138.0: Z-C21.2, the silent defects of the API audit that need no probe:
-//          SaveAs3 after ClearSelection2, WeldGap always on, combina_corpi by
+//          SaveAs3 after ClearSelection2, WeldGap always on, combine_bodies by
 //          signature, hidden bodies checked, angular dimensions in degrees,
 //          read-only and driven dimensions refused, BothDirections refused,
 //          GetErrorCode2 after ModifyDefinition, grids refused, the anchor on a
@@ -415,8 +415,8 @@ using System.Runtime.InteropServices;
 //          selection by mark, unions of boxes, body lists) and the static
 //          checks that keep obsolete calls and literal selection marks out
 //          (ObsoleteCallsContract, SelectionMarksContract, SelectionMarks.cs).
-// 0.140.0: the four operations rebuilt from the API help: raccordo_faccia
-//          (CreateDefinition(swFmFillet), marks 2/4), ripeti_riempimento
+// 0.140.0: the four operations rebuilt from the API help: fillet_face
+//          (CreateDefinition(swFmFillet), marks 2/4), fill_pattern
 //          (IFillPatternFeatureData, marks 1/4/16384), nervatura (InsertRib
 //          parallel to the sketch), fazzoletto back in the catalogue (mark 1
 //          and a profile that is not degenerate).
@@ -466,15 +466,18 @@ using System.Runtime.InteropServices;
 //          assembly read once: lightweight parts measured and never called
 //          suppressed, envelopes out of the mass, hidden components out of the
 //          STEP count, and the indented BOM compared with the tree SOLIDWORKS writes.
-// 0.148.0: Z-C14, `accoppia` measures the directions a mate blocks (the
+// 0.148.0: Z-C14, `mate` measures the directions a mate blocks (the
 //          perturbation test measured on 30/9/2026) and refuses a redundant
 //          mate; and the safety nets of W3.1-bis.2 around the library.
 // 0.149.0: Z-C21.14, the plan executor hands on its plan document, the
 //          document it ended on and what FinishRecordingUndoObject answered for
-//          the plan's undo entry, so that `annulla` reads the plan's document
+//          the plan's undo entry, so that `undo` reads the plan's document
 //          and knows when a later entry sits on top.
-[assembly: AssemblyVersion("0.149.0.0")]
-[assembly: AssemblyFileVersion("0.149.0.0")]
+// 0.150.0: W3.1-bis.5, rename window 2: the operations, arguments, values,
+//          selectors and answer fields of the library are English names,
+//          generated from the name map (Controlli/lingua/window-2-surface.js).
+[assembly: AssemblyVersion("0.150.0.0")]
+[assembly: AssemblyFileVersion("0.150.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -489,4 +492,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.149.0")]
+[assembly: AssemblyInformationalVersion("0.150.0")]

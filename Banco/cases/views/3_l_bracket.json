@@ -2,15 +2,15 @@
  {
   "_why": "V2 -- forma 3 di 5: STAFFA A L. Due parallelepipedi a novanta gradi. Le facce sono poche e tutte piane: lo stato testuale ha ogni numero che serve, e nessuno dice DA CHE PARTE sta l'aletta. E' la forma in cui una vista sola dovrebbe vincere piu' nettamente.",
   "_truth": "Base 120x60x8 sul piano superiore, piu' un'aletta 120x8 alta 50 cresciuta dal bordo y=-30 della faccia in cima. Volume 120*60*8 + 120*8*50 = 57600 + 48000 = 105600 mm3.",
-  "operazione": "estrudi_rettangolo",
-  "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 60, "spessore_mm": 8, "centrato": true }
+  "operation": "extrude_rectangle",
+  "arguments": { "plane": "top", "length_mm": 120, "width_mm": 60, "thickness_mm": 8, "centered": true }
  },
  {
-  "operazione": "estrudi_su_faccia",
-  "argomenti": {
-   "faccia_rif": { "passo": 1, "genere": "faccia_superiore" },
-   "contorni": [{ "vertici": [[-60, -30], [60, -30], [60, -22], [-60, -22]] }],
-   "altezza_mm": 50
+  "operation": "extrude_on_face",
+  "arguments": {
+   "face_ref": { "step": 1, "kind": "top_face" },
+   "contours": [{ "vertices": [[-60, -30], [60, -30], [60, -22], [-60, -22]] }],
+   "height_mm": 50
   }
  }
 ]

@@ -33,7 +33,7 @@ come_si_misura  le attese, nella stessa forma dei casi di `Banco/cases/`:
 ```
 
 **Il compito non nomina le operazioni, e non e' una dimenticanza.** Se il
-compito dicesse «usa `estrudi_rettangolo` poi `taglio_cilindrico`», si starebbe
+compito dicesse «usa `extrude_rectangle` poi `cylindrical_cut`», si starebbe
 misurando l'obbedienza, non la capacita' di scegliere. La scelta delle
 operazioni **e' cio' che si misura**.
 

@@ -12,13 +12,13 @@ namespace Riscontro.Disegno
     /// ── PERCHE' ESISTONO ─────────────────────────────────────────────────
     ///
     /// Fino a qui nessuna delle operazioni del catalogo sapeva rispondere alla
-    /// domanda «com'e' venuto?». Le misure c'erano — `taglio_rettangolare`
-    /// conta il materiale tolto, `telaio_rettangolare` confronta l'ingombro
-    /// col promesso, `foro_guidato` misura dove e' finito l'asse — ma erano
+    /// domanda «com'e' venuto?». Le misure c'erano — `rectangular_cut`
+    /// conta il materiale tolto, `rectangular_frame` confronta l'ingombro
+    /// col promesso, `hole_wizard` misura dove e' finito l'asse — ma erano
     /// **private e interne alle singole operazioni**: il modello non poteva
     /// chiamarne nessuna.
     ///
-    /// `distinta_taglio` e' il precedente: un'operazione di catalogo che LEGGE
+    /// `cut_list` e' il precedente: un'operazione di catalogo che LEGGE
     /// invece di disegnare. Questa fa lo stesso su una domanda diversa.
     ///
     /// ── LA DOMANDA A CUI RISPONDE, E PERCHE' NON E' OVVIA ────────────────
@@ -110,12 +110,12 @@ namespace Riscontro.Disegno
                     "Il pezzo non ha nessun corpo: non c'e' niente da verificare. " +
                     "Fai prima un'estrusione.");
 
-            string soloQuesto = Str(a, "corpo_uid", null);
+            string soloQuesto = Str(a, "body_uid", null);
 
-            // THE BODIES OF THE PART, counted before the «corpo_uid» filter
+            // THE BODIES OF THE PART, counted before the «body_uid» filter
             // (Z-C21.10, finding N61). IPartDoc~GetBodies2.html: «false gets
             // all of the bodies in the part». With one body asked for,
-            // «corpi_totali» is 1 on a part of two, and the verdict read «Un solo
+            // «bodies_total» is 1 on a part of two, and the verdict read «Un solo
             // corpo solido ... si puo' esportare»: a sentence about the PART,
             // which has two bodies and would give an STL of two shells.
             int bodiesInPart = grezzi.Count(o => o is IBody2);
@@ -127,7 +127,7 @@ namespace Riscontro.Disegno
 
             // WHICH BODIES (Z-C21.5, scheme S5). Every body of the part, each
             // labelled by its place in the list (the L12-3 note above is about
-            // those labels); or the ONE body «corpo_uid» names, resolved through
+            // those labels); or the ONE body «body_uid» names, resolved through
             // the document state and its signature (BodyAskedFor: CorpiDaUid and
             // FirmaCombacia), never as the body in that place of a GetBodies2
             // made now. A uid is an identity, and a cut that renumbers the
@@ -174,20 +174,20 @@ namespace Riscontro.Disegno
 
                 var voce = new Dictionary<string, object>
                 {
-                    ["corpo"] = uid,
-                    ["tipo"] = comeSiChiama,
-                    ["facce"] = Intero(() => corpo.GetFaceCount(), -1),
-                    ["chiuso"] = fessure == 0,
-                    ["fessure"] = fessure,
-                    ["difetti"] = difetti == null ? null : (object)difetti.Count,
+                    ["body"] = uid,
+                    ["kind"] = comeSiChiama,
+                    ["faces"] = Intero(() => corpo.GetFaceCount(), -1),
+                    ["closed"] = fessure == 0,
+                    ["gaps"] = fessure,
+                    ["defects"] = difetti == null ? null : (object)difetti.Count,
                     // I NUMERI GREZZI RESTANO, e non e' ridondanza: quando un
                     // giorno una versione di SOLIDWORKS cambiera' una delle due
                     // convenzioni, e' da qui che lo si vedra' invece che da un
                     // giudizio girato al contrario.
-                    ["check_grezzo"] = check,
-                    ["check2_grezzo"] = check2,
+                    ["check_raw"] = check,
+                    ["check2_raw"] = check2,
                 };
-                if (difetti != null && difetti.Count > 0) voce["difetti_elenco"] = difetti.ToArray();
+                if (difetti != null && difetti.Count > 0) voce["defects_list"] = difetti.ToArray();
                 if (difetti == null) voce["defects_not_read"] = DefectsNotRead;
                 elenco.Add(voce);
 
@@ -221,7 +221,7 @@ namespace Riscontro.Disegno
             if (elenco.Count == 0)
                 return Fallito(
                     "Non trovo il corpo «" + soloQuesto + "». Gli identificativi dei " +
-                    "corpi stanno nello stato del documento, dentro «corpi».");
+                    "corpi stanno nello stato del documento, dentro «bodies».");
 
             // PIU' DI UN CORPO NON E' UN DIFETTO, ed e' un'altra cosa da
             // «rotto»: un saldato ne ha dieci per costruzione. Ma per una
@@ -234,7 +234,7 @@ namespace Riscontro.Disegno
             bool stampabile = motivi.Count == 0;
 
             // ONE BODY OF SEVERAL: THE VERDICT SPEAKS FOR THAT BODY (N61).
-            // «stampabile» stays the verdict on the body asked for — the
+            // «printable» stays the verdict on the body asked for — the
             // question «is this body sound» — and `verdict_about` says which.
             // The sentence that said «si puo' esportare» of the part is
             // replaced by one that names the body and the bodies of the part;
@@ -247,38 +247,38 @@ namespace Riscontro.Disegno
             string verdictAbout = "part";
             if (!string.IsNullOrEmpty(soloQuesto) && bodiesInPart > 1)
             {
-                string which = Convert.ToString(((Dictionary<string, object>)elenco[0])["corpo"]);
+                string which = Convert.ToString(((Dictionary<string, object>)elenco[0])["body"]);
                 verdictAbout = "body " + which;
                 if (stampabile)
                     giudizio =
                         "Body " + which + " is a closed solid with no defects. This verdict is about " +
                         "body " + which + " only: the part has " + bodiesInPart + " bodies, and an STL " +
                         "of the part would be " + bodiesInPart + " separate shells. Ask again without " +
-                        "«corpo_uid» for the verdict on the whole part.";
+                        "«body_uid» for the verdict on the whole part.";
             }
 
             var misure = new Dictionary<string, object>
             {
-                ["corpi"] = elenco.ToArray(),
-                ["corpi_totali"] = elenco.Count,
-                // Every body of the part, whatever «corpo_uid» asked, and what
-                // «stampabile» and «giudizio» speak for: «part» or «body C2» (N61).
+                ["bodies"] = elenco.ToArray(),
+                ["bodies_total"] = elenco.Count,
+                // Every body of the part, whatever «body_uid» asked, and what
+                // «printable» and «verdict» speak for: «part» or «body C2» (N61).
                 ["bodies_in_part"] = bodiesInPart,
                 ["verdict_about"] = verdictAbout,
-                ["solidi"] = solidi,
-                ["fogli"] = fogli,
-                ["altri_corpi"] = altri,
-                ["corpi_con_difetti"] = conDifetti,
-                ["corpi_non_chiusi"] = conFessure,
-                ["stampabile"] = stampabile,
+                ["solids"] = solidi,
+                ["sheets"] = fogli,
+                ["other_bodies"] = altri,
+                ["bodies_with_defects"] = conDifetti,
+                ["bodies_not_closed"] = conFessure,
+                ["printable"] = stampabile,
                 // UNA FRASE, NON UN NUMERO. Chi legge deve sapere COSA fare, e
-                // «stampabile: false» da solo non lo dice.
-                ["giudizio"] = giudizio,
+                // «printable: false» da solo non lo dice.
+                ["verdict"] = giudizio,
                 // IL LIMITE DICHIARATO, e va detto ogni volta: questa
                 // operazione guarda la TOPOLOGIA, non lo spessore delle pareti
                 // ne' le sovrasporgenze. Un guscio da 0,3 mm passa di qui
                 // senza una parola.
-                ["cosa_non_guarda"] =
+                ["what_it_does_not_check"] =
                     "Lo spessore delle pareti e le sovrasporgenze non li guarda nessuno " +
                     "ancora: qui si vede se il corpo e' chiuso e sano, non se e' stampabile " +
                     "dalla macchina che hai.",
@@ -343,7 +343,7 @@ namespace Riscontro.Disegno
 
         private static string NomeDelTipoDiCorpo(int tipo)
         {
-            if (tipo == (int)swBodyType_e.swSolidBody) return "solido";
+            if (tipo == (int)swBodyType_e.swSolidBody) return "solid";
             if (tipo == (int)swBodyType_e.swSheetBody) return "foglio";
             if (tipo == (int)swBodyType_e.swWireBody) return "filo";
             if (tipo == (int)swBodyType_e.swEmptyBody) return "vuoto";

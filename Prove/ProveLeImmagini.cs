@@ -60,9 +60,9 @@ namespace Prove.Contratti
             // E LA STRADA PER LA MISURA VERA. Un avvertimento senza alternativa
             // lascia il modello con lo stesso problema e in piu' il dubbio.
             Segna("e nomina come si prende la misura vera",
-                  testo.Contains("misura_fra_entita") &&
-                  testo.Contains("distanza_minima") &&
-                  testo.Contains("ingombro_corpo"),
+                  testo.Contains("measure_between") &&
+                  testo.Contains("minimum_distance") &&
+                  testo.Contains("body_bounding_box"),
                   "tre operazioni nominate, piu' lo stato");
 
             // ── E IL MOTIVO, che e' cio' che rende l'avviso ricordabile ──

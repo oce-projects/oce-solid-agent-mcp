@@ -1,8 +1,8 @@
 [
  {
-  "operazione": "crea_disegno",
-  "argomenti": {
-   "formato": "A3"
+  "operation": "create_drawing",
+  "arguments": {
+   "paper_size": "A3"
   }
  }
 ]

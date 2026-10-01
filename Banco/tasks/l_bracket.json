@@ -11,10 +11,10 @@
     { "cosa": "volume_mm3", "uguale": 67782, "tolleranza": 200,
       "perche": "120x50x8 = 48.000 per l'ala lunga; l'ala corta e' alta 60 in tutto meno gli 8 di spessore su cui appoggia, quindi 52x50x8 = 20.800. Tolti i due fori passanti, 2 x pi x 4,5^2 x 8 = 1.018. Totale 67.782. La tolleranza di 200 copre l'arrotondamento e un raccordo minimo, **non una lettura diversa del compito**" },
 
-    { "cosa": "corpi", "uguale": 1,
+    { "cosa": "bodies", "uguale": 1,
       "perche": "una staffa e' UN pezzo. Due corpi vuol dire che le ali non si sono unite, ed e' un difetto che sullo schermo non si vede: il pezzo sembra giusto e in officina arriva in due tronconi" },
 
-    { "cosa": "misure.fori", "uguale": 2,
+    { "cosa": "measurements.holes", "uguale": 2,
       "perche": "due, non uno e non quattro" }
   ],
 

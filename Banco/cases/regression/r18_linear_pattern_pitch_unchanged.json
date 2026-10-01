@@ -6,35 +6,35 @@
   "intent_why": "passo 30 e prima istanza dove il progettista l'ha messa: allungare la piastra lascia tutti e cinque i fori dove sono. L'invariante e' scritto «come_prima» e non come numeri, perche' la DIREZIONE della ripetizione la sceglie SOLIDWORKS dallo spigolo, e calcolarla a mano vorrebbe dire indovinare da che parte va -- un conto sbagliato qui trasformerebbe il caso in un falso silenzio.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 400, "larghezza_mm": 120,
-                     "spessore_mm": 20, "centrato": true }
+      "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 400, "width_mm": 120,
+                     "thickness_mm": 20, "centered": true }
     },
     {
-      "operation": "taglio_cilindrico",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
-                     "diametro_mm": 9, "passante": true }
+      "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
+                     "diameter_mm": 9, "through_all": true }
     },
     {
-      "operation": "ripeti_lineare",
+      "operation": "linear_pattern",
       "arguments": {
-        "feature_uid": "@feature(tipo=ICE,n=1)",
-        "asse1_uid": "@spigolo(asse=X,lungo~=400,n=1)",
-        "passo1_mm": 30,
-        "numero_istanze1": 5
+        "feature_uid": "@feature(kind=ICE,n=1)",
+        "axis1_uid": "@edge(axis=X,length~=400,n=1)",
+        "pitch1_mm": 30,
+        "instance_count1": 5
       }
     }
   ],
-  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 460 },
+  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 460 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [460, 120, 20] },
-    { "what": "centri_x_mm", "same_as_before": true,
+    { "what": "bounding_box_mm", "equal_to": [460, 120, 20] },
+    { "what": "centers_x_mm", "same_as_before": true,
       "tolerance": 0.05,
       "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
-    { "what": "centri_y_mm", "same_as_before": true,
+    { "what": "centers_y_mm", "same_as_before": true,
       "tolerance": 0.05,
       "tolerance_why": "come sopra" },
-    { "what": "diametri_mm", "same_as_before": true,
+    { "what": "diameters_mm", "same_as_before": true,
       "tolerance": 0.02,
       "tolerance_why": "cinque fori da 9: il diametro si legge da CylinderParams" }
   ]

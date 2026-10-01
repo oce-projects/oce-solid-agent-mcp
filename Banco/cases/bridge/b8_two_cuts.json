@@ -1,9 +1,9 @@
 [
  {
-  "operazione": "taglio_cilindrico",
-  "argomenti": {
-   "faccia_rif": { "passo": 0, "genere": "faccia_superiore" },
-   "x_mm": -20, "y_mm": 0, "diametro_mm": 12, "passante": true
+  "operation": "cylindrical_cut",
+  "arguments": {
+   "face_ref": { "step": 0, "kind": "top_face" },
+   "x_mm": -20, "y_mm": 0, "diameter_mm": 12, "through_all": true
   }
  }
 ]

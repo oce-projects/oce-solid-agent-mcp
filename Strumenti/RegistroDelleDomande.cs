@@ -13,8 +13,8 @@ namespace Oce.Solid.Agent.Strumenti
     /// ── PERCHE' ESISTE ──────────────────────────────────────────────────
     ///
     /// Le cinque operazioni del catalogo che al 23/9/2026 non avevano nessun
-    /// caso di banco — `ripeti_circolare`, `cordone_saldatura`, `fazzoletto`,
-    /// `taglia_membri`, `tappo_estremita` — **le abbiamo scelte noi**. (Il
+    /// caso di banco — `circular_pattern`, `weld_bead`, `gusset`,
+    /// `trim_members`, `end_cap` — **le abbiamo scelte noi**. (Il
     /// 25/9, scrivendo quei casi, due si sono scoperte mai funzionanti e una
     /// e' uscita dal catalogo: scelte a tavolino, e nemmeno misurate.) Quali
     /// servano davvero non lo sa nessuno, e chiederlo alle persone non lo fa
@@ -42,7 +42,7 @@ namespace Oce.Solid.Agent.Strumenti
     /// impedisce la pubblicazione. Un nome inventato da un modello non e' il
     /// dato di nessuno; il percorso in cui sta il pezzo lo e'.
     ///
-    /// I `simili` si scrivono perche' sono **la meta' utile della misura**:
+    /// I `similar` si scrivono perche' sono **la meta' utile della misura**:
     /// distinguono «il modello ha sbagliato a scrivere un nome che c'e'» da
     /// «il modello chiede una cosa che non esiste». Il primo caso si aggiusta
     /// con un sinonimo, il secondo e' lavoro da fare.
@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.Strumenti
 
         public void OperazioneCheNonCe(string nome, IEnumerable<string> simili)
         {
-            Annota("operazione", nome, simili);
+            Annota("operation", nome, simili);
         }
 
         /// <summary>
@@ -152,14 +152,14 @@ namespace Oce.Solid.Agent.Strumenti
         {
             var voce = new Dictionary<string, object>
             {
-                ["quando"] = quando.ToString("s"),
-                ["tipo"] = tipo,
-                ["nome"] = nome ?? "",
+                ["timestamp"] = quando.ToString("s"),
+                ["kind"] = tipo,
+                ["name"] = nome ?? "",
             };
             if (simili != null)
             {
                 var vicini = simili.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
-                if (vicini.Length > 0) voce["simili"] = vicini;
+                if (vicini.Length > 0) voce["similar"] = vicini;
             }
             return Mcp.Protocollo.InJson(voce);
         }
@@ -176,7 +176,7 @@ namespace Oce.Solid.Agent.Strumenti
             if (string.IsNullOrWhiteSpace(nome))
             {
                 // Un nome vuoto non e' una domanda: `Attrezzi` risponde gia'
-                // «manca «operazione»», ed e' un guaio di forma del piano, non
+                // «manca «operation»», ed e' un guaio di forma del piano, non
                 // una cosa che qualcuno voleva e non c'era. Registrarlo
                 // riempirebbe il file di righe che non insegnano niente.
                 PercheHaTaciuto = "nome vuoto: non e' una domanda";

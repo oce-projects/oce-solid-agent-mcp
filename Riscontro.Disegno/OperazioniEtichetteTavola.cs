@@ -16,8 +16,8 @@ namespace Riscontro.Disegno
     /// dalla vista di sezione (`IView.GetSection()`), `IDetailCircle.GetLabel()`
     /// dal dettaglio (`IView.GetDetail()`) — non si crede a quella chiesta.
     ///
-    /// E «V1»: `sezione_in_tavola` e `dettaglio_in_tavola` cercavano la vista
-    /// solo per NOME, come `distinta_taglio_in_tavola` fino alla 0.124.0 (che il
+    /// E «V1»: `section_view` e `detail_view` cercavano la vista
+    /// solo per NOME, come `drawing_cut_list` fino alla 0.124.0 (che il
     /// banco ha preso rossa alla prima chiamata con «V1»).
     /// </summary>
     public partial class OperazioniSw

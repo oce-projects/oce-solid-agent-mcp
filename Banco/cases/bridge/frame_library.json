@@ -1,70 +1,70 @@
 [
  {
-  "operazione": "telaio_rettangolare",
-  "argomenti": {
-   "profilo_percorso": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
-   "configurazione": "80X80X5",
-   "lunghezza_mm": 1000,
-   "larghezza_mm": 800,
-   "piano": "frontale",
-   "centrato": true,
-   "trattamento_angolo": "quartabuono",
-   "segmenti": [
+  "operation": "rectangular_frame",
+  "arguments": {
+   "profile_path": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
+   "configuration": "80X80X5",
+   "length_mm": 1000,
+   "width_mm": 800,
+   "plane": "front",
+   "centered": true,
+   "corner_treatment": "miter",
+   "segments": [
     {
-     "da": [
+     "start": [
       -500,
       -400,
       0
      ],
-     "a": [
+     "end": [
       500,
       -400,
       0
      ]
     },
     {
-     "da": [
+     "start": [
       500,
       -400,
       0
      ],
-     "a": [
+     "end": [
       500,
       400,
       0
      ]
     },
     {
-     "da": [
+     "start": [
       500,
       400,
       0
      ],
-     "a": [
+     "end": [
       -500,
       400,
       0
      ]
     },
     {
-     "da": [
+     "start": [
       -500,
       400,
       0
      ],
-     "a": [
+     "end": [
       -500,
       -400,
       0
      ]
     }
    ],
-   "telaio": {
-    "lunghezza_mm": 1000,
-    "larghezza_mm": 800,
-    "piano": "frontale",
-    "centrato": true,
-    "misure": "ingombro"
+   "frame": {
+    "length_mm": 1000,
+    "width_mm": 800,
+    "plane": "front",
+    "centered": true,
+    "measured_as": "overall"
    }
   }
  }

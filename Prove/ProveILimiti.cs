@@ -26,7 +26,7 @@ namespace Prove.Contratti
     /// rivede nessuno, perche' un rifiuto sbagliato *sembra* prudenza. La
     /// gemella e' cio' che distingue una guardia da un'operazione che dice
     /// sempre di no, ed e' capitato davvero: la prima versione di
-    /// `sezione_in_tavola` rifiutava tutto, e il difetto e' uscito al primo
+    /// `section_view` rifiutava tutto, e il difetto e' uscito al primo
     /// uso vero.
     ///
     /// ── PERCHE' QUI E NON NEL BANCO ──────────────────────────────────────
@@ -43,10 +43,10 @@ namespace Prove.Contratti
         /// Quante operazioni hanno un rifiuto provato dal banco e **non lo
         /// dicono** nella loro descrizione. **Zero, dal 23/9/2026.**
         ///
-        /// Erano dodici quella mattina — asola, attiva_configurazione,
-        /// attiva_foglio, crea_configurazione, quota_in_tavola, ripeti_lineare,
-        /// rivoluzione, smusso_spigoli, sopprimi_lavorazione, specchia,
-        /// taglio_cilindrico, taglio_rettangolare — e ognuna aveva un limite
+        /// Erano dodici quella mattina — asola, activate_configuration,
+        /// activate_sheet, create_configuration, drawing_dimension, linear_pattern,
+        /// rivoluzione, chamfer_edges, suppress_feature, specchia,
+        /// cylindrical_cut, rectangular_cut — e ognuna aveva un limite
         /// gia' misurato, con tanto di caso di banco che lo pretende, che il
         /// modello poteva scoprire **solo sbattendoci contro**.
         ///
@@ -82,7 +82,7 @@ namespace Prove.Contratti
         /// e l'altro** (tre membri strutturali: C1 = la corta in un giro, la
         /// lunga nell'altro). Molti di questi casi hanno un corpo solo quando
         /// lo citano, e sono innocui; gli altri sono l'elenco della voce Z-C16.
-        /// Il banco ha `@corpo(nome=...)`, che segue l'ordine di creazione.
+        /// Il banco ha `@body(name=...)`, che segue l'ordine di creazione.
         ///
         /// **12 al 25/9/2026**, visto rosso a tetto zero prima di fissarlo (i due
         /// rifiuti su `C9`, che non esiste in nessun ordine, restano fuori).
@@ -137,7 +137,7 @@ namespace Prove.Contratti
             var passiMuti = new List<string>();
             // LA GEMELLA FINTA: stessa operazione e argomenti IDENTICI al rifiuto.
             // Il banco la ferma come errore di banco (voce F5) — dopo un'ora. Il
-            // 25/9/2026 e' successo con `sviluppo_dxf`, dove il rifiuto dipende
+            // 25/9/2026 e' successo con `flat_pattern_dxf`, dove il rifiuto dipende
             // dallo stato e non da un argomento. Qui si confronta prima.
             var rifiutiDaConfrontare = new List<Tuple<string, string, string, string>>(); // caso, operazione, argomenti, gemella
             var argomentiPerCaso = new Dictionary<string, List<Tuple<string, string>>>(StringComparer.Ordinal);
@@ -168,7 +168,7 @@ namespace Prove.Contratti
                 dichiarati++;
 
                 // Le attese stanno nei passi («attese») e, per la regressione,
-                // in «dopo». Si guardano tutte e due.
+                // in «after». Si guardano tutte e due.
                 Action<object, string> guardaLeAttese = (elenco, dove) =>
                 {
                     foreach (var at in (elenco as object[]) ?? new object[0])
@@ -286,7 +286,7 @@ namespace Prove.Contratti
             // IL TETTO CALA E NON SALE (Z-C16). I casi che li citano ancora
             // sono l'elenco da guardare uno per uno; un caso NUOVO che cita un
             // corpo per numero fa diventare rosso questo controllo il giorno in
-            // cui lo si scrive: si usa `@corpo(nome=...)`.
+            // cui lo si scrive: si usa `@body(name=...)`.
             Segna("i casi che citano un corpo per numero non aumentano (Z-C16)",
                   casiCoiNumeri.Count <= CorpiPerNumeroTetto,
                   casiCoiNumeri.Count + " casi (tetto " + CorpiPerNumeroTetto + "): " +
@@ -324,7 +324,7 @@ namespace Prove.Contratti
             // passo riuscito della stessa operazione e pretende almeno un
             // argomento in comune con lo stesso valore (`Attese.SiSomigliano`,
             // la stessa funzione che usa lui). Il 25/9/2026 il rifiuto su «V9»
-            // aveva in comune «quante» col SECONDO passo della gemella e niente
+            // aveva in comune «count» col SECONDO passo della gemella e niente
             // col primo: errore di banco dopo cento minuti di giro.
             var lontane = new List<string>();
             foreach (var r in rifiutiConGemella)
@@ -416,11 +416,11 @@ namespace Prove.Contratti
             var radiceCat = serializzatore.DeserializeObject(File.ReadAllText(catalogo))
                             as Dictionary<string, object>;
             object vociGrezze;
-            var voci = radiceCat != null && radiceCat.TryGetValue("operazioni", out vociGrezze)
+            var voci = radiceCat != null && radiceCat.TryGetValue("operations", out vociGrezze)
                 ? vociGrezze as object[] : null;
             if (voci == null)
             {
-                Segna("il catalogo ha le operazioni", false, "«operazioni» non e' un elenco");
+                Segna("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
                 return;
             }
 
@@ -430,9 +430,9 @@ namespace Prove.Contratti
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
                 object n, d, s;
-                o.TryGetValue("nome", out n);
-                o.TryGetValue("descrizione", out d);
-                o.TryGetValue("sommario", out s);
+                o.TryGetValue("name", out n);
+                o.TryGetValue("details", out d);
+                o.TryGetValue("summary", out s);
                 if (n == null) continue;
                 testoDi[Convert.ToString(n)] =
                     (Convert.ToString(d) + " " + Convert.ToString(s)).ToLowerInvariant();
@@ -481,7 +481,7 @@ namespace Prove.Contratti
         private static readonly Dictionary<string, string> SenzaCasoVerde =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                // (26/9/2026) `quote_dal_modello` non e' piu' qui: fuori processo
+                // (26/9/2026) `model_dimensions` non e' piu' qui: fuori processo
                 // porta le quote (7 sullo stesso pezzo di Z-C1, due sonde), e ha la
                 // sua coppia vera: `dimensions/dimensions_come_from_the_model`.
             };
@@ -491,8 +491,8 @@ namespace Prove.Contratti
         /// ha GIRATO, verde, nell'ultimo giro — non a un caso che esiste.
         ///
         /// Il 25/9/2026, scrivendo i casi che mancavano, due operazioni «provate»
-        /// si sono scoperte mai funzionanti (`taglia_membri`, `cordone_saldatura`)
-        /// e una e' uscita dal catalogo (`fazzoletto`). «Provata» voleva dire che
+        /// si sono scoperte mai funzionanti (`trim_members`, `weld_bead`)
+        /// e una e' uscita dal catalogo (`gusset`). «Provata» voleva dire che
         /// qualcuno ci aveva scritto true. Adesso lo dice il banco: scrive i nomi
         /// dei casi verdi in `last.json` («green_cases»), e qui si incrociano
         /// col catalogo servito.

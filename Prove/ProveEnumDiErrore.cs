@@ -83,10 +83,10 @@ namespace Prove.Contratti
                 {
                     "inErrore == 1",
                     "NON E' UN CODICE DI ERRORE: e' il CONTEGGIO delle lavorazioni " +
-                    "in errore (`lavorazioni_in_errore` dello stato), confrontato " +
-                    "con 1 per scegliere fra «lavorazione» e «lavorazioni». " +
+                    "in errore (`features_in_error` dello stato), confrontato " +
+                    "con 1 per scegliere fra «lavorazione» e «features». " +
                     "Trovata da questa guardia al suo primo giro, il 23/9/2026: " +
-                    "il nome dice «errore» e il valore e' un numero di cose."
+                    "il nome dice «error» e il valore e' un numero di cose."
                 },
             };
 

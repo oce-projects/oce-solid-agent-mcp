@@ -157,7 +157,7 @@ internal static class Programma
             // --esplora: una scansione di soglie, per sapere come risponde
             // l'API quando la soglia scende sotto lo spessore minimo. Il primo
             // giro vero ha dato «15» con la soglia a 1,5 mm, senza analizzare:
-            // prima di chiamarlo «sotto non c'e' niente» o «errore» lo si guarda
+            // prima di chiamarlo «sotto non c'e' niente» o «error» lo si guarda
             // per soglie vicine, sopra e sotto i 2 mm.
             // `System.Environment` per esteso: l'interop di SOLIDWORKS ha un suo
             // `Environment`, e il nome nudo non compila (e' gia' successo alla

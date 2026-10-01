@@ -241,7 +241,7 @@ internal static class Programma
             // ── LA FORZA VUOLE UNA DIREZIONE, L'INCASTRO NO ──────────────
             //
             // `AddRestraint` ha accettato `object[] { IFace2 }` con `RefGeom`
-            // a null: per un incastro «fisso» non c'e' nessuna direzione da
+            // a null: per un incastro «grounded» non c'e' nessuna direzione da
             // dare. `AddForce` con la stessa forma ha risposto **errore 2**,
             // e il motivo e' quello: una forza senza direzione non e' una
             // forza.

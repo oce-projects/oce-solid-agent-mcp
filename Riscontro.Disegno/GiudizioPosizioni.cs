@@ -37,13 +37,13 @@ namespace Riscontro.Disegno
     ///
     /// Chi la chiamava scriveva poi, senza condizione:
     ///
-    ///     misure["posizioni_verificate"] = true;
+    ///     misure["positions_checked"] = true;
     ///
     /// LA FUNZIONE SI RIFIUTAVA DI INVENTARE IL VERDETTO, E IL CHIAMANTE LO
     /// INVENTAVA AL POSTO SUO.
     ///
     /// E il banco, che di quel campo si fidava per decidere il pass, lo leggeva
-    /// con `misure.ContainsKey("posizioni_verificate")`: una chiave scritta
+    /// con `misure.ContainsKey("positions_checked")`: una chiave scritta
     /// sempre. Il ramo che stampava «POSIZIONI NON VERIFICATE» era codice morto
     /// — non poteva scattare. Un controllo mai visto scattare non e' un
     /// controllo, e questo lo era due volte: nel ponte e nel banco.
@@ -61,8 +61,8 @@ namespace Riscontro.Disegno
     ///     «zero assi trovati», che con SOLIDWORKS acceso non si sa come
     ///     costringere a capitare. `Controlli\ProvaPosizioni` lo fa.
     ///
-    /// La chiave nell'esito e' DIVERSA, non `false`: `posizioni_non_verificate`
-    /// col motivo dentro. Un `posizioni_verificate = false` sarebbe stato letto
+    /// La chiave nell'esito e' DIVERSA, non `false`: `positions_not_checked`
+    /// col motivo dentro. Un `positions_checked = false` sarebbe stato letto
     /// come «verificate» da qualunque chiamante che guarda se la chiave c'e' —
     /// che e' precisamente l'errore che si sta riparando.
     /// </summary>
@@ -92,13 +92,13 @@ namespace Riscontro.Disegno
         /// non ha potuto. Se e' valorizzato, vince su tutto il resto: si esce
         /// con NonVerificabile e questo motivo.
         /// </param>
-        /// <param name="assi">
+        /// <param name="axes">
         /// Quale coordinata del modello corrisponde alla prima e alla seconda
         /// del piano, e quale e' la normale: tre indici fra 0, 1 e 2.
         /// </param>
         /// <param name="offsetM">La quota lungo la normale, in metri.</param>
-        /// <param name="posizioni">I punti chiesti, in millimetri, nel piano.</param>
-        /// <param name="motivo">
+        /// <param name="positions">I punti chiesti, in millimetri, nel piano.</param>
+        /// <param name="reason">
         /// Con Sbagliate, la frase da dare a chi legge. Con NonVerificabile,
         /// perche' non si e' potuto guardare. Con Verificate, null.
         /// </param>

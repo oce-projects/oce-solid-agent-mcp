@@ -66,7 +66,7 @@ namespace Riscontro.Disegno
     /// La superficie del loft e' **un'approssimazione a spline** della
     /// conica, non una conica. E' poco, ed e' sistematico: chi confronta il
     /// volume di un loft con la formula deve saperlo, o inseguira' un difetto
-    /// che non c'e'. `rivoluzione` sullo stesso trapezio da il cono esatto, e
+    /// che non c'e'. `revolve` sullo stesso trapezio da il cono esatto, e
     /// il banco tiene i due numeri accanto apposta.
     /// </summary>
     public partial class OperazioniSw
@@ -74,14 +74,14 @@ namespace Riscontro.Disegno
         private Esito SweepCircolare(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double diametro = Num(a, "diametro_mm", 0);
+            double diametro = Num(a, "diameter_mm", 0);
             if (diametro <= 0)
-                return Fallito("Manca «diametro_mm», o e' zero: un tubo di diametro nullo non e' un tubo.");
+                return Fallito("Manca «diameter_mm», o e' zero: un tubo di diametro nullo non e' un tubo.");
 
-            var punti = Punti(a, "percorso_mm");
+            var punti = Punti(a, "path_mm");
             if (punti == null || punti.Count < 2)
                 return Fallito(
-                    "«percorso_mm» dev'essere un elenco di almeno due punti, ognuno tre " +
+                    "«path_mm» dev'essere un elenco di almeno due punti, ognuno tre " +
                     "numeri in millimetri: per esempio [[0,0,0], [100,0,0]]. E' la linea " +
                     "lungo cui corre il tubo.");
 
@@ -185,12 +185,12 @@ namespace Riscontro.Disegno
             if (volumeDopo == null)
                 return Riuscito(feature, new Dictionary<string, object>
                 {
-                    ["diametro_mm"] = diametro,
-                    ["punti_percorso"] = punti.Count,
-                    ["lunghezza_percorso_mm"] = Math.Round(lunghezza, 3),
-                    ["materiale_aggiunto_mm3"] = null,
-                    ["corpi"] = NumeroOppureNull(corpiDopo),
-                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                    ["diameter_mm"] = diametro,
+                    ["points_path"] = punti.Count,
+                    ["path_length_mm"] = Math.Round(lunghezza, 3),
+                    ["material_added_mm3"] = null,
+                    ["bodies"] = NumeroOppureNull(corpiDopo),
+                    ["volume_not_reread"] = NotaVolumeNonRiletto,
                 });
             double aggiunto = volumeDopo.Value - volumePrima.Value;
 
@@ -209,18 +209,18 @@ namespace Riscontro.Disegno
             double teorico = Math.PI * diametro * diametro / 4.0 * lunghezza;
             var misure = new Dictionary<string, object>
             {
-                ["diametro_mm"] = diametro,
-                ["punti_percorso"] = punti.Count,
-                ["lunghezza_percorso_mm"] = Math.Round(lunghezza, 3),
-                ["materiale_aggiunto_mm3"] = Math.Round(aggiunto, 3),
-                ["volume_teorico_mm3"] = Math.Round(teorico, 3),
-                ["percorso_dritto"] = dritto,
-                ["corpi"] = NumeroOppureNull(corpiDopo),
+                ["diameter_mm"] = diametro,
+                ["points_path"] = punti.Count,
+                ["path_length_mm"] = Math.Round(lunghezza, 3),
+                ["material_added_mm3"] = Math.Round(aggiunto, 3),
+                ["volume_theoretical_mm3"] = Math.Round(teorico, 3),
+                ["path_straight"] = dritto,
+                ["bodies"] = NumeroOppureNull(corpiDopo),
             };
             if (dritto)
             {
                 double scarto = Math.Abs(aggiunto - teorico) / teorico;
-                misure["scarto_dal_teorico"] = Math.Round(scarto, 8);
+                misure["deviation_from_theoretical"] = Math.Round(scarto, 8);
                 if (scarto > 1e-4)
                     return Fallito(string.Format(
                         CultureInfo.InvariantCulture,
@@ -231,13 +231,13 @@ namespace Riscontro.Disegno
             }
             else
             {
-                misure["nota_sul_volume"] =
+                misure["note_on_volume"] =
                     "Il percorso ha dei gomiti: nei gomiti il materiale si sovrappone, " +
                     "quindi il volume vero e' MINORE di area per lunghezza. Il teorico qui " +
                     "sopra e' il limite superiore, non la risposta.";
             }
             if (corpiDopo >= 0 && corpiPrima > 0 && corpiDopo != corpiPrima)
-                misure["attenzione_corpi"] =
+                misure["warning_bodies"] =
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": il tubo non si e' unito a quello che c'era.";
 
@@ -253,26 +253,26 @@ namespace Riscontro.Disegno
         private Esito LoftFraDueCerchi(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string piano = Str(a, "piano", "frontale");
-            double d1 = Num(a, "diametro1_mm", 0);
-            double d2 = Num(a, "diametro2_mm", 0);
-            double distanza = Num(a, "distanza_mm", 0);
+            string piano = Str(a, "plane", "front");
+            double d1 = Num(a, "diameter1_mm", 0);
+            double d2 = Num(a, "diameter2_mm", 0);
+            double distanza = Num(a, "distance_mm", 0);
             if (d1 <= 0 || d2 <= 0)
                 return Fallito(
-                    "Servono «diametro1_mm» e «diametro2_mm», tutti e due maggiori di zero. " +
+                    "Servono «diameter1_mm» e «diameter2_mm», tutti e due maggiori di zero. " +
                     "Per una transizione da tondo a punta non c'e' questa operazione.");
             // N12 (Z-C21.9): the catalogue promised «negative for the other side»
             // while this refused it as "missing". The catalogue now says what the
             // code does: greater than zero, on the side the plane faces.
             if (distanza <= 0)
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
-                    "«distanza_mm» must be greater than zero (it is {0:0.###}): how far the " +
+                    "«distance_mm» must be greater than zero (it is {0:0.###}): how far the " +
                     "second circle is from the first, on the side the chosen plane faces. At " +
                     "zero both circles lie on the same plane and there is nothing to join; the " +
                     "other side is not offered.", distanza));
 
-            double sfalsa1 = Num(a, "sfalsa1_mm", 0);
-            double sfalsa2 = Num(a, "sfalsa2_mm", 0);
+            double sfalsa1 = Num(a, "offset1_mm", 0);
+            double sfalsa2 = Num(a, "offset2_mm", 0);
 
             double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
@@ -372,13 +372,13 @@ namespace Riscontro.Disegno
             if (volumeDopo == null)
                 return Riuscito(feature, new Dictionary<string, object>
                 {
-                    ["diametro1_mm"] = d1,
-                    ["diametro2_mm"] = d2,
-                    ["distanza_mm"] = distanza,
-                    ["materiale_aggiunto_mm3"] = null,
-                    ["corpi"] = NumeroOppureNull(corpiDopo),
-                    ["piani_aggiunti"] = PianiAggiunti(modello, pianiPrima),
-                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                    ["diameter1_mm"] = d1,
+                    ["diameter2_mm"] = d2,
+                    ["distance_mm"] = distanza,
+                    ["material_added_mm3"] = null,
+                    ["bodies"] = NumeroOppureNull(corpiDopo),
+                    ["planes_added"] = PianiAggiunti(modello, pianiPrima),
+                    ["volume_not_reread"] = NotaVolumeNonRiletto,
                 });
             double aggiunto = volumeDopo.Value - volumePrima.Value;
             if (aggiunto <= 0)
@@ -395,20 +395,20 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["diametro1_mm"] = d1,
-                ["diametro2_mm"] = d2,
-                ["distanza_mm"] = distanza,
-                ["materiale_aggiunto_mm3"] = Math.Round(aggiunto, 3),
-                ["volume_tronco_di_cono_mm3"] = Math.Round(teorico, 3),
-                ["scarto_dal_tronco_di_cono"] = Math.Round(scarto, 8),
-                ["corpi"] = NumeroOppureNull(corpiDopo),
-                ["piani_aggiunti"] = PianiAggiunti(modello, pianiPrima),
+                ["diameter1_mm"] = d1,
+                ["diameter2_mm"] = d2,
+                ["distance_mm"] = distanza,
+                ["material_added_mm3"] = Math.Round(aggiunto, 3),
+                ["volume_cone_frustum_mm3"] = Math.Round(teorico, 3),
+                ["deviation_from_cone_frustum"] = Math.Round(scarto, 8),
+                ["bodies"] = NumeroOppureNull(corpiDopo),
+                ["planes_added"] = PianiAggiunti(modello, pianiPrima),
                 // NON E' UN CONO, ED E' MISURATO. Vedi la nota in testa.
-                ["nota_sul_volume"] =
+                ["note_on_volume"] =
                     "La superficie di un loft fra due cerchi e' un'APPROSSIMAZIONE A SPLINE " +
                     "della conica, non una conica: il volume si scosta dalla formula del " +
                     "tronco di cono di qualche millesimo di per cento, sempre in difetto. " +
-                    "Se ti serve il cono esatto, usa «rivoluzione» su un trapezio.",
+                    "Se ti serve il cono esatto, usa «revolve» su un trapezio.",
             };
             if (scarto > 0.005)
                 return Fallito(string.Format(
@@ -421,7 +421,7 @@ namespace Riscontro.Disegno
                     teorico, aggiunto, scarto * 100));
 
             if (corpiPrima > 0 && corpiDopo >= 0 && corpiDopo != corpiPrima)
-                misure["attenzione_corpi"] =
+                misure["warning_bodies"] =
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": il loft non si e' unito a quello che c'era.";
 

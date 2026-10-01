@@ -26,23 +26,23 @@ const path = require("path");
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
 const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
-const USCITA = path.join(__dirname, "viste");
+const USCITA = path.join(__dirname, "views");
 
 // Lo stesso guscio della misura V2/V3: scatola 120x80x50, parete 4, aperta in
 // alto. Dall'esterno e' un parallelepipedo; la parete si vede solo dentro.
 const GUSCIO = [
   {
-    operazione: "estrudi_rettangolo",
-    argomenti: {
-      piano: "superiore", lunghezza_mm: 120, larghezza_mm: 80,
-      spessore_mm: 50, centrato: true,
+    operation: "extrude_rectangle",
+    arguments: {
+      plane: "top", length_mm: 120, width_mm: 80,
+      thickness_mm: 50, centered: true,
     },
   },
   {
-    operazione: "guscio",
-    argomenti: {
-      facce_rif: [{ passo: 1, genere: "faccia_superiore" }],
-      spessore_mm: 4,
+    operation: "shell",
+    arguments: {
+      faces_ref: [{ step: 1, kind: "top_face" }],
+      thickness_mm: 4,
     },
   },
 ];
@@ -126,22 +126,22 @@ function salva(nome, immagine) {
   const r = spawnSync(NUOVA, [], { encoding: "utf8" });
   if (r.status !== 0) { segna("una parte pulita", false, "NuovaParte non risponde"); return; }
 
-  await chiama("guarda_il_pezzo");
-  const fatto = await chiama("disegna", { passi: GUSCIO });
+  await chiama("inspect_part");
+  const fatto = await chiama("build", { steps: GUSCIO });
   if (fatto.errore) { segna("il guscio", false, corto(fatto.testo)); ponte.stdin.end(); return; }
   segna("il guscio si costruisce", true,
-        "volume " + (fatto.dati || {}).volume_dopo_mm3);
+        "volume " + (fatto.dati || {}).volume_after_mm3);
 
   // ── com'era prima, per poterlo confrontare dopo ────────────────────────
-  const prima = await chiama("guarda_il_pezzo", { viste: ["isometrica"] });
+  const prima = await chiama("inspect_part", { views: ["isometric"] });
   if (!prima.immagini.length) { segna("la vista intera", false, corto(prima.testo)); ponte.stdin.end(); return; }
   const fileIntero = salva("v4-guscio-intero", prima.immagini[0]);
   const statoPrima = prima.dati || {};
   segna("la vista intera esce", true, path.basename(fileIntero));
 
   // ── lo spaccato ────────────────────────────────────────────────────────
-  const tagliato = await chiama("guarda_il_pezzo", {
-    sezione: { piano: "destro", offset_mm: 0 },
+  const tagliato = await chiama("inspect_part", {
+    section: { plane: "right", offset_mm: 0 },
   });
   if (!tagliato.immagini.length) {
     segna("la sezione esce", false, corto(tagliato.testo));
@@ -160,13 +160,13 @@ function salva(nome, immagine) {
   }
 
   // ── e il pezzo di chi lavora e' come prima ─────────────────────────────
-  const dopo = await chiama("guarda_il_pezzo");
+  const dopo = await chiama("inspect_part");
   const s = dopo.dati || {};
   segna("il pezzo non e' cambiato",
         s.volume_mm3 === statoPrima.volume_mm3 &&
-        s.corpi_totali === statoPrima.corpi_totali &&
+        s.bodies_total === statoPrima.bodies_total &&
         (s.feature || []).length === (statoPrima.feature || []).length,
-        "volume " + s.volume_mm3 + ", corpi " + s.corpi_totali +
+        "volume " + s.volume_mm3 + ", corpi " + s.bodies_total +
         ", lavorazioni " + (s.feature || []).length);
 
   console.log("");

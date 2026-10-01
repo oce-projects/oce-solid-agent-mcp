@@ -58,10 +58,10 @@ namespace Riscontro.Disegno
             // stata presa la decisione. *«Nessuno ci ha pensato» e «qualcuno
             // ci ha pensato e ha deciso» si leggono uguali, e solo una delle
             // due si puo' migliorare.*
-            string chiesto = Str(a, "materiale", "");
+            string chiesto = Str(a, "material", "");
             bool assunto = string.IsNullOrWhiteSpace(chiesto);
             if (assunto) chiesto = MaterialePredefinito;
-            string archivioChiesto = Str(a, "archivio", "");
+            string archivioChiesto = Str(a, "library", "");
 
             // La grafia esatta la trova la postazione che esegue, non il
             // modello: «S235JR» negli archivi si chiama «1.0037 (S235JR)», e
@@ -78,7 +78,7 @@ namespace Riscontro.Disegno
             // configuration (28/9/2026, SOLIDWORKS 2021 SP5.1, verdicts in the
             // TODO), on the company part template with «Default<A macchina>» and
             // its derived «Default<Saldato>», plus one plain configuration made
-            // like crea_configurazione) measured what "" reaches:
+            // like create_configuration) measured what "" reaches:
             //   - with the first configuration active, Set("") reached it and
             //     the configurations DERIVED from it, and NOT the plain one:
             //     that one kept no material, density 1000 instead of 7800;
@@ -168,23 +168,23 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["materiale"] = materiale.Nome,
-                ["archivio"] = archivioDopo,
+                ["material"] = materiale.Nome,
+                ["library"] = archivioDopo,
                 // Z-C21.3 M10: the configurations that now carry the material,
                 // each set and read back by its own name.
                 ["configurations"] = namesRead ? targets : new string[0],
-                ["classe"] = materiale.Classe,
+                ["class_name"] = materiale.Classe,
                 // SI SCRIVE SEMPRE, anche quando il materiale e' stato
                 // chiesto: un campo che compare solo nel caso strano e' un
                 // campo che chi legge non impara a guardare.
-                ["nota_assunto"] = assunto
+                ["note_assumption"] = assunto
                     ? "materiale: «" + MaterialePredefinito + "» — PREDEFINITO di " +
                       "questa officina, non l'hai chiesto tu. Se ti serve altro, " +
-                      "scrivi «materiale» nel passo."
+                      "scrivi «material» nel passo."
                     : "materiale: «" + chiesto + "» — l'hai chiesto tu.",
             };
             if (beforeCount > 0)
-                misure["sostituisce"] = string.Join(", ", before, 0, beforeCount);
+                misure["replaces"] = string.Join(", ", before, 0, beforeCount);
             if (!namesRead)
                 misure["configurations_note"] =
                     "The configuration names could not be read: the material was set with " +

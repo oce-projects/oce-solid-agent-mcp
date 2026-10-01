@@ -5,15 +5,15 @@
   "_why_ap203_is_also_needed": "certi fornitori accettano SOLO il 203. Mandare un 214 a chi legge solo il 203 vuol dire un file che non si apre, e lo si scopre dall'altra parte.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "esporta_step",
-      "arguments": { "percorso": "{LAVORO}\\gp3_ap203.step", "protocollo": "AP203" },
+    { "operation": "export_step",
+      "arguments": { "path": "{LAVORO}\\gp3_ap203.step", "protocol": "AP203" },
       "expect": [
-        { "what": "misure.protocollo_uscito", "equal_to": "AP203" },
-        { "what": "misure.file_schema",
+        { "what": "measurements.protocol_returned", "equal_to": "AP203" },
+        { "what": "measurements.file_schema",
           "includes": ["CONFIG_CONTROL_DESIGN"],
           "does_not_include": ["AUTOMOTIVE_DESIGN"],
           "why": "e' la META' CHE CONTA: non basta che ci sia il nome giusto, non deve esserci quello dell'altro protocollo" } ] }

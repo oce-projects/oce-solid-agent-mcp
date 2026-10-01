@@ -1,9 +1,9 @@
 [
  {
-  "operazione": "modifica_quota",
-  "argomenti": {
-   "quota": "D42@NonEsiste",
-   "valore_mm": 10
+  "operation": "set_dimension",
+  "arguments": {
+   "dimension": "D42@NonEsiste",
+   "value_mm": 10
   }
  }
 ]

@@ -5,37 +5,37 @@
   "start": { "new_part": true },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 314,
-        "larghezza_mm": 274,
-        "spessore_mm": 52,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 314,
+        "width_mm": 274,
+        "thickness_mm": 52,
+        "centered": true
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 4473872 },
-        { "what": "stato.ingombro_da_mm", "equal_to": [-157, -137, 0] }
+        { "what": "state.bounding_box_from_mm", "equal_to": [-157, -137, 0] }
       ]
     },
     {
-      "operation": "asola",
+      "operation": "slot",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
+        "face_uid": "@face(normal=front)",
         "x_mm": 0,
         "y_mm": 0,
-        "lunghezza_mm": 30,
-        "larghezza_mm": 9,
-        "passante": true
+        "length_mm": 30,
+        "width_mm": 9,
+        "through_all": true
       },
       "expect": [
-        { "what": "misure.area_mm2", "equal_to": 252.62,
+        { "what": "measurements.area_mm2", "equal_to": 252.62,
           "tolerance": 0.01,
           "tolerance_why": "21*9 + pi*4.5^2 = 252,6173: l'operazione arrotonda al centesimo" },
-        { "what": "misure.materiale_tolto_mm3", "equal_to": 13136.1,
+        { "what": "measurements.material_removed_mm3", "equal_to": 13136.1,
           "tolerance": 0.5,
           "tolerance_why": "252,6173 x 52: il conto ha pi dentro" },
-        { "what": "corpi", "equal_to": 1 }
+        { "what": "bodies", "equal_to": 1 }
       ]
     }
   ]

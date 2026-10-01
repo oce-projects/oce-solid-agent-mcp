@@ -12,7 +12,7 @@ namespace Riscontro.Disegno
     /// (voci Z-D1 e Z-D6).
     ///
     /// «Quanto pesa» e «in che ingombro ci sta» sono le prime due domande su una
-    /// scatola stagna, e `proprieta_di_massa` / `ingombro_corpo` rifiutavano un
+    /// scatola stagna, e `mass_properties` / `body_bounding_box` rifiutavano un
     /// assieme con «questo documento non e' un pezzo». Misurato il 27/9/2026
     /// (`prova0089 zd1`, base AISI 304 + coperchio S235JR + una terza istanza
     /// SOPPRESSA):
@@ -105,9 +105,9 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito ProprietaDiMassaAssieme(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            if (!string.IsNullOrWhiteSpace(Str(a, "corpo_uid", null)))
+            if (!string.IsNullOrWhiteSpace(Str(a, "body_uid", null)))
                 return Fallito(
-                    "Su un assieme «corpo_uid» non vale: peso l'assieme intero, cioe' i componenti non " +
+                    "Su un assieme «body_uid» non vale: peso l'assieme intero, cioe' i componenti non " +
                     "soppressi. Per un pezzo solo, aprilo e chiedimelo li'.");
             var assieme = modello as IAssemblyDoc;
             string refusal;
@@ -216,44 +216,44 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["documento"] = "assieme",
-                ["componenti_pesati"] = pezzi.Count,
-                ["componenti_soppressi"] = soppressi,
+                ["document"] = "assembly",
+                ["components_weighed"] = pezzi.Count,
+                ["components_suppressed"] = soppressi,
                 ["volume_mm3"] = Math.Round(Convert.ToDouble(v0) * 1e9, 2),
-                ["centro_massa_mm"] = Scala(c0 as double[], 1000.0),
-                ["unita"] = "millimetri e chilogrammi",
+                ["center_of_mass_mm"] = Scala(c0 as double[], 1000.0),
+                ["units"] = "millimeter kilogram",
             };
             if (envelopes.Count > 0) misure["envelope_components"] = AssemblyComponents.Names(envelopes);
             var hidden = pezzi.Where(c => c.Hidden).ToList();
             if (hidden.Count > 0) misure["hidden_components_weighed"] = AssemblyComponents.Names(hidden);
             if (resolvedOnRequest != null) misure["lightweight_resolved_on_request"] = resolvedOnRequest;
             if (altraConfigurazione.Count > 0)
-                misure["somma_non_controllata_per"] = altraConfigurazione.ToArray();
+                misure["sum_not_checked_for_configs"] = altraConfigurazione.ToArray();
 
             if (senzaMateriale.Count > 0)
             {
                 // LA MASSA SENZA MATERIALE NON E' ZERO, E' «NON SI SA» — come per la
                 // parte: SOLIDWORKS risponderebbe con la densita' dell'acqua.
-                misure["massa_kg"] = null;
-                misure["senza_materiale"] = senzaMateriale.ToArray();
-                misure["perche_niente_massa"] =
+                misure["mass_kg"] = null;
+                misure["without_material"] = senzaMateriale.ToArray();
+                misure["why_no_mass"] =
                     "A " + string.Join(", ", senzaMateriale) + " non e' stato dato un materiale: la massa " +
                     "dell'assieme non si sa. SOLIDWORKS risponderebbe lo stesso con la densita' predefinita " +
                     "(1000 kg/m3, l'acqua): un numero credibile e sbagliato. Dai il materiale ai pezzi " +
-                    "(«applica_materiale» su ognuno) e richiedimelo.";
+                    "(«apply_material» su ognuno) e richiedimelo.";
             }
             else
             {
-                misure["massa_kg"] = Math.Round(massa, 4);
+                misure["mass_kg"] = Math.Round(massa, 4);
                 // IL CONTO RIFATTO: la massa dell'assieme contro la somma dei suoi
                 // pezzi letti uno per uno. Se divergono, una delle due letture non e'
                 // quella che sembra (un materiale messo sul componente, diverso da
                 // quello del pezzo; un componente che conta due volte).
                 if (sommaLetta)
                 {
-                    misure["somma_dei_pezzi_kg"] = Math.Round(somma, 4);
+                    misure["sum_of_parts_kg"] = Math.Round(somma, 4);
                     double scarto = massa > 0 ? Math.Abs(somma - massa) / massa : double.NaN;
-                    misure["scarto_sulla_somma"] = double.IsNaN(scarto) ? null : (object)Math.Round(scarto, 6);
+                    misure["deviation_on_sum"] = double.IsNaN(scarto) ? null : (object)Math.Round(scarto, 6);
                     if (double.IsNaN(scarto) || scarto > 0.001)
                         return RefuseAfterResolving(resolvedOnRequest,
                             "La massa dell'assieme (" + massa.ToString("0.####") + " kg) e la somma dei suoi pezzi (" +
@@ -261,9 +261,9 @@ namespace Riscontro.Disegno
                             "sembra (un materiale messo sul componente nell'assieme? un componente contato due volte?). " +
                             "Non ti do un numero.");
                 }
-                else misure["somma_dei_pezzi_kg"] = null;   // un pezzo non si e' lasciato pesare, o usa un'altra configurazione: niente controllo
+                else misure["sum_of_parts_kg"] = null;   // un pezzo non si e' lasciato pesare, o usa un'altra configurazione: niente controllo
             }
-            misure["cosa_non_guarda"] =
+            misure["what_it_does_not_check"] =
                 "Suppressed components do not weigh, and they are listed. Envelopes do not weigh either: SOLIDWORKS " +
                 "leaves them out of the assembly mass (measured), and so does the sum. Hidden components weigh. A " +
                 "material set on the COMPONENT in the assembly, different from the part's, is not in the sum of the " +
@@ -298,9 +298,9 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito IngombroAssieme(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            if (!string.IsNullOrWhiteSpace(Str(a, "corpo_uid", null)))
+            if (!string.IsNullOrWhiteSpace(Str(a, "body_uid", null)))
                 return Fallito(
-                    "Su un assieme «corpo_uid» non vale: misuro l'ingombro dell'assieme intero. Per un pezzo " +
+                    "Su un assieme «body_uid» non vale: misuro l'ingombro dell'assieme intero. Per un pezzo " +
                     "solo, aprilo e chiedimelo li'.");
             var assieme = modello as IAssemblyDoc;
             string refusal;
@@ -359,9 +359,9 @@ namespace Riscontro.Disegno
                 if (suo == null) continue;
                 elenco.Add(new Dictionary<string, object>
                 {
-                    ["componente"] = item.Name,
-                    ["da_mm"] = new[] { Tondo(suo[0]), Tondo(suo[1]), Tondo(suo[2]) },
-                    ["a_mm"] = new[] { Tondo(suo[3]), Tondo(suo[4]), Tondo(suo[5]) },
+                    ["component"] = item.Name,
+                    ["from_mm"] = new[] { Tondo(suo[0]), Tondo(suo[1]), Tondo(suo[2]) },
+                    ["to_mm"] = new[] { Tondo(suo[3]), Tondo(suo[4]), Tondo(suo[5]) },
                 });
                 if (tutto == null) tutto = (double[])suo.Clone();
                 else { for (int k = 0; k < 3; k++) tutto[k] = Math.Min(tutto[k], suo[k]); for (int k = 3; k < 6; k++) tutto[k] = Math.Max(tutto[k], suo[k]); }
@@ -369,14 +369,14 @@ namespace Riscontro.Disegno
             if (tutto == null) return Fallito("Nessun componente dell'assieme ha un corpo solido da misurare.");
             var misure = new Dictionary<string, object>
             {
-                ["documento"] = "assieme",
-                ["componenti"] = elenco.ToArray(),
-                ["componenti_soppressi"] = soppressi,
-                ["da_mm"] = new[] { Tondo(tutto[0]), Tondo(tutto[1]), Tondo(tutto[2]) },
-                ["a_mm"] = new[] { Tondo(tutto[3]), Tondo(tutto[4]), Tondo(tutto[5]) },
-                ["ingombro_mm"] = new[] { Tondo(tutto[3] - tutto[0]), Tondo(tutto[4] - tutto[1]), Tondo(tutto[5] - tutto[2]) },
-                ["unita"] = "millimetri, nel sistema di coordinate dell'assieme",
-                ["cosa_non_guarda"] =
+                ["document"] = "assembly",
+                ["components"] = elenco.ToArray(),
+                ["components_suppressed"] = soppressi,
+                ["from_mm"] = new[] { Tondo(tutto[0]), Tondo(tutto[1]), Tondo(tutto[2]) },
+                ["to_mm"] = new[] { Tondo(tutto[3]), Tondo(tutto[4]), Tondo(tutto[5]) },
+                ["bounding_box_mm"] = new[] { Tondo(tutto[3] - tutto[0]), Tondo(tutto[4] - tutto[1]), Tondo(tutto[5] - tutto[2]) },
+                ["units"] = "millimetri, nel sistema di coordinate dell'assieme",
+                ["what_it_does_not_check"] =
                     "It is the box aligned to the assembly axes, not the smallest one. Suppressed components are " +
                     "not in it (they are listed). Lightweight parts are in it (their bodies are read without " +
                     "resolving them), and so are envelopes and hidden components, each listed.",

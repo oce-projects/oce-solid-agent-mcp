@@ -5,19 +5,19 @@
   "_already_seen_red": "`IMeasure.Calculate(Object Entities)` PRENDE UN ARGOMENTO E NON LO GUARDA: misura quello che e' SELEZIONATO. Misurato il 15/9/2026: chiamata con un vettore di due facce risponde FALSE; con le stesse due facce selezionate e l'argomento a null risponde TRUE e da' 0,01. E chiamata con UNA faccia nell'array, mentre la selezione ne conteneva ancora due, ha risposto TRUE e ha dato l'area di tutte e due -- 3200 mm2 invece di 1600. Un numero credibile, del pezzo giusto, di un'altra selezione. L'operazione adesso svuota la selezione, seleziona a mano e guarda il booleano.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "spessore_mm": 10, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 40, "width_mm": 40,
+                     "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 16000 } ] },
-    { "operation": "misura_fra_entita",
-      "arguments": { "uid": "@faccia(verso=davanti)", "uid2": "@faccia(verso=dietro)" },
+    { "operation": "measure_between",
+      "arguments": { "uid": "@face(normal=front)", "uid2": "@face(normal=back)" },
       "expect": [
-        { "what": "misure.distanza_mm", "equal_to": 10, "tolerance": 0.001,
+        { "what": "measurements.distance_mm", "equal_to": 10, "tolerance": 0.001,
           "tolerance_why": "lo spessore della piastra, dato in metri" },
-        { "what": "misure.parallele", "equal_to": true },
-        { "what": "misure.perpendicolari", "equal_to": false,
+        { "what": "measurements.parallel", "equal_to": true },
+        { "what": "measurements.perpendicular", "equal_to": false,
           "why": "anche il «no» e' un'attesa: un campo che risponde sempre vero passerebbe meta' dei casi" },
-        { "what": "misure.area_totale_mm2", "equal_to": 3200, "tolerance": 0.5,
+        { "what": "measurements.area_total_mm2", "equal_to": 3200, "tolerance": 0.5,
           "tolerance_why": "due facce da 40x40: l'area totale e' la somma, ed e' cosi' che si vede se ha misurato TUTTE E DUE le cose che gli sono state date" } ] }
   ]
 }

@@ -8,7 +8,7 @@ namespace Controlli.AlberoRosso
     /// <summary>
     /// COSA DICE SOLIDWORKS DI UN ALBERO ROTTO, e se lo dice.
     ///
-    /// `guarda_il_pezzo` oggi descrive come normale un pezzo il cui albero e'
+    /// `inspect_part` oggi descrive come normale un pezzo il cui albero e'
     /// rosso: il modello guarda un pezzo rotto e vede un pezzo sano. E' un
     /// difetto che non da' errore **dentro gli occhiali**, ed e' la voce D6.
     ///

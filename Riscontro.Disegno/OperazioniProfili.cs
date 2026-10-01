@@ -12,9 +12,9 @@ namespace Riscontro.Disegno
     ///
     /// ── UN'OPERAZIONE CHE IL CATALOGO CHIEDEVA E CHE NON C'ERA ────────
     ///
-    /// `membro_strutturale` e `telaio_rettangolare` dicono, nella loro stessa
-    /// descrizione: *«PRIMA CHIAMA "profili_saldatura" e copia da li'
-    /// "profilo_percorso" e "configurazione" ALLA LETTERA»*.
+    /// `structural_member` e `rectangular_frame` dicono, nella loro stessa
+    /// descrizione: *«PRIMA CHIAMA "weldment_profiles" e copia da li'
+    /// "profile_path" e "configuration" ALLA LETTERA»*.
     ///
     /// **Quell'operazione non esisteva.** Il nome compariva quattro volte nel
     /// catalogo — tutte e quattro dentro il testo di chi la chiedeva — e zero
@@ -35,7 +35,7 @@ namespace Riscontro.Disegno
     /// `ISldWorks.GetConfigurationNames(percorso)` legge le misure di un
     /// `.sldlfp` **senza aprire il documento**: nessuna finestra, nessun
     /// documento in piu' fra quelli aperti, niente da richiudere. E' la stessa
-    /// chiamata che il controllo di `membro_strutturale` usa gia'.
+    /// chiamata che il controllo di `structural_member` usa gia'.
     ///
     /// ── DOVE STA LA LIBRERIA ──────────────────────────────────────────
     ///
@@ -76,8 +76,8 @@ namespace Riscontro.Disegno
                     "che dice PROFILI_SALDATURA. La libreria e' una cartella di file " +
                     ".sldlfp; controlla il percorso.");
 
-            string cercato = Str(a, "cerca", null);
-            bool conMisure = Bool(a, "con_misure", true);
+            string cercato = Str(a, "search", null);
+            bool conMisure = Bool(a, "with_measurements", true);
 
             string[] file;
             try { file = Directory.GetFiles(cartella, "*.sldlfp", SearchOption.AllDirectories); }
@@ -102,7 +102,7 @@ namespace Riscontro.Disegno
             if (elencati.Count == 0)
                 return Fallito(
                     "Nessun profilo si chiama come «" + cercato + "». Ce ne sono " +
-                    file.Length + " in tutto: richiama senza «cerca» per vederli.");
+                    file.Length + " in tutto: richiama senza «search» per vederli.");
 
             int troncati = Math.Max(0, elencati.Count - MaxProfili);
             var voci = new List<Dictionary<string, object>>();
@@ -112,11 +112,11 @@ namespace Riscontro.Disegno
             {
                 var voce = new Dictionary<string, object>
                 {
-                    ["nome"] = Path.GetFileNameWithoutExtension(f),
+                    ["name"] = Path.GetFileNameWithoutExtension(f),
                     // IL PERCORSO SI DA' INTERO E SI COPIA INTERO. E' quello
-                    // che `membro_strutturale` vuole in `profilo_percorso`, e
+                    // che `structural_member` vuole in `profile_path`, e
                     // ricostruirlo da nome e cartella e' il modo di sbagliarlo.
-                    ["profilo_percorso"] = f,
+                    ["profile_path"] = f,
                 };
 
                 if (conMisure)
@@ -130,17 +130,17 @@ namespace Riscontro.Disegno
                         // NON SI TACE. Un profilo di cui non si sono potute
                         // leggere le misure e' diverso da uno senza misure, e
                         // tutti e due sono diversi da uno a posto.
-                        voce["misure"] = null;
-                        voce["nota"] =
+                        voce["measurements"] = null;
+                        voce["note"] =
                             "Non sono riuscito a leggere le misure di questo profilo: non " +
                             "copiarne una a memoria.";
                     }
                     else
                     {
-                        voce["quante_misure"] = misure.Length;
-                        voce["misure"] = misure.Take(MaxMisurePerProfilo).ToArray();
+                        voce["how_many_measurements"] = misure.Length;
+                        voce["measurements"] = misure.Take(MaxMisurePerProfilo).ToArray();
                         if (misure.Length > MaxMisurePerProfilo)
-                            voce["misure_non_elencate"] = misure.Length - MaxMisurePerProfilo;
+                            voce["measurements_not_listed"] = misure.Length - MaxMisurePerProfilo;
                     }
                 }
                 voci.Add(voce);
@@ -148,28 +148,28 @@ namespace Riscontro.Disegno
 
             var misureTot = new Dictionary<string, object>
             {
-                ["cartella"] = cartella,
-                ["profili_in_tutto"] = file.Length,
-                ["profili_elencati"] = voci.Count,
-                ["profili"] = voci.ToArray(),
-                ["come_si_usa"] =
-                    "Copia «profilo_percorso» e una delle «misure» ALLA LETTERA dentro " +
-                    "«membro_strutturale» o «telaio_rettangolare», in «profilo_percorso» e " +
-                    "«configurazione». Alla lettera davvero: maiuscole, spazi e virgole " +
+                ["folder"] = cartella,
+                ["profiles_total"] = file.Length,
+                ["profiles_listed"] = voci.Count,
+                ["profiles"] = voci.ToArray(),
+                ["how_to_use_it"] =
+                    "Copia «profile_path» e una delle «measurements» ALLA LETTERA dentro " +
+                    "«structural_member» o «rectangular_frame», in «profile_path» e " +
+                    "«configuration». Alla lettera davvero: maiuscole, spazi e virgole " +
                     "contano, e una misura che non c'e' non da' errore -- SOLIDWORKS usa " +
                     "quella attiva del profilo, e il pezzo esce con una parete diversa da " +
                     "quella che credi.",
             };
             if (troncati > 0)
             {
-                misureTot["profili_non_elencati"] = troncati;
-                misureTot["troncato"] = true;
-                misureTot["come_vederli_tutti"] =
-                    "Ce ne sono altri " + troncati + ". Richiama con «cerca» e un pezzo del " +
-                    "nome, per esempio «tubo» o «IPE».";
+                misureTot["profiles_not_listed"] = troncati;
+                misureTot["truncated"] = true;
+                misureTot["how_to_see_them_all"] =
+                    "Ce ne sono altri " + troncati + ". Richiama con «search» e un pezzo del " +
+                    "nome, per esempio «tube» o «IPE».";
             }
-            if (!string.IsNullOrWhiteSpace(cercato)) misureTot["cerca"] = cercato;
-            if (senzaMisure > 0) misureTot["profili_senza_misure_leggibili"] = senzaMisure;
+            if (!string.IsNullOrWhiteSpace(cercato)) misureTot["search"] = cercato;
+            if (senzaMisure > 0) misureTot["profiles_without_readable_measurements"] = senzaMisure;
 
             _log(string.Format(CultureInfo.InvariantCulture,
                 "[agente] profili di saldatura: {0} in «{1}», elencati {2}",

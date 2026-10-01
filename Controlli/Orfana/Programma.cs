@@ -12,7 +12,7 @@ using SolidWorks.Interop.swconst;
 //  Il 18/9 `IsDangling` rispondeva `false` su 67 annotazioni su 67 — ma erano
 //  tutte note libere, che non possono diventare orfane: un campo che e' falso
 //  mentre non c'e' niente da guardare non e' ancora una misura. Da allora le
-//  quote in tavola si CREANO (`quota_in_tavola`, K10), e il rosso si puo'
+//  quote in tavola si CREANO (`drawing_dimension`, K10), e il rosso si puo'
 //  costruire.
 //
 //  IL PEZZO: una piastra 100 x 60 x 10 e, sopra, un blocco 20 x 20 alto 20,
@@ -26,7 +26,7 @@ using SolidWorks.Interop.swconst;
 //  Se dopo continua a dire `false`, il campo e' morto e lo si scrive; e allora
 //  si guarda se `GetAttachedEntities3` dice qualcosa che `IsDangling` tace.
 //
-//  La quota si crea come la crea `quota_in_tavola`: si seleziona lo spigolo che
+//  La quota si crea come la crea `drawing_dimension`: si seleziona lo spigolo che
 //  la vista mostra e si chiama `AddDimension` in coordinate del FOGLIO, con
 //  `swInputDimValOnCreate` SPENTO (acceso, apre un modale e la chiamata COM non
 //  torna piu').
@@ -131,7 +131,7 @@ internal static class Programma
             }
             Dice(descr);
 
-            // ── LA QUOTA, come la crea quota_in_tavola ──────────────────
+            // ── LA QUOTA, come la crea drawing_dimension ──────────────────
             chiedevaIlValore = sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
             sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
             spenta = true;

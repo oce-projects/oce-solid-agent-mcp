@@ -1,17 +1,17 @@
 {
   "name": "blind_slot_left_face",
   "family": "slot",
-  "why": "L'asola cieca sulla faccia «sinistra». OGNI FACCIA, NON UNA SOLA: il verso degli archi e' una costante nel piano dello SCHIZZO, mentre i punti sono costruiti nel sistema del MODELLO, e la trasformazione fra i due non conserva la mano -- per due facce opposte l'asse Y risulta invertito. Se il verso e' sbagliato su questa faccia, l'asola esce lunga 40 invece di 51 con le estremita' morse: area 344,97 invece di 535,03, e il volume lo dice subito.",
+  "why": "L'asola cieca sulla faccia «left». OGNI FACCIA, NON UNA SOLA: il verso degli archi e' una costante nel piano dello SCHIZZO, mentre i punti sono costruiti nel sistema del MODELLO, e la trasformazione fra i due non conserva la mano -- per due facce opposte l'asse Y risulta invertito. Se il verso e' sbagliato su questa faccia, l'asola esce lunga 40 invece di 51 con le estremita' morse: area 344,97 invece di 535,03, e il volume lo dice subito.",
   "_why_the_offset": "y = 10 e non 0, ed e' una cosa misurata: su una piastra estrusa da z = 0 a z = 20, l'origine dello schizzo delle facce DI COSTA cade sul BORDO della faccia, non al suo centro. Un'asola a (0,0) esce meta' fuori e toglie 1337,6 mm3 invece di 2675,2 -- e l'operazione se ne accorge da sola, il che e' come si e' scoperto. La vecchia prova in C# non lo vedeva perche' costruiva la piastra a cavallo del piano medio, dove l'origine cade al centro per costruzione.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120, "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
-    { "operation": "asola",
-      "arguments": { "faccia_uid": "@faccia(verso=sinistra)", "x_mm": 0, "y_mm": 10, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 0, "passante": false, "profondita_mm": 5 },
+    { "operation": "slot",
+      "arguments": { "face_uid": "@face(normal=left)", "x_mm": 0, "y_mm": 10, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": false, "depth_mm": 5 },
       "expect": [
-        { "what": "misure.area_mm2", "equal_to": 535.03, "tolerance": 0.01,
+        { "what": "measurements.area_mm2", "equal_to": 535.03, "tolerance": 0.01,
           "tolerance_why": "(51-11)*11 + pi*5,5^2 = 535,0332: l'operazione arrotonda al centesimo" },
         { "what": "volume_mm3", "equal_to": 477324.83, "tolerance": 0.5,
           "tolerance_why": "480000 meno 535,0332 per 5 di profondita': il conto ha pi dentro" } ] }

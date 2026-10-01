@@ -1,12 +1,12 @@
 [
  {
-  "operazione": "estrudi_sezione",
-  "argomenti": {
-   "piano": "superiore",
-   "tipo": "tubo",
-   "diametro_mm": 60,
-   "parete_mm": 5,
-   "lunghezza_mm": 100
+  "operation": "extrude_section",
+  "arguments": {
+   "plane": "top",
+   "variant": "tube",
+   "diameter_mm": 60,
+   "wall_mm": 5,
+   "length_mm": 100
   }
  }
 ]

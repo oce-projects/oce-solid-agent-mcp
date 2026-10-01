@@ -1,11 +1,11 @@
 [
  {
-  "operazione": "guscio",
-  "argomenti": {
-   "facce_uid": [
+  "operation": "shell",
+  "arguments": {
+   "faces_uid": [
     "F1"
    ],
-   "spessore_mm": 30
+   "thickness_mm": 30
   }
  }
 ]

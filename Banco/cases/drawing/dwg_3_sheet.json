@@ -1,10 +1,10 @@
 [
  {
-  "operazione": "imposta_foglio",
-  "argomenti": {
-   "formato": "A3",
-   "scala_numeratore": 1,
-   "scala_denominatore": 2
+  "operation": "set_sheet",
+  "arguments": {
+   "paper_size": "A3",
+   "scale_numerator": 1,
+   "scale_denominator": 2
   }
  }
 ]

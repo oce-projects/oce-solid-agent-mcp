@@ -63,6 +63,6 @@ const senza = racconta("parte nuova ogni volta, MAI chiusa", giro(false));
 const con = racconta("parte nuova ogni volta, CHIUSA dopo ogni piano", giro(true));
 
 console.log("");
-console.log(senza.ultimo > senza.primo * 1.5 && con.ultimo < con.primo * 1.5
+console.log(senza.ultimo > senza.first * 1.5 && con.ultimo < con.first * 1.5
   ? "Il banco rallentava se stesso, e chiudendo non lo fa piu'."
   : "Nessuna differenza leggibile fra i due modi su questa macchina.");

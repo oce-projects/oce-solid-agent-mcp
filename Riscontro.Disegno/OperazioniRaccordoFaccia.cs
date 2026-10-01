@@ -12,7 +12,7 @@ namespace Riscontro.Disegno
     /// Un raccordo che non si attacca a uno SPIGOLO ma a DUE FACCE: la palla di
     /// raggio r rotola appoggiata a tutte e due, e la superficie che lascia e' il
     /// raccordo. Sullo spigolo di un cubo da' lo stesso pezzo di
-    /// «raccordo_spigoli»; la differenza e' che non serve uno spigolo da
+    /// «fillet_edges»; la differenza e' che non serve uno spigolo da
     /// nominare — bastano le due facce, anche quando lo spigolo fra loro non e'
     /// uno solo o cambia a ogni lavorazione.
     ///
@@ -23,7 +23,7 @@ namespace Riscontro.Disegno
     ///  * `IFeatureManager~FeatureFillet3.html`, Remarks: «As of SOLIDWORKS 2020,
     ///    this method is obsolete for creating: constant radius fillets, offset
     ///    face chamfers, face fillets, face-face chamfers, full round fillets».
-    ///    La via vecchia, quella di `raccordo_spigoli` e `raccordo_variabile`, qui
+    ///    La via vecchia, quella di `fillet_edges` e `variable_fillet`, qui
     ///    non si usa: e' la prima delle due cause dei quattro NULL storici.
     ///  * `ISimpleFilletFeatureData2.html`, Remarks, ricetta: `CreateDefinition`
     ///    con `swFmFillet`; `Initialize` con `swSimpleFilletType_e.swFaceFillet`;
@@ -80,29 +80,29 @@ namespace Riscontro.Disegno
             if (!(modello is IPartDoc))
                 return Fallito("Il raccordo di faccia si fa su un pezzo: apri il pezzo e chiedimelo li'.");
 
-            // DUE FACCE, E «faccia_rif» NE NOMINA UNA SOLA. `RisolviFaccia`
-            // guarda «faccia_rif» prima dell'uid: con due facce da risolvere lo
+            // DUE FACCE, E «face_ref» NE NOMINA UNA SOLA. `RisolviFaccia`
+            // guarda «face_ref» prima dell'uid: con due facce da risolvere lo
             // stesso riferimento vincerebbe tutte e due le volte, e il raccordo
             // si chiederebbe fra una faccia e se stessa.
-            if (HaRiferimento(a, "faccia_rif"))
+            if (HaRiferimento(a, "face_ref"))
                 return Fallito(
-                    "Qui servono due facce diverse, e «faccia_rif» ne nomina una sola: usa " +
-                    "«faccia_1_uid» e «faccia_2_uid» con gli identificativi dello stato. Se una " +
+                    "Qui servono due facce diverse, e «face_ref» ne nomina una sola: usa " +
+                    "«face_1_uid» e «face_2_uid» con gli identificativi dello stato. Se una " +
                     "delle due la crea un passo di questo piano, rileggi lo stato dopo quel passo.");
 
             double raggio;
             string errore;
-            if (!NumObbligatorio(a, "raggio_mm", out raggio, out errore)) return Fallito(errore);
+            if (!NumObbligatorio(a, "radius_mm", out raggio, out errore)) return Fallito(errore);
             if (raggio <= 0)
                 return Fallito(
-                    "«raggio_mm» deve essere maggiore di zero: hai chiesto " +
+                    "«radius_mm» deve essere maggiore di zero: hai chiesto " +
                     raggio.ToString("0.##", CultureInfo.InvariantCulture) + ". Per esempio 5.");
 
-            string uid1 = (Str(a, "faccia_1_uid", "") ?? "").Trim();
-            string uid2 = (Str(a, "faccia_2_uid", "") ?? "").Trim();
+            string uid1 = (Str(a, "face_1_uid", "") ?? "").Trim();
+            string uid2 = (Str(a, "face_2_uid", "") ?? "").Trim();
             if (uid1.Length == 0 || uid2.Length == 0)
                 return Fallito(
-                    "Dimmi le due facce: «faccia_1_uid» e «faccia_2_uid», con gli identificativi " +
+                    "Dimmi le due facce: «face_1_uid» e «face_2_uid», con gli identificativi " +
                     "dello stato del documento (per esempio «F1» e «F3»). Il raccordo si appoggia " +
                     "a tutte e due.");
 
@@ -113,7 +113,7 @@ namespace Riscontro.Disegno
                 return Fallito(
                     "«" + uid1 + "» e' in tutti e due gli insiemi: un raccordo di faccia unisce DUE " +
                     "facce diverse, appoggiandosi a tutte e due. Per arrotondare i bordi di una " +
-                    "faccia sola usa «raccordo_spigoli» sui suoi spigoli.");
+                    "faccia sola usa «fillet_edges» sui suoi spigoli.");
 
             string motivo;
             var faccia1 = RisolviFaccia(stato, a, uid1, out motivo);
@@ -191,11 +191,11 @@ namespace Riscontro.Disegno
                 if (dati == null)
                     return Fallito(
                         "SOLIDWORKS non mi ha dato la definizione di un raccordo (CreateDefinition). " +
-                        "Non ho toccato niente: prova «raccordo_spigoli» sullo spigolo fra le due facce.");
+                        "Non ho toccato niente: prova «fillet_edges» sullo spigolo fra le due facce.");
                 if (!dati.Initialize((int)swSimpleFilletType_e.swFaceFillet))
                     return Fallito(
                         "SOLIDWORKS non accetta un raccordo di faccia su questa definizione " +
-                        "(Initialize ha risposto false). Non ho toccato niente: prova «raccordo_spigoli» " +
+                        "(Initialize ha risposto false). Non ho toccato niente: prova «fillet_edges» " +
                         "sullo spigolo fra le due facce.");
 
                 var gestore = modello.SelectionManager as ISelectionMgr;
@@ -221,7 +221,7 @@ namespace Riscontro.Disegno
             catch (Exception ex)
             {
                 return Fallito("Il raccordo di faccia non e' riuscito: " + ex.Message +
-                               ". Prova «raccordo_spigoli» sullo spigolo fra le due facce.");
+                               ". Prova «fillet_edges» sullo spigolo fra le due facce.");
             }
             finally { try { modello.ClearSelection2(true); } catch { } }
 
@@ -236,13 +236,13 @@ namespace Riscontro.Disegno
                     "Il raccordo di faccia non e' stato creato, e SOLIDWORKS non dice perche'. Di " +
                     "solito e' il raggio: la palla deve appoggiarsi a tutte e due le facce senza " +
                     "uscirne. Prova un raggio piu' piccolo; se le due facce si toccano su uno " +
-                    "spigolo, lo stesso raccordo si fa con «raccordo_spigoli» su quello spigolo." + coda);
+                    "spigolo, lo stesso raccordo si fa con «fillet_edges» su quello spigolo." + coda);
             }
 
             // ── E ADESSO SI MISURA IL PEZZO ──────────────────────────────
             //
             // ForceRebuild3 e non la ricostruzione semplice: e' quella di
-            // `cambia_estrusione`, la cui risposta `CosaSiERotto` sa gia'
+            // `edit_extrusion`, la cui risposta `CosaSiERotto` sa gia'
             // leggere su un pezzo sano (caso blind_becomes_through).
             bool ricostruito = false;
             try { ricostruito = modello.ForceRebuild3(false); } catch { }
@@ -258,14 +258,14 @@ namespace Riscontro.Disegno
                     "E' nata una lavorazione «" + nome + "» di tipo «" + tipo + "», non un raccordo " +
                     "(«Fillet»): non e' quello che ho chiesto." +
                     TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima) +
-                    " Prova «raccordo_spigoli» sullo spigolo fra le due facce.");
+                    " Prova «fillet_edges» sullo spigolo fra le due facce.");
 
             string rotto = CosaSiERotto(modello, foto, ricostruito, false);
             if (rotto != null)
                 return Fallito(
                     "Il raccordo di faccia «" + nome + "» e' nato, ma " + rotto + "." +
                     TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima) +
-                    " Prova un raggio piu' piccolo, oppure «raccordo_spigoli» sullo spigolo fra le due facce.");
+                    " Prova un raggio piu' piccolo, oppure «fillet_edges» sullo spigolo fra le due facce.");
 
             double? volumeDopo = VolumeMm3(modello);
             double? cambio = volumeDopo - foto.Volume;
@@ -279,7 +279,7 @@ namespace Riscontro.Disegno
                     "Il raccordo di faccia «" + nome + "» e' nato ma il volume e' rimasto " +
                     foto.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3: non ha " +
                     "arrotondato niente." + TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima) +
-                    " Prova «raccordo_spigoli» sullo spigolo fra le due facce.");
+                    " Prova «fillet_edges» sullo spigolo fra le due facce.");
 
             // IL CONTO A MANO, CONFRONTATO. Dove c'e' (vedi sopra), un raccordo
             // che toglie un'altra quantita' non e' quello chiesto: parziale, o
@@ -292,7 +292,7 @@ namespace Riscontro.Disegno
                     "Il raccordo di faccia «{0}» e' nato, ma ha cambiato il volume di {1:0.##} mm3 e il " +
                     "conto a mano ne vuole {2:0.##} (spigolo comune {3:0.##} mm x r² x (1 − π/4)): non " +
                     "si e' appoggiato come chiesto sulle due facce.{4} Per lo stesso raccordo sullo " +
-                    "spigolo fra le due facce usa «raccordo_spigoli».",
+                    "spigolo fra le due facce usa «fillet_edges».",
                     nome, Math.Abs(cambio.Value), atteso.Value, spigolo,
                     TogliIlRaccordoDiFaccia(modello, feature, foto, featurePrima)));
 
@@ -358,7 +358,7 @@ namespace Riscontro.Disegno
                 return "«" + uid1 + "» e «" + uid2 + "» sono piane, parallele e guardano dalla stessa " +
                        "parte (complanari, o separate da un gradino): nessuna palla le tocca tutte e due " +
                        "dal lato dell'aria, e il raccordo non puo' nascere. Se c'e' un gradino fra loro, " +
-                       "usa «raccordo_spigoli» sugli spigoli del gradino.";
+                       "usa «fillet_edges» sugli spigoli del gradino.";
 
             // Normali opposte: si guardano o si danno le spalle? Il punto del
             // piano della seconda, visto dalla normale della prima.
@@ -371,13 +371,13 @@ namespace Riscontro.Disegno
                 return "«" + uid1 + "» e «" + uid2 + "» sono piane, parallele e si danno le spalle " +
                        "(come il davanti e il dietro di un blocco): nessuna palla le tocca tutte e due " +
                        "dal lato dell'aria, e il raccordo non puo' nascere. Per arrotondare gli spigoli " +
-                       "di una delle due usa «raccordo_spigoli».";
+                       "di una delle due usa «fillet_edges».";
             if (Math.Abs(distanzaMm - 2 * raggioMm) > 0.01)
                 return string.Format(CultureInfo.InvariantCulture,
                     "«{0}» e «{1}» sono piane, parallele e si guardano a {2:0.##} mm: un raccordo di " +
                     "raggio costante le tocca tutte e due solo se il raggio e' la meta' della distanza, " +
                     "{3:0.##} mm, e hai chiesto {4:0.##}. Se vuoi arrotondare il fondo fra le due, " +
-                    "prova con «raggio_mm»: {3:0.##}.",
+                    "prova con «radius_mm»: {3:0.##}.",
                     uid1, uid2, distanzaMm, distanzaMm / 2, raggioMm);
             return null;
         }

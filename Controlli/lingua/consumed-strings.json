@@ -4,237 +4,521 @@
     {
       "id": "installer-bridge-standing",
       "what": "the dry run of the bridge says it started; the installer reports success only when it finds this sentence",
-      "consumer": { "file": "Installer/Passi.cs", "sha1": "ad6a8b0abd9a", "kind": "literal", "line_hint": 508 },
-      "producers": ["Programma.cs"],
-      "quoted_in": ["INSTALL-FOR-AI.md"]
+      "consumer": {
+        "file": "Installer/Passi.cs",
+        "sha1": "ad6a8b0abd9a",
+        "kind": "literal",
+        "line_hint": 508
+      },
+      "producers": [
+        "Programma.cs"
+      ],
+      "quoted_in": [
+        "INSTALL-FOR-AI.md"
+      ]
     },
     {
       "id": "installer-solidworks-not-open",
       "what": "the dry run of the bridge says SOLIDWORKS is not running, which the installer accepts as installed",
-      "consumer": { "file": "Installer/Programma.cs", "sha1": "f24addff287f", "kind": "literal", "line_hint": 172 },
-      "producers": ["Ponte/Sessione.cs"]
+      "consumer": {
+        "file": "Installer/Programma.cs",
+        "sha1": "f24addff287f",
+        "kind": "literal",
+        "line_hint": 172
+      },
+      "producers": [
+        "Ponte/Sessione.cs"
+      ]
     },
     {
       "id": "bench-summary-line",
       "what": "the last line of a bench run, partial or whole, that banco.ps1 copies into the report",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "6c57e12fbf2e", "kind": "regex", "line_hint": 195 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "6c57e12fbf2e",
+        "kind": "regex",
+        "line_hint": 195
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-passed-marker",
       "what": "the prefix of a passed check in the bench output, counted by banco.ps1",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "99ee05920d05", "kind": "regex", "line_hint": 210 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "99ee05920d05",
+        "kind": "regex",
+        "line_hint": 210
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-failed-marker",
       "what": "the prefix of a failed check in the bench output, counted by banco.ps1",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "c8fe28be1eda", "kind": "regex", "line_hint": 211 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "c8fe28be1eda",
+        "kind": "regex",
+        "line_hint": 211
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-skipped-marker",
       "what": "the prefix of a skipped check in the bench output, counted by banco.ps1",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "febf66c0785f", "kind": "regex", "line_hint": 212 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "febf66c0785f",
+        "kind": "regex",
+        "line_hint": 212
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-error-marker",
       "what": "the prefix of a bench error (could not measure) in the bench output, counted apart by banco.ps1",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "6a3949ffbd11", "kind": "regex", "line_hint": 216 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "6a3949ffbd11",
+        "kind": "regex",
+        "line_hint": 216
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-solidworks-version",
       "what": "the header line with the SOLIDWORKS revision, read into the report",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "776d0b24e7a3", "kind": "regex", "via": "Prendi", "nocase": true, "line_hint": 224 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "776d0b24e7a3",
+        "kind": "regex",
+        "via": "Prendi",
+        "nocase": true,
+        "line_hint": 224
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-library-version",
       "what": "the header line with the version of the library the bench loaded, read into the report",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "4153ea8c1995", "kind": "regex", "via": "Prendi", "nocase": true, "line_hint": 225 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "4153ea8c1995",
+        "kind": "regex",
+        "via": "Prendi",
+        "nocase": true,
+        "line_hint": 225
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-executable-count",
       "what": "the header line with the number of operations the library can run, read into the report",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "73f09abd1223", "kind": "regex", "via": "Prendi", "nocase": true, "line_hint": 229 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "73f09abd1223",
+        "kind": "regex",
+        "via": "Prendi",
+        "nocase": true,
+        "line_hint": 229
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-catalogue-count",
       "what": "the same header line, for the number of operations in the catalogue",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "b7654f289074", "kind": "regex", "via": "Prendi", "nocase": true, "line_hint": 230 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "b7654f289074",
+        "kind": "regex",
+        "via": "Prendi",
+        "nocase": true,
+        "line_hint": 230
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-expectations-line",
       "what": "the line with the expectations checked out of the declared ones, copied into the report",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "ae61de3b6420", "kind": "regex", "line_hint": 233 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "ae61de3b6420",
+        "kind": "regex",
+        "line_hint": 233
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "bench-green-cases",
       "what": "the line that lists the green cases by name, turned into a list in the report",
-      "consumer": { "file": "Banco/banco.ps1", "sha1": "7a1b7f67b02e", "kind": "regex", "line_hint": 241 },
-      "producers": ["Banco/CasiDichiarati.cs"]
+      "consumer": {
+        "file": "Banco/banco.ps1",
+        "sha1": "7a1b7f67b02e",
+        "kind": "regex",
+        "line_hint": 241
+      },
+      "producers": [
+        "Banco/CasiDichiarati.cs"
+      ]
     },
     {
       "id": "contract-bench-not-partial",
       "what": "the report must not come from a partial bench run; the contract looks for the partial-run words and stays green forever if they are translated only on one side",
-      "consumer": { "file": "Prove/ProveIlBanco.cs", "sha1": "32d3d8721cb6", "kind": "literal", "line_hint": 79 },
-      "producers": ["Banco/Program.cs"]
+      "consumer": {
+        "file": "Prove/ProveIlBanco.cs",
+        "sha1": "32d3d8721cb6",
+        "kind": "literal",
+        "line_hint": 79
+      },
+      "producers": [
+        "Banco/Program.cs"
+      ]
     },
     {
       "id": "release-contract-summary",
       "what": "the summary line of the contract suite, which the release script quotes",
-      "consumer": { "file": "Controlli/prepara-release.ps1", "sha1": "f1146d3f074c", "kind": "regex", "line_hint": 116 },
-      "producers": ["Prove/Programma.cs"]
+      "consumer": {
+        "file": "Controlli/prepara-release.ps1",
+        "sha1": "f1146d3f074c",
+        "kind": "regex",
+        "line_hint": 116
+      },
+      "producers": [
+        "Prove/Programma.cs"
+      ]
     },
     {
       "id": "release-contract-failures",
       "what": "the prefix of a failed contract check, printed by the release script when the suite is red",
-      "consumer": { "file": "Controlli/prepara-release.ps1", "sha1": "70d1627f436d", "kind": "regex", "line_hint": 118 },
-      "producers": ["Prove/Programma.cs"]
+      "consumer": {
+        "file": "Controlli/prepara-release.ps1",
+        "sha1": "70d1627f436d",
+        "kind": "regex",
+        "line_hint": 118
+      },
+      "producers": [
+        "Prove/Programma.cs"
+      ]
     },
     {
       "id": "plan-runner-closed-documents",
       "what": "the two lines of the probe that closes the leftover documents, which the plan runner prints",
-      "consumer": { "file": "Banco/corri_piani.js", "sha1": "99171c283ece", "kind": "regex", "line_hint": 255 },
-      "producers": ["Controlli/ChiudiScarti/Programma.cs"]
+      "consumer": {
+        "file": "Banco/corri_piani.js",
+        "sha1": "99171c283ece",
+        "kind": "regex",
+        "line_hint": 255
+      },
+      "producers": [
+        "Controlli/ChiudiScarti/Programma.cs"
+      ]
     },
     {
       "id": "ci-proof-gate-line",
       "what": "the prefix of every message of the language gate, which the CI proof looks for in the run log",
-      "consumer": { "file": "Controlli/lingua/ci-proof.ps1", "sha1": "acb48c733e47", "kind": "regex", "line_hint": 138 },
-      "producers": [".github/passi/language-gate.ps1", "Controlli/lingua/detect-italian.js"]
+      "consumer": {
+        "file": "Controlli/lingua/ci-proof.ps1",
+        "sha1": "acb48c733e47",
+        "kind": "regex",
+        "line_hint": 138
+      },
+      "producers": [
+        ".github/passi/language-gate.ps1",
+        "Controlli/lingua/detect-italian.js"
+      ]
     },
     {
       "id": "installer-probe-reinstall",
       "what": "the installer says it reinstalls over an existing installation",
-      "consumer": { "file": "Controlli/prova-installatore.js", "sha1": "c5bb0934d4b8", "kind": "literal", "line_hint": 116 },
-      "producers": ["Installer/Passi.cs"]
+      "consumer": {
+        "file": "Controlli/prova-installatore.js",
+        "sha1": "c5bb0934d4b8",
+        "kind": "literal",
+        "line_hint": 116
+      },
+      "producers": [
+        "Installer/Passi.cs"
+      ]
     },
     {
       "id": "installer-probe-install-or-update",
       "what": "the installer's line that says it installs or updates a client configuration",
-      "consumer": { "file": "Controlli/prova-installatore.js", "sha1": "a546f472c7f7", "kind": "regex", "line_hint": 117 },
-      "producers": ["Installer/Passi.cs"]
+      "consumer": {
+        "file": "Controlli/prova-installatore.js",
+        "sha1": "a546f472c7f7",
+        "kind": "regex",
+        "line_hint": 117
+      },
+      "producers": [
+        "Installer/Passi.cs"
+      ]
     },
     {
       "id": "installer-probe-backup-name",
       "what": "the name of the backup the installer makes of a client configuration before touching it",
-      "consumer": { "file": "Controlli/prova-installatore.js", "sha1": "33146eab3c3e", "kind": "regex", "line_hint": 128 },
-      "producers": ["Installer/Configurazione.cs"]
+      "consumer": {
+        "file": "Controlli/prova-installatore.js",
+        "sha1": "33146eab3c3e",
+        "kind": "regex",
+        "line_hint": 128
+      },
+      "producers": [
+        "Installer/Configurazione.cs"
+      ]
     },
     {
       "id": "installer-probe-locked-word",
       "what": "the installer says a client configuration file is locked",
-      "consumer": { "file": "Controlli/prova-installatore.js", "sha1": "c8c161566957", "kind": "regex", "line_hint": 157 },
-      "producers": ["Installer/Configurazione.cs"]
+      "consumer": {
+        "file": "Controlli/prova-installatore.js",
+        "sha1": "c8c161566957",
+        "kind": "regex",
+        "line_hint": 157
+      },
+      "producers": [
+        "Installer/Configurazione.cs"
+      ]
     },
     {
       "id": "installer-probe-locked-line",
       "what": "the same message, taken as a whole line for the probe's report",
-      "consumer": { "file": "Controlli/prova-installatore.js", "sha1": "4ac08fdcd891", "kind": "regex", "line_hint": 158 },
-      "producers": ["Installer/Configurazione.cs"]
+      "consumer": {
+        "file": "Controlli/prova-installatore.js",
+        "sha1": "4ac08fdcd891",
+        "kind": "regex",
+        "line_hint": 158
+      },
+      "producers": [
+        "Installer/Configurazione.cs"
+      ]
     },
     {
       "id": "x2-probe-volume-line",
       "what": "the probe that changes the part by hand prints the volume before and after",
-      "consumer": { "file": "Controlli/prova-x2.js", "sha1": "f502bcc0acfd", "kind": "literal", "line_hint": 176 },
-      "producers": ["Controlli/CambiaAMano/Programma.cs"]
+      "consumer": {
+        "file": "Controlli/prova-x2.js",
+        "sha1": "f502bcc0acfd",
+        "kind": "literal",
+        "line_hint": 176
+      },
+      "producers": [
+        "Controlli/CambiaAMano/Programma.cs"
+      ]
     },
     {
       "id": "x2-probe-nothing-changed",
       "what": "the same probe says nothing changed; x2 requires its ABSENCE, so a translation on one side only would keep it green forever",
-      "consumer": { "file": "Controlli/prova-x2.js", "sha1": "b5a89f2856e6", "kind": "literal", "line_hint": 177 },
-      "producers": ["Controlli/CambiaAMano/Programma.cs"]
+      "consumer": {
+        "file": "Controlli/prova-x2.js",
+        "sha1": "b5a89f2856e6",
+        "kind": "literal",
+        "line_hint": 177
+      },
+      "producers": [
+        "Controlli/CambiaAMano/Programma.cs"
+      ]
     },
     {
       "id": "x2-bridge-names-the-volume",
       "what": "the bridge's refusal after a change made by hand names the volume",
-      "consumer": { "file": "Controlli/prova-x2.js", "sha1": "e5841f964242", "kind": "literal", "line_hint": 186 },
-      "producers": ["Strumenti/Attrezzi.cs"]
+      "consumer": {
+        "file": "Controlli/prova-x2.js",
+        "sha1": "e5841f964242",
+        "kind": "literal",
+        "line_hint": 186
+      },
+      "producers": [
+        "Strumenti/Attrezzi.cs"
+      ]
     },
     {
       "id": "x2-bridge-names-the-features",
       "what": "the same refusal names the feature count",
-      "consumer": { "file": "Controlli/prova-x2.js", "sha1": "0ad9fc6c7397", "kind": "literal", "line_hint": 186 },
-      "producers": ["Strumenti/Attrezzi.cs"]
+      "consumer": {
+        "file": "Controlli/prova-x2.js",
+        "sha1": "0ad9fc6c7397",
+        "kind": "literal",
+        "line_hint": 186
+      },
+      "producers": [
+        "Strumenti/Attrezzi.cs"
+      ]
     },
     {
       "id": "x2-bridge-names-the-inspect-tool",
       "what": "the same refusal names the tool to call before drawing again",
-      "consumer": { "file": "Controlli/prova-x2.js", "sha1": "eeedea50ceae", "kind": "literal", "line_hint": 188 },
-      "producers": ["Strumenti/Attrezzi.cs"]
+      "consumer": {
+        "file": "Controlli/prova-x2.js",
+        "sha1": "44f859f32135",
+        "kind": "literal",
+        "line_hint": 220
+      },
+      "producers": [
+        "Strumenti/Attrezzi.cs"
+      ]
     },
     {
       "id": "undo-probe-nothing-to-undo",
       "what": "the undo tool refuses when no plan was run in this conversation",
-      "consumer": { "file": "Banco/prova_annulla.js", "sha1": "a106e7188a56", "kind": "regex", "line_hint": 152 },
-      "producers": ["Strumenti/Attrezzi.cs"]
+      "consumer": {
+        "file": "Banco/prova_annulla.js",
+        "sha1": "a106e7188a56",
+        "kind": "regex",
+        "line_hint": 152
+      },
+      "producers": [
+        "Strumenti/Attrezzi.cs"
+      ]
     },
     {
       "id": "undo-probe-document-changed",
       "what": "the undo tool refuses when another document is in front",
-      "consumer": { "file": "Banco/prova_annulla.js", "sha1": "57d020835142", "kind": "regex", "line_hint": 223 },
-      "producers": ["Strumenti/Attrezzi.cs"]
+      "consumer": {
+        "file": "Banco/prova_annulla.js",
+        "sha1": "57d020835142",
+        "kind": "regex",
+        "line_hint": 223
+      },
+      "producers": [
+        "Strumenti/Attrezzi.cs"
+      ]
     },
     {
       "id": "hole-probe-convex-face",
       "what": "the hole-wall selector refuses a convex face (a fillet) and says why",
-      "consumer": { "file": "Banco/prova_faccia_foro.js", "sha1": "fa79c42afa7e", "kind": "regex", "line_hint": 215 },
-      "producers": ["Riscontro.Disegno/Riferimenti.cs"]
+      "consumer": {
+        "file": "Banco/prova_faccia_foro.js",
+        "sha1": "fa79c42afa7e",
+        "kind": "regex",
+        "line_hint": 215
+      },
+      "producers": [
+        "Riscontro.Disegno/Riferimenti.cs"
+      ]
     },
     {
       "id": "hole-probe-many-walls",
       "what": "the hole-wall selector refuses when there is more than one hole wall",
-      "consumer": { "file": "Banco/prova_faccia_foro.js", "sha1": "f79c5700161d", "kind": "regex", "line_hint": 233 },
-      "producers": ["Riscontro.Disegno/Riferimenti.cs"]
+      "consumer": {
+        "file": "Banco/prova_faccia_foro.js",
+        "sha1": "f79c5700161d",
+        "kind": "regex",
+        "line_hint": 233
+      },
+      "producers": [
+        "Riscontro.Disegno/Riferimenti.cs"
+      ]
     },
     {
       "id": "bench-client-not-looked-yet",
       "what": "after a change of document the bridge refuses to draw until the part is inspected",
-      "consumer": { "file": "Banco/PortaDelCliente.cs", "sha1": "cce8d6e8f12f", "kind": "literal", "line_hint": 256 },
-      "producers": ["Strumenti/Attrezzi.cs"]
+      "consumer": {
+        "file": "Banco/PortaDelCliente.cs",
+        "sha1": "cce8d6e8f12f",
+        "kind": "literal",
+        "line_hint": 256
+      },
+      "producers": [
+        "Strumenti/Attrezzi.cs"
+      ]
     },
     {
       "id": "bench-client-file-missing",
       "what": "the document tool refuses to open a file that does not exist",
-      "consumer": { "file": "Banco/PortaDelCliente.cs", "sha1": "fb27b318596e", "kind": "literal", "line_hint": 271 },
-      "producers": ["Ponte/Documenti.cs"]
+      "consumer": {
+        "file": "Banco/PortaDelCliente.cs",
+        "sha1": "fb27b318596e",
+        "kind": "literal",
+        "line_hint": 271
+      },
+      "producers": [
+        "Ponte/Documenti.cs"
+      ]
     },
     {
       "id": "bench-client-unsaved-changes",
       "what": "the document tool refuses to close a document with unsaved changes",
-      "consumer": { "file": "Banco/PortaDelCliente.cs", "sha1": "fbf65b89121c", "kind": "literal", "line_hint": 341 },
-      "producers": ["Ponte/Documenti.cs"]
+      "consumer": {
+        "file": "Banco/PortaDelCliente.cs",
+        "sha1": "fbf65b89121c",
+        "kind": "literal",
+        "line_hint": 341
+      },
+      "producers": [
+        "Ponte/Documenti.cs"
+      ]
     },
     {
       "id": "bench-client-modal-window",
       "what": "the plan is refused while SOLIDWORKS shows a modal window",
-      "consumer": { "file": "Banco/PortaDelCliente.cs", "sha1": "2a39e91f9847", "kind": "literal", "line_hint": 433 },
-      "producers": ["Riscontro.Disegno/EsecutorePiano.cs"]
+      "consumer": {
+        "file": "Banco/PortaDelCliente.cs",
+        "sha1": "2a39e91f9847",
+        "kind": "literal",
+        "line_hint": 433
+      },
+      "producers": [
+        "Riscontro.Disegno/EsecutorePiano.cs"
+      ]
     },
     {
       "id": "bench-client-modal-gone",
       "what": "once the modal window is closed the refusal must be gone; the bench requires its ABSENCE, so a one-sided translation keeps it green",
-      "consumer": { "file": "Banco/PortaDelCliente.cs", "sha1": "33e1dfd2a8a6", "kind": "literal", "line_hint": 446 },
-      "producers": ["Riscontro.Disegno/EsecutorePiano.cs"]
+      "consumer": {
+        "file": "Banco/PortaDelCliente.cs",
+        "sha1": "33e1dfd2a8a6",
+        "kind": "literal",
+        "line_hint": 446
+      },
+      "producers": [
+        "Riscontro.Disegno/EsecutorePiano.cs"
+      ]
     },
     {
       "id": "bench-dimension-overwritten",
       "what": "the drawing state says how a dimension number was overwritten; the bench counts these lines",
-      "consumer": { "file": "Banco/NumeriDelleQuote.cs", "sha1": "a0d26e91b160", "kind": "literal", "line_hint": 90 },
-      "producers": ["Riscontro.Disegno/StatoTavola.cs"]
+      "consumer": {
+        "file": "Banco/NumeriDelleQuote.cs",
+        "sha1": "a0d26e91b160",
+        "kind": "literal",
+        "line_hint": 90
+      },
+      "producers": [
+        "Riscontro.Disegno/StatoTavola.cs"
+      ]
     },
     {
       "id": "bench-dimension-value-hidden",
       "what": "the drawing state says a dimension value is hidden; the bench counts these lines",
-      "consumer": { "file": "Banco/NumeriDelleQuote.cs", "sha1": "0cd02b6d3c28", "kind": "literal", "line_hint": 92 },
-      "producers": ["Riscontro.Disegno/StatoTavola.cs"]
+      "consumer": {
+        "file": "Banco/NumeriDelleQuote.cs",
+        "sha1": "0cd02b6d3c28",
+        "kind": "literal",
+        "line_hint": 92
+      },
+      "producers": [
+        "Riscontro.Disegno/StatoTavola.cs"
+      ]
     }
   ]
 }

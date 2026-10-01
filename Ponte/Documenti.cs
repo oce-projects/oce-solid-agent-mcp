@@ -57,19 +57,19 @@ namespace Oce.Solid.Agent.Ponte
             string nomeTipo;
             switch ((tipo ?? "").Trim().ToLowerInvariant())
             {
-                case "parte":
+                case "part":
                     preferenza = (int)swUserPreferenceStringValue_e.swDefaultTemplatePart;
                     atteso = (int)swDocumentTypes_e.swDocPART;
-                    nomeTipo = "parte";
+                    nomeTipo = "part";
                     break;
-                case "assieme":
+                case "assembly":
                     preferenza = (int)swUserPreferenceStringValue_e.swDefaultTemplateAssembly;
                     atteso = (int)swDocumentTypes_e.swDocASSEMBLY;
-                    nomeTipo = "assieme";
+                    nomeTipo = "assembly";
                     break;
                 default:
-                    errore = "«tipo» vale «parte» o «assieme». Una tavola nasce da un " +
-                             "pezzo, con «crea_disegno» dentro un piano.";
+                    errore = "«variant» vale «part» o «assembly». Una tavola nasce da un " +
+                             "pezzo, con «create_drawing» dentro un piano.";
                     return null;
             }
 
@@ -116,7 +116,7 @@ namespace Oce.Solid.Agent.Ponte
             }
 
             var fuori = Scheda(doc, DocumentoAttivo());
-            fuori["modello"] = modello;
+            fuori["model"] = modello;
             return fuori;
         }
 
@@ -128,7 +128,7 @@ namespace Oce.Solid.Agent.Ponte
             if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
             if (string.IsNullOrWhiteSpace(percorso))
             {
-                errore = "«percorso» e' obbligatorio: il file da aprire, col percorso intero.";
+                errore = "«path» e' obbligatorio: il file da aprire, col percorso intero.";
                 return null;
             }
             percorso = percorso.Trim().Trim('"');
@@ -177,7 +177,7 @@ namespace Oce.Solid.Agent.Ponte
             {
                 var portato = PortaDavanti(sw, gia, out errore);
                 if (portato == null) return null;
-                portato["era_gia_aperto"] = true;
+                portato["was_already_open"] = true;
                 return portato;
             }
 
@@ -204,8 +204,8 @@ namespace Oce.Solid.Agent.Ponte
             // E DAVANTI C'E' LUI? OpenDoc6 di solito lo attiva; si controlla.
             var fuori = PortaDavanti(sw, doc, out errore);
             if (fuori == null) return null;
-            fuori["era_gia_aperto"] = false;
-            if (avvisi != 0) fuori["avvisi_di_apertura"] = AvvisiDiApertura(avvisi);
+            fuori["was_already_open"] = false;
+            if (avvisi != 0) fuori["opening_warnings"] = AvvisiDiApertura(avvisi);
             return fuori;
         }
 
@@ -243,7 +243,7 @@ namespace Oce.Solid.Agent.Ponte
             if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
             if (string.IsNullOrWhiteSpace(quale))
             {
-                errore = "«percorso» e' obbligatorio: il percorso o il titolo di un documento aperto.";
+                errore = "«path» e' obbligatorio: il percorso o il titolo di un documento aperto.";
                 return null;
             }
             quale = quale.Trim().Trim('"');
@@ -278,7 +278,7 @@ namespace Oce.Solid.Agent.Ponte
             if (sw == null) { errore = "Il ponte non e' agganciato a SolidWorks."; return null; }
             if (string.IsNullOrWhiteSpace(quale))
             {
-                errore = "«percorso» e' obbligatorio: il percorso o il titolo del documento da chiudere.";
+                errore = "«path» e' obbligatorio: il percorso o il titolo del documento da chiudere.";
                 return null;
             }
             quale = quale.Trim().Trim('"');
@@ -298,7 +298,7 @@ namespace Oce.Solid.Agent.Ponte
             if (sporco)
             {
                 errore = "«" + titolo + "» ha modifiche non salvate: non lo chiudo, le butterei. " +
-                         "Salvalo prima («salva_documento», dentro un piano), oppure chiudilo a " +
+                         "Salvalo prima («save_document», dentro un piano), oppure chiudilo a " +
                          "mano se quelle modifiche sono da buttare.";
                 return null;
             }
@@ -325,7 +325,7 @@ namespace Oce.Solid.Agent.Ponte
             // Base.SLDASM have the same title, and nothing documents which one
             // CloseDoc closes. DocumentByPath reads back whether it is gone.
             var id = Identita(doc);
-            string percorso = Convert.ToString(id["percorso"] ?? "");
+            string percorso = Convert.ToString(id["path"] ?? "");
             var closing = DocumentByPath.CloseAndReadBack(sw, doc);
             if (closing.Result != DocumentByPath.CloseResult.Closed &&
                 closing.Result != DocumentByPath.CloseResult.StillLoadedHidden)
@@ -344,10 +344,10 @@ namespace Oce.Solid.Agent.Ponte
             var davanti = DocumentoAttivo();
             var answer = new Dictionary<string, object>
             {
-                ["chiuso"] = titolo,
-                ["percorso"] = string.IsNullOrEmpty(percorso) ? null : percorso,
-                ["aperti_adesso"] = dopo.Count,
-                ["davanti_adesso"] = davanti == null ? null : Identita(davanti)["titolo"],
+                ["closed"] = titolo,
+                ["path"] = string.IsNullOrEmpty(percorso) ? null : percorso,
+                ["open_now"] = dopo.Count,
+                ["in_front_now"] = davanti == null ? null : Identita(davanti)["document_title"],
                 ["closed_by"] = closing.NamePassed == ""
                     ? "the active document (CloseDoc with an empty name)"
                     : closing.NamePassed,
@@ -412,8 +412,8 @@ namespace Oce.Solid.Agent.Ponte
         /// swActivateDocError_e.swDocNeedsRebuildWarning. You can then rebuild
         /// the document using IModelDoc2::EditRebuild3.» Up to library 0.146.0
         /// <paramref name="doc"/>'s caller got this activation for free but the
-        /// bit was thrown away: a read-only step right after (`proprieta_di_massa`,
-        /// `ingombro`) would measure stale geometry, since the executor's own
+        /// bit was thrown away: a read-only step right after (`mass_properties`,
+        /// `overall`) would measure stale geometry, since the executor's own
         /// rebuild only runs after a successful step (EsecutorePiano.cs), too
         /// late for the very first one.
         /// </summary>
@@ -432,7 +432,7 @@ namespace Oce.Solid.Agent.Ponte
             if (!StessoDocumento(Identita(davanti), Identita(doc)))
             {
                 errore = "I asked to bring «" + doc.GetTitle() + "» to the front, and the active document " +
-                         "is «" + Convert.ToString(Identita(davanti)?["titolo"] ?? "nothing") + "».";
+                         "is «" + Convert.ToString(Identita(davanti)?["document_title"] ?? "nothing") + "».";
                 return null;
             }
 
@@ -489,17 +489,17 @@ namespace Oce.Solid.Agent.Ponte
             var id = Identita(doc);
             var scheda = new Dictionary<string, object>
             {
-                ["titolo"] = id["titolo"],
-                ["percorso"] = id["percorso"],
-                ["tipo"] = NomeDelTipo(doc.GetType()),
-                ["sola_lettura"] = solaLettura,
-                ["modifiche_non_salvate"] = modificato,
-                ["davanti"] = attivo != null && StessoDocumento(Identita(attivo), id),
+                ["document_title"] = id["document_title"],
+                ["path"] = id["path"],
+                ["kind"] = NomeDelTipo(doc.GetType()),
+                ["read_only"] = solaLettura,
+                ["unsaved_changes"] = modificato,
+                ["in_front"] = attivo != null && StessoDocumento(Identita(attivo), id),
             };
             if (solaLettura)
-                scheda["attenzione"] =
+                scheda["warning"] =
                     "SOLA LETTURA: di solito vuol dire che un collega ha il file aperto. " +
-                    "«disegna» non ci scrive: le modifiche resterebbero in memoria e il " +
+                    "«build» non ci scrive: le modifiche resterebbero in memoria e il " +
                     "salvataggio fallirebbe, o finirebbe in una copia.";
             return scheda;
         }
@@ -508,9 +508,9 @@ namespace Oce.Solid.Agent.Ponte
         {
             switch (tipo)
             {
-                case (int)swDocumentTypes_e.swDocPART: return "parte";
-                case (int)swDocumentTypes_e.swDocASSEMBLY: return "assieme";
-                case (int)swDocumentTypes_e.swDocDRAWING: return "tavola";
+                case (int)swDocumentTypes_e.swDocPART: return "part";
+                case (int)swDocumentTypes_e.swDocASSEMBLY: return "assembly";
+                case (int)swDocumentTypes_e.swDocDRAWING: return "drawing";
                 default: return "altro (" + tipo + ")";
             }
         }

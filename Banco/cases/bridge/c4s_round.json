@@ -1,11 +1,11 @@
 [
  {
-  "operazione": "estrudi_sezione",
-  "argomenti": {
-   "piano": "superiore",
-   "tipo": "tondo",
-   "diametro_mm": 50,
-   "lunghezza_mm": 200
+  "operation": "extrude_section",
+  "arguments": {
+   "plane": "top",
+   "variant": "round",
+   "diameter_mm": 50,
+   "length_mm": 200
   }
  }
 ]

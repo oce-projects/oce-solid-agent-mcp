@@ -1,19 +1,19 @@
 {
   "name": "requested_combine",
   "family": "bodies",
-  "why": "La gemella di `default_combine`. Stessa geometria, stesso esito, e si chiede «unisci» per nome: l'unica differenza fra i due casi deve essere la dichiarazione. Si usa «unisci» e non «sottrai» apposta — cambiare due cose insieme (il valore E l'esito) renderebbe il confronto inutile, e su due corpi che non si toccano non e' accertato che SOLIDWORKS accetti una sottrazione che non toglie niente. Quella e' una domanda a se', e va misurata quando si misura, non assunta qui. I due corpi si SOVRAPPONGONO apposta — la copia e' a 60 mm su un pezzo lungo 100, quindi 40 mm di sovrapposizione — perche' «combina_corpi» dichiara di FALLIRE se dopo l'unione i corpi sono ancora due: «di solito non si toccano davvero, e fallisco invece di confermarti un pezzo diverso da quello che credi». Con due corpi distanti l'unione sarebbe fallita e il caso rosso avrebbe accusato il predefinito invece della geometria. Con la sovrapposizione i tre esiti restano inconfondibili: unisci = 80000 (50000+50000-20000), sottrai = 30000, interseca = 20000. «riuscita: true» li darebbe tutti e tre. E i corpi si indicano con «corpi_uid»: «sposta_corpi» non lo dichiara in «required» — e' un aut-aut fra «corpi_uid» e «corpi_rif», che «required» non sa esprimere — ma la sua DESCRIZIONE lo dice in chiaro. Questo caso l'ha imparato andando rosso il 24/9/2026, ed e' il secondo errore dello stesso tipo sullo stesso caso: scritto guardando lo schema invece della descrizione. *Lo schema dice cosa un'operazione accetta; la descrizione dice cosa pretende e cosa rifiuta.*",
+  "why": "La gemella di `default_combine`. Stessa geometria, stesso esito, e si chiede «union» per nome: l'unica differenza fra i due casi deve essere la dichiarazione. Si usa «union» e non «subtract» apposta — cambiare due cose insieme (il valore E l'esito) renderebbe il confronto inutile, e su due corpi che non si toccano non e' accertato che SOLIDWORKS accetti una sottrazione che non toglie niente. Quella e' una domanda a se', e va misurata quando si misura, non assunta qui. I due corpi si SOVRAPPONGONO apposta — la copia e' a 60 mm su un pezzo lungo 100, quindi 40 mm di sovrapposizione — perche' «combine_bodies» dichiara di FALLIRE se dopo l'unione i corpi sono ancora due: «di solito non si toccano davvero, e fallisco invece di confermarti un pezzo diverso da quello che credi». Con due corpi distanti l'unione sarebbe fallita e il caso rosso avrebbe accusato il predefinito invece della geometria. Con la sovrapposizione i tre esiti restano inconfondibili: unisci = 80000 (50000+50000-20000), sottrai = 30000, interseca = 20000. «succeeded: true» li darebbe tutti e tre. E i corpi si indicano con «bodies_uid»: «move_bodies» non lo dichiara in «required» — e' un aut-aut fra «bodies_uid» e «bodies_ref», che «required» non sa esprimere — ma la sua DESCRIZIONE lo dice in chiaro. Questo caso l'ha imparato andando rosso il 24/9/2026, ed e' il secondo errore dello stesso tipo sullo stesso caso: scritto guardando lo schema invece della descrizione. *Lo schema dice cosa un'operazione accetta; la descrizione dice cosa pretende e cosa rifiuta.*",
   "start": {
     "new_part": true
   },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 100,
-        "larghezza_mm": 50,
-        "spessore_mm": 10,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 100,
+        "width_mm": 50,
+        "thickness_mm": 10,
+        "centered": true
       },
       "expect": [
         {
@@ -21,24 +21,24 @@
           "equal_to": 50000
         },
         {
-          "what": "stato.corpi_totali",
+          "what": "state.bodies_total",
           "equal_to": 1
         }
       ]
     },
     {
-      "operation": "sposta_corpi",
+      "operation": "move_bodies",
       "arguments": {
-        "corpi_uid": [
+        "bodies_uid": [
           "C1"
         ],
         "dx_mm": 60,
-        "copia": true,
-        "quante_copie": 1
+        "copy": true,
+        "copy_count": 1
       },
       "expect": [
         {
-          "what": "stato.corpi_totali",
+          "what": "state.bodies_total",
           "equal_to": 2
         },
         {
@@ -48,13 +48,13 @@
       ]
     },
     {
-      "operation": "combina_corpi",
+      "operation": "combine_bodies",
       "arguments": {
-        "operazione": "unisci"
+        "operation": "union"
       },
       "expect": [
         {
-          "what": "stato.corpi_totali",
+          "what": "state.bodies_total",
           "equal_to": 1
         },
         {
@@ -62,7 +62,7 @@
           "equal_to": 80000
         },
         {
-          "what": "misure.nota_assunto",
+          "what": "measurements.note_assumption",
           "does_not_include": [
             "predefinito"
           ]

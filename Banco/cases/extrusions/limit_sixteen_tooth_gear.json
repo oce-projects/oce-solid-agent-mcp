@@ -1,12 +1,12 @@
 {
   "name": "limit_sixteen_tooth_gear",
   "family": "extrusions",
-  "why": "VOCE Z-C6. La meta' che rifiuta del bordo di `ruota_dentata`: sotto il limite d'intaglio (17,097 denti a 20 gradi, arrotondato per difetto a 17) l'evolvente entrerebbe nel piede, e questo generatore non fa la correzione di profilo che servirebbe. Deve dirlo — e dire che e' un limite DEL GENERATORE, non della meccanica — e non lasciare niente nel documento.",
+  "why": "VOCE Z-C6. La meta' che rifiuta del bordo di `spur_gear`: sotto il limite d'intaglio (17,097 denti a 20 gradi, arrotondato per difetto a 17) l'evolvente entrerebbe nel piede, e questo generatore non fa la correzione di profilo che servirebbe. Deve dirlo — e dire che e' un limite DEL GENERATORE, non della meccanica — e non lasciare niente nel documento.",
 
   "start": { "new_part": true },
   "steps": [
-    { "operation": "ruota_dentata",
-      "arguments": { "piano": "superiore", "denti": 16, "modulo_mm": 2, "spessore_mm": 10 },
+    { "operation": "spur_gear",
+      "arguments": { "plane": "top", "teeth": 16, "module_mm": 2, "thickness_mm": 10 },
       "must_fail": {
         "message_includes": ["sotto 17 denti", "correzione di profilo"],
         "volume_unchanged": true,

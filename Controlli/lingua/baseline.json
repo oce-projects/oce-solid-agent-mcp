@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 145143,
-  "strings": 54654,
-  "markdown": 33942,
-  "json_values": 55010,
-  "identifiers": 5057,
-  "json_keys": 219,
-  "protocol": 1904,
+  "comments": 144945,
+  "strings": 54178,
+  "markdown": 33938,
+  "json_values": 54732,
+  "identifiers": 5054,
+  "json_keys": 15,
+  "protocol": 1067,
   "paths": 220,
   "transition": 2165
  },
@@ -43,15 +43,15 @@
    "strings": 129
   },
   "Banco/Attese.cs": {
-   "comments": 1794,
-   "strings": 278
+   "comments": 1792,
+   "strings": 275
   },
   "Banco/CasiDichiarati.cs": {
-   "comments": 3500,
-   "strings": 525
+   "comments": 3498,
+   "strings": 522
   },
   "Banco/LEGGIMI.md": {
-   "markdown": 4218
+   "markdown": 4215
   },
   "Banco/NumeriDelleQuote.cs": {
    "comments": 114,
@@ -62,16 +62,16 @@
    "strings": 50
   },
   "Banco/PortaDelCliente.cs": {
-   "comments": 1004,
-   "strings": 287
+   "comments": 995,
+   "strings": 279
   },
   "Banco/Program.cs": {
-   "comments": 6166,
-   "strings": 889
+   "comments": 6159,
+   "strings": 887
   },
   "Banco/ProvaNuove.cs": {
    "comments": 1634,
-   "strings": 160
+   "strings": 158
   },
   "Banco/ProvaSaldatura.csproj": {
    "comments": 84
@@ -85,7 +85,7 @@
    "strings": 221
   },
   "Banco/Sessione.cs": {
-   "comments": 707,
+   "comments": 706,
    "strings": 14
   },
   "Banco/banco.ps1": {
@@ -93,7 +93,7 @@
    "strings": 160
   },
   "Banco/cases/E2-the-two-cases.md": {
-   "markdown": 617
+   "markdown": 615
   },
   "Banco/cases/assemblies/assembly_is_weighed_measured_and_sent.json": {
    "json_values": 150
@@ -102,25 +102,25 @@
    "json_values": 78
   },
   "Banco/cases/assemblies/cover_inside_base.json": {
-   "json_values": 296
+   "json_values": 295
   },
   "Banco/cases/assemblies/fixed_is_not_mated.json": {
-   "json_values": 139
+   "json_values": 138
   },
   "Banco/cases/assemblies/inserting_is_not_mating.json": {
-   "json_values": 761
+   "json_values": 757
   },
   "Banco/cases/assemblies/one_mate_is_not_enough.json": {
-   "json_values": 187
+   "json_values": 186
   },
   "Banco/cases/assemblies/rebuilt_cover_keeps_the_constraints_but_broken.json": {
    "json_values": 549
   },
   "Banco/cases/assemblies/right_bracket_and_left_bracket.json": {
-   "json_values": 138
+   "json_values": 137
   },
   "Banco/cases/assemblies/the_interference_array_is_as_long_as_the_count.json": {
-   "json_values": 8
+   "json_values": 7
   },
   "Banco/cases/assemblies/touching_is_not_interpenetrating.json": {
    "json_values": 279
@@ -135,7 +135,7 @@
    "json_values": 48
   },
   "Banco/cases/bodies/default_combine.json": {
-   "json_values": 149
+   "json_values": 145
   },
   "Banco/cases/bodies/fillet_that_changes_radius.json": {
    "json_values": 159
@@ -168,19 +168,19 @@
    "json_values": 64
   },
   "Banco/cases/bodies/merge_two_cubes.json": {
-   "json_values": 97
+   "json_values": 95
   },
   "Banco/cases/bodies/requested_combine.json": {
-   "json_values": 167
+   "json_values": 163
   },
   "Banco/cases/bodies/subtract_one_cube_from_the_other.json": {
-   "json_values": 116
+   "json_values": 114
   },
   "Banco/cases/bodies/thread_on_pin.json": {
    "json_values": 147
   },
   "Banco/cases/bridge/e13_hole_on_the_border.json": {
-   "json_values": 117
+   "json_values": 116
   },
   "Banco/cases/bridge/e15_everything_closed.json": {
    "json_values": 87
@@ -189,7 +189,7 @@
    "json_values": 86
   },
   "Banco/cases/bridge/e2_case_a.json": {
-   "json_values": 147
+   "json_values": 146
   },
   "Banco/cases/bridge/s_cavity_flush.json": {
    "json_values": 85
@@ -201,7 +201,7 @@
    "json_values": 36
   },
   "Banco/cases/chamfer/chamfer_angle_changes_in_deg.json": {
-   "json_values": 142
+   "json_values": 141
   },
   "Banco/cases/chamfer/limit_chamfer_bigger_than_the_edge.json": {
    "json_values": 47
@@ -213,10 +213,10 @@
    "json_values": 179
   },
   "Banco/cases/check/limit_body_that_does_not_exist.json": {
-   "json_values": 38
+   "json_values": 37
   },
   "Banco/cases/check/one_body_of_two_is_not_the_part.json": {
-   "json_values": 33
+   "json_values": 32
   },
   "Banco/cases/check/straight_block_prints.json": {
    "json_values": 137
@@ -225,7 +225,7 @@
    "json_values": 199
   },
   "Banco/cases/check/walls_at_sixty_degrees_do_not_print.json": {
-   "json_values": 276
+   "json_values": 275
   },
   "Banco/cases/dimensions/dimensions_come_from_the_model.json": {
    "json_values": 20
@@ -252,10 +252,10 @@
    "json_values": 127
   },
   "Banco/cases/document_properties/goes_back_with_the_full_name.json": {
-   "json_values": 170
+   "json_values": 168
   },
   "Banco/cases/document_properties/limit_configuration_that_already_exists.json": {
-   "json_values": 136
+   "json_values": 134
   },
   "Banco/cases/document_properties/limit_configuration_that_does_not_exist.json": {
    "json_values": 79
@@ -282,19 +282,19 @@
    "json_values": 123
   },
   "Banco/cases/drawing/blind_hole_says_how_deep_it_is.json": {
-   "json_values": 219
+   "json_values": 218
   },
   "Banco/cases/drawing/bom_counts_the_components.json": {
    "json_values": 118
   },
   "Banco/cases/drawing/center_marks_on_the_holes.json": {
-   "json_values": 170
+   "json_values": 169
   },
   "Banco/cases/drawing/chamfered_shaft_does_not_dimension_the_legs.json": {
    "json_values": 221
   },
   "Banco/cases/drawing/counters_exist_even_at_zero.json": {
-   "json_values": 406
+   "json_values": 404
   },
   "Banco/cases/drawing/cut_list_in_the_drawing.json": {
    "json_values": 207
@@ -303,22 +303,22 @@
    "json_values": 266
   },
   "Banco/cases/drawing/detail_enlarges.json": {
-   "json_values": 315
+   "json_values": 314
   },
   "Banco/cases/drawing/dimensions_arrive_in_the_pdf.json": {
    "json_values": 126
   },
   "Banco/cases/drawing/drawing_dimensions_holes_and_chamfer.json": {
-   "json_values": 482
+   "json_values": 481
   },
   "Banco/cases/drawing/drawing_dimensions_itself.json": {
    "json_values": 1147
   },
   "Banco/cases/drawing/drawing_exports_to_pdf.json": {
-   "json_values": 333
+   "json_values": 332
   },
   "Banco/cases/drawing/drawing_is_a_second_document.json": {
-   "json_values": 723
+   "json_values": 722
   },
   "Banco/cases/drawing/flat_pattern_in_the_drawing.json": {
    "json_values": 163
@@ -363,31 +363,31 @@
    "json_values": 34
   },
   "Banco/cases/drawing/note_ends_up_on_the_sheet.json": {
-   "json_values": 448
+   "json_values": 447
   },
   "Banco/cases/drawing/section_cuts_the_part.json": {
-   "json_values": 314
+   "json_values": 313
   },
   "Banco/cases/drawing/stepped_shaft_dimensioned_from_the_side.json": {
-   "json_values": 220
+   "json_values": 219
   },
   "Banco/cases/drawing/stud_is_not_a_hole.json": {
    "json_values": 110
   },
   "Banco/cases/drawing/the_second_sheet_does_not_repeat_the_dimensions.json": {
-   "json_values": 20
+   "json_values": 19
   },
   "Banco/cases/drawing/title_block_says_what_it_wants.json": {
-   "json_values": 676
+   "json_values": 675
   },
   "Banco/cases/drawing/turned_bushing_is_not_a_hole.json": {
    "json_values": 273
   },
   "Banco/cases/drawing/two_equal_holes_one_through_one_blind.json": {
-   "json_values": 136
+   "json_values": 135
   },
   "Banco/cases/drawing/two_sheets_and_the_same_projection_angle.json": {
-   "json_values": 551
+   "json_values": 546
   },
   "Banco/cases/drawing/weld_symbol_on_the_joint.json": {
    "json_values": 163
@@ -399,10 +399,10 @@
    "json_values": 146
   },
   "Banco/cases/export/iges_solids.json": {
-   "json_values": 72
+   "json_values": 71
   },
   "Banco/cases/export/limit_iges_of_an_assembly.json": {
-   "json_values": 65
+   "json_values": 64
   },
   "Banco/cases/export/limit_iges_with_a_step_extension.json": {
    "json_values": 49
@@ -423,7 +423,7 @@
    "json_values": 104
   },
   "Banco/cases/export/stl_does_not_export_the_selected_face.json": {
-   "json_values": 89
+   "json_values": 88
   },
   "Banco/cases/export/the_iges_carries_the_solid_not_its_wireframe.json": {
    "json_values": 2
@@ -432,10 +432,10 @@
    "json_values": 109
   },
   "Banco/cases/extrusions/anchored_rectangular_boss_follows_the_centerline.json": {
-   "json_values": 55
+   "json_values": 53
   },
   "Banco/cases/extrusions/anchored_round_boss_follows_the_border.json": {
-   "json_values": 75
+   "json_values": 73
   },
   "Banco/cases/extrusions/extruded_slot.json": {
    "json_values": 131
@@ -456,22 +456,22 @@
    "json_values": 155
   },
   "Banco/cases/extrusions/unknown_plane_does_not_fall_back_to_front.json": {
-   "json_values": 21
+   "json_values": 16
   },
   "Banco/cases/features/anchored_hole_follows_the_border.json": {
-   "json_values": 117
+   "json_values": 115
   },
   "Banco/cases/features/anchored_hole_wizard_holes_stay_at_twenty.json": {
-   "json_values": 65
+   "json_values": 63
   },
   "Banco/cases/features/blind_becomes_through.json": {
-   "json_values": 84
+   "json_values": 82
   },
   "Banco/cases/features/boss_grows_and_is_not_a_cut.json": {
-   "json_values": 107
+   "json_values": 98
   },
   "Banco/cases/features/centered_pocket_follows_the_centerline.json": {
-   "json_values": 100
+   "json_values": 98
   },
   "Banco/cases/features/dimension_that_keeps_the_slot_inside.json": {
    "json_values": 82
@@ -492,19 +492,16 @@
    "json_values": 85
   },
   "Banco/cases/features/flipped_draft_drops.json": {
-   "json_values": 124
+   "json_values": 123
   },
   "Banco/cases/features/guided_hole_centred_too_narrow.json": {
-   "json_values": 4
-  },
-  "Banco/cases/features/guided_hole_counterbore_past_the_edge.json": {
-   "json_values": 4
+   "json_values": 2
   },
   "Banco/cases/features/hole_on_the_back_follows_the_corner.json": {
    "json_values": 75
   },
   "Banco/cases/features/hole_on_the_side_stays_at_half_thickness.json": {
-   "json_values": 83
+   "json_values": 81
   },
   "Banco/cases/features/hole_wizard_follows_the_table.json": {
    "json_values": 128
@@ -540,7 +537,7 @@
    "json_values": 42
   },
   "Banco/cases/features/limit_hole_wizard_outside_the_part.json": {
-   "json_values": 132
+   "json_values": 131
   },
   "Banco/cases/features/limit_rib_on_a_plate_without_walls.json": {
    "json_values": 175
@@ -564,10 +561,10 @@
    "json_values": 201
   },
   "Banco/cases/features/symmetric_plate_grows_from_both_sides.json": {
-   "json_values": 112
+   "json_values": 106
   },
   "Banco/cases/frames/profiles_are_read_first.json": {
-   "json_values": 419
+   "json_values": 418
   },
   "Banco/cases/measurement/area_of_a_single_face.json": {
    "json_values": 110
@@ -606,7 +603,7 @@
    "json_values": 44
   },
   "Banco/cases/pairs/blind_pocket_400.json": {
-   "json_values": 39
+   "json_values": 38
   },
   "Banco/cases/pairs/hole_270_on_face_274.json": {
    "json_values": 35
@@ -621,7 +618,7 @@
    "json_values": 45
   },
   "Banco/cases/pairs/limit_pocket_that_covers_everything.json": {
-   "json_values": 37
+   "json_values": 36
   },
   "Banco/cases/pairs/limit_slot_that_covers_everything.json": {
    "json_values": 36
@@ -639,7 +636,7 @@
    "json_values": 235
   },
   "Banco/cases/patterns/limit_direction_from_a_curved_edge.json": {
-   "json_values": 171
+   "json_values": 170
   },
   "Banco/cases/patterns/limit_fill_contour_not_planar.json": {
    "json_values": 81
@@ -651,7 +648,7 @@
    "json_values": 13
   },
   "Banco/cases/patterns/limit_grid_does_not_count_as_a_row.json": {
-   "json_values": 119
+   "json_values": 118
   },
   "Banco/cases/patterns/limit_moved_axis.json": {
    "json_values": 66
@@ -810,7 +807,7 @@
    "json_values": 101
   },
   "Banco/cases/sheet_metal/limit_open_hem_without_gap.json": {
-   "json_values": 30
+   "json_values": 29
   },
   "Banco/cases/sheet_metal/open_hem_checks_out.json": {
    "json_values": 46
@@ -822,31 +819,31 @@
    "json_values": 160
   },
   "Banco/cases/sheet_metal/the_L_reversed.json": {
-   "json_values": 98
+   "json_values": 97
   },
   "Banco/cases/slot/anchored_oblique_slot_keeps_its_angle.json": {
-   "json_values": 85
+   "json_values": 83
   },
   "Banco/cases/slot/anchored_slot_follows_the_border.json": {
-   "json_values": 58
+   "json_values": 56
   },
   "Banco/cases/slot/blind_slot.json": {
    "json_values": 30
   },
   "Banco/cases/slot/blind_slot_back_face.json": {
-   "json_values": 73
+   "json_values": 72
   },
   "Banco/cases/slot/blind_slot_bottom_face.json": {
-   "json_values": 135
+   "json_values": 134
   },
   "Banco/cases/slot/blind_slot_left_face.json": {
-   "json_values": 135
+   "json_values": 134
   },
   "Banco/cases/slot/blind_slot_right_face.json": {
-   "json_values": 135
+   "json_values": 134
   },
   "Banco/cases/slot/blind_slot_top_face.json": {
-   "json_values": 135
+   "json_values": 134
   },
   "Banco/cases/slot/limit_blind_slot_without_depth.json": {
    "json_values": 23
@@ -915,7 +912,7 @@
    "markdown": 476
   },
   "Banco/cases/weldments/a_frame_too_small_closes_the_profile_library.json": {
-   "json_values": 10
+   "json_values": 7
   },
   "Banco/cases/weldments/cap_closes_the_pipe.json": {
    "json_values": 96
@@ -930,16 +927,16 @@
    "json_values": 243
   },
   "Banco/cases/weldments/frame_reading_ignores_case.json": {
-   "json_values": 23
+   "json_values": 7
   },
   "Banco/cases/weldments/gusset_polygon_is_not_degenerate.json": {
-   "json_values": 332
+   "json_values": 330
   },
   "Banco/cases/weldments/gusset_sits_in_the_corner.json": {
-   "json_values": 448
+   "json_values": 442
   },
   "Banco/cases/weldments/weld_bead_goes_between_touching_faces.json": {
-   "json_values": 292
+   "json_values": 288
   },
   "Banco/corri_piani.js": {
    "comments": 481,
@@ -959,7 +956,7 @@
    "json_values": 12
   },
   "Banco/prova_annulla.js": {
-   "comments": 304,
+   "comments": 302,
    "strings": 88
   },
   "Banco/prova_faccia_foro.js": {
@@ -991,7 +988,7 @@
    "json_values": 296
   },
   "CHANGELOG.md": {
-   "markdown": 22883
+   "markdown": 22887
   },
   "Condiviso/ClienteMcp.cs": {
    "comments": 407
@@ -1024,7 +1021,7 @@
    "strings": 44
   },
   "Controlli/ChiudiScarti/Programma.cs": {
-   "comments": 222,
+   "comments": 221,
    "strings": 21
   },
   "Controlli/CoperturaRuoli/Programma.cs": {
@@ -1036,7 +1033,7 @@
    "strings": 165
   },
   "Controlli/DettaglioInTavola/Programma.cs": {
-   "comments": 282,
+   "comments": 281,
    "strings": 85
   },
   "Controlli/DimXpert/Programma.cs": {
@@ -1060,7 +1057,7 @@
    "strings": 145
   },
   "Controlli/Mensola/Programma.cs": {
-   "comments": 855,
+   "comments": 854,
    "strings": 232
   },
   "Controlli/Modale/Programma.cs": {
@@ -1089,7 +1086,7 @@
   },
   "Controlli/ProvaInquadratura/Programma.cs": {
    "comments": 614,
-   "strings": 98
+   "strings": 97
   },
   "Controlli/ProvaPosizioni/Programma.cs": {
    "comments": 450,
@@ -1136,15 +1133,14 @@
    "strings": 91
   },
   "Controlli/Spessore/Programma.cs": {
-   "comments": 481,
+   "comments": 480,
    "strings": 169
   },
   "Controlli/TestoNelPdf/Programma.cs": {
    "comments": 228,
-   "strings": 168
+   "strings": 166
   },
   "Controlli/TipoDellEstrusione/Programma.cs": {
-   "comments": 1,
    "strings": 14
   },
   "Controlli/bonifica-storia.js": {
@@ -1302,7 +1298,7 @@
   },
   "Mcp/Risorse.cs": {
    "comments": 394,
-   "strings": 44
+   "strings": 34
   },
   "NOTICE": {
    "markdown": 196
@@ -1312,10 +1308,10 @@
   },
   "Ponte/Documenti.cs": {
    "comments": 388,
-   "strings": 249
+   "strings": 242
   },
   "Ponte/Forma.cs": {
-   "comments": 489,
+   "comments": 484,
    "strings": 48
   },
   "Ponte/Percorsi.cs": {
@@ -1327,7 +1323,7 @@
    "strings": 3
   },
   "Ponte/Sessione.cs": {
-   "comments": 2018,
+   "comments": 2016,
    "strings": 222
   },
   "Ponte/TurnoSulDocumento.cs": {
@@ -1335,17 +1331,17 @@
   },
   "Programma.cs": {
    "comments": 688,
-   "strings": 168
+   "strings": 166
   },
   "Prove/Carica.cs": {
    "comments": 195
   },
   "Prove/FormaSpellingContract.cs": {
-   "comments": 7,
-   "strings": 16
+   "comments": 1,
+   "strings": 7
   },
   "Prove/LEGGIMI.md": {
-   "markdown": 1591
+   "markdown": 1588
   },
   "Prove/LanguageGateTests.cs": {
    "comments": 1,
@@ -1358,38 +1354,38 @@
    "strings": 14
   },
   "Prove/Programma.cs": {
-   "comments": 2940,
-   "strings": 724
+   "comments": 2938,
+   "strings": 723
   },
   "Prove/Prove.Contratti.csproj": {
    "comments": 133
   },
   "Prove/ProveAttese.cs": {
    "comments": 640,
-   "strings": 496
+   "strings": 495
   },
   "Prove/ProveCatalogo.cs": {
-   "comments": 779,
-   "strings": 320
+   "comments": 778,
+   "strings": 316
   },
   "Prove/ProveEnumDiErrore.cs": {
    "comments": 300,
-   "strings": 93
+   "strings": 91
   },
   "Prove/ProveGliEsempi.cs": {
    "comments": 246,
-   "strings": 76
+   "strings": 75
   },
   "Prove/ProveICampiObbligatori.cs": {
-   "comments": 453,
-   "strings": 419
+   "comments": 452,
+   "strings": 418
   },
   "Prove/ProveILimiti.cs": {
-   "comments": 886,
-   "strings": 276
+   "comments": 884,
+   "strings": 275
   },
   "Prove/ProveIRifiuti.cs": {
-   "comments": 1300,
+   "comments": 1297,
    "strings": 57
   },
   "Prove/ProveIlBanco.cs": {
@@ -1401,8 +1397,8 @@
    "strings": 35
   },
   "Prove/ProveIlDocumentoRichiesto.cs": {
-   "comments": 201,
-   "strings": 85
+   "comments": 199,
+   "strings": 84
   },
   "Prove/ProveIlGuinzaglio.cs": {
    "comments": 299,
@@ -1410,7 +1406,7 @@
   },
   "Prove/ProveIlRegistro.cs": {
    "comments": 418,
-   "strings": 320
+   "strings": 319
   },
   "Prove/ProveLAvanzamento.cs": {
    "comments": 587,
@@ -1421,8 +1417,8 @@
    "strings": 57
   },
   "Prove/ProveLaProvaAVuoto.cs": {
-   "comments": 218,
-   "strings": 159
+   "comments": 217,
+   "strings": 157
   },
   "Prove/ProveLaSentinella.cs": {
    "comments": 475,
@@ -1430,7 +1426,7 @@
   },
   "Prove/ProveLeDescrizioni.cs": {
    "comments": 135,
-   "strings": 48
+   "strings": 47
   },
   "Prove/ProveLeFirmeDelDocumento.cs": {
    "comments": 256,
@@ -1445,11 +1441,11 @@
    "strings": 55
   },
   "Prove/ProveProtocollo.cs": {
-   "comments": 963,
-   "strings": 266
+   "comments": 960,
+   "strings": 257
   },
   "Prove/ProveSessione.cs": {
-   "comments": 713,
+   "comments": 709,
    "strings": 374
   },
   "Prove/SelectionMarksContract.cs": {
@@ -1457,8 +1453,7 @@
    "strings": 2
   },
   "Prove/Zc2110HelpersContract.cs": {
-   "comments": 2,
-   "strings": 5
+   "comments": 1
   },
   "QUICKSTART.md": {
    "markdown": 3
@@ -1484,11 +1479,11 @@
    "strings": 22
   },
   "Riscontro.Disegno/Catalogo/OperazioneDisegno.cs": {
-   "comments": 346
+   "comments": 341
   },
   "Riscontro.Disegno/Catalogo/Operazioni.cs": {
-   "comments": 869,
-   "strings": 17367
+   "comments": 868,
+   "strings": 17231
   },
   "Riscontro.Disegno/ErroriFeature.cs": {
    "comments": 164,
@@ -1510,7 +1505,7 @@
   },
   "Riscontro.Disegno/Frasi.cs": {
    "comments": 428,
-   "strings": 51
+   "strings": 50
   },
   "Riscontro.Disegno/GiudizioPosizioni.cs": {
    "comments": 430,
@@ -1526,35 +1521,35 @@
   },
   "Riscontro.Disegno/OperazioniAncora.cs": {
    "comments": 1637,
-   "strings": 815
+   "strings": 808
   },
   "Riscontro.Disegno/OperazioniAnnotazioniTavola.cs": {
    "comments": 442,
-   "strings": 266
+   "strings": 260
   },
   "Riscontro.Disegno/OperazioniAssieme.cs": {
-   "comments": 1178,
-   "strings": 201
+   "comments": 1176,
+   "strings": 198
   },
   "Riscontro.Disegno/OperazioniCambiaEstrusione.cs": {
-   "comments": 367,
-   "strings": 177
+   "comments": 361,
+   "strings": 173
   },
   "Riscontro.Disegno/OperazioniCartiglio.cs": {
-   "comments": 902,
+   "comments": 900,
    "strings": 233
   },
   "Riscontro.Disegno/OperazioniCentrini.cs": {
    "comments": 486,
-   "strings": 222
+   "strings": 219
   },
   "Riscontro.Disegno/OperazioniCorpi.cs": {
-   "comments": 1274,
-   "strings": 699
+   "comments": 1266,
+   "strings": 690
   },
   "Riscontro.Disegno/OperazioniDettaglioTavola.cs": {
-   "comments": 384,
-   "strings": 196
+   "comments": 383,
+   "strings": 195
   },
   "Riscontro.Disegno/OperazioniDimXpert.cs": {
    "comments": 101,
@@ -1565,20 +1560,20 @@
    "strings": 37
   },
   "Riscontro.Disegno/OperazioniDistintaBase.cs": {
-   "comments": 225,
-   "strings": 293
+   "comments": 224,
+   "strings": 286
   },
   "Riscontro.Disegno/OperazioniDistintaTavola.cs": {
-   "comments": 656,
-   "strings": 331
+   "comments": 655,
+   "strings": 328
   },
   "Riscontro.Disegno/OperazioniEquazioni.cs": {
-   "comments": 339,
-   "strings": 270
+   "comments": 333,
+   "strings": 266
   },
   "Riscontro.Disegno/OperazioniEsporta.cs": {
-   "comments": 1116,
-   "strings": 518
+   "comments": 1115,
+   "strings": 514
   },
   "Riscontro.Disegno/OperazioniEtichetteTavola.cs": {
    "comments": 140,
@@ -1586,11 +1581,11 @@
   },
   "Riscontro.Disegno/OperazioniFissaComponente.cs": {
    "comments": 69,
-   "strings": 69
+   "strings": 68
   },
   "Riscontro.Disegno/OperazioniFogli.cs": {
    "comments": 348,
-   "strings": 215
+   "strings": 214
   },
   "Riscontro.Disegno/OperazioniFori.cs": {
    "comments": 878,
@@ -1601,64 +1596,64 @@
    "strings": 99
   },
   "Riscontro.Disegno/OperazioniInterferenze.cs": {
-   "comments": 333,
+   "comments": 332,
    "strings": 153
   },
   "Riscontro.Disegno/OperazioniIstanze.cs": {
-   "comments": 922,
-   "strings": 275
+   "comments": 920,
+   "strings": 274
   },
   "Riscontro.Disegno/OperazioniLamiera.cs": {
    "comments": 865,
-   "strings": 723
+   "strings": 716
   },
   "Riscontro.Disegno/OperazioniMateriale.cs": {
    "comments": 310,
-   "strings": 30
+   "strings": 29
   },
   "Riscontro.Disegno/OperazioniMisura.cs": {
    "comments": 1031,
-   "strings": 418
+   "strings": 416
   },
   "Riscontro.Disegno/OperazioniMisuraAssieme.cs": {
    "comments": 371,
-   "strings": 169
+   "strings": 167
   },
   "Riscontro.Disegno/OperazioniNervatura.cs": {
-   "comments": 770,
-   "strings": 493
+   "comments": 767,
+   "strings": 492
   },
   "Riscontro.Disegno/OperazioniNotaTavola.cs": {
-   "comments": 583,
-   "strings": 216
+   "comments": 581,
+   "strings": 215
   },
   "Riscontro.Disegno/OperazioniPercorso.cs": {
    "comments": 347,
-   "strings": 365
+   "strings": 364
   },
   "Riscontro.Disegno/OperazioniPiani.cs": {
    "comments": 309,
    "strings": 110
   },
   "Riscontro.Disegno/OperazioniPostoSulFoglio.cs": {
-   "comments": 207,
+   "comments": 206,
    "strings": 27
   },
   "Riscontro.Disegno/OperazioniProfili.cs": {
    "comments": 358,
-   "strings": 147
+   "strings": 142
   },
   "Riscontro.Disegno/OperazioniProprieta.cs": {
-   "comments": 722,
-   "strings": 252
+   "comments": 719,
+   "strings": 243
   },
   "Riscontro.Disegno/OperazioniQuoteNelPdf.cs": {
    "comments": 169,
    "strings": 3
   },
   "Riscontro.Disegno/OperazioniQuoteTavola.cs": {
-   "comments": 3271,
-   "strings": 675
+   "comments": 3266,
+   "strings": 668
   },
   "Riscontro.Disegno/OperazioniRaccordoFaccia.cs": {
    "comments": 743,
@@ -1666,39 +1661,39 @@
   },
   "Riscontro.Disegno/OperazioniRicalco.cs": {
    "comments": 131,
-   "strings": 129
+   "strings": 124
   },
   "Riscontro.Disegno/OperazioniRiordina.cs": {
    "comments": 165,
-   "strings": 145
+   "strings": 142
   },
   "Riscontro.Disegno/OperazioniRipetiRiempimento.cs": {
    "comments": 656,
    "strings": 418
   },
   "Riscontro.Disegno/OperazioniSaldatura.cs": {
-   "comments": 3063,
-   "strings": 1431
+   "comments": 3048,
+   "strings": 1402
   },
   "Riscontro.Disegno/OperazioniSaldaturaTavola.cs": {
    "comments": 240,
-   "strings": 204
+   "strings": 203
   },
   "Riscontro.Disegno/OperazioniSezioneTavola.cs": {
-   "comments": 625,
-   "strings": 294
+   "comments": 623,
+   "strings": 291
   },
   "Riscontro.Disegno/OperazioniSformo.cs": {
    "comments": 343,
    "strings": 289
   },
   "Riscontro.Disegno/OperazioniSostituisci.cs": {
-   "comments": 596,
-   "strings": 169
+   "comments": 594,
+   "strings": 162
   },
   "Riscontro.Disegno/OperazioniSpecchiaComponente.cs": {
    "comments": 196,
-   "strings": 217
+   "strings": 207
   },
   "Riscontro.Disegno/OperazioniSporgenze.cs": {
    "comments": 625,
@@ -1709,16 +1704,16 @@
    "strings": 158
   },
   "Riscontro.Disegno/OperazioniSw.cs": {
-   "comments": 14832,
-   "strings": 3291
+   "comments": 14814,
+   "strings": 3288
   },
   "Riscontro.Disegno/OperazioniTabellaFori.cs": {
-   "comments": 341,
-   "strings": 223
+   "comments": 340,
+   "strings": 222
   },
   "Riscontro.Disegno/OperazioniTavola.cs": {
-   "comments": 2019,
-   "strings": 757
+   "comments": 2018,
+   "strings": 756
   },
   "Riscontro.Disegno/OperazioniTestiQuote.cs": {
    "comments": 243,
@@ -1726,26 +1721,26 @@
   },
   "Riscontro.Disegno/OperazioniTesto.cs": {
    "comments": 456,
-   "strings": 266
+   "strings": 265
   },
   "Riscontro.Disegno/OperazioniTolleranzaQuota.cs": {
    "comments": 190,
-   "strings": 116
+   "strings": 110
   },
   "Riscontro.Disegno/OperazioniTondoTavola.cs": {
-   "comments": 862,
-   "strings": 104
+   "comments": 860,
+   "strings": 98
   },
   "Riscontro.Disegno/OperazioniVerifica.cs": {
-   "comments": 465,
-   "strings": 124
+   "comments": 461,
+   "strings": 123
   },
   "Riscontro.Disegno/Properties/AssemblyInfo.cs": {
-   "comments": 2817,
+   "comments": 2813,
    "strings": 9
   },
   "Riscontro.Disegno/Riferimenti.cs": {
-   "comments": 1003,
+   "comments": 1002,
    "strings": 247
   },
   "Riscontro.Disegno/Riscontro.Disegno.csproj": {
@@ -1767,16 +1762,16 @@
    "strings": 85
   },
   "Riscontro.Disegno/StatoAssieme.cs": {
-   "comments": 1689,
-   "strings": 143
+   "comments": 1687,
+   "strings": 140
   },
   "Riscontro.Disegno/StatoDocumento.cs": {
-   "comments": 6163,
+   "comments": 6154,
    "strings": 37
   },
   "Riscontro.Disegno/StatoTavola.cs": {
-   "comments": 977,
-   "strings": 132
+   "comments": 974,
+   "strings": 130
   },
   "Riscontro.Disegno/TestoDelPdf.cs": {
    "comments": 97
@@ -1789,15 +1784,15 @@
    "strings": 57
   },
   "Strumenti/Attrezzi.cs": {
-   "comments": 5821,
-   "strings": 1771
+   "comments": 5801,
+   "strings": 1684
   },
   "Strumenti/Catalogo.cs": {
-   "comments": 308,
-   "strings": 27
+   "comments": 307,
+   "strings": 26
   },
   "Strumenti/RegistroDelleDomande.cs": {
-   "comments": 580,
+   "comments": 579,
    "strings": 12
   },
   "Strumenti/aggiorna.md": {
@@ -1807,7 +1802,7 @@
    "json_values": 7
   },
   "Strumenti/catalogo.json": {
-   "json_values": 18421
+   "json_values": 18285
   },
   "build.ps1": {
    "comments": 517,
@@ -2676,6 +2671,7 @@
    "ModelloDaMettereInVista",
    "ModelloInLocale",
    "ModificaQuota",
+   "Montaggio",
    "Mostra",
    "Muori",
    "Muta",
@@ -2916,6 +2912,7 @@
    "PezzoPrima",
    "PianiAggiunti",
    "PianiDiRiferimento",
+   "Piano",
    "PianoDiRiferimento",
    "PianoInMemoria",
    "PianoPerTrePunti",
@@ -2941,6 +2938,7 @@
    "PostoLibero",
    "PotaLeCopie",
    "Precondizione",
+   "Predefinito",
    "PredefinitoDichiarato",
    "Preferito",
    "Prefisso",
@@ -3128,6 +3126,7 @@
    "RelazioniMalate",
    "RestaNelPezzo",
    "Rettangolo",
+   "Revisione",
    "Riancorata",
    "Riassunto",
    "RichiamiDiForoNellaVista",
@@ -3513,6 +3512,7 @@
    "UnNumero",
    "UnPassoAvanti",
    "UnPassoIndietro",
+   "Una",
    "UnaFeature",
    "UnaPiastra",
    "UnaQuota",
@@ -3720,9 +3720,9 @@
    "accesso",
    "accoppia",
    "accoppiamenti",
-   "accoppiamenti_persi",
    "accoppiamenti_prima",
    "accoppiamenti_tipi",
+   "accoppiamento",
    "addPrima",
    "addToDbPrima",
    "adesso",
@@ -3731,7 +3731,6 @@
    "agente",
    "agganciato",
    "aggiorna",
-   "aggiorna_se_esiste",
    "aggiorno",
    "aggiungi",
    "aggiunte",
@@ -3756,7 +3755,6 @@
    "altezzaLetta",
    "altezzaMm",
    "altezzaVera",
-   "altezza_mm",
    "alto",
    "altoA",
    "altoB",
@@ -3769,7 +3767,6 @@
    "altreFeature",
    "altreImpostazioniDelClient",
    "altre_feature",
-   "altre_feature_tipi",
    "altri",
    "altro",
    "altro1",
@@ -3799,9 +3796,6 @@
    "angolo",
    "angoloGradi",
    "angoloRetto",
-   "angolo_dichiarato_dalla_feature",
-   "angolo_gradi",
-   "angolo_totale_gradi",
    "angolopressioneGradi",
    "annDopo",
    "annPrima",
@@ -3809,10 +3803,7 @@
    "annota",
    "annotazioni",
    "annotazioni2",
-   "annotazioni_del_foglio",
-   "annotazioni_totali",
    "annulla",
-   "annullato",
    "annunciati",
    "aperte",
    "aperteDopo",
@@ -3851,7 +3842,6 @@
    "areaTesta",
    "areaTotale",
    "areaTriangolo",
-   "area_appoggiata_al_piano_mm2",
    "area_di_una_faccia_sola",
    "area_su_altezza_quadra",
    "area_totale",
@@ -3884,6 +3874,7 @@
    "aspetta",
    "aspettoChiesto",
    "aspettoVista",
+   "asportazione",
    "asse",
    "asse1_uid",
    "asse2",
@@ -3896,15 +3887,12 @@
    "asseV",
    "asse_dalla_parete_del_foro",
    "asse_mm",
-   "asse_rif",
    "asse_uid",
    "assenti",
    "assi",
    "assiTrovati",
-   "assi_creati",
    "assiale",
    "assieme",
-   "assieme_vincolato",
    "assiemi",
    "assunta",
    "assunto",
@@ -3924,7 +3912,6 @@
    "attesoMm3",
    "attesoNelMessaggio",
    "attiva",
-   "attiva_adesso",
    "attiva_configurazione",
    "attiva_foglio",
    "attivo",
@@ -3958,6 +3945,7 @@
    "basso_sinistra",
    "bene",
    "bersaglio",
+   "bilaterale",
    "binari",
    "binario",
    "bloccata",
@@ -4036,8 +4024,6 @@
    "capo1",
    "capo2",
    "capovolgi",
-   "capovolgi_1",
-   "capovolgi_2",
    "carDopo",
    "carPrima",
    "caratteri",
@@ -4095,7 +4081,6 @@
    "cerchiAttaccati",
    "cerchiDopo",
    "cerchiPrima",
-   "cerchi_che_avevano_gia_la_croce",
    "cerchi_di_taglio",
    "cerchio",
    "cerchioTaglio",
@@ -4121,6 +4106,7 @@
    "chieste_e_mostrate",
    "chiesti",
    "chiesto",
+   "chilogrammi",
    "chiude",
    "chiudi",
    "chiudiDavvero",
@@ -4136,10 +4122,12 @@
    "cilindri",
    "cilindrica",
    "cilindriche",
+   "cilindricita",
    "cilindro",
    "cilindro_d40_lungo_50",
    "cima",
    "cinque",
+   "circolarita",
    "circonferenze_dopo",
    "circonferenze_prima",
    "citate",
@@ -4186,9 +4174,11 @@
    "come_si_misura",
    "cominciato",
    "compiti",
+   "completamente",
    "completo",
    "componente",
    "componenti",
+   "composito",
    "conAncora",
    "conCasi",
    "conCava",
@@ -4212,6 +4202,7 @@
    "conTesto",
    "conTolleranza",
    "conUnaRetta",
+   "concentricita",
    "concordi",
    "condizione",
    "condizioni",
@@ -4234,8 +4225,6 @@
    "conto",
    "contorni",
    "contorno",
-   "contorno_vista_dopo_mm",
-   "contorno_vista_mm",
    "contratti",
    "contro",
    "controTipizzati",
@@ -4270,13 +4259,11 @@
    "corpiPrima",
    "corpiSolidi",
    "corpi_in_distinta",
-   "corpi_non_elencati",
    "corpi_rif",
    "corpi_tagliati",
    "corpi_totali",
    "corpi_uid",
    "corpi_utensile_rif",
-   "corpi_utensile_uid",
    "corpo",
    "corpoA",
    "corpoCorto",
@@ -4286,10 +4273,11 @@
    "corpoNuovo",
    "corpoOk",
    "corpo_principale_rif",
-   "corpo_principale_uid",
    "corpo_sano_si_esporta",
    "corpo_separato",
    "corpo_solido",
+   "corpo_solido_e_faccia",
+   "corpo_solido_e_spigolo",
    "corpo_uid",
    "corrente",
    "corsa",
@@ -4331,7 +4319,6 @@
    "crociTotali",
    "croci_aggiunte",
    "croci_di_centro",
-   "croci_di_centro_totali",
    "crudo",
    "curvo",
    "d3_apri",
@@ -4418,6 +4405,7 @@
    "decodificato",
    "decompressi",
    "deduzione",
+   "definito",
    "definizione",
    "definizioni",
    "delBanco",
@@ -4426,6 +4414,7 @@
    "delPonte",
    "delProprietario",
    "dellaConfig",
+   "delle",
    "denominatore",
    "denominazione",
    "densita",
@@ -4471,14 +4460,12 @@
    "diametri",
    "diametriEsterni",
    "diametri_esterni",
-   "diametri_mm",
    "diametro",
    "diametroAtteso",
    "diametroChiesto",
    "diametroCorona",
    "diametroForo",
    "diametroMm",
-   "diametro_lavorato_mm",
    "diametro_mm",
    "dichiarata",
    "dichiarate",
@@ -4492,15 +4479,14 @@
    "difetti",
    "difetto",
    "dimensione",
-   "dimensione_mm",
    "dimensioniFoglio",
+   "dimetrica",
    "dipendeDaApertA",
    "dipendenti",
    "dipendenze",
    "direzione",
    "direzioneDetta",
    "direzioneSulFoglio",
-   "direzione_di_stampa",
    "discese",
    "discordi",
    "disegna",
@@ -4508,6 +4494,7 @@
    "disegno",
    "disinstalla",
    "displayPrima",
+   "disponibile",
    "disponibili",
    "disposizione",
    "dispostoLetto",
@@ -4533,6 +4520,7 @@
    "documento",
    "documentoAtteso",
    "documentoNuovo",
+   "documento_senza_corpo",
    "domanda",
    "dopo",
    "dopo2",
@@ -4612,6 +4600,7 @@
    "eccetto",
    "eccezione",
    "elementi",
+   "elenca",
    "elencate",
    "elencati",
    "elenco",
@@ -4658,6 +4647,7 @@
    "erroriDopo",
    "erroriIntermedi",
    "erroriPrima",
+   "esagono",
    "esclusa",
    "esclusaNome",
    "esclusive",
@@ -4693,7 +4683,6 @@
    "esporta_step",
    "esporta_stl",
    "esportato",
-   "esportato_comunque",
    "esportatore",
    "esportazioni",
    "espressione",
@@ -4719,7 +4708,6 @@
    "estrusione",
    "estrusioni",
    "etichetta",
-   "etichetta_riletta",
    "etichettato",
    "facce",
    "facceCurve",
@@ -4733,7 +4721,6 @@
    "facceSeme",
    "facceSporgenti",
    "facce_rif",
-   "facce_sporgenti",
    "facce_tolte",
    "facce_uid",
    "faccia",
@@ -4757,7 +4744,6 @@
    "faccia_di_fondo",
    "faccia_fianco",
    "faccia_inferiore",
-   "faccia_neutra_uid",
    "faccia_rif",
    "faccia_superiore",
    "faccia_uid",
@@ -4791,6 +4777,7 @@
    "featureDopo",
    "featureNonElencate",
    "featurePrima",
+   "feature_e_direzione",
    "feature_non_elencate",
    "feature_rif",
    "ferma",
@@ -4811,6 +4798,7 @@
    "fileSezione",
    "fileVero",
    "file_mancante",
+   "filettato",
    "filettatura_cosmetica",
    "filetto_su_un_perno",
    "filo",
@@ -4871,7 +4859,6 @@
    "foro_270_su_faccia_274",
    "foro_60_sul_bordo",
    "foro_guidato",
-   "foro_mm",
    "foro_specchiato_sul_destro",
    "forse",
    "forza",
@@ -4884,6 +4871,7 @@
    "frazione",
    "frecce",
    "frontale",
+   "fronte",
    "fughe",
    "fuori",
    "fuoriCatalogo",
@@ -4905,6 +4893,7 @@
    "genere",
    "genereNome",
    "generico",
+   "geometrica",
    "gestore",
    "gestoreCarichi",
    "gestoreConf",
@@ -4915,7 +4904,6 @@
    "giaEsisteva",
    "giaPrima",
    "giaSaltate",
-   "gia_quotate_altrove",
    "gioco",
    "giocoMm",
    "gioco_mm",
@@ -4955,6 +4943,7 @@
    "grezzoProp",
    "griglia",
    "griglia_3x2",
+   "grossolana",
    "gruppi",
    "gruppiFatti",
    "gruppo",
@@ -5015,7 +5004,6 @@
    "il_foro_sul_fianco_resta_a_meta_spessore",
    "il_loft_non_e_un_cono",
    "il_messaggio_contiene",
-   "il_pezzo_e_cresciuto",
    "il_poligono_del_fazzoletto_non_e_degenere",
    "il_raccordo_arrotonda_i_quattro_angoli",
    "il_raccordo_ritrova_lo_spigolo_rinumerato",
@@ -5028,6 +5016,7 @@
    "il_taglio_senza_gioco_non_eredita",
    "il_tappo_chiude_il_tubo",
    "il_tubo_ha_il_buco",
+   "illeggibile",
    "illeggibili",
    "immagine",
    "immagine_nello_schizzo",
@@ -5047,16 +5036,16 @@
    "inRilievo",
    "inStringa",
    "inTutteLeConfigurazioni",
-   "in_rilievo",
    "incastro",
    "incidi_testo",
    "inclinateDopo",
    "inclinatePrima",
+   "inclinazione",
+   "indentata",
    "indice",
    "indietro",
    "inesistente",
    "inferiore",
-   "inferiore_mm",
    "informativa",
    "ingombro",
    "ingombroPromesso",
@@ -5084,6 +5073,7 @@
    "interferenza",
    "interi",
    "interne",
+   "interno",
    "intero",
    "interseca",
    "interseca_due_cubi",
@@ -5146,7 +5136,7 @@
    "la_tavola_si_quota",
    "la_tolleranza_sulla_quota_del_modello",
    "la_variabile_non_scavalca_lo_smusso",
-   "lamatura_mm",
+   "lamato",
    "lamiera",
    "larghezza",
    "larghezzaFoglio",
@@ -5179,10 +5169,8 @@
    "lavorazioniInErrore",
    "lavorazioniPrima",
    "lavorazioni_con_meno_facce",
-   "lavorazioni_dopo",
    "lavorazioni_in_errore",
    "lavorazioni_in_errore_prima",
-   "lavorazioni_prima",
    "lavoro",
    "lavoroVero",
    "le_annotazioni_stanno_fuori_dal_pezzo",
@@ -5347,7 +5335,6 @@
    "marchio",
    "margine",
    "margineM",
-   "margine_mm",
    "maschera",
    "maschere",
    "massa",
@@ -5363,6 +5350,7 @@
    "maxLetto",
    "maxPrima",
    "maxVertici",
+   "medio",
    "meglio",
    "membro_strutturale",
    "memoria",
@@ -5379,6 +5367,7 @@
    "metodoNome",
    "metri",
    "mezza",
+   "mezza_v",
    "mezzeria",
    "mezzo",
    "mezzoU",
@@ -5388,6 +5377,7 @@
    "miei",
    "migliore",
    "miglioreProiezione",
+   "millimetri",
    "minLetto",
    "minPrima",
    "minima",
@@ -5423,7 +5413,6 @@
    "modo",
    "moduli",
    "modulo",
-   "modulo_mm",
    "morte",
    "mossa",
    "mosso",
@@ -5514,6 +5503,8 @@
    "nervatura_nell_angolo_della_l",
    "nervatura_nella_scatola_svuotata",
    "nessun",
+   "nessuna",
+   "nessuno",
    "neutra",
    "neutraUid",
    "niente",
@@ -5595,7 +5586,6 @@
    "nota_assunto",
    "nota_contorni",
    "nota_errori",
-   "nota_identificativi",
    "nota_in_tavola",
    "nota_volume",
    "note-interne",
@@ -5622,7 +5612,6 @@
    "numeroAtteso",
    "numeroMisurato",
    "numero_disegno_sul_documento",
-   "numero_istanze2",
    "nuova",
    "nuove",
    "nuovi",
@@ -5660,6 +5649,8 @@
    "orizzontaleFatta",
    "orlo",
    "orologio",
+   "oscillazione_circolare",
+   "oscillazione_totale",
    "ostacolo",
    "pAltoA",
    "pAltoB",
@@ -5671,6 +5662,7 @@
    "pagine",
    "palloncini",
    "parallele",
+   "parallelismo",
    "paralleloDichiarato",
    "parametri",
    "parete",
@@ -5685,6 +5677,7 @@
    "partenza",
    "partito",
    "passa",
+   "passaggio",
    "passante",
    "passataDue",
    "passate",
@@ -5709,7 +5702,6 @@
    "passo_",
    "passo_1",
    "passo_2",
-   "passo_mm",
    "peggio",
    "peggiore",
    "peggioreQui",
@@ -5743,11 +5735,11 @@
    "percorsoSw",
    "percorsoU",
    "percorsoV",
-   "percorso_mm",
    "perdente",
    "pericolosi",
    "perimetroLetto",
    "permessa",
+   "perpendicolarita",
    "perse",
    "peso",
    "pezzi",
@@ -5762,7 +5754,6 @@
    "pianiDopo",
    "pianiOra",
    "pianiPrima",
-   "piani_disponibili",
    "piano",
    "pianoAsse",
    "pianoDelloSchizzo",
@@ -5781,6 +5772,7 @@
    "piastra",
    "piastra_forata",
    "piatta",
+   "piatto",
    "piedi",
    "piega",
    "piega_da_schizzo",
@@ -5790,6 +5782,8 @@
    "pieno",
    "piu",
    "piuLontano",
+   "piu_meno",
+   "planarita",
    "poligonale",
    "poligono",
    "ponte",
@@ -5806,6 +5800,7 @@
    "posizioni_non_verificate",
    "posizioni_verificate",
    "possonoNominarli",
+   "posteriore",
    "posti",
    "posto",
    "precedente",
@@ -5868,8 +5863,10 @@
    "profili_saldatura",
    "profilo",
    "profiloLetto",
+   "profilo_linea",
    "profilo_percorso",
    "profilo_sezione",
+   "profilo_superficie",
    "profondita",
    "profonditaDa",
    "profonditaM",
@@ -5928,6 +5925,8 @@
    "quali",
    "qualita",
    "qualitaChiesta",
+   "qualsiasi",
+   "qualunque",
    "qualunque_documento",
    "quando",
    "quante",
@@ -5936,20 +5935,18 @@
    "quanteNeDico",
    "quanteQui",
    "quante_configurazioni",
-   "quante_lavorazioni",
    "quanti",
    "quantiCasi",
    "quantiFigli",
    "quantiPrima",
    "quantiSpigoli",
-   "quanti_mancano",
    "quantita",
    "quantitaLetta",
    "quantitaTot",
    "quantitaTotale",
-   "quantita_in_tabella",
    "quanto",
    "quantoPesa",
+   "quartabuono",
    "quasiUno",
    "quattro",
    "quello",
@@ -5973,8 +5970,6 @@
    "quoteStadio",
    "quoteToccate",
    "quote_dal_modello",
-   "quote_dopo",
-   "quote_messe",
    "quote_non_controllate",
    "quote_numero_non_del_modello",
    "r01_quattro_fori_dal_bordo",
@@ -6052,6 +6047,7 @@
    "resto",
    "rett",
    "rettangolo",
+   "rettilineita",
    "riancoraggi",
    "riaperto",
    "riapri_e_confronta",
@@ -6074,7 +6070,6 @@
    "rifatto",
    "riferimenti",
    "riferimentiLetti",
-   "riferimenti_uid",
    "riferimento",
    "riferito",
    "rifiuta",
@@ -6123,7 +6118,6 @@
    "rispettoA",
    "rispetto_a_uid",
    "risposta",
-   "risposta_di_auto_dimension_scheme",
    "ristretto",
    "risulta",
    "risultato",
@@ -6245,7 +6239,6 @@
    "seconda",
    "secondi",
    "secondoLato",
-   "secondo_lato_mm",
    "segmenti",
    "segmento",
    "segmentoAsse",
@@ -6309,6 +6302,7 @@
    "simboloLetto",
    "simile",
    "simili",
+   "simmetria",
    "simmetrica",
    "simmetrico",
    "simmetricoLetto",
@@ -6326,11 +6320,10 @@
    "soggetti",
    "soglia",
    "sogliaFlangia",
-   "soglia_gradi",
    "sola",
    "solaLettura",
-   "sola_lettura",
    "solidi",
+   "solido",
    "solidworks_documento_attivo",
    "sollevato2",
    "soloAvviso",
@@ -6353,7 +6346,6 @@
    "sonda",
    "sonda_sezione",
    "sono",
-   "soppressa",
    "soppressi",
    "soppresso",
    "sopprimi",
@@ -6393,7 +6385,6 @@
    "spigoli",
    "spigoliObj",
    "spigoliPrima",
-   "spigoli_curvi",
    "spigoli_inferiori",
    "spigoli_laterali",
    "spigoli_non_quotati",
@@ -6412,7 +6403,6 @@
    "sporgeV",
    "sporgenzaU",
    "sporgenzaV",
-   "sporgenza_gradi",
    "sporgenze",
    "sposta",
    "sposta_corpi",
@@ -6490,9 +6480,10 @@
    "suoiAcc",
    "suoiAccoppiamenti",
    "suoiPassi",
+   "superfici",
    "superficie",
    "superiore",
-   "superiore_mm",
+   "svasato",
    "sveglia",
    "sviluppata",
    "sviluppo",
@@ -6549,7 +6540,10 @@
    "tenuti",
    "tenuto",
    "teorico",
+   "terzo",
    "testa",
+   "testa1",
+   "testa2",
    "testi",
    "testiDelleQuote",
    "testi_che_si_accavallano",
@@ -6615,9 +6609,7 @@
    "tolto",
    "tonda",
    "tondo",
-   "tondo_diametri_mm",
    "tondo_diametri_non_raggiunti",
-   "tondo_lunghezze_mm",
    "tondo_note",
    "torna",
    "tornata",
@@ -6637,6 +6629,7 @@
    "trasparente",
    "trattamento",
    "trattamentoAngolo",
+   "trattamento_angolo",
    "tratteggi",
    "tratteggi_solidi",
    "tratti",
@@ -6648,6 +6641,7 @@
    "triangoliDelPezzo",
    "triangoliNelFile",
    "triangoli_dalla_geometria",
+   "trimetrica",
    "troncati",
    "troncato",
    "trovaIlTodo",
@@ -6655,7 +6649,9 @@
    "trovate",
    "trovati",
    "trovato",
+   "tubo",
    "tubo_dritto_area_per_lunghezza",
+   "tubolare",
    "turno",
    "tuttaLaStoria",
    "tutte",
@@ -6696,7 +6692,6 @@
    "ultimo",
    "ultimo-giro",
    "ultimoJson",
-   "ultimo_piano_mm",
    "unForo",
    "unGiro",
    "un_accoppiamento_non_basta",
@@ -6729,10 +6724,8 @@
    "valoreLetto",
    "valoreMax",
    "valoreMin",
-   "valore_mm",
    "valori",
    "valoriLetti",
-   "valori_mm",
    "valutata",
    "vanno",
    "vano",
@@ -6766,7 +6759,6 @@
    "versoDichiarato",
    "versoEsterno",
    "versoFoglio",
-   "verso_esterno",
    "verticale",
    "verticaleFatta",
    "vertice",
@@ -6876,223 +6868,19 @@
   ],
   "json_keys": [
    "_firme",
-   "a_faccia_uid",
-   "aggiorna_se_esiste",
-   "allineamento",
-   "altezza_mm",
    "altreImpostazioniDelClient",
-   "ancora",
-   "angolo_gradi",
-   "angolo_pressione_gradi",
-   "angolo_totale_gradi",
-   "archivio",
-   "argomenti",
-   "asse",
-   "asse1_rif",
-   "asse1_uid",
-   "asse2_uid",
-   "asse_rif",
-   "asse_uid",
-   "assiemi",
-   "binario",
-   "callout_fori",
-   "capovolgi",
-   "capovolgi_1",
-   "capovolgi_2",
-   "caratteristica",
-   "cava_linguetta",
-   "centrata_fra",
-   "centrato",
-   "cerca",
-   "cerchio",
-   "chiave_mm",
-   "classe",
-   "colonne",
    "come_si_misura",
-   "commento",
    "compito",
-   "componente",
-   "componente_a",
-   "componente_b",
-   "con_misure",
-   "condizione",
-   "configurazione",
-   "contorni",
-   "copia",
-   "copie",
-   "copie_per_giro",
-   "corpi_da_tagliare_rif",
-   "corpi_da_tagliare_uid",
-   "corpi_di_taglio_rif",
-   "corpi_di_taglio_uid",
-   "corpi_rif",
-   "corpi_uid",
-   "corpi_utensile_rif",
-   "corpi_utensile_uid",
-   "corpo_principale_rif",
-   "corpo_principale_uid",
-   "corpo_uid",
    "cosa",
    "cosa_NON_dice_apposta",
    "cosa_questa_misura_NON_vede",
-   "da_faccia_uid",
-   "denominazione",
-   "denti",
-   "dentro_le_parti",
-   "descrizione",
-   "diametro",
-   "diametro1_mm",
-   "diametro2_mm",
-   "diametro_mm",
-   "dimensione_mm",
-   "direzione",
-   "direzione_di_stampa",
-   "disposizione",
-   "distacco_mm",
-   "distanza_mm",
-   "documento",
-   "dove",
-   "entrambi_i_lati",
-   "esempio",
-   "esporta_comunque",
-   "esportazioni",
-   "espressione",
-   "estremita_rif",
-   "estrusioni",
-   "etichetta",
-   "facce_rif",
-   "facce_uid",
-   "faccia_1_uid",
-   "faccia_2_uid",
-   "faccia_a",
-   "faccia_b",
-   "faccia_neutra_uid",
-   "faccia_rif",
-   "faccia_uid",
-   "famiglia",
-   "famiglie",
-   "feature_rif",
-   "filettato",
-   "fisso",
-   "formato",
-   "foro_mm",
-   "genere",
-   "gioco_mm",
-   "grassetto",
-   "identita",
-   "in_rilievo",
-   "inferiore_mm",
-   "inizio_tag",
-   "lamiera",
-   "larghezza_mm",
-   "lato",
-   "lato1_mm",
-   "lato2_mm",
-   "lato3_mm",
-   "lato4_mm",
-   "lato_mm",
-   "lavorazione",
-   "lavorazioni",
-   "lettera",
-   "linee_estese",
-   "lunghezza_mm",
-   "margine_mm",
-   "materiale",
-   "misure",
-   "modello",
-   "modo",
-   "modulo_mm",
-   "nascondi_pieghe",
-   "nome",
-   "numero_istanze",
-   "numero_istanze1",
-   "numero_istanze2",
-   "operazione",
-   "operazioni",
-   "origine",
-   "parete_mm",
-   "passante",
-   "passo",
-   "passo1_mm",
-   "passo2_mm",
-   "passo_mm",
    "perche",
    "perche_dice_altezza_totale",
    "perche_questo_compito",
-   "percorso",
-   "percorso_mm",
-   "piano",
-   "posizione",
-   "posizioni",
-   "precondizione",
-   "profilo",
-   "profilo_percorso",
-   "profondita_mm",
-   "proprieta",
-   "protocollo",
-   "punti",
-   "punto1_mm",
-   "punto2_mm",
-   "punto3_mm",
-   "punto_mm",
-   "qualita",
-   "quante",
-   "quante_copie",
-   "quota",
-   "raggio_fine_mm",
-   "raggio_inizio_mm",
-   "raggio_mm",
-   "rappresentazione",
-   "riapri_e_confronta",
-   "riattiva",
-   "rientro_mm",
-   "riferimenti",
-   "riferimenti_uid",
-   "rispetto_a_uid",
-   "rotazione_gradi",
-   "saldature",
-   "scala",
    "scalaDelTesto",
-   "scala_denominatore",
-   "scala_numeratore",
-   "secondo_lato_mm",
-   "segmenti",
-   "sfalsa1_mm",
-   "sfalsa2_mm",
-   "simmetrico",
-   "smusso_mm",
-   "soglia_gradi",
-   "sommario",
-   "spessore_mm",
-   "spigoli",
-   "spigoli_rif",
-   "spigoli_uid",
-   "spigolo_uid",
-   "suffisso",
-   "superiore_mm",
-   "taglia",
-   "tavola",
-   "telaio",
    "tema",
-   "testo",
-   "tipo",
-   "toccarsi_conta",
    "tolleranza",
-   "trattamento_angolo",
-   "tratti",
-   "tratto",
-   "tutte_le_istanze",
-   "tutte_le_quote",
-   "tutto_attorno",
-   "tutto_chiuso",
    "uguale",
-   "unisci",
-   "valore",
-   "valore_mm",
-   "verifiche",
-   "verso",
-   "verso_esterno",
-   "vertici",
    "vista"
   ],
   "protocol": [
@@ -7141,10 +6929,8 @@
    "CosaECambiato",
    "DATI",
    "DESCRIZIONE",
-   "DESTRO",
    "Dati",
    "Descrizione",
-   "Destra",
    "DettaglioInTavola",
    "Direzione",
    "Disegno",
@@ -7178,7 +6964,6 @@
    "FINTO-nudo",
    "FINTO-rotto",
    "FINTO-sano",
-   "Faccia_Superiore",
    "Fallita",
    "Fallito",
    "Famiglia",
@@ -7206,7 +6991,6 @@
    "GiudizioPosizioni",
    "Guinzaglio",
    "IGNORATO",
-   "INTERASSE",
    "INTERFERENZA",
    "INTERFERENZE",
    "Ingombro",
@@ -7231,7 +7015,6 @@
    "Misure",
    "Modale",
    "ModelloInLocale",
-   "Montaggio",
    "NATA",
    "NIENTE",
    "Nervatura",
@@ -7381,7 +7164,6 @@
    "RaccordoDiFaccia",
    "RegistroDelleDomande",
    "Regressione",
-   "Revisione",
    "Ricontrolla",
    "Riempimento",
    "Riferimenti",
@@ -7413,7 +7195,6 @@
    "Sezioni",
    "Sfoglia",
    "Simili",
-   "Sinistra",
    "Sommario",
    "Sono",
    "Spessore",
@@ -7460,25 +7241,17 @@
    "_guinzaglio",
    "_legata",
    "_registro",
-   "_rif",
    "_slegata",
    "aMonte",
    "a_asola_foro_taglio_piano",
-   "a_faccia_uid",
    "accavall",
    "accoppia",
    "accoppiamenti",
-   "accoppiamenti_dopo",
-   "accoppiamenti_persi",
-   "accoppiamenti_prima",
-   "accoppiamenti_tipi",
    "accoppiamento",
    "acqua",
    "adesso",
-   "adesso_mm",
    "agente",
    "aggiorna",
-   "aggiorna_se_esiste",
    "aggiornata",
    "aggiorno",
    "aggiungi",
@@ -7488,114 +7261,60 @@
    "ala",
    "albero",
    "alla",
-   "allineamento",
    "allineato",
    "alta",
-   "altezza_mm",
-   "altezza_scritta_mm",
    "alto",
-   "alto_destra",
-   "alto_sinistra",
    "altre",
-   "altre_feature",
-   "altre_feature_tipi",
-   "altre_quote",
    "altri",
-   "altri_corpi",
    "altro",
    "alza",
    "ambigua",
    "ancora",
    "ancorato_a_assoluto",
    "ancorato_a_bordo",
-   "ancore",
    "angolare",
    "angolo",
-   "angolo_dichiarato_dalla_feature",
    "angolo_gradi",
-   "angolo_pressione_gradi",
-   "angolo_totale_gradi",
    "annotazione",
    "annotazioni",
-   "annotazioni_del_foglio",
-   "annotazioni_dopo",
-   "annotazioni_prima",
-   "annotazioni_totali",
    "annulla",
    "annullamenti",
    "annullamento",
    "annullare",
-   "annullato",
-   "anteriore",
-   "aperti_adesso",
-   "aperto",
    "apertura",
    "api_sw_array_tipizzati",
    "api_sw_che_aprono_finestre",
    "applica_materiale",
    "applicazione",
    "appoggiato",
-   "appoggiato_a",
-   "appoggiato_b",
    "apri",
    "apri_la_tavola",
    "archivi",
    "archivio",
    "arco",
-   "area_appoggiata_al_piano_mm2",
-   "area_lettere_mm2",
-   "area_sporgente_mm2",
-   "area_su_altezza_quadra",
-   "area_totale_mm2",
    "argomenti",
    "asola",
    "asole",
    "aspetta",
-   "asportazione",
    "asse",
-   "asse1",
-   "asse1_rif",
-   "asse1_uid",
-   "asse2",
-   "asse2_uid",
-   "asse_rif",
-   "asse_uid",
    "assente",
    "assenti",
-   "assi",
-   "assi_creati",
    "assieme",
    "assieme-di-prova",
-   "assieme_vincolato",
    "assiemi",
    "assonometrica",
    "assonometrica-della-nonna",
-   "attaccata_allo_spigolo",
    "attaccato_allo_spigolo",
    "attenzione",
-   "attenzione_corpi",
-   "attenzione_lunghezza",
-   "attenzione_numeri",
-   "attenzione_quote",
-   "attenzione_sviluppo",
-   "attenzione_volume",
    "attesa",
-   "attesi_mm3",
    "atteso",
    "attiva",
-   "attiva_adesso",
-   "attiva_configurazione",
-   "attiva_foglio",
    "attive",
-   "attivo",
    "attraversano",
    "attraversarlo",
    "attraverserebbe",
    "ausiliaria",
-   "avvisi",
-   "avvisi_di_apertura",
    "avviso",
-   "azione",
    "bMetti",
    "bNome",
    "banco",
@@ -7604,150 +7323,62 @@
    "barra",
    "barre",
    "basso",
-   "basso_destra",
-   "basso_sinistra",
    "bene",
-   "bilaterale",
-   "binario",
    "bloccato",
    "blocchi",
    "blocco",
-   "bollatura",
    "bonifica",
    "bonifica-storia",
    "bordi",
-   "bordi_non_quotati",
    "cadono",
    "calato",
-   "callout_fori",
-   "cambia_estrusione",
-   "cambiato",
-   "campi",
-   "capovolgi",
-   "capovolgi_1",
-   "capovolgi_2",
    "caratteri",
-   "caratteristica",
    "caratteristiche",
    "carica",
-   "caricati_dentro_un_assieme",
    "cartella",
    "cartelle",
-   "cartiglio",
-   "cartiglio_stimato",
    "casi",
    "casi-in-attesa",
    "catalogo",
    "catalogo_che_non_esiste_",
-   "cava_linguetta",
    "ce",
-   "centrata_fra",
-   "centrato",
    "centri",
-   "centri_x_mm",
-   "centri_y_mm",
-   "centri_z_mm",
    "centro",
-   "centro_massa_mm",
-   "centro_mm",
-   "centro_nuovo_mm",
-   "centro_originale_mm",
-   "cerca",
    "cercate",
-   "cercate_in",
    "cercavo",
-   "cerchi",
-   "cerchi_che_avevano_gia_la_croce",
-   "cerchi_che_non_sono_fori",
-   "cerchi_di_taglio",
-   "cerchi_senza_croce",
-   "cerchio",
-   "cerchio_mm",
    "cerniera",
-   "check2_grezzo",
-   "check_grezzo",
    "chiamala",
-   "chiave_mm",
-   "chiede",
    "chiedi",
-   "chiesta",
    "chieste",
-   "chieste_e_mostrate",
-   "chieste_ma_vuote",
-   "chieste_presenti_sul_modello_ma_mostrate_vuote",
    "chilogrammi",
    "chiudi",
    "chiudi-gli-scarti",
    "chiusi",
    "chiuso",
-   "cieca",
    "ciechi",
    "cieco",
-   "cilindricita",
    "cilindro",
    "cinquanta",
    "cinque",
-   "circolarita",
-   "circonferenze_dopo",
-   "circonferenze_prima",
-   "classe",
    "cliente",
    "codice",
-   "codice_da",
    "coincidente",
-   "colonne",
-   "colonne_nascoste",
-   "colonne_visibili",
-   "combacia_col_pezzo",
-   "combaciano",
-   "combina_corpi",
    "comeTrovata",
-   "come_e_andata_la_rilettura",
-   "come_leggerla",
-   "come_mostra_i_figli",
-   "come_si_conta",
-   "come_si_usa",
-   "come_vederli_tutti",
-   "commento",
    "compilo",
    "compiti",
    "componente",
-   "componente_a",
-   "componente_b",
    "componenti",
-   "componenti_ancora_liberi",
-   "componenti_appoggiati",
-   "componenti_coinvolti",
-   "componenti_distinti_nell_assieme",
-   "componenti_dopo",
-   "componenti_fissi",
-   "componenti_guardati",
-   "componenti_leggeri",
-   "componenti_non_elencati",
-   "componenti_non_fissi",
-   "componenti_pesati",
-   "componenti_prima",
-   "componenti_primo_livello",
-   "componenti_soppressi",
-   "componenti_visibili",
-   "composito",
    "con-inferenze",
-   "con_misure",
-   "concentricita",
    "concentrico",
    "condizione",
    "confermato",
    "config-con-altri-server",
-   "configurazione",
    "configurazioni",
    "confrontarlo",
    "cono",
    "contenitore_c",
    "contorni",
    "contorno",
-   "contorno_cresciuto",
-   "contorno_vista_dopo_mm",
-   "contorno_vista_mm",
    "contro",
    "controlla",
    "controlla-catalogo",
@@ -7761,249 +7392,83 @@
    "copia",
    "copiato",
    "copie",
-   "copie_chieste",
-   "copie_fatte",
-   "copie_per_giro",
-   "copie_rimesse_adesso",
-   "copie_tolte_adesso",
-   "copie_tolte_in_tutto",
    "coppie",
-   "cordone_saldatura",
-   "cornici_dopo",
-   "cornici_prima",
    "corpi",
-   "corpi_con_difetti",
-   "corpi_da_tagliare_rif",
-   "corpi_da_tagliare_uid",
-   "corpi_di_taglio",
-   "corpi_di_taglio_rif",
-   "corpi_di_taglio_uid",
-   "corpi_dopo",
-   "corpi_in_distinta",
-   "corpi_mossi",
-   "corpi_nella_distinta_del_pezzo",
-   "corpi_non_chiusi",
-   "corpi_non_elencati",
-   "corpi_prima",
-   "corpi_rif",
-   "corpi_tagliati",
-   "corpi_totali",
-   "corpi_uid",
-   "corpi_utensile",
-   "corpi_utensile_rif",
-   "corpi_utensile_uid",
    "corpo",
-   "corpo_a",
-   "corpo_da",
-   "corpo_principale",
-   "corpo_principale_rif",
-   "corpo_principale_uid",
-   "corpo_solido",
-   "corpo_solido_e_faccia",
-   "corpo_solido_e_spigolo",
-   "corpo_uid",
    "corri_piani",
    "corso",
    "cosa",
-   "cosa_non_guarda",
-   "cosa_non_so",
-   "cosa_non_so_ancora_fare",
-   "cosa_non_so_dei_vincoli",
-   "cosa_non_so_dell_esploso",
-   "cosa_non_so_delle_annotazioni",
    "crea",
    "crea-asse",
-   "crea_asse",
-   "crea_configurazione",
-   "crea_disegno",
-   "crea_piano",
-   "croci_aggiunte",
-   "croci_di_centro",
-   "croci_di_centro_totali",
-   "croci_dopo",
-   "croci_prima",
-   "curvo",
-   "da_faccia_uid",
-   "da_lavorazione",
    "dal",
    "dati",
-   "datum_dopo",
-   "datum_in_tavola",
-   "datum_prima",
    "davanti",
-   "davanti_adesso",
-   "decimali_tolleranza",
-   "del_modello_mm",
    "della",
    "delle",
-   "denominazione",
    "densita",
-   "densita_kg_m3",
    "denti",
    "dentro",
-   "dentro_il_foglio",
-   "dentro_le_parti",
    "descritta",
    "descrive",
-   "descrivi_operazione",
    "descrizione",
    "destinazione",
    "destra",
    "destro",
    "dettaglio",
-   "dettaglio_in_tavola",
    "detto",
    "di_taglio",
    "diagonale",
-   "diametri_esterni",
-   "diametri_mm",
-   "diametro",
-   "diametro1_mm",
-   "diametro2_mm",
-   "diametro_esterno_mm",
-   "diametro_fondo_mm",
-   "diametro_lavorato_mm",
-   "diametro_mm",
-   "diametro_primitivo_mm",
-   "diametro_riletto_mm",
    "diciannove",
    "diciassette",
    "diciotto",
    "dieci",
-   "diedro",
-   "diedro_da_dove",
-   "dietro",
    "difetti",
-   "difetti_elenco",
    "difetto",
-   "dimensione_da",
-   "dimensione_mm",
-   "dimetrica",
-   "dimetrico",
    "dimmela",
    "dimmi",
    "dipende",
-   "dipendenze",
    "dipendono",
-   "direzione",
-   "direzione_di_stampa",
    "disegna",
    "disegno",
    "disinstalla",
    "disposizione",
-   "distacco_mm",
-   "distacco_usato_mm",
    "distanza",
-   "distanza_fra_i_centri_mm",
-   "distanza_fra_i_punti_mm",
-   "distanza_minima",
-   "distanza_mm",
    "distanza_normale_mm",
-   "distinta",
-   "distinta_base_in_tavola",
-   "distinta_taglio",
-   "distinta_taglio_in_tavola",
    "diversi",
-   "documenti",
-   "documenti_aperti",
    "documento",
-   "documento_senza_corpo",
    "dodici",
    "domande",
    "dopo",
    "dove",
    "dove-stava",
-   "dove_le_ho_messe",
-   "dove_mm",
-   "dove_sta_la_tabella",
-   "dove_sta_la_vista",
-   "due_versi",
    "duecento",
-   "e_questo_non_e_colpa_di_chi_disegna",
-   "e_sottoassieme",
-   "e_un_dettaglio",
-   "e_una_sezione",
    "eccezione",
-   "elenca",
    "elencate",
    "elenco",
-   "elenco_operazioni",
-   "elimina_lavorazione",
    "elle",
-   "entita",
-   "entrambi_i_lati",
    "entro",
-   "equazione",
-   "equazioni",
-   "equazioni_totali",
-   "era_gia_aperto",
-   "era_gia_attiva",
    "errore",
-   "errore_codice",
    "errori",
-   "esagono",
    "eseguibili",
    "esempio",
    "esiste",
-   "esiti",
    "esito",
    "esplora",
    "esploso",
    "esploso_fa_cadere_solidworks",
-   "esploso_sposta_al_massimo_mm",
    "esporta",
-   "esporta_comunque",
-   "esporta_iges",
-   "esporta_pdf",
-   "esporta_step",
-   "esporta_stl",
-   "esportato_comunque",
-   "esportazioni",
-   "espressione",
-   "esterne",
    "esterni",
    "esterno",
    "estratto",
    "estratto_obsoleteapi",
-   "estremita_libere",
-   "estremita_rif",
-   "estremita_tappate",
    "estrudi_cerchio",
-   "estrudi_profilo",
    "estrudi_rettangolino",
    "estrudi_rettangolo",
-   "estrudi_sezione",
-   "estrudi_su_faccia",
-   "estrusione",
    "estrusioni",
-   "etichetta",
-   "etichetta_riletta",
    "facce",
-   "facce_all_angolo_dopo",
-   "facce_all_angolo_prima",
-   "facce_curve",
-   "facce_della_ripetizione",
-   "facce_dopo",
-   "facce_guardate",
-   "facce_prima",
-   "facce_rif",
-   "facce_sformate",
-   "facce_sporgenti",
-   "facce_tolte",
-   "facce_totali",
-   "facce_uid",
    "faccia",
-   "faccia_1_uid",
-   "faccia_2_uid",
    "faccia_a",
    "faccia_b",
-   "faccia_del_foro",
-   "faccia_di_fondo",
-   "faccia_inferiore",
-   "faccia_neutra_uid",
-   "faccia_rif",
-   "faccia_superiore",
-   "faccia_uid",
    "fallisc",
    "fallita",
    "fallite",
@@ -8013,81 +7478,46 @@
    "famiglia",
    "famiglie",
    "fatto",
-   "fatto_da",
-   "fattore_k",
-   "fazzoletto",
-   "feature_e_direzione",
-   "feature_non_elencate",
-   "feature_rif",
    "fessura",
    "fessure",
-   "file_mancante",
-   "file_scritto",
-   "filettato",
-   "filettatura_cosmetica",
-   "filetto_mm",
    "filo",
-   "fine_dopo",
-   "fine_prima",
    "fingi",
    "fingi-senza-solidworks",
    "finta",
    "finto",
    "finto-per-la-prova",
    "firma",
-   "fissa_componente",
    "fissare",
    "fissato",
    "fisso",
-   "fisso_dopo",
-   "fisso_prima",
-   "flangia_base",
-   "flangia_spigolo",
    "fogli",
-   "fogli_dopo",
-   "fogli_prima",
    "foglio",
-   "foglio_mm",
    "fondi",
    "fonte",
    "fori",
-   "fori_nella_tabella_fori",
    "forma",
    "forma_del_pezzo",
    "formato",
-   "formato_mm",
    "foro",
    "foro_guidato",
-   "foro_mm",
    "fortissimo",
    "fotogrammi",
    "frase",
    "frazione",
-   "frecce",
    "fresa_a_candela",
    "frontale",
-   "fronte",
    "fuori",
    "ga0_assieme_di_due",
    "ganci",
    "gemella",
    "gemelle",
    "generale",
-   "genere",
    "generico",
    "geometria",
-   "geometrica",
    "gestire",
    "gia",
-   "gia_esisteva",
-   "gia_quotate_altrove",
-   "gioco_mm",
    "giro",
-   "giudizio",
-   "giudizio_vincoli",
-   "giunto_mm",
    "gli",
-   "gola_riletta",
    "gomiti",
    "gp2_due_corpi",
    "gp2_forzato",
@@ -8096,240 +7526,107 @@
    "gp3_sbagliato",
    "gp3_solidi",
    "gradi",
-   "gradi_di_liberta_residui",
-   "grassetto",
-   "grossolana",
    "gruppi",
    "gruppo",
    "guaio",
    "guarda_il_pezzo",
    "guarda_la_tavola",
    "guardalo",
-   "guidata",
    "guscio",
-   "i_due_cassetti",
-   "i_punti_sono_le_facce",
-   "identita",
    "il-null-ha-un-nome",
-   "il_pezzo_e_cresciuto",
-   "immagine",
-   "immagine_nello_schizzo",
-   "imposta_foglio",
    "in-corso",
-   "in_rilievo",
-   "incidi_testo",
    "incisa",
    "incisione",
-   "inclinazione",
-   "indentata",
    "indica",
    "inferenze",
-   "inferiore",
-   "inferiore_mm",
    "ingombro",
-   "ingombro_corpo",
-   "ingombro_da_mm",
-   "ingombro_dxf_mm",
-   "ingombro_esterno_mm",
    "ingombro_mm",
-   "ingombro_tabella_mm",
-   "ingombro_verificato",
    "ingranaggio",
    "ingresso",
-   "inizio",
-   "inizio_tag",
-   "inserisci_componente",
    "inserting_is_not_mating_coperchio",
    "installato",
    "installato4",
    "installatore",
    "installo",
-   "interasse",
-   "interferenze",
    "interne",
    "interno",
    "intero",
-   "interseca",
    "intestazioni",
    "isometrica",
-   "isometrico",
-   "istanza",
-   "istanze",
-   "istanze_nell_assieme",
-   "la_denominazione_e_tua",
-   "lamato",
-   "lamatura_mm",
    "lamiera",
    "lamiera-sonda",
    "larghezza",
-   "larghezza_faccia_mm",
    "larghezza_mm",
-   "larghezza_scritta_mm",
    "lato",
-   "lato1_mm",
-   "lato2_mm",
-   "lato3_mm",
-   "lato4_mm",
-   "lato_mm",
-   "lato_riletto_mm",
    "lavorazione",
-   "lavorazione_id",
-   "lavorazione_tolta",
    "lavorazioni",
-   "lavorazioni_con_meno_facce",
-   "lavorazioni_con_piu_facce",
-   "lavorazioni_dopo",
-   "lavorazioni_in_errore",
-   "lavorazioni_in_errore_prima",
-   "lavorazioni_prima",
-   "lavorazioni_sparite",
    "lavoro",
-   "lega_quota",
    "legato",
-   "legato_all_originale",
    "leggero",
    "lento",
-   "lettera",
-   "lettera_riletta",
    "letto",
    "liberare",
    "liberato",
    "libero",
    "libreria",
    "limite",
-   "limite_inferiore_mm",
-   "limite_superiore_mm",
    "limiti",
    "linea",
-   "linea_taglio_mm",
    "linee",
-   "linee_di_piega",
-   "linee_estese",
    "lingua",
-   "loft_fra_due_cerchi",
    "lontanissimo",
    "lontano",
    "lunghezza",
    "lunghezza_mm",
-   "lunghezza_percorso_mm",
-   "lunghezza_riletta",
-   "lunghezza_sviluppo_a_mano_mm",
-   "lunghezza_sviluppo_mm",
-   "lunghezze_mm",
-   "lungo",
-   "lungo_lo_spigolo_mm",
    "mai",
    "manca",
-   "mancanti",
    "mancava",
    "marca",
    "marcata",
    "marcate",
    "marchi",
    "marchio",
-   "margine_mm",
    "massa",
-   "massa_kg",
-   "massa_ricalcolata_kg",
    "materiale",
-   "materiale_aggiunto_mm3",
-   "materiale_mm3",
-   "materiale_tolto_mm3",
-   "materiale_tornato_mm3",
    "materiali",
-   "membro_strutturale",
    "mensola",
    "mensola-s3",
    "metri",
    "metti",
-   "mezza_v",
    "millimetri",
    "mio",
    "misti",
    "misura",
-   "misura_fra_entita",
-   "misurate",
    "misurato",
    "misure",
    "misureTot",
-   "misure_non_elencate",
    "modelli",
    "modello",
-   "modello_di_tabella",
-   "modello_guardato_per_le_proprieta",
-   "modello_in_tavola",
    "modifica_quota",
-   "modifiche_non_salvate",
-   "modo",
    "modulo",
-   "modulo_mm",
-   "mostra",
-   "mostra_i_figli",
-   "motivo",
    "muta",
    "mutazioni",
    "muto",
-   "nascondi_pieghe",
    "nascosta",
    "nato",
    "nel",
-   "nel_modello",
-   "nervatura",
    "nessuna",
    "nessuno",
    "niente",
    "nome",
-   "nome_alternativo",
-   "nome_sw",
-   "nomi",
-   "nomi_rifiutati",
-   "nominale_mm",
    "non-esiste",
    "nonMarcate",
    "non_esiste",
-   "non_taglia_niente",
-   "non_trovati",
    "nonna",
    "norma",
-   "normale",
-   "normale_calcolata",
-   "normale_riletta",
    "nota",
-   "nota_assunto",
-   "nota_attivazione",
-   "nota_contorni",
-   "nota_corpi",
-   "nota_errori",
-   "nota_figli",
-   "nota_identificativi",
-   "nota_in_tavola",
-   "nota_nome",
-   "nota_stato",
-   "nota_sul_volume",
-   "nota_tavola",
-   "nota_volume",
    "note-di-rilascio",
    "note-interne",
-   "note_collegate",
-   "note_foglio_dopo",
-   "note_foglio_prima",
-   "note_messe",
-   "note_nel_cartiglio",
-   "note_viste_dopo",
-   "note_viste_prima",
    "novanta",
    "nove",
    "nudo",
    "numeri",
    "numeri_banco",
-   "numero_istanze",
-   "numero_istanze1",
-   "numero_istanze2",
-   "nuova",
-   "nuovo",
-   "nuovo_componente",
-   "nuovo_file",
-   "nuovo_foglio",
    "obliquo",
    "occorrenze",
    "oce-vista",
@@ -8338,142 +7635,61 @@
    "operazione",
    "operazioni",
    "opposto",
-   "opposto_legato",
-   "opposto_slegato",
    "oppure",
    "opzione",
    "ordine",
-   "ordine_dopo",
-   "ordine_prima",
    "orfana",
    "orfana-sonda",
    "orfane_banco",
-   "orientamento",
    "originale",
-   "origine",
-   "origine_mm",
-   "orizzontale",
-   "orlo",
-   "oscillazione_circolare",
-   "oscillazione_totale",
    "ottanta",
    "otto",
    "pagine",
-   "palloncini_dopo",
-   "palloncini_messi",
-   "palloncini_prima",
    "papillon",
-   "parallele",
-   "parallelismo",
    "parallelo",
    "parete",
-   "parete_mm",
    "pareti",
-   "pareti_forate",
    "parte",
    "parziale",
    "passa",
-   "passaggio",
-   "passante",
-   "passante_dalla_geometria",
    "passi",
-   "passi_di_esploso",
    "passo",
-   "passo1_mm",
-   "passo2_mm",
    "passo_",
-   "passo_mm",
-   "passo_usato_mm",
-   "per_vista",
    "perche",
-   "perche_niente_massa",
-   "percorso",
-   "percorso_dritto",
    "percorso_file",
-   "percorso_mm",
    "percorso_pdf",
    "perimetro_mm",
    "perpendicolare",
-   "perpendicolari",
-   "perpendicolarita",
    "pezzi",
    "pezzo",
-   "piana",
    "piani",
-   "piani_adesso",
-   "piani_aggiunti",
-   "piani_disponibili",
-   "piani_prima",
    "piano",
-   "piano_di_partenza",
-   "piano_per_tre_punti",
    "piastra",
    "piastra_",
-   "piatta",
-   "piatto",
-   "piega_da_schizzo",
    "piega_lamiera",
-   "pieghe",
    "pippo",
-   "piu_meno",
-   "planarita",
-   "poligonale",
    "ponte",
    "porta",
    "porta-del-cliente",
    "porta_documento",
    "positiva",
    "posizione",
-   "posizione_impostata",
-   "posizione_mm",
-   "posizione_tabella_mm",
-   "posizioni",
-   "posizioni_non_verificate",
-   "posizioni_verificate",
-   "posteriore",
    "precedenti",
    "precondizione",
    "predefinito",
    "prima",
    "prima-di-oce-solid-agent",
-   "prima_era",
-   "prima_mm",
    "primo",
-   "primo_livello",
    "problemi",
-   "problemi_dopo",
-   "problemi_prima",
    "prodotto",
    "profili",
-   "profili_elencati",
-   "profili_in_tutto",
-   "profili_non_elencati",
-   "profili_saldatura",
-   "profili_senza_misure_leggibili",
    "profilo",
-   "profilo_linea",
-   "profilo_percorso",
-   "profilo_superficie",
    "profonda",
-   "profondita2_mm",
-   "profondita_da",
-   "profondita_dalla_geometria_mm",
-   "profondita_dopo_mm",
-   "profondita_mm",
-   "profondita_prima_mm",
    "profondo",
    "proiezione",
    "pronto",
    "proporzional",
    "proprieta",
-   "proprieta_che_il_cartiglio_vuole",
-   "proprieta_configurazione",
-   "proprieta_delle_colonne",
-   "proprieta_di_massa",
-   "prossimo_passo",
-   "protocollo",
-   "protocollo_chiesto",
-   "protocollo_uscito",
    "prova",
    "prova-installatore",
    "prova-turno",
@@ -8489,42 +7705,15 @@
    "pulisci",
    "pulito",
    "punti",
-   "punti_mm",
-   "punti_percorso",
    "punto",
-   "punto1_mm",
-   "punto2_mm",
-   "punto3_mm",
-   "punto_a_mm",
-   "punto_da_mm",
-   "punto_mm",
    "puoi",
-   "quadrato",
    "qualcosa",
    "qualita",
-   "qualsiasi",
-   "qualunque",
    "quando",
-   "quante",
-   "quante_configurazioni",
-   "quante_copie",
-   "quante_lavorazioni",
-   "quante_misure",
-   "quante_voci_senza_bollatura",
    "quanti",
-   "quanti_componenti",
-   "quanti_file",
-   "quanti_mancano",
-   "quanti_nomi_di_configurazione",
-   "quanti_numeri_di_quota_mancano",
-   "quanti_testi_si_accavallano",
-   "quantita",
-   "quantita_in_tabella",
-   "quantita_totale",
    "quanto",
    "quanto-vede",
    "quaranta",
-   "quartabuono",
    "quattordici",
    "quattro",
    "quelloGuardato",
@@ -8535,35 +7724,11 @@
    "quindici",
    "quota",
    "quota_in_tavola",
-   "quota_riletta_mm",
-   "quote_dal_modello",
-   "quote_dopo",
-   "quote_guidate",
-   "quote_in_tavola",
-   "quote_inserite",
-   "quote_mancanti_nel_pdf",
-   "quote_messe",
-   "quote_mostrate_toccate",
-   "quote_non_controllate",
-   "quote_numero_non_del_modello",
-   "quote_numero_non_del_modello_totali",
-   "quote_prima",
-   "quote_sullo_schizzo",
-   "ra_riletto",
    "raccogli_viste",
    "raccordi",
    "raccordo",
-   "raccordo_faccia",
-   "raccordo_spigoli",
-   "raccordo_variabile",
    "radice",
-   "raggio_fine_mm",
-   "raggio_inizio_mm",
-   "raggio_mm",
-   "raggio_variabile",
-   "rappresentazione",
    "rebuilt_cover_keeps_the_constraints_but_broken_coperchio2",
-   "record_di_parametri",
    "referto",
    "regge",
    "registro",
@@ -8572,27 +7737,18 @@
    "relativa",
    "relativo",
    "relazioni",
-   "reso_saldato",
    "resoconto",
    "resta",
    "rettangolo",
-   "rettilineita",
    "rialzo",
-   "riancoraggi",
-   "riapri_e_confronta",
    "riattiva",
    "riattivata",
    "riattivato",
    "ricalco",
    "richiamo",
-   "ricostruzione_necessaria",
    "riempitivo",
-   "rientro_mm",
    "rif",
    "rifai",
-   "riferimenti",
-   "riferimenti_riletti",
-   "riferimenti_uid",
    "rifiut",
    "rifiutata",
    "rifiutato",
@@ -8600,82 +7756,48 @@
    "riga",
    "riga2",
    "righe",
-   "righe_lette",
    "righello",
    "rilascio",
    "rimesse",
    "rinomina",
    "rinomina-prodotto",
-   "riordina_lavorazione",
    "ripeterla",
    "ripeti",
-   "ripeti_circolare",
-   "ripeti_lineare",
-   "ripeti_riempimento",
    "ripiega_lamiera",
    "ripreso",
-   "riscontro_iso286",
    "riscritto",
    "risolto",
    "risparmia",
-   "rispetto_a",
-   "rispetto_a_uid",
    "risposta",
-   "risposta_di_auto_dimension_scheme",
    "risultato",
    "ritorna",
    "ritrovare",
-   "riuscita",
    "rivoluzione",
    "rosse",
-   "rotazione_gradi",
    "rotto",
-   "rugosita",
-   "rugosita_in_tavola",
    "rumore",
-   "ruota_dentata",
    "saldatura_in_tavola",
    "saldature",
-   "salva_documento",
    "salvalo",
    "sano",
    "sbaglia",
    "sbord",
    "scadenzaMs",
-   "scala",
-   "scala_denominatore",
-   "scala_numeratore",
    "scarti",
    "scarto",
-   "scarto_baricentro_mm",
-   "scarto_dal_teorico",
-   "scarto_dal_tronco_di_cono",
-   "scarto_del_controllo_mm",
    "scarto_gradi",
-   "scarto_relativo",
-   "scarto_sul_ricalcolo",
-   "scarto_sulla_somma",
-   "scatola_dopo_mm",
-   "scatola_pezzo_mm",
-   "scatola_prima_mm",
    "scatto",
    "scheda",
    "schemi",
    "schizzo",
-   "schizzo_bloccato",
-   "schizzo_dei_fori",
    "sconosciuta",
    "sconosciuto",
    "scorciati",
    "scostamenti",
-   "scostamento_inferiore_mm",
-   "scostamento_superiore_mm",
    "scritto",
    "scriv",
    "scrivi",
-   "scrivi_proprieta",
    "scuro",
-   "secondo_lato_mm",
    "sedici",
    "segmenti",
    "seguente",
@@ -8688,9 +7810,6 @@
    "senza",
    "senza-attesa",
    "senza-client",
-   "senza_asportazione",
-   "senza_materiale",
-   "serve_prima",
    "servono",
    "sessanta",
    "sessione",
@@ -8700,85 +7819,29 @@
    "sezione_in_tavola",
    "sezioni",
    "sezioni-profili",
-   "sfalsa1_mm",
-   "sfalsa2_mm",
-   "sformo",
-   "si_intersecano",
-   "si_stampa_senza_supporti",
-   "si_toccano",
-   "si_vede_dall_altro_cassetto",
    "silenzio",
    "silenzioso",
-   "simboli_dopo",
-   "simboli_prima",
-   "simbolo",
-   "simbolo_riletto",
    "simili",
-   "simmetria",
-   "simmetrica",
    "simmetrico",
-   "sinistra",
    "sinistro",
    "slegato",
-   "smussi",
    "smusso",
-   "smusso_mm",
-   "smusso_spigoli",
    "soglia",
-   "soglia_gradi",
-   "sola_lettura",
-   "solidi",
-   "solidi_attesi",
-   "solidi_nel_file",
-   "solido",
    "solidworks_documento_attivo",
-   "solo_avviso",
-   "solo_marcate_per_il_disegno",
-   "solo_parti",
-   "solo_possibile",
-   "somma_dei_pezzi_kg",
-   "somma_non_controllata_per",
    "sommario",
    "sonda",
    "sono",
    "soppressa",
    "soppresso",
-   "sopprimi_istanza",
-   "sopprimi_lavorazione",
-   "sopra",
-   "sostituisce",
-   "sostituisci_componente",
    "sostituzioni",
    "sotto",
-   "sottrai",
    "sovrasporgenze",
    "sparirebbe",
    "specchia",
-   "specchia_componente",
-   "specchio",
    "spessore",
-   "spessore_mm",
    "spigoli",
-   "spigoli_curvi",
-   "spigoli_dello_smusso",
-   "spigoli_disponibili",
-   "spigoli_inferiori",
-   "spigoli_laterali",
-   "spigoli_non_quotati",
-   "spigoli_provati",
-   "spigoli_rif",
-   "spigoli_scartati_doppioni",
-   "spigoli_superiori",
-   "spigoli_totali",
-   "spigoli_uid",
    "spigolo",
-   "spigolo_uid",
    "sporgenza",
-   "sporgenza_gradi",
-   "sporgenza_peggiore_gradi",
-   "sporgenza_profilo_mm",
-   "sporgenze",
-   "sporgenze_non_elencate",
    "sposta",
    "sposta-corpi",
    "sposta_corpi",
@@ -8787,12 +7850,8 @@
    "staccata",
    "staffa",
    "staffa_a_elle",
-   "stampabile",
    "stato",
-   "stato.uno",
    "stato_",
-   "stato_dopo",
-   "stato_gradi_di_liberta",
    "stava",
    "storia",
    "storico",
@@ -8800,29 +7859,14 @@
    "strumento",
    "strumento_che_non_esiste",
    "suArgomenti",
-   "suffisso",
-   "suffisso_del_richiamo",
    "suo",
-   "superfici",
-   "superiore",
-   "superiore_mm",
-   "svasato",
-   "sviluppo_dxf",
    "svuotato",
-   "sweep_circolare",
    "tabella",
-   "tabella_fori_in_tavola",
-   "tabelle_nella_tavola",
-   "tabelle_prima",
    "tacciono",
    "taglia",
-   "taglia_membri",
    "tagliate",
    "taglio",
-   "taglio_cilindrico",
-   "taglio_rettangolare",
    "tangente",
-   "tappo_estremita",
    "tavola",
    "telai",
    "telaio",
@@ -8831,64 +7875,28 @@
    "tentativo",
    "tenuti",
    "tenuto",
-   "terzo",
    "testa",
-   "testa1",
-   "testa2",
-   "testi",
-   "testi_che_si_accavallano",
-   "testi_letti",
    "testo",
    "testo-nel-pdf-sonda",
-   "testo_chiesto",
-   "testo_combacia",
-   "testo_riletto",
    "tetto",
    "tieni",
    "tipo",
-   "tipo_feature",
    "tipo_foro",
-   "tipo_riletto",
-   "tipo_vista",
    "titolo",
    "toccano",
-   "toccarsi_conta",
    "togli",
    "togliere",
-   "tolleranza",
-   "tolleranza_geometrica_in_tavola",
-   "tolleranza_quota",
    "tolte",
-   "tolti_mm3",
    "tolto",
-   "tolto_che_ci_si_aspetta_mm3",
    "tondo",
-   "tondo_asse",
-   "tondo_diametri_mm",
-   "tondo_diametri_non_raggiunti",
-   "tondo_generatrici_senza_faccia",
-   "tondo_lunghezze_mm",
-   "tondo_note",
    "totale",
    "traccia",
-   "trasparente",
-   "trattamento_angolo",
-   "tratteggi",
-   "tratteggi_solidi",
-   "tratti",
-   "tratto",
    "trave",
    "tre",
    "tredici",
    "trenta",
    "triangoli",
-   "triangoli_come_li_so",
-   "triangoli_controllati",
-   "triangoli_dalla_geometria",
    "triangolo",
-   "trimetrica",
-   "trimetrico",
-   "troncato",
    "trovata",
    "trovate",
    "trovati",
@@ -8896,102 +7904,45 @@
    "tubo",
    "tubolare",
    "turno",
-   "tutte",
-   "tutte_le_istanze",
-   "tutte_le_quote",
    "tutti",
-   "tutti_gli_spigoli",
    "tutto",
-   "tutto_attorno",
-   "tutto_chiuso",
    "uguale",
    "ultimo",
    "ultimo-giro",
    "ultimo-ponte",
-   "ultimo_piano_mm",
    "un-mio-log",
    "undici",
    "unisci",
-   "unita",
-   "unita_protocollo",
    "uno",
    "usa",
-   "usa_descrizione",
-   "usa_nome_alternativo",
    "uscita",
    "utensili",
    "v4-guscio-intero",
    "v4-guscio-sezione",
    "vale",
    "valido",
-   "valore",
-   "valore_dopo_gradi",
-   "valore_dopo_mm",
-   "valore_mm",
-   "valore_prima_gradi",
-   "valore_prima_mm",
-   "valore_riletto",
-   "valori_mm",
-   "variabile_globale",
-   "variazione_volume_mm3",
    "vede",
    "venti",
    "verdi",
    "verifica",
-   "verifica_geometria_corpo",
-   "verifica_interferenze",
-   "verifica_scala_mm",
-   "verifica_sovrasporgenze",
    "verifiche",
    "verita",
    "vero",
    "versione",
    "verso",
-   "verso_esterno",
-   "verticale",
    "vertice",
-   "vertici",
    "vicini",
    "vincolato",
    "vincoli",
    "vincolo",
    "visibile",
    "vista",
-   "vista_da_cui_prende_le_proprieta_di_foglio",
-   "vista_dettagliata",
-   "vista_dettaglio",
-   "vista_esplosa",
-   "vista_modello",
-   "vista_sezionata",
-   "vista_sezione",
-   "vista_sviluppo",
    "viste",
-   "viste_create",
-   "viste_dopo",
-   "viste_esplose",
-   "viste_guardate",
-   "viste_lette_a_meta",
-   "viste_prima",
-   "viste_standard",
-   "viste_totali",
-   "viste_troncate",
    "vite",
    "voce",
    "voci",
-   "voci_della_distinta",
-   "voci_distinte",
-   "voci_senza_bollatura",
    "volta",
    "volte",
-   "volume_a_mano_mm3",
-   "volume_cambiato_mm3",
-   "volume_dopo_mm3",
-   "volume_non_riletto",
-   "volume_prima_mm3",
-   "volume_riletto_mm3",
-   "volume_teorico_mm3",
-   "volume_totale_mm3",
-   "volume_tronco_di_cono_mm3",
    "vuole",
    "vuota",
    "vuoto",

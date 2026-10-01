@@ -1,13 +1,13 @@
 [
  {
-  "operazione": "estrudi_rettangolo",
-  "argomenti": {
-   "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 60,
-   "spessore_mm": 20, "centrato": true
+  "operation": "extrude_rectangle",
+  "arguments": {
+   "plane": "top", "length_mm": 100, "width_mm": 60,
+   "thickness_mm": 20, "centered": true
   }
  },
  {
-  "operazione": "taglio_cilindrico",
-  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": 0, "y_mm": 0 }
+  "operation": "cylindrical_cut",
+  "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "x_mm": 0, "y_mm": 0 }
  }
 ]

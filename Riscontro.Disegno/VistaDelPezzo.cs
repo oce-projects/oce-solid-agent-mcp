@@ -32,7 +32,7 @@ namespace Riscontro.Disegno
     ///
     /// **SU RICHIESTA, MAI DI SERIE.** Un'immagine 1024x768 costa piu' di mille
     /// token: piu' di dieci volte l'intero stato del documento, che sta sotto i
-    /// 16.000 CARATTERI. Se ogni `guarda_il_pezzo` portasse tre viste, il costo
+    /// 16.000 CARATTERI. Se ogni `inspect_part` portasse tre viste, il costo
     /// del ponte cambierebbe di un ordine di grandezza — e lo pagherebbe anche
     /// chi voleva solo sapere quanti corpi ci sono.
     ///
@@ -55,15 +55,15 @@ namespace Riscontro.Disegno
         private static readonly Dictionary<string, int> Viste =
             new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
-                ["isometrica"] = (int)swStandardViews_e.swIsometricView,
-                ["trimetrica"] = (int)swStandardViews_e.swTrimetricView,
-                ["dimetrica"] = (int)swStandardViews_e.swDimetricView,
-                ["frontale"] = (int)swStandardViews_e.swFrontView,
-                ["posteriore"] = (int)swStandardViews_e.swBackView,
-                ["sinistra"] = (int)swStandardViews_e.swLeftView,
-                ["destra"] = (int)swStandardViews_e.swRightView,
-                ["superiore"] = (int)swStandardViews_e.swTopView,
-                ["inferiore"] = (int)swStandardViews_e.swBottomView,
+                ["isometric"] = (int)swStandardViews_e.swIsometricView,
+                ["trimetric"] = (int)swStandardViews_e.swTrimetricView,
+                ["dimetric"] = (int)swStandardViews_e.swDimetricView,
+                ["front"] = (int)swStandardViews_e.swFrontView,
+                ["back"] = (int)swStandardViews_e.swBackView,
+                ["left"] = (int)swStandardViews_e.swLeftView,
+                ["right"] = (int)swStandardViews_e.swRightView,
+                ["top"] = (int)swStandardViews_e.swTopView,
+                ["bottom"] = (int)swStandardViews_e.swBottomView,
             };
 
         public static IEnumerable<string> NomiDelleViste { get { return Viste.Keys; } }
@@ -443,7 +443,7 @@ namespace Riscontro.Disegno
         /// <summary>I nomi dei piani su cui si puo' sezionare.</summary>
         public static IEnumerable<string> NomiDeiPiani
         {
-            get { return new[] { "frontale", "superiore", "destro" }; }
+            get { return new[] { "front", "top", "right" }; }
         }
 
         /// <summary>

@@ -5,21 +5,21 @@
   "_why_null_and_not_zero": "la massa e' `null`, non zero: zero sarebbe un pezzo che non pesa niente, e sarebbe una risposta. `null` vuol dire «non si sa», ed e' accompagnato da una frase che dice cosa fare. Il volume invece si sa eccome, e infatti c'e'.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "proprieta_di_massa",
+    { "operation": "mass_properties",
       "arguments": {},
       "expect": [
-        { "what": "misure.volume_mm3", "equal_to": 200000, "tolerance": 0.5,
+        { "what": "measurements.volume_mm3", "equal_to": 200000, "tolerance": 0.5,
           "tolerance_why": "il volume si legge in metri cubi e si moltiplica per un miliardo" },
-        { "what": "misure.massa_kg", "equal_to": null,
+        { "what": "measurements.mass_kg", "equal_to": null,
           "_why_null": "non si sa, e si dice" },
-        { "what": "misure.densita_kg_m3", "equal_to": null },
-        { "what": "misure.materiale", "equal_to": null },
-        { "what": "misure.perche_niente_massa",
-          "includes": ["nessun materiale", "1000 kg/m3", "acqua", "otto volte", "applica_materiale"],
+        { "what": "measurements.density_kg_m3", "equal_to": null },
+        { "what": "measurements.material", "equal_to": null },
+        { "what": "measurements.why_no_mass",
+          "includes": ["nessun materiale", "1000 kg/m3", "acqua", "otto volte", "apply_material"],
           "why": "il rifiuto deve dire COSA non si sa, PERCHE' la risposta di SOLIDWORKS sarebbe credibile, e COSA fare" } ] }
   ]
 }

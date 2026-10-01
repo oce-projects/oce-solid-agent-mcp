@@ -6,23 +6,23 @@
   "intent_why": "un raccordo su uno spigolo e' ancorato allo spigolo per costruzione: allungare il pezzo sposta due dei quattro, e restano quattro raccordi da 5. Qui si misura che ci siano ancora, e che siano ancora da 5.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
-                     "spessore_mm": 20, "centrato": true }
+      "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120,
+                     "thickness_mm": 20, "centered": true }
     },
     {
-      "operation": "raccordo_spigoli",
+      "operation": "fillet_edges",
       "arguments": {
-        "spigoli_uid": [ "@spigolo(asse=Z,lungo~=20,n=1)", "@spigolo(asse=Z,lungo~=20,n=2)",
-                         "@spigolo(asse=Z,lungo~=20,n=3)", "@spigolo(asse=Z,lungo~=20,n=4)" ],
-        "raggio_mm": 5
+        "edges_uid": [ "@edge(axis=Z,length~=20,n=1)", "@edge(axis=Z,length~=20,n=2)",
+                         "@edge(axis=Z,length~=20,n=3)", "@edge(axis=Z,length~=20,n=4)" ],
+        "radius_mm": 5
       }
     }
   ],
-  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [260, 120, 20] },
-    { "what": "diametri_mm", "same_as_before": true,
+    { "what": "bounding_box_mm", "equal_to": [260, 120, 20] },
+    { "what": "diameters_mm", "same_as_before": true,
       "tolerance": 0.02,
       "tolerance_why": "quattro facce cilindriche di raggio 5: il diametro si legge da CylinderParams in metri" }
   ]

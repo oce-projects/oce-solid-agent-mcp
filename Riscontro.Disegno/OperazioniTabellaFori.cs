@@ -46,27 +46,27 @@ namespace Riscontro.Disegno
             var disegno = modello as IDrawingDoc;
             if (disegno == null)
                 return Fallito("Il documento attivo non e' una tavola: la tabella fori sta su una vista. " +
-                               "Crea prima la tavola con «crea_disegno».");
+                               "Crea prima la tavola con «create_drawing».");
             var nomi = NomiDelleViste(disegno);
             if (nomi.Count == 0)
                 return Fallito("La tavola non ha viste: la tabella fori si aggancia a una vista del pezzo. " +
-                               "Metti prima le viste con «viste_standard».");
+                               "Metti prima le viste con «standard_views».");
 
-            string origine = Str(a, "origine", "basso_sinistra");
+            string origine = Str(a, "origin", "bottom_left");
             int sx, sy;
             switch (origine)
             {
-                case "basso_sinistra": sx = -1; sy = -1; break;
-                case "basso_destra": sx = 1; sy = -1; break;
-                case "alto_sinistra": sx = -1; sy = 1; break;
-                case "alto_destra": sx = 1; sy = 1; break;
+                case "bottom_left": sx = -1; sy = -1; break;
+                case "bottom_right": sx = 1; sy = -1; break;
+                case "top_left": sx = -1; sy = 1; break;
+                case "top_right": sx = 1; sy = 1; break;
                 default:
-                    return Fallito("«origine» e' uno fra basso_sinistra, basso_destra, alto_sinistra, " +
-                                   "alto_destra, non «" + origine + "».");
+                    return Fallito("«origin» e' uno fra bottom_left, bottom_right, top_left, " +
+                                   "top_right, non «" + origine + "».");
             }
 
             string motivo;
-            IView vista = RisolviVista(disegno, nomi, Str(a, "vista", null), out motivo);
+            IView vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
             if (motivo != null) return Fallito(motivo);
             if (vista == null) return Fallito("Non riesco a prendere la vista.");
             string nomeVista = "";
@@ -154,7 +154,7 @@ namespace Riscontro.Disegno
             }
             catch { }
             double x = Unita.M(Num(a, "x_mm", 15)), y = Unita.M(Num(a, "y_mm", Unita.Mm(altezzaFoglio) - 15));
-            string primoTag = Str(a, "inizio_tag", "A");
+            string primoTag = Str(a, "tag_start", "A");
 
             int richiamiPrima = RichiamiDiForoNellaVista(vista);
             int tabellePrima = TabelleDellaTavola(disegno);
@@ -236,8 +236,8 @@ namespace Riscontro.Disegno
                     ["tag"] = tag,
                     ["x_mm"] = numeri ? (object)lx : sx0,
                     ["y_mm"] = numeri ? (object)ly : sy0,
-                    ["misura"] = misura,
-                    ["nel_modello"] = trovato,
+                    ["measure"] = misura,
+                    ["in_model"] = trovato,
                 });
             }
             if (combaciano != fori.Count)
@@ -250,24 +250,24 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["vista"] = nomeVista,
-                ["origine"] = origine,
-                ["fori"] = fori.Count,
-                ["righe"] = righe,
-                ["voci"] = voci.ToArray(),
-                ["posizioni_verificate"] = true,
-                ["tabelle_nella_tavola"] = TabelleDellaTavola(disegno),
+                ["view"] = nomeVista,
+                ["origin"] = origine,
+                ["holes"] = fori.Count,
+                ["rows"] = righe,
+                ["entries"] = voci.ToArray(),
+                ["positions_checked"] = true,
+                ["tables_in_drawing"] = TabelleDellaTavola(disegno),
             };
-            if (!string.IsNullOrEmpty(modelloTabella)) misure["modello_di_tabella"] = modelloTabella;
+            if (!string.IsNullOrEmpty(modelloTabella)) misure["table_template"] = modelloTabella;
             // I FORI DUE VOLTE (26/9/2026, la prima tavola guardata con la tabella):
             // se la vista aveva gia' i richiami dei fori, la tabella li ripete.
             // «Ciascun elemento si quota una volta sola»: lo si dice. Nell'ordine
-            // giusto — tabella prima, poi quota_in_tavola — non succede, perche'
-            // quota_in_tavola lascia i fori alla tabella.
+            // giusto — tabella prima, poi drawing_dimension — non succede, perche'
+            // drawing_dimension lascia i fori alla tabella.
             if (richiamiPrima > 0)
-                misure["attenzione"] = "Nella vista c'erano gia' " + richiamiPrima + " richiami di foro (e di solito le " +
+                misure["warning"] = "Nella vista c'erano gia' " + richiamiPrima + " richiami di foro (e di solito le " +
                                        "quote di posizione dei fori): con la tabella i fori sono quotati due volte. " +
-                                       "Metti la tabella PRIMA di «quota_in_tavola», che allora lascia i fori alla tabella.";
+                                       "Metti la tabella PRIMA di «drawing_dimension», che allora lascia i fori alla tabella.";
             return SenzaFeature(misure);
         }
 
@@ -304,8 +304,8 @@ namespace Riscontro.Disegno
         ///
         /// SI GUARDA TUTTO IL FOGLIO, NON LA VISTA. Misurato il 26/9/2026: la
         /// tabella fori messa sulla vista dall'alto appartiene al FOGLIO (la
-        /// «vista» zero di `GetFirstView`), non alla vista — cercandola nella
-        /// vista, `quota_in_tavola` non la vedeva e quotava i fori una seconda
+        /// «view» zero di `GetFirstView`), non alla vista — cercandola nella
+        /// vista, `drawing_dimension` non la vedeva e quotava i fori una seconda
         /// volta. Una tavola e' di un pezzo: una tabella fori sul foglio copre i
         /// fori delle sue viste.
         /// </summary>

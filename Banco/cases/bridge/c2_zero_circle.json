@@ -1,1 +1,1 @@
-[{"operazione":"estrudi_profilo","argomenti":{"piano":"superiore","spessore_mm":10,"contorni":[{"cerchio":[0,0],"diametro_mm":0}]}}]
+[{"operation":"extrude_profile","arguments":{"plane":"top","thickness_mm":10,"contours":[{"circle":[0,0],"diameter_mm":0}]}}]

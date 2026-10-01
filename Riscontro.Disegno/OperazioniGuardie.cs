@@ -9,16 +9,16 @@ namespace Riscontro.Disegno
     /// LE GUARDIE DOPO UNA MODIFICA CHE PASSA DALLA RICOSTRUZIONE, in un posto
     /// solo (revisione avversariale del 27/9/2026).
     ///
-    /// `modifica_quota` le aveva tutte — la ricostruzione, le lavorazioni in
+    /// `set_dimension` le aveva tutte — la ricostruzione, le lavorazioni in
     /// errore, i corpi, le aperture che escono dal materiale, lo smusso o il
     /// raccordo che non ci sta piu' — e le operazioni venute dopo, che cambiano
-    /// la geometria per un'altra strada (`variabile_globale`, `lega_quota`,
-    /// `cambia_estrusione`), ne avevano una o nessuna. Una variabile che guida
+    /// la geometria per un'altra strada (`global_variable`, `link_dimension`,
+    /// `edit_extrusion`), ne avevano una o nessuna. Una variabile che guida
     /// lo spessore portata a 1 sotto uno smusso da 2 ricostruisce pulita e
-    /// cambia la forma (lo ha misurato il caso r05 per `modifica_quota`): la
+    /// cambia la forma (lo ha misurato il caso r05 per `set_dimension`): la
     /// risposta era «riuscito», e la variabile restava scritta. Una quota
-    /// legata a un'equazione `modifica_quota` non la cambia piu' (e' guidata),
-    /// quindi `variabile_globale` era diventata la scorciatoia che saltava
+    /// legata a un'equazione `set_dimension` non la cambia piu' (e' guidata),
+    /// quindi `global_variable` era diventata la scorciatoia che saltava
     /// tutte le guardie.
     ///
     /// Qui: la fotografia del pezzo prima, e dopo la frase di cio' che si e'
@@ -57,8 +57,8 @@ namespace Riscontro.Disegno
         ///
         /// «aperture» dice se ha senso contare le aperture chiuse. Ha senso quando
         /// cambia una quota dello SCHIZZO (un'asola che si sposta puo' uscire dal
-        /// bordo: il caso r16 di modifica_quota). Non ha senso quando cambia solo
-        /// la PROFONDITA' di una lavorazione (cambia_estrusione): un taglio passante
+        /// bordo: il caso r16 di set_dimension). Non ha senso quando cambia solo
+        /// la PROFONDITA' di una lavorazione (edit_extrusion): un taglio passante
         /// che torna cieco toglie il foro dalla faccia di sotto, le aperture calano
         /// da 2 a 1 e il pezzo e' proprio quello chiesto — misurato il 28/9/2026 sul
         /// caso blind_becomes_through, che la guardia rifiutava a torto.

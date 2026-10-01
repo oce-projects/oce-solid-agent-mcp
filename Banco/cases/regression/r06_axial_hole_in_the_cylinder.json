@@ -6,26 +6,26 @@
   "intent_why": "un foro sull'asse e' sull'asse: portare il diametro esterno da 100 a 60 non lo tocca. Si misura che restino due cilindri, quello esterno da 60 e il foro da 20, tutti e due centrati in (0,0).",
   "build": [
     {
-      "operation": "estrudi_cerchio",
-      "arguments": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 }
+      "operation": "extrude_circle",
+      "arguments": { "plane": "front", "diameter_mm": 100, "height_mm": 50 }
     },
     {
-      "operation": "taglio_cilindrico",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
-                     "diametro_mm": 20, "passante": true }
+      "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
+                     "diameter_mm": 20, "through_all": true }
     }
   ],
-  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 60 },
+  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 60 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [60, 60, 50],
+    { "what": "bounding_box_mm", "equal_to": [60, 60, 50],
       "tolerance": 0.02,
       "tolerance_why": "l'ingombro di un cilindro si legge con GetExtremePoint, che su una superficie curva arrotonda" },
-    { "what": "diametri_mm", "equal_to": [20, 60],
+    { "what": "diameters_mm", "equal_to": [20, 60],
       "tolerance": 0.02,
       "tolerance_why": "i diametri si leggono da CylinderParams, che torna metri" },
-    { "what": "centri_x_mm", "equal_to": [0, 0], "tolerance": 0.02,
+    { "what": "centers_x_mm", "equal_to": [0, 0], "tolerance": 0.02,
       "tolerance_why": "come sopra" },
-    { "what": "centri_y_mm", "equal_to": [0, 0], "tolerance": 0.02,
+    { "what": "centers_y_mm", "equal_to": [0, 0], "tolerance": 0.02,
       "tolerance_why": "come sopra" }
   ]
 }

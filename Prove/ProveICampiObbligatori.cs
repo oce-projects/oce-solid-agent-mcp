@@ -47,7 +47,7 @@ namespace Prove.Contratti
         /// chiedono.
         /// </summary>
         private static readonly Regex Quota = new Regex(
-            @"_mm$|_gradi$|^denti$|^modulo|^segmenti$|^punto|_uid$|^facce$",
+            @"_mm$|_deg$|^teeth$|^module|^segments$|^point(?!s)|_uid$|^faces$",
             RegexOptions.Compiled);
 
         /// <summary>
@@ -60,67 +60,67 @@ namespace Prove.Contratti
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 // ── SI CHIEDONO: sono il lavoro, non un contorno ──────────
-                { "estrudi_profilo.contorni", "e' la sagoma: senza, non c'e' niente da estrudere" },
-                { "rivoluzione.contorni", "idem" },
-                { "estrudi_su_faccia.contorni", "idem" },
-                { "rivoluzione.asse", "attorno a cosa gira: un predefinito sceglierebbe il pezzo" },
-                { "estrudi_sezione.tipo", "quale profilato: IPE e tubo quadro non si somigliano" },
-                { "foro_guidato.taglia", "M8 o M10 lo decide il bullone, non l'officina" },
-                { "foro_guidato.posizioni", "dove vanno i fori: e' la lavorazione stessa" },
-                { "modifica_quota.quota", "quale quota cambiare: indovinarla e' cambiare il pezzo sbagliato" },
-                { "ripeti_circolare.numero_istanze", "quante: e' il senso dell'operazione" },
-                { "ripeti_lineare.numero_istanze1", "idem" },
-                { "ripeti_riempimento.copie_per_giro", "quante copie per giro: e' la densita' del riempimento, non c'e' un numero d'officina" },
-                { "nervatura.piano", "il piano decide dove sta la nervatura: un piano d'ufficio la metterebbe di traverso, o fuori dal pezzo" },
-                { "specchia.piano", "rispetto a cosa: un predefinito specchierebbe a caso" },
-                { "nota_in_tavola.testo", "cosa c'e' scritto: non esiste un testo d'ufficio" },
-                { "incidi_testo.testo", "idem" },
-                { "attiva_foglio.nome", "quale foglio: sono tutti legittimi" },
-                { "filettatura_cosmetica.denominazione", "M10x1.5 lo decide l'accoppiamento" },
-                { "misura_fra_entita.uid", "fra cosa e cosa si misura" },
-                { "sopprimi_istanza.copie", "quali copie togliere" },
-                { "scrivi_proprieta.nome", "quale proprieta'" },
-                { "scrivi_proprieta.valore", "e cosa scriverci" },
-                { "crea_configurazione.nome", "come si chiama: un nome d'ufficio sarebbe un doppione" },
-                { "attiva_configurazione.nome", "quale attivare" },
-                { "accoppia.componente_a", "quali due pezzi si accoppiano" },
-                { "accoppia.faccia_a", "e su quali facce" },
-                { "accoppia.componente_b", "idem" },
-                { "accoppia.faccia_b", "idem" },
-                { "sostituisci_componente.componente", "quale componente si sostituisce" },
-                { "sostituisci_componente.percorso", "e con quale file" },
-                { "inserisci_componente.percorso", "quale file si inserisce" },
-                { "flangia_base.punti", "il profilo della lamiera: e' la lamiera stessa, e da che parte va lo spessore dipende dal verso" },
-                { "rugosita_in_tavola.ra_um", "la rugosita' la decide la funzione della superficie: un Ra d'ufficio si stamperebbe su ogni faccia" },
-                { "tolleranza_quota.quota", "quale quota tollerare lo sa solo chi progetta: una tolleranza d'ufficio su una quota scelta da me e' un accoppiamento inventato" },
-                { "tolleranza_quota.tipo", "± o H7 e' la domanda stessa: non c'e' un tipo di tolleranza d'ufficio" },
-                { "fissa_componente.componente", "quale componente fissare lo sa chi monta: sceglierlo io sarebbe inchiodare un pezzo a caso" },
-                { "fissa_componente.fisso", "fissare e liberare sono due cose opposte: non c'e' un verso d'ufficio" },
-                { "variabile_globale.nome", "il nome e' la cosa stessa che si crea: senza, non c'e' una variabile" },
-                { "lega_quota.quota", "quale quota legare lo sa chi progetta: legarne una a caso cambia un pezzo senza dirlo" },
-                { "lega_quota.espressione", "a cosa legarla e' la domanda stessa: non c'e' un'espressione d'ufficio" },
-                { "riordina_lavorazione.dove", "prima o dopo danno due pezzi diversi: non c'e' un verso d'ufficio" },
-                { "immagine_nello_schizzo.percorso", "l'immagine da ricalcare e' la cosa stessa: senza, non c'e' niente da mettere" },
-                { "specchia_componente.componente", "quale pezzo specchiare lo sa chi monta: sceglierlo io sarebbe specchiarne uno a caso" },
-                { "specchia_componente.piano", "il piano decide dove va il pezzo: un piano d'ufficio lo mette dalla parte sbagliata" },
-                { "specchia_componente.modo", "istanza, legato o slegato sono tre pezzi diversi, e sbagliare non da' errore: si chiede sempre" },
-                { "immagine_nello_schizzo.piano", "su quale piano sta il disegno lo sa chi lo guarda: un piano d'ufficio lo metterebbe di traverso" },
-                { "tolleranza_geometrica_in_tavola.caratteristica", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
+                { "extrude_profile.contours", "e' la sagoma: senza, non c'e' niente da estrudere" },
+                { "revolve.contours", "idem" },
+                { "extrude_on_face.contours", "idem" },
+                { "revolve.axis", "attorno a cosa gira: un predefinito sceglierebbe il pezzo" },
+                { "extrude_section.variant", "quale profilato: IPE e tubo quadro non si somigliano" },
+                { "hole_wizard.size", "M8 o M10 lo decide il bullone, non l'officina" },
+                { "hole_wizard.positions", "dove vanno i fori: e' la lavorazione stessa" },
+                { "set_dimension.dimension", "quale quota cambiare: indovinarla e' cambiare il pezzo sbagliato" },
+                { "circular_pattern.instance_count", "quante: e' il senso dell'operazione" },
+                { "linear_pattern.instance_count1", "idem" },
+                { "fill_pattern.copies_per_turn", "quante copie per giro: e' la densita' del riempimento, non c'e' un numero d'officina" },
+                { "rib.plane", "il piano decide dove sta la nervatura: un piano d'ufficio la metterebbe di traverso, o fuori dal pezzo" },
+                { "mirror.plane", "rispetto a cosa: un predefinito specchierebbe a caso" },
+                { "note.text", "cosa c'e' scritto: non esiste un testo d'ufficio" },
+                { "engrave_text.text", "idem" },
+                { "activate_sheet.name", "quale foglio: sono tutti legittimi" },
+                { "cosmetic_thread.designation", "M10x1.5 lo decide l'accoppiamento" },
+                { "measure_between.uid", "fra cosa e cosa si misura" },
+                { "suppress_instance.copies", "quali copie togliere" },
+                { "set_property.name", "quale proprieta'" },
+                { "set_property.value_text", "e cosa scriverci" },
+                { "create_configuration.name", "come si chiama: un nome d'ufficio sarebbe un doppione" },
+                { "activate_configuration.name", "quale attivare" },
+                { "mate.component_a", "quali due pezzi si accoppiano" },
+                { "mate.face_a", "e su quali facce" },
+                { "mate.component_b", "idem" },
+                { "mate.face_b", "idem" },
+                { "replace_component.component", "quale componente si sostituisce" },
+                { "replace_component.path", "e con quale file" },
+                { "insert_component.path", "quale file si inserisce" },
+                { "base_flange.points", "il profilo della lamiera: e' la lamiera stessa, e da che parte va lo spessore dipende dal verso" },
+                { "surface_finish.ra_um", "la rugosita' la decide la funzione della superficie: un Ra d'ufficio si stamperebbe su ogni faccia" },
+                { "dimension_tolerance.dimension", "quale quota tollerare lo sa solo chi progetta: una tolleranza d'ufficio su una quota scelta da me e' un accoppiamento inventato" },
+                { "dimension_tolerance.variant", "± o H7 e' la domanda stessa: non c'e' un tipo di tolleranza d'ufficio" },
+                { "fix_component.component", "quale componente fissare lo sa chi monta: sceglierlo io sarebbe inchiodare un pezzo a caso" },
+                { "fix_component.grounded", "fissare e liberare sono due cose opposte: non c'e' un verso d'ufficio" },
+                { "global_variable.name", "il nome e' la cosa stessa che si crea: senza, non c'e' una variabile" },
+                { "link_dimension.dimension", "quale quota legare lo sa chi progetta: legarne una a caso cambia un pezzo senza dirlo" },
+                { "link_dimension.expression", "a cosa legarla e' la domanda stessa: non c'e' un'espressione d'ufficio" },
+                { "reorder_feature.placement", "prima o dopo danno due pezzi diversi: non c'e' un verso d'ufficio" },
+                { "sketch_picture.path", "l'immagine da ricalcare e' la cosa stessa: senza, non c'e' niente da mettere" },
+                { "mirror_component.component", "quale pezzo specchiare lo sa chi monta: sceglierlo io sarebbe specchiarne uno a caso" },
+                { "mirror_component.plane", "il piano decide dove va il pezzo: un piano d'ufficio lo mette dalla parte sbagliata" },
+                { "mirror_component.mode", "istanza, legato o slegato sono tre pezzi diversi, e sbagliare non da' errore: si chiede sempre" },
+                { "sketch_picture.plane", "su quale piano sta il disegno lo sa chi lo guarda: un piano d'ufficio lo metterebbe di traverso" },
+                { "geometric_tolerance.characteristic", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
 
                 // ── DIPENDONO DALL'OFFICINA, NON DA NOI (voce Z-G8) ───────
-                { "membro_strutturale.profilo_percorso",
+                { "structural_member.profile_path",
                   "la libreria dei profili e' di QUESTA officina: un predefinito " +
                   "nostro sarebbe il percorso della nostra macchina. Vedi Z-G8" },
-                { "membro_strutturale.configurazione", "idem: la misura sta in quella libreria" },
-                { "telaio_rettangolare.profilo_percorso", "idem" },
-                { "telaio_rettangolare.configurazione", "idem" },
+                { "structural_member.configuration", "idem: la misura sta in quella libreria" },
+                { "rectangular_frame.profile_path", "idem" },
+                { "rectangular_frame.configuration", "idem" },
 
                 // ── I DUE CANDIDATI SONO STATI FATTI il 24/9/2026 ─────────
                 //
-                // `applica_materiale.materiale` -> S235JR e
-                // `combina_corpi.operazione` -> «unisci» non sono piu'
+                // `apply_material.material` -> S235JR e
+                // `combine_bodies.operation` -> «union» non sono piu'
                 // obbligatori: hanno un predefinito d'officina, e la
-                // risposta dichiara di averlo usato (`misure.nota_assunto`).
+                // risposta dichiara di averlo usato (`measurements.note_assumption`).
                 //
                 // Le loro righe sono uscite da qui, e non e' una perdita:
                 // questo elenco spiega perche' un campo SI CHIEDE, e quei
@@ -148,11 +148,11 @@ namespace Prove.Contratti
             var radice = new JavaScriptSerializer()
                 .DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
             object grezzo;
-            var voci = radice != null && radice.TryGetValue("operazioni", out grezzo)
+            var voci = radice != null && radice.TryGetValue("operations", out grezzo)
                 ? grezzo as object[] : null;
             if (voci == null)
             {
-                Segna("il catalogo ha le operazioni", false, "«operazioni» non e' un elenco");
+                Segna("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
                 return;
             }
 
@@ -165,7 +165,7 @@ namespace Prove.Contratti
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
                 object n, s;
-                o.TryGetValue("nome", out n);
+                o.TryGetValue("name", out n);
                 o.TryGetValue("schema", out s);
                 var schema = s as Dictionary<string, object>;
                 if (schema == null) continue;
@@ -227,8 +227,8 @@ namespace Prove.Contratti
             // modello, ed e' la meta' che si puo' controllare da qui —
             // l'altra meta' (che il valore venga applicato davvero e
             // dichiarato) la misurano i quattro casi di banco.
-            PredefinitoDichiarato(voci, "applica_materiale", "materiale", "S235JR");
-            PredefinitoDichiarato(voci, "combina_corpi", "operazione", "unisci");
+            PredefinitoDichiarato(voci, "apply_material", "material", "S235JR");
+            PredefinitoDichiarato(voci, "combine_bodies", "operation", "union");
         }
 
         /// <summary>
@@ -248,7 +248,7 @@ namespace Prove.Contratti
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
                 object n;
-                o.TryGetValue("nome", out n);
+                o.TryGetValue("name", out n);
                 if (Convert.ToString(n) != operazione) continue;
 
                 object s;

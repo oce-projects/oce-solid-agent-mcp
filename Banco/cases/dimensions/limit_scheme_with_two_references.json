@@ -4,12 +4,12 @@
   "why": "VOCE Z-H3. Con meno di tre riferimenti lo schema DimXpert non rifiuta: mette UNA quota su tre facce e risponde come sempre (misurato con `Controlli/DimXpert`: 0 -> 1 annotazione senza niente selezionato). L'operazione rifiuta prima, e dice cosa sono i tre.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 60,
-                     "spessore_mm": 10, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 100, "width_mm": 60,
+                     "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 60000 } ] },
-    { "operation": "schema_di_quote",
-      "arguments": { "riferimenti_uid": ["@faccia(verso=basso)", "@faccia(verso=sinistra)"] },
+    { "operation": "dimension_scheme",
+      "arguments": { "references_uid": ["@face(normal=down)", "@face(normal=left)"] },
       "must_fail": {
         "message_includes": ["TRE facce"],
         "volume_unchanged": true,

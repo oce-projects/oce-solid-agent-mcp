@@ -1,12 +1,12 @@
 [
  {
-  "operazione": "estrudi_profilo",
-  "argomenti": {
-   "piano": "superiore",
-   "spessore_mm": 10,
-   "contorni": [
+  "operation": "extrude_profile",
+  "arguments": {
+   "plane": "top",
+   "thickness_mm": 10,
+   "contours": [
     [[-50,-50],[50,-50],[50,50],[-50,50]],
-    {"cerchio": [200,0], "diametro_mm": 30}
+    {"circle": [200,0], "diameter_mm": 30}
    ]
   }
  }

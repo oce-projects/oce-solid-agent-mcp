@@ -5,15 +5,15 @@
   "_why_not_the_walls_of_a_pocket": "Due pareti parallele che SI GUARDANO (una cava) non si rifiutano allo stesso modo: una palla di raggio meta' della distanza le tocca tutte e due. Quel ramo non ha ancora una misura, e non si mette in un caso finche' non l'ha.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "spessore_mm": 40, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 40, "width_mm": 40,
+                     "thickness_mm": 40, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 64000 } ] },
-    { "operation": "raccordo_faccia",
-      "arguments": { "faccia_1_uid": "@faccia(verso=davanti)", "faccia_2_uid": "@faccia(verso=dietro)",
-                     "raggio_mm": 5 },
+    { "operation": "fillet_face",
+      "arguments": { "face_1_uid": "@face(normal=front)", "face_2_uid": "@face(normal=back)",
+                     "radius_mm": 5 },
       "must_fail": {
-        "message_includes": ["parallele", "si danno le spalle", "raccordo_spigoli"],
+        "message_includes": ["parallel", "si danno le spalle", "fillet_edges"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fillet_face_between_two_faces_of_a_cube" } }

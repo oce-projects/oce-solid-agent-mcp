@@ -4,30 +4,30 @@
   "why": "VOCE GP18. La prima operazione della famiglia lamiera, sullo stesso pezzo di `Controlli/Lamiera` (24/9/2026): una L da 50 + 30, profonda 40, spessore 2, raggio 2. Lo sviluppo si sa senza calcolatore, e il DXF che ne esce va a una macchina di taglio: e' la famiglia in cui un difetto silenzioso costa lamiera vera.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "flangia_base",
-      "arguments": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
-                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+    { "operation": "base_flange",
+      "arguments": { "plane": "front", "points": [[0, 30], [0, 0], [50, 0]],
+                     "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "expect": [
-        { "what": "corpi", "equal_to": 1 },
-        { "what": "misure.fattore_k", "equal_to": 0.5,
+        { "what": "bodies", "equal_to": 1 },
+        { "what": "measurements.k_factor", "equal_to": 0.5,
           "why": "RILETTO dalla lamiera, non chiesto: e' quello del modello di documento. Se un giorno il modello cambia, questo caso lo dice prima che cambi lo sviluppo" },
-        { "what": "misure.lunghezza_sviluppo_mm", "equal_to": 80.712, "tolerance": 0.01,
+        { "what": "measurements.flat_pattern_length_mm", "equal_to": 80.712, "tolerance": 0.01,
           "tolerance_why": "(50 - 2) + (30 - 2) + pi/2 * (2 + 0,5 * 2) = 80,712. Misurato 80,712 con la sonda: il centesimo copre l'arrotondamento. Con le facce esterne verrebbe 76,712 — quattro millimetri, cioe' una lamiera tagliata corta" },
-        { "what": "misure.i_punti_sono_le_facce", "equal_to": "interne",
+        { "what": "measurements.points_are_faces", "equal_to": "inner",
           "why": "la convenzione MISURATA, detta dalla risposta: chi manda i punti deve sapere se sono l'interno o l'esterno della piega" },
         { "what": "volume_mm3", "equal_to": 6456.96, "tolerance": 0.5,
           "tolerance_why": "80,712 * 40 * 2: la lamiera non si allunga ne' si accorcia nel conto, e' la definizione di fibra neutra. Misurato 6457,0" } ] },
 
-    { "operation": "salva_documento",
-      "arguments": { "percorso": "{LAVORO}\\the_L_flattens.sldprt" },
-      "expect": [ { "what": "misure.avvisi", "equal_to": 0 } ] },
+    { "operation": "save_document",
+      "arguments": { "path": "{LAVORO}\\the_L_flattens.sldprt" },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
 
-    { "operation": "sviluppo_dxf",
-      "arguments": { "percorso": "{LAVORO}\\the_L_flattens.dxf" },
+    { "operation": "flat_pattern_dxf",
+      "arguments": { "path": "{LAVORO}\\the_L_flattens.dxf" },
       "expect": [
-        { "what": "misure.lunghezza_sviluppo_mm", "equal_to": 80.712, "tolerance": 0.01,
+        { "what": "measurements.flat_pattern_length_mm", "equal_to": 80.712, "tolerance": 0.01,
           "tolerance_why": "la stessa misura del primo passo, riletta dopo il salvataggio e l'esportazione: il DXF non deve aver cambiato il pezzo" },
-        { "what": "misure.percorso", "includes": ["the_L_flattens", ".dxf"],
+        { "what": "measurements.path", "includes": ["the_L_flattens", ".dxf"],
           "why": "accanto al pezzo, col suo nome. L'operazione RILEGGE il DXF e rifiuta se il suo lato lungo non e' lo sviluppo: un DXF di un'altra cosa si apre uguale" } ] }
   ]
 }

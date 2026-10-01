@@ -31,10 +31,10 @@ namespace Riscontro.Disegno
         {
             switch (c)
             {
-                case (int)swEndConditions_e.swEndCondBlind: return "cieca";
-                case (int)swEndConditions_e.swEndCondThroughAll: return "passante";
+                case (int)swEndConditions_e.swEndCondBlind: return "blind";
+                case (int)swEndConditions_e.swEndCondThroughAll: return "through_all";
                 case (int)swEndConditions_e.swEndCondThroughNext: return "fino alla prossima";
-                case (int)swEndConditions_e.swEndCondMidPlane: return "piano medio";
+                case (int)swEndConditions_e.swEndCondMidPlane: return "mid plane";
                 case (int)swEndConditions_e.swEndCondUpToSurface: return "fino alla superficie";
                 case (int)swEndConditions_e.swEndCondOffsetFromSurface: return "a distanza dalla superficie";
                 case (int)swEndConditions_e.swEndCondUpToVertex: return "fino al vertice";
@@ -155,16 +155,16 @@ namespace Riscontro.Disegno
             string uid = (Str(a, "feature_uid", "") ?? "").Trim();
             if (uid.Length == 0)
                 return Fallito("Dimmi «feature_uid»: la lavorazione da cambiare, col nome dallo stato («feature»).");
-            bool chiedePassante = a != null && a.ContainsKey("passante") && a["passante"] is bool && (bool)a["passante"];
-            bool chiedeProfondita = a != null && a.ContainsKey("profondita_mm");
+            bool chiedePassante = a != null && a.ContainsKey("through_all") && a["through_all"] is bool && (bool)a["through_all"];
+            bool chiedeProfondita = a != null && a.ContainsKey("depth_mm");
             if (chiedePassante == chiedeProfondita)
-                return Fallito("Dimmi O «passante»: true (un taglio che attraversa tutto) O «profondita_mm» (quanto va " +
+                return Fallito("Dimmi O «through_all»: true (un taglio che attraversa tutto) O «depth_mm» (quanto va " +
                                "a fondo, in mm), uno dei due.");
             double profondita = double.NaN; string errore;
             if (chiedeProfondita)
             {
-                if (!NumObbligatorio(a, "profondita_mm", out profondita, out errore)) return Fallito(errore);
-                if (profondita <= 0) return Fallito("«profondita_mm» deve essere positiva.");
+                if (!NumObbligatorio(a, "depth_mm", out profondita, out errore)) return Fallito(errore);
+                if (profondita <= 0) return Fallito("«depth_mm» deve essere positiva.");
             }
             string motivo;
             if (!LavorazioneEQuella(modello, uid, a, out motivo)) return Fallito(motivo);
@@ -181,17 +181,17 @@ namespace Riscontro.Disegno
             // IFeature~GetTypeName2.html: «To get the underlying type of feature
             // of an Instant3D feature (i.e., "ICE"), call IFeature::GetTypeName».
             // «ICE» e' un'estrusione fatta su una faccia, e puo' essere un taglio
-            // (taglio_cilindrico, taglio_rettangolare) o un RIALZO
-            // (estrudi_su_faccia): StatoDocumento.cs lo misura dal 10/9/2026. Qui
-            // «ICE» valeva «taglio» e basta: un rialzo diventava «taglio», e
-            // «passante» su un rialzo non veniva rifiutato; un «Cut» vero veniva
+            // (cylindrical_cut, rectangular_cut) o un RIALZO
+            // (extrude_on_face): StatoDocumento.cs lo misura dal 10/9/2026. Qui
+            // «ICE» valeva «cut» e basta: un rialzo diventava «cut», e
+            // «through_all» su un rialzo non veniva rifiutato; un «Cut» vero veniva
             // invece rifiutato. Per l'«ICE» taglio o rialzo lo dice la definizione:
             // IExtrudeFeatureData2~IsBossFeature.html, «True if this extrusion is
             // a boss feature, false if not».
             //
             // SOLO PER L'«ICE». La prima stesura chiedeva IsBossFeature a tutte, e
             // la piastra di base (la PRIMA estrusione del pezzo, «Extrusion»)
-            // rispondeva false: «passante» su una piastra passava il controllo e la
+            // rispondeva false: «through_all» su una piastra passava il controllo e la
             // piastra diventava «attraversa tutto» (blind_becomes_through,
             // passo 6, rosso nel banco intero del 28/9/2026 su 0.138.0). La pagina
             // non ha Remarks che lo dicano. MISURATO il 28/9/2026 (sonda
@@ -206,7 +206,7 @@ namespace Riscontro.Disegno
             // «Extrusion» decide il tipo, come prima di Z-C21.2.
             if (tipo != "Extrusion" && tipo != "Cut" && tipo != "ICE")
                 return Fallito("«" + f.Name + "» e' una lavorazione di tipo «" + tipo + "»: so cambiare le estrusioni e i tagli " +
-                               "estrusi. Per una quota qualunque c'e' «modifica_quota».");
+                               "estrusi. Per una quota qualunque c'e' «set_dimension».");
             var prima = f.GetDefinition() as IExtrudeFeatureData2;
             if (prima == null) return Fallito("Non leggo la definizione di «" + f.Name + "».");
             bool taglio = tipo == "Cut";
@@ -223,8 +223,8 @@ namespace Riscontro.Disegno
                 }
             }
             if (chiedePassante && !taglio)
-                return Fallito("«passante» vale per un taglio: un'estrusione che «attraversa tutto» non ha niente da " +
-                               "attraversare. Per farla crescere dimmi «profondita_mm».");
+                return Fallito("«through_all» vale per un taglio: un'estrusione che «attraversa tutto» non ha niente da " +
+                               "attraversare. Per farla crescere dimmi «depth_mm».");
             int finePrima = prima.GetEndCondition(true);
             double profPrima = prima.GetDepth(true);
 
@@ -234,7 +234,7 @@ namespace Riscontro.Disegno
             // extrusion is in both directions». Qui si scrive e si rilegge solo il
             // verso 1 (Forward = true in SetEndCondition/SetDepth: «True for
             // forward direction, false for reverse»). Su un'estrusione a due versi
-            // un «passante» cambiava il verso 1, la rilettura del verso 1 tornava,
+            // un «through_all» cambiava il verso 1, la rilettura del verso 1 tornava,
             // e la risposta diceva «riuscito» con il verso 2 rimasto cieco. Il
             // ponte non crea mai estrusioni a due versi (Sd: true), quindi arrivano
             // solo da pezzi fatti fuori: rifiutare costa poco e non toglie niente
@@ -253,14 +253,14 @@ namespace Riscontro.Disegno
                                (conProf2 ? " profondo " + Unita.Mm(prof2).ToString("0.###") + " mm" : "") +
                                ". Io cambio e rileggo solo il primo, e ti direi «fatto» con il secondo com'era: " +
                                "non la tocco. Cambiala a mano, oppure dimmi una quota da cambiare con " +
-                               "«modifica_quota». Non ho toccato niente.");
+                               "«set_dimension». Non ho toccato niente.");
             }
             // LA CONDIZIONE CHE SI CHIEDE DIPENDE DA QUELLA CHE C'E' (revisione
             // avversariale del 27/9/2026). Una piastra simmetrica da 100 (da -50 a
             // +50) portata a 120 diventava cieca da 0 a +120: non cresceva di 10 per
             // parte, si spostava di 60, e i fori sulle facce la seguivano in posti
             // diversi — e la risposta diceva «riuscito». Il piano medio resta piano
-            // medio; «passante» su un piano medio attraversa nei due versi.
+            // medio; «through_all» su un piano medio attraversa nei due versi.
             // Le condizioni con un RIFERIMENTO (fino a una superficie, a un vertice,
             // a un corpo) non si toccano: cambiarle perde il riferimento, e se
             // qualcosa si rompe non saprei rimetterlo.
@@ -273,13 +273,13 @@ namespace Riscontro.Disegno
             if (conRiferimento)
                 return Fallito("«" + f.Name + "» finisce «" + NomeDellaFine(finePrima) + "»: cambiarla perderebbe il " +
                                "riferimento, e se qualcosa si rompesse non saprei rimetterlo. Cambiala a mano, oppure " +
-                               "dimmi una quota da cambiare con «modifica_quota».");
+                               "dimmi una quota da cambiare con «set_dimension».");
             bool simmetrica = finePrima == (int)swEndConditions_e.swEndCondMidPlane ||
                               finePrima == (int)swEndConditions_e.swEndCondThroughAllBoth;
             int fineChiesta = chiedePassante
                 ? (simmetrica ? (int)swEndConditions_e.swEndCondThroughAllBoth : (int)swEndConditions_e.swEndCondThroughAll)
                 : (simmetrica ? (int)swEndConditions_e.swEndCondMidPlane : (int)swEndConditions_e.swEndCondBlind);
-            // LE GUARDIE DI modifica_quota: corpi, aperture, smussi, errori.
+            // LE GUARDIE DI set_dimension: corpi, aperture, smussi, errori.
             var foto = FotografaIlPezzo(modello);
             double? volumePrima = foto.Volume;
             string refusedBy;
@@ -313,19 +313,19 @@ namespace Riscontro.Disegno
             double? volumeDopo = VolumeMm3(modello);
             var misure = new Dictionary<string, object>
             {
-                ["lavorazione"] = f.Name,
-                ["tipo"] = taglio ? "taglio" : "estrusione",
-                ["fine_prima"] = NomeDellaFine(finePrima),
-                ["profondita_prima_mm"] = finePrima == (int)swEndConditions_e.swEndCondBlind || finePrima == (int)swEndConditions_e.swEndCondMidPlane
+                ["feature"] = f.Name,
+                ["kind"] = taglio ? "cut" : "extrusion",
+                ["end_before"] = NomeDellaFine(finePrima),
+                ["depth_before_mm"] = finePrima == (int)swEndConditions_e.swEndCondBlind || finePrima == (int)swEndConditions_e.swEndCondMidPlane
                     ? (object)Math.Round(Unita.Mm(profPrima), 4) : null,
-                ["fine_dopo"] = NomeDellaFine(fineDopo),
-                ["profondita_dopo_mm"] = conProfondita ? (object)Math.Round(Unita.Mm(profDopo), 4) : null,
-                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["lavorazioni_in_errore"] = erroriDopo >= 0 ? (object)erroriDopo : null,
+                ["end_after"] = NomeDellaFine(fineDopo),
+                ["depth_after_mm"] = conProfondita ? (object)Math.Round(Unita.Mm(profDopo), 4) : null,
+                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["features_in_error"] = erroriDopo >= 0 ? (object)erroriDopo : null,
             };
             if (volumePrima != null && volumeDopo != null && Math.Abs(volumePrima.Value - volumeDopo.Value) < 0.01)
-                misure["attenzione"] = "La definizione e' cambiata ma il volume no: la profondita' nuova non cambia il pezzo " +
+                misure["warning"] = "La definizione e' cambiata ma il volume no: la profondita' nuova non cambia il pezzo " +
                                        "(un taglio cieco piu' profondo del materiale e' gia' passante, per esempio).";
             _log("[agente] " + f.Name + ": " + NomeDellaFine(finePrima) + " -> " + NomeDellaFine(fineDopo));
             return RiuscitoSenzaCreare(misure);

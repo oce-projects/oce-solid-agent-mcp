@@ -1,7 +1,7 @@
 {
   "name": "the_bom_follows_the_view_configuration",
   "family": "drawing",
-  "why": "Z-C21.4, findings L16-2, L16-3 and L16-4. distinta_base_in_tavola inserts the table for the configuration the view shows (IView.ReferencedConfiguration), and compares it with the components of the assembly. Up to library 0.145.0 those came from IAssemblyDoc.GetComponents, which «Gets all of the components in the active configuration of this assembly» (GetComponents.html), and the exclusion from the BOM from the obsolete IComponent2.ExcludeFromBOM, which takes no configuration. A table on a configuration that is not the active one was compared with another assembly. The library now activates the view's configuration to read the components, asks GetExcludeFromBOM2 by name, and puts the active configuration back, reading it again.",
+  "why": "Z-C21.4, findings L16-2, L16-3 and L16-4. drawing_bom inserts the table for the configuration the view shows (IView.ReferencedConfiguration), and compares it with the components of the assembly. Up to library 0.145.0 those came from IAssemblyDoc.GetComponents, which «Gets all of the components in the active configuration of this assembly» (GetComponents.html), and the exclusion from the BOM from the obsolete IComponent2.ExcludeFromBOM, which takes no configuration. A table on a configuration that is not the active one was compared with another assembly. The library now activates the view's configuration to read the components, asks GetExcludeFromBOM2 by name, and puts the active configuration back, reading it again.",
   "defect_caught": "The assembly has two configurations made by the preparation: «Full», with base, lid and peg, and «Lean», made second, where the lid is suppressed and the peg is excluded from the BOM. «Lean» is active when the assembly is saved, so the views show «Lean». Before each table step «activate_before» puts the assembly on «Full», as a user who went back to the model would leave it. The table shows «Lean»: one item, the base. On library 0.145.0 the expected items are read in «Full» (base, lid and peg, three items) and the step refuses: one item in the table against three in the assembly. Step 4 is the parts-only table, where the guide lets the configuration be named; step 5 is the top-level table, where it does not (L16-4).",
   "_if_it_stays_green_on_the_old_library": "It cannot on step 4: the old reading counts three components in «Full» against a table of one. If step 4 goes green and step 5 goes red after the fix, InsertBomTable4 does not honour the configuration for a top-level table, as IView~InsertBomTable4.html warns («If BomType is swBomType_TopLevelOnly, then do not specify Configuration. Instead, use IBomFeature::GetConfigurations ... and IBomFeature::SetConfigurations»): that is the L16-4 probe, measured here, and the top-level branch then needs the empty name and SetConfigurations.",
   "_the_numbers": "Base 120 x 80 x 10 at the origin, lid 120 x 80 x 4 on it (centre y = 7), peg 10 x 10 x 10 beside the base (centre z = 60). In «Lean» only the base is in the BOM: one item, quantity one, in both table types (no sub-assembly, so parts only and top level agree).",
@@ -9,20 +9,20 @@
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
       { "name": "lid",
         "position_mm": [0, 7, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
         ] },
       { "name": "peg",
         "position_mm": [0, 0, 60],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 10, "larghezza_mm": 10, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 10, "width_mm": 10, "thickness_mm": 10, "centered": true } }
         ] }
     ],
     "configurations": [
@@ -31,39 +31,39 @@
     ]
   },
   "steps": [
-    { "operation": "salva_documento",
-      "arguments": { "percorso": "{LAVORO}\\the_bom_follows_the_view_configuration.sldasm" },
-      "expect": [ { "what": "misure.avvisi", "equal_to": 0, "why": "the views hang on the FILE of the assembly" } ] },
-    { "operation": "crea_disegno",
-      "arguments": { "formato": "A3" },
-      "expect": [ { "what": "stato.tipo", "equal_to": "tavola" } ] },
-    { "operation": "viste_standard",
-      "arguments": { "modello": "{LAVORO}\\the_bom_follows_the_view_configuration.sldasm" },
-      "expect": [ { "what": "misure.viste_create", "equal_to": 3 } ] },
+    { "operation": "save_document",
+      "arguments": { "path": "{LAVORO}\\the_bom_follows_the_view_configuration.sldasm" },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "the views hang on the FILE of the assembly" } ] },
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
+    { "operation": "standard_views",
+      "arguments": { "model": "{LAVORO}\\the_bom_follows_the_view_configuration.sldasm" },
+      "expect": [ { "what": "measurements.views_created", "equal_to": 3 } ] },
 
-    { "operation": "distinta_base_in_tavola",
-      "arguments": { "vista": "V1", "tipo": "solo_parti" },
+    { "operation": "drawing_bom",
+      "arguments": { "view": "V1", "variant": "parts_only" },
       "activate_before": { "document": "{LAVORO}\\the_bom_follows_the_view_configuration.sldasm", "configuration": "Full" },
       "expect": [
-        { "what": "misure.configurazione", "equal_to": "Lean",
+        { "what": "measurements.configuration", "equal_to": "Lean",
           "why": "the view shows the configuration that was active when it was made" },
-        { "what": "misure.voci", "equal_to": 1,
+        { "what": "measurements.entries", "equal_to": 1,
           "why": "in «Lean» the lid is suppressed and the peg is out of the BOM: the base only" },
-        { "what": "misure.quantita_in_tabella", "equal_to": 1 },
-        { "what": "misure.combaciano", "equal_to": true,
+        { "what": "measurements.quantity_in_table", "equal_to": 1 },
+        { "what": "measurements.match", "equal_to": true,
           "why": "THE LINE THAT TAKES L16-2 AND L16-3: the assembly read in «Lean», with the peg's exclusion asked in «Lean». On 0.145.0 it is read in «Full» and the step refuses" },
-        { "what": "misure.assembly_active_configuration", "equal_to": "Full",
+        { "what": "measurements.assembly_active_configuration", "equal_to": "Full",
           "why": "the configuration activated to read the assembly is put back, and read again: the user finds the model where it was" } ] },
 
-    { "operation": "distinta_base_in_tavola",
-      "arguments": { "vista": "V1", "tipo": "primo_livello" },
+    { "operation": "drawing_bom",
+      "arguments": { "view": "V1", "variant": "top_level" },
       "expect": [
-        { "what": "misure.configurazione", "equal_to": "Lean" },
-        { "what": "misure.voci", "equal_to": 1,
+        { "what": "measurements.configuration", "equal_to": "Lean" },
+        { "what": "measurements.entries", "equal_to": 1,
           "why": "L16-4: the top-level table with the configuration named. If SOLIDWORKS made it for another configuration, the count here would not be one and the step would refuse" },
-        { "what": "misure.quantita_in_tabella", "equal_to": 1 },
-        { "what": "misure.combaciano", "equal_to": true },
-        { "what": "misure.assembly_active_configuration", "equal_to": "Full",
+        { "what": "measurements.quantity_in_table", "equal_to": 1 },
+        { "what": "measurements.match", "equal_to": true },
+        { "what": "measurements.assembly_active_configuration", "equal_to": "Full",
           "why": "step 4 put «Full» back, so this step starts on «Full» without «activate_before»: the reading moves it again and puts it back again" } ] }
   ]
 }

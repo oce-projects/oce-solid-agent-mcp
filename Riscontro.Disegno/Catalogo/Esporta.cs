@@ -43,19 +43,19 @@ namespace Riscontro.Disegno.Catalogo
             foreach (var o in provate)
             {
                 elenco.Add(O(
-                    "nome", o.Nome,
-                    "famiglia", o.Famiglia,
-                    "sommario", o.Sommario,
-                    "descrizione", o.Descrizione,
+                    "name", o.Nome,
+                    "family", o.Famiglia,
+                    "summary", o.Sommario,
+                    "details", o.Descrizione,
                     "schema", o.Schema,
-                    "precondizione", o.Precondizione,
-                    "documento", o.DocumentoRichiesto,
-                    "esempio", o.Esempio));
+                    "precondition", o.Precondizione,
+                    "document", o.DocumentoRichiesto,
+                    "example", o.Esempio));
             }
 
             return O(
-                "famiglie", O(famiglie.ToArray()),
-                "operazioni", A(elenco.ToArray()));
+                "families", O(famiglie.ToArray()),
+                "operations", A(elenco.ToArray()));
         }
 
         /// <summary>Il catalogo scritto, pronto da salvare.</summary>

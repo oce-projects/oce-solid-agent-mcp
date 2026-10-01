@@ -12,7 +12,7 @@ namespace Riscontro.Disegno
     ///
     /// Un foro Ø10 senza tolleranza non e' un'informazione di fabbricazione: il
     /// tornitore non sa se ci va un perno o un cavo. Messa sulla quota del
-    /// MODELLO, la tolleranza arriva in tavola da sola con `quote_dal_modello`.
+    /// MODELLO, la tolleranza arriva in tavola da sola con `model_dimensions`.
     ///
     /// ── MISURATO PRIMA DI SCRIVERLA, 26/9/2026 (`prova0089 tolq`) ─────────
     ///
@@ -67,11 +67,11 @@ namespace Riscontro.Disegno
 
         private Esito TolleranzaQuota(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            string nomeQuota = Str(a, "quota", "");
+            string nomeQuota = Str(a, "dimension", "");
             if (string.IsNullOrWhiteSpace(nomeQuota))
                 return Fallito("Non hai detto quale quota. I nomi stanno nello stato del documento, dentro ogni " +
                                "lavorazione (per esempio «D1@Schizzo2»).");
-            string tipo = (Str(a, "tipo", "") ?? "").Trim().ToLowerInvariant();
+            string tipo = (Str(a, "variant", "") ?? "").Trim().ToLowerInvariant();
             var quota = TrovaQuota(modello, nomeQuota, out string dove);
             if (quota == null)
                 return Fallito("Non trovo la quota «" + nomeQuota + "» in questo documento." +
@@ -103,35 +103,35 @@ namespace Riscontro.Disegno
             int decimali;
             switch (tipo)
             {
-                case "simmetrica":
+                case "symmetric":
                 {
                     double v;
-                    if (!NumObbligatorio(a, "valore_mm", out v, out string m)) return Fallito(m);
-                    if (v <= 0) return Fallito("«valore_mm» di una tolleranza simmetrica e' maggiore di zero (±" + v + ").");
+                    if (!NumObbligatorio(a, "value_mm", out v, out string m)) return Fallito(m);
+                    if (v <= 0) return Fallito("«value_mm» di una tolleranza simmetrica e' maggiore di zero (±" + v + ").");
                     tol.Type = (int)swTolType_e.swTolSYMMETRIC;
                     tol.SetValues2(-Unita.M(v), Unita.M(v), tutte, null);
-                    decimali = Math.Max(Decimali(Num(a, "valore_mm", 0)), 1);
+                    decimali = Math.Max(Decimali(Num(a, "value_mm", 0)), 1);
                     break;
                 }
-                case "bilaterale":
+                case "bilateral":
                 {
                     double su, giu;
-                    if (!NumObbligatorio(a, "superiore_mm", out su, out string m1)) return Fallito(m1);
-                    if (!NumObbligatorio(a, "inferiore_mm", out giu, out string m2)) return Fallito(m2);
+                    if (!NumObbligatorio(a, "upper_mm", out su, out string m1)) return Fallito(m1);
+                    if (!NumObbligatorio(a, "lower_mm", out giu, out string m2)) return Fallito(m2);
                     if (su <= giu)
                         return Fallito("Lo scostamento superiore (" + su + ") deve essere maggiore dell'inferiore (" + giu +
-                                       "): con «superiore_mm» 0,1 e «inferiore_mm» -0,05 la quota sta fra -0,05 e +0,1.");
+                                       "): con «upper_mm» 0,1 e «lower_mm» -0,05 la quota sta fra -0,05 e +0,1.");
                     tol.Type = (int)swTolType_e.swTolBILAT;
                     tol.SetValues2(Unita.M(giu), Unita.M(su), tutte, null);
                     decimali = Math.Max(Math.Max(Decimali(su), Decimali(giu)), 1);
                     break;
                 }
-                case "accoppiamento":
+                case "fit":
                 {
-                    classe = (Str(a, "classe", "") ?? "").Trim();
+                    classe = (Str(a, "fit_class", "") ?? "").Trim();
                     var mc = Regex.Match(classe, @"^([A-Za-z]{1,2})(\d{1,2})$");
                     if (!mc.Success)
-                        return Fallito("«classe» e' una classe ISO come «H7» (foro, maiuscola) o «g6» (albero, " +
+                        return Fallito("«fit_class» e' una classe ISO come «H7» (foro, maiuscola) o «g6» (albero, " +
                                        "minuscola), non «" + classe + "».");
                     eForo = char.IsUpper(mc.Groups[1].Value[0]);
                     grado = int.Parse(mc.Groups[2].Value, CultureInfo.InvariantCulture);
@@ -146,13 +146,13 @@ namespace Riscontro.Disegno
                     decimali = 3;
                     break;
                 }
-                case "nessuna":
+                case "none":
                     tol.Type = (int)swTolType_e.swTolNONE;
                     decimali = -1;
                     break;
                 default:
-                    return Fallito("«tipo» e' uno fra «simmetrica» (±valore_mm), «bilaterale» (superiore_mm / " +
-                                   "inferiore_mm), «accoppiamento» (classe, es. H7 o g6) o «nessuna», non «" + tipo + "».");
+                    return Fallito("«variant» e' uno fra «symmetric» (±value_mm), «bilateral» (upper_mm / " +
+                                   "lower_mm), «fit» (classe, es. H7 o g6) o «none», non «" + tipo + "».");
             }
             try { modello.EditRebuild3(); } catch { }
 
@@ -165,7 +165,7 @@ namespace Riscontro.Disegno
 
             // ── IL RISCONTRO ────────────────────────────────────────────────
             string storto = null;
-            if (tipo == "accoppiamento")
+            if (tipo == "fit")
             {
                 int it = ItMicron(grado, nominale);
                 double ampiezza = Math.Round((maxLetto - minLetto) * 1000, 1);
@@ -180,15 +180,15 @@ namespace Riscontro.Disegno
                 else if (classe == "h" + grado && Math.Abs(maxLetto) > 1e-6)
                     storto = "an h shaft ends at zero, and the upper deviation read back is " + maxLetto.ToString("0.####", CultureInfo.InvariantCulture);
             }
-            else if (tipo == "simmetrica")
+            else if (tipo == "symmetric")
             {
-                double v = Num(a, "valore_mm", 0);
+                double v = Num(a, "value_mm", 0);
                 if (tipoLetto != (int)swTolType_e.swTolSYMMETRIC || Math.Abs(maxLetto - v) > 1e-6 || Math.Abs(minLetto + v) > 1e-6)
                     storto = "read back as type " + tipoLetto + ", " + minLetto + " / " + maxLetto;
             }
-            else if (tipo == "bilaterale")
+            else if (tipo == "bilateral")
             {
-                double su = Num(a, "superiore_mm", 0), giu = Num(a, "inferiore_mm", 0);
+                double su = Num(a, "upper_mm", 0), giu = Num(a, "lower_mm", 0);
                 if (tipoLetto != (int)swTolType_e.swTolBILAT || Math.Abs(maxLetto - su) > 1e-6 || Math.Abs(minLetto - giu) > 1e-6)
                     storto = "read back as type " + tipoLetto + ", " + minLetto + " / " + maxLetto;
             }
@@ -235,22 +235,22 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["quota"] = nomeQuota,
-                ["nominale_mm"] = Math.Round(nominale, 4),
-                ["tipo"] = tipo,
-                ["tipo_riletto"] = tipoLetto,
-                ["scostamento_inferiore_mm"] = Math.Round(minLetto, 4),
-                ["scostamento_superiore_mm"] = Math.Round(maxLetto, 4),
-                ["limite_inferiore_mm"] = Math.Round(nominale + minLetto, 4),
-                ["limite_superiore_mm"] = Math.Round(nominale + maxLetto, 4),
-                ["decimali_tolleranza"] = decimali >= 0 ? (object)decimaliLetti : null,
-                ["quote_mostrate_toccate"] = quoteToccate,
+                ["dimension"] = nomeQuota,
+                ["nominal_mm"] = Math.Round(nominale, 4),
+                ["kind"] = tipo,
+                ["kind_reread"] = tipoLetto,
+                ["lower_deviation_mm"] = Math.Round(minLetto, 4),
+                ["upper_deviation_mm"] = Math.Round(maxLetto, 4),
+                ["lower_limit_mm"] = Math.Round(nominale + minLetto, 4),
+                ["upper_limit_mm"] = Math.Round(nominale + maxLetto, 4),
+                ["tolerance_decimals"] = decimali >= 0 ? (object)decimaliLetti : null,
+                ["dimensions_shown_touched"] = quoteToccate,
             };
-            if (tipo == "accoppiamento")
+            if (tipo == "fit")
             {
-                misure["classe"] = classe;
+                misure["class_name"] = classe;
                 misure["it_iso286_um"] = ItMicron(grado, nominale);
-                misure["riscontro_iso286"] = true;
+                misure["match_iso286"] = true;
             }
             // DECIMALI NON IMPOSTATI = «+0 / 0» IN TAVOLA: e' un rifiuto, non un
             // avviso (revisione del 26/9/2026). Si rimette la tolleranza di prima.

@@ -8,12 +8,12 @@ using static Prove.Contratti.Programma;
 namespace Prove.Contratti
 {
     /// <summary>
-    /// `annulla` TELLS THE TRUTH, Z-C21.14 (with the review of the lot).
+    /// `undo` TELLS THE TRUTH, Z-C21.14 (with the review of the lot).
     ///
-    /// Two probes of 1/10/2026 found what `annulla` got wrong:
+    /// Two probes of 1/10/2026 found what `undo` got wrong:
     ///  * the live probe M19 (line BRIDGE-R1 (X2)): the state after a plan was
     ///    read on the window in front, so with another document in front the
-    ///    memory of `annulla` held that document's numbers and a right undo
+    ///    memory of `undo` held that document's numbers and a right undo
     ///    was refused;
     ///  * the probe `redo`: SOLIDWORKS never redoes an undo entry recorded
     ///    through the API, and every plan of the bridge is one, while the
@@ -32,7 +32,7 @@ namespace Prove.Contratti
     ///    MemoryAfterPlan, WhatDiffers, AnswerAfterWrongPress,
     ///    RefusalCoveredText, RefusalChangedSinceThePlanText,
     ///    NoteDocumentInFront and IdentityForTheExecutor;
-    ///  * on the source, the rules of the plan, of `annulla`, of the executor
+    ///  * on the source, the rules of the plan, of `undo`, of the executor
     ///    and of the session, each seen red on changed copies of the real
     ///    source.
     /// </summary>
@@ -40,7 +40,7 @@ namespace Prove.Contratti
     {
         internal static void RunAll()
         {
-            Gruppo("`annulla` tells the truth: the plan's document, the last plan, no blind press or redo (Z-C21.14)");
+            Gruppo("`undo` tells the truth: the plan's document, the last plan, no blind press or redo (Z-C21.14)");
             Decisions();
             Sources();
         }
@@ -49,7 +49,7 @@ namespace Prove.Contratti
 
         private static void Decisions()
         {
-            var bridge = PonteOppureNonQui("the pure decisions of `annulla` (Z-C21.14)");
+            var bridge = PonteOppureNonQui("the pure decisions of `undo` (Z-C21.14)");
             if (bridge == null) return;
 
             MethodInfo memory, differs, answer, refusal, changedText, note, identity;
@@ -77,7 +77,7 @@ namespace Prove.Contratti
                 if (identity == null) missingMethods.Add("IdentityForTheExecutor");
                 if (missingMethods.Count > 0)
                 {
-                    Segna("the pure methods of `annulla` are in the bridge", false, "missing: " + string.Join(", ", missingMethods));
+                    Segna("the pure methods of `undo` are in the bridge", false, "missing: " + string.Join(", ", missingMethods));
                     return;
                 }
             }
@@ -234,7 +234,7 @@ namespace Prove.Contratti
             foreach (var t in new[] { recorded, unrecorded })
             {
                 if (t.IndexOf("nothing was touched", StringComparison.Ordinal) < 0) problems.Add("a refusal does not say nothing was touched");
-                if (t.IndexOf("elimina_lavorazione", StringComparison.Ordinal) < 0 ||
+                if (t.IndexOf("delete_feature", StringComparison.Ordinal) < 0 ||
                     t.IndexOf("Edit > Undo", StringComparison.Ordinal) < 0)
                     problems.Add("a refusal has no remedy for a model and for the person at the screen");
             }
@@ -246,7 +246,7 @@ namespace Prove.Contratti
             var changed = (string)changedText.Invoke(null, new object[] { new List<string> { "the order of the features changed" }, true });
             if (changed.IndexOf("the order of the features changed", StringComparison.Ordinal) < 0 ||
                 changed.IndexOf("nothing was touched", StringComparison.Ordinal) < 0 ||
-                changed.IndexOf("elimina_lavorazione", StringComparison.Ordinal) < 0 ||
+                changed.IndexOf("delete_feature", StringComparison.Ordinal) < 0 ||
                 changed.IndexOf("only by count", StringComparison.Ordinal) < 0)
                 problems.Add("the refusal on a part changed since the plan does not say what changed, what it compared, or what to do");
             Segna("the refusals before pressing say why, what a press would do, and what to do instead",
@@ -259,17 +259,17 @@ namespace Prove.Contratti
             var ours = (string)note.Invoke(null, new object[] { "Part1", "Drawing1 - Sheet1", true });
             var foreign = (string)note.Invoke(null, new object[] { "Part1", "Part2", false });
             if (ours.IndexOf("works on", StringComparison.Ordinal) < 0 ||
-                ours.IndexOf("«attiva»", StringComparison.Ordinal) < 0)
-                problems.Add("the note after crea_disegno does not say the drawing is next and how to come back");
+                ours.IndexOf("«activate»", StringComparison.Ordinal) < 0)
+                problems.Add("the note after create_drawing does not say the drawing is next and how to come back");
             if (foreign.IndexOf("works on", StringComparison.Ordinal) >= 0 ||
-                foreign.IndexOf("guarda_il_pezzo", StringComparison.Ordinal) < 0)
+                foreign.IndexOf("inspect_part", StringComparison.Ordinal) < 0)
                 problems.Add("the note for a window that came from outside offers it to the next plan (F5)");
             Func<Dictionary<string, object>, string> id = d => (string)identity.Invoke(null, new object[] { d });
-            if (id(new Dictionary<string, object> { ["titolo"] = "Part1", ["percorso"] = "C:\\x\\Part1.SLDPRT" }) != "C:\\x\\Part1.SLDPRT")
+            if (id(new Dictionary<string, object> { ["document_title"] = "Part1", ["path"] = "C:\\x\\Part1.SLDPRT" }) != "C:\\x\\Part1.SLDPRT")
                 problems.Add("the path does not win in the identity for the executor");
-            if (id(new Dictionary<string, object> { ["titolo"] = "Part1", ["percorso"] = "" }) != "titolo:Part1")
+            if (id(new Dictionary<string, object> { ["document_title"] = "Part1", ["path"] = "" }) != "titolo:Part1")
                 problems.Add("a document never saved is not its title with the executor's prefix");
-            if (id(new Dictionary<string, object> { ["titolo"] = "", ["percorso"] = "" }) != null)
+            if (id(new Dictionary<string, object> { ["document_title"] = "", ["path"] = "" }) != null)
                 problems.Add("an empty identity is not null");
             Segna("the note on the document in front and the identity handed to the executor (F5, F7)",
                   problems.Count == 0, problems.Count == 0 ? "2 notes, 3 identities" : string.Join(" | ", problems));
@@ -296,8 +296,8 @@ namespace Prove.Contratti
             Segna("after a plan: the plan's document read, the window in front adopted only when the plan ended on it, one document for the resent-plan guard",
                   afterPlan.Count == 0,
                   afterPlan.Count == 0
-                      ? "PlanDocument kept; StateOfDocument when it is not in front; memory and volume_dopo_mm3 on planStateAfter; " +
-                        "stato_dopo the document in front; document_in_front answered; the executor given the checked identity; " +
+                      ? "PlanDocument kept; StateOfDocument when it is not in front; memory and volume_after_mm3 on planStateAfter; " +
+                        "state_after the document in front; document_in_front answered; the executor given the checked identity; " +
                         "signatures only when frontIsThePlans; the memory through MemoryAfterPlan with the reference; " +
                         "the resent-plan guard on planIdentity and planStateAfter"
                       : string.Join(" | ", afterPlan));
@@ -306,9 +306,9 @@ namespace Prove.Contratti
                 Change("the memory's volume read elsewhere", "NumeroDi(planStateAfter, \"volume_mm3\")", "NumeroDi(frontState, \"volume_mm3\")"),
                 Change("the memory's count read elsewhere", "= QuanteFeature(planStateAfter);", "= QuanteFeature(frontState);"),
                 Change("the plan's document never read", "StateOfDocument(planDocumentHeld", "StateOfDocument(frontDocument"),
-                Change("volume_dopo_mm3 of the window in front", "[\"volume_dopo_mm3\"] = Volume(planStateAfter)", "[\"volume_dopo_mm3\"] = Volume(frontState)"),
+                Change("volume_after_mm3 of the window in front", "[\"volume_after_mm3\"] = Volume(planStateAfter)", "[\"volume_after_mm3\"] = Volume(frontState)"),
                 Change("the document in front not said", "[\"document_in_front\"] = ", "[\"elsewhere\"] = "),
-                Change("stato_dopo turned into the plan's document", "[\"stato_dopo\"] = ", "[\"stato_dopo\"] = planStateAfter ?? "),
+                Change("state_after turned into the plan's document", "[\"state_after\"] = ", "[\"state_after\"] = planStateAfter ?? "),
                 Change("the executor left to pick the document (F7)", "IdentityForTheExecutor(adesso));", "null);"),
                 Change("a foreign window adopted (F5)", " != null && frontIsThePlans)", " != null)"),
                 Change("the end document not asked (F5)", "frontIsThePlans = _sessione.IsInFront(finalDocument)", "frontIsThePlans = true"),
@@ -323,7 +323,7 @@ namespace Prove.Contratti
                   afterPlanRed.Count == 0 ? "14 changes, each one red" : string.Join(" | ", afterPlanRed));
 
             var undo = UndoProblems(tools);
-            Segna("`annulla` refuses before pressing when covered or changed since the plan, judges the press by the part before the plan, redoes only after a visible change",
+            Segna("`undo` refuses before pressing when covered or changed since the plan, judges the press by the part before the plan, redoes only after a visible change",
                   undo.Count == 0,
                   undo.Count == 0
                       ? "the document by reference; RefusalCovered and RefusalChangedSinceThePlan before the press; " +
@@ -342,7 +342,7 @@ namespace Prove.Contratti
                        "var notAsBeforeThePlan = new List<string>();"),
                 Change("the document compared by name (F11)", "? _sessione.IsInFront(memoria.DocumentRef)", "? true"),
             });
-            Segna("the `annulla` check turns red on each changed copy", undoRed.Count == 0,
+            Segna("the `undo` check turns red on each changed copy", undoRed.Count == 0,
                   undoRed.Count == 0 ? "7 changes, each one red" : string.Join(" | ", undoRed));
 
             var finish = ExecutorProblems(executor);
@@ -395,12 +395,12 @@ namespace Prove.Contratti
                 problems.Add("the memory's volume after the plan is not read on the plan's document");
             if (plan.IndexOf("= QuanteFeature(planStateAfter);", StringComparison.Ordinal) < 0)
                 problems.Add("the memory's feature count after the plan is not read on the plan's document");
-            if (plan.IndexOf("[\"volume_dopo_mm3\"] = Volume(planStateAfter)", StringComparison.Ordinal) < 0)
-                problems.Add("volume_dopo_mm3 is not the plan document's");
+            if (plan.IndexOf("[\"volume_after_mm3\"] = Volume(planStateAfter)", StringComparison.Ordinal) < 0)
+                problems.Add("volume_after_mm3 is not the plan document's");
             if (plan.IndexOf("[\"document_in_front\"] = ", StringComparison.Ordinal) < 0)
                 problems.Add("the answer does not say which document is in front");
-            if (plan.IndexOf("[\"stato_dopo\"] = planStateAfter", StringComparison.Ordinal) >= 0)
-                problems.Add("stato_dopo describes the plan's document, not the one the next plan works on");
+            if (plan.IndexOf("[\"state_after\"] = planStateAfter", StringComparison.Ordinal) >= 0)
+                problems.Add("state_after describes the plan's document, not the one the next plan works on");
             if (plan.IndexOf("IdentityForTheExecutor(adesso));", StringComparison.Ordinal) < 0)
                 problems.Add("the executor is not given the identity checked above (F7)");
             if (plan.IndexOf(" != null && frontIsThePlans)", StringComparison.Ordinal) < 0)

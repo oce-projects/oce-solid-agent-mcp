@@ -1,63 +1,63 @@
 {
   "name": "the_replaced_component_says_its_configuration",
   "family": "assemblies",
-  "why": "Z-C21.4, finding M18 (and N57, which widens it). sostituisci_componente passed `configurazione` to ReplaceComponents2 together with swReplaceComponentsConfiguration_MatchName, «Let SOLIDWORKS attempt to match the configuration of the old components with a configuration in the replacement component» (swReplaceComponentsConfiguration_e.html): nothing checked the name, and the answer did not say which configuration the new component references. The library now refuses, before the swap, a name the new file does not have, and reads back the configuration of the component that took the old one's place (`configurazione` in the answer), with `configuration_as_asked` when one was asked for. Whether ManuallySelect («Use the specified configuration») opens a window is left to the N57 probe: MatchName stays.",
-  "defect_caught": "The old lid is built with a configuration «Short», saved active, so the preparation inserts it in «Short» (its last saved configuration). The new lid «lid2» has «Short» and «Long», saved with «Long» active. Step 1 asks for «Medium», which «lid2» does not have: on library 0.145.0 the name goes to ReplaceComponents2 unchecked, the swap happens and the step answers success, so the refusal expected here is red. Step 2 asks for «Short», the configuration the old lid references and that «lid2» has too: on library 0.145.0 the answer has no `configurazione` at all.",
-  "_if_it_stays_green_on_the_old_library": "Step 1 cannot: the old library refuses nothing about the configuration. If step 2 goes red AFTER the fix on `configurazione` or `configuration_as_asked`, the «match name» choice did not pick «Short» although the old component references «Short» and the new file has it: that is a measure of MatchName, to write in N57 before changing the code.",
+  "why": "Z-C21.4, finding M18 (and N57, which widens it). replace_component passed `configuration` to ReplaceComponents2 together with swReplaceComponentsConfiguration_MatchName, «Let SOLIDWORKS attempt to match the configuration of the old components with a configuration in the replacement component» (swReplaceComponentsConfiguration_e.html): nothing checked the name, and the answer did not say which configuration the new component references. The library now refuses, before the swap, a name the new file does not have, and reads back the configuration of the component that took the old one's place (`configuration` in the answer), with `configuration_as_asked` when one was asked for. Whether ManuallySelect («Use the specified configuration») opens a window is left to the N57 probe: MatchName stays.",
+  "defect_caught": "The old lid is built with a configuration «Short», saved active, so the preparation inserts it in «Short» (its last saved configuration). The new lid «lid2» has «Short» and «Long», saved with «Long» active. Step 1 asks for «Medium», which «lid2» does not have: on library 0.145.0 the name goes to ReplaceComponents2 unchecked, the swap happens and the step answers success, so the refusal expected here is red. Step 2 asks for «Short», the configuration the old lid references and that «lid2» has too: on library 0.145.0 the answer has no `configuration` at all.",
+  "_if_it_stays_green_on_the_old_library": "Step 1 cannot: the old library refuses nothing about the configuration. If step 2 goes red AFTER the fix on `configuration` or `configuration_as_asked`, the «match name» choice did not pick «Short» although the old component references «Short» and the new file has it: that is a measure of MatchName, to write in N57 before changing the code.",
   "_the_numbers": "Base 120 x 80 x 10 and lid 120 x 80 x 4 inserted by the preparation; lid2 120 x 80 x 6 built with «Short» then «Long» and not inserted. Two components before and after the swap; sorted by name the base comes first and the lid, renamed after the new file or not, second.",
   "assembly": {
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
       { "name": "lid",
         "position_mm": [0, 40, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } },
-          { "operation": "crea_configurazione",
-            "arguments": { "nome": "Short" } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } },
+          { "operation": "create_configuration",
+            "arguments": { "name": "Short" } }
         ] },
       { "name": "lid2",
         "to_insert": false,
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 6, "centrato": true } },
-          { "operation": "crea_configurazione",
-            "arguments": { "nome": "Short" } },
-          { "operation": "crea_configurazione",
-            "arguments": { "nome": "Long" } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 6, "centered": true } },
+          { "operation": "create_configuration",
+            "arguments": { "name": "Short" } },
+          { "operation": "create_configuration",
+            "arguments": { "name": "Long" } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "sostituisci_componente",
+    { "operation": "replace_component",
       "arguments": {
-        "componente": "C2",
-        "percorso": "{LAVORO}\\the_replaced_component_says_its_configuration_lid2.sldprt",
-        "configurazione": "Medium"
+        "component": "C2",
+        "path": "{LAVORO}\\the_replaced_component_says_its_configuration_lid2.sldprt",
+        "configuration": "Medium"
       },
       "must_fail": {
         "message_includes": ["Medium", "Short", "Long", "Nothing was replaced"],
         "twin": "the_replaced_component_says_its_configuration" } },
 
-    { "operation": "sostituisci_componente",
+    { "operation": "replace_component",
       "arguments": {
-        "componente": "C2",
-        "percorso": "{LAVORO}\\the_replaced_component_says_its_configuration_lid2.sldprt",
-        "configurazione": "Short"
+        "component": "C2",
+        "path": "{LAVORO}\\the_replaced_component_says_its_configuration_lid2.sldprt",
+        "configuration": "Short"
       },
       "expect": [
-        { "what": "misure.a", "includes": ["lid2"],
+        { "what": "measurements.target", "includes": ["lid2"],
           "why": "the refusal of step 1 changed nothing, so this swap is the first" },
-        { "what": "misure.componenti_prima", "equal_to": 2 },
-        { "what": "misure.componenti_dopo", "equal_to": 2 },
-        { "what": "misure.configurazione", "equal_to": "Short",
+        { "what": "measurements.components_before", "equal_to": 2 },
+        { "what": "measurements.components_after", "equal_to": 2 },
+        { "what": "measurements.configuration", "equal_to": "Short",
           "why": "THE LINE THAT TAKES M18: the configuration the new lid references, read back. On 0.145.0 the answer does not have it" },
-        { "what": "misure.configuration_as_asked", "equal_to": true },
-        { "what": "stato.componenti[1].configurazione", "equal_to": "Short",
+        { "what": "measurements.configuration_as_asked", "equal_to": true },
+        { "what": "state.components[1].configuration", "equal_to": "Short",
           "why": "the same fact from the assembly state, another path than the answer" } ] }
   ]
 }

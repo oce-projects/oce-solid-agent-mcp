@@ -34,10 +34,10 @@ namespace Controlli.CoperturaRuoli
     ///
     /// I QUATTRO RUOLI, e cosa serve a ciascuno per essere deciso:
     ///
-    ///   faccia_del_foro     la sola geometria: c'e' UNA faccia cilindrica?
-    ///   faccia_superiore    la DIREZIONE della lavorazione, piu' la geometria
-    ///   faccia_inferiore    la DIREZIONE
-    ///   faccia_di_fondo     la DIREZIONE
+    ///   hole_face     la sola geometria: c'e' UNA faccia cilindrica?
+    ///   top_face    la DIREZIONE della lavorazione, piu' la geometria
+    ///   bottom_face    la DIREZIONE
+    ///   pocket_floor     la DIREZIONE
     ///
     /// Tre su quattro dipendono dalla direzione. Questo attrezzo prova a
     /// ricavarla dalla definizione della lavorazione e DICE quando non ci
@@ -114,18 +114,18 @@ namespace Controlli.CoperturaRuoli
                 var dir = direzione[voce.Key];
                 var ruoloDi = new Dictionary<IFace2, string>();
 
-                // faccia_del_foro: l'unica che NON ha bisogno della direzione.
+                // hole_face: l'unica che NON ha bisogno della direzione.
                 var cilindriche = suo.Where(Cilindrica).ToList();
-                if (cilindriche.Count == 1) ruoloDi[cilindriche[0]] = "faccia_del_foro";
+                if (cilindriche.Count == 1) ruoloDi[cilindriche[0]] = "hole_face";
 
                 if (dir != null)
                 {
                     var sopra = Estremo(suo, dir, +1);
                     var sotto = Estremo(suo, dir, -1);
                     if (sopra != null && !ruoloDi.ContainsKey(sopra))
-                        ruoloDi[sopra] = "faccia_superiore";
+                        ruoloDi[sopra] = "top_face";
                     if (sotto != null && !ruoloDi.ContainsKey(sotto) && !ReferenceEquals(sotto, sopra))
-                        ruoloDi[sotto] = "faccia_inferiore";
+                        ruoloDi[sotto] = "bottom_face";
                 }
 
                 int quanteQui = 0;

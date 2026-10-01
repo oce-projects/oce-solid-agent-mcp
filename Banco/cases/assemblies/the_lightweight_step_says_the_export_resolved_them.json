@@ -1,7 +1,7 @@
 {
   "name": "the_lightweight_step_says_the_export_resolved_them",
   "family": "assemblies",
-  "why": "Z-C21.11, finding N5. The probe zc2111/probe_alleggeriti (30/9/2026) exported the STEP of assemblies reopened lightweight: the file was right (2 solids, as the resolved assembly) and every lightweight component read resolved after SaveAs3 (GetLightWeightComponentCount 0 of 4, 0 of 1). The export changes the assembly without being asked, so esporta_step now reads GetLightWeightComponentCount before and after SaveAs3 and says how many components the export resolved. The count of the solids expected, made after the export, sees them all. The bench reopens the assembly lightweight («reopen_lightweight»).",
+  "why": "Z-C21.11, finding N5. The probe zc2111/probe_alleggeriti (30/9/2026) exported the STEP of assemblies reopened lightweight: the file was right (2 solids, as the resolved assembly) and every lightweight component read resolved after SaveAs3 (GetLightWeightComponentCount 0 of 4, 0 of 1). The export changes the assembly without being asked, so export_step now reads GetLightWeightComponentCount before and after SaveAs3 and says how many components the export resolved. The count of the solids expected, made after the export, sees them all. The bench reopens the assembly lightweight («reopen_lightweight»).",
   "defect_caught": "A change of the assembly that nobody asked for and nobody says (the lightweight components come out of the export resolved); a count of the solids expected that leaves the lightweight parts out.",
   "_if_it_stays_green_on_the_old_library": "It does not go red on 0.146.0: the export succeeds there too, with 2 solids expected and 2 in the file (the old count ran after the export, when the parts were already resolved), and the case stops with a bench error, the field misure.lightweight_resolved_by_the_export being absent, because the old library does not report it. The change of behaviour is the report alone; the refusals of N5 are in the_lightweight_assembly_has_a_box and the_lightweight_assembly_is_weighed_when_asked, which go red on 0.146.0.",
   "_the_numbers": "Base 120 x 80 x 10 and lid 120 x 80 x 4 centred at y = 7, both AISI 304: two parts, both lightweight after the reopen (GetLightWeightComponentCount 2), one solid each in the STEP.",
@@ -10,30 +10,30 @@
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } },
-          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } },
+          { "operation": "apply_material", "arguments": { "material": "AISI 304" } }
         ] },
       { "name": "lid",
         "position_mm": [0, 7, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } },
-          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } },
+          { "operation": "apply_material", "arguments": { "material": "AISI 304" } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "esporta_step",
-      "arguments": { "percorso": "{LAVORO}\\the_lightweight_step_says_the_export_resolved_them.step" },
+    { "operation": "export_step",
+      "arguments": { "path": "{LAVORO}\\the_lightweight_step_says_the_export_resolved_them.step" },
       "expect": [
-        { "what": "misure.lightweight_resolved_by_the_export", "includes": ["2 component(s) were lightweight before the export"],
+        { "what": "measurements.lightweight_resolved_by_the_export", "includes": ["2 component(s) were lightweight before the export"],
           "why": "THE LINE OF THIS CASE: the export resolved both parts, and the answer says so" },
-        { "what": "misure.solidi_nel_file", "equal_to": 2,
+        { "what": "measurements.solids_in_file", "equal_to": 2,
           "why": "the file holds both parts, as the probe measured" },
-        { "what": "misure.solidi_attesi", "equal_to": 2,
+        { "what": "measurements.solids_expected", "equal_to": 2,
           "why": "counted after the export, with the parts resolved" },
-        { "what": "stato.componenti_leggeri", "equal_to": 0,
+        { "what": "state.components_lightweight", "equal_to": 0,
           "why": "they stay resolved after the export, as the answer says" } ] }
   ]
 }

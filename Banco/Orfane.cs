@@ -13,13 +13,13 @@ namespace ProvaSaldatura
     /// misurato il 24/9/2026 con `Controlli/Orfana`, resta falso su una quota il
     /// cui spigolo e' stato soppresso. Dalla libreria 0.113.0 lo stato della
     /// tavola conta le quote attaccate solo a spigoli che la vista non mostra
-    /// piu' (`quote_orfane`, `quote_orfane_totali`).
+    /// piu' (`dimensions_orphan`, `dimensions_orphan_total`).
     ///
     /// Qui i due versi, sullo stesso pezzo della sonda: una piastra con sopra un
     /// blocco, la quota sullo spigolo alto del blocco messa da
-    /// `quota_in_tavola`, e lo stato riletto — zero orfane. Poi il blocco si
+    /// `drawing_dimension`, e lo stato riletto — zero orfane. Poi il blocco si
     /// SOPPRIME nel pezzo, la tavola si ricostruisce, e lo stato deve dirne una,
-    /// con l'avviso. Un caso dichiarato non puo' farlo: dopo `crea_disegno` segue
+    /// con l'avviso. Un caso dichiarato non puo' farlo: dopo `create_drawing` segue
     /// la tavola, e non sa tornare al pezzo per sopprimere.
     /// </summary>
     internal static partial class Program
@@ -47,16 +47,16 @@ namespace ProvaSaldatura
                 if (!File.Exists(file)) { ErroreDiBanco("orfane", "il pezzo non si salva (e=" + e + ")"); return; }
 
                 string errore;
-                Esegui(pezzo, "crea_disegno", new Dictionary<string, object> { ["formato"] = "A3" },
+                Esegui(pezzo, "create_drawing", new Dictionary<string, object> { ["paper_size"] = "A3" },
                        out errore, out tavola);
-                if (tavola == null) { ErroreDiBanco("orfane", "crea_disegno: " + errore); return; }
-                if (Esegui(tavola, "vista_modello", new Dictionary<string, object>
-                    { ["modello"] = file, ["vista"] = "fronte", ["x_mm"] = 150, ["y_mm"] = 150 }, out errore) == null)
-                { ErroreDiBanco("orfane", "vista_modello: " + errore); return; }
+                if (tavola == null) { ErroreDiBanco("orfane", "create_drawing: " + errore); return; }
+                if (Esegui(tavola, "model_view", new Dictionary<string, object>
+                    { ["model"] = file, ["view"] = "front", ["x_mm"] = 150, ["y_mm"] = 150 }, out errore) == null)
+                { ErroreDiBanco("orfane", "model_view: " + errore); return; }
 
                 // QUALE SPIGOLO: quello alto del blocco — Y 20 alle due estremita',
                 // lungo X per 20. Lo si cerca nello stesso elenco che
-                // `quota_in_tavola` chiede alla vista, e se ne passa l'indice.
+                // `drawing_dimension` chiede alla vista, e se ne passa l'indice.
                 var vista = ((IDrawingDoc)tavola).GetFirstView() as IView;
                 vista = vista?.GetNextView() as IView;
                 var spigoli = vista?.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
@@ -73,14 +73,14 @@ namespace ProvaSaldatura
                 }
                 if (indice < 0) { ErroreDiBanco("orfane", "fra gli spigoli visibili non trovo quello alto del blocco"); return; }
 
-                var quota = Esegui(tavola, "quota_in_tavola",
-                    new Dictionary<string, object> { ["spigoli"] = new object[] { indice } }, out errore);
-                if (quota == null) { ErroreDiBanco("orfane", "quota_in_tavola: " + errore); return; }
+                var quota = Esegui(tavola, "drawing_dimension",
+                    new Dictionary<string, object> { ["edges"] = new object[] { indice } }, out errore);
+                if (quota == null) { ErroreDiBanco("orfane", "drawing_dimension: " + errore); return; }
 
                 var prima = LeggiStato(tavola);
                 Segna("orfane: la quota appena messa sullo spigolo del blocco NON e' orfana",
-                      Convert.ToString(prima.ContainsKey("quote_orfane_totali") ? prima["quote_orfane_totali"] : "(manca)") == "0",
-                      "quote_orfane_totali " + Convert.ToString(prima.ContainsKey("quote_orfane_totali") ? prima["quote_orfane_totali"] : "(manca)"));
+                      Convert.ToString(prima.ContainsKey("dimensions_orphan_total") ? prima["dimensions_orphan_total"] : "(manca)") == "0",
+                      "dimensions_orphan_total " + Convert.ToString(prima.ContainsKey("dimensions_orphan_total") ? prima["dimensions_orphan_total"] : "(manca)"));
 
                 // IL ROSSO: si sopprime il blocco, e la quota resta appesa.
                 bool soppresso = blocco.SetSuppression2(
@@ -89,11 +89,11 @@ namespace ProvaSaldatura
                 pezzo.EditRebuild3();
                 tavola.ForceRebuild3(false);
                 var dopo = LeggiStato(tavola);
-                object orf = dopo.ContainsKey("quote_orfane_totali") ? dopo["quote_orfane_totali"] : "(manca)";
+                object orf = dopo.ContainsKey("dimensions_orphan_total") ? dopo["dimensions_orphan_total"] : "(manca)";
                 Segna("orfane: soppresso il blocco, lo stato dice UNA quota orfana, e lo avvisa",
-                      soppresso && Convert.ToString(orf) == "1" && dopo.ContainsKey("attenzione_quote"),
-                      "soppresso " + soppresso + ", quote_orfane_totali " + Convert.ToString(orf) +
-                      ", avviso " + (dopo.ContainsKey("attenzione_quote") ? "si'" : "no"));
+                      soppresso && Convert.ToString(orf) == "1" && dopo.ContainsKey("warning_dimensions"),
+                      "soppresso " + soppresso + ", dimensions_orphan_total " + Convert.ToString(orf) +
+                      ", avviso " + (dopo.ContainsKey("warning_dimensions") ? "si'" : "no"));
             }
             catch (Exception ex) { ErroreDiBanco("orfane", Perche(ex)); }
             finally

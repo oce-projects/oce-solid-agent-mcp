@@ -6,13 +6,13 @@
   "cosa_NON_dice_apposta": "Non dice la sezione del tubo, e non dice il percorso della libreria. Un compito che li desse misurerebbe la capacita' di copiare due stringhe. **Sbagliare qui e' il caso interessante**, non un incidente: il rifiuto che il modello riceve nomina le misure vere, e la domanda vera e' se al secondo tentativo ci arriva — ma quello e' un numero diverso, e va contato a parte.",
 
   "come_si_misura": [
-    { "cosa": "corpi", "uguale": 4,
+    { "cosa": "bodies", "uguale": 4,
       "perche": "quattro barre. Tre vuol dire un lato mancante, otto vuol dire che il telaio e' stato fatto due volte" },
 
-    { "cosa": "misure.corpi_in_distinta", "uguale": 4,
+    { "cosa": "measurements.bodies_in_cut_list", "uguale": 4,
       "perche": "**e questo numero viene da un altro posto**: `corpi` lo conta lo stato del pezzo, `corpi_in_distinta` lo si chiede alle cartelle della distinta, una per una. Sono uguali quando la distinta e' giusta, e quando divergono e' esattamente il momento in cui qualcuno andrebbe in officina col foglio sbagliato" },
 
-    { "cosa": "misure.gia_esisteva", "uguale": false,
+    { "cosa": "measurements.already_existed", "uguale": false,
       "perche": "la distinta dev'essere NATA in questo piano. Senza questa riga il compito sarebbe verde anche se l'operazione non avesse fatto niente e si fosse limitata a leggere una distinta che c'era gia'" }
   ],
 

@@ -5,12 +5,12 @@
   "_how_it_was_chosen": "La prima stesura prendeva lo spigolo lungo X in basso sulla faccia interna (y = 0, z = 0), credendo il fianco della L una faccia sola. Il banchetto (`prova0089 elle`, 26/9/2026) ha detto il contrario: in una lamiera il fianco e' spezzato per tratti, e il tratto del lato da 50 e' largo proprio lo spessore (96 mm2 = 2 x 48). Quello spigolo E' di bordo, e una flangia li' e' legittima.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "flangia_base",
-      "arguments": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
-                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
-      "expect": [ { "what": "corpi", "equal_to": 1 } ] },
-    { "operation": "flangia_spigolo",
-      "arguments": { "spigolo_uid": "@spigolo(asse=Z,x~=2,y~=0)", "lunghezza_mm": 25 },
+    { "operation": "base_flange",
+      "arguments": { "plane": "front", "points": [[0, 30], [0, 0], [50, 0]],
+                     "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
+      "expect": [ { "what": "bodies", "equal_to": 1 } ] },
+    { "operation": "edge_flange",
+      "arguments": { "edge_uid": "@edge(axis=Z,x~=2,y~=0)", "length_mm": 25 },
       "must_fail": {
         "message_includes": ["non sta sul bordo della lamiera", "faccia di testa"],
         "volume_unchanged": true,

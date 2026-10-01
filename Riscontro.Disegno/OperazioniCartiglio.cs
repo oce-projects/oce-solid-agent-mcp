@@ -14,7 +14,7 @@ namespace Riscontro.Disegno
     ///
     /// Un cartiglio da modello non contiene testo: contiene **collegamenti** a
     /// proprieta' personalizzate, scritti `$PRP:"Descrizione"`. Riempirlo vuol
-    /// dire scrivere quelle proprieta' — e `scrivi_proprieta` lo sa gia' fare.
+    /// dire scrivere quelle proprieta' — e `set_property` lo sa gia' fare.
     ///
     /// Quello che mancava e' la meta' difficile, e la voce GT3 la nominava:
     /// **«leggere quali variabili il suo cartiglio referenzia davvero (non si
@@ -121,32 +121,32 @@ namespace Riscontro.Disegno
 
                 var voce = new Dictionary<string, object>
                 {
-                    ["chiede"] = string.IsNullOrWhiteSpace(chiede) ? null : chiede,
-                    ["mostra"] = mostra ?? "",
+                    ["asks"] = string.IsNullOrWhiteSpace(chiede) ? null : chiede,
+                    ["shows"] = mostra ?? "",
                 };
-                if (nomi.Count > 0) voce["proprieta"] = nomi.ToArray();
+                if (nomi.Count > 0) voce["property"] = nomi.ToArray();
                 campi.Add(voce);
             }
 
             var misure = new Dictionary<string, object>
             {
-                ["foglio"] = NomeDelFoglio(foglio) ?? "",
-                ["formato"] = ProvaTesto(() => foglio.GetSheetFormatName()),
-                ["note_nel_cartiglio"] = note.Count,
-                ["note_collegate"] = collegati,
-                ["cercate_in"] = daDove,
-                ["campi"] = campi.ToArray(),
+                ["sheet"] = NomeDelFoglio(foglio) ?? "",
+                ["sheet_format"] = ProvaTesto(() => foglio.GetSheetFormatName()),
+                ["notes_in_title_block"] = note.Count,
+                ["notes_linked"] = collegati,
+                ["searched_in"] = daDove,
+                ["fields"] = campi.ToArray(),
             };
 
             // ── L'ELENCO CHE TOGLIE L'INVENZIONE ────────────────────────
             //
             // E' il pezzo che vale: i nomi ESATTI che questo cartiglio vuole,
-            // copiabili alla lettera dentro `scrivi_proprieta`.
+            // copiabili alla lettera dentro `set_property`.
             if (chieste.Count > 0)
             {
-                misure["proprieta_che_il_cartiglio_vuole"] = chieste.ToArray();
-                misure["come_si_usa"] =
-                    "Copia questi nomi ALLA LETTERA dentro «scrivi_proprieta». Una " +
+                misure["properties_wanted_by_title_block"] = chieste.ToArray();
+                misure["how_to_use_it"] =
+                    "Copia questi nomi ALLA LETTERA dentro «set_property». Una " +
                     "maiuscola o uno spazio diversi non danno nessun errore: la " +
                     "proprieta' viene scritta, il cartiglio non la mostra, e il PDF " +
                     "esce con la casella vuota.";
@@ -154,7 +154,7 @@ namespace Riscontro.Disegno
             // Anche questo sempre, per la stessa ragione: e' l'affermazione
             // positiva, e un'affermazione che sparisce quando e' falsa non e'
             // un'affermazione.
-            misure["chieste_e_mostrate"] = mostrate.ToArray();
+            misure["requested_and_shown"] = mostrate.ToArray();
 
             // ── VUOTE PERCHE' NON SCRITTE, O VUOTE PERCHE' NON RISOLTE? ──
             //
@@ -198,7 +198,7 @@ namespace Riscontro.Disegno
             // distinzione: e' un'intenzione.*
             string chiGuardato;
             var suDisco = ProprietaDelModelloInVista(disegno, out chiGuardato);
-            misure["modello_guardato_per_le_proprieta"] = chiGuardato ??
+            misure["model_checked_for_properties"] = chiGuardato ??
                 "NON SONO ARRIVATO AL MODELLO: i due elenchi qui sotto sono vuoti " +
                 "perche' non ho potuto guardare, non perche' non ci fosse niente.";
 
@@ -208,7 +208,7 @@ namespace Riscontro.Disegno
                     if (suDisco.Contains(NomeNudo(x), StringComparer.OrdinalIgnoreCase))
                         presentiMaMute.Add(x);
 
-            misure["chieste_ma_vuote"] = vuote.ToArray();
+            misure["requested_but_empty"] = vuote.ToArray();
 
             // SEMPRE, ANCHE VUOTO, e non e' pignoleria: il banco tratta un
             // campo ASSENTE come prova rossa (voce F4), quindi un campo che
@@ -216,9 +216,9 @@ namespace Riscontro.Disegno
             // pretendere vuoto**. E chi legge la risposta, non trovandolo,
             // conclude che l'operazione non sappia rispondere invece che
             // l'elenco sia vuoto.
-            misure["chieste_presenti_sul_modello_ma_mostrate_vuote"] = presentiMaMute.ToArray();
+            misure["requested_present_on_model_but_shown_empty"] = presentiMaMute.ToArray();
             if (presentiMaMute.Count > 0)
-                misure["e_questo_non_e_colpa_di_chi_disegna"] =
+                misure["not_the_drafters_fault"] =
                     "Queste proprieta' CI SONO sul modello mostrato nella vista, e il " +
                     "cartiglio le mostra vuote lo stesso: il collegamento non ha " +
                     "risolto. Riscriverle non cambia niente. Prova a ricostruire la " +
@@ -226,22 +226,22 @@ namespace Riscontro.Disegno
 
             string vistaPerProprieta = ProvaTesto(() => foglio.CustomPropertyView);
             if (!string.IsNullOrWhiteSpace(vistaPerProprieta))
-                misure["vista_da_cui_prende_le_proprieta_di_foglio"] = vistaPerProprieta;
+                misure["sheet_properties_source_view"] = vistaPerProprieta;
 
             if (chieste.Count == 0)
-                misure["giudizio"] =
+                misure["verdict"] =
                     "Il cartiglio ha " + note.Count + (note.Count == 1 ? " nota" : " note") +
                     " ma **nessuna collegata a una proprieta'**: il testo e' scritto " +
-                    "fisso dentro il formato. Riempirlo con «scrivi_proprieta» non " +
+                    "fisso dentro il formato. Riempirlo con «set_property» non " +
                     "cambierebbe niente, e non te lo lascio credere.";
             else if (vuote.Count == 0)
-                misure["giudizio"] =
+                misure["verdict"] =
                     "Il cartiglio vuole " + chieste.Count +
                     (chieste.Count == 1 ? " proprieta'" : " proprieta'") + " (" +
                     string.Join(", ", chieste) + ") e le mostra tutte: nessuna casella " +
                     "vuota.";
             else
-                misure["giudizio"] =
+                misure["verdict"] =
                     "ATTENZIONE: il cartiglio chiede " + chieste.Count + " proprieta' e " +
                     vuote.Count + " NON mostrano niente (" + string.Join(", ", vuote) +
                     "). O non sono ancora state scritte, o sono scritte con una grafia " +
@@ -249,7 +249,7 @@ namespace Riscontro.Disegno
                     "nessun errore: la tavola esce con le caselle vuote. I nomi qui " +
                     "sopra sono quelli giusti, copiali alla lettera.";
 
-            _log("[agente] " + misure["giudizio"]);
+            _log("[agente] " + misure["verdict"]);
             return RiuscitoSenzaCreare(misure);
         }
 
@@ -257,7 +257,7 @@ namespace Riscontro.Disegno
         /// Le note del cartiglio. Due strade, e si dice quale ha risposto:
         /// il `TitleBlock` vero (che non tutti i modelli di tavola hanno) e, in
         /// mancanza, le annotazioni del FOGLIO — che nell'API e' la prima
-        /// «vista», quella che porta il formato.
+        /// «view», quella che porta il formato.
         /// </summary>
         private static List<INote> NoteDelCartiglio(
             IDrawingDoc disegno, ISheet foglio, out string daDove)
@@ -357,7 +357,7 @@ namespace Riscontro.Disegno
             chiHoGuardato = null;
             try
             {
-                // La prima «vista» e' il FOGLIO: le viste vere cominciano dopo.
+                // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
                 var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
                 IModelDoc2 rif = null;
                 while (v != null && rif == null)

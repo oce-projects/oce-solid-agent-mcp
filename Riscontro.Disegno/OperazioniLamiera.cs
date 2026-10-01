@@ -30,7 +30,7 @@ namespace Riscontro.Disegno
     ///     COM call did not return. `ExportToDWG2`, used since then, takes the
     ///     path of the part as ModelName, and on an unsaved part it was not
     ///     measured (the Z-C21.3 probe left that case to a run with someone at
-    ///     the screen). `sviluppo_dxf` still refuses a part without a file,
+    ///     the screen). `flat_pattern_dxf` still refuses a part without a file,
     ///     before calling.
     ///  3. Lo schizzo si disegna con `AddToDB` a vero: le relazioni che
     ///     SOLIDWORKS indovina da solo sovravincolano alla prima modifica
@@ -42,13 +42,13 @@ namespace Riscontro.Disegno
         {
             string errore;
             double spessore, raggio, profondita;
-            if (!NumObbligatorio(a, "spessore_mm", out spessore, out errore)) return Fallito(errore);
-            if (!NumObbligatorio(a, "raggio_mm", out raggio, out errore)) return Fallito(errore);
-            if (!NumObbligatorio(a, "profondita_mm", out profondita, out errore)) return Fallito(errore);
+            if (!NumObbligatorio(a, "thickness_mm", out spessore, out errore)) return Fallito(errore);
+            if (!NumObbligatorio(a, "radius_mm", out raggio, out errore)) return Fallito(errore);
+            if (!NumObbligatorio(a, "depth_mm", out profondita, out errore)) return Fallito(errore);
             if (spessore <= 0 || profondita <= 0)
-                return Fallito("«spessore_mm» e «profondita_mm» devono essere positivi.");
+                return Fallito("«thickness_mm» e «depth_mm» devono essere positivi.");
             if (raggio < 0)
-                return Fallito("«raggio_mm» non puo' essere negativo: e' il raggio INTERNO della piega.");
+                return Fallito("«radius_mm» non puo' essere negativo: e' il raggio INTERNO della piega.");
 
             var punti = PuntiDelProfilo(a, out errore);
             if (punti == null) return Fallito(errore);
@@ -71,7 +71,7 @@ namespace Riscontro.Disegno
                         "stringi il raggio.", i + 1, l, raggio, serve));
             }
 
-            string piano = Str(a, "piano", "frontale");
+            string piano = Str(a, "plane", "front");
             if (!SelezionaPiano(modello, piano))
                 return Fallito("Non riesco a selezionare il piano «" + piano + "».");
 
@@ -108,7 +108,7 @@ namespace Riscontro.Disegno
             // IFeature~GetErrorCode2.html: «This method returns many of the
             // errors indicated by the What's Wrong icon seen with an invalid
             // feature in the FeatureManager design tree». Le tre sorelle
-            // (flangia_spigolo, orlo, piega_da_schizzo) lo leggevano, questa no:
+            // (edge_flange, orlo, sketched_bend) lo leggevano, questa no:
             // la rilettura di T e R qui sotto viene dalla lavorazione «SheetMetal»,
             // che c'e' anche con la flangia rossa, e non prova niente sulla flangia.
             var flangeError = ApiHelpers.RebuildError(flangia);   // S11: GetErrorCode2, warnings excluded
@@ -146,9 +146,9 @@ namespace Riscontro.Disegno
             double interne = somma - 2 * r * pieghe + angoli * (r + k * t);
             double esterne = somma - 2 * (r + t) * pieghe + angoli * (r + k * t);
             string convenzione = double.IsNaN(sviluppo) ? "non misurata"
-                : Math.Abs(sviluppo - interne) <= 0.5 ? "interne"
-                : Math.Abs(sviluppo - esterne) <= 0.5 ? "esterne" : "nessuna delle due";
-            double atteso = convenzione == "esterne" ? esterne : interne;
+                : Math.Abs(sviluppo - interne) <= 0.5 ? "inner"
+                : Math.Abs(sviluppo - esterne) <= 0.5 ? "outer" : "nessuna delle due";
+            double atteso = convenzione == "outer" ? esterne : interne;
 
             // ── E HA AGGIUNTO MATERIALE? (rilievo L10-4, come orlo e flangia a
             // spigolo). Il volume di una lamiera piegata e' lo sviluppo per lo
@@ -167,14 +167,14 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["spessore_mm"] = Math.Round(t, 3),
-                ["raggio_mm"] = Math.Round(r, 3),
-                ["fattore_k"] = Math.Round(k, 4),
-                ["pieghe"] = pieghe,
+                ["thickness_mm"] = Math.Round(t, 3),
+                ["radius_mm"] = Math.Round(r, 3),
+                ["k_factor"] = Math.Round(k, 4),
+                ["bends"] = pieghe,
                 ["volume_mm3"] = NumeroOppureNull(volumePiegato - volumePrima, 2),
-                ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
-                ["lunghezza_sviluppo_a_mano_mm"] = Math.Round(atteso, 3),
-                ["i_punti_sono_le_facce"] = convenzione,
+                ["flat_pattern_length_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
+                ["flat_pattern_length_by_hand_mm"] = Math.Round(atteso, 3),
+                ["points_are_faces"] = convenzione,
             };
             // Z-C21.8, finding M24: the flat pattern that SetSuppression2 did not
             // unsuppress, or did not suppress again, is said in the answer.
@@ -184,13 +184,13 @@ namespace Riscontro.Disegno
             // contro il conto a mano. Se divergono, il DXF che andra' al laser
             // non e' quello che uno si aspetta, e lo si dice adesso.
             if (convenzione == "nessuna delle due")
-                misure["attenzione"] = string.Format(CultureInfo.InvariantCulture,
+                misure["warning"] = string.Format(CultureInfo.InvariantCulture,
                     "Lo sviluppo di SOLIDWORKS e' {0:0.###} mm e il conto a mano ne da' {1:0.###}: " +
                     "prima di mandare il DXF al taglio, controlla la tabella delle pieghe del " +
                     "modello di documento.", sviluppo, atteso);
             if (!double.IsNaN(volumeSviluppato) && volumePiegato.HasValue &&
                 Math.Abs(volumeSviluppato - volumePiegato.Value) > 0.005 * volumePiegato.Value)
-                misure["attenzione_volume"] = "Il volume sviluppato non e' quello piegato: lo sviluppo non e' affidabile.";
+                misure["warning_volume"] = "Il volume sviluppato non e' quello piegato: lo sviluppo non e' affidabile.";
 
             return Riuscito(flangia, misure);
         }
@@ -198,7 +198,7 @@ namespace Riscontro.Disegno
         /// <summary>
         /// LA FLANGIA A SPIGOLO (voce GP18): una piega nuova su uno spigolo di
         /// bordo di una lamiera che c'e' gia'. Serve alle scatole — pieghe su
-        /// spigoli di direzioni diverse, che `flangia_base` da un profilo solo non fa.
+        /// spigoli di direzioni diverse, che `base_flange` da un profilo solo non fa.
         ///
         /// ── HOW IT IS MADE (Z-C21.7, L10-1) ─────────────────────────────────
         ///
@@ -223,12 +223,12 @@ namespace Riscontro.Disegno
         {
             string errore;
             double lunghezza;
-            if (!NumObbligatorio(a, "lunghezza_mm", out lunghezza, out errore)) return Fallito(errore);
+            if (!NumObbligatorio(a, "length_mm", out lunghezza, out errore)) return Fallito(errore);
 
             var dati = DatiDellaLamiera(modello);
             if (dati == null)
                 return Fallito("Questo pezzo non e' di lamiera: la flangia a spigolo si attacca a una " +
-                               "lamiera che c'e' gia' (fatta con «flangia_base»).");
+                               "lamiera che c'e' gia' (fatta con «base_flange»).");
             double t = Unita.Mm(dati.Thickness), r = Unita.Mm(dati.BendRadius), k = dati.KFactor;
 
             // NIENTE DI DRITTO: la piega consuma R + T dalla lunghezza misurata allo
@@ -239,7 +239,7 @@ namespace Riscontro.Disegno
                     "la piega col raggio {1:0.###} e lo spessore {2:0.###} ne consumano {3:0.###}. " +
                     "Chiedila piu' lunga di {3:0.###} mm.", lunghezza, r, t, r + t));
 
-            string uid = Str(a, "spigolo_uid", "");
+            string uid = Str(a, "edge_uid", "");
             var bordo = SpigoloDiBordo(a, stato, uid, t, "una flangia", out errore);
             if (bordo == null) return Fallito(errore);
             var spigolo = bordo.Spigolo;
@@ -353,22 +353,22 @@ namespace Riscontro.Disegno
             double sviluppo = LunghezzaSviluppata(modello, out double _, out string flatPatternProblem);
             var misure = new Dictionary<string, object>
             {
-                ["lunghezza_mm"] = letta >= 0 ? (object)Math.Round(letta, 3) : null,
-                ["spessore_mm"] = Math.Round(t, 3),
-                ["raggio_mm"] = Math.Round(r, 3),
-                ["fattore_k"] = Math.Round(k, 4),
-                ["lungo_lo_spigolo_mm"] = Math.Round(Unita.Mm(lungo), 3),
+                ["length_mm"] = letta >= 0 ? (object)Math.Round(letta, 3) : null,
+                ["thickness_mm"] = Math.Round(t, 3),
+                ["radius_mm"] = Math.Round(r, 3),
+                ["k_factor"] = Math.Round(k, 4),
+                ["along_edge_mm"] = Math.Round(Unita.Mm(lungo), 3),
                 ["volume_mm3"] = NumeroOppureNull(aggiunto, 2),
-                ["volume_a_mano_mm3"] = Math.Round(volumeAtteso, 2),
-                ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
+                ["volume_by_hand_mm3"] = Math.Round(volumeAtteso, 2),
+                ["flat_pattern_length_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
             };
-            if (!volumeDopo.HasValue || !volumePrima.HasValue) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+            if (!volumeDopo.HasValue || !volumePrima.HasValue) misure["volume_not_reread"] = NotaVolumeNonRiletto;
             else if (Math.Abs(aggiunto.Value - volumeAtteso) > 0.005 * volumeAtteso)
-                misure["attenzione"] = string.Format(CultureInfo.InvariantCulture,
+                misure["warning"] = string.Format(CultureInfo.InvariantCulture,
                     "La flangia ha aggiunto {0:0.##} mm3 e il conto a mano ne da' {1:0.##}: prima del taglio " +
                     "controlla lo sviluppo.", aggiunto.Value, volumeAtteso);
             if (letta >= 0 && Math.Abs(letta - lunghezza) > 0.01)
-                misure["attenzione_lunghezza"] = string.Format(CultureInfo.InvariantCulture,
+                misure["warning_length"] = string.Format(CultureInfo.InvariantCulture,
                     "Ho chiesto {0:0.###} mm allo spigolo esterno e la flangia dice {1:0.###}.", lunghezza, letta);
             if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;   // M24
             return Riuscito(flangia, misure);
@@ -466,7 +466,7 @@ namespace Riscontro.Disegno
             motivo = null;
             if (string.IsNullOrWhiteSpace(uid))
             {
-                motivo = "Manca «spigolo_uid»: lo spigolo di bordo della lamiera su cui piegare, " +
+                motivo = "Manca «edge_uid»: lo spigolo di bordo della lamiera su cui piegare, " +
                          "preso dallo stato del documento (E1, E2...).";
                 return null;
             }
@@ -552,27 +552,27 @@ namespace Riscontro.Disegno
         {
             string errore;
             double lunghezza;
-            if (!NumObbligatorio(a, "lunghezza_mm", out lunghezza, out errore)) return Fallito(errore);
-            string tipo = Str(a, "tipo", "chiuso");
-            if (tipo != "chiuso" && tipo != "aperto")
-                return Fallito("«tipo» e' «chiuso» o «aperto», non «" + tipo + "».");
-            double gioco = Num(a, "gioco_mm");
-            if (tipo == "aperto" && gioco <= 0)
-                return Fallito("Un orlo aperto vuole «gioco_mm» maggiore di zero: e' lo spazio fra il " +
-                               "bordo ripiegato e la lamiera. Senza gioco e' un orlo «chiuso».");
+            if (!NumObbligatorio(a, "length_mm", out lunghezza, out errore)) return Fallito(errore);
+            string tipo = Str(a, "variant", "closed");
+            if (tipo != "closed" && tipo != "open")
+                return Fallito("«variant» e' «closed» o «open», non «" + tipo + "».");
+            double gioco = Num(a, "gap_mm");
+            if (tipo == "open" && gioco <= 0)
+                return Fallito("Un orlo aperto vuole «gap_mm» maggiore di zero: e' lo spazio fra il " +
+                               "bordo ripiegato e la lamiera. Senza gioco e' un orlo «closed».");
 
             var dati = DatiDellaLamiera(modello);
             if (dati == null)
                 return Fallito("Questo pezzo non e' di lamiera: l'orlo si fa sul bordo di una lamiera che " +
-                               "c'e' gia' (fatta con «flangia_base»).");
+                               "c'e' gia' (fatta con «base_flange»).");
             double t = Unita.Mm(dati.Thickness), k = dati.KFactor;
-            double r = tipo == "aperto" ? gioco / 2 : 0.05;
+            double r = tipo == "open" ? gioco / 2 : 0.05;
             if (lunghezza <= r + t + 0.001)
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
                     "Un orlo lungo {0:0.###} mm non ha niente di dritto: la piega a 180 gradi e lo spessore " +
                     "ne consumano {1:0.###}. Chiedilo piu' lungo di {1:0.###} mm.", lunghezza, r + t));
 
-            string uid = Str(a, "spigolo_uid", "");
+            string uid = Str(a, "edge_uid", "");
             var bordo = SpigoloDiBordo(a, stato, uid, t, "un orlo", out errore);
             if (bordo == null) return Fallito(errore);
 
@@ -584,9 +584,9 @@ namespace Riscontro.Disegno
             try
             {
                 orlo = modello.FeatureManager.InsertSheetMetalHem2(
-                    tipo == "chiuso" ? (int)swHemTypes_e.swHemTypeClosed : (int)swHemTypes_e.swHemTypeOpen,
+                    tipo == "closed" ? (int)swHemTypes_e.swHemTypeClosed : (int)swHemTypes_e.swHemTypeOpen,
                     (int)swHemPositionTypes_e.swHemPositionTypeInside, false,
-                    Unita.M(lunghezza), tipo == "aperto" ? Unita.M(gioco) : 0, 0, 0, 0,
+                    Unita.M(lunghezza), tipo == "open" ? Unita.M(gioco) : 0, 0, 0, 0,
                     null, true, (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0, true, 0.5, 0, 0) as IFeature;
             }
             catch (Exception ex) { return Fallito("L'orlo non e' nato: " + ex.Message); }
@@ -610,21 +610,21 @@ namespace Riscontro.Disegno
             double sviluppo = LunghezzaSviluppata(modello, out double _, out string flatPatternProblem);
             var misure = new Dictionary<string, object>
             {
-                ["tipo"] = tipo,
-                ["lunghezza_mm"] = Math.Round(lunghezza, 3),
-                ["spessore_mm"] = Math.Round(t, 3),
-                ["fattore_k"] = Math.Round(k, 4),
-                ["lungo_lo_spigolo_mm"] = Math.Round(Unita.Mm(bordo.LungoM), 3),
+                ["kind"] = tipo,
+                ["length_mm"] = Math.Round(lunghezza, 3),
+                ["thickness_mm"] = Math.Round(t, 3),
+                ["k_factor"] = Math.Round(k, 4),
+                ["along_edge_mm"] = Math.Round(Unita.Mm(bordo.LungoM), 3),
                 ["volume_mm3"] = NumeroOppureNull(aggiunto, 2),
-                ["volume_a_mano_mm3"] = Math.Round(volumeAtteso, 2),
-                ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
+                ["volume_by_hand_mm3"] = Math.Round(volumeAtteso, 2),
+                ["flat_pattern_length_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
             };
-            if (tipo == "aperto") misure["gioco_mm"] = Math.Round(gioco, 3);
-            if (!volumeDopo.HasValue || !volumePrima.HasValue) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+            if (tipo == "open") misure["gap_mm"] = Math.Round(gioco, 3);
+            if (!volumeDopo.HasValue || !volumePrima.HasValue) misure["volume_not_reread"] = NotaVolumeNonRiletto;
             else if (Math.Abs(aggiunto.Value - volumeAtteso) > 0.005 * volumeAtteso)
-                misure["attenzione"] = string.Format(CultureInfo.InvariantCulture,
+                misure["warning"] = string.Format(CultureInfo.InvariantCulture,
                     "L'orlo ha aggiunto {0:0.##} mm3 e il conto a mano ne da' {1:0.##}" +
-                    (tipo == "chiuso" ? " (per il chiuso il conto usa un raggio interno di 0,05 mm, misurato " +
+                    (tipo == "closed" ? " (per il chiuso il conto usa un raggio interno di 0,05 mm, misurato " +
                                         "con spessore 2)" : "") + ": prima del taglio controlla lo sviluppo.",
                     aggiunto.Value, volumeAtteso);
             if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;   // M24
@@ -660,20 +660,20 @@ namespace Riscontro.Disegno
             var dati = DatiDellaLamiera(modello);
             if (dati == null)
                 return Fallito("Questo pezzo non e' di lamiera: la piega da schizzo piega una lamiera che " +
-                               "c'e' gia' (fatta con «flangia_base»).");
+                               "c'e' gia' (fatta con «base_flange»).");
             double t = Unita.Mm(dati.Thickness), r = Unita.Mm(dati.BendRadius);
-            double angolo = Num(a, "angolo_gradi", 90);
+            double angolo = Num(a, "angle_deg", 90);
             if (angolo <= 0 || angolo >= 180)
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
-                    "«angolo_gradi» va fra 0 e 180 esclusi: {0:0.##} non e' una piega. A 180 la lamiera " +
-                    "si richiuderebbe su se stessa — per quello c'e' «orlo».", angolo));
-            var da = Terna(a, "da_mm");
-            var fino = Terna(a, "a_mm");
+                    "«angle_deg» va fra 0 e 180 esclusi: {0:0.##} non e' una piega. A 180 la lamiera " +
+                    "si richiuderebbe su se stessa — per quello c'e' «hem».", angolo));
+            var da = Terna(a, "start_mm");
+            var fino = Terna(a, "end_mm");
             if (da == null || fino == null)
-                return Fallito("«da_mm» e «a_mm» sono i due estremi della linea di piega, punti [x, y, z] in mm " +
+                return Fallito("«start_mm» e «end_mm» sono i due estremi della linea di piega, punti [x, y, z] in mm " +
                                "sulla faccia (dallo stato del documento).");
 
-            string uidFaccia = Str(a, "faccia_uid", "");
+            string uidFaccia = Str(a, "face_uid", "");
             var faccia = RisolviFaccia(stato, a, uidFaccia, out string motivo);
             if (faccia == null) return Fallito(motivo ?? "Nessuna faccia indicata.");
             double[] piano = null;
@@ -774,24 +774,24 @@ namespace Riscontro.Disegno
             Func<double[], object> arrotonda = s => s == null ? null : (object)Array.ConvertAll(s, x => Math.Round(x, 3));
             var misure = new Dictionary<string, object>
             {
-                ["angolo_gradi"] = Math.Round(angolo, 3),
-                ["raggio_mm"] = Math.Round(r, 3),
-                ["spessore_mm"] = Math.Round(t, 3),
-                ["scatola_prima_mm"] = arrotonda(scatolaPrima),
-                ["scatola_dopo_mm"] = arrotonda(scatolaDopo),
+                ["angle_deg"] = Math.Round(angolo, 3),
+                ["radius_mm"] = Math.Round(r, 3),
+                ["thickness_mm"] = Math.Round(t, 3),
+                ["box_before_mm"] = arrotonda(scatolaPrima),
+                ["box_after_mm"] = arrotonda(scatolaDopo),
                 ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppoDopo) ? null : (object)Math.Round(sviluppoDopo, 3),
+                ["flat_pattern_length_mm"] = double.IsNaN(sviluppoDopo) ? null : (object)Math.Round(sviluppoDopo, 3),
             };
             if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;   // M24
             // UNA PIEGA NON AGGIUNGE LAMIERA: volume e sviluppo restano quelli di
             // prima. Se cambiano, il pezzo non e' quello che si crede.
-            if (!volumeDopo.HasValue || !volumePrima.HasValue) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+            if (!volumeDopo.HasValue || !volumePrima.HasValue) misure["volume_not_reread"] = NotaVolumeNonRiletto;
             else if (Math.Abs(volumeDopo.Value - volumePrima.Value) > 0.001 * volumePrima.Value)
-                misure["attenzione"] = string.Format(CultureInfo.InvariantCulture,
+                misure["warning"] = string.Format(CultureInfo.InvariantCulture,
                     "Il volume e' passato da {0:0.##} a {1:0.##} mm3: una piega non aggiunge ne' toglie lamiera.",
                     volumePrima.Value, volumeDopo.Value);
             if (!double.IsNaN(sviluppoPrima) && !double.IsNaN(sviluppoDopo) && Math.Abs(sviluppoDopo - sviluppoPrima) > 0.05)
-                misure["attenzione_sviluppo"] = string.Format(CultureInfo.InvariantCulture,
+                misure["warning_flat_pattern"] = string.Format(CultureInfo.InvariantCulture,
                     "Lo sviluppo e' passato da {0:0.###} a {1:0.###} mm: con una piega da schizzo dovrebbe restare uguale.",
                     sviluppoPrima, sviluppoDopo);
             return Riuscito(piega, misure);
@@ -810,12 +810,12 @@ namespace Riscontro.Disegno
             if (string.IsNullOrWhiteSpace(suo))
                 return Fallito("Il pezzo non e' mai stato salvato, e su un pezzo senza file " +
                                "SOLIDWORKS apre «Salva con nome» e resta ad aspettare. Salvalo " +
-                               "prima («salva_documento»).");
+                               "prima («save_document»).");
 
-            string dove = Str(a, "percorso", null);
+            string dove = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(dove)) dove = Path.ChangeExtension(suo, ".dxf");
             if (!string.Equals(Path.GetExtension(dove), ".dxf", StringComparison.OrdinalIgnoreCase))
-                return Fallito("«percorso» deve finire in .dxf.");
+                return Fallito("«path» deve finire in .dxf.");
             try { if (File.Exists(dove)) File.Delete(dove); }
             catch (Exception ex) { return Fallito("C'e' gia' un DXF li' e non riesco a sostituirlo: " + ex.Message); }
 
@@ -874,10 +874,10 @@ namespace Riscontro.Disegno
             var ingombro = IngombroDelDxf(dove);
             var misure = new Dictionary<string, object>
             {
-                ["percorso"] = dove,
+                ["path"] = dove,
                 ["byte"] = new FileInfo(dove).Length,
-                ["ingombro_dxf_mm"] = ingombro,
-                ["lunghezza_sviluppo_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
+                ["bounding_box_dxf_mm"] = ingombro,
+                ["flat_pattern_length_mm"] = double.IsNaN(sviluppo) ? null : (object)Math.Round(sviluppo, 3),
             };
             if (flatPatternProblem != null) misure["flat_pattern_problem"] = flatPatternProblem;   // M24
             if (ingombro != null && !double.IsNaN(sviluppo))
@@ -1086,7 +1086,7 @@ namespace Riscontro.Disegno
         {
             errore = null;
             const string comeSiScrive =
-                "«punti» vuole almeno due punti [x, y] in mm sul piano: il profilo APERTO " +
+                "«points» vuole almeno due punti [x, y] in mm sul piano: il profilo APERTO " +
                 "della lamiera. Una L: [[0,30],[0,0],[50,0]].";
             // UN ELENCO E' UN IEnumerable, non un `object[]`. Misurato al primo
             // giro di banco (25/9/2026): gli argomenti arrivano come elenchi del
@@ -1094,7 +1094,7 @@ namespace Riscontro.Disegno
             // scritta giusta — rifiutata con «vuole almeno due punti». E' la
             // stessa regola di `HaElenco`, che c'era gia'.
             object grezzo;
-            var elenco = a != null && a.TryGetValue("punti", out grezzo) && !(grezzo is string)
+            var elenco = a != null && a.TryGetValue("points", out grezzo) && !(grezzo is string)
                 ? grezzo as System.Collections.IEnumerable : null;
             if (elenco == null) { errore = comeSiScrive; return null; }
             var fuori = new List<double[]>();

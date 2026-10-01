@@ -1,7 +1,7 @@
 {
   "name": "the_lightweight_assembly_is_weighed_when_asked",
   "family": "assemblies",
-  "why": "Z-C21.11, finding N5. On an assembly opened lightweight, library 0.146.0 took every part for suppressed (IComponent2.IsSuppressed answers true on a lightweight component) and refused the mass with nothing to weigh. The probe zc2111/probe_alleggeriti (30/9/2026) measured that SOLIDWORKS weighs lightweight parts, but that their material cannot be read while they are lightweight (GetModelDoc2 is null, and IComponent2.GetMaterialUserName, GetMaterialIdName and IBody2.GetMaterialPropertyName answered nothing even on resolved parts), and that on an assembly where every part is lightweight CreateMassProperty gave nothing at all. So proprieta_di_massa now refuses on lightweight parts and names them, and with «resolve_lightweight»: true it resolves them first (IAssemblyDoc.ResolveAllLightWeightComponents(false): swResolveOk on the probe, and GetLightWeightComponentCount 0 after it), reads them again and weighs the assembly. The bench reopens the assembly lightweight («reopen_lightweight»).",
+  "why": "Z-C21.11, finding N5. On an assembly opened lightweight, library 0.146.0 took every part for suppressed (IComponent2.IsSuppressed answers true on a lightweight component) and refused the mass with nothing to weigh. The probe zc2111/probe_alleggeriti (30/9/2026) measured that SOLIDWORKS weighs lightweight parts, but that their material cannot be read while they are lightweight (GetModelDoc2 is null, and IComponent2.GetMaterialUserName, GetMaterialIdName and IBody2.GetMaterialPropertyName answered nothing even on resolved parts), and that on an assembly where every part is lightweight CreateMassProperty gave nothing at all. So mass_properties now refuses on lightweight parts and names them, and with «resolve_lightweight»: true it resolves them first (IAssemblyDoc.ResolveAllLightWeightComponents(false): swResolveOk on the probe, and GetLightWeightComponentCount 0 after it), reads them again and weighs the assembly. The bench reopens the assembly lightweight («reopen_lightweight»).",
   "defect_caught": "The mass refused as if the parts were suppressed; a refusal that does not say the parts are lightweight nor how to go on; the flag that does not resolve them, or resolves them and does not say so; a mass that leaves a resolved part out, or weighs a part without its material.",
   "_if_it_stays_green_on_the_old_library": "It cannot: on 0.146.0 step 1 refuses too, but saying there is no component to weigh because they are all suppressed, which does not contain «are lightweight» nor «resolve_lightweight»: the step is red on the message. Step 2 would refuse the same way, since 0.146.0 does not know the flag.",
   "_the_numbers": "Base 120 x 80 x 10 (96000 mm3) and lid 120 x 80 x 4 (38400 mm3), both AISI 304 (8000 kg/m3, read back by the probe): 0.768 + 0.3072 = 1.0752 kg, 134400 mm3. Two parts, both lightweight after the reopen, both resolved by step 2.",
@@ -10,43 +10,43 @@
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } },
-          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } },
+          { "operation": "apply_material", "arguments": { "material": "AISI 304" } }
         ] },
       { "name": "lid",
         "position_mm": [0, 7, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } },
-          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } },
+          { "operation": "apply_material", "arguments": { "material": "AISI 304" } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "proprieta_di_massa",
+    { "operation": "mass_properties",
       "arguments": {},
       "must_fail": {
         "message_includes": ["are lightweight", "_base-1", "_lid-1", "resolve_lightweight"],
         "twin": "the_lightweight_assembly_is_weighed_when_asked" } },
 
-    { "operation": "proprieta_di_massa",
+    { "operation": "mass_properties",
       "arguments": { "resolve_lightweight": true },
       "expect": [
-        { "what": "misure.massa_kg", "equal_to": 1.0752, "tolerance": 0.0001,
+        { "what": "measurements.mass_kg", "equal_to": 1.0752, "tolerance": 0.0001,
           "tolerance_why": "rounded to four decimals: 96000 mm3 x 8000 + 38400 mm3 x 8000 = 1.0752 kg",
           "why": "THE LINE THAT TAKES N5: the whole assembly, weighed once its parts are resolved, with their material" },
-        { "what": "misure.somma_dei_pezzi_kg", "equal_to": 1.0752, "tolerance": 0.0001,
+        { "what": "measurements.sum_of_parts_kg", "equal_to": 1.0752, "tolerance": 0.0001,
           "tolerance_why": "the same: the independent check, part by part, reads each resolved document",
           "why": "the sum of the parts can read them only resolved" },
-        { "what": "misure.componenti_pesati", "equal_to": 2 },
-        { "what": "misure.volume_mm3", "equal_to": 134400, "tolerance": 0.5,
+        { "what": "measurements.components_weighed", "equal_to": 2 },
+        { "what": "measurements.volume_mm3", "equal_to": 134400, "tolerance": 0.5,
           "tolerance_why": "96000 + 38400, rounded to the hundredth" },
-        { "what": "misure.componenti_soppressi", "equal_to": [],
+        { "what": "measurements.components_suppressed", "equal_to": [],
           "why": "a lightweight part is not a suppressed one" },
-        { "what": "misure.lightweight_resolved_on_request", "includes": ["2 lightweight part(s) resolved on request"],
+        { "what": "measurements.lightweight_resolved_on_request", "includes": ["2 lightweight part(s) resolved on request"],
           "why": "the change to the assembly that the flag asked for is said" },
-        { "what": "stato.componenti_leggeri", "equal_to": 0,
+        { "what": "state.components_lightweight", "equal_to": 0,
           "why": "they stay resolved after the step, as the answer says" } ] }
   ]
 }

@@ -1,16 +1,16 @@
 {
   "name": "half_cylinder_180",
   "family": "revolve",
-  "why": "Mezzo giro: esattamente la meta'. Verifica che `angolo_gradi` arrivi in radianti giusti e non venga ignorato -- se fosse ignorato uscirebbe il cilindro intero, e il volume e' il doppio.",
+  "why": "Mezzo giro: esattamente la meta'. Verifica che `angle_deg` arrivi in radianti giusti e non venga ignorato -- se fosse ignorato uscirebbe il cilindro intero, e il volume e' il doppio.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "rivoluzione",
-      "arguments": { "piano": "frontale", "angolo_gradi": 180,
-                     "asse": [[0, 0], [50, 0]],
-                     "contorni": [[[0, 0], [0, 20], [50, 20], [50, 0]]] },
+    { "operation": "revolve",
+      "arguments": { "plane": "front", "angle_deg": 180,
+                     "axis": [[0, 0], [50, 0]],
+                     "contours": [[[0, 0], [0, 20], [50, 20], [50, 0]]] },
       "expect": [
         { "what": "volume_mm3", "equal_to": 31415.927, "tolerance": 0.5,
           "tolerance_why": "pi*20^2*50/2: il conto ha pi dentro" },
-        { "what": "corpi", "equal_to": 1 } ] }
+        { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

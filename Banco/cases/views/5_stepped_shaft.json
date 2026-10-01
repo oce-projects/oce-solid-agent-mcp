@@ -2,12 +2,12 @@
  {
   "_why": "V2 -- forma 5 di 5: PEZZO DI RIVOLUZIONE. Un albero a gradini e' tre cilindri in fila. Per lo stato testuale sono tre facce cilindriche con tre diametri e tre punti; per un'immagine e' un albero. E' anche l'esempio scritto nella descrizione dell'operazione, quindi e' la forma che un modello copia piu' spesso.",
   "_truth": "Albero a gradini: Ø30 per 40 mm, poi Ø20 per 30 mm, poi Ø34 per 20 mm (la battuta). Volume pi*15^2*40 + pi*10^2*30 + pi*17^2*20 = 28274.3 + 9424.8 + 18158.4 = 55857.5 mm3.",
-  "operazione": "rivoluzione",
-  "argomenti": {
-   "piano": "frontale",
-   "angolo_gradi": 360,
-   "asse": [[0, 0], [90, 0]],
-   "contorni": [
+  "operation": "revolve",
+  "arguments": {
+   "plane": "front",
+   "angle_deg": 360,
+   "axis": [[0, 0], [90, 0]],
+   "contours": [
     [[0, 0], [0, 15], [40, 15], [40, 10], [70, 10], [70, 17], [90, 17], [90, 0]]
    ]
   }

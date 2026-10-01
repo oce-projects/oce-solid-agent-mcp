@@ -1,11 +1,11 @@
 [
  {
-  "_why": "«FAI UN BLOCCO E POI SVUOTALO» IN UN PIANO SOLO (voce E15). Fino alla 0.29.0 `guscio` era l'UNICA operazione su faccia che non accettava un riferimento a un passo: voleva `facce_uid`, che nascono solo da una lettura. Quindi questa sequenza -- che e' proprio quella del contenitore per l'antenna: blocco, guscio, alette -- andava spezzata in due chiamate con una rilettura in mezzo, mentre «fai un blocco e poi foralo» si scriveva in un piano solo.\n\nIL ROSSO DI OGGI: «Nessuna faccia indicata per il guscio».\n\nATTESO dalla 0.30.0: riuscito, con la faccia in cima APERTA. Blocco 100x60x40 = 240.000 mm3. Guscio 5 mm verso l'interno con la faccia superiore tolta: resta il fondo (100x60x5 = 30.000) piu' le quattro pareti alte 35 (2*100*5*35 + 2*50*5*35 = 35.000 + 17.500 = 52.500), cioe' 82.500 mm3. E' lo stesso numero che il banco misura da sempre per «guscio 5 mm verso l'interno».",
-  "operazione": "estrudi_rettangolo",
-  "argomenti": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 40, "centrato": true }
+  "_why": "«FAI UN BLOCCO E POI SVUOTALO» IN UN PIANO SOLO (voce E15). Fino alla 0.29.0 `shell` era l'UNICA operazione su faccia che non accettava un riferimento a un passo: voleva `faces_uid`, che nascono solo da una lettura. Quindi questa sequenza -- che e' proprio quella del contenitore per l'antenna: blocco, guscio, alette -- andava spezzata in due chiamate con una rilettura in mezzo, mentre «fai un blocco e poi foralo» si scriveva in un piano solo.\n\nIL ROSSO DI OGGI: «Nessuna faccia indicata per il guscio».\n\nATTESO dalla 0.30.0: riuscito, con la faccia in cima APERTA. Blocco 100x60x40 = 240.000 mm3. Guscio 5 mm verso l'interno con la faccia superiore tolta: resta il fondo (100x60x5 = 30.000) piu' le quattro pareti alte 35 (2*100*5*35 + 2*50*5*35 = 35.000 + 17.500 = 52.500), cioe' 82.500 mm3. E' lo stesso numero che il banco misura da sempre per «guscio 5 mm verso l'interno».",
+  "operation": "extrude_rectangle",
+  "arguments": { "plane": "top", "length_mm": 100, "width_mm": 60, "thickness_mm": 40, "centered": true }
  },
  {
-  "operazione": "guscio",
-  "argomenti": { "facce_rif": [{ "passo": 1, "genere": "faccia_superiore" }], "spessore_mm": 5 }
+  "operation": "shell",
+  "arguments": { "faces_ref": [{ "step": 1, "kind": "top_face" }], "thickness_mm": 5 }
  }
 ]

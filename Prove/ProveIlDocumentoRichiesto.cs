@@ -16,11 +16,11 @@ namespace Prove.Contratti
     /// `Z-D0-bis` confrontava le FAMIGLIE del catalogo coi tipi di documento
     /// che l'esecutore ammette, ed e' stato un buon controllo: e' nato rosso e
     /// ha trovato un buco vero. Ma la famiglia e' un'approssimazione, e
-    /// `verifiche` lo dimostra da sola:
+    /// `checks` lo dimostra da sola:
     ///
     ///     cartiglio                -> TAVOLA
-    ///     verifica_interferenze    -> ASSIEME
-    ///     proprieta_di_massa       -> PARTE      ... e altre cinque
+    ///     interference_check    -> ASSIEME
+    ///     mass_properties       -> PARTE      ... e altre cinque
     ///
     /// Tre documenti diversi sotto la stessa etichetta. Finche' non era
     /// scritto, quel fatto viveva nella testa di chi aveva scritto
@@ -35,10 +35,10 @@ namespace Prove.Contratti
     internal static class ProveIlDocumentoRichiesto
     {
         /// <summary>I valori che il campo puo' prendere, e nient'altro. Un
-        /// vocabolario aperto diventa «parte», «Parte», «part», «pezzo» in
+        /// vocabolario aperto diventa «part», «Parte», «part», «part» in
         /// sei mesi, e allora nessun controllo lo puo' piu' leggere.</summary>
         private static readonly string[] Ammessi =
-            { "parte", "assieme", "tavola", "qualunque", "nessuno" };
+            { "part", "assembly", "drawing", "any", "none" };
 
         internal static void Tutte()
         {
@@ -54,11 +54,11 @@ namespace Prove.Contratti
             var radice = new JavaScriptSerializer()
                 .DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
             object grezzo;
-            var voci = radice != null && radice.TryGetValue("operazioni", out grezzo)
+            var voci = radice != null && radice.TryGetValue("operations", out grezzo)
                 ? grezzo as object[] : null;
             if (voci == null)
             {
-                Segna("il catalogo ha le operazioni", false, "«operazioni» non e' un elenco");
+                Segna("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
                 return;
             }
 
@@ -72,9 +72,9 @@ namespace Prove.Contratti
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
                 object n, d, f;
-                o.TryGetValue("nome", out n);
-                o.TryGetValue("documento", out d);
-                o.TryGetValue("famiglia", out f);
+                o.TryGetValue("name", out n);
+                o.TryGetValue("document", out d);
+                o.TryGetValue("family", out f);
                 string nome = Convert.ToString(n);
                 string doc = Convert.ToString(d);
 
@@ -140,9 +140,9 @@ namespace Prove.Contratti
             string blocco = inizio < 0 ? "" : testo.Substring(inizio, Math.Min(600, testo.Length - inizio));
 
             var ammessiDallEsecutore = new HashSet<string>(StringComparer.Ordinal);
-            if (Regex.IsMatch(blocco, @"swDocPART")) ammessiDallEsecutore.Add("parte");
-            if (Regex.IsMatch(blocco, @"swDocASSEMBLY")) ammessiDallEsecutore.Add("assieme");
-            if (Regex.IsMatch(blocco, @"swDocDRAWING")) ammessiDallEsecutore.Add("tavola");
+            if (Regex.IsMatch(blocco, @"swDocPART")) ammessiDallEsecutore.Add("part");
+            if (Regex.IsMatch(blocco, @"swDocASSEMBLY")) ammessiDallEsecutore.Add("assembly");
+            if (Regex.IsMatch(blocco, @"swDocDRAWING")) ammessiDallEsecutore.Add("drawing");
 
             Segna("i tipi ammessi si leggono dal sorgente dell'esecutore",
                   ammessiDallEsecutore.Count > 0,
@@ -153,7 +153,7 @@ namespace Prove.Contratti
             {
                 foreach (var pezzo in coppia.Key.Split('/'))
                 {
-                    if (pezzo == "qualunque" || pezzo == "nessuno") continue;
+                    if (pezzo == "any" || pezzo == "none") continue;
                     if (!ammessiDallEsecutore.Contains(pezzo))
                         irraggiungibili.Add(pezzo + " (" + coppia.Value + " operazioni)");
                 }

@@ -32,7 +32,7 @@ namespace Riscontro.Disegno
     ///
     /// `InsertNote` scrive **sul FOGLIO**, non dentro una vista. Ma
     /// `GetNoteCount()` sta su `IView`, e le viste vere di una tavola
-    /// cominciano DOPO la prima — perche' la prima «vista» **e' il foglio**.
+    /// cominciano DOPO la prima — perche' la prima «view» **e' il foglio**.
     ///
     /// Chi contasse solo le viste vere leggerebbe `0 -> 0` con la nota
     /// regolarmente sul foglio, e scriverebbe «anche le note non nascono:
@@ -67,12 +67,12 @@ namespace Riscontro.Disegno
             if (disegno == null)
                 return Fallito(
                     "Il documento attivo non e' una tavola: una nota di disegno sta " +
-                    "su un foglio di tavola. Crea prima la tavola con «crea_disegno».");
+                    "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
 
-            string testo = Str(a, "testo", null);
+            string testo = Str(a, "text", null);
             if (string.IsNullOrWhiteSpace(testo))
                 return Fallito(
-                    "«testo» e' obbligatorio: una nota vuota e' un'annotazione che " +
+                    "«text» e' obbligatorio: una nota vuota e' un'annotazione che " +
                     "occupa un posto sul foglio e non dice niente.");
 
             // ── IL FOGLIO, E QUANTO E' GRANDE ───────────────────────────
@@ -171,24 +171,24 @@ namespace Riscontro.Disegno
 
             var fuori = new Dictionary<string, object>
             {
-                ["foglio"] = nomeFoglio,
-                ["foglio_mm"] = new object[] { largoMm, altoMm },
+                ["sheet"] = nomeFoglio,
+                ["sheet_mm"] = new object[] { largoMm, altoMm },
                 // DUE CONTEGGI, MAI SOMMATI IN UNO SOLO: vedi il docstring.
-                ["note_foglio_prima"] = foglioPrima,
-                ["note_foglio_dopo"] = foglioDopo,
-                ["note_viste_prima"] = vistePrima,
-                ["note_viste_dopo"] = visteDopo,
-                ["note_messe"] = messe,
+                ["notes_sheet_before"] = foglioPrima,
+                ["notes_sheet_after"] = foglioDopo,
+                ["notes_views_before"] = vistePrima,
+                ["notes_views_after"] = visteDopo,
+                ["notes_placed"] = messe,
                 // IL TESTO RILETTO DA SOLIDWORKS, non quello che credevo di
                 // aver chiesto: una nota che compare con un testo diverso si
                 // legge come una nota giusta finche' nessuno la confronta.
-                ["testo_chiesto"] = testo,
-                ["testo_riletto"] = riletto,
-                ["testo_combacia"] = riletto != null &&
+                ["text_requested"] = testo,
+                ["text_reread"] = riletto,
+                ["text_matches"] = riletto != null &&
                                      string.Equals(riletto.Trim(), testo.Trim(), StringComparison.Ordinal),
-                ["dove_mm"] = doveMm,
-                ["posizione_impostata"] = spostata,
-                ["cosa_non_guarda"] =
+                ["where_mm"] = doveMm,
+                ["position_set"] = spostata,
+                ["what_it_does_not_check"] =
                     "Che quello che c'e' scritto sia VERO. Una nota e' testo libero: " +
                     "«materiale S355» su un pezzo che nelle proprieta' dice S275 passa " +
                     "ogni conteggio e ogni rilettura. Qui si garantisce che la nota c'e' " +
@@ -259,7 +259,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Le note del FOGLIO. La prima «vista» di una tavola e' il foglio, ed
+        /// Le note del FOGLIO. La prima «view» di una tavola e' il foglio, ed
         /// e' li' che `InsertNote` scrive: contare da `GetNextView()` in poi —
         /// cioe' le viste vere — risponderebbe zero con la nota al suo posto.
         ///

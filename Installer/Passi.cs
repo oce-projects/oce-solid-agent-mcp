@@ -362,7 +362,7 @@ namespace Oce.Solid.Agent.Installer
             {
                 Titolo = "SOLIDWORKS aperto adesso",
                 Esito = Esito.Avviso,
-                Dettaglio = "chiuso",
+                Dettaglio = "closed",
                 CosaFare =
                     "Non serve per installare. Serve per usare il ponte: si " +
                     "aggancia a una sessione che c'e' gia', non ne avvia una.",

@@ -12,7 +12,7 @@ namespace Prove.Contratti
     ///
     /// E' la funzione che impedisce al ponte di lavorare sul documento di
     /// qualcun altro: piu' sessioni sullo stesso SOLIDWORKS, il documento
-    /// «attivo» e' stato globale condiviso, e il 14/9/2026 un blocco estruso e'
+    /// «active» e' stato globale condiviso, e il 14/9/2026 un blocco estruso e'
     /// finito nel pezzo dell'altra sessione. Fino a oggi quella guardia non
     /// aveva **nemmeno una prova**.
     ///
@@ -43,7 +43,7 @@ namespace Prove.Contratti
                 (a, b) => (bool)stesso.Invoke(null, new object[] { a, b });
 
             Func<string, string, Dictionary<string, object>> id = (percorso, titolo) =>
-                new Dictionary<string, object> { ["percorso"] = percorso, ["titolo"] = titolo };
+                new Dictionary<string, object> { ["path"] = percorso, ["document_title"] = titolo };
 
             // ── IL PERCORSO VINCE SUL TITOLO ─────────────────────────────
             //
@@ -308,14 +308,14 @@ namespace Prove.Contratti
             {
                 var d = new Dictionary<string, object>(StringComparer.Ordinal);
                 if (vol != null) d["volume_mm3"] = vol;
-                if (lav != null) d["lavorazioni"] = lav;
+                if (lav != null) d["features"] = lav;
                 return d;
             };
 
             // ── NIENTE DI CAMBIATO E' `null`, NON UNA FRASE VUOTA ────────
             //
             // Il chiamante scrive `if (cambiato != null)`. Una stringa vuota
-            // passerebbe quel controllo e fermerebbe «disegna» dicendo niente:
+            // passerebbe quel controllo e fermerebbe «build» dicendo niente:
             // il peggiore dei due modi di sbagliare, perche' l'avviso c'e' e
             // non si capisce di cosa parli.
             Segna("due firme uguali: non e' cambiato niente",
@@ -359,7 +359,7 @@ namespace Prove.Contratti
             //
             // `null` vuol dire «non ho guardato niente», e non e' «e' tutto
             // uguale» ne' «e' cambiato tutto»: e' l'assenza della domanda. Se
-            // rispondesse «cambiato», «disegna» si fermerebbe sempre alla prima
+            // rispondesse «changed», «build» si fermerebbe sempre alla prima
             // chiamata dopo un ponte appena partito.
             Segna("senza la firma di prima non si dice niente",
                   che(null, firma(96000.0, 3)) == null);
@@ -368,9 +368,9 @@ namespace Prove.Contratti
 
             // ── LA DATA DEL FILE ─────────────────────────────────────────
             var scritto1 = new Dictionary<string, object>(StringComparer.Ordinal)
-                { ["file_scritto"] = "2026-09-23T05:00:00.0000000Z" };
+                { ["file_written"] = "2026-09-23T05:00:00.0000000Z" };
             var scritto2 = new Dictionary<string, object>(StringComparer.Ordinal)
-                { ["file_scritto"] = "2026-09-23T07:00:00.0000000Z" };
+                { ["file_written"] = "2026-09-23T07:00:00.0000000Z" };
             var riscritto = che(scritto1, scritto2);
             Segna("un file riscritto si dice", riscritto != null && riscritto.Contains("riscritto"),
                   riscritto ?? "(null)");

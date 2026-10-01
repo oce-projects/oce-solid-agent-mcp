@@ -1,45 +1,45 @@
 {
   "name": "the_end_cap_skips_a_drilled_wall",
   "family": "weldments",
-  "why": "FINDING N7 (Z-C21.5). Up to library 0.146.0 tappo_estremita took as open ends the planar faces with more than one loop (Riferimenti.SoloEstremita). The side wall of a square tube with a hole drilled through it is planar with two loops too, and so is its inner face: both went to InsertEndCapFeature3 as ends to cap, where the guide wants «one or more end faces of a structural member» (IFeatureManager~InsertEndCapFeature3.html, Remarks). Now an inner loop is the void of the profile only when every face across it was made by a feature that also made a face across the outer loop (IFace2~GetFeature.html, Remarks: the oldest owning feature). The wall of a drilled hole is made by the cut, the inner walls of the tube by the member.",
+  "why": "FINDING N7 (Z-C21.5). Up to library 0.146.0 end_cap took as open ends the planar faces with more than one loop (Riferimenti.SoloEstremita). The side wall of a square tube with a hole drilled through it is planar with two loops too, and so is its inner face: both went to InsertEndCapFeature3 as ends to cap, where the guide wants «one or more end faces of a structural member» (IFeatureManager~InsertEndCapFeature3.html, Remarks). Now an inner loop is the void of the profile only when every face across it was made by a feature that also made a face across the outer loop (IFace2~GetFeature.html, Remarks: the oldest owning feature). The wall of a drilled hole is made by the cut, the inner walls of the tube by the member.",
 
   "defect_caught": "Step 3 caps the drilled tube. On library 0.146.0 the open ends found are FOUR, by construction: the two real ends plus the outer and the inner face of the drilled wall, all planar with two loops. InsertEndCapFeature3 then either refuses the selection (the step fails) or answers that 4 ends were capped: red either way, at the first expectation of step 3. With the fix the two faces of the wall are looked at and left out (machined_faces_skipped 2), and the tube gets the same two caps as cap_closes_the_pipe.",
 
-  "_the_numbers": "Tube 80x80x5, 600 mm along X on the top plane, section 1469.956 mm2 with the corner radii: 881973.45 mm3, as cap_closes_the_pipe. Hole of 20 at X 300, Y 0 on the outer front face (Z 40), blind 5 mm deep, the wall thickness: a through hole on a hollow part is refused by taglio_cilindrico when it pierces two walls, and its message asks for a blind hole as deep as the wall. The hole sits in the flat of the wall: 80 - 2 x 6 = 68 mm, the 40800 mm2 = 600 x 68 read in weld_bead_goes_between_touching_faces, and the inner face has the same flat. Removed: pi x 10^2 x 5 = 1570.80 mm3, 880402.65 left. Two caps 65 x 65 x 5 inside the tube: +42250, 922652.65, three bodies.",
+  "_the_numbers": "Tube 80x80x5, 600 mm along X on the top plane, section 1469.956 mm2 with the corner radii: 881973.45 mm3, as cap_closes_the_pipe. Hole of 20 at X 300, Y 0 on the outer front face (Z 40), blind 5 mm deep, the wall thickness: a through hole on a hollow part is refused by cylindrical_cut when it pierces two walls, and its message asks for a blind hole as deep as the wall. The hole sits in the flat of the wall: 80 - 2 x 6 = 68 mm, the 40800 mm2 = 600 x 68 read in weld_bead_goes_between_touching_faces, and the inner face has the same flat. Removed: pi x 10^2 x 5 = 1570.80 mm3, 880402.65 left. Two caps 65 x 65 x 5 inside the tube: +42250, 922652.65, three bodies.",
 
-  "_the_body_by_order": "Step 3 names the tube with @corpo(n=1) and not by name: a Cut-Extrude can rename the body it changes, and no case has read the name of a member body after one (the names read after taglia_membri are after a weldment trim). The part has one body (step 2 asserts it), so the order cannot pick another one; a number such as C1 written by hand is what the contract of Z-C16 forbids.",
+  "_the_body_by_order": "Step 3 names the tube with @body(n=1) and not by name: a Cut-Extrude can rename the body it changes, and no case has read the name of a member body after one (the names read after trim_members are after a weldment trim). The part has one body (step 2 asserts it), so the order cannot pick another one; a number such as C1 written by hand is what the contract of Z-C16 forbids.",
 
   "start": { "new_part": true },
   "steps": [
-    { "operation": "membro_strutturale",
-      "arguments": { "piano": "superiore",
-                     "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
-                     "configurazione": "80X80X5",
-                     "segmenti": [ { "da": [0, 0, 0], "a": [600, 0, 0] } ] },
+    { "operation": "structural_member",
+      "arguments": { "plane": "top",
+                     "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configuration": "80X80X5",
+                     "segments": [ { "start": [0, 0, 0], "end": [600, 0, 0] } ] },
       "expect": [
-        { "what": "corpi", "equal_to": 1 },
+        { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 881973.45, "tolerance": 0.5,
           "tolerance_why": "600 mm x 1469.956 mm2: the section has the corner radii, so pi inside, as cap_closes_the_pipe" } ] },
 
-    { "operation": "taglio_cilindrico",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti,z~=40)",
-                     "x_mm": 300, "y_mm": 0, "diametro_mm": 20,
-                     "passante": false, "profondita_mm": 5 },
+    { "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(normal=front,z~=40)",
+                     "x_mm": 300, "y_mm": 0, "diameter_mm": 20,
+                     "through_all": false, "depth_mm": 5 },
       "expect": [
-        { "what": "misure.pareti_forate", "equal_to": 1,
+        { "what": "measurements.walls_drilled", "equal_to": 1,
           "why": "one wall only, the front one: a hole that reached the back wall would put four drilled faces in the tube, not two" },
-        { "what": "corpi", "equal_to": 1 },
+        { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 880402.65, "tolerance": 0.5,
           "tolerance_why": "881973.45 minus pi x 10^2 x 5 = 1570.80, the hole through the 5 mm wall: the tolerance is the one of the tube, which has pi inside" } ] },
 
-    { "operation": "tappo_estremita",
-      "arguments": { "corpi_uid": ["@corpo(n=1)"], "spessore_mm": 5 },
+    { "operation": "end_cap",
+      "arguments": { "bodies_uid": ["@body(n=1)"], "thickness_mm": 5 },
       "expect": [
-        { "what": "misure.estremita_tappate", "equal_to": 2,
+        { "what": "measurements.end_capped", "equal_to": 2,
           "why": "the two ends of the bar and not the two faces of the drilled wall: 4 on library 0.146.0, or the step fails there" },
-        { "what": "misure.machined_faces_skipped", "equal_to": 2,
+        { "what": "measurements.machined_faces_skipped", "equal_to": 2,
           "why": "the outer and the inner face of the drilled wall were looked at and left out, not missed" },
-        { "what": "corpi", "equal_to": 3,
+        { "what": "bodies", "equal_to": 3,
           "why": "the bar plus two caps: a cap on a drilled wall would be a fourth body, or none at all" },
         { "what": "volume_mm3", "equal_to": 922652.65, "tolerance": 0.5,
           "tolerance_why": "880402.65 + 2 x 65 x 65 x 5 = +42250 exactly, the caps of cap_closes_the_pipe; the tolerance is the one of the bar, which has pi inside" } ] }

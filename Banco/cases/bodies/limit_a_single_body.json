@@ -4,14 +4,14 @@
   "why": "Una booleana su un corpo solo non ha senso, e il modo in cui non ce l'ha e' pericoloso: SOLIDWORKS potrebbe rispondere una feature che non fa niente, e il pezzo resterebbe quello di prima con un passo in piu' nell'albero. Si rifiuta prima, e si dice anche COME si fa nascere un secondo corpo -- che e' la cosa che chi chiede non sa.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
-                     "spessore_mm": 10, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 10, "width_mm": 10,
+                     "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 1000 } ] },
-    { "operation": "combina_corpi",
-      "arguments": { "operazione": "unisci", "corpo_principale_uid": "C1" },
+    { "operation": "combine_bodies",
+      "arguments": { "operation": "union", "main_body_uid": "C1" },
       "must_fail": {
-        "message_includes": ["almeno due corpi", "sposta_corpi"],
+        "message_includes": ["almeno due corpi", "move_bodies"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "merge_two_cubes" } }

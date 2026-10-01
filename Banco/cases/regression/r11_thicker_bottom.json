@@ -6,25 +6,25 @@
   "intent_why": "ingrossando la parete il fondo scende da z = 47 a z = 40, e un foro «sul fondo» deve seguirlo. L'ingombro esterno resta 314 x 274 x 52: qui il volume e' l'unico testimone.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 314, "larghezza_mm": 274,
-                     "spessore_mm": 52, "centrato": true }
+      "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 314, "width_mm": 274,
+                     "thickness_mm": 52, "centered": true }
     },
     {
-      "operation": "guscio",
-      "arguments": { "facce_uid": ["@faccia(verso=dietro)"], "spessore_mm": 5,
-                     "verso_esterno": false }
+      "operation": "shell",
+      "arguments": { "faces_uid": ["@face(normal=back)"], "thickness_mm": 5,
+                     "outward": false }
     },
     {
-      "operation": "taglio_cilindrico",
-      "arguments": { "faccia_uid": "@faccia(verso=dietro,area=80256)", "x_mm": 0, "y_mm": 0,
-                     "diametro_mm": 60, "passante": false, "profondita_mm": 3 }
+      "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(normal=back,area=80256)", "x_mm": 0, "y_mm": 0,
+                     "diameter_mm": 60, "through_all": false, "depth_mm": 3 }
     }
   ],
-  "modify": { "quota": "@quota(feature=Svuota1,nome=D1)", "valore_mm": 12 },
+  "modify": { "dimension": "@dimension(feature=Svuota1,name=D1)", "value_mm": 12 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [314, 274, 52] },
-    { "what": "centro_massa_mm", "equal_to": [0, 0, 37.031],
+    { "what": "bounding_box_mm", "equal_to": [314, 274, 52] },
+    { "what": "center_of_mass_mm", "equal_to": [0, 0, 37.031],
       "tolerance": 0.05,
       "tolerance_why": "IL VOLUME NON BASTA, ed e' il rischio che la voce nominava: il foro toglie lo stesso materiale sia che segua il fondo sia che resti dov'era. A seguirlo (z 40..43) il baricentro sta a 37,031; a restare fermo (z 47..50) sta a 36,992. Trentotto millesimi, e il centesimo di tolleranza li distingue" }
   ]

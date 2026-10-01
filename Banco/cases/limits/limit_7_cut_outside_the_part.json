@@ -1,13 +1,13 @@
 [
  {
-  "operazione": "taglio_cilindrico",
-  "argomenti": {
-   "faccia_uid": "F1",
+  "operation": "cylindrical_cut",
+  "arguments": {
+   "face_uid": "F1",
    "x_mm": 5000,
    "y_mm": 5000,
-   "diametro_mm": 10,
-   "passante": false,
-   "profondita_mm": 5
+   "diameter_mm": 10,
+   "through_all": false,
+   "depth_mm": 5
   }
  }
 ]

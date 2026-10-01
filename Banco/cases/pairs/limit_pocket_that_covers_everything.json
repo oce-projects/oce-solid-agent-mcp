@@ -1,33 +1,33 @@
 {
   "name": "limit_pocket_that_covers_everything",
   "family": "pairs",
-  "why": "Una tasca 400 x 400 PASSANTE su un pezzo che occupa 314 x 274 non lascerebbe niente. La gemella e' la stessa tasca cieca da 5, che invece accorcia il pezzo ed e' legittima: le due differiscono per UN SOLO argomento, «passante», ed e' quello che il controllo deve guardare.",
+  "why": "Una tasca 400 x 400 PASSANTE su un pezzo che occupa 314 x 274 non lascerebbe niente. La gemella e' la stessa tasca cieca da 5, che invece accorcia il pezzo ed e' legittima: le due differiscono per UN SOLO argomento, «through_all», ed e' quello che il controllo deve guardare.",
   "start": { "new_part": true },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 314,
-        "larghezza_mm": 274,
-        "spessore_mm": 52,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 314,
+        "width_mm": 274,
+        "thickness_mm": 52,
+        "centered": true
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 4473872 },
-        { "what": "stato.ingombro_da_mm", "equal_to": [-157, -137, 0] }
+        { "what": "state.bounding_box_from_mm", "equal_to": [-157, -137, 0] }
       ]
     },
     {
-      "operation": "taglio_rettangolare",
+      "operation": "rectangular_cut",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
+        "face_uid": "@face(normal=front)",
         "x_mm": 0,
         "y_mm": 0,
-        "lunghezza_mm": 400,
-        "larghezza_mm": 400,
-        "passante": true,
-        "profondita_mm": 5
+        "length_mm": 400,
+        "width_mm": 400,
+        "through_all": true,
+        "depth_mm": 5
       },
       "must_fail": {
         "message_includes": ["copre tutto il pezzo", "314 x 274"],

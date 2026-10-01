@@ -37,7 +37,7 @@ namespace Riscontro.Disegno
         /// N47). GetFirstView, GetNextView, GetFirstDisplayDimension5 and
         /// GetNext5 sit outside the try of each dimension: an exception there
         /// used to end the walk with the texts read so far, handed over as all
-        /// the texts of the drawing, and quota_in_tavola counted overlaps on
+        /// the texts of the drawing, and drawing_dimension counted overlaps on
         /// that part as if it were the whole. A dimension whose texts cannot be
         /// read is still skipped inside the walk, as before.
         /// </summary>
@@ -59,7 +59,7 @@ namespace Riscontro.Disegno
                             var dati = dd.GetDisplayData() as IDisplayData;
                             // ZERO-E-ZERO: una quota senza dati di visualizzazione non ha testi da
                             // confrontare, e non si inventano; se non se ne legge nessuno,
-                            // quota_in_tavola dice null («non lo so»), non «nessuno si accavalla».
+                            // drawing_dimension dice null («non lo so»), non «nessuno si accavalla».
                             int n = dati == null ? 0 : dati.GetTextCount();
                             // A POINT ON THE SHEET, NOT AN OFFSET (Z-C21.3, finding C3-1,
                             // NOT REAL). Every GetTextPositionAtIndex page says «Gets the

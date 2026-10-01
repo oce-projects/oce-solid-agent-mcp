@@ -34,10 +34,10 @@ namespace Riscontro.Disegno
     {
         private static readonly Dictionary<string, string> SimboliDiSaldatura = new Dictionary<string, string>
         {
-            ["angolo"] = "<WELD-FILL>",
+            ["fillet"] = "<WELD-FILL>",
             ["v"] = "<WELD-BUSV>",
-            ["mezza_v"] = "<WELD-BUSB>",
-            ["testa"] = "<WELD-BUSQ>",
+            ["half_v"] = "<WELD-BUSB>",
+            ["butt"] = "<WELD-BUSQ>",
         };
 
         private Esito SaldaturaInTavola(IModelDoc2 modello, Dictionary<string, object> a)
@@ -47,21 +47,21 @@ namespace Riscontro.Disegno
             var vista = VistaPerAnnotare(modello, a, out disegno, out motivo);
             if (vista == null) return Fallito(motivo);
 
-            string tipo = Str(a, "tipo", "angolo");
+            string tipo = Str(a, "variant", "fillet");
             string simbolo;
             if (!SimboliDiSaldatura.TryGetValue(tipo, out simbolo))
-                return Fallito("«tipo» e' uno fra " + string.Join(", ", SimboliDiSaldatura.Keys) + ", non «" + tipo + "».");
+                return Fallito("«variant» e' uno fra " + string.Join(", ", SimboliDiSaldatura.Keys) + ", non «" + tipo + "».");
             double gola;
-            if (!NumObbligatorio(a, "a_mm", out gola, out motivo)) return Fallito(motivo);
+            if (!NumObbligatorio(a, "throat_mm", out gola, out motivo)) return Fallito(motivo);
             if (gola <= 0 || gola > 50)
-                return Fallito("«a_mm» (la gola del cordone) sta fra 0 e 50 mm, non " +
+                return Fallito("«throat_mm» (la gola del cordone) sta fra 0 e 50 mm, non " +
                                gola.ToString("0.###", CultureInfo.InvariantCulture) + ".");
-            double lunghezza = Num(a, "lunghezza_mm", 0);
-            if (lunghezza < 0) return Fallito("«lunghezza_mm» non puo' essere negativa.");
-            bool tuttoAttorno = Bool(a, "tutto_attorno", false);
-            bool inOpera = Bool(a, "in_opera", false);
-            bool dueLati = Bool(a, "entrambi_i_lati", false);
-            string latoAnnotazione = Str(a, "lato", "alto");
+            double lunghezza = Num(a, "length_mm", 0);
+            if (lunghezza < 0) return Fallito("«length_mm» non puo' essere negativa.");
+            bool tuttoAttorno = Bool(a, "all_around", false);
+            bool inOpera = Bool(a, "field_weld", false);
+            bool dueLati = Bool(a, "both_sides", false);
+            string latoAnnotazione = Str(a, "side", "top");
 
             // ── IL GIUNTO VISIBILE ──────────────────────────────────────────
             var pezzo = vista.ReferencedDocument as IModelDoc2;
@@ -154,21 +154,21 @@ namespace Riscontro.Disegno
 
             return SenzaFeature(new Dictionary<string, object>
             {
-                ["tipo"] = tipo,
-                ["simbolo"] = simbolo,
-                ["simbolo_riletto"] = simboloLetto,
-                ["gola_riletta"] = sinistraLetta,
-                ["lunghezza_riletta"] = string.IsNullOrEmpty(destraLetta) ? null : destraLetta,
-                ["tutto_attorno"] = perimetroLetto,
-                ["in_opera"] = campoLetto == (int)swWeldSymbolField_e.swFieldWeldUp || campoLetto == (int)swWeldSymbolField_e.swFieldWeldDown,
-                ["entrambi_i_lati"] = simmetricoLetto == (int)swWeldSymbolSymmetric_e.swWeldSymmetric,
-                ["testi"] = NumeroOppureNull(testi),
-                ["frecce"] = NumeroOppureNull(frecce),
-                ["attaccato_allo_spigolo"] = attaccate > 0,
-                ["giunto_mm"] = Math.Round(lungoGiunto, 2),
-                ["simboli_prima"] = NumeroOppureNull(prima),
-                ["simboli_dopo"] = NumeroOppureNull(dopo),
-                ["posizione_mm"] = pos,
+                ["kind"] = tipo,
+                ["symbol"] = simbolo,
+                ["symbol_reread"] = simboloLetto,
+                ["throat_reread"] = sinistraLetta,
+                ["length_reread"] = string.IsNullOrEmpty(destraLetta) ? null : destraLetta,
+                ["all_around"] = perimetroLetto,
+                ["field_weld"] = campoLetto == (int)swWeldSymbolField_e.swFieldWeldUp || campoLetto == (int)swWeldSymbolField_e.swFieldWeldDown,
+                ["both_sides"] = simmetricoLetto == (int)swWeldSymbolSymmetric_e.swWeldSymmetric,
+                ["texts"] = NumeroOppureNull(testi),
+                ["arrows"] = NumeroOppureNull(frecce),
+                ["attached_to_edge"] = attaccate > 0,
+                ["joint_mm"] = Math.Round(lungoGiunto, 2),
+                ["symbols_before"] = NumeroOppureNull(prima),
+                ["symbols_after"] = NumeroOppureNull(dopo),
+                ["position_mm"] = pos,
             });
         }
 

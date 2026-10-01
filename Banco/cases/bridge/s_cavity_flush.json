@@ -1,11 +1,11 @@
 [
  {
   "_why": "DEVE FALLIRE, e da tutt'e due i lati. Due cave specchiate a filo dei bordi opposti. Fino alla 0.25.2 quella a DESTRA veniva rifiutata («sta A CAVALLO del bordo esterno») e quella identica a SINISTRA passava: la parita' degli attraversamenti non sa rispondere sul bordo e rispondeva secondo il lato. MISURATO il 14/9/2026 chiedendolo a SOLIDWORKS: la cava a destra, quella a sinistra e un rombo che tocca in un solo vertice falliscono tutte e tre con «L'estrusione non e' stata creata». Due contorni che si toccano non delimitano una regione; un'asola aperta si disegna come UN contorno solo. Quindi il verdetto giusto e' NO da tutt'e due le parti, e cio' che era rotto era il SI a sinistra. Atteso adesso: rifiutato con «TOCCA il bordo esterno», prima di arrivare a SOLIDWORKS.",
-  "operazione": "estrudi_profilo",
-  "argomenti": {
-   "piano": "superiore",
-   "spessore_mm": 10,
-   "contorni": [
+  "operation": "extrude_profile",
+  "arguments": {
+   "plane": "top",
+   "thickness_mm": 10,
+   "contours": [
     [[-50,-50],[50,-50],[50,50],[-50,50]],
     [[30,-10],[50,-10],[50,10],[30,10]],
     [[-50,-10],[-30,-10],[-30,10],[-50,10]]

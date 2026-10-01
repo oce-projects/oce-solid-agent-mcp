@@ -7,48 +7,48 @@
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
       { "name": "coperchio",
         "position_mm": [0, 7, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "accoppia",
+    { "operation": "mate",
       "arguments": {
-        "componente_a": "C1", "faccia_a": "alto",
-        "componente_b": "C2", "faccia_b": "basso",
-        "tipo": "coincidente", "allineamento": "opposto"
+        "component_a": "C1", "face_a": "up",
+        "component_b": "C2", "face_b": "down",
+        "variant": "coincidente", "alignment": "opposto"
       },
       "expect": [
-        { "what": "stato.componenti[1].accoppiamenti_tipi", "equal_to": ["coincidente"],
+        { "what": "state.components[1].mates_kinds", "equal_to": ["coincidente"],
           "why": "Z-D3: il tipo dell'accoppiamento per NOME, non solo il conteggio" },
-        { "what": "stato.componenti[0].e_sottoassieme", "equal_to": false, "why": "Z-D4: la base e' un pezzo" },
-        { "what": "stato.componenti[1].visibile", "equal_to": true, "why": "Z-D4" },
-        { "what": "stato.componenti[1].trasparente", "equal_to": false,
+        { "what": "state.components[0].is_sub_assembly", "equal_to": false, "why": "Z-D4: la base e' un pezzo" },
+        { "what": "state.components[1].visible", "equal_to": true, "why": "Z-D4" },
+        { "what": "state.components[1].transparent", "equal_to": false,
           "why": "Z-D4: nessun aspetto suo sul componente, quindi non trasparente" } ] },
-    { "operation": "fissa_componente",
-      "arguments": { "componente": "C2", "fisso": true },
+    { "operation": "fix_component",
+      "arguments": { "component": "C2", "grounded": true },
       "expect": [
-        { "what": "misure.fisso_prima", "equal_to": false },
-        { "what": "misure.fisso_dopo", "equal_to": true, "why": "riletto con IsFixed: FixComponent non risponde niente" },
-        { "what": "stato.componenti_fissi", "equal_to": 2, "why": "la base (fissata da SOLIDWORKS) e il coperchio" } ] },
-    { "operation": "fissa_componente",
-      "arguments": { "componente": "C1", "fisso": false },
+        { "what": "measurements.grounded_before", "equal_to": false },
+        { "what": "measurements.grounded_after", "equal_to": true, "why": "riletto con IsFixed: FixComponent non risponde niente" },
+        { "what": "state.components_grounded", "equal_to": 2, "why": "la base (fissata da SOLIDWORKS) e il coperchio" } ] },
+    { "operation": "fix_component",
+      "arguments": { "component": "C1", "grounded": false },
       "expect": [
-        { "what": "misure.fisso_prima", "equal_to": true, "why": "il primo componente lo fissa SOLIDWORKS da solo" },
-        { "what": "misure.fisso_dopo", "equal_to": false, "why": "e si lascia liberare come uno fissato a mano (misurato)" },
-        { "what": "misure.accoppiamenti", "equal_to": 1, "why": "libero, lo tiene il suo accoppiamento" },
-        { "what": "stato.componenti_fissi", "equal_to": 1 } ] },
-    { "operation": "fissa_componente",
-      "arguments": { "componente": "C2" },
+        { "what": "measurements.grounded_before", "equal_to": true, "why": "il primo componente lo fissa SOLIDWORKS da solo" },
+        { "what": "measurements.grounded_after", "equal_to": false, "why": "e si lascia liberare come uno fissato a mano (misurato)" },
+        { "what": "measurements.mates", "equal_to": 1, "why": "libero, lo tiene il suo accoppiamento" },
+        { "what": "state.components_grounded", "equal_to": 1 } ] },
+    { "operation": "fix_component",
+      "arguments": { "component": "C2" },
       "must_fail": {
-        "message_includes": ["Dimmi «fisso»"],
+        "message_includes": ["Dimmi «grounded»"],
         "twin": "fixed_is_not_mated" } }
   ]
 }

@@ -27,9 +27,9 @@
 #  ConvertFrom-Json is $null when it is missing, without an error: after a
 #  rename of the catalogue keys every comparison below would run on empty
 #  sets and say that everything matches. So before anything else the
-#  catalogue must have `operazioni` and `famiglie`, and every operation `nome`
-#  and `famiglia`; otherwise this exits 1 and says which key is missing.
-#  `famiglie` is an object (family -> description): until 30/9/2026 it was
+#  catalogue must have `operations` and `families`, and every operation `name`
+#  and `family`; otherwise this exits 1 and says which key is missing.
+#  `families` is an object (family -> description): until 30/9/2026 it was
 #  read as a list, gave 0 declared families, and check 6 passed on nothing.
 #
 # =============================================================================
@@ -73,16 +73,16 @@ function Test-JsonKey($object, [string] $key) {
 }
 $missingKeys = New-Object System.Collections.Generic.List[string]
 # The key names, once: the messages below name them through these.
-$keyOperations = 'operazioni'
-$keyFamilies = 'famiglie'
-$keyName = 'nome'
-$keyFamily = 'famiglia'
+$keyOperations = 'operations'
+$keyFamilies = 'families'
+$keyName = 'name'
+$keyFamily = 'family'
 foreach ($key in $keyOperations, $keyFamilies) {
     if (-not (Test-JsonKey $cat $key)) { $missingKeys.Add("the catalogue has no '$key'") }
 }
 if (Test-JsonKey $cat $keyOperations) {
     $index = 0
-    foreach ($entry in @($cat.operazioni)) {
+    foreach ($entry in @($cat.operations)) {
         foreach ($key in $keyName, $keyFamily) {
             if (-not (Test-JsonKey $entry $key) -or [string]::IsNullOrWhiteSpace([string]$entry.$key)) {
                 $missingKeys.Add("operation $index has no '$key'")
@@ -91,10 +91,10 @@ if (Test-JsonKey $cat $keyOperations) {
         $index++
     }
 }
-# The declared families, read here and compared in step 6. `famiglie` is an
+# The declared families, read here and compared in step 6. `families` is an
 # object, family -> description, as Riscontro.Catalogo writes it; a list (of
-# names, or of objects with `nome`) is read too. The old reading, in step 6,
-# took the object for one element without `nome`, found 0 declared families,
+# names, or of objects with `name`) is read too. The old reading, in step 6,
+# took the object for one element without `name`, found 0 declared families,
 # and the comparison passed on nothing.
 $famiglieDichiarate = @()
 if (Test-JsonKey $cat $keyFamilies) {
@@ -123,8 +123,8 @@ if ($missingKeys.Count) {
 Bene ("the catalogue has the expected keys ($keyOperations, $keyFamilies; $keyName and $keyFamily in every operation), " +
       $famiglieDichiarate.Count + " declared families")
 
-$operazioni = @($cat.operazioni)
-$nomiCatalogo = @($operazioni | ForEach-Object { $_.nome } | Sort-Object -Unique)
+$operazioni = @($cat.operations)
+$nomiCatalogo = @($operazioni | ForEach-Object { $_.name } | Sort-Object -Unique)
 
 if ($nomiCatalogo.Count -lt 20) {
     Write-Host ("  [X] il catalogo ha solo " + $nomiCatalogo.Count + " operazioni: " +
@@ -198,10 +198,10 @@ if (Test-Path -LiteralPath $Sorgente) {
     # La prima stesura cercava `case "x": return`, e perdeva il primo di una
     # coppia che ricade sull'altro:
     #
-    #     case "membro_strutturale":
-    #     case "telaio_rettangolare": return MembroStrutturale(...);
+    #     case "structural_member":
+    #     case "rectangular_frame": return MembroStrutturale(...);
     #
-    # Il controllo denunciava `membro_strutturale` come «dichiarato ma non
+    # Il controllo denunciava `structural_member` come «dichiarato ma non
     # nello switch», che era falso. Un controllo che accusa il codice giusto
     # si smette di guardare dopo due volte.
     #
@@ -240,8 +240,8 @@ if ($dichiaratiNonEseguibili.Count) {
     Male ("il catalogo dichiara " + $dichiaratiNonEseguibili.Count +
           " operazioni che l'esecutore NON sa eseguire")
     foreach ($n in $dichiaratiNonEseguibili) {
-        $op = $operazioni | Where-Object { $_.nome -eq $n } | Select-Object -First 1
-        Nota ("$n   (famiglia: " + $op.famiglia + ")")
+        $op = $operazioni | Where-Object { $_.name -eq $n } | Select-Object -First 1
+        Nota ("$n   (famiglia: " + $op.family + ")")
     }
     Nota "Il modello puo' chiederle, e si prende 'operazione sconosciuta'."
 } else {
@@ -261,13 +261,13 @@ if ($eseguibiliNonDichiarati.Count) {
 Write-Host ""
 Write-Host "=== La forma del catalogo" -ForegroundColor Cyan
 
-$campiObbligatori = @("nome", "famiglia", "sommario", "descrizione", "schema")
+$campiObbligatori = @("name", "family", "summary", "details", "schema")
 $senzaCampo = 0
 foreach ($op in $operazioni) {
     foreach ($c in $campiObbligatori) {
         $v = $op.$c
         if ($null -eq $v -or ($v -is [string] -and [string]::IsNullOrWhiteSpace($v))) {
-            Male ("'" + $op.nome + "' non ha '" + $c + "'")
+            Male ("'" + $op.name + "' non ha '" + $c + "'")
             $senzaCampo++
         }
     }
@@ -277,7 +277,7 @@ if ($senzaCampo -eq 0) { Bene "ogni operazione ha nome, famiglia, sommario, desc
 # --- 6. le famiglie ----------------------------------------------------------
 # E' il difetto gia' riparato una volta in esporta_catalogo.py: una famiglia
 # dichiarata e vuota arriva al modello come una porta che non apre su niente.
-$famiglieUsate = @($operazioni | ForEach-Object { $_.famiglia } | Sort-Object -Unique)
+$famiglieUsate = @($operazioni | ForEach-Object { $_.family } | Sort-Object -Unique)
 # (the declared families were read, and required not empty, in step 1)
 $vuote = @($famiglieDichiarate | Where-Object { $_ -notin $famiglieUsate })
 $nonDichiarate = @($famiglieUsate | Where-Object { $_ -notin $famiglieDichiarate })

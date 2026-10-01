@@ -2,32 +2,32 @@
   "name": "assembly_says_which_file_it_depends_on",
   "family": "assemblies",
   "why": "VOCE Z-B3. Un assieme e' un grafo di file sul disco, e il modello non sapeva su quali file poggia. Misurato il 27/9/2026 (prova0089 zb3): GetDependencies da' le coppie nome/percorso a tutti i livelli; il parametro «ListBrokenRefs» NON segna i file che mancano (il coperchio rinominato sul disco compariva come gli altri) — lo dice solo il disco. Il caso prova l'assieme sano; il file mancante e' stato visto dalla sonda (File.Exists falso, componente soppresso, OpenDoc6 errori 2).",
-  "defect_caught": "Un elenco di dipendenze vuoto o con un file solo; i file dei componenti presi per mancanti; lo stato che dice file_mancante su un assieme sano.",
+  "defect_caught": "Un elenco di dipendenze vuoto o con un file solo; i file dei componenti presi per mancanti; lo stato che dice file_missing su un assieme sano.",
   "assembly": {
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
       { "name": "coperchio",
         "position_mm": [0, 7, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "salva_documento",
-      "arguments": { "percorso": "{LAVORO}\\assembly_says_which_file_it_depends_on.sldasm" },
-      "expect": [ { "what": "misure.avvisi", "equal_to": 0 } ] },
-    { "operation": "dipendenze",
+    { "operation": "save_document",
+      "arguments": { "path": "{LAVORO}\\assembly_says_which_file_it_depends_on.sldasm" },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
+    { "operation": "file_dependencies",
       "arguments": {},
       "expect": [
-        { "what": "misure.quanti_file", "equal_to": 2, "why": "la base e il coperchio" },
-        { "what": "misure.quanti_mancano", "equal_to": 0, "why": "tutti e due sul disco" },
-        { "what": "misure.file[0].esiste", "equal_to": true },
-        { "what": "misure.file[1].esiste", "equal_to": true } ] }
+        { "what": "measurements.how_many_files", "equal_to": 2, "why": "la base e il coperchio" },
+        { "what": "measurements.how_many_missing", "equal_to": 0, "why": "tutti e due sul disco" },
+        { "what": "measurements.file[0].exists", "equal_to": true },
+        { "what": "measurements.file[1].exists", "equal_to": true } ] }
   ]
 }

@@ -1,38 +1,38 @@
 {
   "name": "blind_pocket_400",
   "family": "pairs",
-  "why": "La gemella di «limit_pocket_that_covers_everything», e dice perche' il controllo ha bisogno di «da parte a parte»: una tasca che copre tutta la faccia ma NON passa accorcia il pezzo, ed accorciare un pezzo e' una cosa che si fa. Differisce dalla gemella per UN SOLO argomento: «passante».",
+  "why": "La gemella di «limit_pocket_that_covers_everything», e dice perche' il controllo ha bisogno di «da parte a parte»: una tasca che copre tutta la faccia ma NON passa accorcia il pezzo, ed accorciare un pezzo e' una cosa che si fa. Differisce dalla gemella per UN SOLO argomento: «through_all».",
   "start": { "new_part": true },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 314,
-        "larghezza_mm": 274,
-        "spessore_mm": 52,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 314,
+        "width_mm": 274,
+        "thickness_mm": 52,
+        "centered": true
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 4473872 },
-        { "what": "stato.ingombro_da_mm", "equal_to": [-157, -137, 0] }
+        { "what": "state.bounding_box_from_mm", "equal_to": [-157, -137, 0] }
       ]
     },
     {
-      "operation": "taglio_rettangolare",
+      "operation": "rectangular_cut",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
+        "face_uid": "@face(normal=front)",
         "x_mm": 0,
         "y_mm": 0,
-        "lunghezza_mm": 400,
-        "larghezza_mm": 400,
-        "passante": false,
-        "profondita_mm": 5
+        "length_mm": 400,
+        "width_mm": 400,
+        "through_all": false,
+        "depth_mm": 5
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 4043692 },
-        { "what": "ingombro_mm", "equal_to": [314, 274, 47] },
-        { "what": "corpi", "equal_to": 1 }
+        { "what": "bounding_box_mm", "equal_to": [314, 274, 47] },
+        { "what": "bodies", "equal_to": 1 }
       ]
     }
   ]

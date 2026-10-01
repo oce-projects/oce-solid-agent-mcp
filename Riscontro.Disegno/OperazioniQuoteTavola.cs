@@ -12,7 +12,7 @@ namespace Riscontro.Disegno
     ///
     /// ── PERCHE' ESISTE, E PERCHE' NON SI CHIAMA «IMPORTA» ───────────────
     ///
-    /// `quote_dal_modello` **importa** le quote che il modello ha gia', con
+    /// `model_dimensions` **importa** le quote che il modello ha gia', con
     /// `InsertModelAnnotations*`. Misurato il 18/9/2026: porta **zero**, su un
     /// pezzo con sette quote tutte marcate per il disegno, su **otto** modelli
     /// di tavola diversi (sette di serie piu' quello dell'officina), con cinque
@@ -71,15 +71,15 @@ namespace Riscontro.Disegno
             if (disegno == null)
                 return Fallito(
                     "Il documento attivo non e' una tavola: le quote stanno su una " +
-                    "vista di disegno. Crea prima la tavola con «crea_disegno».");
+                    "vista di disegno. Crea prima la tavola con «create_drawing».");
 
             var nomi = NomiDelleViste(disegno);
             if (nomi.Count == 0)
                 return Fallito(
                     "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
-                    "Metti prima le viste con «viste_standard» o «vista_modello».");
+                    "Metti prima le viste con «standard_views» o «model_view».");
 
-            string voluta = Str(a, "vista", null);
+            string voluta = Str(a, "view", null);
             string motivoVista;
             IView vista = RisolviVista(disegno, nomi, voluta, out motivoVista);
             if (motivoVista != null) return Fallito(motivoVista);
@@ -113,14 +113,14 @@ namespace Riscontro.Disegno
 
             // QUALI SPIGOLI. Senza dirlo si quotano i primi, e quanti si dice.
             var scelti = new List<int>();
-            var elencoChiesto = Lista(a, "spigoli");
+            var elencoChiesto = Lista(a, "edges");
             if (elencoChiesto.Count > 0)
             {
                 foreach (var o in elencoChiesto)
                 {
                     int i;
                     if (!int.TryParse((o ?? "").Trim(), out i))
-                        return Fallito("«spigoli» vuole numeri, e «" + o + "» non lo e'.");
+                        return Fallito("«edges» vuole numeri, e «" + o + "» non lo e'.");
                     if (i < 0 || i >= disponibili)
                         return Fallito(
                             "Lo spigolo " + i + " non c'e': la vista «" + nomeVista +
@@ -130,9 +130,9 @@ namespace Riscontro.Disegno
             }
             else
             {
-                int quante = (int)Num(a, "quante", 4);
+                int quante = (int)Num(a, "count", 4);
                 if (quante <= 0)
-                    return Fallito("«quante» dev'essere almeno 1: zero quote non sono una quota.");
+                    return Fallito("«count» dev'essere almeno 1: zero quote non sono una quota.");
                 for (int i = 0; i < Math.Min(quante, disponibili); i++) scelti.Add(i);
             }
 
@@ -152,8 +152,8 @@ namespace Riscontro.Disegno
                     "quello le quote finirebbero in un punto qualunque — fuori dal " +
                     "foglio, se va male, e senza nessun errore.");
 
-            double distacco = Num(a, "distacco_mm", 12) / 1000.0;
-            double passo = Num(a, "passo_mm", 10) / 1000.0;
+            double distacco = Num(a, "offset_mm", 12) / 1000.0;
+            double passo = Num(a, "pitch_mm", 10) / 1000.0;
 
             // ── COME STA OGNI SPIGOLO SUL FOGLIO ────────────────────────
             //
@@ -175,7 +175,7 @@ namespace Riscontro.Disegno
             if (scala <= 0) scala = 1;
 
             // TUTTI GLI SPIGOLI DELLA VISTA, UNA VOLTA SOLA (voce GT11). I fori e
-            // gli smussi si cercano su tutti, non sui primi «quante»: una
+            // gli smussi si cercano su tutti, non sui primi «count»: una
             // piastra con quattro fori non smette di averli perche' si sono
             // chiesti quattro spigoli.
             var tutti = new List<Spigolo>();
@@ -348,13 +348,13 @@ namespace Riscontro.Disegno
                         // Zanichelli, DISPOSIZIONE DELLE LINEE DI MISURA).
                         // Quindi: orizzontali SOTTO, verticali DI LATO.
                         double x, y;
-                        if (s.Verso == "orizzontale")
+                        if (s.Verso == "horizontal")
                         {
                             x = s.Mezzo;
                             y = contorno[1] - distacco - sotto * passo;
                             sotto++;
                         }
-                        else if (s.Verso == "verticale")
+                        else if (s.Verso == "vertical")
                         {
                             x = contorno[2] + distacco + diLato * passo;
                             y = s.Mezzo;
@@ -394,8 +394,8 @@ namespace Riscontro.Disegno
                         }
 
                         var descritta = DescriviQuota(natura, s.Indice);
-                        descritta["orientamento"] = s.Verso;
-                        descritta["posizione_mm"] = DovEFinita(natura);
+                        descritta["orientation"] = s.Verso;
+                        descritta["position_mm"] = DovEFinita(natura);
                         nate.Add(descritta);
                     }
                     catch (Exception ex)
@@ -468,18 +468,18 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["vista"] = nomeVista,
-                ["spigoli_disponibili"] = disponibili,
-                ["spigoli_provati"] = scelti.Count,
-                ["quote_prima"] = prima,
-                ["quote_dopo"] = dopo,
-                ["quote_messe"] = messe,
+                ["view"] = nomeVista,
+                ["edges_available"] = disponibili,
+                ["edges_tried"] = scelti.Count,
+                ["dimensions_before"] = prima,
+                ["dimensions_after"] = dopo,
+                ["dimensions_placed"] = messe,
                 // OGNI QUOTA COL SUO VALORE RILETTO, in millimetri. E' il pezzo
                 // che distingue questa operazione da una che disegna numeri.
-                ["quote"] = nate.ToArray(),
+                ["dimensions"] = nate.ToArray(),
                 // E LE STESSE MISURE IN FILA, SENZA L'ORDINE.
                 //
-                // `quote[0].mm` costringe chi prova a sapere **in che ordine**
+                // `dimensions[0].mm` costringe chi prova a sapere **in che ordine**
                 // la vista elenca i suoi spigoli — un ordine che nessuno
                 // dichiara, e che cambia col pezzo. Il 18/9/2026 un caso di
                 // banco e' stato scritto su `quote[0]` e `quote[2]` prendendo i
@@ -491,8 +491,8 @@ namespace Riscontro.Disegno
                 // SOLIDWORKS cambia l'ordine.
                 // *Un'attesa che dipende da un ordine non dichiarato misura
                 // l'ordine, non la cosa.*
-                ["quote_mm"] = MillimetriInFila(nate),
-                ["spigoli_non_quotati"] = falliti.ToArray(),
+                ["dimensions_mm"] = MillimetriInFila(nate),
+                ["edges_not_dimensioned"] = falliti.ToArray(),
 
                 // ── FORI, SMUSSI, E CIO' CHE ERA GIA' QUOTATO (voce GT11) ──
                 //
@@ -501,25 +501,25 @@ namespace Riscontro.Disegno
                 // comparivano in due viste. Le attese del banco erano tutte
                 // verdi, perche' chiedevano i millimetri delle quote messe —
                 // non se la tavola basta a fare il pezzo.
-                ["fori"] = fori.ToArray(),
-                ["fori_nella_tabella_fori"] = foriNellaTabella > 0 ? (object)foriNellaTabella : null,
+                ["holes"] = fori.ToArray(),
+                ["holes_in_hole_table"] = foriNellaTabella > 0 ? (object)foriNellaTabella : null,
                 // I CERCHI CHE NON SONO FORI (26/9/2026): il contorno di un pezzo
                 // tondo ha una quota di diametro, non un richiamo; un cerchio visto
                 // di taglio non si quota da qui.
-                ["diametri_esterni"] = diametriEsterni.ToArray(),
-                ["bordi_non_quotati"] = bordiNonQuotati.ToArray(),
-                ["cerchi_di_taglio"] = diTaglio.ToArray(),
+                ["outer_diameters"] = diametriEsterni.ToArray(),
+                ["borders_not_dimensioned"] = bordiNonQuotati.ToArray(),
+                ["cut_circles"] = diTaglio.ToArray(),
                 // IL TONDO VISTO DI FIANCO (voce GT14): lunghezze in parallelo dalla
                 // prima faccia, diametri dalle generatrici; e i diametri che la
                 // vista non espone, detti.
-                ["tondo_asse"] = tondo?.Asse,
-                ["tondo_lunghezze_mm"] = tondo == null ? null : tondo.Lunghezze.ToArray(),
-                ["tondo_diametri_mm"] = tondo == null ? null : tondo.Diametri.ToArray(),
-                ["tondo_diametri_non_raggiunti"] = tondo == null ? null : tondo.NonRaggiunti.ToArray(),
-                ["tondo_note"] = tondo == null ? null : tondo.Note.ToArray(),
-                ["tondo_generatrici_senza_faccia"] = tondo == null ? null : (object)tondo.GeneratriciSenzaFaccia,
-                ["smussi"] = smussi.ToArray(),
-                ["gia_quotate_altrove"] = altrove.ToArray(),
+                ["round_axis"] = tondo?.Asse,
+                ["round_lengths_mm"] = tondo == null ? null : tondo.Lunghezze.ToArray(),
+                ["round_diameters_mm"] = tondo == null ? null : tondo.Diametri.ToArray(),
+                ["round_diameters_not_reached"] = tondo == null ? null : tondo.NonRaggiunti.ToArray(),
+                ["round_notes"] = tondo == null ? null : tondo.Note.ToArray(),
+                ["round_generatrices_without_face"] = tondo == null ? null : (object)tondo.GeneratriciSenzaFaccia,
+                ["chamfers"] = smussi.ToArray(),
+                ["already_dimensioned_elsewhere"] = altrove.ToArray(),
                 // WHAT «ALREADY DIMENSIONED» WAS READ FROM (Z-C21.2, findings N43 and
                 // C8-2). «every sheet» when IDrawingDoc.GetViews handed over the views
                 // of all the sheets, «current sheet only» when it did not and the walk
@@ -533,7 +533,7 @@ namespace Riscontro.Disegno
                     (existingRead.Complete ? "" : ", interrupted: some views were not read"),
                 ["hidden_dimensions_not_counted"] = existingRead.Complete ? (object)existingRead.HiddenByHand : null,
                 ["views_of_other_models_not_counted"] = existingRead.Complete ? (object)existingRead.ViewsOfAnotherModel : null,
-                ["spigoli_dello_smusso"] = diSmusso.ToArray(),
+                ["chamfer_edges"] = diSmusso.ToArray(),
 
                 // ── I DOPPIONI SI DICONO, NON SI NASCONDONO ─────────────
                 //
@@ -543,33 +543,33 @@ namespace Riscontro.Disegno
                 // elemento dell'oggetto deve essere quotato non piu' di una
                 // volta» (UNI ISO 129-1, scheda Sammarone/Zanichelli), e
                 // 120/10/120/10 e' quotatura ripetuta — «quindi errata».
-                ["spigoli_scartati_doppioni"] = doppioni.ToArray(),
+                ["edges_discarded_duplicates"] = doppioni.ToArray(),
 
                 // IL CONTORNO PRIMA E DOPO. Non e' accertato che `GetOutline()`
                 // cresca con le annotazioni attaccate alla vista: se i due
                 // numeri differiscono, cresce, e chi mettera' altre quote dopo
                 // di noi deve saperlo invece di scoprirlo.
-                ["contorno_vista_mm"] = InMillimetri(contorno),
-                ["contorno_vista_dopo_mm"] = InMillimetri(dopoContorno),
+                ["contour_view_mm"] = InMillimetri(contorno),
+                ["contour_view_after_mm"] = InMillimetri(dopoContorno),
                 // IL CONFRONTO LO FA IL CODICE, non chi scrive l'attesa. Un
                 // caso di banco puo' pretendere un valore, non paragonare due
                 // campi fra loro: mettere qui il paragone gia' fatto e' l'unico
                 // modo perche' diventi una riga verificabile.
-                ["contorno_cresciuto"] = ContornoCresciuto(contorno, dopoContorno),
+                ["contour_grown"] = ContornoCresciuto(contorno, dopoContorno),
                 // A WALK THAT BROKE OFF IS «NOT KNOWN» (Z-C21.8, finding N47):
                 // TestiDelleQuote gives null then, and the three fields are null,
                 // not the count of the texts read before the break.
-                ["testi_letti"] = testiDelleQuote == null ? null : (object)testiDelleQuote.Count,
-                ["testi_che_si_accavallano"] = accavallati == null ? null : accavallati.ToArray(),
+                ["texts_read"] = testiDelleQuote == null ? null : (object)testiDelleQuote.Count,
+                ["overlapping_texts"] = accavallati == null ? null : accavallati.ToArray(),
                 // Nessun testo letto su una tavola con quote e' «non lo so», non
                 // «nessuno si accavalla» (revisione del 26/9/2026).
-                ["quanti_testi_si_accavallano"] = testiDelleQuote == null || accavallati == null ||
+                ["how_many_texts_overlap"] = testiDelleQuote == null || accavallati == null ||
                                                   (testiDelleQuote.Count == 0 && dopo > 0)
                     ? null : (object)accavallati.Count,
-                ["distacco_usato_mm"] = Math.Round(distacco * 1000, 2),
-                ["passo_usato_mm"] = Math.Round(passo * 1000, 2),
+                ["offset_used_mm"] = Math.Round(distacco * 1000, 2),
+                ["pitch_used_mm"] = Math.Round(passo * 1000, 2),
 
-                ["dove_le_ho_messe"] =
+                ["where_placed"] =
                     "FUORI dalla sagoma della vista, in coordinate foglio: le " +
                     "orizzontali sotto, le verticali di lato, le oblique a sinistra, " +
                     "in ordine crescente allontanandosi dal pezzo. Viene da due " +
@@ -584,14 +584,14 @@ namespace Riscontro.Disegno
                     "tabella fori), attaccata al foro piu' vicino al lato della quota; gli " +
                     "smussi con la quota da smusso, fuori dal pezzo dalla parte dello smusso.",
 
-                ["cosa_non_guarda"] =
+                ["what_it_does_not_check"] =
                     "QUALI quote servono, e se bastano. La norma distingue quote " +
                     "funzionali, non funzionali e ausiliarie, e una quota funzionale " +
                     "non si deve dedurre da altre: quello lo sa il progettista. So " +
                     "dire quante ne ho messe, non se il pezzo e' definito.\n" +
                     "Il TESTO delle quote lo guardo (dal 26/9/2026): il suo rettangolo " +
                     "vero, letto da SOLIDWORKS, contro gli altri testi della tavola e le " +
-                    "linee del pezzo in questa vista — «testi_che_si_accavallano». Non " +
+                    "linee del pezzo in questa vista — «overlapping_texts». Non " +
                     "guardo le linee di misura e di richiamo, ne' il cartiglio. " +
                     "E non guardo: se una quota di posizione dei fori andava presa da un " +
                     "altro riferimento funzionale (prendo i bordi); quale sistema " +
@@ -617,7 +617,7 @@ namespace Riscontro.Disegno
         private sealed class Spigolo
         {
             public int Indice;
-            /// <summary>«orizzontale», «verticale» oppure «obliquo».</summary>
+            /// <summary>«horizontal», «vertical» oppure «obliquo».</summary>
             public string Verso;
             /// <summary>Il centro della proiezione, in coordinate foglio.</summary>
             public double Mezzo;
@@ -708,12 +708,12 @@ namespace Riscontro.Disegno
                 double a0, a1;
                 if (Math.Abs(dy) / lung < SOGLIA)
                 {
-                    s.Verso = "orizzontale";
+                    s.Verso = "horizontal";
                     a0 = Math.Min(daV[0], aV[0]); a1 = Math.Max(daV[0], aV[0]);
                 }
                 else if (Math.Abs(dx) / lung < SOGLIA)
                 {
-                    s.Verso = "verticale";
+                    s.Verso = "vertical";
                     a0 = Math.Min(daV[1], aV[1]); a1 = Math.Max(daV[1], aV[1]);
                 }
                 else
@@ -838,7 +838,7 @@ namespace Riscontro.Disegno
         /// another sheet (one part per sheet is the common layout) a different
         /// plate 120 long from the origin has the same key as this one: its 120
         /// would silently take this part's 120 away. A view whose model and
-        /// configuration differ from those of <paramref name="vista"/> is left
+        /// configuration differ from those of <paramref name="view"/> is left
         /// out; one that does not say counts, as every view of the current
         /// sheet did (ApiHelpers.MayShowTheSameModel).
         ///
@@ -1193,13 +1193,13 @@ namespace Riscontro.Disegno
                                 (tolta ? ": l'ho tolta)" : ": toglila)"));
                     continue;
                 }
-                descritta["orientamento"] = "diametro esterno";
-                descritta["posizione_mm"] = DovEFinita(q);
+                descritta["orientation"] = "outer diameter";
+                descritta["position_mm"] = DovEFinita(q);
                 if (q != null) nate.Add(descritta);
                 else RecordBornWithoutObject(nate, descritta, falliti,
                     "external diameter Ø" + dm + " (the dimension was born but SOLIDWORKS did not hand it back: " +
                     "its value was not read back, check it on the sheet)");
-                diametri.Add(new Dictionary<string, object> { ["diametro_mm"] = Math.Round(c.DiametroMm, 2), ["diametro_riletto_mm"] = letto });
+                diametri.Add(new Dictionary<string, object> { ["diameter_mm"] = Math.Round(c.DiametroMm, 2), ["diameter_reread_mm"] = letto });
                 gia.Add(chiave);
                 if (suo != null) gia.Add(suo);
                 n++;
@@ -1346,7 +1346,7 @@ namespace Riscontro.Disegno
                 // Dimension is a Hole Callout» (VBA) reads the prefix and the suffix
                 // of a hole callout with it, and the suffix below is read that way
                 // since 26/9/2026. So the prefix is read again after writing it:
-                // «quanti» stays the number of holes in the group (the geometry),
+                // «how_many» stays the number of holes in the group (the geometry),
                 // «prefix_read» is what the sheet says, and a count that did not
                 // stick is a failure. Until library 0.140.0 the answer said
                 // quanti = 4 whatever the callout carried, and the shop would have
@@ -1375,8 +1375,8 @@ namespace Riscontro.Disegno
                     catch { }
                 }
                 var descritto = DescriviQuota(richiamo, capo.Indice);
-                descritto["orientamento"] = come;
-                descritto["posizione_mm"] = DovEFinita(richiamo);
+                descritto["orientation"] = come;
+                descritto["position_mm"] = DovEFinita(richiamo);
                 if (richiamo != null) nate.Add(descritto);
                 else RecordBornWithoutObject(nate, descritto, falliti,
                     "holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the " + (fellBack ? "diameter dimension" : "hole callout") +
@@ -1405,24 +1405,24 @@ namespace Riscontro.Disegno
                                 ", ma la quota non porta la profondita': in officina si forerebbe passante)");
                 fori.Add(new Dictionary<string, object>
                 {
-                    ["diametro_mm"] = g.Key.Item1,
-                    ["quanti"] = g.Value.Count,
+                    ["diameter_mm"] = g.Key.Item1,
+                    ["how_many"] = g.Value.Count,
                     // The prefix as read back after writing «N×» (N48): the count on
                     // the sheet, next to the count of the geometry above.
                     ["prefix_read"] = prefixRead,
-                    ["come"] = come,
-                    ["diametro_riletto_mm"] = descritto.ContainsKey("mm") ? descritto["mm"] : null,
+                    ["how"] = come,
+                    ["diameter_reread_mm"] = descritto.ContainsKey("mm") ? descritto["mm"] : null,
                     // Null, not false, for a callout born without its object (N80):
                     // its suffix was never read.
-                    ["passante"] = richiamo == null ? null : come == "richiamo del foro" ? (object)passante : capo.Passante,
-                    ["profondita_mm"] = profondita,
-                    ["profondita_da"] = profonditaDa,
-                    ["suffisso_del_richiamo"] = richiamo == null ? null : suffisso,
+                    ["through_all"] = richiamo == null ? null : come == "richiamo del foro" ? (object)passante : capo.Passante,
+                    ["depth_mm"] = profondita,
+                    ["depth_from"] = profonditaDa,
+                    ["callout_suffix"] = richiamo == null ? null : suffisso,
                     // LA STESSA COSA LETTA DALLA GEOMETRIA, sempre: il cilindro del
                     // foro e il suo altro cerchio. Accanto a quella del richiamo, per
                     // chi vuole confrontarle.
-                    ["passante_dalla_geometria"] = capo.Passante,
-                    ["profondita_dalla_geometria_mm"] = double.IsNaN(capo.ProfonditaMm) ? null : (object)capo.ProfonditaMm,
+                    ["through_all_from_geometry"] = capo.Passante,
+                    ["depth_from_geometry_mm"] = double.IsNaN(capo.ProfonditaMm) ? null : (object)capo.ProfonditaMm,
                 });
                 gia.Add(chiave);
                 foreach (var k in suoi) gia.Add(k);
@@ -1439,12 +1439,12 @@ namespace Riscontro.Disegno
             foreach (var s in tutti)
             {
                 if (s.DiSmusso != null) continue;
-                if (s.Verso == "verticale")
+                if (s.Verso == "vertical")
                 {
                     double x = s.DaFoglio[0];
                     if (sx == null || x < sx.DaFoglio[0] - 1e-6 || (Math.Abs(x - sx.DaFoglio[0]) < 1e-6 && s.Lunghezza > sx.Lunghezza)) sx = s;
                 }
-                else if (s.Verso == "orizzontale")
+                else if (s.Verso == "horizontal")
                 {
                     double y = s.DaFoglio[1];
                     if (giu == null || y < giu.DaFoglio[1] - 1e-6 || (Math.Abs(y - giu.DaFoglio[1]) < 1e-6 && s.Lunghezza > giu.Lunghezza)) giu = s;
@@ -1560,12 +1560,12 @@ namespace Riscontro.Disegno
             // A quota null here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80):
             // described with its value unknown, see RecordBornWithoutObject.
             var descritta = DescriviQuota(quota, foro.Indice);
-            descritta["orientamento"] = orizzontale ? "posizione orizzontale del foro" : "posizione verticale del foro";
-            descritta["posizione_mm"] = DovEFinita(quota);
+            descritta["orientation"] = orizzontale ? "posizione orizzontale del foro" : "posizione verticale del foro";
+            descritta["position_mm"] = DovEFinita(quota);
             object mm;
             if (descritta.TryGetValue("mm", out mm) && mm != null &&
                 Math.Abs(Convert.ToDouble(mm, Ci) - attesoMm) > 0.05)
-                descritta["attenzione"] = "vale " + Convert.ToDouble(mm, Ci).ToString("0.##", Ci) + " invece di " +
+                descritta["warning"] = "vale " + Convert.ToDouble(mm, Ci).ToString("0.##", Ci) + " invece di " +
                                           attesoMm.ToString("0.##", Ci) + ": forse misura al bordo del foro e non al centro";
             if (quota != null) nate.Add(descritta);
             else RecordBornWithoutObject(nate, descritta, falliti,
@@ -1639,8 +1639,8 @@ namespace Riscontro.Disegno
                 // dimension is there and its two values cannot be read: the reads
                 // below fail inside their try, and angle, side and width stay null.
                 var descritta = DescriviQuota(quota, s.Indice);
-                descritta["orientamento"] = "quota da smusso";
-                descritta["posizione_mm"] = DovEFinita(quota);
+                descritta["orientation"] = "chamfer dimension";
+                descritta["position_mm"] = DovEFinita(quota);
 
                 // LA QUOTA DA SMUSSO E' FATTA DI DUE QUOTE, e la prima e'
                 // L'ANGOLO. Misurato il 25/9/2026: GetDimension2(0) = 0,785 rad
@@ -1669,10 +1669,10 @@ namespace Riscontro.Disegno
                 descritta["mm"] = lato;
                 var riga = new Dictionary<string, object>
                 {
-                    ["lavorazione"] = s.DiSmusso,
-                    ["lato_mm"] = lato,
-                    ["angolo_gradi"] = angolo.HasValue ? (object)Math.Round(angolo.Value * 180.0 / Math.PI, 2) : null,
-                    ["larghezza_faccia_mm"] = larghezza.HasValue ? (object)Math.Round(larghezza.Value * 1000.0, 3) : null,
+                    ["feature"] = s.DiSmusso,
+                    ["leg_mm"] = lato,
+                    ["angle_deg"] = angolo.HasValue ? (object)Math.Round(angolo.Value * 180.0 / Math.PI, 2) : null,
+                    ["face_width_mm"] = larghezza.HasValue ? (object)Math.Round(larghezza.Value * 1000.0, 3) : null,
                 };
                 smussi.Add(riga);
                 if (quota != null) nate.Add(descritta);
@@ -1791,7 +1791,7 @@ namespace Riscontro.Disegno
         /// one that grew goes on as the others, described through
         /// <see cref="DescriviQuota"/> with null (as the edge dimensions of
         /// QuotaInTavola always were), and here it gets its row and a line of
-        /// «spigoli_non_quotati» saying that its values were not read back.
+        /// «edges_not_dimensioned» saying that its values were not read back.
         /// Until library 0.144.0 the other call sites asked «null or not grown»
         /// and took such a dimension for missing: the hole callout then fell
         /// back to a diameter dimension on the same hole, two annotations for
@@ -1818,7 +1818,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private static Dictionary<string, object> DescriviQuota(IDisplayDimension d, int spigolo)
         {
-            var fuori = new Dictionary<string, object> { ["spigolo"] = spigolo };
+            var fuori = new Dictionary<string, object> { ["edge"] = spigolo };
             if (d == null)
             {
                 // La quota c'e' — il conteggio e' salito — ma l'oggetto non e'
@@ -1826,7 +1826,7 @@ namespace Riscontro.Disegno
                 // piu' corto del conteggio farebbe cercare un difetto che non
                 // c'e'. Every call that places a dimension can end here (N80), not
                 // only AddDimension, so the text names none.
-                fuori["nome"] = "(born, but the call that placed it did not hand the object back)";
+                fuori["name"] = "(born, but the call that placed it did not hand the object back)";
                 fuori["mm"] = null;   // not read, not zero
                 return fuori;
             }
@@ -1835,7 +1835,7 @@ namespace Riscontro.Disegno
                 var dim = d.GetDimension2(0) as IDimension;
                 if (dim != null)
                 {
-                    try { fuori["nome"] = dim.FullName; } catch { }
+                    try { fuori["name"] = dim.FullName; } catch { }
                     try { fuori["mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000, 3); } catch { }
                 }
             }
@@ -1884,8 +1884,8 @@ namespace Riscontro.Disegno
         /// una sola installazione. L'identificativo dello stato no: V1 e' la
         /// prima vista del foglio, nello stesso ordine in cui lo stato le
         /// elenca. Un nome vero vince sempre: se una vista si chiama «V2», e'
-        /// quella. Estratto da `quota_in_tavola` il 26/9/2026: lo usa anche
-        /// `tabella_fori_in_tavola`, e due copie divergono.
+        /// quella. Estratto da `drawing_dimension` il 26/9/2026: lo usa anche
+        /// `hole_table`, e due copie divergono.
         /// </summary>
         private static IView RisolviVista(IDrawingDoc disegno, List<string> nomi, string voluta, out string motivo)
         {
@@ -1919,7 +1919,7 @@ namespace Riscontro.Disegno
         {
             try
             {
-                // La prima «vista» e' il FOGLIO: le viste vere cominciano dopo.
+                // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
                 var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
                 if (string.IsNullOrWhiteSpace(voluta)) return v;
                 while (v != null)

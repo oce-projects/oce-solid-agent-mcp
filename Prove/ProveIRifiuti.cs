@@ -70,20 +70,20 @@ namespace Prove.Contratti
         /// come un risultato, e la volta dopo nessuno controlla.
         ///
         /// **84 dal 24/9/2026, e stavolta e' lavoro vero.** Togliendo il
-        /// ripiego cablato alla libreria dei profili, `profili_saldatura` ha
+        /// ripiego cablato alla libreria dei profili, `weldment_profiles` ha
         /// guadagnato un rifiuto che distingue «non so dove sia» da «non c'e'»
         /// e dice quale variabile impostare. Prima i due casi davano lo stesso
         /// messaggio, con un percorso vuoto fra virgolette.
         ///
-        /// **85 dal 24/9/2026 sera (libreria 0.113.0).** `modifica_quota` ha un
+        /// **85 dal 24/9/2026 sera (libreria 0.113.0).** `set_dimension` ha un
         /// rifiuto nuovo — l'apertura che esce dal materiale (voce E18 c) — e
         /// dice la strada: «sposta prima l'apertura, poi cambia la quota».
         ///
-        /// **87 con le operazioni nuove della stessa versione**: `flangia_base`
-        /// («allunga il tratto o stringi il raggio») e `sviluppo_dxf` («salvalo
+        /// **87 con le operazioni nuove della stessa versione**: `base_flange`
+        /// («allunga il tratto o stringi il raggio») e `flat_pattern_dxf` («salvalo
         /// prima»).
         ///
-        /// **88 dal 25/9/2026 (libreria 0.114.0)**: `cordone_saldatura`
+        /// **88 dal 25/9/2026 (libreria 0.114.0)**: `weld_bead`
         /// riscritto su due facce, coi rifiuti nuovi che dicono quale faccia
         /// indicare invece.
         ///
@@ -104,93 +104,93 @@ namespace Prove.Contratti
         /// onesto abbassa il numero, e va scritto per la stessa ragione.*
         ///
         /// **76 dal 26/9/2026 (libreria 0.121.0):** il rifiuto nuovo di
-        /// `modifica_quota` sullo smusso o il raccordo che non ci sta piu' dice
+        /// `set_dimension` sullo smusso o il raccordo che non ci sta piu' dice
         /// la strada («cambia o togli prima lo smusso o il raccordo, poi la
         /// quota»).
         ///
-        /// **77 dal 26/9/2026 (libreria 0.122.0):** `flangia_spigolo` rifiuta
+        /// **77 dal 26/9/2026 (libreria 0.122.0):** `edge_flange` rifiuta
         /// una flangia senza niente di dritto dicendo fin dove si puo' scendere.
-        /// **78, stessa libreria:** `orlo` rifiuta un aperto senza gioco dicendo
-        /// che senza gioco si chiama «chiuso».
-        /// **79 dalla libreria 0.123.0:** `piega_da_schizzo` rifiuta i 180 gradi
-        /// nominando «orlo».
-        /// **81 dalla libreria 0.124.0:** `tabella_fori_in_tavola` dice su quale
-        /// vista va (V2) e cosa fare della doppia quotatura; `quota_in_tavola`
+        /// **78, stessa libreria:** `hem` rifiuta un aperto senza gioco dicendo
+        /// che senza gioco si chiama «closed».
+        /// **79 dalla libreria 0.123.0:** `sketched_bend` rifiuta i 180 gradi
+        /// nominando «hem».
+        /// **81 dalla libreria 0.124.0:** `hole_table` dice su quale
+        /// vista va (V2) e cosa fare della doppia quotatura; `drawing_dimension`
         /// nomina la tabella fori fra le cose gia' quotate.
         /// **89, stessa libreria:** le tre annotazioni (rugosita', datum,
         /// tolleranza geometrica) dicono cosa fare per ogni rifiuto — la lettera
         /// libera, togliere il riferimento, mettere il datum prima.
-        /// **90, libreria 0.125.0:** `vista_sviluppo` su un pezzo che non e' di
+        /// **90, libreria 0.125.0:** `flat_pattern_view` su un pezzo che non e' di
         /// lamiera dice che non c'e' uno sviluppo da mettere in tavola. **93:**
-        /// `saldatura_in_tavola` dice su quale vista provare quando il giunto non
+        /// `drawing_weld_symbol` dice su quale vista provare quando il giunto non
         /// si vede, e toglie da se' il simbolo nato sbagliato (o dice di toglierlo).
         /// **94:** la distinta in tavola senza posto dice di nascondere colonne o
         /// di togliere x/y e lasciar scegliere il posto. **98:** le lettere di
         /// sezioni e dettagli («Usa un'altra lettera»), le croci (i raccordi:
         /// «Chiedi fori»; un foro senza croce: l'opzione del documento) e
-        /// `tolleranza_quota` («Scegli un grado fra 5 e 11», l'esempio della
+        /// `dimension_tolerance` («Scegli un grado fra 5 e 11», l'esempio della
         /// bilaterale). **100:** dalla revisione avversariale — la quota angolare
         /// («Scegli una quota lineare») e la quota non mostrata («mostra la quota»).
         /// **106:** GT9 — la distinta base e la bollatura dicono cosa mettere prima
         /// (la vista di un assieme, la distinta prima della bollatura) e cosa usare
         /// per un saldato. **108:** Z-D1/Z-D6 — un documento che non e' ne' pezzo
         /// ne' assieme («Aprimi il pezzo o l'assieme»), lo STL di un assieme («usa
-        /// esporta_step»), la rilettura dello STEP d'assieme («toglilo e richiedimelo»).
-        /// **109:** Z-D5 — `fissa_componente` fuori da un assieme («Aprimi l'assieme»).
-        /// **116:** Z-F1 — `variabile_globale` e `lega_quota`: il nome fatto male (con
+        /// export_step»), la rilettura dello STEP d'assieme («toglilo e richiedimelo»).
+        /// **109:** Z-D5 — `fix_component` fuori da un assieme («Aprimi l'assieme»).
+        /// **116:** Z-F1 — `global_variable` e `link_dimension`: il nome fatto male (con
         /// gli esempi), valore o espressione, il nome gia' preso («usa parete»), la
-        /// variabile che non esiste («creala con variabile_globale»), il pezzo da aprire.
-        /// **119:** Z-F3 — `riordina_lavorazione`: lo spostamento impossibile («spostala
+        /// variabile che non esiste («creala con global_variable»), il pezzo da aprire.
+        /// **119:** Z-F3 — `reorder_feature`: lo spostamento impossibile («spostala
         /// rispetto a una lavorazione che viene dopo»), i nomi mancanti, il pezzo.
-        /// **122:** Z-F5 — `immagine_nello_schizzo`: il PDF («convertilo in PNG»),
+        /// **122:** Z-F5 — `sketch_picture`: il PDF («convertilo in PNG»),
         /// il file che non e' un'immagine («PNG, JPG…»), l'immagine da risalvare.
-        /// **125:** GA11 — `specchia_componente`: il modo che manca (spiega i tre), fuori
+        /// **125:** GA11 — `mirror_component`: il modo che manca (spiega i tre), fuori
         /// da un assieme («c'e' specchia»), il file che c'e' gia' («cambia suffisso»).
-        /// **128:** Z-F4 — `cambia_estrusione`: la lavorazione che non e' un'estrusione
-        /// («c'e' modifica_quota»), «passante» su un'estrusione («dimmi profondita_mm»),
+        /// **128:** Z-F4 — `edit_extrusion`: la lavorazione che non e' un'estrusione
+        /// («c'e' set_dimension»), «through_all» su un'estrusione («dimmi depth_mm»),
         /// passante o profondita'.
         /// **145 dalla voce Z-C21.2 (28/9/2026, ramo z-c21-2-difetti-silenziosi):**
         /// i difetti silenziosi diventati rifiuti dicono la strada — la quota di
         /// sola lettura («togli prima la sola lettura»), la guidata («cambia
-        /// invece la quota che la guida»), cambia_estrusione a due versi
-        /// («cambiala a mano, oppure… modifica_quota»), concentrico e tangente
+        /// invece la quota che la guida»), edit_extrusion a due versi
+        /// («cambiala a mano, oppure… set_dimension»), concentrico e tangente
         /// (coincidente, parallelo… con le facce piane), la griglia in
-        /// sopprimi_istanza («fai la ripetizione con una direzione sola»),
+        /// suppress_instance («fai la ripetizione con una direzione sola»),
         /// l'ancora su una faccia curva («togli ancora e dai x_mm e y_mm») e
         /// sullo spigolo che non si lascia guardare («ancoralo a un altro
         /// spigolo»), il foro fuori dal pezzo. Nove in piu' secondo il
         /// rilevatore: il numero l'ha dato il controllo, l'elenco qui sopra e'
         /// quello dei messaggi nuovi e non una corrispondenza uno a uno.
         /// **146, stessa voce, dopo la revisione:** meno due — i rifiuti intermedi di
-        /// `foro_guidato` (prima del posizionamento) non ci sono piu', e contavano
+        /// `hole_wizard` (prima del posizionamento) non ci sono piu', e contavano
         /// solo perche' «TogliIlTaglio» contiene «togli» — e piu' tre: in
-        /// `combina_corpi` uid e `_rif` dati insieme («togli uno dei due»), e il
-        /// passo di `corpo_principale_rif` che lascia piu' corpi («nominalo con
-        /// «corpo_principale_uid»»).
+        /// `combine_bodies` uid e `_ref` dati insieme («togli uno dei due»), e il
+        /// passo di `main_body_ref` che lascia piu' corpi («nominalo con
+        /// «main_body_uid»»).
         /// **213 dalle quattro lavorazioni della guida (28/9/2026, ramo
         /// quattro-lavorazioni):** +67, quanto ha contato il controllo sull'albero
         /// unito, e torna con la somma delle repliche dei quattro scrittori file per
-        /// file. **+15, voce GP7 (`raccordo_faccia`):** la stessa faccia due volte e
-        /// le facce parallele indicano «raccordo_spigoli»; il raccordo che non nasce,
+        /// file. **+15, voce GP7 (`fillet_face`):** la stessa faccia due volte e
+        /// le facce parallele indicano «fillet_edges»; il raccordo che non nasce,
         /// che nasce di un altro tipo, che rompe qualcosa o che non cambia il volume
-        /// dice di provare un raggio piu' piccolo o «raccordo_spigoli». **+18, voce
-        /// W1.1 (`ripeti_riempimento`):** la direzione che manca («indica uno spigolo
-        /// dritto… oppure… crea_asse»), la faccia non piana, la direzione fuori dalla
-        /// faccia, il passo e le copie per giro, e il NULL che nomina ripeti_lineare /
-        /// ripeti_circolare. **+10, voce W1.2 (`nervatura`):** l'estremo fuori dal
+        /// dice di provare un raggio piu' piccolo o «fillet_edges». **+18, voce
+        /// W1.1 (`fill_pattern`):** la direzione che manca («indica uno spigolo
+        /// dritto… oppure… create_axis»), la faccia non piana, la direzione fuori dalla
+        /// faccia, il passo e le copie per giro, e il NULL che nomina linear_pattern /
+        /// circular_pattern. **+10, voce W1.2 (`rib`):** l'estremo fuori dal
         /// piano, la linea troppo corta, la nervatura che non nasce in nessun verso
-        /// («estrudi_su_faccia»), il piano da dire. **+24, voce GP20 (`fazzoletto`):**
+        /// («extrude_on_face»), il piano da dire. **+24, voce GP20 (`gusset`):**
         /// i rifiuti nuovi nominano l'alternativa — indica le facce, usa il
         /// triangolare, togli la posizione, prova lati piu' corti,
-        /// «cordone_saldatura».
+        /// «weld_bead».
         /// **216 dalla correzione della revisione (stesso ramo):** +3. Il raccordo
         /// di faccia che toglie un volume diverso dal conto a mano nomina
-        /// «raccordo_spigoli»; la nervatura che, fallendo, lascia nell'albero una
-        /// lavorazione che non e' una «Rib» nomina «estrudi_su_faccia»; il
+        /// «fillet_edges»; la nervatura che, fallendo, lascia nell'albero una
+        /// lavorazione che non e' una «Rib» nomina «extrude_on_face»; il
         /// fazzoletto nato di un tipo diverso da «Gusset» nomina lati piu' corti e
-        /// «cordone_saldatura».
+        /// «weld_bead».
         /// **217, Z-C21.2-ter:** +1, and it is the detector, not a better message:
-        /// the new refusal of «specchia_componente» for a mirror born with the wrong
+        /// the new refusal of «mirror_component» for a mirror born with the wrong
         /// orientation ends with the call that removes the mirror, and the name of
         /// that helper holds a remedy word, like the other refusals of that file
         /// that remove it.
@@ -207,10 +207,10 @@ namespace Prove.Contratti
         /// this branch 230. So +6 is the detector learning the English that
         /// earlier lots had already written, and +7 is this branch: the refusals
         /// that now say «ask again», «remove it», «try again», «give in
-        /// «asse_uid»», «write one of the four», «undo the step».
+        /// «axis_uid»», «write one of the four», «undo the step».
         /// **232, Z-C21.4 and Z-C21.5 (branch z-c21-4-5): +2.** New refusals of
         /// this branch that say what to do, such as the configuration check of
-        /// «inserisci_componente» («insert it without a configuration name, or
+        /// «insert_component» («insert it without a configuration name, or
         /// open the file again and retry»).
         /// **234, Z-C21.11 (branch z-c21-11): +2.** New refusals of lightweight
         /// components that say what to do (the mass: «Resolve them in SOLIDWORKS,
@@ -229,7 +229,7 @@ namespace Prove.Contratti
         /// of 25/9/2026 (library 0.117.0, still Italian) 75 and 75 of 578, the
         /// same percentage. A check below keeps it so.
         /// **238, merge of W3.1-bis.2 with Z-C14 (1/10/2026): +2.** Z-C14 added two
-        /// refusals of `accoppia` (a face not found again after the test of the
+        /// refusals of `mate` (a face not found again after the test of the
         /// directions) that named no remedy: the share net of W3.1-bis.2 caught
         /// them on the merge (236 of 937 under 236 of 935), and both now end with
         /// «ask for the mate once more».

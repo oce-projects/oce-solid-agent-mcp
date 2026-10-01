@@ -4,13 +4,13 @@
   "why": "Un profilo cavo: la corona da R20 a R10 alta 30. E' il caso in cui il profilo non tocca l'asse, e il solido che ne esce e' un tubo -- se il contorno venisse chiuso sull'asse uscirebbe un cilindro pieno, e il volume lo direbbe.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "rivoluzione",
-      "arguments": { "piano": "frontale", "angolo_gradi": 360,
-                     "asse": [[0, 0], [30, 0]],
-                     "contorni": [[[0, 10], [0, 20], [30, 20], [30, 10]]] },
+    { "operation": "revolve",
+      "arguments": { "plane": "front", "angle_deg": 360,
+                     "axis": [[0, 0], [30, 0]],
+                     "contours": [[[0, 10], [0, 20], [30, 20], [30, 10]]] },
       "expect": [
         { "what": "volume_mm3", "equal_to": 28274.334, "tolerance": 0.5,
           "tolerance_why": "pi*(20^2 - 10^2)*30: il conto ha pi dentro" },
-        { "what": "corpi", "equal_to": 1 } ] }
+        { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

@@ -5,7 +5,7 @@ namespace Riscontro.Disegno.Catalogo
     /// <summary>Una voce del catalogo: cosa si puo' chiedere, e come si scrive.</summary>
     public sealed class OperazioneDisegno
     {
-        /// <summary>Il nome esatto, quello che va in `disegna`.</summary>
+        /// <summary>Il nome esatto, quello che va in `build`.</summary>
         public string Nome;
 
         /// <summary>A quale famiglia appartiene.</summary>
@@ -29,14 +29,14 @@ namespace Riscontro.Disegno.Catalogo
         public string Precondizione;
 
         /// <summary>
-        /// SU CHE DOCUMENTO GIRA: «parte», «assieme», «tavola» — o piu'
-        /// d'uno separati da una barra, «qualunque» se va su tutti,
-        /// «nessuno» se non tocca il documento attivo (voce Z-D0-ter).
+        /// SU CHE DOCUMENTO GIRA: «part», «assembly», «drawing» — o piu'
+        /// d'uno separati da una barra, «any» se va su tutti,
+        /// «none» se non tocca il documento attivo (voce Z-D0-ter).
         ///
         /// ── PERCHE' NON BASTA LA FAMIGLIA ────────────────────────────
         ///
-        /// La famiglia e' un'approssimazione, e `verifiche` lo dimostra da
-        /// sola: `cartiglio` vuole una TAVOLA, `verifica_interferenze` un
+        /// La famiglia e' un'approssimazione, e `checks` lo dimostra da
+        /// sola: `title_block` vuole una TAVOLA, `interference_check` un
         /// ASSIEME, e le altre sei una PARTE. Tre documenti diversi sotto
         /// la stessa etichetta.
         ///
@@ -64,7 +64,7 @@ namespace Riscontro.Disegno.Catalogo
         /// misurato. Un esempio scritto a mano e' una promessa: questo e'
         /// un fatto. E' anche il motivo per cui molte operazioni non ce
         /// l'hanno — i loro casi usano selettori che vivono solo nel banco
-        /// (`@faccia(verso=alto)`), e un esempio che il client non puo'
+        /// (`@face(normal=up)`), e un esempio che il client non puo'
         /// copiare e' peggio di nessun esempio.
         ///
         /// ── IL RISCHIO, DICHIARATO ───────────────────────────────────

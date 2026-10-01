@@ -4,11 +4,11 @@
   "why": "Uno smusso da 200 su uno spigolo lungo 100 non ci sta, e deve essere rifiutato PRIMA -- non lasciare l'albero a meta' con uno schizzo orfano dentro. Il messaggio da' il CRITERIO e non il verdetto: dice quanto e' lungo lo spigolo, cosi' chi legge sa di quanto sbagliava.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 60, "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 120000 } ] },
-    { "operation": "smusso_spigoli",
-      "arguments": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 200, "angolo_gradi": 45 },
+    { "operation": "chamfer_edges",
+      "arguments": { "edges_uid": ["@edge(axis=X,length~=100,n=1)"], "leg_mm": 200, "angle_deg": 45 },
       "must_fail": {
         "message_includes": ["e' troppo per lo spigolo", "non ci sta neanche meta"],
         "volume_unchanged": true,

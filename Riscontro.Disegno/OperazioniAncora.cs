@@ -23,8 +23,8 @@ namespace Riscontro.Disegno
     ///
     /// ── LA FORMA: UN'ANCORA PER ASSE, E TUTTI E DUE GLI ASSI ─────────────
     ///
-    ///   "ancora": { "x": {"spigolo_uid": "E7", "distanza_mm": 20},
-    ///               "y": {"centrata_fra": ["E3", "E5"]} }
+    ///   "anchor": { "x": {"edge_uid": "E7", "distance_mm": 20},
+    ///               "y": {"centered_between": ["E3", "E5"]} }
     ///
     /// Per ogni asse una di due cose: una QUOTA dal centro del profilo a uno
     /// spigolo, oppure il centro A META' fra due spigoli opposti. Tutti e due
@@ -100,7 +100,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Legge `ancora` e la confronta con la faccia, con `x_mm`/`y_mm` e con
+        /// Legge `anchor` e la confronta con la faccia, con `x_mm`/`y_mm` e con
         /// l'ingombro del profilo (`mezzoU`, `mezzoV`: meta' della larghezza del
         /// profilo lungo x e lungo y — il raggio per un foro). Torna un
         /// ancoraggio VUOTO se l'argomento non c'e' (il vecchio modo, coordinate
@@ -113,19 +113,19 @@ namespace Riscontro.Disegno
         {
             motivo = null;
             object grezza;
-            if (a == null || !a.TryGetValue("ancora", out grezza) || grezza == null) return new Ancoraggio();
+            if (a == null || !a.TryGetValue("anchor", out grezza) || grezza == null) return new Ancoraggio();
 
             var d = grezza as Dictionary<string, object>;
             if (d == null)
             {
-                motivo = "«ancora» dev'essere un oggetto con «x» e «y»: per ognuno " +
-                         "{\"spigolo_uid\": \"E7\", \"distanza_mm\": 20} oppure {\"centrata_fra\": [\"E3\", \"E5\"]}.";
+                motivo = "«anchor» dev'essere un oggetto con «x» e «y»: per ognuno " +
+                         "{\"edge_uid\": \"E7\", \"distance_mm\": 20} oppure {\"centered_between\": [\"E3\", \"E5\"]}.";
                 return null;
             }
             foreach (var chiave in d.Keys)
                 if (chiave != "x" && chiave != "y")
                 {
-                    motivo = "«ancora» non conosce «" + chiave + "»: le chiavi sono «x» e «y», una per asse.";
+                    motivo = "«anchor» non conosce «" + chiave + "»: le chiavi sono «x» e «y», una per asse.";
                     return null;
                 }
             if (!d.ContainsKey("x") || !d.ContainsKey("y"))
@@ -148,7 +148,7 @@ namespace Riscontro.Disegno
             {
                 motivo = "La faccia su cui lavori non e' piana (o non riesco a leggerne la normale): " +
                          "l'ancora misura le distanze dagli spigoli nel piano della faccia, e su una " +
-                         "faccia curva quel piano non c'e'. Togli «ancora» e dai la posizione con " +
+                         "faccia curva quel piano non c'e'. Togli «anchor» e dai la posizione con " +
                          "x_mm e y_mm.";
                 return null;
             }
@@ -161,17 +161,17 @@ namespace Riscontro.Disegno
                 var voce = d[nome] as Dictionary<string, object>;
                 if (voce == null)
                 {
-                    motivo = "«ancora." + nome + "» dev'essere {\"spigolo_uid\": ..., \"distanza_mm\": ...} " +
-                             "oppure {\"centrata_fra\": [..., ...]}.";
+                    motivo = "«ancora." + nome + "» dev'essere {\"edge_uid\": ..., \"distance_mm\": ...} " +
+                             "oppure {\"centered_between\": [..., ...]}.";
                     return null;
                 }
                 var asse = new AncoraAsse { Nome = nome, Indice = k };
 
-                if (voce.ContainsKey("centrata_fra"))
+                if (voce.ContainsKey("centered_between"))
                 {
                     var uid = new List<string>();
-                    var elenco = voce["centrata_fra"] as IEnumerable;
-                    if (elenco != null && !(voce["centrata_fra"] is string))
+                    var elenco = voce["centered_between"] as IEnumerable;
+                    if (elenco != null && !(voce["centered_between"] is string))
                         foreach (var o in elenco) uid.Add(Convert.ToString(o, CultureInfo.InvariantCulture));
                     if (uid.Count != 2 || uid[0] == uid[1])
                     {
@@ -216,15 +216,15 @@ namespace Riscontro.Disegno
                 }
                 else
                 {
-                    string uid = voce.ContainsKey("spigolo_uid")
-                        ? Convert.ToString(voce["spigolo_uid"], CultureInfo.InvariantCulture) : "";
+                    string uid = voce.ContainsKey("edge_uid")
+                        ? Convert.ToString(voce["edge_uid"], CultureInfo.InvariantCulture) : "";
                     double distanza;
-                    if (uid.Length == 0 || !voce.ContainsKey("distanza_mm") ||
-                        !double.TryParse(Convert.ToString(voce["distanza_mm"], CultureInfo.InvariantCulture),
+                    if (uid.Length == 0 || !voce.ContainsKey("distance_mm") ||
+                        !double.TryParse(Convert.ToString(voce["distance_mm"], CultureInfo.InvariantCulture),
                                          NumberStyles.Any, CultureInfo.InvariantCulture, out distanza))
                     {
-                        motivo = "«ancora." + nome + "» vuole {\"spigolo_uid\": \"E7\", \"distanza_mm\": 20} " +
-                                 "oppure {\"centrata_fra\": [\"E3\", \"E5\"]}.";
+                        motivo = "«ancora." + nome + "» vuole {\"edge_uid\": \"E7\", \"distance_mm\": 20} " +
+                                 "oppure {\"centered_between\": [\"E3\", \"E5\"]}.";
                         return null;
                     }
                     // LA DISTANZA E' DAL CENTRO del foro o della tasca, e non
@@ -234,7 +234,7 @@ namespace Riscontro.Disegno
                     if (distanza + 1e-9 < mezzo)
                     {
                         motivo = string.Format(CultureInfo.InvariantCulture,
-                            "«distanza_mm» e' dal CENTRO del profilo allo spigolo, e {0:0.##} e' meno di meta' della " +
+                            "«distance_mm» e' dal CENTRO del profilo allo spigolo, e {0:0.##} e' meno di meta' della " +
                             "sua larghezza lungo «{1}» ({2:0.##}): il profilo scavalcherebbe lo spigolo «{3}».",
                             distanza, nome, mezzo, uid);
                         return null;
@@ -278,9 +278,9 @@ namespace Riscontro.Disegno
             // critico): `FirmaCombacia` senza firma risponde si', e fra spigoli
             // uguali l'ordine dello stato non e' garantito — un foro a meta'
             // altezza passerebbe la coerenza anche legato al lato sbagliato. Un
-            // piano che porta `_firme` ma non quella di questo spigolo e' un piano
+            // piano che porta `_signatures` ma non quella di questo spigolo e' un piano
             // che non sa quale spigolo intendeva.
-            if (a != null && a.ContainsKey("_firme") && FirmaAttesa(a, uid) == null)
+            if (a != null && a.ContainsKey("_signatures") && FirmaAttesa(a, uid) == null)
             {
                 motivo = "Il piano porta le firme delle entita' ma non quella dello spigolo «" + uid + "»: " +
                          "senza, non so se «" + uid + "» e' ancora lo spigolo che avevi visto.";
@@ -520,7 +520,7 @@ namespace Riscontro.Disegno
                     }
                     detto[asse.Nome] = new Dictionary<string, object>
                     {
-                        ["centrata_fra"] = new[] { asse.Fra1.Uid, asse.Fra2.Uid },
+                        ["centered_between"] = new[] { asse.Fra1.Uid, asse.Fra2.Uid },
                     };
                 }
                 else
@@ -560,26 +560,26 @@ namespace Riscontro.Disegno
                     asse.QuotaNata = nata;
                     detto[asse.Nome] = new Dictionary<string, object>
                     {
-                        ["spigolo"] = asse.Spigolo.Uid,
-                        ["distanza_mm"] = asse.DistanzaMm,
-                        ["quota_riletta_mm"] = Math.Round(riletta, 3),
+                        ["edge"] = asse.Spigolo.Uid,
+                        ["distance_mm"] = asse.DistanzaMm,
+                        ["dimension_reread_mm"] = Math.Round(riletta, 3),
                     };
                 }
             }
 
             // COMPLETAMENTE DEFINITO, O NIENTE — ma con piu' punti nello stesso
-            // schizzo (i fori di `foro_guidato`) lo si guarda dopo l'ultimo.
+            // schizzo (i fori di `hole_wizard`) lo si guarda dopo l'ultimo.
             if (pretendiDefinito)
             {
                 if (!SchizzoDefinitoESano(schizzi, out motivo)) return false;
-                detto["schizzo"] = "completamente definito";
+                detto["sketch"] = "fully defined";
             }
             // LA TAVOLA (rischio 15): un asse centrato lo tiene una relazione,
-            // non una quota, e `quote_dal_modello` non ha niente da riportare.
+            // non una quota, e `model_dimensions` non ha niente da riportare.
             if ((anc.X != null && anc.X.Centrata) || (anc.Y != null && anc.Y.Centrata))
-                detto["nota_tavola"] = "Lungo l'asse centrato la posizione la tiene una relazione, non una quota: " +
-                                       "quote_dal_modello non la riporta, quota_in_tavola la misura dai bordi.";
-            misure["ancora"] = detto;
+                detto["note_drawing"] = "Lungo l'asse centrato la posizione la tiene una relazione, non una quota: " +
+                                       "model_dimensions non la riporta, drawing_dimension la misura dai bordi.";
+            misure["anchor"] = detto;
             return true;
         }
 
@@ -616,7 +616,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// L'ANCORA DI `foro_guidato` (voce E18, l'ultimo pezzo). Lo schizzo dei
+        /// L'ANCORA DI `hole_wizard` (voce E18, l'ultimo pezzo). Lo schizzo dei
         /// punti lo fa HoleWizard, e `PosizionaIFori` ci mette i punti: qui ci si
         /// rientra, e ogni punto riceve la sua ancora. Misurato il 25/9/2026
         /// (`prova0089 guidato`, il caso r01): lo schizzo di posizionamento e'
@@ -718,11 +718,11 @@ namespace Riscontro.Disegno
                         motivo = "Foro " + (i + 1) + ": " + motivo;
                         return false;
                     }
-                    dette.Add(suaMisura.ContainsKey("ancora") ? suaMisura["ancora"] : null);
+                    dette.Add(suaMisura.ContainsKey("anchor") ? suaMisura["anchor"] : null);
                 }
                 if (!SchizzoDefinitoESano(gestore, out motivo)) return false;
-                misure["ancore"] = dette.ToArray();
-                misure["schizzo_dei_fori"] = "completamente definito";
+                misure["anchors"] = dette.ToArray();
+                misure["hole_sketch"] = "fully defined";
                 return true;
             }
             catch (Exception ex) { motivo = "L'ancora dei fori non e' riuscita: " + ex.Message; return false; }
@@ -827,7 +827,7 @@ namespace Riscontro.Disegno
         ///
         /// CENTRED AXES TOO, AND THE WIDEST CUT (Z-C21.2, finding N50). This
         /// check skipped centred axes (`!asse.Centrata`), and LeggiAncora runs
-        /// with mezzo = 0 for foro_guidato, so its rule «the profile fits
+        /// with mezzo = 0 for hole_wizard, so its rule «the profile fits
         /// between the two edges» (the «non ci sta» refusal in LeggiAncora)
         /// never fired: an M8 centred between two edges 6 mm apart was
         /// confirmed, and the hole cut through both of them. The same rule is
@@ -854,7 +854,7 @@ namespace Riscontro.Disegno
                     }
                     else if (asse.DistanzaMm + 1e-9 < raggioMm)
                         return string.Format(CultureInfo.InvariantCulture,
-                            "Hole {0}: «distanza_mm» {1:0.##} from edge «{2}» is less than the radius of the {3} " +
+                            "Hole {0}: «distance_mm» {1:0.##} from edge «{2}» is less than the radius of the {3} " +
                             "({4:0.##} mm): the {3} would cut past the edge.",
                             i + 1, asse.DistanzaMm, asse.Spigolo.Uid, widestCut, raggioMm);
                 }
@@ -1129,7 +1129,7 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// Una quota fra un punto dello schizzo e uno spigolo del MODELLO, col
-        /// testo in `testo` (coordinate di schizzo). Torna il valore riletto in
+        /// testo in `text` (coordinate di schizzo). Torna il valore riletto in
         /// mm, o -1. La finestrella del valore si spegne e si rimette com'era.
         ///
         /// ORIZZONTALE O VERTICALE, e non `Extension.AddDimension`. Misurato il
@@ -1180,7 +1180,7 @@ namespace Riscontro.Disegno
         /// disegna con quattro entita' sotto `AddToDB` e basta: niente relazioni,
         /// niente quote. Qui si aggiunge cio' che lo rende un'asola anche dopo
         /// una modifica, e — se c'e' — l'ancora. Torna quante quote ha messo;
-        /// `errore` non nullo vuol dire che lo schizzo non e' come serve (con
+        /// `error` non nullo vuol dire che lo schizzo non e' come serve (con
         /// l'ancora e' un rifiuto, senza e' solo una quota in meno).
         ///
         /// MISURATO il 25/9/2026 (`prova0089 stadio`, `stadio2`), piastra 200 x
@@ -1249,7 +1249,7 @@ namespace Riscontro.Disegno
                 errore = "Not all the relations of the slot were born (" +
                          (relStadio - relPrima).ToString(CultureInfo.InvariantCulture) +
                          " of 5: four tangencies and the equal radii).";
-                // Without an anchor the caller does not stop on `errore` (a slot
+                // Without an anchor the caller does not stop on `error` (a slot
                 // that is only less constrained is still cut): the response says it.
                 misure["slot_relations"] = (relStadio - relPrima).ToString(CultureInfo.InvariantCulture) +
                                            " of 5 born (four tangencies and the equal radii): after a change the " +
@@ -1327,7 +1327,7 @@ namespace Riscontro.Disegno
                 else quote++;
             }
             else
-                misure["orientamento"] = "libero: un'asola obliqua senza ancora non ha uno spigolo da cui " +
+                misure["orientation"] = "libero: un'asola obliqua senza ancora non ha uno spigolo da cui " +
                                          "misurare l'angolo, e dopo una modifica puo' ruotare.";
 
             // L'ANCORA, sul punto a meta' della mezzeria.
@@ -1357,7 +1357,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Il centro del contorno di `estrudi_su_faccia` a cui si attacca l'ancora
+        /// Il centro del contorno di `extrude_on_face` a cui si attacca l'ancora
         /// (voce E18), e il mezzo ingombro per asse. Vale per UN contorno solo:
         /// un cerchio, o una spezzata di quattro vertici allineata agli assi
         /// della faccia (un rettangolo). Per tutto il resto un rifiuto che dice

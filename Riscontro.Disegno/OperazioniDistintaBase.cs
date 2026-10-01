@@ -28,8 +28,8 @@ namespace Riscontro.Disegno
     /// lo si dice. I palloncini si contano DOPO, sulla vista.
     ///
     /// Tipi di distinta (swBomType_e parte da 1, a differenza di altri enum):
-    /// «primo_livello» (TopLevelOnly = 2, predefinito), «solo_parti» (1),
-    /// «indentata» (3). Si scelgono per nome: un intero passato da fuori e' il
+    /// «top_level» (TopLevelOnly = 2, predefinito), «parts_only» (1),
+    /// «indented» (3). Si scelgono per nome: un intero passato da fuori e' il
     /// modo perfetto di mettere il tipo sbagliato senza errore.
     /// </summary>
     public partial class OperazioniSw
@@ -40,26 +40,26 @@ namespace Riscontro.Disegno
             if (disegno == null)
                 return Fallito("Il documento attivo non e' una tavola: la distinta base sta su una vista di un assieme.");
             var nomi = NomiDelleViste(disegno);
-            if (nomi.Count == 0) return Fallito("La tavola non ha viste: metti prima le viste dell'assieme con «viste_standard».");
+            if (nomi.Count == 0) return Fallito("La tavola non ha viste: metti prima le viste dell'assieme con «standard_views».");
             string motivo;
-            var vista = RisolviVista(disegno, nomi, Str(a, "vista", null), out motivo);
+            var vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
             if (motivo != null) return Fallito(motivo);
             if (vista == null) return Fallito("Non riesco a prendere la vista.");
 
             var assieme = vista.ReferencedDocument as IAssemblyDoc;
             if (assieme == null)
                 return Fallito("Dietro la vista «" + (vista.GetName2() ?? "") + "» non c'e' un assieme: la distinta base e' " +
-                               "l'elenco dei componenti di un assieme. Per un saldato usa «distinta_taglio_in_tavola».");
+                               "l'elenco dei componenti di un assieme. Per un saldato usa «drawing_cut_list».");
 
-            string tipoChiesto = (Str(a, "tipo", "primo_livello") ?? "primo_livello").Trim().ToLowerInvariant();
+            string tipoChiesto = (Str(a, "variant", "top_level") ?? "top_level").Trim().ToLowerInvariant();
             int tipoBom;
             switch (tipoChiesto)
             {
-                case "primo_livello": tipoBom = (int)swBomType_e.swBomType_TopLevelOnly; break;
-                case "solo_parti": tipoBom = (int)swBomType_e.swBomType_PartsOnly; break;
-                case "indentata": tipoBom = (int)swBomType_e.swBomType_Indented; break;
+                case "top_level": tipoBom = (int)swBomType_e.swBomType_TopLevelOnly; break;
+                case "parts_only": tipoBom = (int)swBomType_e.swBomType_PartsOnly; break;
+                case "indented": tipoBom = (int)swBomType_e.swBomType_Indented; break;
                 default:
-                    return Fallito("«tipo» e' uno fra «primo_livello» (predefinito), «solo_parti», «indentata», non «" + tipoChiesto + "».");
+                    return Fallito("«variant» e' uno fra «top_level» (predefinito), «parts_only», «indented», non «" + tipoChiesto + "».");
             }
 
             // ── THE ASSEMBLY, READ FIRST, IN THE CONFIGURATION OF THE VIEW ───
@@ -157,25 +157,25 @@ namespace Riscontro.Disegno
             int istanze = attese.Values.Sum();
             var misure = new Dictionary<string, object>
             {
-                ["vista"] = vista.GetName2(),
-                ["tipo"] = tipoChiesto,
-                ["righe"] = righe,
-                ["voci"] = voci,
-                ["intestazioni"] = intestazioni.ToArray(),
-                ["righe_lette"] = righeLette.ToArray(),
-                ["quantita_in_tabella"] = quantitaLetta ? (object)quantitaTot : null,
-                ["componenti_distinti_nell_assieme"] = attese.Count,
-                ["istanze_nell_assieme"] = istanze,
+                ["view"] = vista.GetName2(),
+                ["kind"] = tipoChiesto,
+                ["rows"] = righe,
+                ["entries"] = voci,
+                ["headers"] = intestazioni.ToArray(),
+                ["rows_read"] = righeLette.ToArray(),
+                ["quantity_in_table"] = quantitaLetta ? (object)quantitaTot : null,
+                ["components_distinct_in_assembly"] = attese.Count,
+                ["instances_in_assembly"] = istanze,
                 // M23: for an indented table the items are the ROWS expected (the
                 // tree, see IndentedLevel) and the instances their quantity sum.
                 ["counted_as"] = tipoBom == (int)swBomType_e.swBomType_Indented
                     ? "indented: expected rows of the tree and the sum of their quantities (a child row counts one instance of its parent)"
                     : "items of the table and the sum of their quantities",
-                ["tabelle_prima"] = NumeroOppureNull(tabellePrima),
+                ["tables_before"] = NumeroOppureNull(tabellePrima),
                 // L16-2: the configuration the table and the expected items were
                 // read in (the view's), and the active configuration of the
                 // assembly read again after it was put back.
-                ["configurazione"] = configurazione,
+                ["configuration"] = configurazione,
                 ["assembly_active_configuration"] = activeAfterReading,
             };
 
@@ -189,7 +189,7 @@ namespace Riscontro.Disegno
                 return Fallito("La distinta base non combacia con l'assieme: " + storto + ". " +
                                (tolta ? "L'ho tolta." : "Toglila: " + Frasi.CosiSiRitira + "."));
             }
-            misure["combaciano"] = true;
+            misure["match"] = true;
 
             // ── IL POSTO ────────────────────────────────────────────────────
             double w = 0, h = 0;
@@ -212,9 +212,9 @@ namespace Riscontro.Disegno
                     "Usa un foglio piu' grande. {2}", w * 1000, h * 1000, tolta ? "L'ho tolta." : ""));
             }
             try { (tabella.GetAnnotation() as IAnnotation)?.SetPosition2(basso[0], basso[1] + h, 0); } catch { }
-            misure["ingombro_tabella_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
-            misure["dove_sta_la_tabella"] = dove;
-            misure["dentro_il_foglio"] = true;
+            misure["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
+            misure["table_location"] = dove;
+            misure["inside_sheet"] = true;
             return RiuscitoSenzaCreare(misure);
         }
 
@@ -368,7 +368,7 @@ namespace Riscontro.Disegno
         /// that was active is activated again; both moves are judged by READING
         /// the active configuration back, never by the answer of
         /// ShowConfiguration2 (it answers false when the configuration is already
-        /// the active one: the bench case of attiva_configurazione, 16/9/2026).
+        /// the active one: the bench case of activate_configuration, 16/9/2026).
         ///
         /// Activating and not walking IConfiguration.GetRootComponent3 of the
         /// view's configuration: IConfiguration~GetRootComponent3.html says «An
@@ -694,7 +694,7 @@ namespace Riscontro.Disegno
             var nomi = NomiDelleViste(disegno);
             if (nomi.Count == 0) return Fallito("La tavola non ha viste: metti prima le viste dell'assieme.");
             string motivo;
-            var vista = RisolviVista(disegno, nomi, Str(a, "vista", null), out motivo);
+            var vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
             if (motivo != null) return Fallito(motivo);
             if (vista == null) return Fallito("Non riesco a prendere la vista.");
             var assieme = vista.ReferencedDocument as IAssemblyDoc;
@@ -702,17 +702,17 @@ namespace Riscontro.Disegno
                 return Fallito("Dietro la vista non c'e' un assieme: la bollatura numera i componenti di un assieme.");
             if (TabelleDellaTavolaTutte(disegno) <= 0 || !HaDistintaBase(disegno))
                 return Fallito("In tavola non c'e' una distinta base: la bollatura porta il numero di voce della distinta. " +
-                               "Metti prima «distinta_base_in_tavola».");
+                               "Metti prima «drawing_bom».");
 
-            string disposizione = (Str(a, "disposizione", "quadrato") ?? "quadrato").Trim().ToLowerInvariant();
+            string disposizione = (Str(a, "layout", "square") ?? "square").Trim().ToLowerInvariant();
             int layout;
             switch (disposizione)
             {
-                case "quadrato": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Square; break;
-                case "cerchio": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Circle; break;
-                case "sopra": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Top; break;
-                case "sotto": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Bottom; break;
-                default: return Fallito("«disposizione» e' una fra «quadrato», «cerchio», «sopra», «sotto», non «" + disposizione + "».");
+                case "square": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Square; break;
+                case "circle": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Circle; break;
+                case "above": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Top; break;
+                case "below": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Bottom; break;
+                default: return Fallito("«layout» e' una fra «square», «circle», «above», «below», non «" + disposizione + "».");
             }
 
             int prima = PalloncinidellaVista(vista);
@@ -737,7 +737,7 @@ namespace Riscontro.Disegno
                     return Fallito(
                         "I could not select the view «" + vista.GetName2() + "» (SelectByID2 answered " +
                         "false), and AutoBalloon5 balloons the SELECTED views only: nothing was changed. " +
-                        "Name the view in «vista» as the drawing state lists it, and ask again.");
+                        "Name the view in «view» as the drawing state lists it, and ask again.");
                 }
                 var opt = disegno.CreateAutoBalloonOptions() as AutoBalloonOptions;
                 opt.Layout = layout;
@@ -758,13 +758,13 @@ namespace Riscontro.Disegno
             int returnedNotes = BalloonNotesReturned(nati);
             var misure = new Dictionary<string, object>
             {
-                ["vista"] = vista.GetName2(),
-                ["palloncini_prima"] = NumeroOppureNull(prima),
-                ["palloncini_dopo"] = NumeroOppureNull(dopo),
-                ["palloncini_messi"] = prima >= 0 && dopo >= 0 ? (object)(dopo - prima) : null,
+                ["view"] = vista.GetName2(),
+                ["balloons_before"] = NumeroOppureNull(prima),
+                ["balloons_after"] = NumeroOppureNull(dopo),
+                ["balloons_placed"] = prima >= 0 && dopo >= 0 ? (object)(dopo - prima) : null,
                 ["balloons_returned"] = NumeroOppureNull(returnedNotes),
-                ["componenti_visibili"] = NumeroOppureNull(visibili),
-                ["numeri"] = NumeriDeiPalloncini(vista).ToArray(),
+                ["components_visible"] = NumeroOppureNull(visibili),
+                ["numbers"] = NumeriDeiPalloncini(vista).ToArray(),
             };
             string countNote = BalloonCountNote(returnedNotes, prima, dopo);
             if (countNote != null) misure["balloons_count_note"] = countNote;
@@ -779,10 +779,10 @@ namespace Riscontro.Disegno
                 var giaBollati = NumeriBollatiInTavola(disegno);
                 if (gia != null && gia.Count > 0 && gia.All(giaBollati.Contains))
                 {
-                    misure["voci_della_distinta"] = gia.Count;
-                    misure["voci_senza_bollatura"] = new string[0];
-                    misure["quante_voci_senza_bollatura"] = 0;
-                    misure["giudizio"] = "Ogni voce della distinta ha gia' il suo palloncino in tavola: niente da aggiungere in questa vista.";
+                    misure["bom_entries"] = gia.Count;
+                    misure["entries_without_balloon"] = new string[0];
+                    misure["how_many_entries_without_balloon"] = 0;
+                    misure["verdict"] = "Ogni voce della distinta ha gia' il suo palloncino in tavola: niente da aggiungere in questa vista.";
                     return RiuscitoSenzaCreare(misure);
                 }
                 return Fallito("SOLIDWORKS non ha messo nessun palloncino (erano " + prima + ", sono " + dopo + ").");
@@ -798,17 +798,17 @@ namespace Riscontro.Disegno
             {
                 var bollati = NumeriBollatiInTavola(disegno);
                 var senza = voci.Where(v => !bollati.Contains(v)).ToList();
-                misure["voci_della_distinta"] = voci.Count;
-                misure["voci_senza_bollatura"] = senza.ToArray();
-                misure["quante_voci_senza_bollatura"] = senza.Count;
+                misure["bom_entries"] = voci.Count;
+                misure["entries_without_balloon"] = senza.ToArray();
+                misure["how_many_entries_without_balloon"] = senza.Count;
                 if (senza.Count > 0)
-                    misure["attenzione"] = (senza.Count == 1
+                    misure["warning"] = (senza.Count == 1
                         ? "La voce " + senza[0] + " della distinta non ha palloncino in tavola: in questa vista quel componente " +
                           "non si vede. Fai la bollatura anche su un'altra vista, dove si vede."
                         : "Le voci " + string.Join(", ", senza) + " della distinta non hanno palloncino in tavola: in questa " +
                           "vista quei componenti non si vedono. Fai la bollatura anche su un'altra vista, dove si vedono.");
             }
-            else misure["quante_voci_senza_bollatura"] = null;   // la colonna dei numeri di voce non si legge
+            else misure["how_many_entries_without_balloon"] = null;   // la colonna dei numeri di voce non si legge
             return RiuscitoSenzaCreare(misure);
         }
 

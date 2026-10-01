@@ -234,7 +234,7 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// Il giro e' posteriore all'ultima modifica a `percorso`?
+        /// Il giro e' posteriore all'ultima modifica a `path`?
         ///
         /// LA TOLLERANZA DI UN MINUTO NON E' UN ARROTONDAMENTO: il giro
         /// scrive `last.json` e POI si committa, quindi la data del commit
@@ -324,7 +324,7 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// Il piu' recente fra i file sporchi sotto `percorso`, o null se
+        /// Il piu' recente fra i file sporchi sotto `path`, o null se
         /// l'albero e' pulito li' sotto.
         ///
         /// TRE COMANDI E NON `status --porcelain`, e il motivo e' `Git()`:
@@ -444,22 +444,22 @@ namespace Prove.Contratti
             // ── A COMMIT CARRIES A RUN ONLY IF THE RUN'S TIMESTAMP CHANGES ──
             //
             // The shapes are the real ones of W3.1-bis.4: the move kept
-            // `quando`, the rewrite turned it into `timestamp` with the same
+            // `timestamp`, the rewrite turned it into `timestamp` with the same
             // value. Neither is a run; a new timestamp is.
-            const string oldRun = "{\"quando\": \"2026-10-01T11:43:51\", \"passate\": 2160}";
+            const string oldRun = "{\"timestamp\": \"2026-10-01T11:43:51\", \"passate\": 2160}";
             const string sameRunNewKeys = "{\"timestamp\": \"2026-10-01T11:43:51\", \"passed\": 2160}";
             const string newRun = "{\"timestamp\": \"2026-10-02T09:00:00\", \"passed\": 2160}";
             Segna("moving the report is not a run",
                   !CarriesANewRun(oldRun, oldRun),
-                  "same `quando` before and after the move");
+                  "same `timestamp` before and after the move");
             Segna("rewriting the report's keys is not a run",
                   !CarriesANewRun(oldRun, sameRunNewKeys),
-                  "`quando` became `timestamp` with the same value");
+                  "`timestamp` became `timestamp` with the same value");
             Segna("a new timestamp is a run",
                   CarriesANewRun(sameRunNewKeys, newRun),
                   "2026-10-01T11:43:51 then 2026-10-02T09:00:00");
             Segna("an old-path run is still a run",
-                  CarriesANewRun("{\"quando\": \"2026-09-30T08:00:00\"}", oldRun),
+                  CarriesANewRun("{\"timestamp\": \"2026-09-30T08:00:00\"}", oldRun),
                   "the historical deliveries wrote the report at its Italian path");
             Segna("the first report ever is a run",
                   CarriesANewRun(null, newRun),
@@ -486,7 +486,7 @@ namespace Prove.Contratti
         ///
         /// Touching the report file is not enough. W3.1-bis.4 moved
         /// the report from its Italian path to its English one and then
-        /// rewrote its keys (`quando` became `timestamp`): both commits touch
+        /// rewrote its keys (`timestamp` became `timestamp`): both commits touch
         /// the file, neither carries a run, and the second one also changes
         /// the loader and every case. Counting them as deliveries made the
         /// freshness check skip exactly the commits it exists to catch, and
@@ -533,7 +533,7 @@ namespace Prove.Contratti
             return t != RunTimestamp(before);
         }
 
-        /// <summary>`timestamp`, or `quando` on reports written before W3.1-bis.4.</summary>
+        /// <summary>`timestamp`, or `timestamp` on reports written before W3.1-bis.4.</summary>
         private static string RunTimestamp(string json)
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
@@ -544,7 +544,7 @@ namespace Prove.Contratti
                 if (d == null) return null;
                 object v;
                 if (d.TryGetValue("timestamp", out v) && v != null) return Convert.ToString(v, CultureInfo.InvariantCulture);
-                if (d.TryGetValue("quando", out v) && v != null) return Convert.ToString(v, CultureInfo.InvariantCulture);
+                if (d.TryGetValue("timestamp", out v) && v != null) return Convert.ToString(v, CultureInfo.InvariantCulture);
                 return null;
             }
             catch { return null; }

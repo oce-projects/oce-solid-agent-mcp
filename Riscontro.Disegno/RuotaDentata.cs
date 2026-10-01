@@ -292,8 +292,8 @@ namespace Riscontro.Disegno
             {
                 new Dictionary<string, object>
                 {
-                    ["tipo"] = "composito",
-                    ["tratti"] = tratti.ToArray(),
+                    ["kind"] = "composite",
+                    ["strokes"] = tratti.ToArray(),
                 },
             };
 
@@ -321,9 +321,9 @@ namespace Riscontro.Disegno
                     // di 0,021 mm e un albero h7 non entra.
                     contorni.Add(new Dictionary<string, object>
                     {
-                        ["tipo"] = "cerchio",
-                        ["centro"] = new object[] { 0.0, 0.0 },
-                        ["diametro_mm"] = foroMm,
+                        ["kind"] = "circle",
+                        ["center"] = new object[] { 0.0, 0.0 },
+                        ["diameter_mm"] = foroMm,
                     });
                 }
             }
@@ -387,8 +387,8 @@ namespace Riscontro.Disegno
             motivo = null;
             return new Dictionary<string, object>
             {
-                ["tipo"] = "poligonale",
-                ["vertici"] = punti.ToArray(),
+                ["kind"] = "polygonal",
+                ["vertices"] = punti.ToArray(),
             };
         }
 
@@ -396,8 +396,8 @@ namespace Riscontro.Disegno
         {
             return new Dictionary<string, object>
             {
-                ["tratto"] = "linee",
-                ["punti"] = punti.ToArray(),
+                ["stroke"] = "lines",
+                ["points"] = punti.ToArray(),
             };
         }
 
@@ -405,8 +405,8 @@ namespace Riscontro.Disegno
         {
             return new Dictionary<string, object>
             {
-                ["tratto"] = "spline",
-                ["punti"] = punti.ToArray(),
+                ["stroke"] = "spline",
+                ["points"] = punti.ToArray(),
             };
         }
     }

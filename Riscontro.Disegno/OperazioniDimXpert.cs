@@ -32,10 +32,10 @@ namespace Riscontro.Disegno
     {
         private Esito SchemaDiQuote(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            var uid = Lista(a, "riferimenti_uid");
+            var uid = Lista(a, "references_uid");
             if (uid.Count != 3)
                 return Fallito(
-                    "«riferimenti_uid» vuole TRE facce piane, in ordine: il riferimento primario " +
+                    "«references_uid» vuole TRE facce piane, in ordine: il riferimento primario " +
                     "(di solito la faccia d'appoggio), il secondario e il terziario (due fianchi " +
                     "fra loro perpendicolari). Ne ho ricevute " + uid.Count + ".");
 
@@ -70,7 +70,7 @@ namespace Riscontro.Disegno
 
             var opzioni = parte.GetAutoDimSchemeOption();
             opzioni.PartType = (int)swDimXpertAutoDimSchemePartType_e.swDimXpertAutoDimSchemePartType_Prismatic;
-            opzioni.ToleranceType = Str(a, "tolleranza", "piu_meno") == "geometrica"
+            opzioni.ToleranceType = Str(a, "tolerance", "plus_minus") == "geometric"
                 ? (int)swDimXpertAutoDimSchemeToleranceType_e.swDimXpertAutoDimSchemeToleranceType_Geometric
                 : (int)swDimXpertAutoDimSchemeToleranceType_e.swDimXpertAutoDimSchemeToleranceType_PlusMinus;
             opzioni.ScopeAllFeature = true;
@@ -105,14 +105,14 @@ namespace Riscontro.Disegno
 
             return SenzaFeature(new Dictionary<string, object>
             {
-                ["annotazioni_prima"] = prima,
-                ["annotazioni_dopo"] = dopo,
-                ["quote"] = quote.Count <= 40 ? quote.ToArray() : quote.GetRange(0, 40).ToArray(),
-                ["valori_mm"] = valori.ToArray(),
-                ["caratteristiche"] = parte.GetFeatureCount(),
+                ["annotations_before"] = prima,
+                ["annotations_after"] = dopo,
+                ["dimensions"] = quote.Count <= 40 ? quote.ToArray() : quote.GetRange(0, 40).ToArray(),
+                ["values_mm"] = valori.ToArray(),
+                ["characteristics"] = parte.GetFeatureCount(),
                 // LA RISPOSTA DELL'API, accanto alla misura e col suo nome: False
                 // anche quando ha quotato. Non si nasconde, si nomina.
-                ["risposta_di_auto_dimension_scheme"] = risposta,
+                ["auto_dimension_scheme_response"] = risposta,
             });
         }
     }

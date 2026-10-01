@@ -1,8 +1,8 @@
-// E14 — `faccia_del_foro` prende un foro, e non un raccordo.
+// E14 — `hole_face` prende un foro, e non un raccordo.
 //
 //   node prova_faccia_foro.js
 //
-// PERCHE' QUI E NON NEL BANCO. `faccia_rif: {passo, genere}` nomina un passo
+// PERCHE' QUI E NON NEL BANCO. `face_ref: {passo, genere}` nomina un passo
 // dello STESSO piano, e il banco esegue un'operazione per volta: li' il
 // riferimento non si puo' nemmeno formulare. La prima scrittura di questa prova
 // stava nel banco ed e' uscita rossa per il motivo sbagliato — «di quel passo
@@ -29,17 +29,17 @@ const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.e
 const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
 
 const PIASTRA = {
-  operazione: "estrudi_rettangolo",
-  argomenti: {
-    piano: "superiore", lunghezza_mm: 100, larghezza_mm: 60,
-    spessore_mm: 20, centrato: true,
+  operation: "extrude_rectangle",
+  arguments: {
+    plane: "top", length_mm: 100, width_mm: 60,
+    thickness_mm: 20, centered: true,
   },
 };
 
-// IL RUOLO E' RAGGIUNGIBILE DA UNA SOLA OPERAZIONE, e va detto: `guscio`.
-// Verificato sul catalogo — `faccia_del_foro` compare nello schema di `guscio`
+// IL RUOLO E' RAGGIUNGIBILE DA UNA SOLA OPERAZIONE, e va detto: `shell`.
+// Verificato sul catalogo — `hole_face` compare nello schema di `shell`
 // e in nessun altro. La prima scrittura di questa prova usava
-// `taglio_cilindrico`, che quel genere non lo accetta nemmeno, e il rifiuto
+// `cylindrical_cut`, che quel genere non lo accetta nemmeno, e il rifiuto
 // arrivava dal validatore dello schema invece che dal codice da provare: il
 // secondo rosso che scattava per il motivo sbagliato, nella stessa ora.
 
@@ -48,17 +48,17 @@ const PIASTRA = {
 const RACCORDO_NON_E_FORO = [
   PIASTRA,
   {
-    operazione: "raccordo_spigoli",
-    argomenti: {
-      spigoli_rif: { passo: 1, genere: "spigoli_laterali" },
-      raggio_mm: 5,
+    operation: "fillet_edges",
+    arguments: {
+      edges_ref: { step: 1, kind: "side_edges" },
+      radius_mm: 5,
     },
   },
   {
-    operazione: "guscio",
-    argomenti: {
-      facce_rif: [{ passo: 2, genere: "faccia_del_foro" }],
-      spessore_mm: 4,
+    operation: "shell",
+    arguments: {
+      faces_ref: [{ step: 2, kind: "hole_face" }],
+      thickness_mm: 4,
     },
   },
 ];
@@ -67,17 +67,17 @@ const RACCORDO_NON_E_FORO = [
 const IL_FORO_SI_PRENDE = [
   PIASTRA,
   {
-    operazione: "taglio_cilindrico",
-    argomenti: {
-      faccia_rif: { passo: 1, genere: "faccia_superiore" },
-      x_mm: 0, y_mm: 0, diametro_mm: 30, passante: true,
+    operation: "cylindrical_cut",
+    arguments: {
+      face_ref: { step: 1, kind: "top_face" },
+      x_mm: 0, y_mm: 0, diameter_mm: 30, through_all: true,
     },
   },
   {
-    operazione: "guscio",
-    argomenti: {
-      facce_rif: [{ passo: 2, genere: "faccia_del_foro" }],
-      spessore_mm: 4,
+    operation: "shell",
+    arguments: {
+      faces_ref: [{ step: 2, kind: "hole_face" }],
+      thickness_mm: 4,
     },
   },
 ];
@@ -89,14 +89,14 @@ const IL_FORO_SI_PRENDE = [
 // SERVE UN PASSO SOLO CHE FACCIA PIU' FORI, e trovarlo e' costato tre
 // tentativi sbagliati:
 //
-//   * `taglio_cilindrico` fa un foro per passo: nessuna ambiguita';
-//   * `ripeti_lineare` ne fa quattro, ma vuole una direzione data da un asse o
+//   * `cylindrical_cut` fa un foro per passo: nessuna ambiguita';
+//   * `linear_pattern` ne fa quattro, ma vuole una direzione data da un asse o
 //     da uno spigolo — cioe' da un uid che dentro questo piano non esiste
 //     ancora, perche' la piastra la crea il passo 1;
-//   * `specchia` ne fa uno nuovo, e l'originale appartiene al passo di prima:
+//   * `mirror` ne fa uno nuovo, e l'originale appartiene al passo di prima:
 //     il passo dello specchio ha **una sola** parete, e prenderla e' giusto.
 //
-// `foro_guidato` invece lo dice da solo nello schema: «piu' fori uguali stanno
+// `hole_wizard` invece lo dice da solo nello schema: «piu' fori uguali stanno
 // in una chiamata sola». Quattro fori, un passo, quattro pareti.
 //
 // La lezione che e' costata i tre tentativi: **un caso di prova non deve
@@ -105,22 +105,22 @@ const IL_FORO_SI_PRENDE = [
 const PIU_PARETI = [
   PIASTRA,
   {
-    operazione: "foro_guidato",
-    argomenti: {
-      faccia_rif: { passo: 1, genere: "faccia_superiore" },
-      taglia: "M10",
-      passante: true,
-      posizioni: [
+    operation: "hole_wizard",
+    arguments: {
+      face_ref: { step: 1, kind: "top_face" },
+      size: "M10",
+      through_all: true,
+      positions: [
         { x_mm: -30, y_mm: -15 }, { x_mm: 30, y_mm: -15 },
         { x_mm: 30, y_mm: 15 }, { x_mm: -30, y_mm: 15 },
       ],
     },
   },
   {
-    operazione: "guscio",
-    argomenti: {
-      facce_rif: [{ passo: 2, genere: "faccia_del_foro" }],
-      spessore_mm: 4,
+    operation: "shell",
+    arguments: {
+      faces_ref: [{ step: 2, kind: "hole_face" }],
+      thickness_mm: 4,
     },
   },
 ];
@@ -185,15 +185,15 @@ function corto(s) {
 // L'ERRORE DEL PASSO, non il testo intero della risposta: dentro c'e' anche lo
 // stato del documento, e cercarci una parola dentro darebbe falsi positivi.
 function erroreDeiPassi(dati) {
-  if (!dati || !Array.isArray(dati.esiti)) return "";
-  return dati.esiti.filter(e => e && e.errore).map(e => e.errore).join(" | ");
+  if (!dati || !Array.isArray(dati.outcomes)) return "";
+  return dati.outcomes.filter(e => e && e.errore).map(e => e.errore).join(" | ");
 }
 
 async function piano(nome, passi) {
   const r = spawnSync(NUOVA, [], { encoding: "utf8" });
   if (r.status !== 0) { segna(nome, false, "parte nuova non creata"); return null; }
-  await chiama("guarda_il_pezzo");
-  return await chiama("disegna", { passi: passi });
+  await chiama("inspect_part");
+  return await chiama("build", { steps: passi });
 }
 
 (async function () {
@@ -204,7 +204,7 @@ async function piano(nome, passi) {
   avvisa("notifications/initialized");
 
   console.log("");
-  console.log("=== faccia_del_foro: un foro si', un raccordo no (E14) ===");
+  console.log("=== hole_face: un foro si', un raccordo no (E14) ===");
   console.log("");
 
   // ── ROSSO 1 ────────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ async function piano(nome, passi) {
     segna("un foro vero, uno solo, si prende",
           !b.errore,
           b.errore ? corto(erroreDeiPassi(b.dati)) :
-                     "volume " + (b.dati || {}).volume_dopo_mm3);
+                     "volume " + (b.dati || {}).volume_after_mm3);
   }
 
   // ── ROSSO 2 ────────────────────────────────────────────────────────────

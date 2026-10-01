@@ -10,10 +10,10 @@ namespace Prove.Contratti
     /// <summary>
     /// DUE DESCRIZIONI DEL CATALOGO CHE SI SMENTISCONO (voce Z-C15).
     ///
-    /// Il 24/9/2026 `quote_dal_modello` diceva di essere «l'unico modo di
+    /// Il 24/9/2026 `model_dimensions` diceva di essere «l'unico modo di
     /// quotare che questo catalogo offre», nello stesso catalogo in cui
-    /// `quota_in_tavola` quota. Il modello riceve le due frasi nella stessa
-    /// risposta di `elenco_operazioni` e non ha modo di sapere quale e' vera.
+    /// `drawing_dimension` quota. Il modello riceve le due frasi nella stessa
+    /// risposta di `list_operations` e non ha modo di sapere quale e' vera.
     ///
     /// Non e' un caso, e' una famiglia: una descrizione scritta quando
     /// un'operazione era sola invecchia il giorno in cui ne arriva una sorella,
@@ -30,7 +30,7 @@ namespace Prove.Contratti
         /// Le frasi con cui una descrizione si proclama sola. Scritte in
         /// minuscolo, e confrontate col testo in minuscolo.
         ///
-        /// NON c'e' «l'unico modo» da solo: `modifica_quota` dice «PRIMA
+        /// NON c'e' «l'unico modo» da solo: `set_dimension` dice «PRIMA
         /// l'unico modo era cancellare e rifare», che e' storia, non una
         /// pretesa. Visto al primo giro di questo controllo, che lo dava rosso.
         /// </summary>
@@ -55,11 +55,11 @@ namespace Prove.Contratti
             var radice = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(catalogo))
                          as Dictionary<string, object>;
             object grezze;
-            var voci = radice != null && radice.TryGetValue("operazioni", out grezze)
+            var voci = radice != null && radice.TryGetValue("operations", out grezze)
                 ? grezze as object[] : null;
             if (voci == null)
             {
-                Segna("il catalogo ha le operazioni", false, "«operazioni» non e' un elenco");
+                Segna("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
                 return;
             }
 
@@ -70,10 +70,10 @@ namespace Prove.Contratti
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
                 object n, f, d, s;
-                o.TryGetValue("nome", out n);
-                o.TryGetValue("famiglia", out f);
-                o.TryGetValue("descrizione", out d);
-                o.TryGetValue("sommario", out s);
+                o.TryGetValue("name", out n);
+                o.TryGetValue("family", out f);
+                o.TryGetValue("details", out d);
+                o.TryGetValue("summary", out s);
                 string nome = Convert.ToString(n), famiglia = Convert.ToString(f) ?? "";
                 if (string.IsNullOrEmpty(nome)) continue;
                 List<string> l;

@@ -89,13 +89,13 @@ const DA_COPIARE = {
 };
 
 function preparaLaCartella() {
-  for (const c of [LAVORO, path.join(LAVORO, "pezzo"), path.join(LAVORO, "profili")]) {
+  for (const c of [LAVORO, path.join(LAVORO, "part"), path.join(LAVORO, "profiles")]) {
     if (!fs.existsSync(c)) fs.mkdirSync(c, { recursive: true });
   }
 
   for (const [origine, copia] of Object.entries(DA_COPIARE)) {
     const da = path.join(PROFILI, origine);
-    const a = path.join(LAVORO, "profili", copia);
+    const a = path.join(LAVORO, "profiles", copia);
     if (fs.existsSync(a)) continue;
     if (!fs.existsSync(da)) {
       // SI DICE, e non si muore: chi clona il repository non ha quella
@@ -119,15 +119,15 @@ function unGiro(elenco, suQuesto) {
                   clientInfo: { name: "banco", version: "1" } } },
       { jsonrpc: "2.0", method: "notifications/initialized" },
       { jsonrpc: "2.0", id: 2, method: "tools/call",
-        params: { name: "guarda_il_pezzo", arguments: {} } },
+        params: { name: "inspect_part", arguments: {} } },
     ];
     const nome = {};
     elenco.forEach((f, i) => {
       richieste.push({
         jsonrpc: "2.0", id: 10 + i, method: "tools/call",
-        params: { name: "disegna",
+        params: { name: "build",
                   arguments: {
-                    passi: JSON.parse(risolviSegnaposto(fs.readFileSync(f, "utf8"))),
+                    steps: JSON.parse(risolviSegnaposto(fs.readFileSync(f, "utf8"))),
                   } },
       });
       nome[10 + i] = f;
@@ -149,7 +149,7 @@ function unGiro(elenco, suQuesto) {
         if (m.id === 2) {
           const t = (m.result && m.result.content || []).map(c => c.text).join("\n");
           try { statoIniziale = JSON.parse(t); } catch (e) { }
-          console.log("guarda_il_pezzo: ok");
+          console.log("inspect_part: ok");
           if (elenco.length === 0) { p.stdin.end(); clearTimeout(sveglia); }
           continue;
         }
@@ -174,8 +174,8 @@ function unGiro(elenco, suQuesto) {
 }
 
 function titoliAperti(stato) {
-  if (!stato || !Array.isArray(stato.documenti_aperti)) return [];
-  return stato.documenti_aperti.map(d => d && d.titolo).filter(Boolean);
+  if (!stato || !Array.isArray(stato.documents_open)) return [];
+  return stato.documents_open.map(d => d && d.document_title).filter(Boolean);
 }
 
 function attrezzo(percorso, args) {
@@ -196,7 +196,7 @@ async function principale() {
     const stato = await unGiro([], null);
     daRisparmiare = titoliAperti(stato);
     console.log("documenti gia' aperti, che non tocchiamo: " +
-                (daRisparmiare.length ? daRisparmiare.join(", ") : "nessuno"));
+                (daRisparmiare.length ? daRisparmiare.join(", ") : "none"));
   }
 
   // IL TEMPO PER PIANO, non solo il totale.
@@ -211,7 +211,7 @@ async function principale() {
     const partito = process.hrtime.bigint();
     await unGiro([f], null);
     const secondi = Number(process.hrtime.bigint() - partito) / 1e9;
-    tempi.push({ piano: path.basename(f), secondi });
+    tempi.push({ plane: path.basename(f), secondi });
     console.log("  [tempo] " + path.basename(f) + ": " + secondi.toFixed(1) + " s");
 
     // SI CHIUDE DOPO OGNI PIANO, NON ALLA FINE.
@@ -229,7 +229,7 @@ async function principale() {
     console.log("=== I tempi, in ordine di esecuzione");
     tempi.forEach((t, i) =>
       console.log("  " + String(i + 1).padStart(3) + ". " +
-                  t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));
+                  t.plane.padEnd(28) + t.secondi.toFixed(1) + " s"));
     const primi = tempi.slice(0, 3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, tempi.length);
     const ultimi = tempi.slice(-3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, tempi.length);
     console.log("  primi tre: " + primi.toFixed(1) + " s di media" +

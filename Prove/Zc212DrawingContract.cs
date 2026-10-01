@@ -7,11 +7,11 @@ using static Prove.Contratti.Programma;
 namespace Prove.Contratti
 {
     /// <summary>
-    /// THE IMPORT CHAIN OF quote_dal_modello STOPS AT THE MARKED MASKS (N9)
+    /// THE IMPORT CHAIN OF model_dimensions STOPS AT THE MARKED MASKS (N9)
     /// AND ASKS SOLIDWORKS TO REMOVE DUPLICATES (M2), Z-C21.2.
     ///
     /// Finding N9, measured by its Z-C21.3 probe (28/9/2026): on a part with NOTHING marked for drawing,
-    /// quote_dal_modello with tutte_le_quote = false imported all 7 unmarked
+    /// model_dimensions with all_dimensions = false imported all 7 unmarked
     /// dimensions through its last fallback (one view at a time, with the
     /// NOT-MARKED bit), and InsertModelDimensions(0) with a view selected
     /// brought 2 more. No bench case can build that part: every extrusion
@@ -36,14 +36,14 @@ namespace Prove.Contratti
 
         internal static void RunAll()
         {
-            Gruppo("quote_dal_modello: the import chain stops at the marked masks (N9) and removes duplicates (M2)");
+            Gruppo("model_dimensions: the import chain stops at the marked masks (N9) and removes duplicates (M2)");
 
             TheMethodCallsTheMembers();
 
             var library = Path.Combine(Radice(), "Riscontro.Disegno", "bin", "Release", "Riscontro.Disegno.dll");
             if (!File.Exists(library))
             {
-                NonQui("the import chain of quote_dal_modello, from the library",
+                NonQui("the import chain of model_dimensions, from the library",
                        library + " is missing: build the library first (build.ps1)");
                 return;
             }
@@ -85,27 +85,27 @@ namespace Prove.Contratti
                 var masks = (int[])Call(sw, "ModelImportMasks", false);
                 bool onlyMarked = masks != null && masks.Length > 0 &&
                                   masks.All(m => (m & Marked) != 0 && (m & NotMarked) == 0);
-                Segna("N9: with tutte_le_quote false every mask has the MARKED bit and none the NOT-MARKED bit",
+                Segna("N9: with all_dimensions false every mask has the MARKED bit and none the NOT-MARKED bit",
                       onlyMarked, masks == null ? "null" : string.Join(", ", masks));
 
                 bool allTypes = (bool)Call(sw, "ModelImportAllTypes", false);
                 bool everyViewDimension = (bool)Call(sw, "ModelImportMayTakeEveryViewDimension", false);
-                Segna("N9: with tutte_le_quote false AllTypes is false and InsertModelDimensions(0) does not run",
+                Segna("N9: with all_dimensions false AllTypes is false and InsertModelDimensions(0) does not run",
                       !allTypes && !everyViewDimension,
                       "AllTypes " + allTypes + ", InsertModelDimensions " + everyViewDimension);
 
                 int viewByView = (int)Call(sw, "ModelImportViewByViewTypes", false, HoleCallout);
-                Segna("N9: with tutte_le_quote false the view-by-view fallback asks MARKED only (plus the callouts)",
+                Segna("N9: with all_dimensions false the view-by-view fallback asks MARKED only (plus the callouts)",
                       viewByView == (Marked | HoleCallout),
                       viewByView + " (expected " + (Marked | HoleCallout) + ")");
 
-                // The other side: tutte_le_quote true must still reach the
+                // The other side: all_dimensions true must still reach the
                 // unmarked dimensions, or the fix would have cut the option.
                 var allMasks = (int[])Call(sw, "ModelImportMasks", true);
                 bool allOn = (bool)Call(sw, "ModelImportAllTypes", true)
                              && (bool)Call(sw, "ModelImportMayTakeEveryViewDimension", true);
                 int allViewByView = (int)Call(sw, "ModelImportViewByViewTypes", true, 0);
-                Segna("N9: with tutte_le_quote true the chain still reaches the unmarked dimensions",
+                Segna("N9: with all_dimensions true the chain still reaches the unmarked dimensions",
                       allMasks != null && allMasks.Any(m => (m & NotMarked) != 0) && allOn &&
                       (allViewByView & NotMarked) != 0 && (allViewByView & Marked) != 0 && (allViewByView & Generic) != 0,
                       "masks " + (allMasks == null ? "null" : string.Join(", ", allMasks)) +
@@ -134,7 +134,7 @@ namespace Prove.Contratti
             // right before the masks: every call checked below comes after it.
             const string anchor = "The masks, and every fallback below, come from the ModelImport";
             int start = text.IndexOf(anchor, StringComparison.Ordinal);
-            if (start < 0) { Segna("the import chain of quote_dal_modello is in OperazioniTavola.cs", false, "anchor comment «" + anchor + "» not found"); return; }
+            if (start < 0) { Segna("the import chain of model_dimensions is in OperazioniTavola.cs", false, "anchor comment «" + anchor + "» not found"); return; }
             // Up to the closing brace of the method, the first one at the
             // indentation of a class member (eight spaces).
             int end = text.IndexOf("\n        }", start, StringComparison.Ordinal);
@@ -149,7 +149,7 @@ namespace Prove.Contratti
                 "ModelImportViewByViewTypes(",
                 // The other half of the remedy: with nothing marked, a refusal
                 // that says how to get the unmarked dimensions.
-                "Pass tutte_le_quote=true",
+                "Pass all_dimensions=true",
             }.Where(c => body.IndexOf(c, StringComparison.Ordinal) < 0).ToList();
             int v3Calls = Count(body, ".InsertModelAnnotations3(");
             int duplicates = Count(body, "ModelImportV3DuplicateDims");
