@@ -28,6 +28,182 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
+
+**The first of the three rename windows of W3.1-bis (TODO entry W3.1-bis.4):
+the cases of the bench get English keys, English names, English folders and
+English files, generated from the name map of W3.1-bis.3.** The bench and its
+loader change; the bridge and the library do not: their sources change only in
+comments that cite a case or a bench path (22 files), and `same-il.ps1 -Mode
+Identical` gives 0 differing lines for `Riscontro.Disegno.dll`,
+`oce-solid-agent-mcp.exe` and `Riscontro.Catalogo.exe` against 1ccb18a, and
+`Strumenti/catalogo.json` is rebuilt byte for byte the same. `VERSION.txt` and
+the library version are therefore not raised (the practice of W3.1-bis.2, which
+changed the bench loader the same way).
+
+### The script of the window
+
+- **`Controlli/lingua/window-1-cases.js`**, driven by `Controlli/lingua/name-map.tsv`
+  (types case_key, free_case_key, case_family, case_name, folder, file,
+  summary_key). In order: `git mv` of the folders and files of the bench this
+  window owns (`Banco/casi`, `Banco/casi-in-attesa`, `Banco/compiti`,
+  `Banco/resoconto`; `Banco/` itself and its root files are window 3, .6);
+  the keys of every case, walked through the contexts of `Banco/case-keys.json`
+  so that an argument name is never taken for a case key; the free notes to the
+  `_` convention; the family, the case name and the twin; every case name and
+  bench path inside a value (the component files of an assembly case are named
+  after the case, `{LAVORO}\<case>_<component>`); `Banco/case-keys.json`; the
+  keys of the bench summary; and the bench paths, case names and
+  `--famiglia <folder>` values in every other tracked text file, except the
+  CHANGELOG (history), the map and its extractor (Italian on purpose) and the
+  language baseline. **Operations, arguments and selectors inside the cases
+  stay as they are**: they are the MCP surface, window 2 (.5). A plan (a file
+  whose root is a list) is the bridge's protocol: only its free notes and the
+  names inside its values change.
+- JSON is rewritten token by token: only the strings that change are replaced,
+  so indentation, line ends, the trailing newline, the key order and the
+  hand-made layout of each case stay byte for byte.
+- `--reverse` runs the window backwards. `--reverse-proof <rev>` extracts HEAD
+  into a temporary folder, runs `--reverse` there and compares the bench files
+  of `<rev>` with what came back. `--check` writes nothing and says whether the
+  tree is after the window (it is in the snapshot registry). `--todo <file>`
+  rewrites the bench paths, case names and `--famiglia` values of a TODO
+  outside its closed entries (the rule of `percorsi-del-todo.js`). `--step
+  moves|content` splits the window in two commits, so that git sees every move
+  as an exact rename. A second run changes nothing.
+- Two small tables in the script carry what the reverse run needs and the map
+  does not hold, checked against the tree by every forward run:
+  `ENGLISH_FROZEN_FREE` (the seven frozen free notes already written in English;
+  `the_numbers` becomes `_the_numbers` like the Italian note with the same
+  meaning) and `ENGLISH_CASE_KEYS` (`name` of an assembly configuration, which
+  was English while the case's own name key becomes `name` too).
+
+### What changed in the cases
+
+- 304 case files and 127 plans (431 JSON files): 11161 case keys renamed by
+  context, 327 free notes, 304 families, 262 declared case names, 136 twin
+  references (115 of them to a renamed case), 806 case names inside values (the
+  262 names and the 115 twins among them) and 5 bench paths, 3 component files
+  named after their case.
+- **The frozen list of free keys is empty.** The 184 frozen notes of
+  30/9/2026 (182 keys) start with `_` and are admitted everywhere without being
+  read; `FrozenFreeCeiling` is 0. `CaseKeysTests` keeps every check: the one that
+  showed that the context decides now uses a documented key of the case root
+  (`defect_caught`) where it used a frozen note.
+- `Banco/report/last.json` (was `Banco/resoconto/ultimo.json`): its keys are
+  the English summary keys of the map (`timestamp`, `library`, `catalog`,
+  `runnable`, `in_catalog`, `batch`, `family`, `slow`, `duration_s`,
+  `summary`, `expectations`, `passed`, `failed`, `skipped`, `errors`,
+  `exit_code`, `red`, `bench_errors`, `green_cases`), written so by
+  `Banco/banco.ps1` and read so by `ProveIlBanco` and `ProveILimiti`.
+
+### The readers, renamed in the same commit
+
+- The loader: `Banco/CasiDichiarati.cs`, `Banco/Attese.cs`, `Banco/AssiemeDiProva.cs`,
+  `Banco/Regressione.cs` read the English keys, and their refusals name them;
+  the case folders are `Banco/cases/<folder>` (the list `Famiglie`, hence the
+  values of `--famiglia` and `-Famiglia`, are the English folder names), the
+  regression folder is `regression`, the report folder `Banco/report`. No alias:
+  a case with an Italian key is refused like any unknown key. C# identifiers are
+  not renamed (window 3).
+- The contracts: `CaseKeysTests`, `ProveAttese`, `ProveILimiti`, `ProveIlBanco`,
+  `Programma` (the folder table of `Banco/LEGGIMI.md`, the folders the bench
+  walks), `ObsoleteCallsContract` (the cases its OBSOLETE-MEASURED markers cite),
+  `SelectionMarksContract`, `Zc2189WeldAssemblyContract`.
+- The checks: `Controlli/conta-provate.js` (the keys of a case; a plan step keeps
+  `operazione`), `Controlli/expected-keys-test.js` (the fake cases, whose wrong
+  keys are now the names of before the window), `Controlli/percorsi-del-todo.js`
+  (`Banco/cases` among the folders the TODO writes from, and the report of a run,
+  `AAAAMMGG_hhmm.md`, a name made at run time and not a file),
+  `Controlli/lingua/snapshot.js` (layout and case keys; the assertion kinds keep
+  their names) and `Controlli/lingua/name-map-extract.js` (layout and case keys;
+  a plan step is read with the protocol keys; the map is not touched and
+  `--check` passes). `Controlli/rimandi-del-todo.js` and
+  `Controlli/controlla-catalogo.ps1` name no bench path and are unchanged.
+- **`snapshot.js compare --window 1`**: a snapshot taken before this window is
+  read through its renames (case folders, case names, case keys, the test
+  identities `File.cs:Method:ordinal@<case>`), with the script of the window
+  doing the reading, so that the comparison of the next full bench with the
+  snapshot of 1/10/2026 matches a renamed case with itself.
+- The language gate: the `data-becomes-geometry` exception of the engraved word
+  names `Banco/cases/text/` (it covered both paths for the commit of the moves).
+
+### The renames (old → new)
+
+**Folders** (33):
+
+| old | new |
+|---|---|
+| `Banco/casi/` | `Banco/cases/` |
+| `Banco/casi-in-attesa/` | `Banco/pending-cases/` |
+| `Banco/casi/asola/` | `Banco/cases/slot/` |
+| `Banco/casi/asse/` | `Banco/cases/axis/` |
+| `Banco/casi/assiemi/` | `Banco/cases/assemblies/` |
+| `Banco/casi/coppie/` | `Banco/cases/pairs/` |
+| `Banco/casi/corpi/` | `Banco/cases/bodies/` |
+| `Banco/casi/esporta/` | `Banco/cases/export/` |
+| `Banco/casi/estrusioni/` | `Banco/cases/extrusions/` |
+| `Banco/casi/frase/` | `Banco/cases/sentence/` |
+| `Banco/casi/lamiera/` | `Banco/cases/sheet_metal/` |
+| `Banco/casi/lavorazioni/` | `Banco/cases/features/` |
+| `Banco/casi/limiti/` | `Banco/cases/limits/` |
+| `Banco/casi/misura/` | `Banco/cases/measurement/` |
+| `Banco/casi/piano/` | `Banco/cases/plane/` |
+| `Banco/casi/ponte/` | `Banco/cases/bridge/` |
+| `Banco/casi/proprieta/` | `Banco/cases/document_properties/` |
+| `Banco/casi/quote/` | `Banco/cases/dimensions/` |
+| `Banco/casi/regressione/` | `Banco/cases/regression/` |
+| `Banco/casi/ripeti/` | `Banco/cases/patterns/` |
+| `Banco/casi/ritrovare/` | `Banco/cases/reanchor/` |
+| `Banco/casi/rivoluzione/` | `Banco/cases/revolve/` |
+| `Banco/casi/saldature/` | `Banco/cases/weldments/` |
+| `Banco/casi/smusso/` | `Banco/cases/chamfer/` |
+| `Banco/casi/specchia/` | `Banco/cases/mirror/` |
+| `Banco/casi/tavola/` | `Banco/cases/drawing/` |
+| `Banco/casi/telai/` | `Banco/cases/frames/` |
+| `Banco/casi/testo/` | `Banco/cases/text/` |
+| `Banco/casi/togliere/` | `Banco/cases/removal/` |
+| `Banco/casi/verifica/` | `Banco/cases/check/` |
+| `Banco/casi/viste/` | `Banco/cases/views/` |
+| `Banco/compiti/` | `Banco/tasks/` |
+| `Banco/resoconto/` | `Banco/report/` |
+
+**Files whose name changed** (390 of the 453 moved; the others keep their name in the new folder), by folder:
+
+- `Banco/casi-in-attesa/` → `Banco/pending-cases/` (1): `LEGGIMI.md` → `README.md`
+- `Banco/casi/` → `Banco/cases/` (1): `E2-i-due-casi.md` → `E2-the-two-cases.md`
+- `Banco/casi/asola/` → `Banco/cases/slot/` (18): `asola_cieca.json` → `blind_slot.json`, `asola_cieca_faccia_alto.json` → `blind_slot_top_face.json`, `asola_cieca_faccia_basso.json` → `blind_slot_bottom_face.json`, `asola_cieca_faccia_destra.json` → `blind_slot_right_face.json`, `asola_cieca_faccia_dietro.json` → `blind_slot_back_face.json`, `asola_cieca_faccia_sinistra.json` → `blind_slot_left_face.json`, `asola_fuori_centro.json` → `off_center_slot.json`, `asola_passante.json` → `through_slot.json`, `asola_ruotata_30.json` → `slot_rotated_30.json`, `asola_ruotata_90.json` → `slot_rotated_90.json`, `asola_su_piastra_stretta_0.json` → `slot_on_narrow_plate_0.json`, `asola_su_piastra_stretta_90.json` → `slot_on_narrow_plate_90.json`, `l_asola_ancorata_segue_il_bordo.json` → `anchored_slot_follows_the_border.json`, `l_asola_obliqua_ancorata_tiene_l_angolo.json` → `anchored_oblique_slot_keeps_its_angle.json`, `l_asola_si_corregge_con_la_quota.json` → `slot_is_corrected_with_the_dimension.json`, `lim_asola_cieca_senza_profondita.json` → `limit_blind_slot_without_depth.json`, `lim_asola_fuori_dal_pezzo.json` → `limit_slot_outside_the_part.json`, `lim_asola_tonda.json` → `limit_round_slot.json`
+- `Banco/casi/asse/` → `Banco/cases/axis/` (2): `asse_dalla_parete_del_foro.json` → `axis_from_hole_wall.json`, `lim_asse_da_faccia_piana.json` → `limit_axis_from_a_planar_face.json`
+- `Banco/casi/assiemi/` → `Banco/cases/assemblies/` (10): `due_basi_uguali_uno_step.json` → `two_equal_bases_one_step.json`, `fisso_non_e_accoppiato.json` → `fixed_is_not_mated.json`, `il_coperchio_dentro_la_base.json` → `cover_inside_base.json`, `il_coperchio_rifatto_tiene_i_vincoli_ma_rotti.json` → `rebuilt_cover_keeps_the_constraints_but_broken.json`, `inserire_non_e_accoppiare.json` → `inserting_is_not_mating.json`, `l_assieme_dice_da_che_file_dipende.json` → `assembly_says_which_file_it_depends_on.json`, `l_assieme_si_pesa_si_misura_si_manda.json` → `assembly_is_weighed_measured_and_sent.json`, `la_staffa_destra_e_la_sinistra.json` → `right_bracket_and_left_bracket.json`, `toccarsi_non_e_compenetrarsi.json` → `touching_is_not_interpenetrating.json`, `un_accoppiamento_non_basta.json` → `one_mate_is_not_enough.json`
+- `Banco/casi/coppie/` → `Banco/cases/pairs/` (8): `asola_30x9.json` → `slot_30x9.json`, `foro_270_su_faccia_274.json` → `hole_270_on_face_274.json`, `foro_60_sul_bordo.json` → `hole_60_on_the_border.json`, `lim_asola_che_copre_tutto.json` → `limit_slot_that_covers_everything.json`, `lim_foro_che_copre_tutto.json` → `limit_hole_that_covers_everything.json`, `lim_foro_fuori_dal_materiale.json` → `limit_hole_outside_the_material.json`, `lim_tasca_che_copre_tutto.json` → `limit_pocket_that_covers_everything.json`, `tasca_400_cieca.json` → `blind_pocket_400.json`
+- `Banco/casi/corpi/` → `Banco/cases/bodies/` (15): `combina_chiesto.json` → `requested_combine.json`, `combina_predefinito.json` → `default_combine.json`, `filetto_su_un_perno.json` → `thread_on_pin.json`, `interseca_due_cubi.json` → `intersect_two_cubes.json`, `lim_booleana_sconosciuta.json` → `limit_unknown_boolean.json`, `lim_combina_col_corpo_letto_prima_del_taglio.json` → `limit_combine_with_body_read_before_the_cut.json`, `lim_filetto_senza_denominazione.json` → `limit_thread_without_a_designation.json`, `lim_filetto_su_uno_spigolo_dritto.json` → `limit_thread_on_a_straight_edge.json`, `lim_raccordo_variabile_su_un_cerchio.json` → `limit_variable_fillet_on_a_circle.json`, `lim_raggio_troppo_grande_per_lo_spigolo.json` → `limit_radius_too_big_for_the_edge.json`, `lim_un_corpo_solo.json` → `limit_a_single_body.json`, `lim_unione_di_corpi_che_non_si_toccano.json` → `limit_union_of_bodies_that_do_not_touch.json`, `raccordo_che_cambia_raggio.json` → `fillet_that_changes_radius.json`, `sottrai_un_cubo_dall_altro.json` → `subtract_one_cube_from_the_other.json`, `unisci_due_cubi.json` → `merge_two_cubes.json`
+- `Banco/casi/esporta/` → `Banco/cases/export/` (12): `due_corpi_esportati_a_forza.json` → `two_bodies_exported_by_force.json`, `iges_solidi.json` → `iges_solids.json`, `lim_due_corpi_non_si_esporta.json` → `limit_two_bodies_do_not_export.json`, `lim_estensione_sbagliata.json` → `limit_wrong_extension.json`, `lim_iges_con_estensione_step.json` → `limit_iges_with_a_step_extension.json`, `lim_iges_di_un_assieme.json` → `limit_iges_of_an_assembly.json`, `lim_protocollo_inventato.json` → `limit_made_up_protocol.json`, `lo_stl_non_esporta_la_faccia_selezionata.json` → `stl_does_not_export_the_selected_face.json`, `scatola_dodici_triangoli.json` → `box_twelve_triangles.json`, `scatola_in_ascii.json` → `box_in_ascii.json`, `step_ap203_e_lo_dice.json` → `step_ap203_says_so.json`, `step_ap214_riletto.json` → `step_ap214_reread.json`
+- `Banco/casi/estrusioni/` → `Banco/cases/extrusions/` (8): `il_rialzo_rettangolare_ancorato_segue_la_mezzeria.json` → `anchored_rectangular_boss_follows_the_centerline.json`, `il_rialzo_tondo_ancorato_segue_il_bordo.json` → `anchored_round_boss_follows_the_border.json`, `il_tubo_ha_il_buco.json` → `pipe_has_the_hole.json`, `l_aletta_cresce_dalla_faccia.json` → `tab_grows_from_the_face.json`, `l_asola_estrusa.json` → `extruded_slot.json`, `la_ruota_da_diciassette_denti_si_fa.json` → `the_seventeen_tooth_gear_can_be_made.json`, `lim_rialzo_ancorato_ne_tondo_ne_rettangolare.json` → `limit_anchored_boss_neither_round_nor_rectangular.json`, `lim_ruota_da_sedici_denti.json` → `limit_sixteen_tooth_gear.json`
+- `Banco/casi/frase/` → `Banco/cases/sentence/` (2): `albero_forato_non_dichiara_piu_il_profilo.json` → `drilled_shaft_no_longer_declares_profile.json`, `albero_pulito_dichiara_il_profilo.json` → `clean_shaft_declares_profile.json`
+- `Banco/casi/lamiera/` → `Banco/cases/sheet_metal/` (12): `l_orlo_aperto_torna_col_conto.json` → `open_hem_checks_out.json`, `l_orlo_chiuso_si_schiaccia.json` → `closed_hem_flattens.json`, `la_L_al_contrario.json` → `the_L_reversed.json`, `la_L_si_sviluppa.json` → `the_L_flattens.json`, `la_flangia_a_spigolo_chiude_il_lato.json` → `edge_flange_closes_the_side.json`, `la_piega_da_schizzo_alza_meta_lamiera.json` → `sketched_bend_raises_half_the_sheet_metal.json`, `lim_flangia_spigolo_non_di_bordo.json` → `limit_edge_flange_not_on_a_border.json`, `lim_flangia_spigolo_senza_dritto.json` → `limit_edge_flange_without_a_straight.json`, `lim_flangia_tratto_corto.json` → `limit_flange_short_segment.json`, `lim_orlo_aperto_senza_gioco.json` → `limit_open_hem_without_gap.json`, `lim_piega_a_centottanta_gradi.json` → `limit_bend_at_180_deg.json`, `lim_sviluppo_senza_file.json` → `limit_flat_pattern_without_a_file.json`
+- `Banco/casi/lavorazioni/` → `Banco/cases/features/` (34): `guscio_esterno.json` → `external_shell.json`, `guscio_interno.json` → `internal_shell.json`, `i_fori_guidati_ancorati_restano_a_venti.json` → `anchored_hole_wizard_holes_stay_at_twenty.json`, `il_cieco_diventa_passante.json` → `blind_becomes_through.json`, `il_foro_ancorato_segue_il_bordo.json` → `anchored_hole_follows_the_border.json`, `il_foro_guidato_segue_la_tabella.json` → `hole_wizard_follows_the_table.json`, `il_foro_sul_dietro_segue_l_angolo.json` → `hole_on_the_back_follows_the_corner.json`, `il_foro_sul_fianco_resta_a_meta_spessore.json` → `hole_on_the_side_stays_at_half_thickness.json`, `il_loft_non_e_un_cono.json` → `loft_is_not_a_cone.json`, `il_raccordo_arrotonda_i_quattro_angoli.json` → `fillet_rounds_the_four_corners.json`, `il_rialzo_cresce_e_non_e_un_taglio.json` → `boss_grows_and_is_not_a_cut.json`, `l_ordine_cambia_il_pezzo.json` → `order_changes_the_part.json`, `la_piastra_simmetrica_cresce_dalle_due_parti.json` → `symmetric_plate_grows_from_both_sides.json`, `la_quota_che_lascia_l_asola_dentro.json` → `dimension_that_keeps_the_slot_inside.json`, `la_quota_che_lascia_stare_il_raccordo.json` → `dimension_that_leaves_the_fillet_alone.json`, `la_tasca_centrata_segue_la_mezzeria.json` → `centered_pocket_follows_the_centerline.json`, `lim_ancora_che_non_dice_lo_stesso_punto.json` → `limit_anchor_that_does_not_report_the_same_point.json`, `lim_ancora_sul_bordo_del_raccordo.json` → `limit_anchor_on_the_fillet_border.json`, `lim_ancora_sul_bordo_dello_smusso.json` → `limit_anchor_on_the_chamfer_border.json`, `lim_fori_guidati_ancorati_a_meta.json` → `limit_anchored_hole_wizard_holes_halfway.json`, `lim_foro_guidato_fuori_dal_pezzo.json` → `limit_hole_wizard_outside_the_part.json`, `lim_nervatura_fuori_dal_suo_piano.json` → `limit_rib_outside_its_plane.json`, `lim_nervatura_sulla_piastra_senza_pareti.json` → `limit_rib_on_a_plate_without_walls.json`, `lim_quota_che_fa_uscire_l_asola.json` → `limit_dimension_that_pushes_the_slot_out.json`, `lim_quota_che_non_lascia_stare_il_raccordo.json` → `limit_dimension_that_will_not_leave_the_fillet_alone.json`, `lim_raccordo_faccia_fra_facce_che_si_danno_le_spalle.json` → `limit_fillet_face_between_back_to_back_faces.json`, `lim_raccordo_faccia_sulla_stessa_faccia.json` → `limit_fillet_face_on_the_same_face.json`, `lim_sformo_sulla_faccia_neutra.json` → `limit_draft_on_the_neutral_face.json`, `nervatura_nell_angolo_della_l.json` → `rib_in_the_corner_of_the_l.json`, `nervatura_nella_scatola_svuotata.json` → `rib_in_the_hollowed_box.json`, `raccordo_faccia_fra_due_facce_di_un_cubo.json` → `fillet_face_between_two_faces_of_a_cube.json`, `sformo_capovolto_cala.json` → `flipped_draft_drops.json`, `sformo_quattro_pareti.json` → `draft_four_walls.json`, `tubo_dritto_area_per_lunghezza.json` → `straight_pipe_area_per_length.json`
+- `Banco/casi/limiti/` → `Banco/cases/limits/` (8): `lim_1_guscio_troppo_spesso.json` → `limit_1_shell_too_thick.json`, `lim_2_asola_piu_stretta_che_lunga.json` → `limit_2_slot_narrower_than_it_is_long.json`, `lim_3_raccordo_piu_grande_del_pezzo.json` → `limit_3_fillet_bigger_than_the_part.json`, `lim_4_foro_piu_largo_della_faccia.json` → `limit_4_hole_wider_than_the_face.json`, `lim_5_faccia_che_non_esiste.json` → `limit_5_face_that_does_not_exist.json`, `lim_6_quota_inesistente.json` → `limit_6_nonexistent_dimension.json`, `lim_7_taglio_fuori_dal_pezzo.json` → `limit_7_cut_outside_the_part.json`, `lim_8_quote_senza_viste.json` → `limit_8_dimensions_without_views.json`
+- `Banco/casi/misura/` → `Banco/cases/measurement/` (10): `area_di_una_faccia_sola.json` → `area_of_a_single_face.json`, `distanza_fra_le_due_facce.json` → `distance_between_two_faces.json`, `due_facce_parallele_e_lo_dice.json` → `two_parallel_faces_and_it_says_so.json`, `ingombro_della_piastra.json` → `plate_bounding_box.json`, `ingombro_di_due_corpi_lontani.json` → `bounding_box_of_two_far_bodies.json`, `lim_distanza_di_una_faccia_da_se_stessa.json` → `limit_distance_of_a_face_from_itself.json`, `lim_ingombro_di_un_corpo_che_non_esiste.json` → `limit_bounding_box_of_a_body_that_does_not_exist.json`, `lo_spessore_che_resta_sotto_la_tasca.json` → `thickness_remaining_below_the_pocket.json`, `massa_di_un_cubo_di_acciaio.json` → `mass_of_a_steel_cube.json`, `massa_senza_materiale_non_si_sa.json` → `mass_without_material_is_unknown.json`
+- `Banco/casi/piano/` → `Banco/cases/plane/` (6): `la_foto_sta_in_scala.json` → `the_picture_is_to_scale.json`, `lim_tre_punti_in_fila.json` → `limit_three_points_in_a_row.json`, `piano_frontale_meno_250.json` → `front_plane_minus_250.json`, `piano_obliquo_per_tre_punti.json` → `oblique_plane_through_three_points.json`, `piano_superiore_meno_100.json` → `top_plane_minus_100.json`, `piano_superiore_piu_100.json` → `top_plane_plus_100.json`
+- `Banco/casi/ponte/` → `Banco/cases/bridge/` (101): `b8_due_passi.json` → `b8_two_steps.json`, `b8_due_tagli.json` → `b8_two_cuts.json`, `b8_due_tagli_uid.json` → `b8_two_cuts_uid.json`, `b8_secondo_storto.json` → `b8_second_crooked.json`, `c2_cerchio_senza_diametro.json` → `c2_circle_without_diameter.json`, `c2_cerchio_zero.json` → `c2_zero_circle.json`, `c2_tubo_dal_catalogo.json` → `c2_pipe_from_catalog.json`, `c4_ruota.json` → `c4_gear.json`, `c4_telaio_asse.json` → `c4_frame_axis.json`, `c4_telaio_dal_catalogo.json` → `c4_frame_from_catalog.json`, `c4_telaio_interasse.json` → `c4_frame_center_distance.json`, `c4_telaio_solo_quote.json` → `c4_frame_dimensions_only.json`, `c4_tubolare.json` → `c4_tubular.json`, `c4r_127denti.json` → `c4r_127_teeth.json`, `c4r_16denti.json` → `c4r_16_teeth.json`, `c4r_17denti.json` → `c4r_17_teeth.json`, `c4r_42denti.json` → `c4r_42_teeth.json`, `c4r_cava.json` → `c4r_keyway.json`, `c4r_foro.json` → `c4r_hole.json`, `c4r_foro_grande.json` → `c4r_big_hole.json`, `c4r_mezzo_dente.json` → `c4r_half_tooth.json`, `c4r_primario.json` → `c4r_primary.json`, `c4s_angolare.json` → `c4s_angular.json`, `c4s_asola.json` → `c4s_slot.json`, `c4s_asola_tonda.json` → `c4s_round_slot.json`, `c4s_esagono.json` → `c4s_hexagon.json`, `c4s_manca.json` → `c4s_missing.json`, `c4s_parete_meta.json` → `c4s_half_wall.json`, `c4s_spessore_lato.json` → `c4s_side_thickness.json`, `c4s_tondo.json` → `c4s_round.json`, `c4s_tubo.json` → `c4s_pipe.json`, `c5_intero.json` → `c5_whole.json`, `c5_senza_spessore.json` → `c5_without_thickness.json`, `c5_tipo_storto.json` → `c5_crooked_type.json`, `cambia_diametro.json` → `change_diameter.json`, `cilindro.json` → `cylinder.json`, `cp_1_blocco.json` → `cp_1_block.json`, `cp_2_foro.json` → `cp_2_hole.json`, `cp_3_ripeti.json` → `cp_3_repeat.json`, `cp_3b_ripeti.json` → `cp_3b_repeat.json`, `cp_4_specchia.json` → `cp_4_mirror.json`, `d3_apri.json` → `d3_empty.json`, `d3_barre.json` → `d3_bars.json`, `d3_completo.json` → `d3_complete.json`, `d3_frontale.json` → `d3_front.json`, `d3_modifica.json` → `d3_change.json`, `d3_pezzo_e_tavola.json` → `d3_part_and_drawing.json`, `d3_quote_tutte.json` → `d3_all_dimensions.json`, `d3_solo_tavola.json` → `d3_drawing_only.json`, `d3_solo_viste.json` → `d3_views_only.json`, `d3_tagli.json` → `d3_cuts.json`, `d3_tavola.json` → `d3_drawing.json`, `d3_vuoto.json` → `d3_open.json`, `d4_piano_orfano.json` → `d4_orphan_plane.json`, `d4_piano_orfano2.json` → `d4_orphan_plane_2.json`, `d5_cubo_e_raccordo.json` → `d5_cube_and_fillet.json`, `d5_cubo_e_taglio.json` → `d5_cube_and_cut.json`, `d5_cubo_sano.json` → `d5_healthy_cube.json`, `d5_innocente.json` → `d5_innocent.json`, `d5_raccordo_impossibile.json` → `d5_impossible_fillet.json`, `d5_stringi162.json` → `d5_tighten_162.json`, `d6_ripara.json` → `d6_repair.json`, `d6_rompi.json` → `d6_break.json`, `d6_sano.json` → `d6_healthy.json`, `d6_stringi.json` → `d6_tighten.json`, `d7_dappertutto.json` → `d7_everywhere.json`, `d7_in_parte.json` → `d7_in_part.json`, `d7_in_parte2.json` → `d7_in_part_2.json`, `d7_rompi.json` → `d7_break.json`, `e13_foro_sul_bordo.json` → `e13_hole_on_the_border.json`, `e15_guscio_da_riferimento.json` → `e15_shell_from_reference.json`, `e15_tutto_chiuso.json` → `e15_everything_closed.json`, `e1b_uid_inventato.json` → `e1b_made_up_uid.json`, `e1b_uid_vero.json` → `e1b_true_uid.json`, `e2_blocco.json` → `e2_block.json`, `e2_caso_a.json` → `e2_case_a.json`, `e2_caso_b.json` → `e2_case_b.json`, `e2_caso_b_giusto.json` → `e2_case_b_correct.json`, `e2_solo_quota.json` → `e2_dimension_only.json`, `e2_tasca.json` → `e2_pocket.json`, `e4_due_corpi.json` → `e4_two_bodies.json`, `e4_spezza_e_sposta.json` → `e4_split_and_move.json`, `e4_sposta_legittimo.json` → `e4_legitimate_move.json`, `e5_falso_rifiuto.json` → `e5_false_refusal.json`, `e5_intacca_angolo.json` → `e5_nicks_corner.json`, `e5_piastra_angolo.json` → `e5_plate_corner.json`, `e5_tondo_svasato.json` → `e5_round_countersunk.json`, `s_cava_a_filo.json` → `s_cavity_flush.json`, `s_composito_aperto.json` → `s_open_composite.json`, `s_foro_fuori.json` → `s_hole_outside.json`, `s_foro_staccato.json` → `s_detached_hole.json`, `s_papillon.json` → `s_bowtie.json`, `s_papillon2.json` → `s_bowtie_2.json`, `seq_a_tasca60.json` → `seq_a_pocket60.json`, `seq_b_tasca10_su_F2.json` → `seq_b_pocket10_on_F2.json`, `telaio_libreria.json` → `frame_library.json`, `telaio_su_copia.json` → `frame_on_copy.json`, `uid_buono.json` → `good_uid.json`, `uid_stantio.json` → `stale_uid.json`, `uid_stantio_2.json` → `stale_uid_2.json`, `z06_tavola.json` → `z06_drawing.json`
+- `Banco/casi/proprieta/` → `Banco/cases/document_properties/` (11): `i_due_cassetti_non_si_vedono.json` → `the_two_lists_do_not_see_each_other.json`, `la_configurazione_nuova_si_attiva_da_sola.json` → `new_configuration_activates_itself.json`, `lim_configurazione_che_non_esiste.json` → `limit_configuration_that_does_not_exist.json`, `lim_configurazione_gia_esistente.json` → `limit_configuration_that_already_exists.json`, `lim_default_non_si_chiama_default.json` → `limit_default_is_not_named_default.json`, `lim_proprieta_senza_nome.json` → `limit_property_without_a_name.json`, `lim_proprieta_su_configurazione_che_non_esiste.json` → `limit_property_on_a_configuration_that_does_not_exist.json`, `materiale_chiesto.json` → `requested_material.json`, `materiale_predefinito.json` → `default_material.json`, `numero_disegno_sul_documento.json` → `drawing_number_on_the_document.json`, `si_torna_indietro_col_nome_intero.json` → `goes_back_with_the_full_name.json`
+- `Banco/casi/quote/` → `Banco/cases/dimensions/` (6): `la_parete_ha_un_nome.json` → `wall_has_a_name.json`, `la_piastra_si_quota_da_sola.json` → `plate_dimensions_itself.json`, `la_tolleranza_sulla_quota_del_modello.json` → `tolerance_on_the_model_dimension.json`, `la_variabile_non_scavalca_lo_smusso.json` → `variable_does_not_override_the_chamfer.json`, `le_quote_arrivano_dal_modello.json` → `dimensions_come_from_the_model.json`, `lim_schema_con_due_riferimenti.json` → `limit_scheme_with_two_references.json`
+- `Banco/casi/regressione/` → `Banco/cases/regression/` (19): `r01_quattro_fori_dal_bordo.json` → `r01_four_holes_from_the_border.json`, `r01b_quattro_fori_restano_dove_sono.json` → `r01b_four_holes_stay_where_they_are.json`, `r02_passanti_restano_passanti.json` → `r02_through_holes_stay_through.json`, `r03_tasca_centrata.json` → `r03_centered_pocket.json`, `r03b_tasca_resta_dov_era.json` → `r03b_pocket_stays_where_it_was.json`, `r04_quattro_raccordi_restano.json` → `r04_four_fillets_remain.json`, `r05_smusso_piu_grande_del_pezzo.json` → `r05_chamfer_bigger_than_the_part.json`, `r06_foro_assiale_nel_cilindro.json` → `r06_axial_hole_in_the_cylinder.json`, `r07_corona_di_fori_resta.json` → `r07_ring_of_holes_remains.json`, `r08_ripeti_circolare_istanze.json` → `r08_circular_pattern_instances.json`, `r10_fondo_del_guscio_si_sposta.json` → `r10_shell_bottom_moves.json`, `r11_fondo_piu_spesso.json` → `r11_thicker_bottom.json`, `r12_telaio_col_profilo_piu_sottile.json` → `r12_frame_with_a_thinner_profile.json`, `r14_foro_guidato_e_il_preforo.json` → `r14_hole_wizard_and_the_pilot_hole.json`, `r15_raccordo_sullo_spigolo_interno.json` → `r15_fillet_on_the_internal_edge.json`, `r16_asola_che_sborda.json` → `r16_slot_that_overflows.json`, `r17_specchia_resta_simmetrico.json` → `r17_mirror_stays_symmetric.json`, `r18_ripeti_lineare_passo_invariato.json` → `r18_linear_pattern_pitch_unchanged.json`, `r19_foro_a_venti_dal_bordo.json` → `r19_hole_twenty_from_the_border.json`
+- `Banco/casi/ripeti/` → `Banco/cases/patterns/` (13): `griglia_3x2.json` → `grid_3x2.json`, `il_riempimento_fa_quattordici_fori.json` → `fill_makes_fourteen_holes.json`, `l_asse_riconosciuto.json` → `recognized_axis.json`, `lim_asse_spostato.json` → `limit_moved_axis.json`, `lim_copia_che_non_e_mai_esistita.json` → `limit_copy_that_never_existed.json`, `lim_direzione_da_spigolo_curvo.json` → `limit_direction_from_a_curved_edge.json`, `lim_griglia_non_si_conta_come_una_fila.json` → `limit_grid_does_not_count_as_a_row.json`, `lim_lo_zero_non_e_una_copia.json` → `limit_zero_is_not_a_copy.json`, `lim_riempimento_contorno_non_piano.json` → `limit_fill_contour_not_planar.json`, `lim_riempimento_direzione_fuori_dalla_faccia.json` → `limit_fill_direction_outside_the_face.json`, `lim_riempimento_senza_direzione.json` → `limit_fill_without_direction.json`, `salta_la_seconda_copia.json` → `skip_the_second_copy.json`, `tre_fori_passo_40.json` → `three_holes_pitch_40.json`
+- `Banco/casi/ritrovare/` → `Banco/cases/reanchor/` (3): `il_raccordo_ritrova_lo_spigolo_rinumerato.json` → `fillet_finds_the_renumbered_edge_again.json`, `lim_raccordo_su_uno_spigolo_accorciato.json` → `limit_fillet_on_a_shortened_edge.json`, `lim_raccordo_su_uno_spigolo_doppio.json` → `limit_fillet_on_a_double_edge.json`
+- `Banco/casi/rivoluzione/` → `Banco/cases/revolve/` (5): `albero_a_gradini.json` → `stepped_shaft.json`, `boccola_cava.json` → `hollow_bushing.json`, `cilindro_d40_lungo_50.json` → `cylinder_d40_long_50.json`, `lim_profilo_a_cavallo_dell_asse.json` → `limit_profile_straddling_the_axis.json`, `mezzo_cilindro_180.json` → `half_cylinder_180.json`
+- `Banco/casi/saldature/` → `Banco/cases/weldments/` (7): `il_cordone_va_fra_facce_che_si_toccano.json` → `weld_bead_goes_between_touching_faces.json`, `il_fazzoletto_sta_nell_angolo.json` → `gusset_sits_in_the_corner.json`, `il_poligono_del_fazzoletto_non_e_degenere.json` → `gusset_polygon_is_not_degenerate.json`, `il_taglio_accorcia_la_barra.json` → `cut_shortens_the_bar.json`, `il_taglio_senza_gioco_non_eredita.json` → `cut_without_gap_does_not_inherit.json`, `il_tappo_chiude_il_tubo.json` → `cap_closes_the_pipe.json`, `la_distinta_conta_le_barre.json` → `cut_list_counts_the_bars.json`
+- `Banco/casi/smusso/` → `Banco/cases/chamfer/` (4): `l_angolo_dello_smusso_si_cambia_in_gradi.json` → `chamfer_angle_changes_in_deg.json`, `lim_smusso_piu_grande_dello_spigolo.json` → `limit_chamfer_bigger_than_the_edge.json`, `smusso_3x6_cianfrino.json` → `chamfer_3x6_bevel.json`, `smusso_5_a_45.json` → `chamfer_5_at_45.json`
+- `Banco/casi/specchia/` → `Banco/cases/mirror/` (2): `foro_specchiato_sul_destro.json` → `hole_mirrored_on_right.json`, `lim_piano_inventato.json` → `limit_made_up_plane.json`
+- `Banco/casi/tavola/` → `Banco/cases/drawing/` (44): `due_fogli_e_lo_stesso_diedro.json` → `two_sheets_and_the_same_projection_angle.json`, `due_fori_uguali_uno_passante_uno_cieco.json` → `two_equal_holes_one_through_one_blind.json`, `i_contatori_ci_sono_anche_a_zero.json` → `counters_exist_even_at_zero.json`, `il_cartiglio_dice_cosa_vuole.json` → `title_block_says_what_it_wants.json`, `il_dettaglio_ingrandisce.json` → `detail_enlarges.json`, `il_foro_cieco_dice_quanto_e_profondo.json` → `blind_hole_says_how_deep_it_is.json`, `il_simbolo_di_saldatura_sul_giunto.json` → `weld_symbol_on_the_joint.json`, `l_albero_a_gradini_quotato_di_fianco.json` → `stepped_shaft_dimensioned_from_the_side.json`, `l_albero_smussato_non_quota_le_gambe.json` → `chamfered_shaft_does_not_dimension_the_legs.json`, `la_boccola_tornita_non_e_un_foro.json` → `turned_bushing_is_not_a_hole.json`, `la_borchia_non_e_un_foro.json` → `stud_is_not_a_hole.json`, `la_distinta_base_conta_i_componenti.json` → `bom_counts_the_components.json`, `la_distinta_di_taglio_dice_se_ha_confrontato.json` → `cut_list_says_whether_it_compared.json`, `la_distinta_di_taglio_in_tavola.json` → `cut_list_in_the_drawing.json`, `la_nota_finisce_sul_foglio.json` → `note_ends_up_on_the_sheet.json`, `la_sezione_taglia_il_pezzo.json` → `section_cuts_the_part.json`, `la_tabella_fori_dice_dove_sono.json` → `hole_table_says_where_they_are.json`, `la_tavola_e_un_secondo_documento.json` → `drawing_is_a_second_document.json`, `la_tavola_esce_in_pdf.json` → `drawing_exports_to_pdf.json`, `la_tavola_quota_fori_e_smusso.json` → `drawing_dimensions_holes_and_chamfer.json`, `la_tavola_si_quota.json` → `drawing_dimensions_itself.json`, `le_annotazioni_stanno_fuori_dal_pezzo.json` → `annotations_stay_outside_the_part.json`, `le_croci_di_centro_sui_fori.json` → `center_marks_on_the_holes.json`, `le_quote_arrivano_nel_pdf.json` → `dimensions_arrive_in_the_pdf.json`, `lim_datum_con_la_stessa_lettera.json` → `limit_datum_with_the_same_letter.json`, `lim_dettaglio_fuori_dalla_vista.json` → `limit_detail_outside_the_view.json`, `lim_due_sezioni_con_la_stessa_lettera.json` → `limit_two_sections_with_the_same_letter.json`, `lim_nota_fuori_dal_foglio.json` → `limit_note_outside_the_sheet.json`, `lim_planarita_con_un_riferimento.json` → `limit_flatness_with_one_reference.json`, `lim_rugosita_fuori_scala.json` → `limit_surface_finish_out_of_scale.json`, `lim_saldatura_su_un_corpo_solo.json` → `limit_weld_on_a_single_body.json`, `lim_sezione_fuori_dalla_vista.json` → `limit_section_outside_the_view.json`, `lim_spigolo_che_non_esiste.json` → `limit_edge_that_does_not_exist.json`, `lim_sviluppo_di_un_pezzo_pieno.json` → `limit_flat_pattern_of_a_solid_part.json`, `lim_tabella_fori_sulla_vista_di_fianco.json` → `limit_hole_table_on_the_side_view.json`, `lim_tolleranza_su_un_datum_che_non_c_e.json` → `limit_tolerance_on_a_datum_that_is_not_there.json`, `lo_sviluppo_in_tavola.json` → `flat_pattern_in_the_drawing.json`, `tav_1_salva_pezzo.json` → `dwg_1_save_part.json`, `tav_2_crea_disegno.json` → `dwg_2_create_drawing.json`, `tav_3_foglio.json` → `dwg_3_sheet.json`, `tav_4_viste.json` → `dwg_4_views.json`, `tav_5_isometrica.json` → `dwg_5_isometric.json`, `tav_6_quote.json` → `dwg_6_dimensions.json`, `tav_7_pdf.json` → `dwg_7_pdf.json`
+- `Banco/casi/telai/` → `Banco/cases/frames/` (1): `i_profili_si_leggono_prima.json` → `profiles_are_read_first.json`
+- `Banco/casi/testo/` → `Banco/cases/text/` (6): `l_area_va_col_quadrato_dell_altezza.json` → `area_scales_with_the_square_of_the_height.json`, `la_stessa_sigla_in_rilievo.json` → `the_same_code_embossed.json`, `lim_marcatura_senza_profondita.json` → `limit_marking_without_depth.json`, `lim_scritta_che_esce_dalla_faccia.json` → `limit_engraved_text_that_exits_the_face.json`, `lim_scritta_tutta_fuori_dal_pezzo.json` → `limit_engraved_text_entirely_outside_the_part.json`, `sigla_incisa_al_centro.json` → `code_engraved_in_the_center.json`
+- `Banco/casi/togliere/` → `Banco/cases/removal/` (5): `elimina_il_primo_foro.json` → `delete_first_hole.json`, `lim_elimina_estrusione_di_base.json` → `limit_delete_base_extrusion.json`, `lim_nome_inventato.json` → `limit_made_up_name.json`, `lim_sopprimere_due_volte.json` → `limit_suppress_twice.json`, `sopprimi_il_terzo_foro.json` → `suppress_the_third_hole.json`
+- `Banco/casi/verifica/` → `Banco/cases/check/` (6): `blocco_dritto_si_stampa.json` → `straight_block_prints.json`, `corpo_sano_si_esporta.json` → `healthy_body_exports.json`, `due_corpi_non_si_esportano.json` → `two_bodies_do_not_export.json`, `il_corpo_nascosto_che_pende_si_vede.json` → `hidden_hanging_body_is_visible.json`, `lim_corpo_che_non_esiste.json` → `limit_body_that_does_not_exist.json`, `pareti_a_sessanta_gradi_non_si_stampano.json` → `walls_at_sixty_degrees_do_not_print.json`
+- `Banco/casi/viste/` → `Banco/cases/views/` (6): `1_piastra_forata.json` → `1_drilled_plate.json`, `2_guscio_aperto.json` → `2_open_shell.json`, `3_staffa_a_L.json` → `3_l_bracket.json`, `4_flangia_forata.json` → `4_drilled_flange.json`, `5_albero_a_gradini.json` → `5_stepped_shaft.json`, `COME_SI_CONTA.md` → `HOW_IT_COUNTS.md`
+- `Banco/compiti/` → `Banco/tasks/` (3): `LEGGIMI.md` → `README.md`, `staffa_a_elle.json` → `l_bracket.json`, `telaio_da_un_metro.json` → `one_meter_frame.json`
+- `Banco/resoconto/` → `Banco/report/` (1): `ultimo.json` → `last.json`
+
 ## Unreleased — Z-C21.14, `annulla` tells the truth (branch `zc21-14`) · bridge 0.125.0 · library 0.149.0
 
 **What the live probe M19 and the probe `redo` (1/10/2026) found on the way of
