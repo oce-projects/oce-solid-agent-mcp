@@ -61,6 +61,10 @@ namespace ProvaSaldatura
         /// Una famiglia nuova si aggiunge qui, e chi la dimentica lo scopre
         /// subito: i suoi casi non girano e il conto delle attese non sale.
         /// </summary>
+        /// <summary>The Italian names each case was run with (W3.1-bis.5, D4), and whether it is a case of Banco/cases/aliases.</summary>
+        private static readonly Dictionary<string, int> AliasUses = new Dictionary<string, int>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, bool> AliasCaseFolder = new Dictionary<string, bool>(StringComparer.Ordinal);
+
         private static readonly string[] Famiglie =
         {
             "features", "pairs", "slot", "chamfer", "revolve", "plane",
@@ -241,6 +245,16 @@ namespace ProvaSaldatura
             Console.WriteLine("casi verdi: " + string.Join(" ",
                 comeEAndata.Where(kv => kv.Value).Select(kv => kv.Key)
                            .OrderBy(k => k, StringComparer.Ordinal)));
+
+            // THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5): a line of its own,
+            // like the green cases, which banco.ps1 writes into last.json as
+            // «alias_uses». Outside the alias cases the number must be 0: a case
+            // that still speaks the old names would hide behind the aliases until
+            // W3.1-bis.11 removes them.
+            var outside = AliasUses.Keys.Where(k => !AliasCaseFolder[k]).OrderBy(k => k, StringComparer.Ordinal).ToList();
+            Console.WriteLine("alias uses: " + AliasUses.Keys.Sum(k => AliasUses[k]) + " in " + AliasUses.Count +
+                              " cases; outside the alias cases: " + outside.Sum(k => AliasUses[k]) +
+                              (outside.Count > 0 ? " (" + string.Join(" ", outside) + ")" : ""));
         }
 
         /// <summary>
@@ -1540,6 +1554,17 @@ namespace ProvaSaldatura
                         var library = misure.TryGetValue("deprecated", out fromLibrary) && fromLibrary is string[]
                             ? (string[])fromLibrary : new string[0];
                         misure["deprecated"] = DeprecatedSelectors.Concat(library).ToArray();
+                    }
+                    // Every Italian name a step was written with is counted per case:
+                    // outside Banco/cases/aliases the count must be 0 (W3.1-bis.5,
+                    // «alias uses = 0 in the report»). Removed in W3.1-bis.11.
+                    object deprecatedLines;
+                    if (misure != null && misure.TryGetValue("deprecated", out deprecatedLines) && deprecatedLines is string[])
+                    {
+                        int before;
+                        AliasUses.TryGetValue(nome, out before);
+                        AliasUses[nome] = before + ((string[])deprecatedLines).Length;
+                        AliasCaseFolder[nome] = string.Equals(Path.GetFileName(Path.GetDirectoryName(percorso)), "aliases", StringComparison.Ordinal);
                     }
 
                     // SI CAMBIA SOLO SE IL PASSO E' RIUSCITO. Un `create_drawing`

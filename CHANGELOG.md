@@ -173,6 +173,12 @@ literals of the sources, 971 messages and 1011 comments that quote a code name.
   family and operation are answered in English only). The Italian names come
   from the map, not from the contract. **Seen red** with the map not embedded:
   11 of the 14 fail (the Italian tool is refused as unknown).
+- **The bench counts them**: every step whose answer carries `deprecated` adds
+  its lines to its case, and the run ends with a line `alias uses: N in M cases;
+  outside the alias cases: K` that `banco.ps1` writes into `last.json` as
+  `alias_uses`. K must be 0: a case of before the rename would otherwise hide
+  behind the aliases until they go. `Alias.cs` and its contract are excluded
+  from the window, which would otherwise rename the old names they quote.
 - **Removed in W3.1-bis.11**, before the tag: `Alias.cs`, the embedded map, the
   calls in `OperazioniSw.Esegui`, `Attrezzi.Chiama` and `Attese`, the cases of
   `Banco/cases/aliases`, the contract.

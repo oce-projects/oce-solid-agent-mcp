@@ -292,6 +292,11 @@ if (-not [string]::IsNullOrWhiteSpace($rigaVerdi)) {
         [char[]]@(' '), [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { [string]$_ })
 }
 
+# THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5, decision D4): the bench writes
+# them on a line of their own; outside Banco/cases/aliases they must be 0.
+$aliasLine = [string]($righe | Where-Object { $_ -match "^alias uses: " } | Select-Object -Last 1)
+$aliasUses = $(if ([string]::IsNullOrWhiteSpace($aliasLine)) { $null } else { $aliasLine.Substring("alias uses: ".Length) })
+
 $commit = "(non in un repository)"
 try {
     Push-Location $Radice
@@ -412,6 +417,7 @@ $oggetto = [ordered]@{
     red          = @($fallite | ForEach-Object { $_.TrimEnd() })
     bench_errors = @($errori | ForEach-Object { $_.TrimEnd() })
     green_cases  = $casiVerdi
+    alias_uses   = $aliasUses
 }
 $json = $oggetto | ConvertTo-Json -Depth 4
 $fileJson = Join-Path $cartella ($nome + ".json")

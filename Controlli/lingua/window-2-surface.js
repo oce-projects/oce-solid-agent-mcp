@@ -135,6 +135,8 @@ const EXCLUDED = new Set([
   'Controlli/lingua/lexicon.json',               // the Italian words the gate looks for
   'Controlli/lingua/exceptions.json',            // the patterns name the Italian they cover
   'Controlli/lingua/detect-italian.js',          // the gate: its exception classes are not protocol
+  'Riscontro.Disegno/Alias.cs',                  // the aliases (W3.1-bis.5, D4): they name the old names
+  'Prove/AliasLayerContract.cs',                 // and their contract
   '.github/passi/language-gate.ps1',             // (`quote` is a class there, not the family)
   'Controlli/lingua/measure-labels.json',        // labelled Italian samples of the gate's measure
   'Controlli/lingua/measure-labels-blind.json',
