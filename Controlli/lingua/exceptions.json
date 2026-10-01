@@ -94,7 +94,7 @@
  },
  {
   "class": "data-becomes-geometry",
-  "file": "^Banco/casi/testo/",
+  "file": "^Banco/(casi/testo|cases/text)/",
   "pattern": "PROVA",
   "applies_to": [
    "detector",
