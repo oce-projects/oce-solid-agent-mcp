@@ -76,7 +76,7 @@ const MUTATIONS = [
     edits: [["          if (out.full.test(form)) fail(where + ': pattern matches the Italian function word \"' + form + '\" on its own: too wide');", '']],
     red: ['a pattern made of Italian function words is refused'] },
   { id: 'G1', what: 'a signature anywhere in the range, as a line of the body', file: GATE,
-    edits: [["        $raise = Get-Trailer $c 'Language-Baseline-Raise'",
+    edits: [["        $raise = @(Get-Trailer $c 'Language-Baseline-Raise')",
              "        $raise = @((Invoke-Git log --format=%B \"$baseSha..$head\").Out | Where-Object { $_ -match '^\\s*Language-Baseline-Raise:\\s*\\S' })"]],
     red: ['growth in an earlier commit, signature on a later one', 'the signature on a different commit than the raise', 'the signing words in the body'] },
   { id: 'G2', what: 'a commit is judged with its own lexicon and exceptions', file: GATE,
