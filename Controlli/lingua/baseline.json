@@ -10,7 +10,7 @@
   "json_keys": 15,
   "protocol": 1067,
   "paths": 220,
-  "transition": 2165
+  "transition": 2180
  },
  "files": {
   ".gitattributes": {
@@ -94,6 +94,18 @@
   },
   "Banco/cases/E2-the-two-cases.md": {
    "markdown": 615
+  },
+  "Banco/cases/aliases/argument_by_its_italian_name.json": {
+   "transition": 4
+  },
+  "Banco/cases/aliases/operation_by_its_italian_name.json": {
+   "transition": 1
+  },
+  "Banco/cases/aliases/selector_by_its_italian_name.json": {
+   "transition": 3
+  },
+  "Banco/cases/aliases/value_by_its_italian_name.json": {
+   "transition": 3
   },
   "Banco/cases/assemblies/assembly_is_weighed_measured_and_sent.json": {
    "json_values": 150
@@ -1332,6 +1344,9 @@
   "Programma.cs": {
    "comments": 688,
    "strings": 166
+  },
+  "Prove/AliasLayerContract.cs": {
+   "transition": 4
   },
   "Prove/Carica.cs": {
    "comments": 195

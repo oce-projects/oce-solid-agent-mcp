@@ -1,0 +1,17 @@
+{
+  "name": "value_by_its_italian_name",
+  "family": "aliases",
+  "why": "W3.1-bis.5, decision D4: a value of an argument written with its name of before the rename is the value the schema lists. «frontale» must put the plate on the front plane (the box says where it grew), and the answer must list it in measurements.deprecated. Removed in W3.1-bis.11 with the aliases.",
+  "defect_caught": "An Italian value refused as unknown, or one that falls back to another plane in silence: the volume alone would not see it, the box does.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "frontale", "length_mm": 120, "width_mm": 60, "thickness_mm": 8, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 57600, "why": "120 x 60 x 8" },
+        { "what": "bounding_box_mm", "equal_to": [120, 60, 8], "tolerance": 0.01,
+          "tolerance_why": "whole numbers; the hundredth covers the rounding of the box",
+          "why": "on the front plane the thickness grows along z; on the top plane the box would be 120 x 8 x 60" },
+        { "what": "measurements.deprecated", "includes": ["«frontale» is deprecated, use «front»"] } ] }
+  ]
+}

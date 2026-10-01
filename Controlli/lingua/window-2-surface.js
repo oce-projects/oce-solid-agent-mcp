@@ -2320,10 +2320,14 @@ function git(root, args) {
   if (r.status !== 0) cannot('git ' + args.join(' ') + ': ' + (r.stderr || r.stdout));
   return r.stdout;
 }
-const isCaseFile = (f) => CASE_TOPS.some(t => f.startsWith(t + '/')) && f.endsWith('.json');
+// The cases of the aliases (W3.1-bis.5, decision D4) are written with the
+// names of before the window on purpose: the window and its proofs leave them
+// alone. They go with the aliases in W3.1-bis.11.
+const EXCLUDED_FOLDERS = ['Banco/cases/aliases/'];
+const isCaseFile = (f) => CASE_TOPS.some(t => f.startsWith(t + '/')) && f.endsWith('.json') && !EXCLUDED_FOLDERS.some(x => f.startsWith(x));
 const isTaskJson = (f) => f.startsWith(TASKS_DIR + '/') && f.endsWith('.json');
 function kindOf(f) {
-  if (EXCLUDED.has(f)) return null;
+  if (EXCLUDED.has(f) || EXCLUDED_FOLDERS.some(x => f.startsWith(x))) return null;
   const ext = path.extname(f).toLowerCase();
   if (BINARY.has(ext)) return null;
   if (f === CATALOGUE_REL) return 'catalogue';

@@ -189,6 +189,15 @@
     <Compile Include="Unita.cs" />
     <Compile Include="MaterialiSolidWorks.cs" />
     <Compile Include="SezioneProfilo.cs" />
+    <Compile Include="Alias.cs" />
+  </ItemGroup>
+
+  <!-- THE ITALIAN NAMES OF BEFORE W3.1-bis.5, accepted on input until the first release
+       (Alias.cs, decision D4): the dictionary is the name map itself. Removed in W3.1-bis.11. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Controlli\lingua\name-map.tsv">
+      <LogicalName>name-map.tsv</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

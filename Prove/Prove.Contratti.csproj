@@ -99,6 +99,7 @@
     <Compile Include="Zc2113ExportUnitsContract.cs" />
     <Compile Include="Zc2113SplineCentreMarksContract.cs" />
     <Compile Include="DocumentByPathContract.cs" />
+    <Compile Include="AliasLayerContract.cs" />
     <Compile Include="Zc2189WeldAssemblyContract.cs" />
     <Compile Include="Zc2189DrawingContract.cs" />
     <Compile Include="Zc2189MachiningContract.cs" />

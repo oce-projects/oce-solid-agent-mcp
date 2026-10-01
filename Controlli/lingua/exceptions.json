@@ -163,5 +163,29 @@
   "reason": "the second column of the name map (entry W3.1-bis.3): the names the rename windows .4 to .6 rename, one per row, which must stay as the tree writes them. Counted as transition, which must be 0 at the tag: the map leaves the tree before v0.1.0. Only that column is covered: the type, the English name, the places and the note of a row are checked as usual",
   "signed_by": "W3.1-bis.3",
   "date": "2026-10-01"
+ },
+ {
+  "class": "transition",
+  "file": "^Banco/cases/aliases/[^/]+\\.json$",
+  "pattern": "\\b(?:estrudi_rettangolo|lunghezza_mm|larghezza_mm|spessore_mm|centrato|frontale)\\b|@faccia\\(verso=davanti\\)",
+  "applies_to": [
+   "detector",
+   "translator"
+  ],
+  "reason": "the cases of the aliases (entry W3.1-bis.5, decision D4): an operation, four arguments, a value and a selector written with their names of before the rename on purpose, one case per kind of name. Counted as transition, which must be 0 at the tag: the aliases and these cases leave the tree in W3.1-bis.11",
+  "signed_by": "W3.1-bis.5",
+  "date": "2026-10-01"
+ },
+ {
+  "class": "transition",
+  "file": "^Prove/AliasLayerContract\\.cs$",
+  "pattern": "PROVA A VUOTO|non esiste",
+  "applies_to": [
+   "detector",
+   "translator"
+  ],
+  "reason": "the alias contract (entry W3.1-bis.5) recognises the dry run of the bridge and its refusal of an unknown operation by the words the bridge writes, still Italian. Counted as transition: the contract leaves the tree with the aliases in W3.1-bis.11",
+  "signed_by": "W3.1-bis.5",
+  "date": "2026-10-01"
  }
 ]

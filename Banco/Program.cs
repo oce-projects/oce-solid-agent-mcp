@@ -414,6 +414,14 @@ namespace ProvaSaldatura
                 _tOperazioni = _addin.GetType(NS + "OperazioniSw", true);
                 _tStato = _addin.GetType(NS + "StatoDocumento", true);
                 _tEsito = _addin.GetType(NS + "OperazioniSw+Esito", true);
+                // The Italian selectors of before W3.1-bis.5, read through the
+                // dictionary of the library (Alias.cs); a library from before
+                // it has none, and the selectors are read as written.
+                var tAlias = _addin.GetType(NS + "Alias", false);
+                var selectorMethod = tAlias == null ? null
+                    : tAlias.GetMethod("Selector", new[] { typeof(string), typeof(List<string>) });
+                if (selectorMethod != null)
+                    Attese.SelectorAlias = (s, notes) => (string)selectorMethod.Invoke(null, new object[] { s, notes });
             }
             catch (Exception ex)
             {

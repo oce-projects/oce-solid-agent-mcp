@@ -135,7 +135,47 @@ literals of the sources, 971 messages and 1011 comments that quote a code name.
   the description of the argument says that the name is the installation's, in
   its language, to be copied from the state (8 arguments of 8 operations).
 - The README section «Language» is rewritten: what is English, what comes from
-  SOLIDWORKS in the language of the installation.
+  SOLIDWORKS in the language of the installation, and the aliases below.
+
+### The Italian names, accepted on input until the first release (decision D4)
+
+- **`Riscontro.Disegno/Alias.cs`**: the dictionary is the name map itself,
+  embedded in the library (`Riscontro.Disegno.csproj`, `name-map.tsv`), so the
+  rows that renamed the surface are the rows that read the old names. A key is
+  translated only to a name the schema of the operation has at that level (the
+  two senses of `a_mm`: `throat_mm` in `drawing_weld_symbol`, `offset_mm` in
+  `section_view`), a value only to a value the schema lists, a selector field
+  by field (`normal=front`). Input only: the answers, the catalogue,
+  `describe_operation` and reflection speak English.
+- **Where**: `OperazioniSw.Esegui` translates a step for the callers of the
+  library that do not come through the bridge (the bench, the add-in) and
+  writes `measurements.deprecated`; the switch moved to
+  `ExecuteWithCurrentNames`, and `Controlli/controlla-catalogo.ps1` reads the
+  `case` labels there. The bridge translates in `Attrezzi.Chiama`, before any
+  of its checks: the tool, its arguments, the action of `document`, the family
+  of `list_operations`, the operation of `describe_operation`, the steps of a
+  plan with their arguments; the answer carries the lines in
+  `structuredContent.deprecated` and as its last text item. The bench reads
+  its selectors through the same dictionary (`Attese.SelectorAlias`) and adds
+  them to the step's `measurements.deprecated`.
+- **How it warns**: one line per name, «old» is deprecated, use «new» (the
+  Italian names are accepted until the first release).
+- **The bench**: `Banco/cases/aliases/`, one case per kind of name (an
+  operation, an argument, a value, a selector), each checking the part and the
+  deprecated line. The window and its proofs leave the folder alone, and
+  `conta-provate.js` does not count it (it exercises the dictionary, not an
+  operation).
+- **The contract** `AliasLayerContract` (14 checks): the library by reflection
+  (an operation step, its arguments and value, an English step left alone,
+  `a_mm` in its two operations, a value the schema does not list, a selector)
+  and the bridge over stdio with a dry run (an Italian tool, plan and step give
+  the dry run of the English plan and list all ten old names; an Italian
+  family and operation are answered in English only). The Italian names come
+  from the map, not from the contract. **Seen red** with the map not embedded:
+  11 of the 14 fail (the Italian tool is refused as unknown).
+- **Removed in W3.1-bis.11**, before the tag: `Alias.cs`, the embedded map, the
+  calls in `OperazioniSw.Esegui`, `Attrezzi.Chiama` and `Attese`, the cases of
+  `Banco/cases/aliases`, the contract.
 
 ### The renames (old → new)
 

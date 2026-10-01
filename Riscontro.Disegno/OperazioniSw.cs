@@ -300,6 +300,29 @@ namespace Riscontro.Disegno
             StatoDocumento stato,
             IReadOnlyDictionary<int, Riferimenti.Passo> passiFatti = null)
         {
+            // THE NAMES OF BEFORE W3.1-bis.5 (Alias.cs, decision D4): an
+            // Italian operation, argument or value is translated here, for the
+            // callers of the library that do not come through the bridge (the
+            // bench, the add-in), and the answer says so in `deprecated`. The
+            // bridge translates before its own checks, so its plans arrive here
+            // in English. Removed in W3.1-bis.11.
+            List<string> deprecated = Alias.Step(ref operazione, argomenti);
+            Esito esito = ExecuteWithCurrentNames(modello, operazione, argomenti, stato, passiFatti);
+            if (deprecated.Count > 0 && esito != null)
+            {
+                if (esito.Misure != null) esito.Misure["deprecated"] = deprecated.ToArray();
+                else if (!esito.Riuscito) esito.Errore = esito.Errore + " (" + string.Join("; ", deprecated) + ")";
+            }
+            return esito;
+        }
+
+        private Esito ExecuteWithCurrentNames(
+            IModelDoc2 modello,
+            string operazione,
+            Dictionary<string, object> argomenti,
+            StatoDocumento stato,
+            IReadOnlyDictionary<int, Riferimenti.Passo> passiFatti)
+        {
             _passiFatti = passiFatti ?? new Dictionary<int, Riferimenti.Passo>();
             // Si svuota all'INIZIO: svuotarlo alla fine lo lascerebbe pieno
             // quando l'operazione fallisce, e la successiva erediterebbe gli

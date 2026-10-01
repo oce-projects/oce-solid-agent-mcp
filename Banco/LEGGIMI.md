@@ -793,6 +793,10 @@ cases/reanchor/    3   lo spigolo nominato con l'uid letto PRIMA di due fori si
                        si rifiuta, mai il piu' vicino; doppio (due corpi che si
                        toccano) si rifiuta, «non scelgo io» (voce E19,
                        `uid_from_step`)
+cases/aliases/     4   the names of before the rename, accepted until the first
+                       release (W3.1-bis.5, D4): an operation, an argument, a
+                       value and a selector written in Italian give the same
+                       part, and the step lists them in measurements.deprecated
 ```
 
 `-Famiglia` (voce E19) fa girare solo quelle cartelle dei casi dichiarati: il

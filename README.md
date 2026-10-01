@@ -321,6 +321,17 @@ meets are listed in `Controlli/lingua/exceptions.json` (class
 `solidworks-localized`): the language gate does not count them and the rename
 does not touch them.
 
+**The Italian names are aliases until the first release.** A client that still
+sends a tool, a sub-action, an operation, a family, an argument or a value by
+its Italian name gets the same answer as with the English name, plus the lines
+of `deprecated` (in `structuredContent` and as the last text of the answer)
+that say which names were accepted and which English name to use instead;
+the selectors of the bench written with the old names are read the same way. The aliases are accepted on input only: the answers, the
+catalogue and `describe_operation` speak English only. They are read from
+`Controlli/lingua/name-map.tsv`, the map the rename was generated from
+(embedded in the library, `Riscontro.Disegno/Alias.cs`), and they are removed
+with the map in W3.1-bis.11, before the release tag.
+
 What holds already: **new text is written in English**, and a language gate
 (`Controlli/lingua/detect-italian.js`) keeps the Italian from growing, on every
 push and on the CI: every commit is judged against its parent, with its parent's

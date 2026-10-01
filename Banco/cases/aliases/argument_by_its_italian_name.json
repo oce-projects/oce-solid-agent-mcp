@@ -1,0 +1,17 @@
+{
+  "name": "argument_by_its_italian_name",
+  "family": "aliases",
+  "why": "W3.1-bis.5, decision D4: an argument written with its name of before the rename lands on the argument of the schema of the operation. Every argument of the plate is Italian, and the plate must be the same, with each old name in measurements.deprecated. Removed in W3.1-bis.11 with the aliases.",
+  "defect_caught": "An Italian argument dropped as unknown (the operation refuses, or takes a default in its place), or renamed to an argument the operation does not take.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "lunghezza_mm": 120, "larghezza_mm": 60, "spessore_mm": 8, "centrato": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 57600, "why": "120 x 60 x 8: every argument arrived" },
+        { "what": "bounding_box_mm", "equal_to": [120, 8, 60], "tolerance": 0.01,
+          "tolerance_why": "whole numbers; the hundredth covers the rounding of the box",
+          "why": "the length and the width where they belong, not swapped" },
+        { "what": "measurements.deprecated", "includes": ["«lunghezza_mm» is deprecated, use «length_mm»", "«spessore_mm» is deprecated, use «thickness_mm»"] } ] }
+  ]
+}

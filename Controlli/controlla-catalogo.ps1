@@ -207,8 +207,14 @@ if (Test-Path -LiteralPath $Sorgente) {
     #
     # Si guarda solo dentro il corpo di `Esegui`, se lo si trova: altrove nel
     # file ci sono altri switch (nomi di piano, di vista) che non c'entrano.
+    #
+    # Since W3.1-bis.5 the switch sits in `ExecuteWithCurrentNames`: `Esegui`
+    # translates the names of before the rename (Alias.cs) and hands over. The
+    # method that holds the switch is read; `Esegui` when it holds it again
+    # (W3.1-bis.11 removes the aliases).
     $corpo = $testo
-    $inizio = $testo.IndexOf("public Esito Esegui(")
+    $inizio = $testo.LastIndexOf(" ExecuteWithCurrentNames(")   # the declaration, after the call
+    if ($inizio -lt 0) { $inizio = $testo.IndexOf("public Esito Esegui(") }
     if ($inizio -ge 0) {
         $fine = $testo.IndexOf("`n        }", $inizio)
         if ($fine -gt $inizio) { $corpo = $testo.Substring($inizio, $fine - $inizio) }

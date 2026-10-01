@@ -94,6 +94,11 @@ namespace ProvaSaldatura
             // «uid_from_step», l'unico modo di far fare al banco la strada del
             // ponte.
             "reanchor",
+            // «aliases» (W3.1-bis.5, decision D4): one case per kind of name
+            // of before the rename (operation, argument, value, selector),
+            // written with that name on purpose. Removed in W3.1-bis.11 with
+            // the aliases.
+            "aliases",
         };
 
         /// <summary>
@@ -1461,6 +1466,7 @@ namespace ProvaSaldatura
                     // UN SELETTORE CHE NON RISOLVE NON E' UNA PROVA ROSSA:
                     // il caso non si e' potuto ESEGUIRE, e dirlo «fallito»
                     // farebbe credere che si sia misurato qualcosa (voce F4).
+                    DeprecatedSelectors.Clear();
                     try { argomenti = Risolvi(grezziArg, statoDegliUid) as Dictionary<string, object>; }
                     catch (NonHoPotutoMisurare ex) { ErroreDiBanco(etichetta, ex.Message); return false; }
                     catch (Exception ex) { Segna(etichetta, false, ex.Message); return false; }
@@ -1525,6 +1531,16 @@ namespace ProvaSaldatura
                     string errore;
                     IModelDoc2 nato;
                     var misure = Esegui(attuale, operazione, argomenti, out errore, out nato, stato);
+                    // The Italian selectors this step was written with (Attese.SelectorAlias):
+                    // the bench resolves selectors before the library sees the step, so it adds
+                    // them to the library's own `deprecated` lines. Removed in W3.1-bis.11.
+                    if (misure != null && DeprecatedSelectors.Count > 0)
+                    {
+                        object fromLibrary;
+                        var library = misure.TryGetValue("deprecated", out fromLibrary) && fromLibrary is string[]
+                            ? (string[])fromLibrary : new string[0];
+                        misure["deprecated"] = DeprecatedSelectors.Concat(library).ToArray();
+                    }
 
                     // SI CAMBIA SOLO SE IL PASSO E' RIUSCITO. Un `create_drawing`
                     // fallito a meta' puo' aver lasciato un documento a monitor

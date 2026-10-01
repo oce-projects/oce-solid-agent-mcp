@@ -694,6 +694,60 @@ namespace Oce.Solid.Agent.Strumenti
             // da dove era arrivata la prima.
             _filo = new Mcp.Avanzamento.Filo(gettone);
 
+            // THE NAMES OF BEFORE W3.1-bis.5 (Riscontro.Disegno/Alias.cs,
+            // decision D4): a tool, an action, a family, an operation, an
+            // argument or a value written with its Italian name is translated
+            // BEFORE any check of this bridge reads it, and the answer lists
+            // each one in `deprecated`. Input only: the answers, the catalogue
+            // and describe_operation speak English. Removed in W3.1-bis.11.
+            List<string> deprecated = new List<string>();
+            nome = Riscontro.Disegno.Alias.Tool(nome, deprecated);
+            if (argomenti != null)
+                Riscontro.Disegno.Alias.ToolArguments(nome, argomenti, ToolSchema(nome), deprecated);
+            return WithDeprecated(Dispatch(nome, argomenti), deprecated);
+        }
+
+        /// <summary>The input schema of a tool, as tools/list gives it, or null.</summary>
+        private Dictionary<string, object> ToolSchema(string nome)
+        {
+            var tools = Elenco() as object[];
+            if (tools == null) return null;
+            foreach (var x in tools)
+            {
+                var s = x as Dictionary<string, object>;
+                object n, schema;
+                if (s != null && s.TryGetValue("name", out n) && string.Equals(n as string, nome, StringComparison.Ordinal) &&
+                    s.TryGetValue("inputSchema", out schema))
+                    return schema as Dictionary<string, object>;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The answer of a tool, with the Italian names it accepted: in
+        /// `structuredContent.deprecated` when there is structured content, and
+        /// always as a last text item, so that a client reading only the text
+        /// sees it too.
+        /// </summary>
+        internal static Dictionary<string, object> WithDeprecated(Dictionary<string, object> answer, List<string> deprecated)
+        {
+            if (answer == null || deprecated == null || deprecated.Count == 0) return answer;
+            object data;
+            var structured = answer.TryGetValue("structuredContent", out data) ? data as Dictionary<string, object> : null;
+            if (structured != null) structured["deprecated"] = deprecated.ToArray();
+            object c;
+            var content = answer.TryGetValue("content", out c) ? c as object[] : null;
+            var line = new Dictionary<string, object>
+            {
+                ["type"] = "text",
+                ["text"] = "deprecated: " + string.Join("; ", deprecated),
+            };
+            answer["content"] = (content ?? new object[0]).Concat(new object[] { line }).ToArray();
+            return answer;
+        }
+
+        private Dictionary<string, object> Dispatch(string nome, Dictionary<string, object> argomenti)
+        {
             switch (nome)
             {
                 case "inspect_part": return GuardaIlPezzo(argomenti);

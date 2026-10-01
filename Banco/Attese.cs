@@ -739,8 +739,21 @@ namespace ProvaSaldatura
             return grezzo;
         }
 
+        /// <summary>
+        /// THE SELECTORS OF BEFORE W3.1-bis.5 (decision D4): a selector written with
+        /// the names of before the rename is read as its English spelling. Set by the bench when it loads the
+        /// library (Riscontro.Disegno.Alias.Selector, the name map itself); the
+        /// contracts leave it null and read selectors as written. Each name it
+        /// translates goes into <see cref="DeprecatedSelectors"/>, which the
+        /// runner of the cases adds to the step's `measurements.deprecated`.
+        /// Removed in W3.1-bis.11.
+        /// </summary>
+        internal static Func<string, List<string>, string> SelectorAlias;
+        internal static readonly List<string> DeprecatedSelectors = new List<string>();
+
         internal static string Seleziona(string espressione, Dictionary<string, object> stato)
         {
+            if (SelectorAlias != null) espressione = SelectorAlias(espressione, DeprecatedSelectors);
             int apre = espressione.IndexOf('(');
             if (apre < 0 || !espressione.EndsWith(")", StringComparison.Ordinal))
                 throw new NonHoPotutoMisurare("selettore storto: «" + espressione + "»");

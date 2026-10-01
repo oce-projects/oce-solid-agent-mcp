@@ -109,6 +109,11 @@ function scorri(cartella) {
   catch (e) { missingKeys.push(cartella + ': cannot read the folder (' + e.message + ')'); return; }
   for (const v of voci) {
     const p = path.join(cartella, v.name);
+    // The cases of the aliases (W3.1-bis.5, decision D4) exercise the
+    // dictionary of the old names, not an operation, and two of them name
+    // their operation in Italian on purpose: they are not counted here.
+    // Removed with the aliases in W3.1-bis.11.
+    if (v.isDirectory() && v.name === 'aliases' && path.resolve(cartella) === path.resolve(CASI)) continue;
     if (v.isDirectory()) { scorri(p); continue; }
     if (!v.name.endsWith('.json')) continue;
     const where = path.relative(RADICE, p).replace(/\\/g, '/');
