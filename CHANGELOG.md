@@ -30,7 +30,12 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ## 0.124.0 — 1 October 2026 · library 0.148.0
 
-BENCH_0148_PLACEHOLDER
+**Full bench on library 0.148.0, 1/10/2026: 2159 tests, 0 failed** (1771 expectations
+checked), the new mate case green, and the test ledger written (2161 tests, 284 cases, 0
+identities unresolved). One net did not run: «every lookup by name that falls back to
+null found its target» was skipped, because `banco.ps1` always passes `--libreria` and
+the bench took any `--libreria` for «another library». Fixed right after this entry
+(see the next version). Prove.Contratti: 760 checks, 0 failed.
 
 Two lots, merged as two squashed commits: W3.1-bis.2 (the safety nets before the English renames) and Z-C14 (the second number of a mate).
 
@@ -43,9 +48,8 @@ in silence (TODO entry W3.1-bis, step .2, items 1-10).** Built on bridge
 tool of the bridge or the library changes. Every net was seen failing on fake
 cases, and where it could the seen-red stays as an automatic check (a contract
 group or a self-test). **Item 11 is NOT done**: the snapshot and the two
-reference bench runs come next, on SOLIDWORKS. **THE BENCH HAS NOT RUN** on
-this branch: the bench now refuses unknown case keys and writes a test ledger,
-and neither was seen on a real run. Prove.Contratti: 736 checks (693 before),
+reference bench runs come next, on SOLIDWORKS. On the full bench of 0.148.0 the
+case-key loader refused nothing and the test ledger was written. Prove.Contratti: 736 checks (693 before),
 only the three bench-freshness checks red (the last run is 0.146.0).
 
 - **Item 8, `<Deterministic>` (its own commit).** `Oce.Solid.Agent.csproj`,
@@ -198,9 +202,8 @@ only the three bench-freshness checks red (the last run is 0.146.0).
 
 **`accoppia` now measures which directions a mate blocks, and refuses a
 REDUNDANT mate (TODO entry Z-C14, RAG note 82d).** Built on bridge 0.123.0 /
-library 0.147.0; the version is not raised yet. **THE BENCH HAS NOT RUN on this
-branch** (no SOLIDWORKS while it was written): the new case and the four
-existing cases that call `accoppia` are unmeasured until the next bench.
+library 0.147.0. On the full bench of 0.148.0 the new case and the existing cases
+that call `accoppia` are green.
 Prove.Contratti: 708 checks run in this worktree (710 with `TODO_MD` pointing at
 the TODO, which a worktree does not have), only the two bench-freshness checks
 red plus the README count: a worktree of main built the same way runs 690 of
