@@ -200,7 +200,15 @@ namespace Oce.Solid.Agent.Strumenti
                     "Un passo puo' nominare la geometria creata da un passo " +
                     "PRECEDENTE dello stesso piano (per esempio faccia_rif: " +
                     "{passo: 1, genere: \"faccia_superiore\"}): e' l'unico modo, " +
-                    "perche' quella faccia non ha ancora nessun identificativo.",
+                    "perche' quella faccia non ha ancora nessun identificativo.\n\n" +
+                    "The plan runs on the document you looked at; if another window " +
+                    "came to the front in between, it stops before writing. " +
+                    "«volume_dopo_mm3» is the plan's document; «stato_dopo» is the " +
+                    "document in front, and when that is another one the answer says " +
+                    "so in «document_in_front» and «note_document_in_front» (after " +
+                    "a drawing step it is the new drawing, and the next plan works " +
+                    "on it). «undo_entry_recorded» says whether the plan left its " +
+                    "own undo entry, the one an undo takes away.",
                     Oggetto(
                         new Dictionary<string, object>
                         {
@@ -339,7 +347,22 @@ namespace Oce.Solid.Agent.Strumenti
                     "allora toglierebbe il lavoro di qualcun altro.\n\n" +
                     "Dopo, il pezzo torna al volume che aveva prima del piano, e " +
                     "gli identificativi delle facce NON sono piu' quelli: la " +
-                    "risposta porta lo stato nuovo, ed e' quello che vale.",
+                    "risposta porta lo stato nuovo, ed e' quello che vale.\n\n" +
+                    "The last plan is the last one that built something or left its " +
+                    "own undo entry (its answer said «undo_entry_recorded»: true), " +
+                    "for example a reorder; a measure, or a plan that wrote nothing, " +
+                    "does not replace it. The part must be in front: after a plan " +
+                    "that ended on another window (a drawing it made stays in front, " +
+                    "and its answer names it in «document_in_front»), bring the part " +
+                    "back as «note_document_in_front» says, then call again. I compare the part with " +
+                    "how the plan left it (volume, feature count, feature names and " +
+                    "order) and I REFUSE BEFORE PRESSING («refused_before_pressing»: " +
+                    "true) when it differs, or when something is known to be on top " +
+                    "of the plan's undo entry: SOLIDWORKS cannot redo an undo entry " +
+                    "recorded through the API, so a wrong press could not be taken " +
+                    "back. After pressing I report it withdrawn only if the part " +
+                    "reads as before the plan; otherwise I say what the press took " +
+                    "away and whether it came back.",
                     Oggetto(new Dictionary<string, object>(), new string[0]),
                     // NON e' idempotente: chiamarlo due volte non annulla due
                     // volte lo stesso piano — la seconda toglierebbe quello
@@ -2090,9 +2113,25 @@ namespace Oce.Solid.Agent.Strumenti
             // Da qui arrivano i riferimenti fra passi («la faccia in cima a
             // quello che hai fatto al passo 1») e la voce di annullamento
             // unica: un solo Ctrl+Z disfa il piano intero.
+            // What the executor said about its document and its undo entry
+            // (Z-C21.14). Stays null when the plan never reached it: refused
+            // above, before anything was written.
+            Riscontro.Disegno.EsecutorePiano.Risultato planRun = null;
+            bool executorThrew = false;
+            object turnRefusedOn = null;
             if (tuttoBene)
             {
-                var fatti = _sessione.EseguiPiano(daFare, out var erroreGiro, _filo);
+                // THE EXECUTOR RUNS ON THE DOCUMENT CHECKED ABOVE (review F7).
+                // Up to bridge 0.125.0 it took the active document by itself,
+                // so a window brought to the front between the reading of
+                // `prima` and this call got the plan, and the memory mixed the
+                // numbers of two documents. It now stops before writing when
+                // the active document is not `adesso`.
+                var fatti = _sessione.EseguiPiano(daFare, out var erroreGiro, _filo,
+                                                  IdentityForTheExecutor(adesso));
+                planRun = _sessione.LastPlanResult;
+                executorThrew = _sessione.LastPlanExecutorThrew;
+                turnRefusedOn = _sessione.LastTurnRefusedDocument;
                 if (fatti != null) foreach (var e in fatti) esiti.Add(e);
                 if (!string.IsNullOrEmpty(erroreGiro))
                 {
@@ -2112,6 +2151,79 @@ namespace Oce.Solid.Agent.Strumenti
 
             var dopo = _sessione.Stato(out var erroreStato);
 
+            // ── TWO READINGS WHEN THE PLAN ENDS ON ANOTHER WINDOW (Z-C21.14) ──
+            //
+            // `dopo` above is the document IN FRONT. Up to bridge 0.124.1 it
+            // was also the only reading after the plan, and when the window
+            // changed during the plan (a `crea_disegno`, another session, the
+            // person) the undo memory got the numbers of the other
+            // document: the live probe M19 (1/10/2026, line BRIDGE-R1 (X2))
+            // saw the next undo refuse a right undo («the part changed
+            // after the plan»). The plan's own numbers are now read on the
+            // plan's document, by the reference the executor kept
+            // (`PlanDocument`, the documentoAtteso it read once at the start).
+            //
+            // «stato_dopo» KEEPS DESCRIBING THE DOCUMENT IN FRONT, on purpose:
+            // the next plan works on the document in front, and after
+            // [..., crea_disegno] the next plan is `viste_standard` on the
+            // drawing, the most normal sequence there is. What describes the
+            // plan's document is `volume_dopo_mm3` (paired with
+            // `volume_prima_mm3`, read on the same document before), the error
+            // counts and the undo memory; and when the two documents
+            // differ the answer says which one is in front.
+            var frontIdentity = IdentitaDelloStato(dopo);
+            var planStateAfter = dopo;
+            var planIdentity = adesso;
+            string planStateError = null;
+            bool anotherInFront = false;
+            // A plan the executor stopped before writing (its checks, or the
+            // active document not the one checked here, review F7) worked on
+            // nothing: its PlanDocument is only the window that was in front,
+            // possibly a foreign one, and must not become the plan's document.
+            bool wroteOnADocument = planRun != null && !planRun.StoppedBeforeWriting;
+            object planDocumentHeld = wroteOnADocument ? planRun.PlanDocument : null;
+            if (planDocumentHeld != null)
+            {
+                planIdentity = _sessione.Identita(planDocumentHeld) ?? adesso;
+                if (!_sessione.IsInFront(planDocumentHeld))
+                {
+                    anotherInFront = true;
+                    planStateAfter = _sessione.StateOfDocument(planDocumentHeld, out planStateError);
+                }
+            }
+            else if (frontIdentity != null && !Ponte.Sessione.StessoDocumento(adesso, frontIdentity))
+            {
+                anotherInFront = true;
+                // The executor held no document. When it was never reached, or
+                // stopped before writing, nothing was written and the document
+                // of this call is as it was read before. When it threw (review
+                // F9), what it wrote is not known and the document is not held:
+                // no reading after.
+                planStateAfter = planRun == null || planRun.StoppedBeforeWriting ? prima : null;
+            }
+
+            // ── IS THE WINDOW IN FRONT THE PLAN'S? (review F5) ──────────────
+            //
+            // It is when the plan ended on it: the plan document, or the new
+            // document a step declared (the drawing of `crea_disegno`). When a
+            // window came to the front from outside during the plan (scenario
+            // X2 of the probe M19: another session, the person), it is not, and
+            // up to bridge 0.125.0 its identity and signatures were adopted
+            // anyway: a retry of the refused step, written for the plan's part,
+            // passed the «document changed» check and wrote into the other
+            // document, the class of the 14 September 2026. Now nothing is
+            // adopted from a window the plan did not end on: the identity and
+            // the signatures are cleared, and the next plan asks for
+            // «guarda_il_pezzo» first.
+            bool frontIsThePlans;
+            object finalDocument = wroteOnADocument ? planRun.FinalDocument : null;
+            if (finalDocument != null)
+                frontIsThePlans = _sessione.IsInFront(finalDocument) ||
+                                  (planDocumentHeld != null && !anotherInFront);
+            else
+                frontIsThePlans = frontIdentity != null &&
+                                  Ponte.Sessione.StessoDocumento(planIdentity, frontIdentity);
+
             // «stato_dopo» E' LA LETTURA SUCCESSIVA, E VA FIRMATA COME TALE.
             //
             // Questa risposta porta con se' lo stato del documento dopo i
@@ -2128,7 +2240,7 @@ namespace Oce.Solid.Agent.Strumenti
             // dicendo «qualcuno ha toccato il pezzo a mano». Sarebbe il
             // falso positivo che la voce X2 metteva fra i rischi, e sarebbe
             // fastidioso al punto giusto per insegnare a ignorare l'avviso.
-            if (dopo != null)
+            if (dopo != null && frontIsThePlans)
             {
                 _firmeViste = FirmeDelloStato(dopo);
                 _firmaGuardata = FirmaLeggera(dopo);
@@ -2154,9 +2266,15 @@ namespace Oce.Solid.Agent.Strumenti
                 //
                 // `annulla` faceva gia' cosi' tre metodi piu' sotto. Qui no.
                 _guardato = IdentitaDelloStato(dopo);
-
-                TogliLeAncore(dopo);
             }
+            else
+            {
+                // A window the plan did not end on, or no reading (review F5).
+                _guardato = null;
+                _firmeViste = null;
+                _firmaGuardata = null;
+            }
+            if (dopo != null) TogliLeAncore(dopo);
 
             var risultato = new Dictionary<string, object>
             {
@@ -2168,8 +2286,27 @@ namespace Oce.Solid.Agent.Strumenti
                 ["stato_dopo"] = dopo,
                 ["nota_stato"] = dopo == null ? erroreStato : null,
                 ["volume_prima_mm3"] = Volume(prima),
-                ["volume_dopo_mm3"] = Volume(dopo),
+                // On the plan's document, like the line above (Z-C21.14).
+                ["volume_dopo_mm3"] = Volume(planStateAfter),
             };
+
+            // WHICH DOCUMENT IS IN FRONT, when it is not the plan's (Z-C21.14),
+            // and whether the next plan may work on it (review F5).
+            if (anotherInFront)
+            {
+                risultato["document_in_front"] = NomeLeggibile(frontIdentity);
+                risultato["note_document_in_front"] =
+                    NoteDocumentInFront(NomeLeggibile(planIdentity), NomeLeggibile(frontIdentity), frontIsThePlans) +
+                    (planStateAfter == null && planStateError != null ? " " + planStateError : "");
+            }
+
+            // WHETHER THE PLAN LEFT AN UNDO ENTRY (Z-C21.14): true, one entry
+            // with the plan in it sits on top of that document's undo stack;
+            // false, SOLIDWORKS answered false (measured for an empty
+            // recording; whether that leaves an entry on the stack is
+            // undecided, probe M19 phase H4); null, not known.
+            if (planRun != null)
+                risultato["undo_entry_recorded"] = planRun.UndoEntryOnPlanDocument;
 
             // IL CONTEGGIO DEGLI ERRORI SI DA' COME DELTA, NON COME NUMERO.
             //
@@ -2183,7 +2320,8 @@ namespace Oce.Solid.Agent.Strumenti
             // un pezzo sano che resta sano non c'e' niente da dire, e ripeterlo
             // a ogni risposta e' posto tolto a cio' che conta.
             int erroriPrima = LavorazioniInErrore(prima);
-            int erroriDopo = LavorazioniInErrore(dopo);
+            // The same document as `prima` (Z-C21.14), not the window in front.
+            int erroriDopo = LavorazioniInErrore(planStateAfter);
             if (erroriPrima > 0 || erroriDopo > 0)
             {
                 risultato["lavorazioni_in_errore_prima"] = erroriPrima;
@@ -2213,15 +2351,41 @@ namespace Oce.Solid.Agent.Strumenti
             // Il messaggio di errore glielo dice gia' («quello che era gia'
             // stato costruito resta»).
             //
-            // SI CANCELLA quando il pezzo non e' cambiato, e cancella anche il
-            // ricordo di un piano PRECEDENTE che sarebbe ancora ritirabile.
+            // WHAT IS KEPT (Z-C21.14, review F1): the plan's document by its
+            // COM reference (review F11: a save changes the name, not the
+            // object), and a snapshot of it before and after the plan: volume,
+            // feature count, and the feature names with their IDs in tree order.
+            // The undo presses only if the part still reads as the snapshot
+            // after, and says «withdrawn» only if it then reads as the snapshot
+            // before.
             //
-            // E' una perdita, ed e' voluta. `EsecutorePiano` apre la voce di
-            // annullamento PRIMA del primo passo e la chiude comunque: un piano
-            // fallito subito ne lascia una vuota, e se SOLIDWORKS la mette in
-            // pila lo stesso, un passo indietro toglie quella — non il piano di
-            // prima. Non c'e' nessuna API per guardare la pila e togliersi il
-            // dubbio.
+            // WHICH PLAN IS KEPT, AND WHEN (`MemoryAfterPlan`, pure, with the
+            // rules written there). The short form:
+            //  * a plan that built, or a plan whose own undo entry closed
+            //    with something in it (FinishRecordingUndoObject answered true:
+            //    a reorder, a rename, a property) becomes the memory: it is the
+            //    last plan, and its entry is on top. Up to the first version of
+            //    this lot such a plan only covered the plan before it, and
+            //    the undo refused to withdraw the very plan the description
+            //    promises to withdraw (review F1);
+            //  * a plan that wrote nothing (it never reached the executor,
+            //    stopped before opening its recording, or closed an empty one
+            //    on the same document with nothing visibly changed) leaves the
+            //    memory as it is (review F3: a plan, a measure and an undo, or
+            //    a plan, a drawing with its views, the part brought back and
+            //    an undo, were false refusals). The probe measured that an empty
+            //    recording answers false; whether it leaves an entry on the
+            //    stack is undecided, and the bench case
+            //    `undo case c` decides it. If that entry were on top, a press
+            //    would take away nothing visible, `annulla` would see the part
+            //    unchanged and say so, without a redo;
+            //  * a measure that recorded a non-empty entry covers the memory
+            //    (it is not a plan to withdraw, and its entry sits above);
+            //    so does another bridge process refused the turn on the
+            //    memory's document (review F4: another writer is on it);
+            //  * anything else (an executor that threw, an answer not known, an
+            //    entry on another document) drops the memory, and the reason is
+            //    kept for the refusal, with what to do (review F12).
             //
             // Di solito, in questo progetto, **rifiutare cio' che e' corretto e'
             // il peggiore dei due modi di sbagliare**. Qui no, e vale la pena
@@ -2229,31 +2393,67 @@ namespace Oce.Solid.Agent.Strumenti
             // rilettura e un piano nuovo; un annullamento di troppo cancella il
             // lavoro di una persona, e nessun messaggio lo rimette. Quando i due
             // errori non costano uguale, il criterio si rovescia.
+            // On the plan's document (Z-C21.14): `prima` was read on it before
+            // the plan, `planStateAfter` after, whatever window is in front now.
             double? volPrima = NumeroDi(prima, "volume_mm3");
-            double? volDopo = NumeroDi(dopo, "volume_mm3");
+            double? volDopo = NumeroDi(planStateAfter, "volume_mm3");
             int featPrima = QuanteFeature(prima);
-            int featDopo = QuanteFeature(dopo);
+            int featDopo = QuanteFeature(planStateAfter);
+            var snapshotBefore = PartSnapshot.Of(prima);
+            var snapshotAfter = PartSnapshot.Of(planStateAfter);
 
             // Un volume che non si e' letto non conta come «cambiato» (voce
             // Z-C8): qui si sbaglia nel verso di NON ricordare, per la ragione
             // scritta sopra — un annullamento di troppo cancella il lavoro di
             // una persona.
             bool haCostruito =
-                dopo != null &&
+                planStateAfter != null &&
                 (featDopo != featPrima ||
                  (volPrima.HasValue && volDopo.HasValue &&
                   Math.Abs(volDopo.Value - volPrima.Value) > ScartoVolumeMm3));
+            bool visibleChange = SnapshotDiffers(snapshotBefore, snapshotAfter).Count > 0;
 
-            _ultimoPiano = haCostruito
-                ? new UltimoPiano
-                {
-                    Documento = adesso,
-                    VolumePrima = volPrima,
-                    VolumeDopo = volDopo,
-                    FeaturePrima = featPrima,
-                    FeatureDopo = featDopo,
-                }
-                : null;
+            var memoryBefore = _ultimoPiano;
+            bool sameDocument = memoryBefore != null &&
+                                SameDocumentAs(memoryBefore, planDocumentHeld, planIdentity);
+            bool turnRefusedOnMemoryDocument = memoryBefore != null && turnRefusedOn != null &&
+                                               SameDocumentAs(memoryBefore, turnRefusedOn,
+                                                              _sessione.Identita(turnRefusedOn));
+            string memoryReason;
+            string memoryAction = MemoryAfterPlan(
+                haCostruito, visibleChange, planStateAfter != null,
+                memoryBefore != null, memoryBefore != null && memoryBefore.CoveredBecause != null,
+                planRun != null, planRun != null && planRun.StoppedBeforeWriting, executorThrew,
+                turnRefusedOnMemoryDocument, planRun?.UndoEntryOnPlanDocument, sameDocument,
+                !guardaSeERipetuto, NomeLeggibile(planIdentity), out memoryReason);
+
+            switch (memoryAction)
+            {
+                case MemoryNew:
+                    _ultimoPiano = new UltimoPiano
+                    {
+                        // The plan document as it is called NOW (Z-C21.14): a
+                        // plan that saves its part changes its title and path.
+                        Documento = planIdentity,
+                        DocumentRef = planDocumentHeld,
+                        Before = snapshotBefore,
+                        After = snapshotAfter,
+                    };
+                    _noMemoryBecause = null;
+                    break;
+                case MemoryCover:
+                    memoryBefore.CoveredBecause = memoryReason;
+                    memoryBefore.CoveredByRecordedEntry = true;
+                    break;
+                case MemoryDrop:
+                    _ultimoPiano = null;
+                    _noMemoryBecause = memoryReason;
+                    break;
+                default:
+                    // Kept: the name follows a save of the same document.
+                    if (memoryBefore != null && sameDocument) memoryBefore.Documento = planIdentity;
+                    break;
+            }
 
             // SI RICORDA COSA SI E' FATTO, e solo se qualcosa si e' fatto
             // davvero (voce W2.7). Un piano rifiutato in blocco non ha toccato
@@ -2263,11 +2463,15 @@ namespace Oce.Solid.Agent.Strumenti
             // E non si ricorda niente di una MISURA: non ha cambiato il pezzo,
             // e ricordarla farebbe rifiutare un `disegna` successivo che per
             // caso avesse la stessa impronta.
+            // The plan's document and its own summary (review F6): up to bridge
+            // 0.125.0 the document was the plan's and the summary the window
+            // in front's, so after [..., crea_disegno] a resent plan on the part
+            // was not recognised and built a second time.
             if (tuttoBene && guardaSeERipetuto)
             {
                 _ultimoPianoFatto = improntaPiano;
-                _documentoDelPiano = adesso;
-                _riepilogoDopoIlPiano = RiepilogoDelloStato(dopo);
+                _documentoDelPiano = planIdentity;
+                _riepilogoDopoIlPiano = RiepilogoDelloStato(planStateAfter);
             }
 
             // I dati escono anche quando il piano e' andato male (W2.4): e'
@@ -2281,7 +2485,6 @@ namespace Oce.Solid.Agent.Strumenti
         // ─────────────────────────────────────────────────────────────────
         // R1 — ritirare quello che si e' fatto
         // ─────────────────────────────────────────────────────────────────
-
         /// <summary>
         /// Com'era il pezzo quando l'ultimo piano ha finito.
         ///
@@ -2292,14 +2495,244 @@ namespace Oce.Solid.Agent.Strumenti
         /// </summary>
         private sealed class UltimoPiano
         {
+            /// <summary>The plan document's identity, for the messages (and the
+            /// comparison when no reference is held).</summary>
             public Dictionary<string, object> Documento;
-            public double? VolumePrima;
-            public double? VolumeDopo;
-            public int FeaturePrima;
-            public int FeatureDopo;
+
+            /// <summary>
+            /// Z-C21.14, review F11: the plan document by its COM reference
+            /// (`EsecutorePiano.Risultato.PlanDocument`). A save changes the
+            /// name of the same document; a document closed and opened again
+            /// has the same name and an undo stack without the plan. Null when
+            /// the executor held none.
+            /// </summary>
+            public object DocumentRef;
+
+            /// <summary>Z-C21.14, review F1: the plan's document before the plan.</summary>
+            public PartSnapshot Before;
+
+            /// <summary>Z-C21.14, review F1: the plan's document after the plan.</summary>
+            public PartSnapshot After;
+
+            /// <summary>
+            /// Z-C21.14: why this plan is KNOWN not to be on top of the undo
+            /// stack any more, in English, for the refusal; null while nothing
+            /// says so. A covered memory is never pressed.
+            /// </summary>
+            public string CoveredBecause;
+
+            /// <summary>
+            /// Z-C21.14, review F10: what covers it. True: an undo entry
+            /// recorded through the API (a measure that recorded one, another
+            /// bridge's plan), which SOLIDWORKS cannot redo. False: an action
+            /// that was not recorded, put back by a redo, which a redo can put
+            /// back again.
+            /// </summary>
+            public bool CoveredByRecordedEntry;
+        }
+
+        /// <summary>
+        /// WHAT THE UNDO COMPARES OF A READING (Z-C21.14): the volume (null
+        /// when the state could not read it, Z-C8), the feature count with the
+        /// features beyond the list, the listed features as «name#id» in tree
+        /// order, and how many features are beyond the list (review F16: those
+        /// are compared only by count).
+        /// </summary>
+        private sealed class PartSnapshot
+        {
+            public double? Volume;
+            public int Count;
+            public List<string> Names;
+            public int Unlisted;
+
+            public static PartSnapshot Of(Dictionary<string, object> stato)
+            {
+                if (stato == null) return null;
+                int unlisted = 0;
+                if (stato.TryGetValue("feature_non_elencate", out var u) && u != null)
+                    try { unlisted = Convert.ToInt32(u, CultureInfo.InvariantCulture); } catch { }
+                return new PartSnapshot
+                {
+                    Volume = NumeroDi(stato, "volume_mm3"),
+                    Count = QuanteFeature(stato),
+                    Names = FeatureNamesInOrder(stato),
+                    Unlisted = unlisted,
+                };
+            }
         }
 
         private UltimoPiano _ultimoPiano;
+
+        /// <summary>
+        /// Z-C21.14: why there is no memory, when a later plan or an
+        /// undo dropped it, in English, for the refusal; null otherwise.
+        /// </summary>
+        private string _noMemoryBecause;
+
+        /// <summary>The four answers of <see cref="MemoryAfterPlan"/>.</summary>
+        internal const string MemoryNew = "new", MemoryKeep = "keep", MemoryCover = "cover", MemoryDrop = "drop";
+
+        /// <summary>
+        /// WHAT A PLAN DOES TO THE UNDO MEMORY (Z-C21.14, reviewed).
+        /// Pure, so that a contract can call it. Returns
+        /// <see cref="MemoryNew"/> (this plan becomes the memory),
+        /// <see cref="MemoryKeep"/> (the memory, or its absence and the reason
+        /// for it, stays as it is), <see cref="MemoryCover"/> (the memory is
+        /// kept and marked covered by a recorded entry, with
+        /// <paramref name="reason"/>) or <see cref="MemoryDrop"/> (the memory
+        /// goes, if there was one, and <paramref name="reason"/> says why).
+        ///
+        /// The rules, in this order:
+        ///  0. another bridge process held the turn on the memory's document
+        ///     (review F4): cover;
+        ///  1. the plan never reached the executor, or stopped before opening
+        ///     its recording: nothing was written, keep;
+        ///  2. the executor threw (review F9): what it wrote and recorded is
+        ///     not known, drop;
+        ///  3. the plan's document could not be read after it: drop;
+        ///  4. the plan built (volume or feature count changed): new;
+        ///  5. a plan whose own undo entry closed with something in it
+        ///     (FinishRecordingUndoObject answered true: a reorder, a rename, a
+        ///     property): new, it is the last plan and its entry is on top
+        ///     (review F1);
+        ///  6. no memory: keep when the plan wrote nothing (answer false and
+        ///     nothing visibly changed), otherwise drop with the reason (review
+        ///     F12: the reason is rewritten after every plan that wrote);
+        ///  7. a covered memory stays covered;
+        ///  8. a plan on another document: drop;
+        ///  9. a measure that recorded a non-empty entry: cover;
+        /// 10. answer false and nothing visibly changed: keep (review F3; the
+        ///     bench case `undo case c` decides that an empty recording does not
+        ///     stand between the memory and the press);
+        /// 11. anything else (answer unknown, or false with a visible change):
+        ///     drop.
+        /// </summary>
+        internal static string MemoryAfterPlan(
+            bool built, bool visibleChange, bool afterReadable,
+            bool hasMemory, bool alreadyCovered,
+            bool executorReached, bool stoppedBeforeWriting, bool executorThrew,
+            bool turnRefusedOnMemoryDocument, bool? undoEntryOnPlanDocument, bool sameDocument,
+            bool measure, string planDocumentName, out string reason)
+        {
+            reason = null;
+            string what = measure ? "The last «misura»" : "The last «disegna»";
+            string on = " «" + (planDocumentName ?? "") + "»";
+
+            if (turnRefusedOnMemoryDocument && hasMemory && !alreadyCovered)
+            {
+                reason = "Another bridge process was working on the document of the plan I remember when my last " +
+                         "plan was refused its turn there: whatever it recorded is now on top of the undo stack, " +
+                         "above my plan.";
+                return MemoryCover;
+            }
+            if (!executorReached || stoppedBeforeWriting) return MemoryKeep;
+            if (executorThrew)
+            {
+                reason = what + " stopped with an exception in the plan executor, so what it wrote on" + on +
+                         " and what it left on top of its undo stack are not known.";
+                return MemoryDrop;
+            }
+            if (!afterReadable)
+            {
+                reason = what + " ran, and then I could not read" + on + " again: what is on top of its undo stack " +
+                         "is not known.";
+                return MemoryDrop;
+            }
+            if (built) return MemoryNew;
+            if (!measure && undoEntryOnPlanDocument == true) return MemoryNew;
+
+            bool wroteNothing = undoEntryOnPlanDocument == false && !visibleChange;
+            if (!hasMemory)
+            {
+                if (wroteNothing) return MemoryKeep;
+                reason = undoEntryOnPlanDocument == true
+                    ? what + " put its own undo entry on top of the undo stack of" + on +
+                      " (FinishRecordingUndoObject answered true), and a measure is not a plan to withdraw."
+                    : UnknownTop(what, on, undoEntryOnPlanDocument);
+                return MemoryDrop;
+            }
+            if (alreadyCovered) return MemoryKeep;
+            if (!sameDocument)
+            {
+                reason = what + " ran on another document," + on + ", so I no longer keep the memory of the plan " +
+                         "before it: I do not press undo on a stack I cannot vouch for.";
+                return MemoryDrop;
+            }
+            if (undoEntryOnPlanDocument == true)
+            {
+                reason = what + " put its own undo entry («Ponte MCP»: FinishRecordingUndoObject answered true) on " +
+                         "top of the undo stack of" + on + ", above the plan I remember.";
+                return MemoryCover;
+            }
+            if (wroteNothing) return MemoryKeep;
+            reason = UnknownTop(what, on, undoEntryOnPlanDocument);
+            return MemoryDrop;
+        }
+
+        private static string UnknownTop(string what, string on, bool? undoEntry)
+        {
+            return undoEntry == false
+                ? what + " changed something I can see on" + on + " (the feature names or their order) while " +
+                  "SOLIDWORKS answered that its undo entry closed with nothing in it: I cannot tell what is on top " +
+                  "of the undo stack."
+                : what + " ran on" + on + ", and I do not know whether it left an undo entry on top of its undo stack.";
+        }
+
+        /// <summary>
+        /// Is <paramref name="document"/> (identity <paramref name="identity"/>)
+        /// the document of <paramref name="memory"/>? By the COM reference when
+        /// both are held (review F11), by name otherwise.
+        /// </summary>
+        private static bool SameDocumentAs(UltimoPiano memory, object document, Dictionary<string, object> identity)
+        {
+            if (memory == null) return false;
+            if (memory.DocumentRef != null && document != null)
+                return Ponte.Sessione.SameComObject(memory.DocumentRef, document);
+            return Ponte.Sessione.StessoDocumento(memory.Documento, identity);
+        }
+
+        /// <summary>
+        /// An identity in the form the plan executor compares (review F7): the
+        /// path, or the title with its prefix when the document has never been
+        /// saved; null when neither is known.
+        /// </summary>
+        internal static string IdentityForTheExecutor(Dictionary<string, object> identity)
+        {
+            if (identity == null) return null;
+            string path = Convert.ToString(identity.TryGetValue("percorso", out var p) ? p : null) ?? "";
+            if (path.Trim().Length > 0) return path;
+            string title = Convert.ToString(identity.TryGetValue("titolo", out var t) ? t : null) ?? "";
+            return title.Trim().Length > 0 ? "titolo:" + title : null;
+        }
+
+        /// <summary>
+        /// The note of `disegna` when another document is in front (Z-C21.14,
+        /// review F5). Pure, so that a contract can call it.
+        /// </summary>
+        internal static string NoteDocumentInFront(string planDocument, string front, bool frontIsThePlans)
+        {
+            const string bringBack = "(«documento» with «azione»: «attiva»)";
+            string head = "The plan worked on «" + planDocument + "», and in front now is «" + front + "»";
+            if (frontIsThePlans)
+                return head + ", the document the plan ended on. «stato_dopo» describes «" + front + "», the document " +
+                       "the next plan works on; «volume_dopo_mm3» is of «" + planDocument + "». To withdraw this " +
+                       "plan with an undo, bring «" + planDocument + "» to the front first " + bringBack + ".";
+            return head + ", a window the plan did not end on: it came to the front from outside while the plan ran. " +
+                   "«stato_dopo» describes «" + front + "» for information only: I keep neither its identity nor its " +
+                   "signatures, so the next plan asks for «guarda_il_pezzo» first. To go on with «" + planDocument +
+                   "», bring it back " + bringBack + " and call «guarda_il_pezzo»; to work on «" +
+                   front + "», call «guarda_il_pezzo» now.";
+        }
+
+        /// <summary>
+        /// What to do when the undo has no plan to withdraw (review F12): the
+        /// reader is a model, so the way that does not need a keyboard comes
+        /// first.
+        /// </summary>
+        internal const string NoMemoryRemedy =
+            "If something must go, take it away with a new plan («elimina_lavorazione» or «sopprimi_lavorazione» " +
+            "on the feature, by the name «guarda_il_pezzo» gives it); the person at the SOLIDWORKS screen can also " +
+            "undo by hand (Edit > Undo), seeing what each step takes away.";
 
         /// <summary>
         /// Quanto si puo' sbagliare un volume e considerarlo lo stesso.
@@ -2338,13 +2771,33 @@ namespace Oce.Solid.Agent.Strumenti
         /// quante lavorazioni ci sono — e se non tornano **ci si ferma e si
         /// dice cosa e' cambiato**.
         ///
-        /// Sono due numeri, non una prova: un gesto che non cambia ne' il
-        /// volume ne' il conteggio passa inosservato. Per quello si controlla
-        /// anche DOPO, e se l'annullamento ha disfatto una cosa diversa da
-        /// quella attesa, si RIMETTE (`UnPassoAvanti`) e si dice cos'e'
-        /// successo. Non c'e' nessuna API per guardare la pila degli
-        /// annullamenti prima di premere: provare, controllare, e disfare la
-        /// prova sbagliata e' l'unica strada onesta.
+        /// Since Z-C21.14 (review F1) the feature names, their IDs and their
+        /// order are compared too: a reorder or a rename done after the plan by
+        /// another session, another bridge process or the person is seen before
+        /// pressing. What changes none of these (a property, a configuration)
+        /// still goes unseen.
+        ///
+        /// ── A WRONG PRESS CANNOT BE TAKEN BACK (Z-C21.14) ─────────────────
+        ///
+        /// Up to bridge 0.124.1 this summary said that the way out was to try,
+        /// check, and undo the wrong try with a redo. Measured false on
+        /// 1/10/2026 (probe `redo`; RAG note 82zz_duodecies, section «La sonda
+        /// viva di M19»): SOLIDWORKS never redoes an undo entry recorded
+        /// through the API, and every plan of this bridge is one; only an
+        /// action that was not recorded comes back. And the answer said «L'ho
+        /// rimesso a posto subito» whenever EditRedo2 did not throw, without
+        /// looking. So now:
+        ///  * when the memory is covered (something is KNOWN to be on top of
+        ///    the plan's entry), or the part reads differently from how the
+        ///    plan left it, it refuses BEFORE pressing, says why and what to do;
+        ///  * after pressing it says «withdrawn» only if the part reads as it
+        ///    was before the plan (volume, feature count, feature names and
+        ///    order); otherwise it compares the part with how it was before
+        ///    pressing, tries one redo only when the press took away something
+        ///    visible, and says «restored» only if the part then reads as before
+        ///    pressing, otherwise what is still different. With a volume it
+        ///    cannot read it does not redo at all (Z-C8).
+        /// There is still no API to look at the undo stack before pressing.
         /// </summary>
         private Dictionary<string, object> Annulla()
         {
@@ -2358,42 +2811,67 @@ namespace Oce.Solid.Agent.Strumenti
                     "«disegna» di questa conversazione, e qui non ne ho ancora " +
                     "eseguito nessuno che abbia costruito qualcosa.\n\n" +
                     "Non premo annulla alla cieca: toglierei qualcosa che non ho " +
-                    "fatto io, e non saprei nemmeno dire cosa.", true);
+                    "fatto io, e non saprei nemmeno dire cosa." +
+                    (_noMemoryBecause != null ? "\n\n" + _noMemoryBecause : "") +
+                    "\n\n" + NoMemoryRemedy, true);
+
+            // ── SOMETHING IS KNOWN TO BE ON TOP: REFUSE BEFORE PRESSING ──
+            // (Z-C21.14). No reading, no press: the memory says the remembered
+            // plan is not on top of the undo stack, and a press would take away
+            // what is.
+            if (memoria.CoveredBecause != null)
+                return RefusalCovered(memoria);
 
             var prima = _sessione.StatoSenzaAncora(out var erroreLettura);
             if (prima == null) return Protocollo.Contenuto(erroreLettura, true);
 
             var adesso = IdentitaDelloStato(prima);
-            if (!Ponte.Sessione.StessoDocumento(memoria.Documento, adesso))
+            // THE SAME OPEN DOCUMENT, by its COM reference when it is held
+            // (review F11): a save renames it, and a document closed and opened
+            // again keeps its name and loses the undo stack with the plan in it.
+            bool samePart = memoria.DocumentRef != null
+                ? _sessione.IsInFront(memoria.DocumentRef)
+                : Ponte.Sessione.StessoDocumento(memoria.Documento, adesso);
+            if (!samePart)
                 return Protocollo.Contenuto(
                     "Mi fermo: il documento e' cambiato. Il piano l'avevo eseguito " +
                     "su «" + NomeLeggibile(memoria.Documento) + "», adesso davanti " +
                     "c'e' «" + NomeLeggibile(adesso) + "». Annullare qui " +
                     "toglierebbe l'ultima cosa fatta su un pezzo che non c'entra.\n\n" +
+                    (Ponte.Sessione.StessoDocumento(memoria.Documento, adesso)
+                        ? "It has the same name, but it is not the same open document (it was closed and opened " +
+                          "again, or it is another copy): its undo stack does not hold my plan.\n\n"
+                        : "") +
                     "Porta davanti il pezzo giusto e richiamami.", true);
 
-            double? volumeOra = NumeroDi(prima, "volume_mm3");
-            int featureOra = QuanteFeature(prima);
-
-            if (volumeOra == null || memoria.VolumeDopo == null)
+            var now = PartSnapshot.Of(prima);
+            var after = memoria.After;
+            if (now.Volume == null || after == null || after.Volume == null)
                 return Protocollo.Contenuto(
                     "Mi fermo: non riesco a misurare il volume del pezzo, e senza non so " +
                     "dirti se dopo il piano l'ha cambiato qualcun altro. Un passo indietro " +
                     "alla cieca potrebbe disfare il lavoro di chi sta davanti allo schermo: " +
                     "se vuoi comunque tornare indietro, e' un gesto da fare a mano.", true);
 
-            if (Math.Abs(volumeOra.Value - memoria.VolumeDopo.Value) > ScartoVolumeMm3 ||
-                featureOra != memoria.FeatureDopo)
+            if (Math.Abs(now.Volume.Value - after.Volume.Value) > ScartoVolumeMm3 ||
+                now.Count != after.Count)
                 return Protocollo.Contenuto(
                     "Mi fermo: dopo il piano il pezzo e' cambiato, e non l'ho " +
                     "cambiato io.\n\n" +
-                    Confronto("volume", memoria.VolumeDopo.Value, volumeOra.Value, "mm³") +
-                    Confronto("lavorazioni", memoria.FeatureDopo, featureOra, "") +
+                    Confronto("volume", after.Volume.Value, now.Volume.Value, "mm³") +
+                    Confronto("lavorazioni", after.Count, now.Count, "") +
                     "\nUn passo indietro adesso non disferebbe il mio piano: " +
                     "disferebbe l'ultima cosa fatta, che e' di qualcun altro. " +
                     "Se vuoi comunque tornare indietro, e' un gesto che deve fare " +
                     "chi sta davanti allo schermo, perche' solo lui sa cosa sta " +
                     "buttando via.", true);
+
+            // THE NAMES AND THE ORDER TOO (review F1, F14): a reorder or a
+            // rename done after the plan leaves volume and count as they were,
+            // and a press would take it away for good.
+            var changedSince = SnapshotDiffers(after, now);
+            if (changedSince.Count > 0)
+                return RefusalChangedSinceThePlan(memoria, changedSince, NamesComparedOnlyInPart(after, now));
 
             // ── SI PREME ─────────────────────────────────────────────────
             var erroreAnnulla = _sessione.UnPassoIndietro();
@@ -2408,57 +2886,108 @@ namespace Oce.Solid.Agent.Strumenti
                     "Non posso dirti se ha funzionato. Guarda il pezzo prima di " +
                     "fare altro.", true);
 
-            double? volumeDopo = NumeroDi(dopo, "volume_mm3");
-            int featureDopo = QuanteFeature(dopo);
+            var back = PartSnapshot.Of(dopo);
+            var before = memoria.Before;
             // SE IL VOLUME NON SI LEGGE, NON SI RIFA' ALLA CIECA (voce Z-C8):
             // «non e' tornato» porterebbe a un passo avanti che potrebbe
             // rimettere proprio il piano appena tolto.
-            if (volumeDopo == null || memoria.VolumePrima == null)
+            if (back.Volume == null || before == null || before.Volume == null)
             {
                 _ultimoPiano = null;
+                _noMemoryBecause =
+                    "The last «annulla» pressed undo and then could not read the volume: what is on " +
+                    "top of the undo stack now is not known.";
                 return Protocollo.Contenuto(
                     "Ho premuto annulla, ma poi non riesco a misurare il volume del pezzo: " +
                     "non posso dirti se e' tornato com'era. Non ho fatto altro. Guarda il " +
                     "pezzo prima di andare avanti.", true);
             }
-            bool tornato =
-                Math.Abs(volumeDopo.Value - memoria.VolumePrima.Value) <= ScartoVolumeMm3 &&
-                featureDopo == memoria.FeaturePrima;
+            // BACK AS IT WAS BEFORE THE PLAN: volume, count, names and order
+            // (review F1), not only the two numbers.
+            var notAsBeforeThePlan = SnapshotDiffers(before, back);
+            bool namesPartial = NamesComparedOnlyInPart(before, back);
 
-            if (!tornato)
+            if (notAsBeforeThePlan.Count > 0)
             {
-                // HA DISFATTO UN'ALTRA COSA: SI RIMETTE.
-                // Il volume e il conteggio non erano cambiati, quindi il gesto
-                // che stava in cima alla pila non era geometrico — un nome
-                // cambiato, una configurazione, una vista. L'ho tolto io senza
-                // volerlo, e lo rimetto io.
-                var erroreRedo = _sessione.UnPassoAvanti();
-                var riletto = _sessione.Stato(out _);
+                // IT TOOK AWAY SOMETHING ELSE (Z-C21.14). The part read as the
+                // plan left it, so what was on top changed nothing that is
+                // compared: a property, a configuration.
+                //
+                // Up to bridge 0.124.1 a redo followed here, blind, and the
+                // answer said «L'ho rimesso a posto subito» whenever EditRedo2
+                // did not throw. Measured on 1/10/2026 (probe `redo`): an undo
+                // entry recorded through the API is never redone, so that
+                // answer lied for every plan of this bridge. Now the part is
+                // compared with how it was before pressing (`prima`): only when
+                // the press took away something visible is ONE redo tried (it
+                // can bring back an action that was not recorded, measured),
+                // and then the part is read again and compared once more. The
+                // answer says «restored» only from that comparison.
+                var takenAway = WhatDiffers(prima, dopo);
+                bool redoTried = false;
+                string redoError = null;
+                var readAgain = dopo;
+                if (takenAway.Count > 0)
+                {
+                    redoTried = true;
+                    redoError = _sessione.UnPassoAvanti();
+                    readAgain = _sessione.Stato(out _);
+                }
+                var stillDifferent = readAgain == null
+                    ? new List<string> { "the part could not be read again" }
+                    : WhatDiffers(prima, readAgain);
 
-                _guardato = IdentitaDelloStato(riletto);
-                _firmeViste = FirmeDelloStato(riletto);
-                _firmaGuardata = FirmaLeggera(riletto);
-                if (riletto != null) TogliLeAncore(riletto);
+                bool restored;
+                var answerText = AnswerAfterWrongPress(
+                    before.Volume.Value, before.Count, back.Volume.Value, back.Count, notAsBeforeThePlan,
+                    takenAway, redoTried, redoError, stillDifferent, namesPartial, out restored);
+
+                // THE MEMORY: restored, the foreign action is on top again and
+                // KNOWN to be (covered by an action that was not recorded: the
+                // next undo refuses before pressing); otherwise what is on
+                // top is not known any more, and the memory goes.
+                if (restored)
+                {
+                    memoria.CoveredBecause =
+                        "An action done after the plan, which changes neither the volume, nor the feature count, " +
+                        "nor the feature names and order, is on top of the undo stack: the last undo took it " +
+                        "away and the redo put it back.";
+                    memoria.CoveredByRecordedEntry = false;
+                }
+                else
+                {
+                    _ultimoPiano = null;
+                    _noMemoryBecause =
+                        "The last «annulla» took away something that was not the plan, and it did not come " +
+                        "back: what is on top of the undo stack now is not known.";
+                }
+
+                if (readAgain != null)
+                {
+                    _guardato = IdentitaDelloStato(readAgain);
+                    _firmeViste = FirmeDelloStato(readAgain);
+                    _firmaGuardata = FirmaLeggera(readAgain);
+                    TogliLeAncore(readAgain);
+                }
+                else
+                {
+                    _guardato = null;
+                    _firmeViste = null;
+                    _firmaGuardata = null;
+                }
 
                 return Protocollo.Contenuto(Protocollo.InJson(
                     new Dictionary<string, object>
                     {
                         ["annullato"] = false,
                         ["documento"] = NomeLeggibile(adesso),
-                        ["motivo"] =
-                            "Ho premuto annulla e il pezzo non e' tornato dov'era: " +
-                            "il volume doveva essere " + Numero(memoria.VolumePrima.Value) +
-                            " mm³ e le lavorazioni " + memoria.FeaturePrima +
-                            ", invece sono " + Numero(volumeDopo.Value) + " mm³ e " +
-                            featureDopo + ". Vuol dire che in cima alla pila degli " +
-                            "annullamenti non c'era il mio piano, ma un gesto fatto " +
-                            "dopo che non cambiava ne' il volume ne' il conteggio — " +
-                            "quindi non potevo vederlo prima di premere." +
-                            (erroreRedo == null
-                                ? " L'ho rimesso a posto subito (un passo avanti)."
-                                : " E NON sono riuscito a rimetterlo: " + erroreRedo +
-                                  " Guarda il documento prima di fare altro."),
-                        ["stato_dopo"] = riletto,
+                        ["motivo"] = answerText,
+                        ["not_as_before_the_plan"] = notAsBeforeThePlan,
+                        ["what_the_undo_took_away"] = takenAway,
+                        ["redo_tried"] = redoTried,
+                        ["restored"] = restored,
+                        ["still_different"] = stillDifferent,
+                        ["stato_dopo"] = readAgain,
                     }), true);
             }
 
@@ -2467,6 +2996,9 @@ namespace Oce.Solid.Agent.Strumenti
             // piano: quello non l'ha fatto questo ponte, e la pila degli
             // annullamenti non sa distinguere.
             _ultimoPiano = null;
+            _noMemoryBecause =
+                "The last «annulla» already withdrew the plan; one more step back would take away what " +
+                "was there before it, which this bridge did not make.";
 
             // GLI IDENTIFICATIVI NON SONO PIU' QUELLI, e chi legge deve
             // saperlo dalla risposta invece di scoprirlo al piano seguente:
@@ -2477,21 +3009,251 @@ namespace Oce.Solid.Agent.Strumenti
             _firmaGuardata = FirmaLeggera(dopo);
             TogliLeAncore(dopo);
 
-            return Protocollo.Contenuto(Protocollo.InJson(
-                new Dictionary<string, object>
-                {
-                    ["annullato"] = true,
-                    ["documento"] = NomeLeggibile(adesso),
-                    ["volume_prima_mm3"] = Math.Round(volumeOra.Value, 2),
-                    ["volume_dopo_mm3"] = Math.Round(volumeDopo.Value, 2),
-                    ["lavorazioni_prima"] = featureOra,
-                    ["lavorazioni_dopo"] = featureDopo,
-                    ["nota"] =
-                        "Il piano e' stato ritirato tutto intero e il pezzo e' " +
-                        "tornato com'era. Gli identificativi di «stato_dopo» sono " +
-                        "quelli validi adesso: quelli di prima non valgono piu'.",
-                    ["stato_dopo"] = dopo,
-                }));
+            // A PLAN THAT CHANGED NOTHING THAT IS COMPARED (a property, a
+            // sketch that is not a counted feature) cannot be seen to go by
+            // reading: «withdrawn» is then what SOLIDWORKS did with the entry
+            // on top, and the answer says it was not checked (Z-C21.14).
+            bool checkedByReading = SnapshotDiffers(before, after).Count > 0;
+            var fuori = new Dictionary<string, object>
+            {
+                ["annullato"] = true,
+                ["documento"] = NomeLeggibile(adesso),
+                ["volume_prima_mm3"] = Math.Round(now.Volume.Value, 2),
+                ["volume_dopo_mm3"] = Math.Round(back.Volume.Value, 2),
+                ["lavorazioni_prima"] = now.Count,
+                ["lavorazioni_dopo"] = back.Count,
+                ["checked_by_reading"] = checkedByReading,
+                ["nota"] =
+                    "Il piano e' stato ritirato tutto intero e il pezzo e' " +
+                    "tornato com'era. Gli identificativi di «stato_dopo» sono " +
+                    "quelli validi adesso: quelli di prima non valgono piu'.",
+                ["stato_dopo"] = dopo,
+            };
+            if (!checkedByReading)
+                fuori["note_checked"] =
+                    "This plan changed nothing I compare (volume, feature count, feature names and order), so reading " +
+                    "the part cannot show that it is gone: SOLIDWORKS took away the entry on top, and the last entry I " +
+                    "know of on this document was this plan's (its «undo_entry_recorded» was true, and nothing I " +
+                    "compare changed since).";
+            else if (namesPartial)
+                fuori["note_checked"] =
+                    "The part reads as before the plan by volume and feature count, and by " + NamesScope(true) + ".";
+            return Protocollo.Contenuto(Protocollo.InJson(fuori));
+        }
+
+        /// <summary>
+        /// THE REFUSAL BEFORE PRESSING (Z-C21.14): the remembered plan is known
+        /// not to be on top of the undo stack. Nothing was read or touched.
+        /// </summary>
+        private Dictionary<string, object> RefusalCovered(UltimoPiano memory)
+        {
+            var fuori = new Dictionary<string, object>
+            {
+                ["annullato"] = false,
+                ["refused_before_pressing"] = true,
+                ["documento"] = NomeLeggibile(memory.Documento),
+                ["covered_by_recorded_entry"] = memory.CoveredByRecordedEntry,
+                ["motivo"] = RefusalCoveredText(memory.CoveredBecause, memory.CoveredByRecordedEntry),
+            };
+            return Protocollo.ContenutoConDati(Protocollo.InJson(fuori), fuori, true);
+        }
+
+        /// <summary>
+        /// What to do instead of a press that would take away what is not the
+        /// plan (Z-C21.14): the reader is a model, without a keyboard, so the
+        /// way through a new plan comes first and the person at the screen
+        /// second (review F1).
+        /// </summary>
+        internal const string WithdrawInsteadRemedy =
+            "If the plan must go: take its features away with a new plan («elimina_lavorazione» or " +
+            "«sopprimi_lavorazione», by the names «guarda_il_pezzo» gives), or ask the person at the SOLIDWORKS " +
+            "screen, who can see what each step removes, to undo by hand (Edit > Undo).";
+
+        /// <summary>
+        /// The text of <see cref="RefusalCovered"/>, pure so that a contract can
+        /// call it: why, what a press would do (which depends on what covers the
+        /// plan, review F10), and what to do instead.
+        /// </summary>
+        internal static string RefusalCoveredText(string coveredBecause, bool recordedEntryOnTop)
+        {
+            string press = recordedEntryOnTop
+                ? " One step back now would take that away, not my plan, and SOLIDWORKS cannot redo an undo entry " +
+                  "recorded through the API (measured on 1/10/2026): it would be lost for good."
+                : " One step back now would take that away again, not my plan. It is an action that was not recorded " +
+                  "through the API, which a redo can put back (measured on 1/10/2026), but taking away what is not " +
+                  "mine and putting it back does not withdraw my plan.";
+            return "I am not pressing undo, and nothing was touched. " + coveredBecause + press + "\n\n" +
+                   WithdrawInsteadRemedy;
+        }
+
+        /// <summary>
+        /// THE REFUSAL BEFORE PRESSING when the part reads differently from how
+        /// the plan left it in something other than volume and count: the
+        /// feature names, their IDs or their order (Z-C21.14, review F1 and
+        /// F14). Nothing was touched.
+        /// </summary>
+        private Dictionary<string, object> RefusalChangedSinceThePlan(
+            UltimoPiano memory, List<string> changed, bool namesPartial)
+        {
+            var fuori = new Dictionary<string, object>
+            {
+                ["annullato"] = false,
+                ["refused_before_pressing"] = true,
+                ["documento"] = NomeLeggibile(memory.Documento),
+                ["what_changed_since_the_plan"] = changed,
+                ["motivo"] = RefusalChangedSinceThePlanText(changed, namesPartial),
+            };
+            return Protocollo.ContenutoConDati(Protocollo.InJson(fuori), fuori, true);
+        }
+
+        /// <summary>The text of <see cref="RefusalChangedSinceThePlan"/>, pure.</summary>
+        internal static string RefusalChangedSinceThePlanText(List<string> changed, bool namesPartial)
+        {
+            return "I am not pressing undo, and nothing was touched. After my plan the part changed, and I did not " +
+                   "change it: " + string.Join("; ", changed ?? new List<string>()) + "." +
+                   (namesPartial ? " (I compared " + NamesScope(true) + ".)" : "") +
+                   " One step back now would not withdraw my plan: it would take away the last thing done, which is " +
+                   "someone else's (another session, another bridge process or the person at the screen), and " +
+                   "SOLIDWORKS cannot redo an undo entry recorded through the API (measured on 1/10/2026).\n\n" +
+                   WithdrawInsteadRemedy;
+        }
+
+        /// <summary>
+        /// WHAT IS VISIBLY DIFFERENT between two readings of the same part
+        /// (Z-C21.14): the volume, the feature count, and the feature names and
+        /// their order (with the ID SOLIDWORKS gives each feature, which a
+        /// rename does not change). Empty when nothing visible differs; a volume
+        /// that cannot be read on either side counts as a difference, because
+        /// sameness cannot be seen (Z-C8). The names are those the state lists:
+        /// beyond <c>StatoDocumento.MaxFeature</c> the older features are
+        /// compared only by count (review F16, <see cref="NamesComparedOnlyInPart"/>).
+        /// Pure, so that a contract can call it.
+        /// </summary>
+        internal static List<string> WhatDiffers(
+            Dictionary<string, object> before, Dictionary<string, object> after)
+        {
+            return SnapshotDiffers(PartSnapshot.Of(before), PartSnapshot.Of(after));
+        }
+
+        /// <summary><see cref="WhatDiffers"/> on two snapshots.</summary>
+        private static List<string> SnapshotDiffers(PartSnapshot before, PartSnapshot after)
+        {
+            var differences = new List<string>();
+            if (before == null || after == null)
+            {
+                differences.Add("one of the two readings is missing");
+                return differences;
+            }
+
+            if (before.Volume == null || after.Volume == null)
+                differences.Add("the volume cannot be read" +
+                                (before.Volume == null ? " before" : "") +
+                                (after.Volume == null ? " after" : ""));
+            else
+            {
+                double was = before.Volume.GetValueOrDefault(), now = after.Volume.GetValueOrDefault();
+                if (Math.Abs(was - now) > ScartoVolumeMm3)
+                    differences.Add("volume " + Numero(was) + " mm³ before, " + Numero(now) + " mm³ now");
+            }
+
+            if (before.Count != after.Count)
+                differences.Add("features " + before.Count + " before, " + after.Count + " now");
+
+            var namesBefore = before.Names ?? new List<string>();
+            var namesAfter = after.Names ?? new List<string>();
+            var gone = namesBefore.Where(n => !namesAfter.Contains(n)).ToList();
+            var come = namesAfter.Where(n => !namesBefore.Contains(n)).ToList();
+            if (gone.Count > 0) differences.Add("features no longer there: «" + string.Join("», «", gone) + "»");
+            if (come.Count > 0) differences.Add("features that were not there: «" + string.Join("», «", come) + "»");
+            if (gone.Count == 0 && come.Count == 0 && !namesBefore.SequenceEqual(namesAfter))
+                differences.Add("the order of the features changed");
+            return differences;
+        }
+
+        /// <summary>
+        /// True when either reading has features beyond the list of the state
+        /// (`feature_non_elencate`): the names and the order are then compared
+        /// only on the listed ones (review F16).
+        /// </summary>
+        private static bool NamesComparedOnlyInPart(PartSnapshot a, PartSnapshot b)
+        {
+            return (a != null && a.Unlisted > 0) || (b != null && b.Unlisted > 0);
+        }
+
+        /// <summary>What «names and order» covers, for the answers (review F16).</summary>
+        internal static string NamesScope(bool partial)
+        {
+            return partial
+                ? "the names and order of the last " + Riscontro.Disegno.StatoDocumento.MaxFeature +
+                  " features, the ones the state lists (the older ones only by count)"
+                : "the feature names and order";
+        }
+
+        /// <summary>
+        /// The features of a reading as «name#id», in tree order (Z-C21.14).
+        /// </summary>
+        private static List<string> FeatureNamesInOrder(Dictionary<string, object> stato)
+        {
+            var names = new List<string>();
+            foreach (var v in VociDi(stato, "feature"))
+            {
+                var voce = v as Dictionary<string, object>;
+                if (voce == null) continue;
+                string name = Convert.ToString(voce.TryGetValue("uid", out var u) ? u : null) ?? "";
+                string id = Convert.ToString(voce.TryGetValue("feature_id", out var i) ? i : null,
+                                             CultureInfo.InvariantCulture) ?? "";
+                names.Add(id.Length > 0 ? name + "#" + id : name);
+            }
+            return names;
+        }
+
+        /// <summary>
+        /// THE ANSWER AFTER A PRESS THAT DID NOT TAKE THE PLAN AWAY (Z-C21.14).
+        /// Pure, so that a contract can call it: <paramref name="restored"/> is
+        /// true only when a redo was tried, did not throw, the press had taken
+        /// away something visible and the part now reads as before pressing.
+        /// Never «put back» without that comparison.
+        /// </summary>
+        internal static string AnswerAfterWrongPress(
+            double expectedVolume, int expectedFeatures, double volumeNow, int featuresNow,
+            List<string> notAsBeforeThePlan, List<string> takenAway, bool redoTried, string redoError,
+            List<string> stillDifferent, bool namesPartial, out bool restored)
+        {
+            notAsBeforeThePlan = notAsBeforeThePlan ?? new List<string>();
+            takenAway = takenAway ?? new List<string>();
+            stillDifferent = stillDifferent ?? new List<string> { "the part could not be read again" };
+            restored = redoTried && redoError == null && takenAway.Count > 0 && stillDifferent.Count == 0;
+            string scope = NamesScope(namesPartial);
+
+            string head =
+                "I pressed undo and the part did not go back to how it was before the plan (the volume should be " +
+                Numero(expectedVolume) + " mm³ and the features " + expectedFeatures + "; they are " +
+                Numero(volumeNow) + " mm³ and " + featuresNow +
+                (notAsBeforeThePlan.Count > 0 ? "; " + string.Join("; ", notAsBeforeThePlan) : "") +
+                "). So the entry on top of the undo stack was not my plan but something done after it that changed " +
+                "neither the volume, nor the feature count, nor " + scope + ", which I could not see before pressing.";
+
+            if (!redoTried && takenAway.Count > 0)
+                return head + " It took away: " + string.Join("; ", takenAway) + ". I did not press redo, " +
+                       "so it is NOT back. Look at the part in SOLIDWORKS before going on.";
+            if (!redoTried)
+                return head + " Reading the part again, the undo changed nothing I can see (volume, feature " +
+                       "count and " + scope + " are as before pressing), so I did not press redo: I could not check " +
+                       "what it would bring back. Look at the part in SOLIDWORKS before going on; Edit > Redo puts " +
+                       "back only an action that was not recorded through the API.";
+
+            if (restored)
+                return head + " It took away: " + string.Join("; ", takenAway) + ". I pressed redo and read " +
+                       "the part again: volume, feature count and " + scope + " are as before pressing, so it came " +
+                       "back (only an action not recorded through the API can come back this way). The plan is " +
+                       "still there.";
+
+            return head + " It took away: " + string.Join("; ", takenAway) + ". I pressed redo" +
+                   (redoError != null ? " and SOLIDWORKS refused: " + redoError : "") +
+                   ", and the part is NOT as it was before pressing: " + string.Join("; ", stillDifferent) +
+                   ". SOLIDWORKS cannot redo an undo entry recorded through the API (measured on " +
+                   "1/10/2026), so what the undo took away is lost. Look at the part in SOLIDWORKS before " +
+                   "going on, and make it again with «disegna» if you need it.";
         }
 
         /// <summary>Una riga di confronto, solo se i due numeri sono diversi.</summary>

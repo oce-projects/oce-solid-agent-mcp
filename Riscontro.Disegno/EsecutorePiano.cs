@@ -158,6 +158,47 @@ namespace Riscontro.Disegno
             public bool Completato;
             public int PassiEseguiti;
             public string Errore;
+
+            /// <summary>
+            /// Z-C21.14: the document the plan started on, held by reference
+            /// (the documentoAtteso read once at the start), so that the
+            /// bridge reads the state after the plan on THAT document and not
+            /// on whatever window is in front at the end. Null only when
+            /// SOLIDWORKS had no active document.
+            /// </summary>
+            public IModelDoc2 PlanDocument;
+
+            /// <summary>
+            /// Z-C21.14: the document the plan was working on when it ended:
+            /// the plan document, or the new one a step declared
+            /// (DocumentoNuovo, e.g. the drawing of crea_disegno).
+            /// </summary>
+            public IModelDoc2 FinalDocument;
+
+            /// <summary>
+            /// Z-C21.14: what FinishRecordingUndoObject answered for the undo
+            /// entry recorded on <see cref="PlanDocument"/>. True: the entry
+            /// was closed with something in it, so it now sits on top of that
+            /// document's undo stack. False: SOLIDWORKS answered false. The
+            /// live probe M19 (1/10/2026, phases H4a and H4b) measured only the
+            /// answer: false for an EMPTY recording, true for a full one.
+            /// Whether an empty recording leaves an entry on the stack is
+            /// UNDECIDED: the probe's control H3 failed, so the second undo and
+            /// the comparison of those phases never ran. Null when it is not
+            /// known: no recording was
+            /// opened on the plan document (the plan stopped before, or
+            /// StartRecordingUndoObject threw), the call threw, or a second
+            /// recording was opened on it later in the same plan.
+            /// </summary>
+            public bool? UndoEntryOnPlanDocument;
+
+            /// <summary>
+            /// Z-C21.14: true when the plan stopped before opening its undo
+            /// recording and before any step: the preliminary checks refused,
+            /// or the document was not the one the caller named. Nothing was
+            /// written and the undo stack was not touched.
+            /// </summary>
+            public bool StoppedBeforeWriting;
         }
 
         // `pianoId` non c'e' piu' nella firma: e' un numero del server, e
@@ -193,6 +234,10 @@ namespace Riscontro.Disegno
             // Il nome resta, ma solo per i MESSAGGI: chi legge vuole sapere
             // come si chiama il pezzo, non il suo puntatore.
             var documentoAtteso = (IModelDoc2)await _sulThreadSw(() => _sw.IActiveDoc2);
+            // Z-C21.14: the plan document, kept for whoever reads the result.
+            var planDocument = documentoAtteso;
+            risultato.PlanDocument = planDocument;
+            risultato.FinalDocument = planDocument;
 
             // ── E I CONTROLLI GUARDANO **QUESTO**, NON QUELLO DI ADESSO ──
             //
@@ -218,6 +263,7 @@ namespace Riscontro.Disegno
             if (controllo != null)
             {
                 risultato.Errore = controllo;
+                risultato.StoppedBeforeWriting = true;
                 return risultato;
             }
 
@@ -231,6 +277,7 @@ namespace Riscontro.Disegno
                     risultato.Errore =
                         "Il piano era per «" + percorsoAtteso + "», ma davanti c'e' «" +
                         qui + "». Non ho toccato niente.";
+                    risultato.StoppedBeforeWriting = true;
                     return risultato;
                 }
             }
@@ -280,6 +327,7 @@ namespace Riscontro.Disegno
             // closed there and a new one opened on the new document (see
             // DocumentoNuovo below), never retargeted in silence.
             IModelDoc2 undoRecordedOn = null;
+            bool planDocumentReopened = false;
             await _sulThreadSw(() =>
             {
                 undoRecordedOn = StartUndoRecording(documentoAtteso);
@@ -416,10 +464,17 @@ namespace Riscontro.Disegno
                                 // come are recorded on the new one.
                                 if (!StessoOggetto(undoRecordedOn, e.DocumentoNuovo))
                                 {
-                                    FinishUndoRecording(undoRecordedOn);
+                                    NoteUndoAnswer(risultato, undoRecordedOn, planDocument,
+                                                   FinishUndoRecording(undoRecordedOn));
                                     undoRecordedOn = StartUndoRecording(e.DocumentoNuovo);
+                                    // Back on the plan document: a second entry
+                                    // there, and one answer no longer says what
+                                    // is on top of its stack.
+                                    if (undoRecordedOn != null && StessoOggetto(undoRecordedOn, planDocument))
+                                        planDocumentReopened = true;
                                 }
                                 documentoAtteso = e.DocumentoNuovo;
+                                risultato.FinalDocument = documentoAtteso;
                                 _log("[agente] from here on the plan works on «" +
                                      Identita(documentoAtteso) + "», with its own undo entry");
                             }
@@ -482,12 +537,25 @@ namespace Riscontro.Disegno
                     // member of IModelDocExtension), so another window being in
                     // front does not move it; what FinishRecordingUndoObject
                     // answers is read, not assumed.
-                    FinishUndoRecording(undoRecordedOn);
+                    NoteUndoAnswer(risultato, undoRecordedOn, planDocument,
+                                   FinishUndoRecording(undoRecordedOn));
+                    if (planDocumentReopened) risultato.UndoEntryOnPlanDocument = null;
                     return null;
                 });
             }
 
             return risultato;
+        }
+
+        /// <summary>
+        /// Z-C21.14: keeps the answer of FinishRecordingUndoObject when the
+        /// recording just closed is the one on the plan document.
+        /// </summary>
+        private static void NoteUndoAnswer(
+            Risultato result, IModelDoc2 recordedOn, IModelDoc2 planDocument, bool? answer)
+        {
+            if (recordedOn != null && StessoOggetto(recordedOn, planDocument))
+                result.UndoEntryOnPlanDocument = answer;
         }
 
         /// <summary>
@@ -517,10 +585,18 @@ namespace Riscontro.Disegno
         /// (IModelDocExtension~FinishRecordingUndoObject.html), is read and a
         /// false one is logged: a recording left open would take in whatever is
         /// done to that document next.
+        ///
+        /// Returns the answer (Z-C21.14): true or false as SOLIDWORKS gave it,
+        /// null when there was nothing to finish or the call threw. The live
+        /// probe M19 (1/10/2026, phases H4a and H4b) measured only the answer:
+        /// an EMPTY recording answers false, a recording with something in it
+        /// answers true. Whether the empty one leaves an entry on the undo
+        /// stack is undecided (the probe's control H3 failed, so that part of
+        /// H4 never ran).
         /// </summary>
-        private void FinishUndoRecording(IModelDoc2 recordedOn)
+        private bool? FinishUndoRecording(IModelDoc2 recordedOn)
         {
-            if (recordedOn == null) return;
+            if (recordedOn == null) return null;
             bool ended = false;
             string failure = null;
             try { ended = recordedOn.Extension.FinishRecordingUndoObject(_nomeAnnullamento); }
@@ -529,6 +605,8 @@ namespace Riscontro.Disegno
                 _log("[agente] the undo entry «" + _nomeAnnullamento + "» on «" + Identita(recordedOn) +
                      "» did not close (FinishRecordingUndoObject " +
                      (failure == null ? "answered false" : "threw: " + failure) + ")");
+            if (failure != null) return null;
+            return ended;
         }
 
         /// <summary>

@@ -109,6 +109,7 @@
     <Compile Include="Zc2113PartDimensionContract.cs" />
     <Compile Include="Zc2111ComponentsContract.cs" />
     <Compile Include="Zc14MateDirectionsContract.cs" />
+    <Compile Include="Zc2114UndoHonestyContract.cs" />
     <Compile Include="LanguageGateTests.cs" />
     <Compile Include="CaseKeysTests.cs" />
     <Compile Include="ConsumedStringsContract.cs" />

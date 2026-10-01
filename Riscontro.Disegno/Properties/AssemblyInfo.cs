@@ -469,8 +469,12 @@ using System.Runtime.InteropServices;
 // 0.148.0: Z-C14, `accoppia` measures the directions a mate blocks (the
 //          perturbation test measured on 30/9/2026) and refuses a redundant
 //          mate; and the safety nets of W3.1-bis.2 around the library.
-[assembly: AssemblyVersion("0.148.0.0")]
-[assembly: AssemblyFileVersion("0.148.0.0")]
+// 0.149.0: Z-C21.14, the plan executor hands on its plan document, the
+//          document it ended on and what FinishRecordingUndoObject answered for
+//          the plan's undo entry, so that `annulla` reads the plan's document
+//          and knows when a later entry sits on top.
+[assembly: AssemblyVersion("0.149.0.0")]
+[assembly: AssemblyFileVersion("0.149.0.0")]
 // Era rimasta a 0.61.0 mentre l'assembly andava a 0.66.0: un numero che
 // nessuno legge e che dice il falso a chi apra le proprieta' del file. Non
 // serviva a niente ed era sbagliato, che e' la combinazione peggiore.
@@ -485,4 +489,4 @@ using System.Runtime.InteropServices;
 // contratto, prima del commit. *Fra un commento che avvisa e una prova che
 // si fa rossa non c'e' una differenza di grado: la prima si legge quando si
 // e' gia' sbagliato, la seconda impedisce di sbagliare.*
-[assembly: AssemblyInformationalVersion("0.148.0")]
+[assembly: AssemblyInformationalVersion("0.149.0")]

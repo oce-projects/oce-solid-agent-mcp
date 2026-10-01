@@ -2,11 +2,11 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 145282,
-  "strings": 54452,
+  "comments": 145105,
+  "strings": 54401,
   "markdown": 33943,
   "json_values": 55010,
-  "identifiers": 4799,
+  "identifiers": 4792,
   "json_keys": 443,
   "protocol": 2162,
   "paths": 640,
@@ -1319,7 +1319,7 @@
    "strings": 3
   },
   "Ponte/Sessione.cs": {
-   "comments": 2071,
+   "comments": 2018,
    "strings": 222
   },
   "Ponte/TurnoSulDocumento.cs": {
@@ -1781,8 +1781,8 @@
    "strings": 57
   },
   "Strumenti/Attrezzi.cs": {
-   "comments": 5945,
-   "strings": 1822
+   "comments": 5821,
+   "strings": 1771
   },
   "Strumenti/Catalogo.cs": {
    "comments": 308,
@@ -2340,8 +2340,6 @@
    "FeatureCreata",
    "FeatureDelCorpo",
    "FeatureDellaFaccia",
-   "FeatureDopo",
-   "FeaturePrima",
    "Ferma",
    "Fessure",
    "FigliDi",
@@ -3569,9 +3567,7 @@
    "VolumeDelDocumento",
    "VolumeDellInterferenzaMm3",
    "VolumeDiProva",
-   "VolumeDopo",
    "VolumeNonLettoPrima",
-   "VolumePrima",
    "VolumeRiaprendo",
    "Volute",
    "Vuoto",
@@ -4530,7 +4526,6 @@
    "erroreLettura",
    "erroreLivello",
    "erroreMod",
-   "erroreRedo",
    "erroreSel",
    "erroreStadio",
    "erroreStato",
@@ -4673,7 +4668,6 @@
    "featureCreata",
    "featureDopo",
    "featureNonElencate",
-   "featureOra",
    "featurePrima",
    "feature_non_elencate",
    "feature_rif",
@@ -6557,7 +6551,6 @@
    "volumeForato",
    "volumeIlleggibile",
    "volumeMosso",
-   "volumeOra",
    "volumePiegato",
    "volumePrima",
    "volumeRifatto",

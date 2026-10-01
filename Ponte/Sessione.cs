@@ -519,6 +519,104 @@ namespace Oce.Solid.Agent.Ponte
             return Stato(false, out errore);
         }
 
+        /// <summary>
+        /// THE STATE OF A GIVEN DOCUMENT, not of the window in front (Z-C21.14).
+        ///
+        /// After a plan the document in front may be another one: a
+        /// `crea_disegno` puts its drawing in front, another session or the
+        /// person may bring a window forward. The live probe M19 (1/10/2026,
+        /// line BRIDGE-R1 (X2)) measured what reading the front window did to
+        /// «annulla»: the plan's part was compared with the numbers of the
+        /// other document and a right undo was refused. This reads the plan's
+        /// own document, by the reference the executor kept. Without the
+        /// anchor: the caller wants the volume, the feature count and the
+        /// identity, not signatures.
+        /// </summary>
+        public Dictionary<string, object> StateOfDocument(object document, out string errore)
+        {
+            errore = null;
+            var model = document as IModelDoc2;
+            if (model == null)
+            {
+                errore = "The document of the plan is not held any more.";
+                return null;
+            }
+            try
+            {
+                var stato = LeggiStato(model, false);
+                return stato?.Dati;
+            }
+            catch (Exception ex)
+            {
+                errore = "I cannot read the document of the plan: " + ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Is <paramref name="document"/> the document in front? By the COM
+        /// object (its IUnknown), not by name: a plan that saves its part
+        /// changes the title and the path of the same document (Z-C21.14).
+        /// </summary>
+        public bool IsInFront(object document)
+        {
+            return SameComObject(document, DocumentoAttivo());
+        }
+
+        /// <summary>
+        /// Are <paramref name="a"/> and <paramref name="b"/> the same COM
+        /// object? By IUnknown, like the executor's StessoOggetto: the name of
+        /// a document changes when it is saved, the object does not, and a
+        /// document closed and opened again is another object with an empty
+        /// undo stack (Z-C21.14). False when either is null.
+        /// </summary>
+        public static bool SameComObject(object a, object b)
+        {
+            if (a == null || b == null) return false;
+            if (ReferenceEquals(a, b)) return true;
+            IntPtr pa = IntPtr.Zero, pb = IntPtr.Zero;
+            try
+            {
+                pa = Marshal.GetIUnknownForObject(a);
+                pb = Marshal.GetIUnknownForObject(b);
+                return pa == pb;
+            }
+            catch { return false; }
+            finally
+            {
+                if (pa != IntPtr.Zero) Marshal.Release(pa);
+                if (pb != IntPtr.Zero) Marshal.Release(pb);
+            }
+        }
+
+        /// <summary>
+        /// What the executor reported about the last plan (Z-C21.14): its
+        /// document, the document it ended on and what FinishRecordingUndoObject
+        /// answered for the plan's undo entry. Null when the last call to
+        /// <see cref="EseguiPiano(List{PassoDelPiano}, out string, Mcp.Avanzamento.Filo, string)"/>
+        /// stopped before an executor was made (SOLIDWORKS gone, no document,
+        /// another bridge's turn): then nothing was written and no undo entry
+        /// was recorded. When the executor threw, a result with nothing filled
+        /// and <see cref="LastPlanExecutorThrew"/> true: what it wrote and
+        /// recorded is not known.
+        /// </summary>
+        public EsecutorePiano.Risultato LastPlanResult { get; private set; }
+
+        /// <summary>
+        /// True when the executor of the last plan threw instead of returning
+        /// its result (Z-C21.14, review F9). Its result is then empty: no plan
+        /// document, no answer of FinishRecordingUndoObject.
+        /// </summary>
+        public bool LastPlanExecutorThrew { get; private set; }
+
+        /// <summary>
+        /// The document whose turn was refused to the last plan because another
+        /// bridge process held it (Z-C21.14, review F4); null otherwise. At
+        /// that moment another writer is known to be working on that document,
+        /// and whatever it records lands on top of its undo stack.
+        /// </summary>
+        public object LastTurnRefusedDocument { get; private set; }
+
         private Dictionary<string, object> Stato(bool conAncora, out string errore)
         {
             errore = null;
@@ -644,6 +742,11 @@ namespace Oce.Solid.Agent.Ponte
         /// GUARDARE il documento dopo — che e' esattamente cio' che fa
         /// `Attrezzi.Annulla`, e l'unica ragione per cui questa operazione e'
         /// difendibile.
+        ///
+        /// AND A WRONG PRESS CANNOT BE TAKEN BACK when what it removed was an
+        /// undo entry recorded through the API (see `UnPassoAvanti`, probe
+        /// `redo` of 1/10/2026). That is why `Attrezzi.Annulla` refuses before
+        /// pressing whenever it knows a foreign entry is on top (Z-C21.14).
         /// </summary>
         public string UnPassoIndietro()
         {
@@ -654,14 +757,23 @@ namespace Oce.Solid.Agent.Ponte
         }
 
         /// <summary>
-        /// UN PASSO AVANTI: rimette quello che `UnPassoIndietro` ha tolto.
+        /// ONE STEP FORWARD: EditRedo2(1) on the document in front. Returns the
+        /// reason when SOLIDWORKS threw, null when the call returned; EditRedo2
+        /// is void, so null says only that it did not throw, never that
+        /// anything came back.
         ///
-        /// Serve a una cosa sola, e non e' una comodita': se l'annullamento ha
-        /// disfatto qualcosa di DIVERSO da quello che doveva — perche' dopo il
-        /// piano qualcuno ha fatto un gesto che e' finito in cima alla pila —
-        /// questo lo rimette a posto. Non c'e' nessuna API per guardare la pila
-        /// degli annullamenti prima di premere: l'unica strada onesta e'
-        /// provare, controllare, e disfare la prova se era quella sbagliata.
+        /// WHAT IT CAN AND CANNOT PUT BACK (measured, probe `redo`, 1/10/2026;
+        /// RAG note 82zz_duodecies, section «La sonda viva di M19»): an
+        /// ordinary API action that was not recorded (an extrusion made without
+        /// Start/FinishRecordingUndoObject) is redone at once. An undo entry
+        /// RECORDED through the API is never redone: not with EditRedo2(1) or
+        /// (2), not with RunCommand(swCommands_Redo), not after EditRebuild3 or
+        /// ForceRebuild3, with the obsolete Finish and with Finish2, first item
+        /// or not, the plan executor's own entry included. Every plan of this
+        /// bridge is such an entry. So this is not a way to take back a wrong
+        /// undo: `Attrezzi.Annulla` calls it only after a press that took away
+        /// something visible, and re-reads the part to say whether it came
+        /// back, never assuming it.
         /// </summary>
         public string UnPassoAvanti()
         {
@@ -702,14 +814,36 @@ namespace Oce.Solid.Agent.Ponte
         public List<Dictionary<string, object>> EseguiPiano(
             List<PassoDelPiano> passi, out string errore)
         {
-            return EseguiPiano(passi, out errore, null);
+            return EseguiPiano(passi, out errore, null, null);
         }
 
         public List<Dictionary<string, object>> EseguiPiano(
             List<PassoDelPiano> passi, out string errore,
             Mcp.Avanzamento.Filo filo)
         {
+            return EseguiPiano(passi, out errore, filo, null);
+        }
+
+        /// <summary>
+        /// The plan, on the document the caller has already checked (Z-C21.14,
+        /// review F7). <paramref name="expectedDocument"/> is that document's
+        /// identity in the executor's form (its path, or «titolo:» and its
+        /// title when it has never been saved): the executor reads the active
+        /// document once and stops before writing anything when it is not this
+        /// one, instead of running on whatever window came to the front between
+        /// the caller's reading and now. Null: the executor takes the active
+        /// document, as before.
+        /// </summary>
+        public List<Dictionary<string, object>> EseguiPiano(
+            List<PassoDelPiano> passi, out string errore,
+            Mcp.Avanzamento.Filo filo, string expectedDocument)
+        {
             errore = null;
+            // Z-C21.14: what a plan before this one reported must not be read
+            // as this plan's.
+            LastPlanResult = null;
+            LastPlanExecutorThrew = false;
+            LastTurnRefusedDocument = null;
 
             // PRIMA DI TUTTO: c'e' ancora qualcuno dall'altra parte?
             //
@@ -749,9 +883,11 @@ namespace Oce.Solid.Agent.Ponte
                         "uno sopra l'altro, danno un pezzo che non e' nessuno dei " +
                         "due e nessuno dei due se ne accorge. Aspetta che finisca, " +
                         "oppure lavora su un altro documento.";
+                    // Another writer is on this document now (review F4).
+                    LastTurnRefusedDocument = doc;
                     return null;
                 }
-                return EseguiIlPiano(passi, out errore, filo);
+                return EseguiIlPiano(passi, out errore, filo, expectedDocument);
             }
         }
 
@@ -763,10 +899,15 @@ namespace Oce.Solid.Agent.Ponte
         /// documento da se'. Passarglielo sarebbe un parametro che dice il falso
         /// su cosa serve a questo metodo — e il primo che lo legge penserebbe
         /// che il documento arrivi di qui.
+        ///
+        /// It takes <paramref name="expectedDocument"/>, which is not the
+        /// document but the identity the executor checks the active one
+        /// against (Z-C21.14, review F7): the executor still finds the document
+        /// itself, and refuses before writing when it is another one.
         /// </summary>
         private List<Dictionary<string, object>> EseguiIlPiano(
             List<PassoDelPiano> passi, out string errore,
-            Mcp.Avanzamento.Filo filo)
+            Mcp.Avanzamento.Filo filo, string expectedDocument)
         {
             errore = null;
             var fonte = new PianoInMemoria(passi, filo);
@@ -805,10 +946,17 @@ namespace Oce.Solid.Agent.Ponte
 
             try
             {
+                // Until the executor returns, what it recorded is unknown
+                // (Z-C21.14): a throw below leaves this result, not null, and
+                // LastPlanExecutorThrew says so.
+                LastPlanResult = new EsecutorePiano.Risultato();
+                LastPlanExecutorThrew = true;
                 var esito = esecutore
-                    .EseguiAsync(null)
+                    .EseguiAsync(string.IsNullOrEmpty(expectedDocument) ? null : expectedDocument)
                     .GetAwaiter()
                     .GetResult();
+                LastPlanResult = esito;
+                LastPlanExecutorThrew = false;
 
                 // L'ERRORE SI RIPORTA ANCHE QUANDO GLI ESITI LO DICONO GIA'.
                 // Un piano fermato PRIMA del primo passo — documento sbagliato,

@@ -28,6 +28,111 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Z-C21.14, `annulla` tells the truth (branch `zc21-14`) · bridge 0.125.0 · library 0.149.0
+
+**What the live probe M19 and the probe `redo` (1/10/2026) found on the way of
+`annulla`** (TODO entry Z-C21.14; RAG note 82zz_duodecies, the section on the live
+probe of M19), with the adversarial review of the lot applied (findings F1-F16 below;
+the version was raised once for the lot, as the review of Z-C21.11 did). The bench has
+NOT run on this version yet: the three bench-freshness checks of Prove.Contratti are
+red until it does. Prove.Contratti: 772 checks (759 on b5f7506, whose
+`Prove/LEGGIMI.md` said 762), only those three red.
+
+- **The state after a plan is read on the plan's document.** `Strumenti/Attrezzi.cs`
+  read it on the window in front (`_sessione.Stato`), so after a plan that ended with
+  another document in front (a `crea_disegno`, another session, the person) the memory
+  of `annulla` held that document's numbers (line BRIDGE-R1 (X2) of the probe: a right
+  undo refused; phase N: after `crea_disegno` no memory at all). The executor now hands
+  on its plan document (`EsecutorePiano.Risultato.PlanDocument`, the reference it read
+  once at the start) and the document it ended on (`FinalDocument`), and the bridge
+  reads the plan's document there (`Sessione.StateOfDocument`, `Sessione.IsInFront`).
+  The memory, `volume_dopo_mm3` and the error counts describe the plan's document;
+  `stato_dopo` describes the document in front, and when the two differ the answer says
+  so (`document_in_front`, `note_document_in_front`, with the way back).
+- **The plan runs on the document the bridge checked (review F7).** The executor took
+  the active document by itself (`EseguiAsync(null)`), so a window brought to the front
+  between the bridge's reading and the plan got the plan. `Sessione.EseguiPiano` now
+  hands it the identity it checked, and the executor stops before writing when the
+  active document is another one; the window it found is then not taken for the plan's
+  document, nor adopted.
+- **The window in front is adopted only when the plan ended on it (review F5).** After
+  a plan during which another window came to the front from outside (scenario X2 of the
+  probe), its identity and signatures were adopted, so a retry of the refused step
+  written for the plan's part passed the «document changed» check and wrote into the
+  other document. Now they are cleared, the note says to call `guarda_il_pezzo` or to
+  bring the part back, and the next `disegna` asks for `guarda_il_pezzo` first. After
+  `crea_disegno` the drawing is the document the plan ended on, and is adopted as
+  before.
+- **The last plan is the memory, and only a plan that wrote something replaces it
+  (review F1, F3, F12).** The executor reads what FinishRecordingUndoObject answered for
+  the plan's undo entry (`UndoEntryOnPlanDocument`, answered as `undo_entry_recorded`).
+  The rules are one pure function (`Attrezzi.MemoryAfterPlan`): a plan that built, or a
+  `disegna` whose own entry closed with something in it (a reorder, a rename, a
+  property), becomes the memory, so `annulla` withdraws the last plan as its
+  description says (the first version of this lot refused to); a plan that wrote
+  nothing (never reached the executor, stopped before its recording, or closed an empty
+  one with nothing visibly changed) keeps the memory, so a plan, a measure and an undo,
+  or a plan, a drawing with its views, the part brought back and an undo, are no longer
+  refused; a
+  `misura` that recorded something, or another bridge process holding the turn on the
+  memory's document (review F4), marks the memory covered; an executor that threw
+  (review F9), an unknown answer or a plan on another document drops it, and the reason
+  is rewritten after every plan that wrote. The probe measured only the answer of
+  FinishRecordingUndoObject (false for an empty recording, true for a full one); whether
+  an empty recording leaves an entry on the stack is undecided (its control H3 failed,
+  review F2), and the bench case `undo case c` decides it: if it is red, the rule that
+  keeps the memory after an empty recording goes.
+- **What `annulla` compares, and when it refuses before pressing (review F1, F11, F14,
+  F16).** The memory holds the plan's document by its COM reference (a save renames it;
+  a document closed and opened again has the same name and lost the undo stack) and a
+  snapshot of it before and after the plan: volume, feature count, feature names with
+  their IDs, in tree order. `annulla` refuses BEFORE pressing (`refused_before_pressing`)
+  when the memory is covered, or when the part no longer reads as the plan left it,
+  names and order included (a reorder by another bridge process was pressed away
+  before); and it says «withdrawn» only if the part then reads as before the plan. A
+  plan that changed nothing compared is withdrawn with `checked_by_reading` false and a
+  note. Beyond the feature cap of the state the answers say that names and order were
+  compared only on the listed features.
+- **No blind redo, and no claim of a part put back without looking.** SOLIDWORKS never
+  redoes an undo entry recorded through the API (probe `redo`: EditRedo2(1) and (2),
+  RunCommand(swCommands_Redo), after rebuilds, the executor's own entry; a plain
+  unrecorded extrusion is redone at once), and the answer after a wrong press said the
+  part was put back whenever EditRedo2 did not throw. Now a press that did not bring the
+  part back is compared with the part before pressing, one redo is tried only if the
+  press took away something visible, and «restored» is said only from a new reading.
+  The refusal of a covered memory says what a press would do according to what covers
+  it (a recorded entry is lost to a press; an unrecorded action put back by a redo is
+  not, review F10), and every refusal gives a remedy for the model (take the features
+  away with a new plan: `elimina_lavorazione`, `sopprimi_lavorazione`) before the one
+  for the person at the screen (review F1, F12). The comments that stated the false
+  premise now say what was measured.
+- **The resent-plan guard reads one document (review F6):** the plan's identity and the
+  summary of the plan's document after it, so after [..., `crea_disegno`] a plan resent
+  on the part is recognised instead of building a second time.
+- **Tool descriptions (review F15):** `annulla` and `disegna` say which plan is the
+  last one, how to come back to the part, `document_in_front`, `undo_entry_recorded`
+  and the refusal before pressing.
+- **Bench, the group that talks to the bridge** (`Banco/PortaDelCliente.cs`,
+  `UndoHonesty`), 19 tests in four cases, each read back through COM and red on 0.124.1
+  by the code path (written in the method's summary): (a) plan 2 reorders the holes of
+  plan 1, and `annulla` withdraws the reorder and leaves plan 1; (b) a plan on a saved
+  part ends with `crea_disegno`, the part comes back with `documento`/`attiva`, and
+  `annulla` withdraws the plan; (c) `annulla` after a `misura` still withdraws the plan
+  (it decides review F3); (d) a second bridge process reorders the holes of the first
+  one's plan, and the first one's `annulla` refuses before pressing, the reorder still
+  there (review F14). Case b saves with SaveAs3; the one obsolete SaveAs of the file is
+  the document cycle's, as before (review F13).
+- **Prove.Contratti:** `Zc2114UndoHonestyContract`, 13 checks (the pure decisions by
+  reflection, the source rules of the plan, of `annulla`, of the executor and of the
+  session each seen red on changed copies); `ProveIlDocumento` follows the new signature
+  of `FinishUndoRecording`; the frozen undecided count of `Strumenti/Attrezzi.cs|Value`
+  goes down from 16 to 14.
+- **Review findings not applied as asked:** the per-document counter shared between
+  bridge processes (second half of F4) is not built: the snapshot compared before
+  pressing now sees a reorder or a rename by any writer, and what it cannot see (a
+  property, a configuration) needs its own design (where the counter lives, who resets
+  it, a crash in between).
+
 ## Unreleased — W3.1-bis.3, the name map (branch w31bis-3)
 
 Tooling, data and documents only: the bridge and the library are unchanged, so

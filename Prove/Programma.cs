@@ -413,6 +413,7 @@ namespace Prove.Contratti
             Zc2113PartDimensionContract.RunAll();
             Zc2111ComponentsContract.RunAll();
             Zc14MateDirectionsContract.RunAll();
+            Zc2114UndoHonestyContract.RunAll();
             LanguageGateTests.All();
             CaseKeysTests.All();
             BenchReportTests.All();

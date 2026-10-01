@@ -506,6 +506,16 @@ node Banco\prova_annulla.js           «annulla» (voce R1), coi suoi tre rossi
 conta — il ricordo dell'ultimo piano, e i tre casi in cui si RIFIUTA — vive in
 `Attrezzi`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
 
+Since Z-C21.14 four more `annulla` cases run in the full bench, in the group that
+talks to the bridge (`PortaDelCliente.cs`, `UndoHonesty`): (a) a later plan that
+only reorders two holes is the last plan, and `annulla` must withdraw it and leave
+the first plan; (b) a plan that ends with `crea_disegno` leaves the drawing in
+front, the part comes back with `documento`/`attiva`, and `annulla` must withdraw
+the plan from the part; (c) a `misura` after a plan does not stop `annulla` from
+withdrawing it (this case decides whether an empty undo recording stands in the
+way); (d) a second bridge process reorders the holes of the first one's plan, and
+the first one's `annulla` must refuse before pressing.
+
 ### `prova_forma.js` — una MISURA, non un controllo
 
 Non fa fallire nessun giro, e il codice di uscita e' sempre zero. Risponde a una

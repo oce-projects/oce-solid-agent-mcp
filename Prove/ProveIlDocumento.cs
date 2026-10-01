@@ -134,7 +134,8 @@ namespace Prove.Contratti
             int starts = Regex.Matches(text, @"\.\s*StartRecordingUndoObject\s*\(").Count;
             int finishes = Regex.Matches(text, @"\.\s*FinishRecordingUndoObject2?\s*\(").Count;
             string startBody = Body(text, "private static IModelDoc2 StartUndoRecording(");
-            string finishBody = Body(text, "private void FinishUndoRecording(");
+            // It returns what SOLIDWORKS answered since Z-C21.14 (bool?).
+            string finishBody = Body(text, "private bool? FinishUndoRecording(");
             Segna("the undo recording is started and finished in one place each",
                   starts == 1 && finishes == 1 &&
                   startBody != null && startBody.Contains("StartRecordingUndoObject") &&

@@ -176,6 +176,7 @@ namespace ProvaSaldatura
 
                 IlModale(p, doc);
                 IlCicloDelDocumento(p, titolo, ref nuovoTitolo, ref salvato);
+                UndoHonesty(p, eseguibile);
             }
             catch (Exception ex)
             {
@@ -352,6 +353,387 @@ namespace ProvaSaldatura
                   sparito && Convert.ToString(Mcp.Dentro(chiuso, "chiuso"))
                                  .StartsWith(gambo, StringComparison.OrdinalIgnoreCase),
                   "sparito dalla COM " + sparito + " — chiuso «" + Convert.ToString(Mcp.Dentro(chiuso, "chiuso")) + "»");
+        }
+
+        /// <summary>
+        /// `annulla` TELLS THE TRUTH (Z-C21.14), from the client's door.
+        ///
+        /// `annulla` lives in the bridge, not in the library, so its cases are
+        /// here, where the bridge runs with a real document in front.
+        /// Banco/prova_annulla.js has the first three refusals; it is a script
+        /// run by hand, and these four are part of the full bench. Each is
+        /// written against the description of `annulla` in Strumenti/Attrezzi.cs
+        /// (it withdraws the last plan, whole, only while the part is as that
+        /// plan left it; and the paragraph added in Z-C21.14) and read back
+        /// through COM.
+        ///
+        ///  a. plan 1 builds a plate with two holes; plan 2 only reorders the
+        ///     holes (`riordina_lavorazione`: same volume, same feature count,
+        ///     its own undo entry on top). Plan 2 is the last plan, so `annulla`
+        ///     must withdraw it: the reorder goes, every plan-1 feature stays.
+        ///     RED ON BRIDGE 0.124.1, by the code path: plan 2 did not build, so
+        ///     the memory `_ultimoPiano` was set to null there (`haCostruito`
+        ///     false) and `annulla` answered that it had no plan to withdraw;
+        ///     the answer of plan 2 had no `undo_entry_recorded` either. (Red on
+        ///     the first version of this lot too: it refused before pressing.)
+        ///  b. a plan on a saved part ends with `crea_disegno`, so the drawing
+        ///     is in front; the part comes back with the tool `documento`,
+        ///     action `attiva`; `annulla` must withdraw the plan from the part.
+        ///     RED ON BRIDGE 0.124.1, by the code path, for the reason the live
+        ///     probe M19 measured in its phase N: the state after the plan was
+        ///     read on the window in front (Attrezzi.cs:2113, `_sessione.Stato`),
+        ///     the drawing, whose volume and feature count did not change, so
+        ///     `haCostruito` was false, no memory was written, and `annulla`
+        ///     answered that it had no plan to withdraw («NOTHING TO WITHDRAW
+        ///     (haCostruito false: no memory written)» in the probe); and the
+        ///     answer of the plan named no document in front.
+        ///  c. plan 1 builds a plate; a `misura` (`proprieta_di_massa`) follows;
+        ///     `annulla` must withdraw plan 1, since a measure is not a plan and
+        ///     writes nothing. This case DECIDES review F3: the measure's undo
+        ///     recording is empty and SOLIDWORKS answers false for it (probe M19,
+        ///     H4a/H4b); whether that leaves an entry on the stack is undecided,
+        ///     and if it did, the press would take away that empty entry, the
+        ///     part would read unchanged and the case would be red. RED ON
+        ///     BRIDGE 0.124.1, by the code path: the measure did not build, the
+        ///     memory was set to null, and the answer was that there was no plan.
+        ///  d. two bridge processes on the same part (review F14): bridge 1
+        ///     builds a plate with two holes, bridge 2 reorders the holes, bridge
+        ///     1 calls `annulla`. The part no longer reads as bridge 1's plan
+        ///     left it, so `annulla` must refuse BEFORE pressing, and the reorder
+        ///     must still be there. RED ON BRIDGE 0.124.1, by the code path:
+        ///     volume and count were as plan 1 left them, so it pressed, took
+        ///     away bridge 2's reorder, which a redo does not put back (probe
+        ///     `redo`), and answered that it had put the part back because
+        ///     EditRedo2 did not throw; no `refused_before_pressing`. (Red on the
+        ///     first version of this lot too: it pressed, and answered «NOT as it
+        ///     was».)
+        /// </summary>
+        private static void UndoHonesty(Mcp.Ponte p, string bridgeExe)
+        {
+            IModelDoc2 partA = null, partB = null, partC = null, partD = null;
+            Mcp.Ponte second = null;
+            string drawingTitle = null, savedB = null;
+            try
+            {
+                UndoWithdrawsTheLastPlanEvenIfItOnlyReordered(p, ref partA);
+                UndoAfterAnotherWindowCameInFront(p, ref partB, ref savedB, ref drawingTitle);
+                UndoAfterAMeasure(p, ref partC);
+                UndoAfterAnotherBridgeReordered(p, bridgeExe, ref partD, ref second);
+            }
+            catch (Exception ex)
+            {
+                ErroreDiBanco("undo honesty", Perche(ex));
+            }
+            finally
+            {
+                if (second != null) { try { Mcp.Chiudi(second); second.Dispose(); } catch { } }
+                // The drawing first: it holds a reference to the part.
+                try { if (!string.IsNullOrEmpty(drawingTitle)) _sw.CloseDoc(drawingTitle); } catch { }
+                Chiudi(partA);
+                try { if (!string.IsNullOrEmpty(savedB)) _sw.CloseDoc(savedB); else Chiudi(partB); } catch { }
+                RemoveQuietly(savedB);
+                Chiudi(partC);
+                Chiudi(partD);
+            }
+        }
+
+        /// <summary>The plate with two through holes far apart, as a `disegna` plan.</summary>
+        private const string PlateWithTwoHoles =
+            "{\"passi\":[" +
+            "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{\"piano\":\"superiore\"," +
+            "\"lunghezza_mm\":120,\"larghezza_mm\":80,\"spessore_mm\":10,\"centrato\":true}}," +
+            "{\"operazione\":\"taglio_cilindrico\",\"argomenti\":{\"faccia_rif\":{\"passo\":1," +
+            "\"genere\":\"faccia_superiore\"},\"x_mm\":-30,\"y_mm\":0,\"diametro_mm\":10,\"passante\":true}}," +
+            "{\"operazione\":\"taglio_cilindrico\",\"argomenti\":{\"faccia_rif\":{\"passo\":1," +
+            "\"genere\":\"faccia_superiore\"},\"x_mm\":30,\"y_mm\":0,\"diametro_mm\":10,\"passante\":true}}]}";
+
+        /// <summary>The `disegna` plan that puts the second hole before the first.</summary>
+        private static string ReorderPlan(List<string> cuts)
+        {
+            return "{\"passi\":[{\"operazione\":\"riordina_lavorazione\",\"argomenti\":{\"feature_uid\":\"" + cuts[1] +
+                   "\",\"rispetto_a_uid\":\"" + cuts[0] + "\",\"dove\":\"prima\"}}]}";
+        }
+
+        /// <summary>The cuts a plan added, read through COM, in tree order.</summary>
+        private static List<string> NewCuts(List<Tuple<string, string>> before, List<Tuple<string, string>> after)
+        {
+            var cuts = new List<string>();
+            foreach (var f in after)
+                if (f.Item2 == "Cut" && !before.Exists(b => b.Item1 == f.Item1)) cuts.Add(f.Item1);
+            return cuts;
+        }
+
+        /// <summary>True when <paramref name="first"/> comes before <paramref name="second"/> in the tree.</summary>
+        private static bool Before(List<Tuple<string, string>> features, string first, string second)
+        {
+            int a = IndexOf(features, first), b = IndexOf(features, second);
+            return a >= 0 && b >= 0 && a < b;
+        }
+
+        /// <summary>Case a of <see cref="UndoHonesty"/>.</summary>
+        private static void UndoWithdrawsTheLastPlanEvenIfItOnlyReordered(Mcp.Ponte p, ref IModelDoc2 part)
+        {
+            part = NuovaParte();
+            var look = TestoDiRisposta(Mcp.Chiedi(p, 40, Chiamata(40, "guarda_il_pezzo", "{}")));
+            if (Mcp.Ogg(look) == null)
+            {
+                ErroreDiBanco("undo honesty, case a", "guarda_il_pezzo gave no state: " + Corto(look));
+                return;
+            }
+
+            var before = FeaturesOf(part);
+            var plan1 = TestoDiRisposta(Mcp.Chiedi(p, 41, Chiamata(41, "disegna", PlateWithTwoHoles)));
+            var afterPlan1 = FeaturesOf(part);
+            var cuts = NewCuts(before, afterPlan1);
+            Segna("undo case a: plan 1 builds a plate with two holes, read by the bench through COM",
+                  cuts.Count == 2 && VolumeDiProva(part) > 1, "holes «" + string.Join("», «", cuts) + "», volume " +
+                  VolumeDiProva(part).ToString("0.#") + " mm3 — " + Corto(plan1));
+            if (cuts.Count != 2) return;
+
+            // Plan 2: the second hole before the first. Same volume, same count.
+            double volumeAfterPlan1 = VolumeDiProva(part);
+            var plan2Text = TestoDiRisposta(Mcp.Chiedi(p, 42, Chiamata(42, "disegna", ReorderPlan(cuts))));
+            var plan2 = Mcp.Ogg(plan2Text);
+            bool reordered = Before(FeaturesOf(part), cuts[1], cuts[0]);
+            Segna("undo case a: plan 2 reorders the two holes, read by the bench through COM",
+                  reordered && Math.Abs(VolumeDiProva(part) - volumeAfterPlan1) < 0.01, Corto(plan2Text));
+            if (!reordered) return;
+
+            // Its own entry is not empty: that is what makes it the last plan.
+            object recorded = Mcp.Dentro(plan2, "undo_entry_recorded");
+            Segna("undo case a: plan 2 says it left a non-empty undo entry (undo_entry_recorded true)",
+                  recorded is bool && (bool)recorded,
+                  "undo_entry_recorded = " + (recorded == null ? "(absent)" : Convert.ToString(recorded)));
+
+            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 43, Chiamata(43, "annulla", "{}")));
+            var undo = Mcp.Ogg(undoText);
+            object done = Mcp.Dentro(undo, "annullato");
+            Segna("undo case a: `annulla` withdraws the last plan, the reorder",
+                  done is bool && (bool)done, Corto(undoText));
+
+            var afterUndo = FeaturesOf(part);
+            Segna("undo case a: and the holes are in their first order again, read by the bench through COM",
+                  Before(afterUndo, cuts[0], cuts[1]),
+                  "positions " + IndexOf(afterUndo, cuts[0]) + " and " + IndexOf(afterUndo, cuts[1]));
+            bool allThere = true;
+            foreach (var f in afterPlan1) if (IndexOf(afterUndo, f.Item1) < 0) allThere = false;
+            Segna("undo case a: and every plan-1 feature is still there, with the same volume",
+                  allThere && Math.Abs(VolumeDiProva(part) - volumeAfterPlan1) < 0.01,
+                  afterUndo.Count + " features (" + afterPlan1.Count + " after plan 1), volume " +
+                  volumeAfterPlan1.ToString("0.#") + " -> " + VolumeDiProva(part).ToString("0.#") + " mm3");
+        }
+
+        /// <summary>Case b of <see cref="UndoHonesty"/>.</summary>
+        private static void UndoAfterAnotherWindowCameInFront(
+            Mcp.Ponte p, ref IModelDoc2 part, ref string saved, ref string drawingTitle)
+        {
+            // crea_disegno wants a part saved on disk.
+            part = NuovaParte();
+            string path = Path.Combine(Attese.Lavoro, "client_door_undo_drawing.sldprt");
+            RemoveQuietly(path);
+            int e = 0, w = 0;
+            // SaveAs3, not the obsolete SaveAs frozen for Z-C21.7 (review F13).
+            part.Extension.SaveAs3(path, 0, 1, null, null, ref e, ref w);
+            if (!File.Exists(path))
+            {
+                ErroreDiBanco("undo honesty, case b", "could not save «" + path + "» (e=" + e + ", w=" + w + ")");
+                return;
+            }
+            saved = path;
+            string json = path.Replace("\\", "\\\\");
+
+            var look = TestoDiRisposta(Mcp.Chiedi(p, 50, Chiamata(50, "guarda_il_pezzo", "{}")));
+            if (Mcp.Ogg(look) == null)
+            {
+                ErroreDiBanco("undo honesty, case b", "guarda_il_pezzo gave no state: " + Corto(look));
+                return;
+            }
+
+            var planText = TestoDiRisposta(Mcp.Chiedi(p, 51, Chiamata(51, "disegna",
+                "{\"passi\":[" +
+                "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{\"piano\":\"superiore\"," +
+                "\"lunghezza_mm\":100,\"larghezza_mm\":60,\"spessore_mm\":10,\"centrato\":true}}," +
+                "{\"operazione\":\"crea_disegno\",\"argomenti\":{}}]}")));
+            var plan = Mcp.Ogg(planText);
+            IModelDoc2 front = _sw.IActiveDoc2;
+            bool drawingInFront = front != null &&
+                front.GetType() == (int)SolidWorks.Interop.swconst.swDocumentTypes_e.swDocDRAWING;
+            if (drawingInFront) drawingTitle = front.GetTitle();
+            Segna("undo case b: the plan ends with its drawing in front, read by the bench through COM",
+                  drawingInFront, "in front «" + (front == null ? "(nothing)" : front.GetTitle()) + "» — " + Corto(planText));
+            if (!drawingInFront) return;
+
+            string named = Convert.ToString(Mcp.Dentro(plan, "document_in_front")) ?? "";
+            Segna("undo case b: the answer of `disegna` says which document is in front",
+                  named.Length > 0 && named.IndexOf(drawingTitle, StringComparison.OrdinalIgnoreCase) >= 0,
+                  "document_in_front «" + named + "», the bench sees «" + drawingTitle + "»");
+            object volumeAfter = Mcp.Dentro(plan, "volume_dopo_mm3");
+            double volumeAnswered;
+            bool readable = volumeAfter != null &&
+                double.TryParse(Convert.ToString(volumeAfter, System.Globalization.CultureInfo.InvariantCulture),
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out volumeAnswered) &&
+                Math.Abs(volumeAnswered - 60000) < 1;
+            // 100 x 60 x 10 = 60000 mm3, and the part started empty.
+            Segna("undo case b: and its volume_dopo_mm3 is the part's (60000 mm3), not the drawing's",
+                  readable, "volume_dopo_mm3 = " + (volumeAfter == null ? "(absent)" : Convert.ToString(volumeAfter)));
+
+            string extrusion = null;
+            foreach (var f in FeaturesOf(part)) if (f.Item2 == "Extrusion") extrusion = f.Item1;
+
+            var back = TestoDiRisposta(Mcp.Chiedi(p, 52, Chiamata(52, "documento",
+                "{\"azione\":\"attiva\",\"percorso\":\"" + json + "\"}")));
+            IModelDoc2 nowInFront = _sw.IActiveDoc2;
+            bool partInFront = nowInFront != null &&
+                string.Equals(nowInFront.GetPathName(), path, StringComparison.OrdinalIgnoreCase);
+            Segna("undo case b: `documento` with `attiva` brings the part back to the front, read by the bench through COM",
+                  partInFront, "in front «" + (nowInFront == null ? "(nothing)" : nowInFront.GetPathName()) + "» — " + Corto(back));
+            if (!partInFront) return;
+
+            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 53, Chiamata(53, "annulla", "{}")));
+            var undo = Mcp.Ogg(undoText);
+            object done = Mcp.Dentro(undo, "annullato");
+            Segna("undo case b: `annulla` withdraws the plan from the part, the drawing having been in front",
+                  done is bool && (bool)done, Corto(undoText));
+            var left = FeaturesOf(part);
+            Segna("undo case b: and the bench reads the part empty again: the extrusion is gone",
+                  extrusion != null && IndexOf(left, extrusion) < 0 && VolumeDiProva(part) < 0.001,
+                  "extrusion «" + (extrusion ?? "(not found before)") + "» at position " +
+                  (extrusion == null ? -1 : IndexOf(left, extrusion)) + ", volume " +
+                  VolumeDiProva(part).ToString("0.###") + " mm3");
+        }
+
+        /// <summary>Case c of <see cref="UndoHonesty"/>.</summary>
+        private static void UndoAfterAMeasure(Mcp.Ponte p, ref IModelDoc2 part)
+        {
+            part = NuovaParte();
+            var look = TestoDiRisposta(Mcp.Chiedi(p, 70, Chiamata(70, "guarda_il_pezzo", "{}")));
+            if (Mcp.Ogg(look) == null)
+            {
+                ErroreDiBanco("undo honesty, case c", "guarda_il_pezzo gave no state: " + Corto(look));
+                return;
+            }
+
+            var plan = TestoDiRisposta(Mcp.Chiedi(p, 71, Chiamata(71, "disegna",
+                "{\"passi\":[{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{\"piano\":\"superiore\"," +
+                "\"lunghezza_mm\":80,\"larghezza_mm\":50,\"spessore_mm\":10,\"centrato\":true}}]}")));
+            string extrusion = null;
+            foreach (var f in FeaturesOf(part)) if (f.Item2 == "Extrusion") extrusion = f.Item1;
+            // 80 x 50 x 10 = 40000 mm3, and the part started empty.
+            Segna("undo case c: the plan builds a plate, read by the bench through COM",
+                  extrusion != null && Math.Abs(VolumeDiProva(part) - 40000) < 1,
+                  "extrusion «" + (extrusion ?? "(none)") + "», volume " + VolumeDiProva(part).ToString("0.#") +
+                  " mm3 — " + Corto(plan));
+            if (extrusion == null) return;
+
+            var measureText = TestoDiRisposta(Mcp.Chiedi(p, 72, Chiamata(72, "misura",
+                "{\"passi\":[{\"operazione\":\"proprieta_di_massa\",\"argomenti\":{}}]}")));
+            object measureEntry = Mcp.Dentro(Mcp.Ogg(measureText), "undo_entry_recorded");
+
+            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 73, Chiamata(73, "annulla", "{}")));
+            object done = Mcp.Dentro(Mcp.Ogg(undoText), "annullato");
+            Segna("undo case c: after a measure, `annulla` still withdraws the plan",
+                  done is bool && (bool)done,
+                  "the measure answered undo_entry_recorded = " +
+                  (measureEntry == null ? "(absent)" : Convert.ToString(measureEntry)) + " — " + Corto(undoText));
+            Segna("undo case c: and the bench reads the part empty again: the extrusion is gone",
+                  IndexOf(FeaturesOf(part), extrusion) < 0 && VolumeDiProva(part) < 0.001,
+                  "extrusion at position " + IndexOf(FeaturesOf(part), extrusion) + ", volume " +
+                  VolumeDiProva(part).ToString("0.###") + " mm3");
+        }
+
+        /// <summary>Case d of <see cref="UndoHonesty"/>.</summary>
+        private static void UndoAfterAnotherBridgeReordered(
+            Mcp.Ponte p, string bridgeExe, ref IModelDoc2 part, ref Mcp.Ponte second)
+        {
+            part = NuovaParte();
+            var look = TestoDiRisposta(Mcp.Chiedi(p, 60, Chiamata(60, "guarda_il_pezzo", "{}")));
+            if (Mcp.Ogg(look) == null)
+            {
+                ErroreDiBanco("undo honesty, case d", "guarda_il_pezzo gave no state: " + Corto(look));
+                return;
+            }
+            var before = FeaturesOf(part);
+            var plan1 = TestoDiRisposta(Mcp.Chiedi(p, 61, Chiamata(61, "disegna", PlateWithTwoHoles)));
+            var afterPlan1 = FeaturesOf(part);
+            var cuts = NewCuts(before, afterPlan1);
+            Segna("undo case d: bridge 1 builds a plate with two holes, read by the bench through COM",
+                  cuts.Count == 2, "holes «" + string.Join("», «", cuts) + "» — " + Corto(plan1));
+            if (cuts.Count != 2) return;
+            double volumeAfterPlan1 = VolumeDiProva(part);
+
+            // A second bridge process, on the same SOLIDWORKS and the same part.
+            second = bridgeExe == null ? null : Mcp.Apri(bridgeExe);
+            var hello = second == null ? null : Mcp.Chiedi(second, 1,
+                "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
+                "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
+                "\"clientInfo\":{\"name\":\"banco-2\",\"version\":\"1\"}}}");
+            if (hello == null)
+            {
+                ErroreDiBanco("undo honesty, case d", "the second bridge did not start or did not answer initialize");
+                return;
+            }
+            var look2 = TestoDiRisposta(Mcp.Chiedi(second, 2, Chiamata(2, "guarda_il_pezzo", "{}")));
+            var reorderText = TestoDiRisposta(Mcp.Chiedi(second, 3, Chiamata(3, "disegna", ReorderPlan(cuts))));
+            bool reordered = Before(FeaturesOf(part), cuts[1], cuts[0]);
+            Segna("undo case d: bridge 2 reorders the two holes, read by the bench through COM",
+                  reordered, Corto(reorderText) + " (it looked: " + Corto(look2) + ")");
+            if (!reordered) return;
+
+            var undoText = TestoDiRisposta(Mcp.Chiedi(p, 62, Chiamata(62, "annulla", "{}")));
+            var undo = Mcp.Ogg(undoText);
+            object refused = Mcp.Dentro(undo, "refused_before_pressing");
+            object done = Mcp.Dentro(undo, "annullato");
+            Segna("undo case d: bridge 1's `annulla` refuses BEFORE pressing: the part is not as its plan left it",
+                  refused is bool && (bool)refused && done is bool && !(bool)done &&
+                  (Convert.ToString(Mcp.Dentro(undo, "motivo")) ?? "").IndexOf("order", StringComparison.OrdinalIgnoreCase) >= 0,
+                  Corto(undoText));
+
+            var afterUndo = FeaturesOf(part);
+            bool allThere = true;
+            foreach (var f in afterPlan1) if (IndexOf(afterUndo, f.Item1) < 0) allThere = false;
+            Segna("undo case d: and bridge 2's reorder and every plan-1 feature are still there, read by the bench through COM",
+                  Before(afterUndo, cuts[1], cuts[0]) && allThere &&
+                  Math.Abs(VolumeDiProva(part) - volumeAfterPlan1) < 0.01,
+                  "positions " + IndexOf(afterUndo, cuts[1]) + " and " + IndexOf(afterUndo, cuts[0]) + ", " +
+                  afterUndo.Count + " features, volume " + VolumeDiProva(part).ToString("0.#") + " mm3");
+        }
+
+        /// <summary>The features of a document as (name, type), in tree order.</summary>
+        private static List<Tuple<string, string>> FeaturesOf(IModelDoc2 doc)
+        {
+            var found = new List<Tuple<string, string>>();
+            if (doc == null) return found;
+            IFeature f = doc.FirstFeature() as IFeature;
+            for (int i = 0; f != null && i < 2000; i++)
+            {
+                string name = "", type = "";
+                try { name = f.Name ?? ""; } catch { }
+                try { type = f.GetTypeName2() ?? ""; } catch { }
+                found.Add(Tuple.Create(name, type));
+                f = f.GetNextFeature() as IFeature;
+            }
+            return found;
+        }
+
+        /// <summary>The position of a feature by name, -1 when it is not there.</summary>
+        private static int IndexOf(List<Tuple<string, string>> features, string name)
+        {
+            return features.FindIndex(f => f.Item1 == name);
+        }
+
+        /// <summary>Deletes a bench file if it is there, read-only or not; quiet on failure.</summary>
+        private static void RemoveQuietly(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+            try
+            {
+                FileInfo file = new FileInfo(path);
+                if (!file.Exists) return;
+                file.Attributes = FileAttributes.Normal;
+                file.Delete();
+            }
+            catch { }
         }
 
         /// <summary>
