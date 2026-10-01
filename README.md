@@ -282,6 +282,7 @@ operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
 | `RISCONTRO_RADICE` | l'unica cartella dentro cui il ponte puo' scrivere. Se e' impostata, tutto il resto del disco e' fuori |
 | `RISCONTRO_SOLA_LETTURA` | cartelle che il ponte non deve scrivere, separate da `;` — esempio `S:\CAD;S:\_LIBRERIE`. Si aggiungono a quelle di sistema, non le sostituiscono |
 | `PROFILI_SALDATURA` | la libreria dei profili saldati (`.SLDLFP`), se non e' dove la mette questa installazione |
+| `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so. For a session busy with a batch job or the bench |
 
 `RISCONTRO_DISEGNO` non decide piu' quale libreria caricare, e resta letta
 apposta: se punta altrove, il ponte lo **dice**. Una variabile d'ambiente che

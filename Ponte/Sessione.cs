@@ -220,6 +220,22 @@ namespace Oce.Solid.Agent.Ponte
                 return "La libreria di disegno non si carica: " + ex.Message;
             }
 
+            // OCE_NO_ATTACH: START WITHOUT TOUCHING SOLIDWORKS (entry H19, L1).
+            //
+            // A SOLIDWORKS session can be busy with work that must not be
+            // disturbed: a batch job, or the bench of this repository, which
+            // drives the same session for a quarter of an hour. The installer
+            // runs this bridge twice after copying it (the self-test and, with
+            // --verify, an MCP handshake), and both used to attach to whatever
+            // session was running and read its active document. With this
+            // variable set the bridge starts, answers the protocol and lists
+            // its tools, and says why it is not attached; the tools that need
+            // SOLIDWORKS refuse with that reason. It is read here and nowhere
+            // else, so there is one place that decides.
+            if (NoAttachRequested())
+                return "Not attaching to SOLIDWORKS: OCE_NO_ATTACH is set. Unset it " +
+                       "(or set it to 0) and restart the bridge to attach.";
+
             try
             {
                 _sw = Marshal.GetActiveObject("SldWorks.Application");
@@ -235,6 +251,19 @@ namespace Oce.Solid.Agent.Ponte
 
             RicordaIlProcesso();
             return null;
+        }
+
+        /// <summary>
+        /// True when OCE_NO_ATTACH asks the bridge not to attach: any value
+        /// except empty, "0" and "false". A variable that is set to "0" and
+        /// still switches something off would be the surprise this avoids.
+        /// </summary>
+        internal static bool NoAttachRequested()
+        {
+            var v = System.Environment.GetEnvironmentVariable("OCE_NO_ATTACH");
+            if (string.IsNullOrWhiteSpace(v)) return false;
+            v = v.Trim();
+            return v != "0" && !string.Equals(v, "false", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
