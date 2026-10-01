@@ -4,7 +4,7 @@
  "totals": {
   "comments": 145282,
   "strings": 54452,
-  "markdown": 33920,
+  "markdown": 33942,
   "json_values": 55010,
   "identifiers": 4799,
   "json_keys": 443,
@@ -1333,7 +1333,7 @@
    "strings": 16
   },
   "Prove/LEGGIMI.md": {
-   "markdown": 1569
+   "markdown": 1591
   },
   "Prove/LanguageGateTests.cs": {
    "comments": 1,

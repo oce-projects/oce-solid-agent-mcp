@@ -30,7 +30,10 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ## 0.124.1 — 1 October 2026 · library 0.148.0 (unchanged)
 
-BENCH_01241_PLACEHOLDER
+**Full bench on bridge 0.124.1 / library 0.148.0, 1/10/2026: 2160 tests, 0 failed**
+(1771 expectations checked). The bench's lookup log ran this time: «every lookup by name
+that falls back to null found its target», 106 lookups, none null. This run and the one
+of 0.124.0 are the two reference runs of W3.1-bis.2 item 11.
 
 ### The bench's lookup log runs on a full bench
 
@@ -41,7 +44,11 @@ BENCH_01241_PLACEHOLDER
   Now only a different library file counts as another (`SameLibraryPath`, full
   paths without case); an older library named by hand still skips the test. A
   contract check in `ReflectionTests` reads the source and is seen red on the old
-  line. Prove.Contratti: 761 checks. The bench has not run on this change yet.
+  line. Prove.Contratti: 761 checks.
+- **`Prove/LEGGIMI.md` repaired:** an edit of the merge commit of 0.124.0 (d2c7dd9) read the
+  file with PowerShell 5.1 `Get-Content` without an encoding and wrote it back: 26 lines with
+  every accented letter, guillemet and dash turned into mojibake. Converted back (1252 to
+  UTF-8); against the last healthy version only the intended edits differ.
 - **W3.1-bis.2 item 10 rerun on SOLIDWORKS:** the eight probes that moved from base
   planes by localized name to base planes by position (`CorpoRotto`, `DimXpert`, `Lamiera`,
   `Mensola`, `Orfana`, `RaccordoDiFaccia`, `SeguiIlBordo`, `Spessore`) were run old (built from
