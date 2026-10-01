@@ -17,6 +17,11 @@ namespace Oce.Solid.Agent.Installer
         public bool Installato;
         /// <summary>Come si chiama il processo, per sapere se e' aperto adesso.</summary>
         public string Processo;
+        /// <summary>
+        /// Claude Code: wired through `claude mcp add` when `claude` is on
+        /// PATH (entry H19, B5; see ClaudeCli), through the file otherwise.
+        /// </summary>
+        public bool ClaudeCode;
     }
 
     /// <summary>
@@ -76,6 +81,7 @@ namespace Oce.Solid.Agent.Installer
                     Nome = "Claude Code",
                     File = Path.Combine(profilo, ".claude.json"),
                     Processo = null,
+                    ClaudeCode = true,
                 },
             };
 
@@ -111,7 +117,7 @@ namespace Oce.Solid.Agent.Installer
         /// copia di sicurezza, o null se il file non esisteva.
         /// </summary>
         public static string Collega(
-            Client client, string eseguibile, string redist, Action<string> racconta)
+            Client client, string eseguibile, string redist, string weldmentProfiles, Action<string> racconta)
         {
             if (client == null) throw new Exception("Nessun client scelto.");
             if (string.IsNullOrWhiteSpace(eseguibile) || !File.Exists(eseguibile))
@@ -128,10 +134,14 @@ namespace Oce.Solid.Agent.Installer
             // `env` solo se serve davvero: una variabile scritta «tanto per»
             // e' una cosa in piu' che puo' diventare sbagliata quando qualcuno
             // sposta SOLIDWORKS, e nessuno andra' a rileggerla.
-            if (!string.IsNullOrWhiteSpace(redist) && !RedistStandard(redist))
+            var env = EnvFor(redist, weldmentProfiles);
+            if (env.Count > 0)
             {
-                voce["env"] = new Dictionary<string, object> { ["SW_REDIST"] = redist };
-                racconta("aggiungo SW_REDIST: SOLIDWORKS non e' nel percorso solito");
+                voce["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+                if (env.ContainsKey("SW_REDIST"))
+                    racconta("aggiungo SW_REDIST: SOLIDWORKS non e' nel percorso solito");
+                if (env.ContainsKey("PROFILI_SALDATURA"))
+                    racconta("adding PROFILI_SALDATURA: " + env["PROFILI_SALDATURA"]);
             }
 
             bool cera = server.ContainsKey(NomeServer);
@@ -143,23 +153,90 @@ namespace Oce.Solid.Agent.Installer
             return copia;
         }
 
-        /// <summary>Toglie la voce del ponte, lasciando gli altri server.</summary>
-        public static void Scollega(Client client, Action<string> racconta)
+        /// <summary>
+        /// The variables the bridge needs in the client's `env`, and only those
+        /// (entry H19, A6): SW_REDIST when SOLIDWORKS is not where the bridge
+        /// looks by itself, PROFILI_SALDATURA when a weldment profiles folder
+        /// is known. One place, so the file, the block to paste and
+        /// `claude mcp add` cannot say different things.
+        /// </summary>
+        public static Dictionary<string, string> EnvFor(string redist, string weldmentProfiles)
+        {
+            var env = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (!string.IsNullOrWhiteSpace(redist) && !RedistStandard(redist)) env["SW_REDIST"] = redist;
+            if (!string.IsNullOrWhiteSpace(weldmentProfiles)) env["PROFILI_SALDATURA"] = weldmentProfiles;
+            return env;
+        }
+
+        /// <summary>
+        /// Toglie la voce del ponte, lasciando gli altri server.
+        ///
+        /// ONLY OUR OWN ENTRY (entry H19, A5). With <paramref name="folder"/>
+        /// given, the entry is removed only if its command is the bridge in
+        /// that folder: a "solidworks" entry that points at another
+        /// installation (or at another program that took the same name) is
+        /// someone else's, and is left alone with a line that says so.
+        /// Returns true when an entry was removed.
+        /// </summary>
+        public static bool Scollega(Client client, string folder, Action<string> racconta)
         {
             if (client == null || !File.Exists(client.File))
             {
                 racconta("niente da scollegare");
-                return;
+                return false;
             }
             var radice = Leggi(client.File);
             var server = Sotto(radice, "mcpServers");
-            if (!server.Remove(NomeServer))
+            object entry;
+            if (!server.TryGetValue(NomeServer, out entry))
             {
                 racconta("la voce non c'era");
-                return;
+                return false;
             }
+            if (!string.IsNullOrWhiteSpace(folder) && !PointsInto(entry, folder))
+            {
+                racconta(client.Nome + ": the \"" + NomeServer + "\" entry points at another installation (" +
+                         CommandOf(entry) + "): left alone");
+                return false;
+            }
+            server.Remove(NomeServer);
             Scrivi(client.File, radice, racconta);
             racconta("tolta la voce da " + client.Nome);
+            return true;
+        }
+
+        /// <summary>True when the entry's command is the bridge inside <paramref name="folder"/>.</summary>
+        public static bool PointsInto(object entry, string folder)
+        {
+            var c = CommandOf(entry);
+            return !string.IsNullOrWhiteSpace(c) &&
+                   Passi.PercorsiUguali(c, Path.Combine(folder, Passi.NomeEseguibile));
+        }
+
+        private static string CommandOf(object entry)
+        {
+            var d = entry as Dictionary<string, object>;
+            object c;
+            return d != null && d.TryGetValue("command", out c) ? Convert.ToString(c) : null;
+        }
+
+        /// <summary>The `env` of our entry, or null when there is no entry (for --verify).</summary>
+        public static Dictionary<string, string> ConfiguredEnv(Client client)
+        {
+            try
+            {
+                if (client == null || !File.Exists(client.File)) return null;
+                var server = Sotto(Leggi(client.File), "mcpServers");
+                object entry;
+                if (!server.TryGetValue(NomeServer, out entry)) return null;
+                var result = new Dictionary<string, string>(StringComparer.Ordinal);
+                var d = entry as Dictionary<string, object>;
+                object env;
+                if (d != null && d.TryGetValue("env", out env) && env is Dictionary<string, object>)
+                    foreach (var kv in (Dictionary<string, object>)env) result[kv.Key] = Convert.ToString(kv.Value);
+                return result;
+            }
+            catch { return null; }
         }
 
         /// <summary>Cosa c'e' scritto adesso per questo server, se c'e'.</summary>
@@ -400,11 +477,11 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>Il blocco da incollare a mano, per chi usa un altro client.</summary>
-        public static string BloccoDaIncollare(string eseguibile, string redist)
+        public static string BloccoDaIncollare(string eseguibile, string redist, string weldmentProfiles)
         {
             var voce = new Dictionary<string, object> { ["command"] = eseguibile };
-            if (!string.IsNullOrWhiteSpace(redist) && !RedistStandard(redist))
-                voce["env"] = new Dictionary<string, object> { ["SW_REDIST"] = redist };
+            var env = EnvFor(redist, weldmentProfiles);
+            if (env.Count > 0) voce["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
 
             var radice = new Dictionary<string, object>
             {

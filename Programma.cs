@@ -375,6 +375,58 @@ namespace Oce.Solid.Agent
             return "2024-11-05";
         }
 
+        // ── THE EXIT CODES OF --prova (entry H19, B3) ────────────────────
+        //
+        // The installer reads these, and no longer the sentences: a sentence
+        // is for a person and gets translated, a code does not. The same
+        // numbers are written in Installer/Passi.cs (SelfTest*), which cannot
+        // reference this assembly; a contract in Prove reads both.
+        //
+        //   0  attached (with or without a document)
+        //   1  anything else: the library did not load, an unknown HRESULT,
+        //      the open document could not be read
+        //   3  SOLIDWORKS installed and not running (MK_E_UNAVAILABLE)
+        //   4  SOLIDWORKS not installed or not registered (CO_E_CLASSSTRING,
+        //      REGDB_E_CLASSNOTREG)
+        //   5  not tried: OCE_NO_ATTACH is set
+        //
+        // 2 is left out on purpose: it is the installer's own "not confirmed".
+        internal const int SelfTestAttached = 0;
+        internal const int SelfTestOther = 1;
+        internal const int SelfTestNotRunning = 3;
+        internal const int SelfTestNotInstalled = 4;
+        internal const int SelfTestSkipped = 5;
+
+        internal static int SelfTestExitCode(AttachFailure failure)
+        {
+            switch (failure)
+            {
+                case AttachFailure.None: return SelfTestAttached;
+                case AttachFailure.NotRunning: return SelfTestNotRunning;
+                case AttachFailure.NotInstalled: return SelfTestNotInstalled;
+                case AttachFailure.Skipped: return SelfTestSkipped;
+                default: return SelfTestOther;
+            }
+        }
+
+        internal static string SelfTestMeaning(int code)
+        {
+            switch (code)
+            {
+                case SelfTestAttached: return "attached to SOLIDWORKS";
+                case SelfTestNotRunning: return "SOLIDWORKS is installed but not running: open it";
+                case SelfTestNotInstalled: return "SOLIDWORKS is not installed, or not registered: install or repair it";
+                case SelfTestSkipped: return "attach not tried, OCE_NO_ATTACH is set";
+                default: return "not attached, for another reason: read the lines above";
+            }
+        }
+
+        private static bool SolidWorksProcessRuns()
+        {
+            try { return System.Diagnostics.Process.GetProcessesByName("SLDWORKS").Length > 0; }
+            catch { return false; }
+        }
+
         /// <summary>
         /// `--prova`: un giro secco senza client, per sapere se il ponte sta in
         /// piedi su questa macchina. Stampa su stderr e non tocca il pezzo.
@@ -392,7 +444,19 @@ namespace Oce.Solid.Agent
                 Protocollo.Nota("[prova] prime operazioni: " + qualcuna);
             }
 
-            if (!sessione.Agganciata) return 1;
+            if (!sessione.Agganciata)
+            {
+                int code = SelfTestExitCode(sessione.Failure);
+                Protocollo.Nota("[self-test] exit code " + code + ": " + SelfTestMeaning(code));
+                // SOLIDWORKS "not running" while a SLDWORKS process exists is
+                // the elevated case: started as administrator, its session is
+                // not in the running object table this process can see.
+                if (code == SelfTestNotRunning && SolidWorksProcessRuns())
+                    Protocollo.Nota("[self-test] a SLDWORKS process is running but did not answer: it may " +
+                                    "run as administrator while this process does not (or the other way " +
+                                    "round). Start SOLIDWORKS and the MCP client the same way.");
+                return code;
+            }
 
             // AGGANCIATO E SENZA DOCUMENTI E' UN PONTE IN PIEDI (voce H6-bis).
             //
@@ -416,7 +480,7 @@ namespace Oce.Solid.Agent
             }
 
             var stato = sessione.Stato(out var errore);
-            if (stato == null) { Protocollo.Nota("[prova] " + errore); return 1; }
+            if (stato == null) { Protocollo.Nota("[prova] " + errore); return SelfTestOther; }
 
             foreach (var chiave in new[] { "titolo", "tipo", "volume_mm3", "corpi_totali" })
                 if (stato.TryGetValue(chiave, out var v))

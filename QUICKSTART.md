@@ -194,7 +194,13 @@ Run it from PowerShell. It says whether it attached, which add-in it loaded, how
 many operations it knows, and what it sees in the open document. **It changes
 nothing.** Send that output with any report.
 
-To remove it completely:
+`Installa.exe --verify` checks the whole installation instead: the files, the
+entry in each MCP client, SOLIDWORKS, that self-test, and a short conversation
+with the bridge the way Claude has it. Each line starts with `[ok]`, `[~]` or
+`[NO]`.
+
+To remove it completely (the files and the entry in the MCP client;
+`--keep-client` keeps the entry):
 
 ```
 Installa.exe --disinstalla

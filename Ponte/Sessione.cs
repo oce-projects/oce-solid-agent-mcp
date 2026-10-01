@@ -74,6 +74,16 @@ namespace Oce.Solid.Agent.Ponte
         public bool Agganciata => _sw != null && _caricata;
 
         /// <summary>
+        /// WHY THE ATTACH FAILED, as a value and not as a sentence (entry H19,
+        /// B3). The installer used to decide whether an install had worked by
+        /// looking for a phrase in the output of `--prova`; that phrase is
+        /// for a person, and it was about to be translated. `--prova` now
+        /// turns this value into its exit code (Programma.SelfTestExitCode),
+        /// and the sentence stays for whoever reads it.
+        /// </summary>
+        public AttachFailure Failure { get; private set; } = AttachFailure.None;
+
+        /// <summary>
         /// Dove SolidWorks tiene le sue librerie di interoperabilita'.
         /// Si puo' cambiare con SW_INSTALL_PATH (vedi <see cref="RedistChiesto"/>).
         /// </summary>
@@ -217,6 +227,7 @@ namespace Oce.Solid.Agent.Ponte
             }
             catch (Exception ex)
             {
+                Failure = AttachFailure.Other;
                 return "La libreria di disegno non si carica: " + ex.Message;
             }
 
@@ -233,8 +244,11 @@ namespace Oce.Solid.Agent.Ponte
             // SOLIDWORKS refuse with that reason. It is read here and nowhere
             // else, so there is one place that decides.
             if (NoAttachRequested())
+            {
+                Failure = AttachFailure.Skipped;
                 return "Not attaching to SOLIDWORKS: OCE_NO_ATTACH is set. Unset it " +
                        "(or set it to 0) and restart the bridge to attach.";
+            }
 
             try
             {
@@ -242,15 +256,33 @@ namespace Oce.Solid.Agent.Ponte
             }
             catch (COMException ex)
             {
+                Failure = FailureOf(ex.ErrorCode);
                 return MessaggioDiAggancio(ex.ErrorCode);
             }
             catch (Exception ex)
             {
+                Failure = AttachFailure.Other;
                 return "Non riesco ad agganciarmi a SolidWorks: " + ex.Message;
             }
 
+            Failure = AttachFailure.None;
             RicordaIlProcesso();
             return null;
+        }
+
+        /// <summary>
+        /// The HRESULT of a failed `GetActiveObject` as a kind of failure:
+        /// the same three codes MessaggioDiAggancio tells apart in words.
+        /// </summary>
+        internal static AttachFailure FailureOf(int hresult)
+        {
+            switch (unchecked((uint)hresult))
+            {
+                case 0x800401E3: return AttachFailure.NotRunning;
+                case 0x800401F3:
+                case 0x80040154: return AttachFailure.NotInstalled;
+                default: return AttachFailure.Other;
+            }
         }
 
         /// <summary>
@@ -275,10 +307,9 @@ namespace Oce.Solid.Agent.Ponte
         ///   CO_E_CLASSSTRING    0x800401F3   il ProgID non c'e'      -> non e' installato
         ///   REGDB_E_CLASSNOTREG 0x80040154   classe non registrata   -> idem
         ///
-        /// «non risulta aperto» resta PAROLA PER PAROLA: l'installatore la cerca
-        /// nell'uscita di `--prova` per dire «installato, manca solo SOLIDWORKS
-        /// aperto». Il messaggio di «non installato» NON deve contenerla, se no
-        /// un'installazione su una macchina senza SOLIDWORKS uscirebbe 0.
+        /// Since entry H19 (B3) no program reads these sentences: the installer
+        /// reads the exit code of `--prova`, which comes from FailureOf. They are
+        /// for a person, and can be translated like any other message.
         /// </summary>
         internal static string MessaggioDiAggancio(int hresult)
         {
@@ -1040,4 +1071,20 @@ namespace Oce.Solid.Agent.Ponte
                    originale + "».";
         }
     }
+
+    /// <summary>Why the bridge is not attached to SOLIDWORKS (entry H19, B3).</summary>
+    internal enum AttachFailure
+    {
+        /// <summary>Attached, or not tried yet.</summary>
+        None,
+        /// <summary>MK_E_UNAVAILABLE: installed, no session running (or one at another integrity level).</summary>
+        NotRunning,
+        /// <summary>CO_E_CLASSSTRING or REGDB_E_CLASSNOTREG: Windows does not know SldWorks.Application.</summary>
+        NotInstalled,
+        /// <summary>OCE_NO_ATTACH is set: not tried, on request.</summary>
+        Skipped,
+        /// <summary>Anything else: the drawing library did not load, or another HRESULT.</summary>
+        Other,
+    }
 }
+

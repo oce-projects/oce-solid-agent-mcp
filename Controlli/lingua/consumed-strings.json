@@ -2,17 +2,16 @@
   "about": "Text that one program of the repository looks for in the output of another (entry W3.1-bis.2, item 6). Each entry names the consumer file and the SHA-1 (12 hex digits) of the literal it searches with, and the producer files that must print it: node Controlli/lingua/consumed-strings.js checks every entry, --find prints the texts and the candidates not listed yet, --rebind moves an entry to the literal on a line after a translation. Producer and consumer are translated in the same commit. The literals are not copied here: they are Italian today, and this file may not carry Italian. Left out on purpose: the contract assertions of Prove.Contratti that turn red by themselves when the text they look for disappears (they are their own net and run in seconds), searches on text written by SOLIDWORKS, git, MSBuild or the PDF format, readers of TODO.md, and command-line options.",
   "entries": [
     {
-      "id": "installer-bridge-standing",
-      "what": "the dry run of the bridge says it started; the installer reports success only when it finds this sentence",
-      "consumer": { "file": "Installer/Passi.cs", "sha1": "ad6a8b0abd9a", "kind": "literal", "line_hint": 508 },
-      "producers": ["Programma.cs"],
-      "quoted_in": ["INSTALL-FOR-AI.md"]
+      "id": "installer-paste-header",
+      "what": "the line the installer prints before the block to paste by hand when a client is not wired (H19 B1); the installer probe looks for it on the console and in the --log file",
+      "consumer": { "file": "Controlli/prova-installatore.js", "sha1": "107d55b0ecbe", "kind": "literal", "line_hint": 180 },
+      "producers": ["Installer/Programma.cs"]
     },
     {
-      "id": "installer-solidworks-not-open",
-      "what": "the dry run of the bridge says SOLIDWORKS is not running, which the installer accepts as installed",
-      "consumer": { "file": "Installer/Programma.cs", "sha1": "f24addff287f", "kind": "literal", "line_hint": 172 },
-      "producers": ["Ponte/Sessione.cs"]
+      "id": "installer-uninstall-file-left",
+      "what": "the uninstall says that a file of the installation could not be removed (H19 A5)",
+      "consumer": { "file": "Controlli/prova-installatore.js", "sha1": "6932178a7df5", "kind": "literal", "line_hint": 356 },
+      "producers": ["Installer/Programma.cs"]
     },
     {
       "id": "bench-summary-line",

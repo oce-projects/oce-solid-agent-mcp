@@ -28,6 +28,172 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — H19 L1+L2: the installer tells the truth and verifies itself (branch `installatore-l1`) · bridge 0.126.0 · library 0.149.0 (unchanged)
+
+**Lots L1 and L2 of TODO entry H19** (the installer finished for v0.1.0; the
+audit of the installer kept with the internal notes, defects 1-7). New options and
+texts are born in English; the existing Italian option names (`--silenzioso`,
+`--cartella`, `--senza-client`, `--disinstalla`, `--redist`, `--config`, `--aiuto`,
+the bridge's `--prova`) stay as they are in this lot and are renamed, with no
+aliases, in L2-bis (decision L0a). MINOR raised: new user-visible options. The
+library (`Riscontro.Disegno`) is not touched, so its version stays 0.149.0 and the
+bench has not run on this branch: the three bench-freshness checks of
+Prove.Contratti are red until it does, and they are the only red ones (790 checks;
+`Prove/LEGGIMI.md` said 785).
+
+### Exit codes that do not lie (B1)
+
+`Installa.exe --silenzioso` exited 0 when no client had been wired (the exceptions of
+`Collega` were printed and swallowed; with no client found nothing was printed).
+Now, checked in this order (`Installer/Programma.cs`, constants `Exit*`):
+
+| code | silent install |
+|---|---|
+| 1 | nothing installed: a prerequisite failed, `--weldment-profiles` names a folder that does not exist, the copy failed, or an unhandled error |
+| 3 | files installed, but a client that should have been wired was not (malformed or locked config, the `claude` command and the file both failed), or no client was found; the block to paste is printed after `Paste this into the MCP client's configuration file` |
+| 2 | installed and wired, but the bridge's self-test did not confirm (its code is not 0, 3 or 5) |
+| 0 | installed, every client tried is wired (or `--senza-client`), self-test 0, 3 or 5 |
+
+3 is stricter than "no client at all": one client failing while another is wired
+also gives 3, so no exception of `Collega` turns into a 0. Uninstall: 0 done, 1 a file
+of the installation stayed, 3 files gone but a client entry left. `--verify`: 0 all
+green, 2 only warnings, 1 something failed.
+
+### A real console, a log, and the launch forms measured (B2)
+
+`Installer/Output.cs`: silent, uninstall and verify modes attach to the parent's
+console (as `--aiuto` already did) unless standard output is already a file or a
+pipe; `--log <file>` writes the same lines to a UTF-8 file. Measured on 1-2 October
+2026 in a fresh console window, no redirection anywhere: 0.125.0 with a run that
+stops at the prerequisites (exit 1), 0.126.0 with a malformed client config (exit 3).
+
+| form | exit code seen | console output |
+|---|---|---|
+| PowerShell `& .\Installa.exe ...` | none: PowerShell does not wait | 0.126.0 yes (after the prompt); 0.125.0 none |
+| PowerShell `Start-Process -Wait -PassThru -NoNewWindow` → `.ExitCode` | right (1; 3) | 0.126.0 yes; 0.125.0 none |
+| PowerShell `cmd /c Installa.exe ...` | right | 0.126.0 yes; 0.125.0 none |
+| PowerShell `cmd /c "start "" /wait Installa.exe ..."` (one line) | **wrong: 0 both times** | 0.126.0 yes; 0.125.0 none |
+| cmd batch file: `Installa.exe ...` then `%ERRORLEVEL%` | right | 0.126.0 yes; 0.125.0 none |
+| cmd batch file: `start "" /wait Installa.exe ...` then `%ERRORLEVEL%` | right | 0.126.0 yes; 0.125.0 none |
+| PowerShell `& .\Installa.exe ... \| Out-Null` | right (a pipe waits) | into the pipe |
+
+INSTALL-FOR-AI gives the second form for PowerShell and `start "" /wait` in a batch
+file for cmd, and warns against the one-line `cmd /c "start /wait"`. The table is
+also in the comment of `Output.cs`; `prova-installatore.js` launches those two forms
+(B2 cases).
+
+### The self-test answers with a code, and the installer reads it (B3)
+
+`Ponte/Sessione.cs`: `AttachFailure` (None, NotRunning, NotInstalled, Skipped, Other)
+and `FailureOf(hresult)`; `Programma.cs`: `--prova` exits **0** attached, **3**
+SOLIDWORKS not running (MK_E_UNAVAILABLE), **4** not installed or not registered
+(CO_E_CLASSSTRING, REGDB_E_CLASSNOTREG), **5** not tried (`OCE_NO_ATTACH`), **1**
+anything else; 2 is left to the installer. With code 3 and a `SLDWORKS` process
+running it adds that SOLIDWORKS may run as administrator (the ROT is not shared
+across integrity levels). The human sentences stay. The installer (`Passi.Prova`,
+`SelfTestAccepted`) and the window read the code; the two entries of
+`Controlli/lingua/consumed-strings.json` that bound the installer to the bridge's
+sentences (`installer-bridge-standing`, `installer-solidworks-not-open`) are dropped
+in this commit, and two new consumers of the installer's English output enter
+(`installer-paste-header`, `installer-uninstall-file-left`): 39 entries, the floor.
+`Prove/H19InstallerContract.cs` (7 checks): each HRESULT gives the promised code by
+reflection, every `AttachFailure` has a code and none is 2, and the numbers in
+`Programma.cs` and `Installer/Passi.cs` agree (seen red on purpose with the installer's
+`SelfTestSkipped` changed to 6: "SelfTestSkipped bridge 5, installer 6").
+
+### `OCE_NO_ATTACH` (new variable of the bridge)
+
+Any value except empty, `0`, `false`: the bridge starts, answers the protocol, lists
+its tools, does not attach, and says so; `--prova` exits 5. Needed because the
+installer runs the installed bridge (self-test, and the `--verify` handshake), which
+attached to the running SOLIDWORKS and read its active document: with the bench
+running, `prova-installatore.js` could not run at all. It sets the variable unless
+given `--attach`. In the README table.
+
+### Uninstall is coherent (A5)
+
+`--disinstalla` removes the client entry too, unless `--keep-client` (decision L0b:
+the author's default; TODO H15 point 3 stays the owner's to change), and only an
+entry whose command is the bridge in the uninstalled folder; an entry pointing at
+another installation is left alone and named. With `--config` only that file. The
+window does the same through the same code. It removes `domande-senza-risposta.jsonl`
+(`Passi.BridgeOwnFiles`), and exits 1 naming the file when one stays.
+
+### Weldment profiles reach the bridge (A6)
+
+`--weldment-profiles <folder>` and a field in the window write `PROFILI_SALDATURA`
+into the client entry's `env` (also into the block to paste and into
+`claude mcp add -e`). A folder that does not exist stops the run with exit 1 before
+anything is installed. Without the option, `Passi.FindWeldmentProfiles` proposes a
+folder only if one exists. Checked on this machine (SOLIDWORKS 2021 SP5.1): (1)
+`HKCU\Software\SolidWorks\SOLIDWORKS <year>\ExtReferences`, value
+`Weldment Profile Folders`, is the folder SOLIDWORKS itself uses (Tools > Options >
+File Locations); it exists here and is used first; (2) `<SOLIDWORKS root>\lang\<language>\weldment profiles`
+exists for all 15 language folders (ANSI, ansi inch, AS, BSI, CISC, DIN, GB, iso,
+JIS), language taken from the same key's `Weldment Cut List Template Folders` /
+`Weld Table Template Folder`, else english. The year comes from the interop's major
+version. Not checked on another SOLIDWORKS version or a machine where the setting
+was never touched.
+
+### Stale texts (A7)
+
+`--aiuto` no longer lists `--addin` and lists the new options and the measured
+launch forms; the "SOLIDWORKS installed" check names `--redist` and `SW_INSTALL_PATH`
+instead of a Browse button that does not exist; `TrovaRedist` reads `SW_INSTALL_PATH`
+(the root) before `SW_REDIST`, like the bridge, and `Passi.Prova` hands the bridge the
+redist the installer chose.
+
+### `Installa.exe --verify [--json]` (B4)
+
+`Installer/Verify.cs`: files and versions (bridge from its `VERSION.txt`, library,
+installer); each client's `solidworks` entry runs the installed exe or not, and its
+`PROFILI_SALDATURA`; `api\redist` and the SOLIDWORKS year; the self-test code; an MCP
+handshake on the installed exe (`initialize`, `notifications/initialized`,
+`tools/list` over stdio, every wait with a timeout, replies matched by id). One JSON
+line with `--json`, `[ok]`/`[~]`/`[NO]` lines without.
+
+### Claude Code through `claude mcp add` (B5)
+
+`Installer/ClaudeCli.cs`: when `claude` (`.exe`, `.cmd`, `.bat`) is on PATH and no
+`--config` is given, Claude Code is wired with `claude mcp remove --scope user
+solidworks` then `claude mcp add --scope user solidworks -e "K=V" ... -- "<exe>"`
+(and unwired with `claude mcp remove`); if it is absent or fails, the file is written
+as before and the output says so. **The overwrite risk, measured first**
+(`Controlli/claude-json-watch.js`, read only, 180 s while Claude Code ran on this
+machine): 5 rewrites of `%USERPROFILE%\.claude.json`, shortest gap about 20 s, no lock
+file, and a leftover `.claude.json.tmp.<pid>.<hex>`: Claude Code writes a temporary
+file and renames it. So the installer's "file locked?" check can never see it, and a
+session that writes back a copy read before the installer wrote would drop the entry
+with no error. **Not measured:** whether Claude Code re-reads the file before each
+write (no live session was put under test), and the real `claude mcp add` (there is
+no `claude` on PATH on this machine: the case uses a fake `claude.cmd`). Both stay for
+the owner (H19 L4/B8).
+
+### `Controlli/prova-installatore.js`: 55 cases
+
+Red first on the installer of 47d0f8f (c7ab519 plus `OCE_NO_ATTACH` only): **21 PASS,
+28 FAIL**; green on 0.126.0: **55 PASS, 0 FAIL**, without touching SOLIDWORKS. New
+cases: B1 (malformed config → 3, untouched, block printed; `--senza-client` → 0; a
+prerequisite → 1, nothing created; case 6 → 0; case 4 → 3), A7 (no Browse button;
+`--aiuto` without `--addin` and with the new options; `SW_INSTALL_PATH`), B2 (`--log`;
+Start-Process and `start "" /wait` both report 3), B3 (`--prova` with `OCE_NO_ATTACH`
+→ 5), B4 (one JSON line; files present; bridge version; entry → installed exe; the
+tool count equals an independent handshake: 9; self-test 5; exit 2; readable lines;
+empty folder → 1), A6 (env written, other servers intact; missing folder → 1, nothing
+installed, config untouched), A5 (entry removed, others kept, `.jsonl` and folder
+gone; `--keep-client`; an entry elsewhere left alone; a locked file → 1, named), B5
+(fake `claude.cmd` on PATH found; remove then add with `-e`; success and failure
+reported), case 3 (exit 0, entry gone, with `--config`).
+
+**Expected results that need SOLIDWORKS or the owner** (not run here):
+`node Controlli\prova-installatore.js --attach` with the bench stopped (the self-test
+attaches; `--verify` should then exit 0 with SOLIDWORKS 2021 open and a client
+wired); self-test 3 with SOLIDWORKS closed and 4 on a machine without it; the
+elevated case (SOLIDWORKS as administrator: self-test 3 plus the warning); the real
+`claude mcp add` and a live Claude Code session during an install; the window by
+hand (new weldment profiles field, uninstall result); a clean machine (H6 cases 1, 4,
+5).
+
 ## Unreleased — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
 
 **The first of the three rename windows of W3.1-bis (TODO entry W3.1-bis.4):

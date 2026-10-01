@@ -63,6 +63,49 @@ namespace Oce.Solid.Agent.Installer
             "LICENSE", "NOTICE",
         };
 
+        /// <summary>
+        /// Files the BRIDGE writes beside itself while it runs, which no
+        /// install puts there (entry H19, A5). Today one: the log of questions
+        /// that had no operation (Strumenti/RegistroDelleDomande.cs, file name
+        /// RegistroDelleDomande.NomeDelFile; RISCONTRO_REGISTRO can move it
+        /// elsewhere, and then it is not ours to remove). Left behind, it kept
+        /// the folder alive with the message that the folder held someone
+        /// else's files, which was not true.
+        /// </summary>
+        public static readonly string[] BridgeOwnFiles = { "domande-senza-risposta.jsonl" };
+
+        // ── THE EXIT CODES OF THE BRIDGE'S --prova (entry H19, B3) ─────────
+        // The same numbers as Programma.SelfTest* in the bridge, which this
+        // assembly cannot reference; Prove.Contratti reads both and compares.
+        public const int SelfTestAttached = 0;
+        public const int SelfTestOther = 1;
+        public const int SelfTestNotRunning = 3;
+        public const int SelfTestNotInstalled = 4;
+        public const int SelfTestSkipped = 5;
+        /// <summary>Not a code of the bridge: it could not be run, or did not answer.</summary>
+        public const int SelfTestNoAnswer = -1;
+
+        /// <summary>
+        /// The self-test codes after which "installed" is true: attached; or
+        /// SOLIDWORKS not running (not an install problem); or not tried
+        /// because OCE_NO_ATTACH asked so.
+        /// </summary>
+        public static bool SelfTestAccepted(int code) =>
+            code == SelfTestAttached || code == SelfTestNotRunning || code == SelfTestSkipped;
+
+        public static string SelfTestMeaning(int code)
+        {
+            switch (code)
+            {
+                case SelfTestAttached: return "attached to SOLIDWORKS";
+                case SelfTestNotRunning: return "SOLIDWORKS is installed but not running";
+                case SelfTestNotInstalled: return "SOLIDWORKS is not installed, or not registered";
+                case SelfTestSkipped: return "attach not tried: OCE_NO_ATTACH is set";
+                case SelfTestNoAnswer: return "the bridge did not run, or did not answer";
+                default: return "not attached (code " + code + ")";
+            }
+        }
+
         /// <summary>Dove va installato, se chi installa non dice altro.</summary>
         public static string CartellaPredefinita =>
             Path.Combine(
@@ -135,6 +178,18 @@ namespace Oce.Solid.Agent.Installer
 
         public static string TrovaRedist()
         {
+            // SW_INSTALL_PATH FIRST, AND IT IS THE ROOT (entry H10, read here
+            // since H19 A7). The bridge, build.ps1 and the README all give it
+            // as the variable; the installer read only the old SW_REDIST, so
+            // someone who had set the one the README names was told that
+            // SOLIDWORKS was missing.
+            var root = Environment.GetEnvironmentVariable("SW_INSTALL_PATH");
+            if (!string.IsNullOrWhiteSpace(root))
+            {
+                string fromRoot = null;
+                try { fromRoot = Path.Combine(root.Trim(), "api", "redist"); } catch { }
+                if (CartellaHaInterop(fromRoot)) return fromRoot;
+            }
             var suo = Environment.GetEnvironmentVariable("SW_REDIST");
             if (!string.IsNullOrWhiteSpace(suo) && CartellaHaInterop(suo)) return suo;
 
@@ -171,10 +226,10 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>La versione principale di SOLIDWORKS provata: 29 = 2021 (SP5.1).</summary>
-        private const int VersioneProvata = 29;
+        public const int VersioneProvata = 29;
 
         /// <summary>«29.5.1.1» -> 29; 0 se non si legge. 29 e' la 2021: l'anno e' 1992 + la principale.</summary>
-        private static int VersionePrincipale(string v)
+        public static int VersionePrincipale(string v)
         {
             if (string.IsNullOrWhiteSpace(v)) return 0;
             int punto = v.IndexOf('.');
@@ -182,7 +237,7 @@ namespace Oce.Solid.Agent.Installer
             return int.TryParse(punto > 0 ? v.Substring(0, punto) : v, out n) ? n : 0;
         }
 
-        private static bool CartellaHaInterop(string cartella)
+        public static bool CartellaHaInterop(string cartella)
         {
             try
             {
@@ -232,11 +287,13 @@ namespace Oce.Solid.Agent.Installer
                 Titolo = "SOLIDWORKS installato",
                 Esito = Esito.Male,
                 Dettaglio = "non trovo la cartella api\\redist",
+                // There is no Browse button for SOLIDWORKS, in the window or
+                // anywhere else (entry H19, A7): the text named one.
                 CosaFare =
                     "Serve SOLIDWORKS installato su questa macchina: le librerie di " +
                     "interoperabilita' si prendono da li' e non sono incluse qui. " +
-                    "Se e' installato in un percorso non standard, indicalo con il " +
-                    "bottone «Sfoglia» accanto a SOLIDWORKS.",
+                    "If it is installed in a non-standard folder, pass --redist <its api\\redist folder>, " +
+                    "or set SW_INSTALL_PATH to its root (the folder that ends in \\SOLIDWORKS).",
             };
         }
 
@@ -476,10 +533,17 @@ namespace Oce.Solid.Agent.Installer
         /// <summary>
         /// Il giro secco: `--prova` non tocca niente, si aggancia e racconta.
         /// E' l'unico modo di dire «installato» sapendo che e' vero.
+        ///
+        /// THE EXIT CODE DECIDES, NOT THE TEXT (entry H19, B3). Until 0.125.0
+        /// success was a phrase of the bridge, or the phrase that said
+        /// SOLIDWORKS was not running; the second one also comes out when
+        /// SOLIDWORKS runs as administrator and the client does not, and both
+        /// were going to be translated. The text is still returned, for
+        /// whoever reads it.
         /// </summary>
-        public static string Prova(string eseguibile, string redist, out bool inPiedi)
+        public static string Prova(string eseguibile, string redist, out int code)
         {
-            inPiedi = false;
+            code = SelfTestNoAnswer;
             try
             {
                 var avvio = new ProcessStartInfo(eseguibile, "--prova")
@@ -491,23 +555,26 @@ namespace Oce.Solid.Agent.Installer
                     WorkingDirectory = Path.GetDirectoryName(eseguibile),
                 };
                 if (!string.IsNullOrWhiteSpace(redist))
+                {
+                    // The folder the installer decided on is the one the
+                    // bridge uses: SW_INSTALL_PATH would win over SW_REDIST.
+                    avvio.EnvironmentVariables.Remove("SW_INSTALL_PATH");
                     avvio.EnvironmentVariables["SW_REDIST"] = redist;
+                }
 
                 using (var p = Process.Start(avvio))
                 {
                     // `--prova` scrive su stderr di proposito: stdout appartiene
                     // al protocollo e li' non ci va nient'altro.
-                    string err = p.StandardError.ReadToEnd();
-                    string mid = p.StandardOutput.ReadToEnd();
+                    var err = p.StandardError.ReadToEndAsync();
+                    var mid = p.StandardOutput.ReadToEndAsync();
                     if (!p.WaitForExit(60000))
                     {
                         try { p.Kill(); } catch { }
                         return "Il ponte non ha risposto entro un minuto.";
                     }
-                    var tutto = (err + mid).Trim();
-                    inPiedi = tutto.IndexOf("il ponte sta in piedi",
-                        StringComparison.OrdinalIgnoreCase) >= 0;
-                    return tutto;
+                    code = p.ExitCode;
+                    return (err.Result + mid.Result).Trim();
                 }
             }
             catch (Exception ex)
@@ -516,27 +583,37 @@ namespace Oce.Solid.Agent.Installer
             }
         }
 
-        /// <summary>Toglie i file installati. Non tocca la configurazione del client.</summary>
-        public static void Disinstalla(string cartella, Action<string> racconta)
+        /// <summary>
+        /// Toglie i file installati, and the files the bridge writes beside
+        /// itself. Non tocca la configurazione del client. Returns the files
+        /// of ours that could NOT be removed (entry H19, A5): until 0.125.0 a
+        /// locked file was mentioned in a line and the uninstall still exited 0.
+        /// </summary>
+        public static List<string> Disinstalla(string cartella, Action<string> racconta)
         {
+            var left = new List<string>();
             if (string.IsNullOrWhiteSpace(cartella) || !Directory.Exists(cartella))
             {
                 racconta("niente da togliere in " + cartella);
-                return;
+                return left;
             }
 
             // Si cancellano SOLO i file che questo installatore mette. Una
             // `Directory.Delete(recursive)` su una cartella scelta da chi
             // installa e' il modo classico di cancellare il desktop di
             // qualcuno per un percorso incollato male.
-            foreach (var nome in FileInstallati)
+            foreach (var nome in FileInstallati.Concat(BridgeOwnFiles))
             {
                 var f = Path.Combine(cartella, nome);
                 try
                 {
                     if (File.Exists(f)) { File.Delete(f); racconta("tolto " + nome); }
                 }
-                catch (Exception ex) { racconta("non riesco a togliere " + nome + ": " + ex.Message); }
+                catch (Exception ex)
+                {
+                    racconta("non riesco a togliere " + nome + ": " + ex.Message);
+                    left.Add(nome);
+                }
             }
 
             try
@@ -546,12 +623,108 @@ namespace Oce.Solid.Agent.Installer
                     Directory.Delete(cartella);
                     racconta("tolta la cartella");
                 }
-                else
+                else if (left.Count == 0)
                 {
                     racconta("la cartella resta: dentro c'e' anche altro, e non e' mio.");
                 }
             }
             catch { }
+            return left;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // The weldment profiles (entry H19, A6)
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Where the weldment profiles (.sldlfp) are on this machine, or null;
+        /// <paramref name="source"/> says where the answer came from.
+        ///
+        /// Since library 0.112 PROFILI_SALDATURA has no default, and without it
+        /// profili_saldatura refuses. Two places were checked on the machine
+        /// this was written on (SOLIDWORKS 2021 SP5.1), and only folders that
+        /// exist are ever proposed:
+        ///
+        /// 1. the folder SOLIDWORKS itself uses, Tools > Options > File
+        ///    Locations > Weldment Profiles: registry value "Weldment Profile
+        ///    Folders" under HKCUSoftwareSolidWorksSOLIDWORKS &lt;year&gt;ExtReferences
+        ///    (several folders are separated by ';'; the first that exists wins);
+        /// 2. the profiles SOLIDWORKS installs, &lt;root&gt;lang&lt;language&gt;weldment profiles,
+        ///    with &lt;language&gt; read from the same key's "Weldment Cut List
+        ///    Template Folders" or "Weld Table Template Folder" (both end in
+        ///    lang&lt;language&gt;), else english. On that machine all 15
+        ///    language folders have one, with ANSI, ISO, DIN and six more
+        ///    standards inside.
+        ///
+        /// &lt;year&gt; comes from the interop's major version (29 = 2021), or the
+        /// newest SOLIDWORKS key when it cannot be read.
+        /// </summary>
+        public static string FindWeldmentProfiles(string redist, out string source)
+        {
+            source = null;
+            RegistryKey ext = null;
+            try
+            {
+                string yearKey = null;
+                int major = 0;
+                try
+                {
+                    if (CartellaHaInterop(redist))
+                        major = VersionePrincipale(FileVersionInfo.GetVersionInfo(
+                            Path.Combine(redist, "SolidWorks.Interop.sldworks.dll")).FileVersion);
+                }
+                catch { }
+                using (var sw = Registry.CurrentUser.OpenSubKey(@"Software\SolidWorks"))
+                {
+                    if (sw != null)
+                    {
+                        var names = sw.GetSubKeyNames()
+                            .Where(n => n.StartsWith("SOLIDWORKS 2", StringComparison.OrdinalIgnoreCase))
+                            .OrderByDescending(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+                        if (major > 0)
+                            yearKey = names.FirstOrDefault(n => n.EndsWith((major + 1992).ToString()));
+                        if (yearKey == null) yearKey = names.FirstOrDefault();
+                    }
+                }
+                if (yearKey != null) ext = Registry.CurrentUser.OpenSubKey(@"Software\SolidWorks\" + yearKey + @"\ExtReferences");
+
+                // 1. what SOLIDWORKS itself uses
+                var folders = Convert.ToString(ext?.GetValue("Weldment Profile Folders") ?? "");
+                foreach (var c in folders.Split(';'))
+                {
+                    var d = c.Trim();
+                    if (d.Length > 0 && Directory.Exists(d))
+                    {
+                        source = "the Weldment Profiles folder set in " + yearKey + " (Tools > Options > File Locations)";
+                        return d;
+                    }
+                }
+
+                // 2. what SOLIDWORKS installs
+                string swRoot = null;
+                try { if (CartellaHaInterop(redist)) swRoot = Directory.GetParent(redist.TrimEnd('\\'))?.Parent?.FullName; } catch { }
+                if (swRoot == null) return null;
+                string language = null;
+                foreach (var valueName in new[] { "Weldment Cut List Template Folders", "Weld Table Template Folder" })
+                {
+                    var v = Convert.ToString(ext?.GetValue(valueName) ?? "").Split(';')[0].Trim().TrimEnd('\\');
+                    int i = v.LastIndexOf(@"\lang\", StringComparison.OrdinalIgnoreCase);
+                    if (i >= 0) { language = v.Substring(i + 6); break; }
+                }
+                foreach (var l in new[] { language, "english" })
+                {
+                    if (string.IsNullOrWhiteSpace(l)) continue;
+                    var d = Path.Combine(swRoot, "lang", l, "weldment profiles");
+                    if (Directory.Exists(d))
+                    {
+                        source = "the profiles installed with SOLIDWORKS (" + l + ")";
+                        return d;
+                    }
+                }
+                return null;
+            }
+            catch { return null; }
+            finally { ext?.Dispose(); }
         }
     }
 }

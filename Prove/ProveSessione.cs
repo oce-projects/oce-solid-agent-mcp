@@ -130,9 +130,10 @@ namespace Prove.Contratti
         ///
         /// Un solo `catch (COMException)` dava la stessa frase per tutte e due,
         /// e chi installa per conto di qualcuno faceva aprire un programma che
-        /// non c'era. Le tre risposte si provano per codice, senza SOLIDWORKS: e
-        /// la regola che conta e' che la frase del «non installato» NON contenga
-        /// «non risulta aperto», che l'installatore legge come «tutto a posto».
+        /// non c'era. Le tre risposte si provano per codice, senza SOLIDWORKS.
+        /// Since entry H19 (B3) the installer reads the exit code of --prova and
+        /// no sentence (H19InstallerContract checks the codes): these checks
+        /// keep the two sentences for a person apart, nothing more.
         /// </summary>
         private static void NonInstallatoONonAperto(string ponte)
         {
@@ -149,14 +150,14 @@ namespace Prove.Contratti
             Func<uint, string> frase = c => (string)m.Invoke(null, new object[] { unchecked((int)c) });
 
             var aperto = frase(0x800401E3);
-            Segna("MK_E_UNAVAILABLE: «non risulta aperto», come l'installatore la cerca",
+            Segna("MK_E_UNAVAILABLE: the sentence says SOLIDWORKS is not running",
                   aperto.IndexOf("non risulta aperto", StringComparison.Ordinal) >= 0, aperto);
             foreach (var c in new uint[] { 0x800401F3, 0x80040154 })
             {
                 var t = frase(c);
                 Segna("0x" + c.ToString("X8") + ": dice «non e' installato»",
                       t.IndexOf("non e' installato", StringComparison.Ordinal) >= 0, t);
-                Segna("0x" + c.ToString("X8") + ": e NON dice «non risulta aperto», se no l'installatore esce 0",
+                Segna("0x" + c.ToString("X8") + ": and does NOT say it is not running (it is not installed)",
                       t.IndexOf("non risulta aperto", StringComparison.Ordinal) < 0, t);
             }
             var altro = frase(0x80004005);
