@@ -29,7 +29,7 @@ namespace Riscontro.Disegno
     /// (lot Z-C21.7): CreateDefinition(swFmSweep) -> ISweepFeatureData with
     /// the same CircularProfile and CircularProfileDiameter, the path selected
     /// with mark 4 BEFORE CreateDefinition, and the bench case
-    /// tubo_dritto_area_per_lunghezza unchanged to the seventh digit.
+    /// straight_pipe_area_per_length unchanged to the seventh digit.
     ///
     /// Per la stessa ragione **il percorso e' un elenco di punti** e non uno
     /// schizzo da nominare: nello stato del documento gli schizzi non hanno un
@@ -112,7 +112,7 @@ namespace Riscontro.Disegno
             // IFeature~GetTypeName2.html lists 3DProfileFeature under Sketch,
             // with ISketch as its specific feature; the frame path, drawn with
             // the same Insert3DSketch, was read back as a 3DProfileFeature (bench
-            // case `r12_telaio_col_profilo_piu_sottile`).
+            // case `r12_frame_with_a_thinner_profile`).
             var pathNamesBefore = FeatureNamesNow(modello);
             var schizzi = modello.SketchManager;
             bool disegnato = false;

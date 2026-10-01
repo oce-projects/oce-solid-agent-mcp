@@ -72,7 +72,7 @@ using SolidWorks.Interop.swconst;
 //  600 + 300 mm, tagliati) cosi' un tentativo non lascia residui che
 //  confondano il successivo, e chiude il pezzo senza salvare.
 //
-//  T DI PROVA — stessa di Banco/casi/saldature/il_cordone_va_fra_facce_che_si_toccano.json:
+//  T DI PROVA — stessa di Banco/cases/weldments/weld_bead_goes_between_touching_faces.json:
 //    barra lunga:  segmento (0,0,0) -> (0.6, 0, 0)         [lungo X, sezione in Y-Z]
 //    barra corta:  segmento (0.3,0,0) -> (0.3, 0, 0.3)     [lungo Z, sezione in X-Y]
 //    taglio:       la corta tagliata dalla lunga (EndCond = swEndConditionTrim)

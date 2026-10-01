@@ -1,19 +1,19 @@
 {
-  "nome": "lim_proprieta_senza_nome",
-  "famiglia": "proprieta",
-  "perche": "Una proprieta' senza nome va rifiutata, non scritta con la stringa vuota per nome. `Add3(\"\", ...)` non e' un errore per SOLIDWORKS: nella scheda dati compare una riga senza titolo, che nessuno riesce a rileggere e che nessun cartiglio pesca. Un rifiuto muto sarebbe meglio di quella riga, e un messaggio che dice cosa manca e' meglio di tutti e due.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "limit_property_without_a_name",
+  "family": "document_properties",
+  "why": "Una proprieta' senza nome va rifiutata, non scritta con la stringa vuota per nome. `Add3(\"\", ...)` non e' un errore per SOLIDWORKS: nella scheda dati compare una riga senza titolo, che nessuno riesce a rileggere e che nessun cartiglio pesca. Un rifiuto muto sarebbe meglio di quella riga, e un messaggio che dice cosa manca e' meglio di tutti e due.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "scrivi_proprieta",
-      "argomenti": { "valore": "A" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["Manca il", "nome"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "numero_disegno_sul_documento" } }
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "scrivi_proprieta",
+      "arguments": { "valore": "A" },
+      "must_fail": {
+        "message_includes": ["Manca il", "nome"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "drawing_number_on_the_document" } }
   ]
 }

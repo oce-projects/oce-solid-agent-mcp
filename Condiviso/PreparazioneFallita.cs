@@ -16,7 +16,7 @@ namespace Condiviso
     /// `catch (Exception)` che segnava rosso e basta, e cosi' il 23/9/2026 il
     /// resoconto ha detto:
     ///
-    ///     NO   il_dettaglio_ingrandisce   SOLIDWORKS non ha prodotto la parte
+    ///     NO   detail_enlarges   SOLIDWORKS non ha prodotto la parte
     ///
     /// su un caso scritto bene, mentre il fatto era che SOLIDWORKS non apriva
     /// piu' documenti. Chi legge quella riga va a leggere il CASO — ed e' il

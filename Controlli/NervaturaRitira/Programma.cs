@@ -6,7 +6,7 @@ using SolidWorks.Interop.swconst;
 
 // probe_nervatura_ritira — why the rib sketch cannot be removed after two failed InsertRib
 //
-// Full bench on 0.141.0, lim_nervatura_sulla_piastra_senza_pareti step 2: no rib is born in
+// Full bench on 0.141.0, limit_rib_on_a_plate_without_walls step 2: no rib is born in
 // either material direction (right: nothing to meet on a plate), and NervaturaRitira answers
 // «non sono riuscito a rimettere il pezzo come l'avevo trovato (tolti «Schizzo2»)».
 // The bridge: IGetChildCount > 0 -> give up; Select2(false,0); DeleteSelection2(swDelete_Absorbed).

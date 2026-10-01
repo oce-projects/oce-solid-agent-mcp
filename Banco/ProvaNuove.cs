@@ -53,8 +53,8 @@ namespace ProvaSaldatura
         // V3/V7. la forma detta in una frase: ADESSO SONO DUE FILE
         // ==================================================================
         //
-        // `casi\frase\albero_pulito_dichiara_il_profilo.json` e
-        // `casi\frase\albero_forato_non_dichiara_piu_il_profilo.json` (voce
+        // `cases\sentence\clean_shaft_declares_profile.json` e
+        // `cases\sentence\drilled_shaft_no_longer_declares_profile.json` (voce
         // F11). Sono diventati file quando le attese hanno imparato a
         // chiedere Â«contieneÂ» e Â«non_contieneÂ» su una frase invece che
         // Â«ugualeÂ» su un numero.
@@ -71,7 +71,7 @@ namespace ProvaSaldatura
         // R2. sopprimi_lavorazione ed elimina_lavorazione: ADESSO SONO FILE
         // ==================================================================
         //
-        // `casi\togliere\*.json` (voce F11) - cinque casi, gli stessi numeri:
+        // `cases\removal\*.json` (voce F11) - cinque casi, gli stessi numeri:
         // tre fori da 14 su una piastra 200x100x20, il terzo spento e il
         // volume che torna ESATTAMENTE a quello con due, riacceso e torna a
         // quello con tre; il primo cancellato; e i tre rifiuti - il nome
@@ -541,11 +541,11 @@ namespace ProvaSaldatura
 
         // ── L'ASOLA E LO SMUSSO ADESSO SONO FILE ──────────────────────────
         //
-        // `casi\asola\*.json` — quindici casi: la stessa area 535,0332 mm²,
+        // `cases\slot\*.json` — quindici casi: la stessa area 535,0332 mm²,
         // le stesse cinque facce di costa, la rotazione vista su una piastra
         // stretta, i tre rifiuti con le loro gemelle.
         //
-        // `casi\smusso\*.json` — tre casi: 5x5 a 45 gradi (1250 mm³, dove un
+        // `cases\chamfer\*.json` — tre casi: 5x5 a 45 gradi (1250 mm³, dove un
         // raccordo R5 ne toglierebbe 537), il cianfrino 3x6 a due lati, e lo
         // smusso piu' grande dello spigolo.
         //
@@ -557,7 +557,7 @@ namespace ProvaSaldatura
         // 2. rivoluzione ADESSO E' UN GRUPPO DI FILE
         // ==================================================================
         //
-        // `casi\rivoluzione\*.json` (voce F11) - cinque casi: il cilindro, lo
+        // `cases\revolve\*.json` (voce F11) - cinque casi: il cilindro, lo
         // albero a gradini dell'esempio, il mezzo giro, la boccola cava e il
         // profilo a cavallo dell'asse con la sua gemella.
         //
@@ -570,7 +570,7 @@ namespace ProvaSaldatura
         // ==================================================================
         // ── QUESTA PROVA ADESSO E' UN FILE ────────────────────────────────
         //
-        // `casi/lavorazioni/guscio_interno.json` e `guscio_esterno.json` (voce
+        // `cases/features/internal_shell.json` e `external_shell.json` (voce
         // F3). Gli stessi due numeri — 82.500 e 106.500 — piu' l'ingombro, le
         // facce tolte, il verso dichiarato e il materiale asportato, e
         // **leggibili da chi il C# non lo scrive**.
@@ -586,7 +586,7 @@ namespace ProvaSaldatura
         // 4. crea_piano ADESSO E' UN GRUPPO DI FILE
         // ==================================================================
         //
-        // `casi\piano\*.json` (voce F11) - tre casi. L'attesa non e' sulla
+        // `cases\plane\*.json` (voce F11) - tre casi. L'attesa non e' sulla
         // distanza che il ponte ricopia dalla richiesta, ma su DOVE E' FINITO
         // il piano: `ultimo_piano_mm`, tre numeri letti dalla matrice del
         // piano creato. Il segno si vede solo cosi'. `--gruppo casi`.
@@ -596,8 +596,8 @@ namespace ProvaSaldatura
         //
         // ── QUASI TUTTA QUESTA FAMIGLIA ADESSO E' DUE FILE ────────────────
         //
-        // `casi\asse\asse_dalla_parete_del_foro.json` e
-        // `casi\asse\lim_asse_da_faccia_piana.json` (voce F11): l'asse che
+        // `cases\axis\axis_from_hole_wall.json` e
+        // `cases\axis\limit_axis_from_a_planar_face.json` (voce F11): l'asse che
         // compare nello stato, il volume che NON cambia — un asse di
         // riferimento non toglie materiale — e la faccia piana rifiutata con
         // un motivo che dice cosa fare.
@@ -689,11 +689,11 @@ namespace ProvaSaldatura
         // 6. ripeti_lineare e 7. specchia ADESSO SONO DUE GRUPPI DI FILE
         // ==================================================================
         //
-        // `casi\ripeti\*.json` - tre fori a passo 40 lungo uno spigolo, la
+        // `cases\patterns\*.json` - tre fori a passo 40 lungo uno spigolo, la
         // griglia 3x2 su due spigoli, e la direzione presa da uno spigolo
         // CURVO, che va rifiutata.
         //
-        // `casi\specchia\*.json` - il foro a (60, 25) specchiato sul piano
+        // `cases\mirror\*.json` - il foro a (60, 25) specchiato sul piano
         // destro, che deve comparire a (-60, 25), e il piano inventato.
         //
         // IL FILE PINZA DI PIU' DEL C# CHE SOSTITUISCE. Qui lo specchio si

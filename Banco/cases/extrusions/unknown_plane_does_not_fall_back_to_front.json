@@ -1,25 +1,25 @@
 {
-  "nome": "unknown_plane_does_not_fall_back_to_front",
-  "famiglia": "estrusioni",
-  "perche": "Z-C21.10, finding N33 (pattern S20). SelezionaPiano (OperazioniSw.cs) chose the base plane with `quale == \"superiore\" ? 2 : quale == \"destro\" ? 3 : 1`: ANY other name, «Superiore» included, fell back to the front plane. The Forma of the bridge accepts enum values ignoring case (Ponte/Forma.cs) and until library 0.140.0 passed them on untouched, so estrudi_rettangolo {piano: \"Superiore\"} built the plate on the front plane with riuscita:true. TrovaPianoBase had dropped the same `: 1` after the measure of 10/9/2026. The bench calls the library directly, so this case sees the library half of the fix: a name that is not one of the three is refused. The bridge half (the Forma rewrites «Superiore» as «superiore» before the library sees it, so through «disegna» the plate lands on the top plane like step 1) is proven without CAD by the contract group «the Forma rewrites enum values in the catalogue's spelling (Z-C21.10, S20)» in Prove.",
-  "il_difetto_che_questo_caso_prende": "Step 2 asks for the same plate on «Superiore». On library 0.140.0 it succeeds on the front plane (a second plate crossing the first: volume 96000 -> 180000, ingombro [120, 80, 80]), and the case is red because the step had to fail. After the fix SelezionaPiano returns false and estrudi_rettangolo refuses naming the plane, before opening a sketch.",
-  "e_la_gemella_e_nello_stesso_file": "Step 1 is the twin: the same plate with piano «superiore», spelled as the catalogue spells it. Same operation and the same four other arguments; only the case of «piano» differs.",
-  "i_numeri": "Plate 120 x 80 x 10 = 96000 mm3. On the top plane the sketch is XZ and the extrusion runs along Y, so the ingombro is [120, 10, 80] (X = lunghezza, Y = spessore, Z = larghezza; in l_aletta_cresce_dalla_faccia the base 120 x 60 x 8 on the top plane plus a flange 50 high reads [120, 58, 60]). On the front plane the same plate would read [120, 80, 10]. On library 0.140.0 step 2 builds that front plate centred on the origin: X [-60, 60], Y [-40, 40], Z 10 thick. It crosses the first plate (Y [0, 10], Z [-40, 40]) in 120 x 10 x 10 = 12000, so the union is 96000 + 96000 - 12000 = 180000 and the ingombro [120, 80, 80], whichever way either plate was extruded. After the fix the step is refused and the volume stays 96000.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 96000, "perche": "120 x 80 x 10" },
-        { "cosa": "ingombro_mm", "uguale": [120, 10, 80], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "whole numbers; the hundredth covers the rounding of the bounding box",
-          "perche": "the thickness runs along Y: this is the top plane. The front plane would give [120, 80, 10]" } ] },
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "Superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["piano «Superiore»"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "unknown_plane_does_not_fall_back_to_front" } }
+  "name": "unknown_plane_does_not_fall_back_to_front",
+  "family": "extrusions",
+  "why": "Z-C21.10, finding N33 (pattern S20). SelezionaPiano (OperazioniSw.cs) chose the base plane with `quale == \"superiore\" ? 2 : quale == \"destro\" ? 3 : 1`: ANY other name, «Superiore» included, fell back to the front plane. The Forma of the bridge accepts enum values ignoring case (Ponte/Forma.cs) and until library 0.140.0 passed them on untouched, so estrudi_rettangolo {piano: \"Superiore\"} built the plate on the front plane with riuscita:true. TrovaPianoBase had dropped the same `: 1` after the measure of 10/9/2026. The bench calls the library directly, so this case sees the library half of the fix: a name that is not one of the three is refused. The bridge half (the Forma rewrites «Superiore» as «superiore» before the library sees it, so through «disegna» the plate lands on the top plane like step 1) is proven without CAD by the contract group «the Forma rewrites enum values in the catalogue's spelling (Z-C21.10, S20)» in Prove.",
+  "defect_caught": "Step 2 asks for the same plate on «Superiore». On library 0.140.0 it succeeds on the front plane (a second plate crossing the first: volume 96000 -> 180000, ingombro [120, 80, 80]), and the case is red because the step had to fail. After the fix SelezionaPiano returns false and estrudi_rettangolo refuses naming the plane, before opening a sketch.",
+  "_and_the_twin_is_in_the_same_file": "Step 1 is the twin: the same plate with piano «superiore», spelled as the catalogue spells it. Same operation and the same four other arguments; only the case of «piano» differs.",
+  "_the_numbers": "Plate 120 x 80 x 10 = 96000 mm3. On the top plane the sketch is XZ and the extrusion runs along Y, so the ingombro is [120, 10, 80] (X = lunghezza, Y = spessore, Z = larghezza; in tab_grows_from_the_face the base 120 x 60 x 8 on the top plane plus a flange 50 high reads [120, 58, 60]). On the front plane the same plate would read [120, 80, 10]. On library 0.140.0 step 2 builds that front plate centred on the origin: X [-60, 60], Y [-40, 40], Z 10 thick. It crosses the first plate (Y [0, 10], Z [-40, 40]) in 120 x 10 x 10 = 12000, so the union is 96000 + 96000 - 12000 = 180000 and the ingombro [120, 80, 80], whichever way either plate was extruded. After the fix the step is refused and the volume stays 96000.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000, "why": "120 x 80 x 10" },
+        { "what": "ingombro_mm", "equal_to": [120, 10, 80], "tolerance": 0.01,
+          "tolerance_why": "whole numbers; the hundredth covers the rounding of the bounding box",
+          "why": "the thickness runs along Y: this is the top plane. The front plane would give [120, 80, 10]" } ] },
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "Superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "must_fail": {
+        "message_includes": ["piano «Superiore»"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "unknown_plane_does_not_fall_back_to_front" } }
   ]
 }

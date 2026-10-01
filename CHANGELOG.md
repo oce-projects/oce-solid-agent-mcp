@@ -128,6 +128,42 @@ changed the bench loader the same way).
 - The language gate: the `data-becomes-geometry` exception of the engraved word
   names `Banco/cases/text/` (it covered both paths for the commit of the moves).
 
+### The language gate, and the one thing that grows
+
+Three commits: the exception above widened (signed
+`Language-Gate-Config-Change`), the moves alone with the script and this entry
+(nothing grows: every move is an exact rename, compared with its old path), and
+the rewrite. The rewrite lowers every count (json_keys 443 → 219, protocol
+2170 → 1878, comments, strings and markdown down) but adds **two names to the
+protocol set**, and carries the trailer `Language-Baseline-Raise` for them:
+`inserting_is_not_mating_coperchio` and
+`rebuilt_cover_keeps_the_constraints_but_broken_coperchio2`, the files the
+bench writes for a component of an assembly case, named
+`{LAVORO}\<case>_<component>` by the loader. The case name is English now; the
+component name (`coperchio`) is a value of the case, translated with the other
+values in W3.1-bis.8. The same commit narrows the exception and rewrites two
+comment lines of `.github/workflows/prove.yml` (a path), and carries
+`Language-Gate-Config-Change` too.
+
+### Proved, and not proved here
+
+- The inverse identity: `--reverse-proof 1ccb18a` on the new tree gives back
+  every path and every byte of the cases, plans, case keys, summary and tasks of
+  1ccb18a (the tree of the snapshot of 1/10/2026 for those files). On a copy of
+  the whole tree the reverse run gives back every tracked file byte for byte.
+- The cases load the same before and after: `Controlli/lingua/window-1-cases.js
+  --check`, the contracts (778 checks, the only reds the three of bench
+  freshness, as on 1ccb18a), and a comparison through the bench's own `CaseKeys`
+  by reflection, old build on the old tree against new build on the new tree.
+- 136 twin references in 121 cases, all resolving, before and after.
+- **The bench has NOT run on this branch** (a full bench was running on the main
+  checkout): the bench and `snapshot.js compare --window 1 --ledger
+  Banco/report/tests.json` are to be run at the merge.
+- The untracked outputs of the bench stay where they are on a checkout: move
+  `Banco/resoconto/*` (but `ultimo.json`, which git moves) into `Banco/report/`
+  and `Banco/casi/forma/` into `Banco/cases/forma/` once, or `.gitignore` will
+  show them and `prova_forma.js` will not find its plans.
+
 ### The renames (old → new)
 
 **Folders** (33):

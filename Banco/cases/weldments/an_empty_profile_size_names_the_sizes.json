@@ -1,32 +1,32 @@
 {
-  "nome": "an_empty_profile_size_names_the_sizes",
-  "famiglia": "saldature",
-  "perche": "ENTRY Z-C21.3 (the probe verdicts), finding N25. The guide (IFeatureManager~InsertStructuralWeldment5.html, Remarks) gives the EMPTY string as the configuration name for a SOLIDWORKS-supplied weldment profile, and up to library 0.141.0 the library refused an empty size outright. The Z-C21.3 probe of the member group (28/9/2026) measured that the empty string works, but not the way the guide suggests: the SOLIDWORKS 2021 profile iso\\square tube.sldlfp has four sizes, and with an empty name SOLIDWORKS built the 20 x 20 section without an error (N7), where the same file with «80 x 80 x 5» built the 80 x 80 (N8). So the library now accepts an empty size only on a file with ONE size, where there is nothing to choose, and on a file with several sizes refuses it naming them, so that the next call can copy one.",
-  "il_difetto_che_questo_caso_prende": "Step 2 asks for the probe's supplied profile with an empty size: it must be refused, and the refusal must list the sizes of the file. On library 0.141.0 it is refused with a message that names none of them (red on the first expected piece). Step 1 is its twin: the same profile, the same L, the size written as the file spells it.",
-  "i_numeri": "Measured by the probe on the L (0,0,0)-(500,0,0)-(500,0,400), one group, miter: iso\\square tube.sldlfp «80 x 80 x 5» volume 1292065.78 mm3, two bodies, bar A to X 540 and bar B to Z -40 (N8); the same file with an empty size volume 120330.17 mm3, a 20 x 20 section (N7). GetConfigurationNames of the file: 20 x 20 x 2, 30 x 30 x 2.6, 40 x 40 x 4, 80 x 80 x 5. The file is the Italian installation's, where the probe found it (GetExecutablePath\\lang\\<language>\\weldment profiles).",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "membro_strutturale",
-      "argomenti": { "profilo_percorso": "{SOLIDWORKS}\\lang\\italian\\weldment profiles\\iso\\square tube.sldlfp",
+  "name": "an_empty_profile_size_names_the_sizes",
+  "family": "weldments",
+  "why": "ENTRY Z-C21.3 (the probe verdicts), finding N25. The guide (IFeatureManager~InsertStructuralWeldment5.html, Remarks) gives the EMPTY string as the configuration name for a SOLIDWORKS-supplied weldment profile, and up to library 0.141.0 the library refused an empty size outright. The Z-C21.3 probe of the member group (28/9/2026) measured that the empty string works, but not the way the guide suggests: the SOLIDWORKS 2021 profile iso\\square tube.sldlfp has four sizes, and with an empty name SOLIDWORKS built the 20 x 20 section without an error (N7), where the same file with «80 x 80 x 5» built the 80 x 80 (N8). So the library now accepts an empty size only on a file with ONE size, where there is nothing to choose, and on a file with several sizes refuses it naming them, so that the next call can copy one.",
+  "defect_caught": "Step 2 asks for the probe's supplied profile with an empty size: it must be refused, and the refusal must list the sizes of the file. On library 0.141.0 it is refused with a message that names none of them (red on the first expected piece). Step 1 is its twin: the same profile, the same L, the size written as the file spells it.",
+  "_the_numbers": "Measured by the probe on the L (0,0,0)-(500,0,0)-(500,0,400), one group, miter: iso\\square tube.sldlfp «80 x 80 x 5» volume 1292065.78 mm3, two bodies, bar A to X 540 and bar B to Z -40 (N8); the same file with an empty size volume 120330.17 mm3, a 20 x 20 section (N7). GetConfigurationNames of the file: 20 x 20 x 2, 30 x 30 x 2.6, 40 x 40 x 4, 80 x 80 x 5. The file is the Italian installation's, where the probe found it (GetExecutablePath\\lang\\<language>\\weldment profiles).",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "membro_strutturale",
+      "arguments": { "profilo_percorso": "{SOLIDWORKS}\\lang\\italian\\weldment profiles\\iso\\square tube.sldlfp",
                      "configurazione": "80 x 80 x 5",
                      "trattamento_angolo": "quartabuono",
                      "segmenti": [ { "da": [0, 0, 0], "a": [500, 0, 0] },
                                    { "da": [500, 0, 0], "a": [500, 0, 400] } ] },
-      "attese": [
-        { "cosa": "corpi", "uguale": 2 },
-        { "cosa": "volume_mm3", "uguale": 1292065.78, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "the probe's volume for this file, size and L (N8); the 20 x 20 that the empty name builds is 120330.17, and half a mm3 covers the rounding of the answer" } ] },
+      "expect": [
+        { "what": "corpi", "equal_to": 2 },
+        { "what": "volume_mm3", "equal_to": 1292065.78, "tolerance": 0.5,
+          "tolerance_why": "the probe's volume for this file, size and L (N8); the 20 x 20 that the empty name builds is 120330.17, and half a mm3 covers the rounding of the answer" } ] },
 
-    { "operazione": "membro_strutturale",
-      "argomenti": { "profilo_percorso": "{SOLIDWORKS}\\lang\\italian\\weldment profiles\\iso\\square tube.sldlfp",
+    { "operation": "membro_strutturale",
+      "arguments": { "profilo_percorso": "{SOLIDWORKS}\\lang\\italian\\weldment profiles\\iso\\square tube.sldlfp",
                      "configurazione": "",
                      "trattamento_angolo": "quartabuono",
                      "segmenti": [ { "da": [0, 0, 0], "a": [500, 0, 0] },
                                    { "da": [500, 0, 0], "a": [500, 0, 400] } ] },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["is empty", "20 x 20 x 2", "80 x 80 x 5"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "an_empty_profile_size_names_the_sizes" } }
+      "must_fail": {
+        "message_includes": ["is empty", "20 x 20 x 2", "80 x 80 x 5"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "an_empty_profile_size_names_the_sizes" } }
   ]
 }

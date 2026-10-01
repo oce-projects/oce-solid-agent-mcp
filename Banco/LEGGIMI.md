@@ -36,14 +36,14 @@ usa e getta e la chiude.
 ```
 .\Banco\banco.ps1                        tutto, e scrive il resoconto
 .\Banco\banco.ps1 -Gruppo viste          una famiglia sola
-.\Banco\banco.ps1 -Famiglia ritrovare    una cartella sola di casi dichiarati
+.\Banco\banco.ps1 -Famiglia reanchor    una cartella sola di casi dichiarati
 .\Banco\banco.ps1 -Lento                 anche quelle che costano minuti
 .\Banco\banco.ps1 -SaltaCompilazione     il binario che c'e' gia'
 ```
 
 Compila libreria e banco (e **si ferma** se una delle due fallisce), guarda se
 SOLIDWORKS e' agganciabile, **svuota i documenti rimasti aperti**, lancia, e
-scrive `Banco/resoconto/AAAAMMGG_hhmm.md` e `.json` piu' `ultimo.json`.
+scrive `Banco/report/AAAAMMGG_hhmm.md` e `.json` piu' `last.json`.
 
 | uscita | |
 |---|---|
@@ -56,7 +56,7 @@ misura, un errore di banco e' una misura **mancata**. E il 2 vince sull'1: se il
 banco non ha potuto misurare, quante prove siano fallite e' una domanda a cui
 non si e' risposto.
 
-**The test ledger, `Banco/resoconto/tests.json`** (W3.1-bis.2, item 7), is
+**The test ledger, `Banco/report/tests.json`** (W3.1-bis.2, item 7), is
 written by the bench itself at the end of every run (full, partial, mutations,
 regression) and is not tracked. One line per test, named by where it is
 recorded: `File.cs:Method:ordinal`, the ordinal counting the recording calls of
@@ -90,10 +90,10 @@ mutation or regression run a miss is a bench error. `Prove.Contratti` forbids a
 > rossi**: e' tempo buttato, non informazione.
 >
 > **Il segnale che li distingue e' semplice: un giro vero scrive SEMPRE un file
-> in `Banco\resoconto\`.** Se il resoconto non c'e', il giro non c'e' stato —
+> in `Banco\report\`.** Se il resoconto non c'e', il giro non c'e' stato —
 > qualunque cosa dica l'ultima riga a schermo.
 >
-> Si lancia **nudo**, e si legge dopo: `Banco\resoconto\ultimo.json`, oppure
+> Si lancia **nudo**, e si legge dopo: `Banco\report\last.json`, oppure
 > `Banco\ultimo-giro.txt` — che e' **UTF-16LE**, quindi un `grep` fatto a mano
 > non ci trova niente e sembra che il caso non sia mai girato. *Un log che non
 > si lascia leggere e' un log che fa concludere il falso.*
@@ -133,7 +133,7 @@ diagnosi **non ha parlato**: nel resoconto c'era il rosso e non la sua ragione.
 Quindi, quando un'attesa serve a spiegare perche' un'altra potrebbe fallire, va
 messa **sopra**. E la prima di tutte e' sempre la stessa domanda: **ho potuto
 guardare?** Un elenco vuoto perche' non si e' potuto leggere passa qualunque
-`non_contiene`, e sembra una misura.
+`does_not_include`, e sembra una misura.
 
 ### Un gruppo solo, mentre si lavora
 
@@ -152,7 +152,7 @@ aver sbagliato una riga:
 > che rilegge il numero. **Qui il controllo non c'e'**: la durata non e'
 > facilmente sorvegliabile, perche' cambia con la macchina.
 > Quello che si puo' fare, ed e' scritto qui perche' valga: **il numero che conta
-> sta in `resoconto\ultimo.json`, campo `durata_s`, e quello non invecchia** —
+> sta in `report\last.json`, campo `durata_s`, e quello non invecchia** —
 > questa riga e' un'indicazione, quel campo e' una misura.
 
 ```
@@ -180,77 +180,78 @@ lettere, e dice quanti gruppi non ha lanciato.
 GIRO PARZIALE (solo viste, 23 gruppi non lanciati) — 6 prove, 0 fallite
 ```
 
-### I casi che sono file — `casi/lavorazioni/`
+### I casi che sono file — `cases/features/`
 
 Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 `--gruppo casi`. Non serve una riga di C#:
 
 ```json
-{ "nome": "guscio_interno", "famiglia": "lavorazioni",
-  "perche": "«Outward» toglie verso l'esterno o verso l'interno?",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "guscio",
-      "argomenti": { "facce_uid": ["@faccia(verso=davanti)"],
+{ "name": "internal_shell", "family": "features",
+  "why": "«Outward» toglie verso l'esterno o verso l'interno?",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "guscio",
+      "arguments": { "facce_uid": ["@faccia(verso=davanti)"],
                      "spessore_mm": 5, "verso_esterno": false },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 82500 },
-                  { "cosa": "ingombro_mm", "uguale": [100, 60, 40] },
-                  { "cosa": "misure.verso", "uguale": "interno" } ] } ] }
+      "expect": [ { "what": "volume_mm3", "equal_to": 82500 },
+                  { "what": "ingombro_mm", "equal_to": [100, 60, 40] },
+                  { "what": "misure.verso", "equal_to": "interno" } ] } ] }
 ```
 
 | | |
 |---|---|
-| `cosa` | senza prefisso = lo misura il banco sul documento; `stato.…` = lo stato dell'add-in; `misure.…` = quello che l'operazione riporta |
+| `what` | senza prefisso = lo misura il banco sul documento; `stato.…` = lo stato dell'add-in; `misure.…` = quello che l'operazione riporta |
 | misure del banco | `volume_mm3`, `corpi`, `ingombro_mm`, `centri_x_mm`/`_y_`/`_z_`, `diametri_mm`, `centro_massa_mm`, `ultimo_piano_mm`, `spigoli_curvi`, `assi_creati`, `quante_lavorazioni`. **L'elenco non e' scritto da nessuna parte a mano**: e' l'elenco delle chiavi di chi le misura, e il messaggio «non so misurare …» lo legge da li' |
-| `uguale` | un numero, un testo, un elenco di numeri (con tolleranza) o un elenco di TESTO (uno a uno, e l'ordine conta) |
-| `contiene` / `non_contiene` | per le misure che sono **frasi** (`stato.forma`): una stringa o un elenco. Non si mettono insieme a `uguale` |
-| `tolleranza` | **assoluta**, in mm o mm³. Diversa da zero → serve `perche_questa_tolleranza`, altrimenti il caso e' **rotto** |
+| `equal_to` | un numero, un testo, un elenco di numeri (con tolleranza) o un elenco di TESTO (uno a uno, e l'ordine conta) |
+| `includes` / `does_not_include` | per le misure che sono **frasi** (`stato.forma`): una stringa o un elenco. Non si mettono insieme a `equal_to` |
+| `tolerance` | **assoluta**, in mm o mm³. Diversa da zero → serve `tolerance_why`, altrimenti il caso e' **rotto** |
 | selettori | `@faccia(verso=…)`, `@faccia(piana=false)`, `@faccia(area~=907.92)`, `@faccia(verso=davanti,x~=150)` (x, y, z sono il punto che lo stato pubblica), `@spigolo(asse=Z,lungo~=100)`, `@spigolo(curvo=true,n=1)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)`, `@quota(angolare=true)` (l'unica quota in gradi, voce Z-C21.2) |
-| prima del passo | `prima_seleziona`: uid o selettori lasciati SELEZIONATI quando il passo parte, come li lascerebbe chi sta davanti a SOLIDWORKS (lo STL che esportava solo la faccia selezionata). `prima_nascondi`: corpi, o il corpo di una faccia, NASCOSTI prima del passo (il corpo nascosto che usciva dalla verifica delle sporgenze). Tutti e due si contano dopo averli fatti: una selezione non riuscita e' un errore di banco, non un verde (voce Z-C21.2) |
+| prima del passo | `select_first`: uid o selettori lasciati SELEZIONATI quando il passo parte, come li lascerebbe chi sta davanti a SOLIDWORKS (lo STL che esportava solo la faccia selezionata). `hide_first`: corpi, o il corpo di una faccia, NASCOSTI prima del passo (il corpo nascosto che usciva dalla verifica delle sporgenze). Tutti e due si contano dopo averli fatti: una selezione non riuscita e' un errore di banco, non un verde (voce Z-C21.2) |
 | `activate_before` | `{ "document": path, "configuration": name }`: a configuration of ANOTHER open document made active before the step, read back (ShowConfiguration2 answers false on the one already active, so its answer decides nothing). It is how a drawing step finds its model on a configuration other than the one the views show (Z-C21.4, L16-2); a document that is not open, or a configuration that does not become the active one, is a bench error |
 | segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Banco\lavoro\`, ignorata da git); `{DATI}` i file d'ingresso versionati (`Banco\dati\`); `{SOLIDWORKS}` la cartella di installazione di SOLIDWORKS, per i file DI SERIE che non si versionano (i modelli di tabella; `SW_INSTALL_PATH` se non e' quella predefinita, voce Z-C21.2). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
-| `deve_fallire` | `il_messaggio_contiene` (obbligatorio), `volume_invariato`, `nessuna_feature_in_piu`, `gemella`, `la_differenza_e_il_pezzo` (vedi «Le coppie») |
+| `must_fail` | `message_includes` (obbligatorio), `volume_unchanged`, `no_extra_feature`, `twin`, `difference_is_the_part` (vedi «Le coppie») |
 
 **A key the bench does not read is refused** (W3.1-bis.2, item 4). Every place
 of a case (the case, a step, an expectation, a must-fail block, an assembly, a
 component, a regression case...) admits only the keys listed for it in
-`Banco/case-keys.json`: the keys the loader reads, the prose keys it documents,
-and the free keys frozen on 30/9/2026. Any other key is a bench error before
+`Banco/case-keys.json`: the keys the loader reads and the prose keys it
+documents (the free keys frozen on 30/9/2026 took the prefix `_` in window 1
+of W3.1-bis.4, and the frozen list is empty). Any other key is a bench error before
 anything is built, because the loader would skip it in silence and whatever it
 asked for would never be checked. A new free note starts with `_` (for example
-`_seen_red_once`): admitted everywhere, never read. The frozen list only
-shrinks. `Prove.Contratti` (CaseKeysTests) applies the same rule to every case
+`_seen_red_once`): admitted everywhere, never read. The frozen list stays
+empty. `Prove.Contratti` (CaseKeysTests) applies the same rule to every case
 in a second, so a key written wrong is found before the bench runs.
 
-### Un caso che gira su un ASSIEME — `casi/assiemi/` (voce GA0)
+### Un caso che gira su un ASSIEME — `cases/assemblies/` (voce GA0)
 
-Al posto di `"parte": { "nuova": true }` un caso puo' chiedere un assieme, e il
+Al posto di `"start": { "new_part": true }` un caso puo' chiedere un assieme, e il
 banco se lo costruisce: ogni componente e' una parte fatta **con le stesse
 operazioni dei casi**, salvata in `Banco\lavoro`, riaperta e inserita.
 
 ```json
-"assieme": {
-  "componenti": [
-    { "nome": "base",
-      "passi": [ { "operazione": "estrudi_rettangolo", "argomenti": { … } } ] },
-    { "nome": "coperchio", "da_inserire": false,
-      "posizione_mm": [0, 0, 30],
-      "passi": [ … ] }
+"assembly": {
+  "components": [
+    { "name": "base",
+      "steps": [ { "operation": "estrudi_rettangolo", "arguments": { … } } ] },
+    { "name": "coperchio", "to_insert": false,
+      "position_mm": [0, 0, 30],
+      "steps": [ … ] }
   ]
 }
 ```
 
 | | |
 |---|---|
-| `nome` | entra nel nome del file: `<caso>_<nome>.sldprt` in `Banco\lavoro`. Il caso lo nomina con `{LAVORO}\<caso>_<nome>.sldprt` |
-| `posizione_mm` | dove va il **centro dell'ingombro**, non l'origine. Assente = nell'origine dell'assieme. **Non e' un accoppiamento**. `AddComponent5` posiziona il centro: un pezzo con l'origine su una faccia — qualunque cosa estrusa a una direzione sola — si ritrova l'origine spostata di meta' ingombro, e nello stato lo si rilegge come `origine_mm`. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a `[0, -2, 30]` |
-| `da_inserire` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `inserisci_componente`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
-| `configurations` | next to `componenti`: `[{ "name": …, "suppressed": [component names], "excluded_from_bom": [component names] }]`, made in this order after the components are in (Z-C21.4, L16-2 and L16-3). Each new configuration becomes the active one, is set while active (suppression, exclusion from the BOM of that configuration only) and every setting is read back; the last one made stays active. No operation of the catalogue suppresses a component or excludes it from the BOM in one configuration |
-| `componenti` inside a component | a SUB-ASSEMBLY instead of a part (Z-C21.5, L11-3 and L11-5): each child is built like a component (its own `nome`, `passi`, `posizione_mm` inside the sub-assembly) as `<case>_<name>_<child>.sldprt`, inserted into a new assembly, saved as `<case>_<name>.sldasm`, and that is inserted like a part. One level only. In the state a nested component is named with its whole path (`<case>_<name>-1/<case>_<name>_<child>-1`), so it sorts right after its sub-assembly |
-| a repeated child `nome` | inside a sub-assembly, two children with the same `nome` are two instances of ONE part, built and registered from the first; the later one brings only its `posizione_mm`, and `passi` of its own are a bench error (Z-C21.11, M23) |
-| `envelope` | on a component: `true` makes it an envelope once inserted (Select4, then IAssemblyDoc.CompConfigProperties6 with IsEnvelope true, as the Z-C21.3 probe of 28/9/2026), read back with IsEnvelope. Top-level parts only, not with `da_inserire` false, not on a child of a sub-assembly (Z-C21.11, N27) |
-| `hidden` | on a component: `true` hides it (IComponent2.Visible = swComponentHidden), read back with IsHidden(false). Top level only, not with `da_inserire` false, not on a child of a sub-assembly (Z-C21.11) |
-| `reopen_lightweight` | next to `componenti`: `true` saves the assembly as `{LAVORO}\<case>.sldasm`, closes it and every document of its components (checked by path: nothing of the case stays loaded), reopens it with OpenDoc6 Silent, OverrideDefaultLoadLightweight and LoadLightweight (193), and checks GetLightWeightComponentCount > 0 and the top-level count. The case runs on the reopened document. It is the last step of the preparation, after `configurations`; not with any component at `da_inserire` false (Z-C21.11, N5) |
+| `name` | entra nel nome del file: `<caso>_<nome>.sldprt` in `Banco\lavoro`. Il caso lo nomina con `{LAVORO}\<caso>_<nome>.sldprt` |
+| `position_mm` | dove va il **centro dell'ingombro**, non l'origine. Assente = nell'origine dell'assieme. **Non e' un accoppiamento**. `AddComponent5` posiziona il centro: un pezzo con l'origine su una faccia — qualunque cosa estrusa a una direzione sola — si ritrova l'origine spostata di meta' ingombro, e nello stato lo si rilegge come `origine_mm`. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a `[0, -2, 30]` |
+| `to_insert` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `inserisci_componente`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
+| `configurations` | next to `components`: `[{ "name": …, "suppressed": [component names], "excluded_from_bom": [component names] }]`, made in this order after the components are in (Z-C21.4, L16-2 and L16-3). Each new configuration becomes the active one, is set while active (suppression, exclusion from the BOM of that configuration only) and every setting is read back; the last one made stays active. No operation of the catalogue suppresses a component or excludes it from the BOM in one configuration |
+| `components` inside a component | a SUB-ASSEMBLY instead of a part (Z-C21.5, L11-3 and L11-5): each child is built like a component (its own `name`, `steps`, `position_mm` inside the sub-assembly) as `<case>_<name>_<child>.sldprt`, inserted into a new assembly, saved as `<case>_<name>.sldasm`, and that is inserted like a part. One level only. In the state a nested component is named with its whole path (`<case>_<name>-1/<case>_<name>_<child>-1`), so it sorts right after its sub-assembly |
+| a repeated child `name` | inside a sub-assembly, two children with the same `name` are two instances of ONE part, built and registered from the first; the later one brings only its `position_mm`, and `steps` of its own are a bench error (Z-C21.11, M23) |
+| `envelope` | on a component: `true` makes it an envelope once inserted (Select4, then IAssemblyDoc.CompConfigProperties6 with IsEnvelope true, as the Z-C21.3 probe of 28/9/2026), read back with IsEnvelope. Top-level parts only, not with `to_insert` false, not on a child of a sub-assembly (Z-C21.11, N27) |
+| `hidden` | on a component: `true` hides it (IComponent2.Visible = swComponentHidden), read back with IsHidden(false). Top level only, not with `to_insert` false, not on a child of a sub-assembly (Z-C21.11) |
+| `reopen_lightweight` | next to `components`: `true` saves the assembly as `{LAVORO}\<case>.sldasm`, closes it and every document of its components (checked by path: nothing of the case stays loaded), reopens it with OpenDoc6 Silent, OverrideDefaultLoadLightweight and LoadLightweight (193), and checks GetLightWeightComponentCount > 0 and the top-level count. The case runs on the reopened document. It is the last step of the preparation, after `configurations`; not with any component at `to_insert` false (Z-C21.11, N5) |
 
 The three new keys take only a JSON Boolean: any other value is a bench error,
 never read as false, and so is every read-back that does not say what was asked.
@@ -268,7 +269,7 @@ Quello che non riesce durante la preparazione e' un **errore di banco** (uscita
 mai esistito — dirlo «fallito» manderebbe a cercare il difetto nell'operazione di
 assieme, che non e' nemmeno stata chiamata.
 
-**`non_contiene` non e' la comodita' simmetrica di `contiene`: e' il motivo per
+**`does_not_include` non e' la comodita' simmetrica di `includes`: e' il motivo per
 cui esiste.** Una frase che dichiara «il profilo Ø30 per 40» su un pezzo che
 quel profilo non ce l'ha piu' non fallisce niente — e' la descrizione giusta di
 un ALTRO pezzo, e il modello ci costruisce sopra. Si prende solo pretendendo
@@ -282,9 +283,9 @@ decide chi scrive il caso.
 
 Tutto quello che impedisce di **misurare** e' un errore di banco (uscita 2), non
 una prova rossa: un campo che nello stato o nelle misure non c'e' (col messaggio
-che dice quali c'erano), un caso senza `perche`, un passo **senza attese**, un
-`deve_fallire` senza `il_messaggio_contiene`, una tolleranza senza il suo
-perche', una `gemella` che non esiste, un selettore che non risolve.
+che dice quali c'erano), un caso senza `why`, un passo **senza attese**, un
+`must_fail` senza `message_includes`, una tolleranza senza il suo
+perche', una `twin` che non esiste, un selettore che non risolve.
 
 Un `null` **dichiarato** invece si misura: `materiale: null` vuol dire «quel
 posto esiste ed e' vuoto», ed e' una cosa diversa da un campo che manca.
@@ -340,9 +341,9 @@ i casi e i binari          dove sta il clone, che puo' essere di rete
 
 Quella tolta e' la **piu' frequente**, non l'unica.
 
-### Le coppie — `casi/coppie/`
+### Le coppie — `cases/pairs/`
 
-Ogni caso con `deve_fallire` **deve** nominare in `gemella` un caso che riesce,
+Ogni caso con `must_fail` **deve** nominare in `twin` un caso che riesce,
 e quella gemella dev'essere **verde nello stesso giro**:
 
 > Una prova che verifica solo il rifiuto non distingue «il controllo funziona»
@@ -364,17 +365,17 @@ un argomento in comune (sono due operazioni che non si parlano).
 **Quando la differenza e' il pezzo e non un argomento** (28/9/2026): la stessa
 nervatura nasce nella scatola svuotata e non sulla piastra senza pareti. Non si
 scrive un argomento finto per far passare la regola: si dichiara in
-`deve_fallire`
+`must_fail`
 
 ```json
-"la_differenza_e_il_pezzo": "la piastra non ha pareti; la gemella e' la scatola svuotata"
+"difference_is_the_part": "la piastra non ha pareti; la gemella e' la scatola svuotata"
 ```
 
 e banco e contratti (`Attese.SiSomiglianoNelPezzo`) pretendono tre cose: la frase
 c'e', gli argomenti sono **identici** a quelli della gemella (se differiscono la
 regola normale basta, e la dichiarazione e' di troppo), e i passi **prima** sono
 diversi (stesso pezzo e stessi argomenti resta una copia). Oggi la usa un caso
-solo: `lavorazioni/lim_nervatura_sulla_piastra_senza_pareti`.
+solo: `features/limit_rib_on_a_plate_without_walls`.
 
 ### `-Regressione` — quanto reggono i riferimenti
 
@@ -382,8 +383,8 @@ solo: `lavorazioni/lim_nervatura_sulla_piastra_senza_pareti`.
 .\Banco\banco.ps1 -Regressione
 ```
 
-Diciannove pezzi in `casi/regressione/`, ognuno con `costruisci`, **una sola
-`modifica`** e un `intento`. Il risultato e' **una di tre cose, non due**:
+Diciannove pezzi in `cases/regression/`, ognuno con `build`, **una sola
+`modify`** e un `intent`. Il risultato e' **una di tre cose, non due**:
 
 | | |
 |---|---|
@@ -392,10 +393,10 @@ Diciannove pezzi in `casi/regressione/`, ognuno con `costruisci`, **una sola
 | **si stacca in silenzio** | ricostruzione a posto, nessun errore, **e la geometria e' altrove** |
 
 La terza riga e' l'unico numero che conta, e si scrive **anche quando vale
-zero**. Il dettaglio caso per caso finisce in `resoconto/regressione.md`, i tre
+zero**. Il dettaglio caso per caso finisce in `report/regressione.md`, i tre
 numeri nel README.
 
-**L'`intento` e' obbligatorio**, e un caso che non lo dichiara e' un errore di
+**L'`intent` e' obbligatorio**, e un caso che non lo dichiara e' un errore di
 banco: un foro a 20 mm dal bordo, su una piastra che si allarga, deve restare a
 20 dal bordo (`ancorato_a_bordo`) o dov'era (`ancorato_a_assoluto`)? Senza
 saperlo non esiste risposta giusta.
@@ -405,7 +406,7 @@ Due campi in piu' rispetto ai casi normali:
 * **`come_prima: true`** su un'attesa — l'invariante e' «com'era», e si misura
   prima della modifica. Calcolarlo a mano vorrebbe dire rifare un conto che
   SOLIDWORKS ha gia' fatto, e sbagliarlo creerebbe un falso silenzio;
-* **`centro_massa_mm`** fra i `cosa` — l'invariante di posizione per cio' che
+* **`centro_massa_mm`** fra i `what` — l'invariante di posizione per cio' che
   fori non ne lascia. Il volume da solo non distingue una tasca ferma da una
   tasca che ha seguito il bordo.
 
@@ -425,7 +426,7 @@ copia dal caso accanto.
 
 Costa **un documento di SOLIDWORKS per mutazione** — 67 mutazioni, ~14 minuti —
 quindi si lancia prima di una consegna, non ogni sera. Scrive
-`Banco/resoconto/mutazioni.md`, una riga per caso, e ha un riepilogo suo
+`Banco/report/mutazioni.md`, una riga per caso, e ha un riepilogo suo
 (`MUTAZIONI — 11 casi, 0 ciechi`): i rossi che produce sono **cercati**.
 
 Le mutazioni su argomenti che l'operazione **ignora** (`profondita_mm` su un
@@ -496,7 +497,7 @@ Manda una sequenza di piani al ponte MCP come farebbe un client, e stampa gli
 esiti.
 
 ```
-node Banco\corri_piani.js Banco\casi\ponte\c4r_primario.json
+node Banco\corri_piani.js Banco\cases\bridge\c4r_primary.json
 node Banco\guarda.js                  leggi lo stato senza mandare un piano
 node Banco\prova_annulla.js           «annulla» (voce R1), coi suoi tre rossi
 ```
@@ -529,7 +530,7 @@ node raccogli_viste.js        costruisce i cinque pezzi veri e salva lo stato,
                               che dentro ha il campo `forma`
                               -- poi si danno le cinque frasi, E NIENTE ALTRO,
                                  a un modello isolato, che scrive i piani in
-                                 casi/forma/1..5.json
+                                 cases/forma/1..5.json
 node prova_forma.js           esegue i piani e confronta volume e ingombro
 ```
 
@@ -577,7 +578,7 @@ ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
 errore di banco.
 
 ```
-casi/lavorazioni/ 37   il guscio, e da che parte toglie;
+cases/features/ 37   il guscio, e da che parte toglie;
                        la piastra simmetrica che cresce dalle due parti
                        con cambia_estrusione (revisione del 27/9, Z-C20);
                        la quota che fa uscire l'asola dal materiale, rifiutata
@@ -609,19 +610,19 @@ casi/lavorazioni/ 37   il guscio, e da che parte toglie;
                        refused with their twins (Z-C21.10, N50); the state
                        counts selected edges and faces of fillets and
                        chamfers (Z-C21, C7-2, N14)
-casi/coppie/       8   i rifiuti con la loro gemella
-casi/asola/       18   ogni faccia, non una sola; lo schizzo quotato che si
+cases/pairs/       8   i rifiuti con la loro gemella
+cases/slot/       18   ogni faccia, non una sola; lo schizzo quotato che si
                        corregge con modifica_quota, e l'ancora dritta e obliqua
                        (voce E18)
-casi/smusso/       4   dove un raccordo toglierebbe un altro volume; l'angolo
+cases/chamfer/       4   dove un raccordo toglierebbe un altro volume; l'angolo
                        dello smusso si cambia in gradi (Z-C21.2)
-casi/rivoluzione/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
-casi/piano/        7   DOVE finisce il piano, non la distanza chiesta; la foto
+cases/revolve/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
+cases/plane/        7   DOVE finisce il piano, non la distanza chiesta; la foto
                        da ricalcare messa in scala su un piano (Z-F5, legge
                        {DATI}: Banco/dati/, versionata); a picture over 2048 px
                        keeps the scale of its file (Z-C21, M11)
-casi/specchia/     2   il foro deve comparire dall'altra parte
-casi/ripeti/      15   la direzione, che e' il dubbio vero; l'asse riconosciuto
+cases/mirror/     2   il foro deve comparire dall'altra parte
+cases/patterns/      15   la direzione, che e' il dubbio vero; l'asse riconosciuto
                        per identita', e rifiutato se si e' spostato (voce E4);
                        la copia tolta da una griglia rifiutata (Z-C21.2);
                        il riempimento che fa quattordici fori, e rifiutato
@@ -629,21 +630,21 @@ casi/ripeti/      15   la direzione, che e' il dubbio vero; l'asse riconosciuto
                        fuori dalla faccia (W1.1); the linear pattern along an
                        axis from crea_asse, and the circular pattern around a
                        straight edge (Z-C21.9, L7-5 and M16)
-casi/asse/         2   l'asse dalla parete di un foro
-casi/togliere/     5   sopprimere, riaccendere, cancellare
-casi/frase/        2   la forma detta a parole, e quando tace
-casi/verifica/     7   com'e' venuto: solido, chiuso, sano; il corpo nascosto
+cases/axis/         2   l'asse dalla parete di un foro
+cases/removal/     5   sopprimere, riaccendere, cancellare
+cases/sentence/        2   la forma detta a parole, e quando tace
+cases/check/     7   com'e' venuto: solido, chiuso, sano; il corpo nascosto
                        che pende si vede (Z-C21.2); one sound body of two is
                        not the part (Z-C21.10, N61)
-casi/misura/      12   quanto pesa, in che scatola ci sta, quanto dista; the
+cases/measurement/      12   quanto pesa, in che scatola ci sta, quanto dista; the
                        wall between two holes, measured as asked (Z-C21, M29);
                        a body named before the cut is not measured in place of
                        another (Z-C21.5, S5)
-casi/corpi/       15   le booleane, il raccordo variabile, il filetto cosmetico;
+cases/bodies/       15   le booleane, il raccordo variabile, il filetto cosmetico;
                        l'unione di corpi che non si toccano rifiutata (Z-C18);
                        la booleana col corpo letto prima di un taglio
                        rifiutata (Z-C21.2)
-casi/esporta/     15   STL, STEP e IGES: il file riletto byte per byte,
+cases/export/     15   STL, STEP e IGES: il file riletto byte per byte,
                        e il volume riaperto in SOLIDWORKS; l'IGES di un
                        assieme rifiutato (Z-C20); lo STL con una faccia
                        rimasta selezionata e' il pezzo intero (Z-C21.2);
@@ -651,11 +652,11 @@ casi/esporta/     15   STL, STEP e IGES: il file riletto byte per byte,
                        directory counted (Z-C21.10, N59);
                        AP242 through SOLIDWORKS MBD, refused
                        without its licence or with a .step path (Z-C21.13)
-casi/proprieta/   12   i due cassetti, e il codice che va in distinta; the
+cases/document_properties/   12   i due cassetti, e il codice che va in distinta; the
                        material reaches every configuration (Z-C21, M10)
-casi/testo/        6   incidere, e la scritta che esce dalla faccia
-casi/telai/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-casi/assiemi/     22   inserire non e' accoppiare; un vincolo solo non basta;
+cases/text/        6   incidere, e la scritta che esce dalla faccia
+cases/frames/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
+cases/assemblies/     22   inserire non e' accoppiare; un vincolo solo non basta;
                        due basi uguali e uno STEP: una forma per pezzo,
                        la massa per istanza (Z-C20);
                        il coperchio rifatto tiene i vincoli e li rompe;
@@ -681,7 +682,7 @@ casi/assiemi/     22   inserire non e' accoppiare; un vincolo solo non basta;
                        resolved them (Z-C21.11, N5, N27); the same mate twice
                        is refused as redundant and taken out, and a parallel
                        after it blocks RY only (Z-C14)
-casi/tavola/      42   il primo caso che arriva in TAVOLA (voce GT0);
+cases/drawing/      42   il primo caso che arriva in TAVOLA (voce GT0);
                        un Ø8 passante e un Ø8 cieco, due richiami; la borchia
                        non e' un foro; l'albero smussato senza le gambe dello
                        smusso (revisione del 27/9, Z-C20);
@@ -733,7 +734,7 @@ casi/tavola/      42   il primo caso che arriva in TAVOLA (voce GT0);
                        none (Z-C21.8, M38); the BOM follows the configuration
                        of the view, not the active one (Z-C21.4, L16-2, L16-3);
                        the indented BOM follows the tree (Z-C21.11, M23)
-casi/saldature/   14   la distinta conta le barre, e i due numeri vengono da
+cases/weldments/   14   la distinta conta le barre, e i due numeri vengono da
                        due posti diversi; il taglio accorcia la barra davvero,
                        e fra barre che non si incontrano rifiuta; il cordone
                        va fra facce che si toccano ad angolo; il tappo chiude
@@ -753,7 +754,7 @@ casi/saldature/   14   la distinta conta le barre, e i due numeri vengono da
                        a short bar (Z-C21, N25, L9-4); the trim refuses an
                        end condition it does not know (Z-C21.8, N22); the end
                        cap leaves out a drilled wall (Z-C21.5, N7)
-casi/estrusioni/  10   il tubo ha il buco; l'asola estrusa e' lunga quanto
+cases/extrusions/  10   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        l'ingombro, estremita' comprese, ed e' un poligono; la
                        ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta
                        cresce dalla faccia verso fuori (voce Z-C6); il rialzo
@@ -761,7 +762,7 @@ casi/estrusioni/  10   il tubo ha il buco; l'asola estrusa e' lunga quanto
                        (voce E18); a plane name that is not one of the three is
                        refused, never the front plane (Z-C21.10, N33); the
                        sketch of the L locked for real (Z-C21, M5)
-casi/lamiera/     13   la L si sviluppa lunga quanto il conto a mano; data al
+cases/sheet_metal/     13   la L si sviluppa lunga quanto il conto a mano; data al
                        contrario, i punti diventano le facce esterne; lo
                        sviluppo senza file rifiutato; il tratto piu' corto
                        delle pieghe rifiutato; la flangia a spigolo da 25
@@ -773,7 +774,7 @@ casi/lamiera/     13   la L si sviluppa lunga quanto il conto a mano; data al
                        invariato) e la piega a 180 rifiutata (voce GP18); the
                        axis and the planes of a sheet are the ones the calls
                        made, not the flat pattern (Z-C21.5, S7)
-casi/quote/        7   la variabile che non scavalca lo smusso, rifiutata e
+cases/dimensions/        7   la variabile che non scavalca lo smusso, rifiutata e
                        rimessa com'era (Z-C20); la piastra si quota da sola
                        con DimXpert, coi valori
                        giusti; con due riferimenti rifiuta (voce Z-H3); la
@@ -785,21 +786,21 @@ casi/quote/        7   la variabile che non scavalca lo smusso, rifiutata e
                        reader (modifica_quota, tolleranza_quota, lega_quota)
                        with the fourth configuration active, the before and
                        after of S1 in parts (Z-C21.13)
-casi/regressione/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
-casi/ritrovare/    3   lo spigolo nominato con l'uid letto PRIMA di due fori si
+cases/regression/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
+cases/reanchor/    3   lo spigolo nominato con l'uid letto PRIMA di due fori si
                        ritrova per firma (stessa lunghezza, stesso punto) e il
                        baricentro dice quale angolo; accorciato da uno smusso
                        si rifiuta, mai il piu' vicino; doppio (due corpi che si
                        toccano) si rifiuta, «non scelgo io» (voce E19,
-                       `uid_dal_passo`)
+                       `uid_from_step`)
 ```
 
 `-Famiglia` (voce E19) fa girare solo quelle cartelle dei casi dichiarati: il
 gruppo `casi` da solo sono tre quarti d'ora, e un caso nuovo si vede fallire
 PRIMA di scrivere il codice. Il giro e' parziale come con `-Gruppo`, e riscrive
-`ultimo.json` come lui: si rimette con `git checkout` prima del giro intero.
+`last.json` come lui: si rimette con `git checkout` prima del giro intero.
 
-`"uid_dal_passo": N` in un passo prende selettori e firme dallo stato di PRIMA
+`"uid_from_step": N` in un passo prende selettori e firme dallo stato di PRIMA
 del passo N, come fa il ponte con un piano scritto guardando lo stato una volta.
 Le firme sono quelle di facce, spigoli e — dalla voce Z-C21.2 — corpi
 (`centro_mm`, `ingombro_mm`, come le manda il ponte): prima un corpo nominato
@@ -810,19 +811,19 @@ non si poteva vedere.
 `--gruppo casi`:
 
 ```
-casi/limiti/    8   dove le operazioni si rompono
-casi/tavola/    7   viste, quote, PDF  (+ i casi dichiarati, vedi sotto)
-casi/viste/     5   pezzi di cui si sa tutto, per le prove sulle immagini
-casi/ponte/   107   i piani del ponte MCP, per voce del TODO
+cases/limits/    8   dove le operazioni si rompono
+cases/drawing/    7   viste, quote, PDF  (+ i casi dichiarati, vedi sotto)
+cases/views/     5   pezzi di cui si sa tutto, per le prove sulle immagini
+cases/bridge/   107   i piani del ponte MCP, per voce del TODO
 ```
 
-**`casi/forma/` NON E' NEL REPOSITORY, ed e' voluto.** La cartella compare su
+**`cases/forma/` NON E' NEL REPOSITORY, ed e' voluto.** La cartella compare su
 questa macchina e contiene i cinque piani che un modello isolato scrive durante
 la misura V3 — li riscrive a ogni giro, e versionarli vorrebbe dire congelare
 la risposta di **un** modello di **un** giorno come se fosse la misura. La
 misura e' il numero, e sta nel README (`.gitignore`, riga 59).
 
-*Questa riga prima la contava insieme alle altre, «casi/forma/ 5», e il conto
+*Questa riga prima la contava insieme alle altre, «cases/forma/ 5», e il conto
 era vero solo qui:* su un clone pulito quella cartella non esiste, e il
 controllo di contratto «ogni cartella nominata nel LEGGIMI esiste» diventava
 rosso per chiunque tranne che per chi l'aveva scritta. **Un documento che
@@ -830,16 +831,16 @@ descrive la macchina di chi lo scrive invece del repository e' il difetto che
 si scopre solo dal di fuori** — e dal di fuori lo scopre uno sconosciuto, al
 primo tentativo.
 
-**`casi/tavola/` contiene tutt'e due le cose, dal 17/9/2026** (voce GT0), ed e'
+**`cases/drawing/` contiene tutt'e due le cose, dal 17/9/2026** (voce GT0), ed e'
 l'unica cartella cosi'. I sette `tav_*.json` sono piani; i casi dichiarati della
 famiglia `tavola` stanno li' accanto. **Non si distinguono dal nome, si
 distinguono dalla FORMA**: un piano e' un array di passi, un caso e' un oggetto
-con `nome`, `perche` e `passi`. Il caricatore guarda la radice del JSON, salta
+con `name`, `why` e `steps`. Il caricatore guarda la radice del JSON, salta
 gli array, e **dice a ogni giro quanti ne ha saltati e quali**:
 
 ```
 OK   i piani a mano si riconoscono e si saltano   7 saltati (sono array, non casi):
-     tav_1_salva_pezzo.json, tav_2_crea_disegno.json, tav_3_foglio.json, ...
+     dwg_1_save_part.json, dwg_2_create_drawing.json, dwg_3_sheet.json, ...
 ```
 
 Un file **illeggibile** non conta come piano: resta un errore di banco col motivo
@@ -850,7 +851,7 @@ dichiarati usano `{LAVORO}` e `{PROFILI}` (li risolve `Banco\Attese.cs`), i pian
 usano `{BANCO}` (lo risolve `corri_piani.js`). Scambiarli non da' nessun errore:
 il percorso resta letterale, e il caso si lamenta che un file non esiste.
 
-I nomi in `casi/ponte/` cominciano con la voce che li ha fatti nascere —
+I nomi in `cases/bridge/` cominciano con la voce che li ha fatti nascere —
 `c4r_*` la ruota dentata, `d3_*` le quote sui tagli, `b8_*` i riferimenti fra
 passi, `s_*` le sagome rifiutate. Chi riapre una voce trova i suoi casi
 cercando per prefisso.

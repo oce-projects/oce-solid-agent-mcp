@@ -1,7 +1,7 @@
 [
  {
-  "_perche": "V2 -- forma 1 di 5: PIASTRA FORATA. E' il caso in cui l'elenco delle facce dovrebbe bastare da solo: sagoma nota, fori con diametro e posizione, niente da indovinare. Se anche qui le immagini servono, il problema non e' la forma.",
-  "_verita": "Piastra 200x120x15, quattro fori passanti Ø12 agli angoli, a +-80 e +-45 dal centro. Volume 200*120*15 - 4*pi*36*15 = 360000 - 6785.8 = 353214.2 mm3.",
+  "_why": "V2 -- forma 1 di 5: PIASTRA FORATA. E' il caso in cui l'elenco delle facce dovrebbe bastare da solo: sagoma nota, fori con diametro e posizione, niente da indovinare. Se anche qui le immagini servono, il problema non e' la forma.",
+  "_truth": "Piastra 200x120x15, quattro fori passanti Ø12 agli angoli, a +-80 e +-45 dal centro. Volume 200*120*15 - 4*pi*36*15 = 360000 - 6785.8 = 353214.2 mm3.",
   "operazione": "estrudi_rettangolo",
   "argomenti": { "piano": "superiore", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 15, "centrato": true }
  },

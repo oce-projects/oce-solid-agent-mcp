@@ -1,7 +1,7 @@
 // Manda una sequenza di piani al ponte MCP, come farebbe un client.
 //
-//   node corri_piani.js casi/ponte/c4r_primario.json casi/ponte/c4r_cava.json
-//   node corri_piani.js --pulisci casi/ponte/*.json
+//   node corri_piani.js cases/bridge/c4r_primary.json cases/bridge/c4r_keyway.json
+//   node corri_piani.js --pulisci cases/bridge/*.json
 //
 // Percorsi con la barra avanti: Windows li accetta, e cosi' non c'e' nessun
 // livello di escape da sbagliare. La stessa riga scritta con i backslash e'

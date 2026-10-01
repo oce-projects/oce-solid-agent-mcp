@@ -1,76 +1,76 @@
 {
-  "nome": "la_tavola_esce_in_pdf",
-  "famiglia": "tavola",
-  "perche": "VOCE Z-C6. `imposta_foglio`, `vista_modello` ed `esporta_pdf` sono a catalogo con `Provata = true` e fino al 24/9/2026 le toccava solo un piano a mano (`tav_3_foglio`, `tav_5_isometrica`, `tav_7_pdf`): un appunto di come si e' misurato una volta, che non gira in nessun giro e non pretende niente. Questo caso le mette in fila su una tavola vera e pretende da ognuna una cosa che si puo' sbagliare in silenzio.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+  "name": "drawing_exports_to_pdf",
+  "family": "drawing",
+  "why": "VOCE Z-C6. `imposta_foglio`, `vista_modello` ed `esporta_pdf` sono a catalogo con `Provata = true` e fino al 24/9/2026 le toccava solo un piano a mano (`dwg_3_sheet`, `dwg_5_isometric`, `dwg_7_pdf`): un appunto di come si e' misurato una volta, che non gira in nessun giro e non pretende niente. Questo caso le mette in fila su una tavola vera e pretende da ognuna una cosa che si puo' sbagliare in silenzio.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
                      "spessore_mm": 10, "centrato": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 96000,
-          "perche": "120 x 80 x 10: se questo non torna, la tavola sotto e' di un altro pezzo" } ] },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "120 x 80 x 10: se questo non torna, la tavola sotto e' di un altro pezzo" } ] },
 
-    { "operazione": "salva_documento",
-      "argomenti": { "percorso": "{LAVORO}\\la_tavola_esce_in_pdf.sldprt" },
-      "attese": [
-        { "cosa": "misure.avvisi", "uguale": 0,
-          "perche": "una vista si aggancia al FILE del pezzo: senza salvarlo non c'e' niente da mettere in tavola" } ] },
+    { "operation": "salva_documento",
+      "arguments": { "percorso": "{LAVORO}\\drawing_exports_to_pdf.sldprt" },
+      "expect": [
+        { "what": "misure.avvisi", "equal_to": 0,
+          "why": "una vista si aggancia al FILE del pezzo: senza salvarlo non c'e' niente da mettere in tavola" } ] },
 
-    { "operazione": "crea_disegno",
-      "argomenti": { "formato": "A3" },
-      "attese": [
-        { "cosa": "stato.tipo", "uguale": "tavola",
-          "perche": "da qui in poi i passi misurano la tavola, non il pezzo" },
-        { "cosa": "misure.fogli", "uguale": 1,
-          "perche": "un foglio: e' il numero con cui l'ultimo passo confronta le pagine del PDF" } ] },
+    { "operation": "crea_disegno",
+      "arguments": { "formato": "A3" },
+      "expect": [
+        { "what": "stato.tipo", "equal_to": "tavola",
+          "why": "da qui in poi i passi misurano la tavola, non il pezzo" },
+        { "what": "misure.fogli", "equal_to": 1,
+          "why": "un foglio: e' il numero con cui l'ultimo passo confronta le pagine del PDF" } ] },
 
-    { "operazione": "imposta_foglio",
-      "argomenti": { "formato": "A3", "scala_numeratore": 1, "scala_denominatore": 2 },
-      "attese": [
-        { "cosa": "misure.scala", "uguale": "1:2",
-          "perche": "LA SCALA RILETTA DAL FOGLIO, non ripetuta dall'argomento: l'operazione rifiuta se il foglio dice altro, e qui si guarda che la rilettura sia arrivata fino alla risposta. Una tavola in scala sbagliata si stampa uguale e ogni quota letta col righello e' falsa." },
-        { "cosa": "misure.diedro", "uguale": "primo",
-          "perche": "il diedro NON si decide qui: si rilegge dal modello di tavola dell'officina e si riscrive uguale. Se questa riga dicesse «terzo», `SetProperties2` avrebbe ribaltato la tavola senza errore" },
-        { "cosa": "misure.larghezza_mm", "uguale": 420, "tolleranza": 0.1,
-          "perche_questa_tolleranza": "l'A3 e' 420 x 297 per norma; il decimo copre l'arrotondamento a un decimale della risposta" },
-        { "cosa": "misure.altezza_mm", "uguale": 297, "tolleranza": 0.1,
-          "perche_questa_tolleranza": "come sopra" } ] },
+    { "operation": "imposta_foglio",
+      "arguments": { "formato": "A3", "scala_numeratore": 1, "scala_denominatore": 2 },
+      "expect": [
+        { "what": "misure.scala", "equal_to": "1:2",
+          "why": "LA SCALA RILETTA DAL FOGLIO, non ripetuta dall'argomento: l'operazione rifiuta se il foglio dice altro, e qui si guarda che la rilettura sia arrivata fino alla risposta. Una tavola in scala sbagliata si stampa uguale e ogni quota letta col righello e' falsa." },
+        { "what": "misure.diedro", "equal_to": "primo",
+          "why": "il diedro NON si decide qui: si rilegge dal modello di tavola dell'officina e si riscrive uguale. Se questa riga dicesse «terzo», `SetProperties2` avrebbe ribaltato la tavola senza errore" },
+        { "what": "misure.larghezza_mm", "equal_to": 420, "tolerance": 0.1,
+          "tolerance_why": "l'A3 e' 420 x 297 per norma; il decimo copre l'arrotondamento a un decimale della risposta" },
+        { "what": "misure.altezza_mm", "equal_to": 297, "tolerance": 0.1,
+          "tolerance_why": "come sopra" } ] },
 
-    { "operazione": "vista_modello",
-      "argomenti": { "modello": "{LAVORO}\\la_tavola_esce_in_pdf.sldprt",
+    { "operation": "vista_modello",
+      "arguments": { "modello": "{LAVORO}\\drawing_exports_to_pdf.sldprt",
                      "vista": "isometrica", "x_mm": 320, "y_mm": 200 },
-      "attese": [
-        { "cosa": "misure.viste_dopo", "uguale": 1,
-          "perche": "UNA vista, contata dall'operazione dopo la chiamata: `CreateDrawViewFromModelView3` torna `null` e basta quando il nome non va, e senza contare sembrerebbe una tavola che non vuole l'isometrica" },
-        { "cosa": "stato.viste_totali", "uguale": 1,
-          "perche": "LE DUE LETTURE CONCORDANO: l'operazione dice una, lo stato riletto da capo ne trova una" },
-        { "cosa": "misure.nome_sw", "contiene": ["Iso"],
-          "perche": "il nome VERO con cui SOLIDWORKS l'ha accettata (`*Isometrica` qui, `*Isometric` in inglese): e' il fatto che l'operazione dichiara perche' la prossima volta sia scritto invece che ricordato" } ] },
+      "expect": [
+        { "what": "misure.viste_dopo", "equal_to": 1,
+          "why": "UNA vista, contata dall'operazione dopo la chiamata: `CreateDrawViewFromModelView3` torna `null` e basta quando il nome non va, e senza contare sembrerebbe una tavola che non vuole l'isometrica" },
+        { "what": "stato.viste_totali", "equal_to": 1,
+          "why": "LE DUE LETTURE CONCORDANO: l'operazione dice una, lo stato riletto da capo ne trova una" },
+        { "what": "misure.nome_sw", "includes": ["Iso"],
+          "why": "il nome VERO con cui SOLIDWORKS l'ha accettata (`*Isometrica` qui, `*Isometric` in inglese): e' il fatto che l'operazione dichiara perche' la prossima volta sia scritto invece che ricordato" } ] },
 
-    { "operazione": "nota_in_tavola",
-      "argomenti": { "testo": "PROVA123", "x_mm": 20, "y_mm": 250 },
-      "attese": [
-        { "cosa": "misure.note_messe", "uguale": 1,
-          "perche": "la scritta che l'ultimo passo deve RITROVARE nel PDF (voce GT3-bis)" } ] },
+    { "operation": "nota_in_tavola",
+      "arguments": { "testo": "PROVA123", "x_mm": 20, "y_mm": 250 },
+      "expect": [
+        { "what": "misure.note_messe", "equal_to": 1,
+          "why": "la scritta che l'ultimo passo deve RITROVARE nel PDF (voce GT3-bis)" } ] },
 
-    { "operazione": "salva_documento",
-      "argomenti": { "percorso": "{LAVORO}\\la_tavola_esce_in_pdf.slddrw" },
-      "attese": [
-        { "cosa": "misure.avvisi", "uguale": 0,
-          "perche": "`esporta_pdf` senza percorso mette il PDF accanto alla tavola: una tavola mai salvata non ha un «accanto»" } ] },
+    { "operation": "salva_documento",
+      "arguments": { "percorso": "{LAVORO}\\drawing_exports_to_pdf.slddrw" },
+      "expect": [
+        { "what": "misure.avvisi", "equal_to": 0,
+          "why": "`esporta_pdf` senza percorso mette il PDF accanto alla tavola: una tavola mai salvata non ha un «accanto»" } ] },
 
-    { "operazione": "esporta_pdf",
-      "argomenti": { "cerca": ["PROVA123", "ASSENTE987"] },
-      "attese": [
-        { "cosa": "misure.trovati", "uguale": ["PROVA123"],
-          "perche": "VOCE GT3-bis: la nota scritta due passi prima esce dal PDF come TESTO. Misurato con `Controlli/TestoNelPdf`: nel file e' scritta come indici di glifo dietro le tabelle /ToUnicode, e una ricerca nei byte non la troverebbe — `esporta_pdf` la decodifica" },
-        { "cosa": "misure.non_trovati", "uguale": ["ASSENTE987"],
-          "perche": "IL ROSSO NELLA STESSA CORSA: una scritta che nella tavola non c'e' NON deve trovarsi. Senza questa riga, un decodificatore che «trova» tutto passerebbe la riga sopra" },
-        { "cosa": "misure.fogli", "uguale": 1 },
-        { "cosa": "misure.pagine", "uguale": 1,
-          "perche": "LE PAGINE SI CONTANO NEL FILE SCRITTO, non si ricopiano dai fogli: `CountPdfPages` apre il PDF e conta gli oggetti «/Type /Page». E' la misura che prende il PDF di un foglio solo quando la tavola ne ha tre -- il difetto per cui questa operazione esiste" },
-        { "cosa": "misure.percorso", "contiene": ["la_tavola_esce_in_pdf", ".pdf"],
-          "perche": "accanto alla tavola, col suo nome: e' dove chi lo cerca lo va a cercare" } ] }
+    { "operation": "esporta_pdf",
+      "arguments": { "cerca": ["PROVA123", "ASSENTE987"] },
+      "expect": [
+        { "what": "misure.trovati", "equal_to": ["PROVA123"],
+          "why": "VOCE GT3-bis: la nota scritta due passi prima esce dal PDF come TESTO. Misurato con `Controlli/TestoNelPdf`: nel file e' scritta come indici di glifo dietro le tabelle /ToUnicode, e una ricerca nei byte non la troverebbe — `esporta_pdf` la decodifica" },
+        { "what": "misure.non_trovati", "equal_to": ["ASSENTE987"],
+          "why": "IL ROSSO NELLA STESSA CORSA: una scritta che nella tavola non c'e' NON deve trovarsi. Senza questa riga, un decodificatore che «trova» tutto passerebbe la riga sopra" },
+        { "what": "misure.fogli", "equal_to": 1 },
+        { "what": "misure.pagine", "equal_to": 1,
+          "why": "LE PAGINE SI CONTANO NEL FILE SCRITTO, non si ricopiano dai fogli: `CountPdfPages` apre il PDF e conta gli oggetti «/Type /Page». E' la misura che prende il PDF di un foglio solo quando la tavola ne ha tre -- il difetto per cui questa operazione esiste" },
+        { "what": "misure.percorso", "includes": ["drawing_exports_to_pdf", ".pdf"],
+          "why": "accanto alla tavola, col suo nome: e' dove chi lo cerca lo va a cercare" } ] }
   ]
 }

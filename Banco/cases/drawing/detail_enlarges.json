@@ -1,59 +1,59 @@
 {
-  "nome": "il_dettaglio_ingrandisce",
-  "famiglia": "tavola",
-  "perche": "VOCE GT4, l'altra meta'. La sezione fa vedere cosa c'e' dentro; il dettaglio fa vedere cio' che e' troppo piccolo per leggersi alla scala del disegno — una gola, uno smusso, un raccordo con la sua quota. Senza, su una tavola d'officina quelle cose si quotano a occhio.",
+  "name": "detail_enlarges",
+  "family": "drawing",
+  "why": "VOCE GT4, l'altra meta'. La sezione fa vedere cosa c'e' dentro; il dettaglio fa vedere cio' che e' troppo piccolo per leggersi alla scala del disegno — una gola, uno smusso, un raccordo con la sua quota. Senza, su una tavola d'officina quelle cose si quotano a occhio.",
 
-  "perche_non_si_guarda_il_tratteggio": "Sulla sezione la campitura dice che il taglio ha incontrato materiale, ed e' il controllo che conta. Un dettaglio NON taglia niente: mostra la stessa geometria ingrandita, e `GetFaceHatchCount` sul dettaglio risponde **0** (misurato il 23/9/2026). Copiare il controllo della sezione avrebbe prodotto un'operazione che rifiuta sempre — cioe' il difetto che la sezione ha avuto al primo uso, ripetuto per analogia.",
+  "_why_the_hatch_is_not_checked": "Sulla sezione la campitura dice che il taglio ha incontrato materiale, ed e' il controllo che conta. Un dettaglio NON taglia niente: mostra la stessa geometria ingrandita, e `GetFaceHatchCount` sul dettaglio risponde **0** (misurato il 23/9/2026). Copiare il controllo della sezione avrebbe prodotto un'operazione che rifiuta sempre — cioe' il difetto che la sezione ha avuto al primo uso, ripetuto per analogia.",
 
-  "il_difetto_che_questo_caso_prende": "Un cerchio che resta disegnato a mano accanto a una vista in piu' che non gli e' legata. `viste_dopo` sale in tutti e due i casi. La prova che il cerchio e' DIVENTATO un dettaglio e' che la vista di partenza ha una circonferenza di dettaglio in piu': da zero a uno. Il conto si legge dal VALORE DI RITORNO di `GetDetailCircleCount2`, non dal suo `out` — l'out passa da 1 a 35 per una circonferenza sola, e chi lo leggesse come un conto direbbe che la vista ne aveva gia' una prima di averne.",
+  "defect_caught": "Un cerchio che resta disegnato a mano accanto a una vista in piu' che non gli e' legata. `viste_dopo` sale in tutti e due i casi. La prova che il cerchio e' DIVENTATO un dettaglio e' che la vista di partenza ha una circonferenza di dettaglio in piu': da zero a uno. Il conto si legge dal VALORE DI RITORNO di `GetDetailCircleCount2`, non dal suo `out` — l'out passa da 1 a 35 per una circonferenza sola, e chi lo leggesse come un conto direbbe che la vista ne aveva gia' una prima di averne.",
 
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 192000,
-          "perche": "se il pezzo non e' quello, non lo e' nemmeno la tavola" } ] },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "se il pezzo non e' quello, non lo e' nemmeno la tavola" } ] },
 
-    { "operazione": "salva_documento",
-      "argomenti": { "percorso": "{LAVORO}\\il_dettaglio_ingrandisce.sldprt" },
-      "attese": [
-        { "cosa": "misure.avvisi", "uguale": 0,
-          "perche": "una tavola si fa su un pezzo salvato" } ] },
+    { "operation": "salva_documento",
+      "arguments": { "percorso": "{LAVORO}\\detail_enlarges.sldprt" },
+      "expect": [
+        { "what": "misure.avvisi", "equal_to": 0,
+          "why": "una tavola si fa su un pezzo salvato" } ] },
 
-    { "operazione": "crea_disegno",
-      "argomenti": { "formato": "A3" },
-      "attese": [
-        { "cosa": "stato.tipo", "uguale": "tavola",
-          "perche": "da qui in poi il documento attivo e' un altro" } ] },
+    { "operation": "crea_disegno",
+      "arguments": { "formato": "A3" },
+      "expect": [
+        { "what": "stato.tipo", "equal_to": "tavola",
+          "why": "da qui in poi il documento attivo e' un altro" } ] },
 
-    { "operazione": "viste_standard",
-      "argomenti": { "modello": "{LAVORO}\\il_dettaglio_ingrandisce.sldprt" },
-      "attese": [
-        { "cosa": "misure.viste_create", "uguale": 3,
-          "perche": "senza una vista di modello non c'e' niente da dettagliare" } ] },
+    { "operation": "viste_standard",
+      "arguments": { "modello": "{LAVORO}\\detail_enlarges.sldprt" },
+      "expect": [
+        { "what": "misure.viste_create", "equal_to": 3,
+          "why": "senza una vista di modello non c'e' niente da dettagliare" } ] },
 
-    { "operazione": "dettaglio_in_tavola",
-      "argomenti": { "etichetta": "B", "scala": 2, "raggio_mm": 8 },
-      "attese": [
-        { "cosa": "misure.circonferenze_prima", "uguale": 0,
-          "perche": "la vista di partenza non ne aveva nessuna: e' il termine di paragone, e senza di lui «adesso ce n'e' una» non direbbe che e' nata adesso" },
+    { "operation": "dettaglio_in_tavola",
+      "arguments": { "etichetta": "B", "scala": 2, "raggio_mm": 8 },
+      "expect": [
+        { "what": "misure.circonferenze_prima", "equal_to": 0,
+          "why": "la vista di partenza non ne aveva nessuna: e' il termine di paragone, e senza di lui «adesso ce n'e' una» non direbbe che e' nata adesso" },
 
-        { "cosa": "misure.circonferenze_dopo", "uguale": 1,
-          "e_questa_e_la_riga_che_conta": "**E' L'UNICA COSA CHE DISTINGUE UN DETTAGLIO DA UN CERCHIO DISEGNATO A MANO.** `viste_dopo` sale comunque: una vista in piu' sul foglio non dice che sia legata a quel cerchio. La circonferenza di dettaglio sulla vista di PARTENZA lo dice.",
-          "perche": "da zero a una, sulla vista di partenza" },
+        { "what": "misure.circonferenze_dopo", "equal_to": 1,
+          "_and_this_is_the_line_that_counts": "**E' L'UNICA COSA CHE DISTINGUE UN DETTAGLIO DA UN CERCHIO DISEGNATO A MANO.** `viste_dopo` sale comunque: una vista in piu' sul foglio non dice che sia legata a quel cerchio. La circonferenza di dettaglio sulla vista di PARTENZA lo dice.",
+          "why": "da zero a una, sulla vista di partenza" },
 
-        { "cosa": "misure.e_un_dettaglio", "uguale": true,
-          "perche": "il tipo della vista nata (swDrawingDetailView), non il fatto che il conto sia salito" },
+        { "what": "misure.e_un_dettaglio", "equal_to": true,
+          "why": "il tipo della vista nata (swDrawingDetailView), non il fatto che il conto sia salito" },
 
-        { "cosa": "misure.viste_prima", "uguale": 4,
-          "perche": "tre viste di modello piu' il FOGLIO, che nell'elenco di SOLIDWORKS e' la prima «vista»" },
+        { "what": "misure.viste_prima", "equal_to": 4,
+          "why": "tre viste di modello piu' il FOGLIO, che nell'elenco di SOLIDWORKS e' la prima «vista»" },
 
-        { "cosa": "misure.viste_dopo", "uguale": 5,
-          "perche": "una in piu': il riscontro che l'API non si e' limitata a rispondere un oggetto" },
+        { "what": "misure.viste_dopo", "equal_to": 5,
+          "why": "una in piu': il riscontro che l'API non si e' limitata a rispondere un oggetto" },
 
-        { "cosa": "misure.cosa_non_guarda", "contiene": ["particolare che serviva"],
-          "perche": "la cecita' che conta: un cerchio spostato di dieci millimetri ingrandisce un pezzo di piano liscio, ed e' altrettanto valido" } ] }
+        { "what": "misure.cosa_non_guarda", "includes": ["particolare che serviva"],
+          "why": "la cecita' che conta: un cerchio spostato di dieci millimetri ingrandisce un pezzo di piano liscio, ed e' altrettanto valido" } ] }
   ]
 }

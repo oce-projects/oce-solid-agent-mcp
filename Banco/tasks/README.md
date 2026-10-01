@@ -1,4 +1,4 @@
-# `compiti/` — quello che si chiede al MODELLO, non alla libreria
+# `tasks/` — quello che si chiede al MODELLO, non alla libreria
 
 > **Questa cartella non e' un banco.** E' l'INGRESSO del banco della voce
 > Z-G9, che oggi non esiste. Qui ci sono i compiti e **come si misurano**; il
@@ -6,7 +6,7 @@
 
 ## Perche' esiste, e perche' prima del codice
 
-Il banco di `Banco/casi/` esegue piani **gia' scritti da una persona**: misura
+Il banco di `Banco/cases/` esegue piani **gia' scritti da una persona**: misura
 la libreria, e lo fa bene. Ma non risponde alla domanda che conta davvero —
 *il modello, da solo, riesce a fare il pezzo?*
 
@@ -27,7 +27,7 @@ compito         cosa si chiede, in italiano d'officina, come lo direbbe
                 qualcuno al banco. NIENTE nomi di operazioni, niente
                 argomenti, niente numeri che non direbbe un umano.
 
-come_si_misura  le attese, nella stessa forma dei casi di `Banco/casi/`:
+come_si_misura  le attese, nella stessa forma dei casi di `Banco/cases/`:
                 `cosa`, `uguale`/`contiene`, `perche`. Si valutano sul pezzo
                 FINITO, non sui passi: al modello non si dice come arrivarci.
 ```

@@ -1,29 +1,29 @@
 {
-  "nome": "ingombro_di_due_corpi_lontani",
-  "famiglia": "misura",
-  "perche": "Due corpi a 600 mm di distanza: ognuno sta in 100x100x20, e la scatola che li contiene tutti e due e' alta 620. E' la differenza fra «quanto e' grande il corpo» e «quanto spazio occupa il pezzo», e su un saldato e' la domanda che conta. Se l'unione delle scatole fosse sbagliata, il numero uscirebbe uguale a quello di un corpo solo -- credibile, e sbagliato di trenta volte.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "bounding_box_of_two_far_bodies",
+  "family": "measurement",
+  "why": "Due corpi a 600 mm di distanza: ognuno sta in 100x100x20, e la scatola che li contiene tutti e due e' alta 620. E' la differenza fra «quanto e' grande il corpo» e «quanto spazio occupa il pezzo», e su un saldato e' la domanda che conta. Se l'unione delle scatole fosse sbagliata, il numero uscirebbe uguale a quello di un corpo solo -- credibile, e sbagliato di trenta volte.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "sposta_corpi",
-      "argomenti": { "corpi_uid": ["C1"], "dz_mm": 600, "copia": true, "quante_copie": 1 },
-      "attese": [ { "cosa": "corpi", "uguale": 2 } ] },
-    { "operazione": "ingombro_corpo",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.ingombro_mm", "uguale": [100, 100, 620], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "da z = 0 a z = 620: il secondo corpo parte a 600 ed e' spesso 20" },
-        { "cosa": "misure.corpi[0].ingombro_mm", "uguale": [100, 100, 20], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "il singolo corpo e' rimasto quello di prima" } ] },
-    { "operazione": "ingombro_corpo",
-      "argomenti": { "corpo_uid": "@corpo(nome=Estrusione-Estrusione1)" },
-      "attese": [
-        { "cosa": "misure.ingombro_mm", "uguale": [100, 100, 20], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "chiedendo UN corpo si risponde di quello, e i 620 spariscono" },
-        { "cosa": "misure.da_mm", "uguale": [-50, -50, 0], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "l'ingombro da solo e' cieco su QUALE corpo (sono uguali): e' la posizione a dirlo. Voce Z-C16: il 25/9/2026 un giro su tre «C1» era la copia, a z 600, e il caso era verde lo stesso. Adesso il corpo si nomina per nome e si controlla che parta da z = 0" } ] }
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "sposta_corpi",
+      "arguments": { "corpi_uid": ["C1"], "dz_mm": 600, "copia": true, "quante_copie": 1 },
+      "expect": [ { "what": "corpi", "equal_to": 2 } ] },
+    { "operation": "ingombro_corpo",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.ingombro_mm", "equal_to": [100, 100, 620], "tolerance": 0.01,
+          "tolerance_why": "da z = 0 a z = 620: il secondo corpo parte a 600 ed e' spesso 20" },
+        { "what": "misure.corpi[0].ingombro_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
+          "tolerance_why": "il singolo corpo e' rimasto quello di prima" } ] },
+    { "operation": "ingombro_corpo",
+      "arguments": { "corpo_uid": "@corpo(nome=Estrusione-Estrusione1)" },
+      "expect": [
+        { "what": "misure.ingombro_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
+          "tolerance_why": "chiedendo UN corpo si risponde di quello, e i 620 spariscono" },
+        { "what": "misure.da_mm", "equal_to": [-50, -50, 0], "tolerance": 0.01,
+          "tolerance_why": "l'ingombro da solo e' cieco su QUALE corpo (sono uguali): e' la posizione a dirlo. Voce Z-C16: il 25/9/2026 un giro su tre «C1» era la copia, a z 600, e il caso era verde lo stesso. Adesso il corpo si nomina per nome e si controlla che parta da z = 0" } ] }
   ]
 }

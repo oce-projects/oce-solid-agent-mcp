@@ -271,10 +271,10 @@ namespace Prove.Contratti
                 "{\"class\": \"quote\", \"file\": \"^README\\\\.md$\"}", "never a whole file",
                 "an exception that covers a whole file is refused");
             Refused(copy, detector, baseline, exceptionsFile, original,
-                "{\"class\": \"detector-lexicon\", \"file\": \"^Banco/casi/\", \"json_path\": \"^(nome|passi|attese)\"}", "exactly one file of Controlli/lingua",
+                "{\"class\": \"detector-lexicon\", \"file\": \"^Banco/cases/\", \"json_path\": \"^(nome|passi|attese)\"}", "exactly one file of Controlli/lingua",
                 "a json_path over a folder of cases is refused");
             Refused(copy, detector, baseline, exceptionsFile, original,
-                "{\"class\": \"quote\", \"file\": \"^Banco/casi/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",
+                "{\"class\": \"quote\", \"file\": \"^Banco/cases/x\\\\.json$\", \"json_path\": \"^nome$\"}", "only for the class detector-lexicon",
                 "a json_path outside the class detector-lexicon is refused");
             var functionWords = Items(lexicon["function_words"]).Select(o => o.ToString()).Take(3).ToList();
             Refused(copy, detector, baseline, exceptionsFile, original,

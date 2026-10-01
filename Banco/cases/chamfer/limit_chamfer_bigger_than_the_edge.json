@@ -1,18 +1,18 @@
 {
-  "nome": "lim_smusso_piu_grande_dello_spigolo",
-  "famiglia": "smusso",
-  "perche": "Uno smusso da 200 su uno spigolo lungo 100 non ci sta, e deve essere rifiutato PRIMA -- non lasciare l'albero a meta' con uno schizzo orfano dentro. Il messaggio da' il CRITERIO e non il verdetto: dice quanto e' lungo lo spigolo, cosi' chi legge sa di quanto sbagliava.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 120000 } ] },
-    { "operazione": "smusso_spigoli",
-      "argomenti": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 200, "angolo_gradi": 45 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["e' troppo per lo spigolo", "non ci sta neanche meta"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "smusso_5_a_45" } }
+  "name": "limit_chamfer_bigger_than_the_edge",
+  "family": "chamfer",
+  "why": "Uno smusso da 200 su uno spigolo lungo 100 non ci sta, e deve essere rifiutato PRIMA -- non lasciare l'albero a meta' con uno schizzo orfano dentro. Il messaggio da' il CRITERIO e non il verdetto: dice quanto e' lungo lo spigolo, cosi' chi legge sa di quanto sbagliava.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 120000 } ] },
+    { "operation": "smusso_spigoli",
+      "arguments": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 200, "angolo_gradi": 45 },
+      "must_fail": {
+        "message_includes": ["e' troppo per lo spigolo", "non ci sta neanche meta"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "chamfer_5_at_45" } }
   ]
 }

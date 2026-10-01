@@ -396,7 +396,7 @@ namespace Riscontro.Disegno
         /// PER PEZZO, NON PER ISTANZA (revisione avversariale del 27/9/2026). Lo
         /// STEP scrive la struttura dell'assieme: la forma di un pezzo compare UNA
         /// volta e le istanze sono occorrenze con la loro trasformazione. Misurato
-        /// il 28/9/2026 (caso assiemi/due_basi_uguali_uno_step: la base due volte
+        /// il 28/9/2026 (caso assemblies/two_equal_bases_one_step: la base due volte
         /// e il coperchio una) — nel file 2 solidi. Il conto per istanza
         /// ne aspettava 3, e rifiutava uno STEP giusto su ogni assieme con viti o
         /// piedini ripetuti. Un pezzo e' il suo file PIU' la configurazione: due

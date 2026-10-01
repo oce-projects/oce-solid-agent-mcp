@@ -47,20 +47,20 @@ namespace Prove.Contratti
 
             // ── LA TOLLERANZA E' ASSOLUTA, E SERVE IL PERCHE' ─────────────
             var conTolleranza = Attesa("misure.tolti_mm3", 1234.0);
-            conTolleranza["tolleranza"] = 1.0;
-            conTolleranza["perche_questa_tolleranza"] = "e' una prova, e il numero e' scritto a mano";
+            conTolleranza["tolerance"] = 1.0;
+            conTolleranza["tolerance_why"] = "e' una prova, e il numero e' scritto a mano";
             Segna("tolleranza rispettata: verde",
                   Attese.Combacia(conTolleranza, null, stato, misure, out d), d);
 
-            conTolleranza["uguale"] = 1200.0;
+            conTolleranza["equal_to"] = 1200.0;
             Segna("tolleranza superata: rosso",
                   !Attese.Combacia(conTolleranza, null, stato, misure, out d), d);
 
             var senzaPerche = Attesa("misure.tolti_mm3", 1234.0);
-            senzaPerche["tolleranza"] = 1.0;
+            senzaPerche["tolerance"] = 1.0;
             Segna("tolleranza senza il perche': non si valuta",
                   Alza(() => { string x; Attese.Combacia(senzaPerche, null, stato, misure, out x); },
-                       "perche_questa_tolleranza"));
+                       "tolerance_why"));
 
             // ── IL CAMPO ASSENTE NON E' UNO ZERO (voce F4) ────────────────
             //
@@ -181,7 +181,7 @@ namespace Prove.Contratti
                 ["misti"] = new List<object> { "C2", 7.0 },
             };
             Func<string, object, Dictionary<string, object>> att = (c, u) =>
-                new Dictionary<string, object> { ["cosa"] = c, ["uguale"] = u };
+                new Dictionary<string, object> { ["what"] = c, ["equal_to"] = u };
 
             Segna("elenco di testo: uguale passa",
                   Attese.Combacia(att("stato.utensili", new List<object> { "C2", "C3" }),
@@ -246,11 +246,11 @@ namespace Prove.Contratti
             // un altro nome.
             Func<string, double, object> passoPezzo = (piano, spessore) => new Dictionary<string, object>
             {
-                ["operazione"] = "estrudi_rettangolo",
-                ["argomenti"] = new Dictionary<string, object> { ["piano"] = piano, ["spessore_mm"] = spessore },
+                ["operation"] = "estrudi_rettangolo",
+                ["arguments"] = new Dictionary<string, object> { ["piano"] = piano, ["spessore_mm"] = spessore },
             };
             var scatola = new List<object> { passoPezzo("superiore", 20.0),
-                new Dictionary<string, object> { ["operazione"] = "guscio" } };
+                new Dictionary<string, object> { ["operation"] = "guscio" } };
             var piastra = new List<object> { passoPezzo("superiore", 2.0) };
             const string fraseDelPezzo = "la piastra non ha pareti, la scatola si'";
             Segna("stessi argomenti su un altro pezzo, dichiarato: accettata",
@@ -283,9 +283,9 @@ namespace Prove.Contratti
             };
             Func<object, object, Dictionary<string, object>> frase = (c, n) =>
             {
-                var a = new Dictionary<string, object> { ["cosa"] = "stato.forma" };
-                if (c != null) a["contiene"] = c;
-                if (n != null) a["non_contiene"] = n;
+                var a = new Dictionary<string, object> { ["what"] = "stato.forma" };
+                if (c != null) a["includes"] = c;
+                if (n != null) a["does_not_include"] = n;
                 return a;
             };
 
@@ -325,9 +325,9 @@ namespace Prove.Contratti
             };
             Func<string, object, object, Dictionary<string, object>> elenco = (campo, c, n) =>
             {
-                var a = new Dictionary<string, object> { ["cosa"] = "misure." + campo };
-                if (c != null) a["contiene"] = c;
-                if (n != null) a["non_contiene"] = n;
+                var a = new Dictionary<string, object> { ["what"] = "misure." + campo };
+                if (c != null) a["includes"] = c;
+                if (n != null) a["does_not_include"] = n;
                 return a;
             };
 
@@ -374,7 +374,7 @@ namespace Prove.Contratti
             Segna("frase ROSSO: chi misura risponde niente, e la frase manca",
                   !Attese.Combacia(
                       new Dictionary<string, object>
-                      { ["cosa"] = "forma_del_pezzo", ["contiene"] = new List<object> { "x" } },
+                      { ["what"] = "forma_del_pezzo", ["includes"] = new List<object> { "x" } },
                       c => null, stato, misure, out d) &&
                   d.IndexOf("non c'e'", StringComparison.Ordinal) >= 0, d);
             Segna("frase ROSSO: un elenco vuoto non chiede niente, e si rifiuta",
@@ -385,7 +385,7 @@ namespace Prove.Contratti
                   Alza(() =>
                   {
                       var a = frase(new List<object> { "profilo" }, null);
-                      a["uguale"] = "qualcosa";
+                      a["equal_to"] = "qualcosa";
                       string x; Attese.Combacia(a, null, conForma, misure, out x);
                   }, "decidi quale dei due"));
 
@@ -445,7 +445,7 @@ namespace Prove.Contratti
 
         private static Dictionary<string, object> Attesa(string cosa, object uguale)
         {
-            return new Dictionary<string, object> { ["cosa"] = cosa, ["uguale"] = uguale };
+            return new Dictionary<string, object> { ["what"] = cosa, ["equal_to"] = uguale };
         }
 
         /// <summary>

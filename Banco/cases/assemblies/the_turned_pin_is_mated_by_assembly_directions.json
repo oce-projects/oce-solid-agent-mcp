@@ -1,66 +1,66 @@
 {
-  "nome": "the_turned_pin_is_mated_by_assembly_directions",
-  "famiglia": "assiemi",
-  "perche": "Z-C21.5, finding M1 (high). `accoppia` names the faces by direction (`alto`, `destra`...) and the catalogue promises the directions of the ASSEMBLY, but the faces are taken from IComponent2.GetBodies3, which hands the bodies in the PART's coordinates (RAG 82zq), and up to library 0.145.0 IFace2.Normal was compared as it came, with no Transform2. On a component that is not turned the two agree, and every assembly case so far had only such components: the defect could not show. Here the pin is turned by the first mate, and the second one names its face by where it looks in the assembly. The fix turns each normal with the component's axes (Transform2 applied to X, Y and Z with IMathVector.MultiplyTransform, the reading measured for N26).",
-  "il_difetto_che_questo_caso_prende": "A face chosen by its direction in the part file on a turned component: the mate goes on another face, or «no flat face looks that way» on a face that does look that way in the assembly. And the opposite: a direction the turned pin has in its part file (up) accepted although no face of it looks up in the assembly.",
-  "se_resta_verde_sulla_libreria_vecchia": "It does not: on 0.145.0 step 2 asks for the pin's `destra` face, and in the part file the pin has flat faces only up and down (its side is curved), so the old library refuses with «no flat face looks that way». Step 3 would pass there instead, mating the pin's top face, which looks right in the assembly.",
-  "i_numeri": "Base 100 x 100 x 10 extruded up from the Top plane, centred: its right face is at x = 50 (a square, so which side is `lunghezza_mm` does not matter). The pin is a cylinder of diameter 20 extruded 30 up from the Top plane (the same one-direction extrusion as the plates, so its origin is the centre of its bottom face and its only flat faces look down and up in the part). Step 1 mates the pin's bottom face on the base's right face, opposite: the bottom now looks -X, the pin's axis runs along +X, its origin sits on x = 50 and its top face on x = 80, looking +X. The plate is 40 x 40 x 10, centred, its origin in the middle of its bottom face and its left face 20 mm to the left of it. Step 2 mates the plate's left face on the pin's top face: the left face goes to x = 80 and the plate's origin to x = 100. Only x is fixed by these mates, so only x is checked.",
-  "assieme": {
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 100, "spessore_mm": 10, "centrato": true } }
+  "name": "the_turned_pin_is_mated_by_assembly_directions",
+  "family": "assemblies",
+  "why": "Z-C21.5, finding M1 (high). `accoppia` names the faces by direction (`alto`, `destra`...) and the catalogue promises the directions of the ASSEMBLY, but the faces are taken from IComponent2.GetBodies3, which hands the bodies in the PART's coordinates (RAG 82zq), and up to library 0.145.0 IFace2.Normal was compared as it came, with no Transform2. On a component that is not turned the two agree, and every assembly case so far had only such components: the defect could not show. Here the pin is turned by the first mate, and the second one names its face by where it looks in the assembly. The fix turns each normal with the component's axes (Transform2 applied to X, Y and Z with IMathVector.MultiplyTransform, the reading measured for N26).",
+  "defect_caught": "A face chosen by its direction in the part file on a turned component: the mate goes on another face, or «no flat face looks that way» on a face that does look that way in the assembly. And the opposite: a direction the turned pin has in its part file (up) accepted although no face of it looks up in the assembly.",
+  "_if_it_stays_green_on_the_old_library": "It does not: on 0.145.0 step 2 asks for the pin's `destra` face, and in the part file the pin has flat faces only up and down (its side is curved), so the old library refuses with «no flat face looks that way». Step 3 would pass there instead, mating the pin's top face, which looks right in the assembly.",
+  "_the_numbers": "Base 100 x 100 x 10 extruded up from the Top plane, centred: its right face is at x = 50 (a square, so which side is `lunghezza_mm` does not matter). The pin is a cylinder of diameter 20 extruded 30 up from the Top plane (the same one-direction extrusion as the plates, so its origin is the centre of its bottom face and its only flat faces look down and up in the part). Step 1 mates the pin's bottom face on the base's right face, opposite: the bottom now looks -X, the pin's axis runs along +X, its origin sits on x = 50 and its top face on x = 80, looking +X. The plate is 40 x 40 x 10, centred, its origin in the middle of its bottom face and its left face 20 mm to the left of it. Step 2 mates the plate's left face on the pin's top face: the left face goes to x = 80 and the plate's origin to x = 100. Only x is fixed by these mates, so only x is checked.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 100, "spessore_mm": 10, "centrato": true } }
         ] },
-      { "nome": "pin",
-        "posizione_mm": [0, 60, 0],
-        "passi": [
-          { "operazione": "estrudi_cerchio",
-            "argomenti": { "piano": "superiore", "diametro_mm": 20, "altezza_mm": 30 } }
+      { "name": "pin",
+        "position_mm": [0, 60, 0],
+        "steps": [
+          { "operation": "estrudi_cerchio",
+            "arguments": { "piano": "superiore", "diametro_mm": 20, "altezza_mm": 30 } }
         ] },
-      { "nome": "plate",
-        "posizione_mm": [150, 60, 0],
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 40, "larghezza_mm": 40, "spessore_mm": 10, "centrato": true } }
+      { "name": "plate",
+        "position_mm": [150, 60, 0],
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 40, "larghezza_mm": 40, "spessore_mm": 10, "centrato": true } }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "accoppia",
-      "argomenti": {
+  "steps": [
+    { "operation": "accoppia",
+      "arguments": {
         "componente_a": "C1", "faccia_a": "destra",
         "componente_b": "C2", "faccia_b": "basso",
         "tipo": "coincidente", "allineamento": "opposto"
       },
-      "attese": [
-        { "cosa": "misure.accoppiamenti_dopo", "uguale": [1, 1],
-          "perche": "the pin is not turned yet: its `basso` is the same in the part and in the assembly, on the old library and on the new one" },
-        { "cosa": "stato.componenti[1].origine_mm[0]", "uguale": 50, "tolleranza": 0.01,
-          "perche_questa_tolleranza": "the origin is written rounded to the thousandth of a mm; the mate puts it exactly on the base's right face",
-          "perche": "the pin's bottom face, where its origin is, now lies on the base's right face at x = 50: the pin has been turned, its axis along +X" } ] },
+      "expect": [
+        { "what": "misure.accoppiamenti_dopo", "equal_to": [1, 1],
+          "why": "the pin is not turned yet: its `basso` is the same in the part and in the assembly, on the old library and on the new one" },
+        { "what": "stato.componenti[1].origine_mm[0]", "equal_to": 50, "tolerance": 0.01,
+          "tolerance_why": "the origin is written rounded to the thousandth of a mm; the mate puts it exactly on the base's right face",
+          "why": "the pin's bottom face, where its origin is, now lies on the base's right face at x = 50: the pin has been turned, its axis along +X" } ] },
 
-    { "operazione": "accoppia",
-      "argomenti": {
+    { "operation": "accoppia",
+      "arguments": {
         "componente_a": "C2", "faccia_a": "destra",
         "componente_b": "C3", "faccia_b": "sinistra",
         "tipo": "coincidente", "allineamento": "opposto"
       },
-      "attese": [
-        { "cosa": "misure.accoppiamenti_dopo", "uguale": [2, 1],
-          "perche": "M1: `destra` of the turned pin is its TOP face in the part file, which looks +X in the assembly after step 1. The old library looked for a face looking +X in the part file, found none (the side is curved) and refused" },
-        { "cosa": "stato.componenti[2].origine_mm[0]", "uguale": 100, "tolleranza": 0.01,
-          "perche_questa_tolleranza": "the origin is written rounded to the thousandth of a mm",
-          "perche": "the plate's left face went onto the pin's top face at x = 50 + 30 = 80, so its origin, 20 mm to the right of that face, is at x = 100: the face taken is the one that looks right in the assembly, at the far end of the pin" } ] },
+      "expect": [
+        { "what": "misure.accoppiamenti_dopo", "equal_to": [2, 1],
+          "why": "M1: `destra` of the turned pin is its TOP face in the part file, which looks +X in the assembly after step 1. The old library looked for a face looking +X in the part file, found none (the side is curved) and refused" },
+        { "what": "stato.componenti[2].origine_mm[0]", "equal_to": 100, "tolerance": 0.01,
+          "tolerance_why": "the origin is written rounded to the thousandth of a mm",
+          "why": "the plate's left face went onto the pin's top face at x = 50 + 30 = 80, so its origin, 20 mm to the right of that face, is at x = 100: the face taken is the one that looks right in the assembly, at the far end of the pin" } ] },
 
-    { "operazione": "accoppia",
-      "argomenti": {
+    { "operation": "accoppia",
+      "arguments": {
         "componente_a": "C2", "faccia_a": "alto",
         "componente_b": "C3", "faccia_b": "sinistra",
         "tipo": "coincidente", "allineamento": "opposto"
       },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["C2", "«alto»", "in the assembly"],
-        "gemella": "the_turned_pin_is_mated_by_assembly_directions" } }
+      "must_fail": {
+        "message_includes": ["C2", "«alto»", "in the assembly"],
+        "twin": "the_turned_pin_is_mated_by_assembly_directions" } }
   ]
 }

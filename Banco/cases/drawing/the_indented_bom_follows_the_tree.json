@@ -1,63 +1,63 @@
 {
-  "nome": "the_indented_bom_follows_the_tree",
-  "famiglia": "tavola",
-  "perche": "Z-C21.11, finding M23. distinta_base_in_tavola compares the table with the assembly read on its own. Up to library 0.146.0 an indented table was compared with the flat list of the parts at every level, so every indented table of an assembly with a sub-assembly was refused. The M23 probe of the indented BOM (30/9/2026, Detailed numbering) read the rows SOLIDWORKS writes: siblings grouped by file and configuration, one row per group with its count, and under a sub-assembly row the children of ONE instance, one level deeper. For T_ind, part A plus three instances of a sub-assembly S (Show) holding two B plus one loose B: rows A 1, S 3, S > B 2, B 1. The library now expects that tree (IndentedLevel). This case is T_ind built by the bench: the sub-assembly holds two instances of one part (two children with the same `nome`), the two more instances of the sub-assembly and the loose part are inserted by the steps.",
-  "il_difetto_che_questo_caso_prende": "Every indented table of an assembly with a sub-assembly refused; a child row counted for all the instances of its parent (6 instead of 2) instead of one; the sub-assembly row missing from the count.",
-  "se_resta_verde_sulla_libreria_vecchia": "It cannot: on 0.146.0 the expected items are the parts at every level, base 1 and peg 7, that is 2 items against the 4 rows of the table, and step 7 refuses on the count, while it asks for the table.",
-  "i_numeri": "Base 120 x 80 x 10 at the origin. Sub-assembly «pair»: two instances of «peg» (10 x 10 x 10) at 0 and 30 mm, left at the BOM option of a new assembly, Show (read 2 = Show before any setting by the probe of 28/9/2026). Three instances of «pair» (at x = 0, 150, -150, y = 40) and one loose peg (z = 80), the same file as the children. Rows: base 1, pair 3, pair > peg 2, peg 1: 4 items, quantities 7. Top-level components: base and pair from the preparation, then 3, 4, 5.",
-  "assieme": {
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+  "name": "the_indented_bom_follows_the_tree",
+  "family": "drawing",
+  "why": "Z-C21.11, finding M23. distinta_base_in_tavola compares the table with the assembly read on its own. Up to library 0.146.0 an indented table was compared with the flat list of the parts at every level, so every indented table of an assembly with a sub-assembly was refused. The M23 probe of the indented BOM (30/9/2026, Detailed numbering) read the rows SOLIDWORKS writes: siblings grouped by file and configuration, one row per group with its count, and under a sub-assembly row the children of ONE instance, one level deeper. For T_ind, part A plus three instances of a sub-assembly S (Show) holding two B plus one loose B: rows A 1, S 3, S > B 2, B 1. The library now expects that tree (IndentedLevel). This case is T_ind built by the bench: the sub-assembly holds two instances of one part (two children with the same `nome`), the two more instances of the sub-assembly and the loose part are inserted by the steps.",
+  "defect_caught": "Every indented table of an assembly with a sub-assembly refused; a child row counted for all the instances of its parent (6 instead of 2) instead of one; the sub-assembly row missing from the count.",
+  "_if_it_stays_green_on_the_old_library": "It cannot: on 0.146.0 the expected items are the parts at every level, base 1 and peg 7, that is 2 items against the 4 rows of the table, and step 7 refuses on the count, while it asks for the table.",
+  "_the_numbers": "Base 120 x 80 x 10 at the origin. Sub-assembly «pair»: two instances of «peg» (10 x 10 x 10) at 0 and 30 mm, left at the BOM option of a new assembly, Show (read 2 = Show before any setting by the probe of 28/9/2026). Three instances of «pair» (at x = 0, 150, -150, y = 40) and one loose peg (z = 80), the same file as the children. Rows: base 1, pair 3, pair > peg 2, peg 1: 4 items, quantities 7. Top-level components: base and pair from the preparation, then 3, 4, 5.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
         ] },
-      { "nome": "pair",
-        "posizione_mm": [0, 40, 0],
-        "componenti": [
-          { "nome": "peg",
-            "passi": [
-              { "operazione": "estrudi_rettangolo",
-                "argomenti": { "piano": "superiore", "lunghezza_mm": 10, "larghezza_mm": 10, "spessore_mm": 10, "centrato": true } }
+      { "name": "pair",
+        "position_mm": [0, 40, 0],
+        "components": [
+          { "name": "peg",
+            "steps": [
+              { "operation": "estrudi_rettangolo",
+                "arguments": { "piano": "superiore", "lunghezza_mm": 10, "larghezza_mm": 10, "spessore_mm": 10, "centrato": true } }
             ] },
-          { "nome": "peg",
-            "posizione_mm": [30, 0, 0] }
+          { "name": "peg",
+            "position_mm": [30, 0, 0] }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "inserisci_componente",
-      "argomenti": { "percorso": "{LAVORO}\\the_indented_bom_follows_the_tree_pair.sldasm", "x_mm": 150, "y_mm": 40, "z_mm": 0 },
-      "attese": [ { "cosa": "misure.componenti_dopo", "uguale": 3, "perche": "the second instance of the sub-assembly" } ] },
-    { "operazione": "inserisci_componente",
-      "argomenti": { "percorso": "{LAVORO}\\the_indented_bom_follows_the_tree_pair.sldasm", "x_mm": -150, "y_mm": 40, "z_mm": 0 },
-      "attese": [ { "cosa": "misure.componenti_dopo", "uguale": 4, "perche": "the third instance of the sub-assembly" } ] },
-    { "operazione": "inserisci_componente",
-      "argomenti": { "percorso": "{LAVORO}\\the_indented_bom_follows_the_tree_pair_peg.sldprt", "x_mm": 0, "y_mm": 0, "z_mm": 80 },
-      "attese": [ { "cosa": "misure.componenti_dopo", "uguale": 5, "perche": "the loose peg, the same file as the children of the sub-assembly" } ] },
-    { "operazione": "salva_documento",
-      "argomenti": { "percorso": "{LAVORO}\\the_indented_bom_follows_the_tree.sldasm" },
-      "attese": [ { "cosa": "misure.avvisi", "uguale": 0, "perche": "the views hang on the FILE of the assembly" } ] },
-    { "operazione": "crea_disegno",
-      "argomenti": { "formato": "A3" },
-      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
-    { "operazione": "viste_standard",
-      "argomenti": { "modello": "{LAVORO}\\the_indented_bom_follows_the_tree.sldasm" },
-      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
-    { "operazione": "distinta_base_in_tavola",
-      "argomenti": { "vista": "V1", "tipo": "indentata" },
-      "attese": [
-        { "cosa": "misure.voci", "uguale": 4,
-          "perche": "the rows SOLIDWORKS writes: base, pair, pair > peg, peg (probe T_ind)" },
-        { "cosa": "misure.quantita_in_tabella", "uguale": 7,
-          "perche": "1 + 3 + 2 + 1: the child row says 2, the pegs of ONE pair, not 6" },
-        { "cosa": "misure.componenti_distinti_nell_assieme", "uguale": 4,
-          "perche": "THE LINE THAT TAKES M23: the rows expected from the tree of the assembly. On 0.146.0 they are 2 and the step refuses" },
-        { "cosa": "misure.istanze_nell_assieme", "uguale": 7,
-          "perche": "the quantities expected, one parent instance for a child row" },
-        { "cosa": "misure.combaciano", "uguale": true,
-          "perche": "the table and the assembly, each read on its own" },
-        { "cosa": "misure.counted_as", "contiene": ["indented"],
-          "perche": "the answer says how an indented table is counted" } ] }
+  "steps": [
+    { "operation": "inserisci_componente",
+      "arguments": { "percorso": "{LAVORO}\\the_indented_bom_follows_the_tree_pair.sldasm", "x_mm": 150, "y_mm": 40, "z_mm": 0 },
+      "expect": [ { "what": "misure.componenti_dopo", "equal_to": 3, "why": "the second instance of the sub-assembly" } ] },
+    { "operation": "inserisci_componente",
+      "arguments": { "percorso": "{LAVORO}\\the_indented_bom_follows_the_tree_pair.sldasm", "x_mm": -150, "y_mm": 40, "z_mm": 0 },
+      "expect": [ { "what": "misure.componenti_dopo", "equal_to": 4, "why": "the third instance of the sub-assembly" } ] },
+    { "operation": "inserisci_componente",
+      "arguments": { "percorso": "{LAVORO}\\the_indented_bom_follows_the_tree_pair_peg.sldprt", "x_mm": 0, "y_mm": 0, "z_mm": 80 },
+      "expect": [ { "what": "misure.componenti_dopo", "equal_to": 5, "why": "the loose peg, the same file as the children of the sub-assembly" } ] },
+    { "operation": "salva_documento",
+      "arguments": { "percorso": "{LAVORO}\\the_indented_bom_follows_the_tree.sldasm" },
+      "expect": [ { "what": "misure.avvisi", "equal_to": 0, "why": "the views hang on the FILE of the assembly" } ] },
+    { "operation": "crea_disegno",
+      "arguments": { "formato": "A3" },
+      "expect": [ { "what": "stato.tipo", "equal_to": "tavola" } ] },
+    { "operation": "viste_standard",
+      "arguments": { "modello": "{LAVORO}\\the_indented_bom_follows_the_tree.sldasm" },
+      "expect": [ { "what": "misure.viste_create", "equal_to": 3 } ] },
+    { "operation": "distinta_base_in_tavola",
+      "arguments": { "vista": "V1", "tipo": "indentata" },
+      "expect": [
+        { "what": "misure.voci", "equal_to": 4,
+          "why": "the rows SOLIDWORKS writes: base, pair, pair > peg, peg (probe T_ind)" },
+        { "what": "misure.quantita_in_tabella", "equal_to": 7,
+          "why": "1 + 3 + 2 + 1: the child row says 2, the pegs of ONE pair, not 6" },
+        { "what": "misure.componenti_distinti_nell_assieme", "equal_to": 4,
+          "why": "THE LINE THAT TAKES M23: the rows expected from the tree of the assembly. On 0.146.0 they are 2 and the step refuses" },
+        { "what": "misure.istanze_nell_assieme", "equal_to": 7,
+          "why": "the quantities expected, one parent instance for a child row" },
+        { "what": "misure.combaciano", "equal_to": true,
+          "why": "the table and the assembly, each read on its own" },
+        { "what": "misure.counted_as", "includes": ["indented"],
+          "why": "the answer says how an indented table is counted" } ] }
   ]
 }

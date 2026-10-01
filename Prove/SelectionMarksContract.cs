@@ -56,7 +56,7 @@ namespace Prove.Contratti
                 return;
             }
             var cases = new HashSet<string>(StringComparer.Ordinal);
-            var casesDir = Path.Combine(Radice(), "Banco", "casi");
+            var casesDir = Path.Combine(Radice(), "Banco", "cases");
             if (Directory.Exists(casesDir))
                 foreach (var f in Directory.GetFiles(casesDir, "*.json", SearchOption.AllDirectories))
                     cases.Add(Path.GetFileNameWithoutExtension(f));
@@ -166,7 +166,7 @@ namespace Prove.Contratti
                     {
                         var measured = MeasuredRx.Match(block);
                         if (!measured.Success || !cases.Contains(measured.Groups[1].Value))
-                            problems.Add(name + ": UNDOCUMENTED needs \"MEASURED: <bank case>\" with a case in Banco/casi" +
+                            problems.Add(name + ": UNDOCUMENTED needs \"MEASURED: <bank case>\" with a case in Banco/cases" +
                                          (measured.Success ? " («" + measured.Groups[1].Value + "» is not)" : ""));
                         continue;
                     }

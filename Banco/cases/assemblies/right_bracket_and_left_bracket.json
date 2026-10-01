@@ -1,53 +1,53 @@
 {
-  "nome": "la_staffa_destra_e_la_sinistra",
-  "famiglia": "assiemi",
-  "perche": "VOCE GA11. La staffa destra e la sinistra e' il caso piu' comune di carpenteria, e il pericolo sta nel legame: legato e non voluto, cambi la destra e ti cambia la sinistra; slegato e non voluto, correggi la destra e la sinistra resta sbagliata senza dirlo. Misurato il 27/9/2026 (prova0089 ga11): IMirrorComponentFeatureData da' le tre cose — l'istanza dello stesso file, il file opposto legato (una lavorazione sola, MirrorStock) e quello slegato (le lavorazioni copiate). Il caso le prova tutte e tre, su tre piani diversi perche' non si sovrappongano.",
-  "il_difetto_che_questo_caso_prende": "Lo specchio che nasce dalla parte sbagliata; il file opposto creduto legato che e' slegato (o il contrario); l'istanza che invece crea un file; array non tipizzati che fanno una feature fantasma.",
-  "assieme": {
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+  "name": "right_bracket_and_left_bracket",
+  "family": "assemblies",
+  "why": "VOCE GA11. La staffa destra e la sinistra e' il caso piu' comune di carpenteria, e il pericolo sta nel legame: legato e non voluto, cambi la destra e ti cambia la sinistra; slegato e non voluto, correggi la destra e la sinistra resta sbagliata senza dirlo. Misurato il 27/9/2026 (prova0089 ga11): IMirrorComponentFeatureData da' le tre cose — l'istanza dello stesso file, il file opposto legato (una lavorazione sola, MirrorStock) e quello slegato (le lavorazioni copiate). Il caso le prova tutte e tre, su tre piani diversi perche' non si sovrappongano.",
+  "defect_caught": "Lo specchio che nasce dalla parte sbagliata; il file opposto creduto legato che e' slegato (o il contrario); l'istanza che invece crea un file; array non tipizzati che fanno una feature fantasma.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
         ] },
-      { "nome": "staffa",
-        "posizione_mm": [40, 10, 30],
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 20, "larghezza_mm": 40, "spessore_mm": 10, "centrato": true } }
+      { "name": "staffa",
+        "position_mm": [40, 10, 30],
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 20, "larghezza_mm": 40, "spessore_mm": 10, "centrato": true } }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "specchia_componente",
-      "argomenti": { "componente": "C2", "piano": "destro", "modo": "istanza" },
-      "attese": [
-        { "cosa": "misure.nuovo_file", "uguale": false, "perche": "un'istanza dello stesso file" },
-        { "cosa": "misure.centro_nuovo_mm", "uguale": [-40, 10, 30], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "punti estremi veri, arrotondati",
-          "perche": "sul piano destro (YZ) la x cambia segno" },
-        { "cosa": "stato.quanti_componenti", "uguale": 3 } ] },
-    { "operazione": "specchia_componente",
-      "argomenti": { "componente": "C2", "piano": "frontale", "modo": "opposto_legato", "suffisso": "_legata" },
-      "attese": [
-        { "cosa": "misure.nuovo_file", "uguale": true },
-        { "cosa": "misure.legato_all_originale", "uguale": true, "perche": "l'albero del file nuovo e' MirrorStock: segue l'originale" },
-        { "cosa": "misure.centro_nuovo_mm", "uguale": [40, 10, -30], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "la stessa",
-          "perche": "sul piano frontale (XY) la z cambia segno" } ] },
-    { "operazione": "specchia_componente",
-      "argomenti": { "componente": "C2", "piano": "superiore", "modo": "opposto_slegato", "suffisso": "_slegata" },
-      "attese": [
-        { "cosa": "misure.nuovo_file", "uguale": true },
-        { "cosa": "misure.legato_all_originale", "uguale": false, "perche": "le lavorazioni copiate: non segue piu' l'originale" },
-        { "cosa": "misure.centro_nuovo_mm", "uguale": [40, -10, 30], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "la stessa",
-          "perche": "sul piano superiore (XZ) la y cambia segno" },
-        { "cosa": "stato.quanti_componenti", "uguale": 5 } ] },
-    { "operazione": "specchia_componente",
-      "argomenti": { "componente": "C2", "piano": "destro" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["Dimmi «modo»", "istanza"],
-        "gemella": "la_staffa_destra_e_la_sinistra" } }
+  "steps": [
+    { "operation": "specchia_componente",
+      "arguments": { "componente": "C2", "piano": "destro", "modo": "istanza" },
+      "expect": [
+        { "what": "misure.nuovo_file", "equal_to": false, "why": "un'istanza dello stesso file" },
+        { "what": "misure.centro_nuovo_mm", "equal_to": [-40, 10, 30], "tolerance": 0.01,
+          "tolerance_why": "punti estremi veri, arrotondati",
+          "why": "sul piano destro (YZ) la x cambia segno" },
+        { "what": "stato.quanti_componenti", "equal_to": 3 } ] },
+    { "operation": "specchia_componente",
+      "arguments": { "componente": "C2", "piano": "frontale", "modo": "opposto_legato", "suffisso": "_legata" },
+      "expect": [
+        { "what": "misure.nuovo_file", "equal_to": true },
+        { "what": "misure.legato_all_originale", "equal_to": true, "why": "l'albero del file nuovo e' MirrorStock: segue l'originale" },
+        { "what": "misure.centro_nuovo_mm", "equal_to": [40, 10, -30], "tolerance": 0.01,
+          "tolerance_why": "la stessa",
+          "why": "sul piano frontale (XY) la z cambia segno" } ] },
+    { "operation": "specchia_componente",
+      "arguments": { "componente": "C2", "piano": "superiore", "modo": "opposto_slegato", "suffisso": "_slegata" },
+      "expect": [
+        { "what": "misure.nuovo_file", "equal_to": true },
+        { "what": "misure.legato_all_originale", "equal_to": false, "why": "le lavorazioni copiate: non segue piu' l'originale" },
+        { "what": "misure.centro_nuovo_mm", "equal_to": [40, -10, 30], "tolerance": 0.01,
+          "tolerance_why": "la stessa",
+          "why": "sul piano superiore (XZ) la y cambia segno" },
+        { "what": "stato.quanti_componenti", "equal_to": 5 } ] },
+    { "operation": "specchia_componente",
+      "arguments": { "componente": "C2", "piano": "destro" },
+      "must_fail": {
+        "message_includes": ["Dimmi «modo»", "istanza"],
+        "twin": "right_bracket_and_left_bracket" } }
   ]
 }

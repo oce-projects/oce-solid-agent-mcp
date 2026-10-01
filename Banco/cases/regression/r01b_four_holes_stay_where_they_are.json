@@ -1,13 +1,13 @@
 {
-  "nome": "r01b_quattro_fori_restano_dove_sono",
-  "famiglia": "regressione",
-  "perche": "IL GEMELLO ASSOLUTO di `r01_quattro_fori_dal_bordo` (voce E18): gli stessi quattro fori, senza ancora. Prova che il vecchio modo continua a funzionare quando e' quello che si vuole — fori che stanno dove stanno perche' li' c'e' qualcosa che corrisponde, non perche' sono a 20 dal bordo.",
-  "intento": "ancorato_a_assoluto",
-  "perche_intento": "senza ancora x_mm/y_mm sono coordinate del modello: alzando la piastra a 180 (da Y -60..+60 a -60..+120) i fori restano a y = +/-40.",
-  "costruisci": [
+  "name": "r01b_four_holes_stay_where_they_are",
+  "family": "regression",
+  "why": "IL GEMELLO ASSOLUTO di `r01_four_holes_from_the_border` (voce E18): gli stessi quattro fori, senza ancora. Prova che il vecchio modo continua a funzionare quando e' quello che si vuole — fori che stanno dove stanno perche' li' c'e' qualcosa che corrisponde, non perche' sono a 20 dal bordo.",
+  "intent": "ancorato_a_assoluto",
+  "intent_why": "senza ancora x_mm/y_mm sono coordinate del modello: alzando la piastra a 180 (da Y -60..+60 a -60..+120) i fori restano a y = +/-40.",
+  "build": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": {
+      "operation": "estrudi_rettangolo",
+      "arguments": {
         "piano": "frontale",
         "lunghezza_mm": 200,
         "larghezza_mm": 120,
@@ -16,8 +16,8 @@
       }
     },
     {
-      "operazione": "foro_guidato",
-      "argomenti": {
+      "operation": "foro_guidato",
+      "arguments": {
         "faccia_uid": "@faccia(verso=davanti)",
         "taglia": "M8",
         "passante": true,
@@ -42,29 +42,29 @@
       }
     }
   ],
-  "modifica": {
+  "modify": {
     "quota": "@quota(feature=Schizzo1,nome=D2)",
     "valore_mm": 180
   },
-  "dopo": [
+  "after": [
     {
-      "cosa": "ingombro_mm",
-      "uguale": [
+      "what": "ingombro_mm",
+      "equal_to": [
         200,
         180,
         20
       ]
     },
     {
-      "cosa": "centri_y_mm",
-      "uguale": [
+      "what": "centri_y_mm",
+      "equal_to": [
         -40,
         -40,
         40,
         40
       ],
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri"
+      "tolerance": 0.05,
+      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri"
     }
   ]
 }

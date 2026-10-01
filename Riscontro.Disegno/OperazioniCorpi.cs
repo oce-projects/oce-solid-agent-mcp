@@ -488,7 +488,7 @@ namespace Riscontro.Disegno
                     // swFeatureFilletType_e.swFeatureFilletType_VariableRadius».
                     // The radii are the two of `Radii` below. The Z-C21.3 probe of
                     // L7-7 measured 277.694 mm3 with R1 = the first radius; the
-                    // bench case raccordo_che_cambia_raggio (277.7) is the check
+                    // bench case fillet_that_changes_radius (277.7) is the check
                     // that R1 = 0, as the page asks, changes nothing.
                     R1: 0,
                     R2: 0,

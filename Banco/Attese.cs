@@ -145,8 +145,8 @@ namespace ProvaSaldatura
             out string dettaglio)
         {
             dettaglio = "";
-            string cosa = Testo(attesa, "cosa");
-            if (cosa == null) throw new NonHoPotutoMisurare("un'attesa senza «cosa»");
+            string cosa = Testo(attesa, "what");
+            if (cosa == null) throw new NonHoPotutoMisurare("un'attesa senza «what»");
 
             // ── QUANDO LA MISURA E' UNA FRASE ─────────────────────────────
             //
@@ -158,33 +158,33 @@ namespace ProvaSaldatura
             // non ci siano — la seconda meta' e' la piu' importante, perche'
             // e' come si prende una frase che dichiara un profilo che il pezzo
             // non ha piu'.
-            bool contiene = attesa.ContainsKey("contiene");
-            bool nonContiene = attesa.ContainsKey("non_contiene");
+            bool contiene = attesa.ContainsKey("includes");
+            bool nonContiene = attesa.ContainsKey("does_not_include");
             if (contiene || nonContiene)
             {
-                if (attesa.ContainsKey("uguale"))
-                    throw new NonHoPotutoMisurare("«" + cosa + "» ha «uguale» insieme a " +
-                                        "«contiene»/«non_contiene»: decidi quale dei due");
+                if (attesa.ContainsKey("equal_to"))
+                    throw new NonHoPotutoMisurare("«" + cosa + "» ha «equal_to» insieme a " +
+                                        "«includes»/«does_not_include»: decidi quale dei due");
                 return Frase(cosa, attesa, dalDocumento, stato, misure, out dettaglio);
             }
 
-            if (!attesa.ContainsKey("uguale")) throw new NonHoPotutoMisurare("«" + cosa + "» senza «uguale»");
+            if (!attesa.ContainsKey("equal_to")) throw new NonHoPotutoMisurare("«" + cosa + "» senza «equal_to»");
 
             double tolleranza = 0;
-            if (attesa.ContainsKey("tolleranza") && attesa["tolleranza"] != null)
+            if (attesa.ContainsKey("tolerance") && attesa["tolerance"] != null)
             {
-                tolleranza = Convert.ToDouble(attesa["tolleranza"], CultureInfo.InvariantCulture);
+                tolleranza = Convert.ToDouble(attesa["tolerance"], CultureInfo.InvariantCulture);
                 // IL PERCHE' E' OBBLIGATORIO, e non e' burocrazia: una
                 // tolleranza senza motivo e' il posto in cui un giorno qualcuno
                 // allarghera' il numero invece di guardare il pezzo.
-                if (Math.Abs(tolleranza) > 1e-12 && Testo(attesa, "perche_questa_tolleranza") == null)
+                if (Math.Abs(tolleranza) > 1e-12 && Testo(attesa, "tolerance_why") == null)
                     throw new NonHoPotutoMisurare("«" + cosa + "» ha tolleranza " +
                                         tolleranza.ToString(CultureInfo.InvariantCulture) +
-                                        " e non dice «perche_questa_tolleranza»");
+                                        " e non dice «tolerance_why»");
             }
 
             object misurato = Misura(cosa, dalDocumento, stato, misure);
-            object atteso = attesa["uguale"];
+            object atteso = attesa["equal_to"];
 
             // Un elenco di numeri: l'ingombro, un punto, una terna.
             var attesoLista = atteso as System.Collections.IEnumerable;
@@ -264,7 +264,7 @@ namespace ProvaSaldatura
         /// <summary>
         /// UN'ATTESA SU UNA FRASE: quali pezzi ci devono essere, e quali no.
         ///
-        /// `non_contiene` non e' la comodita' simmetrica di `contiene`: e' il
+        /// `does_not_include` non e' la comodita' simmetrica di `includes`: e' il
         /// motivo per cui questo esiste. Una frase che dichiara «il profilo
         /// Ø30 per 40» su un pezzo che quel profilo non ce l'ha piu' e' il
         /// difetto che non da' errore, e si prende solo pretendendo che una
@@ -294,11 +294,11 @@ namespace ProvaSaldatura
             //     non dice «80X80X5»: System.String[]
             //
             // — un messaggio vero e inutile, perche' `Convert.ToString` su un
-            // array da' il nome del tipo. Per `uguale` gli elenchi di testo
-            // erano gia' stati insegnati (voce 0.81.0); per `contiene` no, e il
+            // array da' il nome del tipo. Per `equal_to` gli elenchi di testo
+            // erano gia' stati insegnati (voce 0.81.0); per `includes` no, e il
             // difetto e' rimasto finche' un caso non l'ha ripreso.
             //
-            // Su un elenco «contiene» vuol dire **una delle voci lo contiene**,
+            // Su un elenco «includes» vuol dire **una delle voci lo contiene**,
             // non «la scrittura dell'elenco lo contiene»: cosi' cercare
             // «80X80X5» trova la voce, e cercare «80X80» trova la stessa voce
             // per prefisso, che e' quello che chi scrive il caso si aspetta.
@@ -309,11 +309,11 @@ namespace ProvaSaldatura
                 : Convert.ToString(misurato, CultureInfo.InvariantCulture);
 
             var mancano = new List<string>();
-            foreach (var p in Pezzi(attesa, "contiene"))
+            foreach (var p in Pezzi(attesa, "includes"))
                 if (!Dentro(voci, frase, p)) mancano.Add("«" + p + "»");
 
             var diTroppo = new List<string>();
-            foreach (var p in Pezzi(attesa, "non_contiene"))
+            foreach (var p in Pezzi(attesa, "does_not_include"))
                 if (Dentro(voci, frase, p)) diTroppo.Add("«" + p + "»");
 
             if (mancano.Count == 0 && diTroppo.Count == 0)
@@ -359,7 +359,7 @@ namespace ProvaSaldatura
         ///
         /// Il secondo era una desinenza, e si e' riparato cercando la radice.
         /// Il primo e il terzo sono la stessa cosa, e non erano difetti dei
-        /// casi: `contiene` guarda PROSA, scritta per una persona, e in questo
+        /// casi: `includes` guarda PROSA, scritta per una persona, e in questo
         /// repository l'enfasi si fa alzando la voce — cioe' cambiando le
         /// maiuscole. Un'attesa che si rompe quando una frase viene riscritta
         /// con piu' enfasi non sta misurando cio' che dice: sta misurando come
@@ -368,7 +368,7 @@ namespace ProvaSaldatura
         /// *Tre incidenti dalla stessa causa non sono tre casi da riparare: e'
         /// un operatore da riparare.*
         ///
-        /// ── E `non_contiene` DIVENTA PIU' SEVERO ─────────────────────────
+        /// ── E `does_not_include` DIVENTA PIU' SEVERO ─────────────────────────
         ///
         /// Cambiano insieme, ed e' il verso scomodo: un «non dice X» che
         /// passava solo perche' il testo scriveva «x» adesso diventa rosso. E'
@@ -411,7 +411,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Da dove si legge un `cosa`. Tre sorgenti, e il prefisso lo dice:
+        /// Da dove si legge un `what`. Tre sorgenti, e il prefisso lo dice:
         /// niente = quello che misura il banco per conto suo, `stato.` = lo
         /// stato dell'add-in, `misure.` = quello che l'operazione ha riportato.
         /// </summary>
@@ -540,11 +540,11 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Il campo di «deve_fallire» che dichiara una gemella con gli STESSI
+        /// Il campo di «must_fail» che dichiara una gemella con gli STESSI
         /// argomenti su un ALTRO pezzo. Il valore e' la frase che dice cosa
         /// cambia nel pezzo: vuota non vale.
         /// </summary>
-        internal const string CampoDifferenzaNelPezzo = "la_differenza_e_il_pezzo";
+        internal const string CampoDifferenzaNelPezzo = "difference_is_the_part";
 
         /// <summary>
         /// LA GEMELLA CON GLI STESSI ARGOMENTI, SU UN ALTRO PEZZO (voce F5,
@@ -622,8 +622,8 @@ namespace ProvaSaldatura
             var p = passo as Dictionary<string, object>;
             if (p == null) return ComeSiScrive(passo);
             object op, arg;
-            p.TryGetValue("operazione", out op);
-            p.TryGetValue("argomenti", out arg);
+            p.TryGetValue("operation", out op);
+            p.TryGetValue("arguments", out arg);
             return ComeSiScrive(op) + " " + ComeSiScrive(arg);
         }
 

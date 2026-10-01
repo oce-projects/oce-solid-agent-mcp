@@ -1,37 +1,37 @@
 {
-  "nome": "la_variabile_non_scavalca_lo_smusso",
-  "famiglia": "quote",
-  "perche": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievo 7. Una quota legata a un'equazione modifica_quota non la cambia piu' (e' guidata): la si cambia con variabile_globale — che pero' non aveva nessuna delle guardie di modifica_quota. Piastra 120 x 80 x 20 con uno smusso da 2 su uno spigolo lungo di sopra, lo spessore legato a «parete». Portare parete a 1: lo smusso non ci sta, SOLIDWORKS ricostruisce pulito e cambia la forma (lo stesso del caso r05 per modifica_quota). La risposta era «riuscito» e la variabile restava scritta. Adesso si rifiuta e si rimette la variabile di prima; il passo dopo lo prova: il volume di partenza e' quello con parete = 20.",
-  "il_difetto_che_questo_caso_prende": "Una variabile globale che rompe uno smusso in silenzio; il rifiuto che lascia la variabile scritta.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 192000 } ] },
-    { "operazione": "smusso_spigoli",
-      "argomenti": { "spigoli_uid": ["@spigolo(asse=X,y~=20,z~=40)"], "lato_mm": 2 },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 191760, "tolleranza": 0.05,
-                    "perche_questa_tolleranza": "192000 meno 2 x 2 / 2 x 120" } ] },
-    { "operazione": "variabile_globale",
-      "argomenti": { "nome": "parete", "valore_mm": 20 },
-      "attese": [ { "cosa": "misure.nuova", "uguale": true } ] },
-    { "operazione": "lega_quota",
-      "argomenti": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "espressione": "\"parete\"" },
-      "attese": [
-        { "cosa": "misure.valore_dopo_mm", "uguale": 20 },
-        { "cosa": "volume_mm3", "uguale": 191760, "tolleranza": 0.05, "perche_questa_tolleranza": "la stessa: lo spessore non cambia" } ] },
-    { "operazione": "variabile_globale",
-      "argomenti": { "nome": "parete", "valore_mm": 1 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["non ci sta", "com'era"],
-        "gemella": "la_parete_ha_un_nome" } },
-    { "operazione": "variabile_globale",
-      "argomenti": { "nome": "parete", "valore_mm": 15 },
-      "attese": [
-        { "cosa": "misure.volume_prima_mm3", "uguale": 191760, "tolleranza": 0.05,
-          "perche_questa_tolleranza": "la stessa",
-          "perche": "IL RIFIUTO HA RIMESSO parete = 20: il pezzo di partenza di questo passo e' quello di prima" },
-        { "cosa": "volume_mm3", "uguale": 143760, "tolleranza": 0.05,
-          "perche_questa_tolleranza": "120 x 80 x 15 meno lo smusso, 240" } ] }
+  "name": "variable_does_not_override_the_chamfer",
+  "family": "dimensions",
+  "why": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievo 7. Una quota legata a un'equazione modifica_quota non la cambia piu' (e' guidata): la si cambia con variabile_globale — che pero' non aveva nessuna delle guardie di modifica_quota. Piastra 120 x 80 x 20 con uno smusso da 2 su uno spigolo lungo di sopra, lo spessore legato a «parete». Portare parete a 1: lo smusso non ci sta, SOLIDWORKS ricostruisce pulito e cambia la forma (lo stesso del caso r05 per modifica_quota). La risposta era «riuscito» e la variabile restava scritta. Adesso si rifiuta e si rimette la variabile di prima; il passo dopo lo prova: il volume di partenza e' quello con parete = 20.",
+  "defect_caught": "Una variabile globale che rompe uno smusso in silenzio; il rifiuto che lascia la variabile scritta.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 20, "centrato": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 192000 } ] },
+    { "operation": "smusso_spigoli",
+      "arguments": { "spigoli_uid": ["@spigolo(asse=X,y~=20,z~=40)"], "lato_mm": 2 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 191760, "tolerance": 0.05,
+                    "tolerance_why": "192000 meno 2 x 2 / 2 x 120" } ] },
+    { "operation": "variabile_globale",
+      "arguments": { "nome": "parete", "valore_mm": 20 },
+      "expect": [ { "what": "misure.nuova", "equal_to": true } ] },
+    { "operation": "lega_quota",
+      "arguments": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "espressione": "\"parete\"" },
+      "expect": [
+        { "what": "misure.valore_dopo_mm", "equal_to": 20 },
+        { "what": "volume_mm3", "equal_to": 191760, "tolerance": 0.05, "tolerance_why": "la stessa: lo spessore non cambia" } ] },
+    { "operation": "variabile_globale",
+      "arguments": { "nome": "parete", "valore_mm": 1 },
+      "must_fail": {
+        "message_includes": ["non ci sta", "com'era"],
+        "twin": "wall_has_a_name" } },
+    { "operation": "variabile_globale",
+      "arguments": { "nome": "parete", "valore_mm": 15 },
+      "expect": [
+        { "what": "misure.volume_prima_mm3", "equal_to": 191760, "tolerance": 0.05,
+          "tolerance_why": "la stessa",
+          "why": "IL RIFIUTO HA RIMESSO parete = 20: il pezzo di partenza di questo passo e' quello di prima" },
+        { "what": "volume_mm3", "equal_to": 143760, "tolerance": 0.05,
+          "tolerance_why": "120 x 80 x 15 meno lo smusso, 240" } ] }
   ]
 }

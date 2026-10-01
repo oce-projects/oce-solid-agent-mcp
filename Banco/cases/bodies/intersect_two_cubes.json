@@ -1,24 +1,24 @@
 {
-  "nome": "interseca_due_cubi",
-  "famiglia": "corpi",
-  "perche": "Il terzo valore dell'enum: resta solo quello che i due cubi hanno in comune, 8 x 10 x 5 = 400 mm3. Con questo caso i tre valori di `swCombineBodiesOperationType_e` sono tabellati su tre numeri diversi -- 1600, 600, 400 -- e nessuno dei tre puo' passare per un altro.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
+  "name": "intersect_two_cubes",
+  "family": "bodies",
+  "why": "Il terzo valore dell'enum: resta solo quello che i due cubi hanno in comune, 8 x 10 x 5 = 400 mm3. Con questo caso i tre valori di `swCombineBodiesOperationType_e` sono tabellati su tre numeri diversi -- 1600, 600, 400 -- e nessuno dei tre puo' passare per un altro.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
                      "spessore_mm": 10, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 1000 } ] },
-    { "operazione": "sposta_corpi",
-      "argomenti": { "corpi_uid": ["C1"], "dx_mm": 2, "dz_mm": 5,
+      "expect": [ { "what": "volume_mm3", "equal_to": 1000 } ] },
+    { "operation": "sposta_corpi",
+      "arguments": { "corpi_uid": ["C1"], "dx_mm": 2, "dz_mm": 5,
                      "copia": true, "quante_copie": 1 },
-      "attese": [ { "cosa": "corpi", "uguale": 2 } ] },
-    { "operazione": "combina_corpi",
-      "argomenti": { "operazione": "interseca" },
-      "attese": [
-        { "cosa": "corpi", "uguale": 1 },
-        { "cosa": "volume_mm3", "uguale": 400,
-          "perche": "8 x 10 x 5: la parte che i due cubi hanno in comune" },
-        { "cosa": "ingombro_mm", "uguale": [8, 10, 5],
-          "perche": "il volume da solo non dice la FORMA: 400 mm3 si fanno anche con un pezzo lungo e sottile, e l'ingombro dice che e' proprio il mattoncino della sovrapposizione" } ] }
+      "expect": [ { "what": "corpi", "equal_to": 2 } ] },
+    { "operation": "combina_corpi",
+      "arguments": { "operazione": "interseca" },
+      "expect": [
+        { "what": "corpi", "equal_to": 1 },
+        { "what": "volume_mm3", "equal_to": 400,
+          "why": "8 x 10 x 5: la parte che i due cubi hanno in comune" },
+        { "what": "ingombro_mm", "equal_to": [8, 10, 5],
+          "why": "il volume da solo non dice la FORMA: 400 mm3 si fanno anche con un pezzo lungo e sottile, e l'ingombro dice che e' proprio il mattoncino della sovrapposizione" } ] }
   ]
 }

@@ -115,7 +115,7 @@ namespace Riscontro.Disegno
             // with the machined one active, not the as-welded one (Z-C21.3 probe
             // of L8-5); what InsertWeldmentTable does with it was never measured, while
             // the empty name makes the table of the bench case
-            // la_distinta_di_taglio_in_tavola. Which configuration SOLIDWORKS
+            // cut_list_in_the_drawing. Which configuration SOLIDWORKS
             // takes for the empty name is not measured either. A probe decides
             // it first; the count it is compared with (CorpiNelleCartelleDiDistinta)
             // is read in the part's active configuration.

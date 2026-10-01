@@ -1,25 +1,25 @@
 {
-  "nome": "sottrai_un_cubo_dall_altro",
-  "famiglia": "corpi",
-  "perche": "Lo stesso pezzo di partenza, e il secondo valore dell'enum: 1000 meno i 400 di sovrapposizione fa 600. E' il numero che distingue «sottrai» da «interseca» -- se i due valori fossero scambiati uscirebbe 400, che e' un volume plausibile di un pezzo plausibile.",
-  "perche_il_principale": "nella sottrazione l'ordine cambia il pezzo: A meno B non e' B meno A. Qui i due cubi sono uguali, quindi il VOLUME e' lo stesso in tutti e due i versi -- e fino al 25/9/2026 il caso chiedeva solo quello, col principale scritto «C1». Voce Z-C16: i numeri dei corpi cambiano fra un giro e l'altro (misurato: la copia era C1 in un giro su tre), quindi il principale si nomina per NOME e si controlla il BARICENTRO, che dice quale dei due e' rimasto: l'originale meno la sovrapposizione sta a (-0,667, 0, 3,333); la copia meno l'originale starebbe a (2,667, 0, 11,667).",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
+  "name": "subtract_one_cube_from_the_other",
+  "family": "bodies",
+  "why": "Lo stesso pezzo di partenza, e il secondo valore dell'enum: 1000 meno i 400 di sovrapposizione fa 600. E' il numero che distingue «sottrai» da «interseca» -- se i due valori fossero scambiati uscirebbe 400, che e' un volume plausibile di un pezzo plausibile.",
+  "_why_the_main_one": "nella sottrazione l'ordine cambia il pezzo: A meno B non e' B meno A. Qui i due cubi sono uguali, quindi il VOLUME e' lo stesso in tutti e due i versi -- e fino al 25/9/2026 il caso chiedeva solo quello, col principale scritto «C1». Voce Z-C16: i numeri dei corpi cambiano fra un giro e l'altro (misurato: la copia era C1 in un giro su tre), quindi il principale si nomina per NOME e si controlla il BARICENTRO, che dice quale dei due e' rimasto: l'originale meno la sovrapposizione sta a (-0,667, 0, 3,333); la copia meno l'originale starebbe a (2,667, 0, 11,667).",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
                      "spessore_mm": 10, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 1000 } ] },
-    { "operazione": "sposta_corpi",
-      "argomenti": { "corpi_uid": ["C1"], "dx_mm": 2, "dz_mm": 5,
+      "expect": [ { "what": "volume_mm3", "equal_to": 1000 } ] },
+    { "operation": "sposta_corpi",
+      "arguments": { "corpi_uid": ["C1"], "dx_mm": 2, "dz_mm": 5,
                      "copia": true, "quante_copie": 1 },
-      "attese": [ { "cosa": "corpi", "uguale": 2 } ] },
-    { "operazione": "combina_corpi",
-      "argomenti": { "operazione": "sottrai", "corpo_principale_uid": "@corpo(nome=Estrusione-Estrusione1)" },
-      "attese": [
-        { "cosa": "corpi", "uguale": 1 },
-        { "cosa": "centro_massa_mm", "uguale": [-0.667, 0, 3.333], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "calcolato a mano: cubo 1000 in (0,0,5) meno la sovrapposizione 8x10x5 = 400 in (1,0,7,5). Il centesimo copre l'arrotondamento" },
-        { "cosa": "volume_mm3", "uguale": 600,
-          "perche": "1000 meno i 400 che i due cubi hanno in comune" } ] }
+      "expect": [ { "what": "corpi", "equal_to": 2 } ] },
+    { "operation": "combina_corpi",
+      "arguments": { "operazione": "sottrai", "corpo_principale_uid": "@corpo(nome=Estrusione-Estrusione1)" },
+      "expect": [
+        { "what": "corpi", "equal_to": 1 },
+        { "what": "centro_massa_mm", "equal_to": [-0.667, 0, 3.333], "tolerance": 0.01,
+          "tolerance_why": "calcolato a mano: cubo 1000 in (0,0,5) meno la sovrapposizione 8x10x5 = 400 in (1,0,7,5). Il centesimo copre l'arrotondamento" },
+        { "what": "volume_mm3", "equal_to": 600,
+          "why": "1000 meno i 400 che i due cubi hanno in comune" } ] }
   ]
 }

@@ -1,81 +1,81 @@
 {
-  "nome": "il_poligono_del_fazzoletto_non_e_degenere",
-  "famiglia": "saldature",
-  "perche": "VOCE GP20, la seconda forma. Il profilo POLIGONALE e' quello che la libreria spediva fino alla 0.139.0, ma coi due lati corti a zero: un poligono che si chiude su se stesso, e SOLIDWORKS null senza un perche', anche con la marca 1 (misurato il 28/9/2026, varianti 0 e 3 della sonda Controlli/Fazzoletto/Programma.cs). Con i lati corti veri (15 e 15) la stessa chiamata NASCE: +12937,5 mm3 (variante 2).",
+  "name": "gusset_polygon_is_not_degenerate",
+  "family": "weldments",
+  "why": "VOCE GP20, la seconda forma. Il profilo POLIGONALE e' quello che la libreria spediva fino alla 0.139.0, ma coi due lati corti a zero: un poligono che si chiude su se stesso, e SOLIDWORKS null senza un perche', anche con la marca 1 (misurato il 28/9/2026, varianti 0 e 3 della sonda Controlli/Fazzoletto/Programma.cs). Con i lati corti veri (15 e 15) la stessa chiamata NASCE: +12937,5 mm3 (variante 2).",
 
-  "il_difetto_che_questo_caso_prende": "Il poligono degenere, cioe' esattamente la ricetta vecchia: il passo 4 la pretende rifiutata PRIMA di chiamare SOLIDWORKS, con un messaggio che dice «degenere» e nomina il triangolo. Il passo 5 prende il poligono coi lati corti lunghi quanto i lati (60 su 60): non e' piu' un fazzoletto, e va detto invece di lasciarlo a SOLIDWORKS. Il passo 6 e' il poligono buono, coi numeri misurati.",
+  "defect_caught": "Il poligono degenere, cioe' esattamente la ricetta vecchia: il passo 4 la pretende rifiutata PRIMA di chiamare SOLIDWORKS, con un messaggio che dice «degenere» e nomina il triangolo. Il passo 5 prende il poligono coi lati corti lunghi quanto i lati (60 su 60): non e' piu' un fazzoletto, e va detto invece di lasciarlo a SOLIDWORKS. Il passo 6 e' il poligono buono, coi numeri misurati.",
 
-  "e_le_gemelle_sono_nello_stesso_file": "Il poligono buono (passo 6) va fra le stesse due facce del triangolo di il_fazzoletto_sta_nell_angolo. Il passo 4 toglie solo «lato3_mm» e «lato4_mm»; il passo 5 cambia solo «lato3_mm» (60 invece di 15).",
+  "_and_the_twins_are_in_the_same_file": "Il poligono buono (passo 6) va fra le stesse due facce del triangolo di gusset_sits_in_the_corner. Il passo 4 toglie solo «lato3_mm» e «lato4_mm»; il passo 5 cambia solo «lato3_mm» (60 invece di 15).",
 
-  "i_selettori_sono_misurati": "Gli stessi di il_cordone_va_fra_facce_che_si_toccano, misurati il 25/9/2026 dopo il taglio: fra le due «davanti» della lunga da 40800 mm2 la esterna (z = 40) e' la seconda, fra le due «destra» della corta da 17680 la esterna (x = 340) e' la prima.",
+  "_the_selectors_are_measured": "Gli stessi di weld_bead_goes_between_touching_faces, misurati il 25/9/2026 dopo il taglio: fra le due «davanti» della lunga da 40800 mm2 la esterna (z = 40) e' la seconda, fra le due «destra» della corta da 17680 la esterna (x = 340) e' la prima.",
 
-  "i_numeri_attesi": "Calcolati a mano PRIMA, e confrontati con la sonda. Il poligono e' il pentagono (0,0) (60,0) (60,15) (15,60) (0,60): il quadrato 60 x 60 meno il triangolo 45 x 45 / 2 che la punta perde, 3600 - 1012,5 = 2587,5 mm2, per 5 di spessore 12937,5 mm3 — la sonda ha misurato +12937,5. Il pezzo passa da 1264161,94 (la T tagliata, misurata nel caso del cordone) a 1277099,44. La scatola del corpo nuovo e' calcolata a mano e NON misurata dalla sonda: il pentagono sta nello stesso quadrato 60 x 60 del triangolo, quindi x da 340 a 400, y da -2,5 a 2,5, z da 40 a 100.",
+  "_the_expected_numbers": "Calcolati a mano PRIMA, e confrontati con la sonda. Il poligono e' il pentagono (0,0) (60,0) (60,15) (15,60) (0,60): il quadrato 60 x 60 meno il triangolo 45 x 45 / 2 che la punta perde, 3600 - 1012,5 = 2587,5 mm2, per 5 di spessore 12937,5 mm3 — la sonda ha misurato +12937,5. Il pezzo passa da 1264161,94 (la T tagliata, misurata nel caso del cordone) a 1277099,44. La scatola del corpo nuovo e' calcolata a mano e NON misurata dalla sonda: il pentagono sta nello stesso quadrato 60 x 60 del triangolo, quindi x da 340 a 400, y da -2,5 a 2,5, z da 40 a 100.",
 
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "membro_strutturale",
-      "argomenti": { "piano": "superiore",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "membro_strutturale",
+      "arguments": { "piano": "superiore",
                      "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configurazione": "80X80X5",
                      "segmenti": [ { "da": [0, 0, 0], "a": [600, 0, 0] } ] },
-      "attese": [ { "cosa": "corpi", "uguale": 1 } ] },
+      "expect": [ { "what": "corpi", "equal_to": 1 } ] },
 
-    { "operazione": "membro_strutturale",
-      "argomenti": { "piano": "superiore",
+    { "operation": "membro_strutturale",
+      "arguments": { "piano": "superiore",
                      "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configurazione": "80X80X5",
                      "segmenti": [ { "da": [300, 0, 0], "a": [300, 0, 300] } ] },
-      "attese": [ { "cosa": "corpi", "uguale": 2 } ] },
+      "expect": [ { "what": "corpi", "equal_to": 2 } ] },
 
-    { "operazione": "taglia_membri",
-      "argomenti": { "corpi_da_tagliare_uid": ["@corpo(nome=TUBO STRUTTURALE QUADRO 80X80X5(2))"],
+    { "operation": "taglia_membri",
+      "arguments": { "corpi_da_tagliare_uid": ["@corpo(nome=TUBO STRUTTURALE QUADRO 80X80X5(2))"],
                      "corpi_di_taglio_uid": ["@corpo(nome=TUBO STRUTTURALE QUADRO 80X80X5(1))"] },
-      "attese": [
-        { "cosa": "misure.variazione_volume_mm3", "uguale": -58798.23, "tolleranza": 0.05,
-          "perche_questa_tolleranza": "40 mm x 1469,956 mm2 di sezione, che ha pi dentro (i raggi degli angoli). Senza il taglio la corta resterebbe dentro la lunga e non ci sarebbe nessuno spigolo comune su cui appoggiare il fazzoletto" } ] },
+      "expect": [
+        { "what": "misure.variazione_volume_mm3", "equal_to": -58798.23, "tolerance": 0.05,
+          "tolerance_why": "40 mm x 1469,956 mm2 di sezione, che ha pi dentro (i raggi degli angoli). Senza il taglio la corta resterebbe dentro la lunga e non ci sarebbe nessuno spigolo comune su cui appoggiare il fazzoletto" } ] },
 
-    { "operazione": "fazzoletto",
-      "argomenti": { "facce_uid": ["@faccia(area~=17680,verso=destra,n=1)",
+    { "operation": "fazzoletto",
+      "arguments": { "facce_uid": ["@faccia(area~=17680,verso=destra,n=1)",
                                    "@faccia(area~=40800,verso=davanti,n=2)"],
                      "spessore_mm": 5, "lato1_mm": 60, "lato2_mm": 60,
                      "profilo": "poligonale", "posizione": "centro" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["degenere", "triangolare"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "il_poligono_del_fazzoletto_non_e_degenere" } },
+      "must_fail": {
+        "message_includes": ["degenere", "triangolare"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "gusset_polygon_is_not_degenerate" } },
 
-    { "operazione": "fazzoletto",
-      "argomenti": { "facce_uid": ["@faccia(area~=17680,verso=destra,n=1)",
+    { "operation": "fazzoletto",
+      "arguments": { "facce_uid": ["@faccia(area~=17680,verso=destra,n=1)",
                                    "@faccia(area~=40800,verso=davanti,n=2)"],
                      "spessore_mm": 5, "lato1_mm": 60, "lato2_mm": 60,
                      "profilo": "poligonale", "lato3_mm": 60, "lato4_mm": 15,
                      "posizione": "centro" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["piu' corti", "lato3_mm"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "il_poligono_del_fazzoletto_non_e_degenere" } },
+      "must_fail": {
+        "message_includes": ["piu' corti", "lato3_mm"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "gusset_polygon_is_not_degenerate" } },
 
-    { "operazione": "fazzoletto",
-      "argomenti": { "facce_uid": ["@faccia(area~=17680,verso=destra,n=1)",
+    { "operation": "fazzoletto",
+      "arguments": { "facce_uid": ["@faccia(area~=17680,verso=destra,n=1)",
                                    "@faccia(area~=40800,verso=davanti,n=2)"],
                      "spessore_mm": 5, "lato1_mm": 60, "lato2_mm": 60,
                      "profilo": "poligonale", "lato3_mm": 15, "lato4_mm": 15,
                      "posizione": "centro" },
-      "attese": [
-        { "cosa": "misure.volume_added_mm3", "uguale": 12937.5, "tolleranza": 0.05,
-          "perche_questa_tolleranza": "(60 x 60 - 45 x 45 / 2) x 5, tutto piano e senza smusso: la sonda del 28/9/2026 ha misurato +12937,5 al centesimo. Un triangolo al posto del poligono darebbe 9000, un poligono coi lati corti letti al contrario darebbe lo stesso numero (15 e 15), e per questo la scatola sotto" },
-        { "cosa": "volume_mm3", "uguale": 1277099.44, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "la T tagliata (1264161,94, misurata nel caso del cordone) piu' i 12937,5 della piastra, letti dal documento e non dalla risposta dell'operazione; il mezzo millimetro cubo e' quello del caso del cordone sullo stesso pezzo" },
-        { "cosa": "corpi", "uguale": 3 },
-        { "cosa": "misure.thickness_read_mm", "uguale": 5, "tolleranza": 0.001,
-          "perche_questa_tolleranza": "riletto da IGussetFeatureData.Thickness (metri): il millesimo e' l'arrotondamento della conversione in millimetri" },
-        { "cosa": "misure.profile_read", "uguale": "poligonale" },
-        { "cosa": "misure.volume_check", "uguale": "exact" },
-        { "cosa": "misure.supporting_faces_area_mm2", "uguale": [40800, 17680], "tolleranza": 0.5,
-          "perche_questa_tolleranza": "le facce su cui SOLIDWORKS dice di aver appoggiato il fazzoletto (GetSupportingFaces), dalla piu' grande: 600 x 68 e 260 x 68; mezzo millimetro quadro su decine di migliaia e' l'arrotondamento, una faccia sbagliata sbaglia di migliaia" },
-        { "cosa": "misure.new_body_box_mm", "uguale": [340, -2.5, 40, 400, 2.5, 100], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "calcolata a mano (vedi «i_numeri_attesi»), letta coi punti estremi del corpo nuovo: tutte facce piane, quindi i punti estremi sono esatti e il centesimo e' l'arrotondamento a due decimali della risposta" } ] }
+      "expect": [
+        { "what": "misure.volume_added_mm3", "equal_to": 12937.5, "tolerance": 0.05,
+          "tolerance_why": "(60 x 60 - 45 x 45 / 2) x 5, tutto piano e senza smusso: la sonda del 28/9/2026 ha misurato +12937,5 al centesimo. Un triangolo al posto del poligono darebbe 9000, un poligono coi lati corti letti al contrario darebbe lo stesso numero (15 e 15), e per questo la scatola sotto" },
+        { "what": "volume_mm3", "equal_to": 1277099.44, "tolerance": 0.5,
+          "tolerance_why": "la T tagliata (1264161,94, misurata nel caso del cordone) piu' i 12937,5 della piastra, letti dal documento e non dalla risposta dell'operazione; il mezzo millimetro cubo e' quello del caso del cordone sullo stesso pezzo" },
+        { "what": "corpi", "equal_to": 3 },
+        { "what": "misure.thickness_read_mm", "equal_to": 5, "tolerance": 0.001,
+          "tolerance_why": "riletto da IGussetFeatureData.Thickness (metri): il millesimo e' l'arrotondamento della conversione in millimetri" },
+        { "what": "misure.profile_read", "equal_to": "poligonale" },
+        { "what": "misure.volume_check", "equal_to": "exact" },
+        { "what": "misure.supporting_faces_area_mm2", "equal_to": [40800, 17680], "tolerance": 0.5,
+          "tolerance_why": "le facce su cui SOLIDWORKS dice di aver appoggiato il fazzoletto (GetSupportingFaces), dalla piu' grande: 600 x 68 e 260 x 68; mezzo millimetro quadro su decine di migliaia e' l'arrotondamento, una faccia sbagliata sbaglia di migliaia" },
+        { "what": "misure.new_body_box_mm", "equal_to": [340, -2.5, 40, 400, 2.5, 100], "tolerance": 0.01,
+          "tolerance_why": "calcolata a mano (vedi «i_numeri_attesi»), letta coi punti estremi del corpo nuovo: tutte facce piane, quindi i punti estremi sono esatti e il centesimo e' l'arrotondamento a due decimali della risposta" } ] }
   ]
 }

@@ -19,20 +19,20 @@ Banco/ultimo-ponte.txt
 Banco/in-corso.txt
 
 # Il resoconto di ogni giro (voce F2): un .md e un .json per lancio, piu'
-# `ultimo.json`. Cambiano a ogni giro e sono la misura di QUESTA macchina in
+# `last.json`. Cambiano a ogni giro e sono la misura di QUESTA macchina in
 # QUESTO momento: versionarli riempirebbe la storia di file che nessuno
 # rilegge e che a ogni merge divergono. Il numero che vale — quello che va in
 # un README o in una decisione — si copia a mano, con la data.
-# SI ESCLUDE IL CONTENUTO, NON LA CARTELLA: con `Banco/resoconto/` git non ci
+# SI ESCLUDE IL CONTENUTO, NON LA CARTELLA: con `Banco/report/` git non ci
 # entra nemmeno, e la riga di eccezione qui sotto non avrebbe nessun effetto.
 # E' un difetto che non da' errore — il file semplicemente non viene versionato,
 # e la CI dice «il banco non e' stato eseguito» per sempre.
-Banco/resoconto/*
-# ... TRANNE `ultimo.json`, e non e' un'eccezione di comodo (voce F9).
+Banco/report/*
+# ... TRANNE `last.json`, e non e' un'eccezione di comodo (voce F9).
 # E' l'unica prova che qualcuno il banco l'ha lanciato: la CI non puo'
 # pilotare SOLIDWORKS, ma puo' RIFIUTARE UNA CONSEGNA in cui nessuno l'ha
 # fatto. Senza questo file in repository quel controllo non esiste.
-!Banco/resoconto/ultimo.json
+!Banco/report/last.json
 
 # Una riga per giro, in coda: serve a CONTARE le prove che falliscono a caso
 # (voce F12). E' il registro di QUESTA macchina — chi lancia il banco altrove
@@ -49,14 +49,14 @@ Banco/lavoro/
 # Il materiale della misura V2: venti PNG e cinque stati, ~1,5 MB, rifatti da
 # `raccogli_viste.js` in un minuto. Non e' la misura — la misura e' il numero
 # che finisce nel README — e un repository non porta in giro i fotogrammi da
-# cui e' stata ricavata. I PIANI invece sono versionati (`casi/viste/`):
+# cui e' stata ricavata. I PIANI invece sono versionati (`cases/views/`):
 # quelli sono la parte che si deve poter rifare uguale.
 Banco/viste/
 
 # I piani che un modello isolato scrive nella misura V3: li rifa' lui a ogni
 # giro, e versionarli vorrebbe dire congelare la risposta di UN modello di UN
 # giorno come se fosse la misura. La misura e' il numero, e sta nel README.
-Banco/casi/forma/
+Banco/cases/forma/
 
 # `bin/` e `obj/` sopra bastano anche per Banco/, ed e' voluto che le
 # librerie di Dassault non ci finiscano nemmeno: il csproj del banco le

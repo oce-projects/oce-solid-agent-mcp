@@ -503,7 +503,7 @@ namespace Prove.Contratti
                 // comes from the bench case itself, not from a copy of its words
                 // here: the words a case of the lid in the base expects, and the
                 // first of them is the alarm that opens the verdict.
-                var expected = BenchVerdictWords("assiemi", "il_coperchio_dentro_la_base");
+                var expected = BenchVerdictWords("assemblies", "cover_inside_base");
                 if (expected == null || expected.Count == 0)
                 {
                     Segna("N38: the bench case of the lid in the base says what its verdict holds", false,
@@ -543,21 +543,21 @@ namespace Prove.Contratti
         /// </summary>
         private static List<string> BenchVerdictWords(string folder, string caseName)
         {
-            var path = Path.Combine(Radice(), "Banco", "casi", folder, caseName + ".json");
+            var path = Path.Combine(Radice(), "Banco", "cases", folder, caseName + ".json");
             if (!File.Exists(path)) return null;
             var json = new System.Web.Script.Serialization.JavaScriptSerializer()
                 .DeserializeObject(File.ReadAllText(path)) as Dictionary<string, object>;
-            var steps = json != null && json.ContainsKey("passi") ? json["passi"] as object[] : null;
+            var steps = json != null && json.ContainsKey("steps") ? json["steps"] as object[] : null;
             if (steps == null) return null;
             foreach (var step in steps.OfType<Dictionary<string, object>>())
             {
-                var expectations = step.ContainsKey("attese") ? step["attese"] as object[] : null;
+                var expectations = step.ContainsKey("expect") ? step["expect"] as object[] : null;
                 if (expectations == null) continue;
                 foreach (var e in expectations.OfType<Dictionary<string, object>>())
                 {
                     object what, words;
-                    if (e.TryGetValue("cosa", out what) && Convert.ToString(what) == "misure.giudizio" &&
-                        e.TryGetValue("contiene", out words) && words is object[])
+                    if (e.TryGetValue("what", out what) && Convert.ToString(what) == "misure.giudizio" &&
+                        e.TryGetValue("includes", out words) && words is object[])
                         return ((object[])words).Select(w => Convert.ToString(w)).ToList();
                 }
             }

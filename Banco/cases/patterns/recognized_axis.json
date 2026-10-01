@@ -1,32 +1,32 @@
 {
-  "nome": "l_asse_riconosciuto",
-  "famiglia": "ripeti",
-  "perche": "VOCE E4, la parte degli ASSI. Dalla libreria 0.114.0 lo stato di un asse porta un punto sulla retta e la direzione, e `asse_uid` si controlla per identita' e non solo per esistenza. Questa e' la GEMELLA: la firma dice un punto che sta sulla retta dell'asse — ma non il suo inizio, perche' l'asse e' una retta e l'inizio puo' spostarsi senza che l'asse cambi — e la ripetizione deve riuscire.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_cerchio",
-      "argomenti": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 392699.08, "tolleranza": 0.5,
-                    "perche_questa_tolleranza": "pi * 50^2 * 50: il conto ha pi dentro" } ] },
-    { "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 35, "y_mm": 0,
+  "name": "recognized_axis",
+  "family": "patterns",
+  "why": "VOCE E4, la parte degli ASSI. Dalla libreria 0.114.0 lo stato di un asse porta un punto sulla retta e la direzione, e `asse_uid` si controlla per identita' e non solo per esistenza. Questa e' la GEMELLA: la firma dice un punto che sta sulla retta dell'asse — ma non il suo inizio, perche' l'asse e' una retta e l'inizio puo' spostarsi senza che l'asse cambi — e la ripetizione deve riuscire.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_cerchio",
+      "arguments": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 392699.08, "tolerance": 0.5,
+                    "tolerance_why": "pi * 50^2 * 50: il conto ha pi dentro" } ] },
+    { "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 35, "y_mm": 0,
                      "diametro_mm": 10, "passante": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 388772.09, "tolleranza": 0.5,
-                    "perche_questa_tolleranza": "meno pi * 5^2 * 50 = 3926,99" } ] },
-    { "operazione": "crea_asse",
-      "argomenti": { "faccia_uid": "@faccia(area~=15707.96)" },
-      "attese": [ { "cosa": "assi_creati", "uguale": 1 } ] },
-    { "operazione": "ripeti_circolare",
-      "argomenti": {
+      "expect": [ { "what": "volume_mm3", "equal_to": 388772.09, "tolerance": 0.5,
+                    "tolerance_why": "meno pi * 5^2 * 50 = 3926,99" } ] },
+    { "operation": "crea_asse",
+      "arguments": { "faccia_uid": "@faccia(area~=15707.96)" },
+      "expect": [ { "what": "assi_creati", "equal_to": 1 } ] },
+    { "operation": "ripeti_circolare",
+      "arguments": {
         "feature_uid": "@feature(tipo=ICE,n=1)",
         "asse_uid": "Assi1",
         "numero_istanze": 6,
         "angolo_totale_gradi": 360,
         "_firme": { "Assi1": { "punto_mm": [0, 0, 25], "direzione": [0, 0, 1] } }
       },
-      "la_firma_si_scrive_a_mano_e_si_dice": "`_firme` e' quello che il ponte allega a ogni passo con le firme lette dallo stato quando il piano e' stato confermato. Qui si scrive a mano per costruire le due situazioni — asse al suo posto, asse altrove — senza dover spostare davvero l'asse fra la lettura e l'esecuzione, che un caso dichiarato non sa fare. Il punto (0, 0, 25) sta a meta' dell'asse del cilindro, non al suo inizio: e' la retta che conta.",
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 369137.14, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "il cilindro meno SEI fori da 3926,99: se la ripetizione non fosse partita, il volume sarebbe quello di un foro solo" } ] }
+      "_the_signature_is_written_by_hand_and_stated": "`_firme` e' quello che il ponte allega a ogni passo con le firme lette dallo stato quando il piano e' stato confermato. Qui si scrive a mano per costruire le due situazioni — asse al suo posto, asse altrove — senza dover spostare davvero l'asse fra la lettura e l'esecuzione, che un caso dichiarato non sa fare. Il punto (0, 0, 25) sta a meta' dell'asse del cilindro, non al suo inizio: e' la retta che conta.",
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 369137.14, "tolerance": 0.5,
+          "tolerance_why": "il cilindro meno SEI fori da 3926,99: se la ripetizione non fosse partita, il volume sarebbe quello di un foro solo" } ] }
   ]
 }

@@ -75,7 +75,7 @@ namespace ProvaSaldatura
         /// <summary>The context of the root of a declared case (the folders the bench walks).</summary>
         internal string DeclaredRoot { get; private set; }
 
-        /// <summary>The context of the root of a regression case (`casi/regressione`).</summary>
+        /// <summary>The context of the root of a regression case (`cases/regression`).</summary>
         internal string RegressionRoot { get; private set; }
 
         /// <summary>How many (context, key) pairs the frozen list holds.</summary>

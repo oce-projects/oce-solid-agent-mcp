@@ -1,32 +1,32 @@
 {
-  "nome": "unisci_due_cubi",
-  "famiglia": "corpi",
-  "perche": "Due cubi da 10 sfalsati di 2 in X e 5 in Z si sovrappongono per 8 x 10 x 5 = 400 mm3. Uniti fanno 1000 + 1000 - 400 = 1600, e UN corpo solo. Il conto dei corpi e' la meta' che conta: un'unione che fallisce in silenzio lascia due corpi dove ne serviva uno, l'albero cresce uguale, la forma sembra la stessa, e la differenza si vede solo contando.",
-  "perche_sfalsati": "con due cubi uguali e centrati i tre risultati sarebbero 1500, 500 e 500, e «sottrai» e «interseca» non si distinguerebbero. Un caso in cui due valori sbagliati dell'enum danno lo stesso numero non tabella niente. Sfalsati, i tre numeri sono 1600, 600 e 400.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
+  "name": "merge_two_cubes",
+  "family": "bodies",
+  "why": "Due cubi da 10 sfalsati di 2 in X e 5 in Z si sovrappongono per 8 x 10 x 5 = 400 mm3. Uniti fanno 1000 + 1000 - 400 = 1600, e UN corpo solo. Il conto dei corpi e' la meta' che conta: un'unione che fallisce in silenzio lascia due corpi dove ne serviva uno, l'albero cresce uguale, la forma sembra la stessa, e la differenza si vede solo contando.",
+  "_why_staggered": "con due cubi uguali e centrati i tre risultati sarebbero 1500, 500 e 500, e «sottrai» e «interseca» non si distinguerebbero. Un caso in cui due valori sbagliati dell'enum danno lo stesso numero non tabella niente. Sfalsati, i tre numeri sono 1600, 600 e 400.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
                      "spessore_mm": 10, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 1000 } ] },
-    { "operazione": "sposta_corpi",
-      "argomenti": { "corpi_uid": ["C1"], "dx_mm": 2, "dz_mm": 5,
+      "expect": [ { "what": "volume_mm3", "equal_to": 1000 } ] },
+    { "operation": "sposta_corpi",
+      "arguments": { "corpi_uid": ["C1"], "dx_mm": 2, "dz_mm": 5,
                      "copia": true, "quante_copie": 1 },
-      "attese": [
-        { "cosa": "corpi", "uguale": 2 },
-        { "cosa": "volume_mm3", "uguale": 2000,
-          "perche": "due corpi separati che si compenetrano: il volume e' la somma, perche' sono ancora due" } ] },
-    { "operazione": "combina_corpi",
-      "argomenti": { "operazione": "unisci" },
-      "attese": [
-        { "cosa": "misure.operazione", "uguale": "unisci" },
-        { "cosa": "misure.corpi_prima", "uguale": 2 },
-        { "cosa": "misure.corpi", "uguale": 1 },
-        { "cosa": "corpi", "uguale": 1,
-          "perche": "contato sul documento, non sulla risposta dell'operazione" },
-        { "cosa": "volume_mm3", "uguale": 1600,
-          "perche": "1000 + 1000 - 400 di sovrapposizione" },
-        { "cosa": "misure.nota_identificativi", "contiene": ["non valgono piu'"],
-          "perche": "una booleana rifa' le facce da capo, e chi legge deve rileggere il pezzo prima di nominarle" } ] }
+      "expect": [
+        { "what": "corpi", "equal_to": 2 },
+        { "what": "volume_mm3", "equal_to": 2000,
+          "why": "due corpi separati che si compenetrano: il volume e' la somma, perche' sono ancora due" } ] },
+    { "operation": "combina_corpi",
+      "arguments": { "operazione": "unisci" },
+      "expect": [
+        { "what": "misure.operazione", "equal_to": "unisci" },
+        { "what": "misure.corpi_prima", "equal_to": 2 },
+        { "what": "misure.corpi", "equal_to": 1 },
+        { "what": "corpi", "equal_to": 1,
+          "why": "contato sul documento, non sulla risposta dell'operazione" },
+        { "what": "volume_mm3", "equal_to": 1600,
+          "why": "1000 + 1000 - 400 di sovrapposizione" },
+        { "what": "misure.nota_identificativi", "includes": ["non valgono piu'"],
+          "why": "una booleana rifa' le facce da capo, e chi legge deve rileggere il pezzo prima di nominarle" } ] }
   ]
 }

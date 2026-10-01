@@ -306,7 +306,7 @@ namespace Riscontro.Disegno
                 }
                 catch { }
                 if (selected)
-                    // OBSOLETE-MEASURED: le_croci_di_centro_sui_fori — IDrawingDoc.AddCenterMark is
+                    // OBSOLETE-MEASURED: center_marks_on_the_holes — IDrawingDoc.AddCenterMark is
                     // obsolete; its replacements InsertCenterMark2/3 answer True and add nothing
                     // (probes of 17/9 and 26/9/2026, see the summary of this file).
                     try { drawing.AddCenterMark(size, extendedLines); } catch { }

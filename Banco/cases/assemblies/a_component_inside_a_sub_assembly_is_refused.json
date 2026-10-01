@@ -1,91 +1,91 @@
 {
-  "nome": "a_component_inside_a_sub_assembly_is_refused",
-  "famiglia": "assiemi",
-  "perche": "Z-C21.5, findings L11-3 and L11-5. The C1..Cn of the assembly state list EVERY level (GetComponents(false), on purpose: a sub-assembly shown as one block with nothing inside would hide thirty parts), while the two SOLIDWORKS calls behind fissa_componente and sostituisci_componente work on the top level only: IsFixed «only applies to the top level of components» (IComponent2~IsFixed.html) and ReplaceComponents2 wants «a top-level component. It cannot be a component of a sub-assembly» (IAssemblyDoc~ReplaceComponents2.html). Up to library 0.145.0 neither operation looked, and sostituisci_componente counted the swap as done when ANY component of the assembly used the new file. No case could show it, because the bench could not build a sub-assembly: a component with a list of `componenti` of its own is now one.",
-  "il_difetto_che_questo_caso_prende": "A nested component fixed, freed or replaced from the root as if it were a top-level one; «it was already fixed/free: nothing to change» read from an IsFixed that does not apply; a replacement that did not happen reported as made because another component (here «spare», mounted at the top level) already used the new file; the state calling a nested component fixed or free, or counting it among the loose ones, when from the root its state is not known.",
-  "se_resta_verde_sulla_libreria_vecchia": "It does not: on 0.145.0 step 1 either answers «already fixed» or calls FixComponent on the nested pin, never the top-level refusal the case asks for; step 2 calls ReplaceComponents2 on the nested pin and, whatever that does, finds «spare» on the new file and reports the swap as made. Step 3 asks for «top_level» and «nested_components», which the old state does not write.",
-  "i_numeri": "Names decide the uids (sorted, Name2 of a nested component is the whole path «group-1/pin-1»): C1 base, C2 the sub-assembly «group», C3 the pin inside it, C4 the plate inside it, C5 spare. The base went in first, so SOLIDWORKS fixed it; the sub-assembly and spare are floating; the pin went in first INSIDE the sub-assembly. Top-level: base, group, spare (3); nested: pin, plate (2).",
-  "assieme": {
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 100, "spessore_mm": 10, "centrato": true } }
+  "name": "a_component_inside_a_sub_assembly_is_refused",
+  "family": "assemblies",
+  "why": "Z-C21.5, findings L11-3 and L11-5. The C1..Cn of the assembly state list EVERY level (GetComponents(false), on purpose: a sub-assembly shown as one block with nothing inside would hide thirty parts), while the two SOLIDWORKS calls behind fissa_componente and sostituisci_componente work on the top level only: IsFixed «only applies to the top level of components» (IComponent2~IsFixed.html) and ReplaceComponents2 wants «a top-level component. It cannot be a component of a sub-assembly» (IAssemblyDoc~ReplaceComponents2.html). Up to library 0.145.0 neither operation looked, and sostituisci_componente counted the swap as done when ANY component of the assembly used the new file. No case could show it, because the bench could not build a sub-assembly: a component with a list of `componenti` of its own is now one.",
+  "defect_caught": "A nested component fixed, freed or replaced from the root as if it were a top-level one; «it was already fixed/free: nothing to change» read from an IsFixed that does not apply; a replacement that did not happen reported as made because another component (here «spare», mounted at the top level) already used the new file; the state calling a nested component fixed or free, or counting it among the loose ones, when from the root its state is not known.",
+  "_if_it_stays_green_on_the_old_library": "It does not: on 0.145.0 step 1 either answers «already fixed» or calls FixComponent on the nested pin, never the top-level refusal the case asks for; step 2 calls ReplaceComponents2 on the nested pin and, whatever that does, finds «spare» on the new file and reports the swap as made. Step 3 asks for «top_level» and «nested_components», which the old state does not write.",
+  "_the_numbers": "Names decide the uids (sorted, Name2 of a nested component is the whole path «group-1/pin-1»): C1 base, C2 the sub-assembly «group», C3 the pin inside it, C4 the plate inside it, C5 spare. The base went in first, so SOLIDWORKS fixed it; the sub-assembly and spare are floating; the pin went in first INSIDE the sub-assembly. Top-level: base, group, spare (3); nested: pin, plate (2).",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 100, "spessore_mm": 10, "centrato": true } }
         ] },
-      { "nome": "group",
-        "posizione_mm": [0, 80, 0],
-        "componenti": [
-          { "nome": "pin",
-            "passi": [
-              { "operazione": "estrudi_cerchio",
-                "argomenti": { "piano": "superiore", "diametro_mm": 20, "altezza_mm": 30 } }
+      { "name": "group",
+        "position_mm": [0, 80, 0],
+        "components": [
+          { "name": "pin",
+            "steps": [
+              { "operation": "estrudi_cerchio",
+                "arguments": { "piano": "superiore", "diametro_mm": 20, "altezza_mm": 30 } }
             ] },
-          { "nome": "plate",
-            "posizione_mm": [60, 0, 0],
-            "passi": [
-              { "operazione": "estrudi_rettangolo",
-                "argomenti": { "piano": "superiore", "lunghezza_mm": 40, "larghezza_mm": 40, "spessore_mm": 10, "centrato": true } }
+          { "name": "plate",
+            "position_mm": [60, 0, 0],
+            "steps": [
+              { "operation": "estrudi_rettangolo",
+                "arguments": { "piano": "superiore", "lunghezza_mm": 40, "larghezza_mm": 40, "spessore_mm": 10, "centrato": true } }
             ] }
         ] },
-      { "nome": "spare",
-        "posizione_mm": [0, -80, 0],
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 30, "larghezza_mm": 30, "spessore_mm": 6, "centrato": true } }
+      { "name": "spare",
+        "position_mm": [0, -80, 0],
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 30, "larghezza_mm": 30, "spessore_mm": 6, "centrato": true } }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "fissa_componente",
-      "argomenti": { "componente": "C3", "fisso": true },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["C3", "not a top-level component", "(C2)"],
-        "gemella": "a_component_inside_a_sub_assembly_is_refused" } },
+  "steps": [
+    { "operation": "fissa_componente",
+      "arguments": { "componente": "C3", "fisso": true },
+      "must_fail": {
+        "message_includes": ["C3", "not a top-level component", "(C2)"],
+        "twin": "a_component_inside_a_sub_assembly_is_refused" } },
 
-    { "operazione": "sostituisci_componente",
-      "argomenti": {
+    { "operation": "sostituisci_componente",
+      "arguments": {
         "componente": "C3",
         "percorso": "{LAVORO}\\a_component_inside_a_sub_assembly_is_refused_spare.sldprt"
       },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["C3", "not a top-level component", "ReplaceComponents2"],
-        "gemella": "a_component_inside_a_sub_assembly_is_refused" } },
+      "must_fail": {
+        "message_includes": ["C3", "not a top-level component", "ReplaceComponents2"],
+        "twin": "a_component_inside_a_sub_assembly_is_refused" } },
 
-    { "operazione": "fissa_componente",
-      "argomenti": { "componente": "C2", "fisso": true },
-      "attese": [
-        { "cosa": "misure.fisso_prima", "uguale": false,
-          "perche": "the sub-assembly went in second: floating. Nothing of step 1 fixed it" },
-        { "cosa": "misure.fisso_dopo", "uguale": true,
-          "perche": "the sub-assembly itself is a top-level component: fixing it is allowed, and read back with IsFixed" },
-        { "cosa": "stato.componenti[1].top_level", "uguale": true },
-        { "cosa": "stato.componenti[1].e_sottoassieme", "uguale": true },
-        { "cosa": "stato.componenti[2].top_level", "uguale": false,
-          "perche": "the pin is inside «group»: its name is «group-1/pin-1», not one of GetComponents(true)" },
-        { "cosa": "stato.componenti[2].fisso", "uguale": null,
-          "perche": "IsFixed does not apply to a nested component: «not known from here», not true (the pin is the first component of its sub-assembly) and not false" },
-        { "cosa": "stato.componenti[3].top_level", "uguale": false },
-        { "cosa": "stato.componenti[3].fisso", "uguale": null },
-        { "cosa": "stato.componenti[4].top_level", "uguale": true },
-        { "cosa": "stato.componenti_primo_livello", "uguale": 3 },
-        { "cosa": "stato.quanti_componenti", "uguale": 5 },
-        { "cosa": "stato.nested_components", "uguale": 2 },
-        { "cosa": "stato.componenti_fissi", "uguale": 2,
-          "perche": "the base (fixed by SOLIDWORKS) and the sub-assembly (fixed by this step); the nested ones are not counted" },
-        { "cosa": "stato.componenti_non_fissi", "uguale": 1,
-          "perche": "only spare: a nested component moves with its sub-assembly and is not judged on its own, or the plate would be called loose in every rigid sub-assembly" } ] },
+    { "operation": "fissa_componente",
+      "arguments": { "componente": "C2", "fisso": true },
+      "expect": [
+        { "what": "misure.fisso_prima", "equal_to": false,
+          "why": "the sub-assembly went in second: floating. Nothing of step 1 fixed it" },
+        { "what": "misure.fisso_dopo", "equal_to": true,
+          "why": "the sub-assembly itself is a top-level component: fixing it is allowed, and read back with IsFixed" },
+        { "what": "stato.componenti[1].top_level", "equal_to": true },
+        { "what": "stato.componenti[1].e_sottoassieme", "equal_to": true },
+        { "what": "stato.componenti[2].top_level", "equal_to": false,
+          "why": "the pin is inside «group»: its name is «group-1/pin-1», not one of GetComponents(true)" },
+        { "what": "stato.componenti[2].fisso", "equal_to": null,
+          "why": "IsFixed does not apply to a nested component: «not known from here», not true (the pin is the first component of its sub-assembly) and not false" },
+        { "what": "stato.componenti[3].top_level", "equal_to": false },
+        { "what": "stato.componenti[3].fisso", "equal_to": null },
+        { "what": "stato.componenti[4].top_level", "equal_to": true },
+        { "what": "stato.componenti_primo_livello", "equal_to": 3 },
+        { "what": "stato.quanti_componenti", "equal_to": 5 },
+        { "what": "stato.nested_components", "equal_to": 2 },
+        { "what": "stato.componenti_fissi", "equal_to": 2,
+          "why": "the base (fixed by SOLIDWORKS) and the sub-assembly (fixed by this step); the nested ones are not counted" },
+        { "what": "stato.componenti_non_fissi", "equal_to": 1,
+          "why": "only spare: a nested component moves with its sub-assembly and is not judged on its own, or the plate would be called loose in every rigid sub-assembly" } ] },
 
-    { "operazione": "sostituisci_componente",
-      "argomenti": {
+    { "operation": "sostituisci_componente",
+      "arguments": {
         "componente": "C1",
         "percorso": "{LAVORO}\\a_component_inside_a_sub_assembly_is_refused_spare.sldprt"
       },
-      "attese": [
-        { "cosa": "misure.a", "contiene": ["spare"],
-          "perche": "a top-level component is replaced: the base takes the file of spare, which was already mounted, and the check now asks about the base itself, not about any component on that file" },
-        { "cosa": "misure.componenti_dopo", "uguale": 5,
-          "perche": "replacing is not adding" },
-        { "cosa": "misure.accoppiamenti_persi", "uguale": 0,
-          "perche": "there were no mates to lose" } ] }
+      "expect": [
+        { "what": "misure.a", "includes": ["spare"],
+          "why": "a top-level component is replaced: the base takes the file of spare, which was already mounted, and the check now asks about the base itself, not about any component on that file" },
+        { "what": "misure.componenti_dopo", "equal_to": 5,
+          "why": "replacing is not adding" },
+        { "what": "misure.accoppiamenti_persi", "equal_to": 0,
+          "why": "there were no mates to lose" } ] }
   ]
 }

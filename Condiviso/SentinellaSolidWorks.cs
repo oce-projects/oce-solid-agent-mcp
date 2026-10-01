@@ -14,9 +14,9 @@ namespace Condiviso
     /// a tutti. Il banco aveva gia' la voce F12, quindi ha DETTO cosa non era
     /// riuscito a preparare, per ognuno:
     ///
-    ///     NO   il_dettaglio_ingrandisce   SOLIDWORKS non ha prodotto la parte
-    ///     NO   il_loft_non_e_un_cono      SOLIDWORKS non ha prodotto la parte
-    ///     NO   ingombro_della_piastra     SOLIDWORKS non ha prodotto la parte
+    ///     NO   detail_enlarges   SOLIDWORKS non ha prodotto la parte
+    ///     NO   loft_is_not_a_cone      SOLIDWORKS non ha prodotto la parte
+    ///     NO   plate_bounding_box     SOLIDWORKS non ha prodotto la parte
     ///     ...
     ///
     /// Nove casi rossi in fila, e poi il processo si e' piantato dentro la
@@ -28,7 +28,7 @@ namespace Condiviso
     /// DUE DIFETTI, NON UNO:
     ///
     ///   1. Il resoconto diceva **rosso** dove il vero fatto era «non
-    ///      misurato». Chi legge «il_dettaglio_ingrandisce: NO» va a guardare
+    ///      misurato». Chi legge «detail_enlarges: NO» va a guardare
     ///      il caso — che era giusto — invece di guardare SOLIDWORKS.
     ///
     ///   2. Il giro **continuava**. Quaranta minuti di prove contro un

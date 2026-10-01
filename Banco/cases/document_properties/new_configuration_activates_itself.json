@@ -1,38 +1,38 @@
 {
-  "nome": "la_configurazione_nuova_si_attiva_da_sola",
-  "famiglia": "proprieta",
-  "perche": "SOLIDWORKS attiva la configurazione appena creata senza che nessuno glielo chieda. Non e' scritto da nessuna parte nella chiamata, e cambia tutto quello che viene dopo: le facce, il volume, la massa e le proprieta' che lo stato racconta sono di QUELLA variante. Chi crea due configurazioni e poi disegna crede di lavorare sulla prima e lavora sull'ultima.",
-  "perche_il_confronto_con_lo_stato": "L'operazione dice «attiva_adesso». Lo stato del documento e' letto da un'altra parte del codice: se le due righe divergessero, una delle due mentirebbe, e questo caso e' l'unico posto in cui si vedrebbe.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "new_configuration_activates_itself",
+  "family": "document_properties",
+  "why": "SOLIDWORKS attiva la configurazione appena creata senza che nessuno glielo chieda. Non e' scritto da nessuna parte nella chiamata, e cambia tutto quello che viene dopo: le facce, il volume, la massa e le proprieta' che lo stato racconta sono di QUELLA variante. Chi crea due configurazioni e poi disegna crede di lavorare sulla prima e lavora sull'ultima.",
+  "_why_the_comparison_with_the_state": "L'operazione dice «attiva_adesso». Lo stato del documento e' letto da un'altra parte del codice: se le due righe divergessero, una delle due mentirebbe, e questo caso e' l'unico posto in cui si vedrebbe.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 200000 },
-        { "cosa": "quanti_nomi_di_configurazione", "uguale": 2,
-          "perche": "DUE, E NON UNA. Un pezzo appena nato dal modello di questa azienda ha gia' due configurazioni vere -- «Default<A macchina>» e «Default<Saldato>», la coppia dei saldati. Il numero da cui si parte non e' quello che verrebbe da scrivere, e questa riga e' costata un rosso: il conto sta qui apposta, invece di essere dato per scontato. I NOMI non si possono scrivere -- «A macchina» e «Saldato» sono localizzati, e un caso che li scrivesse sarebbe verde su questa installazione e rosso sulla prossima." },
-        { "cosa": "quante_configurazioni", "uguale": 2,
-          "perche": "`GetConfigurationCount()` e `GetConfigurationNames()` sono due chiamate diverse, e qui rispondono lo stesso numero. Sta scritto perche' il giorno in cui non combaciassero sarebbe quello il fatto da sapere: sarebbero due elenchi della stessa cosa che non sono d'accordo." } ] },
-    { "operazione": "crea_configurazione",
-      "argomenti": { "nome": "Sinistra", "descrizione": "staffa sinistra" },
-      "attese": [
-        { "cosa": "misure.configurazione", "uguale": "Sinistra" },
-        { "cosa": "misure.attiva_adesso", "uguale": "Sinistra" },
-        { "cosa": "misure.nota_attivazione", "contiene": ["ATTIVA"] },
-        { "cosa": "stato.configurazione", "uguale": "Sinistra",
-          "perche": "e' la riga che la voce chiedeva: «una configurazione creata e attivata cambia lo stato attivo letto da StatoDocumento»" },
-        { "cosa": "quanti_nomi_di_configurazione", "uguale": 3 },
-        { "cosa": "quante_configurazioni", "uguale": 3 },
-        { "cosa": "volume_mm3", "uguale": 200000,
-          "perche": "la configurazione nuova nasce copia di quella di prima: se il volume cambiasse, la variante non sarebbe piu' lo stesso pezzo" } ] },
-    { "operazione": "crea_configurazione",
-      "argomenti": { "nome": "Destra", "descrizione": "staffa destra" },
-      "attese": [
-        { "cosa": "misure.attiva_adesso", "uguale": "Destra" },
-        { "cosa": "stato.configurazione", "uguale": "Destra",
-          "perche": "la seconda scalza la prima, e anche questo senza che nessuno l'abbia chiesto" },
-        { "cosa": "quanti_nomi_di_configurazione", "uguale": 4 },
-        { "cosa": "quante_configurazioni", "uguale": 4 } ] }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 200000 },
+        { "what": "quanti_nomi_di_configurazione", "equal_to": 2,
+          "why": "DUE, E NON UNA. Un pezzo appena nato dal modello di questa azienda ha gia' due configurazioni vere -- «Default<A macchina>» e «Default<Saldato>», la coppia dei saldati. Il numero da cui si parte non e' quello che verrebbe da scrivere, e questa riga e' costata un rosso: il conto sta qui apposta, invece di essere dato per scontato. I NOMI non si possono scrivere -- «A macchina» e «Saldato» sono localizzati, e un caso che li scrivesse sarebbe verde su questa installazione e rosso sulla prossima." },
+        { "what": "quante_configurazioni", "equal_to": 2,
+          "why": "`GetConfigurationCount()` e `GetConfigurationNames()` sono due chiamate diverse, e qui rispondono lo stesso numero. Sta scritto perche' il giorno in cui non combaciassero sarebbe quello il fatto da sapere: sarebbero due elenchi della stessa cosa che non sono d'accordo." } ] },
+    { "operation": "crea_configurazione",
+      "arguments": { "nome": "Sinistra", "descrizione": "staffa sinistra" },
+      "expect": [
+        { "what": "misure.configurazione", "equal_to": "Sinistra" },
+        { "what": "misure.attiva_adesso", "equal_to": "Sinistra" },
+        { "what": "misure.nota_attivazione", "includes": ["ATTIVA"] },
+        { "what": "stato.configurazione", "equal_to": "Sinistra",
+          "why": "e' la riga che la voce chiedeva: «una configurazione creata e attivata cambia lo stato attivo letto da StatoDocumento»" },
+        { "what": "quanti_nomi_di_configurazione", "equal_to": 3 },
+        { "what": "quante_configurazioni", "equal_to": 3 },
+        { "what": "volume_mm3", "equal_to": 200000,
+          "why": "la configurazione nuova nasce copia di quella di prima: se il volume cambiasse, la variante non sarebbe piu' lo stesso pezzo" } ] },
+    { "operation": "crea_configurazione",
+      "arguments": { "nome": "Destra", "descrizione": "staffa destra" },
+      "expect": [
+        { "what": "misure.attiva_adesso", "equal_to": "Destra" },
+        { "what": "stato.configurazione", "equal_to": "Destra",
+          "why": "la seconda scalza la prima, e anche questo senza che nessuno l'abbia chiesto" },
+        { "what": "quanti_nomi_di_configurazione", "equal_to": 4 },
+        { "what": "quante_configurazioni", "equal_to": 4 } ] }
   ]
 }

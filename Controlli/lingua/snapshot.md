@@ -34,7 +34,7 @@ node Controlli/lingua/snapshot.js compare <snapshot dir> [--ledger <tests.json>]
 node Controlli/lingua/snapshot.js --self-test
 ```
 
-The two ledgers of `take` are `Banco/resoconto/tests.json` of two full bench
+The two ledgers of `take` are `Banco/report/tests.json` of two full bench
 runs on the same tree (the format of `Banco/TestLedger.cs`). The ledger of
 `compare` is the one of the run being judged; without it the tests are not
 compared, and the comparison says so.
@@ -147,7 +147,7 @@ id of the refusal call it is inside, or `null`.
 ### `assertions.json`
 
 Every textual assertion of the bench cases. The cases are the JSON objects of
-`Banco/casi/<folder>/` (the folder `regressione` holds regression cases; an
+`Banco/cases/<folder>/` (the folder `regression` holds regression cases; an
 array is a plan, not a case), walked through the contexts of
 `Banco/case-keys.json`. The assertion keys are `ASSERTION_KEYS`: the message of
 a must-fail block, `contains` and `not contains` of an expectation, and an
@@ -156,7 +156,7 @@ in `values_not_text`). A list of texts is one assertion per element.
 
 | key | content |
 |---|---|
-| `id` | `<folder>/<file>#<path>`, the path in the case (`passi[2].deve_fallire.il_messaggio_contiene`, with the keys of today) |
+| `id` | `<folder>/<file>#<path>`, the path in the case (`steps[2].must_fail.message_includes` since window 1 of W3.1-bis.4; a snapshot taken before it has `passi[2].deve_fallire.il_messaggio_contiene`) |
 | `case`, `case_name`, `root` | the case file, its name, declared or regression |
 | `step`, `operation`, `what` | the step it belongs to, its operation, the measure of the expectation |
 | `kind`, `key`, `value` | message_contains, contains, not_contains or equals; the key; the text |

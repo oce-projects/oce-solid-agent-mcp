@@ -1,58 +1,58 @@
 {
-  "nome": "the_hidden_component_is_not_in_the_step",
-  "famiglia": "assiemi",
-  "perche": "Z-C21.11. The probe zc2111/probe_alleggeriti (30/9/2026, assembly T_hid: part A plus part B hidden with IComponent2.Visible = swComponentHidden) measured that the STEP of an assembly does not write a hidden component (1 solid in the file), while CreateMassProperty of the assembly weighs it (17000 mm3, B included). Up to library 0.146.0 esporta_step expected a solid for every part that is not suppressed, hidden ones included, and refused a right file for having fewer solids. The library now leaves hidden components out of the solids expected and names them; the mass and the box keep them and name them. The bench hides the block («hidden», read back with IsHidden(false) before the first step).",
-  "il_difetto_che_questo_caso_prende": "A right STEP refused because a hidden component was counted among the solids expected; a hidden component dropped from the mass or from the box; answers that do not say a hidden component was left out of the file.",
-  "se_resta_verde_sulla_libreria_vecchia": "It cannot: on 0.146.0 the solids expected are 2 and the file holds 1, and step 1 refuses for having fewer solids than the parts, while it asks for the file.",
-  "i_numeri": "Base 120 x 80 x 10 at the origin (x from -60 to 60, y from -5 to 5, z from -40 to 40), block 20 x 20 x 20 centred at x = 100 (x from 90 to 110, y and z from -10 to 10), both AISI 304 (8000 kg/m3). STEP: 1 solid, the base. Mass: 96000 + 8000 mm3, 0.768 + 0.064 = 0.832 kg. Box: 170 x 20 x 80. In the state the components sort by name, base first: the block is the second one.",
-  "assieme": {
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } },
-          { "operazione": "applica_materiale", "argomenti": { "materiale": "AISI 304" } }
+  "name": "the_hidden_component_is_not_in_the_step",
+  "family": "assemblies",
+  "why": "Z-C21.11. The probe zc2111/probe_alleggeriti (30/9/2026, assembly T_hid: part A plus part B hidden with IComponent2.Visible = swComponentHidden) measured that the STEP of an assembly does not write a hidden component (1 solid in the file), while CreateMassProperty of the assembly weighs it (17000 mm3, B included). Up to library 0.146.0 esporta_step expected a solid for every part that is not suppressed, hidden ones included, and refused a right file for having fewer solids. The library now leaves hidden components out of the solids expected and names them; the mass and the box keep them and name them. The bench hides the block («hidden», read back with IsHidden(false) before the first step).",
+  "defect_caught": "A right STEP refused because a hidden component was counted among the solids expected; a hidden component dropped from the mass or from the box; answers that do not say a hidden component was left out of the file.",
+  "_if_it_stays_green_on_the_old_library": "It cannot: on 0.146.0 the solids expected are 2 and the file holds 1, and step 1 refuses for having fewer solids than the parts, while it asks for the file.",
+  "_the_numbers": "Base 120 x 80 x 10 at the origin (x from -60 to 60, y from -5 to 5, z from -40 to 40), block 20 x 20 x 20 centred at x = 100 (x from 90 to 110, y and z from -10 to 10), both AISI 304 (8000 kg/m3). STEP: 1 solid, the base. Mass: 96000 + 8000 mm3, 0.768 + 0.064 = 0.832 kg. Box: 170 x 20 x 80. In the state the components sort by name, base first: the block is the second one.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } },
+          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
         ] },
-      { "nome": "block",
-        "posizione_mm": [100, 0, 0],
+      { "name": "block",
+        "position_mm": [100, 0, 0],
         "hidden": true,
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 20, "larghezza_mm": 20, "spessore_mm": 20, "centrato": true } },
-          { "operazione": "applica_materiale", "argomenti": { "materiale": "AISI 304" } }
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 20, "larghezza_mm": 20, "spessore_mm": 20, "centrato": true } },
+          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "esporta_step",
-      "argomenti": { "percorso": "{LAVORO}\\the_hidden_component_is_not_in_the_step.step" },
-      "attese": [
-        { "cosa": "misure.solidi_nel_file", "uguale": 1,
-          "perche": "MEASURED on 30/9/2026: SOLIDWORKS does not write a hidden component into the STEP" },
-        { "cosa": "misure.solidi_attesi", "uguale": 1,
-          "perche": "THE LINE THAT TAKES THE DEFECT: the hidden block is left out of the solids expected. On 0.146.0 they are 2 and the step refuses" },
-        { "cosa": "misure.hidden_components_not_exported", "contiene": ["_block-1"],
-          "perche": "the component missing from the file is named" },
-        { "cosa": "stato.componenti[1].visibile", "uguale": false,
-          "perche": "the block is the hidden one, as the preparation made it" } ] },
+  "steps": [
+    { "operation": "esporta_step",
+      "arguments": { "percorso": "{LAVORO}\\the_hidden_component_is_not_in_the_step.step" },
+      "expect": [
+        { "what": "misure.solidi_nel_file", "equal_to": 1,
+          "why": "MEASURED on 30/9/2026: SOLIDWORKS does not write a hidden component into the STEP" },
+        { "what": "misure.solidi_attesi", "equal_to": 1,
+          "why": "THE LINE THAT TAKES THE DEFECT: the hidden block is left out of the solids expected. On 0.146.0 they are 2 and the step refuses" },
+        { "what": "misure.hidden_components_not_exported", "includes": ["_block-1"],
+          "why": "the component missing from the file is named" },
+        { "what": "stato.componenti[1].visibile", "equal_to": false,
+          "why": "the block is the hidden one, as the preparation made it" } ] },
 
-    { "operazione": "proprieta_di_massa",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.massa_kg", "uguale": 0.832, "tolleranza": 0.0001,
-          "perche_questa_tolleranza": "rounded to four decimals: (96000 + 8000) mm3 x 8000 kg/m3 = 0.832 kg",
-          "perche": "a hidden component weighs: the probe measured it in the assembly mass" },
-        { "cosa": "misure.componenti_pesati", "uguale": 2 },
-        { "cosa": "misure.hidden_components_weighed", "contiene": ["_block-1"],
-          "perche": "the answer says a hidden component is in the mass" } ] },
+    { "operation": "proprieta_di_massa",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.massa_kg", "equal_to": 0.832, "tolerance": 0.0001,
+          "tolerance_why": "rounded to four decimals: (96000 + 8000) mm3 x 8000 kg/m3 = 0.832 kg",
+          "why": "a hidden component weighs: the probe measured it in the assembly mass" },
+        { "what": "misure.componenti_pesati", "equal_to": 2 },
+        { "what": "misure.hidden_components_weighed", "includes": ["_block-1"],
+          "why": "the answer says a hidden component is in the mass" } ] },
 
-    { "operazione": "ingombro_corpo",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.ingombro_mm", "uguale": [170, 20, 80], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "true extreme points, rounded to the hundredth",
-          "perche": "the hidden block is in the box: x from -60 to 110, y from -10 to 10" },
-        { "cosa": "misure.hidden_components", "contiene": ["_block-1"],
-          "perche": "and the box says it holds a hidden component" } ] }
+    { "operation": "ingombro_corpo",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.ingombro_mm", "equal_to": [170, 20, 80], "tolerance": 0.01,
+          "tolerance_why": "true extreme points, rounded to the hundredth",
+          "why": "the hidden block is in the box: x from -60 to 110, y from -10 to 10" },
+        { "what": "misure.hidden_components", "includes": ["_block-1"],
+          "why": "and the box says it holds a hidden component" } ] }
   ]
 }

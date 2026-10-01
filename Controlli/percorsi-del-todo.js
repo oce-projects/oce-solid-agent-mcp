@@ -15,7 +15,7 @@
 //  ── DUE COSE IMPARATE SCRIVENDOLO, E TUTT'E DUE CONTANO ─────────────────────
 //
 //  1. **I percorsi sono scritti da dove si lavora.** Il TODO scrive
-//     `casi/tavola/...` intendendo `Banco/casi/tavola/...`, e `Catalogo/...`
+//     `cases/drawing/...` intendendo `Banco/cases/drawing/...`, e `Catalogo/...`
 //     intendendo `Riscontro.Disegno/Catalogo/...`. La prima stesura li
 //     segnalava tutti come mancanti: trentatre' allarmi, quasi tutti falsi.
 //     Adesso si provano le cartelle da cui si lavora davvero.
@@ -43,7 +43,7 @@ if (!fileTodo) process.exit(0);
 const righe = fs.readFileSync(fileTodo, 'utf8').split(/\r?\n/);
 
 // Le cartelle da cui il TODO scrive i percorsi.
-const BASI = ['', 'Banco', 'Banco/casi', 'Riscontro.Disegno', 'Strumenti',
+const BASI = ['', 'Banco', 'Banco/cases', 'Riscontro.Disegno', 'Strumenti',
               'Controlli', 'Prove', 'Mcp', 'Ponte'];
 
 // ── CARTELLE DI UN ALTRO REPOSITORY ─────────────────────────────────────────
@@ -74,7 +74,14 @@ const ALTROVE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad\/
 // indica un file da aprire. Categoria diversa da «altro repository» e da
 // «voce chiusa», e tenerle distinte e il punto: tre motivi diversi per cui
 // un percorso non si trova, e solo uno e un difetto.
-const TRANSITORI = [/^piani\//];
+// A name made at run time is not a file to open either: the bench writes its
+// report of a run as `Banco/report/AAAAMMGG_hhmm.md`, one per date. The TODO
+// quotes the pattern; window 1 of W3.1-bis (.4) moved it from
+// `Banco/resoconto/`, and before that the pattern was found only because a
+// closed entry quoted it first.
+// The pattern is the shape of the placeholder: eight capitals for the date,
+// four small letters for the time.
+const TRANSITORI = [/^piani\//, /\/[A-Z]{8}_[a-z]{4}\.[a-z]+$/];
 
 const ESTENSIONI = ['.cs', '.json', '.md', '.ps1', '.js', '.csproj', '.yml', '.txt'];
 

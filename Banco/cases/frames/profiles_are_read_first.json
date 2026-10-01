@@ -1,34 +1,34 @@
 {
-  "nome": "i_profili_si_leggono_prima",
-  "famiglia": "telai",
-  "perche": "L'OPERAZIONE CHE IL CATALOGO CHIEDEVA E CHE NON C'ERA. `membro_strutturale` e `telaio_rettangolare` dicono, nella loro stessa descrizione, «PRIMA CHIAMA profili_saldatura e copia da li' profilo_percorso e configurazione ALLA LETTERA». Quel nome compariva quattro volte nel catalogo -- tutte e quattro dentro il testo di chi la chiedeva -- e zero volte fra i nomi eseguibili: il modello leggeva un'istruzione che non portava da nessuna parte, e l'unica cosa che poteva fare era inventarsi un percorso e una misura.",
-  "perche_inventarsi_la_misura_non_da_errore": "Sta scritto nel commento di `OperazioniSaldatura` da prima di questo caso: se la misura non c'e', SOLIDWORKS non fallisce -- usa la configurazione attiva del profilo. Il pezzo esce con una parete diversa da quella confermata, la ricostruzione e' pulita, e nessuno se ne accorge fino all'officina. Un controllo che lo prende c'e' gia', ed e' buono, ma puo' scattare solo DOPO che qualcuno ha indovinato. Questo caso prova che adesso non c'e' piu' niente da indovinare.",
-  "e_questo_caso_e_uscito_rosso_due_volte_per_lo_stesso_motivo": "Prima con `segmenti: [[[0,0],[600,0]]]`, array annidati: «Il segmento 1 non e' leggibile». Poi con `[{\"da\":[0,0],\"a\":[600,0]}]`, oggetti ma con due coordinate: «Al segmento 1 il punto da non ha tre coordinate». Il formato vero e' una lista di oggetti con punti a TRE coordinate assolute in mm: `[{\"da\":[0,0,0],\"a\":[600,0,0]}]`. Tutte e due le volte il formato e' stato INVENTATO invece che letto in `SegmentiDa` -- che e' esattamente il difetto che questo caso racconta, ripetuto due volte mentre lo si scriveva. Si tiene scritto qui perche' costa piu' leggere due errori di banco che venti righe di sorgente.",
-  "perche_i_numeri_non_sono_scritti_qui": "Quali profili ci siano dipende dalla libreria di questa installazione, non dal codice: scrivere «ci sono 37 profili» vorrebbe dire un caso che diventa rosso quando qualcuno aggiunge un tubolare. Si pretende invece che l'elenco NON SIA VUOTO, che ogni voce porti un percorso intero, e -- la riga che conta -- che una misura presa da li' e ricopiata dentro `membro_strutturale` sia accettata.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "profili_saldatura",
-      "argomenti": { "cerca": "TUBO STRUTTURALE QUADRO" },
-      "attese": [
-        { "cosa": "misure.profili_elencati", "uguale": 1,
-          "perche": "il tubolare quadro e' un file solo: se ne uscissero due, «cerca» non starebbe filtrando" },
-        { "cosa": "misure.profili[0].nome", "contiene": ["TUBO STRUTTURALE QUADRO"] },
-        { "cosa": "misure.profili[0].profilo_percorso", "contiene": [".SLDLFP"],
-          "perche": "IL PERCORSO SI DA' INTERO. E' quello che `membro_strutturale` vuole in «profilo_percorso», e ricostruirlo da nome e cartella e' il modo di sbagliarlo." },
-        { "cosa": "misure.profili[0].misure", "contiene": ["80X80X5"],
-          "perche": "LA MISURA SCRITTA COME VA COPIATA. «80X80X5» con le X maiuscole: e' cosi' che sta nel file, e «80x80x5» sarebbe un'altra cosa che SOLIDWORKS ignorerebbe senza dirlo." },
-        { "cosa": "misure.come_si_usa", "contiene": ["ALLA LETTERA", "non da' errore"],
-          "perche": "l'avvertimento viaggia con la risposta, non solo nel catalogo: chi legge questa risposta potrebbe non aver mai letto la descrizione dell'operazione" } ] },
-    { "operazione": "membro_strutturale",
-      "argomenti": { "piano": "superiore",
+  "name": "profiles_are_read_first",
+  "family": "frames",
+  "why": "L'OPERAZIONE CHE IL CATALOGO CHIEDEVA E CHE NON C'ERA. `membro_strutturale` e `telaio_rettangolare` dicono, nella loro stessa descrizione, «PRIMA CHIAMA profili_saldatura e copia da li' profilo_percorso e configurazione ALLA LETTERA». Quel nome compariva quattro volte nel catalogo -- tutte e quattro dentro il testo di chi la chiedeva -- e zero volte fra i nomi eseguibili: il modello leggeva un'istruzione che non portava da nessuna parte, e l'unica cosa che poteva fare era inventarsi un percorso e una misura.",
+  "_why_making_up_the_measurement_gives_no_error": "Sta scritto nel commento di `OperazioniSaldatura` da prima di questo caso: se la misura non c'e', SOLIDWORKS non fallisce -- usa la configurazione attiva del profilo. Il pezzo esce con una parete diversa da quella confermata, la ricostruzione e' pulita, e nessuno se ne accorge fino all'officina. Un controllo che lo prende c'e' gia', ed e' buono, ma puo' scattare solo DOPO che qualcuno ha indovinato. Questo caso prova che adesso non c'e' piu' niente da indovinare.",
+  "_and_this_case_went_red_twice_for_the_same_reason": "Prima con `segmenti: [[[0,0],[600,0]]]`, array annidati: «Il segmento 1 non e' leggibile». Poi con `[{\"da\":[0,0],\"a\":[600,0]}]`, oggetti ma con due coordinate: «Al segmento 1 il punto da non ha tre coordinate». Il formato vero e' una lista di oggetti con punti a TRE coordinate assolute in mm: `[{\"da\":[0,0,0],\"a\":[600,0,0]}]`. Tutte e due le volte il formato e' stato INVENTATO invece che letto in `SegmentiDa` -- che e' esattamente il difetto che questo caso racconta, ripetuto due volte mentre lo si scriveva. Si tiene scritto qui perche' costa piu' leggere due errori di banco che venti righe di sorgente.",
+  "_why_the_numbers_are_not_written_here": "Quali profili ci siano dipende dalla libreria di questa installazione, non dal codice: scrivere «ci sono 37 profili» vorrebbe dire un caso che diventa rosso quando qualcuno aggiunge un tubolare. Si pretende invece che l'elenco NON SIA VUOTO, che ogni voce porti un percorso intero, e -- la riga che conta -- che una misura presa da li' e ricopiata dentro `membro_strutturale` sia accettata.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "profili_saldatura",
+      "arguments": { "cerca": "TUBO STRUTTURALE QUADRO" },
+      "expect": [
+        { "what": "misure.profili_elencati", "equal_to": 1,
+          "why": "il tubolare quadro e' un file solo: se ne uscissero due, «cerca» non starebbe filtrando" },
+        { "what": "misure.profili[0].nome", "includes": ["TUBO STRUTTURALE QUADRO"] },
+        { "what": "misure.profili[0].profilo_percorso", "includes": [".SLDLFP"],
+          "why": "IL PERCORSO SI DA' INTERO. E' quello che `membro_strutturale` vuole in «profilo_percorso», e ricostruirlo da nome e cartella e' il modo di sbagliarlo." },
+        { "what": "misure.profili[0].misure", "includes": ["80X80X5"],
+          "why": "LA MISURA SCRITTA COME VA COPIATA. «80X80X5» con le X maiuscole: e' cosi' che sta nel file, e «80x80x5» sarebbe un'altra cosa che SOLIDWORKS ignorerebbe senza dirlo." },
+        { "what": "misure.come_si_usa", "includes": ["ALLA LETTERA", "non da' errore"],
+          "why": "l'avvertimento viaggia con la risposta, non solo nel catalogo: chi legge questa risposta potrebbe non aver mai letto la descrizione dell'operazione" } ] },
+    { "operation": "membro_strutturale",
+      "arguments": { "piano": "superiore",
                      "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configurazione": "80X80X5",
                      "segmenti": [ { "da": [0, 0, 0], "a": [600, 0, 0] } ] },
-      "attese": [
-        { "cosa": "corpi", "uguale": 1,
-          "perche": "IL CERCHIO SI CHIUDE QUI. La misura letta al passo 1 e ricopiata al passo 2 costruisce la barra: e' la prova che i due pezzi del catalogo adesso si parlano davvero, non che si citano." },
-        { "cosa": "volume_mm3", "uguale": 881973.4, "tolleranza": 500,
-          "perche_il_numero_non_e_quello_della_formula": "La formula (80*80 - 70*70) * 600 da' 900.000 mm3, e il pezzo vero ne fa 881.973,4 -- diciottomila in meno. Non e' un errore: un tubolare strutturale ha i RACCORDI D'ANGOLO, dentro e fuori, e la formula assume spigoli vivi. Il primo giro di questo caso e' uscito rosso proprio cosi', con 881.973 contro 900.000 attesi: il numero atteso era stato CALCOLATO invece che misurato. Adesso il centro e' la misura e la formula e' scritta qui accanto per ricordare di quanto sbaglia.",
-          "perche_questa_tolleranza": "500 mm3 sono lo 0,06%: coprono il rumore di ricostruzione e un raggio d'angolo leggermente diverso su un altro profilo della libreria. Discriminano ancora larghissimo: la misura sbagliata piu' VICINA -- 70x70x5 -- darebbe circa 780.000, cioe' centomila mm3 di distanza. Un 80x80x4 ne darebbe circa 715.000." } ] }
+      "expect": [
+        { "what": "corpi", "equal_to": 1,
+          "why": "IL CERCHIO SI CHIUDE QUI. La misura letta al passo 1 e ricopiata al passo 2 costruisce la barra: e' la prova che i due pezzi del catalogo adesso si parlano davvero, non che si citano." },
+        { "what": "volume_mm3", "equal_to": 881973.4, "tolerance": 500,
+          "_why_the_number_is_not_the_one_from_the_formula": "La formula (80*80 - 70*70) * 600 da' 900.000 mm3, e il pezzo vero ne fa 881.973,4 -- diciottomila in meno. Non e' un errore: un tubolare strutturale ha i RACCORDI D'ANGOLO, dentro e fuori, e la formula assume spigoli vivi. Il primo giro di questo caso e' uscito rosso proprio cosi', con 881.973 contro 900.000 attesi: il numero atteso era stato CALCOLATO invece che misurato. Adesso il centro e' la misura e la formula e' scritta qui accanto per ricordare di quanto sbaglia.",
+          "tolerance_why": "500 mm3 sono lo 0,06%: coprono il rumore di ricostruzione e un raggio d'angolo leggermente diverso su un altro profilo della libreria. Discriminano ancora larghissimo: la misura sbagliata piu' VICINA -- 70x70x5 -- darebbe circa 780.000, cioe' centomila mm3 di distanza. Un 80x80x4 ne darebbe circa 715.000." } ] }
   ]
 }

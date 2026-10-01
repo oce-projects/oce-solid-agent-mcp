@@ -1,46 +1,46 @@
 {
-  "nome": "la_distinta_base_conta_i_componenti",
-  "famiglia": "tavola",
-  "perche": "VOCE GT9. La consegna standard di un assieme e' la tavola con la distinta base e la bollatura (i palloncini coi numeri di voce). Una base 120x80x10 e un coperchio 120x80x4 appoggiato sopra (non dentro: y = 7), tavola dell'assieme, distinta e palloncini.",
-  "il_difetto_che_questo_caso_prende": "La distinta che conta i componenti in modo diverso dall'assieme (tipo sbagliato: «solo parti» invece di «primo livello», un enum che parte da 1), la quantita' che non somma i pezzi, e i palloncini che non nascono o nascono in numero diverso dalle voci.",
-  "assieme": {
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+  "name": "bom_counts_the_components",
+  "family": "drawing",
+  "why": "VOCE GT9. La consegna standard di un assieme e' la tavola con la distinta base e la bollatura (i palloncini coi numeri di voce). Una base 120x80x10 e un coperchio 120x80x4 appoggiato sopra (non dentro: y = 7), tavola dell'assieme, distinta e palloncini.",
+  "defect_caught": "La distinta che conta i componenti in modo diverso dall'assieme (tipo sbagliato: «solo parti» invece di «primo livello», un enum che parte da 1), la quantita' che non somma i pezzi, e i palloncini che non nascono o nascono in numero diverso dalle voci.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
         ] },
-      { "nome": "coperchio",
-        "posizione_mm": [0, 7, 0],
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+      { "name": "coperchio",
+        "position_mm": [0, 7, 0],
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "salva_documento",
-      "argomenti": { "percorso": "{LAVORO}\\la_distinta_base_conta_i_componenti.sldasm" },
-      "attese": [ { "cosa": "misure.avvisi", "uguale": 0, "perche": "la vista si aggancia al FILE dell'assieme" } ] },
-    { "operazione": "crea_disegno",
-      "argomenti": { "formato": "A3" },
-      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
-    { "operazione": "viste_standard",
-      "argomenti": { "modello": "{LAVORO}\\la_distinta_base_conta_i_componenti.sldasm" },
-      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
-    { "operazione": "distinta_base_in_tavola",
-      "argomenti": { "vista": "V1" },
-      "attese": [
-        { "cosa": "misure.voci", "uguale": 2, "perche": "base e coperchio" },
-        { "cosa": "misure.quantita_in_tabella", "uguale": 2, "perche": "un pezzo per voce" },
-        { "cosa": "misure.combaciano", "uguale": true, "perche": "la tabella e l'assieme, letti ognuno per conto suo" },
-        { "cosa": "misure.dentro_il_foglio", "uguale": true, "perche": "misurata e messa in un posto libero" } ] },
-    { "operazione": "bollatura",
-      "argomenti": { "vista": "V1" },
-      "attese": [
-        { "cosa": "misure.palloncini_messi", "uguale": 2, "perche": "uno per componente, contati dopo sulla vista" },
-        { "cosa": "misure.numeri", "contiene": ["1", "2"], "perche": "i numeri di voce della distinta" },
-        { "cosa": "misure.quante_voci_senza_bollatura", "uguale": 0,
-          "perche": "ogni voce della distinta ha il suo palloncino: sull'assieme Starlink (26/9/2026) il disco, coperto nell'isometrica, restava senza e la risposta diceva «fatto»" } ] }
+  "steps": [
+    { "operation": "salva_documento",
+      "arguments": { "percorso": "{LAVORO}\\bom_counts_the_components.sldasm" },
+      "expect": [ { "what": "misure.avvisi", "equal_to": 0, "why": "la vista si aggancia al FILE dell'assieme" } ] },
+    { "operation": "crea_disegno",
+      "arguments": { "formato": "A3" },
+      "expect": [ { "what": "stato.tipo", "equal_to": "tavola" } ] },
+    { "operation": "viste_standard",
+      "arguments": { "modello": "{LAVORO}\\bom_counts_the_components.sldasm" },
+      "expect": [ { "what": "misure.viste_create", "equal_to": 3 } ] },
+    { "operation": "distinta_base_in_tavola",
+      "arguments": { "vista": "V1" },
+      "expect": [
+        { "what": "misure.voci", "equal_to": 2, "why": "base e coperchio" },
+        { "what": "misure.quantita_in_tabella", "equal_to": 2, "why": "un pezzo per voce" },
+        { "what": "misure.combaciano", "equal_to": true, "why": "la tabella e l'assieme, letti ognuno per conto suo" },
+        { "what": "misure.dentro_il_foglio", "equal_to": true, "why": "misurata e messa in un posto libero" } ] },
+    { "operation": "bollatura",
+      "arguments": { "vista": "V1" },
+      "expect": [
+        { "what": "misure.palloncini_messi", "equal_to": 2, "why": "uno per componente, contati dopo sulla vista" },
+        { "what": "misure.numeri", "includes": ["1", "2"], "why": "i numeri di voce della distinta" },
+        { "what": "misure.quante_voci_senza_bollatura", "equal_to": 0,
+          "why": "ogni voce della distinta ha il suo palloncino: sull'assieme Starlink (26/9/2026) il disco, coperto nell'isometrica, restava senza e la risposta diceva «fatto»" } ] }
   ]
 }

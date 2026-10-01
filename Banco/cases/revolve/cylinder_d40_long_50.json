@@ -1,16 +1,16 @@
 {
-  "nome": "cilindro_d40_lungo_50",
-  "famiglia": "rivoluzione",
-  "perche": "Il caso piu' semplice che ci sia: un rettangolo 50 x 20 girato attorno a y = 0. Raggio 20, altezza 50, volume pi*400*50. Se l'asse o il profilo fossero letti in metri invece che in millimetri, o il verso fosse invertito, il numero non tornerebbe di poco: non tornerebbe per niente.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "rivoluzione",
-      "argomenti": { "piano": "frontale", "angolo_gradi": 360,
+  "name": "cylinder_d40_long_50",
+  "family": "revolve",
+  "why": "Il caso piu' semplice che ci sia: un rettangolo 50 x 20 girato attorno a y = 0. Raggio 20, altezza 50, volume pi*400*50. Se l'asse o il profilo fossero letti in metri invece che in millimetri, o il verso fosse invertito, il numero non tornerebbe di poco: non tornerebbe per niente.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "rivoluzione",
+      "arguments": { "piano": "frontale", "angolo_gradi": 360,
                      "asse": [[0, 0], [50, 0]],
                      "contorni": [[[0, 0], [0, 20], [50, 20], [50, 0]]] },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 62831.853, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "pi*20^2*50: il conto ha pi dentro" },
-        { "cosa": "corpi", "uguale": 1 } ] }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 62831.853, "tolerance": 0.5,
+          "tolerance_why": "pi*20^2*50: il conto ha pi dentro" },
+        { "what": "corpi", "equal_to": 1 } ] }
   ]
 }

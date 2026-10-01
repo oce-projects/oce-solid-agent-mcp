@@ -192,7 +192,7 @@ namespace Riscontro.Disegno
             // SOLO PER L'«ICE». La prima stesura chiedeva IsBossFeature a tutte, e
             // la piastra di base (la PRIMA estrusione del pezzo, «Extrusion»)
             // rispondeva false: «passante» su una piastra passava il controllo e la
-            // piastra diventava «attraversa tutto» (il_cieco_diventa_passante,
+            // piastra diventava «attraversa tutto» (blind_becomes_through,
             // passo 6, rosso nel banco intero del 28/9/2026 su 0.138.0). La pagina
             // non ha Remarks che lo dicano. MISURATO il 28/9/2026 (sonda
             // Controlli/TipoDellEstrusione, SOLIDWORKS 29.5.1), prima e dopo

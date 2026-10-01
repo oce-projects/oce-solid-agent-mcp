@@ -1145,7 +1145,7 @@ namespace Riscontro.Disegno
         /// obsolete CreateSpline exactly: 8808.586 mm3, box 37.787 x 10 x
         /// 37.938 mm, all 34 splines read back within 1e-4 mm. FALSE (S3, and
         /// S7 with AddToDB off) gives 8806.568 mm3, which
-        /// la_ruota_da_diciassette_denti_si_fa (8808.59 +-0.5) turns red. The
+        /// the_seventeen_tooth_gear_can_be_made (8808.59 +-0.5) turns red. The
         /// guide: "SimulateNaturalEnds with true for zero curvature end
         /// conditions or false to maintain curvature at the ends".
         /// </summary>
@@ -4084,7 +4084,7 @@ namespace Riscontro.Disegno
         /// swChamferAngleDistance and OtherDist only for swChamferEqualDistance,
         /// and says «VertexChamDist1 — If ChamferType is swChamferDistanceDistance
         /// or swChamferVertex, then specify a value for the distance on first
-        /// side». Measured otherwise: Banco/casi/smusso/smusso_3x6_cianfrino
+        /// side». Measured otherwise: Banco/cases/chamfer/chamfer_3x6_bevel
         /// asks 3 and 6 on a 100 mm edge and gets 119100 mm3 exactly (120000
         /// minus 3 x 6 / 2 x 100); an ignored second side would leave 119550,
         /// and a SOLIDWORKS reading VertexChamDist1/2 = 0 would make no chamfer
@@ -4498,7 +4498,7 @@ namespace Riscontro.Disegno
         /// Remarks table: «Features to be mirrored 1», «Plane or planar face 2».
         /// Until 0.35.0 this used the pattern's 1 and 4, and no mirror was
         /// created. The off-centre hole the old note asked for is the bench
-        /// case specchia/foro_specchiato_sul_destro: a hole at (60, 25) mirrored
+        /// case mirror/hole_mirrored_on_right: a hole at (60, 25) mirrored
         /// on the right plane gives holes at x -60 and 60, y 25 and 25,
         /// 475476.11 mm3, one body.
         ///
@@ -4898,10 +4898,10 @@ namespace Riscontro.Disegno
         /// revolve, using Mark = 0» and «the axis of revolution, using Mark = 4
         /// or 16»); only the sketch is selected here, and SOLIDWORKS takes its
         /// single centerline as the axis. Measured by the revolve cases of the
-        /// bench (Banco/casi/rivoluzione): four with their volume to half a
-        /// cubic millimetre and one body (cilindro_d40_lungo_50 62831.853 mm3,
-        /// mezzo_cilindro_180, boccola_cava, albero_a_gradini) and the refusal
-        /// lim_profilo_a_cavallo_dell_asse; a wrong axis would not give those
+        /// bench (Banco/cases/revolve): four with their volume to half a
+        /// cubic millimetre and one body (cylinder_d40_long_50 62831.853 mm3,
+        /// half_cylinder_180, hollow_bushing, stepped_shaft) and the refusal
+        /// limit_profile_straddling_the_axis; a wrong axis would not give those
         /// volumes (audit finding L2-1, not real). UseAutoSelect is about
         /// BODIES, not the axis: «True to automatically select all bodies and
         /// have the feature affect those bodies» (same page). Adding the
@@ -7343,7 +7343,7 @@ namespace Riscontro.Disegno
         ///
         /// In E2 le due facce venivano da lavorazioni diverse (l'estrusione e
         /// il taglio), quindi la prima prova le separa e il difetto resta
-        /// chiuso: si controlla in `Banco/casi/E2-i-due-casi.md`.
+        /// chiuso: si controlla in `Banco/cases/E2-the-two-cases.md`.
         ///
         /// PERCHE' QUI E NON DENTRO `FirmaCombacia`. Perche' quel confronto
         /// serve anche a decidere se la faccia di partenza va ancora bene, e
@@ -7985,7 +7985,7 @@ namespace Riscontro.Disegno
             // risposta**: il modello che ha scritto il piano e la persona che
             // l'ha confermato non la vedono mai.
             //
-            // Risultato misurato: `e2_caso_a` esegue il foro su un pezzo lungo
+            // Risultato misurato: `e2_case_a` esegue il foro su un pezzo lungo
             // il 60% in piu' di quello confermato, sulla faccia giusta, e nella
             // risposta c'e' `riuscita: true` e nient'altro. Il meccanismo
             // scritto apposta per non avere difetti silenziosi ne aveva uno

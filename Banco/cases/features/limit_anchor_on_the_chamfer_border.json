@@ -1,22 +1,22 @@
 {
-  "nome": "lim_ancora_sul_bordo_dello_smusso",
-  "famiglia": "lavorazioni",
-  "perche": "VOCE E18, rischio 9 del critico. Lo spigolo fra la faccia davanti e uno smusso passa tutti gli altri controlli: sta nel piano della faccia, e' dritto, corre lungo l'asse giusto. Ma e' il bordo dello smusso, e se lo smusso passa da 5 a 8 il foro si sposta di 3 senza che nessuno lo sappia. Si guarda l'ALTRA faccia dello spigolo: dev'essere piana e perpendicolare a quella su cui si lavora. Misurato il 25/9/2026 col banchetto.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+  "name": "limit_anchor_on_the_chamfer_border",
+  "family": "features",
+  "why": "VOCE E18, rischio 9 del critico. Lo spigolo fra la faccia davanti e uno smusso passa tutti gli altri controlli: sta nel piano della faccia, e' dritto, corre lungo l'asse giusto. Ma e' il bordo dello smusso, e se lo smusso passa da 5 a 8 il foro si sposta di 3 senza che nessuno lo sappia. Si guarda l'ALTRA faccia dello spigolo: dev'essere piana e perpendicolare a quella su cui si lavora. Misurato il 25/9/2026 col banchetto.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
-    { "operazione": "smusso_spigoli",
-      "argomenti": { "spigoli_uid": [ "@spigolo(asse=Y,x~=100,z~=20)" ], "lato_mm": 5 },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 478500, "tolleranza": 0.05,
-          "perche_questa_tolleranza": "480000 meno 5*5/2*120 = 1500" } ] },
-    { "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 75, "y_mm": 40, "diametro_mm": 10, "passante": true,
+      "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
+    { "operation": "smusso_spigoli",
+      "arguments": { "spigoli_uid": [ "@spigolo(asse=Y,x~=100,z~=20)" ], "lato_mm": 5 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 478500, "tolerance": 0.05,
+          "tolerance_why": "480000 meno 5*5/2*120 = 1500" } ] },
+    { "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 75, "y_mm": 40, "diametro_mm": 10, "passante": true,
                      "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=95,z~=20)", "distanza_mm": 20 },
                                  "y": { "spigolo_uid": "@spigolo(asse=X,y~=60,z~=20)", "distanza_mm": 20 } } },
-      "deve_fallire": { "il_messaggio_contiene": ["sul bordo di uno smusso o di un raccordo"], "volume_invariato": true,
-                        "nessuna_feature_in_piu": true, "gemella": "il_foro_ancorato_segue_il_bordo" } }
+      "must_fail": { "message_includes": ["sul bordo di uno smusso o di un raccordo"], "volume_unchanged": true,
+                        "no_extra_feature": true, "twin": "anchored_hole_follows_the_border" } }
   ]
 }

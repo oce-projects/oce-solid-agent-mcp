@@ -1,21 +1,21 @@
 {
-  "nome": "lim_raccordo_faccia_fra_facce_che_si_danno_le_spalle",
-  "famiglia": "lavorazioni",
-  "perche": "Il davanti e il dietro dello stesso cubo: due facce piane, parallele, che si danno le spalle. Nessuna palla le tocca tutte e due dal lato dell'aria, quindi il raccordo e' impossibile per GEOMETRIA, non per un capriccio dell'API. La sonda Controlli/RaccordoDiFaccia ha tolto dal giro la sua variante a facce parallele proprio per questo (REVISIONE 28/9/2026): un NULL li' misura la geometria, non la chiamata. Qui la geometria si guarda prima, e il rifiuto dice perche' e cosa usare invece.",
-  "perche_non_le_pareti_di_una_cava": "Due pareti parallele che SI GUARDANO (una cava) non si rifiutano allo stesso modo: una palla di raggio meta' della distanza le tocca tutte e due. Quel ramo non ha ancora una misura, e non si mette in un caso finche' non l'ha.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
+  "name": "limit_fillet_face_between_back_to_back_faces",
+  "family": "features",
+  "why": "Il davanti e il dietro dello stesso cubo: due facce piane, parallele, che si danno le spalle. Nessuna palla le tocca tutte e due dal lato dell'aria, quindi il raccordo e' impossibile per GEOMETRIA, non per un capriccio dell'API. La sonda Controlli/RaccordoDiFaccia ha tolto dal giro la sua variante a facce parallele proprio per questo (REVISIONE 28/9/2026): un NULL li' misura la geometria, non la chiamata. Qui la geometria si guarda prima, e il rifiuto dice perche' e cosa usare invece.",
+  "_why_not_the_walls_of_a_pocket": "Due pareti parallele che SI GUARDANO (una cava) non si rifiutano allo stesso modo: una palla di raggio meta' della distanza le tocca tutte e due. Quel ramo non ha ancora una misura, e non si mette in un caso finche' non l'ha.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
                      "spessore_mm": 40, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 64000 } ] },
-    { "operazione": "raccordo_faccia",
-      "argomenti": { "faccia_1_uid": "@faccia(verso=davanti)", "faccia_2_uid": "@faccia(verso=dietro)",
+      "expect": [ { "what": "volume_mm3", "equal_to": 64000 } ] },
+    { "operation": "raccordo_faccia",
+      "arguments": { "faccia_1_uid": "@faccia(verso=davanti)", "faccia_2_uid": "@faccia(verso=dietro)",
                      "raggio_mm": 5 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["parallele", "si danno le spalle", "raccordo_spigoli"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "raccordo_faccia_fra_due_facce_di_un_cubo" } }
+      "must_fail": {
+        "message_includes": ["parallele", "si danno le spalle", "raccordo_spigoli"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "fillet_face_between_two_faces_of_a_cube" } }
   ]
 }

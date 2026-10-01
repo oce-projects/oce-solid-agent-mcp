@@ -1,23 +1,23 @@
 {
-  "nome": "lim_booleana_sconosciuta",
-  "famiglia": "corpi",
-  "perche": "«fondi» non e' una delle tre. Un nome sconosciuto va rifiutato dicendo quali ci sono: se passasse in silenzio finirebbe nell'enum come numero, e un valore fuori dai tre consuma il corpo sbagliato senza errore.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
+  "name": "limit_unknown_boolean",
+  "family": "bodies",
+  "why": "«fondi» non e' una delle tre. Un nome sconosciuto va rifiutato dicendo quali ci sono: se passasse in silenzio finirebbe nell'enum come numero, e un valore fuori dai tre consuma il corpo sbagliato senza errore.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
                      "spessore_mm": 10, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 1000 } ] },
-    { "operazione": "sposta_corpi",
-      "argomenti": { "corpi_uid": ["C1"], "dx_mm": 2, "dz_mm": 5,
+      "expect": [ { "what": "volume_mm3", "equal_to": 1000 } ] },
+    { "operation": "sposta_corpi",
+      "arguments": { "corpi_uid": ["C1"], "dx_mm": 2, "dz_mm": 5,
                      "copia": true, "quante_copie": 1 },
-      "attese": [ { "cosa": "corpi", "uguale": 2 } ] },
-    { "operazione": "combina_corpi",
-      "argomenti": { "operazione": "fondi" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["fondi", "unisci", "sottrai", "interseca"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "unisci_due_cubi" } }
+      "expect": [ { "what": "corpi", "equal_to": 2 } ] },
+    { "operation": "combina_corpi",
+      "arguments": { "operazione": "fondi" },
+      "must_fail": {
+        "message_includes": ["fondi", "unisci", "sottrai", "interseca"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "merge_two_cubes" } }
   ]
 }

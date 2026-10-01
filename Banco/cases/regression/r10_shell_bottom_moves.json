@@ -1,31 +1,31 @@
 {
-  "nome": "r10_fondo_del_guscio_si_sposta",
-  "famiglia": "regressione",
-  "perche": "E' IL CASO. Una scatola svuotata, un foro cieco sul fondo, e la scatola diventa piu' alta. Il fondo esiste ancora -- nessuna faccia sparisce -- ma si e' spostato di 28 mm. Un foro ancorato a dove stava il fondo prima finisce nel vuoto, e il pezzo esce diverso da quello confermato.",
-  "intento": "ancorato_a_bordo",
-  "perche_intento": "«il foro sul fondo» vuol dire sul fondo. La scatola e' aperta di sotto e il fondo e' il soffitto, spesso 5: alzandola da 52 a 80 il fondo passa da z = 47 a z = 75. Un foro che resta a z assoluto non e' piu' sul fondo, e li' non c'e' piu' materiale da togliere.",
-  "costruisci": [
+  "name": "r10_shell_bottom_moves",
+  "family": "regression",
+  "why": "E' IL CASO. Una scatola svuotata, un foro cieco sul fondo, e la scatola diventa piu' alta. Il fondo esiste ancora -- nessuna faccia sparisce -- ma si e' spostato di 28 mm. Un foro ancorato a dove stava il fondo prima finisce nel vuoto, e il pezzo esce diverso da quello confermato.",
+  "intent": "ancorato_a_bordo",
+  "intent_why": "«il foro sul fondo» vuol dire sul fondo. La scatola e' aperta di sotto e il fondo e' il soffitto, spesso 5: alzandola da 52 a 80 il fondo passa da z = 47 a z = 75. Un foro che resta a z assoluto non e' piu' sul fondo, e li' non c'e' piu' materiale da togliere.",
+  "build": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 314, "larghezza_mm": 274,
+      "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 314, "larghezza_mm": 274,
                      "spessore_mm": 52, "centrato": true }
     },
     {
-      "operazione": "guscio",
-      "argomenti": { "facce_uid": ["@faccia(verso=dietro)"], "spessore_mm": 5,
+      "operation": "guscio",
+      "arguments": { "facce_uid": ["@faccia(verso=dietro)"], "spessore_mm": 5,
                      "verso_esterno": false }
     },
     {
-      "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=dietro,area=80256)", "x_mm": 0, "y_mm": 0,
+      "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=dietro,area=80256)", "x_mm": 0, "y_mm": 0,
                      "diametro_mm": 60, "passante": false, "profondita_mm": 3 }
     }
   ],
-  "modifica": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 80 },
-  "dopo": [
-    { "cosa": "ingombro_mm", "uguale": [314, 274, 80] },
-    { "cosa": "centro_massa_mm", "uguale": [0, 0, 57.253],
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "il guscio da solo ha il baricentro a 57,443; il foro (z 75..78, centro 76,5) lo porta a 57,253. Se il foro restasse dov'era, a z 47..50, si troverebbe nel VUOTO e non toglierebbe niente: 57,443. Centonovanta millesimi fra le due risposte, e cinque centesimi di tolleranza le distinguono. IL VOLUME NON SI USA APPOSTA: il guscio che SOLIDWORKS costruisce ha 960 mm3 in piu' del modello a scatole annidate (misurato), e quel 960 non c'entra niente col foro -- un'attesa sul volume assoluto classificherebbe male il caso per un errore nel MIO conto, non nel pezzo" }
+  "modify": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 80 },
+  "after": [
+    { "what": "ingombro_mm", "equal_to": [314, 274, 80] },
+    { "what": "centro_massa_mm", "equal_to": [0, 0, 57.253],
+      "tolerance": 0.05,
+      "tolerance_why": "il guscio da solo ha il baricentro a 57,443; il foro (z 75..78, centro 76,5) lo porta a 57,253. Se il foro restasse dov'era, a z 47..50, si troverebbe nel VUOTO e non toglierebbe niente: 57,443. Centonovanta millesimi fra le due risposte, e cinque centesimi di tolleranza le distinguono. IL VOLUME NON SI USA APPOSTA: il guscio che SOLIDWORKS costruisce ha 960 mm3 in piu' del modello a scatole annidate (misurato), e quel 960 non c'entra niente col foro -- un'attesa sul volume assoluto classificherebbe male il caso per un errore nel MIO conto, non nel pezzo" }
   ]
 }

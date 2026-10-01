@@ -31,7 +31,7 @@ namespace ProvaSaldatura
     /// 240.000 mm³ della piastra sono **4.800 mm³, piu' di un foro M12
     /// passante**. Una prova che accetta un foro di scarto non prova il foro.
     ///
-    /// Una tolleranza senza il suo `perche_questa_tolleranza` **e' un caso
+    /// Una tolleranza senza il suo `tolerance_why` **e' un caso
     /// rotto**, non un caso permissivo: il file esce rosso e dice quale campo
     /// manca. Un campo assente non diventa mai un verde.
     ///
@@ -53,7 +53,7 @@ namespace ProvaSaldatura
         /// <summary>
         /// LE CARTELLE DEI CASI SI NOMINANO, non si scoprono.
         ///
-        /// In `casi/` vivono anche i piani del formato vecchio, che
+        /// In `cases/` vivono anche i piani del formato vecchio, che
         /// `corri_piani.js` esegue e che qui sarebbero tutti «il file non e' un
         /// oggetto JSON»: scoprire le cartelle da sole vorrebbe dire
         /// trasformare un file d'altri in un errore di banco a ogni giro.
@@ -63,11 +63,11 @@ namespace ProvaSaldatura
         /// </summary>
         private static readonly string[] Famiglie =
         {
-            "lavorazioni", "coppie", "asola", "smusso", "rivoluzione", "piano",
-            "specchia", "ripeti", "asse", "togliere", "frase", "verifica",
-            "esporta", "misura", "corpi", "proprieta", "testo", "telai",
-            "assiemi", "tavola",
-            // «saldature» e' entrata il 23/9/2026 con la voce Z-C6: cinque
+            "features", "pairs", "slot", "chamfer", "revolve", "plane",
+            "mirror", "patterns", "axis", "removal", "sentence", "check",
+            "export", "measurement", "bodies", "document_properties", "text", "frames",
+            "assemblies", "drawing",
+            // «weldments» (then «saldature») e' entrata il 23/9/2026 con la voce Z-C6: cinque
             // operazioni a catalogo non erano esercitate da NIENTE — ne' da un
             // caso, ne' dal C#, ne' da un piano — e quattro delle cinque sono
             // di questa famiglia.
@@ -75,25 +75,25 @@ namespace ProvaSaldatura
             // QUESTO ELENCO E' ESPLICITO, ed e' un difetto in agguato: una
             // cartella di casi che non ci sta dentro e' un insieme di file che
             // sembrano prove e non girano mai. Misurato lo stesso giorno: le
-            // altre cartelle fuori elenco (`ponte`, `limiti`, `viste`, `pezzi`,
+            // altre cartelle fuori elenco (`bridge`, `limits`, `views`, `pezzi`,
             // `forma`) contengono solo PIANI, che e' giusto — ma e' un fatto
             // misurato, non una garanzia del meccanismo.
-            "saldature",
-            // «estrusioni» e' entrata il 24/9/2026, ancora Z-C6: `estrudi_profilo`
+            "weldments",
+            // «extrusions» (then «estrusioni») e' entrata il 24/9/2026, ancora Z-C6: `estrudi_profilo`
             // ed `estrudi_sezione` avevano solo piani a mano. Il controllo di
             // contratto che guarda questo elenco l'ha detta MUTA prima che il
             // banco girasse: e' il difetto in agguato del commento qui sopra,
             // preso stavolta da una prova e non da una lettura.
-            "estrusioni",
-            // «lamiera» (voce GP18) e «quote» (voce Z-H3), le prime due famiglie
+            "extrusions",
+            // «sheet_metal» (voce GP18) e «dimensions» (voce Z-H3), le prime due famiglie
             // nate da una sonda che ha girato la sera stessa: la misura prima,
             // l'operazione dopo.
-            "lamiera", "quote",
-            // «ritrovare» (voce E19, 25/9/2026): entita' che il piano nomina
+            "sheet_metal", "dimensions",
+            // «reanchor» (voce E19, 25/9/2026): entita' che il piano nomina
             // con un uid letto PRIMA di un passo che le rinumera. I casi usano
-            // «uid_dal_passo», l'unico modo di far fare al banco la strada del
+            // «uid_from_step», l'unico modo di far fare al banco la strada del
             // ponte.
-            "ritrovare",
+            "reanchor",
         };
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace ProvaSaldatura
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                radiceCasi = Path.Combine(banco.FullName, "casi");
+                radiceCasi = Path.Combine(banco.FullName, "cases");
             }
             catch (Exception ex)
             {
@@ -171,9 +171,9 @@ namespace ProvaSaldatura
 
             // ── DUE FORME DI FILE NELLA STESSA CARTELLA, E SI DISTINGUONO ──
             //
-            // `casi/tavola/` conteneva gia' i PIANI dei giri a mano — quelli
+            // `cases/drawing/` conteneva gia' i PIANI dei giri a mano — quelli
             // che si lanciano con `corri_piani.js` — e sono file di forma
-            // diversa: un ARRAY di passi, senza nome, senza «perche» e senza
+            // diversa: un ARRAY di passi, senza nome, senza «why» e senza
             // attese. Un caso dichiarato e' un OGGETTO.
             //
             // La differenza e' STRUTTURALE, non un indizio: si guarda se la
@@ -224,7 +224,7 @@ namespace ProvaSaldatura
 
             // QUALI CASI SONO VERDI, PER NOME (voce Z-C6, la seconda meta').
             //
-            // `ultimo.json` portava i totali e basta: «972 prove, 0 fallite» non
+            // `last.json` portava i totali e basta: «972 prove, 0 fallite» non
             // dice QUALI casi hanno girato, e quindi nessuno poteva controllare
             // che ogni `Provata = true` puntasse a un caso che gira davvero. Il
             // 25/9/2026, scrivendo i casi mancanti, due operazioni a catalogo si
@@ -249,7 +249,7 @@ namespace ProvaSaldatura
             public string Operazione;    // il passo che ha rifiutato
             public Dictionary<string, object> Argomenti;   // com'erano scritti nel file
             public List<object> PezzoPrima;               // i passi prima del rifiuto: il pezzo
-            public string DifferenzaNelPezzo;             // «la_differenza_e_il_pezzo», o null
+            public string DifferenzaNelPezzo;             // «difference_is_the_part», o null
         }
 
         /// <summary>
@@ -283,7 +283,7 @@ namespace ProvaSaldatura
             if (coppie.Count == 0)
             {
                 Segna("gemelle: ce n'e' almeno una da controllare", false,
-                      "nessun caso con «deve_fallire»");
+                      "nessun caso con «must_fail»");
                 return;
             }
 
@@ -355,7 +355,7 @@ namespace ProvaSaldatura
             }
             catch (Exception ex) { perche = "JSON della gemella illeggibile: " + ex.Message; return false; }
 
-            var passi = Elenco(gemella, "passi");
+            var passi = Elenco(gemella, "steps");
             if (passi == null) { perche = "la gemella non ha passi"; return false; }
 
             Dictionary<string, object> suoi = null;
@@ -364,9 +364,9 @@ namespace ProvaSaldatura
             {
                 var passo = passi[k] as Dictionary<string, object>;
                 if (passo == null) continue;
-                if (!string.Equals(Testo(passo, "operazione"), c.Operazione, StringComparison.Ordinal)) continue;
-                if (passo.ContainsKey("deve_fallire")) continue;   // due rifiuti non sono una coppia
-                suoi = (passo.ContainsKey("argomenti") ? passo["argomenti"] : null)
+                if (!string.Equals(Testo(passo, "operation"), c.Operazione, StringComparison.Ordinal)) continue;
+                if (passo.ContainsKey("must_fail")) continue;   // due rifiuti non sono una coppia
+                suoi = (passo.ContainsKey("arguments") ? passo["arguments"] : null)
                        as Dictionary<string, object>;
                 doveSuoi = k;
                 break;
@@ -523,19 +523,19 @@ namespace ProvaSaldatura
             // un verde.
             var senzaPerche = new Dictionary<string, object>
             {
-                ["cosa"] = "volume_mm3", ["uguale"] = 100.0, ["tolleranza"] = 5.0,
+                ["what"] = "volume_mm3", ["equal_to"] = 100.0, ["tolerance"] = 5.0,
             };
             string detto;
             string motivo = Perche(() => { string d; Combacia(senzaPerche, null, null, null, out d); return d; });
-            Segna("F3 ROSSO: tolleranza senza «perche_questa_tolleranza»",
-                  motivo.Contains("perche_questa_tolleranza"), Corto(motivo));
+            Segna("F3 ROSSO: tolleranza senza «tolerance_why»",
+                  motivo.Contains("tolerance_why"), Corto(motivo));
 
             // E con il perche', la stessa attesa si valuta (qui fallisce per il
             // valore, non per il formato: il punto e' che ci ARRIVA).
             var colPerche = new Dictionary<string, object>
             {
-                ["cosa"] = "misure.x", ["uguale"] = 100.0, ["tolleranza"] = 5.0,
-                ["perche_questa_tolleranza"] = "si misura con un righello",
+                ["what"] = "misure.x", ["equal_to"] = 100.0, ["tolerance"] = 5.0,
+                ["tolerance_why"] = "si misura con un righello",
             };
             var misureFinte = new Dictionary<string, object> { ["x"] = 102.0 };
             bool valutata = false;
@@ -579,7 +579,7 @@ namespace ProvaSaldatura
             {
                 string d;
                 Combacia(new Dictionary<string, object>
-                { ["cosa"] = "misure.materiale_tolto_mm3", ["uguale"] = 0.0 },
+                { ["what"] = "misure.materiale_tolto_mm3", ["equal_to"] = 0.0 },
                          null, null, misure, out d);
                 return d;
             });
@@ -600,7 +600,7 @@ namespace ProvaSaldatura
             try
             {
                 ok = Combacia(new Dictionary<string, object>
-                { ["cosa"] = "stato.materiale", ["uguale"] = "" },
+                { ["what"] = "stato.materiale", ["equal_to"] = "" },
                               null, statoSenzaMateriale, null, out d2);
             }
             catch (Exception ex) { d2 = ex.Message; }
@@ -657,7 +657,7 @@ namespace ProvaSaldatura
         ///
         /// ── E SI MUTANO SOLO I PASSI CON LE ATTESE ───────────────────────
         ///
-        /// Un passo con `deve_fallire` non ha attese da vincolare: un foro da
+        /// Un passo con `must_fail` non ha attese da vincolare: un foro da
         /// 500 mutato a 750 copre il pezzo lo stesso, e il caso resterebbe
         /// verde senza che questo dica niente sulle sue attese.
         /// </summary>
@@ -751,21 +751,21 @@ namespace ProvaSaldatura
             Dictionary<string, object> caso, Dictionary<string, Dictionary<string, string>> schemi)
         {
             var fuori = new List<Mutazione>();
-            var passi = Elenco(caso, "passi");
+            var passi = Elenco(caso, "steps");
             if (passi == null) return fuori;
 
             for (int i = 0; i < passi.Count; i++)
             {
                 var passo = passi[i] as Dictionary<string, object>;
                 if (passo == null) continue;
-                if (passo.ContainsKey("deve_fallire")) continue;
-                var attese = Elenco(passo, "attese");
+                if (passo.ContainsKey("must_fail")) continue;
+                var attese = Elenco(passo, "expect");
                 if (attese == null || attese.Count == 0) continue;
 
-                var argomenti = (passo.ContainsKey("argomenti") ? passo["argomenti"] : null)
+                var argomenti = (passo.ContainsKey("arguments") ? passo["arguments"] : null)
                                 as Dictionary<string, object>;
                 if (argomenti == null) continue;
-                string operazione = Testo(passo, "operazione") ?? "";
+                string operazione = Testo(passo, "operation") ?? "";
 
                 foreach (var chiave in argomenti.Keys.ToList())
                 {
@@ -800,9 +800,9 @@ namespace ProvaSaldatura
                     }
 
                     var copia = Copia(caso) as Dictionary<string, object>;
-                    var suoiPassi = Elenco(copia, "passi");
+                    var suoiPassi = Elenco(copia, "steps");
                     var suoPasso = suoiPassi[i] as Dictionary<string, object>;
-                    ((Dictionary<string, object>)suoPasso["argomenti"])[chiave] = mutato;
+                    ((Dictionary<string, object>)suoPasso["arguments"])[chiave] = mutato;
                     fuori.Add(new Mutazione { Come = come, Caso = copia });
                 }
             }
@@ -856,9 +856,9 @@ namespace ProvaSaldatura
             _zittoRosso = false;
             try
             {
-                preparato = PreparaIlDocumento(Testo(caso, "nome") ?? "?", caso);
+                preparato = PreparaIlDocumento(Testo(caso, "name") ?? "?", caso);
                 if (preparato == null || preparato.Documento == null) return false;
-                EseguiIPassi(Testo(caso, "nome") ?? "?", caso, preparato.Documento, null, null);
+                EseguiIPassi(Testo(caso, "name") ?? "?", caso, preparato.Documento, null, null);
             }
             catch { _zittoRosso = true; }
             finally { ButtaViaLaPreparazione(preparato); _zitto = false; }
@@ -942,7 +942,7 @@ namespace ProvaSaldatura
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                var cartella = Path.Combine(banco.FullName, "resoconto");
+                var cartella = Path.Combine(banco.FullName, "report");
                 Directory.CreateDirectory(cartella);
                 var file = Path.Combine(cartella, "mutazioni.md");
 
@@ -1233,7 +1233,7 @@ namespace ProvaSaldatura
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                var radiceCasi = Path.Combine(banco.FullName, "casi");
+                var radiceCasi = Path.Combine(banco.FullName, "cases");
                 var file = new List<string>();
                 foreach (var famiglia in Famiglie)
                 {
@@ -1257,7 +1257,7 @@ namespace ProvaSaldatura
         /// `true` se il file e' un PIANO a mano e non un caso dichiarato.
         ///
         /// La radice di un piano e' un array di passi; quella di un caso e' un
-        /// oggetto con `nome`, `perche` e `passi`. **Un file illeggibile NON e'
+        /// oggetto con `name`, `why` e `steps`. **Un file illeggibile NON e'
         /// un piano**: si torna `false` e lo si lascia arrivare a `CorriUnCaso`,
         /// che lo dichiarera' errore di banco con il motivo giusto. *Un
         /// riconoscimento che inghiotte anche i guasti smette di riconoscere.*
@@ -1297,17 +1297,17 @@ namespace ProvaSaldatura
             // Il nome del caso e' quello DENTRO il file, e deve combaciare col
             // nome del file: due nomi diversi per la stessa cosa fanno cercare
             // nel posto sbagliato quando una prova diventa rossa.
-            string dichiarato = Testo(caso, "nome");
-            if (dichiarato == null) { ErroreDiBanco(nome, "manca «nome»"); return false; }
+            string dichiarato = Testo(caso, "name");
+            if (dichiarato == null) { ErroreDiBanco(nome, "manca «name»"); return false; }
             if (dichiarato != nome)
             {
                 ErroreDiBanco(nome, "il file si chiama «" + nome + "» e dentro dice «" +
                                     dichiarato + "»");
                 return false;
             }
-            if (Testo(caso, "perche") == null)
+            if (Testo(caso, "why") == null)
             {
-                ErroreDiBanco(nome, "manca «perche»: un caso senza il dubbio che scioglie " +
+                ErroreDiBanco(nome, "manca «why»: un caso senza il dubbio che scioglie " +
                                     "non si sa piu' perche' esiste");
                 return false;
             }
@@ -1346,7 +1346,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// `rossa_prima_di` — LA PROVA PIU' FORTE CHE UNA PROVA CUSTODISCA
+        /// `red_before` — LA PROVA PIU' FORTE CHE UNA PROVA CUSTODISCA
         /// DAVVERO IL SUO DIFETTO (voce F10).
         ///
         /// Un caso puo' dichiarare la versione della libreria **prima della
@@ -1360,13 +1360,13 @@ namespace ProvaSaldatura
         /// </summary>
         private static bool SuQuestaLibreria(string nome, Dictionary<string, object> caso, bool verde)
         {
-            string prima = Testo(caso, "rossa_prima_di");
+            string prima = Testo(caso, "red_before");
             if (prima == null) return verde;
 
             Version soglia, adesso;
             if (!Version.TryParse(prima, out soglia))
             {
-                ErroreDiBanco(nome, "«rossa_prima_di» non e' una versione: «" + prima + "»");
+                ErroreDiBanco(nome, "«red_before» non e' una versione: «" + prima + "»");
                 return false;
             }
             adesso = _addin.GetName().Version;
@@ -1395,8 +1395,8 @@ namespace ProvaSaldatura
             List<Gemellaggio> gemelle, string percorso,
             Preparazione daRipulire = null)
         {
-            var passi = Elenco(caso, "passi");
-            if (passi == null || passi.Count == 0) { ErroreDiBanco(nome, "manca «passi»"); return false; }
+            var passi = Elenco(caso, "steps");
+            if (passi == null || passi.Count == 0) { ErroreDiBanco(nome, "manca «steps»"); return false; }
 
             {
                 // IL DOCUMENTO PUO' CAMBIARE A META' CASO (voce GT0).
@@ -1415,7 +1415,7 @@ namespace ProvaSaldatura
                 // «attivo» e' cio' che ha davanti chiunque.
                 var attuale = doc;
                 var stato = LeggiStato(attuale);
-                // Lo stato com'era PRIMA di ogni passo: serve a «uid_dal_passo».
+                // Lo stato com'era PRIMA di ogni passo: serve a «uid_from_step».
                 var statiPrima = new List<Dictionary<string, object>>();
 
                 for (int i = 0; i < passi.Count; i++)
@@ -1438,25 +1438,25 @@ namespace ProvaSaldatura
                     // non si poteva nemmeno scrivere come prova.
                     var statoDegliUid = stato;
                     object dalPasso;
-                    if (passo.TryGetValue("uid_dal_passo", out dalPasso) && dalPasso != null)
+                    if (passo.TryGetValue("uid_from_step", out dalPasso) && dalPasso != null)
                     {
                         int k;
                         if (!int.TryParse(Convert.ToString(dalPasso, CultureInfo.InvariantCulture),
                                           NumberStyles.Integer, CultureInfo.InvariantCulture, out k) ||
                             k < 1 || k > i + 1)
                         {
-                            ErroreDiBanco(etichetta, "«uid_dal_passo» dev'essere il numero di un passo " +
+                            ErroreDiBanco(etichetta, "«uid_from_step» dev'essere il numero di un passo " +
                                           "fino a questo (1.." + (i + 1) + "), non «" + dalPasso + "»");
                             return false;
                         }
                         statoDegliUid = statiPrima[k - 1];
                     }
 
-                    string operazione = Testo(passo, "operazione");
-                    if (operazione == null) { ErroreDiBanco(etichetta, "manca «operazione»"); return false; }
+                    string operazione = Testo(passo, "operation");
+                    if (operazione == null) { ErroreDiBanco(etichetta, "manca «operation»"); return false; }
 
                     object grezziArg;
-                    passo.TryGetValue("argomenti", out grezziArg);
+                    passo.TryGetValue("arguments", out grezziArg);
                     Dictionary<string, object> argomenti;
                     // UN SELETTORE CHE NON RISOLVE NON E' UNA PROVA ROSSA:
                     // il caso non si e' potuto ESEGUIRE, e dirlo «fallito»
@@ -1467,7 +1467,7 @@ namespace ProvaSaldatura
                     if (argomenti == null) argomenti = new Dictionary<string, object>();
                     if (!ReferenceEquals(statoDegliUid, stato)) AttaccaFirme(argomenti, statoDegliUid);
 
-                    // «prima_seleziona» (voce Z-C21.2, rilievo L13-1): le entita'
+                    // «select_first» (voce Z-C21.2, rilievo L13-1): le entita'
                     // che restano SELEZIONATE quando il passo parte, come le
                     // lascerebbe un passo precedente o chi sta davanti a
                     // SOLIDWORKS. Serve ai difetti che dipendono dalla selezione
@@ -1475,27 +1475,27 @@ namespace ProvaSaldatura
                     // selezionate (IModelDocExtension~SaveAs3.html, Remarks), e un
                     // caso senza questo campo non poteva nemmeno scriverlo.
                     object daSelezionare;
-                    if (passo.TryGetValue("prima_seleziona", out daSelezionare) && daSelezionare != null)
+                    if (passo.TryGetValue("select_first", out daSelezionare) && daSelezionare != null)
                     {
                         string perche;
                         if (!SelezionaPrima(attuale, daSelezionare, statoDegliUid, out perche))
                         {
-                            ErroreDiBanco(etichetta, "«prima_seleziona»: " + perche);
+                            ErroreDiBanco(etichetta, "«select_first»: " + perche);
                             return false;
                         }
                     }
-                    // «prima_nascondi» (voce Z-C21.2, rilievo L12-1): i corpi
+                    // «hide_first» (voce Z-C21.2, rilievo L12-1): i corpi
                     // nascosti quando il passo parte, come li nasconde chi vuole
                     // guardare dentro il pezzo. Nessuna operazione del catalogo
                     // nasconde un corpo, e senza questo campo il difetto «un
                     // corpo nascosto esce dal controllo» non si poteva scrivere.
                     object daNascondere;
-                    if (passo.TryGetValue("prima_nascondi", out daNascondere) && daNascondere != null)
+                    if (passo.TryGetValue("hide_first", out daNascondere) && daNascondere != null)
                     {
                         string perche;
                         if (!NascondiPrima(attuale, daNascondere, statoDegliUid, out perche))
                         {
-                            ErroreDiBanco(etichetta, "«prima_nascondi»: " + perche);
+                            ErroreDiBanco(etichetta, "«hide_first»: " + perche);
                             return false;
                         }
                         // Lo stato si rilegge: il passo lo riceve, e un corpo
@@ -1557,7 +1557,7 @@ namespace ProvaSaldatura
                         //
                         // Qui la tavola si chiama ancora `Disegno38 -
                         // Foglio1`; due passi dopo il caso la salva e diventa
-                        // `la_tavola_si_quota - Foglio1`. Segnando il nome di
+                        // `drawing_dimensions_itself - Foglio1`. Segnando il nome di
                         // adesso, a fine caso si chiedeva a SOLIDWORKS di
                         // chiudere un documento che non esisteva piu' con quel
                         // nome — e `CloseDoc` su un nome sconosciuto non e' un
@@ -1568,8 +1568,8 @@ namespace ProvaSaldatura
 
                     stato = LeggiStato(attuale);
 
-                    var deveFallire = passo.ContainsKey("deve_fallire")
-                        ? passo["deve_fallire"] as Dictionary<string, object> : null;
+                    var deveFallire = passo.ContainsKey("must_fail")
+                        ? passo["must_fail"] as Dictionary<string, object> : null;
 
                     if (deveFallire != null)
                     {
@@ -1584,9 +1584,9 @@ namespace ProvaSaldatura
                             {
                                 Etichetta = etichetta,
                                 Caso = nome,
-                                Gemella = Testo(deveFallire, "gemella"),
+                                Gemella = Testo(deveFallire, "twin"),
                                 Operazione = operazione,
-                                Argomenti = (passo.ContainsKey("argomenti") ? passo["argomenti"] : null)
+                                Argomenti = (passo.ContainsKey("arguments") ? passo["arguments"] : null)
                                             as Dictionary<string, object>,
                                 PezzoPrima = passi.Take(i).ToList(),
                                 DifferenzaNelPezzo = deveFallire.ContainsKey(CampoDifferenzaNelPezzo)
@@ -1598,7 +1598,7 @@ namespace ProvaSaldatura
 
                     if (misure == null) { Segna(etichetta, false, "fallito: " + Corto(errore)); return false; }
 
-                    var attese = Elenco(passo, "attese");
+                    var attese = Elenco(passo, "expect");
                     if (attese == null || attese.Count == 0)
                     {
                         // UN PASSO SENZA ATTESE E' UN PASSO CIECO. Passa e non
@@ -1626,13 +1626,13 @@ namespace ProvaSaldatura
                         var qui = attuale;
                         try { ok = Combacia(attesa, c => DalDocumento(c, qui, stato), stato, misure, out dettaglio); }
                         catch (NonHoPotutoMisurare ex)
-                        { ErroreDiBanco(etichetta + " · " + Testo(attesa, "cosa"), ex.Message); return false; }
+                        { ErroreDiBanco(etichetta + " · " + Testo(attesa, "what"), ex.Message); return false; }
                         catch (Exception ex) { Segna(etichetta, false, ex.Message); return false; }
                         // VERIFICATA vuol dire «ho misurato e ho confrontato»,
                         // non «e' andata bene»: una rossa e' verificata eccome.
                         _atteseVerificate++;
                         Ledger.ExpectationChecked();
-                        SegnaAttesa(etichetta + " · " + Testo(attesa, "cosa"), ok, dettaglio);
+                        SegnaAttesa(etichetta + " · " + Testo(attesa, "what"), ok, dettaglio);
                         if (!ok) return false;
                     }
                 }
@@ -1645,7 +1645,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Lascia selezionate le entita' di «prima_seleziona» (voce Z-C21.2).
+        /// Lascia selezionate le entita' di «select_first» (voce Z-C21.2).
         ///
         /// Il campo e' un elenco di uid o di selettori, risolti sullo STESSO
         /// stato degli argomenti del passo. L'entita' si prende dalle firme
@@ -1739,7 +1739,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Nasconde i corpi di «prima_nascondi» (voce Z-C21.2) con
+        /// Nasconde i corpi di «hide_first» (voce Z-C21.2) con
         /// `IBody2.HideBody(true)` (IBody2~HideBody.html: «True to hide the
         /// body, false to show the body») e rilegge `IBody2.Visible`: un corpo
         /// che resta visibile farebbe verde un caso che non ha provato niente.
@@ -1827,11 +1827,11 @@ namespace ProvaSaldatura
                 return false;
             }
 
-            var pezzi = Elenco(regole, "il_messaggio_contiene");
+            var pezzi = Elenco(regole, "message_includes");
             if (pezzi == null || pezzi.Count == 0)
             {
                 ErroreDiBanco(etichetta,
-                      "«deve_fallire» senza «il_messaggio_contiene»: qualunque errore " +
+                      "«must_fail» senza «message_includes»: qualunque errore " +
                       "andrebbe bene, anche quello sbagliato");
                 return false;
             }
@@ -1845,7 +1845,7 @@ namespace ProvaSaldatura
                 }
             }
 
-            if (Vero(regole, "volume_invariato"))
+            if (Vero(regole, "volume_unchanged"))
             {
                 double adesso = VolumeDelDocumento(doc);
                 if (Math.Abs(adesso - volumePrima) > 0.001)
@@ -1856,7 +1856,7 @@ namespace ProvaSaldatura
                     return false;
                 }
             }
-            if (Vero(regole, "nessuna_feature_in_piu"))
+            if (Vero(regole, "no_extra_feature"))
             {
                 int adesso = QuanteFeature(stato);
                 if (adesso > featurePrima)
@@ -1873,11 +1873,11 @@ namespace ProvaSaldatura
             // controllo funziona» da «il controllo rifiuta tutto». Il caso 1 di
             // 80u — il guscio da 30 su una scatola alta 52, che sembrava
             // impossibile ed era solo brutto — dice cosa succede senza.
-            string gemella = Testo(regole, "gemella");
+            string gemella = Testo(regole, "twin");
             if (gemella == null)
             {
                 ErroreDiBanco(etichetta,
-                    "caso non ammesso: un «deve_fallire» deve nominare in «gemella» " +
+                    "caso non ammesso: un «must_fail» deve nominare in «twin» " +
                     "il caso che RIESCE con argomenti quasi uguali. Senza, questo " +
                     "rifiuto non distingue un controllo che funziona da uno che " +
                     "rifiuta tutto.");

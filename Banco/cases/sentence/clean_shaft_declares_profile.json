@@ -1,21 +1,21 @@
 {
-  "nome": "albero_pulito_dichiara_il_profilo",
-  "famiglia": "frase",
-  "perche": "LA FRASE E' CIO' CHE IL MODELLO LEGGE. Un albero a gradini fatto di rivoluzione e basta ha un profilo che si puo' raccontare: Ø30 per 40, Ø20 per 30, Ø34 per 20. Se la descrizione non lo dice, il modello non sa che pezzo ha in mano e i numeri dello stato da soli non glielo raccontano.",
-  "perche_non_uguale": "l'attesa e' su «contiene» e non su «uguale» perche' una frase cambia a ogni virgola sistemata: pretenderla identica vorrebbe dire riscrivere il caso a ogni miglioria del fraseggio, e finirebbe con qualcuno che allarga l'attesa invece di guardare il pezzo. Quello che non puo' cambiare sono i tre diametri e le tre lunghezze.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "rivoluzione",
-      "argomenti": { "piano": "frontale", "angolo_gradi": 360,
+  "name": "clean_shaft_declares_profile",
+  "family": "sentence",
+  "why": "LA FRASE E' CIO' CHE IL MODELLO LEGGE. Un albero a gradini fatto di rivoluzione e basta ha un profilo che si puo' raccontare: Ø30 per 40, Ø20 per 30, Ø34 per 20. Se la descrizione non lo dice, il modello non sa che pezzo ha in mano e i numeri dello stato da soli non glielo raccontano.",
+  "_why_not_equal": "l'attesa e' su «contiene» e non su «uguale» perche' una frase cambia a ogni virgola sistemata: pretenderla identica vorrebbe dire riscrivere il caso a ogni miglioria del fraseggio, e finirebbe con qualcuno che allarga l'attesa invece di guardare il pezzo. Quello che non puo' cambiare sono i tre diametri e le tre lunghezze.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "rivoluzione",
+      "arguments": { "piano": "frontale", "angolo_gradi": 360,
                      "asse": [[0, 0], [90, 0]],
                      "contorni": [[[0, 0], [0, 15], [40, 15], [40, 10],
                                    [70, 10], [70, 17], [90, 17], [90, 0]]] },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 55857.53, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "pi*(15^2*40 + 10^2*30 + 17^2*20): il conto ha pi dentro" },
-        { "cosa": "corpi", "uguale": 1 },
-        { "cosa": "stato.forma",
-          "contiene": ["pezzo di rivoluzione", "profilo",
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 55857.53, "tolerance": 0.5,
+          "tolerance_why": "pi*(15^2*40 + 10^2*30 + 17^2*20): il conto ha pi dentro" },
+        { "what": "corpi", "equal_to": 1 },
+        { "what": "stato.forma",
+          "includes": ["pezzo di rivoluzione", "profilo",
                        "Ø30 per 40", "Ø20 per 30", "Ø34 per 20"] } ] }
   ]
 }

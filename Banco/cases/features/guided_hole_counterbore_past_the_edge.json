@@ -1,37 +1,37 @@
 {
-  "nome": "guided_hole_counterbore_past_the_edge",
-  "famiglia": "lavorazioni",
-  "perche": "Z-C21.10, finding N50 (lot Z-C21.2), the second half. The radius that foro_guidato checked against distanza_mm was the largest of the drilled diameters (ThruTapDrillDiameter, TapDrillDiameter, ThruHoleDiameter, HoleDiameter): CounterBoreDiameter was left out. A counterbored M8 anchored 6 mm from an edge passed (drilled hole Ø9, radius 4.5 < 6), and the counterbore went past the edge. Now the widest cut counts: the counterbore for «lamato», the countersink for «svasato», each read only for its own type of hole (IWizardHoleFeatureData2~CounterBoreDiameter.html: «This property is relevant only for swCounterBored and swCounterBoredDrilled holes»).",
-  "il_difetto_che_questo_caso_prende": "Step 3 asks for a counterbored M8 whose centre is 6 mm from the left side: it must be refused because of the counterbore, and leave the part as it was. On library 0.140.0 it is RED: the check used the drilled radius 4.5, the hole was made, anchored and confirmed with the counterbore breaking through the side face. Step 2 is the twin: the same counterbored M8 at 20 from both edges fits, and must still be made and anchored; its «lamatura_mm» proves that SOLIDWORKS declares the counterbore the check reads.",
-  "e_la_gemella_e_nello_stesso_file": "Step 3 and step 2 are the same operation, same face, same type and size of hole, and differ only in the position and its anchor distance (6 instead of 20 from the side).",
-  "i_numeri": "Plate 200 x 120 x 20 = 480000. ISO 4762 M8: the head is Ø13 (dk max), so the counterbore that houses it is at least Ø13, radius at least 6.5 (the SOLIDWORKS table value is printed in «lamatura_mm» at step 2); the clearance hole is Ø9, radius 4.5. Step 3: centre at x = -94, 6 from the side at x = -100. Old check: 4.5 <= 6, accepted. New check: 6.5 or more > 6, refused; the counterbore would stand out of the side by at least 0.5 mm. Step 2: 20 from both edges, 20 > 7.5 whatever the table says between 13 and 15.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+  "name": "guided_hole_counterbore_past_the_edge",
+  "family": "features",
+  "why": "Z-C21.10, finding N50 (lot Z-C21.2), the second half. The radius that foro_guidato checked against distanza_mm was the largest of the drilled diameters (ThruTapDrillDiameter, TapDrillDiameter, ThruHoleDiameter, HoleDiameter): CounterBoreDiameter was left out. A counterbored M8 anchored 6 mm from an edge passed (drilled hole Ø9, radius 4.5 < 6), and the counterbore went past the edge. Now the widest cut counts: the counterbore for «lamato», the countersink for «svasato», each read only for its own type of hole (IWizardHoleFeatureData2~CounterBoreDiameter.html: «This property is relevant only for swCounterBored and swCounterBoredDrilled holes»).",
+  "defect_caught": "Step 3 asks for a counterbored M8 whose centre is 6 mm from the left side: it must be refused because of the counterbore, and leave the part as it was. On library 0.140.0 it is RED: the check used the drilled radius 4.5, the hole was made, anchored and confirmed with the counterbore breaking through the side face. Step 2 is the twin: the same counterbored M8 at 20 from both edges fits, and must still be made and anchored; its «lamatura_mm» proves that SOLIDWORKS declares the counterbore the check reads.",
+  "_and_the_twin_is_in_the_same_file": "Step 3 and step 2 are the same operation, same face, same type and size of hole, and differ only in the position and its anchor distance (6 instead of 20 from the side).",
+  "_the_numbers": "Plate 200 x 120 x 20 = 480000. ISO 4762 M8: the head is Ø13 (dk max), so the counterbore that houses it is at least Ø13, radius at least 6.5 (the SOLIDWORKS table value is printed in «lamatura_mm» at step 2); the clearance hole is Ø9, radius 4.5. Step 3: centre at x = -94, 6 from the side at x = -100. Old check: 4.5 <= 6, accepted. New check: 6.5 or more > 6, refused; the counterbore would stand out of the side by at least 0.5 mm. Step 2: 20 from both edges, 20 > 7.5 whatever the table says between 13 and 15.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
-    { "operazione": "foro_guidato",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "tipo": "lamato", "taglia": "M8", "passante": true,
+      "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
+    { "operation": "foro_guidato",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "tipo": "lamato", "taglia": "M8", "passante": true,
                      "posizioni": [
                        { "x_mm": -80, "y_mm": -40,
                          "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=-100,z~=20)", "distanza_mm": 20 },
                                      "y": { "spigolo_uid": "@spigolo(asse=X,y~=-60,z~=20)", "distanza_mm": 20 } } } ] },
-      "attese": [
-        { "cosa": "misure.lamatura_mm", "contiene": ["x"],
-          "perche": "present only when CounterBoreDiameter > 0: the counterbore the new check reads is declared" },
-        { "cosa": "misure.schizzo_dei_fori", "uguale": "completamente definito",
-          "perche": "the anchor was applied: the fit check with the counterbore let a hole at 20 through" } ] },
-    { "operazione": "foro_guidato",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti,z~=20)", "tipo": "lamato", "taglia": "M8", "passante": true,
+      "expect": [
+        { "what": "misure.lamatura_mm", "includes": ["x"],
+          "why": "present only when CounterBoreDiameter > 0: the counterbore the new check reads is declared" },
+        { "what": "misure.schizzo_dei_fori", "equal_to": "completamente definito",
+          "why": "the anchor was applied: the fit check with the counterbore let a hole at 20 through" } ] },
+    { "operation": "foro_guidato",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti,z~=20)", "tipo": "lamato", "taglia": "M8", "passante": true,
                      "posizioni": [
                        { "x_mm": -94, "y_mm": 40,
                          "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=-100,z~=20)", "distanza_mm": 6 },
                                      "y": { "spigolo_uid": "@spigolo(asse=X,y~=60,z~=20)", "distanza_mm": 20 } } } ] },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["«distanza_mm» 6 from edge", "less than the radius of the counterbore", "would cut past the edge"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "guided_hole_counterbore_past_the_edge" } }
+      "must_fail": {
+        "message_includes": ["«distanza_mm» 6 from edge", "less than the radius of the counterbore", "would cut past the edge"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "guided_hole_counterbore_past_the_edge" } }
   ]
 }

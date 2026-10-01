@@ -1,28 +1,28 @@
 {
-  "nome": "ingombro_della_piastra",
-  "famiglia": "misura",
-  "perche": "«Entra nella scatola 300x260x40» e' l'altra domanda che si fa prima di ordinare, e la risposta e' da dove a dove arriva il pezzo su ognuno dei tre assi. I sei estremi di una piastra 100x100x20 centrata sono numeri esatti: -50/+50 in X e in Y perche' e' centrata, 0/+20 in Z perche' l'estrusione parte dal piano di schizzo e va in avanti.",
-  "perche_i_punti_veri": "si prendono con GetExtremePoint in sei direzioni e non con GetBodyBox, che e' dichiaratamente APPROSSIMATA per le superfici non piane e puo' essere piu' grande del pezzo. Un ingombro dichiarato piu' grande del vero fa dimensionare male tutto quello che ci sta intorno: la scatola per spedirlo, il pezzo che gli va accanto, la tasca in cui deve entrare.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "plate_bounding_box",
+  "family": "measurement",
+  "why": "«Entra nella scatola 300x260x40» e' l'altra domanda che si fa prima di ordinare, e la risposta e' da dove a dove arriva il pezzo su ognuno dei tre assi. I sei estremi di una piastra 100x100x20 centrata sono numeri esatti: -50/+50 in X e in Y perche' e' centrata, 0/+20 in Z perche' l'estrusione parte dal piano di schizzo e va in avanti.",
+  "_why_the_real_points": "si prendono con GetExtremePoint in sei direzioni e non con GetBodyBox, che e' dichiaratamente APPROSSIMATA per le superfici non piane e puo' essere piu' grande del pezzo. Un ingombro dichiarato piu' grande del vero fa dimensionare male tutto quello che ci sta intorno: la scatola per spedirlo, il pezzo che gli va accanto, la tasca in cui deve entrare.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "ingombro_corpo",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.da_mm", "uguale": [-50, -50, 0], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "gli estremi si leggono in metri e si moltiplicano per mille" },
-        { "cosa": "misure.a_mm", "uguale": [50, 50, 20], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "come sopra" },
-        { "cosa": "misure.ingombro_mm", "uguale": [100, 100, 20], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "come sopra" },
-        { "cosa": "misure.corpi[0].corpo", "uguale": "C1" },
-        { "cosa": "misure.corpi[0].ingombro_mm", "uguale": [100, 100, 20], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "con un corpo solo, la scatola del corpo e quella del pezzo sono la stessa" },
-        { "cosa": "misure.cosa_non_guarda",
-          "contiene": ["allineata agli assi", "diagonale"],
-          "perche": "il limite si dichiara a ogni chiamata: questa non e' la scatola piu' piccola possibile, e chi imballa deve saperlo" } ] }
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "ingombro_corpo",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.da_mm", "equal_to": [-50, -50, 0], "tolerance": 0.01,
+          "tolerance_why": "gli estremi si leggono in metri e si moltiplicano per mille" },
+        { "what": "misure.a_mm", "equal_to": [50, 50, 20], "tolerance": 0.01,
+          "tolerance_why": "come sopra" },
+        { "what": "misure.ingombro_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
+          "tolerance_why": "come sopra" },
+        { "what": "misure.corpi[0].corpo", "equal_to": "C1" },
+        { "what": "misure.corpi[0].ingombro_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
+          "tolerance_why": "con un corpo solo, la scatola del corpo e quella del pezzo sono la stessa" },
+        { "what": "misure.cosa_non_guarda",
+          "includes": ["allineata agli assi", "diagonale"],
+          "why": "il limite si dichiara a ogni chiamata: questa non e' la scatola piu' piccola possibile, e chi imballa deve saperlo" } ] }
   ]
 }

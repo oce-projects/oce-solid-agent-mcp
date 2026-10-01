@@ -69,7 +69,7 @@
 #  ── E COSA QUESTO NON PROVA (voce K4, 18/9/2026, ancora valida) ────────────
 #
 #  Il controllo sul banco NON e' una verifica indipendente.
-#  `Banco/resoconto/ultimo.json` e' un file che **produciamo e committiamo
+#  `Banco/report/last.json` e' un file che **produciamo e committiamo
 #  noi**: la CI controlla che dichiari un giro intero, coerente con la libreria
 #  di adesso e posteriore all'ultima modifica alle operazioni. E' una guardia
 #  contro la NOSTRA distrazione — il commit fatto senza aver rilanciato il

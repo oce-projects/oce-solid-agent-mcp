@@ -1,22 +1,22 @@
 {
-  "nome": "lim_sformo_sulla_faccia_neutra",
-  "famiglia": "lavorazioni",
-  "perche": "La stessa faccia messa insieme come neutra e come faccia da sformare. E' l'errore di chi non ha capito che sono due ruoli diversi -- e non e' innocuo: la faccia neutra e' il piano da cui si MISURA l'angolo, quindi chiedere di inclinarla rispetto a se stessa non vuol dire niente. Si rifiuta prima di chiamare, e si spiega la differenza invece di dire «argomento non valido».",
-  "perche_questo_e_il_rifiuto_che_si_puo_scrivere": "Il difetto vero di questa operazione -- scambiare i due ruoli -- non si puo' mettere in un caso: i ruoli li assegna il codice con i marchi di selezione, e dal di fuori non c'e' modo di scambiarli. Quello che si puo' prendere dal di fuori e' la confusione fra i due, ed e' questo.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "limit_draft_on_the_neutral_face",
+  "family": "features",
+  "why": "La stessa faccia messa insieme come neutra e come faccia da sformare. E' l'errore di chi non ha capito che sono due ruoli diversi -- e non e' innocuo: la faccia neutra e' il piano da cui si MISURA l'angolo, quindi chiedere di inclinarla rispetto a se stessa non vuol dire niente. Si rifiuta prima di chiamare, e si spiega la differenza invece di dire «argomento non valido».",
+  "_why_this_is_the_refusal_that_can_be_written": "Il difetto vero di questa operazione -- scambiare i due ruoli -- non si puo' mettere in un caso: i ruoli li assegna il codice con i marchi di selezione, e dal di fuori non c'e' modo di scambiarli. Quello che si puo' prendere dal di fuori e' la confusione fra i due, ed e' questo.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "sformo",
-      "argomenti": { "faccia_neutra_uid": "@faccia(verso=davanti)",
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "sformo",
+      "arguments": { "faccia_neutra_uid": "@faccia(verso=davanti)",
                      "facce_uid": ["@faccia(verso=davanti)"],
                      "angolo_gradi": 5 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["e' insieme la faccia neutra", "NON si muove"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "sformo_quattro_pareti" } }
+      "must_fail": {
+        "message_includes": ["e' insieme la faccia neutra", "NON si muove"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "draft_four_walls" } }
   ]
 }

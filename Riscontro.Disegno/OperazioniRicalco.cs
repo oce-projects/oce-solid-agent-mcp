@@ -62,7 +62,7 @@ namespace Riscontro.Disegno
         /// How far the size and the origin read back may be from the ones asked,
         /// in mm (Z-C21.8, finding M36). The Z-F5 measure of 27/9/2026 read the
         /// 120 x 60 mm picture at (10, 20) back exactly; the bench case
-        /// la_foto_sta_in_scala holds the same numbers to a hundredth.
+        /// the_picture_is_to_scale holds the same numbers to a hundredth.
         /// </summary>
         private const double PicturePlacementToleranceMm = 0.01;
 

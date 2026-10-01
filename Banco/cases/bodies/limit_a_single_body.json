@@ -1,19 +1,19 @@
 {
-  "nome": "lim_un_corpo_solo",
-  "famiglia": "corpi",
-  "perche": "Una booleana su un corpo solo non ha senso, e il modo in cui non ce l'ha e' pericoloso: SOLIDWORKS potrebbe rispondere una feature che non fa niente, e il pezzo resterebbe quello di prima con un passo in piu' nell'albero. Si rifiuta prima, e si dice anche COME si fa nascere un secondo corpo -- che e' la cosa che chi chiede non sa.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
+  "name": "limit_a_single_body",
+  "family": "bodies",
+  "why": "Una booleana su un corpo solo non ha senso, e il modo in cui non ce l'ha e' pericoloso: SOLIDWORKS potrebbe rispondere una feature che non fa niente, e il pezzo resterebbe quello di prima con un passo in piu' nell'albero. Si rifiuta prima, e si dice anche COME si fa nascere un secondo corpo -- che e' la cosa che chi chiede non sa.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 10, "larghezza_mm": 10,
                      "spessore_mm": 10, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 1000 } ] },
-    { "operazione": "combina_corpi",
-      "argomenti": { "operazione": "unisci", "corpo_principale_uid": "C1" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["almeno due corpi", "sposta_corpi"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "unisci_due_cubi" } }
+      "expect": [ { "what": "volume_mm3", "equal_to": 1000 } ] },
+    { "operation": "combina_corpi",
+      "arguments": { "operazione": "unisci", "corpo_principale_uid": "C1" },
+      "must_fail": {
+        "message_includes": ["almeno due corpi", "sposta_corpi"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "merge_two_cubes" } }
   ]
 }

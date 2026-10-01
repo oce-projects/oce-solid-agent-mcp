@@ -1,33 +1,33 @@
 {
-  "nome": "lim_direzione_da_spigolo_curvo",
-  "famiglia": "ripeti",
-  "perche": "UNO SPIGOLO CURVO NON E' UNA DIREZIONE: il bordo di un foro e' un cerchio, e da' la tangente in un punto che nessuno ha scelto -- un pezzo che sembra giusto. L'operazione lo rifiuta dicendo che serve uno spigolo rettilineo o un asse fatto con «crea_asse».",
-  "perche_era_una_prova_finta": "LA PROVA IN C# DI QUESTO CONTROLLO ERA VERDE E NON MISURAVA NIENTE, e si e' scoperto scrivendo questo file. Diceva: «un bordo curvo non compare fra gli spigoli che lo stato elenca, quindi il modello non puo' nominarlo, quindi il controllo non e' raggiungibile» -- e lo verificava contando gli spigoli con «dritto»: false. QUEL CAMPO NON ESISTE. Lo stato scrive «curvo»: true sugli spigoli non rettilinei e non scrive «dritto» su nessuno, quindi TryGetValue falliva sempre, il conto restava zero e il verde era garantito a prescindere dal pezzo. Misurato qui: dopo un foro passante lo stato offre DUE spigoli curvi, il modello puo' nominarli benissimo, e la strada che si credeva chiusa e' sempre stata aperta.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+  "name": "limit_direction_from_a_curved_edge",
+  "family": "patterns",
+  "why": "UNO SPIGOLO CURVO NON E' UNA DIREZIONE: il bordo di un foro e' un cerchio, e da' la tangente in un punto che nessuno ha scelto -- un pezzo che sembra giusto. L'operazione lo rifiuta dicendo che serve uno spigolo rettilineo o un asse fatto con «crea_asse».",
+  "_why_it_was_a_fake_test": "LA PROVA IN C# DI QUESTO CONTROLLO ERA VERDE E NON MISURAVA NIENTE, e si e' scoperto scrivendo questo file. Diceva: «un bordo curvo non compare fra gli spigoli che lo stato elenca, quindi il modello non puo' nominarlo, quindi il controllo non e' raggiungibile» -- e lo verificava contando gli spigoli con «dritto»: false. QUEL CAMPO NON ESISTE. Lo stato scrive «curvo»: true sugli spigoli non rettilinei e non scrive «dritto» su nessuno, quindi TryGetValue falliva sempre, il conto restava zero e il verde era garantito a prescindere dal pezzo. Misurato qui: dopo un foro passante lo stato offre DUE spigoli curvi, il modello puo' nominarli benissimo, e la strada che si credeva chiusa e' sempre stata aperta.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 480000 },
-        { "cosa": "spigoli_curvi", "uguale": 0,
-          "perche_zero": "una piastra ha dodici spigoli e sono tutti dritti: e' il termine di paragone del passo dopo" } ] },
-    { "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 480000 },
+        { "what": "spigoli_curvi", "equal_to": 0,
+          "_why_zero": "una piastra ha dodici spigoli e sono tutti dritti: e' il termine di paragone del passo dopo" } ] },
+    { "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
                      "diametro_mm": 9, "passante": true },
-      "attese": [
-        { "cosa": "diametri_mm", "uguale": [9], "tolleranza": 0.02,
-          "perche_questa_tolleranza": "il diametro si legge da CylinderParams" },
-        { "cosa": "spigoli_curvi", "uguale": 2,
-          "perche_due": "i due bordi tondi del foro passante, uno per faccia. E' QUESTO il numero che rende il caso possibile: sono spigoli che lo stato elenca e che il modello puo' nominare" } ] },
-    { "operazione": "ripeti_lineare",
-      "argomenti": { "feature_uid": "@feature(tipo=ICE,n=1)",
+      "expect": [
+        { "what": "diametri_mm", "equal_to": [9], "tolerance": 0.02,
+          "tolerance_why": "il diametro si legge da CylinderParams" },
+        { "what": "spigoli_curvi", "equal_to": 2,
+          "_why_two": "i due bordi tondi del foro passante, uno per faccia. E' QUESTO il numero che rende il caso possibile: sono spigoli che lo stato elenca e che il modello puo' nominare" } ] },
+    { "operation": "ripeti_lineare",
+      "arguments": { "feature_uid": "@feature(tipo=ICE,n=1)",
                      "asse1_uid": "@spigolo(curvo=true,n=1)",
                      "passo1_mm": 40, "numero_istanze1": 3 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["non e' dritto", "spigolo rettilineo"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "tre_fori_passo_40" } }
+      "must_fail": {
+        "message_includes": ["non e' dritto", "spigolo rettilineo"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "three_holes_pitch_40" } }
   ]
 }

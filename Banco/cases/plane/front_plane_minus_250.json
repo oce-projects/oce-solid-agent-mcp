@@ -1,14 +1,14 @@
 {
-  "nome": "piano_frontale_meno_250",
-  "famiglia": "piano",
-  "perche": "Un altro piano di partenza e un'altra distanza, negativa: il frontale e' XY e la sua normale e' +Z, quindi -250 deve finire a z = -250. Due piani diversi perche' un segno sbagliato potrebbe dipendere da quale asse si guarda.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "crea_piano",
-      "argomenti": { "piano": "frontale", "distanza_mm": -250 },
-      "attese": [
-        { "cosa": "ultimo_piano_mm", "uguale": [0, 0, -250], "tolleranza": 0.1,
-          "perche_questa_tolleranza": "l'origine del piano si legge da una matrice in metri" },
-        { "cosa": "stato.piani_disponibili", "uguale": 4 } ] }
+  "name": "front_plane_minus_250",
+  "family": "plane",
+  "why": "Un altro piano di partenza e un'altra distanza, negativa: il frontale e' XY e la sua normale e' +Z, quindi -250 deve finire a z = -250. Due piani diversi perche' un segno sbagliato potrebbe dipendere da quale asse si guarda.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "crea_piano",
+      "arguments": { "piano": "frontale", "distanza_mm": -250 },
+      "expect": [
+        { "what": "ultimo_piano_mm", "equal_to": [0, 0, -250], "tolerance": 0.1,
+          "tolerance_why": "l'origine del piano si legge da una matrice in metri" },
+        { "what": "stato.piani_disponibili", "equal_to": 4 } ] }
   ]
 }

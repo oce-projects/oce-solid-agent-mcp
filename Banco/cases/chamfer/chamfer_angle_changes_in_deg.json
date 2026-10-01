@@ -1,24 +1,24 @@
 {
-  "nome": "l_angolo_dello_smusso_si_cambia_in_gradi",
-  "famiglia": "smusso",
-  "perche": "VOCE Z-C21.2, rilievo M3. modifica_quota convertiva ogni quota da millimetri: «30» sull'angolo di uno smusso diventava 0,03 rad, cioe' 1,7 gradi, e la rilettura — convertita allo stesso modo — diceva che aveva preso. IDimension~GetType.html: «Type of dimension as defined by swDimensionParamType_e» (DoubleAngular = 1). Lo stato le quote angolari le scrive in gradi: adesso modifica_quota le legge e le scrive in gradi, e la risposta lo dice con «before_deg» e «after_deg».",
-  "il_difetto_che_questo_caso_prende": "Lo smusso 5 a 45 gradi di `smusso_5_a_45`, poi l'angolo portato a 30. Sulla libreria vecchia la risposta ha «prima_mm» e «adesso_mm» (0,785 e 30 «mm» su una quota in radianti) e niente «after_deg»: il caso e' rosso alla prima attesa.",
-  "la_quota_si_nomina_per_genere": "`@quota(angolare=true)`: l'unica quota in gradi del pezzo, che lo stato marca con «gradi». I nomi che SOLIDWORKS da' alle quote di uno smusso (D1, D2) e il loro ordine non sono misurati, e scriverli qui sarebbe indovinare.",
-  "perche_non_c_e_il_volume": "Con un lato da 5 e l'angolo a 30 gradi l'altro lato e' 5 x tan 30 = 2,887 oppure 5 / tan 30 = 8,660, secondo da quale faccia SOLIDWORKS conta l'angolo, e questo non e' misurato: 119278,31 o 117834,94 mm3. Un'attesa su uno dei due numeri sarebbe una scommessa; la quota riletta in gradi no.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 120000 } ] },
-    { "operazione": "smusso_spigoli",
-      "argomenti": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 5, "angolo_gradi": 45 },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 118750 } ] },
-    { "operazione": "modifica_quota",
-      "argomenti": { "quota": "@quota(angolare=true)", "valore_mm": 30 },
-      "attese": [
-        { "cosa": "misure.after_deg", "uguale": 30,
-          "perche": "riletta dalla quota e convertita in gradi. Sulla libreria vecchia il campo non c'e'" },
-        { "cosa": "misure.before_deg", "uguale": 45,
-          "perche": "l'angolo dello smusso com'era: 45 gradi, non 0,785" } ] }
+  "name": "chamfer_angle_changes_in_deg",
+  "family": "chamfer",
+  "why": "VOCE Z-C21.2, rilievo M3. modifica_quota convertiva ogni quota da millimetri: «30» sull'angolo di uno smusso diventava 0,03 rad, cioe' 1,7 gradi, e la rilettura — convertita allo stesso modo — diceva che aveva preso. IDimension~GetType.html: «Type of dimension as defined by swDimensionParamType_e» (DoubleAngular = 1). Lo stato le quote angolari le scrive in gradi: adesso modifica_quota le legge e le scrive in gradi, e la risposta lo dice con «before_deg» e «after_deg».",
+  "defect_caught": "Lo smusso 5 a 45 gradi di `chamfer_5_at_45`, poi l'angolo portato a 30. Sulla libreria vecchia la risposta ha «prima_mm» e «adesso_mm» (0,785 e 30 «mm» su una quota in radianti) e niente «after_deg»: il caso e' rosso alla prima attesa.",
+  "_the_dimension_is_named_by_kind": "`@quota(angolare=true)`: l'unica quota in gradi del pezzo, che lo stato marca con «gradi». I nomi che SOLIDWORKS da' alle quote di uno smusso (D1, D2) e il loro ordine non sono misurati, e scriverli qui sarebbe indovinare.",
+  "_why_there_is_no_volume": "Con un lato da 5 e l'angolo a 30 gradi l'altro lato e' 5 x tan 30 = 2,887 oppure 5 / tan 30 = 8,660, secondo da quale faccia SOLIDWORKS conta l'angolo, e questo non e' misurato: 119278,31 o 117834,94 mm3. Un'attesa su uno dei due numeri sarebbe una scommessa; la quota riletta in gradi no.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 120000 } ] },
+    { "operation": "smusso_spigoli",
+      "arguments": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 5, "angolo_gradi": 45 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 118750 } ] },
+    { "operation": "modifica_quota",
+      "arguments": { "quota": "@quota(angolare=true)", "valore_mm": 30 },
+      "expect": [
+        { "what": "misure.after_deg", "equal_to": 30,
+          "why": "riletta dalla quota e convertita in gradi. Sulla libreria vecchia il campo non c'e'" },
+        { "what": "misure.before_deg", "equal_to": 45,
+          "why": "l'angolo dello smusso com'era: 45 gradi, non 0,785" } ] }
   ]
 }

@@ -20,8 +20,8 @@ namespace Prove.Contratti
     /// compra a due ore, invece del runner con licenza che non si compra
     /// affatto.
     ///
-    /// L'unica prova che il banco sia girato e' `Banco/resoconto/ultimo.json`,
-    /// che `banco.ps1` scrive a ogni giro ed e' l'unico file di `resoconto/`
+    /// L'unica prova che il banco sia girato e' `Banco/report/last.json`,
+    /// che `banco.ps1` scrive a ogni giro ed e' l'unico file di `report/`
     /// versionato.
     ///
     /// ── E IL DIFETTO SILENZIOSO DA TEMERE ───────────────────────────────
@@ -38,7 +38,7 @@ namespace Prove.Contratti
         {
             Gruppo("il banco e' stato lanciato su questa versione");
 
-            var file = Path.Combine(Radice(), "Banco", "resoconto", "ultimo.json");
+            var file = Path.Combine(Radice(), "Banco", "report", "last.json");
             if (!File.Exists(file))
             {
                 Segna("il banco e' stato eseguito", false,
@@ -61,27 +61,27 @@ namespace Prove.Contratti
             //
             // «0 prove, 0 fallite» e' verde e non vuol dire niente. E' la
             // forma che prende una suite che si e' svuotata.
-            int passate = Intero(giro, "passate");
+            int passate = Intero(giro, "passed");
             Segna("il giro ha misurato qualcosa", passate > 0, passate + " prove passate");
-            Segna("nessuna prova fallita", Intero(giro, "fallite") == 0,
-                  Intero(giro, "fallite") + " fallite");
-            Segna("nessun errore di banco", Intero(giro, "errori") == 0,
-                  Intero(giro, "errori") + " errori di banco");
-            Segna("il giro e' uscito 0", Intero(giro, "uscita") == 0,
-                  "uscita " + Intero(giro, "uscita"));
+            Segna("nessuna prova fallita", Intero(giro, "failed") == 0,
+                  Intero(giro, "failed") + " fallite");
+            Segna("nessun errore di banco", Intero(giro, "errors") == 0,
+                  Intero(giro, "errors") + " errori di banco");
+            Segna("il giro e' uscito 0", Intero(giro, "exit_code") == 0,
+                  "uscita " + Intero(giro, "exit_code"));
 
             // ── NON UN GIRO PARZIALE ─────────────────────────────────────
             //
             // `--gruppo` e' comodo mentre si lavora e non vale come consegna:
             // il riepilogo lo dice, e qui si legge.
-            string riepilogo = Convert.ToString(giro.ContainsKey("riepilogo") ? giro["riepilogo"] : "");
+            string riepilogo = Convert.ToString(giro.ContainsKey("summary") ? giro["summary"] : "");
             Segna("non e' un giro parziale",
                   riepilogo.IndexOf("GIRO PARZIALE", StringComparison.Ordinal) < 0,
                   riepilogo);
 
             // ── LA VERSIONE DELLA LIBRERIA E' QUELLA DI ADESSO ───────────
             string dichiarata = VersioneDellAssembly();
-            string girata = Convert.ToString(giro.ContainsKey("libreria") ? giro["libreria"] : "");
+            string girata = Convert.ToString(giro.ContainsKey("library") ? giro["library"] : "");
             Segna("il banco ha girato sulla libreria di adesso",
                   dichiarata != null && girata.StartsWith(dichiarata, StringComparison.Ordinal),
                   "AssemblyInfo dice " + (dichiarata ?? "?") + ", il giro dice " + girata);
@@ -91,10 +91,10 @@ namespace Prove.Contratti
             // Il controllo che conta: una libreria toccata dopo l'ultimo giro
             // e' una libreria non provata, anche se il numero di versione
             // combacia perche' qualcuno si e' dimenticato di alzarlo.
-            DateTime? quando = Data(Convert.ToString(giro.ContainsKey("quando") ? giro["quando"] : ""));
+            DateTime? quando = Data(Convert.ToString(giro.ContainsKey("timestamp") ? giro["timestamp"] : ""));
             if (quando == null)
             {
-                Segna("il giro dice quando", false, "«quando» illeggibile");
+                Segna("il giro dice quando", false, "«timestamp» illeggibile");
             }
             else
             {
@@ -169,7 +169,7 @@ namespace Prove.Contratti
         /// ── PRIMA QUESTO CONTROLLO NON POTEVA PASSARE MAI ─────────────────
         ///
         /// Chiedeva `git log -1 -- Riscontro.Disegno` e confrontava quella data
-        /// con l'ora del giro. Ma il giro si lancia, scrive `ultimo.json`, e
+        /// con l'ora del giro. Ma il giro si lancia, scrive `last.json`, e
         /// POI si committa tutto insieme — libreria e resoconto nello stesso
         /// commit. La data del commit e' quindi per costruzione posteriore
         /// all'ora del giro che contiene. Misurato su b35550d: giro 21:12:13,
@@ -191,7 +191,7 @@ namespace Prove.Contratti
         /// qualcuno ha cambiato il codice e non ha rilanciato.
         ///
         /// Quindi si scorrono i commit sulla libreria e ci si ferma al primo
-        /// che non tocca anche `Banco/resoconto/ultimo.json`.
+        /// che non tocca anche `Banco/report/last.json`.
         /// </summary>
         /// <summary>
         /// «Git non ha risposto» e «non c'e' niente da trovare» erano lo
@@ -237,7 +237,7 @@ namespace Prove.Contratti
         /// Il giro e' posteriore all'ultima modifica a `percorso`?
         ///
         /// LA TOLLERANZA DI UN MINUTO NON E' UN ARROTONDAMENTO: il giro
-        /// scrive `ultimo.json` e POI si committa, quindi la data del commit
+        /// scrive `last.json` e POI si committa, quindi la data del commit
         /// e' per costruzione posteriore all'ora del giro che contiene. I
         /// commit che portano il resoconto si saltano apposta; il minuto
         /// copre il caso in cui l'orologio del commit e quello del giro
@@ -372,7 +372,7 @@ namespace Prove.Contratti
                 // grezze punisce chi spiega*.
                 //
                 // ATTENZIONE A COSA **NON** SI SALTA: i `.json` di
-                // `Banco/casi/` sono DATI che cambiano cosa il banco misura,
+                // `Banco/cases/` sono DATI che cambiano cosa il banco misura,
                 // e restano contati. Si salta solo `.md`.
                 if (nome.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) continue;
 
@@ -435,18 +435,18 @@ namespace Prove.Contratti
                   SoloIlCodice(new[] { "Banco/LEGGIMI.md" }).Count == 0,
                   "una riga di documentazione non cambia cosa fa il banco");
             Segna("ma un caso dichiarato si'",
-                  SoloIlCodice(new[] { "Banco/casi/corpi/x.json" }).Count == 1,
-                  "un `.json` di `casi/` e' un DATO: cambia cosa si misura");
+                  SoloIlCodice(new[] { "Banco/cases/bodies/x.json" }).Count == 1,
+                  "un `.json` di `cases/` e' un DATO: cambia cosa si misura");
             Segna("e un sorgente pure",
                   SoloIlCodice(new[] { "Banco/Program.cs" }).Count == 1,
                   "l'eccezione e' stretta a `.md` e non si allarga da sola");
         }
 
-        /// <summary>Questo commit porta anche `Banco/resoconto/ultimo.json`?</summary>
+        /// <summary>Questo commit porta anche `Banco/report/last.json`?</summary>
         private static bool CommitPortaIlResoconto(string sha)
         {
             foreach (var r in Git("show --name-only --format= " + sha +
-                                  " -- Banco/resoconto/ultimo.json"))
+                                  " -- Banco/report/last.json"))
                 if (!string.IsNullOrWhiteSpace(r)) return true;
             return false;
         }

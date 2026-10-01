@@ -13,7 +13,7 @@
 //
 //   node misura_accumulo.js [quante] [piano]
 //
-// Predefiniti: 12 giri su casi/ponte/c4s_tondo.json.
+// Predefiniti: 12 giri su cases/bridge/c4s_round.json.
 const { spawnSync } = require("child_process");
 const path = require("path");
 
@@ -24,7 +24,7 @@ const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.ex
 const CHIUDI = path.join(RADICE, "Controlli", "ChiudiScarti", "bin", "ChiudiScarti.exe");
 
 const quante = parseInt(process.argv[2] || "12", 10);
-const piano = process.argv[3] || path.join(__dirname, "casi", "ponte", "c4s_tondo.json");
+const piano = process.argv[3] || path.join(__dirname, "cases", "bridge", "c4s_round.json");
 
 function secondi(cosa) {
   const t0 = process.hrtime.bigint();

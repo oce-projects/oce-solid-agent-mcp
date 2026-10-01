@@ -1,67 +1,67 @@
 {
-  "nome": "il_coperchio_rifatto_tiene_i_vincoli_ma_rotti",
-  "famiglia": "assiemi",
-  "il_nome_ha_fatto_tre_giri_e_il_terzo_e_quello_giusto": "«tiene» -> «perde» -> «tiene» -> «tiene_ma_rotti». Non e' indecisione, e' la misura che arriva a pezzi. (1) «tiene» era l'ipotesi. (2) Una sonda ha mostrato che ReplaceComponents2 con ReAttachMates: true solleva RPC_E_SERVERFAULT e con false passa, e io ne ho DEDOTTO che false volesse dire «scarta i vincoli»: rinominato in «perde». (3) Il banco ha misurato 0 persi -- l'ipotesi era giusta, la deduzione sbagliata: rinominato in «tiene». (4) Il banco ha misurato 2 PROBLEMI nel documento: i vincoli ci sono e sono in ERRORE. Nessuno dei tre nomi precedenti era vero.",
-  "la_lezione_dei_tre_giri": "Due errori diversi, e il secondo e' peggiore del primo. Il primo: una sonda che prova se la CHIAMATA riesce non prova cosa la chiamata FA -- stampava i percorsi e non contava i vincoli. Il secondo: avendo misurato che i vincoli RESTANO, ho concluso che stessero bene. **Restare non e' funzionare.** Serviva una terza domanda, e non era sul conteggio: era sul documento.",
-  "perche": "«IL COPERCHIO VA RIFATTO» e' il gesto piu' comune di chi progetta, e la voce GA7 ne nominava il pericolo: «se l'API sostituisce il documento ma NON conserva gli accoppiamenti, si ripresenta identico il difetto tipico -- pezzo diverso, nessun errore». Il pezzo nuovo entra, l'assieme si apre, la ricostruzione e' pulita, e il componente e' libero.",
-  "perche_il_caso_accoppia_PRIMA_di_sostituire": "Perche' senza un accoppiamento da perdere non c'e' niente da misurare. Il passo 1 vincola il coperchio alla base; il passo 2 lo sostituisce con un pezzo diverso; il passo 3 e' lo stato. Se i vincoli non sopravvivessero, «accoppiamenti_persi» sarebbe maggiore di zero e il caso lo direbbe.",
-  "perche_la_firma_non_era_stata_trovata": "Il censimento delle API la cercava su `IComponent2` -- 170 metodi, nessun ReplaceComponent -- e ne aveva concluso «non elenca una firma dedicata». Sta su `IAssemblyDoc`: ReplaceComponents2(FileName, ConfigName, ReplaceAllInstance, UseConfigChoice, ReAttachMates). E' la stessa lezione di AddConfiguration3 (nota 81s): un nome dice come si chiama un metodo, non su quale interfaccia sta.",
-  "assieme": {
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+  "name": "rebuilt_cover_keeps_the_constraints_but_broken",
+  "family": "assemblies",
+  "_the_name_went_through_three_rounds_and_the_third_is_the_right_one": "«tiene» -> «perde» -> «tiene» -> «tiene_ma_rotti». Non e' indecisione, e' la misura che arriva a pezzi. (1) «tiene» era l'ipotesi. (2) Una sonda ha mostrato che ReplaceComponents2 con ReAttachMates: true solleva RPC_E_SERVERFAULT e con false passa, e io ne ho DEDOTTO che false volesse dire «scarta i vincoli»: rinominato in «perde». (3) Il banco ha misurato 0 persi -- l'ipotesi era giusta, la deduzione sbagliata: rinominato in «tiene». (4) Il banco ha misurato 2 PROBLEMI nel documento: i vincoli ci sono e sono in ERRORE. Nessuno dei tre nomi precedenti era vero.",
+  "_the_lesson_of_the_three_rounds": "Due errori diversi, e il secondo e' peggiore del primo. Il primo: una sonda che prova se la CHIAMATA riesce non prova cosa la chiamata FA -- stampava i percorsi e non contava i vincoli. Il secondo: avendo misurato che i vincoli RESTANO, ho concluso che stessero bene. **Restare non e' funzionare.** Serviva una terza domanda, e non era sul conteggio: era sul documento.",
+  "why": "«IL COPERCHIO VA RIFATTO» e' il gesto piu' comune di chi progetta, e la voce GA7 ne nominava il pericolo: «se l'API sostituisce il documento ma NON conserva gli accoppiamenti, si ripresenta identico il difetto tipico -- pezzo diverso, nessun errore». Il pezzo nuovo entra, l'assieme si apre, la ricostruzione e' pulita, e il componente e' libero.",
+  "_why_the_case_mates_BEFORE_replacing": "Perche' senza un accoppiamento da perdere non c'e' niente da misurare. Il passo 1 vincola il coperchio alla base; il passo 2 lo sostituisce con un pezzo diverso; il passo 3 e' lo stato. Se i vincoli non sopravvivessero, «accoppiamenti_persi» sarebbe maggiore di zero e il caso lo direbbe.",
+  "_why_the_signature_had_not_been_found": "Il censimento delle API la cercava su `IComponent2` -- 170 metodi, nessun ReplaceComponent -- e ne aveva concluso «non elenca una firma dedicata». Sta su `IAssemblyDoc`: ReplaceComponents2(FileName, ConfigName, ReplaceAllInstance, UseConfigChoice, ReAttachMates). E' la stessa lezione di AddConfiguration3 (nota 81s): un nome dice come si chiama un metodo, non su quale interfaccia sta.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
         ] },
-      { "nome": "coperchio",
-        "posizione_mm": [0, 40, 0],
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+      { "name": "coperchio",
+        "position_mm": [0, 40, 0],
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
         ] },
-      { "nome": "coperchio2",
-        "da_inserire": false,
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 6, "centrato": true } }
+      { "name": "coperchio2",
+        "to_insert": false,
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 6, "centrato": true } }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "accoppia",
-      "argomenti": {
+  "steps": [
+    { "operation": "accoppia",
+      "arguments": {
         "componente_a": "C1", "faccia_a": "alto",
         "componente_b": "C2", "faccia_b": "basso",
         "tipo": "coincidente", "allineamento": "opposto"
       },
-      "attese": [
-        { "cosa": "misure.accoppiamenti_dopo", "uguale": [1, 1],
-          "perche": "serve un vincolo da perdere: senza, il passo dopo non misurerebbe niente" } ] },
+      "expect": [
+        { "what": "misure.accoppiamenti_dopo", "equal_to": [1, 1],
+          "why": "serve un vincolo da perdere: senza, il passo dopo non misurerebbe niente" } ] },
 
-    { "operazione": "sostituisci_componente",
-      "argomenti": {
+    { "operation": "sostituisci_componente",
+      "arguments": {
         "componente": "C2",
-        "percorso": "{LAVORO}\\il_coperchio_rifatto_tiene_i_vincoli_ma_rotti_coperchio2.sldprt"
+        "percorso": "{LAVORO}\\rebuilt_cover_keeps_the_constraints_but_broken_coperchio2.sldprt"
       },
-      "attese": [
-        { "cosa": "misure.a", "contiene": ["coperchio2"],
-          "perche": "il pezzo nuovo e' DENTRO: si guarda che qualche componente usi davvero quel file, non il Boolean che ReplaceComponents2 restituisce" },
-        { "cosa": "misure.componenti_dopo", "uguale": 2,
-          "perche": "sostituire non e' aggiungere: i componenti restano due" },
-        { "cosa": "misure.accoppiamenti_persi", "uguale": 0,
-          "perche": "LA RISPOSTA ALLA DOMANDA DI GA7, misurata e non dedotta: **i vincoli NON si perdono.** `ReAttachMates: false` non vuol dire «scartali» -- vuol dire «non provare a riagganciarli interattivamente». Con `true` e un vincolo vero da riagganciare, ReplaceComponents2 solleva RPC_E_SERVERFAULT (misurato in quattro condizioni: assieme salvato e non, file nuovo aperto e chiuso). Con `false` passa, e il conteggio resta 2 prima e 2 dopo.",
-          "e_qui_mi_ero_sbagliato": "Avevo concluso «i vincoli si perdono sempre» da una sonda che provava solo se la CHIAMATA riusciva: stampava i percorsi dei componenti e non contava gli accoppiamenti. La chiamata riusciva, quindi avevo dedotto il resto. Il caso di banco ha misurato 0 persi contro i 2 che pretendevo, ed e' il caso ad aver ragione. **Una sonda che non misura la cosa non e' una prova della cosa, nemmeno quando riesce.**" },
-        { "cosa": "misure.problemi_prima", "uguale": 0,
-          "perche": "prima della sostituzione l'assieme e' sano: serve come riferimento, altrimenti «due problemi dopo» non direbbe se sono nuovi" },
-        { "cosa": "misure.problemi_dopo", "uguale": 2,
-          "perche": "**LA COSA CHE QUESTO CASO HA TROVATO, ed e' il difetto che non da' errore in forma pura.** I vincoli SOPRAVVIVONO alla sostituzione -- il conteggio dice 2 prima e 2 dopo, e da solo direbbe «tutto a posto» -- **ma vanno in ERRORE**, perche' puntavano a facce del pezzo vecchio. Due vincoli rotti che sembrano due vincoli sani. Il conteggio degli accoppiamenti non puo' vederlo: e' `GetWhatsWrongCount` a vederlo, la stessa domanda che si fa un progettista guardando l'albero rosso.",
-          "perche_DUE_e_non_uno": "Il vincolo e' uno solo, e i problemi sono due: l'accoppiamento in errore e il componente che lo porta. Non si pretende «maggiore di zero» ma il numero esatto -- una soglia lascerebbe passare un terzo problema comparso per un'altra ragione, e allora il caso smetterebbe di misurare quello che dice di misurare.",
-          "se_un_giorno_diventasse_0": "Vorrebbe dire che SOLIDWORKS ha imparato a riagganciare i vincoli a un pezzo sostituito -- buona notizia, e da verificare prima di crederci. Il caso diventerebbe rosso e lo direbbe, che e' esattamente cio' che deve fare." },
-        { "cosa": "misure.giudizio", "contiene": ["ERRORE", "accoppia"],
-          "perche": "IL PUNTO DELL'OPERAZIONE. Il numero da solo non basta: chi legge deve sapere che quei vincoli CI SONO e NON TENGONO, e cosa fare -- toglierli e rimetterli. Un avvertimento senza rimedio si impara a ignorare." },
-        { "cosa": "stato.quanti_componenti", "uguale": 2,
-          "perche": "sostituire non e' aggiungere. Lo stato si rilegge dopo ogni passo, quindi le attese sull'assieme stanno qui e non in un passo in piu': un passo aggiunto solo per leggere lo stato avrebbe dovuto usare un'operazione, e le operazioni di PARTE su un assieme si rifiutano." },
-        { "cosa": "stato.assieme_vincolato", "uguale": true,
-          "perche": "E IL CERCHIO SI CHIUDE SU GA5: lo stato e l'operazione devono raccontare la STESSA cosa. L'operazione dice «i vincoli sono rimasti»; lo stato, che li conta per conto suo rileggendo i componenti, dice «ogni componente non fisso ha almeno un accoppiamento». Due letture indipendenti che concordano. Se divergessero, una delle due mentirebbe e non si saprebbe quale." } ] }
+      "expect": [
+        { "what": "misure.a", "includes": ["coperchio2"],
+          "why": "il pezzo nuovo e' DENTRO: si guarda che qualche componente usi davvero quel file, non il Boolean che ReplaceComponents2 restituisce" },
+        { "what": "misure.componenti_dopo", "equal_to": 2,
+          "why": "sostituire non e' aggiungere: i componenti restano due" },
+        { "what": "misure.accoppiamenti_persi", "equal_to": 0,
+          "why": "LA RISPOSTA ALLA DOMANDA DI GA7, misurata e non dedotta: **i vincoli NON si perdono.** `ReAttachMates: false` non vuol dire «scartali» -- vuol dire «non provare a riagganciarli interattivamente». Con `true` e un vincolo vero da riagganciare, ReplaceComponents2 solleva RPC_E_SERVERFAULT (misurato in quattro condizioni: assieme salvato e non, file nuovo aperto e chiuso). Con `false` passa, e il conteggio resta 2 prima e 2 dopo.",
+          "_and_here_i_was_wrong": "Avevo concluso «i vincoli si perdono sempre» da una sonda che provava solo se la CHIAMATA riusciva: stampava i percorsi dei componenti e non contava gli accoppiamenti. La chiamata riusciva, quindi avevo dedotto il resto. Il caso di banco ha misurato 0 persi contro i 2 che pretendevo, ed e' il caso ad aver ragione. **Una sonda che non misura la cosa non e' una prova della cosa, nemmeno quando riesce.**" },
+        { "what": "misure.problemi_prima", "equal_to": 0,
+          "why": "prima della sostituzione l'assieme e' sano: serve come riferimento, altrimenti «due problemi dopo» non direbbe se sono nuovi" },
+        { "what": "misure.problemi_dopo", "equal_to": 2,
+          "why": "**LA COSA CHE QUESTO CASO HA TROVATO, ed e' il difetto che non da' errore in forma pura.** I vincoli SOPRAVVIVONO alla sostituzione -- il conteggio dice 2 prima e 2 dopo, e da solo direbbe «tutto a posto» -- **ma vanno in ERRORE**, perche' puntavano a facce del pezzo vecchio. Due vincoli rotti che sembrano due vincoli sani. Il conteggio degli accoppiamenti non puo' vederlo: e' `GetWhatsWrongCount` a vederlo, la stessa domanda che si fa un progettista guardando l'albero rosso.",
+          "_why_TWO_and_not_one": "Il vincolo e' uno solo, e i problemi sono due: l'accoppiamento in errore e il componente che lo porta. Non si pretende «maggiore di zero» ma il numero esatto -- una soglia lascerebbe passare un terzo problema comparso per un'altra ragione, e allora il caso smetterebbe di misurare quello che dice di misurare.",
+          "_if_it_ever_became_0": "Vorrebbe dire che SOLIDWORKS ha imparato a riagganciare i vincoli a un pezzo sostituito -- buona notizia, e da verificare prima di crederci. Il caso diventerebbe rosso e lo direbbe, che e' esattamente cio' che deve fare." },
+        { "what": "misure.giudizio", "includes": ["ERRORE", "accoppia"],
+          "why": "IL PUNTO DELL'OPERAZIONE. Il numero da solo non basta: chi legge deve sapere che quei vincoli CI SONO e NON TENGONO, e cosa fare -- toglierli e rimetterli. Un avvertimento senza rimedio si impara a ignorare." },
+        { "what": "stato.quanti_componenti", "equal_to": 2,
+          "why": "sostituire non e' aggiungere. Lo stato si rilegge dopo ogni passo, quindi le attese sull'assieme stanno qui e non in un passo in piu': un passo aggiunto solo per leggere lo stato avrebbe dovuto usare un'operazione, e le operazioni di PARTE su un assieme si rifiutano." },
+        { "what": "stato.assieme_vincolato", "equal_to": true,
+          "why": "E IL CERCHIO SI CHIUDE SU GA5: lo stato e l'operazione devono raccontare la STESSA cosa. L'operazione dice «i vincoli sono rimasti»; lo stato, che li conta per conto suo rileggendo i componenti, dice «ogni componente non fisso ha almeno un accoppiamento». Due letture indipendenti che concordano. Se divergessero, una delle due mentirebbe e non si saprebbe quale." } ] }
   ]
 }

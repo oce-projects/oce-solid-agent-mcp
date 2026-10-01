@@ -1,21 +1,21 @@
 {
-  "nome": "step_ap203_e_lo_dice",
-  "famiglia": "esporta",
-  "perche": "LO STESSO PEZZO CON L'ALTRO PROTOCOLLO, e il file lo dichiara diverso. E' il rosso della riga che rilegge il FILE_SCHEMA: se la preferenza `swStepAP` non facesse niente -- o se il numero fosse quello sbagliato -- questo caso e quello dell'AP214 uscirebbero identici, e tutti e due verdi. Due protocolli diversi che si scrivono diversi sono l'unica prova che la preferenza arriva a destinazione.",
-  "perche_serve_anche_l_ap203": "certi fornitori accettano SOLO il 203. Mandare un 214 a chi legge solo il 203 vuol dire un file che non si apre, e lo si scopre dall'altra parte.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "step_ap203_says_so",
+  "family": "export",
+  "why": "LO STESSO PEZZO CON L'ALTRO PROTOCOLLO, e il file lo dichiara diverso. E' il rosso della riga che rilegge il FILE_SCHEMA: se la preferenza `swStepAP` non facesse niente -- o se il numero fosse quello sbagliato -- questo caso e quello dell'AP214 uscirebbero identici, e tutti e due verdi. Due protocolli diversi che si scrivono diversi sono l'unica prova che la preferenza arriva a destinazione.",
+  "_why_ap203_is_also_needed": "certi fornitori accettano SOLO il 203. Mandare un 214 a chi legge solo il 203 vuol dire un file che non si apre, e lo si scopre dall'altra parte.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "esporta_step",
-      "argomenti": { "percorso": "{LAVORO}\\gp3_ap203.step", "protocollo": "AP203" },
-      "attese": [
-        { "cosa": "misure.protocollo_uscito", "uguale": "AP203" },
-        { "cosa": "misure.file_schema",
-          "contiene": ["CONFIG_CONTROL_DESIGN"],
-          "non_contiene": ["AUTOMOTIVE_DESIGN"],
-          "perche": "e' la META' CHE CONTA: non basta che ci sia il nome giusto, non deve esserci quello dell'altro protocollo" } ] }
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "esporta_step",
+      "arguments": { "percorso": "{LAVORO}\\gp3_ap203.step", "protocollo": "AP203" },
+      "expect": [
+        { "what": "misure.protocollo_uscito", "equal_to": "AP203" },
+        { "what": "misure.file_schema",
+          "includes": ["CONFIG_CONTROL_DESIGN"],
+          "does_not_include": ["AUTOMOTIVE_DESIGN"],
+          "why": "e' la META' CHE CONTA: non basta che ci sia il nome giusto, non deve esserci quello dell'altro protocollo" } ] }
   ]
 }

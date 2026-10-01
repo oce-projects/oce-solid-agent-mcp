@@ -1,20 +1,20 @@
 {
-  "nome": "lim_filetto_senza_denominazione",
-  "famiglia": "corpi",
-  "perche": "Un filetto senza denominazione e' un'annotazione che non dice niente: sulla tavola comparirebbe un filetto senza misura, e chi lo legge dovrebbe indovinarla. Si rifiuta prima di crearlo, e si dice anche che il testo non viene da nessuna tabella -- e' quello che ha detto chi ha chiesto.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_cerchio",
-      "argomenti": { "piano": "frontale", "diametro_mm": 6, "altezza_mm": 10 },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 282.74, "tolleranza": 0.5,
-                    "perche_questa_tolleranza": "pi*3^2*10: il conto ha pi dentro" } ] },
-    { "operazione": "filettatura_cosmetica",
-      "argomenti": { "spigolo_uid": "@spigolo(curvo=true,n=1)",
+  "name": "limit_thread_without_a_designation",
+  "family": "bodies",
+  "why": "Un filetto senza denominazione e' un'annotazione che non dice niente: sulla tavola comparirebbe un filetto senza misura, e chi lo legge dovrebbe indovinarla. Si rifiuta prima di crearlo, e si dice anche che il testo non viene da nessuna tabella -- e' quello che ha detto chi ha chiesto.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_cerchio",
+      "arguments": { "piano": "frontale", "diametro_mm": 6, "altezza_mm": 10 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 282.74, "tolerance": 0.5,
+                    "tolerance_why": "pi*3^2*10: il conto ha pi dentro" } ] },
+    { "operation": "filettatura_cosmetica",
+      "arguments": { "spigolo_uid": "@spigolo(curvo=true,n=1)",
                      "denominazione": "", "profondita_mm": 8 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["denominazione", "non dice niente", "non lo ricava da una tabella"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "filetto_su_un_perno" } }
+      "must_fail": {
+        "message_includes": ["denominazione", "non dice niente", "non lo ricava da una tabella"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "thread_on_pin" } }
   ]
 }

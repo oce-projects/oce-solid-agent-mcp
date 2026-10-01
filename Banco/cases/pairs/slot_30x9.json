@@ -1,26 +1,26 @@
 {
-  "nome": "asola_30x9",
-  "famiglia": "coppie",
-  "perche": "La gemella di «lim_asola_che_copre_tutto». Un'asola 30 x 9 e' l'asola vera del mestiere -- quella che permette di montare -- e il materiale tolto si conta esatto: area 21x9 + pi*4.5^2 = 252,6173 mm2, per i 52 di spessore.",
-  "parte": { "nuova": true },
-  "passi": [
+  "name": "slot_30x9",
+  "family": "pairs",
+  "why": "La gemella di «limit_slot_that_covers_everything». Un'asola 30 x 9 e' l'asola vera del mestiere -- quella che permette di montare -- e il materiale tolto si conta esatto: area 21x9 + pi*4.5^2 = 252,6173 mm2, per i 52 di spessore.",
+  "start": { "new_part": true },
+  "steps": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": {
+      "operation": "estrudi_rettangolo",
+      "arguments": {
         "piano": "frontale",
         "lunghezza_mm": 314,
         "larghezza_mm": 274,
         "spessore_mm": 52,
         "centrato": true
       },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 4473872 },
-        { "cosa": "stato.ingombro_da_mm", "uguale": [-157, -137, 0] }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 4473872 },
+        { "what": "stato.ingombro_da_mm", "equal_to": [-157, -137, 0] }
       ]
     },
     {
-      "operazione": "asola",
-      "argomenti": {
+      "operation": "asola",
+      "arguments": {
         "faccia_uid": "@faccia(verso=davanti)",
         "x_mm": 0,
         "y_mm": 0,
@@ -28,14 +28,14 @@
         "larghezza_mm": 9,
         "passante": true
       },
-      "attese": [
-        { "cosa": "misure.area_mm2", "uguale": 252.62,
-          "tolleranza": 0.01,
-          "perche_questa_tolleranza": "21*9 + pi*4.5^2 = 252,6173: l'operazione arrotonda al centesimo" },
-        { "cosa": "misure.materiale_tolto_mm3", "uguale": 13136.1,
-          "tolleranza": 0.5,
-          "perche_questa_tolleranza": "252,6173 x 52: il conto ha pi dentro" },
-        { "cosa": "corpi", "uguale": 1 }
+      "expect": [
+        { "what": "misure.area_mm2", "equal_to": 252.62,
+          "tolerance": 0.01,
+          "tolerance_why": "21*9 + pi*4.5^2 = 252,6173: l'operazione arrotonda al centesimo" },
+        { "what": "misure.materiale_tolto_mm3", "equal_to": 13136.1,
+          "tolerance": 0.5,
+          "tolerance_why": "252,6173 x 52: il conto ha pi dentro" },
+        { "what": "corpi", "equal_to": 1 }
       ]
     }
   ]

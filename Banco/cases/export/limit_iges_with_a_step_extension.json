@@ -1,20 +1,20 @@
 {
-  "nome": "lim_iges_con_estensione_step",
-  "famiglia": "esporta",
-  "perche": "Chiedere un IGES e dare un percorso che finisce in .step fa scrivere uno STEP con dentro tutt'altro, e il file esiste, pesa e si apre: e' il difetto che non da' errore, nella forma piu' banale. L'estensione e' l'unica cosa che dice a SaveAs3 che formato scrivere, e qui si controlla che combaci con l'operazione chiesta.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "limit_iges_with_a_step_extension",
+  "family": "export",
+  "why": "Chiedere un IGES e dare un percorso che finisce in .step fa scrivere uno STEP con dentro tutt'altro, e il file esiste, pesa e si apre: e' il difetto che non da' errore, nella forma piu' banale. L'estensione e' l'unica cosa che dice a SaveAs3 che formato scrivere, e qui si controlla che combaci con l'operazione chiesta.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "esporta_iges",
-      "argomenti": { "percorso": "{LAVORO}\\gp3_sbagliato.step", "rappresentazione": "solidi",
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "esporta_iges",
+      "arguments": { "percorso": "{LAVORO}\\gp3_sbagliato.step", "rappresentazione": "solidi",
                      "riapri_e_confronta": true },
-      "deve_fallire": {
-        "il_messaggio_contiene": [".iges", "che formato scrivere"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "iges_solidi" } }
+      "must_fail": {
+        "message_includes": [".iges", "che formato scrivere"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "iges_solids" } }
   ]
 }

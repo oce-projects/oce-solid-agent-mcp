@@ -1,33 +1,33 @@
 {
-  "nome": "lim_asse_spostato",
-  "famiglia": "ripeti",
-  "perche": "VOCE E4, la parte degli ASSI. Fino alla libreria 0.113.0 un asse era {uid, tipo} e basta: se fra la conferma del piano e l'esecuzione qualcuno lo rifaceva altrove col nome di prima, `ripeti_circolare` ripeteva attorno all'asse nuovo, in silenzio. Qui la firma dice un asse che passa a 30 mm da quello vero: il passo deve rifiutare, dire di quanto si e' spostato, e non toccare il pezzo.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_cerchio",
-      "argomenti": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 392699.08, "tolleranza": 0.5,
-                    "perche_questa_tolleranza": "pi * 50^2 * 50: il conto ha pi dentro" } ] },
-    { "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 35, "y_mm": 0,
+  "name": "limit_moved_axis",
+  "family": "patterns",
+  "why": "VOCE E4, la parte degli ASSI. Fino alla libreria 0.113.0 un asse era {uid, tipo} e basta: se fra la conferma del piano e l'esecuzione qualcuno lo rifaceva altrove col nome di prima, `ripeti_circolare` ripeteva attorno all'asse nuovo, in silenzio. Qui la firma dice un asse che passa a 30 mm da quello vero: il passo deve rifiutare, dire di quanto si e' spostato, e non toccare il pezzo.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_cerchio",
+      "arguments": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 392699.08, "tolerance": 0.5,
+                    "tolerance_why": "pi * 50^2 * 50: il conto ha pi dentro" } ] },
+    { "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 35, "y_mm": 0,
                      "diametro_mm": 10, "passante": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 388772.09, "tolleranza": 0.5,
-                    "perche_questa_tolleranza": "meno pi * 5^2 * 50 = 3926,99" } ] },
-    { "operazione": "crea_asse",
-      "argomenti": { "faccia_uid": "@faccia(area~=15707.96)" },
-      "attese": [ { "cosa": "assi_creati", "uguale": 1 } ] },
-    { "operazione": "ripeti_circolare",
-      "argomenti": {
+      "expect": [ { "what": "volume_mm3", "equal_to": 388772.09, "tolerance": 0.5,
+                    "tolerance_why": "meno pi * 5^2 * 50 = 3926,99" } ] },
+    { "operation": "crea_asse",
+      "arguments": { "faccia_uid": "@faccia(area~=15707.96)" },
+      "expect": [ { "what": "assi_creati", "equal_to": 1 } ] },
+    { "operation": "ripeti_circolare",
+      "arguments": {
         "feature_uid": "@feature(tipo=ICE,n=1)",
         "asse_uid": "Assi1",
         "numero_istanze": 6,
         "angolo_totale_gradi": 360,
         "_firme": { "Assi1": { "punto_mm": [30, 0, 25], "direzione": [0, 0, 1] } }
       },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["si e' spostato", "asse sbagliato"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "l_asse_riconosciuto" } }
+      "must_fail": {
+        "message_includes": ["si e' spostato", "asse sbagliato"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "recognized_axis" } }
   ]
 }

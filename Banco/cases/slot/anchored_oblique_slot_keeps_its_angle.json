@@ -1,37 +1,37 @@
 {
-  "nome": "l_asola_obliqua_ancorata_tiene_l_angolo",
-  "famiglia": "asola",
-  "perche": "VOCE E18 sull'asola obliqua: 60 x 20 a 30 gradi, centro a 60 dal fianco destro e centrata in altezza. Senza ancora un'asola obliqua non ha uno spigolo da cui misurare l'angolo e puo' ruotare; con l'ancora l'angolo si quota contro il suo primo spigolo (`AddSpecificDimension` angolare: `Extension.AddDimension` torna null su quella coppia, misurato). Dopo 260 x 180 il centro deve stare a (100, 30) e le estremita' conservare i 30 gradi: (82,68, 20) e (117,32, 40).",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+  "name": "anchored_oblique_slot_keeps_its_angle",
+  "family": "slot",
+  "why": "VOCE E18 sull'asola obliqua: 60 x 20 a 30 gradi, centro a 60 dal fianco destro e centrata in altezza. Senza ancora un'asola obliqua non ha uno spigolo da cui misurare l'angolo e puo' ruotare; con l'ancora l'angolo si quota contro il suo primo spigolo (`AddSpecificDimension` angolare: `Extension.AddDimension` torna null su quella coppia, misurato). Dopo 260 x 180 il centro deve stare a (100, 30) e le estremita' conservare i 30 gradi: (82,68, 20) e (117,32, 40).",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
-    { "operazione": "asola",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 40, "y_mm": 0,
+      "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
+    { "operation": "asola",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 40, "y_mm": 0,
                      "lunghezza_mm": 60, "larghezza_mm": 20, "angolo_gradi": 30, "passante": true,
                      "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=20)", "distanza_mm": 60 },
                                  "y": { "centrata_fra": [ "@spigolo(asse=X,y~=-60,z~=20)", "@spigolo(asse=X,y~=60,z~=20)" ] } } },
-      "attese": [
-        { "cosa": "centri_x_mm", "uguale": [22.68, 57.32], "tolleranza": 0.05,
-          "perche_questa_tolleranza": "40 -/+ 20*cos30 = 17,32; i centri si leggono in metri" },
-        { "cosa": "centri_y_mm", "uguale": [-10, 10], "tolleranza": 0.05,
-          "perche_questa_tolleranza": "0 -/+ 20*sen30" },
-        { "cosa": "misure.quote_sullo_schizzo", "uguale": 3,
-          "perche": "raggio, distanza fra i centri e l'angolo contro lo spigolo d'ancora" },
-        { "cosa": "misure.ancora.schizzo", "uguale": "completamente definito" } ] },
-    { "operazione": "modifica_quota",
-      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
-      "attese": [
-        { "cosa": "centri_x_mm", "uguale": [82.68, 117.32], "tolleranza": 0.05,
-          "perche_questa_tolleranza": "il centro va a 160 - 60 = 100, l'angolo non cambia" } ] },
-    { "operazione": "modifica_quota",
-      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 180 },
-      "attese": [
-        { "cosa": "centri_x_mm", "uguale": [82.68, 117.32], "tolleranza": 0.05,
-          "perche_questa_tolleranza": "in x non si muove niente" },
-        { "cosa": "centri_y_mm", "uguale": [20, 40], "tolleranza": 0.05,
-          "perche_questa_tolleranza": "centro a 30, -/+ 10: l'angolo resta 30 gradi" } ] }
+      "expect": [
+        { "what": "centri_x_mm", "equal_to": [22.68, 57.32], "tolerance": 0.05,
+          "tolerance_why": "40 -/+ 20*cos30 = 17,32; i centri si leggono in metri" },
+        { "what": "centri_y_mm", "equal_to": [-10, 10], "tolerance": 0.05,
+          "tolerance_why": "0 -/+ 20*sen30" },
+        { "what": "misure.quote_sullo_schizzo", "equal_to": 3,
+          "why": "raggio, distanza fra i centri e l'angolo contro lo spigolo d'ancora" },
+        { "what": "misure.ancora.schizzo", "equal_to": "completamente definito" } ] },
+    { "operation": "modifica_quota",
+      "arguments": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+      "expect": [
+        { "what": "centri_x_mm", "equal_to": [82.68, 117.32], "tolerance": 0.05,
+          "tolerance_why": "il centro va a 160 - 60 = 100, l'angolo non cambia" } ] },
+    { "operation": "modifica_quota",
+      "arguments": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 180 },
+      "expect": [
+        { "what": "centri_x_mm", "equal_to": [82.68, 117.32], "tolerance": 0.05,
+          "tolerance_why": "in x non si muove niente" },
+        { "what": "centri_y_mm", "equal_to": [20, 40], "tolerance": 0.05,
+          "tolerance_why": "centro a 30, -/+ 10: l'angolo resta 30 gradi" } ] }
   ]
 }

@@ -1,34 +1,34 @@
 {
-  "nome": "combina_predefinito",
-  "famiglia": "corpi",
-  "perche": "Voce Z-G3. `combina_corpi` pretende `operazione`, e «unisci» e' di gran lunga il caso piu' comune: «sottrai» e «interseca» si chiedono apposta. Qui il predefinito e' piu' pericoloso che per il materiale: sbagliare verso non lascia un pezzo del materiale sbagliato, lascia un pezzo con dentro un buco che nessuno ha chiesto. I due corpi si SOVRAPPONGONO apposta — la copia e' a 60 mm su un pezzo lungo 100, quindi 40 mm di sovrapposizione — perche' «combina_corpi» dichiara di FALLIRE se dopo l'unione i corpi sono ancora due: «di solito non si toccano davvero, e fallisco invece di confermarti un pezzo diverso da quello che credi». Con due corpi distanti l'unione sarebbe fallita e il caso rosso avrebbe accusato il predefinito invece della geometria. Con la sovrapposizione i tre esiti restano inconfondibili: unisci = 80000 (50000+50000-20000), sottrai = 30000, interseca = 20000. «riuscita: true» li darebbe tutti e tre. E i corpi si indicano con «corpi_uid»: «sposta_corpi» non lo dichiara in «required» — e' un aut-aut fra «corpi_uid» e «corpi_rif», che «required» non sa esprimere — ma la sua DESCRIZIONE lo dice in chiaro. Questo caso l'ha imparato andando rosso il 24/9/2026, ed e' il secondo errore dello stesso tipo sullo stesso caso: scritto guardando lo schema invece della descrizione. *Lo schema dice cosa un'operazione accetta; la descrizione dice cosa pretende e cosa rifiuta.*",
-  "parte": {
-    "nuova": true
+  "name": "default_combine",
+  "family": "bodies",
+  "why": "Voce Z-G3. `combina_corpi` pretende `operazione`, e «unisci» e' di gran lunga il caso piu' comune: «sottrai» e «interseca» si chiedono apposta. Qui il predefinito e' piu' pericoloso che per il materiale: sbagliare verso non lascia un pezzo del materiale sbagliato, lascia un pezzo con dentro un buco che nessuno ha chiesto. I due corpi si SOVRAPPONGONO apposta — la copia e' a 60 mm su un pezzo lungo 100, quindi 40 mm di sovrapposizione — perche' «combina_corpi» dichiara di FALLIRE se dopo l'unione i corpi sono ancora due: «di solito non si toccano davvero, e fallisco invece di confermarti un pezzo diverso da quello che credi». Con due corpi distanti l'unione sarebbe fallita e il caso rosso avrebbe accusato il predefinito invece della geometria. Con la sovrapposizione i tre esiti restano inconfondibili: unisci = 80000 (50000+50000-20000), sottrai = 30000, interseca = 20000. «riuscita: true» li darebbe tutti e tre. E i corpi si indicano con «corpi_uid»: «sposta_corpi» non lo dichiara in «required» — e' un aut-aut fra «corpi_uid» e «corpi_rif», che «required» non sa esprimere — ma la sua DESCRIZIONE lo dice in chiaro. Questo caso l'ha imparato andando rosso il 24/9/2026, ed e' il secondo errore dello stesso tipo sullo stesso caso: scritto guardando lo schema invece della descrizione. *Lo schema dice cosa un'operazione accetta; la descrizione dice cosa pretende e cosa rifiuta.*",
+  "start": {
+    "new_part": true
   },
-  "passi": [
+  "steps": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": {
+      "operation": "estrudi_rettangolo",
+      "arguments": {
         "piano": "frontale",
         "lunghezza_mm": 100,
         "larghezza_mm": 50,
         "spessore_mm": 10,
         "centrato": true
       },
-      "attese": [
+      "expect": [
         {
-          "cosa": "volume_mm3",
-          "uguale": 50000
+          "what": "volume_mm3",
+          "equal_to": 50000
         },
         {
-          "cosa": "stato.corpi_totali",
-          "uguale": 1
+          "what": "stato.corpi_totali",
+          "equal_to": 1
         }
       ]
     },
     {
-      "operazione": "sposta_corpi",
-      "argomenti": {
+      "operation": "sposta_corpi",
+      "arguments": {
         "corpi_uid": [
           "C1"
         ],
@@ -36,32 +36,32 @@
         "copia": true,
         "quante_copie": 1
       },
-      "attese": [
+      "expect": [
         {
-          "cosa": "stato.corpi_totali",
-          "uguale": 2
+          "what": "stato.corpi_totali",
+          "equal_to": 2
         },
         {
-          "cosa": "volume_mm3",
-          "uguale": 100000
+          "what": "volume_mm3",
+          "equal_to": 100000
         }
       ]
     },
     {
-      "operazione": "combina_corpi",
-      "argomenti": {},
-      "attese": [
+      "operation": "combina_corpi",
+      "arguments": {},
+      "expect": [
         {
-          "cosa": "stato.corpi_totali",
-          "uguale": 1
+          "what": "stato.corpi_totali",
+          "equal_to": 1
         },
         {
-          "cosa": "volume_mm3",
-          "uguale": 80000
+          "what": "volume_mm3",
+          "equal_to": 80000
         },
         {
-          "cosa": "misure.nota_assunto",
-          "contiene": [
+          "what": "misure.nota_assunto",
+          "includes": [
             "unisci",
             "predefinito"
           ]

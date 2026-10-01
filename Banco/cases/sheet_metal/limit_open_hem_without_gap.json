@@ -1,20 +1,20 @@
 {
-  "nome": "lim_orlo_aperto_senza_gioco",
-  "famiglia": "lamiera",
-  "perche": "Un orlo «aperto» senza gioco e' un orlo chiuso chiesto col nome sbagliato: si rifiuta prima di toccare il pezzo, dicendo cosa manca e come si chiama la cosa che forse si voleva.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "flangia_base",
-      "argomenti": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
+  "name": "limit_open_hem_without_gap",
+  "family": "sheet_metal",
+  "why": "Un orlo «aperto» senza gioco e' un orlo chiuso chiesto col nome sbagliato: si rifiuta prima di toccare il pezzo, dicendo cosa manca e come si chiama la cosa che forse si voleva.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "flangia_base",
+      "arguments": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
                      "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
-      "attese": [ { "cosa": "corpi", "uguale": 1 } ] },
-    { "operazione": "orlo",
-      "argomenti": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "tipo": "aperto",
+      "expect": [ { "what": "corpi", "equal_to": 1 } ] },
+    { "operation": "orlo",
+      "arguments": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "tipo": "aperto",
                      "lunghezza_mm": 10, "gioco_mm": 0 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["gioco_mm", "maggiore di zero", "«chiuso»"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "l_orlo_aperto_torna_col_conto" } }
+      "must_fail": {
+        "message_includes": ["gioco_mm", "maggiore di zero", "«chiuso»"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "open_hem_checks_out" } }
   ]
 }

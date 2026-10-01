@@ -1,40 +1,40 @@
 {
-  "nome": "guscio_interno",
-  "famiglia": "lavorazioni",
-  "perche": "«Outward» toglie verso l'esterno o verso l'interno? Il dubbio di 80j. Verso l'interno l'ingombro NON cambia e il vuoto e' (100-10) x (60-10) x (40-5) = 157500: restano 82500 mm3. La gemella «guscio_esterno» fa lo stesso gesto col verso opposto, e i due numeri sono lontanissimi: se il verso fosse invertito si vedrebbe al primo confronto.",
-  "parte": { "nuova": true },
-  "passi": [
+  "name": "internal_shell",
+  "family": "features",
+  "why": "«Outward» toglie verso l'esterno o verso l'interno? Il dubbio di 80j. Verso l'interno l'ingombro NON cambia e il vuoto e' (100-10) x (60-10) x (40-5) = 157500: restano 82500 mm3. La gemella «external_shell» fa lo stesso gesto col verso opposto, e i due numeri sono lontanissimi: se il verso fosse invertito si vedrebbe al primo confronto.",
+  "start": { "new_part": true },
+  "steps": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": {
+      "operation": "estrudi_rettangolo",
+      "arguments": {
         "piano": "frontale",
         "lunghezza_mm": 100,
         "larghezza_mm": 60,
         "spessore_mm": 40,
         "centrato": true
       },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 240000 },
-        { "cosa": "stato.ingombro_da_mm", "uguale": [-50, -30, 0] },
-        { "cosa": "ingombro_mm", "uguale": [100, 60, 40] },
-        { "cosa": "stato.corpi_totali", "uguale": 1 }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 240000 },
+        { "what": "stato.ingombro_da_mm", "equal_to": [-50, -30, 0] },
+        { "what": "ingombro_mm", "equal_to": [100, 60, 40] },
+        { "what": "stato.corpi_totali", "equal_to": 1 }
       ]
     },
     {
-      "operazione": "guscio",
-      "argomenti": {
+      "operation": "guscio",
+      "arguments": {
         "facce_uid": ["@faccia(verso=davanti)"],
         "spessore_mm": 5,
         "verso_esterno": false
       },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 82500 },
-        { "cosa": "ingombro_mm", "uguale": [100, 60, 40] },
-        { "cosa": "misure.materiale_tolto_mm3", "uguale": 157500,
-          "tolleranza": 0.1,
-          "perche_questa_tolleranza": "l'operazione arrotonda al decimo prima di riportarlo" },
-        { "cosa": "misure.facce_tolte", "uguale": 1 },
-        { "cosa": "misure.verso", "uguale": "interno" }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 82500 },
+        { "what": "ingombro_mm", "equal_to": [100, 60, 40] },
+        { "what": "misure.materiale_tolto_mm3", "equal_to": 157500,
+          "tolerance": 0.1,
+          "tolerance_why": "l'operazione arrotonda al decimo prima di riportarlo" },
+        { "what": "misure.facce_tolte", "equal_to": 1 },
+        { "what": "misure.verso", "equal_to": "interno" }
       ]
     }
   ]

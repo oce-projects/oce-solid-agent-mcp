@@ -45,12 +45,12 @@ namespace Prove.Contratti
         /// **puo' solo salire**: si alza scrivendo un caso di banco che usi
         /// argomenti da client invece che selettori del banco — cioe'
         /// migliorando la prova, non l'esempio. **25** il 27/9/2026: `fissa_componente`
-        /// nasce con l'esempio copiato dal suo caso (`fisso_non_e_accoppiato`).
-        /// **26**: `variabile_globale`, dal suo caso (`la_parete_ha_un_nome`).
-        /// **27**: `riordina_lavorazione` (`l_ordine_cambia_il_pezzo`).
-        /// **28**: `specchia_componente` (`la_staffa_destra_e_la_sinistra`).
-        /// **29**: `cambia_estrusione` (`il_cieco_diventa_passante`).
-        /// **30**: `nervatura` (`nervatura_nell_angolo_della_l`), voce W1.2. Le
+        /// nasce con l'esempio copiato dal suo caso (`fixed_is_not_mated`).
+        /// **26**: `variabile_globale`, dal suo caso (`wall_has_a_name`).
+        /// **27**: `riordina_lavorazione` (`order_changes_the_part`).
+        /// **28**: `specchia_componente` (`right_bracket_and_left_bracket`).
+        /// **29**: `cambia_estrusione` (`blind_becomes_through`).
+        /// **30**: `nervatura` (`rib_in_the_corner_of_the_l`), voce W1.2. Le
         /// altre tre lavorazioni della guida (`raccordo_faccia`,
         /// `ripeti_riempimento`, `fazzoletto`) nascono senza: i loro casi verdi
         /// nominano le facce coi selettori del banco.

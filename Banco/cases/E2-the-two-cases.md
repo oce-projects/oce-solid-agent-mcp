@@ -9,13 +9,13 @@ Si lanciano cosi', su un documento vuoto:
 ```
 Controlli\ChiudiScarti\bin\ChiudiScarti.exe --chiudi
 Controlli\NuovaParte\bin\NuovaParte.exe
-node Banco\corri_piani.js Banco\casi\ponte\e2_blocco.json
-node Banco\corri_piani.js Banco\casi\ponte\e2_caso_a.json
+node Banco\corri_piani.js Banco\cases\bridge\e2_block.json
+node Banco\corri_piani.js Banco\cases\bridge\e2_case_a.json
 ```
 
 ---
 
-## Il blocco di partenza — `e2_blocco.json`
+## Il blocco di partenza — `e2_block.json`
 
 `estrudi_rettangolo` {frontale, 100 x 60 x 20, centrato}
 
@@ -37,7 +37,7 @@ F6  1200  [50,0,0]   [1,0,0]
 
 ---
 
-## CASO A — il rifiuto · `e2_caso_a.json`
+## CASO A — il rifiuto · `e2_case_a.json`
 
 Si cita **F6**, la faccia di destra, e poi si allunga il pezzo.
 
@@ -84,11 +84,11 @@ nel messaggio non cambi per sbaglio.
 
 ---
 
-## CASO B — il difetto silenzioso · `e2_tasca.json` poi `e2_caso_b.json`
+## CASO B — il difetto silenzioso · `e2_pocket.json` poi `e2_case_b.json`
 
 **E' il caso che conta.**
 
-### La preparazione — `e2_tasca.json`
+### La preparazione — `e2_pocket.json`
 
 `taglio_rettangolare` sulla faccia in alto (F1), tasca 40 x 40 centrata in Y,
 profondita' 8.
@@ -104,7 +104,7 @@ profondita' 8.
 > Misurato: volume 110.400 invece di 107.200, e i numeri del caso non tornano
 > piu' con quelli scritti qui.
 
-### Il piano — `e2_caso_b.json`
+### Il piano — `e2_case_b.json`
 
 | passo | atteso |
 |---|---|
@@ -148,7 +148,7 @@ della tasca: meta' cade nel vuoto e meta' nel materiale, e viene fuori un
 mezzo foro profondo 2 invece di un foro intero profondo 4.
 
 Il pezzo giusto si ottiene rileggendo lo stato dopo la modifica e citando il
-fondo con il suo identificativo NUOVO (`e2_caso_b_giusto.json`, che cita F3).
+fondo con il suo identificativo NUOVO (`e2_case_b_correct.json`, che cita F3).
 
 > Ricostruzione pulita, nessun errore, nessun avviso, «riuscita: true». Il
 > difetto non e' «si rifiuta un lavoro legittimo»: e' **«si lavora sulla faccia

@@ -1,27 +1,27 @@
 {
-  "nome": "lim_datum_con_la_stessa_lettera",
-  "famiglia": "tavola",
-  "perche": "Due datum «A» nella stessa tavola non danno errore in SOLIDWORKS, e ogni tolleranza che cita A diventa ambigua (la trappola scritta in Z-E6, fusa in GT6). Il secondo si rifiuta dicendo quali lettere ci sono gia'.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 96000 } ] },
-    { "operazione": "salva_documento",
-      "argomenti": { "percorso": "{LAVORO}\\lim_datum_con_la_stessa_lettera.sldprt" },
-      "attese": [ { "cosa": "misure.avvisi", "uguale": 0 } ] },
-    { "operazione": "crea_disegno", "argomenti": { "formato": "A3" },
-      "attese": [ { "cosa": "stato.tipo", "uguale": "tavola" } ] },
-    { "operazione": "viste_standard",
-      "argomenti": { "modello": "{LAVORO}\\lim_datum_con_la_stessa_lettera.sldprt" },
-      "attese": [ { "cosa": "misure.viste_create", "uguale": 3 } ] },
-    { "operazione": "datum_in_tavola",
-      "argomenti": { "vista": "V1", "lato": "basso", "lettera": "A" },
-      "attese": [ { "cosa": "misure.lettera_riletta", "uguale": "A" } ] },
-    { "operazione": "datum_in_tavola",
-      "argomenti": { "vista": "V1", "lato": "sinistra", "lettera": "A" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["c'e' gia' un datum «A»", "ambigua"],
-        "gemella": "le_annotazioni_stanno_fuori_dal_pezzo" } }
+  "name": "limit_datum_with_the_same_letter",
+  "family": "drawing",
+  "why": "Due datum «A» nella stessa tavola non danno errore in SOLIDWORKS, e ogni tolleranza che cita A diventa ambigua (la trappola scritta in Z-E6, fusa in GT6). Il secondo si rifiuta dicendo quali lettere ci sono gia'.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 96000 } ] },
+    { "operation": "salva_documento",
+      "arguments": { "percorso": "{LAVORO}\\limit_datum_with_the_same_letter.sldprt" },
+      "expect": [ { "what": "misure.avvisi", "equal_to": 0 } ] },
+    { "operation": "crea_disegno", "arguments": { "formato": "A3" },
+      "expect": [ { "what": "stato.tipo", "equal_to": "tavola" } ] },
+    { "operation": "viste_standard",
+      "arguments": { "modello": "{LAVORO}\\limit_datum_with_the_same_letter.sldprt" },
+      "expect": [ { "what": "misure.viste_create", "equal_to": 3 } ] },
+    { "operation": "datum_in_tavola",
+      "arguments": { "vista": "V1", "lato": "basso", "lettera": "A" },
+      "expect": [ { "what": "misure.lettera_riletta", "equal_to": "A" } ] },
+    { "operation": "datum_in_tavola",
+      "arguments": { "vista": "V1", "lato": "sinistra", "lettera": "A" },
+      "must_fail": {
+        "message_includes": ["c'e' gia' un datum «A»", "ambigua"],
+        "twin": "annotations_stay_outside_the_part" } }
   ]
 }

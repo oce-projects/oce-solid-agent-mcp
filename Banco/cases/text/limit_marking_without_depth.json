@@ -1,21 +1,21 @@
 {
-  "nome": "lim_marcatura_senza_profondita",
-  "famiglia": "testo",
-  "perche": "Profondita' zero. SOLIDWORKS su un taglio di lunghezza nulla non fa niente e non si lamenta: la lavorazione o non nasce, o nasce e non toglie un millimetro cubo. In tutti e due i casi il piano prosegue credendo che il numero di serie ci sia. Qui si rifiuta prima, e si dice che un'annotazione senza lavorazione e' un'altra cosa -- perche' e' quello che quasi sempre chi ha scritto zero voleva davvero.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "limit_marking_without_depth",
+  "family": "text",
+  "why": "Profondita' zero. SOLIDWORKS su un taglio di lunghezza nulla non fa niente e non si lamenta: la lavorazione o non nasce, o nasce e non toglie un millimetro cubo. In tutti e due i casi il piano prosegue credendo che il numero di serie ci sia. Qui si rifiuta prima, e si dice che un'annotazione senza lavorazione e' un'altra cosa -- perche' e' quello che quasi sempre chi ha scritto zero voleva davvero.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "incidi_testo",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "testo": "PROVA",
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "incidi_testo",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "testo": "PROVA",
                      "x_mm": -25, "y_mm": -5,
                      "altezza_mm": 10, "profondita_mm": 0 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["non lascia segno", "annotazione"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "sigla_incisa_al_centro" } }
+      "must_fail": {
+        "message_includes": ["non lascia segno", "annotazione"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "code_engraved_in_the_center" } }
   ]
 }

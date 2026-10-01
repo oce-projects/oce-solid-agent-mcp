@@ -170,7 +170,7 @@ namespace Riscontro.Disegno
                 // quella di esportazione non hanno la stessa tolleranza, e una
                 // soglia sull'ordine di grandezza non si fissa senza averla
                 // misurata su pezzi curvi. Il caso
-                // `lo_stl_non_esporta_la_faccia_selezionata` prende il difetto.
+                // `stl_does_not_export_the_selected_face` prende il difetto.
                 modello.ClearSelection2(true);
                 try
                 {
@@ -1349,7 +1349,7 @@ namespace Riscontro.Disegno
             }
         }
 
-        /// <summary>IGES 5.3 type 186, Manifold Solid B-Rep Object: the solid of a BREP file (one for the one body of `iges_solidi`).</summary>
+        /// <summary>IGES 5.3 type 186, Manifold Solid B-Rep Object: the solid of a BREP file (one for the one body of `iges_solids`).</summary>
         private const int IgesManifoldSolidType = 186;
 
         /// <summary>
@@ -1368,7 +1368,7 @@ namespace Riscontro.Disegno
         /// ENTRY section: the lines with «D» in column 73, two per entity, the
         /// first of the two carrying the entity type number in columns 1-8.
         ///
-        /// Checked by hand on 28/9/2026 against the file `iges_solidi` writes
+        /// Checked by hand on 28/9/2026 against the file `iges_solids` writes
         /// (block 100 x 100 x 20, BREP, SOLIDWORKS 2021): 106 «D» lines, 53
         /// entities, one of type 186, six of type 190 (plane surface), six 510
         /// faces, one 514 shell, twelve 110 lines. So: solids 1, surfaces 6.

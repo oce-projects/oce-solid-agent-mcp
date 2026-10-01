@@ -1,27 +1,27 @@
 {
-  "nome": "lim_quota_che_fa_uscire_l_asola",
-  "famiglia": "lavorazioni",
-  "perche": "VOCE E18, pezzo (c). E' il caso `r16_asola_che_sborda` della regressione, girato in rifiuto. Una piastra 200 centrata cresce e cala DA UNA PARTE SOLA (misurato in E2): portata a 150 va da X -100 a +50, e l'asola lunga 120 al centro (X -60..+60) esce di dieci dal fianco destro. Fino alla 0.112.0 `modifica_quota` lo faceva e rispondeva «fatto»: ricostruzione pulita, un corpo, nessun errore -- e un'asola chiusa diventata una tacca aperta sul bordo, che e' un altro pezzo.",
-  "perche_non_si_segue_il_bordo": "L'intento del caso e' `ancorato_a_assoluto`: l'asola sta dove il progettista l'ha messa. La cura non e' spostarla, e' ACCORGERSI che esce dal materiale e dirlo. La misura e' topologica, non geometrica: le aperture chiuse delle facce piane (gli anelli interni) erano due -- l'asola sul davanti e sul dietro -- e dopo la modifica sono zero.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+  "name": "limit_dimension_that_pushes_the_slot_out",
+  "family": "features",
+  "why": "VOCE E18, pezzo (c). E' il caso `r16_slot_that_overflows` della regressione, girato in rifiuto. Una piastra 200 centrata cresce e cala DA UNA PARTE SOLA (misurato in E2): portata a 150 va da X -100 a +50, e l'asola lunga 120 al centro (X -60..+60) esce di dieci dal fianco destro. Fino alla 0.112.0 `modifica_quota` lo faceva e rispondeva «fatto»: ricostruzione pulita, un corpo, nessun errore -- e un'asola chiusa diventata una tacca aperta sul bordo, che e' un altro pezzo.",
+  "_why_the_edge_is_not_followed": "L'intento del caso e' `ancorato_a_assoluto`: l'asola sta dove il progettista l'ha messa. La cura non e' spostarla, e' ACCORGERSI che esce dal materiale e dirlo. La misura e' topologica, non geometrica: le aperture chiuse delle facce piane (gli anelli interni) erano due -- l'asola sul davanti e sul dietro -- e dopo la modifica sono zero.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
-    { "operazione": "asola",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+      "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
+    { "operation": "asola",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
                      "lunghezza_mm": 120, "larghezza_mm": 20, "passante": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 433716.81, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "480000 meno (100*20 + pi*10^2) * 20 = 46283,19. E' il volume che il passo dopo deve ritrovare INTATTO" } ] },
-    { "operazione": "modifica_quota",
-      "argomenti": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 150 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["esce dal materiale"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "la_quota_che_lascia_l_asola_dentro" },
-      "e_volume_invariato_e_la_meta_che_conta": "IL RIFIUTO NON BASTA SE IL PEZZO RESTA CAMBIATO. La quota si e' gia' scritta quando ci si accorge dell'asola: `modifica_quota` deve rimettere il valore di prima e ricostruire. Se il volume dopo il rifiuto non e' quello di prima, il rifiuto ha detto la verita' e lasciato il danno." }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 433716.81, "tolerance": 0.5,
+          "tolerance_why": "480000 meno (100*20 + pi*10^2) * 20 = 46283,19. E' il volume che il passo dopo deve ritrovare INTATTO" } ] },
+    { "operation": "modifica_quota",
+      "arguments": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 150 },
+      "must_fail": {
+        "message_includes": ["esce dal materiale"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "dimension_that_keeps_the_slot_inside" },
+      "_and_volume_unchanged_is_the_half_that_counts": "IL RIFIUTO NON BASTA SE IL PEZZO RESTA CAMBIATO. La quota si e' gia' scritta quando ci si accorge dell'asola: `modifica_quota` deve rimettere il valore di prima e ricostruire. Se il volume dopo il rifiuto non e' quello di prima, il rifiuto ha detto la verita' e lasciato il danno." }
   ]
 }

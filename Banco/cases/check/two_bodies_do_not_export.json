@@ -1,37 +1,37 @@
 {
-  "nome": "due_corpi_non_si_esportano",
-  "famiglia": "verifica",
-  "perche": "IL ROSSO DELLA VERIFICA, ed e' quello che si puo' costruire col catalogo di oggi. Due corpi non sono un difetto -- un saldato ne ha dieci per costruzione -- ma per una stampa lo sono: uno STL di due corpi e' due gusci separati, e la stampante non sa quale dei due e' il pezzo. Ogni singolo corpo qui e' sano, e il giudizio dev'essere «no» lo stesso: se il conto dei corpi non ci fosse, questo caso sarebbe verde e il pezzo sbagliato.",
-  "perche_i_numeri_grezzi_restano_sani": "Check(), Check2(), Check3 e Diagnose non hanno niente da ridire su nessuno dei due: e' esattamente il punto. La domanda «e' stampabile» non e' la domanda «e' rotto», e un'operazione che risponde solo alla seconda passa questo caso.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "two_bodies_do_not_export",
+  "family": "check",
+  "why": "IL ROSSO DELLA VERIFICA, ed e' quello che si puo' costruire col catalogo di oggi. Due corpi non sono un difetto -- un saldato ne ha dieci per costruzione -- ma per una stampa lo sono: uno STL di due corpi e' due gusci separati, e la stampante non sa quale dei due e' il pezzo. Ogni singolo corpo qui e' sano, e il giudizio dev'essere «no» lo stesso: se il conto dei corpi non ci fosse, questo caso sarebbe verde e il pezzo sbagliato.",
+  "_why_the_raw_numbers_stay_healthy": "Check(), Check2(), Check3 e Diagnose non hanno niente da ridire su nessuno dei due: e' esattamente il punto. La domanda «e' stampabile» non e' la domanda «e' rotto», e un'operazione che risponde solo alla seconda passa questo caso.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "sposta_corpi",
-      "argomenti": { "corpi_uid": ["C1"], "dz_mm": 600, "copia": true, "quante_copie": 1 },
-      "attese": [
-        { "cosa": "corpi", "uguale": 2 },
-        { "cosa": "volume_mm3", "uguale": 400000 } ] },
-    { "operazione": "verifica_geometria_corpo",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.corpi_totali", "uguale": 2 },
-        { "cosa": "misure.solidi", "uguale": 2 },
-        { "cosa": "misure.corpi_con_difetti", "uguale": 0,
-          "perche_zero": "i due corpi sono sani: e' il giudizio che dice no, non i difetti" },
-        { "cosa": "misure.corpi_non_chiusi", "uguale": 0 },
-        { "cosa": "misure.stampabile", "uguale": false },
-        { "cosa": "misure.giudizio",
-          "contiene": ["Non lo esporterei", "2 corpi", "uno solo"],
-          "non_contiene": ["si puo' esportare"] } ] },
-    { "operazione": "verifica_geometria_corpo",
-      "argomenti": { "corpo_uid": "@corpo(nome=Estrusione-Estrusione1)" },
-      "perche_il_nome": "Voce Z-C16: il numero di un corpo cambia fra un giro e l'altro (misurato il 25/9/2026 su questo stesso pezzo: la copia era C1 in un giro su tre). Il corpo si nomina per NOME, e l'attesa «misure.corpi[0].corpo = C1» -- che chiedeva l'ordine, non il corpo -- non c'e' piu'. I due corpi qui sono uguali, e la verifica di uno solo ha lo stesso giudizio: il caso prova la strada del corpo singolo, non quale dei due.",
-      "attese": [
-        { "cosa": "misure.corpi_totali", "uguale": 1,
-          "perche_uno": "chiedendo UN corpo si risponde di quello, e il conto dei corpi del pezzo non entra nel giudizio: sul singolo corpo la domanda e' «e' sano», non «e' tutto il pezzo»" },
-        { "cosa": "misure.stampabile", "uguale": true } ] }
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "sposta_corpi",
+      "arguments": { "corpi_uid": ["C1"], "dz_mm": 600, "copia": true, "quante_copie": 1 },
+      "expect": [
+        { "what": "corpi", "equal_to": 2 },
+        { "what": "volume_mm3", "equal_to": 400000 } ] },
+    { "operation": "verifica_geometria_corpo",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.corpi_totali", "equal_to": 2 },
+        { "what": "misure.solidi", "equal_to": 2 },
+        { "what": "misure.corpi_con_difetti", "equal_to": 0,
+          "_why_zero": "i due corpi sono sani: e' il giudizio che dice no, non i difetti" },
+        { "what": "misure.corpi_non_chiusi", "equal_to": 0 },
+        { "what": "misure.stampabile", "equal_to": false },
+        { "what": "misure.giudizio",
+          "includes": ["Non lo esporterei", "2 corpi", "uno solo"],
+          "does_not_include": ["si puo' esportare"] } ] },
+    { "operation": "verifica_geometria_corpo",
+      "arguments": { "corpo_uid": "@corpo(nome=Estrusione-Estrusione1)" },
+      "_why_the_name": "Voce Z-C16: il numero di un corpo cambia fra un giro e l'altro (misurato il 25/9/2026 su questo stesso pezzo: la copia era C1 in un giro su tre). Il corpo si nomina per NOME, e l'attesa «misure.corpi[0].corpo = C1» -- che chiedeva l'ordine, non il corpo -- non c'e' piu'. I due corpi qui sono uguali, e la verifica di uno solo ha lo stesso giudizio: il caso prova la strada del corpo singolo, non quale dei due.",
+      "expect": [
+        { "what": "misure.corpi_totali", "equal_to": 1,
+          "_why_one": "chiedendo UN corpo si risponde di quello, e il conto dei corpi del pezzo non entra nel giudizio: sul singolo corpo la domanda e' «e' sano», non «e' tutto il pezzo»" },
+        { "what": "misure.stampabile", "equal_to": true } ] }
   ]
 }

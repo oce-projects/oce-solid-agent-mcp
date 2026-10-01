@@ -111,7 +111,7 @@ namespace Prove.Contratti
         {
             Gruppo("i limiti misurati e le descrizioni che li dichiarano (Z-G5, Z-C11)");
 
-            var cartella = Path.Combine(Radice(), "Banco", "casi");
+            var cartella = Path.Combine(Radice(), "Banco", "cases");
             if (!Directory.Exists(cartella))
             {
                 Segna("la cartella dei casi c'e'", false, "manca " + cartella);
@@ -174,17 +174,17 @@ namespace Prove.Contratti
                     foreach (var at in (elenco as object[]) ?? new object[0])
                     {
                         var attesa = at as Dictionary<string, object>;
-                        if (attesa == null || !attesa.ContainsKey("tolleranza")) continue;
-                        if (!attesa.ContainsKey("perche_questa_tolleranza"))
+                        if (attesa == null || !attesa.ContainsKey("tolerance")) continue;
+                        if (!attesa.ContainsKey("tolerance_why"))
                             senzaPerche.Add(nome + " / " + dove + " / " +
-                                            (attesa.ContainsKey("cosa") ? Convert.ToString(attesa["cosa"]) : "?"));
+                                            (attesa.ContainsKey("what") ? Convert.ToString(attesa["what"]) : "?"));
                     }
                 };
                 object dopoGrezzo;
-                if (caso.TryGetValue("dopo", out dopoGrezzo)) guardaLeAttese(dopoGrezzo, "dopo");
+                if (caso.TryGetValue("after", out dopoGrezzo)) guardaLeAttese(dopoGrezzo, "after");
 
                 object grezzo;
-                if (!caso.TryGetValue("passi", out grezzo)) continue;
+                if (!caso.TryGetValue("steps", out grezzo)) continue;
                 var passi = grezzo as object[];
                 if (passi == null) continue;
                 passiGrezzi[nome] = passi;
@@ -196,16 +196,16 @@ namespace Prove.Contratti
                     numero++;
                     if (passo == null) continue;
                     object at0;
-                    if (passo.TryGetValue("attese", out at0)) guardaLeAttese(at0, "passo " + numero);
+                    if (passo.TryGetValue("expect", out at0)) guardaLeAttese(at0, "passo " + numero);
                     // UN PASSO CHE NON MISURA NIENTE (25/9/2026): il banco lo
                     // ferma come errore di banco — dopo un'ora e mezza di giro, e
                     // fermando tutto il caso li'. E' successo col caso della
                     // tavola guardata: tre fori senza attese, e le attese della
                     // tavola non sono mai girate. Si vede leggendo il JSON.
-                    else if (!passo.ContainsKey("deve_fallire")) passiMuti.Add(nome + " / passo " + numero);
+                    else if (!passo.ContainsKey("must_fail")) passiMuti.Add(nome + " / passo " + numero);
                     object opN, argN;
-                    string opNome = passo.TryGetValue("operazione", out opN) ? Convert.ToString(opN) : "";
-                    string argTesto = passo.TryGetValue("argomenti", out argN) ? js.Serialize(argN) : "{}";
+                    string opNome = passo.TryGetValue("operation", out opN) ? Convert.ToString(opN) : "";
+                    string argTesto = passo.TryGetValue("arguments", out argN) ? js.Serialize(argN) : "{}";
                     List<Tuple<string, string>> suoi;
                     if (!argomentiPerCaso.TryGetValue(nome, out suoi)) argomentiPerCaso[nome] = suoi = new List<Tuple<string, string>>();
                     suoi.Add(Tuple.Create(opNome, argTesto));
@@ -214,7 +214,7 @@ namespace Prove.Contratti
                         passiDelCaso[nome] = passiQui = new List<Tuple<string, Dictionary<string, object>, bool>>();
                     passiQui.Add(Tuple.Create(opNome,
                         argN as Dictionary<string, object> ?? new Dictionary<string, object>(),
-                        passo.ContainsKey("deve_fallire")));
+                        passo.ContainsKey("must_fail")));
                     HashSet<string> casiDellOp;
                     if (!casiPerOp.TryGetValue(opNome, out casiDellOp))
                         casiPerOp[opNome] = casiDellOp = new HashSet<string>(StringComparer.Ordinal);
@@ -226,16 +226,16 @@ namespace Prove.Contratti
                     foreach (var citato in CorpiPerNumero(argN))
                     {
                         object dvC; string attesoNelMessaggio = "";
-                        if (passo.TryGetValue("deve_fallire", out dvC) && dvC is Dictionary<string, object>)
+                        if (passo.TryGetValue("must_fail", out dvC) && dvC is Dictionary<string, object>)
                             attesoNelMessaggio = js.Serialize(dvC);
                         if (attesoNelMessaggio.Contains("\"" + citato + "\"")) continue;
                         casiCoiNumeri.Add(nome);
                     }
                     object dv0;
-                    if (passo.TryGetValue("deve_fallire", out dv0) && dv0 is Dictionary<string, object>)
+                    if (passo.TryGetValue("must_fail", out dv0) && dv0 is Dictionary<string, object>)
                     {
                         object g0;
-                        var gem = ((Dictionary<string, object>)dv0).TryGetValue("gemella", out g0) ? Convert.ToString(g0) : null;
+                        var gem = ((Dictionary<string, object>)dv0).TryGetValue("twin", out g0) ? Convert.ToString(g0) : null;
                         object dich;
                         bool nelPezzo = ((Dictionary<string, object>)dv0).TryGetValue(
                             ProvaSaldatura.Attese.CampoDifferenzaNelPezzo, out dich);
@@ -251,12 +251,12 @@ namespace Prove.Contratti
                         }
                     }
                     object dv;
-                    if (!passo.TryGetValue("deve_fallire", out dv)) continue;
+                    if (!passo.TryGetValue("must_fail", out dv)) continue;
                     var rifiuto = dv as Dictionary<string, object>;
                     if (rifiuto == null) continue;
 
                     object op;
-                    string operazione = passo.TryGetValue("operazione", out op)
+                    string operazione = passo.TryGetValue("operation", out op)
                         ? Convert.ToString(op) : "(senza nome)";
                     int quanti;
                     operazioniRifiutate.TryGetValue(operazione, out quanti);
@@ -264,7 +264,7 @@ namespace Prove.Contratti
 
                     // ── LA GEMELLA (Z-C11) ───────────────────────────────
                     object g;
-                    string gemella = rifiuto.TryGetValue("gemella", out g)
+                    string gemella = rifiuto.TryGetValue("twin", out g)
                         ? Convert.ToString(g) : null;
                     if (string.IsNullOrEmpty(gemella)) senzaGemella.Add(nome + " / " + operazione);
                     else if (!nomi.Contains(gemella))
@@ -276,7 +276,7 @@ namespace Prove.Contratti
                     // niente: qualunque errore lo soddisfa, compreso quello
                     // sbagliato. Il banco lo pretende gia'; qui si vede subito.
                     object m;
-                    var messaggi = rifiuto.TryGetValue("il_messaggio_contiene", out m)
+                    var messaggi = rifiuto.TryGetValue("message_includes", out m)
                         ? m as object[] : null;
                     if (messaggi == null || messaggi.Length == 0)
                         senzaMessaggio.Add(nome + " / " + operazione);
@@ -313,7 +313,7 @@ namespace Prove.Contratti
                 // UN CASO PUO' ESSERE GEMELLA DI SE STESSO (il passo verde e il
                 // rifiuto nello stesso file): li' il rifiuto si trova da solo fra
                 // i passi, e va contato una volta di piu'. Visto al primo giro di
-                // questo controllo, su `due_fogli_e_lo_stesso_diedro`.
+                // questo controllo, su `two_sheets_and_the_same_projection_angle`.
                 int uguali = 0;
                 foreach (var p in passiGemella)
                     if (p.Item1 == r.Item2 && p.Item2 == r.Item3) uguali++;
@@ -354,7 +354,7 @@ namespace Prove.Contratti
                 {
                     var pg = passiG[k] as Dictionary<string, object>;
                     object opG;
-                    if (pg == null || pg.ContainsKey("deve_fallire") || !pg.TryGetValue("operazione", out opG) ||
+                    if (pg == null || pg.ContainsKey("must_fail") || !pg.TryGetValue("operation", out opG) ||
                         Convert.ToString(opG) != r.Item2) continue;
                     dove = k;
                     break;
@@ -365,7 +365,7 @@ namespace Prove.Contratti
                     continue;
                 }
                 object argG;
-                ((Dictionary<string, object>)passiG[dove]).TryGetValue("argomenti", out argG);
+                ((Dictionary<string, object>)passiG[dove]).TryGetValue("arguments", out argG);
                 string perche;
                 if (!ProvaSaldatura.Attese.SiSomiglianoNelPezzo(r.Item3,
                         argG as Dictionary<string, object> ?? new Dictionary<string, object>(),
@@ -469,7 +469,7 @@ namespace Prove.Contratti
 
             OgniOperazioneHaUnCasoVerde(
                 new HashSet<string>(testoDi.Keys, StringComparer.Ordinal), casiPerOp,
-                Path.Combine(Radice(), "Banco", "resoconto", "ultimo.json"));
+                Path.Combine(Radice(), "Banco", "report", "last.json"));
         }
 
         /// <summary>
@@ -483,7 +483,7 @@ namespace Prove.Contratti
             {
                 // (26/9/2026) `quote_dal_modello` non e' piu' qui: fuori processo
                 // porta le quote (7 sullo stesso pezzo di Z-C1, due sonde), e ha la
-                // sua coppia vera: `quote/le_quote_arrivano_dal_modello`.
+                // sua coppia vera: `dimensions/dimensions_come_from_the_model`.
             };
 
         /// <summary>
@@ -494,7 +494,7 @@ namespace Prove.Contratti
         /// si sono scoperte mai funzionanti (`taglia_membri`, `cordone_saldatura`)
         /// e una e' uscita dal catalogo (`fazzoletto`). «Provata» voleva dire che
         /// qualcuno ci aveva scritto true. Adesso lo dice il banco: scrive i nomi
-        /// dei casi verdi in `ultimo.json` («casi_verdi»), e qui si incrociano
+        /// dei casi verdi in `last.json` («green_cases»), e qui si incrociano
         /// col catalogo servito.
         /// </summary>
         private static void OgniOperazioneHaUnCasoVerde(
@@ -508,11 +508,11 @@ namespace Prove.Contratti
             var ultimo = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(ultimoJson))
                          as Dictionary<string, object>;
             object grezzi;
-            var elenco = ultimo != null && ultimo.TryGetValue("casi_verdi", out grezzi) ? grezzi as object[] : null;
+            var elenco = ultimo != null && ultimo.TryGetValue("green_cases", out grezzi) ? grezzi as object[] : null;
             if (elenco == null)
             {
                 Segna("il banco dice quali casi sono verdi (Z-C6)", false,
-                      "`ultimo.json` non ha «casi_verdi»: l'ultimo giro e' di un banco che non " +
+                      "`last.json` non ha «green_cases»: l'ultimo giro e' di un banco che non " +
                       "li scriveva ancora. Rilancia il banco.");
                 return;
             }

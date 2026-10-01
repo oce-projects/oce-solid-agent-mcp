@@ -1,23 +1,23 @@
 {
-  "nome": "lim_asse_da_faccia_piana",
-  "famiglia": "asse",
-  "perche": "Una faccia piana non e' un asse. Va rifiutata con un motivo che dica COSA FARE -- l'asse si fa dal centro di un foro o di un albero -- e non con un «non riuscito» che lascia chi legge a indovinare.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 120, "larghezza_mm": 120,
+  "name": "limit_axis_from_a_planar_face",
+  "family": "axis",
+  "why": "Una faccia piana non e' un asse. Va rifiutata con un motivo che dica COSA FARE -- l'asse si fa dal centro di un foro o di un albero -- e non con un «non riuscito» che lascia chi legge a indovinare.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 120, "larghezza_mm": 120,
                      "spessore_mm": 15, "centrato": true },
-      "attese": [ { "cosa": "assi_creati", "uguale": 0 } ] },
-    { "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+      "expect": [ { "what": "assi_creati", "equal_to": 0 } ] },
+    { "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
                      "diametro_mm": 10, "passante": true },
-      "attese": [ { "cosa": "diametri_mm", "uguale": [10], "tolleranza": 0.02,
-                    "perche_questa_tolleranza": "il diametro si legge da CylinderParams" } ] },
-    { "operazione": "crea_asse",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["non e' cilindrica ne' conica", "dal centro di un foro"],
-        "volume_invariato": true,
-        "gemella": "asse_dalla_parete_del_foro" } }
+      "expect": [ { "what": "diametri_mm", "equal_to": [10], "tolerance": 0.02,
+                    "tolerance_why": "il diametro si legge da CylinderParams" } ] },
+    { "operation": "crea_asse",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)" },
+      "must_fail": {
+        "message_includes": ["non e' cilindrica ne' conica", "dal centro di un foro"],
+        "volume_unchanged": true,
+        "twin": "axis_from_hole_wall" } }
   ]
 }

@@ -1,24 +1,24 @@
 # Casi scritti prima della cosa che misurano
 
-Questa cartella **il banco non la guarda**: scandisce `Banco/casi/` e basta
+Questa cartella **il banco non la guarda**: scandisce `Banco/cases/` e basta
 (`CasiDichiarati.cs:94`). Qui dentro stanno i casi che esercitano un
 comportamento **che ancora non c'è**, scritti in anticipo.
 
 ## Perché esiste, e non è un cassetto
 
-Un caso che deve fallire, messo in `casi/`, fa diventare rosso il banco per un
+Un caso che deve fallire, messo in `cases/`, fa diventare rosso il banco per un
 motivo noto — e un banco rosso per un motivo noto è **un banco che smette di
 dire qualcosa**: chi lo guarda impara a ignorare quella riga, e il giorno in
 cui diventa rossa per un altro motivo non se ne accorge nessuno.
 
-È la stessa forma di `Banco/compiti/` (voce Z-G9): *l'ingresso nasce prima di
+È la stessa forma di `Banco/tasks/` (voce Z-G9): *l'ingresso nasce prima di
 chi lo esegue, con la sua misura accanto.*
 
 ## La regola per uscire di qui
 
-Un caso si sposta in `Banco/casi/` **nello stesso commit** in cui arriva il
+Un caso si sposta in `Banco/cases/` **nello stesso commit** in cui arriva il
 comportamento che misura, e quel commit porta un giro di banco verde. Non
-prima: un caso in `casi/` è una promessa che il giro mantiene.
+prima: un caso in `cases/` è una promessa che il giro mantiene.
 
 ## Cosa c'è adesso
 
@@ -27,8 +27,8 @@ prima: un caso in `casi/` è una promessa che il giro mantiene.
 dimension hidden by hand (IAnnotation.Visible = swAnnotationHidden) does not
 count as «already dimensioned» in `quota_in_tavola`. The library does it; the
 bench cannot build the situation yet: no catalogue operation hides a dimension,
-and the runner has no preamble field for it. It moves to `Banco/casi/tavola/`
-in the commit that brings the runner field `prima_nascondi_quote`
+and the runner has no preamble field for it. It moves to `Banco/cases/drawing/`
+in the commit that brings the runner field `hide_dimensions_first`
 (`{"vista": "V1"}`: every display dimension of that view is selected with
 IAnnotation.Select3 and hidden with IModelDoc2.HideDimension, then read back;
 one that is not swAnnotationHidden is a bench error), with a bench run.
@@ -36,10 +36,10 @@ one that is not swAnnotationHidden is a bench error), with a bench run.
 ### Before, from 24/9/2026
 
 **Niente, ed è la cosa giusta.** I quattro casi di Z-G3 sono stati spostati in
-`Banco/casi/` il 24/9/2026, lo stesso giorno in cui i due `default` sono
-arrivati — `proprieta/materiale_predefinito.json` con la sua
-`materiale_chiesto.json`, `corpi/combina_predefinito.json` con la sua
-`combina_chiesto.json`.
+`Banco/cases/` il 24/9/2026, lo stesso giorno in cui i due `default` sono
+arrivati — `document_properties/default_material.json` con la sua
+`requested_material.json`, `bodies/default_combine.json` con la sua
+`requested_combine.json`.
 
 La cartella resta vuota con questo file dentro, perché la forma serve ancora:
 la prossima volta che un caso nasce prima della cosa che misura, va qui.
@@ -87,7 +87,7 @@ Il campo su cui guardano si chiama **`misure.nota_assunto`** — si chiamava
 `misure.assunto` finché era una proposta, ed è stato allineato alla
 convenzione `nota_*` che il repository usava già (`nota_identificativi`,
 `nota_volume`) quando è stato implementato, il 24/9/2026. Chi implementa può chiamarlo
-diversamente o metterlo altrove — in quel caso si cambia la riga `cosa` dei
+diversamente o metterlo altrove — in quel caso si cambia la riga `what` dei
 quattro casi, che è un minuto.
 
 Quello che **non** si cambia è la pretesa: la risposta deve distinguere «l'ho

@@ -1,22 +1,22 @@
 {
-  "nome": "lim_scritta_tutta_fuori_dal_pezzo",
-  "famiglia": "testo",
-  "perche": "L'ancora a 200 mm da una faccia larga 100: la scritta non tocca il pezzo da nessuna parte. Senza il controllo sulla scatola questo caso arriverebbe fino al taglio, e li' `FeatureCut4` torna NULL -- misurato. Sarebbe un rifiuto, ma quello sbagliato: «la lavorazione non e' stata creata e SOLIDWORKS non dice perche'», invece di «la scritta e' tutta fuori dalla faccia, di 152 mm».",
-  "perche_non_basta_che_fallisca": "Un rosso che scatta per il motivo sbagliato non prova niente e sembra identico a uno che funziona. Qui il messaggio DEVE dire di quanto sborda: e' l'unica informazione con cui chi ha sbagliato il numero puo' correggerlo al primo colpo invece che per tentativi.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "limit_engraved_text_entirely_outside_the_part",
+  "family": "text",
+  "why": "L'ancora a 200 mm da una faccia larga 100: la scritta non tocca il pezzo da nessuna parte. Senza il controllo sulla scatola questo caso arriverebbe fino al taglio, e li' `FeatureCut4` torna NULL -- misurato. Sarebbe un rifiuto, ma quello sbagliato: «la lavorazione non e' stata creata e SOLIDWORKS non dice perche'», invece di «la scritta e' tutta fuori dalla faccia, di 152 mm».",
+  "_why_failing_is_not_enough": "Un rosso che scatta per il motivo sbagliato non prova niente e sembra identico a uno che funziona. Qui il messaggio DEVE dire di quanto sborda: e' l'unica informazione con cui chi ha sbagliato il numero puo' correggerlo al primo colpo invece che per tentativi.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "incidi_testo",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "testo": "PROVA",
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "incidi_testo",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "testo": "PROVA",
                      "x_mm": 200, "y_mm": -5,
                      "altezza_mm": 10, "profondita_mm": 2 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["esce di", "bordo X alto", "Non lo incido"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "sigla_incisa_al_centro" } }
+      "must_fail": {
+        "message_includes": ["esce di", "bordo X alto", "Non lo incido"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "code_engraved_in_the_center" } }
   ]
 }

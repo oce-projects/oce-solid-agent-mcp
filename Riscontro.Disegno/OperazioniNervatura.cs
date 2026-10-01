@@ -69,7 +69,7 @@ namespace Riscontro.Disegno
     ///
     /// **Il secondo tentativo sullo STESSO pezzo non e' stato misurato dalla
     /// sonda** (ogni sua riga era un pezzo nuovo): lo misura il caso
-    /// `nervatura_nella_scatola_svuotata`, dove il primo verso fallisce e il
+    /// `rib_in_the_hollowed_box`, dove il primo verso fallisce e il
     /// secondo deve fare +720.
     ///
     /// La piastra senza pareti non fa nascere niente, e va bene cosi': dalla
@@ -139,7 +139,7 @@ namespace Riscontro.Disegno
             // (normale +Z), «superiore» XZ (+Y), «destro» YZ (+X): la stessa
             // tabella di `Riferimenti.NormaleDelPiano`, e il segno della
             // distanza e' quello di `crea_piano` (frontale -250 -> z = -250,
-            // misurato dal caso piano_frontale_meno_250).
+            // misurato dal caso front_plane_minus_250).
             var normale = Riferimenti.NormaleDelPiano(piano);
             Func<double[], double> quota = p => p[0] * normale[0] + p[1] * normale[1] + p[2] * normale[2];
             double scarto = Math.Max(Math.Abs(quota(da) - distanza), Math.Abs(quota(fino) - distanza));
@@ -487,7 +487,7 @@ namespace Riscontro.Disegno
             // on that sketch only. EditSuppress2 works (IsSuppressed read back true).
             // Such a sketch is suppressed and named in the answer, instead of
             // declaring a restore that did not happen (full bench on 0.141.0,
-            // lim_nervatura_sulla_piastra_senza_pareti).
+            // limit_rib_on_a_plate_without_walls).
             var soppressi = new List<string>();
             for (int i = mie.Count - 1; i >= 0; i--)
             {

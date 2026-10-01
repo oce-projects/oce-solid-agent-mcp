@@ -1,17 +1,17 @@
 {
-  "nome": "la_L_al_contrario",
-  "famiglia": "lamiera",
-  "perche": "VOCE GP18. La stessa L di `la_L_si_sviluppa`, con i punti dati AL CONTRARIO. La sonda ha misurato che lo spessore va a destra del verso di percorrenza: invertendo il verso, lo spessore va dall'altra parte e i punti diventano le facce ESTERNE. Lo sviluppo deve cambiare di 2T per piega, e l'operazione deve DIRE quale convenzione ha trovato invece di fingere che sia sempre la stessa.",
-  "da_verificare_al_primo_giro": "Che il verso decida davvero il lato: e' la deduzione da UNA misura (la L dall'alto verso destra). Se il primo giro dice ancora «interne» e 80,712, il lato lo decide qualcos'altro, e sono le due attese su convenzione e sviluppo a doverlo dire — non questo numero a doversi adattare.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "flangia_base",
-      "argomenti": { "piano": "frontale", "punti": [[50, 0], [0, 0], [0, 30]],
+  "name": "the_L_reversed",
+  "family": "sheet_metal",
+  "why": "VOCE GP18. La stessa L di `the_L_flattens`, con i punti dati AL CONTRARIO. La sonda ha misurato che lo spessore va a destra del verso di percorrenza: invertendo il verso, lo spessore va dall'altra parte e i punti diventano le facce ESTERNE. Lo sviluppo deve cambiare di 2T per piega, e l'operazione deve DIRE quale convenzione ha trovato invece di fingere che sia sempre la stessa.",
+  "_to_verify_on_the_first_run": "Che il verso decida davvero il lato: e' la deduzione da UNA misura (la L dall'alto verso destra). Se il primo giro dice ancora «interne» e 80,712, il lato lo decide qualcos'altro, e sono le due attese su convenzione e sviluppo a doverlo dire — non questo numero a doversi adattare.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "flangia_base",
+      "arguments": { "piano": "frontale", "punti": [[50, 0], [0, 0], [0, 30]],
                      "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
-      "attese": [
-        { "cosa": "corpi", "uguale": 1 },
-        { "cosa": "misure.i_punti_sono_le_facce", "uguale": "esterne" },
-        { "cosa": "misure.lunghezza_sviluppo_mm", "uguale": 76.712, "tolleranza": 0.01,
-          "perche_questa_tolleranza": "(50 - 2 - 2) + (30 - 2 - 2) + pi/2 * (2 + 0,5 * 2) = 76,712: i punti sono l'esterno, e ogni lato perde anche lo spessore" } ] }
+      "expect": [
+        { "what": "corpi", "equal_to": 1 },
+        { "what": "misure.i_punti_sono_le_facce", "equal_to": "esterne" },
+        { "what": "misure.lunghezza_sviluppo_mm", "equal_to": 76.712, "tolerance": 0.01,
+          "tolerance_why": "(50 - 2 - 2) + (30 - 2 - 2) + pi/2 * (2 + 0,5 * 2) = 76,712: i punti sono l'esterno, e ogni lato perde anche lo spessore" } ] }
   ]
 }

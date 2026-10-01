@@ -11,7 +11,7 @@
 //  Questo conta la seconda. Per ogni operazione a catalogo guarda se esiste
 //  qualcosa che la esercita, e distingue TRE modi, perche' non valgono uguale:
 //
-//    caso dichiarato   un file in `Banco\casi\` con dentro delle attese.
+//    caso dichiarato   un file in `Banco\cases\` con dentro delle attese.
 //                      Gira a ogni giro, e se il comportamento cambia diventa
 //                      rosso. E' l'unico che vale del tutto.
 //
@@ -19,7 +19,7 @@
 //                      in C#: vale, ed e' scritto qui perche' non si legga
 //                      come un buco.
 //
-//    piano a mano      un ARRAY in `casi\tavola\`, che lancia `corri_piani.js`.
+//    piano a mano      un ARRAY in `cases\drawing\`, che lancia `corri_piani.js`.
 //                      **Non gira in nessun giro e non asserisce niente**: e'
 //                      un appunto di come si e' misurato, non una prova.
 //
@@ -36,8 +36,9 @@
 //  numbers are a measure, not a verdict. It exits 1 when what it reads is
 //  not there: an unreadable catalogue, a case file that does not parse, or
 //  an expected key that is missing (`operazioni` and `nome` in the
-//  catalogue; `nome`, `passi` or `costruisci`, and `operazione` in every
-//  step of a case or of a plan). The translation of W3.1-bis renames those
+//  catalogue; `name`, `steps` or `build`, and `operation` in every step of
+//  a case; `operazione` in every step of a plan, which is the bridge's
+//  protocol and is renamed with it in W3.1-bis.5). The translation of W3.1-bis renames those
 //  keys, and a reader that falls back to an empty list prints zeros that
 //  look like a measure. A count read from nothing is not zero.
 // =============================================================================
@@ -52,7 +53,7 @@ function optionValue(name, fallback) {
   return i >= 0 && i + 1 < process.argv.length ? path.resolve(process.argv[i + 1]) : fallback;
 }
 const CATALOGO = optionValue('--catalogue', path.join(RADICE, 'Strumenti', 'catalogo.json'));
-const CASI = optionValue('--cases', path.join(RADICE, 'Banco', 'casi'));
+const CASI = optionValue('--cases', path.join(RADICE, 'Banco', 'cases'));
 const BANCO = optionValue('--bench', path.join(RADICE, 'Banco'));
 
 const soloOrfane = process.argv.indexOf('--solo-orfane') >= 0;
@@ -126,12 +127,12 @@ function scorri(cartella) {
     }
 
     quantiCasi++;
-    expectKey(j, 'nome', 'string', where);
-    const nome = typeof j.nome === 'string' ? j.nome : path.basename(v.name, '.json');
-    // A case builds its part with `passi` (a normal run) or `costruisci` (a
+    expectKey(j, 'name', 'string', where);
+    const nome = typeof j.name === 'string' ? j.name : path.basename(v.name, '.json');
+    // A case builds its part with `steps` (a normal run) or `build` (a
     // regression case): with neither, its operations would be counted as none.
-    const lists = ['passi', 'costruisci'].filter((k) => Object.prototype.hasOwnProperty.call(j, k));
-    if (lists.length === 0) missingKeys.push(where + ': neither "passi" nor "costruisci"');
+    const lists = ['steps', 'build'].filter((k) => Object.prototype.hasOwnProperty.call(j, k));
+    if (lists.length === 0) missingKeys.push(where + ': neither "steps" nor "build"');
     // I CASI DI REGRESSIONE NON SONO CASI DI UN GIRO NORMALE (25/9/2026). Il
     // loro `costruisci` gira solo con `-Regressione`, e questo script li
     // contava come «caso dichiarato»: il riconteggio del 24/9 diceva 72 su 73,
@@ -140,10 +141,10 @@ function scorri(cartella) {
     // un giro normale non toccava nessuno. Adesso stanno in un modo a parte.
     for (const key of lists) {
       if (!expectKey(j, key, 'array', where)) continue;
-      const target = key === 'passi' ? daCasi : daRegressione;
+      const target = key === 'steps' ? daCasi : daRegressione;
       j[key].forEach((passo, i) => {
-        if (!expectKey(passo, 'operazione', 'string', where + ', ' + key + ' ' + (i + 1))) return;
-        const op = passo.operazione;
+        if (!expectKey(passo, 'operation', 'string', where + ', ' + key + ' ' + (i + 1))) return;
+        const op = passo.operation;
         if (!target.has(op)) target.set(op, []);
         if (target.get(op).indexOf(nome) < 0) target.get(op).push(nome);
       });
@@ -193,7 +194,7 @@ if (!soloOrfane) {
     console.log('');
   }
   console.log('(La guardia vera e\' il controllo di contratto «ogni operazione a catalogo ha un');
-  console.log(' caso VERDE nell\'ultimo giro», che legge i casi verdi da Banco\\resoconto\\ultimo.json.)');
+  console.log(' caso VERDE nell\'ultimo giro», che legge i casi verdi da Banco\\report\\last.json.)');
   console.log('');
   if (perModo['solo piano a mano'].length > 0) {
     console.log('SOLO UN PIANO A MANO — un appunto di come si e\' misurato, non una prova:');
@@ -208,6 +209,6 @@ if (perModo['NIENTE'].length === 0) {
   console.log('ORFANE — a catalogo, e nessun giro le tocca:');
   for (const o of perModo['NIENTE']) console.log('    ' + o);
   console.log('');
-  console.log('Per ognuna: o un caso dichiarato in Banco\\casi\\, oppure Provata = false,');
+  console.log('Per ognuna: o un caso dichiarato in Banco\\cases\\, oppure Provata = false,');
   console.log('che la toglie dal catalogo come gia\' succede a croci_di_centro.');
 }

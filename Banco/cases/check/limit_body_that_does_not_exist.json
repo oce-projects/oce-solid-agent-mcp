@@ -1,19 +1,19 @@
 {
-  "nome": "lim_corpo_che_non_esiste",
-  "famiglia": "verifica",
-  "perche": "Un identificativo di corpo che non c'e' va rifiutato, non risposto con un elenco vuoto e «stampabile: true». Zero corpi guardati e nessun problema trovato sono la stessa riga per chi legge, ed e' il modo piu' comodo di avere un verde che non prova niente.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "limit_body_that_does_not_exist",
+  "family": "check",
+  "why": "Un identificativo di corpo che non c'e' va rifiutato, non risposto con un elenco vuoto e «stampabile: true». Zero corpi guardati e nessun problema trovato sono la stessa riga per chi legge, ed e' il modo piu' comodo di avere un verde che non prova niente.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "verifica_geometria_corpo",
-      "argomenti": { "corpo_uid": "C9" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["Non trovo il corpo", "C9"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "corpo_sano_si_esporta" } }
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "verifica_geometria_corpo",
+      "arguments": { "corpo_uid": "C9" },
+      "must_fail": {
+        "message_includes": ["Non trovo il corpo", "C9"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "healthy_body_exports" } }
   ]
 }

@@ -243,7 +243,7 @@ namespace Riscontro.Disegno
             //
             // ForceRebuild3 e non la ricostruzione semplice: e' quella di
             // `cambia_estrusione`, la cui risposta `CosaSiERotto` sa gia'
-            // leggere su un pezzo sano (caso il_cieco_diventa_passante).
+            // leggere su un pezzo sano (caso blind_becomes_through).
             bool ricostruito = false;
             try { ricostruito = modello.ForceRebuild3(false); } catch { }
 

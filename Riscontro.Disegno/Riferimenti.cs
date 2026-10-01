@@ -120,7 +120,7 @@ namespace Riscontro.Disegno
         /// Parts and assemblies alike (specchia_componente mirrors on the
         /// assembly planes). The probe of C3-6 read the frames on a PART; on an
         /// assembly the reading is not probed, and the bench cases of
-        /// specchia_componente (la_staffa_destra_e_la_sinistra,
+        /// specchia_componente (right_bracket_and_left_bracket,
         /// the_mirrored_instance_turns_as_asked) mirror on the assembly's Right,
         /// Top and Front planes: they are the check. An unknown name, or no
         /// plane passing the rule, is null with <paramref name="reason"/> saying
@@ -238,7 +238,7 @@ namespace Riscontro.Disegno
         /// 16/9/2026 on an oblique plane where the column gives a turned vector
         /// (piano_per_tre_punti, OperazioniPiani); the ORIGIN is the translation
         /// (indices 9, 10, 11), which is what the bench reads as
-        /// «ultimo_piano_mm» (piano_superiore_piu_100: [0, 100, 0]).
+        /// «ultimo_piano_mm» (top_plane_plus_100: [0, 100, 0]).
         /// </summary>
         public static bool PlaneFrame(IRefPlane plane, out double[] normal, out double[] origin)
         {

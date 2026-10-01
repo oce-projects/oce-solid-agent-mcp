@@ -1,35 +1,35 @@
 {
-  "nome": "a_frame_too_small_closes_the_profile_library",
-  "famiglia": "saldature",
-  "perche": "ENTRY Z-C21.10-esito-2, finding N31. The outside-size frame measures the profile's overhang on a TRIAL frame (SezioneProfilo.TelaioDiProva), and the trial frame is a real InsertStructuralWeldment5: SOLIDWORKS opens the weldment profile library by itself and leaves it marked as modified (measured on 9/9/2026, see OperazioniSw.MembroStrutturale). Up to library 0.140.0 neither the probe nor the rejections that follow it closed the library again: only the failed insertion and the line after it did. The guide does not settle whether closing the trial document takes the library with it: ISldWorks~CloseDoc.html, «This method also closes any non-active hidden documents». A library left modified is a shared file one Ctrl+S away from being rewritten.",
-  "il_difetto_che_questo_caso_prende": "Step 1 asks for a 60 x 60 frame in 80X80X5 tube: the probe measures an 80 mm overhang and the frame is refused («non ci sta»), before any geometry. On library 0.140.0, if the probe ran and left the library open and modified, step 2 finds it so, takes it for a library somebody was working on (ComEra.ApertaSporca) and leaves it alone: after step 2 the state still lists «TUBO STRUTTURALE QUADRO» among the open documents, and the first expectation of step 2 is red. On the new library the probe closes what it opened, and so does every exit of the operation: the library is not in the list.",
-  "cosa_non_e_misurato": "Two things, and both can make this case green on the old library without the defect being absent. (1) The probe runs only when the overhang is not already remembered: the key of step 1 (plane «superiore», «quartabuono», 80X80X5, no rotation, no gap) is used by no other case, so it misses on a machine that never ran it; after one run of library 0.140.0 it is in %LOCALAPPDATA%\\Riscontro\\sezioni-profili.txt and the next run of 0.140.0 does not probe. To see it red on 0.140.0 again, delete that file (it is rebuilt by measuring). The new library writes keys with the file's date and size, so its first run probes in any case. (2) Whether CloseDoc of the trial part closes the library too is not measured (the probe proposed in the TODO: after the probe, walk GetFirstDocument/GetNext and read GetPathName and GetSaveFlag). If it does, the old library does not leave it open and this case is a regression guard, not a red.",
-  "e_la_gemella_e_nello_stesso_file": "Step 1 (the refusal) and step 2 ask for the same frame with the same profile, plane and corner treatment; they differ in «lunghezza_mm» and «larghezza_mm».",
-  "i_numeri": "80X80X5 square tube: the trial frame sticks out 80 mm beyond its path on both axes (40 per side). Step 1: 80 >= 60 - 0,01, so the frame does not fit and is refused before a sketch is drawn: no body, volume 0. Step 2: path 1000 - 80 = 920 by 800 - 80 = 720 on the plane «superiore» (X and Z), outside size 1000 x 800 on X and Z, and 80 on Y, the depth of the tube: [1000, 80, 800]. Four bars.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "telaio_rettangolare",
-      "argomenti": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+  "name": "a_frame_too_small_closes_the_profile_library",
+  "family": "weldments",
+  "why": "ENTRY Z-C21.10-esito-2, finding N31. The outside-size frame measures the profile's overhang on a TRIAL frame (SezioneProfilo.TelaioDiProva), and the trial frame is a real InsertStructuralWeldment5: SOLIDWORKS opens the weldment profile library by itself and leaves it marked as modified (measured on 9/9/2026, see OperazioniSw.MembroStrutturale). Up to library 0.140.0 neither the probe nor the rejections that follow it closed the library again: only the failed insertion and the line after it did. The guide does not settle whether closing the trial document takes the library with it: ISldWorks~CloseDoc.html, «This method also closes any non-active hidden documents». A library left modified is a shared file one Ctrl+S away from being rewritten.",
+  "defect_caught": "Step 1 asks for a 60 x 60 frame in 80X80X5 tube: the probe measures an 80 mm overhang and the frame is refused («non ci sta»), before any geometry. On library 0.140.0, if the probe ran and left the library open and modified, step 2 finds it so, takes it for a library somebody was working on (ComEra.ApertaSporca) and leaves it alone: after step 2 the state still lists «TUBO STRUTTURALE QUADRO» among the open documents, and the first expectation of step 2 is red. On the new library the probe closes what it opened, and so does every exit of the operation: the library is not in the list.",
+  "_what_is_not_measured": "Two things, and both can make this case green on the old library without the defect being absent. (1) The probe runs only when the overhang is not already remembered: the key of step 1 (plane «superiore», «quartabuono», 80X80X5, no rotation, no gap) is used by no other case, so it misses on a machine that never ran it; after one run of library 0.140.0 it is in %LOCALAPPDATA%\\Riscontro\\sezioni-profili.txt and the next run of 0.140.0 does not probe. To see it red on 0.140.0 again, delete that file (it is rebuilt by measuring). The new library writes keys with the file's date and size, so its first run probes in any case. (2) Whether CloseDoc of the trial part closes the library too is not measured (the probe proposed in the TODO: after the probe, walk GetFirstDocument/GetNext and read GetPathName and GetSaveFlag). If it does, the old library does not leave it open and this case is a regression guard, not a red.",
+  "_and_the_twin_is_in_the_same_file": "Step 1 (the refusal) and step 2 ask for the same frame with the same profile, plane and corner treatment; they differ in «lunghezza_mm» and «larghezza_mm».",
+  "_the_numbers": "80X80X5 square tube: the trial frame sticks out 80 mm beyond its path on both axes (40 per side). Step 1: 80 >= 60 - 0,01, so the frame does not fit and is refused before a sketch is drawn: no body, volume 0. Step 2: path 1000 - 80 = 920 by 800 - 80 = 720 on the plane «superiore» (X and Z), outside size 1000 x 800 on X and Z, and 80 on Y, the depth of the tube: [1000, 80, 800]. Four bars.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "telaio_rettangolare",
+      "arguments": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configurazione": "80X80X5",
                      "lunghezza_mm": 60, "larghezza_mm": 60,
                      "piano": "superiore", "trattamento_angolo": "quartabuono", "centrato": true },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["non ci sta", "60x60"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "a_frame_too_small_closes_the_profile_library" } },
+      "must_fail": {
+        "message_includes": ["non ci sta", "60x60"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "a_frame_too_small_closes_the_profile_library" } },
 
-    { "operazione": "telaio_rettangolare",
-      "argomenti": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+    { "operation": "telaio_rettangolare",
+      "arguments": { "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configurazione": "80X80X5",
                      "lunghezza_mm": 1000, "larghezza_mm": 800,
                      "piano": "superiore", "trattamento_angolo": "quartabuono", "centrato": true },
-      "attese": [
-        { "cosa": "stato.documenti_aperti", "non_contiene": ["TUBO STRUTTURALE QUADRO"],
-          "perche": "THE LINE THAT TAKES THE DEFECT. The state lists every open document (GetFirstDocument/GetNext, title and path), and the weldment profile library opened by an insertion is one of them. After this step it must not be there: on the new library step 1 closed what its probe opened, and this step closes what its own insertion opened. On library 0.140.0, a library left modified by step 1 is taken here for somebody else's work and left open." },
-        { "cosa": "corpi", "uguale": 4,
-          "perche": "the gemella must be a frame that really came out, not an empty step: four bars" },
-        { "cosa": "ingombro_mm", "uguale": [1000, 80, 800], "tolleranza": 0.5,
-          "perche_questa_tolleranza": "the same half millimetre with which the library verifies the outside size of the frame (OperazioniSw.MembroStrutturale) and the fixed bench checks it (Telaio in Program.cs), on the same approximate GetBodyBox. The wrong readings are 80 mm away: 1080 x 880 for a path laid on the outside size." } ] }
+      "expect": [
+        { "what": "stato.documenti_aperti", "does_not_include": ["TUBO STRUTTURALE QUADRO"],
+          "why": "THE LINE THAT TAKES THE DEFECT. The state lists every open document (GetFirstDocument/GetNext, title and path), and the weldment profile library opened by an insertion is one of them. After this step it must not be there: on the new library step 1 closed what its probe opened, and this step closes what its own insertion opened. On library 0.140.0, a library left modified by step 1 is taken here for somebody else's work and left open." },
+        { "what": "corpi", "equal_to": 4,
+          "why": "the gemella must be a frame that really came out, not an empty step: four bars" },
+        { "what": "ingombro_mm", "equal_to": [1000, 80, 800], "tolerance": 0.5,
+          "tolerance_why": "the same half millimetre with which the library verifies the outside size of the frame (OperazioniSw.MembroStrutturale) and the fixed bench checks it (Telaio in Program.cs), on the same approximate GetBodyBox. The wrong readings are 80 mm away: 1080 x 880 for a path laid on the outside size." } ] }
   ]
 }

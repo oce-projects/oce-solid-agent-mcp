@@ -126,7 +126,7 @@ namespace Riscontro.Disegno
         /// Guide: IModelDoc2~InsertFeatureShell.html, «select faces to remove ... with Marks of 1».
         /// DIVERGES: L4-4 — the shell selects with no mark (Select4(true, null),
         /// OperazioniSw.cs), measured working with one face
-        /// (e15_guscio_da_riferimento). Not used by the code yet: moving the
+        /// (e15_shell_from_reference). Not used by the code yet: moving the
         /// shell to this mark is Z-C21.7, behind the shell cases.
         public const int ShellFacesToRemove = 1;
 
@@ -160,7 +160,7 @@ namespace Riscontro.Disegno
         /// not in the Remarks (which only say to select with SelectByID2).
         /// Passed through OperazioniSformo.Seleziona; swapped with the faces'
         /// mark the feature is still created and drafts the wrong faces
-        /// (sformo_quattro_pareti).
+        /// (draft_four_walls).
         public const int DraftNeutralFace = 1;
 
         /// <summary>The faces to draft.</summary>
@@ -176,7 +176,7 @@ namespace Riscontro.Disegno
         /// (GP20, M27): the probe of 28/9/2026 showed that the cause was the
         /// degenerate profile, and that with a valid profile the recipe of
         /// Insert_Gusset_Feature_Example (this mark) makes it, +9000 mm³
-        /// (il_fazzoletto_sta_nell_angolo).
+        /// (gusset_sits_in_the_corner).
         public const int GussetSupportFaces = 1;
 
         // ── IFeatureManager.FeatureFillet3, variable radius ─────────────────
@@ -185,7 +185,7 @@ namespace Riscontro.Disegno
         /// Guide: IFeatureManager~FeatureFillet3.html, «Variable radius fillets Call IModelDocExtension::SelectByID2 with Mark = 1 to select the edges to fillet».
         /// DIVERGES: S9/M37 — raccordo_variabile (OperazioniCorpi) selects the
         /// edge and its two vertices with no mark, measured working
-        /// (raccordo_che_cambia_raggio).
+        /// (fillet_that_changes_radius).
         /// Moving to this mark belongs with the CreateDefinition migration of
         /// FeatureFillet3 (Z-C21.7). Not used by the code yet.
         public const int VariableFilletEdges = 1;
@@ -225,7 +225,7 @@ namespace Riscontro.Disegno
         /// <summary>The direction reference (an edge or an axis) of a fill pattern.</summary>
         /// Guide: IFillPatternFeatureData.html, Remarks, «Direction reference (e.g., edge or axis) Pattern direction (if not selected, SOLIDWORKS chooses a direction reference appropriate for the specified layout) 1».
         /// The page calls it optional; measured on 28/9/2026 it is not: without
-        /// it CreateFeature returns null (lim_riempimento_senza_direzione).
+        /// it CreateFeature returns null (limit_fill_without_direction).
         public const int FillPatternDirection = 1;
 
         /// <summary>The features a fill pattern repeats.</summary>
@@ -242,7 +242,7 @@ namespace Riscontro.Disegno
         /// Guide: IModelDoc2~InsertAxis2.html, which says nothing about marks.
         /// UNDOCUMENTED: selected with IEntity.SelectByMark(false, 1), a member
         /// that has no page in the extracted guide (hole C of the audit).
-        /// MEASURED: asse_dalla_parete_del_foro
+        /// MEASURED: axis_from_hole_wall
         public const int AxisFace = 1;
     }
 }

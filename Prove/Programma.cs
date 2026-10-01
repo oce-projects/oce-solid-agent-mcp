@@ -694,7 +694,7 @@ namespace Prove.Contratti
         /// ── LA SOMMA, E NON LA RIGA ──────────────────────────────────────
         ///
         /// Una cartella puo' comparire **due volte** nella tabella, e adesso ce
-        /// n'e' una: `casi/tavola/` contiene sia i piani a mano sia i casi
+        /// n'e' una: `cases/drawing/` contiene sia i piani a mano sia i casi
         /// dichiarati, ed e' elencata in tutt'e due i blocchi con due numeri
         /// diversi. Si sommano le righe della stessa cartella e si confronta la
         /// somma: 7 + 1 = 8 file. Pretendere che ogni riga da sola combaci
@@ -710,18 +710,18 @@ namespace Prove.Contratti
             try { testo = File.ReadAllText(leggimi); }
             catch (Exception ex) { Segna("il LEGGIMI del banco si legge", false, ex.Message); return; }
 
-            // `casi/<nome>/` seguito da spazi e da un numero. Le righe di
+            // `cases/<nome>/` seguito da spazi e da un numero. Le righe di
             // continuazione (la descrizione che va a capo) non hanno il numero
             // e non corrispondono: e' voluto.
             //
             // A INIZIO RIGA, e il perche' e' misurato (25/9/2026): senza `^` il
             // conto prendeva anche la frase che RACCONTA la vecchia riga
-            // («Questa riga prima la contava ... «casi/forma/ 5»»), e
-            // `casi/forma/` non e' nel repository per scelta. In locale passava,
+            // («Questa riga prima la contava ... «cases/forma/ 5»»), e
+            // `cases/forma/` non e' nel repository per scelta. In locale passava,
             // perche' i cinque file ci sono; in un clone pulito — la CI — era
             // «nominate e non esistenti: forma», rosso a ogni push dalla 0.85.0.
             var forma = new System.Text.RegularExpressions.Regex(
-                @"^casi/([a-z]+)/\s+(\d+)", System.Text.RegularExpressions.RegexOptions.Multiline);
+                @"^cases/([a-z_]+)/\s+(\d+)", System.Text.RegularExpressions.RegexOptions.Multiline);
 
             var dichiarati = new SortedDictionary<string, int>(StringComparer.Ordinal);
             foreach (System.Text.RegularExpressions.Match m in forma.Matches(testo))
@@ -734,13 +734,13 @@ namespace Prove.Contratti
             // UNA PROVA CHE NON TROVA NIENTE PASSA SEMPRE. Se la tabella cambia
             // forma, questa riga diventa rossa invece di spegnersi in silenzio.
             Segna("ci sono cartelle da controllare", dichiarati.Count >= 15,
-                  dichiarati.Count + " righe «casi/<nome>/ N»");
+                  dichiarati.Count + " righe «cases/<nome>/ N»");
 
             var sbagliate = new List<string>();
             var assenti = new List<string>();
             foreach (var v in dichiarati)
             {
-                var cartella = Path.Combine(Radice(), "Banco", "casi", v.Key);
+                var cartella = Path.Combine(Radice(), "Banco", "cases", v.Key);
                 if (!Directory.Exists(cartella)) { assenti.Add(v.Key); continue; }
                 int veri = Directory.GetFiles(cartella, "*.json", SearchOption.TopDirectoryOnly).Length;
                 if (veri != v.Value)
@@ -947,7 +947,7 @@ namespace Prove.Contratti
         /// ── IL DIFETTO CHE QUESTO CONTROLLO PRENDE ───────────────────────
         ///
         /// `Banco\CasiDichiarati.cs` ha un elenco ESPLICITO di famiglie, e
-        /// scorre solo quelle. Una cartella nuova sotto `Banco\casi\` che non
+        /// scorre solo quelle. Una cartella nuova sotto `Banco\cases\` che non
         /// finisca in quell'elenco contiene file che **sembrano prove e non
         /// girano mai**: nessun errore, nessun avviso, e il conto delle prove
         /// non se ne accorge perche' quei casi non sono mai esistiti per lui.
@@ -960,7 +960,7 @@ namespace Prove.Contratti
         ///
         /// ── PERCHE' SI GUARDA LA FORMA DEI FILE, NON IL NOME ─────────────
         ///
-        /// Sotto `casi\` ci sono due cose diverse: i CASI (oggetti con dei
+        /// Sotto `cases\` ci sono due cose diverse: i CASI (oggetti con dei
         /// passi e delle attese, che il banco esegue) e i PIANI (array, che
         /// lancia `corri_piani.js` a mano). Le cartelle di soli piani —
         /// `ponte\`, `limiti\`, `viste\`, `pezzi\`, `forma\` — stanno fuori
@@ -976,7 +976,7 @@ namespace Prove.Contratti
             Gruppo("le cartelle di casi stanno nell'elenco che il banco scorre");
 
             var sorgente = Path.Combine(Radice(), "Banco", "CasiDichiarati.cs");
-            var radiceCasi = Path.Combine(Radice(), "Banco", "casi");
+            var radiceCasi = Path.Combine(Radice(), "Banco", "cases");
             if (!File.Exists(sorgente) || !Directory.Exists(radiceCasi))
             {
                 Segna("il banco e i suoi casi ci sono", false,
@@ -1004,11 +1004,11 @@ namespace Prove.Contratti
                   elencate.Count + " famiglie");
             if (elencate.Count < 10) return;
 
-            // `regressione` NON sta nell'elenco, e non e' un difetto: ha un
+            // `regression` NON sta nell'elenco, e non e' un difetto: ha un
             // giro suo (`--regressione`), con un valutatore suo. Sta scritto
             // qui e non in un elenco di eccezioni generico, perche' e' una
             // sola e ha un motivo.
-            var fuoriPerDisegno = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regressione" };
+            var fuoriPerDisegno = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regression" };
 
             var mute = new List<string>();
             int guardate = 0, conCasi = 0;
@@ -1024,7 +1024,7 @@ namespace Prove.Contratti
                     // UN CASO E' UN OGGETTO, UN PIANO E' UN ARRAY. Stessa
                     // distinzione strutturale che fa il banco.
                     var t = grezzo.TrimStart();
-                    if (t.StartsWith("{") && t.IndexOf("\"passi\"", StringComparison.Ordinal) >= 0)
+                    if (t.StartsWith("{") && t.IndexOf("\"steps\"", StringComparison.Ordinal) >= 0)
                     { haCasi = true; break; }
                 }
                 if (!haCasi) continue;
@@ -1143,7 +1143,7 @@ namespace Prove.Contratti
         /// quote tutte marcate per il disegno**, cinque strade di import ne
         /// portavano **zero**. **Il 26/9/2026 l'import funziona fuori processo**
         /// (7 quote sullo stesso pezzo, due sonde) e la prova di comportamento
-        /// c'e': `quote/le_quote_arrivano_dal_modello`, col rifiuto senza viste e
+        /// c'e': `dimensions/dimensions_come_from_the_model`, col rifiuto senza viste e
         /// la gemella verde (Z-C1-bis, Z-E7 chiusa). Questo controllo resta per il
         /// giorno in cui l'import torna a portare zero quote: allora il messaggio
         /// qui sotto e' di nuovo tutto cio' che un modello riceve.

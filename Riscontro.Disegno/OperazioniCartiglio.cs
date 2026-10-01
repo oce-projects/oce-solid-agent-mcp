@@ -160,7 +160,7 @@ namespace Riscontro.Disegno
             //
             // ── PERCHE' QUESTA DIVISIONE ESISTE ──────────────────────────
             //
-            // Il 18/9/2026 il caso `il_cartiglio_dice_cosa_vuole` e' stato
+            // Il 18/9/2026 il caso `title_block_says_what_it_wants` e' stato
             // **verde due volte e rosso la terza**, sulla stessa libreria:
             // `Descrizione`, scritta sul pezzo e riletta, non compariva piu'
             // fra le mostrate. Riprovato dal ponte, **non si e' riprodotto**.

@@ -1,25 +1,25 @@
 {
-  "nome": "massa_senza_materiale_non_si_sa",
-  "famiglia": "misura",
-  "perche": "IL CASO PER CUI L'OPERAZIONE ESISTE COSI'. Senza materiale SOLIDWORKS non fallisce: risponde con la densita' predefinita del modello, che e' 1000 kg/m3 -- l'acqua. Sullo stesso cubo da 200.000 mm3 sono 0,2 kg invece di 1,6: un numero credibile, sbagliato di OTTO VOLTE, e il posto in cui si scopre e' il preventivo. Misurato il 15/9/2026.",
-  "perche_null_e_non_zero": "la massa e' `null`, non zero: zero sarebbe un pezzo che non pesa niente, e sarebbe una risposta. `null` vuol dire «non si sa», ed e' accompagnato da una frase che dice cosa fare. Il volume invece si sa eccome, e infatti c'e'.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "mass_without_material_is_unknown",
+  "family": "measurement",
+  "why": "IL CASO PER CUI L'OPERAZIONE ESISTE COSI'. Senza materiale SOLIDWORKS non fallisce: risponde con la densita' predefinita del modello, che e' 1000 kg/m3 -- l'acqua. Sullo stesso cubo da 200.000 mm3 sono 0,2 kg invece di 1,6: un numero credibile, sbagliato di OTTO VOLTE, e il posto in cui si scopre e' il preventivo. Misurato il 15/9/2026.",
+  "_why_null_and_not_zero": "la massa e' `null`, non zero: zero sarebbe un pezzo che non pesa niente, e sarebbe una risposta. `null` vuol dire «non si sa», ed e' accompagnato da una frase che dice cosa fare. Il volume invece si sa eccome, e infatti c'e'.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "proprieta_di_massa",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.volume_mm3", "uguale": 200000, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "il volume si legge in metri cubi e si moltiplica per un miliardo" },
-        { "cosa": "misure.massa_kg", "uguale": null,
-          "perche_null": "non si sa, e si dice" },
-        { "cosa": "misure.densita_kg_m3", "uguale": null },
-        { "cosa": "misure.materiale", "uguale": null },
-        { "cosa": "misure.perche_niente_massa",
-          "contiene": ["nessun materiale", "1000 kg/m3", "acqua", "otto volte", "applica_materiale"],
-          "perche": "il rifiuto deve dire COSA non si sa, PERCHE' la risposta di SOLIDWORKS sarebbe credibile, e COSA fare" } ] }
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "proprieta_di_massa",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.volume_mm3", "equal_to": 200000, "tolerance": 0.5,
+          "tolerance_why": "il volume si legge in metri cubi e si moltiplica per un miliardo" },
+        { "what": "misure.massa_kg", "equal_to": null,
+          "_why_null": "non si sa, e si dice" },
+        { "what": "misure.densita_kg_m3", "equal_to": null },
+        { "what": "misure.materiale", "equal_to": null },
+        { "what": "misure.perche_niente_massa",
+          "includes": ["nessun materiale", "1000 kg/m3", "acqua", "otto volte", "applica_materiale"],
+          "why": "il rifiuto deve dire COSA non si sa, PERCHE' la risposta di SOLIDWORKS sarebbe credibile, e COSA fare" } ] }
   ]
 }

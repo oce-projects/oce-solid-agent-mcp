@@ -132,7 +132,7 @@ namespace ProvaSaldatura
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                var c = Path.Combine(banco.FullName, "casi", "regressione");
+                var c = Path.Combine(banco.FullName, "cases", "regression");
                 if (!Directory.Exists(c)) { ErroreDiBanco("regressione: la cartella c'e'", c); return null; }
                 return c;
             }
@@ -167,18 +167,18 @@ namespace ProvaSaldatura
                 fuori.Perche = "unknown keys"; return fuori;
             }
 
-            fuori.Intento = Testo(caso, "intento") ?? "?";
+            fuori.Intento = Testo(caso, "intent") ?? "?";
             if (fuori.Intento != "ancorato_a_assoluto" && fuori.Intento != "ancorato_a_bordo")
             {
                 // SENZA L'INTENTO NON ESISTE RISPOSTA GIUSTA, e un caso che non
                 // lo dichiara non e' un caso: e' un errore di banco.
-                ErroreDiBanco(nome, "«intento» dev'essere «ancorato_a_assoluto» oppure " +
+                ErroreDiBanco(nome, "«intent» dev'essere «ancorato_a_assoluto» oppure " +
                                     "«ancorato_a_bordo»: senza, non esiste risposta giusta");
                 fuori.Perche = "intento non dichiarato"; return fuori;
             }
-            if (Testo(caso, "perche_intento") == null)
+            if (Testo(caso, "intent_why") == null)
             {
-                ErroreDiBanco(nome, "manca «perche_intento»: l'intento senza il motivo " +
+                ErroreDiBanco(nome, "manca «intent_why»: l'intento senza il motivo " +
                                     "si copia dal caso accanto");
                 fuori.Perche = "perche_intento assente"; return fuori;
             }
@@ -190,15 +190,15 @@ namespace ProvaSaldatura
 
                 // ── COSTRUISCI ───────────────────────────────────────────
                 var stato = LeggiStato(doc);
-                foreach (var p in Elenco(caso, "costruisci") ?? new List<object>())
+                foreach (var p in Elenco(caso, "build") ?? new List<object>())
                 {
                     var passo = p as Dictionary<string, object>;
                     if (passo == null) { ErroreDiBanco(nome, "un passo non e' un oggetto"); fuori.Perche = "passo storto"; return fuori; }
                     var argomenti = Risolvi(
-                        passo.ContainsKey("argomenti") ? passo["argomenti"] : null, stato)
+                        passo.ContainsKey("arguments") ? passo["arguments"] : null, stato)
                         as Dictionary<string, object> ?? new Dictionary<string, object>();
                     string errore;
-                    var misure = Esegui(doc, Testo(passo, "operazione"), argomenti, out errore, stato);
+                    var misure = Esegui(doc, Testo(passo, "operation"), argomenti, out errore, stato);
                     stato = LeggiStato(doc);
                     if (misure == null)
                     {
@@ -217,14 +217,14 @@ namespace ProvaSaldatura
                 // quattro raccordi. Scriverli come numeri vorrebbe dire
                 // calcolare a mano cio' che SOLIDWORKS ha gia' deciso — e
                 // sbagliare quel conto trasformerebbe un caso in un falso
-                // silenzio. Un'attesa con `come_prima` si confronta con la
+                // silenzio. Un'attesa con `same_as_before` si confronta con la
                 // misura di PRIMA della modifica.
                 var prima = new Dictionary<string, object>(StringComparer.Ordinal);
-                foreach (var a in Elenco(caso, "dopo") ?? new List<object>())
+                foreach (var a in Elenco(caso, "after") ?? new List<object>())
                 {
                     var attesa = a as Dictionary<string, object>;
-                    if (attesa == null || !Vero(attesa, "come_prima")) continue;
-                    string quale = Testo(attesa, "cosa");
+                    if (attesa == null || !Vero(attesa, "same_as_before")) continue;
+                    string quale = Testo(attesa, "what");
                     if (quale == null) continue;
                     var qui0 = doc;
                     try { prima[quale] = Misura(quale, c => DalDocumento(c, qui0, stato), stato, null); }
@@ -236,11 +236,11 @@ namespace ProvaSaldatura
                 }
 
                 // ── MODIFICA: UNA SOLA QUOTA, A MONTE ────────────────────
-                var modifica = (caso.ContainsKey("modifica") ? caso["modifica"] : null)
+                var modifica = (caso.ContainsKey("modify") ? caso["modify"] : null)
                                as Dictionary<string, object>;
                 if (modifica == null)
                 {
-                    ErroreDiBanco(nome, "manca «modifica»"); fuori.Perche = "modifica assente"; return fuori;
+                    ErroreDiBanco(nome, "manca «modify»"); fuori.Perche = "modifica assente"; return fuori;
                 }
                 var suoi = Risolvi(modifica, stato) as Dictionary<string, object>;
                 string erroreMod;
@@ -272,7 +272,7 @@ namespace ProvaSaldatura
 
                 // Ricostruzione pulita: adesso la geometria dice la verita'.
                 var rotte = new List<string>();
-                foreach (var a in Elenco(caso, "dopo") ?? new List<object>())
+                foreach (var a in Elenco(caso, "after") ?? new List<object>())
                 {
                     var attesa = a as Dictionary<string, object>;
                     if (attesa == null) continue;
@@ -282,19 +282,19 @@ namespace ProvaSaldatura
                     bool ok;
                     var qui = doc;
 
-                    // `come_prima`: l'atteso e' la misura di prima, e si mette
+                    // `same_as_before`: l'atteso e' la misura di prima, e si mette
                     // nell'attesa adesso. Cosi' il confronto lo fa lo stesso
                     // codice di sempre, e il messaggio esce nello stesso
                     // formato: «centri_x_mm [...] (atteso [...])».
-                    if (Vero(attesa, "come_prima"))
+                    if (Vero(attesa, "same_as_before"))
                     {
                         object era;
-                        if (!prima.TryGetValue(Testo(attesa, "cosa") ?? "", out era) || era == null)
+                        if (!prima.TryGetValue(Testo(attesa, "what") ?? "", out era) || era == null)
                         {
-                            ErroreDiBanco(nome, "«come_prima» ma la misura di prima non c'e'");
+                            ErroreDiBanco(nome, "«same_as_before» ma la misura di prima non c'e'");
                             fuori.Perche = "come_prima senza la misura di prima"; return fuori;
                         }
-                        attesa["uguale"] = era;
+                        attesa["equal_to"] = era;
                     }
 
                     try { ok = Combacia(attesa, c => DalDocumento(c, qui, stato), stato, fatta, out dettaglio); }
@@ -348,7 +348,7 @@ namespace ProvaSaldatura
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                var cartella = Path.Combine(banco.FullName, "resoconto");
+                var cartella = Path.Combine(banco.FullName, "report");
                 Directory.CreateDirectory(cartella);
                 var file = Path.Combine(cartella, "regressione.md");
 

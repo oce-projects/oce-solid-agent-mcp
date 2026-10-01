@@ -1,30 +1,30 @@
 {
-  "nome": "lim_fori_guidati_ancorati_a_meta",
-  "famiglia": "lavorazioni",
-  "perche": "VOCE E18: i fori di `foro_guidato` stanno in uno schizzo solo, e un punto senza ancora lo lascerebbe sottovincolato — alla prima modifica quel foro andrebbe dove lo mette il risolutore. Quindi l'ancora si da' a tutte le posizioni o a nessuna, e si rifiuta prima di creare il foro.",
-  "parte": {
-    "nuova": true
+  "name": "limit_anchored_hole_wizard_holes_halfway",
+  "family": "features",
+  "why": "VOCE E18: i fori di `foro_guidato` stanno in uno schizzo solo, e un punto senza ancora lo lascerebbe sottovincolato — alla prima modifica quel foro andrebbe dove lo mette il risolutore. Quindi l'ancora si da' a tutte le posizioni o a nessuna, e si rifiuta prima di creare il foro.",
+  "start": {
+    "new_part": true
   },
-  "passi": [
+  "steps": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": {
+      "operation": "estrudi_rettangolo",
+      "arguments": {
         "piano": "frontale",
         "lunghezza_mm": 200,
         "larghezza_mm": 120,
         "spessore_mm": 20,
         "centrato": true
       },
-      "attese": [
+      "expect": [
         {
-          "cosa": "volume_mm3",
-          "uguale": 480000
+          "what": "volume_mm3",
+          "equal_to": 480000
         }
       ]
     },
     {
-      "operazione": "foro_guidato",
-      "argomenti": {
+      "operation": "foro_guidato",
+      "arguments": {
         "faccia_uid": "@faccia(verso=davanti)",
         "taglia": "M8",
         "passante": true,
@@ -49,14 +49,14 @@
           }
         ]
       },
-      "deve_fallire": {
-        "il_messaggio_contiene": [
+      "must_fail": {
+        "message_includes": [
           "a TUTTE le posizioni o a nessuna",
           "1 su 2"
         ],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "i_fori_guidati_ancorati_restano_a_venti"
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "anchored_hole_wizard_holes_stay_at_twenty"
       }
     }
   ]

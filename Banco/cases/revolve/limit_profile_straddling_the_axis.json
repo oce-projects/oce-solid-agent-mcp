@@ -1,17 +1,17 @@
 {
-  "nome": "lim_profilo_a_cavallo_dell_asse",
-  "famiglia": "rivoluzione",
-  "perche": "UN PROFILO CHE ATTRAVERSA L'ASSE DEVE ESSERE RIFIUTATO, e questo caso misura CHE COSA lo rifiuta davvero. L'operazione ha due reti: SOLIDWORKS che non crea la feature, e il conteggio dei corpi subito dopo. Con questo profilo -- un rettangolo da y=-20 a y=+20 attorno all'asse y=0 -- scatta la PRIMA: FeatureRevolve2 torna null e il rifiuto e' «deve stare sul piano del profilo, e il profilo non deve attraversarlo». Il messaggio atteso e' quello, non quello del conteggio: un rosso che scatta per il motivo sbagliato non prova niente e da' fuori la stessa riga verde.",
-  "_rete_non_vista": "IL CONTEGGIO DEI CORPI NON L'HO MAI VISTO SCATTARE. Sta in OperazioniSw.cs subito dopo la feature («ha creato la feature ma il documento ha N corpi solidi invece di uno») e nessun caso lo porta li': i profili che ho provato o fanno un solido solo o non fanno feature. Un controllo mai visto scattare non e' un controllo -- resta scritto qui perche' si sappia che quella riga e' ancora una promessa e non una misura.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "rivoluzione",
-      "argomenti": { "piano": "frontale", "angolo_gradi": 360,
+  "name": "limit_profile_straddling_the_axis",
+  "family": "revolve",
+  "why": "UN PROFILO CHE ATTRAVERSA L'ASSE DEVE ESSERE RIFIUTATO, e questo caso misura CHE COSA lo rifiuta davvero. L'operazione ha due reti: SOLIDWORKS che non crea la feature, e il conteggio dei corpi subito dopo. Con questo profilo -- un rettangolo da y=-20 a y=+20 attorno all'asse y=0 -- scatta la PRIMA: FeatureRevolve2 torna null e il rifiuto e' «deve stare sul piano del profilo, e il profilo non deve attraversarlo». Il messaggio atteso e' quello, non quello del conteggio: un rosso che scatta per il motivo sbagliato non prova niente e da' fuori la stessa riga verde.",
+  "_safety_net_not_seen": "IL CONTEGGIO DEI CORPI NON L'HO MAI VISTO SCATTARE. Sta in OperazioniSw.cs subito dopo la feature («ha creato la feature ma il documento ha N corpi solidi invece di uno») e nessun caso lo porta li': i profili che ho provato o fanno un solido solo o non fanno feature. Un controllo mai visto scattare non e' un controllo -- resta scritto qui perche' si sappia che quella riga e' ancora una promessa e non una misura.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "rivoluzione",
+      "arguments": { "piano": "frontale", "angolo_gradi": 360,
                      "asse": [[0, 0], [50, 0]],
                      "contorni": [[[0, -20], [0, 20], [50, 20], [50, -20]]] },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["deve stare sul piano del profilo",
+      "must_fail": {
+        "message_includes": ["deve stare sul piano del profilo",
                                   "il profilo non deve attraversarlo"],
-        "gemella": "cilindro_d40_lungo_50" } }
+        "twin": "cylinder_d40_long_50" } }
   ]
 }

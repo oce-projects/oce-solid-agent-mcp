@@ -1,16 +1,16 @@
 {
-  "nome": "asola_su_piastra_stretta_0",
-  "famiglia": "asola",
-  "perche": "LA ROTAZIONE VA VISTA, E IL VOLUME NON LA VEDE: girare un'asola non cambia quanto materiale toglie. Per renderla osservabile serve una piastra STRETTA, dove l'asola ci sta per il lungo e non per il largo. Questo e' il caso a zero gradi, e sta tutta dentro.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 40, "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 160000 } ] },
-    { "operazione": "asola",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 0, "passante": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 149299.34, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "160000 meno 535,0332 per 20: il conto ha pi dentro" } ] }
+  "name": "slot_on_narrow_plate_0",
+  "family": "slot",
+  "why": "LA ROTAZIONE VA VISTA, E IL VOLUME NON LA VEDE: girare un'asola non cambia quanto materiale toglie. Per renderla osservabile serve una piastra STRETTA, dove l'asola ci sta per il lungo e non per il largo. Questo e' il caso a zero gradi, e sta tutta dentro.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 40, "spessore_mm": 20, "centrato": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 160000 } ] },
+    { "operation": "asola",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 0, "passante": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 149299.34, "tolerance": 0.5,
+          "tolerance_why": "160000 meno 535,0332 per 20: il conto ha pi dentro" } ] }
   ]
 }

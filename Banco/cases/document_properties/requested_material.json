@@ -1,28 +1,28 @@
 {
-  "nome": "materiale_chiesto",
-  "famiglia": "proprieta",
-  "perche": "La gemella di `materiale_predefinito`, e senza di lei l'altra non prova niente. Chi il materiale lo NOMINA non deve ricevere una dichiarazione di predefinito: se la frase comparisse sempre diventerebbe rumore, e una frase che compare sempre smette di essere letta proprio quando dice qualcosa. Stesso materiale, stesso risultato, UNA sola differenza fra i due casi: chi l'ha scelto.",
-  "parte": { "nuova": true },
-  "passi": [
+  "name": "requested_material",
+  "family": "document_properties",
+  "why": "La gemella di `default_material`, e senza di lei l'altra non prova niente. Chi il materiale lo NOMINA non deve ricevere una dichiarazione di predefinito: se la frase comparisse sempre diventerebbe rumore, e una frase che compare sempre smette di essere letta proprio quando dice qualcosa. Stesso materiale, stesso risultato, UNA sola differenza fra i due casi: chi l'ha scelto.",
+  "start": { "new_part": true },
+  "steps": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": {
+      "operation": "estrudi_rettangolo",
+      "arguments": {
         "piano": "frontale",
         "lunghezza_mm": 100,
         "larghezza_mm": 50,
         "spessore_mm": 10,
         "centrato": true
       },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 50000 }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 50000 }
       ]
     },
     {
-      "operazione": "applica_materiale",
-      "argomenti": { "materiale": "S235JR" },
-      "attese": [
-        { "cosa": "stato.materiale", "contiene": ["S235JR"] },
-        { "cosa": "misure.nota_assunto", "non_contiene": ["predefinito"] }
+      "operation": "applica_materiale",
+      "arguments": { "materiale": "S235JR" },
+      "expect": [
+        { "what": "stato.materiale", "includes": ["S235JR"] },
+        { "what": "misure.nota_assunto", "does_not_include": ["predefinito"] }
       ]
     }
   ]

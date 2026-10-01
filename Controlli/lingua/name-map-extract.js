@@ -70,14 +70,14 @@
 //    case_key          keys of the cases (Banco/case-keys.json contexts)
 //    free_case_key     the frozen free notes of Banco/case-keys.json and the
 //                      notes that start with an underscore
-//    summary_key       keys of Banco/resoconto/ultimo.json (and of the test
+//    summary_key       keys of Banco/report/last.json (and of the test
 //                      ledger, when there is one)
 //    selector          selector kinds (@kind), their fields, and
 //                      field=value for the name-like values
 //    folder            every Italian folder name of git ls-files
 //    file              every Italian file name of git ls-files (the cases
 //                      are case_name)
-//    case_name         the file names of Banco/casi and Banco/casi-in-attesa
+//    case_name         the file names of Banco/cases and Banco/pending-cases
 //                      (cases, plans, waiting cases)
 //    project           namespaces, root namespaces and assembly names
 //    identifier        names declared in C# (Roslyn: types, members, enum
@@ -131,7 +131,7 @@
 //        and a good map seen green
 //    --root <dir>        another checkout (default: the repository of this file)
 //    --map <file>        another map (default Controlli/lingua/name-map.tsv)
-//    --ledger <file>     a test ledger (Banco/resoconto/tests.json of a bench
+//    --ledger <file>     a test ledger (Banco/report/tests.json of a bench
 //                        run) for summary keys; repeatable. The one in the
 //                        tree is read when it is there (git ignores it)
 //    --coverage          also list the names of the gate's sets (identifiers,
@@ -184,15 +184,16 @@ const WHERE_MAX = 3;
 
 // Where things are, and the Italian keys this script reads. The rename
 // windows (W3.1-bis.4 to .6) rename them; after them the map is complete and
-// this script has done its work.
+// this script has done its work. Window 1 (.4) moved the cases, the summary
+// and the ledger, and renamed the keys of the cases (CASE below).
 const LAYOUT = {
   catalogue: 'Strumenti/catalogo.json',
   caseKeys: 'Banco/case-keys.json',
   // the cases, and the cases that wait for a field of the runner
-  cases: ['Banco/casi/', 'Banco/casi-in-attesa/'],
-  regressionFolder: 'regressione',
-  summary: ['Banco/resoconto/ultimo.json'],
-  ledger: 'Banco/resoconto/tests.json',
+  cases: ['Banco/cases/', 'Banco/pending-cases/'],
+  regressionFolder: 'regression',
+  summary: ['Banco/report/last.json'],
+  ledger: 'Banco/report/tests.json',
   toolFolder: 'Strumenti/',
   // the tool list is the string array of Strumenti/ that holds this tool
   toolAnchor: 'api_search',
@@ -207,9 +208,12 @@ const CATALOGUE = {
   valueKeys: ['precondizione', 'documento'],
 };
 const CASE = {
-  family: 'famiglia', name: 'nome', twin: 'gemella', what: 'cosa', equals: 'uguale',
-  operation: 'operazione', args: 'argomenti',
+  family: 'family', name: 'name', twin: 'twin', what: 'what', equals: 'equal_to',
+  operation: 'operation', args: 'arguments',
 };
+// The keys of a step of a plan (a file of the cases whose root is a list):
+// the protocol of the bridge, renamed with it in window 2 (.5).
+const PLAN = { operation: 'operazione', args: 'argomenti' };
 
 // C# compilation groups: the first that names a file wins. Semantic groups
 // get a compilation (the BCL and the groups they reference); the others are
@@ -1172,9 +1176,10 @@ function extract(root, opts) {
         else enumValue(v, kp);
       }
     };
+    const K = Array.isArray(body) ? PLAN : CASE;
     const step = (node, p) => {
-      if (typeof node[CASE.operation] === 'string') found.add('operation', node[CASE.operation], vAt(childPath(p, CASE.operation)));
-      if (node[CASE.args] !== undefined) args(node[CASE.args], childPath(p, CASE.args));
+      if (typeof node[K.operation] === 'string') found.add('operation', node[K.operation], vAt(childPath(p, K.operation)));
+      if (node[K.args] !== undefined) args(node[K.args], childPath(p, K.args));
     };
     const walk = (node, ctxName, p) => {
       const ctx = ck.contexts[ctxName] || { read: [], documented: {}, children: {}, frozen_free: {} };

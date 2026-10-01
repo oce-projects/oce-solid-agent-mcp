@@ -1,13 +1,13 @@
 {
-  "nome": "r01_quattro_fori_dal_bordo",
-  "famiglia": "regressione",
-  "perche": "Il caso piu' comune che esista: quattro fori di fissaggio a 20 mm dagli angoli di una piastra, e la piastra si allarga. In officina quei fori restano a 20 mm dal bordo -- e' quello che vuol dire «a 20 dagli angoli».",
-  "intento": "ancorato_a_bordo",
-  "perche_intento": "i fori stanno a 20 mm dai bordi: allargando la piastra da 120 a 180 devono restare a 20 mm, cioe' i due in basso restano a y = -40 e i due in alto vanno da +40 a +100: la piastra cresce DA UNA PARTE SOLA (voce E2), da Y -60..+60 a Y -60..+120.",
-  "costruisci": [
+  "name": "r01_four_holes_from_the_border",
+  "family": "regression",
+  "why": "Il caso piu' comune che esista: quattro fori di fissaggio a 20 mm dagli angoli di una piastra, e la piastra si allarga. In officina quei fori restano a 20 mm dal bordo -- e' quello che vuol dire «a 20 dagli angoli».",
+  "intent": "ancorato_a_bordo",
+  "intent_why": "i fori stanno a 20 mm dai bordi: allargando la piastra da 120 a 180 devono restare a 20 mm, cioe' i due in basso restano a y = -40 e i due in alto vanno da +40 a +100: la piastra cresce DA UNA PARTE SOLA (voce E2), da Y -60..+60 a Y -60..+120.",
+  "build": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": {
+      "operation": "estrudi_rettangolo",
+      "arguments": {
         "piano": "frontale",
         "lunghezza_mm": 200,
         "larghezza_mm": 120,
@@ -16,8 +16,8 @@
       }
     },
     {
-      "operazione": "foro_guidato",
-      "argomenti": {
+      "operation": "foro_guidato",
+      "arguments": {
         "faccia_uid": "@faccia(verso=davanti)",
         "taglia": "M8",
         "passante": true,
@@ -82,31 +82,31 @@
       }
     }
   ],
-  "modifica": {
+  "modify": {
     "quota": "@quota(feature=Schizzo1,nome=D2)",
     "valore_mm": 180
   },
-  "dopo": [
+  "after": [
     {
-      "cosa": "ingombro_mm",
-      "uguale": [
+      "what": "ingombro_mm",
+      "equal_to": [
         200,
         180,
         20
       ]
     },
     {
-      "cosa": "centri_y_mm",
-      "uguale": [
+      "what": "centri_y_mm",
+      "equal_to": [
         -40,
         -40,
         100,
         100
       ],
-      "perche_questi_numeri": "fino al 25/9/2026 l'attesa era [-70, -70, 70, 70], cioe' una piastra che cresce simmetrica: E2 ha misurato che non lo fa, e con quell'attesa il caso non avrebbe potuto reggere nemmeno con l'ancora giusta. Corretta scrivendo E18, prima di dare l'ancora a foro_guidato.",
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri: il centesimo e' arrotondamento"
+      "_why_these_numbers": "fino al 25/9/2026 l'attesa era [-70, -70, 70, 70], cioe' una piastra che cresce simmetrica: E2 ha misurato che non lo fa, e con quell'attesa il caso non avrebbe potuto reggere nemmeno con l'ancora giusta. Corretta scrivendo E18, prima di dare l'ancora a foro_guidato.",
+      "tolerance": 0.05,
+      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri: il centesimo e' arrotondamento"
     }
   ],
-  "perche_l_ancora": "VOCE E18, l'ultimo pezzo. Fino alla libreria 0.118.0 il `costruisci` dava i fori a coordinate assolute — un'istruzione che nessuno darebbe per «a 20 dagli angoli» — e il caso restava in silenzio per costruzione. Adesso ogni posizione porta la sua ancora ai due bordi vicini; le ATTESE sono quelle di prima (corrette il 25/9 perche' la piastra cresce da una parte sola). Il vecchio modo resta provato dal gemello `r01b_quattro_fori_restano_dove_sono`."
+  "_why_the_anchor": "VOCE E18, l'ultimo pezzo. Fino alla libreria 0.118.0 il `costruisci` dava i fori a coordinate assolute — un'istruzione che nessuno darebbe per «a 20 dagli angoli» — e il caso restava in silenzio per costruzione. Adesso ogni posizione porta la sua ancora ai due bordi vicini; le ATTESE sono quelle di prima (corrette il 25/9 perche' la piastra cresce da una parte sola). Il vecchio modo resta provato dal gemello `r01b_four_holes_stay_where_they_are`."
 }

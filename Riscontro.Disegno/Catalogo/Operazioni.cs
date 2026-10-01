@@ -97,7 +97,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "estrudi_cerchio",
                     Famiglia = "estrusioni",
-                    Esempio = "{\"piano\":\"frontale\",\"diametro_mm\":6,\"altezza_mm\":10}",   // da `filetto_su_un_perno`
+                    Esempio = "{\"piano\":\"frontale\",\"diametro_mm\":6,\"altezza_mm\":10}",   // da `thread_on_pin`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -201,7 +201,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "estrudi_rettangolo",
                     Famiglia = "estrusioni",
-                    Esempio = "{\"piano\":\"frontale\",\"lunghezza_mm\":200,\"larghezza_mm\":120,\"spessore_mm\":20,\"centrato\":true}",   // da `asola_cieca`
+                    Esempio = "{\"piano\":\"frontale\",\"lunghezza_mm\":200,\"larghezza_mm\":120,\"spessore_mm\":20,\"centrato\":true}",   // da `blind_slot`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -349,7 +349,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "rivoluzione",
                     Famiglia = "estrusioni",
-                    Esempio = "{\"piano\":\"frontale\",\"angolo_gradi\":360,\"asse\":[[0,0],[90,0]],\"contorni\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // da `albero_forato_non_dichiara_piu_il_profilo`
+                    Esempio = "{\"piano\":\"frontale\",\"angolo_gradi\":360,\"asse\":[[0,0],[90,0]],\"contorni\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // da `drilled_shaft_no_longer_declares_profile`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -857,7 +857,7 @@ namespace Riscontro.Disegno.Catalogo
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",
                     Provata = true,
-                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione1\",\"passante\":true}",   // da `il_cieco_diventa_passante`
+                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione1\",\"passante\":true}",   // da `blind_becomes_through`
                     Sommario = "Cambia un'estrusione o un taglio gia' fatti: cieco -> passante, o un'altra profondita'.",
                     Descrizione =
                         "Cambia la definizione di un'estrusione o di un taglio estruso che c'e' gia': un "
@@ -894,7 +894,7 @@ namespace Riscontro.Disegno.Catalogo
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",
                     Provata = true,
-                    Esempio = "{\"feature_uid\":\"Svuota1\",\"rispetto_a_uid\":\"Taglio-Estrusione1\",\"dove\":\"prima\"}",   // da `l_ordine_cambia_il_pezzo`
+                    Esempio = "{\"feature_uid\":\"Svuota1\",\"rispetto_a_uid\":\"Taglio-Estrusione1\",\"dove\":\"prima\"}",   // da `order_changes_the_part`
                     Sommario = "Sposta una lavorazione prima o dopo un'altra nell'albero, e dice come e' cambiato il pezzo.",
                     Descrizione =
                         "Sposta una lavorazione nell'albero, prima o dopo un'altra: uno svuotamento "
@@ -929,7 +929,7 @@ namespace Riscontro.Disegno.Catalogo
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",
                     Provata = true,
-                    Esempio = "{\"nome\":\"parete\",\"valore_mm\":12}",   // da `la_parete_ha_un_nome`
+                    Esempio = "{\"nome\":\"parete\",\"valore_mm\":12}",   // da `wall_has_a_name`
                     Sommario = "Dai un NOME a un numero (parete = 3 mm): le quote legate cambiano con lui.",
                     Descrizione =
                         "Crea o cambia una variabile globale del pezzo: «parete» = 12 mm, oppure "
@@ -1089,7 +1089,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sopprimi_lavorazione",
                     Famiglia = "lavorazioni",
-                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione2\"}",   // da `lim_sopprimere_due_volte`
+                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione2\"}",   // da `limit_suppress_twice`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -1129,7 +1129,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "elimina_lavorazione",
                     Famiglia = "lavorazioni",
-                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione1\"}",   // da `elimina_il_primo_foro`
+                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione1\"}",   // da `delete_first_hole`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -1407,7 +1407,7 @@ namespace Riscontro.Disegno.Catalogo
                     Nome = "ripeti_riempimento",
                     Famiglia = "lavorazioni",
                     DocumentoRichiesto = "parte",
-                    // true SOLO dopo il banco verde su casi/ripeti (il verde e i tre rifiuti).
+                    // true SOLO dopo il banco verde su cases/patterns (il verde e i tre rifiuti).
                     Provata = true,
                     Sommario =
                         "Riempie una faccia piana di copie di una lavorazione: una piastra forata "
@@ -1879,7 +1879,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "applica_materiale",
                     Famiglia = "proprieta",
-                    Esempio = "{\"materiale\":\"AISI 304\"}",   // da `massa_di_un_cubo_di_acciaio`
+                    Esempio = "{\"materiale\":\"AISI 304\"}",   // da `mass_of_a_steel_cube`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -1982,7 +1982,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "crea_piano",
                     Famiglia = "riferimenti",
-                    Esempio = "{\"piano\":\"frontale\",\"distanza_mm\":-250}",   // da `piano_frontale_meno_250`
+                    Esempio = "{\"piano\":\"frontale\",\"distanza_mm\":-250}",   // da `front_plane_minus_250`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -2118,8 +2118,8 @@ namespace Riscontro.Disegno.Catalogo
                     // valido. Misurato con la sonda Controlli\Fazzoletto\
                     // Programma.cs sulla T 80x80x5: triangolo 60/60
                     // spesso 5 +9000 mm3, poligono 60/60/15/15 +12937,5, corpi
-                    // 2 -> 3. Casi: saldature/il_fazzoletto_sta_nell_angolo e
-                    // saldature/il_poligono_del_fazzoletto_non_e_degenere.
+                    // 2 -> 3. Casi: weldments/gusset_sits_in_the_corner e
+                    // weldments/gusset_polygon_is_not_degenerate.
                     Provata = true,
                     Sommario =
                         "Fazzoletto di rinforzo, triangolare o poligonale, nell'angolo fra due facce "
@@ -2557,7 +2557,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "crea_disegno",
                     Famiglia = "tavola",
-                    Esempio = "{\"formato\":\"A3\"}",   // da `due_fogli_e_lo_stesso_diedro`
+                    Esempio = "{\"formato\":\"A3\"}",   // da `two_sheets_and_the_same_projection_angle`
                     DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
@@ -2778,7 +2778,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "quota_in_tavola",
                     Famiglia = "tavola",
-                    Esempio = "{\"spigoli\":[0,1,2,3]}",   // da `la_tavola_si_quota`
+                    Esempio = "{\"spigoli\":[0,1,2,3]}",   // da `drawing_dimensions_itself`
                     DocumentoRichiesto = "tavola",
                     // ── PROVATA, E COSA VUOL DIRE QUI ──────────────────
                     //
@@ -3190,7 +3190,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "nota_in_tavola",
                     Famiglia = "tavola",
-                    Esempio = "{\"testo\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `la_nota_finisce_sul_foglio`
+                    Esempio = "{\"testo\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `note_ends_up_on_the_sheet`
                     DocumentoRichiesto = "tavola",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
@@ -3246,7 +3246,7 @@ namespace Riscontro.Disegno.Catalogo
                     // Z-C13 (26/9/2026): una lettera gia' usata da una sezione o da un
                     // dettaglio si rifiuta; la lettera effettiva si rilegge.
                     Famiglia = "tavola",
-                    Esempio = "{\"etichetta\":\"A\",\"a_mm\":0}",   // da `la_sezione_taglia_il_pezzo`
+                    Esempio = "{\"etichetta\":\"A\",\"a_mm\":0}",   // da `section_cuts_the_part`
                     DocumentoRichiesto = "tavola",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
@@ -3328,7 +3328,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "dettaglio_in_tavola",
                     Famiglia = "tavola",
-                    Esempio = "{\"etichetta\":\"B\",\"scala\":2,\"raggio_mm\":8}",   // da `il_dettaglio_ingrandisce`
+                    Esempio = "{\"etichetta\":\"B\",\"scala\":2,\"raggio_mm\":8}",   // da `detail_enlarges`
                     DocumentoRichiesto = "tavola",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
@@ -3446,7 +3446,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "verifica_interferenze",
                     Famiglia = "verifiche",
-                    Esempio = "{\"toccarsi_conta\":true}",   // da `toccarsi_non_e_compenetrarsi`
+                    Esempio = "{\"toccarsi_conta\":true}",   // da `touching_is_not_interpenetrating`
                     DocumentoRichiesto = "assieme",
                     Provata = true,
                     Sommario =
@@ -3599,7 +3599,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "nuovo_foglio",
                     Famiglia = "tavola",
-                    Esempio = "{\"nome\":\"Montaggio\"}",   // da `due_fogli_e_lo_stesso_diedro`
+                    Esempio = "{\"nome\":\"Montaggio\"}",   // da `two_sheets_and_the_same_projection_angle`
                     DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
@@ -3640,7 +3640,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "attiva_foglio",
                     Famiglia = "tavola",
-                    Esempio = "{\"nome\":\"Foglio1\"}",   // da `due_fogli_e_lo_stesso_diedro`
+                    Esempio = "{\"nome\":\"Foglio1\"}",   // da `two_sheets_and_the_same_projection_angle`
                     DocumentoRichiesto = "tavola",
                     Provata = true,
                     Sommario =
@@ -3828,7 +3828,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "verifica_sovrasporgenze",
                     Famiglia = "verifiche",
-                    Esempio = "{\"soglia_gradi\":70}",   // da `pareti_a_sessanta_gradi_non_si_stampano`
+                    Esempio = "{\"soglia_gradi\":70}",   // da `walls_at_sixty_degrees_do_not_print`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -4152,7 +4152,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "combina_corpi",
                     Famiglia = "lavorazioni",
-                    Esempio = "{\"operazione\":\"interseca\"}",   // da `interseca_due_cubi`
+                    Esempio = "{\"operazione\":\"interseca\"}",   // da `intersect_two_cubes`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -4503,7 +4503,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "profili_saldatura",
                     Famiglia = "saldature",
-                    Esempio = "{\"cerca\":\"TUBO STRUTTURALE QUADRO\"}",   // da `i_profili_si_leggono_prima`
+                    Esempio = "{\"cerca\":\"TUBO STRUTTURALE QUADRO\"}",   // da `profiles_are_read_first`
                     DocumentoRichiesto = "nessuno",
                     Provata = true,
                     Sommario =
@@ -4629,7 +4629,7 @@ namespace Riscontro.Disegno.Catalogo
                     Famiglia = "assiemi",
                     DocumentoRichiesto = "assieme",
                     Provata = true,
-                    Esempio = "{\"componente\":\"C2\",\"piano\":\"destro\",\"modo\":\"istanza\"}",   // da `la_staffa_destra_e_la_sinistra`
+                    Esempio = "{\"componente\":\"C2\",\"piano\":\"destro\",\"modo\":\"istanza\"}",   // da `right_bracket_and_left_bracket`
                     Sommario = "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
                     Descrizione =
                         "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). "
@@ -4691,7 +4691,7 @@ namespace Riscontro.Disegno.Catalogo
                     Famiglia = "assiemi",
                     DocumentoRichiesto = "assieme",
                     Provata = true,
-                    Esempio = "{\"componente\":\"C2\",\"fisso\":true}",   // da `fisso_non_e_accoppiato`
+                    Esempio = "{\"componente\":\"C2\",\"fisso\":true}",   // da `fixed_is_not_mated`
                     Sommario = "Fissa o libera un componente dell'assieme, e lo rilegge.",
                     Descrizione =
                         "Fissa un componente (non si muove piu', qualunque accoppiamento abbia) o "
@@ -4876,7 +4876,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "sweep_circolare",
                     Famiglia = "estrusioni",
-                    Esempio = "{\"percorso_mm\":[[0,0,0],[100,0,0]],\"diametro_mm\":20}",   // da `tubo_dritto_area_per_lunghezza`
+                    Esempio = "{\"percorso_mm\":[[0,0,0],[100,0,0]],\"diametro_mm\":20}",   // da `straight_pipe_area_per_length`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -4916,7 +4916,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "loft_fra_due_cerchi",
                     Famiglia = "estrusioni",
-                    Esempio = "{\"piano\":\"frontale\",\"diametro1_mm\":40,\"diametro2_mm\":20,\"distanza_mm\":50}",   // da `il_loft_non_e_un_cono`
+                    Esempio = "{\"piano\":\"frontale\",\"diametro1_mm\":40,\"diametro2_mm\":20,\"distanza_mm\":50}",   // da `loft_is_not_a_cone`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -5013,7 +5013,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "piano_per_tre_punti",
                     Famiglia = "riferimenti",
-                    Esempio = "{\"punto1_mm\":[0,0,0],\"punto2_mm\":[50,0,0],\"punto3_mm\":[100,10,0]}",   // da `lim_tre_punti_in_fila`
+                    Esempio = "{\"punto1_mm\":[0,0,0],\"punto2_mm\":[50,0,0],\"punto3_mm\":[100,10,0]}",   // da `limit_three_points_in_a_row`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -5337,7 +5337,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "nervatura",
                     Famiglia = "lavorazioni",
-                    Esempio = "{\"piano\":\"frontale\",\"distanza_mm\":25,\"da_mm\":[10,40,25],\"a_mm\":[40,10,25],\"spessore_mm\":6}",   // da `nervatura_nell_angolo_della_l`
+                    Esempio = "{\"piano\":\"frontale\",\"distanza_mm\":25,\"da_mm\":[10,40,25],\"a_mm\":[40,10,25],\"spessore_mm\":6}",   // da `rib_in_the_corner_of_the_l`
                     DocumentoRichiesto = "parte",
                     Provata = true,
                     Sommario =
@@ -5531,7 +5531,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "scrivi_proprieta",
                     Famiglia = "identita",
-                    Esempio = "{\"nome\":\"NumeroDisegno\",\"valore\":\"DIS-1234\"}",   // da `i_due_cassetti_non_si_vedono`
+                    Esempio = "{\"nome\":\"NumeroDisegno\",\"valore\":\"DIS-1234\"}",   // da `the_two_lists_do_not_see_each_other`
                     DocumentoRichiesto = "qualunque",
                     Provata = true,
                     Sommario =
@@ -5579,7 +5579,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "crea_configurazione",
                     Famiglia = "identita",
-                    Esempio = "{\"nome\":\"Sinistra\",\"descrizione\":\"staffa sinistra\"}",   // da `i_due_cassetti_non_si_vedono`
+                    Esempio = "{\"nome\":\"Sinistra\",\"descrizione\":\"staffa sinistra\"}",   // da `the_two_lists_do_not_see_each_other`
                     DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =
@@ -5622,7 +5622,7 @@ namespace Riscontro.Disegno.Catalogo
                 {
                     Nome = "attiva_configurazione",
                     Famiglia = "identita",
-                    Esempio = "{\"nome\":\"Sinistra\"}",   // da `lim_configurazione_gia_esistente`
+                    Esempio = "{\"nome\":\"Sinistra\"}",   // da `limit_configuration_that_already_exists`
                     DocumentoRichiesto = "parte/assieme",
                     Provata = true,
                     Sommario =

@@ -756,23 +756,23 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "facce",        Cosa = "le facce della piastra", Azioni = una(StampaFaccePiastra) },
                 new Gruppo { Nome = "sposta-corpi", Cosa = "sposta_corpi",           Azioni = una(ProvaSpostaCorpi) },
                 // «asola» non c'e' piu': e' diventata quindici file in
-                // `casi/asola/`, e si lancia con `--gruppo casi` (voce F11).
+                // `cases/slot/`, e si lancia con `--gruppo casi` (voce F11).
                 // «smusso» non c'e' piu': e' diventato tre file in
-                // `casi/smusso/`, e si lancia con `--gruppo casi` (voce F11).
+                // `cases/chamfer/`, e si lancia con `--gruppo casi` (voce F11).
                 // «rivoluzione» non c'e' piu': e' diventata cinque file in
-                // `casi/rivoluzione/`. La tolleranza e' la differenza: il C#
+                // `cases/revolve/`. La tolleranza e' la differenza: il C#
                 // accettava `atteso * 0.02`, che sul cilindro da 62.831 mm³
                 // sono 1.256 mm³ di scarto ammesso.
                 // «guscio» non c'e' piu': e' diventato due file in
-                // `casi/lavorazioni/`, e si lancia con `--gruppo casi`.
+                // `cases/features/`, e si lancia con `--gruppo casi`.
                 // «crea-piano» non c'e' piu': e' diventato tre file in
-                // `casi/piano/`, e l'attesa e' su DOVE E' FINITO il piano
+                // `cases/plane/`, e l'attesa e' su DOVE E' FINITO il piano
                 // (`ultimo_piano_mm`), non sulla distanza che il ponte
                 // ricopia.
                 // «crea-asse» e' rimasto in C# per UNA riga sola: che l'asse
                 // si riagganci con SelectByID2("AXIS"), che e' una chiamata
                 // COM e non un'operazione del catalogo. Tutto il resto della
-                // famiglia sta in `casi/asse/`.
+                // famiglia sta in `cases/axis/`.
                 new Gruppo { Nome = "crea-asse",    Cosa = "l'asse si ritrova per nome", Azioni = una(ProvaCreaAsse) },
                 // LA QUOTA SENZA SPIGOLO (voce Z-A2): il rosso che un caso
                 // dichiarato non sa costruire, perche' dopo `crea_disegno` non
@@ -787,10 +787,10 @@ namespace ProvaSaldatura
                              Cosa = "i casi che passano dal ponte (F14)",
                              Azioni = una(LaPortaDelCliente) },
                 // «ripeti», «specchia» e «togliere» non ci sono piu': sono
-                // diventati `casi/ripeti/`, `casi/specchia/` e
-                // `casi/togliere/`, e si lanciano con `--gruppo casi`.
-                // «forma» non c'e' piu': e' diventata `casi/frase/`, da quando
-                // le attese sanno chiedere «contiene» e «non_contiene».
+                // diventati `cases/patterns/`, `cases/mirror/` e
+                // `cases/removal/`, e si lanciano con `--gruppo casi`.
+                // «forma» non c'e' piu': e' diventata `cases/sentence/`, da quando
+                // le attese sanno chiedere «includes» e «does_not_include».
                 new Gruppo { Nome = "dove-stava",   Cosa = "dove stava, e il grep vuoto (E10)",
                              Azioni = new Action[] { ProvaDoveStava, ProvaCheLaFrazioneNonDecide } },
                 new Gruppo { Nome = "casi",         Cosa = "i casi dichiarati, che sono file (F3)",
@@ -1140,7 +1140,7 @@ namespace ProvaSaldatura
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var banco = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 var dove = Path.Combine(banco != null ? banco.FullName : bin,
-                                        "resoconto", "senza-attesa.txt");
+                                        "report", "senza-attesa.txt");
                 var righe = new List<string>
                 {
                     "# Le prove che passano senza un'attesa DICHIARATA (voce K3).",
@@ -1399,7 +1399,7 @@ namespace ProvaSaldatura
         // THE TEST LEDGER (entry W3.1-bis.2, item 7)
         //
         // Every test by identity (File.cs:Method:ordinal), and the expectations
-        // checked per case, written to Banco/resoconto/tests.json at the end of
+        // checked per case, written to Banco/report/tests.json at the end of
         // the run. The console and the files banco.ps1 reads do not change.
         //
         // LAZY, like the table of the document measures: a static initializer
@@ -1503,7 +1503,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Writes Banco/resoconto/tests.json and says where. A ledger that cannot
+        /// Writes Banco/report/tests.json and says where. A ledger that cannot
         /// be written is said on the console, like the other files of the report.
         /// </summary>
         private static void WriteTheTestLedger(string mode)
@@ -1512,7 +1512,7 @@ namespace ProvaSaldatura
             {
                 var folder = BenchFolder();
                 if (folder == null) { Console.WriteLine("(the test ledger has no folder to go to)"); return; }
-                var report = Path.Combine(folder, "resoconto");
+                var report = Path.Combine(folder, "report");
                 Directory.CreateDirectory(report);
                 var file = Path.Combine(report, "tests.json");
                 var library = _addin != null ? _addin.GetName().Version.ToString() : "";

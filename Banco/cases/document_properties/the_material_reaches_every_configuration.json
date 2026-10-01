@@ -1,46 +1,46 @@
 {
-  "nome": "the_material_reaches_every_configuration",
-  "famiglia": "proprieta",
-  "perche": "ENTRY Z-C21.3 (the probe verdicts), finding M10. applica_materiale says it gives the material to the PART. Up to library 0.141.0 it made one SetMaterialPropertyName2 with the empty configuration name and checked it with one re-read of the empty name. The Z-C21.3 probe of 28/9/2026 (material per configuration, SOLIDWORKS 2021 SP5.1, company part template) measured that the empty name reaches the ACTIVE configuration and the ones DERIVED from it, and nothing else: a plain configuration made like crea_configurazione kept no material (density 1000 instead of 7800), and with the derived configuration active only that one got it. The re-read of the empty name is the active configuration (L17-1, measured not real), so the old check read back the one configuration that had the material and answered that the part had it. The library now sets and reads back the material on every configuration by its own name: the probe measured that an explicit name on a configuration that is not active is applied and does not move the active one.",
-  "il_difetto_che_questo_caso_prende": "Two plain configurations, «Right» made first and «Left» made second: crea_configurazione activates the new one, so «Left» is active when the material is applied. Step 5 goes back to «Right» and wants the material there, read from the document state (another path than the operation's answer); step 6 wants the density and the mass of steel on «Right». On library 0.141.0 the material landed on «Left» only: in step 5 the state says no material (the first expectation is red), and the mass is not the mass of steel.",
-  "i_numeri": "Plate 100 x 100 x 20 = 200000 mm3. «1.0037 (S235JR)» from the SOLIDWORKS DIN library, density 7800 kg/m3 as the probe read it through CreateMassProperty with the material on (1000 without material): 200000 mm3 x 7800 kg/m3 = 1.56 kg. Four configuration names after step 3: the two of the company template plus «Right» and «Left».",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "the_material_reaches_every_configuration",
+  "family": "document_properties",
+  "why": "ENTRY Z-C21.3 (the probe verdicts), finding M10. applica_materiale says it gives the material to the PART. Up to library 0.141.0 it made one SetMaterialPropertyName2 with the empty configuration name and checked it with one re-read of the empty name. The Z-C21.3 probe of 28/9/2026 (material per configuration, SOLIDWORKS 2021 SP5.1, company part template) measured that the empty name reaches the ACTIVE configuration and the ones DERIVED from it, and nothing else: a plain configuration made like crea_configurazione kept no material (density 1000 instead of 7800), and with the derived configuration active only that one got it. The re-read of the empty name is the active configuration (L17-1, measured not real), so the old check read back the one configuration that had the material and answered that the part had it. The library now sets and reads back the material on every configuration by its own name: the probe measured that an explicit name on a configuration that is not active is applied and does not move the active one.",
+  "defect_caught": "Two plain configurations, «Right» made first and «Left» made second: crea_configurazione activates the new one, so «Left» is active when the material is applied. Step 5 goes back to «Right» and wants the material there, read from the document state (another path than the operation's answer); step 6 wants the density and the mass of steel on «Right». On library 0.141.0 the material landed on «Left» only: in step 5 the state says no material (the first expectation is red), and the mass is not the mass of steel.",
+  "_the_numbers": "Plate 100 x 100 x 20 = 200000 mm3. «1.0037 (S235JR)» from the SOLIDWORKS DIN library, density 7800 kg/m3 as the probe read it through CreateMassProperty with the material on (1000 without material): 200000 mm3 x 7800 kg/m3 = 1.56 kg. Four configuration names after step 3: the two of the company template plus «Right» and «Left».",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
 
-    { "operazione": "crea_configurazione",
-      "argomenti": { "nome": "Right" },
-      "attese": [ { "cosa": "stato.configurazione", "uguale": "Right" } ] },
+    { "operation": "crea_configurazione",
+      "arguments": { "nome": "Right" },
+      "expect": [ { "what": "stato.configurazione", "equal_to": "Right" } ] },
 
-    { "operazione": "crea_configurazione",
-      "argomenti": { "nome": "Left" },
-      "attese": [
-        { "cosa": "stato.configurazione", "uguale": "Left",
-          "perche": "the new configuration is activated by SOLIDWORKS: the material is applied with «Left» active and «Right» not active" },
-        { "cosa": "quanti_nomi_di_configurazione", "uguale": 4 } ] },
+    { "operation": "crea_configurazione",
+      "arguments": { "nome": "Left" },
+      "expect": [
+        { "what": "stato.configurazione", "equal_to": "Left",
+          "why": "the new configuration is activated by SOLIDWORKS: the material is applied with «Left» active and «Right» not active" },
+        { "what": "quanti_nomi_di_configurazione", "equal_to": 4 } ] },
 
-    { "operazione": "applica_materiale",
-      "argomenti": { "materiale": "S235JR" },
-      "attese": [
-        { "cosa": "stato.materiale", "contiene": ["S235JR"],
-          "perche": "the active configuration has it on both libraries: this line alone is what the old check saw" } ] },
+    { "operation": "applica_materiale",
+      "arguments": { "materiale": "S235JR" },
+      "expect": [
+        { "what": "stato.materiale", "includes": ["S235JR"],
+          "why": "the active configuration has it on both libraries: this line alone is what the old check saw" } ] },
 
-    { "operazione": "attiva_configurazione",
-      "argomenti": { "nome": "Right" },
-      "attese": [
-        { "cosa": "stato.configurazione", "uguale": "Right" },
-        { "cosa": "stato.materiale", "contiene": ["S235JR"],
-          "perche": "THE LINE THAT TAKES THE DEFECT. «Right» was not active when the material was applied; with the empty configuration name it stayed without material, as the plain configuration of the probe did" } ] },
+    { "operation": "attiva_configurazione",
+      "arguments": { "nome": "Right" },
+      "expect": [
+        { "what": "stato.configurazione", "equal_to": "Right" },
+        { "what": "stato.materiale", "includes": ["S235JR"],
+          "why": "THE LINE THAT TAKES THE DEFECT. «Right» was not active when the material was applied; with the empty configuration name it stayed without material, as the plain configuration of the probe did" } ] },
 
-    { "operazione": "proprieta_di_massa",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.densita_kg_m3", "uguale": 7800, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "the density of 1.0037 (S235JR) in the SOLIDWORKS DIN library, read by the probe as 7800; a configuration without material reads 1000" },
-        { "cosa": "misure.massa_kg", "uguale": 1.56, "tolleranza": 0.001,
-          "perche_questa_tolleranza": "200000 mm3 x 7800 kg/m3 = 1.56 kg; the thousandth is the rounding of the answer" } ] }
+    { "operation": "proprieta_di_massa",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.densita_kg_m3", "equal_to": 7800, "tolerance": 0.5,
+          "tolerance_why": "the density of 1.0037 (S235JR) in the SOLIDWORKS DIN library, read by the probe as 7800; a configuration without material reads 1000" },
+        { "what": "misure.massa_kg", "equal_to": 1.56, "tolerance": 0.001,
+          "tolerance_why": "200000 mm3 x 7800 kg/m3 = 1.56 kg; the thousandth is the rounding of the answer" } ] }
   ]
 }

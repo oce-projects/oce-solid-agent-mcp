@@ -9,10 +9,10 @@ using SolidWorks.Interop.swconst;
 //  for the FIRST extrusion of a part (the base), for a later boss and for a cut
 // =============================================================================
 //
-//  Full bench of 28/9/2026 on library 0.138.0: il_cieco_diventa_passante, step 6,
+//  Full bench of 28/9/2026 on library 0.138.0: blind_becomes_through, step 6,
 //  «passante» on the base plate was NOT refused. Z-C21.2 had moved the cut/boss
 //  test of cambia_estrusione from the type name to IsBossFeature() for every
-//  extrusion; on the ICE boss (il_rialzo_cresce_e_non_e_un_taglio) it answers
+//  extrusion; on the ICE boss (boss_grows_and_is_not_a_cut) it answers
 //  true. Hypothesis: on the base extrusion it answers false. The page
 //  (IExtrudeFeatureData2~IsBossFeature.html) has no Remarks.
 //

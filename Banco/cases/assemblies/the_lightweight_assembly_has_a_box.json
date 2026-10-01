@@ -1,40 +1,40 @@
 {
-  "nome": "the_lightweight_assembly_has_a_box",
-  "famiglia": "assiemi",
-  "perche": "Z-C21.11, finding N5. A lightweight component answers IComponent2.IsSuppressed() true, as the programming guide says (Overview/Work_with_Lightweight_Components.htm), and GetModelDoc2 null. Up to library 0.146.0 ingombro_corpo picked the parts of an assembly through IsSuppressed and GetModelDoc2, so on an assembly opened lightweight it took every part for suppressed and gave no box at all. The probe zc2111/probe_alleggeriti (30/9/2026) measured that GetSuppression2 tells a lightweight component from a suppressed one, and that GetBodies3 gives the bodies of a lightweight part with the volume of its file, with Transform2 there (IComponent2~GetBodies3.html: «Supports lightweight components»). The library now reads the load state with GetSuppression2 and measures lightweight parts without resolving them. The bench builds the assembly, saves it, closes it with every document of its components and reopens it lightweight («reopen_lightweight», read back with GetLightWeightComponentCount before the first step).",
-  "il_difetto_che_questo_caso_prende": "No box on an assembly opened lightweight, every part taken for suppressed; a partial box answered as a success when only some parts are lightweight; a box obtained by resolving the parts without saying it (the state after the step would show them resolved).",
-  "se_resta_verde_sulla_libreria_vecchia": "It cannot: on 0.146.0 both parts answer IsSuppressed true, the list of parts to measure is empty and the step refuses (no part to measure, every one suppressed), while the step asks for the box.",
-  "i_numeri": "As in l_assieme_si_pesa_si_misura_si_manda: base 120 x 80 x 10 at the origin (y from -5 to 5), lid 120 x 80 x 4 centred at y = 7 (y from 5 to 9): box 120 x 14 x 80. Two parts, both lightweight after the reopen, so the state counts 2 lightweight components.",
-  "assieme": {
+  "name": "the_lightweight_assembly_has_a_box",
+  "family": "assemblies",
+  "why": "Z-C21.11, finding N5. A lightweight component answers IComponent2.IsSuppressed() true, as the programming guide says (Overview/Work_with_Lightweight_Components.htm), and GetModelDoc2 null. Up to library 0.146.0 ingombro_corpo picked the parts of an assembly through IsSuppressed and GetModelDoc2, so on an assembly opened lightweight it took every part for suppressed and gave no box at all. The probe zc2111/probe_alleggeriti (30/9/2026) measured that GetSuppression2 tells a lightweight component from a suppressed one, and that GetBodies3 gives the bodies of a lightweight part with the volume of its file, with Transform2 there (IComponent2~GetBodies3.html: «Supports lightweight components»). The library now reads the load state with GetSuppression2 and measures lightweight parts without resolving them. The bench builds the assembly, saves it, closes it with every document of its components and reopens it lightweight («reopen_lightweight», read back with GetLightWeightComponentCount before the first step).",
+  "defect_caught": "No box on an assembly opened lightweight, every part taken for suppressed; a partial box answered as a success when only some parts are lightweight; a box obtained by resolving the parts without saying it (the state after the step would show them resolved).",
+  "_if_it_stays_green_on_the_old_library": "It cannot: on 0.146.0 both parts answer IsSuppressed true, the list of parts to measure is empty and the step refuses (no part to measure, every one suppressed), while the step asks for the box.",
+  "_the_numbers": "As in assembly_is_weighed_measured_and_sent: base 120 x 80 x 10 at the origin (y from -5 to 5), lid 120 x 80 x 4 centred at y = 7 (y from 5 to 9): box 120 x 14 x 80. Two parts, both lightweight after the reopen, so the state counts 2 lightweight components.",
+  "assembly": {
     "reopen_lightweight": true,
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } },
-          { "operazione": "applica_materiale", "argomenti": { "materiale": "AISI 304" } }
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } },
+          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
         ] },
-      { "nome": "lid",
-        "posizione_mm": [0, 7, 0],
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } },
-          { "operazione": "applica_materiale", "argomenti": { "materiale": "AISI 304" } }
+      { "name": "lid",
+        "position_mm": [0, 7, 0],
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } },
+          { "operation": "applica_materiale", "arguments": { "materiale": "AISI 304" } }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "ingombro_corpo",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.ingombro_mm", "uguale": [120, 14, 80], "tolleranza": 0.01,
-          "perche_questa_tolleranza": "true extreme points, rounded to the hundredth",
-          "perche": "THE LINE THAT TAKES N5: the whole box, base from -5 to 5 and lid from 5 to 9, both measured while lightweight. On 0.146.0 there is no box" },
-        { "cosa": "misure.lightweight_components_measured", "contiene": ["_base-1", "_lid-1"],
-          "perche": "the answer says which parts were measured lightweight, through GetBodies3 and Transform2" },
-        { "cosa": "misure.componenti_soppressi", "uguale": [],
-          "perche": "a lightweight part is not a suppressed one" },
-        { "cosa": "stato.componenti_leggeri", "uguale": 2,
-          "perche": "measured without resolving: after the step both parts are still lightweight (the probe read GetLightWeightComponentCount 4 of 4 after its box)" } ] }
+  "steps": [
+    { "operation": "ingombro_corpo",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.ingombro_mm", "equal_to": [120, 14, 80], "tolerance": 0.01,
+          "tolerance_why": "true extreme points, rounded to the hundredth",
+          "why": "THE LINE THAT TAKES N5: the whole box, base from -5 to 5 and lid from 5 to 9, both measured while lightweight. On 0.146.0 there is no box" },
+        { "what": "misure.lightweight_components_measured", "includes": ["_base-1", "_lid-1"],
+          "why": "the answer says which parts were measured lightweight, through GetBodies3 and Transform2" },
+        { "what": "misure.componenti_soppressi", "equal_to": [],
+          "why": "a lightweight part is not a suppressed one" },
+        { "what": "stato.componenti_leggeri", "equal_to": 2,
+          "why": "measured without resolving: after the step both parts are still lightweight (the probe read GetLightWeightComponentCount 4 of 4 after its box)" } ] }
   ]
 }

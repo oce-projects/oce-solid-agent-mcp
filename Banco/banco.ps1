@@ -21,7 +21,7 @@
 #       16 KB" passa da 15.6k a 16.2k e FALLISCE senza che il codice sia
 #       cambiato. Costa mezz'ora cercare una regressione che non c'e'.
 #    4. lancia il banco e misura quanto ci mette.
-#    5. scrive Banco\resoconto\AAAAMMGG_hhmm.md e .json, piu' ultimo.json.
+#    5. scrive Banco\report\AAAAMMGG_hhmm.md e .json, piu' last.json.
 #
 #  PERCHE' IL RESOCONTO. "Gira solo quando qualcuno lo lancia a mano" e' meta'
 #  del problema; l'altra meta' e' che NON LASCIA TRACCIA. Un numero che non sta
@@ -45,7 +45,7 @@
 #
 #      .\Banco\banco.ps1
 #      .\Banco\banco.ps1 -Gruppo viste          una famiglia sola (voce F13)
-#      .\Banco\banco.ps1 -Famiglia ritrovare    solo quella cartella di casi (E19)
+#      .\Banco\banco.ps1 -Famiglia reanchor    solo quella cartella di casi (E19)
 #      .\Banco\banco.ps1 -Lento                 anche le prove che costano minuti
 #      .\Banco\banco.ps1 -Muta                  perturba i casi (voce F6)
 #      .\Banco\banco.ps1 -Regressione           i riferimenti sotto modifica (F8)
@@ -224,7 +224,7 @@ function Prendi($regex) {
 $sw_ver  = Prendi "^SolidWorks (.+)$"
 $lib_ver = Prendi "^libreria ([0-9.]+)"
 # DUE NUMERI, col loro nome (voce F15): le eseguibili dalla libreria e quelle
-# servite a catalogo. Il campo «catalogo» del JSON resta, con lo stesso valore
+# servite a catalogo. Il campo «catalog» del JSON resta, con lo stesso valore
 # di prima (le eseguibili), per chi lo leggeva.
 $eseguibili = Prendi "^eseguibili: ([0-9]+) operazioni"
 $aCatalogo  = Prendi "^eseguibili: [0-9]+ operazioni \(a catalogo: ([0-9]+)\)"
@@ -235,7 +235,7 @@ $attese = [string]$attese
 if ([string]::IsNullOrWhiteSpace($attese)) { $attese = "attese verificate: (non dichiarate)" }
 
 # I CASI VERDI, PER NOME (voce Z-C6). Il banco li scrive su una riga sola; qui
-# diventano un elenco in `ultimo.json`, che la suite di contratto incrocia col
+# diventano un elenco (`green_cases`) in `last.json`, che la suite di contratto incrocia col
 # catalogo: ogni operazione servita deve avere un caso verde nell'ultimo giro.
 # [string] per la stessa ragione di $fine: niente note di PowerShell nel JSON.
 $rigaVerdi = [string]($righe | Where-Object { $_ -match "^casi verdi: " } | Select-Object -Last 1)
@@ -255,7 +255,7 @@ try {
 
 $quando = Get-Date
 $nome = $quando.ToString("yyyyMMdd_HHmm")
-$cartella = Join-Path $Banco "resoconto"
+$cartella = Join-Path $Banco "report"
 if (-not (Test-Path $cartella)) { New-Item -ItemType Directory -Path $cartella | Out-Null }
 
 # DUE GIRI NELLO STESSO MINUTO NON SI SOVRASCRIVONO.
@@ -344,32 +344,32 @@ $fileMd = Join-Path $cartella ($nome + ".md")
 [System.IO.File]::WriteAllText($fileMd, ($md -join "`r`n") + "`r`n", $senzaBom)
 
 $oggetto = [ordered]@{
-    quando     = $quando.ToString("s")
-    solidworks = $sw_ver
-    libreria   = $lib_ver
-    catalogo   = $(if ($eseguibili -match "^[0-9]+$") { [int]$eseguibili } else { $eseguibili })
-    eseguibili = $(if ($eseguibili -match "^[0-9]+$") { [int]$eseguibili } else { $eseguibili })
-    a_catalogo = $(if ($aCatalogo -match "^[0-9]+$") { [int]$aCatalogo } else { $aCatalogo })
-    commit     = $commit
-    gruppo     = $Gruppo
-    famiglia   = $Famiglia
-    lento      = [bool]$Lento
-    durata_s   = [int]$durata.TotalSeconds
-    riepilogo  = $fine
-    attese     = $attese
-    passate    = $passate.Count
-    fallite    = $fallite.Count
-    saltate    = $saltate.Count
-    errori     = $errori.Count
-    uscita     = $codice
-    rosse      = @($fallite | ForEach-Object { $_.TrimEnd() })
-    di_banco   = @($errori | ForEach-Object { $_.TrimEnd() })
-    casi_verdi = $casiVerdi
+    timestamp    = $quando.ToString("s")
+    solidworks   = $sw_ver
+    library      = $lib_ver
+    catalog      = $(if ($eseguibili -match "^[0-9]+$") { [int]$eseguibili } else { $eseguibili })
+    runnable     = $(if ($eseguibili -match "^[0-9]+$") { [int]$eseguibili } else { $eseguibili })
+    in_catalog   = $(if ($aCatalogo -match "^[0-9]+$") { [int]$aCatalogo } else { $aCatalogo })
+    commit       = $commit
+    batch        = $Gruppo
+    family       = $Famiglia
+    slow         = [bool]$Lento
+    duration_s   = [int]$durata.TotalSeconds
+    summary      = $fine
+    expectations = $attese
+    passed       = $passate.Count
+    failed       = $fallite.Count
+    skipped      = $saltate.Count
+    errors       = $errori.Count
+    exit_code    = $codice
+    red          = @($fallite | ForEach-Object { $_.TrimEnd() })
+    bench_errors = @($errori | ForEach-Object { $_.TrimEnd() })
+    green_cases  = $casiVerdi
 }
 $json = $oggetto | ConvertTo-Json -Depth 4
 $fileJson = Join-Path $cartella ($nome + ".json")
 [System.IO.File]::WriteAllText($fileJson, $json, $senzaBom)
-[System.IO.File]::WriteAllText((Join-Path $cartella "ultimo.json"), $json, $senzaBom)
+[System.IO.File]::WriteAllText((Join-Path $cartella "last.json"), $json, $senzaBom)
 
 Write-Output ""
 Write-Output ("resoconto: " + $fileMd)

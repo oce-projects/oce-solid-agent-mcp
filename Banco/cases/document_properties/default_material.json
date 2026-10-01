@@ -1,28 +1,28 @@
 {
-  "nome": "materiale_predefinito",
-  "famiglia": "proprieta",
-  "perche": "Voce Z-G3. `applica_materiale` pretende `materiale`, e un'officina di carpenteria lavora S235JR salvo avviso contrario: l'archivio di questa postazione lo risolve gia' (misurato: «S235JR» -> «1.0037 (S235JR)»). Il caso NON si accontenta che l'operazione riesca senza l'argomento: pretende che la risposta DICA l'assunzione. Se il ponte mette S235JR e tace, il modello crede di averlo scelto lui, la volta dopo non lo chiede nemmeno, e poi arriva un pezzo che andava in inox senza che nessuno sappia dove sia stata presa la decisione. La gemella e' `materiale_chiesto`: stesso materiale chiesto per nome, e la dichiarazione NON deve comparire.",
-  "parte": { "nuova": true },
-  "passi": [
+  "name": "default_material",
+  "family": "document_properties",
+  "why": "Voce Z-G3. `applica_materiale` pretende `materiale`, e un'officina di carpenteria lavora S235JR salvo avviso contrario: l'archivio di questa postazione lo risolve gia' (misurato: «S235JR» -> «1.0037 (S235JR)»). Il caso NON si accontenta che l'operazione riesca senza l'argomento: pretende che la risposta DICA l'assunzione. Se il ponte mette S235JR e tace, il modello crede di averlo scelto lui, la volta dopo non lo chiede nemmeno, e poi arriva un pezzo che andava in inox senza che nessuno sappia dove sia stata presa la decisione. La gemella e' `requested_material`: stesso materiale chiesto per nome, e la dichiarazione NON deve comparire.",
+  "start": { "new_part": true },
+  "steps": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": {
+      "operation": "estrudi_rettangolo",
+      "arguments": {
         "piano": "frontale",
         "lunghezza_mm": 100,
         "larghezza_mm": 50,
         "spessore_mm": 10,
         "centrato": true
       },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 50000 }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 50000 }
       ]
     },
     {
-      "operazione": "applica_materiale",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "stato.materiale", "contiene": ["S235JR"] },
-        { "cosa": "misure.nota_assunto", "contiene": ["S235JR", "predefinito"] }
+      "operation": "applica_materiale",
+      "arguments": {},
+      "expect": [
+        { "what": "stato.materiale", "includes": ["S235JR"] },
+        { "what": "misure.nota_assunto", "includes": ["S235JR", "predefinito"] }
       ]
     }
   ]

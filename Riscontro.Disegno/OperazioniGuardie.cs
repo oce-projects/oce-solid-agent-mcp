@@ -61,7 +61,7 @@ namespace Riscontro.Disegno
         /// la PROFONDITA' di una lavorazione (cambia_estrusione): un taglio passante
         /// che torna cieco toglie il foro dalla faccia di sotto, le aperture calano
         /// da 2 a 1 e il pezzo e' proprio quello chiesto — misurato il 28/9/2026 sul
-        /// caso il_cieco_diventa_passante, che la guardia rifiutava a torto.
+        /// caso blind_becomes_through, che la guardia rifiutava a torto.
         /// </summary>
         private static string CosaSiERotto(IModelDoc2 modello, FotoDelPezzo prima, bool ricostruito, bool aperture)
         {

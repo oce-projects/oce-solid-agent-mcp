@@ -1,37 +1,37 @@
 {
-  "nome": "il_raccordo_ritrova_lo_spigolo_rinumerato",
-  "famiglia": "ritrovare",
-  "perche": "VOCE E19. Un piano scritto guardando lo stato UNA volta: «due fori, poi raccorda l'angolo davanti a destra». Gli uid degli spigoli sono posizionali, ordinati per lunghezza: i due fori O12 aggiungono quattro circonferenze da 37,7, piu' lunghe dei quattro spigoli da 20, e il raccordo — che porta l'uid letto PRIMA dei fori — nomina adesso una circonferenza. Fino alla libreria 0.119.0 uno spigolo con l'uid cambiato si rifiutava e basta (vedi il caso gemello); per le facce la ricerca per firma c'era dal 10/9 (voce E6), per gli spigoli no. `uid_dal_passo: 2` fa quello che fa il ponte: uid e firme dallo stato di PRIMA dei fori.",
-  "perche_due_fori": "Con quattro circonferenze da 37,7 i quattro posti vecchi degli spigoli da 20 (E9-E12) finiscono tutti su una circonferenza: lo scambio non dipende dall'ordine fra lunghezze uguali. E l'attesa su `misure.riancoraggi` dice se il ritrovamento c'e' stato davvero.",
-  "cosa_ha_trovato_scriverlo": "Con la libreria 0.119.0 questo caso PASSAVA senza ritrovare niente, e non per fortuna: `LunghezzaMm` misurava la corda fra gli estremi, e il bordo di un foro — uno spigolo chiuso — era «lungo 0». I fori finivano in fondo alla classifica e non rinumeravano mai niente (banchetto `prova0089 rinumera`: E13-E16 «lungo 0»). Riparata nella 0.120.0 con la lunghezza vera: adesso E11 diventa E15, e la risposta lo dice.",
-  "il_difetto_che_questo_caso_prende": "Due, opposti. Il rifiuto di un lavoro legittimo (il vecchio comportamento). E il successo sullo spigolo SBAGLIATO: il volume e' lo stesso su tutti e quattro gli spigoli da 20, e solo il baricentro dice quale angolo si e' arrotondato.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60,
+  "name": "fillet_finds_the_renumbered_edge_again",
+  "family": "reanchor",
+  "why": "VOCE E19. Un piano scritto guardando lo stato UNA volta: «due fori, poi raccorda l'angolo davanti a destra». Gli uid degli spigoli sono posizionali, ordinati per lunghezza: i due fori O12 aggiungono quattro circonferenze da 37,7, piu' lunghe dei quattro spigoli da 20, e il raccordo — che porta l'uid letto PRIMA dei fori — nomina adesso una circonferenza. Fino alla libreria 0.119.0 uno spigolo con l'uid cambiato si rifiutava e basta (vedi il caso gemello); per le facce la ricerca per firma c'era dal 10/9 (voce E6), per gli spigoli no. `uid_dal_passo: 2` fa quello che fa il ponte: uid e firme dallo stato di PRIMA dei fori.",
+  "_why_two_holes": "Con quattro circonferenze da 37,7 i quattro posti vecchi degli spigoli da 20 (E9-E12) finiscono tutti su una circonferenza: lo scambio non dipende dall'ordine fra lunghezze uguali. E l'attesa su `misure.riancoraggi` dice se il ritrovamento c'e' stato davvero.",
+  "_what_it_found_written_down": "Con la libreria 0.119.0 questo caso PASSAVA senza ritrovare niente, e non per fortuna: `LunghezzaMm` misurava la corda fra gli estremi, e il bordo di un foro — uno spigolo chiuso — era «lungo 0». I fori finivano in fondo alla classifica e non rinumeravano mai niente (banchetto `prova0089 rinumera`: E13-E16 «lungo 0»). Riparata nella 0.120.0 con la lunghezza vera: adesso E11 diventa E15, e la risposta lo dice.",
+  "defect_caught": "Due, opposti. Il rifiuto di un lavoro legittimo (il vecchio comportamento). E il successo sullo spigolo SBAGLIATO: il volume e' lo stesso su tutti e quattro gli spigoli da 20, e solo il baricentro dice quale angolo si e' arrotondato.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 120000 } ] },
-    { "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": -25, "y_mm": 0,
+      "expect": [ { "what": "volume_mm3", "equal_to": 120000 } ] },
+    { "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": -25, "y_mm": 0,
                      "diametro_mm": 12, "passante": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 117738.053, "tolleranza": 0.05,
-          "perche_questa_tolleranza": "120000 meno pi*6^2*20 = 2261,947: il ventesimo copre l'arrotondamento" } ] },
-    { "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 25, "y_mm": 0,
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 117738.053, "tolerance": 0.05,
+          "tolerance_why": "120000 meno pi*6^2*20 = 2261,947: il ventesimo copre l'arrotondamento" } ] },
+    { "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 25, "y_mm": 0,
                      "diametro_mm": 12, "passante": true },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 115476.107, "tolleranza": 0.05,
-          "perche_questa_tolleranza": "il secondo foro uguale al primo: altri 2261,947" } ] },
-    { "operazione": "raccordo_spigoli",
-      "uid_dal_passo": 2,
-      "argomenti": { "spigoli_uid": [ "@spigolo(asse=Z,x~=50,y~=30)" ], "raggio_mm": 8 },
-      "attese": [
-        { "cosa": "misure.spigoli", "uguale": 1 },
-        { "cosa": "misure.riancoraggi", "contiene": ["adesso si chiama", "stessa lunghezza (20 mm)", "[50, 30, 10]"] },
-        { "cosa": "volume_mm3", "uguale": 115201.416, "tolleranza": 0.05,
-          "perche_questa_tolleranza": "115476,107 meno (1 - pi/4) x 8^2 x 20 = 274,690: il conto ha pi dentro" },
-        { "cosa": "centro_massa_mm", "uguale": [-0.115, -0.067, 10], "tolleranza": 0.005,
-          "perche_questa_tolleranza": "calcolato a mano: i due fori sono simmetrici, e il ritaglio del raccordo ha il baricentro a R(5/6 - pi/4)/(1 - pi/4) = 1,787 dall'angolo, cioe' in (48,213; 28,213; 10). Sull'angolo a x = -50 il baricentro andrebbe a x = +0,115: il segno dice quale spigolo" } ] }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 115476.107, "tolerance": 0.05,
+          "tolerance_why": "il secondo foro uguale al primo: altri 2261,947" } ] },
+    { "operation": "raccordo_spigoli",
+      "uid_from_step": 2,
+      "arguments": { "spigoli_uid": [ "@spigolo(asse=Z,x~=50,y~=30)" ], "raggio_mm": 8 },
+      "expect": [
+        { "what": "misure.spigoli", "equal_to": 1 },
+        { "what": "misure.riancoraggi", "includes": ["adesso si chiama", "stessa lunghezza (20 mm)", "[50, 30, 10]"] },
+        { "what": "volume_mm3", "equal_to": 115201.416, "tolerance": 0.05,
+          "tolerance_why": "115476,107 meno (1 - pi/4) x 8^2 x 20 = 274,690: il conto ha pi dentro" },
+        { "what": "centro_massa_mm", "equal_to": [-0.115, -0.067, 10], "tolerance": 0.005,
+          "tolerance_why": "calcolato a mano: i due fori sono simmetrici, e il ritaglio del raccordo ha il baricentro a R(5/6 - pi/4)/(1 - pi/4) = 1,787 dall'angolo, cioe' in (48,213; 28,213; 10). Sull'angolo a x = -50 il baricentro andrebbe a x = +0,115: il segno dice quale spigolo" } ] }
   ]
 }

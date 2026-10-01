@@ -401,7 +401,7 @@ stesso esiste per non avere.*
 
 > **Il punto sul banco non e' una verifica indipendente, e vale dirlo qui.**
 > Nessun runner ha una licenza SOLIDWORKS, quindi **il banco in CI non gira**.
-> Cio' che la CI legge e' `Banco/resoconto/ultimo.json`: un file che
+> Cio' che la CI legge e' `Banco/report/last.json`: un file che
 > **produciamo e committiamo noi**. Controlla che dichiari un giro intero,
 > coerente con la libreria di adesso e posteriore all'ultima modifica alle
 > operazioni.
@@ -426,7 +426,7 @@ a valle rimisurata. Il risultato e' una di tre cose, non due:
 
 *Misurato il 26/9/2026 su SOLIDWORKS 29.5.1, libreria 0.121.0. Si rifa' con
 `.\Banco\banco.ps1 -Regressione`; il dettaglio caso per caso finisce in
-`Banco/resoconto/regressione.md`.*
+`Banco/report/regressione.md`.*
 
 **Il 15/9 erano 12, 0 e 4 su sedici**, e lo zero in mezzo era il numero piu'
 interessante: nessun caso si era rotto in modo visibile, le quattro volte che

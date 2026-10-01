@@ -318,7 +318,7 @@ namespace Riscontro.Disegno
             // SOLIDWORKS puts on holes when it creates a view (document option
             // swDetailingAutoInsertCenterMarksForHoles) were counted 3 in three full
             // bench runs and alone, and 0 once in the full run on 0.142.0
-            // (le_croci_di_centro_sui_fori, step 7), with no change to this code or
+            // (center_marks_on_the_holes, step 7), with no change to this code or
             // to the counter. The state read right after the views were made may
             // come before the views are complete; a rebuild settles them, and the
             // answer now carries the count, so a second zero comes with its number.
@@ -816,7 +816,7 @@ namespace Riscontro.Disegno
                           "Ho provato: " + string.Join(", ", provati) + ". " +
                           // Up to library 0.141.0 the tail said the import never works out
                           // of process (18/9/2026). It does since 26/9/2026 (the bench case
-                          // le_quote_arrivano_dal_modello), and with the fallbacks now held
+                          // dimensions_come_from_the_model), and with the fallbacks now held
                           // to the MARKED masks (N9) this refusal is what a part gets when
                           // its marks do not reach the import: the N9 probe of Z-C21.3,
                           // 28/9/2026, marked two sketch dimensions and the MARKED mask
@@ -866,7 +866,7 @@ namespace Riscontro.Disegno
         /// dimensions». Up to library 0.141.0 the bridge passed false with the
         /// comment «never duplicates», that is the opposite. Measured by
         /// Z-C21.3 probe_duplicate_dims (28/9/2026) on the plate of the bench
-        /// case le_quote_arrivano_dal_modello (120 x 80 x 10, hole Ø10 through,
+        /// case dimensions_come_from_the_model (120 x 80 x 10, hole Ø10 through,
         /// three standard views): false gave 7 dimensions with 3 of them twice
         /// (the 120 in the front and top views, the depth 10 in the front and
         /// side views, the 80 in the top and side views); true gave 4, none
@@ -995,7 +995,7 @@ namespace Riscontro.Disegno
             // three-sheet drawing that this operation exists to prevent.
             //
             // BUT THE ANSWER LIES (full bench on 0.145.0, 30/9/2026): SetSheets
-            // answered false in la_tavola_esce_in_pdf and le_quote_arrivano_nel_pdf,
+            // answered false in drawing_exports_to_pdf and dimensions_arrive_in_the_pdf,
             // whose PDFs came out right in every run up to 0.144.0, when the answer
             // was dropped. So a false is not a refusal: it is said in the answer
             // («set_sheets_answer»), and the page count read from the written file

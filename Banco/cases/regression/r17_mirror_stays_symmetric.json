@@ -1,33 +1,33 @@
 {
-  "nome": "r17_specchia_resta_simmetrico",
-  "famiglia": "regressione",
-  "perche": "Un foro specchiato sul piano destro, e la piastra si allarga. Lo specchio e' l'unica costruzione che dichiara la simmetria invece di ripeterla: se dopo la modifica i due fori non stanno piu' a x uguale e opposto, la simmetria l'ha persa il sistema, non il progettista.",
-  "intento": "ancorato_a_assoluto",
-  "perche_intento": "i due fori stanno a x = +/-60 rispetto al piano destro, che sta a x = 0. Allungare la piastra non li sposta: lo specchio garantisce solo che restino simmetrici, e qui si misura proprio quello.",
-  "costruisci": [
+  "name": "r17_mirror_stays_symmetric",
+  "family": "regression",
+  "why": "Un foro specchiato sul piano destro, e la piastra si allarga. Lo specchio e' l'unica costruzione che dichiara la simmetria invece di ripeterla: se dopo la modifica i due fori non stanno piu' a x uguale e opposto, la simmetria l'ha persa il sistema, non il progettista.",
+  "intent": "ancorato_a_assoluto",
+  "intent_why": "i due fori stanno a x = +/-60 rispetto al piano destro, che sta a x = 0. Allungare la piastra non li sposta: lo specchio garantisce solo che restino simmetrici, e qui si misura proprio quello.",
+  "build": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+      "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
                      "spessore_mm": 20, "centrato": true }
     },
     {
-      "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 60, "y_mm": 25,
+      "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 60, "y_mm": 25,
                      "diametro_mm": 12, "passante": true }
     },
     {
-      "operazione": "specchia",
-      "argomenti": { "feature_uid": "@feature(tipo=ICE,n=1)", "piano": "destro" }
+      "operation": "specchia",
+      "arguments": { "feature_uid": "@feature(tipo=ICE,n=1)", "piano": "destro" }
     }
   ],
-  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 300 },
-  "dopo": [
-    { "cosa": "ingombro_mm", "uguale": [300, 120, 20] },
-    { "cosa": "centri_x_mm", "come_prima": true,
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
-    { "cosa": "centri_y_mm", "come_prima": true,
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "come sopra" }
+  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 300 },
+  "after": [
+    { "what": "ingombro_mm", "equal_to": [300, 120, 20] },
+    { "what": "centri_x_mm", "same_as_before": true,
+      "tolerance": 0.05,
+      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+    { "what": "centri_y_mm", "same_as_before": true,
+      "tolerance": 0.05,
+      "tolerance_why": "come sopra" }
   ]
 }

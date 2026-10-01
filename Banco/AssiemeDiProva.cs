@@ -18,7 +18,7 @@ namespace ProvaSaldatura
     ///
     /// Fino al 16 settembre 2026 `NuovaParte()` era l'UNICO modo in cui il
     /// banco preparava un documento, e usava `swDefaultTemplatePart`. Nessun
-    /// `NuovoAssieme`, e `"parte": { "nuova": true }` era l'unica forma di
+    /// `NuovoAssieme`, e `"start": { "new_part": true }` era l'unica forma di
     /// preparazione che i 270 casi sapessero esprimere.
     ///
     /// Conseguenza: **nessuna operazione di assieme poteva avere un caso.** Si
@@ -86,10 +86,10 @@ namespace ProvaSaldatura
 
             var caso = new Dictionary<string, object>
             {
-                ["nome"] = "ga0_assieme_di_due",
-                ["assieme"] = new Dictionary<string, object>
+                ["name"] = "ga0_assieme_di_due",
+                ["assembly"] = new Dictionary<string, object>
                 {
-                    ["componenti"] = new List<object>
+                    ["components"] = new List<object>
                     {
                         UnaPiastra("base", 100, 60, 10, null),
                         UnaPiastra("coperchio", 100, 60, 4, new object[] { 0.0, 0.0, 20.0 }),
@@ -137,13 +137,13 @@ namespace ProvaSaldatura
         {
             var c = new Dictionary<string, object>
             {
-                ["nome"] = nome,
-                ["passi"] = new List<object>
+                ["name"] = nome,
+                ["steps"] = new List<object>
                 {
                     new Dictionary<string, object>
                     {
-                        ["operazione"] = "estrudi_rettangolo",
-                        ["argomenti"] = new Dictionary<string, object>
+                        ["operation"] = "estrudi_rettangolo",
+                        ["arguments"] = new Dictionary<string, object>
                         {
                             ["piano"] = "superiore",
                             ["lunghezza_mm"] = lunghezza,
@@ -154,7 +154,7 @@ namespace ProvaSaldatura
                     },
                 },
             };
-            if (posizione != null) c["posizione_mm"] = posizione;
+            if (posizione != null) c["position_mm"] = posizione;
             return c;
         }
 
@@ -185,7 +185,7 @@ namespace ProvaSaldatura
             /// ── PERCHE' NON BASTA IL NOME ───────────────────────────────
             ///
             /// Una tavola nasce come `Disegno38 - Foglio1` e viene salvata
-            /// dopo, diventando `la_tavola_si_quota - Foglio1`. Il banco
+            /// dopo, diventando `drawing_dimensions_itself - Foglio1`. Il banco
             /// segnava il titolo **nel momento in cui il documento
             /// compariva**, cioe' quello vecchio, e a fine caso
             /// `CloseDoc("Disegno38 - Foglio1")` non chiudeva niente **e non
@@ -211,8 +211,8 @@ namespace ProvaSaldatura
             string nome, Dictionary<string, object> caso)
         {
             var fuori = new Preparazione();
-            var assieme = caso != null && caso.ContainsKey("assieme")
-                ? caso["assieme"] as Dictionary<string, object>
+            var assieme = caso != null && caso.ContainsKey("assembly")
+                ? caso["assembly"] as Dictionary<string, object>
                 : null;
 
             if (assieme == null)
@@ -221,10 +221,10 @@ namespace ProvaSaldatura
                 return fuori;
             }
 
-            var componenti = Elenco(assieme, "componenti");
+            var componenti = Elenco(assieme, "components");
             if (componenti == null || componenti.Count == 0)
             {
-                ErroreDiBanco(nome, "«assieme» non porta nessun componente: un " +
+                ErroreDiBanco(nome, "«assembly» non porta nessun componente: un " +
                                     "assieme vuoto non prova niente");
                 return null;
             }
@@ -251,11 +251,11 @@ namespace ProvaSaldatura
             {
                 var one = componenti[i] as Dictionary<string, object>;
                 if (one == null) continue;   // said by the loop below, with its number
-                string itsName = Testo(one, "nome") ?? ("comp" + (i + 1));
+                string itsName = Testo(one, "name") ?? ("comp" + (i + 1));
                 bool envelope, hidden;
                 if (!FlagOf(nome, one, "envelope", out envelope) || !FlagOf(nome, one, "hidden", out hidden))
                     return null;
-                bool isSubassembly = Elenco(one, "componenti") != null;
+                bool isSubassembly = Elenco(one, "components") != null;
                 if (envelope && isSubassembly)
                 {
                     ErroreDiBanco(nome, "«envelope» on the sub-assembly «" + itsName + "»: an envelope was " +
@@ -264,14 +264,14 @@ namespace ProvaSaldatura
                 }
                 if ((envelope || hidden) && !DaInserire(one))
                 {
-                    ErroreDiBanco(nome, "«" + itsName + "» asks «envelope» or «hidden» with «da_inserire» false: " +
+                    ErroreDiBanco(nome, "«" + itsName + "» asks «envelope» or «hidden» with «to_insert» false: " +
                                         "the preparation does not insert it, so it cannot make it either");
                     return null;
                 }
                 if (reopenLightweight && !DaInserire(one))
                 {
                     ErroreDiBanco(nome, "«reopen_lightweight» closes every document of the components, and «" +
-                                        itsName + "» («da_inserire» false) is there to be inserted by a step, " +
+                                        itsName + "» («to_insert» false) is there to be inserted by a step, " +
                                         "which needs its document open");
                     return null;
                 }
@@ -305,10 +305,10 @@ namespace ProvaSaldatura
                     ErroreDiBanco(nome, "il componente " + (i + 1) + " non e' un oggetto");
                     return null;
                 }
-                string suoNome = Testo(c, "nome") ?? ("comp" + (i + 1));
+                string suoNome = Testo(c, "name") ?? ("comp" + (i + 1));
                 // A component with a list of components of its own is a
                 // SUB-ASSEMBLY (Z-C21.5, L11-3/L11-5): see BuildSubassembly.
-                var children = Elenco(c, "componenti");
+                var children = Elenco(c, "components");
                 string percorso = Path.Combine(
                     Attese.Lavoro, NomeDiFile(nome) + "_" + NomeDiFile(suoNome) +
                                    (children != null ? ".sldasm" : ".sldprt"));
@@ -917,7 +917,7 @@ namespace ProvaSaldatura
                     return c;
             }
             ErroreDiBanco(nome, askedBy + " names «" + componentName + "», and no component of the assembly " +
-                                "uses its file (it has «da_inserire» false?)");
+                                "uses its file (it has «to_insert» false?)");
             return null;
         }
 
@@ -1006,10 +1006,10 @@ namespace ProvaSaldatura
         private static bool CostruisciESalva(
             string etichetta, Dictionary<string, object> componente, string percorso)
         {
-            var passi = Elenco(componente, "passi");
+            var passi = Elenco(componente, "steps");
             if (passi == null || passi.Count == 0)
             {
-                ErroreDiBanco(etichetta, "manca «passi»: un componente senza " +
+                ErroreDiBanco(etichetta, "manca «steps»: un componente senza " +
                                          "lavorazioni sarebbe un documento vuoto");
                 return false;
             }
@@ -1027,14 +1027,14 @@ namespace ProvaSaldatura
                         ErroreDiBanco(etichetta, "il passo " + (i + 1) + " non e' un oggetto");
                         return false;
                     }
-                    string operazione = Testo(passo, "operazione");
+                    string operazione = Testo(passo, "operation");
                     if (operazione == null)
                     {
-                        ErroreDiBanco(etichetta, "al passo " + (i + 1) + " manca «operazione»");
+                        ErroreDiBanco(etichetta, "al passo " + (i + 1) + " manca «operation»");
                         return false;
                     }
                     object grezzi;
-                    passo.TryGetValue("argomenti", out grezzi);
+                    passo.TryGetValue("arguments", out grezzi);
                     var argomenti = Risolvi(grezzi, stato) as Dictionary<string, object>
                                     ?? new Dictionary<string, object>();
 
@@ -1107,7 +1107,7 @@ namespace ProvaSaldatura
         /// component of the case with a list of components of its own instead
         /// of steps. Each child is a part built and saved like any component, as
         /// «&lt;stem&gt;_&lt;child&gt;.sldprt», inserted into a new assembly at its
-        /// «posizione_mm», and that assembly is saved as
+        /// «position_mm», and that assembly is saved as
         /// <paramref name="path"/> («&lt;stem&gt;.sldasm»), which the caller then
         /// registers and inserts like a part. Without it no case could hold a
         /// component inside a sub-assembly, and fissa_componente and
@@ -1123,7 +1123,7 @@ namespace ProvaSaldatura
         /// sub-assembly is refused, no case needs it yet.
         /// Two children with the same name are two instances of ONE part
         /// (Z-C21.11): it is built from the first, and the second brings only
-        /// its «posizione_mm».
+        /// its «position_mm».
         /// </summary>
         private static bool BuildSubassembly(
             string label, string stem, List<object> children, string path, Preparazione fuori)
@@ -1145,7 +1145,7 @@ namespace ProvaSaldatura
                     ErroreDiBanco(label, "component " + (k + 1) + " is not an object");
                     return false;
                 }
-                if (Elenco(child, "componenti") != null)
+                if (Elenco(child, "components") != null)
                 {
                     ErroreDiBanco(label, "a sub-assembly inside a sub-assembly is not supported by the bench");
                     return false;
@@ -1160,18 +1160,18 @@ namespace ProvaSaldatura
                                          (k + 1) + " is inside a sub-assembly");
                     return false;
                 }
-                string childName = Testo(child, "nome") ?? ("comp" + (k + 1));
+                string childName = Testo(child, "name") ?? ("comp" + (k + 1));
                 string childPath = Path.Combine(Attese.Lavoro, stem + "_" + NomeDiFile(childName) + ".sldprt");
                 // A NAME ALREADY BUILT HERE IS ONE MORE INSTANCE OF THE SAME PART
                 // (Z-C21.11, finding M23): the indented BOM of «A + 3 x S(2 B) + B»
                 // needs two instances of ONE file inside S, and the file name comes
                 // from the child name. The part is built and registered once, from
                 // the first child with that name; a later one brings only its
-                // «posizione_mm», and steps of its own are refused rather than
+                // «position_mm», and steps of its own are refused rather than
                 // ignored.
                 if (builtHere.Contains(childName))
                 {
-                    if (Elenco(child, "passi") != null)
+                    if (Elenco(child, "steps") != null)
                     {
                         ErroreDiBanco(label, "component «" + childName + "» repeats a name already built in this " +
                                              "sub-assembly and brings steps of its own: a repeated name is one more " +
@@ -1313,7 +1313,7 @@ namespace ProvaSaldatura
         /// Il componente va inserito dalla preparazione? Assente = si'.
         ///
         /// Il valore predefinito e' `true` e non `false` di proposito: il caso
-        /// normale e' «voglio questo assieme, fammelo», e chiedere `da_inserire`
+        /// normale e' «voglio questo assieme, fammelo», e chiedere `to_insert`
         /// a ogni componente sarebbe rumore. `false` si scrive solo quando si
         /// vuole provare l'inserimento, che e' il caso raro.
         /// </summary>
@@ -1321,7 +1321,7 @@ namespace ProvaSaldatura
         {
             object v;
             if (componente == null ||
-                !componente.TryGetValue("da_inserire", out v) || v == null) return true;
+                !componente.TryGetValue("to_insert", out v) || v == null) return true;
             return Convert.ToString(v, CultureInfo.InvariantCulture)
                           .Equals("True", StringComparison.OrdinalIgnoreCase);
         }
@@ -1336,7 +1336,7 @@ namespace ProvaSaldatura
         /// e previsto prima di misurarlo: spesso 4 chiesto a z=30 → origine a
         /// (0, -2, 30); spesso 10 chiesto a 0 → (0, -5, 0).
         ///
-        /// Il campo si chiama `posizione_mm` e non `posizione`: e' la stessa
+        /// Il campo si chiama `position_mm` e non `posizione`: e' la stessa
         /// convenzione del catalogo, dove l'unita' sta nel nome perche' un
         /// numero senza unita' e' un numero che qualcuno interpretera' in
         /// metri.
@@ -1345,7 +1345,7 @@ namespace ProvaSaldatura
         {
             var v = new double[3];
             object grezzo;
-            if (componente == null || !componente.TryGetValue("posizione_mm", out grezzo) ||
+            if (componente == null || !componente.TryGetValue("position_mm", out grezzo) ||
                 grezzo == null)
                 return v;
             var lista = grezzo as System.Collections.IEnumerable;

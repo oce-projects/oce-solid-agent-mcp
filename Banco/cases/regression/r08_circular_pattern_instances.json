@@ -1,26 +1,26 @@
 {
-  "nome": "r08_ripeti_circolare_istanze",
-  "famiglia": "regressione",
-  "perche": "Sei fori ripetuti attorno all'asse di un cilindro, e il cilindro esterno cresce. La ripetizione circolare e' ancorata all'asse, non alla superficie: cambiare il diametro esterno non deve toccare ne' il numero dei fori ne' il raggio su cui stanno.",
-  "intento": "ancorato_a_assoluto",
-  "perche_intento": "la corona sta dove la mette il disegno. Ingrossare l'esterno da 100 a 140 lascia i sei fori dove sono: si misura che siano ancora sei, con gli stessi centri e lo stesso diametro.",
-  "costruisci": [
+  "name": "r08_circular_pattern_instances",
+  "family": "regression",
+  "why": "Sei fori ripetuti attorno all'asse di un cilindro, e il cilindro esterno cresce. La ripetizione circolare e' ancorata all'asse, non alla superficie: cambiare il diametro esterno non deve toccare ne' il numero dei fori ne' il raggio su cui stanno.",
+  "intent": "ancorato_a_assoluto",
+  "intent_why": "la corona sta dove la mette il disegno. Ingrossare l'esterno da 100 a 140 lascia i sei fori dove sono: si misura che siano ancora sei, con gli stessi centri e lo stesso diametro.",
+  "build": [
     {
-      "operazione": "estrudi_cerchio",
-      "argomenti": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 }
+      "operation": "estrudi_cerchio",
+      "arguments": { "piano": "frontale", "diametro_mm": 100, "altezza_mm": 50 }
     },
     {
-      "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 35, "y_mm": 0,
+      "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 35, "y_mm": 0,
                      "diametro_mm": 10, "passante": true }
     },
     {
-      "operazione": "crea_asse",
-      "argomenti": { "faccia_uid": "@faccia(area~=15707.96)" }
+      "operation": "crea_asse",
+      "arguments": { "faccia_uid": "@faccia(area~=15707.96)" }
     },
     {
-      "operazione": "ripeti_circolare",
-      "argomenti": {
+      "operation": "ripeti_circolare",
+      "arguments": {
         "feature_uid": "@feature(tipo=ICE,n=1)",
         "asse_uid": "Assi1",
         "numero_istanze": 6,
@@ -28,16 +28,16 @@
       }
     }
   ],
-  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 140 },
-  "dopo": [
-    { "cosa": "ingombro_mm", "uguale": [140, 140, 50],
-      "tolleranza": 0.02,
-      "perche_questa_tolleranza": "l'ingombro di un cilindro si legge con GetExtremePoint" },
-    { "cosa": "centri_x_mm", "come_prima": true,
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "sei fori piu' il cilindro esterno: l'asse si legge da CylinderParams, che torna metri" },
-    { "cosa": "centri_y_mm", "come_prima": true,
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "come sopra" }
+  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 140 },
+  "after": [
+    { "what": "ingombro_mm", "equal_to": [140, 140, 50],
+      "tolerance": 0.02,
+      "tolerance_why": "l'ingombro di un cilindro si legge con GetExtremePoint" },
+    { "what": "centri_x_mm", "same_as_before": true,
+      "tolerance": 0.05,
+      "tolerance_why": "sei fori piu' il cilindro esterno: l'asse si legge da CylinderParams, che torna metri" },
+    { "what": "centri_y_mm", "same_as_before": true,
+      "tolerance": 0.05,
+      "tolerance_why": "come sopra" }
   ]
 }

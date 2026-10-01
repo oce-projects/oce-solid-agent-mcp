@@ -1,31 +1,31 @@
 {
-  "nome": "r19_foro_a_venti_dal_bordo",
-  "famiglia": "regressione",
-  "perche": "VOCE E18 (a), il caso piu' comune scritto con l'operazione che adesso sa ancorare: un foro a 20 dal fianco destro e 20 dall'alto, e la piastra si allunga. `r01` dice la stessa cosa con quattro fori di `foro_guidato`, che l'ancora non la sa ancora prendere (lo schizzo dei punti lo fa HoleWizard: serve una sonda prima).",
-  "intento": "ancorato_a_bordo",
-  "perche_intento": "il foro sta a 20 mm dal fianco destro: portando la lunghezza da 200 a 260 il fianco va da x = 100 a x = 160 (la piastra cresce da una parte sola, voce E2), e il foro deve andare da x = 80 a x = 140. In y non cambia niente.",
-  "costruisci": [
+  "name": "r19_hole_twenty_from_the_border",
+  "family": "regression",
+  "why": "VOCE E18 (a), il caso piu' comune scritto con l'operazione che adesso sa ancorare: un foro a 20 dal fianco destro e 20 dall'alto, e la piastra si allunga. `r01` dice la stessa cosa con quattro fori di `foro_guidato`, che l'ancora non la sa ancora prendere (lo schizzo dei punti lo fa HoleWizard: serve una sonda prima).",
+  "intent": "ancorato_a_bordo",
+  "intent_why": "il foro sta a 20 mm dal fianco destro: portando la lunghezza da 200 a 260 il fianco va da x = 100 a x = 160 (la piastra cresce da una parte sola, voce E2), e il foro deve andare da x = 80 a x = 140. In y non cambia niente.",
+  "build": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+      "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
                      "spessore_mm": 20, "centrato": true }
     },
     {
-      "operazione": "taglio_cilindrico",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 80, "y_mm": 40,
+      "operation": "taglio_cilindrico",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 80, "y_mm": 40,
                      "diametro_mm": 10, "passante": true,
                      "ancora": { "x": { "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=20)", "distanza_mm": 20 },
                                  "y": { "spigolo_uid": "@spigolo(asse=X,y~=60,z~=20)", "distanza_mm": 20 } } }
     }
   ],
-  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
-  "dopo": [
-    { "cosa": "ingombro_mm", "uguale": [260, 120, 20] },
-    { "cosa": "centri_x_mm", "uguale": [140],
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
-    { "cosa": "centri_y_mm", "uguale": [40],
-      "tolleranza": 0.05,
-      "perche_questa_tolleranza": "come sopra" }
+  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+  "after": [
+    { "what": "ingombro_mm", "equal_to": [260, 120, 20] },
+    { "what": "centri_x_mm", "equal_to": [140],
+      "tolerance": 0.05,
+      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+    { "what": "centri_y_mm", "equal_to": [40],
+      "tolerance": 0.05,
+      "tolerance_why": "come sopra" }
   ]
 }

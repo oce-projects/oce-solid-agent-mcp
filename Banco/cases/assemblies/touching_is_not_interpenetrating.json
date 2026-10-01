@@ -1,44 +1,44 @@
 {
-  "nome": "toccarsi_non_e_compenetrarsi",
-  "famiglia": "assiemi",
-  "perche": "LA GEMELLA DI `il_coperchio_dentro_la_base`, e prova la cosa che quel caso da solo non puo' provare: che il rilevamento **non risponda uno a tutto**. Due piastre appoggiate, faccia contro faccia, sono un assieme montato bene: se risultassero compenetrate, l'operazione griderebbe su ogni assieme corretto e si imparerebbe a ignorarla.",
-  "perche_questo_caso_vale_doppio": "Prova anche che **l'argomento `toccarsi_conta` cambia davvero il verdetto**. Gli stessi due pezzi, nella stessa posizione, danno ZERO col valore di serie e UNO chiedendo che le coincidenze contino. Senza questo confronto l'argomento sarebbe una manopola che non si sa se gira: *un argomento che non cambia niente e' peggio di un argomento che non c'e', perche' chi lo mette crede di aver deciso qualcosa.*",
-  "il_conto_fatto_prima": "La base e' 120x80x10 chiesta a y=0: `AddComponent5` piazza il CENTRO dell'ingombro, quindi occupa y da -5 a +5. Il coperchio e' 120x80x4 chiesto a y=7, quindi occupa y da +5 a +9. **Si toccano esattamente sul piano y=+5 e non si sovrappongono di niente.**",
-  "e_a_cosa_serve_davvero_toccarsi_conta": "A un albero dentro un foro dello stesso diametro. Li' la coincidenza E' il problema -- quel pezzo non entra -- e col valore di serie risulterebbe a posto. Due domande diverse sullo stesso assieme, e l'operazione deve saperle fare tutte e due.",
-  "assieme": {
-    "componenti": [
-      { "nome": "base",
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+  "name": "touching_is_not_interpenetrating",
+  "family": "assemblies",
+  "why": "LA GEMELLA DI `cover_inside_base`, e prova la cosa che quel caso da solo non puo' provare: che il rilevamento **non risponda uno a tutto**. Due piastre appoggiate, faccia contro faccia, sono un assieme montato bene: se risultassero compenetrate, l'operazione griderebbe su ogni assieme corretto e si imparerebbe a ignorarla.",
+  "_why_this_case_counts_double": "Prova anche che **l'argomento `toccarsi_conta` cambia davvero il verdetto**. Gli stessi due pezzi, nella stessa posizione, danno ZERO col valore di serie e UNO chiedendo che le coincidenze contino. Senza questo confronto l'argomento sarebbe una manopola che non si sa se gira: *un argomento che non cambia niente e' peggio di un argomento che non c'e', perche' chi lo mette crede di aver deciso qualcosa.*",
+  "_the_count_done_before": "La base e' 120x80x10 chiesta a y=0: `AddComponent5` piazza il CENTRO dell'ingombro, quindi occupa y da -5 a +5. Il coperchio e' 120x80x4 chiesto a y=7, quindi occupa y da +5 a +9. **Si toccano esattamente sul piano y=+5 e non si sovrappongono di niente.**",
+  "_and_what_touching_counts_is_really_for": "A un albero dentro un foro dello stesso diametro. Li' la coincidenza E' il problema -- quel pezzo non entra -- e col valore di serie risulterebbe a posto. Due domande diverse sullo stesso assieme, e l'operazione deve saperle fare tutte e due.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
         ] },
-      { "nome": "coperchio",
-        "posizione_mm": [0, 7, 0],
-        "passi": [
-          { "operazione": "estrudi_rettangolo",
-            "argomenti": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+      { "name": "coperchio",
+        "position_mm": [0, 7, 0],
+        "steps": [
+          { "operation": "estrudi_rettangolo",
+            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
         ] }
     ]
   },
-  "passi": [
-    { "operazione": "verifica_interferenze",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.quante", "uguale": 0,
-          "perche": "**IL RIFERIMENTO, e viene prima.** Due piastre appoggiate non si compenetrano. Se questo non fosse zero, il caso gemello -- che ne pretende una -- non proverebbe niente: proverebbe solo che l'operazione risponde sempre lo stesso numero." },
-        { "cosa": "misure.toccarsi_conta", "uguale": false,
-          "perche": "con quale impostazione si e' ottenuto quello zero" },
-        { "cosa": "misure.giudizio", "contiene": ["Nessuna interferenza", "toccarsi_conta"],
-          "perche": "**UNO ZERO CHE NON SPIEGA COSA NON HA GUARDATO E' UNO ZERO PERICOLOSO.** Chi legge «nessuna interferenza» deve sapere che le facce che si toccano non erano nel conto -- altrimenti manda in produzione un albero che non entra nel suo foro credendo di aver verificato." } ] },
+  "steps": [
+    { "operation": "verifica_interferenze",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.quante", "equal_to": 0,
+          "why": "**IL RIFERIMENTO, e viene prima.** Due piastre appoggiate non si compenetrano. Se questo non fosse zero, il caso gemello -- che ne pretende una -- non proverebbe niente: proverebbe solo che l'operazione risponde sempre lo stesso numero." },
+        { "what": "misure.toccarsi_conta", "equal_to": false,
+          "why": "con quale impostazione si e' ottenuto quello zero" },
+        { "what": "misure.giudizio", "includes": ["Nessuna interferenza", "toccarsi_conta"],
+          "why": "**UNO ZERO CHE NON SPIEGA COSA NON HA GUARDATO E' UNO ZERO PERICOLOSO.** Chi legge «nessuna interferenza» deve sapere che le facce che si toccano non erano nel conto -- altrimenti manda in produzione un albero che non entra nel suo foro credendo di aver verificato." } ] },
 
-    { "operazione": "verifica_interferenze",
-      "argomenti": { "toccarsi_conta": true },
-      "attese": [
-        { "cosa": "misure.quante", "uguale": 1,
-          "perche": "**LO STESSO ASSIEME, NELLO STESSO ISTANTE, CON UN'ALTRA DOMANDA.** Zero al passo prima, uno adesso: l'argomento cambia il verdetto, ed e' l'unico modo di dimostrarlo. Due pezzi che condividono una faccia sono montati bene se sono un coperchio, e sono un pezzo che non entra se sono un albero in un foro." },
-        { "cosa": "misure.toccarsi_conta", "uguale": true,
-          "perche": "e la risposta dice con quale delle due domande e' stata data" },
-        { "cosa": "stato.quanti_componenti", "uguale": 2,
-          "perche": "due chiamate di fila e l'assieme e' ancora quello: la verifica non tocca niente, e il rilevamento viene spento dopo ogni giro. Se restasse acceso, il documento resterebbe in modalita' interferenze per chiunque lo apra dopo." } ] }
+    { "operation": "verifica_interferenze",
+      "arguments": { "toccarsi_conta": true },
+      "expect": [
+        { "what": "misure.quante", "equal_to": 1,
+          "why": "**LO STESSO ASSIEME, NELLO STESSO ISTANTE, CON UN'ALTRA DOMANDA.** Zero al passo prima, uno adesso: l'argomento cambia il verdetto, ed e' l'unico modo di dimostrarlo. Due pezzi che condividono una faccia sono montati bene se sono un coperchio, e sono un pezzo che non entra se sono un albero in un foro." },
+        { "what": "misure.toccarsi_conta", "equal_to": true,
+          "why": "e la risposta dice con quale delle due domande e' stata data" },
+        { "what": "stato.quanti_componenti", "equal_to": 2,
+          "why": "due chiamate di fila e l'assieme e' ancora quello: la verifica non tocca niente, e il rilevamento viene spento dopo ogni giro. Se restasse acceso, il documento resterebbe in modalita' interferenze per chiunque lo apra dopo." } ] }
   ]
 }

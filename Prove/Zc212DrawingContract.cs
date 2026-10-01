@@ -23,7 +23,7 @@ namespace Prove.Contratti
     /// QuoteDalModello, because members that nobody calls would keep this
     /// group green after a revert of the call sites to literals.
     ///
-    /// Finding M2 has its bench case (quote/le_quote_arrivano_dal_modello:
+    /// Finding M2 has its bench case (dimensions/dimensions_come_from_the_model:
     /// 4 dimensions, not 7); here only the constant is pinned.
     /// </summary>
     internal static class Zc212DrawingContract

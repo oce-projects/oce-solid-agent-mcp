@@ -951,7 +951,7 @@ namespace Riscontro.Disegno
             // da Accorcia/Estendi, mentre il riassunto diceva `gioco_mm: 0`. Il
             // ponte gira sullo stesso SOLIDWORKS del lavoro vero: basta che chi
             // disegna abbia usato un gioco da interfaccia perche' le chiamate dopo
-            // lo ereditino. Il caso `il_taglio_senza_gioco_non_eredita` lo guarda.
+            // lo ereditino. Il caso `cut_without_gap_does_not_inherit` lo guarda.
             //
             // THE TWO EXTENSION BITS ARE ON TOO (Z-C21.3, finding L9-4). The
             // catalogue says this operation trims the bars OR EXTENDS them until

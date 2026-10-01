@@ -45,13 +45,15 @@ namespace Prove.Contratti
     {
         /// <summary>
         /// THE FROZEN LIST ONLY SHRINKS. The free keys written before this net
-        /// existed are frozen in Banco/case-keys.json; when one is renamed with
+        /// existed were frozen in Banco/case-keys.json; when one is renamed with
         /// the prefix (or moved into the prose of the case), its entry goes and
         /// this number goes down in the same commit. A new free key without the
         /// prefix would need both files changed, which is the point.
         /// 184 pairs (context, key) on 30/9/2026: 182 distinct keys in 302 cases.
+        /// 0 since window 1 of the translation (W3.1-bis.4): every free note
+        /// starts with the prefix, and the list stays empty.
         /// </summary>
-        internal const int FrozenFreeCeiling = 184;
+        internal const int FrozenFreeCeiling = 0;
 
         private static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
 
@@ -103,18 +105,18 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// Every JSON object under Banco/casi/&lt;folder&gt;/: the regression folder
+        /// Every JSON object under Banco/cases/&lt;folder&gt;/: the regression folder
         /// with its own root, every other folder as declared cases. Arrays are
         /// plans for corri_piani.js, and the bench skips them too.
         /// </summary>
         internal static List<OneCase> CasesOfTheTree(string root, CaseKeys keys, List<string> unreadable)
         {
             var all = new List<OneCase>();
-            var folder = Path.Combine(root, "Banco", "casi");
+            var folder = Path.Combine(root, "Banco", "cases");
             if (!Directory.Exists(folder)) return all;
             foreach (var dir in Directory.GetDirectories(folder).OrderBy(x => x, StringComparer.Ordinal))
             {
-                bool regression = string.Equals(Path.GetFileName(dir), "regressione", StringComparison.Ordinal);
+                bool regression = string.Equals(Path.GetFileName(dir), "regression", StringComparison.Ordinal);
                 foreach (var f in Directory.GetFiles(dir, "*.json").OrderBy(x => x, StringComparer.Ordinal))
                 {
                     object parsed;
@@ -234,7 +236,8 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// The context decides, not the key alone: a frozen free key of the case
+        /// The context decides, not the key alone: a key of the case root (a
+        /// documented one, or a frozen free key while the list had any)
         /// is refused inside an expectation, and a key that only the regression
         /// reads (the expectation compared with the measure before the change)
         /// is refused in a declared case, where nobody would read it.
@@ -248,8 +251,11 @@ namespace Prove.Contratti
                 : cases.FirstOrDefault(c => c.Root == keys.DeclaredRoot &&
                                             ObjectsOf(keys, c.Body, c.Root, declared.ContextName).Count > 0 &&
                                             keys.Unknown(c.Body, c.Root).Count == 0);
+            // Since window 1 (W3.1-bis.4) the frozen list is empty: a documented
+            // key of the root, admitted there and nowhere below, does the same job.
+            var rootContext = keys.Contexts[keys.DeclaredRoot];
             var frozenOfTheCase = declared == null ? null
-                : keys.Contexts[keys.DeclaredRoot].FrozenFree.Where(k => !declared.Admits(k))
+                : rootContext.FrozenFree.Concat(rootContext.Documented).Where(k => !declared.Admits(k))
                       .OrderBy(k => k, StringComparer.Ordinal).FirstOrDefault();
             var onlyRegression = declared == null || regression == null ? null
                 : regression.Read.Where(k => !declared.Admits(k))
@@ -259,7 +265,7 @@ namespace Prove.Contratti
             {
                 Segna("the context decides, not the key alone", false,
                       "nothing to try it on: a declared case with an expectation " + (host != null) +
-                      ", a frozen key of the case " + (frozenOfTheCase != null) +
+                      ", a key of the case root " + (frozenOfTheCase != null) +
                       ", a key read only by the regression " + (onlyRegression != null));
                 return;
             }
@@ -275,7 +281,7 @@ namespace Prove.Contratti
             bool regressionRefused = keys.Unknown(copy, host.Root).Count == 1;
 
             Segna("the context decides, not the key alone", rootAdmits && frozenRefused && regressionRefused,
-                  "a frozen key of the case: admitted at the root " + rootAdmits + ", refused in an expectation " +
+                  "a key of the case root («" + frozenOfTheCase + "»): admitted at the root " + rootAdmits + ", refused in an expectation " +
                   frozenRefused + "; a key read only by the regression, refused in a declared expectation " +
                   regressionRefused);
         }

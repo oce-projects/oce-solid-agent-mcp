@@ -1,16 +1,16 @@
 {
-  "nome": "smusso_5_a_45",
-  "famiglia": "smusso",
-  "perche": "Uno smusso 5x5 a 45 gradi su uno spigolo lungo 100 toglie 5*5/2*100 = 1250 mm3. UN RACCORDO R5 NE TOGLIEREBBE 537: se `swChamferAngleDistance` fosse letto come un raccordo, il numero lo direbbe subito. E' l'unica differenza fra le due operazioni che si vede senza guardare il pezzo.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 120000 } ] },
-    { "operazione": "smusso_spigoli",
-      "argomenti": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 5, "angolo_gradi": 45 },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 118750,
-          "perche_esatto": " 120000 meno 5*5/2*100 e' un conto esatto, senza pi" } ] }
+  "name": "chamfer_5_at_45",
+  "family": "chamfer",
+  "why": "Uno smusso 5x5 a 45 gradi su uno spigolo lungo 100 toglie 5*5/2*100 = 1250 mm3. UN RACCORDO R5 NE TOGLIEREBBE 537: se `swChamferAngleDistance` fosse letto come un raccordo, il numero lo direbbe subito. E' l'unica differenza fra le due operazioni che si vede senza guardare il pezzo.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 20, "centrato": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 120000 } ] },
+    { "operation": "smusso_spigoli",
+      "arguments": { "spigoli_uid": ["@spigolo(asse=X,lungo~=100,n=1)"], "lato_mm": 5, "angolo_gradi": 45 },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 118750,
+          "_why_exact": " 120000 meno 5*5/2*100 e' un conto esatto, senza pi" } ] }
   ]
 }

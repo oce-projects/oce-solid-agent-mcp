@@ -1,30 +1,30 @@
 {
-  "nome": "r03_tasca_centrata",
-  "famiglia": "regressione",
-  "perche": "Una tasca al centro di una piastra che si allunga. La piastra cresce DA UNA PARTE SOLA anche se lo schizzo e' centrato (misurato nella voce E2), quindi «al centro» e «dov'era» smettono di coincidere: e' il caso in cui l'intento si vede a occhio nudo.",
-  "intento": "ancorato_a_bordo",
-  "perche_intento": "«tasca centrata» vuol dire centrata, non «a x = 0»: portando la lunghezza da 200 a 260 il pezzo va da X[-100,100] a X[-100,160], e il centro si sposta a x = 30. Una tasca che resta a x = 0 non e' piu' centrata.",
-  "perche_l_ancora": "VOCE E18 (b). Fino alla libreria 0.115.0 il `costruisci` dava la tasca a coordinate assolute (x 0, y 0), cioe' un'istruzione che un progettista non darebbe per «centrata»: il caso misurava un limite, e restava in silenzio per costruzione. Adesso il piano dice cosa intende — centrata fra i fianchi e fra il fondo e l'alto, con `ancora` — e le ATTESE sono le stesse di prima. Il vecchio modo resta provato dal gemello `r03b_tasca_resta_dov_era`.",
-  "costruisci": [
+  "name": "r03_centered_pocket",
+  "family": "regression",
+  "why": "Una tasca al centro di una piastra che si allunga. La piastra cresce DA UNA PARTE SOLA anche se lo schizzo e' centrato (misurato nella voce E2), quindi «al centro» e «dov'era» smettono di coincidere: e' il caso in cui l'intento si vede a occhio nudo.",
+  "intent": "ancorato_a_bordo",
+  "intent_why": "«tasca centrata» vuol dire centrata, non «a x = 0»: portando la lunghezza da 200 a 260 il pezzo va da X[-100,100] a X[-100,160], e il centro si sposta a x = 30. Una tasca che resta a x = 0 non e' piu' centrata.",
+  "_why_the_anchor": "VOCE E18 (b). Fino alla libreria 0.115.0 il `costruisci` dava la tasca a coordinate assolute (x 0, y 0), cioe' un'istruzione che un progettista non darebbe per «centrata»: il caso misurava un limite, e restava in silenzio per costruzione. Adesso il piano dice cosa intende — centrata fra i fianchi e fra il fondo e l'alto, con `ancora` — e le ATTESE sono le stesse di prima. Il vecchio modo resta provato dal gemello `r03b_pocket_stays_where_it_was`.",
+  "build": [
     {
-      "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
+      "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
                      "spessore_mm": 20, "centrato": true }
     },
     {
-      "operazione": "taglio_rettangolare",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
+      "operation": "taglio_rettangolare",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
                      "lunghezza_mm": 60, "larghezza_mm": 40,
                      "passante": false, "profondita_mm": 5,
                      "ancora": { "x": { "centrata_fra": [ "@spigolo(asse=Y,x~=-100,z~=20)", "@spigolo(asse=Y,x~=100,z~=20)" ] },
                                  "y": { "centrata_fra": [ "@spigolo(asse=X,y~=-60,z~=20)", "@spigolo(asse=X,y~=60,z~=20)" ] } } }
     }
   ],
-  "modifica": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
-  "dopo": [
-    { "cosa": "ingombro_mm", "uguale": [260, 120, 20] },
-    { "cosa": "centro_massa_mm", "uguale": [30, 0, 9.853],
-      "tolleranza": 0.02,
-      "perche_questa_tolleranza": "il baricentro si calcola a mano: piastra 624000 mm3 in (30,0,10) meno tasca 12000 in (30,0,17.5). Il centesimo copre l'arrotondamento di SOLIDWORKS" }
+  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+  "after": [
+    { "what": "ingombro_mm", "equal_to": [260, 120, 20] },
+    { "what": "centro_massa_mm", "equal_to": [30, 0, 9.853],
+      "tolerance": 0.02,
+      "tolerance_why": "il baricentro si calcola a mano: piastra 624000 mm3 in (30,0,10) meno tasca 12000 in (30,0,17.5). Il centesimo copre l'arrotondamento di SOLIDWORKS" }
   ]
 }

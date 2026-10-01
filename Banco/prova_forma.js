@@ -16,7 +16,7 @@
 //   1. `node raccogli_viste.js`   costruisce i cinque pezzi veri e scrive
 //                                 lo stato, che contiene il campo `forma`
 //   2. si danno le cinque frasi a un modello ISOLATO, che scrive i piani in
-//      `casi/forma/1..5.json` senza aver visto niente altro
+//      `cases/forma/1..5.json` senza aver visto niente altro
 //   3. `node prova_forma.js`      esegue i piani e confronta
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
@@ -25,15 +25,15 @@ const path = require("path");
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
 const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
-const PIANI = path.join(__dirname, "casi", "forma");
+const PIANI = path.join(__dirname, "cases", "forma");
 
 // I PEZZI VERI, presi da `Banco/viste/*-stato.json`, che e' il file che il
 // modello NON ha visto. Se manca, la misura non si puo' fare: non si inventa
 // un valore atteso.
 const VISTE = path.join(__dirname, "viste");
 const FORME = [
-  "1_piastra_forata", "2_guscio_aperto", "3_staffa_a_L",
-  "4_flangia_forata", "5_albero_a_gradini",
+  "1_drilled_plate", "2_open_shell", "3_l_bracket",
+  "4_drilled_flange", "5_stepped_shaft",
 ];
 
 // Quanto puo' sbagliare il volume e valere lo stesso: l'1%.

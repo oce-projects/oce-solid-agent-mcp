@@ -57,9 +57,14 @@ const PROBE_X2 = 'Controlli/prova-x2.js';
 const GATE = 'Controlli/lingua/detect-italian.js';
 const KEY = {
   operations: 'operazioni', families: 'famiglie', name: 'nome', family: 'famiglia',
-  steps: 'passi', build: 'costruisci', operation: 'operazione',
   when: 'quando', kind: 'tipo', similar: 'simili',
 };
+// The keys of a bench case, renamed by window 1 (W3.1-bis.4), and of a step of
+// a plan, which is the bridge's protocol (window 2). A case written with the
+// names of before the window is the wrong key each check feeds the reader.
+const CASE = { name: 'name', family: 'family', steps: 'steps', build: 'build', operation: 'operation', args: 'arguments' };
+const PLAN = { operation: 'operazione', args: 'argomenti' };
+const BEFORE = { name: 'nome', steps: 'passi', operation: 'operazione' };
 const label = (script) => path.basename(script).replace(/\.(js|ps1)$/, '');
 const q = (s) => '"' + s + '"';
 
@@ -101,17 +106,18 @@ const catalogueNoFamily = write('catalogue-no-family.json', withFirst(renamed(fi
 const catalogueEmpty = write('catalogue-empty.json', Object.assign({}, realCatalogue, { [KEY.operations]: [] }));
 const catalogueNoDeclared = write('catalogue-no-declared-families.json', Object.assign({}, realCatalogue, { [KEY.families]: {} }));
 
-const step = { [KEY.operation]: firstOp[KEY.name], argomenti: {} };
-const goodCase = { [KEY.name]: 'a_fake_case', [KEY.family]: 'x', [KEY.steps]: [step] };
+const step = { [CASE.operation]: firstOp[KEY.name], [CASE.args]: {} };
+const planStep = { [PLAN.operation]: firstOp[KEY.name], [PLAN.args]: {} };
+const goodCase = { [CASE.name]: 'a_fake_case', [CASE.family]: 'x', [CASE.steps]: [step] };
 const casesGood = path.dirname(write('cases-good/a.json', goodCase));
-write('cases-good/plan.json', [step]);
-const casesNoSteps = path.dirname(write('cases-no-steps/a.json', renamed(goodCase, KEY.steps, 'steps')));
+write('cases-good/plan.json', [planStep]);
+const casesNoSteps = path.dirname(write('cases-no-steps/a.json', renamed(goodCase, CASE.steps, BEFORE.steps)));
 const casesNoOperation = path.dirname(write('cases-no-operation/a.json',
-  Object.assign({}, goodCase, { [KEY.steps]: [renamed(step, KEY.operation, 'operation')] })));
-const casesNoName = path.dirname(write('cases-no-name/a.json', renamed(goodCase, KEY.name, 'name')));
-const casesBroken = path.dirname(write('cases-broken/a.json', '{ ' + q(KEY.name) + ': "a_fake_case", '));
+  Object.assign({}, goodCase, { [CASE.steps]: [renamed(step, CASE.operation, BEFORE.operation)] })));
+const casesNoName = path.dirname(write('cases-no-name/a.json', renamed(goodCase, CASE.name, BEFORE.name)));
+const casesBroken = path.dirname(write('cases-broken/a.json', '{ ' + q(CASE.name) + ': "a_fake_case", '));
 const casesPlanNoOperation = path.dirname(write('cases-plan-no-operation/a.json', goodCase));
-write('cases-plan-no-operation/plan.json', [renamed(step, KEY.operation, 'operation')]);
+write('cases-plan-no-operation/plan.json', [renamed(planStep, PLAN.operation, CASE.operation)]);
 const casesNone = path.join(work, 'cases-none');
 fs.mkdirSync(casesNone, { recursive: true });
 
@@ -147,11 +153,11 @@ const cases = [
   [CP + ': an operation without ' + q(KEY.name), () => node(COUNT_TESTED, ['--catalogue', catalogueNoName, '--cases', casesGood]), 1, 'operation 0: no string ' + q(KEY.name)],
   [CP + ': an empty catalogue', () => node(COUNT_TESTED, ['--catalogue', catalogueEmpty, '--cases', casesGood]), 1, 'is empty'],
   [CP + ': an unreadable catalogue', () => node(COUNT_TESTED, ['--catalogue', path.join(work, 'nothing.json'), '--cases', casesGood]), 1, 'cannot read the catalogue'],
-  [CP + ': a case without ' + q(KEY.steps) + ' or ' + q(KEY.build), () => node(COUNT_TESTED, ['--cases', casesNoSteps]), 1, 'neither ' + q(KEY.steps) + ' nor ' + q(KEY.build)],
-  [CP + ': a step without ' + q(KEY.operation), () => node(COUNT_TESTED, ['--cases', casesNoOperation]), 1, 'no string ' + q(KEY.operation)],
-  [CP + ': a case without ' + q(KEY.name), () => node(COUNT_TESTED, ['--cases', casesNoName]), 1, 'no string ' + q(KEY.name)],
+  [CP + ': a case without ' + q(CASE.steps) + ' or ' + q(CASE.build), () => node(COUNT_TESTED, ['--cases', casesNoSteps]), 1, 'neither ' + q(CASE.steps) + ' nor ' + q(CASE.build)],
+  [CP + ': a step without ' + q(CASE.operation), () => node(COUNT_TESTED, ['--cases', casesNoOperation]), 1, 'no string ' + q(CASE.operation)],
+  [CP + ': a case without ' + q(CASE.name), () => node(COUNT_TESTED, ['--cases', casesNoName]), 1, 'no string ' + q(CASE.name)],
   [CP + ': a case that does not parse', () => node(COUNT_TESTED, ['--cases', casesBroken]), 1, 'does not parse'],
-  [CP + ': a plan step without ' + q(KEY.operation), () => node(COUNT_TESTED, ['--cases', casesPlanNoOperation]), 1, 'step 1: no string ' + q(KEY.operation)],
+  [CP + ': a plan step without ' + q(PLAN.operation), () => node(COUNT_TESTED, ['--cases', casesPlanNoOperation]), 1, 'step 1: no string ' + q(PLAN.operation)],
   [CP + ': an empty folder of cases', () => node(COUNT_TESTED, ['--cases', casesNone]), 1, 'no case at all'],
   [CP + ': a bench folder without C# sources', () => node(COUNT_TESTED, ['--bench', casesNone]), 1, 'no C# source of the bench'],
   [CC + ': the real catalogue passes the key check', () => pwsh(CATALOGUE_CHECK, [realCataloguePath]), 'any', /the catalogue has the expected keys .*, [1-9][0-9]* declared families/],

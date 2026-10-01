@@ -1,18 +1,18 @@
 {
-  "nome": "lim_asola_tonda",
-  "famiglia": "asola",
-  "perche": "Lunga quanto larga non e' un'asola, e' un foro tondo. Chiederla cosi' quasi sempre vuol dire che uno dei due numeri e' sbagliato, e il rifiuto lo dice invece di fare un cerchio senza commentare.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 480000 } ] },
-    { "operazione": "asola",
-      "argomenti": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 20, "larghezza_mm": 20, "angolo_gradi": 0, "passante": true },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["la lunghezza si misura da", "fuori a fuori"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "asola_passante" } }
+  "name": "limit_round_slot",
+  "family": "slot",
+  "why": "Lunga quanto larga non e' un'asola, e' un foro tondo. Chiederla cosi' quasi sempre vuol dire che uno dei due numeri e' sbagliato, e il rifiuto lo dice invece di fare un cerchio senza commentare.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
+    { "operation": "asola",
+      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 20, "larghezza_mm": 20, "angolo_gradi": 0, "passante": true },
+      "must_fail": {
+        "message_includes": ["la lunghezza si misura da", "fuori a fuori"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "through_slot" } }
   ]
 }

@@ -1,16 +1,16 @@
 {
-  "nome": "lim_flangia_tratto_corto",
-  "famiglia": "lamiera",
-  "perche": "VOCE GP18. Un lato lungo 1 mm con un raggio di 2: la piega si mangia tutto il tratto dritto. SOLIDWORKS darebbe una lavorazione rossa senza dire quale lato; l'operazione lo dice prima, col numero.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "flangia_base",
-      "argomenti": { "piano": "frontale", "punti": [[0, 1], [0, 0], [50, 0]],
+  "name": "limit_flange_short_segment",
+  "family": "sheet_metal",
+  "why": "VOCE GP18. Un lato lungo 1 mm con un raggio di 2: la piega si mangia tutto il tratto dritto. SOLIDWORKS darebbe una lavorazione rossa senza dire quale lato; l'operazione lo dice prima, col numero.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "flangia_base",
+      "arguments": { "piano": "frontale", "punti": [[0, 1], [0, 0], [50, 0]],
                      "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["non resta niente di dritto"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "la_L_si_sviluppa" } }
+      "must_fail": {
+        "message_includes": ["non resta niente di dritto"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "the_L_flattens" } }
   ]
 }

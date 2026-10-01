@@ -1,8 +1,8 @@
 // Raccoglie il materiale della misura V2: per ogni forma, le IMMAGINI e lo
 // STATO TESTUALE, ognuno in un file.
 //
-//   node raccogli_viste.js                 tutte le forme in casi/viste
-//   node raccogli_viste.js casi/viste/2_guscio_aperto.json
+//   node raccogli_viste.js                 tutte le forme in cases/views
+//   node raccogli_viste.js cases/views/2_open_shell.json
 //
 // PERCHE' UN RACCOGLITORE E NON UNA PROVA. La voce V2 chiede una misura che
 // questo programma NON puo' fare: dare a un modello **solo** le immagini, poi
@@ -39,10 +39,10 @@ const SECONDA_MANO = ["frontale", "superiore", "destra"];
 const dati = process.argv.slice(2);
 const piani = dati.length
   ? dati
-  : fs.readdirSync(path.join(__dirname, "casi", "viste"))
+  : fs.readdirSync(path.join(__dirname, "cases", "views"))
       .filter(f => f.endsWith(".json"))
       .sort()
-      .map(f => path.join(__dirname, "casi", "viste", f));
+      .map(f => path.join(__dirname, "cases", "views", f));
 
 if (!piani.length) { console.error("nessun piano da raccogliere"); process.exit(2); }
 fs.mkdirSync(USCITA, { recursive: true });

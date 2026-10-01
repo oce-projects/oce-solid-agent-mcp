@@ -1,16 +1,16 @@
 {
-  "nome": "la_distinta_conta_le_barre",
-  "famiglia": "saldature",
-  "perche": "VOCE Z-C6. `distinta_taglio` e' a catalogo con `Provata = true` da sempre, e fino al 23/9/2026 **nessun giro di banco la toccava**: ne' un caso dichiarato, ne' il C# del banco, ne' un piano a mano. «Provata» li' voleva dire «qualcuno l'ha misurata una volta», non «qualcosa la controlla ogni volta» — e le due cose si leggono uguali nel file.",
+  "name": "cut_list_counts_the_bars",
+  "family": "weldments",
+  "why": "VOCE Z-C6. `distinta_taglio` e' a catalogo con `Provata = true` da sempre, e fino al 23/9/2026 **nessun giro di banco la toccava**: ne' un caso dichiarato, ne' il C# del banco, ne' un piano a mano. «Provata» li' voleva dire «qualcuno l'ha misurata una volta», non «qualcosa la controlla ogni volta» — e le due cose si leggono uguali nel file.",
 
-  "perche_conta": "E' il documento con cui si va in officina, ed e' il motivo per cui un telaio si fa con i membri strutturali invece che con le estrusioni. Una distinta che conta le barre sbagliate manda a tagliare il ferro sbagliato, e non da' nessun errore.",
+  "_why_it_counts": "E' il documento con cui si va in officina, ed e' il motivo per cui un telaio si fa con i membri strutturali invece che con le estrusioni. Una distinta che conta le barre sbagliate manda a tagliare il ferro sbagliato, e non da' nessun errore.",
 
-  "il_difetto_che_questo_caso_prende": "**E IL 26/9/2026 NE HA PRESO UNO CHE ERA SFUGGITO (voce GT2).** Il caso era verde con la distinta SBAGLIATA: una voce sola, «QUANTITY 4, LUNGHEZZA 1000» — quattro barre da 1000 dove due sono da 800. Contava i corpi, e i corpi erano giusti. Adesso chiede anche le voci: due, una da 1000 e una da 800, quattro barre in tutto. Poi: una distinta che nasce vuota, o che conta un numero di barre diverso da quelle che ci sono. `corpi_in_distinta` si legge CHIEDENDO alle cartelle della distinta quanti corpi hanno — non ricopiando il numero dei corpi del pezzo — quindi i due numeri possono divergere, ed e' proprio quando divergono che serve saperlo.",
+  "defect_caught": "**E IL 26/9/2026 NE HA PRESO UNO CHE ERA SFUGGITO (voce GT2).** Il caso era verde con la distinta SBAGLIATA: una voce sola, «QUANTITY 4, LUNGHEZZA 1000» — quattro barre da 1000 dove due sono da 800. Contava i corpi, e i corpi erano giusti. Adesso chiede anche le voci: due, una da 1000 e una da 800, quattro barre in tutto. Poi: una distinta che nasce vuota, o che conta un numero di barre diverso da quelle che ci sono. `corpi_in_distinta` si legge CHIEDENDO alle cartelle della distinta quanti corpi hanno — non ricopiando il numero dei corpi del pezzo — quindi i due numeri possono divergere, ed e' proprio quando divergono che serve saperlo.",
 
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "telaio_rettangolare",
-      "argomenti": {
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "telaio_rettangolare",
+      "arguments": {
         "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
         "configurazione": "80X80X5",
         "lunghezza_mm": 1000,
@@ -19,30 +19,30 @@
         "trattamento_angolo": "quartabuono",
         "centrato": true
       },
-      "attese": [
-        { "cosa": "corpi", "uguale": 4,
-          "perche": "quattro barre: e' il numero con cui si confronta la distinta due passi piu' sotto. Senza questa riga, «la distinta ne conta quattro» sarebbe vero anche su un telaio venuto male" } ] },
+      "expect": [
+        { "what": "corpi", "equal_to": 4,
+          "why": "quattro barre: e' il numero con cui si confronta la distinta due passi piu' sotto. Senza questa riga, «la distinta ne conta quattro» sarebbe vero anche su un telaio venuto male" } ] },
 
-    { "operazione": "distinta_taglio",
-      "argomenti": {},
-      "attese": [
-        { "cosa": "misure.corpi_in_distinta", "uguale": 4,
-          "e_questo_e_il_confronto": "**I DUE NUMERI ARRIVANO DA DUE POSTI DIVERSI.** `corpi` lo conta lo stato del pezzo; `corpi_in_distinta` lo si chiede alle cartelle della distinta, una per una. Sono uguali quando la distinta e' giusta, e quando divergono e' esattamente il momento in cui qualcuno andrebbe in officina col foglio sbagliato.",
-          "perche": "quattro barre nel pezzo, quattro voci nella distinta" },
+    { "operation": "distinta_taglio",
+      "arguments": {},
+      "expect": [
+        { "what": "misure.corpi_in_distinta", "equal_to": 4,
+          "_and_this_is_the_comparison": "**I DUE NUMERI ARRIVANO DA DUE POSTI DIVERSI.** `corpi` lo conta lo stato del pezzo; `corpi_in_distinta` lo si chiede alle cartelle della distinta, una per una. Sono uguali quando la distinta e' giusta, e quando divergono e' esattamente il momento in cui qualcuno andrebbe in officina col foglio sbagliato.",
+          "why": "quattro barre nel pezzo, quattro voci nella distinta" },
 
-        { "cosa": "misure.gia_esisteva", "uguale": false,
-          "perche": "la distinta e' NATA in questo passo, non trovata gia' fatta: senza questa riga il caso sarebbe verde anche se l'operazione non avesse fatto niente e si fosse limitata a leggere una distinta preesistente" },
+        { "what": "misure.gia_esisteva", "equal_to": false,
+          "why": "la distinta e' NATA in questo passo, non trovata gia' fatta: senza questa riga il caso sarebbe verde anche se l'operazione non avesse fatto niente e si fosse limitata a leggere una distinta preesistente" },
 
-        { "cosa": "misure.voci_distinte", "uguale": 2,
-          "perche": "due lunghezze, due voci: con la distinta di prima era 1, e il caso non lo vedeva" },
+        { "what": "misure.voci_distinte", "equal_to": 2,
+          "why": "due lunghezze, due voci: con la distinta di prima era 1, e il caso non lo vedeva" },
 
-        { "cosa": "misure.lunghezze_mm", "contiene": ["1000", "800"],
-          "perche": "le lunghezze LETTE dalle proprieta' delle voci (l'espressione LENGTH@@@), non ricalcolate: 1000 e 800, come il telaio chiesto" },
+        { "what": "misure.lunghezze_mm", "includes": ["1000", "800"],
+          "why": "le lunghezze LETTE dalle proprieta' delle voci (l'espressione LENGTH@@@), non ricalcolate: 1000 e 800, come il telaio chiesto" },
 
-        { "cosa": "misure.quantita_totale", "uguale": 4,
-          "perche": "la somma delle quantita' delle voci e' il numero delle barre: due piu' due" },
+        { "what": "misure.quantita_totale", "equal_to": 4,
+          "why": "la somma delle quantita' delle voci e' il numero delle barre: due piu' due" },
 
-        { "cosa": "misure.reso_saldato", "uguale": true,
-          "perche": "il telaio_rettangolare non mette la lavorazione «Saldatura»: e' questo passo che fa del pezzo un saldato, ed e' la ragione per cui le voci si separano" } ] }
+        { "what": "misure.reso_saldato", "equal_to": true,
+          "why": "il telaio_rettangolare non mette la lavorazione «Saldatura»: e' questo passo che fa del pezzo un saldato, ed e' la ragione per cui le voci si separano" } ] }
   ]
 }

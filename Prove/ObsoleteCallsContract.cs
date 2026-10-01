@@ -74,9 +74,9 @@ namespace Prove.Contratti
         /// </summary>
         internal static readonly Dictionary<string, MeasuredCall> Measured = new Dictionary<string, MeasuredCall>(StringComparer.Ordinal)
         {
-            ["Riscontro.Disegno/OperazioniCentrini.cs|IDrawingDoc.AddCenterMark|le_croci_di_centro_sui_fori"] =
+            ["Riscontro.Disegno/OperazioniCentrini.cs|IDrawingDoc.AddCenterMark|center_marks_on_the_holes"] =
                 new MeasuredCall(1, "tried, fails: InsertCenterMark2/3 answer True and add nothing (probes of 17/9 and 26/9/2026)"),
-            ["Riscontro.Disegno/OperazioniTondoTavola.cs|IModelDoc2.GraphicsRedraw2|l_albero_a_gradini_quotato_di_fianco"] =
+            ["Riscontro.Disegno/OperazioniTondoTavola.cs|IModelDoc2.GraphicsRedraw2|stepped_shaft_dimensioned_from_the_side"] =
                 new MeasuredCall(2, "not measured: IModelView::GraphicsRedraw never tried here; the case proves the redraw makes " +
                                     "ISilhouetteEdge.GetFace answer (N20, remeasure in Z-C21.7)"),
         };
@@ -321,7 +321,7 @@ namespace Prove.Contratti
                   noReason.Count == 0 && badMeasured.Count == 0
                       ? WhyFrozen.Count + " reasons, " + Measured.Count + " measured entries with an existing case"
                       : "no reason for " + string.Join(", ", noReason) + "; measured entries without \"tried\"/\"not measured\" " +
-                        "or with a case not in Banco/casi: " + string.Join(", ", badMeasured));
+                        "or with a case not in Banco/cases: " + string.Join(", ", badMeasured));
 
             // The undecided calls: counted, and frozen with the same ratchet.
             bool undecidedOk = frozenUndecided != null && v.UndecidedRaised.Count == 0 && v.UndecidedStale.Count == 0;
@@ -382,7 +382,7 @@ namespace Prove.Contratti
             // 4. A new call under an OBSOLETE-MEASURED comment citing an existing case.
             Inject(list, sources, cases, frozenUndecided, baseHits, baseUndecided, equations, "a new call under a marker citing a real case",
                    "IModelDoc2 modello", true,
-                   "            // OBSOLETE-MEASURED: tre_fori_passo_40\n            var injected = modello.GetActiveConfiguration();",
+                   "            // OBSOLETE-MEASURED: three_holes_pitch_40\n            var injected = modello.GetActiveConfiguration();",
                    (before, after, line) => after.Violations.Count == 1 && after.Violations[0].Contains("not in the Measured list") &&
                                             Names(after.Violations[0], "GetActiveConfiguration", equations, line));
 
@@ -463,7 +463,7 @@ namespace Prove.Contratti
         private static HashSet<string> BankCases()
         {
             var cases = new HashSet<string>(StringComparer.Ordinal);
-            var dir = Path.Combine(Radice(), "Banco", "casi");
+            var dir = Path.Combine(Radice(), "Banco", "cases");
             if (Directory.Exists(dir))
                 foreach (var f in Directory.GetFiles(dir, "*.json", SearchOption.AllDirectories))
                     cases.Add(Path.GetFileNameWithoutExtension(f));
@@ -535,7 +535,7 @@ namespace Prove.Contratti
                 if (h.MeasuredCase == null || !cases.Contains(h.MeasuredCase))
                 {
                     v.Violations.Add(h.File + ":" + h.Line + " " + h.Member + " — " + ObsoleteCallScanner.MeasuredMarker +
-                                     " cites " + (h.MeasuredCase == null ? "no case" : "«" + h.MeasuredCase + "», which is not in Banco/casi"));
+                                     " cites " + (h.MeasuredCase == null ? "no case" : "«" + h.MeasuredCase + "», which is not in Banco/cases"));
                     continue;
                 }
                 measuredHits.Add(h);

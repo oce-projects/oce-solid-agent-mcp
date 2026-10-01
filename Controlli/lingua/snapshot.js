@@ -51,7 +51,7 @@
 //                constant text contains it, ignoring case as the bench does.
 //                An assertion with no candidate is listed.
 //    tests       the identity, label, group and outcome of every test of
-//                the two reference ledgers (Banco/resoconto/tests.json of two
+//                the two reference ledgers (Banco/report/tests.json of two
 //                full bench runs), and per case the outcome and the
 //                expectations attempted and checked in each; the unstable
 //                cases and tests.
@@ -88,6 +88,11 @@
 //    --skip-script <id>    record that registry entry as skipped by the caller
 //    --with-probes         also run the probes the registry marks "probe"
 //    --show <n>            differences printed per category (default 25)
+//    --window <n>          compare: the snapshot was taken before rename window
+//                          <n> of W3.1-bis; its case names, case folders and
+//                          case keys are read through that window's renames
+//                          (only 1, Controlli/lingua/window-1-cases.js), so a
+//                          renamed case is the same case, not one gone and one new
 //
 //  EXIT CODES
 //    0  take: the snapshot is written; compare: no difference anywhere
@@ -121,8 +126,8 @@ const LAYOUT = {
   projects: ['Riscontro.Disegno/Riscontro.Disegno.csproj', 'Oce.Solid.Agent.csproj'],
   bridge: 'bin/oce-solid-agent-mcp.exe',
   caseKeys: 'Banco/case-keys.json',
-  cases: 'Banco/casi',
-  regressionFolder: 'regressione',
+  cases: 'Banco/cases',
+  regressionFolder: 'regression',
   registry: path.relative(ROOT_DEFAULT, path.join(__dirname, 'snapshot-scripts.json')).replace(/\\/g, '/'),
   todo: 'note-interne/TODO.md',
   snapshots: 'note-interne/lingua/snapshots',
@@ -137,15 +142,17 @@ const CALLEES = ['Fallito'];
 const CATALOGUE_KEYS = { operations: 'operazioni', families: 'famiglie', name: 'nome' };
 
 // The textual assertions, by context of Banco/case-keys.json (renamed in
-// W3.1-bis.4 together with the cases): key -> kind.
+// W3.1-bis.4 together with the cases): key -> kind. The kinds keep the names
+// of the snapshot of 1/10/2026, so that a snapshot taken before the window
+// and a tree after it name the same kind the same way.
 const ASSERTION_KEYS = {
-  must_fail: { il_messaggio_contiene: 'message_contains' },
-  expectation: { contiene: 'contains', non_contiene: 'not_contains', uguale: 'equals' },
-  regression_expectation: { contiene: 'contains', non_contiene: 'not_contains', uguale: 'equals' },
+  must_fail: { message_includes: 'message_contains' },
+  expectation: { includes: 'contains', does_not_include: 'not_contains', equal_to: 'equals' },
+  regression_expectation: { includes: 'contains', does_not_include: 'not_contains', equal_to: 'equals' },
 };
 // Other keys of a case read for the record: the case name, the operation of a
 // step, the measure of an expectation.
-const CASE_KEYS = { name: 'nome', operation: 'operazione', what: 'cosa' };
+const CASE_KEYS = { name: 'name', operation: 'operation', what: 'what' };
 
 const SCRIPT_EXTENSIONS = ['.js', '.cjs', '.mjs', '.ps1', '.psm1', '.sh', '.cmd', '.bat', '.py'];
 const SKIP_DIRS = ['bin', 'obj', 'node_modules', '.git', '.vs'];
@@ -1222,10 +1229,41 @@ const satisfiers = (x) => (x.candidates.length ? x.candidates : x.template);
 // `file:member:sN` -> `file:member`
 const memberOfUnit = (id) => id.replace(/:s\d+$/, '');
 
-function compareAssertions(snapDir, cur, rep) {
+// The identities of a snapshot taken before a rename window, read through
+// the renames of that window (--window). Only window 1 (W3.1-bis.4, the bench
+// cases) is known: the case folders, the case names and the case keys of the
+// name map, with the script of the window doing the reading, so that this
+// comparison and the window cannot disagree on a name.
+function windowRenames(n, root) {
+  if (n === null) return null;
+  if (n !== 1) cannot('--window: only window 1 (W3.1-bis.4, the bench cases) is known');
+  const w = require('./window-1-cases.js');
+  const d = w.direction(w.loadMap(root), false);
+  const text = w.textRewriter(d);
+  const name = (s) => (typeof s === 'string' && d.name.has(s) ? d.name.get(s) : s);
+  const folder = (s) => (d.caseFolders.includes(s) ? d.folder.get(s) : s);
+  const key = (k) => (d.key.has(k) ? d.key.get(k) : k);
+  const caseKey = (k) => { const i = k.indexOf('/'); return i < 0 ? k : folder(k.slice(0, i)) + '/' + name(k.slice(i + 1)); };
+  const keyPath = (p) => (typeof p === 'string' ? p.split('.').map(s => s.replace(/^[^[]+/, key)).join('.') : p);
+  return {
+    window: n,
+    caseKey, name, folder,
+    testId: (id) => id.replace(/@([^#]+)/, (m, s) => '@' + name(s)),
+    assertion: (x) => {
+      const c = caseKey(x.case);
+      const p = keyPath(x.path);
+      return Object.assign({}, x, { id: c + '#' + p, case: c, case_name: name(x.case_name), path: p, step: keyPath(x.step),
+        key: key(x.key), value: typeof x.value === 'string' ? text(x.value) : x.value });
+    },
+  };
+}
+
+function compareAssertions(snapDir, cur, rep, ren) {
   const old = readJson(path.join(snapDir, 'assertions.json'), 'the assertions section of the snapshot');
+  if (ren) old.assertions = old.assertions.map(ren.assertion);
   const oldUnits = new Map(readJson(path.join(snapDir, 'strings.json'), 'the string units of the snapshot').units.map(u => [u.id, u]));
   rep.section('textual assertions of the cases, and the literals that satisfy them', 'assertions');
+  if (ren) rep.line('the assertions of the snapshot are read through the renames of window ' + ren.window + ' (--window)');
   const oldBy = new Map(old.assertions.map(x => [x.id, x]));
   const curBy = new Map(cur.list.map(x => [x.id, x]));
   const textOf = (u) => clip(renderParts((oldUnits.get(u) || { parts: ['?'] }).parts), 90);
@@ -1349,10 +1387,21 @@ function testsSection(fileA, fileB) {
   };
 }
 
-function compareTests(snapDir, ledgerFile, rep) {
+function compareTests(snapDir, ledgerFile, rep, ren) {
   const old = readJson(path.join(snapDir, 'tests.json'), 'the tests section of the snapshot');
+  if (ren) {
+    const tests = {};
+    for (const [id, x] of Object.entries(old.tests)) tests[ren.testId(id)] = Object.assign({}, x, { subject: ren.name(x.subject) });
+    const cases = {};
+    for (const [k, x] of Object.entries(old.cases)) cases[ren.caseKey(k)] = Object.assign({}, x, { name: ren.name(x.name), folder: ren.folder(x.folder) });
+    old.tests = tests;
+    old.cases = cases;
+    old.unstable_cases = old.unstable_cases.map(u => Object.assign({}, u, { case: ren.caseKey(u.case), name: ren.name(u.name) }));
+    old.unstable_tests = old.unstable_tests.map(u => Object.assign({}, u, { id: ren.testId(u.id) }));
+  }
   const N = readLedger(ledgerFile);
   rep.section('bench tests by file:method:ordinal, and expectations per case (ledger ' + N.meta.file + ', mode ' + N.meta.mode + ', library ' + N.meta.library + ')', 'tests');
+  if (ren) rep.line('the tests and cases of the snapshot are read through the renames of window ' + ren.window + ' (--window)');
   if (old.same_ledger_twice) rep.line('NOTE: the snapshot was taken with one run given twice; its unstable list is empty by construction');
   // A run that is not full, or whose tests are not all named, is not the
   // run a step is judged by: a difference in itself, even when every test
@@ -1834,7 +1883,7 @@ async function compare(snapDir, opts) {
   // before the sources are scanned and the scripts run
   const on = {};
   for (const s of SECTIONS) on[s] = want(s);
-  if (on.tests && !opts.ledgers.length) { rep.skip('tests', 'no ledger given (--ledger <Banco/resoconto/tests.json of the new run>)'); on.tests = false; }
+  if (on.tests && !opts.ledgers.length) { rep.skip('tests', 'no ledger given (--ledger <Banco/report/tests.json of the new run>)'); on.tests = false; }
   if (opts.ledgers.length > 1) cannot('compare takes one --ledger, the new run');
   for (const s of SECTIONS) {
     if (!on[s]) continue;
@@ -1855,9 +1904,9 @@ async function compare(snapDir, opts) {
   if (on.literals || on.assertions) {
     const scan = scanSources(root);
     if (on.literals) compareLiterals(snapDir, scan, rep);
-    if (on.assertions) compareAssertions(snapDir, assertionsSection(root, scan), rep);
+    if (on.assertions) compareAssertions(snapDir, assertionsSection(root, scan), rep, windowRenames(opts.window, root));
   }
-  if (on.tests) compareTests(snapDir, opts.ledgers[0], rep);
+  if (on.tests) compareTests(snapDir, opts.ledgers[0], rep, windowRenames(opts.window, root));
   if (on.tools) compareTools(snapDir, await toolsOf(root, opts), rep);
   if (reg) {
     console.log('');
@@ -1889,7 +1938,7 @@ async function compare(snapDir, opts) {
 // the fake cases and of the fake catalogue are the protocol names of today,
 // taken from the tables above.
 const FAKE = {
-  steps: 'passi', expectations: 'attese', mustFail: 'deve_fallire', why: 'perche', args: 'argomenti',
+  steps: 'steps', expectations: 'expect', mustFail: 'must_fail', why: 'why', args: 'arguments',
 };
 
 function fakeTree(dir, change) {
@@ -1946,7 +1995,7 @@ function fakeTree(dir, change) {
       step: ctx([CASE_KEYS.operation, FAKE.args, FAKE.expectations, FAKE.mustFail], { [FAKE.expectations]: 'expectation', [FAKE.mustFail]: 'must_fail' }),
       expectation: ctx([CASE_KEYS.what].concat(Object.keys(ASSERTION_KEYS.expectation))),
       must_fail: ctx(Object.keys(ASSERTION_KEYS.must_fail)),
-      regression_case: ctx(['costruisci'], {}),
+      regression_case: ctx(['build'], {}),
       regression_expectation: ctx(Object.keys(ASSERTION_KEYS.regression_expectation)),
     },
   });
@@ -2052,12 +2101,12 @@ function selfTest() {
         1, [/DIFF changed +Riscontro\.Disegno\/Ops\.cs:MakeBlock:3/, /a literal inside the call changed/, /was «too round»/]],
       ['compare, one of the two members whose literals satisfied an assertion lost them, the other still has them: red',
         run(['compare', snap].concat(common(tree('zero-gone', { zeroGone: true })), ['--ledger', A, '--skip', 'literals'])),
-        1, [/lost 1 of the members whose literals satisfied it: blocks\/zero_width#passi\[0\]\.deve_fallire\.il_messaggio_contiene/,
+        1, [/lost 1 of the members whose literals satisfied it: blocks\/zero_width#steps\[0\]\.must_fail\.message_includes/,
           /no longer in Riscontro\.Disegno\/Ops\.cs:MakeBlock/]],
       ['compare, the literal an assertion relied on is gone: red', run(['compare', snap].concat(common(tree('note-gone', { noteGone: true })), ['--ledger', A])),
-        1, [/without a satisfying literal now: blocks\/note_case#passi\[0\]\.attese\[0\]\.contiene/]],
+        1, [/without a satisfying literal now: blocks\/note_case#steps\[0\]\.expect\[0\]\.includes/]],
       ['compare, the template an assertion relied on is gone: red', run(['compare', snap].concat(common(tree('template', { template: true })), ['--ledger', A])),
-        1, [/without a satisfying literal now: blocks\/too_wide_value#passi\[0\]\.deve_fallire\.il_messaggio_contiene \(message_contains/, /satisfied in the snapshot by 1 template\(s\)/]],
+        1, [/without a satisfying literal now: blocks\/too_wide_value#steps\[0\]\.must_fail\.message_includes \(message_contains/, /satisfied in the snapshot by 1 template\(s\)/]],
       ['compare, a changed outcome: red', run(['compare', snap].concat(common(base), ['--ledger', ledger('wide', 'wide_fails')])),
         1, [/DIFF outcome ok -> failed: Program\.cs:Cases:1@too_wide/, /case blocks\/too_wide: outcome green -> red/]],
       ['compare, a run that is not full, though no test is missing from it: red',
@@ -2128,7 +2177,7 @@ function selfTest() {
 // ── main ────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
   const a = { mode: null, snapshot: null, root: ROOT_DEFAULT, out: null, ledgers: [], todo: null, noTodo: false, bridge: null,
-    toolsFrom: 'auto', toolsTimeout: 90, skip: new Set(), skipScripts: new Set(), withProbes: false, show: 25 };
+    toolsFrom: 'auto', toolsTimeout: 90, skip: new Set(), skipScripts: new Set(), withProbes: false, show: 25, window: null };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     const next = () => { if (i + 1 >= argv.length) cannot(x + ' needs a value'); return argv[++i]; };
@@ -2145,6 +2194,7 @@ function parseArgs(argv) {
     else if (x === '--skip-script') a.skipScripts.add(next());
     else if (x === '--with-probes') a.withProbes = true;
     else if (x === '--show') a.show = parseInt(next(), 10);
+    else if (x === '--window') { a.window = parseInt(next(), 10); if (a.window !== 1) cannot('--window: only window 1 (W3.1-bis.4) is known'); }
     else if (x.startsWith('--')) cannot('unknown option ' + x);
     else if (!a.mode && (x === 'take' || x === 'compare')) a.mode = x;
     else if (a.mode === 'compare' && !a.snapshot) a.snapshot = x;

@@ -1,32 +1,32 @@
 {
-  "nome": "lim_configurazione_gia_esistente",
-  "famiglia": "proprieta",
-  "perche": "Due configurazioni con lo stesso nome non si possono fare, e SOLIDWORKS lo dice tornando NULL: nessuna eccezione, nessun motivo. Un'operazione che non guardasse il valore di ritorno direbbe «fatto», e il piano proseguirebbe credendo di aver creato la variante -- salvo poi lavorare su quella di prima, perche' la configurazione attiva non e' cambiata.",
-  "perche_non_e_un_argomento_sbagliato": "L'argomento e' sensato e scritto bene: quello che non va e' lo STATO del documento. E' il tipo di rifiuto che non si puo' prendere leggendo la chiamata -- si prende solo guardando com'e' andata.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "estrudi_rettangolo",
-      "argomenti": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
+  "name": "limit_configuration_that_already_exists",
+  "family": "document_properties",
+  "why": "Due configurazioni con lo stesso nome non si possono fare, e SOLIDWORKS lo dice tornando NULL: nessuna eccezione, nessun motivo. Un'operazione che non guardasse il valore di ritorno direbbe «fatto», e il piano proseguirebbe credendo di aver creato la variante -- salvo poi lavorare su quella di prima, perche' la configurazione attiva non e' cambiata.",
+  "_why_it_is_not_a_wrong_argument": "L'argomento e' sensato e scritto bene: quello che non va e' lo STATO del documento. E' il tipo di rifiuto che non si puo' prendere leggendo la chiamata -- si prende solo guardando com'e' andata.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "estrudi_rettangolo",
+      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
                      "spessore_mm": 20, "centrato": true },
-      "attese": [ { "cosa": "volume_mm3", "uguale": 200000 } ] },
-    { "operazione": "crea_configurazione",
-      "argomenti": { "nome": "Sinistra", "descrizione": "staffa sinistra" },
-      "attese": [
-        { "cosa": "stato.configurazione", "uguale": "Sinistra" },
-        { "cosa": "quanti_nomi_di_configurazione", "uguale": 3 } ] },
-    { "operazione": "crea_configurazione",
-      "argomenti": { "nome": "Sinistra", "descrizione": "la seconda, che non deve nascere" },
-      "deve_fallire": {
-        "il_messaggio_contiene": ["c'e' gia'", "Sinistra"],
-        "volume_invariato": true,
-        "nessuna_feature_in_piu": true,
-        "gemella": "la_configurazione_nuova_si_attiva_da_sola" } },
-    { "operazione": "attiva_configurazione",
-      "argomenti": { "nome": "Sinistra" },
-      "attese": [
-        { "cosa": "quanti_nomi_di_configurazione", "uguale": 3,
-          "perche": "DOPO IL RIFIUTO SE NE CONTANO ANCORA TRE, cioe' le due del modello piu' la nostra. Il messaggio d'errore lo scrive il nostro codice e direbbe la stessa frase anche se SOLIDWORKS avesse creato una «Sinistra» bis: questa riga guarda il documento, non il messaggio." },
-        { "cosa": "misure.era_gia_attiva", "uguale": true,
-          "perche_vero": "il rifiuto non ha spostato niente, quindi «Sinistra» e' ancora quella attiva e riattivarla non e' uno spostamento" } ] }
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "crea_configurazione",
+      "arguments": { "nome": "Sinistra", "descrizione": "staffa sinistra" },
+      "expect": [
+        { "what": "stato.configurazione", "equal_to": "Sinistra" },
+        { "what": "quanti_nomi_di_configurazione", "equal_to": 3 } ] },
+    { "operation": "crea_configurazione",
+      "arguments": { "nome": "Sinistra", "descrizione": "la seconda, che non deve nascere" },
+      "must_fail": {
+        "message_includes": ["c'e' gia'", "Sinistra"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "new_configuration_activates_itself" } },
+    { "operation": "attiva_configurazione",
+      "arguments": { "nome": "Sinistra" },
+      "expect": [
+        { "what": "quanti_nomi_di_configurazione", "equal_to": 3,
+          "why": "DOPO IL RIFIUTO SE NE CONTANO ANCORA TRE, cioe' le due del modello piu' la nostra. Il messaggio d'errore lo scrive il nostro codice e direbbe la stessa frase anche se SOLIDWORKS avesse creato una «Sinistra» bis: questa riga guarda il documento, non il messaggio." },
+        { "what": "misure.era_gia_attiva", "equal_to": true,
+          "_why_true": "il rifiuto non ha spostato niente, quindi «Sinistra» e' ancora quella attiva e riattivarla non e' uno spostamento" } ] }
   ]
 }

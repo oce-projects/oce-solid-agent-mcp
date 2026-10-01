@@ -1,16 +1,16 @@
 {
-  "nome": "albero_a_gradini",
-  "famiglia": "rivoluzione",
-  "perche": "L'albero D30 per 40 e poi D20 per 30 e' L'ESEMPIO SCRITTO NELLA DESCRIZIONE dell'operazione, quindi e' quello che il modello copiera' piu' spesso. Se sbaglia questo, sbaglia in produzione.",
-  "parte": { "nuova": true },
-  "passi": [
-    { "operazione": "rivoluzione",
-      "argomenti": { "piano": "frontale", "angolo_gradi": 360,
+  "name": "stepped_shaft",
+  "family": "revolve",
+  "why": "L'albero D30 per 40 e poi D20 per 30 e' L'ESEMPIO SCRITTO NELLA DESCRIZIONE dell'operazione, quindi e' quello che il modello copiera' piu' spesso. Se sbaglia questo, sbaglia in produzione.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "rivoluzione",
+      "arguments": { "piano": "frontale", "angolo_gradi": 360,
                      "asse": [[0, 0], [70, 0]],
                      "contorni": [[[0, 0], [0, 15], [40, 15], [40, 10], [70, 10], [70, 0]]] },
-      "attese": [
-        { "cosa": "volume_mm3", "uguale": 37699.112, "tolleranza": 0.5,
-          "perche_questa_tolleranza": "pi*15^2*40 + pi*10^2*30: il conto ha pi dentro" },
-        { "cosa": "corpi", "uguale": 1 } ] }
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 37699.112, "tolerance": 0.5,
+          "tolerance_why": "pi*15^2*40 + pi*10^2*30: il conto ha pi dentro" },
+        { "what": "corpi", "equal_to": 1 } ] }
   ]
 }
