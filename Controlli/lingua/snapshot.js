@@ -396,6 +396,8 @@ static class SnapshotTools
             {
                 if (string.IsNullOrEmpty(dir)) continue;
                 var p = Path.Combine(dir, name + ".dll");
+                // The bridge folder is a local copy (byReflection), so LoadFrom
+                // is allowed and the assemblies keep their location.
                 if (File.Exists(p)) return Assembly.LoadFrom(p);
             }
             return null;
@@ -427,6 +429,9 @@ static class SnapshotTools
 
     static int Run(string exe, string outFile)
     {
+        // A local copy of the bridge folder (byReflection): LoadFrom refuses a
+        // network drive, and an assembly loaded from its bytes has no location
+        // for the bridge to find its catalogue next to it.
         var asm = Assembly.LoadFrom(exe);
         var entry = asm.EntryPoint;
         if (entry == null) return Fail("the bridge has no entry point: " + exe);
@@ -518,7 +523,19 @@ function byReflection(bridge, timeoutS) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'snapshot-tools-'));
   try {
     const out = path.join(dir, 'tools.json');
-    const r = cp.spawnSync(helper.exe, [helper.roslyn, bridge, interopFolder(), out],
+    // THE BRIDGE IS READ FROM A LOCAL COPY OF ITS FOLDER (1/10/2026). On the
+    // network drive S: Assembly.LoadFrom refuses it, and loaded from its bytes it
+    // has no location, so its catalogue (catalogo.json next to the executable)
+    // cannot be found. The files at the top of its folder are copied to a local
+    // temporary folder, which is removed with the rest.
+    const copy = path.join(dir, 'bridge');
+    fs.mkdirSync(copy);
+    for (const n of fs.readdirSync(path.dirname(bridge))) {
+      const from = path.join(path.dirname(bridge), n);
+      if (fs.statSync(from).isFile()) fs.copyFileSync(from, path.join(copy, n));
+    }
+    const localBridge = path.join(copy, path.basename(bridge));
+    const r = cp.spawnSync(helper.exe, [helper.roslyn, localBridge, interopFolder(), out],
       { encoding: 'utf8', env: childEnv(), maxBuffer: 64 << 20, timeout: timeoutS * 1000, windowsHide: true });
     if (r.error && r.error.code === 'ETIMEDOUT') cannot('the reflection helper did not finish within ' + timeoutS + ' s (stopped)');
     if (r.status !== 0 || !fs.existsSync(out)) {
@@ -1428,8 +1445,11 @@ function loadRegistry(root) {
 function scriptsIn(root, folders) {
   let files = null;
   const listed = git(root, ['ls-files', '-z', '--'].concat(folders));
-  if (listed !== null && git(root, ['rev-parse', '--show-toplevel']) !== null &&
-      path.resolve(git(root, ['rev-parse', '--show-toplevel']).trim()) === path.resolve(root)) {
+  // The root of the work tree when git sees no prefix from it. Not a comparison
+  // of paths: on a mapped network drive (S:) git answers --show-toplevel with
+  // the UNC path of the share (//server/share/...), which never equals «S:\...» (1/10/2026).
+  const prefix = git(root, ['rev-parse', '--show-prefix']);
+  if (listed !== null && prefix !== null && prefix.trim() === '') {
     files = listed.split('\0').filter(Boolean);
   } else {
     // not a git work tree (the fake tree of the self-test): the files on disk
