@@ -151,5 +151,17 @@
   "reason": "regular expressions that read TODO.md, which stays Italian and unversioned: they are TODO protocol, not prose. Each alternative is the escaped literal found in the file",
   "signed_by": "W3.1-bis.1",
   "date": "2026-09-28"
+ },
+ {
+  "class": "transition",
+  "file": "^Controlli/lingua/name-map\\.tsv$",
+  "pattern": "(?<=^[a-z_]+\\t)[^\\t]+",
+  "applies_to": [
+   "detector",
+   "translator"
+  ],
+  "reason": "the second column of the name map (entry W3.1-bis.3): the names the rename windows .4 to .6 rename, one per row, which must stay as the tree writes them. Counted as transition, which must be 0 at the tag: the map leaves the tree before v0.1.0. Only that column is covered: the type, the English name, the places and the note of a row are checked as usual",
+  "signed_by": "W3.1-bis.3",
+  "date": "2026-10-01"
  }
 ]

@@ -4,13 +4,13 @@
  "totals": {
   "comments": 145282,
   "strings": 54452,
-  "markdown": 33942,
+  "markdown": 33943,
   "json_values": 55010,
   "identifiers": 4799,
   "json_keys": 443,
   "protocol": 2162,
   "paths": 640,
-  "transition": 0
+  "transition": 2165
  },
  "files": {
   ".gitattributes": {
@@ -1209,6 +1209,10 @@
   "Controlli/libreria-di-allora.ps1": {
    "comments": 175,
    "strings": 43
+  },
+  "Controlli/lingua/name-map.tsv": {
+   "transition": 2165,
+   "markdown": 1
   },
   "Controlli/lingua/see-it-fail.js": {
    "strings": 1

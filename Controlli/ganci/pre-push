@@ -105,8 +105,9 @@ fi
 # self-test that feeds it fake cases, one per way of failing, and expects red
 # where it must and green where it must: token-stream.js (the token streams
 # of C#, JavaScript and PowerShell), expected-keys-test.js (every JSON reader
-# of the checks exits 1 when an expected key is missing) and same-il.ps1 (the
-# disassembled assemblies). A self-test that cannot run on this machine (no
+# of the checks exits 1 when an expected key is missing), same-il.ps1 (the
+# disassembled assemblies) and name-map-extract.js (the checks of the name
+# map of W3.1-bis.3). A self-test that cannot run on this machine (no
 # Roslyn, no ildasm: exit 2) is said and does not stop the push, for the same
 # reason the interop probes are not here; one that runs and is not as
 # expected does.
@@ -130,6 +131,7 @@ net_check() {
 net_check token-stream.js node "$qui/../lingua/token-stream.js" --self-test || exit 1
 net_check expected-keys-test.js node "$qui/../expected-keys-test.js" || exit 1
 net_check same-il.ps1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$qui/../lingua/same-il.ps1" -SelfTest || exit 1
+net_check name-map-extract.js node "$qui/../lingua/name-map-extract.js" --self-test || exit 1
 
 # THE LANGUAGE GATE (entry W3.1-bis.1). The Italian in the repository may go
 # down, never up. The CI is the real gate; this runs the same script on the

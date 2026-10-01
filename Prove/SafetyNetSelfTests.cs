@@ -17,7 +17,9 @@ namespace Prove.Contratti
     /// that must exit 1 when an expected key is missing
     /// (`expected-keys-test.js`), the reading of the bridge's answers in
     /// `prova-x2.js`, and the snapshot every later step of W3.1-bis is
-    /// compared with (`snapshot.js`, item 11). Each one has a self-test that
+    /// compared with (`snapshot.js`, item 11). The name map of W3.1-bis.3
+    /// (`name-map-extract.js`) joined them: its self-test, and its check on the
+    /// real map and on a copy with three fakes. Each one has a self-test that
     /// feeds it fake cases, one per way of failing, and expects red where it
     /// must and green where it must. The pre-push hook runs three of them, but
     /// a hook is a convenience of one clone: here they run with the suite, on
@@ -79,6 +81,14 @@ namespace Prove.Contratti
                 },
                 new SelfTest
                 {
+                    Title = "name-map-extract.js: every check of the name map (a missing row, a collision, a keyword, a shape, a namespace, a name the gate reads as Italian) is red on its fake row",
+                    Exe = "node", Script = Path.Combine(root, "Controlli", "lingua", "name-map-extract.js"),
+                    Arguments = "--self-test",
+                    Summary = new Regex(@"(\d+) of (\d+) cases as expected"),
+                    Enough = m => m.Groups[1].Value == m.Groups[2].Value && int.Parse(m.Groups[2].Value) >= 27,
+                },
+                new SelfTest
+                {
                     Title = "same-il.ps1: a changed literal, instruction, resource or unmapped rename is red",
                     Exe = "powershell.exe", Script = Path.Combine(root, "Controlli", "lingua", "same-il.ps1"),
                     Arguments = "-SelfTest",
@@ -112,6 +122,71 @@ namespace Prove.Contratti
                 bool ok = code == 0 && m.Success && t.Enough(m);
                 Segna(t.Title, ok, ok ? m.Value : "exit " + code + ": " + Tail(output));
             }
+
+            NameMapCheck(root);
+        }
+
+        /// <summary>
+        /// THE NAME MAP ITSELF (entry W3.1-bis.3), not only fake rows. The
+        /// rename windows .4 to .6 are generated from
+        /// `Controlli/lingua/name-map.tsv`: an Italian name without a row is a
+        /// name no window renames, two Italian names on one English name of a
+        /// type are a rename that collides, and a keyword is a rename that does
+        /// not compile or does not validate. `--check` extracts the names from
+        /// the tree and checks the map against them; here it runs on the real
+        /// map (green), then on a copy with three fakes (red, each one named).
+        /// </summary>
+        private static void NameMapCheck(string root)
+        {
+            const string title = "name-map-extract.js --check: every Italian name of the tree has a row with an English name, none shared inside a type, none a keyword";
+            const string fakeTitle = "name-map-extract.js --check is red on a copy of the map without one row, with a collision and with a keyword";
+            string script = Path.Combine(root, "Controlli", "lingua", "name-map-extract.js");
+            string map = Path.Combine(root, "Controlli", "lingua", "name-map.tsv");
+            if (!File.Exists(script) || !File.Exists(map))
+            {
+                Segna(title, false, "missing: " + (File.Exists(script) ? map : script));
+                return;
+            }
+
+            string output;
+            int code = Run("node", Q(script) + " --check --show 5", root, out output);
+            if (code == -2) { NonQui(title, "node is not on this machine (" + output + "). Not running it is not passing."); return; }
+            if (code == 2) { NonQui(title, "the check says it cannot run here (exit 2): " + Tail(output)); return; }
+            var passed = Regex.Match(output, @"name map check: passed \((\d+) rows\)");
+            bool ok = code == 0 && passed.Success && int.Parse(passed.Groups[1].Value) >= 6000;
+            Segna(title, ok, ok ? passed.Value : "exit " + code + ": " + Tail(output));
+
+            // The fakes: three rows of the real map, changed in a temporary copy.
+            var lines = File.ReadAllLines(map, Encoding.UTF8);
+            var free = Enumerable.Range(0, lines.Length)
+                .Where(i => lines[i].StartsWith("identifier\t", StringComparison.Ordinal))
+                .Select(i => new { Index = i, Cells = lines[i].Split('\t') })
+                .Where(r => r.Cells.Length == 6 && r.Cells[2].Length > 0 && !Regex.IsMatch(r.Cells[5], @"\bmerged\b")
+                            && Regex.IsMatch(r.Cells[1], "^[a-z][A-Za-z0-9]*$"))
+                .Take(4).ToList();
+            if (free.Count < 4) { Segna(fakeTitle, false, "the map has fewer than 4 plain identifier rows to change"); return; }
+            // a: the first row is left out of the copy (an Italian name without a row)
+            free[1].Cells[2] = free[2].Cells[2];      // b: two Italian names on one English name
+            free[3].Cells[2] = "class";               // c: a C# keyword
+            foreach (var r in free) lines[r.Index] = string.Join("\t", r.Cells);
+            lines[free[0].Index] = null;
+
+            string tmp = Path.Combine(Path.GetTempPath(), "name-map-fake-" + Guid.NewGuid().ToString("N") + ".tsv");
+            try
+            {
+                File.WriteAllLines(tmp, lines.Where(l => l != null), new UTF8Encoding(false));
+                code = Run("node", Q(script) + " --check --show 5 --map " + Q(tmp), root, out output);
+            }
+            finally
+            {
+                try { File.Delete(tmp); } catch { }
+            }
+            if (code == 2) { NonQui(fakeTitle, "the check says it cannot run here (exit 2): " + Tail(output)); return; }
+            var red = new[] { "a", "b", "c" }.Where(k => output.Contains("NAME MAP CHECK " + k + ". ")).ToList();
+            bool seenRed = code == 1 && red.Count == 3 && output.Contains("NAME MAP CHECK: FAILED");
+            Segna(fakeTitle, seenRed, seenRed
+                ? "exit 1, red on a (" + free[0].Cells[1] + "), b (" + free[1].Cells[1] + "), c (" + free[3].Cells[1] + ")"
+                : "exit " + code + ", red on " + (red.Count == 0 ? "nothing" : string.Join(", ", red)) + ": " + Tail(output));
         }
 
         private static string Q(string s)
