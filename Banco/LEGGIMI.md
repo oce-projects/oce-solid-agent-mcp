@@ -152,7 +152,7 @@ aver sbagliato una riga:
 > che rilegge il numero. **Qui il controllo non c'e'**: la durata non e'
 > facilmente sorvegliabile, perche' cambia con la macchina.
 > Quello che si puo' fare, ed e' scritto qui perche' valga: **il numero che conta
-> sta in `report\last.json`, campo `durata_s`, e quello non invecchia** —
+> sta in `report\last.json`, campo `duration_s`, e quello non invecchia** —
 > questa riga e' un'indicazione, quel campo e' una misura.
 
 ```

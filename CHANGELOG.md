@@ -70,7 +70,30 @@ changed the bench loader the same way).
   rewrites the bench paths, case names and `--famiglia` values of a TODO
   outside its closed entries (the rule of `percorsi-del-todo.js`). `--step
   moves|content` splits the window in two commits, so that git sees every move
-  as an exact rename. A second run changes nothing.
+  as an exact rename. A second run changes nothing (also on its own sources: a
+  line that must name both the old and the new path carries the marker
+  `window-1: keep` and is never rewritten, and comments say "its Italian
+  folder" instead of quoting the old path).
+- `--load-proof <rev>` writes nothing: it reads the cases of `<rev>` and of the
+  tree the way `Banco/CasiDichiarati.cs` reads them (root array = plan, root
+  object = case, declared name = file name, keys walked through each tree's
+  own `case-keys.json`) and compares them position by position, with its own
+  rules rather than the rewriting code: same shape, a key changes only as the
+  map says and only where the loader walks, the loader's child context of
+  every key is the same, a string changes only by renamed names of this
+  window. It also prints how the run order changes. Seen failing on a tampered
+  case (an argument key renamed, a word added to a `why`).
+- `--check` also looks for code (`.js`, `.cs`, `.ps1`) that names an Italian
+  free note: step 5 rewrites paths and case names in the code, not free notes,
+  and `Banco/raccogli_viste.js` kept reading `_verita` after the plans of
+  `Banco/cases/views/` said `_truth` (it wrote "not declared" in silence;
+  it reads `_truth` now). Seen failing on the old reader: 2 lines.
+- `--todo` treats a `(com'era)` section (the original wording of an entry,
+  kept for reference) as history like a closed entry, and so does
+  `Controlli/percorsi-del-todo.js`: before, the F3 example of the TODO came out
+  half old and half new.
+- A case folder followed by a glob of its cases (`ponte/c2_*`) is a bench path
+  too: the folder changes, the glob stays (2 cases, found by `--load-proof`).
 - Two small tables in the script carry what the reverse run needs and the map
   does not hold, checked against the tree by every forward run:
   `ENGLISH_FROZEN_FREE` (the seven frozen free notes already written in English;
@@ -83,7 +106,7 @@ changed the bench loader the same way).
 - 304 case files and 127 plans (431 JSON files): 11161 case keys renamed by
   context, 327 free notes, 304 families, 262 declared case names, 136 twin
   references (115 of them to a renamed case), 806 case names inside values (the
-  262 names and the 115 twins among them) and 5 bench paths, 3 component files
+  262 names and the 115 twins among them) and 7 bench paths, 3 component files
   named after their case.
 - **The frozen list of free keys is empty.** The 184 frozen notes of
   30/9/2026 (182 keys) start with `_` and are admitted everywhere without being
@@ -127,6 +150,18 @@ changed the bench loader the same way).
   snapshot of 1/10/2026 matches a renamed case with itself.
 - The language gate: the `data-becomes-geometry` exception of the engraved word
   names `Banco/cases/text/` (it covered both paths for the commit of the moves).
+- **The freshness check of the bench (`ProveIlBanco`) was fooled by the window.**
+  It skipped every commit that touched `Banco/report/last.json` as "a delivery
+  with its run": the move and the key rewrite of this window touch it and run
+  nothing, and the rewrite also changes the loader, every case and 22 comments
+  of the library; and the historical deliveries, which wrote the old path, were
+  no longer recognised. A commit carries a run now only when the run's
+  timestamp (`timestamp`, or `quando` on the old path) differs between the
+  commit and its parent, read from whichever path exists. Seven new checks,
+  made to fail on purpose with the real shapes of the two commits, and one on
+  the real history (the move commit is not a delivery). The check now says
+  `ultima modifica 2026-10-01T17:49:41 (commit)` for the operations, the
+  rewrite, where it said 1ccb18a before.
 
 ### The language gate, and the one thing that grows
 
@@ -151,10 +186,11 @@ comment lines of `.github/workflows/prove.yml` (a path), and carries
   every path and every byte of the cases, plans, case keys, summary and tasks of
   1ccb18a (the tree of the snapshot of 1/10/2026 for those files). On a copy of
   the whole tree the reverse run gives back every tracked file byte for byte.
-- The cases load the same before and after: `Controlli/lingua/window-1-cases.js
-  --check`, the contracts (778 checks, the only reds the three of bench
-  freshness, as on 1ccb18a), and a comparison through the bench's own `CaseKeys`
-  by reflection, old build on the old tree against new build on the new tree.
+- The cases load the same before and after: `window-1-cases.js --load-proof
+  1ccb18a` (431 of 431 files paired, 1001 steps and 1836 expectations, 0 keys
+  changed inside values, 0 differences), `--check`, and the contracts (785
+  checks, the only reds the library version 0.148 against 0.149 and the bench
+  freshness, which needs the bench run at the merge).
 - 136 twin references in 121 cases, all resolving, before and after.
 - **The bench has NOT run on this branch** (a full bench was running on the main
   checkout): the bench and `snapshot.js compare --window 1 --ledger
@@ -162,7 +198,30 @@ comment lines of `.github/workflows/prove.yml` (a path), and carries
 - The untracked outputs of the bench stay where they are on a checkout: move
   `Banco/resoconto/*` (but `ultimo.json`, which git moves) into `Banco/report/`
   and `Banco/casi/forma/` into `Banco/cases/forma/` once, or `.gitignore` will
-  show them and `prova_forma.js` will not find its plans.
+  show them and `prova_forma.js` will not find its plans. The pieces of
+  `Banco/viste/` carry the Italian shape names as their prefix: rename it to
+  the English shape name (`1_drilled_plate`, `2_open_shell`, `3_l_bracket`,
+  `4_drilled_flange`, `5_stepped_shaft`) or run `node Banco/raccogli_viste.js`
+  again, or `prova_forma.js` finds no true piece.
+
+### What to watch in the first bench after the merge
+
+- **The run order changes for every case.** The loader sorts the files of all
+  families together by file name (`Banco/CasiDichiarati.cs`), so renaming the
+  files reshuffles the run: of the 291 cases of the loader's families, 5 keep
+  their position and 62 keep the case before them (`--load-proof` prints it).
+  `{LAVORO}` is emptied once per run, not per case, some cases share files,
+  and SOLIDWORKS carries state from one case to the next. A case that changes
+  verdict may do so for the order, not for the rename: rerun its folder alone
+  (`.\Banco\banco.ps1 -Famiglia <folder>`) before blaming the map.
+- Two cases keep the prefix `lim_` (`Banco/cases/export/lim_step_ap242_needs_the_mbd_licence.json`,
+  `lim_step_ap242_wants_a_stp_path.json`): their names were already English and
+  are not in the map, which this window does not rewrite. No code reads the
+  prefix; two `case_name` rows belong to W3.1-bis.5.
+- Open, outside this window: `Banco/tasks/*.json` still write the expectation
+  keys of before (`cosa`, `uguale`, `tolleranza`, `perche`). No code reads them
+  today; the runner of the tasks (entry Z-G9) will hand them to `Attese`, which
+  reads `what`. Point 4 left open by W3.1-bis.3: to decide before Z-G9.
 
 ### The renames (old → new)
 

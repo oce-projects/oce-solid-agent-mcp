@@ -76,9 +76,9 @@ const ALTROVE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad\/
 // un percorso non si trova, e solo uno e un difetto.
 // A name made at run time is not a file to open either: the bench writes its
 // report of a run as `Banco/report/AAAAMMGG_hhmm.md`, one per date. The TODO
-// quotes the pattern; window 1 of W3.1-bis (.4) moved it from
-// `Banco/resoconto/`, and before that the pattern was found only because a
-// closed entry quoted it first.
+// quotes the pattern; window 1 of W3.1-bis (.4) moved it from its Italian
+// folder, and before that the pattern was found only because a closed entry
+// quoted it first.
 // The pattern is the shape of the placeholder: eight capitals for the date,
 // four small letters for the time.
 const TRANSITORI = [/^piani\//, /\/[A-Z]{8}_[a-z]{4}\.[a-z]+$/];
@@ -113,6 +113,9 @@ const citazioni = new Map();   // percorso -> stato della voce
 for (const riga of righe) {
   const h = riga.match(/^#{2,4} \[([ x~])\]/);
   if (h) statoVoce = h[1];
+  // A `(com'era)` heading is the original wording of an entry, kept for
+  // reference: history, like a closed entry (the rule at the top of the TODO).
+  else if (/^#{2,4} \(com'era\)/.test(riga)) statoVoce = 'x';
   else if (/^#{1,4} /.test(riga)) statoVoce = null;   // un titolo senza casella
 
   for (const m of riga.matchAll(/`([^`\n]+)`/g)) {

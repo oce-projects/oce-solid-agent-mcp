@@ -28,7 +28,9 @@
 //       and the case names in it;
 //    5. rewrites the bench paths, the case names and the `--famiglia <folder>`
 //       values in every other tracked text file, except the files that hold
-//       Italian on purpose or history (EXCLUDED below).
+//       Italian on purpose or history (EXCLUDED below). A line that carries
+//       the marker `window-1: keep` names both paths on purpose and is left
+//       as it is, in either direction.
 //
 //  A JSON file is rewritten token by token: only the strings that change are
 //  replaced, so indentation, line ends, the trailing newline, the key order
@@ -72,6 +74,11 @@
 //        extracts HEAD into a temporary folder, runs --reverse there, and
 //        compares the bench files of <rev> (cases, plans, case keys, summary,
 //        tasks) with what came back: same paths, same bytes, same JSON.
+//    node Controlli/lingua/window-1-cases.js --load-proof <rev>
+//        writes nothing: reads the cases of <rev> and of this tree the way the
+//        bench's loader reads them and compares them position by position
+//        (shape, keys only as the map says, strings only by renamed names,
+//        the loader's child contexts); prints how the run order changes.
 //    options:
 //      --root <dir>     another tree (default: the repository of this file)
 //      --no-git         plain file renames and a walk of the file system
@@ -82,8 +89,10 @@
 //      --dry-run        say what would change, write nothing
 //
 //  EXIT CODES
-//    0  done (or nothing to do), --check clean, --reverse-proof identical
-//    1  --check found Italian names of the window, --reverse-proof differs
+//    0  done (or nothing to do), --check clean, --reverse-proof identical,
+//       --load-proof without differences
+//    1  --check found Italian names of the window, --reverse-proof or
+//       --load-proof differs
 //    2  cannot run: a bad map, a name the map does not have, a collision, a
 //       table that does not match the tree, a JSON file that does not parse
 // =============================================================================
@@ -164,7 +173,7 @@ function isObject(v) { return v !== null && typeof v === 'object' && !Array.isAr
 
 function parseArgs(argv) {
   const a = { reverse: false, root: ROOT_DEFAULT, git: true, step: 'all', dry: false, todo: null, check: false,
-    proof: null };
+    proof: null, loadProof: null };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     if (x === '--reverse') a.reverse = true;
@@ -175,6 +184,7 @@ function parseArgs(argv) {
     else if (x === '--todo') a.todo = path.resolve(argv[++i] || cannot('--todo needs a file'));
     else if (x === '--check') a.check = true;
     else if (x === '--reverse-proof') a.proof = argv[++i] || cannot('--reverse-proof needs a revision');
+    else if (x === '--load-proof') a.loadProof = argv[++i] || cannot('--load-proof needs a revision');
     else if (x === '--help' || x === '-h') { a.help = true; }
     else cannot('unknown argument ' + x);
   }
@@ -276,6 +286,9 @@ function textRewriter(d) {
   // a case folder followed by a case name: `quote/le_quote_arrivano_dal_modello`
   const folders = d.caseFolders.slice().sort((a, b) => b.length - a.length).map(escapeRx).join('|');
   const pair = new RegExp('(?<![A-Za-z0-9_\\-./\\\\])(' + folders + ')(' + SEP + ')([A-Za-z0-9_]+)(?![A-Za-z0-9_])', 'g');
+  // a case folder followed by a glob of its cases: `ponte/c2_*`, `assiemi/*`
+  // (the folder changes; the glob is a prefix of names and stays)
+  const pairGlob = new RegExp('(?<![A-Za-z0-9_\\-./\\\\])(' + folders + ')(' + SEP + ')([A-Za-z0-9_]*\\*)', 'g');
   // the option of the bench and the parameter of banco.ps1 that pick one case folder
   const famOpt = new RegExp('(--?famiglia)(\\s+)(' + folders + ')(?![A-Za-z0-9_\\-])', 'gi');
   const lone = new RegExp('`(' + tops + ')(' + SEP + ')`', 'g');
@@ -325,6 +338,7 @@ function textRewriter(d) {
       bump('paths');
       return d.folder.get(folder) + sep + d.name.get(name);
     });
+    t = t.replace(pairGlob, (all, folder, sep, glob) => { bump('paths'); return d.folder.get(folder) + sep + glob; });
     // a folder of the window alone, between backticks: `casi/`, `resoconto\`
     t = t.replace(lone, (all, top, sep) => { bump('paths'); return '`' + d.folder.get(top) + sep + '`'; });
     t = t.replace(famOpt, (all, opt, sp, folder) => {
@@ -746,7 +760,7 @@ function runWindow(opts) {
     if (buf.includes(0)) continue;
     const text = buf.toString('utf8');
     const c = {};
-    const n = rewriteText(text, c);
+    const n = rewriteKeepingMarkedLines(rewriteText, text, c);
     if (n !== text) {
       changedFiles.push(now);
       for (const [k, v] of Object.entries(c)) textCounts[k] = (textCounts[k] || 0) + v;
@@ -758,6 +772,18 @@ function runWindow(opts) {
   report(counts, opts);
   if (opts.dry) for (const f of changedFiles) say('  would rewrite ' + f);
   return 0;
+}
+
+// A line that names both the old and the new path on purpose (the contract
+// that recognises bench runs on either side of the move) carries KEEP_MARK and
+// is never rewritten, in either direction: without it a rerun of step 5 would
+// turn the old path into a second copy of the new one.
+const KEEP_MARK = 'window-1: keep';
+function rewriteKeepingMarkedLines(rewriteText, text, counts) {
+  if (!text.includes(KEEP_MARK)) return rewriteText(text, counts);
+  const kept = [];
+  const masked = text.replace(/[^\r\n]*window-1: keep[^\r\n]*/g, (line) => { kept.push(line); return '\u0001' + (kept.length - 1) + '\u0001'; });
+  return rewriteText(masked, counts).replace(/\u0001(\d+)\u0001/g, (all, i) => kept[Number(i)]);
 }
 
 // The path a file of the new tree had in the old tree (for the tables).
@@ -794,6 +820,9 @@ function runTodo(opts) {
     const l = lines[i];
     const h = l.match(/^#{2,4} \[([ x~])\]/);
     if (h) state = h[1];
+    // a `(com'era)` section is the original wording of an entry: history,
+    // like a closed entry (and so read by Controlli/percorsi-del-todo.js)
+    else if (/^#{2,4} \(com'era\)/.test(l)) state = 'x';
     else if (/^#{1,4} /.test(l)) state = null;
     if (state === 'x') { if (rewriteText(l, {}) !== l) skippedClosed++; continue; }
     const n = rewriteText(l, counts);
@@ -862,6 +891,19 @@ function runCheck(opts) {
     const fam = j[map.case_key.get('famiglia')];
     if (typeof fam === 'string' && fwd.family.has(fam)) left.push('an Italian family: ' + f + ' ' + fam);
   }
+  // The code that reads a free note by name. Step 5 rewrites paths and case
+  // names in the code, not free notes: a reader of `_verita` kept reading it
+  // after the plans said `_truth`, and wrote "not declared" in silence.
+  let codeReaders = 0;
+  const freeRx = new RegExp('(?<![A-Za-z0-9_])(' + [...fwd.free.keys()].map(escapeRx).join('|') + ')(?![A-Za-z0-9_])');
+  for (const f of files) {
+    if (!/\.(js|cs|ps1|psm1)$/i.test(f) || EXCLUDED.has(f)) continue;
+    const lines = fs.readFileSync(path.join(opts.root, f), 'utf8').split('\n');
+    lines.forEach((l, i) => {
+      const m = freeRx.exec(l);
+      if (m) { codeReaders++; left.push('code that names an Italian free note: ' + f + ':' + (i + 1) + ' ' + m[1]); }
+    });
+  }
   const sum = path.join(opts.root, BENCH, map.folder.get('resoconto'), map.file.get('ultimo.json'));
   if (fs.existsSync(sum)) {
     for (const k of Object.keys(JSON.parse(fs.readFileSync(sum, 'utf8').replace(/^﻿/, '')))) if (fwd.summary.has(k)) left.push('an Italian summary key: ' + k);
@@ -872,6 +914,7 @@ function runCheck(opts) {
   console.log('  frozen free keys:           ' + frozen);
   console.log('  Italian case keys left:     ' + italianKeys);
   console.log('  Italian free notes left:    ' + italianFree);
+  console.log('  code naming them:           ' + codeReaders);
   console.log('  names of the window left:   ' + left.length);
   for (const l of left.slice(0, 40)) console.log('    ' + l);
   void newTops;
@@ -939,12 +982,199 @@ function runReverseProof(opts) {
   return ok ? 0 : 1;
 }
 
+// ── --load-proof ─────────────────────────────────────────────────────────────
+// The cases load the same before and after, read the way the bench's loader
+// reads them (Banco/CasiDichiarati.cs): every JSON file of the case folders,
+// a root array is a plan and a root object a case, the declared name must be
+// the file's name, and the keys are walked through the contexts of each
+// tree's own Banco/case-keys.json. Old and new are compared position by
+// position, independently of the rewriting code above:
+//   - same shape (types, array lengths, number and order of keys);
+//   - a key may change only as the map says (case_key, free_case_key, or the
+//     "_" prefix of a frozen note), and only where the loader walks: inside
+//     a value the loader does not walk (arguments, selectors) no key changes;
+//   - the child context of every walked key is the same in both trees, so
+//     the loader descends the same way;
+//   - a string may change only by old names of the map (case names,
+//     families, folders, files) replaced with their new names.
+// It also prints how the run order changes (the loader sorts the files of all
+// families together by file name, so renaming files reorders the run).
+function runLoadProof(opts) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'window-1-load-'));
+  const old = path.join(tmp, 'old');
+  fs.mkdirSync(old, { recursive: true });
+  const tar = path.join(tmp, 'old.tar');
+  git(opts.root, ['archive', '--format=tar', '-o', tar, opts.loadProof]);
+  const r = cp.spawnSync('tar', ['-xf', path.join('..', 'old.tar')], { cwd: old, encoding: 'utf8' });
+  if (r.status !== 0) cannot('tar could not extract ' + opts.loadProof + ': ' + r.stderr);
+  const map = loadMap(opts.root);
+  const fwd = direction(map, false);
+  const frozenEnglish = new Set(Object.keys(ENGLISH_FROZEN_FREE).map(k => k.split('/')[1]));
+  const readJson = (root, f) => JSON.parse(fs.readFileSync(path.join(root, f), 'utf8').replace(/^﻿/, ''));
+  const ckOld = readJson(old, CASE_KEYS_REL);
+  const ckNew = readJson(opts.root, CASE_KEYS_REL);
+  const oldTops = CASE_TOPS;
+  const newTops = CASE_TOPS.map(t => map.folder.get(t));
+  const caseFilesOf = (root, tops) => listFiles(root, root === old ? false : opts.git).filter(f => { const s = f.split('/'); return s[0] === BENCH && tops.includes(s[1]) && f.endsWith('.json'); });
+  const oldFiles = caseFilesOf(old, oldTops);
+  const newFiles = new Set(caseFilesOf(opts.root, newTops));
+  // the old names that a string may carry, longest first: the case names,
+  // and the folders and files of this window only (the map also holds the
+  // names of later windows, which stay). A family is a whole value.
+  const windowFolders = new Set(TOPS.concat(CASE_FOLDERS));
+  const windowFiles = new Set(listFiles(old, false).filter(p => { const s = p.split('/'); return s[0] === BENCH && TOPS.includes(s[1]); }).map(p => p.split('/').pop()));
+  const folderAlternatives = [...windowFolders].flatMap(x => [x, map.folder.get(x)]).map(escapeRx).join('|');
+  const renames = [];
+  for (const [it, en] of map.case_name) if (it !== en) renames.push([it, en, 'case name']);
+  for (const [it, en] of map.folder) if (it !== en && windowFolders.has(it)) renames.push([it, en, 'folder']);
+  for (const [it, en] of map.file) if (it !== en && windowFiles.has(it)) renames.push([it, en, 'file']);
+  renames.sort((a, b) => b[0].length - a[0].length);
+  const stringChanges = {};
+  const problems = [];
+  let keysRenamed = 0, keysKept = 0, keysInsideValues = 0, cases = 0, plans = 0, steps = 0, expectations = 0, paired = 0;
+  const sameString = (a, b, where) => {
+    if (a === b) return;
+    if (map.case_family.get(a) === b) { stringChanges.family = (stringChanges.family || 0) + 1; return; }
+    let t = a;
+    const used = new Set();
+    for (const [it, en, kind] of renames) {
+      if (!t.includes(it)) continue;
+      // a case name is a whole word (a component file adds
+      // `_<component>` after the case name); a folder or a file only as a
+      // segment of a path
+      // (a plain word that is also a case name, NOT_A_NAME_ALONE, only in a
+      // path); a folder after a separator or starting a relative path; a
+      // file only inside a folder of this window
+      const END = '(?=[\\\\/`\'" ),.;:]|$)';
+      const rx = kind === 'case name'
+        ? new RegExp((NOT_A_NAME_ALONE.has(it) ? '(?<=[\\\\/])' : '(?<![A-Za-z0-9_])') + escapeRx(it) + '(?![A-Za-z0-9])', 'g')
+        : kind === 'folder'
+          ? new RegExp('(?:(?<=[\\\\/])|(?<![A-Za-z0-9_\\-.])(?=' + escapeRx(it) + '[\\\\/]))' + escapeRx(it) + END, 'g')
+          : new RegExp('(?<=(?:' + folderAlternatives + ')[\\\\/])' + escapeRx(it) + END, 'g');
+      const n = t.replace(rx, en);
+      if (n !== t) { t = n; used.add(kind); }
+    }
+    if (t !== b) {
+      let i = 0;
+      while (i < t.length && t[i] === b[i]) i++;
+      const from = Math.max(0, i - 30);
+      problems.push(where + ': expected «…' + t.slice(from, i + 50) + '» found «…' + b.slice(from, i + 50) + '»');
+      return;
+    }
+    for (const k of used) stringChanges[k] = (stringChanges[k] || 0) + 1;
+  };
+  const same = (a, b, where) => {   // a value the loader does not walk: keys stay
+    if (Array.isArray(a)) {
+      if (!Array.isArray(b) || a.length !== b.length) { problems.push(where + ': another array'); return; }
+      a.forEach((x, i) => same(x, b[i], where + '[' + i + ']'));
+      return;
+    }
+    if (isObject(a)) {
+      if (!isObject(b)) { problems.push(where + ': not an object any more'); return; }
+      const ka = Object.keys(a), kb = Object.keys(b);
+      if (ka.length !== kb.length) { problems.push(where + ': another number of keys'); return; }
+      ka.forEach((k, i) => { if (k !== kb[i]) { keysInsideValues++; problems.push(where + ': key ' + k + ' became ' + kb[i] + ' where the loader does not walk'); } else same(a[k], b[kb[i]], where + '.' + k); });
+      return;
+    }
+    if (typeof a === 'string' && typeof b === 'string') { sameString(a, b, where); return; }
+    if (a !== b) problems.push(where + ': ' + JSON.stringify(a) + ' became ' + JSON.stringify(b));
+  };
+  const walk = (a, b, cName, where) => {   // an object the loader walks in context cName
+    const co = ckOld.contexts[cName], cn = ckNew.contexts[cName];
+    if (!co || !cn) { problems.push(where + ': no context ' + cName); return; }
+    const ka = Object.keys(a), kb = Object.keys(b);
+    if (ka.length !== kb.length) { problems.push(where + ': another number of keys'); return; }
+    ka.forEach((k, i) => {
+      const n = kb[i];
+      const allowed = k === n || fwd.key.get(k) === n || fwd.free.get(k) === n || (frozenEnglish.has(k) && '_' + k === n);
+      if (!allowed) { problems.push(where + ': key ' + k + ' became ' + n); return; }
+      if (k === n) keysKept++; else keysRenamed++;
+      const childOld = co.children[k], childNew = cn.children[n];
+      if ((childOld || null) !== (childNew || null)) { problems.push(where + '.' + n + ': the loader would read it as ' + (childNew || 'a value') + ', it read ' + (childOld || 'a value')); return; }
+      const va = a[k], vb = b[n];
+      if (!childOld) { same(va, vb, where + '.' + n); return; }
+      if (childOld === 'step' || childOld === 'regression_step') steps += Array.isArray(va) ? va.length : 0;
+      if (childOld === 'expectation' || childOld === 'regression_expectation') expectations += Array.isArray(va) ? va.length : 1;
+      if (Array.isArray(va)) {
+        if (!Array.isArray(vb) || va.length !== vb.length) { problems.push(where + '.' + n + ': another list'); return; }
+        va.forEach((x, j) => { if (isObject(x) && isObject(vb[j])) walk(x, vb[j], childOld, where + '.' + n + '[' + j + ']'); else same(x, vb[j], where + '.' + n + '[' + j + ']'); });
+      } else if (isObject(va) && isObject(vb)) walk(va, vb, childOld, where + '.' + n);
+      else same(va, vb, where + '.' + n);
+    });
+  };
+  const nameKeyOld = 'nome', nameKeyNew = map.case_key.get('nome');
+  for (const f of oldFiles) {
+    const nf = mapRel(fwd, f);
+    if (!nf || !newFiles.has(nf)) { problems.push('no new file for ' + f + (nf ? ' (expected ' + nf + ')' : '')); continue; }
+    newFiles.delete(nf);
+    paired++;
+    const a = readJson(old, f), b = readJson(opts.root, nf);
+    if (Array.isArray(a) !== Array.isArray(b)) { problems.push(nf + ': a plan in one tree and a case in the other'); continue; }
+    if (Array.isArray(a)) {
+      plans++;
+      if (a.length !== b.length) { problems.push(nf + ': another number of plan steps'); continue; }
+      a.forEach((s, i) => {
+        if (!isObject(s) || !isObject(b[i])) { same(s, b[i], nf + '[' + i + ']'); return; }
+        const ka = Object.keys(s), kb = Object.keys(b[i]);
+        if (ka.length !== kb.length) { problems.push(nf + '[' + i + ']: another number of keys'); return; }
+        ka.forEach((k, j) => {
+          const n = kb[j];
+          if (k !== n && fwd.free.get(k) !== n) { problems.push(nf + '[' + i + ']: key ' + k + ' became ' + n); return; }
+          if (k !== n) keysRenamed++; else keysKept++;
+          same(s[k], b[i][n], nf + '[' + i + '].' + n);
+        });
+      });
+      continue;
+    }
+    cases++;
+    const isRegression = f.split('/')[2] === REGRESSION_FOLDER;
+    const root = isRegression ? ckOld.roots.regression : ckOld.roots.declared;
+    if (root !== (isRegression ? ckNew.roots.regression : ckNew.roots.declared)) problems.push(nf + ': another root context');
+    // the loader's rule: the declared name is the file's name, in both trees
+    if (!isRegression) {
+      if (a[nameKeyOld] !== path.basename(f, '.json')) problems.push(f + ': declares ' + a[nameKeyOld]);
+      if (b[nameKeyNew] !== path.basename(nf, '.json')) problems.push(nf + ': declares ' + b[nameKeyNew]);
+    }
+    walk(a, b, root, nf);
+  }
+  for (const f of newFiles) problems.push('a new file with no old one: ' + f);
+  // the run order (Banco/CasiDichiarati.cs: all families together, by file name)
+  // the list of the loader's families: the string array of CasiDichiarati.cs
+  // whose every item is a folder of the cases of that tree
+  const familiesOf = (root, top) => {
+    const s = fs.readFileSync(path.join(root, BENCH, 'CasiDichiarati.cs'), 'utf8');
+    for (const m of s.matchAll(/string\[\] \w+ =\s*\{([\s\S]*?)\};/g)) {
+      const items = [...m[1].matchAll(/"([^"]+)"/g)].map(x => x[1]);
+      if (items.length && items.every(x => fs.existsSync(path.join(root, BENCH, top, x)))) return items;
+    }
+    cannot('no list of families in ' + path.join(root, BENCH, 'CasiDichiarati.cs'));
+  };
+  const runOrder = (root, top, files) => { const fam = familiesOf(root, top); const base = (p) => p.split('/').pop(); return files.filter(p => { const s = p.split('/'); return s.length === 4 && s[1] === top && fam.includes(s[2]); }).sort((x, y) => (base(x) < base(y) ? -1 : base(x) > base(y) ? 1 : 0)); };
+  const orderOld = runOrder(old, CASE_TOPS[0], oldFiles).map(p => mapRel(fwd, p));
+  const orderNew = runOrder(opts.root, newTops[0], caseFilesOf(opts.root, newTops));
+  const posNew = new Map(orderNew.map((p, i) => [p, i]));
+  let samePos = 0, samePred = 0;
+  orderOld.forEach((p, i) => { const j = posNew.get(p); if (j === i) samePos++; if (i > 0 && j > 0 && orderNew[j - 1] === orderOld[i - 1]) samePred++; });
+  console.log('window 1, the bench cases: the cases of ' + opts.loadProof + ' against this tree, read as the loader reads them');
+  console.log('  files paired:               ' + paired + ' of ' + oldFiles.length + ' (' + cases + ' cases, ' + plans + ' plans)');
+  console.log('  steps / expectations:       ' + steps + ' / ' + expectations + ' (the same in both trees by construction of the walk)');
+  console.log('  keys renamed by the map:    ' + keysRenamed + ' (kept: ' + keysKept + ')');
+  console.log('  keys changed inside values: ' + keysInsideValues);
+  console.log('  strings changed by names:   ' + (Object.entries(stringChanges).map(([k, v]) => k + ' ' + v).join(', ') || 'none'));
+  console.log('  run order:                  ' + orderOld.length + ' cases in the families of the loader; ' + samePos + ' keep their position, ' + samePred + ' keep the case before them');
+  console.log('  differences:                ' + problems.length);
+  for (const p of problems.slice(0, 40)) console.log('    ' + p);
+  try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) { /* left */ }
+  return problems.length || orderOld.length !== orderNew.length ? 1 : 0;
+}
+
 function main() {
   let opts;
   try { opts = parseArgs(process.argv.slice(2)); } catch (e) { if (e instanceof Stop) { console.error(e.message); return 2; } throw e; }
   if (opts.help) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 90).join('\n')); return 0; }
   try {
     if (opts.proof) return runReverseProof(opts);
+    if (opts.loadProof) return runLoadProof(opts);
     if (opts.check) return runCheck(opts);
     if (opts.todo) return runTodo(opts);
     return runWindow(opts);

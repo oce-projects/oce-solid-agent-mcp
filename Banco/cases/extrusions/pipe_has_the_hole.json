@@ -1,7 +1,7 @@
 {
   "name": "pipe_has_the_hole",
   "family": "extrusions",
-  "why": "VOCE Z-C6. `estrudi_profilo` e' a catalogo con `Provata = true`, e fino al 24/9/2026 la toccavano solo tre piani a mano (`ponte/c2_*`) che non pretendono niente. Il caso e' quello del piano `c2_pipe_from_catalog`: due cerchi concentrici, e il secondo dev'essere un BUCO.",
+  "why": "VOCE Z-C6. `estrudi_profilo` e' a catalogo con `Provata = true`, e fino al 24/9/2026 la toccavano solo tre piani a mano (`bridge/c2_*`) che non pretendono niente. Il caso e' quello del piano `c2_pipe_from_catalog`: due cerchi concentrici, e il secondo dev'essere un BUCO.",
   "defect_caught": "Due contorni uno dentro l'altro si possono leggere in due modi: una corona (il secondo toglie) o due cilindri sovrapposti (il secondo aggiunge, e sparisce dentro il primo). Nel secondo caso il pezzo esce PIENO, la ricostruzione e' pulita, e un tubo da 60x5 diventa una barra tonda da 60. Il volume lo distingue di tre volte.",
   "start": { "new_part": true },
   "steps": [

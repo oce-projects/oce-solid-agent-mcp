@@ -229,7 +229,7 @@ namespace ProvaSaldatura
             // che ogni `Provata = true` puntasse a un caso che gira davvero. Il
             // 25/9/2026, scrivendo i casi mancanti, due operazioni a catalogo si
             // sono scoperte mai funzionanti. Questa riga la raccoglie `banco.ps1`
-            // in `casi_verdi`, e la suite di contratto la incrocia col catalogo.
+            // in `green_cases`, e la suite di contratto la incrocia col catalogo.
             //
             // Esce PRIMA della riga di ====, e non comincia con uno spazio: non
             // e' una riga di esito, e non va contata come tale.

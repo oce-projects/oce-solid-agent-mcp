@@ -16,7 +16,7 @@
 //   <forma>-isometrica.png
 //   <forma>-frontale.png  <forma>-superiore.png  <forma>-destra.png
 //   <forma>-stato.json          lo stato SENZA immagini, come lo riceve oggi
-//   <forma>-verita.txt          cos'e' davvero, preso da `_verita` nel piano
+//   <forma>-verita.txt          cos'e' davvero, preso da `_truth` nel piano
 //
 // La verita' sta nel file del piano e non qui: chi giudica non deve poterla
 // leggere insieme al materiale, e chi scrive il piano e' l'unico che la sa.
@@ -119,7 +119,7 @@ function salvaImmagini(nome, quali, immagini) {
 async function raccogli(percorsoPiano) {
   const nome = nomeDi(percorsoPiano);
   const grezzo = JSON.parse(fs.readFileSync(percorsoPiano, "utf8"));
-  const verita = (grezzo.find(p => p._verita) || {})._verita || "(non dichiarata)";
+  const verita = (grezzo.find(p => p._truth) || {})._truth || "(non dichiarata)";
 
   // Il piano che si manda non porta i campi che cominciano per `_`: sono note
   // per chi legge il file, e `disegna` rifiuterebbe argomenti che lo schema
