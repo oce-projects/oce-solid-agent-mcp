@@ -66,7 +66,6 @@ namespace Oce.Solid.Agent.Installer
         public static List<Client> ClientTrovati()
         {
             var appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var profilo = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
             var tutti = new List<Client>
             {
@@ -79,7 +78,7 @@ namespace Oce.Solid.Agent.Installer
                 new Client
                 {
                     Nome = "Claude Code",
-                    File = Path.Combine(profilo, ".claude.json"),
+                    File = ClaudeCodeFile(),
                     Processo = null,
                     ClaudeCode = true,
                 },
@@ -92,6 +91,14 @@ namespace Oce.Solid.Agent.Installer
                     // «Installato» vuol dire che c'e' la CARTELLA del client:
                     // il file di configurazione puo' non esistere ancora, ed e'
                     // il caso normale di chi non ha mai aggiunto un server MCP.
+                    //
+                    // NOT FOR CLAUDE CODE (H19 review): its file sits in the
+                    // user's profile, a folder that always exists, so Claude
+                    // Code was "installed" on every machine. A silent install
+                    // with no client at all then created a .claude.json nobody
+                    // reads and exited 0, and the "no MCP client found" exit 3
+                    // could never happen. See ClaudeCodePresent.
+                    if (c.ClaudeCode) { c.Installato = ClaudeCodePresent(c.File); continue; }
                     var cartella = Path.GetDirectoryName(c.File);
                     c.Installato = Directory.Exists(cartella) || File.Exists(c.File);
                 }
@@ -105,6 +112,50 @@ namespace Oce.Solid.Agent.Installer
             if (client == null || string.IsNullOrWhiteSpace(client.Processo)) return false;
             try { return Process.GetProcessesByName(client.Processo).Length > 0; }
             catch { return false; }
+        }
+
+        /// <summary>
+        /// The file where Claude Code keeps its user-scope MCP servers, where
+        /// Claude Code itself looks for it (H19 review; read in its 2.1.281
+        /// binary): <c>.claude.json</c> in CLAUDE_CONFIG_DIR when that is set,
+        /// else in the home folder, which for Claude Code on Windows is
+        /// %USERPROFILE%. The installer used the profile folder of the
+        /// account only, so with CLAUDE_CONFIG_DIR set `claude mcp add` wrote
+        /// one file and --verify read another.
+        /// </summary>
+        public static string ClaudeCodeFile()
+        {
+            var dir = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+            if (string.IsNullOrWhiteSpace(dir)) dir = Home();
+            return Path.Combine(dir.Trim(), ".claude.json");
+        }
+
+        private static string Home()
+        {
+            var home = Environment.GetEnvironmentVariable("USERPROFILE");
+            return string.IsNullOrWhiteSpace(home)
+                ? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                : home.Trim();
+        }
+
+        /// <summary>
+        /// True when Claude Code is on this machine: its file exists, or its
+        /// own folder does (CLAUDE_CONFIG_DIR, else %USERPROFILE%\.claude,
+        /// which Claude Code creates the first time it runs), or `claude` is
+        /// on PATH. The folder that holds the file is no evidence: it is the
+        /// profile, and it always exists.
+        /// </summary>
+        public static bool ClaudeCodePresent(string file)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(file) && File.Exists(file)) return true;
+                var own = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+                if (string.IsNullOrWhiteSpace(own)) own = Path.Combine(Home(), ".claude");
+                if (Directory.Exists(own.Trim())) return true;
+            }
+            catch { }
+            return ClaudeCli.Find() != null;
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -134,7 +185,9 @@ namespace Oce.Solid.Agent.Installer
             // `env` solo se serve davvero: una variabile scritta «tanto per»
             // e' una cosa in piu' che puo' diventare sbagliata quando qualcuno
             // sposta SOLIDWORKS, e nessuno andra' a rileggerla.
-            var env = EnvFor(redist, weldmentProfiles);
+            object previous;
+            server.TryGetValue(NomeServer, out previous);
+            var env = MergedEnv(EnvOf(previous), redist, weldmentProfiles, racconta);
             if (env.Count > 0)
             {
                 voce["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
@@ -166,6 +219,82 @@ namespace Oce.Solid.Agent.Installer
             if (!string.IsNullOrWhiteSpace(redist) && !RedistStandard(redist)) env["SW_REDIST"] = redist;
             if (!string.IsNullOrWhiteSpace(weldmentProfiles)) env["PROFILI_SALDATURA"] = weldmentProfiles;
             return env;
+        }
+
+        /// <summary>
+        /// The `env` an entry gets when it is written again (H19 review).
+        ///
+        /// Until this review a reinstall replaced the whole entry with the
+        /// variables of <see cref="EnvFor"/>, and `claude mcp remove` + `add`
+        /// did the same: whatever the user had added to the bridge's own entry
+        /// was dropped without a word. RISCONTRO_RADICE and
+        /// RISCONTRO_SOLA_LETTURA (the folders the bridge may and may not
+        /// write) are such variables, and so is a PROFILI_SALDATURA set by
+        /// hand, as the README told people to do before the installer wrote
+        /// it. Now the existing variables stay; of the two the installer owns,
+        /// SW_REDIST is set or removed as the installer decided, and
+        /// PROFILI_SALDATURA is set when the installer has a folder and kept
+        /// as it was when it has none.
+        /// </summary>
+        public static Dictionary<string, string> MergedEnv(
+            IDictionary<string, string> existing, string redist, string weldmentProfiles, Action<string> racconta)
+        {
+            var env = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (existing != null)
+                foreach (var kv in existing) env[kv.Key] = kv.Value;
+            var fresh = EnvFor(redist, weldmentProfiles);
+            if (fresh.ContainsKey("SW_REDIST")) env["SW_REDIST"] = fresh["SW_REDIST"];
+            else env.Remove("SW_REDIST");
+            if (fresh.ContainsKey("PROFILI_SALDATURA")) env["PROFILI_SALDATURA"] = fresh["PROFILI_SALDATURA"];
+
+            var kept = env.Keys.Where(k => k != "SW_REDIST" && !(k == "PROFILI_SALDATURA" && fresh.ContainsKey(k)))
+                          .OrderBy(k => k, StringComparer.Ordinal).ToList();
+            if (kept.Count > 0 && racconta != null)
+                racconta("keeping from the existing entry's env: " + string.Join(", ", kept));
+            return env;
+        }
+
+        /// <summary>The `env` of an entry as read from a config file; empty when it has none.</summary>
+        private static Dictionary<string, string> EnvOf(object entry)
+        {
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            var d = entry as Dictionary<string, object>;
+            object env;
+            if (d != null && d.TryGetValue("env", out env) && env is Dictionary<string, object>)
+                foreach (var kv in (Dictionary<string, object>)env) result[kv.Key] = Convert.ToString(kv.Value);
+            return result;
+        }
+
+        /// <summary>
+        /// A PROFILI_SALDATURA already in one of these clients' entries that
+        /// names a folder that exists, or null (H19 review). A folder chosen
+        /// by hand is worth more than the one the installer would find: it is
+        /// kept on a reinstall unless --weldment-profiles names another.
+        /// </summary>
+        public static string ExistingWeldmentProfiles(IEnumerable<Client> clients)
+        {
+            foreach (var c in clients ?? Enumerable.Empty<Client>())
+            {
+                var env = ConfiguredEnv(c);
+                string v;
+                if (env != null && env.TryGetValue("PROFILI_SALDATURA", out v) &&
+                    !string.IsNullOrWhiteSpace(v) && Directory.Exists(v))
+                    return v;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Why this client's config cannot be read (malformed, locked), or
+        /// null when it reads or does not exist yet. For --verify, which used
+        /// to treat an unreadable file like a file without an entry and could
+        /// come out all green right after an install that exited 3 for it.
+        /// </summary>
+        public static string ReadProblem(Client client)
+        {
+            if (client == null || !File.Exists(client.File)) return null;
+            try { Leggi(client.File); return null; }
+            catch (Exception ex) { return ex.Message; }
         }
 
         /// <summary>
@@ -229,12 +358,7 @@ namespace Oce.Solid.Agent.Installer
                 var server = Sotto(Leggi(client.File), "mcpServers");
                 object entry;
                 if (!server.TryGetValue(NomeServer, out entry)) return null;
-                var result = new Dictionary<string, string>(StringComparer.Ordinal);
-                var d = entry as Dictionary<string, object>;
-                object env;
-                if (d != null && d.TryGetValue("env", out env) && env is Dictionary<string, object>)
-                    foreach (var kv in (Dictionary<string, object>)env) result[kv.Key] = Convert.ToString(kv.Value);
-                return result;
+                return EnvOf(entry);
             }
             catch { return null; }
         }
@@ -329,17 +453,7 @@ namespace Oce.Solid.Agent.Installer
                 }
             }
 
-            string copia = null;
-            if (File.Exists(file))
-            {
-                // Il nome della copia porta la data: cosi' si capisce quale e'
-                // quale.
-                copia = file + PrefissoCopia +
-                        DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
-                File.Copy(file, copia, true);
-                racconta("copia di sicurezza: " + Path.GetFileName(copia));
-                PotaLeCopie(file, racconta);
-            }
+            var copia = Backup(file, racconta);
 
             var testo = Indenta(Json().Serialize(radice));
 
@@ -360,6 +474,25 @@ namespace Oce.Solid.Agent.Installer
                 throw;
             }
 
+            return copia;
+        }
+
+        /// <summary>
+        /// The backup of a config file before it is changed, and the pruning
+        /// of the old ones; null when the file does not exist. Public since the
+        /// H19 review: `claude mcp remove` + `add` rewrite .claude.json too,
+        /// and until then that route made no backup at all.
+        /// </summary>
+        public static string Backup(string file, Action<string> racconta)
+        {
+            if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) return null;
+            // Il nome della copia porta la data: cosi' si capisce quale e'
+            // quale.
+            var copia = file + PrefissoCopia +
+                        DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
+            File.Copy(file, copia, true);
+            racconta?.Invoke("copia di sicurezza: " + Path.GetFileName(copia));
+            PotaLeCopie(file, racconta ?? (s => { }));
             return copia;
         }
 

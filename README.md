@@ -269,8 +269,9 @@ Stampa su stderr se si e' agganciato, quale add-in ha caricato, quante
 operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
 Its exit code says the same in a number (from 0.126.0): 0 attached, 3
 SOLIDWORKS not running, 4 not installed or not registered, 5 not tried
-(`OCE_NO_ATTACH`), 1 anything else. The installer reads the number, not the
-text.
+(`OCE_NO_ATTACH`), 6 SOLIDWORKS running in this session but not answering
+(usually started as administrator while the client is not), 1 anything else.
+The installer reads the number, not the text.
 
 ### Variabili d'ambiente
 

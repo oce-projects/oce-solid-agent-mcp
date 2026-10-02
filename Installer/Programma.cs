@@ -212,7 +212,15 @@ namespace Oce.Solid.Agent.Installer
                 var claude = ClaudeCli.Find();
                 if (claude != null)
                 {
-                    if (ClaudeCli.Register(claude, eseguibile, Configurazione.EnvFor(redist, weldmentProfiles), racconta)) return;
+                    // The same two promises as the file route (H19 review): a
+                    // backup before the file changes, and the variables
+                    // already in the entry kept (Configurazione.MergedEnv).
+                    // `remove` + `add` rewrite .claude.json and drop the old
+                    // entry whole, so both are done here, before them.
+                    Configurazione.Backup(client.File, racconta);
+                    var env = Configurazione.MergedEnv(
+                        Configurazione.ConfiguredEnv(client), redist, weldmentProfiles, racconta);
+                    if (ClaudeCli.Register(claude, eseguibile, env, racconta)) return;
                     racconta("Claude Code: writing " + client.File + " instead");
                 }
             }
@@ -227,9 +235,11 @@ namespace Oce.Solid.Agent.Installer
                 var claude = ClaudeCli.Find();
                 var comando = Configurazione.ComeEConfigurato(client);
                 if (claude != null && comando != null &&
-                    Passi.PercorsiUguali(comando, Path.Combine(cartella, Passi.NomeEseguibile)) &&
-                    ClaudeCli.Unregister(claude, racconta))
-                    return;
+                    Passi.PercorsiUguali(comando, Path.Combine(cartella, Passi.NomeEseguibile)))
+                {
+                    Configurazione.Backup(client.File, racconta);
+                    if (ClaudeCli.Unregister(claude, racconta)) return;
+                }
             }
             Configurazione.Scollega(client, cartella, racconta);
         }
@@ -276,12 +286,24 @@ namespace Oce.Solid.Agent.Installer
                                       "Nothing installed.");
                     return ExitNothingInstalled;
                 }
+                // Without a trailing backslash, unless it is a drive root: the
+                // value goes into JSON and onto a command line.
                 weldmentProfiles = Path.GetFullPath(weldmentProfilesAsked);
+                if (weldmentProfiles.Length > 3) weldmentProfiles = weldmentProfiles.TrimEnd('\\');
                 bool anyProfile = false;
                 try { anyProfile = Directory.EnumerateFiles(weldmentProfiles, "*.sldlfp", SearchOption.AllDirectories).Any(); }
                 catch { }
                 Console.WriteLine((anyProfile ? "[ok] " : "[~]  ") + "weldment profiles: " + weldmentProfiles +
                                   (anyProfile ? "" : " (no .sldlfp file found in it: profili_saldatura will say so)"));
+            }
+            else if (!niente &&
+                     (weldmentProfiles = Configurazione.ExistingWeldmentProfiles(ClientsToTouch(configScelto))) != null)
+            {
+                // A folder already in the client entry was chosen by someone
+                // (H19 review): a reinstall keeps it rather than replace it
+                // with the one the installer would find.
+                Console.WriteLine("[ok] weldment profiles: " + weldmentProfiles + " (kept from the existing client " +
+                                  "entry; another folder with --weldment-profiles <folder>)");
             }
             else
             {

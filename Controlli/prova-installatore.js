@@ -371,7 +371,10 @@ function cliCall(exitCode) {
   try { fs.unlinkSync(argsFile); } catch (e) { }
   const script =
     "$ErrorActionPreference='Stop';" +
-    "$a=[Reflection.Assembly]::LoadFrom('" + INSTALLA + "');" +
+    // From the bytes, not LoadFrom: on the network drive the repository
+    // lives on, LoadFrom is refused (0x80131515), and these cases were red
+    // there for a reason that has nothing to do with the installer.
+    "$a=[Reflection.Assembly]::Load([IO.File]::ReadAllBytes('" + INSTALLA + "'));" +
     "$t=$a.GetType('Oce.Solid.Agent.Installer.ClaudeCli');" +
     "if(-not $t){'NO-TYPE';exit 9};" +
     "$bf=[Reflection.BindingFlags]'NonPublic,Public,Static';" +
@@ -399,6 +402,154 @@ esito("B5. a successful CLI is reported as success", /OK=True/.test(c0.out), c0.
 const c1 = cliCall(1);
 esito("B5. a failing CLI is reported as failure (the installer then writes the file itself)",
   /OK=False/.test(c1.out), c1.out.slice(-120));
+
+// ═════════════════════════════════════════════════════════════════════════
+//  THE H19 REVIEW. Every case below was run red on the installer of bda8946
+//  (the L1+L2 commit) before the fixes; the ones that need a profile with no
+//  client refuse to install when the installer would look at the real one.
+// ═════════════════════════════════════════════════════════════════════════
+
+// Wire, the way the installer calls it for Claude Code, with the fake claude:
+// the entry's own variables reach `claude mcp add`, and a backup is made first.
+console.log("\n=== H19 review - Claude Code through claude: backup and env kept");
+const fakeHome = path.join(BANCO, "fake-claude-home");
+fs.mkdirSync(fakeHome);
+const fakeClaudeJson = path.join(fakeHome, ".claude.json");
+fs.writeFileSync(fakeClaudeJson, JSON.stringify({ mcpServers: { solidworks: {
+  command: "C:\\Some Folder\\oce-solid-agent-mcp.exe", env: { RISCONTRO_RADICE: "C:\\Work" } } } }, null, 2));
+try { fs.unlinkSync(argsFile); } catch (e) { }
+const wireScript =
+  "$ErrorActionPreference='Stop';" +
+  "$a=[Reflection.Assembly]::Load([IO.File]::ReadAllBytes('" + INSTALLA + "'));" +
+  "$bf=[Reflection.BindingFlags]'NonPublic,Public,Static,Instance';" +
+  "$ct=$a.GetType('Oce.Solid.Agent.Installer.Client');$c=[Activator]::CreateInstance($ct,$true);" +
+  "$ct.GetField('Nome',$bf).SetValue($c,'Claude Code');$ct.GetField('File',$bf).SetValue($c,'" + fakeClaudeJson + "');" +
+  "$ct.GetField('ClaudeCode',$bf).SetValue($c,$true);" +
+  "$tell=[Action[string]]{ param($s) [Console]::WriteLine('TELL '+$s) };" +
+  "$p=New-Object object[] 6;$p[0]=$c;$p[1]='C:\\Some Folder\\oce-solid-agent-mcp.exe';$p[2]=$null;$p[3]=$null;$p[4]=$null;$p[5]=$tell;" +
+  "$a.GetType('Oce.Solid.Agent.Installer.Programma').GetMethod('Wire',$bf).Invoke($null,$p);'WIRED'";
+const wr = spawnSync("powershell", ["-NoProfile", "-Command", wireScript],
+  { env: Object.assign({}, ENV, { PATH: fake + ";" + ENV.PATH, FAKE_CLAUDE_EXIT: "0" }), encoding: "utf8", timeout: 120000 });
+const wireArgs = read(argsFile) || "";
+esito("review. claude mcp add receives the variables already in the entry (RISCONTRO_RADICE)",
+  /mcp add --scope user solidworks .*-e "RISCONTRO_RADICE=C:\\Work"/.test(wireArgs),
+  wireArgs.trim() || ((wr.stdout || "") + (wr.stderr || "")).slice(-300));
+esito("review. a backup of .claude.json is made before claude rewrites it",
+  fs.readdirSync(fakeHome).some(f => /^\.claude\.json\.prima-di-oce-solid-agent-.*\.bak$/.test(f)),
+  fs.readdirSync(fakeHome).join(", "));
+
+// A reinstall keeps what is already in the entry's env, by the file route.
+console.log("\n=== H19 review - a reinstall keeps the entry's own env");
+const keepDir = path.join(BANCO, "installed-keepenv");
+const mineProfiles = path.join(BANCO, "my profiles");
+fs.mkdirSync(mineProfiles);
+const cfgKeep = path.join(BANCO, "keepenv.json");
+const keepCfg = { mcpServers: {
+  other: { command: "C:\\Other\\server.exe", env: { TOKEN_FILE: "C:\\Other\\t.txt" } },
+  solidworks: { command: path.join(keepDir, "oce-solid-agent-mcp.exe"),
+                env: { RISCONTRO_RADICE: "C:\\Work", PROFILI_SALDATURA: mineProfiles } } } };
+fs.writeFileSync(cfgKeep, JSON.stringify(keepCfg, null, 2));
+const rKeep = installa(["--silenzioso", "--cartella", keepDir, "--config", cfgKeep]);
+const ke = json(cfgKeep);
+const ksw = (ke && ke.mcpServers && ke.mcpServers.solidworks) || {};
+esito("review. a reinstall keeps a variable already in the entry (RISCONTRO_RADICE)",
+  rKeep.uscita === 0 && !!ksw.env && ksw.env.RISCONTRO_RADICE === "C:\\Work",
+  "exit " + rKeep.uscita + ", env " + JSON.stringify(ksw.env));
+esito("review. ...and a PROFILI_SALDATURA chosen by hand, and says it kept it",
+  !!ksw.env && ksw.env.PROFILI_SALDATURA === mineProfiles && /kept from the existing client entry/.test(rKeep.testo),
+  (rKeep.testo.match(/^.*weldment profiles.*$/m) || ["no weldment line"])[0]);
+esito("review. the other server and its env are untouched",
+  !!ke && uguale(ke.mcpServers.other, keepCfg.mcpServers.other), null);
+
+// A profile with no client at all. The environment points the installer at an
+// empty profile; before installing anything, a read-only --verify says where
+// it would look, and if that is not the empty profile the install is NOT run
+// (it would write the real configuration of whoever runs this).
+console.log("\n=== H19 review - no MCP client on the machine");
+const noClaudePath = (ENV.PATH || "").split(";").filter(d => {
+  try { return !["claude.exe", "claude.cmd", "claude.bat"].some(n => fs.existsSync(path.join(d.trim().replace(/"/g, ""), n))); }
+  catch (e) { return true; }
+}).join(";");
+function profileEnv(dir) {
+  fs.mkdirSync(path.join(dir, "AppData", "Roaming"), { recursive: true });
+  return { env: { USERPROFILE: dir, APPDATA: path.join(dir, "AppData", "Roaming"), CLAUDE_CONFIG_DIR: "", PATH: noClaudePath } };
+}
+function looksOnlyIn(dir, opts) {
+  const r = installa(["--verify", "--json", "--cartella", path.join(BANCO, "nothing-here")], Object.assign({ timeout: 90000 }, opts));
+  let j = null;
+  try { j = JSON.parse(r.testo.trim().split(/\r?\n/).filter(l => l.startsWith("{")).pop()); } catch (e) { }
+  const outside = j ? (j.clients || []).filter(c => !String(c.file || "").toLowerCase().startsWith(dir.toLowerCase())) : null;
+  return { ok: !!j && outside.length === 0, detail: j ? outside.map(c => c.name + " -> " + c.file).join("; ") : r.testo.slice(-200) };
+}
+const emptyProfile = path.join(BANCO, "profile-without-clients");
+const emptyOpts = profileEnv(emptyProfile);
+const where = looksOnlyIn(emptyProfile, emptyOpts);
+esito("review. in a profile with no client the installer finds none (Claude Code is not 'installed' everywhere)",
+  where.ok, where.ok ? null : "it would use: " + where.detail);
+if (where.ok) {
+  const rNc = installa(["--silenzioso", "--cartella", path.join(BANCO, "installed-noclient")], emptyOpts);
+  esito("review. no MCP client: exit 3, it says so and prints the block to paste",
+    rNc.uscita === 3 && rNc.testo.includes("no MCP client found") && rNc.testo.includes("Paste this into"),
+    "exit " + rNc.uscita + "\n" + rNc.testo.slice(-300));
+  esito("review. ...and it creates no .claude.json nobody reads", !fs.existsSync(path.join(emptyProfile, ".claude.json")),
+    fs.readdirSync(emptyProfile).join(", "));
+
+  const ccProfile = path.join(BANCO, "profile-with-claude-code");
+  const ccOpts = profileEnv(ccProfile);
+  fs.mkdirSync(path.join(ccProfile, ".claude"));
+  const ccDir = path.join(BANCO, "installed-cc");
+  const rCc = installa(["--silenzioso", "--cartella", ccDir], ccOpts);
+  const cc = json(path.join(ccProfile, ".claude.json"));
+  esito("review. a profile with a .claude folder: Claude Code is found and wired through its file (no claude on PATH)",
+    rCc.uscita === 0 && !!cc && !!cc.mcpServers && !!cc.mcpServers.solidworks &&
+    String(cc.mcpServers.solidworks.command).toLowerCase() === path.join(ccDir, "oce-solid-agent-mcp.exe").toLowerCase(),
+    "exit " + rCc.uscita + "\n" + rCc.testo.slice(-200));
+} else console.log("  (the install cases of this block were NOT run: the installer would touch the real profile)");
+
+// --verify on a profile where one client is wired and the other's config is
+// malformed: not all green behind an install that exited 3 for it.
+const badProfile = path.join(BANCO, "profile-with-a-bad-config");
+const badOpts = profileEnv(badProfile);
+fs.mkdirSync(path.join(badProfile, "AppData", "Roaming", "Claude"), { recursive: true });
+fs.writeFileSync(path.join(badProfile, "AppData", "Roaming", "Claude", "claude_desktop_config.json"), "{ not json\n");
+fs.writeFileSync(path.join(badProfile, ".claude.json"), JSON.stringify({ mcpServers: { solidworks: {
+  command: path.join(keepDir, "oce-solid-agent-mcp.exe") } } }, null, 2));
+const rvBad = installa(["--verify", "--json", "--cartella", keepDir], Object.assign({ timeout: 90000 }, badOpts));
+let vBad = null;
+try { vBad = JSON.parse(rvBad.testo.trim().split(/\r?\n/).filter(l => l.startsWith("{")).pop()); } catch (e) { }
+const clientsCheck = vBad && (vBad.checks || []).find(c => c.name === "clients");
+esito("review. --verify warns about a client config that cannot be read, even when another client is wired",
+  !!clientsCheck && clientsCheck.status === "warn" && /cannot be read/.test(clientsCheck.detail),
+  clientsCheck ? clientsCheck.status + ": " + clientsCheck.detail : rvBad.testo.slice(-200));
+
+// The elevated case: "not running" while a SLDWORKS process runs in this
+// session is 6, not 3. A copy of node named SLDWORKS.exe stands in for it. Only
+// when no real SOLIDWORKS runs: the bridge is started without OCE_NO_ATTACH,
+// and with no SOLIDWORKS to answer, attaching touches nothing.
+console.log("\n=== H19 review - self-test 6, a SLDWORKS process that does not answer");
+const realSw = spawnSync("tasklist", ["/FI", "IMAGENAME eq SLDWORKS.exe", "/NH"], { encoding: "utf8" });
+const swRuns = /SLDWORKS\.exe/i.test(String(realSw.stdout || ""));
+if (ATTACH || swRuns) {
+  console.log("  (NOT run: " + (swRuns ? "a real SOLIDWORKS is running" : "--attach") +
+              ". With SOLIDWORKS closed: self-test 3, and 6 with a fake SLDWORKS process)");
+} else {
+  const envAttach = Object.assign({}, ENV); delete envAttach.OCE_NO_ATTACH;
+  const p3 = spawnSync(bridgeExe, ["--prova"], { env: envAttach, encoding: "utf8", timeout: 120000 });
+  if (p3.status === 4) console.log("  (NOT run: self-test 4, SOLIDWORKS is not installed on this machine)");
+  else {
+    esito("review. SOLIDWORKS closed: --prova exits 3", p3.status === 3, "exit " + p3.status);
+    const fakeSw = path.join(BANCO, "fake-sldworks");
+    fs.mkdirSync(fakeSw);
+    const fakeExe = path.join(fakeSw, "SLDWORKS.exe");
+    fs.copyFileSync(process.execPath, fakeExe);
+    const sw = require("child_process").spawn(fakeExe, ["-e", "setTimeout(()=>{},60000)"], { stdio: "ignore" });
+    aspetta(1500);
+    const p6 = spawnSync(bridgeExe, ["--prova"], { env: envAttach, encoding: "utf8", timeout: 120000 });
+    sw.kill();
+    esito("review. a SLDWORKS process that does not answer: --prova exits 6 and says why", p6.status === 6 &&
+      /administrator/.test(String(p6.stderr || "")), "exit " + p6.status + "\n" + String(p6.stderr || "").split(/\r?\n/).slice(-2).join("\n"));
+  }
+}
 
 // ── CASO 4 — il config tenuto da un altro processo ──────────────────────
 //

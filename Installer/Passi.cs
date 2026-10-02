@@ -82,13 +82,16 @@ namespace Oce.Solid.Agent.Installer
         public const int SelfTestNotRunning = 3;
         public const int SelfTestNotInstalled = 4;
         public const int SelfTestSkipped = 5;
+        public const int SelfTestNotReachable = 6;
         /// <summary>Not a code of the bridge: it could not be run, or did not answer.</summary>
         public const int SelfTestNoAnswer = -1;
 
         /// <summary>
         /// The self-test codes after which "installed" is true: attached; or
         /// SOLIDWORKS not running (not an install problem); or not tried
-        /// because OCE_NO_ATTACH asked so.
+        /// because OCE_NO_ATTACH asked so. NOT 6 (H19 review): a SOLIDWORKS
+        /// that runs and does not answer, usually as administrator, is one the
+        /// bridge will not attach to until something changes.
         /// </summary>
         public static bool SelfTestAccepted(int code) =>
             code == SelfTestAttached || code == SelfTestNotRunning || code == SelfTestSkipped;
@@ -101,6 +104,9 @@ namespace Oce.Solid.Agent.Installer
                 case SelfTestNotRunning: return "SOLIDWORKS is installed but not running";
                 case SelfTestNotInstalled: return "SOLIDWORKS is not installed, or not registered";
                 case SelfTestSkipped: return "attach not tried: OCE_NO_ATTACH is set";
+                case SelfTestNotReachable:
+                    return "SOLIDWORKS is running but did not answer: probably started as administrator " +
+                           "(or the client was); start both the same way";
                 case SelfTestNoAnswer: return "the bridge did not run, or did not answer";
                 default: return "not attached (code " + code + ")";
             }
@@ -647,12 +653,12 @@ namespace Oce.Solid.Agent.Installer
         ///
         /// 1. the folder SOLIDWORKS itself uses, Tools > Options > File
         ///    Locations > Weldment Profiles: registry value "Weldment Profile
-        ///    Folders" under HKCUSoftwareSolidWorksSOLIDWORKS &lt;year&gt;ExtReferences
+        ///    Folders" under HKCU\Software\SolidWorks\SOLIDWORKS &lt;year&gt;\ExtReferences
         ///    (several folders are separated by ';'; the first that exists wins);
-        /// 2. the profiles SOLIDWORKS installs, &lt;root&gt;lang&lt;language&gt;weldment profiles,
+        /// 2. the profiles SOLIDWORKS installs, &lt;root&gt;\lang\&lt;language&gt;\weldment profiles,
         ///    with &lt;language&gt; read from the same key's "Weldment Cut List
         ///    Template Folders" or "Weld Table Template Folder" (both end in
-        ///    lang&lt;language&gt;), else english. On that machine all 15
+        ///    \lang\&lt;language&gt;), else english. On that machine all 15
         ///    language folders have one, with ANSI, ISO, DIN and six more
         ///    standards inside.
         ///

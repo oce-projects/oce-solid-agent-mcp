@@ -103,7 +103,30 @@ namespace Oce.Solid.Agent.Installer
             return code == 0;
         }
 
-        private static string Quote(string s) => "\"" + s.Replace("\"", "\\\"") + "\"";
+        /// <summary>
+        /// One argument, quoted so that the Windows rules for splitting a
+        /// command line (CommandLineToArgvW, which claude.exe and node follow)
+        /// give it back unchanged (H19 review). The first version only
+        /// escaped the quotes: a value ending in a backslash, such as
+        /// `PROFILI_SALDATURA=D:\Profiles\`, came out as `...\"`, an escaped
+        /// quote, and swallowed the arguments after it. Backslashes are
+        /// literal except right before a quote, where they are doubled.
+        /// </summary>
+        internal static string Quote(string s)
+        {
+            var sb = new StringBuilder("\"");
+            int backslashes = 0;
+            foreach (char ch in s ?? "")
+            {
+                if (ch == '\\') { backslashes++; continue; }
+                if (ch == '"') sb.Append('\\', backslashes * 2 + 1);
+                else sb.Append('\\', backslashes);
+                sb.Append(ch);
+                backslashes = 0;
+            }
+            sb.Append('\\', backslashes * 2);
+            return sb.Append('"').ToString();
+        }
 
         private static string Last(string s)
         {
@@ -123,6 +146,15 @@ namespace Oce.Solid.Agent.Installer
             {
                 bool script = claude.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) ||
                               claude.EndsWith(".bat", StringComparison.OrdinalIgnoreCase);
+                // cmd.exe expands %NAME% even inside quotes, and there is no
+                // escape for it on a command line: a path with a % in it
+                // would reach claude changed. Better not to run it at all;
+                // the caller then writes the file, and says so.
+                if (script && args.IndexOf('%') >= 0)
+                {
+                    output = "an argument contains %, which cmd.exe would expand";
+                    return -1;
+                }
                 var psi = script
                     ? new ProcessStartInfo("cmd.exe", "/d /s /c \"\"" + claude + "\" " + args + "\"")
                     : new ProcessStartInfo(claude, args);

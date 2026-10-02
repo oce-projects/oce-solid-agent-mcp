@@ -38,7 +38,7 @@
   { "script": "Controlli/costruisci-controlli.ps1", "run": true, "needs": ["Riscontro.Disegno/bin/Release/Riscontro.Disegno.dll"] },
   { "script": "Controlli/prova-x2.js", "run": true, "args": ["--self-test"] },
   { "script": "Controlli/prova-x2.js", "skip": "without --self-test it drives SOLIDWORKS through the bridge and the CambiaAMano probe" },
-  { "script": "Controlli/prova-installatore.js", "skip": "needs dist/Installa.exe (a full build.ps1), and every install it makes runs the installed bridge with --prova, which attaches to a running SOLIDWORKS" },
+  { "script": "Controlli/prova-installatore.js", "skip": "needs dist/Installa.exe (a full build.ps1), and it installs, verifies and uninstalls some forty times in a temporary folder (about a minute); since H19 it does not attach to SOLIDWORKS unless given --attach (OCE_NO_ATTACH)" },
   { "script": "Controlli/prepara-release.ps1", "skip": "prepares a release: runs build.ps1 (which rewrites Strumenti/catalogo.json and dist/), fetches origin and runs the contract suite, which starts the bridge; it stops on an uncommitted tree by design" },
   { "script": "Controlli/bonifica-storia.js", "skip": "rewrites the files of the working tree in place (it is the tree filter of git filter-branch): run on the repository it would change it" },
   { "script": "Controlli/obsolete-api-list.js", "skip": "rebuilds the tracked Prove/data/obsolete-api-members.tsv from the SOLIDWORKS help extracted outside the repository: it writes a tracked file, and its input is not here" },

@@ -389,13 +389,25 @@ namespace Oce.Solid.Agent
         //   4  SOLIDWORKS not installed or not registered (CO_E_CLASSSTRING,
         //      REGDB_E_CLASSNOTREG)
         //   5  not tried: OCE_NO_ATTACH is set
+        //   6  MK_E_UNAVAILABLE, but a SLDWORKS process runs in this Windows
+        //      session: it runs as administrator while this process does not
+        //      (or the other way round: the running object table is not
+        //      shared across integrity levels), or it is still starting
         //
         // 2 is left out on purpose: it is the installer's own "not confirmed".
+        //
+        // 6 IS NOT 3 (H19 review). Until then the elevated case exited 3, the
+        // installer accepted 3 as "SOLIDWORKS is simply closed" and said
+        // "Installato" with exit 0, and the hint about administrator rights
+        // was a line among the others: whoever read only the code (an AI, as
+        // INSTALL-FOR-AI asks) concluded the bridge would attach, and it
+        // never does until the two are started the same way.
         internal const int SelfTestAttached = 0;
         internal const int SelfTestOther = 1;
         internal const int SelfTestNotRunning = 3;
         internal const int SelfTestNotInstalled = 4;
         internal const int SelfTestSkipped = 5;
+        internal const int SelfTestNotReachable = 6;
 
         internal static int SelfTestExitCode(AttachFailure failure)
         {
@@ -409,6 +421,17 @@ namespace Oce.Solid.Agent
             }
         }
 
+        /// <summary>
+        /// The code of --prova, with what this process can see of SOLIDWORKS:
+        /// "not running" while a SLDWORKS process runs in this session is 6.
+        /// Pure, so the contracts can try both sides without SOLIDWORKS.
+        /// </summary>
+        internal static int SelfTestCodeSeen(AttachFailure failure, bool solidWorksProcessInThisSession)
+        {
+            int code = SelfTestExitCode(failure);
+            return code == SelfTestNotRunning && solidWorksProcessInThisSession ? SelfTestNotReachable : code;
+        }
+
         internal static string SelfTestMeaning(int code)
         {
             switch (code)
@@ -417,14 +440,35 @@ namespace Oce.Solid.Agent
                 case SelfTestNotRunning: return "SOLIDWORKS is installed but not running: open it";
                 case SelfTestNotInstalled: return "SOLIDWORKS is not installed, or not registered: install or repair it";
                 case SelfTestSkipped: return "attach not tried, OCE_NO_ATTACH is set";
+                case SelfTestNotReachable:
+                    return "a SOLIDWORKS process is running but did not answer: it may run as administrator " +
+                           "while this process does not (or the other way round), or it is still starting. " +
+                           "Start SOLIDWORKS and the MCP client the same way, then try again";
                 default: return "not attached, for another reason: read the lines above";
             }
         }
 
-        private static bool SolidWorksProcessRuns()
+        /// <summary>
+        /// A SLDWORKS process in THIS Windows session. Another user's
+        /// SOLIDWORKS on the same machine (fast user switching, a terminal
+        /// server) is not one this process could ever attach to, and must not
+        /// turn "not running" into "not reachable". A process whose session
+        /// cannot be read counts: on a workstation it is almost always ours.
+        /// </summary>
+        private static bool SolidWorksProcessInThisSession()
         {
-            try { return System.Diagnostics.Process.GetProcessesByName("SLDWORKS").Length > 0; }
-            catch { return false; }
+            try
+            {
+                int mine = System.Diagnostics.Process.GetCurrentProcess().SessionId;
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName("SLDWORKS"))
+                {
+                    try { if (p.SessionId == mine) return true; }
+                    catch { return true; }
+                    finally { p.Dispose(); }
+                }
+            }
+            catch { }
+            return false;
         }
 
         /// <summary>
@@ -446,15 +490,13 @@ namespace Oce.Solid.Agent
 
             if (!sessione.Agganciata)
             {
-                int code = SelfTestExitCode(sessione.Failure);
+                // SOLIDWORKS "not running" while a SLDWORKS process exists in
+                // this session is the elevated case: started as administrator,
+                // its session is not in the running object table this process
+                // can see. It gets its own code (6), not a line beside a 3.
+                bool processHere = sessione.Failure == AttachFailure.NotRunning && SolidWorksProcessInThisSession();
+                int code = SelfTestCodeSeen(sessione.Failure, processHere);
                 Protocollo.Nota("[self-test] exit code " + code + ": " + SelfTestMeaning(code));
-                // SOLIDWORKS "not running" while a SLDWORKS process exists is
-                // the elevated case: started as administrator, its session is
-                // not in the running object table this process can see.
-                if (code == SelfTestNotRunning && SolidWorksProcessRuns())
-                    Protocollo.Nota("[self-test] a SLDWORKS process is running but did not answer: it may " +
-                                    "run as administrator while this process does not (or the other way " +
-                                    "round). Start SOLIDWORKS and the MCP client the same way.");
                 return code;
             }
 

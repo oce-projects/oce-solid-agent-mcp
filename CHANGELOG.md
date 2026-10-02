@@ -194,6 +194,62 @@ elevated case (SOLIDWORKS as administrator: self-test 3 plus the warning); the r
 hand (new weldment profiles field, uninstall result); a clean machine (H6 cases 1, 4,
 5).
 
+### Review fixes (adversarial review of L1+L2, inside and outside the diff)
+
+- **Claude Code was "installed" on every machine** (high). Its file sits in the
+  profile, and "installed" meant "the folder of the file exists": the profile always
+  does. A silent install with no client at all wrote a `.claude.json` nobody reads and
+  exited 0; the "no MCP client found → 3" branch could never run. Now Claude Code is
+  there when its `.claude.json` exists, or its own folder (`%USERPROFILE%\.claude`, or
+  `CLAUDE_CONFIG_DIR`), or `claude` is on PATH (`Configurazione.ClaudeCodePresent`).
+  Its file is `.claude.json` in `CLAUDE_CONFIG_DIR`, else in `%USERPROFILE%`, as Claude
+  Code 2.1.281 reads it (`Configurazione.ClaudeCodeFile`): with `CLAUDE_CONFIG_DIR`
+  set, `claude mcp add` and `--verify` looked at two different files.
+- **A reinstall dropped the entry's own variables** (medium). The file route replaced
+  the whole `solidworks` entry and `claude mcp remove` + `add` did the same:
+  `RISCONTRO_RADICE` / `RISCONTRO_SOLA_LETTURA` (where the bridge may write) or a
+  `PROFILI_SALDATURA` set by hand vanished on update, silently.
+  `Configurazione.MergedEnv` keeps every variable; the installer sets or removes
+  `SW_REDIST` and sets `PROFILI_SALDATURA` only when it has one. Without
+  `--weldment-profiles` a folder already in a client entry that exists wins over the
+  one the installer would find, and the output says "kept from the existing client
+  entry" (the window prefills it the same way).
+- **No backup on the `claude mcp` route** (medium): `Configurazione.Backup` (the old
+  backup code, now public) runs before `claude mcp remove`/`add` and before the
+  uninstall's `claude mcp remove`.
+- **SOLIDWORKS as administrator was "installed", exit 0** (medium). Self-test 3 with a
+  `SLDWORKS` process present was accepted like a closed SOLIDWORKS, the hint was one
+  line among the others. Now `--prova` exits **6** when attach says "not running" and a
+  `SLDWORKS` process runs in this Windows session (another user's session does not
+  count); the installer does not accept 6 (silent exit 2, window red, `--verify`
+  fail). `Programma.SelfTestCodeSeen` is the pure rule, checked by the contracts.
+- **Quoting for `claude`** (low). `ClaudeCli.Quote` only escaped quotes: a value
+  ending in `\` (`PROFILI_SALDATURA=D:\Profiles\`) became `\"` and swallowed the next
+  arguments. Now the `CommandLineToArgvW` rules (backslashes doubled before a quote
+  and at the end); an argument with `%` is not sent through `cmd.exe` (it would be
+  expanded) and the file route is used instead. `--weldment-profiles` is stored
+  without a trailing backslash.
+- **`--verify` all green beside a malformed config** (low): a client whose config
+  cannot be read was treated like one without an entry. Now it is a warning naming the
+  file (`readError` in the JSON row), and the clients line names the clients that have
+  no entry.
+- **The B5 cases were red on the network drive** (test): they loaded the installer
+  with `LoadFrom`, which the drive the repository lives on refuses (0x80131515,
+  measured). Now from the bytes.
+- Smaller: the new Browse button of the window in English; the registry path in the
+  comment of `Passi.FindWeldmentProfiles` had lost its backslashes; the skip reason of
+  `prova-installatore.js` in `snapshot-scripts.json` no longer says it attaches;
+  `Prove/LEGGIMI.md` counts the checks of a run with the TODO present (798; the 790
+  written before came from a run without it, and the run on the main copy would have
+  been red).
+
+Seen red first: the new cases of `prova-installatore.js` on the installer of bda8946
+(**56 PASS, 6 FAIL**; the install cases of the no-client block refused to run there,
+because that installer would have written the real profile), then **65 PASS, 0 FAIL**;
+the new contracts on the bridge and installer of bda8946 (quoting:
+`[PROFILI_SALDATURA=D:\Weld Profiles" C:\Some]`), then green. The self-test 6 case
+with a fake `SLDWORKS.exe` runs only with no real SOLIDWORKS open: NOT run here.
+
 ## Unreleased — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
 
 **The first of the three rename windows of W3.1-bis (TODO entry W3.1-bis.4):

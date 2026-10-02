@@ -5,8 +5,9 @@ else's Windows machine, on their behalf. A human reading this instead should
 use [QUICKSTART.md](QUICKSTART.md) — same steps, written for hands and eyes.
 
 Everything below was run against the installer's own code. Where a message is
-quoted, it is quoted **in Italian**, because that is what the program prints:
-match the substring, do not translate it before matching.
+quoted, it is quoted **as the program prints it**, in Italian or in English (the
+program is being translated, and new messages are born in English): match the
+substring, do not translate it before matching.
 
 ---
 
@@ -53,7 +54,7 @@ Installa.exe --silenzioso
 | `--redist <path>` | the `api\redist` folder of SOLIDWORKS, if it is not where the installer looks |
 | `--senza-client` | do not touch any MCP client configuration |
 | `--config <path>` | wire **that one file** and do not go looking for clients |
-| `--weldment-profiles <folder>` | the weldment profiles (`.sldlfp`) the `profili_saldatura` operation reads, written as `PROFILI_SALDATURA` in the client entry's `env`. Without it the installer uses the folder SOLIDWORKS itself is set to (Tools > Options > File Locations > Weldment Profiles), or the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`), and says which; it never writes a folder that does not exist. A folder given here that does not exist stops the run with exit 1, before anything is installed |
+| `--weldment-profiles <folder>` | the weldment profiles (`.sldlfp`) the `profili_saldatura` operation reads, written as `PROFILI_SALDATURA` in the client entry's `env`. Without it the installer keeps a folder already in the client entry, else uses the folder SOLIDWORKS itself is set to (Tools > Options > File Locations > Weldment Profiles), or the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`), and says which; it never writes a folder that does not exist. A folder given here that does not exist stops the run with exit 1, before anything is installed |
 | `--log <file>` | also write every line of the run to this file (UTF-8) |
 | `--disinstalla` | remove the installation (see section 6) |
 | `--verify [--json]` | check an existing installation instead of installing (section 4) |
@@ -79,7 +80,7 @@ The output appears on the console from 0.126.0 (before, nothing at all), and
 | **0** | installed, **every client it tried is wired** (or `--senza-client`), and the bridge's self-test confirmed it — attached, or SOLIDWORKS simply closed | done. Go to step 4 |
 | **1** | **nothing was installed.** A prerequisite failed (`[NO]` lines, then `Mi fermo: ci sono cose da sistemare.`), `--weldment-profiles` named a folder that does not exist, or the copy itself threw | read the `[NO]` lines back to the user. Do not retry blindly |
 | **3** | the files are installed, but **a client was not wired** (its config is malformed or locked) or no client was found. The block to paste by hand is printed after the line `Paste this into the MCP client's configuration file` | fix what the line above the block says, or paste the block; then run `--verify` |
-| **2** | installed and wired, but the self-test did not confirm (SOLIDWORKS not installed or not registered, or another failure) | not a failure to repeat: go to step 4 and find out why |
+| **2** | installed and wired, but the self-test did not confirm (SOLIDWORKS not installed or not registered; SOLIDWORKS running but not answering, usually because it was started as administrator; or another failure) | not a failure to repeat: go to step 4 and find out why |
 
 When both 3 and 2 apply, the code is 3. Until 0.125.0 the code was 0 even when
 no client had been wired: an older installer's 0 does not mean the client is
@@ -94,16 +95,24 @@ of them.
 - **Files** in `%LOCALAPPDATA%\Oce.Solid.Agent` (or `--cartella`).
 - **The MCP client config**, unless `--senza-client`:
   - Claude Desktop → `%APPDATA%\Claude\claude_desktop_config.json`
-  - Claude Code → from 0.126.0, when `claude` is on PATH, through Claude Code's
-    own `claude mcp remove --scope user solidworks` and `claude mcp add --scope
-    user solidworks [-e K=V] -- "<exe>"`; otherwise (or if that fails, and it
-    says so) by writing `%USERPROFILE%\.claude.json` itself. A running Claude
-    Code rewrites that file on its own every few tens of seconds, so its own
-    command is the safer writer; whether a running session can still lose an
-    entry written by the file route is not yet measured.
+  - Claude Code → only when it is on the machine: its `.claude.json` exists,
+    or its own folder does (`%USERPROFILE%\.claude`, or `CLAUDE_CONFIG_DIR`),
+    or `claude` is on PATH. Its file is `.claude.json` in `CLAUDE_CONFIG_DIR`
+    when that is set, else in `%USERPROFILE%`: where Claude Code reads it.
+    From 0.126.0, when `claude` is on PATH, through Claude Code's own `claude
+    mcp remove --scope user solidworks` and `claude mcp add --scope user
+    solidworks [-e K=V] -- "<exe>"`; otherwise (or if that fails, and it says
+    so) by writing that file itself. A running Claude Code rewrites that file
+    on its own every few tens of seconds, so its own command is the safer
+    writer; whether a running session can still lose an entry written by the
+    file route is not yet measured.
   - the entry's `env` holds `SW_REDIST` when SOLIDWORKS is not in its usual
     folder, and `PROFILI_SALDATURA` when a weldment profiles folder is known.
-- **A backup of each config it touched**, beside the original, named
+    On a reinstall every other variable already in the `solidworks` entry
+    stays (for example `RISCONTRO_RADICE`), and so does a `PROFILI_SALDATURA`
+    that names a folder that exists, unless `--weldment-profiles` names
+    another; the output says what it kept.
+- **A backup of each config it touched**, the `claude mcp` route included, beside the original, named
   `<original>.prima-di-oce-solid-agent-<yyyyMMdd-HHmmss>.bak`. From 0.88.0
   only the **last three** per file are kept; older ones with that exact prefix
   are removed, and the output says how many. Copies anyone made by hand are
@@ -149,9 +158,10 @@ It writes to **stderr** (stdout belongs to the protocol). **Read its exit code**
 | code | meaning |
 |---|---|
 | 0 | attached to SOLIDWORKS (with or without a document open) |
-| 3 | SOLIDWORKS installed but not running — or running as administrator while this process is not: the bridge says so when a `SLDWORKS` process exists |
+| 3 | SOLIDWORKS installed but not running |
 | 4 | SOLIDWORKS not installed, or not registered: opening it will not help |
 | 5 | not tried: `OCE_NO_ATTACH` is set |
+| 6 | SOLIDWORKS runs in this Windows session but did not answer: it runs as administrator while this process does not (or the other way round), or it is still starting. The installer does **not** count it as installed |
 | 1 | anything else: read the lines |
 
 Its last line when attached is still `[prova] il ponte sta in piedi.`, for a
@@ -185,17 +195,21 @@ install. Ask the user to open SOLIDWORKS with a part, then run `--verify`
 again. Exit code 4 means Windows does not know `SldWorks.Application` at all:
 opening it will not help, it has to be installed or repaired from the
 Installation Manager — and the installer does **not** treat that one as
-success. If the code is 3 while SOLIDWORKS is visibly open, it is probably
-running as administrator and the client is not (or the other way round): they
-must be started the same way. (Until 0.125.0 the installer decided this from
-the self-test's wording; from 0.126.0 it reads the code.)
+success. Exit code 6 means SOLIDWORKS is visibly open and did not answer: it
+is probably running as administrator and the client is not (or the other way
+round), and they must be started the same way; the installer exits 2 for it.
+(Until 0.125.0 the installer decided this from the self-test's wording, and the
+administrator case looked like a closed SOLIDWORKS; from 0.126.0 it reads the
+code.)
 
 **2. Claude Code's file is `.claude.json`, not `.mcp.json`.** In the user's
 profile root, with a leading dot. Writing the wrong one produces no error and
 no server.
 
-**3. `--silenzioso` only wires clients whose folder already exists.** A client
-the user has installed but never opened may have no folder, and it is skipped.
+**3. `--silenzioso` only wires clients it finds.** Claude Desktop is found by
+its folder (`%APPDATA%\Claude`), Claude Code by its `.claude.json`, its
+`.claude` folder or `claude` on PATH. A client the user has installed but never
+opened may have none of these, and it is skipped.
 If no client at all is found the run exits 3 and prints the block to paste;
 if another one is found it exits 0. If the user expects a specific client,
 check `--verify`, or name its file with `--config`.

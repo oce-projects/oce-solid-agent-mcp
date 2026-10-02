@@ -109,10 +109,14 @@ namespace Oce.Solid.Agent.Installer
             // THE WELDMENT PROFILES (entry H19, A6): prefilled with the folder
             // SOLIDWORKS uses, or the one it installs, only when one exists;
             // empty otherwise. Written as PROFILI_SALDATURA in the client's env.
+            // A folder already in an installed client's entry comes first: it
+            // was chosen by someone (H19 review).
             Aggiungi(Titoletto("Weldment profiles folder (optional: profili_saldatura needs it)", ref y));
             string source;
-            _weldmentProfiles.Text = Passi.FindWeldmentProfiles(Passi.TrovaRedist(), out source) ?? "";
-            CampoConBottone(_weldmentProfiles, "Sfoglia…", ref y, ChooseWeldmentProfiles);
+            _weldmentProfiles.Text =
+                Configurazione.ExistingWeldmentProfiles(Configurazione.ClientTrovati().Where(c => c.Installato)) ??
+                Passi.FindWeldmentProfiles(Passi.TrovaRedist(), out source) ?? "";
+            CampoConBottone(_weldmentProfiles, "Browse…", ref y, ChooseWeldmentProfiles);
 
             // ── client ───────────────────────────────────────────────────
             Aggiungi(Titoletto("Quali programmi collegare", ref y));

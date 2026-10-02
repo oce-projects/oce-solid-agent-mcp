@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.Installer
     ///   solidworks  where api\redist is, and which SOLIDWORKS it belongs to
     ///   clients     for each MCP client, whether its "solidworks" entry runs
     ///               the installed exe; and whether PROFILI_SALDATURA is in it
-    ///   self-test   the exit code of the bridge's --prova (0, 1, 3, 4, 5)
+    ///   self-test   the exit code of the bridge's --prova (0, 1, 3, 4, 5, 6)
     ///   handshake   initialize and tools/list over stdio with the installed
     ///               exe, as a client does, and the number of tools
     ///
@@ -130,32 +130,46 @@ namespace Oce.Solid.Agent.Installer
             var clientRows = new List<object>();
             var wired = new List<string>();
             var elsewhere = new List<string>();
+            var unreadable = new List<string>();
+            var noEntry = new List<string>();
             var profiles = new List<string>();
             foreach (var c in clients)
             {
                 var command = Configurazione.ComeEConfigurato(c);
                 bool points = command != null && Passi.PercorsiUguali(command, exe);
                 var env = Configurazione.ConfiguredEnv(c);
+                // A file that cannot be read is not a file without an entry
+                // (H19 review): the install that met it exited 3, and this
+                // must not say all green behind it.
+                var problem = Configurazione.ReadProblem(c);
                 string prof = null;
                 if (env != null) env.TryGetValue("PROFILI_SALDATURA", out prof);
                 clientRows.Add(new Dictionary<string, object>
                 {
                     ["name"] = c.Nome, ["file"] = c.File, ["command"] = command,
-                    ["pointsToInstalled"] = points, ["weldmentProfiles"] = prof,
+                    ["pointsToInstalled"] = points, ["weldmentProfiles"] = prof, ["readError"] = problem,
                 });
                 if (points) { wired.Add(c.Nome); if (!string.IsNullOrWhiteSpace(prof)) profiles.Add(prof); }
+                else if (problem != null) unreadable.Add(c.Nome + " (" + c.File + ")");
                 else if (command != null) elsewhere.Add(c.Nome + " -> " + command);
+                else noEntry.Add(c.Nome);
             }
             report["clients"] = clientRows;
+            var notWiredNote = noEntry.Count > 0 ? "; no entry in: " + string.Join(", ", noEntry) : "";
             if (wired.Count == 0)
                 add("clients", Fail, clients.Count == 0
                     ? "no MCP client found: install Claude Desktop or Claude Code, or name a file with --config"
-                    : "no client runs " + exe + (elsewhere.Count > 0 ? " (" + string.Join("; ", elsewhere) + ")" : "") +
+                    : "no client runs " + exe +
+                      (elsewhere.Count > 0 ? " (" + string.Join("; ", elsewhere) + ")" : "") +
+                      (unreadable.Count > 0 ? " (config that cannot be read: " + string.Join("; ", unreadable) + ")" : "") +
                       ": run the installer again, or paste the block it prints");
-            else if (elsewhere.Count > 0)
-                add("clients", Warn, "wired: " + string.Join(", ", wired) + "; pointing elsewhere: " + string.Join("; ", elsewhere));
+            else if (elsewhere.Count > 0 || unreadable.Count > 0)
+                add("clients", Warn, "wired: " + string.Join(", ", wired) +
+                                     (elsewhere.Count > 0 ? "; pointing elsewhere: " + string.Join("; ", elsewhere) : "") +
+                                     (unreadable.Count > 0 ? "; config that cannot be read (malformed or locked): " +
+                                                             string.Join("; ", unreadable) : "") + notWiredNote);
             else
-                add("clients", Ok, "wired: " + string.Join(", ", wired) + " (restart a client that was open)");
+                add("clients", Ok, "wired: " + string.Join(", ", wired) + notWiredNote + " (restart a client that was open)");
 
             if (wired.Count > 0)
             {
