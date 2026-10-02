@@ -250,6 +250,22 @@ the new contracts on the bridge and installer of bda8946 (quoting:
 `[PROFILI_SALDATURA=D:\Weld Profiles" C:\Some]`), then green. The self-test 6 case
 with a fake `SLDWORKS.exe` runs only with no real SOLIDWORKS open: NOT run here.
 
+**The real `claude mcp add`, measured** (it was "not measured" above): Claude Code
+2.1.281 (`%APPDATA%\Claude\claude-code\2.1.281\claude.exe`, the one Claude Desktop
+ships, not on PATH here) put on PATH for one run, with `CLAUDE_CONFIG_DIR`,
+`USERPROFILE` and `APPDATA` pointing into a scratch folder. First a probe entry with
+another name proved the sandbox (it landed in the scratch `.claude.json`, the real one
+did not change). Then `Installa.exe --silenzioso` into a folder with spaces: exit 0,
+backup made, "registered with claude mcp add --scope user", entry
+`{"type":"stdio","command":"...\inst dir with spaces\oce-solid-agent-mcp.exe","args":[],
+"env":{"PROFILI_SALDATURA":"S:\..."}}` (a value with spaces, through `-e`);
+`--verify --json`: files, solidworks, clients, weldment profiles, handshake ok,
+self-test warn (`OCE_NO_ATTACH`), exit 2; a variable added by hand to the entry
+survived a reinstall through `remove` + `add`; `--disinstalla` exit 0, "removed with
+claude mcp remove", the probe entry left alone. The real `.claude.json` and Claude
+Desktop config were unchanged. Still not measured: a LIVE Claude Code session that
+rewrites `.claude.json` while the installer writes it by the file route (L4, B8).
+
 ## Unreleased — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
 
 **The first of the three rename windows of W3.1-bis (TODO entry W3.1-bis.4):
