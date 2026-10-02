@@ -59,6 +59,7 @@ param(
     [switch] $Muta,
     [switch] $Regressione,
     [switch] $SaltaCompilazione,
+    [switch] $NoRestart,
     [string] $Libreria = ""
 )
 
@@ -122,6 +123,39 @@ if (Test-Path $chiudi) {
     & $chiudi --chiudi (Join-Path $Banco "lavoro") | Out-Null
 } else {
     Write-Output "ChiudiScarti non c'e': i documenti aperti restano, e lo stato li elenca."
+}
+
+# --- 3b. a fresh SOLIDWORKS for a full run (entry Z-C24) ---------------------
+# A long SOLIDWORKS session degrades without raising errors: on 1-2/10/2026 two
+# full runs went red on rebuilds that never happened and on centre marks and
+# dimensions that were not inserted, after ~4,900 documents (window resources
+# exhausted) and after ~7 hours (process handles 2,332 -> 16,281). The same
+# families on a restarted SOLIDWORKS: 314/314, 492/492, 90/90. So a full run
+# starts on a fresh session, unless documents the bench did not open are still
+# there (those are someone's work: never killed) or -NoRestart is given.
+$fullRun = [string]::IsNullOrWhiteSpace($Gruppo) -and [string]::IsNullOrWhiteSpace($Famiglia)
+if ($fullRun -and -not $NoRestart) {
+    $openDocuments = -1
+    try { $openDocuments = $sw.GetDocumentCount() } catch { }
+    $process = Get-Process SLDWORKS -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($openDocuments -ne 0 -or $process -eq $null) {
+        Write-Output ("SOLIDWORKS not restarted: " + $openDocuments + " document(s) still open (or the process was not found).")
+    } else {
+        $exe = $process.Path
+        Write-Output ("restarting SOLIDWORKS for a fresh session (it had " + $process.HandleCount + " handles)")
+        [void][Runtime.InteropServices.Marshal]::ReleaseComObject($sw)
+        $sw = $null
+        Stop-Process -Id $process.Id -Force
+        Start-Sleep -Seconds 5
+        Start-Process $exe | Out-Null
+        $ready = $false
+        for ($i = 0; $i -lt 48 -and -not $ready; $i++) {
+            Start-Sleep -Seconds 5
+            try { $sw = [Runtime.InteropServices.Marshal]::GetActiveObject("SldWorks.Application"); $ready = ($sw -ne $null) } catch { }
+        }
+        if (-not $ready) { Muori 2 "SOLIDWORKS did not come back within 4 minutes after the restart." }
+        Start-Sleep -Seconds 20   # the add-ins finish loading after the COM object appears
+    }
 }
 
 # --- 4. il giro -------------------------------------------------------------
