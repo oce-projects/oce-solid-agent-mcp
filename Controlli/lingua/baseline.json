@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 144924,
-  "strings": 54148,
+  "strings": 54145,
   "markdown": 33914,
-  "json_values": 54674,
+  "json_values": 54655,
   "identifiers": 5051,
-  "json_keys": 15,
-  "protocol": 1063,
+  "json_keys": 14,
+  "protocol": 1061,
   "paths": 220,
   "transition": 2192
  },
@@ -48,7 +48,7 @@
   },
   "Banco/CasiDichiarati.cs": {
    "comments": 3498,
-   "strings": 522
+   "strings": 519
   },
   "Banco/LEGGIMI.md": {
    "markdown": 4215
@@ -324,7 +324,7 @@
    "json_values": 481
   },
   "Banco/cases/drawing/drawing_dimensions_itself.json": {
-   "json_values": 1147
+   "json_values": 1132
   },
   "Banco/cases/drawing/drawing_exports_to_pdf.json": {
    "json_values": 332
@@ -555,7 +555,7 @@
    "json_values": 175
   },
   "Banco/cases/features/limit_rib_outside_its_plane.json": {
-   "json_values": 69
+   "json_values": 68
   },
   "Banco/cases/features/loft_is_not_a_cone.json": {
    "json_values": 386
@@ -939,7 +939,7 @@
    "json_values": 243
   },
   "Banco/cases/weldments/frame_reading_ignores_case.json": {
-   "json_values": 7
+   "json_values": 4
   },
   "Banco/cases/weldments/gusset_polygon_is_not_degenerate.json": {
    "json_values": 330
@@ -6891,7 +6891,6 @@
    "zz_ter_i_materiali_dei_due_workflow"
   ],
   "json_keys": [
-   "_firme",
    "altreImpostazioniDelClient",
    "come_si_misura",
    "compito",
@@ -7029,7 +7028,6 @@
    "LibreriaPredefinita",
    "MINORE",
    "MODELLI_SOLIDWORKS",
-   "Mano",
    "Materiale",
    "MaterialiSolidWorks",
    "Mensola",
@@ -7268,7 +7266,6 @@
    "_slegata",
    "aMonte",
    "a_asola_foro_taglio_piano",
-   "accavall",
    "accoppia",
    "accoppiamenti",
    "accoppiamento",
