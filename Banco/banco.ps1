@@ -124,7 +124,10 @@ if (Test-Path $chiudi) {
     # Its last line says how many documents are still open: the count decides
     # the restart below (late-bound ISldWorks calls fail from PowerShell with
     # TYPE_E_ELEMENTNOTFOUND, measured 2/10/2026).
-    $cleanup = & $chiudi --chiudi (Join-Path $Banco "lavoro") 2>&1
+    # The bench's work folder is local (see Banco/Attese.cs); the old one
+    # next to the repository is still closed too, for documents of older runs.
+    $benchWork = if ($env:OCE_BENCH_WORK) { $env:OCE_BENCH_WORK } else { Join-Path $env:TEMP "oce-bench-work" }
+    $cleanup = & $chiudi --chiudi $benchWork (Join-Path $Banco "lavoro") 2>&1
     $countLine = @($cleanup | Where-Object { "$_" -match ':\s*(\d+)\s*$' }) | Select-Object -Last 1
     if ($countLine -and ("$countLine" -match ':\s*(\d+)\s*$')) { $openAfterCleanup = [int]$Matches[1] }
 } else {

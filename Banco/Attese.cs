@@ -70,13 +70,14 @@ namespace ProvaSaldatura
         {
             get
             {
-                var qui = Path.GetDirectoryName(
-                    System.Reflection.Assembly.GetEntryAssembly() != null
-                        ? System.Reflection.Assembly.GetEntryAssembly().Location
-                        : System.Reflection.Assembly.GetExecutingAssembly().Location);
-                // L'eseguibile sta in `Banco\bin\`: la cartella di lavoro e'
-                // la sorella di `bin`.
-                var dove = Path.GetFullPath(Path.Combine(qui ?? ".", "..", "lavoro"));
+                // A LOCAL folder, not `Banco\lavoro` next to the repository: the
+                // main checkout sits on a network drive, and on 3/10/2026 a
+                // SaveAs3 there answered e=1 and left no file, a bench error
+                // that cost a whole run. OCE_BENCH_WORK names another folder.
+                var sua = Environment.GetEnvironmentVariable("OCE_BENCH_WORK");
+                var dove = Path.GetFullPath(!string.IsNullOrWhiteSpace(sua)
+                    ? sua
+                    : Path.Combine(Path.GetTempPath(), "oce-bench-work"));
                 try { if (!Directory.Exists(dove)) Directory.CreateDirectory(dove); } catch { }
                 return dove;
             }
