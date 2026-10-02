@@ -1,0 +1,303 @@
+{
+ "about": [
+  "The ledger of rename window 2 (Controlli/lingua/window-2-surface.js, entry W3.1-bis.5), written by its forward run and read by its reverse run.",
+  "Each entry is a word of a JSON file of the window (the catalogue, a case, a plan, a task) where the map read backwards would not give the tree before the window back: a name that was already English before the window (keep), or a form the map merges with another (row: the type and the position of the row among those with that English name).",
+  "files: one item per JSON file, its path and its entries. An entry: <position of the string, as entry or item indices from the root, k for a key and v for a value>#<word index, or all> keep|row [<type> <n>] <the word now>.",
+  "It goes with the map: archived in W3.1-bis.11."
+ ],
+ "format": 1,
+ "files": [
+  {
+   "file": "Banco/cases/assemblies/a_component_inside_a_sub_assembly_is_refused.json",
+   "entries": [
+    "4/v#115 keep top_level"
+   ]
+  },
+  {
+   "file": "Banco/cases/assemblies/cover_inside_base.json",
+   "entries": [
+    "6/v/0/2/v/0/0/v#3 row response_field 0 how_many"
+   ]
+  },
+  {
+   "file": "Banco/cases/assemblies/inserting_is_not_mating.json",
+   "entries": [
+    "6/v/0/2/v/13/1/v/0#all keep 1d5ee313d50a"
+   ]
+  },
+  {
+   "file": "Banco/cases/assemblies/the_interference_array_is_as_long_as_the_count.json",
+   "entries": [
+    "7/v/0/2/v/0/0/v#3 row response_field 0 how_many"
+   ]
+  },
+  {
+   "file": "Banco/cases/assemblies/the_mirrored_instance_turns_as_asked.json",
+   "entries": [
+    "7/v/0/1/v/3/k#1 keep orientation",
+    "7/v/0/2/v/2/0/v#3 keep orientation",
+    "7/v/1/1/v/3/k#1 keep orientation",
+    "7/v/2/2/v/0/0/v#3 keep orientation",
+    "7/v/3/1/v/3/k#1 keep orientation"
+   ]
+  },
+  {
+   "file": "Banco/cases/assemblies/the_same_mate_twice_is_refused_as_redundant.json",
+   "entries": [
+    "8/v/2/2/v/3/0/v#3 row response_field 0 how_many"
+   ]
+  },
+  {
+   "file": "Banco/cases/assemblies/the_turned_pin_is_mated_by_assembly_directions.json",
+   "entries": [
+    "2/v#27 row enum_value 0 right",
+    "4/v#29 row enum_value 0 right",
+    "7/v/1/2/v/0/2/v#3 row enum_value 0 right"
+   ]
+  },
+  {
+   "file": "Banco/cases/assemblies/touching_is_not_interpenetrating.json",
+   "entries": [
+    "7/v/0/2/v/0/0/v#3 row response_field 0 how_many",
+    "7/v/1/2/v/0/0/v#3 row response_field 0 how_many"
+   ]
+  },
+  {
+   "file": "Banco/cases/bodies/default_combine.json",
+   "entries": [
+    "2/v#37 row enum_value 0 intersect"
+   ]
+  },
+  {
+   "file": "Banco/cases/bodies/merge_two_cubes.json",
+   "entries": [
+    "3/v#35 row enum_value 0 intersect"
+   ]
+  },
+  {
+   "file": "Banco/cases/bodies/subtract_one_cube_from_the_other.json",
+   "entries": [
+    "2/v#53 row enum_value 0 intersect"
+   ]
+  },
+  {
+   "file": "Banco/cases/dimensions/the_dimension_is_read_in_the_active_configuration.json",
+   "entries": [
+    "4/v#109 keep Right",
+    "4/v#113 keep Left",
+    "6/v/2/1/v/0/v#1 keep Right",
+    "6/v/2/2/v/0/1/v#1 keep Right",
+    "6/v/3/1/v/0/v#1 keep Left",
+    "6/v/3/2/v/0/1/v#1 keep Left",
+    "6/v/4/2/v/3/1/v#1 keep Left",
+    "6/v/8/2/v/2/1/v#1 keep Left"
+   ]
+  },
+  {
+   "file": "Banco/cases/document_properties/the_material_reaches_every_configuration.json",
+   "entries": [
+    "3/v#7 keep Right",
+    "3/v#15 keep Left",
+    "3/v#33 keep Left",
+    "3/v#59 keep Right",
+    "3/v#117 keep Right",
+    "3/v#137 keep Left",
+    "4/v#113 keep Right",
+    "4/v#117 keep Left",
+    "6/v/1/1/v/0/v#1 keep Right",
+    "6/v/1/2/v/0/1/v#1 keep Right",
+    "6/v/2/1/v/0/v#1 keep Left",
+    "6/v/2/2/v/0/1/v#1 keep Left",
+    "6/v/2/2/v/0/2/v#25 keep Left",
+    "6/v/2/2/v/0/2/v#31 keep Right",
+    "6/v/4/1/v/0/v#1 keep Right",
+    "6/v/4/2/v/0/1/v#1 keep Right",
+    "6/v/4/2/v/1/2/v#13 keep Right"
+   ]
+  },
+  {
+   "file": "Banco/cases/drawing/annotations_stay_outside_the_part.json",
+   "entries": [
+    "5/v/7/2/v/3/0/v#3 row response_field 0 attached_to_edge"
+   ]
+  },
+  {
+   "file": "Banco/cases/drawing/counters_exist_even_at_zero.json",
+   "entries": [
+    "3/v#35 row response_field 0 surface_finish",
+    "6/v/3/3/v/5/0/v#5 keep note",
+    "6/v/3/3/v/6/0/v#5 keep note"
+   ]
+  },
+  {
+   "file": "Banco/cases/drawing/cut_list_says_whether_it_compared.json",
+   "entries": [
+    "4/v#81 keep name"
+   ]
+  },
+  {
+   "file": "Banco/cases/drawing/drawing_is_a_second_document.json",
+   "entries": [
+    "6/v/5/2/v/0/2/v#89 row enum_value 0 part"
+   ]
+  },
+  {
+   "file": "Banco/cases/drawing/the_indented_bom_follows_the_tree.json",
+   "entries": [
+    "7/v/6/2/v/5/1/v/0#1 keep indented"
+   ]
+  },
+  {
+   "file": "Banco/cases/extrusions/unknown_plane_does_not_fall_back_to_front.json",
+   "entries": [
+    "2/v#33 row enum_value 1 top",
+    "2/v#39 row enum_value 1 right",
+    "2/v#237 row enum_value 1 top",
+    "4/v#21 row enum_value 1 top"
+   ]
+  },
+  {
+   "file": "Banco/cases/features/fillet_face_between_two_faces_of_a_cube.json",
+   "entries": [
+    "6/v/1/2/v/2/0/v#3 keep volume_before_mm3",
+    "6/v/1/2/v/3/0/v#3 keep volume_change_mm3",
+    "6/v/1/2/v/8/0/v#3 keep bodies",
+    "6/v/1/2/v/9/0/v#3 keep features_in_error"
+   ]
+  },
+  {
+   "file": "Banco/cases/features/the_state_counts_selected_edges_and_faces.json",
+   "entries": [
+    "2/v#285 keep faces",
+    "3/v#155 keep faces",
+    "6/v#37 row operation 0 chamfer_edges",
+    "6/v#89 keep faces",
+    "9/v/1/2/v/1/0/v#3 keep feature",
+    "9/v/1/2/v/2/0/v#3 keep feature",
+    "9/v/1/2/v/3/0/v#3 keep feature",
+    "9/v/1/2/v/4/0/v#3 keep feature",
+    "9/v/1/2/v/4/0/v#7 keep faces",
+    "9/v/1/2/v/6/0/v#3 keep faces",
+    "9/v/2/2/v/1/0/v#3 keep feature",
+    "9/v/2/2/v/2/0/v#3 keep feature",
+    "9/v/2/2/v/3/0/v#3 keep feature",
+    "9/v/2/2/v/4/0/v#3 keep feature",
+    "9/v/2/2/v/4/0/v#7 keep faces",
+    "9/v/2/2/v/6/0/v#3 keep faces",
+    "9/v/3/2/v/1/0/v#3 keep feature",
+    "9/v/3/2/v/2/0/v#3 keep feature",
+    "9/v/3/2/v/3/0/v#3 keep feature",
+    "9/v/3/2/v/4/0/v#3 keep feature",
+    "9/v/3/2/v/5/0/v#3 keep feature",
+    "9/v/3/2/v/5/0/v#7 keep faces",
+    "9/v/3/2/v/7/0/v#3 keep faces"
+   ]
+  },
+  {
+   "file": "Banco/cases/measurement/the_wall_between_two_holes_is_measured_as_asked.json",
+   "entries": [
+    "7/v/3/2/v/2/1/v#1 keep none"
+   ]
+  },
+  {
+   "file": "Banco/cases/sheet_metal/limit_open_hem_without_gap.json",
+   "entries": [
+    "2/v#5 row enum_value 0 open"
+   ]
+  },
+  {
+   "file": "Banco/cases/sheet_metal/the_L_flattens.json",
+   "entries": [
+    "4/v/0/2/v/3/1/v#1 row response_value 0 inner"
+   ]
+  },
+  {
+   "file": "Banco/cases/sheet_metal/the_L_reversed.json",
+   "entries": [
+    "3/v#51 row response_value 0 inner",
+    "5/v/0/2/v/1/1/v#1 row response_value 0 outer"
+   ]
+  },
+  {
+   "file": "Banco/cases/slot/blind_slot_back_face.json",
+   "entries": [
+    "2/v#11 row enum_value 0 back"
+   ]
+  },
+  {
+   "file": "Banco/cases/slot/blind_slot_right_face.json",
+   "entries": [
+    "2/v#11 row enum_value 0 right"
+   ]
+  },
+  {
+   "file": "Banco/cases/weldments/a_frame_too_small_closes_the_profile_library.json",
+   "entries": [
+    "4/v#73 row enum_value 1 top",
+    "6/v#113 row enum_value 1 top"
+   ]
+  },
+  {
+   "file": "Banco/cases/weldments/frame_reading_ignores_case.json",
+   "entries": [
+    "5/v#31 row enum_value 0 front"
+   ]
+  },
+  {
+   "file": "Banco/cases/weldments/gusset_polygon_is_not_degenerate.json",
+   "entries": [
+    "5/v#31 row selector 0 front",
+    "5/v#63 row enum_value 0 right"
+   ]
+  },
+  {
+   "file": "Banco/cases/weldments/gusset_sits_in_the_corner.json",
+   "entries": [
+    "5/v#71 row selector 0 front",
+    "5/v#97 row enum_value 0 right",
+    "5/v#123 row enum_value 0 back",
+    "5/v#173 row enum_value 0 back"
+   ]
+  },
+  {
+   "file": "Banco/cases/weldments/the_trim_refuses_an_unknown_end_condition.json",
+   "entries": [
+    "2/v#289 keep end_condition",
+    "7/v/4/2/v/1/0/v#3 keep end_condition"
+   ]
+  },
+  {
+   "file": "Banco/cases/weldments/weld_bead_goes_between_touching_faces.json",
+   "entries": [
+    "5/v#119 row selector 0 front",
+    "5/v#145 row enum_value 0 right",
+    "5/v#171 row enum_value 0 back",
+    "5/v#221 row enum_value 0 back"
+   ]
+  },
+  {
+   "file": "Strumenti/catalogo.json",
+   "entries": [
+    "1/v/10/4/v/1/v/0/v/1/v#17 keep feature",
+    "1/v/11/4/v/1/v/0/v/1/v#17 keep feature",
+    "1/v/16/3/v#115 keep feature",
+    "1/v/17/3/v#231 keep feature",
+    "1/v/18/3/v#249 keep faces",
+    "1/v/18/3/v#273 keep faces",
+    "1/v/22/3/v#275 keep faces",
+    "1/v/22/3/v#345 keep faces",
+    "1/v/27/3/v#355 keep configurations",
+    "1/v/34/4/v/1/v/4/v/2/v#85 keep end_condition",
+    "1/v/36/3/v#247 keep measured",
+    "1/v/55/3/v#345 row response_field 0 how_many",
+    "1/v/62/3/v#281 keep part",
+    "1/v/78/3/v#401 keep orientation",
+    "1/v/78/3/v#461 keep orientation",
+    "1/v/78/3/v#477 keep orientation",
+    "1/v/78/4/v/1/v/1/k#1 keep orientation",
+    "1/v/79/3/v#247 keep top_level",
+    "1/v/94/4/v/1/v/0/v/1/v#45 keep feature"
+   ]
+  }
+ ]
+}

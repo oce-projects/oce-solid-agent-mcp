@@ -1,24 +1,24 @@
 {
   "name": "iges_solids",
   "family": "export",
-  "why": "L'IGES serve quando dall'altra parte c'e' un CAD o una macchina che lo STEP non lo legge. Con la rappresentazione «solidi» (BREP) il volume deve sopravvivere alla traduzione come nello STEP -- e si misura riaprendo il file, non guardando quanto pesa.",
+  "why": "L'IGES serve quando dall'altra parte c'e' un CAD o una macchina che lo STEP non lo legge. Con la rappresentazione «solids» (BREP) il volume deve sopravvivere alla traduzione come nello STEP -- e si misura riaprendo il file, non guardando quanto pesa.",
   "_why_the_records": "un IGES e' fatto di righe da ottanta caratteri, e la colonna 73 dice a che sezione appartengono: S intestazione, G globale, D directory, P parametri, T coda. Un file con le sole intestazioni e niente dentro esiste, pesa e si apre: si prende contando i record «P».",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "esporta_iges",
-      "arguments": { "percorso": "{LAVORO}\\gp3_solidi.igs", "rappresentazione": "solidi",
-                     "riapri_e_confronta": true },
+    { "operation": "export_iges",
+      "arguments": { "path": "{LAVORO}\\gp3_solidi.igs", "representation": "solids",
+                     "reopen_and_compare": true },
       "expect": [
-        { "what": "misure.formato", "equal_to": "IGES" },
-        { "what": "misure.rappresentazione", "equal_to": "solidi" },
-        { "what": "misure.come_lo_so", "includes": ["colonna 73"] },
-        { "what": "misure.volume_riletto_mm3", "equal_to": 200000, "tolerance": 0.5,
+        { "what": "measurements.file_format", "equal_to": "IGES" },
+        { "what": "measurements.representation", "equal_to": "solids" },
+        { "what": "measurements.how_known", "includes": ["colonna 73"] },
+        { "what": "measurements.volume_reread_mm3", "equal_to": 200000, "tolerance": 0.5,
           "tolerance_why": "il volume della geometria tradotta, letto da GetMassProperties che torna metri cubi" },
-        { "what": "misure.scarto_relativo", "equal_to": 0, "tolerance": 0.0001,
+        { "what": "measurements.deviation_relative", "equal_to": 0, "tolerance": 0.0001,
           "tolerance_why": "un BREP non deve perdere niente" } ] }
   ]
 }

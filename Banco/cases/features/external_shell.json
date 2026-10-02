@@ -5,34 +5,34 @@
   "start": { "new_part": true },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 100,
-        "larghezza_mm": 60,
-        "spessore_mm": 40,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 100,
+        "width_mm": 60,
+        "thickness_mm": 40,
+        "centered": true
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 240000 },
-        { "what": "stato.ingombro_da_mm", "equal_to": [-50, -30, 0] },
-        { "what": "ingombro_mm", "equal_to": [100, 60, 40] }
+        { "what": "state.bounding_box_from_mm", "equal_to": [-50, -30, 0] },
+        { "what": "bounding_box_mm", "equal_to": [100, 60, 40] }
       ]
     },
     {
-      "operation": "guscio",
+      "operation": "shell",
       "arguments": {
-        "facce_uid": ["@faccia(verso=davanti)"],
-        "spessore_mm": 5,
-        "verso_esterno": true
+        "faces_uid": ["@face(normal=front)"],
+        "thickness_mm": 5,
+        "outward": true
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 106500 },
-        { "what": "ingombro_mm", "equal_to": [110, 70, 45] },
-        { "what": "misure.materiale_tolto_mm3", "equal_to": 133500,
+        { "what": "bounding_box_mm", "equal_to": [110, 70, 45] },
+        { "what": "measurements.material_removed_mm3", "equal_to": 133500,
           "tolerance": 0.1,
           "tolerance_why": "l'operazione arrotonda al decimo prima di riportarlo" },
-        { "what": "misure.verso", "equal_to": "esterno" }
+        { "what": "measurements.facing", "equal_to": "outer" }
       ]
     }
   ]

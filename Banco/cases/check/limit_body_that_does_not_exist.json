@@ -1,15 +1,15 @@
 {
   "name": "limit_body_that_does_not_exist",
   "family": "check",
-  "why": "Un identificativo di corpo che non c'e' va rifiutato, non risposto con un elenco vuoto e «stampabile: true». Zero corpi guardati e nessun problema trovato sono la stessa riga per chi legge, ed e' il modo piu' comodo di avere un verde che non prova niente.",
+  "why": "Un identificativo di corpo che non c'e' va rifiutato, non risposto con un elenco vuoto e «printable: true». Zero corpi guardati e nessun problema trovato sono la stessa riga per chi legge, ed e' il modo piu' comodo di avere un verde che non prova niente.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "verifica_geometria_corpo",
-      "arguments": { "corpo_uid": "C9" },
+    { "operation": "check_body_geometry",
+      "arguments": { "body_uid": "C9" },
       "must_fail": {
         "message_includes": ["Non trovo il corpo", "C9"],
         "volume_unchanged": true,

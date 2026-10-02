@@ -138,8 +138,8 @@ namespace Prove.Contratti
                     : Ogg(Chiedi(p, 2,
                         "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}"));
                 var strumenti = Dentro(Dentro(lista, "result"), "tools") as object[];
-                // SEI DALLA 0.57.0, non cinque: e' nato `misura` (voce W2.3).
-                // SETTE DALLA 0.87.0: e' nato `documento` (voci Z-B1/B2/B5/B6),
+                // SEI DALLA 0.57.0, non cinque: e' nato `measure` (voce W2.3).
+                // SETTE DALLA 0.87.0: e' nato `document` (voci Z-B1/B2/B5/B6),
                 // e questa riga e' stata cambiata apposta, non trovata rossa.
                 // Il numero si assertisce ESATTO e non «almeno»: uno strumento
                 // in piu' che appare senza che nessuno l'abbia voluto e' un
@@ -166,41 +166,41 @@ namespace Prove.Contratti
                     return s == null ? null
                         : Convert.ToString(Dentro(Dentro(s, "annotations"), campo));
                 };
-                Segna("«misura» si dichiara di sola lettura",
-                      string.Equals(ann("misura", "readOnlyHint"), "True",
+                Segna("«measure» si dichiara di sola lettura",
+                      string.Equals(ann("measure", "readOnlyHint"), "True",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("misura", "readOnlyHint") ?? "(manca)");
-                Segna("«misura» NON si dichiara distruttivo",
-                      string.Equals(ann("misura", "destructiveHint"), "False",
+                      ann("measure", "readOnlyHint") ?? "(manca)");
+                Segna("«measure» NON si dichiara distruttivo",
+                      string.Equals(ann("measure", "destructiveHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("misura", "destructiveHint") ?? "(manca)");
-                Segna("«disegna» resta distruttivo",
-                      string.Equals(ann("disegna", "destructiveHint"), "True",
+                      ann("measure", "destructiveHint") ?? "(manca)");
+                Segna("«build» resta distruttivo",
+                      string.Equals(ann("build", "destructiveHint"), "True",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("disegna", "destructiveHint") ?? "(manca)");
-                Segna("«disegna» NON si dichiara idempotente",
-                      string.Equals(ann("disegna", "idempotentHint"), "False",
+                      ann("build", "destructiveHint") ?? "(manca)");
+                Segna("«build» NON si dichiara idempotente",
+                      string.Equals(ann("build", "idempotentHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("disegna", "idempotentHint") ?? "(manca)");
+                      ann("build", "idempotentHint") ?? "(manca)");
 
-                // «documento» cambia il documento davanti: NON e' di sola
+                // «document» cambia il documento davanti: NON e' di sola
                 // lettura, anche se non tocca la geometria. Un client che lo
                 // credesse di sola lettura lo chiamerebbe senza chiedere, e il
                 // piano successivo scriverebbe in un pezzo diverso da quello
-                // che chi lavora ha davanti. E NON e' idempotente: «nuovo» due
+                // che chi lavora ha davanti. E NON e' idempotente: «create» due
                 // volte fa due documenti.
-                Segna("«documento» NON si dichiara di sola lettura",
-                      string.Equals(ann("documento", "readOnlyHint"), "False",
+                Segna("«document» NON si dichiara di sola lettura",
+                      string.Equals(ann("document", "readOnlyHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("documento", "readOnlyHint") ?? "(manca)");
-                Segna("«documento» NON si dichiara idempotente",
-                      string.Equals(ann("documento", "idempotentHint"), "False",
+                      ann("document", "readOnlyHint") ?? "(manca)");
+                Segna("«document» NON si dichiara idempotente",
+                      string.Equals(ann("document", "idempotentHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("documento", "idempotentHint") ?? "(manca)");
-                Segna("«documento» NON si dichiara distruttivo: non chiude e non butta niente",
-                      string.Equals(ann("documento", "destructiveHint"), "False",
+                      ann("document", "idempotentHint") ?? "(manca)");
+                Segna("«document» NON si dichiara distruttivo: non chiude e non butta niente",
+                      string.Equals(ann("document", "destructiveHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("documento", "destructiveHint") ?? "(manca)");
+                      ann("document", "destructiveHint") ?? "(manca)");
 
                 bool schemiOk = strumenti != null && strumenti.All(s =>
                 {
@@ -217,7 +217,7 @@ namespace Prove.Contratti
                 // `title` DI PRIMO LIVELLO, non solo dentro `annotations`.
                 // Nelle revisioni recenti dello spec sta sullo strumento; un
                 // client nuovo che legge solo li' mostrerebbe il nome tecnico
-                // `guarda_il_pezzo` a chi sta lavorando.
+                // `inspect_part` a chi sta lavorando.
                 bool titoliOk = strumenti != null && strumenti.All(s =>
                     !string.IsNullOrWhiteSpace(Convert.ToString(Dentro(s, "title"))));
                 Segna("ogni strumento ha un «title» di primo livello", titoliOk,
@@ -263,7 +263,7 @@ namespace Prove.Contratti
                           ? "tutti e " + (strumenti == null ? 0 : strumenti.Length)
                           : "non nominati: " + string.Join(", ", mancanti));
 
-                // ── «misura» RIFIUTA CIO' CHE TOCCA IL PEZZO ─────────────
+                // ── «measure» RIFIUTA CIO' CHE TOCCA IL PEZZO ─────────────
                 //
                 // E' il criterio della voce W2.3, e va provato COL CASO ROSSO:
                 // uno strumento che si dichiara di sola lettura e poi accetta
@@ -276,17 +276,17 @@ namespace Prove.Contratti
                 // qui, dove SOLIDWORKS non c'e'.
                 var tocca = Ogg(Chiedi(p, 4,
                     "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"misura\",\"arguments\":{\"passi\":[" +
-                    "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{}}]}}}"));
+                    "{\"name\":\"measure\",\"arguments\":{\"steps\":[" +
+                    "{\"operation\":\"extrude_rectangle\",\"arguments\":{}}]}}}"));
                 var suoTocca = Dentro(tocca, "result") as Dictionary<string, object>;
-                Segna("«misura» rifiuta «estrudi_rettangolo»",
+                Segna("«measure» rifiuta «extrude_rectangle»",
                       suoTocca != null && suoTocca.ContainsKey("isError") &&
                       Convert.ToString(suoTocca["isError"]).Equals("True", StringComparison.OrdinalIgnoreCase),
                       Corto(TestoDi(suoTocca)));
                 // E LO DICE COL CRITERIO, non con un verdetto: chi legge deve
                 // sapere CON QUALE strumento si fa, altrimenti deve indovinare.
                 Segna("il rifiuto dice con quale strumento si fa",
-                      TestoDi(suoTocca).IndexOf("disegna", StringComparison.OrdinalIgnoreCase) >= 0,
+                      TestoDi(suoTocca).IndexOf("build", StringComparison.OrdinalIgnoreCase) >= 0,
                       Corto(TestoDi(suoTocca)));
                 Segna("il rifiuto dice che non ha eseguito niente",
                       TestoDi(suoTocca).IndexOf("niente", StringComparison.OrdinalIgnoreCase) >= 0,
@@ -294,13 +294,13 @@ namespace Prove.Contratti
 
                 // ── I DATI ESCONO ANCHE IN FORMA LEGGIBILE (voce W2.4) ───
                 //
-                // `elenco_operazioni` non tocca SOLIDWORKS, quindi e' l'unico
+                // `list_operations` non tocca SOLIDWORKS, quindi e' l'unico
                 // strumento con dati veri che si possa provare qui. Il testo
                 // deve restare — i client che leggono solo `content` sono la
                 // maggioranza — e `structuredContent` deve esserci ACCANTO.
                 var elenco = Ogg(Chiedi(p, 5,
                     "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"elenco_operazioni\",\"arguments\":{}}}"));
+                    "{\"name\":\"list_operations\",\"arguments\":{}}}"));
                 var suoElenco = Dentro(elenco, "result") as Dictionary<string, object>;
                 Segna("il testo c'e' ancora", TestoDi(suoElenco).Length > 0,
                       Corto(TestoDi(suoElenco)));
@@ -358,7 +358,7 @@ namespace Prove.Contratti
                 var risorse = Dentro(Dentro(elencoRisorse, "result"), "resources") as object[];
                 Segna("resources/list da' il catalogo",
                       risorse != null && risorse.Length == 1 &&
-                      Convert.ToString(Dentro(risorse[0], "uri")) == "catalogo://operazioni",
+                      Convert.ToString(Dentro(risorse[0], "uri")) == "catalog://operations",
                       risorse == null ? "(niente)" : risorse.Length + ": " +
                           string.Join(", ", risorse.Select(x => Convert.ToString(Dentro(x, "uri")))));
 
@@ -368,7 +368,7 @@ namespace Prove.Contratti
                 Segna("resources/templates/list da' il modello per una operazione",
                       schemi != null && schemi.Length == 1 &&
                       Convert.ToString(Dentro(schemi[0], "uriTemplate"))
-                          == "catalogo://operazione/{nome}",
+                          == "catalog://operation/{name}",
                       schemi == null ? "(niente)" : schemi.Length + ": " +
                           string.Join(", ", schemi.Select(x => Convert.ToString(Dentro(x, "uriTemplate")))));
 
@@ -382,18 +382,18 @@ namespace Prove.Contratti
                 // giorno in cui una delle due si scrive a parte.*
                 var lettura = Ogg(Chiedi(p, 42,
                     "{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"resources/read\",\"params\":" +
-                    "{\"uri\":\"catalogo://operazioni\"}}"));
+                    "{\"uri\":\"catalog://operations\"}}"));
                 var contenuti = Dentro(Dentro(lettura, "result"), "contents") as object[];
                 var testoRisorsa = contenuti == null || contenuti.Length == 0
                     ? null : Convert.ToString(Dentro(contenuti[0], "text"));
                 Segna("resources/read torna il testo del catalogo",
                       !string.IsNullOrWhiteSpace(testoRisorsa) &&
-                      testoRisorsa.IndexOf("\"famiglie\"", StringComparison.Ordinal) >= 0,
+                      testoRisorsa.IndexOf("\"families\"", StringComparison.Ordinal) >= 0,
                       Corto(testoRisorsa));
 
                 var daStrumento = Ogg(Chiedi(p, 43,
                     "{\"jsonrpc\":\"2.0\",\"id\":43,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"elenco_operazioni\",\"arguments\":{}}}"));
+                    "{\"name\":\"list_operations\",\"arguments\":{}}}"));
                 var pezzi = Dentro(Dentro(daStrumento, "result"), "content") as object[];
                 var testoStrumento = pezzi == null || pezzi.Length == 0
                     ? null : Convert.ToString(Dentro(pezzi[0], "text"));
@@ -410,7 +410,7 @@ namespace Prove.Contratti
                 // Il caso rosso: senza, «non trovato» sarebbe un vicolo cieco.
                 var mancante = Ogg(Chiedi(p, 44,
                     "{\"jsonrpc\":\"2.0\",\"id\":44,\"method\":\"resources/read\",\"params\":" +
-                    "{\"uri\":\"catalogo://operazione/questa_non_esiste\"}}"));
+                    "{\"uri\":\"catalog://operation/questa_non_esiste\"}}"));
                 var erroreUri = Dentro(mancante, "error") as Dictionary<string, object>;
                 var messaggioUri = erroreUri == null
                     ? null : Convert.ToString(Dentro(erroreUri, "message"));
@@ -418,7 +418,7 @@ namespace Prove.Contratti
                       erroreUri != null, erroreUri == null ? "(ha risposto ok)" : Corto(messaggioUri));
                 Segna("e l'errore dice quali URI ci sono",
                       messaggioUri != null &&
-                      messaggioUri.IndexOf("catalogo://operazioni", StringComparison.Ordinal) >= 0,
+                      messaggioUri.IndexOf("catalog://operations", StringComparison.Ordinal) >= 0,
                       Corto(messaggioUri));
 
                 // ── JSON MALFORMATO: -32700, id nullo ─────────────────────
@@ -453,9 +453,9 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// IL CASO ROSSO DEL CANCELLO DI `misura`.
+        /// IL CASO ROSSO DEL CANCELLO DI `measure`.
         ///
-        /// `misura` decide guardando la FAMIGLIA dell'operazione, e la famiglia
+        /// `measure` decide guardando la FAMIGLIA dell'operazione, e la famiglia
         /// la sa solo il catalogo. Se il catalogo non si carica, ogni famiglia
         /// e' `null`, **ogni passo passerebbe il controllo**, e uno strumento
         /// che si e' dichiarato di sola lettura — per cui il client ha gia'
@@ -485,10 +485,10 @@ namespace Prove.Contratti
 
                 var r = Ogg(Chiedi(p, 9,
                     "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"misura\",\"arguments\":{\"passi\":[" +
-                    "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{}}]}}}"));
+                    "{\"name\":\"measure\",\"arguments\":{\"steps\":[" +
+                    "{\"operation\":\"extrude_rectangle\",\"arguments\":{}}]}}}"));
                 var suo = Dentro(r, "result") as Dictionary<string, object>;
-                Segna("senza catalogo «misura» NON esegue",
+                Segna("senza catalogo «measure» NON esegue",
                       suo != null && suo.ContainsKey("isError") &&
                       Convert.ToString(suo["isError"]).Equals("True", StringComparison.OrdinalIgnoreCase),
                       Corto(TestoDi(suo)));

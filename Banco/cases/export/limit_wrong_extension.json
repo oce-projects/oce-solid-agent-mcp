@@ -4,12 +4,12 @@
   "why": "L'ESTENSIONE NON E' UN DETTAGLIO DEL NOME: e' l'unica cosa che dice a `SaveAs3` che formato scrivere. Un percorso che finisce in .stp fa scrivere uno STEP con dentro tutt'altro, e il file esiste, pesa qualcosa e si apre -- semplicemente non e' quello che qualcuno stava per mandare alla stampante.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "esporta_stl",
-      "arguments": { "percorso": "{LAVORO}\\gp2_sbagliato.stp" },
+    { "operation": "export_stl",
+      "arguments": { "path": "{LAVORO}\\gp2_sbagliato.stp" },
       "must_fail": {
         "message_includes": ["non finisce in .stl", "che formato scrivere"],
         "volume_unchanged": true,

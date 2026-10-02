@@ -6,7 +6,7 @@ namespace Riscontro.Disegno
     /// PERCHE' ESISTE QUESTO FILE. Fino alla 0.31.0 il modo di tornare indietro
     /// era scritto **ventuno volte** con parole quasi uguali, e diceva sempre la
     /// stessa cosa: «annullalo con Ctrl+Z». Poi e' arrivato lo strumento
-    /// `annulla` (voce R1) e quelle ventuno frasi sono diventate ventuno posti
+    /// `undo` (voce R1) e quelle ventuno frasi sono diventate ventuno posti
     /// da correggere — che e' esattamente il conto che una frase ripetuta
     /// presenta il giorno in cui cambia.
     ///
@@ -25,9 +25,9 @@ namespace Riscontro.Disegno
         ///
         ///   * il **modello**, che arriva dal ponte MCP. Non ha una tastiera:
         ///     «premi Ctrl+Z» e' una riparazione che non puo' prendere. Per lui
-        ///     esiste lo strumento `annulla`.
+        ///     esiste lo strumento `undo`.
         ///   * la **persona**, che usa le stesse operazioni dall'add-in di
-        ///     OpenPDM o che legge questa riga in un log. Per lei `annulla` non
+        ///     OpenPDM o che legge questa riga in un log. Per lei `undo` non
         ///     esiste: il gesto e' `Ctrl+Z`.
         ///
         /// Nominare solo lo strumento avrebbe mandato il progettista a cercare
@@ -38,7 +38,7 @@ namespace Riscontro.Disegno
         /// Comincia con lo spazio: si attacca in coda a un messaggio.
         /// </summary>
         public const string CosiSiRitira =
-            "«annulla» se stai parlando col ponte, Ctrl+Z se sei davanti allo schermo";
+            "«undo» se stai parlando col ponte, Ctrl+Z se sei davanti allo schermo";
 
         /// <summary>
         /// DOVE STAVA E DOVE STA, in frazione dell'ingombro — **e solo a
@@ -74,7 +74,7 @@ namespace Riscontro.Disegno
         /// degenere, oppure la faccia non si e' spostata.
         /// </summary>
         /// <param name="uid">Come si chiama l'entita' nel messaggio.</param>
-        /// <param name="prima">Il punto che il piano portava con se', in mm.</param>
+        /// <param name="before">Il punto che il piano portava con se', in mm.</param>
         /// <param name="adesso">Il punto misurato adesso, in mm.</param>
         /// <param name="scatolaPrima">{minX,minY,minZ,maxX,maxY,maxZ} di allora.</param>
         /// <param name="scatolaAdesso">{minX,minY,minZ,maxX,maxY,maxZ} di adesso.</param>

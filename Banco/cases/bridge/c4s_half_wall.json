@@ -1,13 +1,13 @@
 [
  {
-  "operazione": "estrudi_sezione",
-  "argomenti": {
-   "piano": "superiore",
-   "tipo": "tubolare",
-   "larghezza_mm": 80,
-   "altezza_mm": 80,
-   "parete_mm": 40,
-   "lunghezza_mm": 100
+  "operation": "extrude_section",
+  "arguments": {
+   "plane": "top",
+   "variant": "tubular",
+   "width_mm": 80,
+   "height_mm": 80,
+   "wall_mm": 40,
+   "length_mm": 100
   }
  }
 ]

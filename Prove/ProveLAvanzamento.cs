@@ -13,7 +13,7 @@ namespace Prove.Contratti
     /// ── PERCHE' SI PUO' MISURARE SENZA SOLIDWORKS ───────────────────────
     ///
     /// Perche' `notifications/progress` e' protocollo, non CAD. E perche' il
-    /// ponte ha gia' la **prova a vuoto** (`prova: true`, voce Z-G6): controlla
+    /// ponte ha gia' la **prova a vuoto** (`dry_run: true`, voce Z-G6): controlla
     /// un piano passo per passo con SOLIDWORKS chiuso. Quel giro manda le sue
     /// notifiche come qualunque altro, quindi la catena intera — gettone che
     /// entra, notifiche che escono, gettone che torna identico — si guarda
@@ -98,7 +98,7 @@ namespace Prove.Contratti
                   leggi(null) == null, "null non fa saltare niente");
 
             Segna("senza `_meta` non c'e' nessun gettone",
-                  leggi(new Dictionary<string, object> { ["name"] = "disegna" }) == null,
+                  leggi(new Dictionary<string, object> { ["name"] = "build" }) == null,
                   "chi non lo chiede non viene aggiornato");
 
             Segna("con `_meta` ma senza progressToken, nemmeno",
@@ -459,21 +459,21 @@ namespace Prove.Contratti
 
                 // ── CON IL GETTONE ────────────────────────────────────────
                 //
-                // `prova: true` controlla il piano passo per passo e non tocca
+                // `dry_run: true` controlla il piano passo per passo e non tocca
                 // niente: gira con SOLIDWORKS chiuso, ed e' l'unico giro del
                 // ponte che si puo' guardare per intero su questa macchina.
                 const string tre =
-                    "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":" +
-                    "{\"lunghezza_mm\":100,\"larghezza_mm\":50,\"spessore_mm\":5}}," +
-                    "{\"operazione\":\"estrudi_cerchio\",\"argomenti\":" +
-                    "{\"diametro_mm\":40,\"altezza_mm\":10}}," +
-                    "{\"operazione\":\"guscio\",\"argomenti\":{\"spessore_mm\":3}}";
+                    "{\"operation\":\"extrude_rectangle\",\"arguments\":" +
+                    "{\"length_mm\":100,\"width_mm\":50,\"thickness_mm\":5}}," +
+                    "{\"operation\":\"extrude_circle\",\"arguments\":" +
+                    "{\"diameter_mm\":40,\"height_mm\":10}}," +
+                    "{\"operation\":\"shell\",\"arguments\":{\"thickness_mm\":3}}";
 
                 int primaCon = p.Viste.Count;
                 Chiedi(p, 30,
                     "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"tools/call\",\"params\":" +
                     "{\"_meta\":{\"progressToken\":\"pt-77\"}," +
-                    "\"name\":\"disegna\",\"arguments\":{\"prova\":true,\"passi\":[" + tre + "]}}}");
+                    "\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" + tre + "]}}}");
 
                 var conGettone = Avanzamenti(p, primaCon);
                 Segna("con un progressToken arrivano notifiche di avanzamento",
@@ -501,7 +501,7 @@ namespace Prove.Contratti
                 int primaSenza = p.Viste.Count;
                 Chiedi(p, 31,
                     "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"disegna\",\"arguments\":{\"prova\":true,\"passi\":[" + tre + "]}}}");
+                    "{\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" + tre + "]}}}");
 
                 var senza = Avanzamenti(p, primaSenza);
                 Segna("e chi NON manda un gettone non riceve niente",

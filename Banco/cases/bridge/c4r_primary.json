@@ -1,11 +1,11 @@
 [
  {
-  "operazione": "ruota_dentata",
-  "argomenti": {
-   "piano": "superiore",
-   "denti": 20,
-   "modulo_mm": 2,
-   "spessore_mm": 10
+  "operation": "spur_gear",
+  "arguments": {
+   "plane": "top",
+   "teeth": 20,
+   "module_mm": 2,
+   "thickness_mm": 10
   }
  }
 ]

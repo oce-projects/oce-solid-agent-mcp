@@ -4,11 +4,11 @@
   "why": "Tutta fuori dal pezzo: il taglio non toglie niente, e va detto. Fino alla 0.42.0 la risposta era «il taglio non e' stato creato», identica a quella di un profilo troppo grande -- due cose da fare opposte, spostare o rimpicciolire, e il messaggio non diceva quale.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120, "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
-    { "operation": "asola",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 400, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 0, "passante": true },
+    { "operation": "slot",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 400, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": true },
       "must_fail": {
         "message_includes": ["cade tutto fuori dal materiale", "-100 a 100"],
         "volume_unchanged": true,

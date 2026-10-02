@@ -62,12 +62,12 @@ namespace Riscontro.Disegno
             if (disegno == null)
                 return Fallito(
                     "Il documento attivo non e' una tavola: una vista di dettaglio sta " +
-                    "su un foglio di tavola. Crea prima la tavola con «crea_disegno».");
+                    "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
 
             // ── LA VISTA DA DETTAGLIARE ─────────────────────────────────
             //
-            // La PRIMA «vista» del foglio e' il foglio stesso, e si salta.
-            string chiesta = VistaChiestaPerNome(disegno, Str(a, "vista", null));
+            // La PRIMA «view» del foglio e' il foglio stesso, e si salta.
+            string chiesta = VistaChiestaPerNome(disegno, Str(a, "view", null));
             IView bersaglio = null;
             var nomiViste = new List<string>();
             int vistePrima = 0;
@@ -98,7 +98,7 @@ namespace Riscontro.Disegno
             if (bersaglio == null)
                 return Fallito(chiesta == null
                     ? "Sul foglio non c'e' nessuna vista da dettagliare: mettici prima " +
-                      "le viste con «viste_standard»."
+                      "le viste con «standard_views»."
                     : "Non trovo la vista «" + chiesta + "». Sul foglio ci sono: " +
                       (nomiViste.Count == 0 ? "nessuna vista" : string.Join(", ", nomiViste)) + ".");
 
@@ -125,9 +125,9 @@ namespace Riscontro.Disegno
             double cx = double.IsNaN(xM) ? (xMin + xMax) / 2.0 : (xMin + xMax) / 2.0 + xM / 1000.0;
             double cy = double.IsNaN(yM) ? (yMin + yMax) / 2.0 : (yMin + yMax) / 2.0 + yM / 1000.0;
 
-            double raggioMm = Num(a, "raggio_mm", Math.Min(largo, alto) / 4.0 * 1000.0);
+            double raggioMm = Num(a, "radius_mm", Math.Min(largo, alto) / 4.0 * 1000.0);
             if (raggioMm <= 0)
-                return Fallito("«raggio_mm» dev'essere maggiore di zero: ho letto " + raggioMm + ".");
+                return Fallito("«radius_mm» dev'essere maggiore di zero: ho letto " + raggioMm + ".");
             double raggio = raggioMm / 1000.0;
 
             // IL CERCHIO DEVE STARE DENTRO LA VISTA. Uno che sborda ingrandisce
@@ -143,10 +143,10 @@ namespace Riscontro.Disegno
                     " mm di foglio. Un cerchio che sborda ingrandisce del vuoto, e il " +
                     "vuoto ingrandito e' comunque una vista che sembra buona.");
 
-            double scala1 = Num(a, "scala", 2);
+            double scala1 = Num(a, "scale", 2);
             if (scala1 <= 0)
-                return Fallito("«scala» dev'essere maggiore di zero: ho letto " + scala1 + ".");
-            string etichetta = Str(a, "etichetta", "B");
+                return Fallito("«scale» dev'essere maggiore di zero: ho letto " + scala1 + ".");
+            string etichetta = Str(a, "label", "B");
             if (string.IsNullOrWhiteSpace(etichetta)) etichetta = "B";
             // UN DETTAGLIO «B» ACCANTO A UNA SEZIONE «B-B» (voce Z-C13): si rifiuta prima.
             string doppia = LetteraGiaUsata(disegno, etichetta);
@@ -181,7 +181,7 @@ namespace Riscontro.Disegno
                     "«CreateCircleByRadius» non ha prodotto nessun cerchio sul foglio, e " +
                     "senza il cerchio non c'e' niente da selezionare: " +
                     "«CreateDetailViewAt4» non prende la zona in firma, la prende dalla " +
-                    "selezione.");
+                    "selection.");
 
             // Lo schizzo si chiude prima, come per la sezione.
             try { modello.SketchManager.InsertSketch(true); } catch { }
@@ -295,26 +295,26 @@ namespace Riscontro.Disegno
             string letteraLetta = LetteraDellaVista(detailView);
             var fuori = new Dictionary<string, object>
             {
-                ["etichetta_riletta"] = letteraLetta,
+                ["label_reread"] = letteraLetta,
                 ["view_read_from"] = viewReadFrom,
-                ["vista_dettagliata"] = nomeBersaglio,
-                ["viste_prima"] = vistePrima,
-                ["viste_dopo"] = visteDopo,
-                ["vista_dettaglio"] = nomeDettaglio,
-                ["tipo_vista"] = tipoDettaglio,
-                ["e_un_dettaglio"] =
+                ["view_detailed"] = nomeBersaglio,
+                ["views_before"] = vistePrima,
+                ["views_after"] = visteDopo,
+                ["view_detail"] = nomeDettaglio,
+                ["view_kind"] = tipoDettaglio,
+                ["is_detail"] =
                     tipoDettaglio == (int)swDrawingViewTypes_e.swDrawingDetailView,
-                ["etichetta"] = etichetta,
-                ["scala"] = scala1,
-                ["cerchio_mm"] = new object[]
+                ["label"] = etichetta,
+                ["scale"] = scala1,
+                ["circle_mm"] = new object[]
                 {
                     Math.Round((cx - (xMin + xMax) / 2.0) * 1000, 2),
                     Math.Round((cy - (yMin + yMax) / 2.0) * 1000, 2),
                     Math.Round(raggioMm, 2),
                 },
-                ["circonferenze_prima"] = cerchiPrima,
-                ["circonferenze_dopo"] = cerchiDopo,
-                ["cosa_non_guarda"] =
+                ["circles_before"] = cerchiPrima,
+                ["circles_after"] = cerchiDopo,
+                ["what_it_does_not_check"] =
                     "SE QUELLO E' IL PARTICOLARE CHE SERVIVA. So dirti che il cerchio e' " +
                     "diventato un dettaglio e che sta dentro la vista, non che dentro ci " +
                     "sia la gola che volevi mostrare: un cerchio spostato di dieci " +

@@ -1,14 +1,14 @@
 [
  {
-  "operazione": "telaio_rettangolare",
-  "argomenti": {
-   "profilo_percorso": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
-   "configurazione": "80X80X5",
-   "lunghezza_mm": 1000,
-   "larghezza_mm": 800,
-   "piano": "frontale",
-   "trattamento_angolo": "quartabuono",
-   "misure": "interasse"
+  "operation": "rectangular_frame",
+  "arguments": {
+   "profile_path": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
+   "configuration": "80X80X5",
+   "length_mm": 1000,
+   "width_mm": 800,
+   "plane": "front",
+   "corner_treatment": "miter",
+   "measured_as": "center_distance"
   }
  }
 ]

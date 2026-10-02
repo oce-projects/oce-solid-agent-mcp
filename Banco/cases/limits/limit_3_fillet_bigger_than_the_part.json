@@ -1,11 +1,11 @@
 [
  {
-  "operazione": "raccordo_spigoli",
-  "argomenti": {
-   "spigoli_uid": [
+  "operation": "fillet_edges",
+  "arguments": {
+   "edges_uid": [
     "E1"
    ],
-   "raggio_mm": 200
+   "radius_mm": 200
   }
  }
 ]

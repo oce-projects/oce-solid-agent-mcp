@@ -4,16 +4,16 @@
   "why": "Su uno spigolo dritto non c'e' niente da filettare. Senza il controllo la chiamata tornerebbe null e il messaggio parlerebbe della faccia cilindrica, mandando a cercare il guaio dalla parte sbagliata: il guaio e' che quello spigolo non e' un cerchio.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "spessore_mm": 40, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 40, "width_mm": 40,
+                     "thickness_mm": 40, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 64000 },
-        { "what": "spigoli_curvi", "equal_to": 0,
+        { "what": "edges_curved", "equal_to": 0,
           "_why_zero": "un cubo ha dodici spigoli e sono tutti dritti: non c'e' nessun bordo tondo da nominare" } ] },
-    { "operation": "filettatura_cosmetica",
-      "arguments": { "spigolo_uid": "@spigolo(asse=Z,lungo~=40,n=1)",
-                     "denominazione": "M6x1", "profondita_mm": 8 },
+    { "operation": "cosmetic_thread",
+      "arguments": { "edge_uid": "@edge(axis=Z,length~=40,n=1)",
+                     "designation": "M6x1", "depth_mm": 8 },
       "must_fail": {
         "message_includes": ["non e' un cerchio", "spigolo dritto"],
         "volume_unchanged": true,

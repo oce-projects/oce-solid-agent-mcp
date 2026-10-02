@@ -20,9 +20,9 @@ It doesn't give the hem's bend radius: a "closed" hem is crushed, close to zero 
 |---|---|---|---|
 | volume_mm3 | 32,400 | ± 400 | flat panel 180×100×1.5 = 27,000; the closed hem folds a 10 mm strip back on itself along the whole 180 side: at near-zero radius the added material is roughly a 10 mm round trip, i.e. 2×10×180×1.5 = 5,400. Total 32,400. The tolerance is deliberately wide: a real "closed" hem has a small but non-zero radius, and that bend consumes a sliver of material not counted here by hand |
 | bodies | 1 | — | the cover stays one part |
-| measurements.hems | 1 | — | one hem, not zero and not two |
-| measurements.bends | 0 | — | a dedicated entry: the hem is not a "bend" in the sense of the straight flanges from task 04. A 1 here would mean the report counted the hem under the wrong vocabulary |
-| measurements.width_mm | 100 | ± 0.01 | the 100 side is untouched by the hem (which runs along the 180 side): it stays the flat-pattern value, no flat-pattern math needed |
+| measurements.kind (of the `hem` step) | closed | — | one hem, and the closed one the task asks for: the hem answers with its own kind (closed, open, teardrop) |
+| measurements.bends (of the `base_flange` step) | 0 | — | a dedicated entry: the hem is not a "bend" in the sense of the straight flanges from task 04, and the cover starts flat. A 1 here would mean a flange was built where a hem was asked |
+| bounding_box_mm (the side the hem does not touch) | 100 | ± 0.01 | the 100 side is untouched by the hem (which runs along the 180 side): it stays the flat-pattern value, no flat-pattern math needed |
 
 ## What this measurement does not see
 

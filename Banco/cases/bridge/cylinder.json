@@ -1,10 +1,10 @@
 [
  {
-  "operazione": "estrudi_cerchio",
-  "argomenti": {
-   "diametro_mm": 80.0,
-   "altezza_mm": 40.0,
-   "piano": "superiore"
+  "operation": "extrude_circle",
+  "arguments": {
+   "diameter_mm": 80.0,
+   "height_mm": 40.0,
+   "plane": "top"
   }
  }
 ]

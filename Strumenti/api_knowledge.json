@@ -12,7 +12,7 @@
   "members": {
     "IAssemblyDoc.AddComponent5": {
       "state": "probed_modifies",
-      "why": "Takes a path on disk (the document must already be saved). Measured 2026-09-17 and predicted beforehand: positions the CENTER of the component's bounding box, NOT its origin. A part extruded in one direction only (the normal case) has its origin on a face, not mid-thickness: asked for z=30 on a 4mm-thick part, the origin lands at (0,-2,30); asked for z=0 on a 10mm-thick part, origin lands at (0,-5,0) -- both predicted before probing and confirmed after. Report the field as origine_mm, not posizione_mm (the two rarely coincide and the old name invited a wrong comparison).",
+      "why": "Takes a path on disk (the document must already be saved). Measured 2026-09-17 and predicted beforehand: positions the CENTER of the component's bounding box, NOT its origin. A part extruded in one direction only (the normal case) has its origin on a face, not mid-thickness: asked for z=30 on a 4mm-thick part, the origin lands at (0,-2,30); asked for z=0 on a 10mm-thick part, origin lands at (0,-5,0) -- both predicted before probing and confirmed after. Report the field as origin_mm, not position_mm (the two rarely coincide and the old name invited a wrong comparison).",
       "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 5); code:OperazioniAssieme.cs:185; code:StatoAssieme.cs:209"
     },
     "IAssemblyDoc.AddMate5": {
@@ -343,7 +343,7 @@
     },
     "IFeatureManager.InsertWeldmentTrimFeature2": {
       "state": "probed_modifies",
-      "why": "MEASURED 2026-09-25 on a two-member weldment frame (taglia_membri): with object[] for BodiesToTrim/BodiesOrFaces the interop marshals a VARIANT array and SOLIDWORKS answers with a feature that never enters the tree -- part unchanged, NO error at all. With Body2[] typed arrays (or DispatchWrapper[]) the cut is real: volume drops by the expected -58798.23 mm3. This is the cardinal defense of the whole bridge (U1.3): arguments must always be converted to the type the signature declares.",
+      "why": "MEASURED 2026-09-25 on a two-member weldment frame (trim_members): with object[] for BodiesToTrim/BodiesOrFaces the interop marshals a VARIANT array and SOLIDWORKS answers with a feature that never enters the tree -- part unchanged, NO error at all. With Body2[] typed arrays (or DispatchWrapper[]) the cut is real: volume drops by the expected -58798.23 mm3. This is the cardinal defense of the whole bridge (U1.3): arguments must always be converted to the type the signature declares.",
       "measured_types": {
         "BodiesToTrim": "Body2[] (DispatchWrapper[] also works; object[] makes a phantom feature)",
         "BodiesOrFaces": "Body2[] or Face2[] (DispatchWrapper[] also works; object[] makes a phantom feature)"
@@ -700,7 +700,7 @@
     },
     "ISldWorks.ActivateDoc": {
       "state": "forbidden",
-      "why": "Measured 2026-09-14: changes the active document seen by OTHER sessions on the same SOLIDWORKS process; a test estrudi_rettangolo landed inside another session's Parte4 this way. Bridge must keep its own IModelDoc2 reference, never ActiveDoc/Activate*.",
+      "why": "Measured 2026-09-14: changes the active document seen by OTHER sessions on the same SOLIDWORKS process; a test extrude_rectangle landed inside another session's Parte4 this way. Bridge must keep its own IModelDoc2 reference, never ActiveDoc/Activate*.",
       "source": "memory:solidworks_documento_attivo.md"
     },
     "ISldWorks.ActivateDoc2": {

@@ -10,9 +10,9 @@ namespace Prove.Contratti
     /// <summary>
     /// THE TWO IDENTITY RULES OF Z-C21.5 THAT THE BENCH CANNOT REACH (S19, S7).
     ///
-    /// S19, the base planes. Until Z-C21.5 `frontale`, `superiore` and `destro` were
+    /// S19, the base planes. Until Z-C21.5 `front`, `top` and `right` were
     /// the first / second / third RefPlane of the tree (TrovaPianoBase,
-    /// SelezionaPiano, the section of VistaDelPezzo, specchia_componente). The
+    /// SelezionaPiano, the section of VistaDelPezzo, mirror_component). The
     /// Z-C21.3 probe of C3-6 found every ReorderFeature that tried to put a plane
     /// before the three default ones refused, so on the bench template the old
     /// rule and the new one pick the same plane: only a part TEMPLATE made by hand
@@ -112,9 +112,9 @@ namespace Prove.Contratti
                 // The template as it comes, as the probe of C3-6 read it (P0).
                 var n = new List<double[]> { Front, Top, Right };
                 var o = new List<double[]> { Origin, Origin, Origin };
-                int f = PlaneIndex(references, n, o, "frontale");
-                int t = PlaneIndex(references, n, o, "superiore");
-                int r = PlaneIndex(references, n, o, "destro");
+                int f = PlaneIndex(references, n, o, "front");
+                int t = PlaneIndex(references, n, o, "top");
+                int r = PlaneIndex(references, n, o, "right");
                 Segna("S19: on the template as it comes, front, top and right are the 1st, 2nd and 3rd plane",
                       f == 0 && t == 1 && r == 2, f + ", " + t + ", " + r + " (expected 0, 1, 2)");
 
@@ -123,9 +123,9 @@ namespace Prove.Contratti
                 // old rule took it as the front plane, and the top plane as the right.
                 n = new List<double[]> { Front, Front, Top, Right };
                 o = new List<double[]> { Mm(0, 0, 20), Origin, Origin, Origin };
-                f = PlaneIndex(references, n, o, "frontale");
-                t = PlaneIndex(references, n, o, "superiore");
-                r = PlaneIndex(references, n, o, "destro");
+                f = PlaneIndex(references, n, o, "front");
+                t = PlaneIndex(references, n, o, "top");
+                r = PlaneIndex(references, n, o, "right");
                 Segna("S19: an offset plane before the three does not move them (the old rule said 0, 1, 2)",
                       f == 1 && t == 2 && r == 3, f + ", " + t + ", " + r + " (expected 1, 2, 3)");
 
@@ -135,7 +135,7 @@ namespace Prove.Contratti
                 // the top plane.
                 n = new List<double[]> { Front, new[] { 0.0, -1.0, 0.0 }, Top, Right };
                 o = new List<double[]> { Origin, Origin, Origin, Origin };
-                t = PlaneIndex(references, n, o, "superiore");
+                t = PlaneIndex(references, n, o, "top");
                 Segna("S19: a plane through the origin facing -Y is not the top plane", t == 2,
                       t + " (expected 2)");
 
@@ -144,27 +144,27 @@ namespace Prove.Contratti
                 double c = Math.Cos(Math.PI / 180), s = Math.Sin(Math.PI / 180);
                 n = new List<double[]> { Front, Top, new[] { c, 0, s }, Right };
                 o = new List<double[]> { Origin, Origin, Origin, Origin };
-                r = PlaneIndex(references, n, o, "destro");
+                r = PlaneIndex(references, n, o, "right");
                 Segna("S19: a plane turned by one degree is not a base plane", r == 3, r + " (expected 3)");
 
                 // An unreadable plane first (a null frame) is skipped, not guessed.
                 n = new List<double[]> { null, Front, Top, Right };
                 o = new List<double[]> { null, Origin, Origin, Origin };
-                f = PlaneIndex(references, n, o, "frontale");
+                f = PlaneIndex(references, n, o, "front");
                 Segna("S19: a plane whose transform was not read is skipped", f == 1, f + " (expected 1)");
 
                 // Two planes identical in normal, sign and origin: the first, which
                 // is the template's own (the probe found no way to put one before).
                 n = new List<double[]> { Front, Front, Top, Right };
                 o = new List<double[]> { Origin, Origin, Origin, Origin };
-                f = PlaneIndex(references, n, o, "frontale");
+                f = PlaneIndex(references, n, o, "front");
                 Segna("S19: between two planes the geometry cannot tell apart, the first", f == 0,
                       f + " (expected 0)");
 
                 // No plane with the right normal: -1, never another plane.
                 n = new List<double[]> { Front, Top };
                 o = new List<double[]> { Origin, Origin };
-                r = PlaneIndex(references, n, o, "destro");
+                r = PlaneIndex(references, n, o, "right");
                 int wrongCase = PlaneIndex(references, new List<double[]> { Front, Top, Right },
                                            new List<double[]> { Origin, Origin, Origin }, "Superiore");
                 int unknown = PlaneIndex(references, new List<double[]> { Front, Top, Right },

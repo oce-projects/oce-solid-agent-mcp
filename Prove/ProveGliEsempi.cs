@@ -29,11 +29,11 @@ namespace Prove.Contratti
     ///
     /// Il 23/9/2026, su 71 operazioni, **47 non avevano un esempio copiabile**:
     /// i loro casi usano selettori che vivono solo nel banco —
-    /// `@faccia(verso=alto)`, `@spigolo(asse=Z)` — o i segnaposto `{LAVORO}` e
+    /// `@face(normal=up)`, `@edge(axis=Z)` — o i segnaposto `{LAVORO}` e
     /// `{PROFILI}`, che il banco sostituisce e un client no.
     ///
     /// Copiarli lo stesso avrebbe prodotto ventiquattro esempi buoni e
-    /// quarantasette **trappole**: un modello che copia `@faccia(verso=alto)`
+    /// quarantasette **trappole**: un modello che copia `@face(normal=up)`
     /// riceve un rifiuto per un motivo che non capisce, e la prossima volta non
     /// si fida piu' del catalogo. Per questo la copertura e' 24/71 e non 71/71,
     /// e per questo questo gruppo la guarda a ogni giro.
@@ -44,15 +44,15 @@ namespace Prove.Contratti
         /// Quante operazioni hanno un esempio. Ventiquattro il 23/9/2026, e
         /// **puo' solo salire**: si alza scrivendo un caso di banco che usi
         /// argomenti da client invece che selettori del banco — cioe'
-        /// migliorando la prova, non l'esempio. **25** il 27/9/2026: `fissa_componente`
+        /// migliorando la prova, non l'esempio. **25** il 27/9/2026: `fix_component`
         /// nasce con l'esempio copiato dal suo caso (`fixed_is_not_mated`).
-        /// **26**: `variabile_globale`, dal suo caso (`wall_has_a_name`).
-        /// **27**: `riordina_lavorazione` (`order_changes_the_part`).
-        /// **28**: `specchia_componente` (`right_bracket_and_left_bracket`).
-        /// **29**: `cambia_estrusione` (`blind_becomes_through`).
-        /// **30**: `nervatura` (`rib_in_the_corner_of_the_l`), voce W1.2. Le
-        /// altre tre lavorazioni della guida (`raccordo_faccia`,
-        /// `ripeti_riempimento`, `fazzoletto`) nascono senza: i loro casi verdi
+        /// **26**: `global_variable`, dal suo caso (`wall_has_a_name`).
+        /// **27**: `reorder_feature` (`order_changes_the_part`).
+        /// **28**: `mirror_component` (`right_bracket_and_left_bracket`).
+        /// **29**: `edit_extrusion` (`blind_becomes_through`).
+        /// **30**: `rib` (`rib_in_the_corner_of_the_l`), voce W1.2. Le
+        /// altre tre lavorazioni della guida (`fillet_face`,
+        /// `fill_pattern`, `gusset`) nascono senza: i loro casi verdi
         /// nominano le facce coi selettori del banco.
         /// </summary>
         private const int Pavimento = 30;
@@ -74,11 +74,11 @@ namespace Prove.Contratti
             var s = new JavaScriptSerializer();
             var radice = s.DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
             object grezzo;
-            var voci = radice != null && radice.TryGetValue("operazioni", out grezzo)
+            var voci = radice != null && radice.TryGetValue("operations", out grezzo)
                 ? grezzo as object[] : null;
             if (voci == null)
             {
-                Segna("il catalogo ha le operazioni", false, "«operazioni» non e' un elenco");
+                Segna("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
                 return;
             }
 
@@ -92,8 +92,8 @@ namespace Prove.Contratti
                 var o = v as Dictionary<string, object>;
                 if (o == null) continue;
                 object n, e, sc;
-                o.TryGetValue("nome", out n);
-                o.TryGetValue("esempio", out e);
+                o.TryGetValue("name", out n);
+                o.TryGetValue("example", out e);
                 o.TryGetValue("schema", out sc);
                 string nome = Convert.ToString(n);
                 string esempio = Convert.ToString(e);

@@ -5,20 +5,20 @@
   "_why_the_deviation": "il numero arriva insieme ai DUE PUNTI fra cui e' stato misurato, e la loro distanza si ricalcola a parte. Se il valore dicesse zero e i punti distassero quattro millimetri, la chiamata sarebbe fallita e avrebbe risposto lo stesso. Lo scarto fra i due conti e' un'attesa a se': e' l'unico controllo indipendente che si abbia su quel numero.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "spessore_mm": 10, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 40, "width_mm": 40,
+                     "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 16000 } ] },
-    { "operation": "distanza_minima",
-      "arguments": { "da_uid": "@faccia(verso=davanti)", "a_uid": "@faccia(verso=dietro)" },
+    { "operation": "minimum_distance",
+      "arguments": { "start_uid": "@face(normal=front)", "end_uid": "@face(normal=back)" },
       "expect": [
-        { "what": "misure.distanza_mm", "equal_to": 10, "tolerance": 0.001,
+        { "what": "measurements.distance_mm", "equal_to": 10, "tolerance": 0.001,
           "tolerance_why": "e' lo spessore della piastra; SOLIDWORKS lo da' in metri e la conversione e' nell'operazione" },
-        { "what": "misure.distanza_fra_i_punti_mm", "equal_to": 10, "tolerance": 0.001,
+        { "what": "measurements.distance_between_points_mm", "equal_to": 10, "tolerance": 0.001,
           "tolerance_why": "lo stesso numero, rifatto dai due punti" },
-        { "what": "misure.scarto_del_controllo_mm", "equal_to": 0, "tolerance": 0.0005,
+        { "what": "measurements.deviation_of_check_mm", "equal_to": 0, "tolerance": 0.0005,
           "tolerance_why": "i due conti devono dare lo stesso numero, non uno simile" },
-        { "what": "misure.unita", "includes": ["millimetri", "metri"],
+        { "what": "measurements.units", "includes": ["millimetri", "metri"],
           "why": "la risposta dice anche da dove viene la conversione" } ] }
   ]
 }

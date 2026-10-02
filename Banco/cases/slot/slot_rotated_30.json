@@ -4,11 +4,11 @@
   "why": "Trenta gradi: un angolo che non e' ne' zero ne' un quarto di giro, dove un errore di segno o di unita' (gradi contro radianti) si vedrebbe.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120, "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
-    { "operation": "asola",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 30, "passante": true },
+    { "operation": "slot",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 30, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 469299.34, "tolerance": 0.5,
           "tolerance_why": "480000 meno 535,0332 per 20: il conto ha pi dentro" } ] }

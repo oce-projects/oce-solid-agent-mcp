@@ -20,8 +20,8 @@ It doesn't say how many columns the table should have, nor the sheet format: the
 |---|---|---|---|
 | measurements.views_created | 3 | — | the three standard views |
 | measurements.sheets | 1 | — | a single sheet |
-| measurements.cut_list_rows | 6 | — | the same six rows already counted as correct in task 07 (two 1000 sides, two 600 sides, crossbar, feet, gussets, caps): the drawing must have neither more nor fewer |
-| measurements.cut_list_matches | true | — | the comparison between the drawing's table and the part's own cut list, which the operation itself says it performs, must come back positive: if the drawing shows six rows different from the part's, the comparison would flag red even with the right row count by sheer coincidence |
+| measurements.rows (of the `drawing_cut_list` step) | 6 | — | the same six rows already counted as correct in task 07 (two 1000 sides, two 600 sides, crossbar, feet, gussets, caps): the drawing must have neither more nor fewer |
+| measurements.match (of the `drawing_cut_list` step) | true | — | the comparison between the drawing's table and the part's own cut list, which the operation itself says it performs, must come back positive: if the drawing shows six rows different from the part's, the comparison would flag red even with the right row count by sheer coincidence |
 
 ## What this measurement does not see
 

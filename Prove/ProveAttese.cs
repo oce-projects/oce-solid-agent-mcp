@@ -22,18 +22,18 @@ namespace Prove.Contratti
 
             var misure = new Dictionary<string, object>
             {
-                ["tolti_mm3"] = 1234.5,
-                ["verso"] = "interno",
-                ["facce_tolte"] = 1,
+                ["removed_mm3"] = 1234.5,
+                ["facing"] = "inner",
+                ["faces_removed"] = 1,
             };
             var stato = new Dictionary<string, object>
             {
-                ["ingombro_mm"] = new List<object> { 100.0, 60.0, 40.0 },
-                ["materiale"] = null,
-                ["facce"] = new List<object>
+                ["bounding_box_mm"] = new List<object> { 100.0, 60.0, 40.0 },
+                ["material"] = null,
+                ["faces"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "F1", ["area_mm2"] = 6000.0, ["verso"] = "davanti" },
-                    new Dictionary<string, object> { ["uid"] = "F2", ["area_mm2"] = 2000.0, ["verso"] = "dietro" },
+                    new Dictionary<string, object> { ["uid"] = "F1", ["area_mm2"] = 6000.0, ["facing"] = "front" },
+                    new Dictionary<string, object> { ["uid"] = "F2", ["area_mm2"] = 2000.0, ["facing"] = "back" },
                 },
             };
 
@@ -41,12 +41,12 @@ namespace Prove.Contratti
 
             // ── IL NUMERO GIUSTO PASSA, QUELLO SBAGLIATO NO ───────────────
             Segna("numero giusto: verde",
-                  Attese.Combacia(Attesa("misure.tolti_mm3", 1234.5), null, stato, misure, out d), d);
+                  Attese.Combacia(Attesa("measurements.removed_mm3", 1234.5), null, stato, misure, out d), d);
             Segna("numero sbagliato: rosso",
-                  !Attese.Combacia(Attesa("misure.tolti_mm3", 1234.6), null, stato, misure, out d), d);
+                  !Attese.Combacia(Attesa("measurements.removed_mm3", 1234.6), null, stato, misure, out d), d);
 
             // ── LA TOLLERANZA E' ASSOLUTA, E SERVE IL PERCHE' ─────────────
-            var conTolleranza = Attesa("misure.tolti_mm3", 1234.0);
+            var conTolleranza = Attesa("measurements.removed_mm3", 1234.0);
             conTolleranza["tolerance"] = 1.0;
             conTolleranza["tolerance_why"] = "e' una prova, e il numero e' scritto a mano";
             Segna("tolleranza rispettata: verde",
@@ -56,7 +56,7 @@ namespace Prove.Contratti
             Segna("tolleranza superata: rosso",
                   !Attese.Combacia(conTolleranza, null, stato, misure, out d), d);
 
-            var senzaPerche = Attesa("misure.tolti_mm3", 1234.0);
+            var senzaPerche = Attesa("measurements.removed_mm3", 1234.0);
             senzaPerche["tolerance"] = 1.0;
             Segna("tolleranza senza il perche': non si valuta",
                   Alza(() => { string x; Attese.Combacia(senzaPerche, null, stato, misure, out x); },
@@ -67,32 +67,32 @@ namespace Prove.Contratti
             // E' la trappola nella sua forma letterale: un dizionario che non
             // trova la chiave torna null, e null confrontato con null passa.
             Segna("campo assente: non si valuta, e dice quali c'erano",
-                  Alza(() => { string x; Attese.Combacia(Attesa("misure.non_esiste", 0.0), null, stato, misure, out x); },
-                       "campo assente: misure.non_esiste"));
+                  Alza(() => { string x; Attese.Combacia(Attesa("measurements.non_esiste", 0.0), null, stato, misure, out x); },
+                       "campo assente: measurements.non_esiste"));
             Segna("campo assente: elenca i campi che c'erano",
-                  Alza(() => { string x; Attese.Combacia(Attesa("misure.non_esiste", 0.0), null, stato, misure, out x); },
-                       "facce_tolte, tolti_mm3, verso"));
+                  Alza(() => { string x; Attese.Combacia(Attesa("measurements.non_esiste", 0.0), null, stato, misure, out x); },
+                       "faces_removed, facing, removed_mm3"));
 
             // ── UN NULL DICHIARATO SI MISURA ──────────────────────────────
-            Segna("«materiale: null» si misura, non e' assente",
-                  Attese.Combacia(Attesa("stato.materiale", ""), null, stato, misure, out d), d);
+            Segna("«material: null» si misura, non e' assente",
+                  Attese.Combacia(Attesa("state.material", ""), null, stato, misure, out d), d);
 
             // ── GLI ELENCHI DI NUMERI ─────────────────────────────────────
             Segna("elenco di numeri giusto: verde",
-                  Attese.Combacia(Attesa("stato.ingombro_mm", new List<object> { 100.0, 60.0, 40.0 }),
+                  Attese.Combacia(Attesa("state.bounding_box_mm", new List<object> { 100.0, 60.0, 40.0 }),
                                   null, stato, misure, out d), d);
             Segna("elenco di numeri con un valore diverso: rosso",
-                  !Attese.Combacia(Attesa("stato.ingombro_mm", new List<object> { 100.0, 60.0, 41.0 }),
+                  !Attese.Combacia(Attesa("state.bounding_box_mm", new List<object> { 100.0, 60.0, 41.0 }),
                                    null, stato, misure, out d), d);
             Segna("elenco di lunghezza diversa: rosso",
-                  !Attese.Combacia(Attesa("stato.ingombro_mm", new List<object> { 100.0, 60.0 }),
+                  !Attese.Combacia(Attesa("state.bounding_box_mm", new List<object> { 100.0, 60.0 }),
                                    null, stato, misure, out d), d);
 
             // ── DENTRO UN ELENCO, PER INDICE ──────────────────────────────
             Segna("stato.facce[1].area_mm2 si legge",
-                  Attese.Combacia(Attesa("stato.facce[1].area_mm2", 2000.0), null, stato, misure, out d), d);
+                  Attese.Combacia(Attesa("state.faces[1].area_mm2", 2000.0), null, stato, misure, out d), d);
             Segna("un indice oltre la fine: non si valuta",
-                  Alza(() => { string x; Attese.Combacia(Attesa("stato.facce[9].area_mm2", 0.0), null, stato, misure, out x); },
+                  Alza(() => { string x; Attese.Combacia(Attesa("state.faces[9].area_mm2", 0.0), null, stato, misure, out x); },
                        "campo assente"));
 
             // ── LE MISURE DEL DOCUMENTO, SENZA DOCUMENTO ─────────────────
@@ -114,7 +114,7 @@ namespace Prove.Contratti
             // L'ELENCO DEI NOMI NON STA PIU' NEL VALUTATORE, e questa e' la
             // prova che non ci torni. Ci stava, e si e' scollato: due misure
             // nuove aggiunte a chi misura e dimenticate qui uscivano come «non
-            // so misurare «ultimo_piano_mm»: i nomi sono …» con accanto
+            // so misurare «last_plane_mm»: i nomi sono …» con accanto
             // l'elenco vecchio — un messaggio che diceva il falso su se stesso,
             // e che dava ERRORE DI BANCO a una prova che il ponte superava.
             //
@@ -177,32 +177,32 @@ namespace Prove.Contratti
             var conElenchi = new Dictionary<string, object>
             {
                 ["utensili"] = new List<object> { "C2", "C3" },
-                ["uno"] = new List<object> { "C2" },
+                ["one"] = new List<object> { "C2" },
                 ["misti"] = new List<object> { "C2", 7.0 },
             };
             Func<string, object, Dictionary<string, object>> att = (c, u) =>
                 new Dictionary<string, object> { ["what"] = c, ["equal_to"] = u };
 
             Segna("elenco di testo: uguale passa",
-                  Attese.Combacia(att("stato.utensili", new List<object> { "C2", "C3" }),
+                  Attese.Combacia(att("state.utensili", new List<object> { "C2", "C3" }),
                                   null, conElenchi, misure, out d), d);
             Segna("elenco di testo ROSSO: un elemento diverso",
-                  !Attese.Combacia(att("stato.utensili", new List<object> { "C2", "C9" }),
+                  !Attese.Combacia(att("state.utensili", new List<object> { "C2", "C9" }),
                                    null, conElenchi, misure, out d), d);
             Segna("elenco di testo ROSSO: l'ORDINE conta",
-                  !Attese.Combacia(att("stato.utensili", new List<object> { "C3", "C2" }),
+                  !Attese.Combacia(att("state.utensili", new List<object> { "C3", "C2" }),
                                    null, conElenchi, misure, out d), d);
             Segna("elenco di testo ROSSO: uno in meno",
-                  !Attese.Combacia(att("stato.utensili", new List<object> { "C2" }),
+                  !Attese.Combacia(att("state.utensili", new List<object> { "C2" }),
                                    null, conElenchi, misure, out d), d);
             Segna("elenco di testo: anche uno solo",
-                  Attese.Combacia(att("stato.uno", new List<object> { "C2" }),
+                  Attese.Combacia(att("state.one", new List<object> { "C2" }),
                                   null, conElenchi, misure, out d), d);
             Segna("elenco misto testo e numeri: si confronta come testo",
-                  Attese.Combacia(att("stato.misti", new List<object> { "C2", 7.0 }),
+                  Attese.Combacia(att("state.misti", new List<object> { "C2", 7.0 }),
                                   null, conElenchi, misure, out d), d);
             Segna("elenco di testo ROSSO: se la misura NON e' un elenco, lo dice",
-                  !Attese.Combacia(att("stato.materiale", new List<object> { "C2" }),
+                  !Attese.Combacia(att("state.material", new List<object> { "C2" }),
                                    null, stato, misure, out d) &&
                   d.IndexOf("non e' un elenco", StringComparison.Ordinal) >= 0, d);
 
@@ -212,7 +212,7 @@ namespace Prove.Contratti
             // su due dizionari: i suoi rossi si provano in un millesimo di
             // secondo, e sono quattro casi che a mano non si guardano mai.
             Func<string, string, Dictionary<string, object>> arg2 = (a, b) =>
-                new Dictionary<string, object> { ["faccia_uid"] = a, ["x_mm"] = b };
+                new Dictionary<string, object> { ["face_uid"] = a, ["x_mm"] = b };
             string d2;
 
             Segna("gemella identica: rifiutata",
@@ -226,14 +226,14 @@ namespace Prove.Contratti
                   !Attese.SiSomigliano(arg2("F1", "10"), arg2("F5", "40"), out d2) &&
                   d2.IndexOf("non si parlano", StringComparison.Ordinal) >= 0, d2);
 
-            // L'ECCEZIONE DELL'ARITA'. `crea_asse` prende `faccia_uid` e basta:
+            // L'ECCEZIONE DELL'ARITA'. `create_axis` prende `face_uid` e basta:
             // due casi che differiscono per quello non possono averne uno in
             // comune, e rifiutarli vieterebbe la coppia a meta' del catalogo.
             Func<string, Dictionary<string, object>> arg1 = a =>
-                new Dictionary<string, object> { ["faccia_uid"] = a };
+                new Dictionary<string, object> { ["face_uid"] = a };
             Segna("gemella di un'operazione con UN argomento solo: accettata",
-                  Attese.SiSomigliano(arg1("@faccia(piana=false)"),
-                                      arg1("@faccia(verso=davanti)"), out d2), d2);
+                  Attese.SiSomigliano(arg1("@face(planar=false)"),
+                                      arg1("@face(normal=front)"), out d2), d2);
             Segna("...e lo dice, invece di far finta che sia una coppia normale",
                   d2.IndexOf("l'unico che questa operazione prende",
                              StringComparison.Ordinal) >= 0, d2);
@@ -246,12 +246,12 @@ namespace Prove.Contratti
             // un altro nome.
             Func<string, double, object> passoPezzo = (piano, spessore) => new Dictionary<string, object>
             {
-                ["operation"] = "estrudi_rettangolo",
-                ["arguments"] = new Dictionary<string, object> { ["piano"] = piano, ["spessore_mm"] = spessore },
+                ["operation"] = "extrude_rectangle",
+                ["arguments"] = new Dictionary<string, object> { ["plane"] = piano, ["thickness_mm"] = spessore },
             };
-            var scatola = new List<object> { passoPezzo("superiore", 20.0),
-                new Dictionary<string, object> { ["operation"] = "guscio" } };
-            var piastra = new List<object> { passoPezzo("superiore", 2.0) };
+            var scatola = new List<object> { passoPezzo("top", 20.0),
+                new Dictionary<string, object> { ["operation"] = "shell" } };
+            var piastra = new List<object> { passoPezzo("top", 2.0) };
             const string fraseDelPezzo = "la piastra non ha pareti, la scatola si'";
             Segna("stessi argomenti su un altro pezzo, dichiarato: accettata",
                   Attese.SiSomiglianoNelPezzo(arg2("F1", "10"), arg2("F1", "10"), piastra, scatola, fraseDelPezzo, out d2) &&
@@ -268,8 +268,8 @@ namespace Prove.Contratti
             // I contorni sono liste: e' il caso che ha rotto il confronto.
             Segna("gemelle che differiscono solo in una lista: accettate",
                   Attese.SiSomigliano(
-                      new Dictionary<string, object> { ["contorni"] = aCavallo, ["angolo_gradi"] = 360.0 },
-                      new Dictionary<string, object> { ["contorni"] = cilindro, ["angolo_gradi"] = 360.0 },
+                      new Dictionary<string, object> { ["contours"] = aCavallo, ["angle_deg"] = 360.0 },
+                      new Dictionary<string, object> { ["contours"] = cilindro, ["angle_deg"] = 360.0 },
                       out d2), d2);
 
             // ── UN'ATTESA SU UNA FRASE ───────────────────────────────────
@@ -279,11 +279,11 @@ namespace Prove.Contratti
             // piu' e' il difetto che non da' errore.
             var conForma = new Dictionary<string, object>
             {
-                ["forma"] = "una rivoluzione del profilo D30 per 40, D20 per 30",
+                ["shape"] = "una rivoluzione del profilo D30 per 40, D20 per 30",
             };
             Func<object, object, Dictionary<string, object>> frase = (c, n) =>
             {
-                var a = new Dictionary<string, object> { ["what"] = "stato.forma" };
+                var a = new Dictionary<string, object> { ["what"] = "state.shape" };
                 if (c != null) a["includes"] = c;
                 if (n != null) a["does_not_include"] = n;
                 return a;
@@ -305,14 +305,14 @@ namespace Prove.Contratti
                                   null, conForma, misure, out d), d);
             Segna("frase: si puo' chiedere l'una e l'altra insieme",
                   Attese.Combacia(frase(new List<object> { "rivoluzione" },
-                                        new List<object> { "guscio" }),
+                                        new List<object> { "shell" }),
                                   null, conForma, misure, out d), d);
             Segna("frase: una stringa sola vale come elenco di uno",
                   Attese.Combacia(frase("rivoluzione", null), null, conForma, misure, out d), d);
 
             // ── E UN ELENCO NON E' «System.String[]» ─────────────────────
             //
-            // `misure.profili[0].misure` e' un elenco: chiedere che CONTENGA
+            // `measurements.profiles[0].measurements` e' un elenco: chiedere che CONTENGA
             // una voce e' la cosa piu' naturale del mondo, e fino alla 0.91.0
             // falliva con «non dice "80X80X5": System.String[]» — un messaggio
             // vero e inutile. Per «uguale» gli elenchi di testo erano gia'
@@ -320,46 +320,46 @@ namespace Prove.Contratti
             // perche' nessun caso lo chiedeva.
             var conElenco = new Dictionary<string, object>
             {
-                ["misure"] = new[] { "80X80X5", "100X100X6", "40X40X3" },
+                ["measurements"] = new[] { "80X80X5", "100X100X6", "40X40X3" },
                 ["vuoto"] = new string[0],
             };
             Func<string, object, object, Dictionary<string, object>> elenco = (campo, c, n) =>
             {
-                var a = new Dictionary<string, object> { ["what"] = "misure." + campo };
+                var a = new Dictionary<string, object> { ["what"] = "measurements." + campo };
                 if (c != null) a["includes"] = c;
                 if (n != null) a["does_not_include"] = n;
                 return a;
             };
 
             Segna("elenco: «contiene» trova una voce intera",
-                  Attese.Combacia(elenco("misure", new List<object> { "80X80X5" }, null),
+                  Attese.Combacia(elenco("measurements", new List<object> { "80X80X5" }, null),
                                   null, stato, conElenco, out d), d);
             Segna("elenco: «contiene» trova anche un pezzo di voce",
-                  Attese.Combacia(elenco("misure", new List<object> { "100X100" }, null),
+                  Attese.Combacia(elenco("measurements", new List<object> { "100X100" }, null),
                                   null, stato, conElenco, out d), d);
             Segna("elenco ROSSO: una voce che non c'e' fa fallire",
-                  !Attese.Combacia(elenco("misure", new List<object> { "999X999X9" }, null),
+                  !Attese.Combacia(elenco("measurements", new List<object> { "999X999X9" }, null),
                                    null, stato, conElenco, out d) &&
                   d.IndexOf("non dice", StringComparison.Ordinal) >= 0, d);
             // IL MESSAGGIO NON DEVE PIU' DIRE IL NOME DEL TIPO. E' la meta'
             // che conta: il rosso c'era anche prima, ma diceva una cosa da cui
             // non si poteva ripartire.
             Segna("elenco ROSSO: il messaggio mostra le voci, non «System.String[]»",
-                  !Attese.Combacia(elenco("misure", new List<object> { "999X999X9" }, null),
+                  !Attese.Combacia(elenco("measurements", new List<object> { "999X999X9" }, null),
                                    null, stato, conElenco, out d) &&
                   d.IndexOf("System.String[]", StringComparison.Ordinal) < 0 &&
                   d.IndexOf("80X80X5", StringComparison.Ordinal) >= 0, d);
             Segna("elenco: «non_contiene» passa se nessuna voce lo dice",
-                  Attese.Combacia(elenco("misure", null, new List<object> { "999X999X9" }),
+                  Attese.Combacia(elenco("measurements", null, new List<object> { "999X999X9" }),
                                   null, stato, conElenco, out d), d);
             Segna("elenco ROSSO: «non_contiene» fallisce se una voce lo dice",
-                  !Attese.Combacia(elenco("misure", null, new List<object> { "40X40X3" }),
+                  !Attese.Combacia(elenco("measurements", null, new List<object> { "40X40X3" }),
                                    null, stato, conElenco, out d) &&
                   d.IndexOf("dice ancora", StringComparison.Ordinal) >= 0, d);
             // UN ELENCO VUOTO NON CONTIENE NIENTE, e non e' un campo assente:
             // e' un elenco che c'e' ed e' vuoto. Le due cose si distinguono.
             Segna("elenco ROSSO: un elenco vuoto non contiene niente",
-                  !Attese.Combacia(elenco("vuoto", new List<object> { "qualunque" }, null),
+                  !Attese.Combacia(elenco("vuoto", new List<object> { "any" }, null),
                                    null, stato, conElenco, out d), d);
             // UN CAMPO ASSENTE NON E' UNA FRASE VUOTA, e non e' nemmeno un
             // rosso: e' un errore di banco, come per ogni altra misura. Il
@@ -391,56 +391,56 @@ namespace Prove.Contratti
 
             // ── I SELETTORI: ZERO O PIU' D'UNA SI RIFIUTANO ───────────────
             Segna("selettore: una faccia sola si prende",
-                  Attese.Seleziona("@faccia(verso=davanti)", stato) == "F1");
+                  Attese.Seleziona("@face(normal=front)", stato) == "F1");
             Segna("selettore: nessuna faccia, si rifiuta",
-                  Alza(() => Attese.Seleziona("@faccia(verso=alto)", stato), "non l'ho trovata"));
+                  Alza(() => Attese.Seleziona("@face(normal=up)", stato), "non l'ho trovata"));
 
             var due = new Dictionary<string, object>
             {
-                ["facce"] = new List<object>
+                ["faces"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "F1", ["verso"] = "davanti" },
-                    new Dictionary<string, object> { ["uid"] = "F5", ["verso"] = "davanti" },
+                    new Dictionary<string, object> { ["uid"] = "F1", ["facing"] = "front" },
+                    new Dictionary<string, object> { ["uid"] = "F5", ["facing"] = "front" },
                 },
             };
             Segna("selettore: due facce uguali, si rifiuta invece di indovinare",
-                  Alza(() => Attese.Seleziona("@faccia(verso=davanti)", due), "ne ho trovate 2"));
+                  Alza(() => Attese.Seleziona("@face(normal=front)", due), "ne ho trovate 2"));
 
             // IL CORPO PER NOME (25/9/2026): i numeri C1, C2... non seguono
             // l'ordine di creazione e cambiano fra un giro e l'altro. Lo stato
             // qui e' scritto al contrario apposta, e il nome ha le parentesi.
             var corpi = new Dictionary<string, object>
             {
-                ["corpi"] = new List<object>
+                ["bodies"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "C1", ["nome"] = "TUBO 80X80X5(2)" },
-                    new Dictionary<string, object> { ["uid"] = "C2", ["nome"] = "TUBO 80X80X5(1)" },
+                    new Dictionary<string, object> { ["uid"] = "C1", ["name"] = "TUBO 80X80X5(2)" },
+                    new Dictionary<string, object> { ["uid"] = "C2", ["name"] = "TUBO 80X80X5(1)" },
                 },
             };
-            Segna("selettore: @corpo prende per nome, parentesi comprese",
-                  Attese.Seleziona("@corpo(nome=TUBO 80X80X5(1))", corpi) == "C2");
-            Segna("selettore: @corpo con un nome che non c'e', si rifiuta",
-                  Alza(() => Attese.Seleziona("@corpo(nome=TUBO 80X80X5(3))", corpi), "non l'ho trovata"));
+            Segna("selettore: @body prende per nome, parentesi comprese",
+                  Attese.Seleziona("@body(name=TUBO 80X80X5(1))", corpi) == "C2");
+            Segna("selettore: @body con un nome che non c'e', si rifiuta",
+                  Alza(() => Attese.Seleziona("@body(name=TUBO 80X80X5(3))", corpi), "non l'ho trovata"));
 
-            // LO SPIGOLO PER DOVE STA (voce E18): x, y, z leggono punto_mm. I
+            // LO SPIGOLO PER DOVE STA (voce E18): x, y, z leggono point_mm. I
             // quattro spigoli lunghi 120 di una piastra si distinguono solo cosi'.
             Func<string, double, double, Dictionary<string, object>> spigolo = (uid, x, z) =>
                 new Dictionary<string, object>
                 {
-                    ["uid"] = uid, ["lungo"] = "Y", ["lunghezza_mm"] = 120.0,
-                    ["punto_mm"] = new double[] { x, 0, z },
+                    ["uid"] = uid, ["along"] = "Y", ["length_mm"] = 120.0,
+                    ["point_mm"] = new double[] { x, 0, z },
                 };
             var quattro = new Dictionary<string, object>
             {
-                ["spigoli"] = new List<object>
+                ["edges"] = new List<object>
                 {
                     spigolo("E1", -100, 0), spigolo("E2", 100, 0), spigolo("E3", -100, 20), spigolo("E4", 100, 20),
                 },
             };
             Segna("selettore: lo spigolo si prende per coordinate (x, z)",
-                  Attese.Seleziona("@spigolo(asse=Y,x~=-100,z~=20)", quattro) == "E3");
+                  Attese.Seleziona("@edge(axis=Y,x~=-100,z~=20)", quattro) == "E3");
             Segna("selettore: con una coordinata sola i fianchi restano due, e si rifiuta",
-                  Alza(() => Attese.Seleziona("@spigolo(asse=Y,x~=-100)", quattro), "ne ho trovate 2"));
+                  Alza(() => Attese.Seleziona("@edge(axis=Y,x~=-100)", quattro), "ne ho trovate 2"));
         }
 
         private static Dictionary<string, object> Attesa(string cosa, object uguale)

@@ -89,10 +89,13 @@
 //    --with-probes         also run the probes the registry marks "probe"
 //    --show <n>            differences printed per category (default 25)
 //    --window <n>          compare: the snapshot was taken before rename window
-//                          <n> of W3.1-bis; its case names, case folders and
-//                          case keys are read through that window's renames
-//                          (only 1, Controlli/lingua/window-1-cases.js), so a
-//                          renamed case is the same case, not one gone and one new
+//                          <n> of W3.1-bis; it is read through that window's
+//                          renames (and the windows before it), so a renamed
+//                          case, operation or field is the same one, not one
+//                          gone and one new. 1: case names, folders and keys
+//                          (Controlli/lingua/window-1-cases.js); 2: also the
+//                          operations, paths and values of the assertions, the
+//                          catalogue and the tools (window-2-surface.js)
 //
 //  EXIT CODES
 //    0  take: the snapshot is written; compare: no difference anywhere
@@ -139,7 +142,7 @@ const LAYOUT = {
 const CALLEES = ['Fallito'];
 
 // The keys of the catalogue this tool reads (renamed in W3.1-bis.5).
-const CATALOGUE_KEYS = { operations: 'operazioni', families: 'famiglie', name: 'nome' };
+const CATALOGUE_KEYS = { operations: 'operations', families: 'families', name: 'name' };
 
 // The textual assertions, by context of Banco/case-keys.json (renamed in
 // W3.1-bis.4 together with the cases): key -> kind. The kinds keep the names
@@ -296,7 +299,12 @@ class Report {
 function catalogueOf(root) {
   const file = path.join(root, LAYOUT.catalogue);
   if (!fs.existsSync(file)) cannot('the catalogue is missing: ' + file);
-  const raw = fs.readFileSync(file);
+  return catalogueRecord(fs.readFileSync(file));
+}
+
+// The record of a catalogue from its bytes (the tree's, or the snapshot's
+// copy read through the renames of a window).
+function catalogueRecord(raw) {
   let json;
   try { json = JSON.parse(raw.toString('utf8').replace(/^\ufeff/, '')); } catch (e) { cannot('the catalogue is not valid JSON: ' + e.message); }
   const K = CATALOGUE_KEYS;
@@ -319,11 +327,18 @@ function catalogueOf(root) {
   };
 }
 
-function compareCatalogue(snapDir, cur, rep) {
-  const old = readJson(path.join(snapDir, 'catalogue.json'), 'the catalogue section of the snapshot');
-  const oldJson = readJson(path.join(snapDir, 'catalogo.json'), 'the copy of the catalogue in the snapshot');
+function compareCatalogue(snapDir, cur, rep, ren) {
+  let old = readJson(path.join(snapDir, 'catalogue.json'), 'the catalogue section of the snapshot');
+  let oldJson = readJson(path.join(snapDir, 'catalogo.json'), 'the copy of the catalogue in the snapshot');
+  if (ren && ren.catalogue) {
+    // the snapshot's copy, rewritten as the window rewrote the catalogue
+    const renamed = catalogueRecord(Buffer.from(ren.catalogue(readText(path.join(snapDir, 'catalogo.json'), 'the copy of the catalogue in the snapshot')), 'utf8'));
+    old = renamed.record;
+    oldJson = renamed.json;
+  }
   const now = cur.record;
   rep.section('catalogue (' + LAYOUT.catalogue + ')', 'catalogue');
+  if (ren && ren.catalogue) rep.line('the catalogue of the snapshot is read through the renames of window ' + ren.window + ' (--window)');
   if (old.sha256_normalized === now.sha256_normalized) {
     rep.line('same: ' + Object.keys(now.operations).length + ' operations, ' + Object.keys(now.families).length +
              ' families, normalized sha256 ' + short(now.sha256_normalized) +
@@ -664,9 +679,15 @@ async function toolsOf(root, opts) {
   };
 }
 
-function compareTools(snapDir, cur, rep) {
+function compareTools(snapDir, cur, rep, ren) {
   const old = readJson(path.join(snapDir, 'tools.json'), 'the tools section of the snapshot');
+  if (ren && ren.tools) {
+    // the tools of the snapshot, renamed as the window renamed Strumenti/Attrezzi.cs
+    old.tools = ren.tools(old.tools);
+    old.tools_sha256 = sha256(stable(old.tools));
+  }
   rep.section('tools (initialize and tools/list of the bridge; snapshot from ' + old.source + ', now from ' + cur.source + ')', 'tools');
+  if (ren && ren.tools) rep.line('the tools of the snapshot are read through the renames of window ' + ren.window + ' (--window)');
   if (old.server.version !== cur.server.version) rep.line('bridge version ' + old.server.version + ' -> ' + cur.server.version + ' (recorded, not a difference)');
   if (old.server.name !== cur.server.name) rep.diff('server name ' + old.server.name + ' -> ' + cur.server.name);
   if (old.initialize_sha256 !== cur.initialize_sha256) {
@@ -1230,13 +1251,38 @@ const satisfiers = (x) => (x.candidates.length ? x.candidates : x.template);
 const memberOfUnit = (id) => id.replace(/:s\d+$/, '');
 
 // The identities of a snapshot taken before a rename window, read through
-// the renames of that window (--window). Only window 1 (W3.1-bis.4, the bench
-// cases) is known: the case folders, the case names and the case keys of the
-// name map, with the script of the window doing the reading, so that this
-// comparison and the window cannot disagree on a name.
-function windowRenames(n, root) {
+// the renames of that window (--window). Window 1 (W3.1-bis.4, the bench
+// cases): the case folders, the case names and the case keys of the name
+// map. Window 2 (W3.1-bis.5, the MCP surface) reads through window 1 first,
+// then through its own renames: the operation of each assertion, its path
+// and the value it compares, the catalogue (the snapshot's copy rewritten as
+// the window rewrites Strumenti/catalogo.json) and the list of tools. The
+// script of each window does the reading, so that this comparison and the
+// window cannot disagree on a name. A snapshot taken after window 1 reads the
+// same way: window 1 on English names changes nothing.
+function windowRenames(n, root, snapDir) {
   if (n === null) return null;
-  if (n !== 1) cannot('--window: only window 1 (W3.1-bis.4, the bench cases) is known');
+  if (n !== 1 && n !== 2) cannot('--window: only windows 1 (W3.1-bis.4, the bench cases) and 2 (W3.1-bis.5, the MCP surface) are known');
+  const one = windowOneRenames(root);
+  if (n === 1) return one;
+  const catText = snapDir && fs.existsSync(path.join(snapDir, 'catalogo.json')) ? readText(path.join(snapDir, 'catalogo.json'), 'the copy of the catalogue in the snapshot') : null;
+  const two = require('./window-2-surface.js').snapshotRenames(root, catText);
+  return {
+    window: n,
+    caseKey: one.caseKey, name: one.name, folder: one.folder,
+    testId: one.testId,
+    catalogue: catText === null ? null : two.catalogue,
+    tools: two.tools,
+    assertion: (x0) => {
+      const x = one.assertion(x0);
+      return Object.assign({}, x, { operation: two.operation(x.operation), what: two.what(x.what, x.operation),
+        value: two.value(x.key, x.what, x.value, x.operation) });
+    },
+  };
+}
+
+function windowOneRenames(root) {
+  const n = 1;
   const w = require('./window-1-cases.js');
   const d = w.direction(w.loadMap(root), false);
   const text = w.textRewriter(d);
@@ -1900,14 +1946,14 @@ async function compare(snapDir, opts) {
   if (reg && !todo && !opts.noTodo && reg.entries.some(e => e.todo && e.run)) {
     cannot('the registry runs scripts that read the TODO, and there is no TODO: pass --todo <TODO.md> (or set TODO_MD), or --no-todo');
   }
-  if (on.catalogue) compareCatalogue(snapDir, catalogueOf(root), rep);
+  if (on.catalogue) compareCatalogue(snapDir, catalogueOf(root), rep, windowRenames(opts.window, root, snapDir));
   if (on.literals || on.assertions) {
     const scan = scanSources(root);
     if (on.literals) compareLiterals(snapDir, scan, rep);
-    if (on.assertions) compareAssertions(snapDir, assertionsSection(root, scan), rep, windowRenames(opts.window, root));
+    if (on.assertions) compareAssertions(snapDir, assertionsSection(root, scan), rep, windowRenames(opts.window, root, snapDir));
   }
-  if (on.tests) compareTests(snapDir, opts.ledgers[0], rep, windowRenames(opts.window, root));
-  if (on.tools) compareTools(snapDir, await toolsOf(root, opts), rep);
+  if (on.tests) compareTests(snapDir, opts.ledgers[0], rep, windowRenames(opts.window, root, snapDir));
+  if (on.tools) compareTools(snapDir, await toolsOf(root, opts), rep, windowRenames(opts.window, root, snapDir));
   if (reg) {
     console.log('');
     console.log('running the scripts:');
@@ -2007,8 +2053,8 @@ function fakeTree(dir, change) {
   write(LAYOUT.cases + '/blocks/zero_width.json', kase('zero_width', { [CASE_KEYS.operation]: 'make_block', [FAKE.args]: { width: 0 }, [FAKE.mustFail]: { [messageKey]: 'ABOVE ZERO' } }));
   write(LAYOUT.cases + '/blocks/note_case.json', kase('note_case', { [CASE_KEYS.operation]: 'cut_hole', [FAKE.args]: {},
     [FAKE.expectations]: [
-      { [CASE_KEYS.what]: 'misure.note', [containsKey]: 'not planar' },
-      { [CASE_KEYS.what]: 'misure.side', [equalsKey]: 'inside' },
+      { [CASE_KEYS.what]: 'measurements.note', [containsKey]: 'not planar' },
+      { [CASE_KEYS.what]: 'measurements.side', [equalsKey]: 'inside' },
       { [CASE_KEYS.what]: 'volume_mm3', [equalsKey]: 125 },
     ] }));
   write(LAYOUT.cases + '/blocks/a_plan.json', [{ operation: 'not a case' }]);
@@ -2194,7 +2240,7 @@ function parseArgs(argv) {
     else if (x === '--skip-script') a.skipScripts.add(next());
     else if (x === '--with-probes') a.withProbes = true;
     else if (x === '--show') a.show = parseInt(next(), 10);
-    else if (x === '--window') { a.window = parseInt(next(), 10); if (a.window !== 1) cannot('--window: only window 1 (W3.1-bis.4) is known'); }
+    else if (x === '--window') { a.window = parseInt(next(), 10); if (a.window !== 1 && a.window !== 2) cannot('--window: only windows 1 (W3.1-bis.4) and 2 (W3.1-bis.5) are known'); }
     else if (x.startsWith('--')) cannot('unknown option ' + x);
     else if (!a.mode && (x === 'take' || x === 'compare')) a.mode = x;
     else if (a.mode === 'compare' && !a.snapshot) a.snapshot = x;

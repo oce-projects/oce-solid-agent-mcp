@@ -1,9 +1,9 @@
 [
  {
-  "operazione": "modifica_quota",
-  "argomenti": {
-   "quota": "D1@Schizzo1",
-   "valore_mm": 60
+  "operation": "set_dimension",
+  "arguments": {
+   "dimension": "D1@Schizzo1",
+   "value_mm": 60
   }
  }
 ]

@@ -33,8 +33,8 @@ const USCITA = path.join(__dirname, "viste");
 // tetto voluto (una vista costa piu' di dieci volte l'intero stato scritto).
 // Quattro viste sono due chiamate, e va bene cosi': questo e' il raccoglitore,
 // non il ponte.
-const PRIMA_MANO = ["isometrica"];
-const SECONDA_MANO = ["frontale", "superiore", "destra"];
+const PRIMA_MANO = ["isometric"];
+const SECONDA_MANO = ["front", "top", "right"];
 
 const dati = process.argv.slice(2);
 const piani = dati.length
@@ -122,9 +122,9 @@ async function raccogli(percorsoPiano) {
   const verita = (grezzo.find(p => p._truth) || {})._truth || "(non dichiarata)";
 
   // Il piano che si manda non porta i campi che cominciano per `_`: sono note
-  // per chi legge il file, e `disegna` rifiuterebbe argomenti che lo schema
+  // per chi legge il file, e `build` rifiuterebbe argomenti che lo schema
   // non conosce.
-  const passi = grezzo.map(p => ({ operazione: p.operazione, argomenti: p.argomenti }));
+  const passi = grezzo.map(p => ({ operation: p.operation, arguments: p.arguments }));
 
   console.log("");
   console.log("=== " + nome + " ===");
@@ -132,29 +132,29 @@ async function raccogli(percorsoPiano) {
   const r = spawnSync(NUOVA, [], { encoding: "utf8" });
   if (r.status !== 0) { console.log("  NO  parte nuova non creata"); return false; }
 
-  await chiama("guarda_il_pezzo");
-  const fatto = await chiama("disegna", { passi: passi });
+  await chiama("inspect_part");
+  const fatto = await chiama("build", { steps: passi });
   if (fatto.errore) {
     console.log("  NO  il piano non e' passato: " +
                 fatto.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
     return false;
   }
-  const volume = (fatto.dati || {}).volume_dopo_mm3;
+  const volume = (fatto.dati || {}).volume_after_mm3;
   console.log("  ok  costruito, volume " + volume + " mm3");
 
   // ── lo stato, senza immagini: e' quello che il modello riceve OGGI ──
-  const soloStato = await chiama("guarda_il_pezzo");
+  const soloStato = await chiama("inspect_part");
   const stato = soloStato.dati || statoDalTesto(soloStato.testo);
   fs.writeFileSync(path.join(USCITA, nome + "-stato.json"),
                    JSON.stringify(stato, null, 1));
   const caratteri = fs.statSync(path.join(USCITA, nome + "-stato.json")).size;
   console.log("  ok  stato: " + caratteri + " caratteri, " +
-              ((stato.facce || []).length) + " facce, " +
+              ((stato.faces || []).length) + " facce, " +
               ((stato.feature || []).length) + " lavorazioni");
 
   // ── le immagini ──
-  const uno = await chiama("guarda_il_pezzo", { viste: PRIMA_MANO });
-  const tre = await chiama("guarda_il_pezzo", { viste: SECONDA_MANO });
+  const uno = await chiama("inspect_part", { views: PRIMA_MANO });
+  const tre = await chiama("inspect_part", { views: SECONDA_MANO });
   const scritti = salvaImmagini(nome, PRIMA_MANO, uno.immagini)
     .concat(salvaImmagini(nome, SECONDA_MANO, tre.immagini));
   if (!scritti.length) {

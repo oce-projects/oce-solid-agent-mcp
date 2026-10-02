@@ -5,8 +5,9 @@ else's Windows machine, on their behalf. A human reading this instead should
 use [QUICKSTART.md](QUICKSTART.md) — same steps, written for hands and eyes.
 
 Everything below was run against the installer's own code. Where a message is
-quoted, it is quoted **in Italian**, because that is what the program prints:
-match the substring, do not translate it before matching.
+quoted, it is quoted **as the program prints it**, in Italian or in English (the
+program is being translated, and new messages are born in English): match the
+substring, do not translate it before matching.
 
 ---
 
@@ -53,15 +54,37 @@ Installa.exe --silenzioso
 | `--redist <path>` | the `api\redist` folder of SOLIDWORKS, if it is not where the installer looks |
 | `--senza-client` | do not touch any MCP client configuration |
 | `--config <path>` | wire **that one file** and do not go looking for clients |
-| `--disinstalla` | remove the installation |
+| `--weldment-profiles <folder>` | the weldment profiles (`.sldlfp`) the `profili_saldatura` operation reads, written as `PROFILI_SALDATURA` in the client entry's `env`. Without it the installer keeps a folder already in the client entry, else uses the folder SOLIDWORKS itself is set to (Tools > Options > File Locations > Weldment Profiles), or the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`), and says which; it never writes a folder that does not exist. A folder given here that does not exist stops the run with exit 1, before anything is installed |
+| `--log <file>` | also write every line of the run to this file (UTF-8) |
+| `--disinstalla` | remove the installation (see section 6) |
+| `--verify [--json]` | check an existing installation instead of installing (section 4) |
 
 ### Read the exit code, not the output
 
+`Installa.exe` is a Windows program, not a console one: **how you start it
+decides whether the shell waits for it and sees its exit code.** Measured in a
+fresh console (from 0.126.0):
+
+| shell | use this | exit code |
+|---|---|---|
+| PowerShell | `(Start-Process .\Installa.exe -ArgumentList '--silenzioso' -Wait -PassThru -NoNewWindow).ExitCode` | right |
+| cmd | in a batch file: `start "" /wait Installa.exe --silenzioso`, then `%ERRORLEVEL%` | right |
+| PowerShell | `.\Installa.exe --silenzioso` (plain call) | **lost**: PowerShell does not wait |
+| PowerShell | `cmd /c "start "" /wait Installa.exe --silenzioso"` on one line | **wrong**: always 0 |
+
+The output appears on the console from 0.126.0 (before, nothing at all), and
+`--log <file>` keeps a copy whatever the shell does.
+
 | code | what it means | what to do |
 |---|---|---|
-| **0** | installed, and the self-check confirmed it — *or* the only thing missing was that SOLIDWORKS is closed | done. Go to step 4 |
-| **1** | **nothing was installed.** Either a prerequisite failed (`[NO]` lines, then `Mi fermo: ci sono cose da sistemare.`) or the copy itself threw | read the `[NO]` lines back to the user. Do not retry blindly |
-| **2** | the files are installed, but the self-check did not confirm | not a failure to repeat: go to step 4 and find out why |
+| **0** | installed, **every client it tried is wired** (or `--senza-client`), and the bridge's self-test confirmed it — attached, or SOLIDWORKS simply closed | done. Go to step 4 |
+| **1** | **nothing was installed.** A prerequisite failed (`[NO]` lines, then `Mi fermo: ci sono cose da sistemare.`), `--weldment-profiles` named a folder that does not exist, or the copy itself threw | read the `[NO]` lines back to the user. Do not retry blindly |
+| **3** | the files are installed, but **a client was not wired** (its config is malformed or locked) or no client was found. The block to paste by hand is printed after the line `Paste this into the MCP client's configuration file` | fix what the line above the block says, or paste the block; then run `--verify` |
+| **2** | installed and wired, but the self-test did not confirm (SOLIDWORKS not installed or not registered; SOLIDWORKS running but not answering, usually because it was started as administrator; or another failure) | not a failure to repeat: go to step 4 and find out why |
+
+When both 3 and 2 apply, the code is 3. Until 0.125.0 the code was 0 even when
+no client had been wired: an older installer's 0 does not mean the client is
+wired.
 
 The prerequisite lines are prefixed `[ok]`, `[~] ` and `[NO]`. **Only `[NO]`
 stops the install** — `[~]` is a warning, and "SOLIDWORKS is not running" is one
@@ -72,8 +95,24 @@ of them.
 - **Files** in `%LOCALAPPDATA%\Oce.Solid.Agent` (or `--cartella`).
 - **The MCP client config**, unless `--senza-client`:
   - Claude Desktop → `%APPDATA%\Claude\claude_desktop_config.json`
-  - Claude Code → `%USERPROFILE%\.claude.json`
-- **A backup of each config it touched**, beside the original, named
+  - Claude Code → only when it is on the machine: its `.claude.json` exists,
+    or its own folder does (`%USERPROFILE%\.claude`, or `CLAUDE_CONFIG_DIR`),
+    or `claude` is on PATH. Its file is `.claude.json` in `CLAUDE_CONFIG_DIR`
+    when that is set, else in `%USERPROFILE%`: where Claude Code reads it.
+    From 0.126.0, when `claude` is on PATH, through Claude Code's own `claude
+    mcp remove --scope user solidworks` and `claude mcp add --scope user
+    solidworks [-e K=V] -- "<exe>"`; otherwise (or if that fails, and it says
+    so) by writing that file itself. A running Claude Code rewrites that file
+    on its own every few tens of seconds, so its own command is the safer
+    writer; whether a running session can still lose an entry written by the
+    file route is not yet measured.
+  - the entry's `env` holds `SW_REDIST` when SOLIDWORKS is not in its usual
+    folder, and `PROFILI_SALDATURA` when a weldment profiles folder is known.
+    On a reinstall every other variable already in the `solidworks` entry
+    stays (for example `RISCONTRO_RADICE`), and so does a `PROFILI_SALDATURA`
+    that names a folder that exists, unless `--weldment-profiles` names
+    another; the output says what it kept.
+- **A backup of each config it touched**, the `claude mcp` route included, beside the original, named
   `<original>.prima-di-oce-solid-agent-<yyyyMMdd-HHmmss>.bak`. From 0.88.0
   only the **last three** per file are kept; older ones with that exact prefix
   are removed, and the output says how many. Copies anyone made by hand are
@@ -88,23 +127,47 @@ of them.
 
 ## 4. Verifying — and this is the step that is actually worth something
 
-The installer runs this itself, but run it again after the user has restarted
-their client:
+From 0.126.0 the installer checks an installation for you:
+
+```
+Installa.exe --verify --json
+```
+
+One line of JSON: the installed files and their versions (`files`,
+`bridgeVersion`, `libraryVersion`), for each client whether its `solidworks`
+entry runs the installed exe (`clients[].pointsToInstalled`) and its
+`weldmentProfiles`, where SOLIDWORKS is (`solidworks`), the bridge's self-test
+code (`selfTest.code`), and an MCP handshake with the installed exe —
+`initialize` and `tools/list` over stdio, as a client does
+(`handshake.ok`, `handshake.tools`). `checks[]` gives each check as `ok`,
+`warn` or `fail`. Exit **0** only when everything is `ok`; **2** when nothing
+failed but something is a warning (SOLIDWORKS not running, a SOLIDWORKS version
+nobody measured, no weldment profiles); **1** when something failed. Without
+`--json` the same checks come as readable lines. Launch it the way the table
+in section 2 says.
+
+The bridge's own self-test, which `--verify` runs too:
 
 ```
 %LOCALAPPDATA%\Oce.Solid.Agent\oce-solid-agent-mcp.exe --prova
 ```
 
-It writes to **stderr** (stdout belongs to the protocol), exits **0** when the
-bridge is up, and its last line is exactly:
+It writes to **stderr** (stdout belongs to the protocol). **Read its exit code**
+(from 0.126.0; it is a console program, so the plain call waits):
 
-```
-[prova] il ponte sta in piedi.
-```
+| code | meaning |
+|---|---|
+| 0 | attached to SOLIDWORKS (with or without a document open) |
+| 3 | SOLIDWORKS installed but not running |
+| 4 | SOLIDWORKS not installed, or not registered: opening it will not help |
+| 5 | not tried: `OCE_NO_ATTACH` is set |
+| 6 | SOLIDWORKS runs in this Windows session but did not answer: it runs as administrator while this process does not (or the other way round), or it is still starting. The installer does **not** count it as installed |
+| 1 | anything else: read the lines |
 
-Match that substring, case-insensitively. Before it you get the SOLIDWORKS
+Its last line when attached is still `[prova] il ponte sta in piedi.`, for a
+person to read. Before it you get the SOLIDWORKS
 version, the library version, where the catalogue was loaded from, and — if a
-part is open — a measurement of it: `volume_mm3`, `corpi_totali`. **The
+part is open — a measurement of it: `volume_mm3`, `bodies_total`. **The
 SOLIDWORKS version line means the bridge has talked to SOLIDWORKS; the volume
 means it has also read a part.** That is the difference between "the process
 started" and "it works", and it is the whole reason this flag exists.
@@ -112,9 +175,9 @@ started" and "it works", and it is the whole reason this flag exists.
 With SOLIDWORKS open and **no document**, it says
 `[prova] nessun documento aperto: agganciato, niente da misurare.` and still
 exits 0 — attached and nothing to measure is a working bridge. From 0.87.0 the
-model can start a part itself, with the `documento` tool (`azione: "nuovo"`),
+model can start a part itself, with the `document` tool (`action: "create"`),
 instead of asking the user to click File > New; from 0.88.0 it can also close
-one (`azione: "chiudi"`), and it refuses to close a document with unsaved
+one (`action: "close"`), and it refuses to close a document with unsaved
 changes. (Before 0.86.0
 this case exited 1, and the installer reported a successful install as
 unconfirmed.)
@@ -126,26 +189,30 @@ output will tell you that.
 ## 5. The five ways this goes wrong, named
 
 **1. SOLIDWORKS is closed, and it looks like a failure.** It is not. The
-installer treats the phrase `non risulta aperto` in the self-check as success,
-because a bridge that cannot attach to a session it does not have is not a
-broken install. Ask the user to open SOLIDWORKS with a part, then run `--prova`
-again.
-
-From 0.88.0 the bridge tells the two absences apart. `non risulta aperto`
-means installed and not running. `non e' installato su questa macchina, o non
-e' registrato` means Windows does not know `SldWorks.Application` at all:
+installer treats the self-test's exit code 3 (not running) as success, because
+a bridge that cannot attach to a session it does not have is not a broken
+install. Ask the user to open SOLIDWORKS with a part, then run `--verify`
+again. Exit code 4 means Windows does not know `SldWorks.Application` at all:
 opening it will not help, it has to be installed or repaired from the
 Installation Manager — and the installer does **not** treat that one as
-success.
+success. Exit code 6 means SOLIDWORKS is visibly open and did not answer: it
+is probably running as administrator and the client is not (or the other way
+round), and they must be started the same way; the installer exits 2 for it.
+(Until 0.125.0 the installer decided this from the self-test's wording, and the
+administrator case looked like a closed SOLIDWORKS; from 0.126.0 it reads the
+code.)
 
 **2. Claude Code's file is `.claude.json`, not `.mcp.json`.** In the user's
 profile root, with a leading dot. Writing the wrong one produces no error and
 no server.
 
-**3. `--silenzioso` only wires clients whose folder already exists.** A client
-the user has installed but never opened may have no folder, and it will be
-skipped **silently** — the run still exits 0. If the user expects a specific
-client, check that file afterwards, or name it with `--config`.
+**3. `--silenzioso` only wires clients it finds.** Claude Desktop is found by
+its folder (`%APPDATA%\Claude`), Claude Code by its `.claude.json`, its
+`.claude` folder or `claude` on PATH. A client the user has installed but never
+opened may have none of these, and it is skipped.
+If no client at all is found the run exits 3 and prints the block to paste;
+if another one is found it exits 0. If the user expects a specific client,
+check `--verify`, or name its file with `--config`.
 
 **4. A malformed client config is never overwritten.** The installer refuses
 and says `non e' JSON valido e non me la sento di riscriverlo`. This is
@@ -168,12 +235,18 @@ call. Do not change the machine's policy on the user's behalf.
 Installa.exe --disinstalla
 ```
 
-It removes the files and **deliberately leaves the MCP client entry alone** —
-someone uninstalling may be about to reinstall, and quietly editing their config
-would be doing more than was asked. If the user wants the entry gone too, tell
-them it is there and let them say so.
+From 0.126.0 it removes the files, the `domande-senza-risposta.jsonl` the bridge
+writes beside itself, **and the `solidworks` entry of each MCP client** — but
+only an entry that runs the bridge in that folder; an entry pointing elsewhere
+is left alone, and the output says so. `--keep-client` leaves the entries in
+place (someone about to reinstall). With `--config <file>` only that file is
+touched. Exit **0** when done, **1** when a file of the installation could not
+be removed (`could not be removed`, usually because a client still runs the
+bridge: close it and run again), **3** when the files are gone but an entry
+could not be removed. (Until 0.125.0 the command line left the entries and
+exited 0 even with a file left behind.)
 
-The `.bak` files from step 3 also stay (the last three). They are theirs.
+The `.bak` files from step 3 stay (the last three). They are theirs.
 
 ---
 

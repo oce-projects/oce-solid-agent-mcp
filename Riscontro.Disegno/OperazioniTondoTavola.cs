@@ -13,7 +13,7 @@ namespace Riscontro.Disegno
     ///
     /// ── COSA SI E' MISURATO PRIMA (27/9/2026, `prova0089 tornito`..`tornito8`) ──
     ///
-    /// Sull'albero a gradini dell'esempio di «rivoluzione» (Ø30x40, Ø20x30,
+    /// Sull'albero a gradini dell'esempio di «revolve» (Ø30x40, Ø20x30,
     /// Ø34x20), nella vista frontale:
     ///
     ///  * DUE CERCHI VISTI DI TAGLIO selezionati e `AddDimension2`: nasce la
@@ -89,7 +89,7 @@ namespace Riscontro.Disegno
             var asseFoglio = VettoreSulFoglio(asse, mu, tr);
             if (asseFoglio == null) return null;
             bool orizzontale = Math.Abs(asseFoglio[0]) >= Math.Abs(asseFoglio[1]);
-            esito.Asse = orizzontale ? "orizzontale" : "verticale";
+            esito.Asse = orizzontale ? "horizontal" : "vertical";
             // Il verso del parametro t sul foglio: da sinistra a destra (o dal
             // basso in alto), per partire dalla faccia giusta.
             double versoFoglio = orizzontale ? asseFoglio[0] : asseFoglio[1];
@@ -161,8 +161,8 @@ namespace Riscontro.Disegno
                 if (q != null && !RilettaGiusta(modello, q, attesaMm, false, cosa, falliti)) continue;
                 if (orizzontale) sotto++; else diLato++;
                 var descritta = DescriviQuota(q, f.Item2.Indice);
-                descritta["orientamento"] = "lunghezza del tondo";
-                descritta["posizione_mm"] = DovEFinita(q);
+                descritta["orientation"] = "round length";
+                descritta["position_mm"] = DovEFinita(q);
                 if (q != null)
                 {
                     nate.Add(descritta);
@@ -219,14 +219,14 @@ namespace Riscontro.Disegno
                                     mezzo[0], mezzo[1], quotaDiametroOrizzontale, out bornWithoutObject);
                 if (q == null && !bornWithoutObject) { falliti.Add(cosa + " (la quota non e' nata)"); continue; }
                 // BORN WITHOUT ITS OBJECT (N80), as the lengths above: the row
-                // with the value unknown, not in `tondo_diametri_mm` (which lists
+                // with the value unknown, not in `round_diameters_mm` (which lists
                 // the diameters read back with their Ø), and the keys of this
                 // cylinder in `gia`, so that it is neither dimensioned again nor
                 // reported as not reached.
                 if (q != null && !RilettaGiusta(modello, q, attesaMm, true, cosa, falliti)) continue;
                 var descritta = DescriviQuota(q, -1);
-                descritta["orientamento"] = "diametro del tondo";
-                descritta["posizione_mm"] = DovEFinita(q);
+                descritta["orientation"] = "round diameter";
+                descritta["position_mm"] = DovEFinita(q);
                 if (q != null)
                 {
                     nate.Add(descritta);
@@ -304,8 +304,8 @@ namespace Riscontro.Disegno
                 var mezzo = SulFoglio(suo.Meta, mu, tr);
                 try { if (mezzo != null) (q.GetAnnotation() as IAnnotation)?.SetPosition2(mezzo[0], mezzo[1], 0); } catch { }
                 var descritta = DescriviQuota(q, -1);
-                descritta["orientamento"] = "diametro del tondo (generatrici senza faccia, riconosciuto dal valore)";
-                descritta["posizione_mm"] = DovEFinita(q);
+                descritta["orientation"] = "diametro del tondo (generatrici senza faccia, riconosciuto dal valore)";
+                descritta["position_mm"] = DovEFinita(q);
                 nate.Add(descritta);
                 esito.Diametri.Add(Math.Round(suo.DiametroMm, 3));
                 gia.Add("foro|" + Math.Round(suo.DiametroMm, 2).ToString("0.00", Ci));
@@ -590,7 +590,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Che faccia borda un cerchio del tondo: «piano» se una delle sue facce e' un
+        /// Che faccia borda un cerchio del tondo: «plane» se una delle sue facce e' un
         /// piano perpendicolare all'asse (una testa, uno spallamento), altrimenti
         /// «cono» (uno smusso), «toro» (un raccordo) o «altro».
         /// </summary>

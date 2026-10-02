@@ -14,7 +14,7 @@ namespace Oce.Solid.Agent.Mcp
     /// parli: si sceglie dall'elenco e finisce nel contesto. Sono due momenti
     /// diversi e due decisioni di due persone diverse.
     ///
-    /// Per questo catalogo la differenza e' concreta: `elenco_operazioni` costa
+    /// Per questo catalogo la differenza e' concreta: `list_operations` costa
     /// un giro di strumento — il modello deve prima capire che gli serve, poi
     /// chiederlo, poi leggere la risposta. Chi lavora sa gia' che gli serve, e
     /// con una risorsa lo mette li' e basta. **Non e' un'altra copia del
@@ -38,11 +38,11 @@ namespace Oce.Solid.Agent.Mcp
     /// stessa ragione per cui il README e' controllato da una prova invece che
     /// a memoria). Elencarle una per una come risorse
     /// vorrebbe dire mandare sessanta righe a ogni `resources/list`, e chi
-    /// guarda l'elenco cerca *il catalogo*, non `raccordo_spigoli`. Percio':
+    /// guarda l'elenco cerca *il catalogo*, non `fillet_edges`. Percio':
     ///
-    ///   - **una risorsa**, `catalogo://operazioni`, che e' l'elenco corto —
-    ///     la stessa cosa che risponde `elenco_operazioni`;
-    ///   - **un modello di URI**, `catalogo://operazione/{nome}`, per lo schema
+    ///   - **una risorsa**, `catalog://operations`, che e' l'elenco corto —
+    ///     la stessa cosa che risponde `list_operations`;
+    ///   - **un modello di URI**, `catalog://operation/{name}`, per lo schema
     ///     completo di una sola. Un modello di URI e' la forma che il
     ///     protocollo ha per dire «ce ne sono tante e si chiamano cosi'»
     ///     invece di elencarle.
@@ -57,10 +57,10 @@ namespace Oce.Solid.Agent.Mcp
         /// posti — l'elenco, la lettura e la prova — e tre stringhe uguali
         /// scritte a mano diventano tre stringhe diverse.
         /// </summary>
-        public const string UriElenco = "catalogo://operazioni";
+        public const string UriElenco = "catalog://operations";
 
-        /// <summary>La parte fissa di `catalogo://operazione/&lt;nome&gt;`.</summary>
-        public const string PrefissoOperazione = "catalogo://operazione/";
+        /// <summary>La parte fissa di `catalog://operation/&lt;name&gt;`.</summary>
+        public const string PrefissoOperazione = "catalog://operation/";
 
         private readonly Catalogo _catalogo;
 
@@ -76,14 +76,14 @@ namespace Oce.Solid.Agent.Mcp
                 new Dictionary<string, object>
                 {
                     ["uri"] = UriElenco,
-                    ["name"] = "Catalogo delle operazioni",
-                    ["title"] = "Catalogo delle operazioni",
+                    ["name"] = "Operation catalog",
+                    ["title"] = "Operation catalog",
                     ["description"] =
                         "Le " + _catalogo.Quante + " operazioni di disegno che questo " +
                         "ponte sa eseguire, raggruppate per famiglia, con una riga " +
                         "ciascuna. Lo schema completo di una sola si legge da " +
-                        PrefissoOperazione + "<nome>, oppure con lo strumento " +
-                        "«descrivi_operazione».",
+                        PrefissoOperazione + "<name>, oppure con lo strumento " +
+                        "«describe_operation».",
                     ["mimeType"] = "application/json",
                 },
             };
@@ -98,9 +98,9 @@ namespace Oce.Solid.Agent.Mcp
             {
                 new Dictionary<string, object>
                 {
-                    ["uriTemplate"] = PrefissoOperazione + "{nome}",
-                    ["name"] = "Una operazione",
-                    ["title"] = "Una operazione",
+                    ["uriTemplate"] = PrefissoOperazione + "{name}",
+                    ["name"] = "Single operation",
+                    ["title"] = "Single operation",
                     ["description"] =
                         "Lo schema completo di UNA operazione: cosa serve prima, cosa " +
                         "fa, e tutti i suoi argomenti. I nomi stanno in " + UriElenco + ".",

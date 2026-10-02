@@ -11,7 +11,7 @@ namespace Riscontro.Disegno
     ///
     /// ── PERCHE' E' LA VOCE PIU' SEMPLICE E NON LA MENO UTILE ────────────
     ///
-    /// `esporta_pdf` esporta gia' tutti i fogli e **conta gia' le pagine del
+    /// `export_pdf` esporta gia' tutti i fogli e **conta gia' le pagine del
     /// PDF**: e' la guardia scritta perche' un PDF di un foglio solo, su una
     /// tavola di tre, esce senza nessun errore e arriva in officina incompleto.
     /// Quel conteggio pero' oggi vale sempre 1, **perche' non c'e' modo di fare
@@ -31,7 +31,7 @@ namespace Riscontro.Disegno
     /// nessuno dei due darebbe errore: il foglio 1 in primo diedro, il foglio 2
     /// in terzo, e chi taglia il pezzo del foglio 2 lo taglia rovesciato.
     ///
-    /// Si fa quello che `imposta_foglio` fa gia': **si legge il diedro del
+    /// Si fa quello che `set_sheet` fa gia': **si legge il diedro del
     /// foglio corrente e lo si ripassa**. Il modello di tavola dell'officina
     /// l'ha gia' deciso una volta, e questa e' l'unica risposta che non inventa
     /// niente.
@@ -45,7 +45,7 @@ namespace Riscontro.Disegno
     public partial class OperazioniSw
     {
         // ─────────────────────────────────────────────────────────────────
-        // nuovo_foglio
+        // new_sheet
         // ─────────────────────────────────────────────────────────────────
         private Esito NuovoFoglio(IModelDoc2 modello, Dictionary<string, object> a)
         {
@@ -53,13 +53,13 @@ namespace Riscontro.Disegno
             if (disegno == null)
                 return Fallito(
                     "Il documento attivo non e' una tavola: i fogli stanno in una " +
-                    "tavola. Creala prima con «crea_disegno».");
+                    "tavola. Creala prima con «create_drawing».");
 
             var nomiPrima = NomiDeiFogli(disegno);
             if (nomiPrima.Count == 0)
                 return Fallito("Questa tavola non dichiara nessun foglio: non so da cosa partire.");
 
-            string nome = Str(a, "nome", null);
+            string nome = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(nome)) nome = NomeLibero(nomiPrima);
             if (nomiPrima.Any(n => string.Equals(n, nome, StringComparison.OrdinalIgnoreCase)))
                 return Fallito(
@@ -87,14 +87,14 @@ namespace Riscontro.Disegno
             // fogli della stessa tavola a scale diverse si possono volere, ma
             // non per distrazione.
             var scalaCorrente = LeggiScala(corrente);
-            double scalaNum = Num(a, "scala_numeratore",
+            double scalaNum = Num(a, "scale_numerator",
                 scalaCorrente != null && scalaCorrente.Length > 0 ? scalaCorrente[0] : 1);
-            double scalaDen = Num(a, "scala_denominatore",
+            double scalaDen = Num(a, "scale_denominator",
                 scalaCorrente != null && scalaCorrente.Length > 1 ? scalaCorrente[1] : 1);
             if (scalaNum <= 0 || scalaDen <= 0)
                 return Fallito("La scala deve avere due numeri positivi, per esempio 1:2.");
 
-            string nomeFormato = Str(a, "formato", null);
+            string nomeFormato = Str(a, "paper_size", null);
             int formato = string.IsNullOrWhiteSpace(nomeFormato)
                 ? FormatoDelFoglio(corrente, proprieta)
                 : FormatoFoglio(nomeFormato);
@@ -144,18 +144,18 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["nome"] = nome,
-                ["fogli_prima"] = nomiPrima.Count,
-                ["fogli_dopo"] = nomiDopo.Count,
-                ["fogli"] = nomiDopo.ToArray(),
-                ["attivo"] = NomeDelFoglio(nuovo) ?? nome,
-                ["diedro"] = diedroDopo ? "primo" : "terzo",
-                ["diedro_da_dove"] = "riletto dal foglio nuovo, dopo averlo copiato dal foglio " +
+                ["name"] = nome,
+                ["sheets_before"] = nomiPrima.Count,
+                ["sheets_after"] = nomiDopo.Count,
+                ["sheets"] = nomiDopo.ToArray(),
+                ["active"] = NomeDelFoglio(nuovo) ?? nome,
+                ["projection_angle"] = diedroDopo ? "first" : "third",
+                ["projection_angle_source"] = "riletto dal foglio nuovo, dopo averlo copiato dal foglio " +
                                      "corrente: non e' un valore scelto qui",
-                ["scala"] = scalaDopo != null && scalaDopo.Length > 1
+                ["scale"] = scalaDopo != null && scalaDopo.Length > 1
                     ? scalaDopo[0] + ":" + scalaDopo[1] : null,
-                ["larghezza_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[0], 1) : null,
-                ["altezza_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[1], 1) : null,
+                ["width_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[0], 1) : null,
+                ["height_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[1], 1) : null,
             };
 
             if (!diedroDopo)
@@ -165,7 +165,7 @@ namespace Riscontro.Disegno
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // attiva_foglio
+        // activate_sheet
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -179,10 +179,10 @@ namespace Riscontro.Disegno
             if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
 
             var nomi = NomiDeiFogli(disegno);
-            string voluto = Str(a, "nome", null);
+            string voluto = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(voluto))
                 return Fallito(
-                    "Dimmi quale foglio: «nome», come lo riporta lo stato. Ci sono: " +
+                    "Dimmi quale foglio: «name», come lo riporta lo stato. Ci sono: " +
                     string.Join(", ", nomi) + ".");
 
             var suo = nomi.FirstOrDefault(n => string.Equals(n, voluto, StringComparison.OrdinalIgnoreCase));
@@ -208,10 +208,10 @@ namespace Riscontro.Disegno
 
             return SenzaFeature(new Dictionary<string, object>
             {
-                ["attivo"] = dopo,
-                ["prima_era"] = prima,
-                ["fogli"] = nomi.ToArray(),
-                ["cambiato"] = !string.Equals(prima, dopo, StringComparison.OrdinalIgnoreCase),
+                ["active"] = dopo,
+                ["previous"] = prima,
+                ["sheets"] = nomi.ToArray(),
+                ["changed"] = !string.Equals(prima, dopo, StringComparison.OrdinalIgnoreCase),
             });
         }
 

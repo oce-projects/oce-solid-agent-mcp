@@ -201,7 +201,7 @@ namespace Riscontro.Disegno
             /// IL DOCUMENTO SU CUI SI LAVORA DA ADESSO IN POI, quando questa
             /// operazione lo ha cambiato APPOSTA.
             ///
-            /// Ce n'e' una sola che lo fa — `crea_disegno` — e non e' un
+            /// Ce n'e' una sola che lo fa — `create_drawing` — e non e' un
             /// effetto collaterale: una tavola E' un documento nuovo, e i passi
             /// dopo (le viste, le quote) vanno fatti li'.
             ///
@@ -234,8 +234,8 @@ namespace Riscontro.Disegno
         ///
         /// SERVE A CONFRONTARE IL CATALOGO CON CIO' CHE ESISTE DAVVERO. Il
         /// catalogo dichiara 38 operazioni; qui ce ne sono 36, e le due che
-        /// mancano — `estrudi_sezione` e `ruota_dentata` — esistono solo perche'
-        /// il server le espande in `contorni` prima che arrivino qui, e il ramo
+        /// mancano — `extrude_section` e `spur_gear` — esistono solo perche'
+        /// il server le espande in `contours` prima che arrivino qui, e il ramo
         /// `default` ricade sull'estrusione di profilo quando trova dei
         /// contorni. Chiamate con i loro argomenti veri rispondono «operazione
         /// sconosciuta». Il controllo che confronta i due insiemi lo dice; senza
@@ -251,38 +251,38 @@ namespace Riscontro.Disegno
         /// </summary>
         public static readonly string[] NomiEseguibili =
         {
-            "applica_materiale", "asola", "attiva_configurazione",
-            "accoppia", "combina_corpi",
-            "cordone_saldatura", "crea_asse", "crea_configurazione",
-            "crea_disegno", "crea_piano", "distinta_taglio",
-            "piano_per_tre_punti", "profili_saldatura", "immagine_nello_schizzo", "dipendenze",
-            "distanza_minima", "elimina_lavorazione",
-            "esporta_iges", "esporta_pdf", "esporta_step", "esporta_stl",
-            "estrudi_cerchio", "estrudi_profilo", "estrudi_rettangolo",
-            "estrudi_sezione", "ruota_dentata",
-            "estrudi_su_faccia", "fazzoletto", "filettatura_cosmetica",
-            "foro_guidato", "guscio", "inserisci_componente",
-            "imposta_foglio", "incidi_testo", "ingombro_corpo", "membro_strutturale",
-            "misura_fra_entita", "modifica_quota", "variabile_globale", "lega_quota", "riordina_lavorazione", "cambia_estrusione", "tolleranza_quota", "proprieta_di_massa",
-            "loft_fra_due_cerchi",
-            "quote_dal_modello", "raccordo_spigoli", "raccordo_variabile", "raccordo_faccia",
-            "ripeti_circolare", "ripeti_riempimento", "scrivi_proprieta",
-            "ripeti_lineare", "rivoluzione", "salva_documento",
-            "sformo", "nervatura", "smusso_spigoli", "sopprimi_istanza", "sopprimi_lavorazione",
-            "sostituisci_componente", "fissa_componente", "specchia_componente",
-            "croci_di_centro", "quota_in_tavola", "nota_in_tavola", "tabella_fori_in_tavola", "vista_sviluppo", "saldatura_in_tavola", "distinta_base_in_tavola", "bollatura",
-            "rugosita_in_tavola", "datum_in_tavola", "tolleranza_geometrica_in_tavola",
-            "sezione_in_tavola", "dettaglio_in_tavola",
-            "nuovo_foglio", "attiva_foglio", "distinta_taglio_in_tavola",
-            "verifica_interferenze", "cartiglio",
-            "sweep_circolare",
-            "specchia",
-            "sposta_corpi", "taglia_membri",
-            "taglio_cilindrico", "taglio_rettangolare", "tappo_estremita",
-            "telaio_rettangolare", "verifica_geometria_corpo",
-            "verifica_sovrasporgenze",
-            "vista_modello", "viste_standard",
-            "flangia_base", "flangia_spigolo", "orlo", "piega_da_schizzo", "sviluppo_dxf", "schema_di_quote",
+            "apply_material", "slot", "activate_configuration",
+            "mate", "combine_bodies",
+            "weld_bead", "create_axis", "create_configuration",
+            "create_drawing", "create_plane", "cut_list",
+            "plane_three_points", "weldment_profiles", "sketch_picture", "file_dependencies",
+            "minimum_distance", "delete_feature",
+            "export_iges", "export_pdf", "export_step", "export_stl",
+            "extrude_circle", "extrude_profile", "extrude_rectangle",
+            "extrude_section", "spur_gear",
+            "extrude_on_face", "gusset", "cosmetic_thread",
+            "hole_wizard", "shell", "insert_component",
+            "set_sheet", "engrave_text", "body_bounding_box", "structural_member",
+            "measure_between", "set_dimension", "global_variable", "link_dimension", "reorder_feature", "edit_extrusion", "dimension_tolerance", "mass_properties",
+            "loft_two_circles",
+            "model_dimensions", "fillet_edges", "variable_fillet", "fillet_face",
+            "circular_pattern", "fill_pattern", "set_property",
+            "linear_pattern", "revolve", "save_document",
+            "draft", "rib", "chamfer_edges", "suppress_instance", "suppress_feature",
+            "replace_component", "fix_component", "mirror_component",
+            "center_marks", "drawing_dimension", "note", "hole_table", "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
+            "surface_finish", "datum", "geometric_tolerance",
+            "section_view", "detail_view",
+            "new_sheet", "activate_sheet", "drawing_cut_list",
+            "interference_check", "title_block",
+            "circular_sweep",
+            "mirror",
+            "move_bodies", "trim_members",
+            "cylindrical_cut", "rectangular_cut", "end_cap",
+            "rectangular_frame", "check_body_geometry",
+            "check_overhangs",
+            "model_view", "standard_views",
+            "base_flange", "edge_flange", "hem", "sketched_bend", "flat_pattern_dxf", "dimension_scheme",
         };
 
         /// <summary>
@@ -300,6 +300,40 @@ namespace Riscontro.Disegno
             StatoDocumento stato,
             IReadOnlyDictionary<int, Riferimenti.Passo> passiFatti = null)
         {
+            // THE NAMES OF BEFORE W3.1-bis.5 (Alias.cs, decision D4): an
+            // Italian operation, argument or value is translated here, for the
+            // callers of the library that do not come through the bridge (the
+            // bench, the add-in), and the answer says so in `deprecated`. The
+            // bridge translates before its own checks, so its plans arrive here
+            // in English. Removed in W3.1-bis.11.
+            List<string> deprecated = Alias.Step(ref operazione, argomenti);
+            Esito esito = ExecuteWithCurrentNames(modello, operazione, argomenti, stato, passiFatti);
+            AttachDeprecated(esito, deprecated);
+            return esito;
+        }
+
+        /// <summary>
+        /// The deprecated lines of a step on its outcome: always in
+        /// `measurements.deprecated` (an outcome whose operation left no
+        /// measurements gets them anyway, or the warning would be lost on a
+        /// step that worked), and on a failed step in the error too, which is
+        /// what a caller reads first. Removed with the aliases in W3.1-bis.11.
+        /// </summary>
+        public static void AttachDeprecated(Esito esito, List<string> deprecated)
+        {
+            if (esito == null || deprecated == null || deprecated.Count == 0) return;
+            if (esito.Misure == null) esito.Misure = new Dictionary<string, object>();
+            esito.Misure["deprecated"] = deprecated.ToArray();
+            if (!esito.Riuscito) esito.Errore = esito.Errore + " (" + string.Join("; ", deprecated) + ")";
+        }
+
+        private Esito ExecuteWithCurrentNames(
+            IModelDoc2 modello,
+            string operazione,
+            Dictionary<string, object> argomenti,
+            StatoDocumento stato,
+            IReadOnlyDictionary<int, Riferimenti.Passo> passiFatti)
+        {
             _passiFatti = passiFatti ?? new Dictionary<int, Riferimenti.Passo>();
             // Si svuota all'INIZIO: svuotarlo alla fine lo lascerebbe pieno
             // quando l'operazione fallisce, e la successiva erediterebbe gli
@@ -316,66 +350,66 @@ namespace Riscontro.Disegno
             {
                 switch (operazione)
                 {
-                    case "estrudi_rettangolo": return EstrudiRettangolo(modello, argomenti);
-                    case "estrudi_cerchio": return EstrudiCerchio(modello, argomenti);
-                    case "estrudi_sezione": return EstrudiSezione(modello, argomenti);
-                    case "ruota_dentata": return RuotaDentataOp(modello, argomenti);
+                    case "extrude_rectangle": return EstrudiRettangolo(modello, argomenti);
+                    case "extrude_circle": return EstrudiCerchio(modello, argomenti);
+                    case "extrude_section": return EstrudiSezione(modello, argomenti);
+                    case "spur_gear": return RuotaDentataOp(modello, argomenti);
                     // La sagoma libera e le RICETTE finiscono nello stesso
                     // esecutore: una ruota dentata non e' un'altra operazione,
                     // e' un modo di scrivere dei contorni. Il server la espande
-                    // e manda gli stessi `contorni`. Due esecutori per la stessa
+                    // e manda gli stessi `contours`. Due esecutori per la stessa
                     // cosa vorrebbero dire due comportamenti che divergono alla
                     // prima modifica.
-                    case "estrudi_profilo":
+                    case "extrude_profile":
                         return EstrudiProfilo(modello, argomenti);
-                    case "taglio_cilindrico": return TaglioCilindrico(modello, argomenti, stato);
+                    case "cylindrical_cut": return TaglioCilindrico(modello, argomenti, stato);
                     // Il foro fatto come si fa un foro: creazione guidata,
                     // norma ISO, filetto, lamatura, svasatura. Sta in
                     // Agente/OperazioniFori.cs perche' la ricetta e' lunga e
                     // ogni riga di quella ricetta e' stata misurata.
-                    case "foro_guidato": return ForoGuidato(modello, argomenti, stato);
+                    case "hole_wizard": return ForoGuidato(modello, argomenti, stato);
                     // Il materiale: Agente/OperazioniMateriale.cs.
-                    case "applica_materiale": return ApplicaMateriale(modello, argomenti);
-                    case "taglio_rettangolare": return TaglioRettangolare(modello, argomenti, stato);
-                    case "asola": return Asola(modello, argomenti, stato);
-                    case "estrudi_su_faccia": return EstrudiSuFaccia(modello, argomenti, stato);
-                    case "modifica_quota": return ModificaQuota(modello, argomenti, stato);
+                    case "apply_material": return ApplicaMateriale(modello, argomenti);
+                    case "rectangular_cut": return TaglioRettangolare(modello, argomenti, stato);
+                    case "slot": return Asola(modello, argomenti, stato);
+                    case "extrude_on_face": return EstrudiSuFaccia(modello, argomenti, stato);
+                    case "set_dimension": return ModificaQuota(modello, argomenti, stato);
                     // Le variabili globali e le equazioni (voce Z-F1): dare un nome a
                     // un numero invece di ripeterlo. OperazioniEquazioni.cs.
-                    case "variabile_globale": return VariabileGlobale(modello, argomenti, stato);
-                    case "lega_quota": return LegaQuota(modello, argomenti, stato);
+                    case "global_variable": return VariabileGlobale(modello, argomenti, stato);
+                    case "link_dimension": return LegaQuota(modello, argomenti, stato);
                     // Riordinare l'albero (voce Z-F3). OperazioniRiordina.cs.
-                    case "riordina_lavorazione": return RiordinaLavorazione(modello, argomenti, stato);
+                    case "reorder_feature": return RiordinaLavorazione(modello, argomenti, stato);
                     // Cambiare un'estrusione o un taglio gia' fatti (voce Z-F4).
                     // OperazioniCambiaEstrusione.cs.
-                    case "cambia_estrusione": return CambiaEstrusione(modello, argomenti, stato);
-                    case "tolleranza_quota": return TolleranzaQuota(modello, argomenti);
-                    case "sopprimi_lavorazione": return SopprimiLavorazione(modello, argomenti, stato);
-                    case "elimina_lavorazione": return EliminaLavorazione(modello, argomenti, stato);
-                    case "sposta_corpi": return SpostaCorpi(modello, argomenti, stato);
+                    case "edit_extrusion": return CambiaEstrusione(modello, argomenti, stato);
+                    case "dimension_tolerance": return TolleranzaQuota(modello, argomenti);
+                    case "suppress_feature": return SopprimiLavorazione(modello, argomenti, stato);
+                    case "delete_feature": return EliminaLavorazione(modello, argomenti, stato);
+                    case "move_bodies": return SpostaCorpi(modello, argomenti, stato);
                     // Le booleane fra corpi e il raccordo a raggio variabile
                     // stanno in OperazioniCorpi.cs.
-                    case "combina_corpi": return CombinaCorpi(modello, argomenti, stato);
-                    case "raccordo_variabile":
+                    case "combine_bodies": return CombinaCorpi(modello, argomenti, stato);
+                    case "variable_fillet":
                         return RaccordoVariabile(modello, argomenti, stato);
                     // Il raccordo di FACCIA (voce GP7, la meta' che mancava):
                     // CreateDefinition(swFmFillet) e marche 2/4, non FeatureFillet3.
                     // OperazioniRaccordoFaccia.cs.
-                    case "raccordo_faccia":
+                    case "fillet_face":
                         return RaccordoFaccia(modello, argomenti, stato);
-                    case "filettatura_cosmetica":
+                    case "cosmetic_thread":
                         return FilettaturaCosmetica(modello, argomenti, stato);
-                    case "raccordo_spigoli": return RaccordoSpigoli(modello, argomenti, stato);
-                    case "smusso_spigoli": return SmussoSpigoli(modello, argomenti, stato);
-                    case "guscio": return Guscio(modello, argomenti, stato);
-                    case "crea_piano": return CreaPiano(modello, argomenti);
-                    // Il piano obliquo, in OperazioniPiani.cs. `crea_piano` sa
+                    case "fillet_edges": return RaccordoSpigoli(modello, argomenti, stato);
+                    case "chamfer_edges": return SmussoSpigoli(modello, argomenti, stato);
+                    case "shell": return Guscio(modello, argomenti, stato);
+                    case "create_plane": return CreaPiano(modello, argomenti);
+                    // Il piano obliquo, in OperazioniPiani.cs. `create_plane` sa
                     // fare solo lo sfalsato dai tre standard: per una faccia
                     // inclinata non c'era niente su cui disegnare.
                     // L'operazione che il catalogo chiedeva e che non c'era:
-                    // sta in OperazioniProfili.cs. Senza, «membro_strutturale»
+                    // sta in OperazioniProfili.cs. Senza, «structural_member»
                     // diceva al modello di copiare da una cosa inesistente.
-                    case "profili_saldatura":
+                    case "weldment_profiles":
                         return ProfiliSaldatura(modello, argomenti, stato);
 
                     // ── assiemi ─────────────────────────────────────────
@@ -383,54 +417,54 @@ namespace Riscontro.Disegno
                     // oltre a inserire e' contare i gradi di liberta' residui:
                     // «AddComponent5 piazza senza accoppiare», e quattro corpi
                     // liberi sembrano un assieme.
-                    case "inserisci_componente":
+                    case "insert_component":
                         return InserisciComponente(modello, argomenti, stato);
                     // La seconda, e quella che fa la differenza: inserire non
                     // e' accoppiare. Sta in OperazioniAccoppia.cs.
-                    case "accoppia":
+                    case "mate":
                         return Accoppia(modello, argomenti, stato);
                     // «Il coperchio va rifatto»: sta in OperazioniSostituisci.cs,
                     // e la cosa che misura e' se gli accoppiamenti sopravvivono.
-                    case "sostituisci_componente":
+                    case "replace_component":
                         return SostituisciComponente(modello, argomenti, stato);
                     // Fissare o liberare (voce Z-D5): l'unico stato di un componente
                     // che cambia come l'assieme si ricostruisce. OperazioniFissaComponente.cs.
-                    case "fissa_componente":
+                    case "fix_component":
                         return FissaComponente(modello, argomenti, stato);
                     // La staffa destra e la sinistra (voce GA11). OperazioniSpecchiaComponente.cs.
-                    case "specchia_componente":
+                    case "mirror_component":
                         return SpecchiaComponente(modello, argomenti, stato);
                     // Un'immagine da ricalcare, in scala, in uno schizzo (voce Z-F5).
                     // OperazioniRicalco.cs.
-                    case "immagine_nello_schizzo":
+                    case "sketch_picture":
                         return ImmagineNelloSchizzo(modello, argomenti, stato);
-                    case "piano_per_tre_punti":
+                    case "plane_three_points":
                         return PianoPerTrePunti(modello, argomenti, stato);
 
                     // ── tubi e transizioni ──────────────
                     // Stanno in OperazioniPercorso.cs. Le uniche due operazioni
                     // che fanno una forma non dritta, e le uniche in cui il
                     // profilo e' un NUMERO e non uno schizzo da nominare.
-                    case "sweep_circolare":
+                    case "circular_sweep":
                         return SweepCircolare(modello, argomenti, stato);
-                    case "loft_fra_due_cerchi":
+                    case "loft_two_circles":
                         return LoftFraDueCerchi(modello, argomenti, stato);
                     // ── lamiera (voce GP18) e quote nel modello (voce Z-H3) ──
                     // In OperazioniLamiera.cs e OperazioniDimXpert.cs, ognuna
                     // con la misura che l'ha resa costruibile scritta in testa.
-                    case "flangia_base": return FlangiaBase(modello, argomenti);
-                    case "flangia_spigolo": return FlangiaSpigolo(modello, argomenti, stato);
-                    case "orlo": return Orlo(modello, argomenti, stato);
-                    case "piega_da_schizzo": return PiegaDaSchizzo(modello, argomenti, stato);
-                    case "sviluppo_dxf": return SviluppoDxf(modello, argomenti);
-                    case "schema_di_quote": return SchemaDiQuote(modello, argomenti, stato);
-                    case "crea_asse": return CreaAsse(modello, argomenti, stato);
-                    case "ripeti_lineare": return RipetiLineare(modello, argomenti, stato);
-                    case "specchia": return Specchia(modello, argomenti);
-                    case "rivoluzione": return Rivoluzione(modello, argomenti);
-                    case "ripeti_circolare": return RipetiCircolare(modello, argomenti, stato);
+                    case "base_flange": return FlangiaBase(modello, argomenti);
+                    case "edge_flange": return FlangiaSpigolo(modello, argomenti, stato);
+                    case "hem": return Orlo(modello, argomenti, stato);
+                    case "sketched_bend": return PiegaDaSchizzo(modello, argomenti, stato);
+                    case "flat_pattern_dxf": return SviluppoDxf(modello, argomenti);
+                    case "dimension_scheme": return SchemaDiQuote(modello, argomenti, stato);
+                    case "create_axis": return CreaAsse(modello, argomenti, stato);
+                    case "linear_pattern": return RipetiLineare(modello, argomenti, stato);
+                    case "mirror": return Specchia(modello, argomenti);
+                    case "revolve": return Rivoluzione(modello, argomenti);
+                    case "circular_pattern": return RipetiCircolare(modello, argomenti, stato);
                     // OperazioniRipetiRiempimento.cs (voce W1.1).
-                    case "ripeti_riempimento": return RipetiRiempimento(modello, argomenti, stato);
+                    case "fill_pattern": return RipetiRiempimento(modello, argomenti, stato);
 
                     // ── tavola ──────────────────────────
                     // Stanno in Agente/OperazioniTavola.cs. Sono le prime
@@ -439,95 +473,95 @@ namespace Riscontro.Disegno
                     // insieme al modello. Le tre trappole della famiglia
                     // (il diedro, la quota che mente, il PDF di un foglio
                     // solo) sono spiegate in testa a quel file.
-                    case "crea_disegno": return CreaDisegno(modello, argomenti);
-                    case "imposta_foglio": return ImpostaFoglio(modello, argomenti);
-                    case "viste_standard": return VisteStandard(modello, argomenti);
-                    case "vista_modello": return VistaModello(modello, argomenti);
-                    case "quote_dal_modello": return QuoteDalModello(modello, argomenti);
+                    case "create_drawing": return CreaDisegno(modello, argomenti);
+                    case "set_sheet": return ImpostaFoglio(modello, argomenti);
+                    case "standard_views": return VisteStandard(modello, argomenti);
+                    case "model_view": return VistaModello(modello, argomenti);
+                    case "model_dimensions": return QuoteDalModello(modello, argomenti);
                     // Le croci di centro, in OperazioniCentrini.cs. Una tavola
                     // con dodici fori e nessun centro si stampa e sembra
                     // completa: in officina manca dove forare.
-                    case "croci_di_centro": return CrociDiCentro(modello, argomenti);
-                    case "quota_in_tavola": return QuotaInTavola(modello, argomenti);
+                    case "center_marks": return CrociDiCentro(modello, argomenti);
+                    case "drawing_dimension": return QuotaInTavola(modello, argomenti);
                     // La nota va sul FOGLIO, non dentro una vista: vedi
                     // `OperazioniNotaTavola.cs`, dove c'e' anche perche'
                     // contarla nel posto sbagliato avrebbe chiuso quattro voci.
-                    case "nota_in_tavola": return NotaInTavola(modello, argomenti);
-                    case "tabella_fori_in_tavola": return TabellaForiInTavola(modello, argomenti);
-                    case "vista_sviluppo": return VistaSviluppo(modello, argomenti);
-                    case "saldatura_in_tavola": return SaldaturaInTavola(modello, argomenti);
-                    case "distinta_base_in_tavola": return DistintaBaseInTavola(modello, argomenti);
-                    case "bollatura": return Bollatura(modello, argomenti);
-                    case "rugosita_in_tavola": return RugositaInTavola(modello, argomenti);
-                    case "datum_in_tavola": return DatumInTavola(modello, argomenti);
-                    case "tolleranza_geometrica_in_tavola": return TolleranzaGeometricaInTavola(modello, argomenti);
-                    case "sezione_in_tavola": return SezioneInTavola(modello, argomenti);
-                    case "dettaglio_in_tavola": return DettaglioInTavola(modello, argomenti);
-                    // I fogli, in OperazioniFogli.cs. `esporta_pdf` conta gia'
+                    case "note": return NotaInTavola(modello, argomenti);
+                    case "hole_table": return TabellaForiInTavola(modello, argomenti);
+                    case "flat_pattern_view": return VistaSviluppo(modello, argomenti);
+                    case "drawing_weld_symbol": return SaldaturaInTavola(modello, argomenti);
+                    case "drawing_bom": return DistintaBaseInTavola(modello, argomenti);
+                    case "balloons": return Bollatura(modello, argomenti);
+                    case "surface_finish": return RugositaInTavola(modello, argomenti);
+                    case "datum": return DatumInTavola(modello, argomenti);
+                    case "geometric_tolerance": return TolleranzaGeometricaInTavola(modello, argomenti);
+                    case "section_view": return SezioneInTavola(modello, argomenti);
+                    case "detail_view": return DettaglioInTavola(modello, argomenti);
+                    // I fogli, in OperazioniFogli.cs. `export_pdf` conta gia'
                     // le pagine del PDF, e quel conteggio valeva sempre 1
                     // perche' non c'era modo di fare un secondo foglio.
-                    case "nuovo_foglio": return NuovoFoglio(modello, argomenti);
-                    case "attiva_foglio": return AttivaFoglio(modello, argomenti);
+                    case "new_sheet": return NuovoFoglio(modello, argomenti);
+                    case "activate_sheet": return AttivaFoglio(modello, argomenti);
                     // La distinta di taglio portata in tavola, e CONFRONTATA
                     // con quella del pezzo: la seconda lettura esisteva gia'.
-                    case "distinta_taglio_in_tavola":
+                    case "drawing_cut_list":
                         return DistintaTaglioInTavola(modello, argomenti);
                     // «Il coperchio tocca la base?» — in OperazioniInterferenze.cs.
                     // Due pezzi compenetrati non danno nessun errore: si aprono,
                     // si esportano, si stampano, e in officina non entrano.
-                    case "verifica_interferenze":
+                    case "interference_check":
                         return VerificaInterferenze(modello, argomenti, stato);
                     // Il cartiglio, in OperazioniCartiglio.cs. Non lo riempie:
                     // dice quali proprieta' CHIEDE e quali MOSTRA, cosi' il
                     // nome da scrivere si copia invece di indovinarlo.
-                    case "cartiglio": return Cartiglio(modello, argomenti);
-                    case "esporta_pdf": return EsportaPdf(modello, argomenti);
-                    case "salva_documento": return SalvaDocumento(modello, argomenti);
+                    case "title_block": return Cartiglio(modello, argomenti);
+                    case "export_pdf": return EsportaPdf(modello, argomenti);
+                    case "save_document": return SalvaDocumento(modello, argomenti);
 
                     // ── saldature ───────────────────────
                     // Stanno in Agente/OperazioniSaldatura.cs: sono un
                     // sottosistema con le sue API e le sue trappole, e
                     // tenerle qui avrebbe fatto un file da duemila righe.
                     //
-                    // «telaio_rettangolare» finisce nello stesso esecutore:
+                    // «rectangular_frame» finisce nello stesso esecutore:
                     // il server lo espande in segmenti e manda gli stessi
-                    // parametri di «membro_strutturale», come gia' succede
+                    // parametri di «structural_member», come gia' succede
                     // per le sezioni normalizzate. Due esecutori per la
                     // stessa cosa vorrebbero dire due comportamenti che
                     // divergono alla prima modifica.
-                    case "membro_strutturale":
-                    case "telaio_rettangolare": return MembroStrutturale(modello, argomenti);
-                    case "taglia_membri": return TagliaMembri(modello, argomenti, stato);
-                    case "distinta_taglio": return DistintaTaglio(modello, argomenti);
-                    case "tappo_estremita": return TappoEstremita(modello, argomenti, stato);
-                    case "fazzoletto": return Fazzoletto(modello, argomenti, stato);
-                    case "cordone_saldatura": return CordoneSaldatura(modello, argomenti, stato);
+                    case "structural_member":
+                    case "rectangular_frame": return MembroStrutturale(modello, argomenti);
+                    case "trim_members": return TagliaMembri(modello, argomenti, stato);
+                    case "cut_list": return DistintaTaglio(modello, argomenti);
+                    case "end_cap": return TappoEstremita(modello, argomenti, stato);
+                    case "gusset": return Fazzoletto(modello, argomenti, stato);
+                    case "weld_bead": return CordoneSaldatura(modello, argomenti, stato);
 
                     // ── verifiche ───────────────────────
                     // Stanno in OperazioniVerifica.cs. NON DISEGNANO: dicono
-                    // com'e' venuto. `distinta_taglio` e' il precedente —
+                    // com'e' venuto. `cut_list` e' il precedente —
                     // un'operazione di catalogo che legge invece di costruire.
-                    case "verifica_geometria_corpo":
+                    case "check_body_geometry":
                         return VerificaGeometriaCorpo(modello, argomenti, stato);
                     // Cosa non si stampa senza supporti. Sta in
                     // OperazioniSporgenze.cs, e come le altre verifiche non
                     // tocca il pezzo: guarda l'angolo di ogni superficie.
-                    case "verifica_sovrasporgenze":
+                    case "check_overhangs":
                         return VerificaSovrasporgenze(modello, argomenti, stato);
                     // Le due domande che si fanno prima di ordinare: quanto
                     // pesa, e in che scatola ci sta. Stanno in
                     // OperazioniMisura.cs.
-                    case "proprieta_di_massa":
+                    case "mass_properties":
                         return ProprietaDiMassa(modello, argomenti, stato);
                     // Da quali file dipende il documento, e quali mancano (voce Z-B3).
                     // OperazioniDipendenze.cs.
-                    case "dipendenze":
+                    case "file_dependencies":
                         return Dipendenze(modello, argomenti, stato);
-                    case "ingombro_corpo":
+                    case "body_bounding_box":
                         return IngombroCorpo(modello, argomenti, stato);
-                    case "distanza_minima":
+                    case "minimum_distance":
                         return DistanzaMinima(modello, argomenti, stato);
-                    case "misura_fra_entita":
+                    case "measure_between":
                         return MisuraFraEntita(modello, argomenti, stato);
 
                     // ── quello che il pezzo dice di se' ─
@@ -536,11 +570,11 @@ namespace Riscontro.Disegno
                     // varianti. Le proprieta' del DOCUMENTO e quelle di una
                     // CONFIGURAZIONE sono due elenchi separati che non si
                     // vedono a vicenda — misurato, non dedotto.
-                    case "scrivi_proprieta":
+                    case "set_property":
                         return ScriviProprieta(modello, argomenti, stato);
-                    case "crea_configurazione":
+                    case "create_configuration":
                         return CreaConfigurazione(modello, argomenti, stato);
-                    case "attiva_configurazione":
+                    case "activate_configuration":
                         return AttivaConfigurazione(modello, argomenti, stato);
 
                     // ── la marcatura ────────────────────
@@ -548,7 +582,7 @@ namespace Riscontro.Disegno
                     // scrive delle PAROLE nel pezzo, e l'unica in cui la
                     // grandezza di cio' che si disegna non si puo' calcolare
                     // prima: dipende dal font. Si misura e si controlla.
-                    case "incidi_testo":
+                    case "engrave_text":
                         return IncidiTesto(modello, argomenti, stato);
 
                     // ── togliere una copia ──────────────
@@ -556,14 +590,14 @@ namespace Riscontro.Disegno
                     // e' una scrittura DENTRO una ripetizione gia' fatta, ed e'
                     // l'unica operazione del catalogo che passa da
                     // GetDefinition() + ModifyDefinition().
-                    case "sopprimi_istanza":
+                    case "suppress_instance":
                         return SopprimiIstanza(modello, argomenti, stato);
 
                     // ── l'angolo di spoglia ─────────────
                     // Sta in OperazioniSformo.cs. Quattro API per lo stesso
                     // comando, e due con la firma IDENTICA: quella giusta si e'
                     // trovata misurando, non leggendo.
-                    case "sformo":
+                    case "draft":
                         return Sformo(modello, argomenti, stato);
 
                     // ── la nervatura ────────────────────
@@ -571,22 +605,22 @@ namespace Riscontro.Disegno
                     // PARALLELA allo schizzo (IsNormToSketch = false, come
                     // l'esempio della guida); il verso del materiale si prova
                     // dritto e poi girato.
-                    case "nervatura":
+                    case "rib":
                         return Nervatura(modello, argomenti);
 
                     // ── esportazioni ────────────────────
-                    // Stanno in OperazioniEsporta.cs. `esporta_stl` chiama
-                    // `verifica_geometria_corpo` PRIMA di scrivere, e rifiuta
+                    // Stanno in OperazioniEsporta.cs. `export_stl` chiama
+                    // `check_body_geometry` PRIMA di scrivere, e rifiuta
                     // se il pezzo non e' un solido chiuso solo: un STL non
                     // porta con se' niente che dica che il pezzo era a posto.
-                    case "esporta_stl":
+                    case "export_stl":
                         return EsportaStl(modello, argomenti, stato);
                     // STEP e IGES finiscono nello stesso esecutore: cambiano
                     // le preferenze e il modo di rileggere il file, non la
                     // strada. Due esecutori per la stessa cosa vorrebbero dire
                     // due comportamenti che divergono alla prima modifica.
-                    case "esporta_step":
-                    case "esporta_iges":
+                    case "export_step":
+                    case "export_iges":
                         return EsportaScambio(modello, argomenti, operazione, stato);
                     default:
                         // QUALUNQUE operazione che porta dei contorni si disegna
@@ -594,7 +628,7 @@ namespace Riscontro.Disegno
                         // (una sezione normalizzata, una ruota, un profilo di
                         // domani) si aggiunge al server senza toccare l'add-in
                         // e senza che nessuno debba reinstallare niente.
-                        if (argomenti != null && argomenti.ContainsKey("contorni"))
+                        if (argomenti != null && argomenti.ContainsKey("contours"))
                             return EstrudiProfilo(modello, argomenti);
                         return Fallito(OperazioneSconosciuta + operazione);
                 }
@@ -611,11 +645,11 @@ namespace Riscontro.Disegno
 
         private Esito EstrudiRettangolo(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            double lunghezza = Num(a, "lunghezza_mm");
-            double larghezza = Num(a, "larghezza_mm");
-            double spessore = Num(a, "spessore_mm");
-            bool centrato = Bool(a, "centrato", true);
-            string piano = Str(a, "piano", "frontale");
+            double lunghezza = Num(a, "length_mm");
+            double larghezza = Num(a, "width_mm");
+            double spessore = Num(a, "thickness_mm");
+            bool centrato = Bool(a, "centered", true);
+            string piano = Str(a, "plane", "front");
 
             // The names of the tree before the sketch: the sketch selected below
             // is the one born since (scheme S7), not the last of the tree.
@@ -651,10 +685,10 @@ namespace Riscontro.Disegno
             if (feature == null) return Fallito("L'estrusione non e' stata creata." + SenzaLoSchizzo(modello));
             return Riuscito(feature, new Dictionary<string, object>
             {
-                ["lunghezza_mm"] = lunghezza,
-                ["larghezza_mm"] = larghezza,
-                ["spessore_mm"] = spessore,
-                ["quote_sullo_schizzo"] = quoteMesse,
+                ["length_mm"] = lunghezza,
+                ["width_mm"] = larghezza,
+                ["thickness_mm"] = spessore,
+                ["dimensions_on_sketch"] = quoteMesse,
             }, Riferimenti.NormaleDelPiano(piano));
         }
 
@@ -801,13 +835,13 @@ namespace Riscontro.Disegno
                     // MARCATA PER IL DISEGNO, ed e' la riga che fa la
                     // differenza fra una tavola quotata e una muta.
                     //
-                    // `quote_dal_modello` importa di serie solo le quote
+                    // `model_dimensions` importa di serie solo le quote
                     // MARCATE: sono quelle che un progettista ha scelto di
                     // mostrare, e una tavola con tutte le quote del modello e'
                     // illeggibile. Una quota nata da `AddDimension` non e'
                     // marcata, quindi le nostre non arrivavano mai — misurato
                     // il 14/9/2026: pezzo con 11 quote, tavola con 0, e
-                    // nemmeno chiedendo «tutte_le_quote».
+                    // nemmeno chiedendo «all_dimensions».
                     //
                     // Marcandole qui, la tavola prende ESATTAMENTE le quote che
                     // le operazioni hanno messo apposta, e non quelle di
@@ -860,12 +894,12 @@ namespace Riscontro.Disegno
         {
             double dentiGrezzo, modulo, spessore;
             string perche;
-            if (!NumObbligatorio(a, "denti", out dentiGrezzo, out perche))
-                return Fallito("Per una ruota dentata serve «denti»: " + perche);
-            if (!NumObbligatorio(a, "modulo_mm", out modulo, out perche))
-                return Fallito("Per una ruota dentata serve «modulo_mm»: " + perche);
-            if (!NumObbligatorio(a, "spessore_mm", out spessore, out perche))
-                return Fallito("Per una ruota dentata serve «spessore_mm»: " + perche);
+            if (!NumObbligatorio(a, "teeth", out dentiGrezzo, out perche))
+                return Fallito("Per una ruota dentata serve «teeth»: " + perche);
+            if (!NumObbligatorio(a, "module_mm", out modulo, out perche))
+                return Fallito("Per una ruota dentata serve «module_mm»: " + perche);
+            if (!NumObbligatorio(a, "thickness_mm", out spessore, out perche))
+                return Fallito("Per una ruota dentata serve «thickness_mm»: " + perche);
 
             int denti = (int)Math.Round(dentiGrezzo);
             if (Math.Abs(dentiGrezzo - denti) > 1e-9)
@@ -880,19 +914,19 @@ namespace Riscontro.Disegno
             string motivo;
             var contorni = RuotaDentata.Contorni(
                 denti, modulo,
-                Num(a, "angolo_pressione_gradi", 20.0),
-                Num(a, "foro_mm", 0),
-                Bool(a, "cava_linguetta", false),
+                Num(a, "pressure_angle_deg", 20.0),
+                Num(a, "bore_mm", 0),
+                Bool(a, "keyway", false),
                 8,
                 out motivo);
             if (contorni == null) return Fallito(motivo);
 
             var suoi = new Dictionary<string, object>
             {
-                ["contorni"] = contorni.ToArray(),
-                ["spessore_mm"] = spessore,
+                ["contours"] = contorni.ToArray(),
+                ["thickness_mm"] = spessore,
             };
-            if (a.ContainsKey("piano")) suoi["piano"] = a["piano"];
+            if (a.ContainsKey("plane")) suoi["plane"] = a["plane"];
 
             // Il tetto largo: questi punti li ha calcolati una formula, non
             // scritti un modello. Una ruota da 127 denti sono milleventi
@@ -906,13 +940,13 @@ namespace Riscontro.Disegno
             // volume.
             if (esito != null && esito.Riuscito && esito.Misure != null)
             {
-                esito.Misure["denti"] = denti;
-                esito.Misure["modulo_mm"] = modulo;
-                esito.Misure["diametro_primitivo_mm"] = Math.Round(modulo * denti, 4);
-                esito.Misure["diametro_esterno_mm"] = Math.Round(modulo * (denti + 2), 4);
-                esito.Misure["diametro_fondo_mm"] =
+                esito.Misure["teeth"] = denti;
+                esito.Misure["module_mm"] = modulo;
+                esito.Misure["pitch_diameter_mm"] = Math.Round(modulo * denti, 4);
+                esito.Misure["outside_diameter_mm"] = Math.Round(modulo * (denti + 2), 4);
+                esito.Misure["root_diameter_mm"] =
                     Math.Round(modulo * denti - 2.5 * modulo, 4);
-                esito.Misure["passo_mm"] = Math.Round(Math.PI * modulo, 4);
+                esito.Misure["pitch_mm"] = Math.Round(Math.PI * modulo, 4);
             }
             return esito;
         }
@@ -923,7 +957,7 @@ namespace Riscontro.Disegno
         ///
         /// Non e' un'altra estrusione: e' un modo di scrivere dei contorni.
         /// La ricetta costruisce i contorni e li passa allo stesso esecutore
-        /// di `estrudi_profilo` — due esecutori per la stessa cosa
+        /// di `extrude_profile` — due esecutori per la stessa cosa
         /// divergerebbero alla prima modifica.
         ///
         /// Prima questa ricetta viveva solo nel server Python, quindi
@@ -933,7 +967,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito EstrudiSezione(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            string tipo = Str(a, "tipo", "");
+            string tipo = Str(a, "variant", "");
 
             string[] volute;
             if (string.IsNullOrWhiteSpace(tipo) ||
@@ -974,11 +1008,11 @@ namespace Riscontro.Disegno
             // sagoma e' fatta, e le quote non servono piu' a nessuno.
             var suoi = new Dictionary<string, object>
             {
-                ["contorni"] = contorni.ToArray(),
-                ["spessore_mm"] = Num(a, "lunghezza_mm", 0),
+                ["contours"] = contorni.ToArray(),
+                ["thickness_mm"] = Num(a, "length_mm", 0),
             };
-            if (a.ContainsKey("piano")) suoi["piano"] = a["piano"];
-            if (a.ContainsKey("simmetrico")) suoi["simmetrico"] = a["simmetrico"];
+            if (a.ContainsKey("plane")) suoi["plane"] = a["plane"];
+            if (a.ContainsKey("symmetric")) suoi["symmetric"] = a["symmetric"];
 
             return EstrudiProfilo(modello, suoi, MaxVerticiGenerati);
         }
@@ -1012,9 +1046,9 @@ namespace Riscontro.Disegno
             var contorni = Contorni(a, out string motivo, out string notaContorni, maxVertici);
             if (contorni == null) return Fallito(motivo);
 
-            double spessore = Num(a, "spessore_mm");
-            bool simmetrico = Bool(a, "simmetrico", false);
-            string piano = Str(a, "piano", "frontale");
+            double spessore = Num(a, "thickness_mm");
+            bool simmetrico = Bool(a, "symmetric", false);
+            string piano = Str(a, "plane", "front");
 
             // Before the sketch: it is selected, and locked after the
             // extrusion, as the one sketch born since (scheme S7).
@@ -1060,11 +1094,11 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["schizzo_bloccato"] = bloccato,
+                ["sketch_locked"] = bloccato,
                 ["fixed_relations"] = fixedRelations,
-                ["contorni"] = contorni.Count,
-                ["segmenti"] = segmenti,
-                ["spessore_mm"] = spessore,
+                ["contours"] = contorni.Count,
+                ["segments"] = segmenti,
+                ["thickness_mm"] = spessore,
             };
             // Up to library 0.141.0 the note was computed and dropped: whoever
             // reads a sketch that is not locked must be able to read why.
@@ -1073,7 +1107,7 @@ namespace Riscontro.Disegno
             // contorno fuori dal bordo esterno e' una regione a se', ed e'
             // legittimo (quattro alette su una faccia). Ma diventa un corpo in
             // piu', e chi credeva di fare un foro deve poterlo leggere.
-            if (notaContorni != null) misure["nota_contorni"] = notaContorni;
+            if (notaContorni != null) misure["note_contours"] = notaContorni;
             return Riuscito(feature, misure, Riferimenti.NormaleDelPiano(piano));
         }
 
@@ -1412,7 +1446,7 @@ namespace Riscontro.Disegno
             motivo = null;
             nota = null;
             object grezzo;
-            if (a == null || !a.TryGetValue("contorni", out grezzo) || grezzo == null)
+            if (a == null || !a.TryGetValue("contours", out grezzo) || grezzo == null)
             {
                 motivo = "Non mi e' arrivata nessuna sagoma da disegnare.";
                 return null;
@@ -1440,47 +1474,47 @@ namespace Riscontro.Disegno
                 // DUE MODI DI SCRIVERE UN CERCHIO, E IL CATALOGO NE
                 // RACCOMANDA UNO CHE IL PARSER NON CAPIVA.
                 //
-                // La descrizione di `estrudi_profilo` porta questo esempio
+                // La descrizione di `extrude_profile` porta questo esempio
                 // per esteso — «TUBO diametro esterno 60 spessore 5»:
                 //
-                //   [{"cerchio": [0,0], "diametro_mm": 60},
-                //    {"cerchio": [0,0], "diametro_mm": 50}]
+                //   [{"circle": [0,0], "diameter_mm": 60},
+                //    {"circle": [0,0], "diameter_mm": 50}]
                 //
-                // Il parser capiva solo la forma esplicita con `tipo` e
-                // `centro`, quindi un modello che copiava l'esempio del
-                // catalogo finiva nel ramo poligonale, cercava `vertici`,
+                // Il parser capiva solo la forma esplicita con `variant` e
+                // `center`, quindi un modello che copiava l'esempio del
+                // catalogo finiva nel ramo poligonale, cercava `vertices`,
                 // non lo trovava e falliva. Una divergenza fra cio' che si
                 // dichiara e cio' che si sa fare, dentro il file che esiste
                 // per non averne — e proprio sulla forma che il catalogo
                 // consiglia per fori e tondi, dove sbagliare costa un pezzo
                 // in cui l'albero non entra.
-                bool chiaveCerchio = voce.ContainsKey("cerchio");
+                bool chiaveCerchio = voce.ContainsKey("circle");
                 var tipo = Convert.ToString(
-                    voce.TryGetValue("tipo", out var t) ? t
-                    : chiaveCerchio ? "cerchio" : "poligonale");
-                if (string.Equals(tipo, "cerchio", StringComparison.OrdinalIgnoreCase))
+                    voce.TryGetValue("kind", out var t) ? t
+                    : chiaveCerchio ? "circle" : "polygonal");
+                if (string.Equals(tipo, "circle", StringComparison.OrdinalIgnoreCase))
                 {
                     object grezzoCentro = null;
-                    if (voce.TryGetValue("centro", out var ce) && ce != null) grezzoCentro = ce;
-                    else if (chiaveCerchio) grezzoCentro = voce["cerchio"];
+                    if (voce.TryGetValue("center", out var ce) && ce != null) grezzoCentro = ce;
+                    else if (chiaveCerchio) grezzoCentro = voce["circle"];
                     var centro = Punti(
                         grezzoCentro != null ? new[] { grezzoCentro } : null, out motivo);
                     if (centro == null || centro.Count != 1)
                     {
-                        motivo = "Il centro del cerchio non e' [x, y]. Si scrive \"cerchio\": [x, y] oppure \"tipo\": \"cerchio\" con \"centro\": [x, y].";
+                        motivo = "Il centro del cerchio non e' [x, y]. Si scrive \"circle\": [x, y] oppure \"variant\": \"circle\" con \"center\": [x, y].";
                         return null;
                     }
 
                     // MANCANTE E NON NUMERICO SONO DUE COSE DIVERSE.
                     // Prima finivano tutte e due in «non e' un numero»,
                     // perche' la chiave assente sollevava dentro lo stesso
-                    // try. Chi ha scritto {"cerchio":[0,0]} e basta va
+                    // try. Chi ha scritto {"circle":[0,0]} e basta va
                     // mandato a mettere il diametro, non a controllare un
                     // numero che non ha scritto.
                     object grezzoDiametro;
-                    if (!voce.TryGetValue("diametro_mm", out grezzoDiametro) || grezzoDiametro == null)
+                    if (!voce.TryGetValue("diameter_mm", out grezzoDiametro) || grezzoDiametro == null)
                     {
-                        motivo = "Un cerchio senza \"diametro_mm\": un centro da solo non dice quanto e' grande.";
+                        motivo = "Un cerchio senza \"diameter_mm\": un centro da solo non dice quanto e' grande.";
                         return null;
                     }
                     double diametro;
@@ -1500,19 +1534,19 @@ namespace Riscontro.Disegno
                     continue;
                 }
 
-                if (string.Equals(tipo, "composito", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(tipo, "composite", StringComparison.OrdinalIgnoreCase))
                 {
                     var contorno = new Contorno();
-                    var tratti = voce.TryGetValue("tratti", out var tr) ? tr as System.Collections.IEnumerable : null;
+                    var tratti = voce.TryGetValue("strokes", out var tr) ? tr as System.Collections.IEnumerable : null;
                     if (tratti == null) { motivo = "Un contorno composito non ha tratti."; return null; }
                     foreach (var x in tratti)
                     {
                         var tt = x as Dictionary<string, object>;
                         if (tt == null) { motivo = "Un tratto non e' leggibile."; return null; }
-                        var punti = Punti(tt.TryGetValue("punti", out var pp) ? pp : null, out motivo);
+                        var punti = Punti(tt.TryGetValue("points", out var pp) ? pp : null, out motivo);
                         if (punti == null) return null;
                         if (punti.Count < 2) { motivo = "Un tratto ha meno di due punti."; return null; }
-                        var nome = Convert.ToString(tt.TryGetValue("tratto", out var nt) ? nt : "linee");
+                        var nome = Convert.ToString(tt.TryGetValue("stroke", out var nt) ? nt : "lines");
                         contorno.Tratti.Add(new Tratto
                         {
                             Spline = string.Equals(nome, "spline", StringComparison.OrdinalIgnoreCase),
@@ -1524,7 +1558,7 @@ namespace Riscontro.Disegno
                     continue;
                 }
 
-                var vertici = Punti(voce.TryGetValue("vertici", out var vv) ? vv : null, out motivo);
+                var vertici = Punti(voce.TryGetValue("vertices", out var vv) ? vv : null, out motivo);
                 if (vertici == null) return null;
                 if (vertici.Count < 3) { motivo = "Un contorno ha meno di tre punti: non si chiude."; return null; }
                 var poligonale = new Contorno();
@@ -1686,8 +1720,8 @@ namespace Riscontro.Disegno
             // Del terzo caso si DICE, forte: un contorno staccato diventa un
             // corpo in piu', e chi credeva di fare un foro si trova un disco
             // (misurato: piastra 100x100 con un cerchio Ø30 a 200 mm, 2 corpi,
-            // «riuscita»). Ma lo si dice invece di impedirlo, e chi legge ha in
-            // mano anche `corpi_totali` per controllare.
+            // «succeeded»). Ma lo si dice invece di impedirlo, e chi legge ha in
+            // mano anche `bodies_total` per controllare.
             if (contorni.Count > 1)
             {
                 var esterno = PuntiDi(contorni[0]);
@@ -1765,7 +1799,7 @@ namespace Riscontro.Disegno
                             : "I contorni n. " + string.Join(", ", staccati) +
                               " non stanno dentro il primo") +
                         ": non sono vuoti, sono regioni a se'. Vengono estrusi lo stesso, " +
-                        "e il pezzo puo' avere piu' di un corpo — guarda «corpi_totali». " +
+                        "e il pezzo puo' avere piu' di un corpo — guarda «bodies_total». " +
                         "Se volevi dei fori, vanno spostati dentro il contorno esterno.";
             }
             return true;
@@ -1816,9 +1850,9 @@ namespace Riscontro.Disegno
 
         private Esito EstrudiCerchio(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            double diametro = Num(a, "diametro_mm");
-            double altezza = Num(a, "altezza_mm");
-            string piano = Str(a, "piano", "frontale");
+            double diametro = Num(a, "diameter_mm");
+            double altezza = Num(a, "height_mm");
+            string piano = Str(a, "plane", "front");
 
             // The names before the sketch (scheme S7): see EstrudiRettangolo.
             var sketchNamesBefore = FeatureNamesNow(modello);
@@ -1848,9 +1882,9 @@ namespace Riscontro.Disegno
             if (feature == null) return Fallito("L'estrusione non e' stata creata." + SenzaLoSchizzo(modello));
             return Riuscito(feature, new Dictionary<string, object>
             {
-                ["diametro_mm"] = diametro,
-                ["altezza_mm"] = altezza,
-                ["quote_sullo_schizzo"] = quoteMesse,
+                ["diameter_mm"] = diametro,
+                ["height_mm"] = altezza,
+                ["dimensions_on_sketch"] = quoteMesse,
             }, Riferimenti.NormaleDelPiano(piano));
         }
 
@@ -2219,16 +2253,16 @@ namespace Riscontro.Disegno
 
         private Esito TaglioCilindrico(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string uidFaccia = Str(a, "faccia_uid", "");
+            string uidFaccia = Str(a, "face_uid", "");
             var faccia = RisolviFaccia(stato, a, uidFaccia, out string motivo);
             if (faccia == null) return Fallito(motivo);
 
             double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
             if (assi == null) return Fallito(errore);
 
-            double diametro = Num(a, "diametro_mm");
-            bool passante = Bool(a, "passante", true);
-            double profondita = Num(a, "profondita_mm", 0);
+            double diametro = Num(a, "diameter_mm");
+            bool passante = Bool(a, "through_all", true);
+            double profondita = Num(a, "depth_mm", 0);
             double x, y;
             if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
             if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
@@ -2285,15 +2319,15 @@ namespace Riscontro.Disegno
 
             // IL DIAMETRO, SULLO SCHIZZO DEL FORO.
             //
-            // Senza, il foro non e' modificabile con `modifica_quota` e la sua
-            // tavola resta muta: `quote_dal_modello` non ha niente da
+            // Senza, il foro non e' modificabile con `set_dimension` e la sua
+            // tavola resta muta: `model_dimensions` non ha niente da
             // riportare. E' la lamentela piu' frequente dell'officina —
             // un pezzo che si puo' fare ma non si puo' correggere.
             //
             // SI QUOTA LA DIMENSIONE, NON LA POSIZIONE. La posizione vorrebbe
             // un riferimento da cui misurare, e sceglierlo per conto di chi
             // disegna vuol dire vincolare lo schizzo piu' di quanto abbia
-            // chiesto: il `modifica_quota` dopo fallirebbe con un messaggio di
+            // chiesto: il `set_dimension` dopo fallirebbe con un messaggio di
             // sovra-vincolo che non parla di niente.
             string erroreTesto;
             var testoQuota = PuntoNelloSchizzo(
@@ -2341,12 +2375,12 @@ namespace Riscontro.Disegno
             //
             // Misurato il 10 settembre 2026 disegnando il contenitore per
             // l'antenna: chiesto il passaggio del cavo su un fianco, con
-            // «passante». Tolti 3.922,2 mm3 contro i 1.961,1 di una parete
+            // «through_all». Tolti 3.922,2 mm3 contro i 1.961,1 di una parete
             // sola — esattamente il doppio, perche' il taglio e' uscito
             // anche dal retro. L'operazione ha detto «riuscito», il pezzo
             // aveva un buco in piu', e nessun controllo se n'e' accorto.
             //
-            // Chi disegna una scatola e scrive «passante» intende quasi
+            // Chi disegna una scatola e scrive «through_all» intende quasi
             // sempre «attraversa QUESTA parete». Il numero di pareti
             // forate non si indovina, ma si CONTA: ogni parete attraversata
             // lascia una faccia cilindrica del diametro chiesto.
@@ -2366,10 +2400,10 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["diametro_mm"] = diametro,
-                ["passante"] = passante,
-                ["pareti_forate"] = pareti >= 0 ? (object)pareti : null,
-                ["quote_sullo_schizzo"] = quoteMesse,
+                ["diameter_mm"] = diametro,
+                ["through_all"] = passante,
+                ["walls_drilled"] = pareti >= 0 ? (object)pareti : null,
+                ["dimensions_on_sketch"] = quoteMesse,
             };
             foreach (var voce in misureAncora) misure[voce.Key] = voce.Value;
 
@@ -2399,9 +2433,9 @@ namespace Riscontro.Disegno
         /// <summary>
         /// SI DICE QUANTO SE N'E' ANDATO, E QUANTO SE NE DOVEVA ANDARE.
         ///
-        /// IL DIFETTO CHE QUESTO CHIUDE (voce E13). Un `taglio_cilindrico` con
+        /// IL DIFETTO CHE QUESTO CHIUDE (voce E13). Un `cylindrical_cut` con
         /// il profilo a cavallo del bordo della faccia toglie meta' materiale e
-        /// risponde `riuscita: true`, `pareti_forate: 1`. Misurato: foro da 10
+        /// risponde `succeeded: true`, `walls_drilled: 1`. Misurato: foro da 10
         /// profondo 5 centrato sul bordo inferiore di una faccia, **196,3 mm³
         /// invece di 392,7** — esattamente meta' — con il fondo del foro ridotto
         /// a un mezzo disco da 39,27 mm² invece di 78,54.
@@ -2416,11 +2450,11 @@ namespace Riscontro.Disegno
         /// rifiutare adesso vorrebbe dire buttare una lavorazione fatta per un
         /// sospetto. Si scrive quanto se n'e' andato, quanto ci si aspettava, e
         /// di quanto si discosta — poi decide chi legge. E' la stessa forma di
-        /// `posizioni_non_verificate` e dell'ancora che si sposta.
+        /// `positions_not_checked` e dell'ancora che si sposta.
         ///
         /// SOLO SUI CIECHI L'ATTESO E' UNA MOLTIPLICAZIONE. Per un passante il
         /// volume dipende da quanto materiale c'e' sotto, che non si sa senza
-        /// misurarlo: li' si scrive `tolti_mm3` e basta, senza un atteso che
+        /// misurarlo: li' si scrive `removed_mm3` e basta, senza un atteso che
         /// sarebbe inventato. Un allarme sbagliato su un passante legittimo
         /// sarebbe peggio del difetto che si sta chiudendo.
         ///
@@ -2442,7 +2476,7 @@ namespace Riscontro.Disegno
             // Quindi quel ramo non poteva scattare, e uno zero di lettura
             // fallita passava come se fosse una misura: `tolti` diventava
             // l'INTERO volume del pezzo, e su un foro perfettamente riuscito
-            // usciva una `nota_volume` che diceva «192.000 mm³ invece di 392,7».
+            // usciva una `note_volume` che diceva «192.000 mm³ invece di 392,7».
             // L'allarme falso sul corretto, cioe' esattamente cio' che questa
             // voce dichiara peggiore del difetto che sta chiudendo.
             //
@@ -2460,14 +2494,14 @@ namespace Riscontro.Disegno
             if (volumePrima == null || volumeDopo == null || volumePrima <= 0) return;
             double tolti = volumePrima.Value - volumeDopo.Value;
 
-            misure["tolti_mm3"] = Math.Round(tolti, 2);
+            misure["removed_mm3"] = Math.Round(tolti, 2);
             if (attesoMm3 <= 0) return;
 
-            misure["attesi_mm3"] = Math.Round(attesoMm3, 2);
+            misure["expected_mm3"] = Math.Round(attesoMm3, 2);
             double scostamento = Math.Abs(tolti - attesoMm3) / attesoMm3;
             if (scostamento <= ScostamentoVolume) return;
 
-            misure["nota_volume"] = string.Format(
+            misure["note_volume"] = string.Format(
                 System.Globalization.CultureInfo.InvariantCulture,
                 "{0} ha tolto {1:0.##} mm³ invece dei {2:0.##} che ci si aspettava " +
                 "({3:0.#}% {4}). L'operazione e' riuscita, ma il pezzo non e' quello " +
@@ -2480,17 +2514,17 @@ namespace Riscontro.Disegno
 
         private Esito TaglioRettangolare(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string uidFaccia = Str(a, "faccia_uid", "");
+            string uidFaccia = Str(a, "face_uid", "");
             var faccia = RisolviFaccia(stato, a, uidFaccia, out string motivo);
             if (faccia == null) return Fallito(motivo);
 
             double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
             if (assi == null) return Fallito(errore);
 
-            double lunghezza = Num(a, "lunghezza_mm");
-            double larghezza = Num(a, "larghezza_mm");
-            bool passante = Bool(a, "passante", false);
-            double profondita = Num(a, "profondita_mm", 0);
+            double lunghezza = Num(a, "length_mm");
+            double larghezza = Num(a, "width_mm");
+            bool passante = Bool(a, "through_all", false);
+            double profondita = Num(a, "depth_mm", 0);
             if (!passante && profondita <= 0)
                 return Fallito("Tasca non passante senza profondita'.");
 
@@ -2543,7 +2577,7 @@ namespace Riscontro.Disegno
             // Si prendono i primi due lati e basta: sono adiacenti, quindi
             // perpendicolari, quindi uno da' la lunghezza e l'altro la
             // larghezza. QUALE dei due sia l'uno e quale l'altro non si
-            // stabilisce a priori — su una faccia qualunque «orizzontale» non
+            // stabilisce a priori — su una faccia qualunque «horizontal» non
             // vuol dire niente — e non serve saperlo: le due quote nascono
             // comunque giuste, e il criterio della voce si verifica MISURANDO
             // i valori, non deducendoli dall'ordine dei lati.
@@ -2601,17 +2635,17 @@ namespace Riscontro.Disegno
 
             var misureTasca = new Dictionary<string, object>
             {
-                ["lunghezza_mm"] = lunghezza,
-                ["larghezza_mm"] = larghezza,
-                ["passante"] = passante,
-                ["quote_sullo_schizzo"] = quoteMesse,
+                ["length_mm"] = lunghezza,
+                ["width_mm"] = larghezza,
+                ["through_all"] = passante,
+                ["dimensions_on_sketch"] = quoteMesse,
             };
             foreach (var voce in misureAncora) misureTasca[voce.Key] = voce.Value;
 
-            // LO STESSO DIFETTO DI `taglio_cilindrico`, e la stessa riparazione
+            // LO STESSO DIFETTO DI `cylindrical_cut`, e la stessa riparazione
             // (voce E13). Una tasca il cui profilo cade in parte fuori dalla
             // faccia toglie meno materiale di quanto il piano descriveva, e
-            // risponde «riuscita» lo stesso.
+            // risponde «succeeded» lo stesso.
             NotaSulVolume(
                 misureTasca, volumePrima, VolumeMm3(modello),
                 passante ? 0 : lunghezza * larghezza * profondita,
@@ -2628,8 +2662,8 @@ namespace Riscontro.Disegno
         /// vezzo: e' quello che permette di montare. Una staffa con due asole
         /// si allinea in opera, una staffa con due fori tondi o entra o si
         /// rifa'. Con il catalogo di prima si poteva chiedere solo un foro
-        /// tondo (`taglio_cilindrico`) o una tasca rettangolare
-        /// (`taglio_rettangolare`): la seconda ci somiglia, ma ha gli spigoli
+        /// tondo (`cylindrical_cut`) o una tasca rettangolare
+        /// (`rectangular_cut`): la seconda ci somiglia, ma ha gli spigoli
         /// vivi e la vite ci balla dentro invece di scorrere.
         ///
         /// LA FORMA. Uno "stadio": due segmenti dritti lunghi L−W e due
@@ -2678,18 +2712,18 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito Asola(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string uidFaccia = Str(a, "faccia_uid", "");
+            string uidFaccia = Str(a, "face_uid", "");
             var faccia = RisolviFaccia(stato, a, uidFaccia, out string motivo);
             if (faccia == null) return Fallito(motivo);
 
             double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
             if (assi == null) return Fallito(errore);
 
-            double lunghezza = Num(a, "lunghezza_mm");
-            double larghezza = Num(a, "larghezza_mm");
-            double angolo = Num(a, "angolo_gradi", 0);
-            bool passante = Bool(a, "passante", true);
-            double profondita = Num(a, "profondita_mm", 0);
+            double lunghezza = Num(a, "length_mm");
+            double larghezza = Num(a, "width_mm");
+            double angolo = Num(a, "angle_deg", 0);
+            bool passante = Bool(a, "through_all", true);
+            double profondita = Num(a, "depth_mm", 0);
             double x, y;
             if (!NumObbligatorio(a, "x_mm", out x, out errore)) return Fallito(errore);
             if (!NumObbligatorio(a, "y_mm", out y, out errore)) return Fallito(errore);
@@ -2782,7 +2816,7 @@ namespace Riscontro.Disegno
 
                 if (pColmoB != null)
                 {
-                    // ADD-TO-DB, COME PER «estrudi_profilo», E QUI NON E' PER
+                    // ADD-TO-DB, COME PER «extrude_profile», E QUI NON E' PER
                     // ANDARE PIU' VELOCI. Senza, SolidWorks inferisce una
                     // relazione a ogni segmento e SPOSTA i punti per farla
                     // tornare. I quattro pezzi dello stadio si toccano per
@@ -2800,7 +2834,7 @@ namespace Riscontro.Disegno
                     // LO STADIO SI DEFINISCE (voce E18): tangenze, raggi uguali,
                     // la mezzeria fra i centri e le sue quote. Senza ancora e'
                     // un guadagno lo stesso — l'asola si corregge con
-                    // `modifica_quota` — e un errore qui non ferma il taglio;
+                    // `set_dimension` — e un errore qui non ferma il taglio;
                     // con l'ancora lo schizzo deve uscirne completamente
                     // definito, o non si taglia.
                     if (disegnato)
@@ -2860,14 +2894,14 @@ namespace Riscontro.Disegno
             if (volumeDopo == null)
                 return Riuscito(feature, new Dictionary<string, object>
                 {
-                    ["lunghezza_mm"] = lunghezza,
-                    ["larghezza_mm"] = larghezza,
-                    ["angolo_gradi"] = angolo,
-                    ["passante"] = passante,
+                    ["length_mm"] = lunghezza,
+                    ["width_mm"] = larghezza,
+                    ["angle_deg"] = angolo,
+                    ["through_all"] = passante,
                     ["area_mm2"] = Math.Round(area, 2),
-                    ["materiale_tolto_mm3"] = null,
-                    ["quote_sullo_schizzo"] = quoteStadio,
-                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                    ["material_removed_mm3"] = null,
+                    ["dimensions_on_sketch"] = quoteStadio,
+                    ["volume_not_reread"] = NotaVolumeNonRiletto,
                 }, NormaleDellaFaccia(faccia));
             double tolto = volumePrima.Value - volumeDopo.Value;
             if (tolto <= 0)
@@ -2936,13 +2970,13 @@ namespace Riscontro.Disegno
 
             var misureAsola = new Dictionary<string, object>
             {
-                ["lunghezza_mm"] = lunghezza,
-                ["larghezza_mm"] = larghezza,
-                ["angolo_gradi"] = angolo,
-                ["passante"] = passante,
+                ["length_mm"] = lunghezza,
+                ["width_mm"] = larghezza,
+                ["angle_deg"] = angolo,
+                ["through_all"] = passante,
                 ["area_mm2"] = Math.Round(area, 2),
-                ["materiale_tolto_mm3"] = Math.Round(tolto, 2),
-                ["quote_sullo_schizzo"] = quoteStadio,
+                ["material_removed_mm3"] = Math.Round(tolto, 2),
+                ["dimensions_on_sketch"] = quoteStadio,
             };
             foreach (var voce in misureAncora) misureAsola[voce.Key] = voce.Value;
             return Riuscito(feature, misureAsola, NormaleDellaFaccia(faccia));
@@ -2976,7 +3010,7 @@ namespace Riscontro.Disegno
         ///   «non posso sovrapporre lo stesso telaio due volte. Devo spostare
         ///    il secondo telaio di 600 mm lungo l'asse Z»
         ///
-        /// e poi ha proposto lo stesso `telaio_rettangolare` due volte, che il
+        /// e poi ha proposto lo stesso `rectangular_frame` due volte, che il
         /// validatore ha rifiutato. Non era il modello a sbagliare: non c'era
         /// nessuna operazione capace di spostare cio' che aveva gia' fatto.
         /// Con `copia = true` il castello si fa in un passo — il secondo telaio
@@ -3015,14 +3049,14 @@ namespace Riscontro.Disegno
         {
             int quanti;
             string motivo;
-            var corpi = CorpiDalRiferimento(a, "corpi_rif", stato, out quanti, out motivo);
+            var corpi = CorpiDalRiferimento(a, "bodies_ref", stato, out quanti, out motivo);
             if (corpi == null) return Fallito(motivo);
 
             double dx = Num(a, "dx_mm", 0);
             double dy = Num(a, "dy_mm", 0);
             double dz = Num(a, "dz_mm", 0);
-            bool copia = Bool(a, "copia", false);
-            int copie = (int)Num(a, "quante_copie", 1);
+            bool copia = Bool(a, "copy", false);
+            int copie = (int)Num(a, "copy_count", 1);
             if (!copia) copie = 0;
             else if (copie < 1) copie = 1;
 
@@ -3162,15 +3196,15 @@ namespace Riscontro.Disegno
 
             return Riuscito(feature, new Dictionary<string, object>
             {
-                ["corpi_mossi"] = selezionati,
+                ["bodies_moved"] = selezionati,
                 ["dx_mm"] = dx,
                 ["dy_mm"] = dy,
                 ["dz_mm"] = dz,
-                ["distanza_mm"] = Math.Round(distanza, 3),
-                ["copia"] = copia,
-                ["quante_copie"] = copie,
-                ["corpi_dopo"] = corpiDopo,
-                ["scarto_baricentro_mm"] = Math.Round(scarto, 4),
+                ["distance_mm"] = Math.Round(distanza, 3),
+                ["copy"] = copia,
+                ["copy_count"] = copie,
+                ["bodies_after"] = corpiDopo,
+                ["centroid_deviation_mm"] = Math.Round(scarto, 4),
             }, null);
         }
 
@@ -3217,8 +3251,8 @@ namespace Riscontro.Disegno
                 // piano dello SCHIZZO, mentre i punti sono costruiti nel
                 // sistema del MODELLO, e la trasformazione fra i due non
                 // conserva la mano. Misurato il 10 settembre 2026 su una
-                // piastra: funzionava su «davanti», «basso» e «destra» e si
-                // ribaltava su «dietro», «alto» e «sinistra» — una faccia per
+                // piastra: funzionava su «front», «down» e «right» e si
+                // ribaltava su «back», «up» e «left» — una faccia per
                 // ogni coppia, cioe' meta' del parco facce.
                 //
                 // Ribaltato, il semicerchio RIENTRA invece di sporgere:
@@ -3273,7 +3307,7 @@ namespace Riscontro.Disegno
         /// diametro e' quella gia' in produzione in `OperazioniFori`:
         /// `IFace2.IGetSurface().IsCylinder()` e `CylinderParams[6] * 2000`.
         ///
-        /// **-1 quando non si e' potuto leggere** (voce Z-C8): `pareti_forate: 0`
+        /// **-1 quando non si e' potuto leggere** (voce Z-C8): `walls_drilled: 0`
         /// su un foro riuscito e' un'affermazione falsa. ZERO-E-ZERO: una
         /// feature viva senza facce (`GetFaces` null) non ha forato niente.
         /// </summary>
@@ -3340,7 +3374,7 @@ namespace Riscontro.Disegno
         /// a missing, short or non-positive reading was skipped with a
         /// `continue`, and the sum of the others was given as the whole: a
         /// partial volume and a centre of part of the bodies, from which
-        /// sposta_corpi then drew its diagnosis of the move. VolumeMm3 already
+        /// move_bodies then drew its diagnosis of the move. VolumeMm3 already
         /// had the rule (a body that gives no mass properties makes the whole
         /// null); this is the same rule. Kept apart from the document so that
         /// Prove.Contratti can call it without SOLIDWORKS.
@@ -3386,12 +3420,12 @@ namespace Riscontro.Disegno
         ///
         /// LA STRADA E' GIA' PROVATA, ED E' PER QUESTO CHE COSTA POCO.
         /// Disegnare uno schizzo su una faccia scelta e' esattamente cio' che
-        /// fanno `taglio_rettangolare` e `asola`, misurate. Disegnare un
-        /// contorno qualunque e' cio' che fa `estrudi_profilo`, misurato.
+        /// fanno `rectangular_cut` e `slot`, misurate. Disegnare un
+        /// contorno qualunque e' cio' che fa `extrude_profile`, misurato.
         /// Qui si mettono insieme i due pezzi e si chiama `FeatureExtrusion3`
         /// invece di `FeatureCut4`.
         ///
-        /// IL DUBBIO: `Merge`. Con `unisci` vero il materiale nuovo diventa
+        /// IL DUBBIO: `Merge`. Con `merge` vero il materiale nuovo diventa
         /// parte del corpo che c'era; con falso nasce un CORPO SEPARATO, che
         /// e' un pezzo diverso e non lo dice nessuno — l'albero cresce
         /// uguale, la forma sembra la stessa, e la differenza si vede solo
@@ -3402,16 +3436,16 @@ namespace Riscontro.Disegno
             var contorni = Contorni(a, out string motivo, out string _);
             if (contorni == null) return Fallito(motivo);
 
-            var faccia = RisolviFaccia(stato, a, Str(a, "faccia_uid", ""), out motivo);
+            var faccia = RisolviFaccia(stato, a, Str(a, "face_uid", ""), out motivo);
             if (faccia == null) return Fallito(motivo);
 
             double[] assi = AssiDellaFaccia(faccia, out double offsetM, out string errore);
             if (assi == null) return Fallito(errore);
 
-            double altezza = Num(a, "altezza_mm");
+            double altezza = Num(a, "height_mm");
             if (altezza <= 0)
                 return Fallito("Un rialzo di altezza nulla o negativa non e' un rialzo.");
-            bool unisci = Bool(a, "unisci", true);
+            bool unisci = Bool(a, "merge", true);
 
             // L'ANCORA (voce E18). Qui non ci sono x_mm/y_mm: il punto e' il
             // CENTRO del contorno, e l'ancora vale per un contorno solo, tondo
@@ -3419,7 +3453,7 @@ namespace Riscontro.Disegno
             var ancora = new Ancoraggio();
             double centroX = 0, centroY = 0;
             object ancoraGrezza;
-            if (a.TryGetValue("ancora", out ancoraGrezza) && ancoraGrezza != null)
+            if (a.TryGetValue("anchor", out ancoraGrezza) && ancoraGrezza != null)
             {
                 double mezzoU, mezzoV;
                 if (!CentroDelContornoSolo(contorni, out centroX, out centroY, out mezzoU, out mezzoV, out motivo))
@@ -3449,7 +3483,7 @@ namespace Riscontro.Disegno
                 schizzi.InsertSketch(true);
                 try { schizzi.AddToDB = true; schizzi.DisplayWhenAdded = false; } catch { }
                 // I contorni arrivano in coordinate della FACCIA, non del
-                // piano: e' la stessa convenzione di `taglio_rettangolare`, e
+                // piano: e' la stessa convenzione di `rectangular_cut`, e
                 // il modello non deve sapere dove sta la faccia nello spazio.
                 var creati = new List<ISketchSegment>();
                 segmenti = DisegnaContorniSullaFaccia(
@@ -3487,13 +3521,13 @@ namespace Riscontro.Disegno
             if (corpiDopo < 0 || volumeDopo == null)
                 return Riuscito(feature, new Dictionary<string, object>
                 {
-                    ["altezza_mm"] = altezza,
-                    ["unisci"] = unisci,
-                    ["contorni"] = contorni.Count,
-                    ["segmenti"] = segmenti,
-                    ["corpi"] = NumeroOppureNull(corpiDopo),
-                    ["materiale_aggiunto_mm3"] = null,
-                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                    ["height_mm"] = altezza,
+                    ["merge"] = unisci,
+                    ["contours"] = contorni.Count,
+                    ["segments"] = segmenti,
+                    ["bodies"] = NumeroOppureNull(corpiDopo),
+                    ["material_added_mm3"] = null,
+                    ["volume_not_reread"] = NotaVolumeNonRiletto,
                 }, NormaleDellaFaccia(faccia));
             double aggiunto = volumeDopo.Value - volumePrima.Value;
 
@@ -3513,12 +3547,12 @@ namespace Riscontro.Disegno
 
             var misureRialzo = new Dictionary<string, object>
             {
-                ["altezza_mm"] = altezza,
-                ["unisci"] = unisci,
-                ["contorni"] = contorni.Count,
-                ["segmenti"] = segmenti,
-                ["corpi"] = corpiDopo,
-                ["materiale_aggiunto_mm3"] = Math.Round(aggiunto, 2),
+                ["height_mm"] = altezza,
+                ["merge"] = unisci,
+                ["contours"] = contorni.Count,
+                ["segments"] = segmenti,
+                ["bodies"] = corpiDopo,
+                ["material_added_mm3"] = Math.Round(aggiunto, 2),
             };
             foreach (var voce in misureAncora) misureRialzo[voce.Key] = voce.Value;
             return Riuscito(feature, misureRialzo, NormaleDellaFaccia(faccia));
@@ -3601,7 +3635,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito ModificaQuota(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string nomeQuota = Str(a, "quota", "");
+            string nomeQuota = Str(a, "dimension", "");
             if (string.IsNullOrWhiteSpace(nomeQuota))
                 return Fallito(
                     "Non hai detto quale quota cambiare. I nomi delle quote " +
@@ -3610,7 +3644,7 @@ namespace Riscontro.Disegno
 
             double valore;
             string errore;
-            if (!NumObbligatorio(a, "valore_mm", out valore, out errore)) return Fallito(errore);
+            if (!NumObbligatorio(a, "value_mm", out valore, out errore)) return Fallito(errore);
 
             var quota = TrovaQuota(modello, nomeQuota, out string dove);
             if (quota == null)
@@ -3653,7 +3687,7 @@ namespace Riscontro.Disegno
             // quota si convertiva da mm: «30» su un angolo diventava 0,03 rad
             // (1,7 gradi), e la rilettura, sbagliata allo stesso modo, diceva che
             // aveva preso. Lo stato del documento le quote angolari le scrive in
-            // `gradi` (StatoDocumento.cs, stessa GetType): qui il valore si legge
+            // `deg` (StatoDocumento.cs, stessa GetType): qui il valore si legge
             // nella stessa unita' in cui il modello l'ha letto.
             const int QuotaAngolare = 1, QuotaIntera = 2;
             int tipoQuota = 0;
@@ -3661,7 +3695,7 @@ namespace Riscontro.Disegno
             if (tipoQuota == QuotaIntera)
                 return Fallito(
                     "La quota «" + nomeQuota + "» e' un numero intero (per esempio le copie " +
-                    "di una ripetizione), non una misura: con «valore_mm» non la cambio. " +
+                    "di una ripetizione), non una misura: con «value_mm» non la cambio. " +
                     "Non ho toccato niente.");
             bool angolare = tipoQuota == QuotaAngolare;
             Func<double, double> daSistema = angolare ? (Func<double, double>)Unita.Gradi : Unita.Mm;
@@ -3751,7 +3785,7 @@ namespace Riscontro.Disegno
             //
             // IL RIFIUTO RIMETTE IL VALORE DI PRIMA. La quota a questo punto
             // e' gia' scritta: dire «no» e lasciarla sarebbe dire la verita' e
-            // tenersi il danno. Si riscrive `prima`, si ricostruisce, e si
+            // tenersi il danno. Si riscrive `before`, si ricostruisce, e si
             // RILEGGE il volume: se non torna, lo si dice.
             int aperteDopo = ApertureChiuse(modello);
             if (apertePrima >= 0 && aperteDopo >= 0 && aperteDopo < apertePrima)
@@ -3803,9 +3837,9 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["quota"] = nomeQuota,
+                ["dimension"] = nomeQuota,
                 ["volume_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["volume_cambiato_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2),
+                ["volume_changed_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2),
             };
             // UNA QUOTA ANGOLARE NON SI RIPORTA IN «_mm» (M3): un campo che si
             // chiama mm e porta gradi e' lo stesso difetto detto in un altro
@@ -3817,10 +3851,10 @@ namespace Riscontro.Disegno
             }
             else
             {
-                misure["prima_mm"] = Math.Round(prima, 3);
-                misure["adesso_mm"] = Math.Round(dopo, 3);
+                misure["before_mm"] = Math.Round(prima, 3);
+                misure["now_mm"] = Math.Round(dopo, 3);
             }
-            if (volumeDopo == null || corpiDopo < 0) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+            if (volumeDopo == null || corpiDopo < 0) misure["volume_not_reread"] = NotaVolumeNonRiletto;
 
             // L'ALBERO PUO' ESSERE CAMBIATO, NON SOLO LE MISURE.
             //
@@ -3837,7 +3871,7 @@ namespace Riscontro.Disegno
             var cambiate = LavorazioniCambiate(
                 lavorazioniPrima, FaccePerLavorazione(modello), misure);
 
-            misure["nota"] = volumeFermo
+            misure["note"] = volumeFermo
                 ? "la quota e' cambiata ma il volume no: controlla che sia quella giusta"
                 : cambiate;
 
@@ -3851,7 +3885,7 @@ namespace Riscontro.Disegno
         ///
         /// SOLO LE FACCE PIANE. Una faccia cilindrica di un foro passante ha
         /// due anelli, uno per bocca, e quale dei due SOLIDWORKS chiami
-        /// «esterno» su una superficie periodica non e' una cosa su cui
+        /// «outer» su una superficie periodica non e' una cosa su cui
         /// appoggiare una guardia. Su una faccia piana un anello interno e' un
         /// buco in quella faccia, e basta.
         /// </summary>
@@ -3964,7 +3998,7 @@ namespace Riscontro.Disegno
 
         private Esito RaccordoSpigoli(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double raggio = Num(a, "raggio_mm");
+            double raggio = Num(a, "radius_mm");
             int quanti;
             string perche;
             // The volume before, for the check of M37 in EseguiRaccordo; read
@@ -4013,9 +4047,9 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// A FILLET OR A CHAMFER MUST MOVE THE VOLUME OF THE PART (Z-C21.8,
-        /// finding M37): the fault in words, or null. raccordo_spigoli and
-        /// smusso_spigoli had no check on the volume at all, while
-        /// raccordo_variabile had one: a feature that leaves the volume where it
+        /// finding M37): the fault in words, or null. fillet_edges and
+        /// chamfer_edges had no check on the volume at all, while
+        /// variable_fillet had one: a feature that leaves the volume where it
         /// was has worked nothing, and the tree says otherwise. The SIGN is not
         /// judged: on a concave edge a fillet or a chamfer ADDS material. A
         /// volume that could not be read, before or after, is not a fault here:
@@ -4093,9 +4127,9 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito SmussoSpigoli(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double lato = Num(a, "lato_mm");
-            double angolo = Num(a, "angolo_gradi", 45);
-            double secondoLato = Num(a, "secondo_lato_mm", 0);
+            double lato = Num(a, "leg_mm");
+            double angolo = Num(a, "angle_deg", 45);
+            double secondoLato = Num(a, "second_leg_mm", 0);
             bool dueLati = secondoLato > 0;
 
             int quanti;
@@ -4137,12 +4171,12 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["lato_mm"] = lato,
-                ["spigoli"] = quanti,
+                ["leg_mm"] = lato,
+                ["edges"] = quanti,
             };
             SelectedEdgesAndFaces(feature, quanti, misure);
-            if (dueLati) misure["secondo_lato_mm"] = secondoLato;
-            else misure["angolo_gradi"] = angolo;
+            if (dueLati) misure["second_leg_mm"] = secondoLato;
+            else misure["angle_deg"] = angolo;
             // After the counts, which SelectedEdgesAndFaces reads right after
             // creation as the probe did: the check rebuilds before measuring.
             string chamferUnchanged = EdgeFeatureVolumeCheck(modello, "chamfer", volumeBefore, misure);
@@ -4154,7 +4188,7 @@ namespace Riscontro.Disegno
         /// Un piano di riferimento nuovo, parallelo a uno dei tre piani base.
         ///
         /// SOLO PIANI BASE, E IL MOTIVO STA NEL VALIDATORE DEL SERVER.
-        /// `valida()` impone SEMPRE uno fra `faccia_uid` e `faccia_rif` appena
+        /// `valida()` impone SEMPRE uno fra `face_uid` e `face_ref` appena
         /// quella proprieta' compare nello schema di un'operazione. Se qui si
         /// dichiarasse anche una faccia come riferimento alternativo, «piano
         /// superiore, 600 mm» da solo non sarebbe piu' accettato: servirebbe
@@ -4177,10 +4211,10 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito CreaPiano(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            string piano = Str(a, "piano", "frontale");
+            string piano = Str(a, "plane", "front");
             double distanza;
             string errore;
-            if (!NumObbligatorio(a, "distanza_mm", out distanza, out errore))
+            if (!NumObbligatorio(a, "distance_mm", out distanza, out errore))
                 return Fallito(errore);
 
             modello.ClearSelection2(true);
@@ -4248,16 +4282,16 @@ namespace Riscontro.Disegno
 
             return Riuscito(feature, new Dictionary<string, object>
             {
-                ["piano_di_partenza"] = piano,
-                ["piani_prima"] = pianiPrima,
-                ["distanza_mm"] = distanza,
+                ["starting_plane"] = piano,
+                ["planes_before"] = pianiPrima,
+                ["distance_mm"] = distanza,
             });
         }
 
         /// <summary>
         /// Un asse nuovo, lungo il centro di una faccia cilindrica o conica.
         ///
-        /// E' l'operazione che manca perche' «ripeti_circolare» smetta di
+        /// E' l'operazione che manca perche' «circular_pattern» smetta di
         /// essere un vicolo cieco: pretende un asse che esista gia', e fino
         /// alla 0.30.2 nessuna operazione del catalogo ne creava uno.
         ///
@@ -4277,7 +4311,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito CreaAsse(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            var faccia = RisolviFaccia(stato, a, Str(a, "faccia_uid", ""), out string motivo);
+            var faccia = RisolviFaccia(stato, a, Str(a, "face_uid", ""), out string motivo);
             if (faccia == null) return Fallito(motivo);
 
             bool tonda;
@@ -4331,7 +4365,7 @@ namespace Riscontro.Disegno
 
             return Riuscito(feature, new Dictionary<string, object>
             {
-                ["asse"] = feature.Name,
+                ["axis"] = feature.Name,
             });
         }
 
@@ -4358,7 +4392,7 @@ namespace Riscontro.Disegno
         /// LinearPatternFeatures; IFeatureManager~FeatureLinearPattern5.html,
         /// «1 to mark Direction 1», «2 to mark Direction 2»). Reflection cannot
         /// check them, they are behaviour; the Z-C21.3 probe of L7-5 and M16
-        /// (28/9/2026) did: a row along an edge and along an axis of crea_asse
+        /// (28/9/2026) did: a row along an edge and along an axis of create_axis
         /// (L0-L5, six ways of selecting), and a grid on two edges and on two
         /// axes (G0-G3), each with the expected removed volume and the new hole
         /// centres where they should be. Until Z-C21.9 this note called mark 2
@@ -4378,37 +4412,37 @@ namespace Riscontro.Disegno
 
             double passo1, istanze1Grezzo;
             string errore;
-            if (!NumObbligatorio(a, "passo1_mm", out passo1, out errore)) return Fallito(errore);
-            if (!NumObbligatorio(a, "numero_istanze1", out istanze1Grezzo, out errore))
+            if (!NumObbligatorio(a, "pitch1_mm", out passo1, out errore)) return Fallito(errore);
+            if (!NumObbligatorio(a, "instance_count1", out istanze1Grezzo, out errore))
                 return Fallito(errore);
             int istanze1 = (int)istanze1Grezzo;
 
 
-            string asse2 = Str(a, "asse2_uid", "");
+            string asse2 = Str(a, "axis2_uid", "");
             bool griglia = !string.IsNullOrEmpty(asse2);
             int istanze2 = 1;
             double passo2 = 0;
             if (griglia)
             {
                 double n2;
-                if (!NumObbligatorio(a, "numero_istanze2", out n2, out errore))
-                    return Fallito("Hai dato «asse2_uid» ma non «numero_istanze2»: " + errore);
+                if (!NumObbligatorio(a, "instance_count2", out n2, out errore))
+                    return Fallito("Hai dato «axis2_uid» ma non «instance_count2»: " + errore);
                 istanze2 = (int)n2;
                 if (istanze2 < 2)
                     return Fallito(
-                        "«numero_istanze2» deve essere almeno 2. Per una fila sola " +
-                        "ometti «asse2_uid», invece di mettere 1.");
-                if (!NumObbligatorio(a, "passo2_mm", out passo2, out errore))
-                    return Fallito("Hai dato «asse2_uid» ma non «passo2_mm»: " + errore);
+                        "«instance_count2» deve essere almeno 2. Per una fila sola " +
+                        "ometti «axis2_uid», invece di mettere 1.");
+                if (!NumObbligatorio(a, "pitch2_mm", out passo2, out errore))
+                    return Fallito("Hai dato «axis2_uid» ma non «pitch2_mm»: " + errore);
             }
 
             modello.ClearSelection2(true);
-            if (!SelezionaAsse(modello, a, "asse1", stato, SelectionMarks.LinearPatternDirection1, append: false, out errore)) return Fallito(errore);
+            if (!SelezionaAsse(modello, a, "axis1", stato, SelectionMarks.LinearPatternDirection1, append: false, out errore)) return Fallito(errore);
             // La seconda direzione passa dallo STESSO aiutante, con Mark 2:
             // prima aveva una riga sua che accettava solo un asse, e da quando
             // la direzione puo' essere uno spigolo le due strade divergevano —
             // una griglia con la direzione 1 su uno spigolo e la 2 no.
-            if (griglia && !SelezionaAsse(modello, a, "asse2", stato, SelectionMarks.LinearPatternDirection2, append: true, out errore))
+            if (griglia && !SelezionaAsse(modello, a, "axis2", stato, SelectionMarks.LinearPatternDirection2, append: true, out errore))
                 return Fallito("Direzione 2: " + errore);
 
             if (!SelezionaLavorazione(modello, a, out errore)) return Fallito(errore);
@@ -4423,8 +4457,8 @@ namespace Riscontro.Disegno
                     Spacing1: Unita.M(passo1),
                     Num2: istanze2,
                     Spacing2: Unita.M(passo2),
-                    FlipDir1: Bool(a, "capovolgi_1", false),
-                    FlipDir2: Bool(a, "capovolgi_2", false),
+                    FlipDir1: Bool(a, "flip1", false),
+                    FlipDir2: Bool(a, "flip2", false),
                     DName1: "",
                     DName2: "",
                     GeometryPattern: false,
@@ -4458,13 +4492,13 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["numero_istanze1"] = istanze1,
-                ["passo1_mm"] = passo1,
+                ["instance_count1"] = istanze1,
+                ["pitch1_mm"] = passo1,
             };
             if (griglia)
             {
-                misure["numero_istanze2"] = istanze2;
-                misure["passo2_mm"] = passo2;
+                misure["instance_count2"] = istanze2;
+                misure["pitch2_mm"] = passo2;
             }
 
             var fermo = ConfrontaCopia(
@@ -4476,7 +4510,7 @@ namespace Riscontro.Disegno
                 misure, feature, seme, istanze1 * istanze2 - 1,
                 "La ripetizione lineare",
                 "Se la fila esce dal pezzo da una parte sola, inverti il verso con " +
-                "«capovolgi_1» (o «capovolgi_2» per la seconda direzione); " +
+                "«flip1» (o «flip2» per la seconda direzione); " +
                 "altrimenti riduci il passo o il numero di istanze.");
             if (mancanti != null) return Fallito(mancanti);
 
@@ -4510,7 +4544,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito Specchia(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            string piano = Str(a, "piano", "");
+            string piano = Str(a, "plane", "");
             if (string.IsNullOrEmpty(piano)) return Fallito("Manca il piano di simmetria.");
 
             double? volumePrima; int corpiPrima, faccePrima;
@@ -4551,7 +4585,7 @@ namespace Riscontro.Disegno
                     "lavorazione invece di lasciarla tutta da un lato, o se la " +
                     "copia uscirebbe fuori dal materiale, SolidWorks rifiuta.");
 
-            var misure = new Dictionary<string, object> { ["piano"] = piano };
+            var misure = new Dictionary<string, object> { ["plane"] = piano };
             var fermo = ConfrontaCopia(
                 modello, volumePrima, corpiPrima, faccePrima, misure, "Lo specchio");
             if (fermo != null) return Fallito(fermo);
@@ -4560,7 +4594,7 @@ namespace Riscontro.Disegno
             // Con una copia sola servirebbe «zero copie fatte», e zero non
             // esce mai: CopieMancanti si ferma prima se la feature non ha
             // facce. Quindi sullo specchio questa chiamata solo RIPORTA
-            // «copie_fatte», e lo specchio che non ha specchiato niente resta
+            // «copies_done», e lo specchio che non ha specchiato niente resta
             // in carico a ConfrontaCopia, qui sopra, che lo prende dal pezzo
             // rimasto identico.
             //
@@ -4576,20 +4610,20 @@ namespace Riscontro.Disegno
         /// L'asse attorno a cui — o lungo cui — si ripete, con Mark 1.
         ///
         /// PER RIFERIMENTO O PER IDENTIFICATIVO, ED E' UNA CORREZIONE.
-        /// Fino alla 0.30.2 `ripeti_circolare` accettava SOLO `asse_uid`, cioe'
+        /// Fino alla 0.30.2 `circular_pattern` accettava SOLO `axis_uid`, cioe'
         /// un asse che esistesse gia' nel documento quando il piano nasceva. E
         /// nessuna operazione del catalogo creava assi. Il risultato: la
         /// ripetizione circolare era un vicolo cieco, offerta e mai
         /// utilizzabile.
         ///
-        /// Adesso «crea_asse» ne fa uno, e questo aiutante permette al passo
+        /// Adesso «create_axis» ne fa uno, e questo aiutante permette al passo
         /// dopo di citarlo — «fai l'asse del foro, poi ripeti la lavorazione
         /// sei volte attorno» in un piano solo. L'oggetto si seleziona
         /// direttamente: il nome che SolidWorks gli ha dato lo sapremmo solo
         /// rileggendo l'albero, e sarebbe un giro in piu' per arrivare alla
         /// stessa feature che gia' abbiamo in mano.
         /// </summary>
-        /// <param name="prefisso">«asse», «asse1» oppure «asse2»: i campi si
+        /// <param name="prefisso">«axis», «axis1» oppure «axis2»: i campi si
         /// chiamano diversamente ma si risolvono identici.</param>
         /// <param name="mark">
         /// The selection mark, from <see cref="SelectionMarks"/>: the main
@@ -4607,7 +4641,7 @@ namespace Riscontro.Disegno
             StatoDocumento stato, int mark, bool append, out string motivo)
         {
             motivo = null;
-            string campoRif = prefisso + "_rif";
+            string campoRif = prefisso + "_ref";
             if (HaRiferimento(a, campoRif))
             {
                 int numero;
@@ -4639,7 +4673,7 @@ namespace Riscontro.Disegno
                     prefisso + "_uid» con un asse OPPURE con uno spigolo dritto " +
                     "dello stato del documento, oppure «" + campoRif + "» se " +
                     "l'asse lo crea un passo precedente di questo piano con " +
-                    "«crea_asse».";
+                    "«create_axis».";
                 return false;
             }
 
@@ -4647,7 +4681,7 @@ namespace Riscontro.Disegno
             //
             // Fino alla 0.30.2 qui c'era solo `SelectByID2(uid, "AXIS", ...)`,
             // cioe' un asse di riferimento. Ma l'unica operazione del catalogo
-            // che crea assi e' «crea_asse», che li prende dal centro di una
+            // che crea assi e' «create_axis», che li prende dal centro di una
             // faccia CILINDRICA: l'asse che ne esce e' sempre quello di un
             // foro o di un albero, cioe' PERPENDICOLARE alla faccia su cui la
             // lavorazione sta. Ripetere lungo quello vuol dire ripetere dentro
@@ -4679,7 +4713,7 @@ namespace Riscontro.Disegno
             // uno spigolo, e si cerca come spigolo — non si ripiega sugli assi.
             StatoDocumento.FirmaEntita firma;
             var firmaNelPiano = FirmaAttesa(a, uid);
-            bool eraUnoSpigolo = firmaNelPiano != null && firmaNelPiano.ContainsKey("lunghezza_mm");
+            bool eraUnoSpigolo = firmaNelPiano != null && firmaNelPiano.ContainsKey("length_mm");
             if ((stato != null && stato.Firme.TryGetValue(uid, out firma) && firma.Tipo == "EDGE") ||
                 eraUnoSpigolo)
             {
@@ -4701,7 +4735,7 @@ namespace Riscontro.Disegno
                     motivo =
                         "Lo spigolo «" + uid + "» non e' dritto: non da' una " +
                         "direzione. Per la ripetizione serve uno spigolo " +
-                        "rettilineo, oppure un asse fatto con «crea_asse».";
+                        "rettilineo, oppure un asse fatto con «create_axis».";
                     return false;
                 }
 
@@ -4731,7 +4765,7 @@ namespace Riscontro.Disegno
             {
                 motivo =
                     "Non ho trovato l'asse «" + uid + "». Gli assi si fanno con " +
-                    "«crea_asse»; in alternativa indica uno spigolo dritto del " +
+                    "«create_axis»; in alternativa indica uno spigolo dritto del " +
                     "pezzo, che nello stato ha un identificativo come «E1».";
                 return false;
             }
@@ -4759,10 +4793,10 @@ namespace Riscontro.Disegno
             int marca = SelectionMarks.LinearPatternFeatures)
         {
             motivo = null;
-            if (HaRiferimento(a, "feature_rif"))
+            if (HaRiferimento(a, "feature_ref"))
             {
                 int numero;
-                var passo = PassoCitato(a, "feature_rif", out numero, out motivo);
+                var passo = PassoCitato(a, "feature_ref", out numero, out motivo);
                 if (passo == null)
                 {
                     motivo = motivo ?? "Riferimento non risolto.";
@@ -4879,7 +4913,7 @@ namespace Riscontro.Disegno
         /// Rivoluzione: ruota un profilo attorno a un asse. E' il modo generale
         /// di fare un corpo a simmetria di rotazione — boccole, distanziali,
         /// alberi a gradini, flange, pulegge, volantini — quando la forma non
-        /// e' un cilindro costante (quello e' «estrudi_cerchio», piu' semplice).
+        /// e' un cilindro costante (quello e' «extrude_circle», piu' semplice).
         ///
         /// L'ASSE E' IL PUNTO DIFFICILE, E VALE LA PENA SPIEGARLO.
         /// `FeatureRevolve2` vuole, al momento della chiamata, sia il profilo
@@ -4933,7 +4967,7 @@ namespace Riscontro.Disegno
             if (contorni == null) return Fallito(motivo);
 
             object asseGrezzo;
-            if (!a.TryGetValue("asse", out asseGrezzo) || asseGrezzo == null)
+            if (!a.TryGetValue("axis", out asseGrezzo) || asseGrezzo == null)
                 return Fallito("Manca l'asse di rivoluzione.");
             var puntiAsse = Punti(asseGrezzo, out motivo);
             if (puntiAsse == null) return Fallito("Asse di rivoluzione: " + motivo);
@@ -4946,8 +4980,8 @@ namespace Riscontro.Disegno
             if (Math.Sqrt(dx * dx + dy * dy) < 1e-6)
                 return Fallito("I due punti dell'asse coincidono: non definiscono una retta.");
 
-            double angolo = Num(a, "angolo_gradi", 360);
-            string piano = Str(a, "piano", "frontale");
+            double angolo = Num(a, "angle_deg", 360);
+            string piano = Str(a, "plane", "front");
             // Before the sketch: it is selected, and locked after the
             // revolve, as the one sketch born since (scheme S7).
             var sketchNamesBefore = FeatureNamesNow(modello);
@@ -5037,11 +5071,11 @@ namespace Riscontro.Disegno
             bool bloccato = BloccaSchizzo(modello, sketchNamesBefore, out notaBlocco, out fixedRelations);
             var revolveMeasures = new Dictionary<string, object>
             {
-                ["schizzo_bloccato"] = bloccato,
+                ["sketch_locked"] = bloccato,
                 ["fixed_relations"] = fixedRelations,
-                ["contorni"] = contorni.Count,
-                ["segmenti"] = segmenti,
-                ["angolo_gradi"] = angolo,
+                ["contours"] = contorni.Count,
+                ["segments"] = segmenti,
+                ["angle_deg"] = angolo,
             };
             if (notaBlocco != null) revolveMeasures["sketch_lock_note"] = notaBlocco;
             return Riuscito(feature, revolveMeasures, Riferimenti.NormaleDelPiano(piano));
@@ -5075,15 +5109,15 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito Guscio(IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double spessore = Num(a, "spessore_mm");
-            bool versoEsterno = Bool(a, "verso_esterno", false);
-            bool tuttoChiuso = Bool(a, "tutto_chiuso", false);
-            var uid = Lista(a, "facce_uid");
+            double spessore = Num(a, "thickness_mm");
+            bool versoEsterno = Bool(a, "outward", false);
+            bool tuttoChiuso = Bool(a, "fully_closed", false);
+            var uid = Lista(a, "faces_uid");
 
             // LE FACCE POSSONO VENIRE DA UN PASSO PRECEDENTE (voce E15).
             //
-            // Fino alla 0.30.0 `guscio` era l'UNICA operazione su faccia che
-            // non accettava un riferimento a un passo: voleva `facce_uid`, che
+            // Fino alla 0.30.0 `shell` era l'UNICA operazione su faccia che
+            // non accettava un riferimento a un passo: voleva `faces_uid`, che
             // nascono solo da una lettura. Quindi «fai un blocco e poi svuotalo»
             // non si poteva scrivere in un piano solo, mentre «fai un blocco e
             // poi foralo» si' — ed e' proprio la sequenza del contenitore per
@@ -5095,15 +5129,15 @@ namespace Riscontro.Disegno
             // piu' d'una: inventarne uno qui vorrebbe dire aprire superficie
             // nuova per un problema che si risolve ripetendo l'elemento.
             List<IFace2> daiPassi = null;
-            if (uid.Count == 0 && HaElenco(a, "facce_rif"))
+            if (uid.Count == 0 && HaElenco(a, "faces_ref"))
             {
-                if (!FacceDaiRiferimenti(a, "facce_rif", out daiPassi, out string perche))
+                if (!FacceDaiRiferimenti(a, "faces_ref", out daiPassi, out string perche))
                     return Fallito(perche);
             }
-            else if (uid.Count > 0 && HaElenco(a, "facce_rif"))
+            else if (uid.Count > 0 && HaElenco(a, "faces_ref"))
             {
                 return Fallito(
-                    "Il guscio ha sia «facce_uid» sia «facce_rif»: uno nomina facce " +
+                    "Il guscio ha sia «faces_uid» sia «faces_ref»: uno nomina facce " +
                     "che ci sono gia', l'altro facce che le crea un passo di questo " +
                     "piano. Scegline uno.");
             }
@@ -5111,10 +5145,10 @@ namespace Riscontro.Disegno
             if (uid.Count == 0 && daiPassi == null && !tuttoChiuso)
                 return Fallito(
                     "Nessuna faccia indicata per il guscio. Se la faccia la crea un " +
-                    "passo precedente di questo piano, usa «facce_rif»: " +
-                    "[{\"passo\": 1, \"genere\": \"faccia_superiore\"}]. Se serve davvero " +
+                    "passo precedente di questo piano, usa «faces_ref»: " +
+                    "[{\"step\": 1, \"kind\": \"top_face\"}]. Se serve davvero " +
                     "un corpo cavo completamente chiuso, senza nessuna apertura, metti " +
-                    "«tutto_chiuso: true» — di solito pero' e' una faccia dimenticata " +
+                    "«fully_closed: true» — di solito pero' e' una faccia dimenticata " +
                     "nella richiesta.");
 
             modello.ClearSelection2(true);
@@ -5124,12 +5158,12 @@ namespace Riscontro.Disegno
                 // Le facce arrivano FRESCHE dal passo appena eseguito, non da
                 // una lettura precedente: non c'e' nessuna firma da
                 // confrontare, ed e' lo stesso motivo per cui il ramo
-                // `faccia_rif` di `RisolviFaccia` salta quel controllo.
+                // `face_ref` di `RisolviFaccia` salta quel controllo.
                 // TUTTE, NON ALMENO UNA. La prima scrittura contava quante si
                 // erano lasciate selezionare e si fermava solo a zero: con tre
                 // riferimenti risolti e due facce selezionate andava avanti, e
                 // il guscio usciva aperto su DUE facce invece che su tre —
-                // «riuscita: true», volume calato, tutti i controlli a valle
+                // «succeeded: true», volume calato, tutti i controlli a valle
                 // soddisfatti, e un contenitore chiuso su un lato che doveva
                 // essere aperto.
                 //
@@ -5145,7 +5179,7 @@ namespace Riscontro.Disegno
                     if ((f as IEntity)?.Select4(true, null) == true) { presi++; continue; }
                     return Fallito(string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
-                        "La faccia n. {0} di «facce_rif» non si e' lasciata selezionare: " +
+                        "La faccia n. {0} di «faces_ref» non si e' lasciata selezionare: " +
                         "{1} su {2} erano pronte. Un guscio aperto su meno facce di quelle " +
                         "chieste non e' quasi giusto, e' un pezzo diverso.{3}",
                         presi + 1, presi, daiPassi.Count, RestaNelPezzo));
@@ -5168,7 +5202,7 @@ namespace Riscontro.Disegno
                         "su uno scelto a caso. Indica le facce da togliere.");
                 // UN CORPO NON E' UNA IEntity, e questo ramo non l'ha mai
                 // saputo. `corpi[0] as IEntity` torna **sempre** null
-                // nell'interop, quindi «tutto_chiuso: true» rispondeva «Non
+                // nell'interop, quindi «fully_closed: true» rispondeva «Non
                 // sono riuscito a selezionare il corpo solido» su QUALUNQUE
                 // pezzo — non era un caso limite, era rotto sempre.
                 //
@@ -5274,19 +5308,19 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["spessore_mm"] = spessore,
-                ["verso"] = versoEsterno ? "esterno" : "interno",
+                ["thickness_mm"] = spessore,
+                ["facing"] = versoEsterno ? "outer" : "inner",
                 // NON `uid.Count`: le facce possono arrivare anche da
-                // `facce_rif`, e contare solo gli uid faceva dire «facce_tolte:
+                // `faces_ref`, e contare solo gli uid faceva dire «faces_removed:
                 // 0» a un guscio che una faccia l'aveva tolta davvero. Una
                 // misura che dice zero quando il numero e' uno e' il difetto
                 // che questo progetto insegue, in miniatura.
-                ["facce_tolte"] = daiPassi != null ? daiPassi.Count : uid.Count,
+                ["faces_removed"] = daiPassi != null ? daiPassi.Count : uid.Count,
             };
             if (volumePrima > 0 && volumeDopo > 0)
-                misure["materiale_tolto_mm3"] = Math.Round(volumePrima.Value - volumeDopo.Value, 1);
+                misure["material_removed_mm3"] = Math.Round(volumePrima.Value - volumeDopo.Value, 1);
             else
-                misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+                misure["volume_not_reread"] = NotaVolumeNonRiletto;
             return Riuscito(feature, misure);
         }
 
@@ -5375,9 +5409,9 @@ namespace Riscontro.Disegno
         /// WHY NOT THE LAST FEATURE OF THE TREE. On a sheet-metal part the tail
         /// of the tree is the flat pattern (the FlatPattern feature at the bottom
         /// of the tree, OperazioniLamiera), and SOLIDWORKS inserts a new feature
-        /// before it. The last feature is then the flat pattern: crea_asse
+        /// before it. The last feature is then the flat pattern: create_axis
         /// refused an axis it had made and left it in the tree,
-        /// piano_per_tre_punti reported the flat pattern as the plane it had
+        /// plane_three_points reported the flat pattern as the plane it had
         /// made, and the orphan sketch of a failed step was never taken away.
         /// IModelDoc2~IFeatureByPositionReverse.html: «SOLIDWORKS does not
         /// guarantee the name or positioning of default features». A feature
@@ -5536,12 +5570,12 @@ namespace Riscontro.Disegno
             double? volumeDopo; int corpiDopo, facceDopo;
             Fotografia(modello, out volumeDopo, out corpiDopo, out facceDopo);
 
-            misure["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2);
-            misure["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2);
-            misure["volume_cambiato_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2);
-            misure["facce_prima"] = NumeroOppureNull(faccePrima);
-            misure["facce_dopo"] = NumeroOppureNull(facceDopo);
-            misure["corpi"] = NumeroOppureNull(corpiDopo);
+            misure["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2);
+            misure["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2);
+            misure["volume_changed_mm3"] = NumeroOppureNull(volumeDopo - volumePrima, 2);
+            misure["faces_before"] = NumeroOppureNull(faccePrima);
+            misure["faces_after"] = NumeroOppureNull(facceDopo);
+            misure["bodies"] = NumeroOppureNull(corpiDopo);
 
             // «IDENTICO» SI DICE SOLO DI COSE LETTE (voce Z-C8): con due letture
             // fallite, zero prima e zero dopo erano «stesso volume, stesse 0
@@ -5550,7 +5584,7 @@ namespace Riscontro.Disegno
                               faccePrima >= 0 && facceDopo >= 0 && corpiPrima >= 0 && corpiDopo >= 0;
             if (!tuttoLetto)
             {
-                misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+                misure["volume_not_reread"] = NotaVolumeNonRiletto;
                 return null;
             }
             bool volumeFermo = Math.Abs(volumeDopo.Value - volumePrima.Value) < 0.01;
@@ -5619,7 +5653,7 @@ namespace Riscontro.Disegno
         /// 200x100x20, foro Ø10 a x=-60, ripetizione di 4 lungo lo spigolo E1.
         ///
         ///   verso preso dallo spigolo -> la ripetizione possiede 1 faccia
-        ///   con «capovolgi_1»         -> la ripetizione possiede 3 facce
+        ///   con «flip1»         -> la ripetizione possiede 3 facce
         ///
         /// Il seme ne possiede 1. Quindi UNA copia contro TRE, a parita' di
         /// richiesta. E IN TUTT'E DUE I CASI SOLIDWORKS HA TACIUTO:
@@ -5652,8 +5686,8 @@ namespace Riscontro.Disegno
             if (facceRipetizione % facceSeme != 0) return null;
 
             int fatte = facceRipetizione / facceSeme;
-            misure["copie_chieste"] = copieChieste;
-            misure["copie_fatte"] = fatte;
+            misure["copies_requested"] = copieChieste;
+            misure["copies_done"] = fatte;
             if (fatte >= copieChieste) return null;
 
             return
@@ -5730,7 +5764,7 @@ namespace Riscontro.Disegno
         {
             // swSetValueInConfiguration_e.swSetValue_InAllConfigurations = 2
             const int inTutteLeConfigurazioni = 2;
-            // Nella stessa unita' in cui `prima` e' stata letta: gradi per una
+            // Nella stessa unita' in cui `before` e' stata letta: gradi per una
             // quota angolare, mm per le altre (voce Z-C21.2, M3).
             try
             {
@@ -5826,9 +5860,9 @@ namespace Riscontro.Disegno
 
             if (perse.Count == 0 && prese.Count == 0 && sparite.Count == 0) return null;
 
-            if (perse.Count > 0) misure["lavorazioni_con_meno_facce"] = perse.ToArray();
-            if (prese.Count > 0) misure["lavorazioni_con_piu_facce"] = prese.ToArray();
-            if (sparite.Count > 0) misure["lavorazioni_sparite"] = sparite.ToArray();
+            if (perse.Count > 0) misure["features_with_fewer_faces"] = perse.ToArray();
+            if (prese.Count > 0) misure["features_with_more_faces"] = prese.ToArray();
+            if (sparite.Count > 0) misure["features_gone"] = sparite.ToArray();
 
             var righe = new List<string>();
             if (sparite.Count > 0)
@@ -5990,17 +6024,17 @@ namespace Riscontro.Disegno
         {
             quanti = 0;
             motivo = null;
-            var uid = Lista(a, "spigoli_uid");
+            var uid = Lista(a, "edges_uid");
 
             // ── Spigoli nominati per riferimento a un passo precedente ──
             //
             // «Arrotonda i quattro angoli della piastra che fai al passo 1»:
             // quando il piano e' stato scritto quegli spigoli non esistevano.
             // Adesso esistono, e il selettore li trova.
-            if (HaRiferimento(a, "spigoli_rif"))
+            if (HaRiferimento(a, "edges_ref"))
             {
                 int numero;
-                var passo = PassoCitato(a, "spigoli_rif", out numero, out motivo);
+                var passo = PassoCitato(a, "edges_ref", out numero, out motivo);
                 if (passo == null)
                 {
                     motivo = motivo ?? "Riferimento non risolto.";
@@ -6008,7 +6042,7 @@ namespace Riscontro.Disegno
                 }
 
                 List<IEntity> trovati;
-                if (!Riferimenti.Spigoli(passo, GenereDi(a, "spigoli_rif"), out trovati, out motivo))
+                if (!Riferimenti.Spigoli(passo, GenereDi(a, "edges_ref"), out trovati, out motivo))
                     return false;
 
                 // LA MISURA SI CONTROLLA ANCHE QUI, e fino alla 0.25.2 no.
@@ -6018,8 +6052,8 @@ namespace Riscontro.Disegno
                 // la misura chiesta ci stia sulla lunghezza dello spigolo. Ma
                 // questo ramo usciva con `return true` PRIMA di arrivarci: lo
                 // stesso raccordo da 30 mm su uno spigolo da 10 veniva
-                // rifiutato con `spigoli_uid` e lasciato passare con
-                // `spigoli_rif`, fino a FeatureFillet3 che fallisce dicendo
+                // rifiutato con `edges_uid` e lasciato passare con
+                // `edges_ref`, fino a FeatureFillet3 che fallisce dicendo
                 // soltanto che non e' stato creato.
                 //
                 // Qui non c'e' una firma da cui leggere la misura — gli spigoli
@@ -6053,7 +6087,7 @@ namespace Riscontro.Disegno
 
                 // IL NUMERO VERO LO DICE SOLIDWORKS, NON IL CONTEGGIO NOSTRO.
                 // La stessa entita' incontrata su due facce si seleziona una
-                // volta sola: `trovati.Count` sarebbe piu' alto del reale, e
+                // volta sola: `found.Count` sarebbe piu' alto del reale, e
                 // finirebbe nel messaggio che l'utente legge dopo.
                 try
                 {
@@ -6148,8 +6182,8 @@ namespace Riscontro.Disegno
             if (feature == null) return Fallito("Il raccordo non e' stato creato.");
             var measures = new Dictionary<string, object>
             {
-                ["raggio_mm"] = raggio,
-                ["spigoli"] = quantiSpigoli,
+                ["radius_mm"] = raggio,
+                ["edges"] = quantiSpigoli,
             };
             SelectedEdgesAndFaces(feature, quantiSpigoli, measures);
             // After the counts, which SelectedEdgesAndFaces reads right after
@@ -6161,13 +6195,13 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// THE REPLY OF A FILLET OR A CHAMFER SAYS WHAT WAS SELECTED AND WHAT WAS
-        /// MADE (finding N14, Z-C21.3). «spigoli» is the number of edges the
+        /// MADE (finding N14, Z-C21.3). «edges» is the number of edges the
         /// caller passed, kept under its old name for the callers that read it;
         /// but with tangent propagation one selected edge can work a whole loop.
         /// Measured on 28/9/2026 (Z-C21.3 edge-count probe, a block with its four
         /// vertical edges rounded r 5): a fillet r 2 on ONE top edge, with these
         /// options, removed 110.399 mm3 and owned 8 faces; a chamfer 2 x 45 on one
-        /// bottom edge, 254.454 mm3 and 8 faces; the reply said «spigoli: 1» both
+        /// bottom edge, 254.454 mm3 and 8 faces; the reply said «edges: 1» both
         /// times. So the reply also carries «selected_edges» (the same count,
         /// under the name of what it is) and «faces», IFeature.GetFaceCount of the
         /// new feature (IFeature~GetFaceCount.html: «Gets the number of faces in
@@ -6194,15 +6228,15 @@ namespace Riscontro.Disegno
             if (volumePrima == null || corpiPrima < 0 || faccePrima < 0)
                 return Fallito(VolumeNonLettoPrima("fare la copia"));
 
-            int istanze = (int)Num(a, "numero_istanze");
-            double angolo = Num(a, "angolo_totale_gradi", 360);
+            int istanze = (int)Num(a, "instance_count");
+            double angolo = Num(a, "total_angle_deg", 360);
             string featureUid = Str(a, "feature_uid", "");
 
             modello.ClearSelection2(true);
             // L'asse va selezionato per PRIMO con Mark = 1: la ripetizione
             // circolare prende la direzione dalla selezione, non dai parametri.
             string perche;
-            if (!SelezionaAsse(modello, a, "asse", stato, SelectionMarks.CircularPatternAxis, append: false, out perche)) return Fallito(perche);
+            if (!SelezionaAsse(modello, a, "axis", stato, SelectionMarks.CircularPatternAxis, append: false, out perche)) return Fallito(perche);
 
             // La lavorazione da ripetere puo' essere quella fatta da un passo
             // precedente di questo stesso piano — «fai un foro e ripetilo 6
@@ -6210,10 +6244,10 @@ namespace Riscontro.Disegno
             // nome che SolidWorks le ha dato lo sapremmo solo rileggendolo, e
             // sarebbe un giro in piu' per arrivare alla stessa feature che
             // gia' abbiamo in mano.
-            if (HaRiferimento(a, "feature_rif"))
+            if (HaRiferimento(a, "feature_ref"))
             {
                 int numero;
-                var precedente = PassoCitato(a, "feature_rif", out numero, out perche);
+                var precedente = PassoCitato(a, "feature_ref", out numero, out perche);
                 if (precedente == null) return Fallito(perche ?? "Riferimento non risolto.");
                 if (precedente.Feature == null)
                     return Fallito($"Il passo {numero} non ha lasciato una lavorazione da ripetere.");
@@ -6247,8 +6281,8 @@ namespace Riscontro.Disegno
             if (feature == null) return Fallito("La ripetizione non e' stata creata.");
             var misure = new Dictionary<string, object>
             {
-                ["istanze"] = istanze,
-                ["angolo_gradi"] = angolo,
+                ["instances"] = istanze,
+                ["angle_deg"] = angolo,
             };
             var fermo = ConfrontaCopia(
                 modello, volumePrima, corpiPrima, faccePrima, misure,
@@ -6258,7 +6292,7 @@ namespace Riscontro.Disegno
             var mancanti = CopieMancanti(
                 misure, feature, seme, istanze - 1, "La ripetizione circolare",
                 "Con un angolo minore del giro intero le copie si fermano dove " +
-                "finisce l'arco: controlla «angolo_totale_gradi», oppure porta " +
+                "finisce l'arco: controlla «total_angle_deg», oppure porta " +
                 "le istanze a quante ce ne stanno.");
             if (mancanti != null) return Fallito(mancanti);
 
@@ -6482,14 +6516,14 @@ namespace Riscontro.Disegno
         //
         // Fino alla 0.33.0 le trentasei operazioni erano tutte additive o
         // parametriche: l'albero poteva solo CRESCERE. L'unica correzione era
-        // `modifica_quota` — si cambia un numero, non si ritira una scelta — e
-        // `annulla` (R1), che pero' disfa l'ULTIMO piano intero e non una
+        // `set_dimension` — si cambia un numero, non si ritira una scelta — e
+        // `undo` (R1), che pero' disfa l'ULTIMO piano intero e non una
         // lavorazione in mezzo.
         //
-        // Queste due tolgono una lavorazione qualunque: `sopprimi_lavorazione`
-        // la spegne (si riaccende), `elimina_lavorazione` la cancella.
+        // Queste due tolgono una lavorazione qualunque: `suppress_feature`
+        // la spegne (si riaccende), `delete_feature` la cancella.
         //
-        // ── LA PARTE DIFFICILE E' IL RIFIUTO, come per `annulla` ───────────
+        // ── LA PARTE DIFFICILE E' IL RIFIUTO, come per `undo` ───────────
         //
         // **Le lavorazioni hanno figli.** Togliere l'estrusione di base fa
         // crollare tutto quello che ci sta sopra, e SOLIDWORKS lo fa **senza
@@ -6588,7 +6622,7 @@ namespace Riscontro.Disegno
             }
 
             // E' ANCORA QUELLA? Un nome si rinomina, `GetID()` no. Stessa
-            // difesa di `ripeti_lineare` e `specchia`, e qui pesa di piu':
+            // difesa di `linear_pattern` e `mirror`, e qui pesa di piu':
             // la' si copia una lavorazione sbagliata, qui la si cancella.
             if (!LavorazioneEQuella(modello, uid, a, out motivo)) return null;
 
@@ -6621,7 +6655,7 @@ namespace Riscontro.Disegno
         ///
         /// La soppressione **si disfa**: e' la strada da prendere quando si
         /// vuole vedere il pezzo senza quella lavorazione senza impegnarsi.
-        /// Lo stato la mostra gia' — `soppressa: true` — dalla 0.25.2, e quel
+        /// Lo stato la mostra gia' — `suppressed: true` — dalla 0.25.2, e quel
         /// campo esisteva prima che ci fosse un modo di metterlo: era un
         /// display senza interruttore.
         ///
@@ -6636,7 +6670,7 @@ namespace Riscontro.Disegno
         ///
         /// **I figli non fermano la soppressione, ma si dicono.** Sopprimere un
         /// padre spegne anche i figli, ed e' cio' che di solito si vuole («togli
-        /// il foro e i suoi raccordi»). Diverso da `elimina_lavorazione`, dove
+        /// il foro e i suoi raccordi»). Diverso da `delete_feature`, dove
         /// i figli fermano tutto: li' non si torna indietro.
         /// </summary>
         private Esito SopprimiLavorazione(
@@ -6647,7 +6681,7 @@ namespace Riscontro.Disegno
             if (f == null) return Fallito(motivo);
 
             string uid = Str(a, "feature_uid", "");
-            bool riattiva = Bool(a, "riattiva", false);
+            bool riattiva = Bool(a, "reactivate", false);
 
             // Z-C21.7 (S3): IsSuppressed2 in the active configuration, not the
             // obsolete IsSuppressed; guide page and probe numbers in
@@ -6665,8 +6699,8 @@ namespace Riscontro.Disegno
                     (eraSoppressa ? "soppressa" : "attiva") +
                     ": non ho cambiato niente. Se volevi il contrario, " +
                     (eraSoppressa
-                        ? "passa «riattiva»: true."
-                        : "togli «riattiva»."));
+                        ? "passa «reactivate»: true."
+                        : "togli «reactivate»."));
             }
 
             double? volumePrima = VolumeMm3(modello);
@@ -6674,7 +6708,7 @@ namespace Riscontro.Disegno
             var figli = FigliDi(f);
 
             // IN TUTTE LE CONFIGURAZIONI, per la stessa ragione di
-            // `modifica_quota`: sopprimere in una sola lascerebbe il pezzo
+            // `set_dimension`: sopprimere in una sola lascerebbe il pezzo
             // diverso a seconda di come lo si guarda.
             const int inTutteLeConfigurazioni = 2;
             int azione = riattiva
@@ -6701,24 +6735,24 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["lavorazione"] = uid,
-                ["soppressa"] = !riattiva,
-                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["corpi"] = NumeroOppureNull(corpiDopo),
+                ["feature"] = uid,
+                ["suppressed"] = !riattiva,
+                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["bodies"] = NumeroOppureNull(corpiDopo),
                 // GLI IDENTIFICATIVI NON VALGONO PIU', e si dice sempre: e' il
                 // difetto piu' caro del progetto — un'operazione giusta fatta
                 // alla cieca — e qui la cecita' e' garantita.
-                ["nota_identificativi"] =
+                ["note_identifiers"] =
                     "Le facce sono cambiate: gli identificativi (F1, E4) di " +
                     "prima non valgono piu'. Rileggi il pezzo prima del passo " +
                     "seguente.",
             };
             if (corpiPrima >= 0 && corpiDopo >= 0 && corpiDopo != corpiPrima)
-                misure["nota_corpi"] =
+                misure["note_bodies"] =
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo + ".";
             if (figli.Count > 0)
-                misure["nota_figli"] =
+                misure["note_children"] =
                     "Da «" + uid + "» dipendono " + string.Join(", ", figli) +
                     ": " + (riattiva ? "si sono riaccese con lei." : "si sono spente con lei.");
 
@@ -6729,11 +6763,11 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// CANCELLA una lavorazione. Non si torna indietro con un'altra
-        /// operazione: solo con `annulla`.
+        /// operazione: solo con `undo`.
         ///
         /// ── I FIGLI FERMANO TUTTO, E QUI SI' ──────────────────────────────
         ///
-        /// In `sopprimi_lavorazione` i figli si spengono insieme al padre e si
+        /// In `suppress_feature` i figli si spengono insieme al padre e si
         /// riaccendono insieme. Qui sparirebbero, e **SOLIDWORKS lo fa senza
         /// chiedere**. Quindi si rifiuta, dicendo quali sono: chi legge decide
         /// se toglierli prima o se aveva in mente un'altra lavorazione.
@@ -6788,7 +6822,7 @@ namespace Riscontro.Disegno
                     ", e SOLIDWORKS lo farebbe senza chiedere.\n\n" +
                     "Se e' proprio lei che vuoi togliere, togli prima cio' che " +
                     "ci sta sopra. Se ti serve solo vedere il pezzo senza, usa " +
-                    "«sopprimi_lavorazione»: spegne anche i figli e si disfa.");
+                    "«suppress_feature»: spegne anche i figli e si disfa.");
 
             double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
@@ -6837,19 +6871,19 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["lavorazione_tolta"] = uid,
-                ["volume_prima_mm3"] = NumeroOppureNull(volumePrima, 2),
-                ["volume_dopo_mm3"] = NumeroOppureNull(volumeDopo, 2),
-                ["lavorazioni_prima"] = NumeroOppureNull(featurePrima),
-                ["lavorazioni_dopo"] = NumeroOppureNull(featureDopo),
-                ["corpi"] = NumeroOppureNull(corpiDopo),
-                ["nota_identificativi"] =
+                ["feature_removed"] = uid,
+                ["volume_before_mm3"] = NumeroOppureNull(volumePrima, 2),
+                ["volume_after_mm3"] = NumeroOppureNull(volumeDopo, 2),
+                ["features_before"] = NumeroOppureNull(featurePrima),
+                ["features_after"] = NumeroOppureNull(featureDopo),
+                ["bodies"] = NumeroOppureNull(corpiDopo),
+                ["note_identifiers"] =
                     "Le facce sono cambiate: gli identificativi (F1, E4) di " +
                     "prima non valgono piu'. Rileggi il pezzo prima del passo " +
                     "seguente.",
             };
             if (corpiPrima >= 0 && corpiDopo >= 0 && corpiDopo != corpiPrima)
-                misure["nota_corpi"] =
+                misure["note_bodies"] =
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": togliere questa lavorazione ha spezzato o unito il pezzo.";
 
@@ -6883,7 +6917,7 @@ namespace Riscontro.Disegno
             if (_riancoraggi.Count > 0)
             {
                 if (misure == null) misure = new Dictionary<string, object>();
-                misure["riancoraggi"] = _riancoraggi.ToArray();
+                misure["reanchors"] = _riancoraggi.ToArray();
             }
             return new Esito
             {
@@ -7131,14 +7165,14 @@ namespace Riscontro.Disegno
             // che non arrivino tutti e due, ma se arrivassero comunque e'
             // meglio fallire su un uid che non c'e' che lavorare in silenzio
             // sulla faccia sbagliata.
-            if (HaRiferimento(argomenti, "faccia_rif"))
+            if (HaRiferimento(argomenti, "face_ref"))
             {
                 int numero;
-                var passo = PassoCitato(argomenti, "faccia_rif", out numero, out motivo);
+                var passo = PassoCitato(argomenti, "face_ref", out numero, out motivo);
                 if (passo == null) return null;
                 IFace2 dalPasso;
                 if (!Riferimenti.Faccia(
-                        passo, GenereDi(argomenti, "faccia_rif"), out dalPasso, out motivo))
+                        passo, GenereDi(argomenti, "face_ref"), out dalPasso, out motivo))
                     return null;
                 _log($"[agente] faccia presa dal passo {numero}");
                 return dalPasso;
@@ -7148,7 +7182,7 @@ namespace Riscontro.Disegno
             {
                 motivo =
                     "Nessuna faccia indicata. Se la faccia la crea un passo " +
-                    "precedente di questo piano, va nominata con faccia_rif.";
+                    "precedente di questo piano, va nominata con face_ref.";
                 return null;
             }
             if (!stato.Firme.TryGetValue(uid, out var firma) || firma.Tipo != "FACE")
@@ -7301,7 +7335,7 @@ namespace Riscontro.Disegno
         /// piano cerca il fondo.
         ///
         /// Il punto combaciava. L'area era 4400 contro 1600 attesi — quasi il
-        /// triplo — e veniva presa lo stesso: `riuscita: true`, ricostruzione
+        /// triplo — e veniva presa lo stesso: `succeeded: true`, ricostruzione
         /// pulita, e un mezzo foro profondo 2 al posto di un foro intero
         /// profondo 4. **Il punto aveva vinto sull'area.**
         ///
@@ -7327,8 +7361,8 @@ namespace Riscontro.Disegno
         /// di questa ricerca e il motivo del suo fallimento.**
         ///
         /// Misurato: staffa a elle, aletta orizzontale 100x20 = 2000 mm² (F2) e
-        /// verticale 80x20 = 1600 mm² (F3). Piano di due passi: `modifica_quota`
-        /// porta la verticale da 80 a 120, poi `taglio_cilindrico` su «F3». Dopo
+        /// verticale 80x20 = 1600 mm² (F3). Piano di due passi: `set_dimension`
+        /// porta la verticale da 80 a 120, poi `cylindrical_cut` su «F3». Dopo
         /// il primo passo la verticale vale 2400 e diventa F2; la ricerca
         /// ritrova la faccia giusta — stesso piano, stesso punto, stessa
         /// normale, **stessa lavorazione** — e il controllo sull'area la
@@ -7444,7 +7478,7 @@ namespace Riscontro.Disegno
         {
             var pezzi = new List<string>();
 
-            var primaPunto = Terna(attesa, "punto_mm");
+            var primaPunto = Terna(attesa, "point_mm");
             if (primaPunto != null && ora.PuntoMm != null && primaPunto.Length >= 3 &&
                 ora.PuntoMm.Length >= 3)
             {
@@ -7491,7 +7525,7 @@ namespace Riscontro.Disegno
                    "ricontrolla il risultato." +
                    Frasi.DoveStavaEDoveSta(
                        uid, primaPunto, ora.PuntoMm,
-                       Sestina(attesa, "scatola_pezzo_mm"), ora.ScatolaPezzoMm) +
+                       Sestina(attesa, "box_part_mm"), ora.ScatolaPezzoMm) +
                    (notaCorrobora == null ? "" : " " + notaCorrobora);
         }
 
@@ -7507,7 +7541,7 @@ namespace Riscontro.Disegno
             // corrispondenza, sono due volte «non lo so».
             bool stessaLavorazioneAccertata = false;
             object grezzoId;
-            if (attesa.TryGetValue("lavorazione_id", out grezzoId) && grezzoId != null &&
+            if (attesa.TryGetValue("feature_id", out grezzoId) && grezzoId != null &&
                 candidata.LavorazioneId >= 0)
             {
                 int atteso;
@@ -7517,7 +7551,7 @@ namespace Riscontro.Disegno
                 if (atteso >= 0 && atteso != candidata.LavorazioneId)
                 {
                     object nomeAtteso;
-                    string daChi = attesa.TryGetValue("lavorazione", out nomeAtteso) &&
+                    string daChi = attesa.TryGetValue("feature", out nomeAtteso) &&
                                    nomeAtteso != null
                         ? "«" + Convert.ToString(nomeAtteso) + "»"
                         : "un'altra lavorazione";
@@ -7606,8 +7640,8 @@ namespace Riscontro.Disegno
             motivo = rifiuto;
 
             var attesa = FirmaAttesa(a, uid);
-            var punto = Terna(attesa, "punto_mm");
-            double lunghezza = Num(attesa, "lunghezza_mm");
+            var punto = Terna(attesa, "point_mm");
+            double lunghezza = Num(attesa, "length_mm");
             if (stato == null || punto == null || lunghezza <= 0) return null;
 
             string trovato = null;
@@ -7675,8 +7709,8 @@ namespace Riscontro.Disegno
             // atteso deve stare sulla retta di adesso.
             if (adesso.Tipo == "AXIS")
             {
-                var q = Terna(attesa, "punto_mm");
-                var e = Terna(attesa, "direzione");
+                var q = Terna(attesa, "point_mm");
+                var e = Terna(attesa, "direction");
                 var p = adesso.PuntoMm; var d = adesso.Normale;
                 if (q == null || p == null || d == null || p.Length != 3 || d.Length != 3) return true;
                 if (e != null)
@@ -7703,8 +7737,8 @@ namespace Riscontro.Disegno
             }
 
             // DUE NOMI PER LA STESSA COSA, e non e' pigrizia.
-            // Una faccia pubblica `punto_mm` — un punto SU di lei; un corpo
-            // pubblica `centro_mm` — il centro della sua scatola. Sono due
+            // Una faccia pubblica `point_mm` — un punto SU di lei; un corpo
+            // pubblica `center_mm` — il centro della sua scatola. Sono due
             // misure diverse con lo stesso mestiere: dire DOVE sta l'entita'.
             // Chiamarle allo stesso modo nello stato sarebbe stato peggio (il
             // centro di un corpo non sta sul corpo, se il corpo e' a ferro di
@@ -7715,7 +7749,7 @@ namespace Riscontro.Disegno
             // lunghezza. Si confronta solo con due lunghezze lette.
             if (adesso.Tipo == "EDGE")
             {
-                double lunghezzaAttesa = Num(attesa, "lunghezza_mm");
+                double lunghezzaAttesa = Num(attesa, "length_mm");
                 if (lunghezzaAttesa > 0 && adesso.Misura > 0 &&
                     Math.Abs(adesso.Misura - lunghezzaAttesa) > TolleranzaLunghezzaMm)
                 {
@@ -7727,7 +7761,7 @@ namespace Riscontro.Disegno
                 }
             }
 
-            var puntoAtteso = Terna(attesa, "punto_mm") ?? Terna(attesa, "centro_mm");
+            var puntoAtteso = Terna(attesa, "point_mm") ?? Terna(attesa, "center_mm");
             if (puntoAtteso != null && adesso.PuntoMm != null && adesso.PuntoMm.Length == 3)
             {
                 double scarto = 0;
@@ -7750,12 +7784,12 @@ namespace Riscontro.Disegno
                         $"confermato: {NonLavoroSu(adesso)}" +
                         Frasi.DoveStavaEDoveSta(
                             uid, puntoAtteso, adesso.PuntoMm,
-                            Sestina(attesa, "scatola_pezzo_mm"), adesso.ScatolaPezzoMm);
+                            Sestina(attesa, "box_part_mm"), adesso.ScatolaPezzoMm);
                     return false;
                 }
             }
 
-            var normaleAttesa = Terna(attesa, "normale");
+            var normaleAttesa = Terna(attesa, "normal");
             if (normaleAttesa != null && adesso.Normale != null && adesso.Normale.Length == 3)
             {
                 double scarto = 0;
@@ -7793,7 +7827,7 @@ namespace Riscontro.Disegno
             Dictionary<string, object> argomenti, string uid)
         {
             if (argomenti == null) return null;
-            if (!argomenti.TryGetValue("_firme", out var tutte)) return null;
+            if (!argomenti.TryGetValue("_signatures", out var tutte)) return null;
             var mappa = tutte as Dictionary<string, object>;
             if (mappa == null) return null;
             foreach (var voce in mappa)
@@ -7987,17 +8021,17 @@ namespace Riscontro.Disegno
             //
             // Risultato misurato: `e2_case_a` esegue il foro su un pezzo lungo
             // il 60% in piu' di quello confermato, sulla faccia giusta, e nella
-            // risposta c'e' `riuscita: true` e nient'altro. Il meccanismo
+            // risposta c'e' `succeeded: true` e nient'altro. Il meccanismo
             // scritto apposta per non avere difetti silenziosi ne aveva uno
             // addosso: **aveva misurato lo spostamento e buttato via la
             // misura**.
             //
             // Il canale giusto esisteva gia' ed era vuoto: `Esito.Misure`
-            // arriva dritto nel JSON della risposta, come fa `nota_volume`.
+            // arriva dritto nel JSON della risposta, come fa `note_volume`.
             if (_riancoraggi.Count > 0)
             {
                 if (misure == null) misure = new Dictionary<string, object>();
-                misure["riancoraggi"] = _riancoraggi.ToArray();
+                misure["reanchors"] = _riancoraggi.ToArray();
             }
 
             return new Esito
@@ -8053,7 +8087,7 @@ namespace Riscontro.Disegno
         /// GUARDA IL VALORE, NON LA CHIAVE, e la differenza e' costata un
         /// difetto. Un modello che vede due campi alternativi ne emette spesso
         /// tutti e due, riempiendo quello che non usa con `null`. Con
-        /// `ContainsKey` un `faccia_rif: null` accanto a un `faccia_uid`
+        /// `ContainsKey` un `face_ref: null` accanto a un `face_uid`
         /// perfettamente valido faceva prendere il ramo del riferimento,
         /// buttava via l'identificativo buono, e il passo moriva. Il server
         /// adesso quelle chiavi le toglie dal piano; questo controllo e' la
@@ -8091,7 +8125,7 @@ namespace Riscontro.Disegno
                 return null;
             }
             object valore;
-            if (!mappa.TryGetValue("passo", out valore))
+            if (!mappa.TryGetValue("step", out valore))
             {
                 motivo = $"Il riferimento «{campo}» non dice a quale passo.";
                 return null;
@@ -8137,7 +8171,7 @@ namespace Riscontro.Disegno
             var mappa = grezzo as Dictionary<string, object>;
             if (mappa == null) return "";
             object g;
-            return mappa.TryGetValue("genere", out g) ? Convert.ToString(g) ?? "" : "";
+            return mappa.TryGetValue("kind", out g) ? Convert.ToString(g) ?? "" : "";
         }
 
         private Esito Fallito(string motivo)
@@ -8166,7 +8200,7 @@ namespace Riscontro.Disegno
         /// Un numero che DEVE esserci. Fallisce invece di restituire zero.
         ///
         /// Num() sopra inghiotte ogni eccezione e restituisce il valore
-        /// predefinito: comodo per «centrato» o «angolo», rovinoso per una
+        /// predefinito: comodo per «centered» o «fillet», rovinoso per una
         /// coordinata. Uno zero al posto di un valore illeggibile non da'
         /// nessun errore: sposta il foro nell'origine e basta.
         /// </summary>
@@ -8229,7 +8263,7 @@ namespace Riscontro.Disegno
         /// vocabolario di <see cref="Riferimenti"/> risolve una faccia per
         /// volta e rifiuta quando il ruolo non e' univoco — che e' la regola
         /// giusta e non va toccata. Per averne piu' d'una si ripete l'elemento:
-        /// e' cio' che fa gia' chi scrive `facce_uid` con tre uid dentro.
+        /// e' cio' che fa gia' chi scrive `faces_uid` con tre uid dentro.
         ///
         /// SE UNO SOLO NON SI RISOLVE, FALLISCE TUTTO. Un guscio aperto su due
         /// facce invece che su tre non e' «quasi giusto»: e' un pezzo diverso,

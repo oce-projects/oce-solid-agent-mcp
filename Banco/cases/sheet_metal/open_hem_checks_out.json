@@ -4,18 +4,18 @@
   "why": "VOCE GP18, la quarta operazione. Un orlo aperto lungo 10 con gioco 1 sullo spigolo in fondo al lato da 50 della L. Misurato col banchetto (`prova0089 orlo`) prima di scriverlo: l'aperto e' la formula della flangia con la piega a 180 gradi e il raggio interno pari a meta' del gioco — tre misure su tre al millesimo (gioco 1 e 2, lunghezza 10 e 15).",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "flangia_base",
-      "arguments": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
-                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
-      "expect": [ { "what": "corpi", "equal_to": 1 } ] },
-    { "operation": "orlo",
-      "arguments": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "tipo": "aperto",
-                     "lunghezza_mm": 10, "gioco_mm": 1 },
+    { "operation": "base_flange",
+      "arguments": { "plane": "front", "points": [[0, 30], [0, 0], [50, 0]],
+                     "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
+      "expect": [ { "what": "bodies", "equal_to": 1 } ] },
+    { "operation": "hem",
+      "arguments": { "edge_uid": "@edge(axis=Z,x~=50,y~=0)", "variant": "open",
+                     "length_mm": 10, "gap_mm": 1 },
       "expect": [
-        { "what": "misure.volume_mm3", "equal_to": 776.99, "tolerance": 0.5,
+        { "what": "measurements.volume_mm3", "equal_to": 776.99, "tolerance": 0.5,
           "tolerance_why": "(10 - 0,5 - 2) + pi * (0,5 + 0,5 * 2) - (0,5 + 2) = 9,712 mm di sviluppo in piu', per 2 x 40. Misurato 776,99" },
-        { "what": "misure.lunghezza_sviluppo_mm", "equal_to": 90.424, "tolerance": 0.01,
+        { "what": "measurements.flat_pattern_length_mm", "equal_to": 90.424, "tolerance": 0.01,
           "tolerance_why": "80,712 + 9,712: la striscia spianata" },
-        { "what": "corpi", "equal_to": 1 } ] }
+        { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

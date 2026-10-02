@@ -9,11 +9,11 @@ namespace Controlli.ProvaPosizioni
     /// IL GIUDIZIO SULLE POSIZIONI DEI FORI, CONTROLLATO SENZA SOLIDWORKS.
     ///
     /// PERCHE' ESISTE. Fino alla 0.25.1 il ponte scriveva
-    /// `posizioni_verificate = true` senza condizione, subito dopo una funzione
+    /// `positions_checked = true` senza condizione, subito dopo una funzione
     /// che tornava «tutto a posto» anche in QUATTRO strade in cui non aveva
     /// guardato niente — compresa la piu' frequente, «non ho trovato nessuna
     /// faccia cilindrica del diametro atteso». E il banco decideva il pass con
-    /// `misure.ContainsKey("posizioni_verificate")`: una chiave sempre scritta.
+    /// `misure.ContainsKey("positions_checked")`: una chiave sempre scritta.
     ///
     /// Il ramo che stampava «POSIZIONI NON VERIFICATE» non poteva scattare.
     /// Un controllo mai visto scattare non e' un controllo.

@@ -11,7 +11,7 @@ namespace Controlli.Annulla
     ///
     /// Serve a provare la seconda meta' della voce B8: il ponte raccoglie tutto
     /// il piano dentro UNA voce di annullamento, quindi un solo Ctrl+Z deve
-    /// riportare il documento al `volume_prima_mm3` che il ponte stesso aveva
+    /// riportare il documento al `volume_before_mm3` che il ponte stesso aveva
     /// stampato. Prima ne servivano tanti quanti i passi — e chi ne premeva uno
     /// di troppo disfaceva anche il lavoro di prima.
     ///

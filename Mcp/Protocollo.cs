@@ -222,7 +222,7 @@ namespace Oce.Solid.Agent.Mcp
         /// Lo spec e' netto: uno strumento che dichiara `outputSchema` **deve**
         /// restituire uno `structuredContent` conforme. Lo stato di un documento
         /// cambia forma con quello che c'e' dentro — un assieme ha
-        /// `componenti`, una tavola ha `fogli`, una parte ha `facce` — e ogni
+        /// `components`, una tavola ha `sheets`, una parte ha `faces` — e ogni
         /// campo nuovo aggiunto qui diventerebbe una promessa da mantenere.
         ///
         /// Uno schema **parziale e' peggio di nessuno schema**: un client che

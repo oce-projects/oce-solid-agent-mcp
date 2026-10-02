@@ -366,7 +366,7 @@ namespace Prove.Contratti
         //  2. ON THE BUILT LIBRARY
         // =================================================================
 
-        // ── N22: the four end conditions of taglia_membri, nothing else ──────
+        // ── N22: the four end conditions of trim_members, nothing else ──────
         private static void TrimEndCondition(Type sw)
         {
             try
@@ -375,11 +375,11 @@ namespace Prove.Contratti
                 // Butt1 2, Butt2 3, Trim 4, None 0.
                 // The case is changed at run time, so that no spelling of the
                 // catalogue words is written here that the catalogue does not use.
-                int trim = (int)Call(sw, "TrimEndCondition", "taglio");
-                int miter = (int)Call(sw, "TrimEndCondition", " " + "quartabuono".ToUpperInvariant() + " ");
-                int butt1 = (int)Call(sw, "TrimEndCondition", "testa1");
-                int butt2 = (int)Call(sw, "TrimEndCondition", "testa2".ToUpperInvariant());
-                int none = (int)Call(sw, "TrimEndCondition", "nessuno");
+                int trim = (int)Call(sw, "TrimEndCondition", "cut");
+                int miter = (int)Call(sw, "TrimEndCondition", " " + "miter".ToUpperInvariant() + " ");
+                int butt1 = (int)Call(sw, "TrimEndCondition", "butt1");
+                int butt2 = (int)Call(sw, "TrimEndCondition", "butt2".ToUpperInvariant());
+                int none = (int)Call(sw, "TrimEndCondition", "none");
                 int unknown = (int)Call(sw, "TrimEndCondition", "sconosciuta");
                 int missing = (int)Call(sw, "TrimEndCondition", (object)null);
                 Segna("N22: the four catalogue words give Trim 4, Miter 1, Butt1 2, Butt2 3, whatever their case",
@@ -556,7 +556,7 @@ namespace Prove.Contratti
                 foreach (var e in expectations.OfType<Dictionary<string, object>>())
                 {
                     object what, words;
-                    if (e.TryGetValue("what", out what) && Convert.ToString(what) == "misure.giudizio" &&
+                    if (e.TryGetValue("what", out what) && Convert.ToString(what) == "measurements.verdict" &&
                         e.TryGetValue("includes", out words) && words is object[])
                         return ((object[])words).Select(w => Convert.ToString(w)).ToList();
                 }

@@ -21,7 +21,7 @@ namespace Prove.Contratti
     /// document using IModelDoc2::EditRebuild3.» Up to library 0.146.0
     /// `Ponte/Documenti.cs::PortaDavanti` read the activation Errors bitmask
     /// into a local and never looked at it again: a plan whose first step is
-    /// read-only (`proprieta_di_massa`, `ingombro`) would measure stale geometry,
+    /// read-only (`mass_properties`, `overall`) would measure stale geometry,
     /// since the executor's own rebuild only follows a SUCCESSFUL step
     /// (EsecutorePiano.cs) — too late for the very first one.
     ///

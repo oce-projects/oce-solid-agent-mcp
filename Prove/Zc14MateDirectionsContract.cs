@@ -38,7 +38,7 @@ namespace Prove.Contratti
     ///    direction from the rule of the whole transform, so that it cannot pass
     ///    under both;
     ///  * the rest is read in the source of OperazioniAccoppia.cs and of the
-    ///    catalogue: `accoppia` reads the directions before AddMate5 and after it,
+    ///    catalogue: `mate` reads the directions before AddMate5 and after it,
     ///    takes out the mate it made by the object AddMate5 returned and refuses
     ///    when the verdict is redundant, the test follows the probe (fixed
     ///    component not moved, set checked, rebuild answer used, put back where
@@ -50,7 +50,7 @@ namespace Prove.Contratti
     /// the Z-C14 sources and a library built from them; 16 of 17 red on the
     /// sources and a library of 0.147.0 (2df71c4): none of the members exists,
     /// the catalogue still says the remaining freedom cannot be told, and
-    /// `accoppia` neither measures nor refuses (the one green is the check of the
+    /// `mate` neither measures nor refuses (the one green is the check of the
     /// S3 data, which needs no library). And 4 red on a library built from the
     /// Z-C14 sources with MovementOf on the whole displacement and the whole
     /// transform (the probe's first rule) and the «not_judged» line of
@@ -91,7 +91,7 @@ namespace Prove.Contratti
         private static readonly string VerdictMember = OwnNames[4];
 
         /// <summary>The operation's name in the catalogue, as the bench cases write it.</summary>
-        private const string MateOperation = "accoppia";
+        private const string MateOperation = "mate";
 
         internal static void RunAll()
         {

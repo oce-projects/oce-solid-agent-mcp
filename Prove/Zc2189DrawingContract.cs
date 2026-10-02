@@ -11,22 +11,22 @@ namespace Prove.Contratti
     /// THE DRAWING FIXES OF Z-C21.8 (RETURNS AND MESSAGES) THAT THE BENCH
     /// CANNOT REACH.
     ///
-    ///   L13-6  esporta_pdf. The answer of IExportPdfData.SetSheets is read, and
+    ///   L13-6  export_pdf. The answer of IExportPdfData.SetSheets is read, and
     ///          a page count that cannot be taken is -1 and a refusal
     ///          (PdfPageCountRefusal), not a 0 that skipped the check.
-    ///   L16-1  saldatura_in_tavola. The text count measured on 26/9/2026 (1
+    ///   L16-1  drawing_weld_symbol. The text count measured on 26/9/2026 (1
     ///          without the drawn symbol, 2 with it) is now one of the checks
     ///          (WeldSymbolTextsWrong).
-    ///   M38    tolleranza_geometrica_in_tavola. The Ø is read back with
+    ///   M38    geometric_tolerance. The Ø is read back with
     ///          IGtol.GetFrameDiameterSymbols (GtolDiameterWrong), and a wrong
     ///          frame is removed and recounted (RemoveNewAnnotation).
-    ///   M40    vista_sviluppo. No refusal drops the answer of RemoveNewView.
-    ///   M41    sezione_in_tavola, dettaglio_in_tavola. The new view is the one
+    ///   M40    flat_pattern_view. No refusal drops the answer of RemoveNewView.
+    ///   M41    section_view, detail_view. The new view is the one
     ///          the call returns, and the line or circle a refusal leaves on the
     ///          sheet is removed and recounted.
-    ///   N47    quota_in_tavola. A walk over the dimension texts that broke off
+    ///   N47    drawing_dimension. A walk over the dimension texts that broke off
     ///          gives null, not the texts read before the break.
-    ///   N80    quota_in_tavola. «Not born» is the count of dimensions, asked
+    ///   N80    drawing_dimension. «Not born» is the count of dimensions, asked
     ///          first; a dimension born without its object is described, not
     ///          answered with a second annotation. The site the lot left out,
     ///          QuotaFraDue of the turned view (OperazioniTondoTavola.cs), was
@@ -217,7 +217,7 @@ namespace Prove.Contratti
             {
                 int bare = Regex.Matches(flat, @"(?m)^\s*RemoveNewView\(").Count;
                 int all = Count(flat, "RemoveNewView(");
-                Segna("M40: no refusal of vista_sviluppo drops the answer of RemoveNewView",
+                Segna("M40: no refusal of flat_pattern_view drops the answer of RemoveNewView",
                       bare == 0 && all >= 6, bare + " bare calls, " + all + " with the definition (six expected)");
             }
 
@@ -271,7 +271,7 @@ namespace Prove.Contratti
                 bool nullOnBreak = outer >= 0 &&
                                    texts.Substring(outer).StartsWith("catch { return null; }", StringComparison.Ordinal);
                 bool mapped = dims.Contains("testiDelleQuote == null ? null");
-                Segna("N47: a broken walk over the dimension texts gives null, and quota_in_tavola says «not known»",
+                Segna("N47: a broken walk over the dimension texts gives null, and drawing_dimension says «not known»",
                       nullOnBreak && mapped,
                       (step < 0 ? "the step to the next dimension is not found" : "null on break " + nullOnBreak) +
                       ", mapped to null " + mapped);

@@ -12,7 +12,7 @@ using SolidWorks.Interop.swconst;
 //
 //  COSA MISURA QUESTA SONDA E PERCHE'
 //
-//  Il catalogo (Riscontro.Disegno/Catalogo/Operazioni.cs, voce "fazzoletto") e
+//  Il catalogo (Riscontro.Disegno/Catalogo/Operazioni.cs, voce "gusset") e
 //  il TODO (voce GP20) elencano 16 varianti provate alla cieca, TUTTE null:
 //
 //    marca: nessuna, 1/1, 1/2, ordine invertito         (6)
@@ -36,7 +36,7 @@ using SolidWorks.Interop.swconst;
 //  api-sw-array-tipizzati).
 //
 //  CORREZIONE DELLA REVISIONE (28/9/2026), letta nel codice storico
-//  (prova0089, Gusset(), variante "poligonale", mai entrata nel repo): un
+//  (prova0089, Gusset(), variante "polygonal", mai entrata nel repo): un
 //  TRIANGOLO non degenere (BIsProfile=false, D1=D2=60) e' GIA' stato provato,
 //  ma SENZA marca, e ha dato null; la marca 1/1 e' stata provata solo col
 //  poligono degenere (Fazzoletto(), "marca1"). La combinazione mai provata e'
@@ -82,7 +82,7 @@ using SolidWorks.Interop.swconst;
 //  0.6 x 0.068 = 0,0408 m^2) e la faccia laterale della corta (normale +-X,
 //  a X=0,26 o X=0,34, area attesa 0.26 x 0.068 = 0,01768 m^2) si toccano
 //  lungo uno spigolo di 68 mm ad angolo retto — le stesse due facce su cui
-//  gia' nasce `cordone_saldatura`.
+//  gia' nasce `weld_bead`.
 //
 //  NIENTE EditDelete, niente AddDimension (mai chiamata), niente finestre:
 //  il profilo si controlla con File.Exists PRIMA di chiamare

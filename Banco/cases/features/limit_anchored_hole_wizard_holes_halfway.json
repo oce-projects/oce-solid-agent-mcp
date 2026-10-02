@@ -1,19 +1,19 @@
 {
   "name": "limit_anchored_hole_wizard_holes_halfway",
   "family": "features",
-  "why": "VOCE E18: i fori di `foro_guidato` stanno in uno schizzo solo, e un punto senza ancora lo lascerebbe sottovincolato — alla prima modifica quel foro andrebbe dove lo mette il risolutore. Quindi l'ancora si da' a tutte le posizioni o a nessuna, e si rifiuta prima di creare il foro.",
+  "why": "VOCE E18: i fori di `hole_wizard` stanno in uno schizzo solo, e un punto senza ancora lo lascerebbe sottovincolato — alla prima modifica quel foro andrebbe dove lo mette il risolutore. Quindi l'ancora si da' a tutte le posizioni o a nessuna, e si rifiuta prima di creare il foro.",
   "start": {
     "new_part": true
   },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 200,
-        "larghezza_mm": 120,
-        "spessore_mm": 20,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 200,
+        "width_mm": 120,
+        "thickness_mm": 20,
+        "centered": true
       },
       "expect": [
         {
@@ -23,23 +23,23 @@
       ]
     },
     {
-      "operation": "foro_guidato",
+      "operation": "hole_wizard",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
-        "taglia": "M8",
-        "passante": true,
-        "posizioni": [
+        "face_uid": "@face(normal=front)",
+        "size": "M8",
+        "through_all": true,
+        "positions": [
           {
             "x_mm": -80,
             "y_mm": -40,
-            "ancora": {
+            "anchor": {
               "x": {
-                "spigolo_uid": "@spigolo(asse=Y,x~=-100,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=Y,x~=-100,z~=20)",
+                "distance_mm": 20
               },
               "y": {
-                "spigolo_uid": "@spigolo(asse=X,y~=-60,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=X,y~=-60,z~=20)",
+                "distance_mm": 20
               }
             }
           },

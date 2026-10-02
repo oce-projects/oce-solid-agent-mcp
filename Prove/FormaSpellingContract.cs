@@ -16,11 +16,11 @@ namespace Prove.Contratti
     /// Ponte/Forma.cs accepts an enum value ignoring case: the case of a word
     /// is form, not merit. Until library 0.140.0 it then passed the value on
     /// untouched, and the library compares Ordinal, so the accepted
-    /// «Superiore» became an unknown name there: SelezionaPiano fell back to
+    /// «Top» became an unknown name there: SelezionaPiano fell back to
     /// the front plane (finding N33, the plate on the wrong plane with
-    /// riuscita:true) and telaio_rettangolare read «Ingombro» as the
+    /// riuscita:true) and rectangular_frame read «Overall» as the
     /// centreline frame (finding N32, 1080x880 for 1000x800). The fix is one
-    /// rewrite in the Forma, in the very dictionary that «disegna» then hands
+    /// rewrite in the Forma, in the very dictionary that «build» then hands
     /// to the library (Strumenti/Attrezzi.cs).
     ///
     /// This group runs the Forma of the BUILT bridge, by reflection, against
@@ -53,7 +53,7 @@ namespace Prove.Contratti
             if (operations == null) { Segna("the served catalogue reads", false, unreadable); return; }
 
             // The refusal, or null; the arguments are rewritten in place, as
-            // «disegna» sees them. An exception comes back as a refusal that
+            // «build» sees them. An exception comes back as a refusal that
             // says so: a Forma that throws (say, writing into the dictionary it
             // is walking) must turn these checks red, not stop the whole run.
             Func<string, Dictionary<string, object>, Dictionary<string, object>, string> forma =
@@ -69,69 +69,69 @@ namespace Prove.Contratti
             Func<string, Dictionary<string, object>, string> onCatalogue =
                 (operation, args) => forma(operation, SchemaOf(operations, operation), args);
 
-            // ── THE CASE OF THE FINDING: «Superiore» ────────────────────────
-            var plate = Plate("Superiore");
-            var refusal = onCatalogue("estrudi_rettangolo", plate);
-            Segna("estrudi_rettangolo: «Superiore» passes the Forma, as it always did",
+            // ── THE CASE OF THE FINDING: «Top» ────────────────────────
+            var plate = Plate("Top");
+            var refusal = onCatalogue("extrude_rectangle", plate);
+            Segna("extrude_rectangle: «Top» passes the Forma, as it always did",
                   refusal == null, refusal ?? "accepted");
-            Segna("and reaches the library as «superiore», not «Superiore» (N33)",
-                  Same(plate["piano"], "superiore"), "piano = " + Show(plate["piano"]));
+            Segna("and reaches the library as «top», not «Top» (N33)",
+                  Same(plate["plane"], "top"), "piano = " + Show(plate["plane"]));
 
-            var allCaps = Plate("DESTRO");
-            onCatalogue("estrudi_rettangolo", allCaps);
-            Segna("«DESTRO» reaches the library as «destro»",
-                  Same(allCaps["piano"], "destro"), "piano = " + Show(allCaps["piano"]));
+            var allCaps = Plate("RIGHT");
+            onCatalogue("extrude_rectangle", allCaps);
+            Segna("«RIGHT» reaches the library as «right»",
+                  Same(allCaps["plane"], "right"), "piano = " + Show(allCaps["plane"]));
 
-            var right = Plate("superiore");
-            refusal = onCatalogue("estrudi_rettangolo", right);
+            var right = Plate("top");
+            refusal = onCatalogue("extrude_rectangle", right);
             Segna("the catalogue's own spelling is accepted and left as it is",
-                  refusal == null && Same(right["piano"], "superiore"),
-                  (refusal ?? "accepted") + ", piano = " + Show(right["piano"]));
+                  refusal == null && Same(right["plane"], "top"),
+                  (refusal ?? "accepted") + ", piano = " + Show(right["plane"]));
 
             // ── THE CATALOGUE'S SPELLING, WHICH IS NOT ALWAYS LOWER CASE ────
-            var sheet = new Dictionary<string, object> { ["formato"] = "a4v" };
-            onCatalogue("crea_disegno", sheet);
-            var step = new Dictionary<string, object> { ["protocollo"] = "ap214" };
-            onCatalogue("esporta_step", step);
+            var sheet = new Dictionary<string, object> { ["paper_size"] = "a4v" };
+            onCatalogue("create_drawing", sheet);
+            var step = new Dictionary<string, object> { ["protocol"] = "ap214" };
+            onCatalogue("export_step", step);
             Segna("«a4v» becomes «A4V» and «ap214» «AP214»: the catalogue's spelling, not lower case",
-                  Same(sheet["formato"], "A4V") && Same(step["protocollo"], "AP214"),
-                  "formato = " + Show(sheet["formato"]) + ", protocollo = " + Show(step["protocollo"]));
+                  Same(sheet["paper_size"], "A4V") && Same(step["protocol"], "AP214"),
+                  "formato = " + Show(sheet["paper_size"]) + ", protocollo = " + Show(step["protocol"]));
 
             // ── N32 THROUGH THE BRIDGE, AND A FREE TEXT LEFT ALONE ──────────
             var frame = new Dictionary<string, object>
             {
-                ["profilo_percorso"] = "profiles/square.SLDLFP",
-                ["configurazione"] = "80X80X5",
-                ["lunghezza_mm"] = 1000,
-                ["larghezza_mm"] = 800,
-                ["misure"] = "Ingombro",
+                ["profile_path"] = "profiles/square.SLDLFP",
+                ["configuration"] = "80X80X5",
+                ["length_mm"] = 1000,
+                ["width_mm"] = 800,
+                ["measured_as"] = "Overall",
             };
-            refusal = onCatalogue("telaio_rettangolare", frame);
-            Segna("telaio_rettangolare: «Ingombro» reaches the library as «ingombro» (N32)",
-                  refusal == null && Same(frame["misure"], "ingombro"),
-                  (refusal ?? "accepted") + ", misure = " + Show(frame["misure"]));
+            refusal = onCatalogue("rectangular_frame", frame);
+            Segna("rectangular_frame: «Overall» reaches the library as «overall» (N32)",
+                  refusal == null && Same(frame["measured_as"], "overall"),
+                  (refusal ?? "accepted") + ", misure = " + Show(frame["measured_as"]));
             Segna("a string that is not an enum is never rewritten («80X80X5» stays)",
-                  Same(frame["configurazione"], "80X80X5"),
-                  "configurazione = " + Show(frame["configurazione"]));
+                  Same(frame["configuration"], "80X80X5"),
+                  "configurazione = " + Show(frame["configuration"]));
 
             // ── INSIDE A NESTED OBJECT ──────────────────────────────────────
-            var face = new Dictionary<string, object> { ["passo"] = 1, ["genere"] = "Faccia_Superiore" };
+            var face = new Dictionary<string, object> { ["step"] = 1, ["kind"] = "Top_Face" };
             var hole = new Dictionary<string, object>
             {
-                ["x_mm"] = 0, ["y_mm"] = 0, ["diametro_mm"] = 10, ["faccia_rif"] = face,
+                ["x_mm"] = 0, ["y_mm"] = 0, ["diameter_mm"] = 10, ["face_ref"] = face,
             };
-            refusal = onCatalogue("taglio_cilindrico", hole);
-            Segna("taglio_cilindrico: «faccia_rif.genere» «Faccia_Superiore» becomes «faccia_superiore»",
-                  refusal == null && Same(face["genere"], "faccia_superiore"),
-                  (refusal ?? "accepted") + ", genere = " + Show(face["genere"]));
+            refusal = onCatalogue("cylindrical_cut", hole);
+            Segna("cylindrical_cut: «faccia_rif.genere» «Top_Face» becomes «top_face»",
+                  refusal == null && Same(face["kind"], "top_face"),
+                  (refusal ?? "accepted") + ", genere = " + Show(face["kind"]));
 
             // ── WHAT IS NOT IN THE LIST IS STILL REFUSED, AND NOT TOUCHED ───
             var unknown = Plate("obliquo");
-            refusal = onCatalogue("estrudi_rettangolo", unknown);
+            refusal = onCatalogue("extrude_rectangle", unknown);
             Segna("«obliquo» is still refused, and the refusal names it",
                   refusal != null && refusal.Contains("«obliquo»"), refusal ?? "accepted");
             Segna("and a refused value is not rewritten",
-                  Same(unknown["piano"], "obliquo"), "piano = " + Show(unknown["piano"]));
+                  Same(unknown["plane"], "obliquo"), "piano = " + Show(unknown["plane"]));
 
             // ── TWO SPELLINGS OF ONE WORD LEAVE NOTHING TO CHOOSE ───────────
             //
@@ -142,17 +142,17 @@ namespace Prove.Contratti
                 ["type"] = "object",
                 ["properties"] = new Dictionary<string, object>
                 {
-                    ["modo"] = new Dictionary<string, object>
+                    ["mode"] = new Dictionary<string, object>
                     {
                         ["type"] = "string", ["enum"] = new object[] { "abc", "ABC" },
                     },
                 },
             };
-            var ambiguous = new Dictionary<string, object> { ["modo"] = "Abc" };
+            var ambiguous = new Dictionary<string, object> { ["mode"] = "Abc" };
             refusal = forma("finta", twoWays, ambiguous);
             Segna("«Abc» against «abc» and «ABC» is refused, not guessed",
-                  refusal != null && Same(ambiguous["modo"], "Abc"),
-                  (refusal ?? "accepted") + ", modo = " + Show(ambiguous["modo"]));
+                  refusal != null && Same(ambiguous["mode"], "Abc"),
+                  (refusal ?? "accepted") + ", modo = " + Show(ambiguous["mode"]));
 
             // ── EVERY TOP-LEVEL ENUM OF THE CATALOGUE ───────────────────────
             //
@@ -164,7 +164,7 @@ namespace Prove.Contratti
             var wrong = new List<string>();
             foreach (var op in operations)
             {
-                var name = Convert.ToString(Get(op, "nome"));
+                var name = Convert.ToString(Get(op, "name"));
                 var properties = Get(Get(op, "schema") as Dictionary<string, object>, "properties")
                                  as Dictionary<string, object>;
                 if (properties == null) continue;
@@ -205,11 +205,11 @@ namespace Prove.Contratti
         private static Dictionary<string, object> Plate(string plane) =>
             new Dictionary<string, object>
             {
-                ["piano"] = plane,
-                ["lunghezza_mm"] = 120,
-                ["larghezza_mm"] = 80,
-                ["spessore_mm"] = 10,
-                ["centrato"] = true,
+                ["plane"] = plane,
+                ["length_mm"] = 120,
+                ["width_mm"] = 80,
+                ["thickness_mm"] = 10,
+                ["centered"] = true,
             };
 
         private static List<Dictionary<string, object>> ServedOperations(out string why)
@@ -221,8 +221,8 @@ namespace Prove.Contratti
             {
                 var root = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(file))
                            as Dictionary<string, object>;
-                var list = Get(root, "operazioni") as object[];
-                if (list == null) { why = "«operazioni» is not a list in " + file; return null; }
+                var list = Get(root, "operations") as object[];
+                if (list == null) { why = "«operations» is not a list in " + file; return null; }
                 return list.OfType<Dictionary<string, object>>().ToList();
             }
             catch (Exception ex) { why = ex.Message; return null; }
@@ -232,7 +232,7 @@ namespace Prove.Contratti
             List<Dictionary<string, object>> operations, string name)
         {
             var op = operations.FirstOrDefault(o =>
-                string.Equals(Convert.ToString(Get(o, "nome")), name, StringComparison.Ordinal));
+                string.Equals(Convert.ToString(Get(o, "name")), name, StringComparison.Ordinal));
             return Get(op, "schema") as Dictionary<string, object>;
         }
 

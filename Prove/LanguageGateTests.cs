@@ -38,7 +38,7 @@ namespace Prove.Contratti
     ///     made of content words only, the words of an `echo` and of a
     ///     here-document, Italian appended to a line that is already Italian,
     ///     the typographic apostrophe;
-    ///   * and English lines with one Italian homograph each ("piano",
+    ///   * and English lines with one Italian homograph each ("plane",
     ///     "dice"): they must NOT count.
     ///
     /// ── 2. THE CI STEP, ON A THROW-AWAY REPOSITORY WITH COMMITS ────────

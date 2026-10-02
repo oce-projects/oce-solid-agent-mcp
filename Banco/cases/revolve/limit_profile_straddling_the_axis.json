@@ -5,10 +5,10 @@
   "_safety_net_not_seen": "IL CONTEGGIO DEI CORPI NON L'HO MAI VISTO SCATTARE. Sta in OperazioniSw.cs subito dopo la feature («ha creato la feature ma il documento ha N corpi solidi invece di uno») e nessun caso lo porta li': i profili che ho provato o fanno un solido solo o non fanno feature. Un controllo mai visto scattare non e' un controllo -- resta scritto qui perche' si sappia che quella riga e' ancora una promessa e non una misura.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "rivoluzione",
-      "arguments": { "piano": "frontale", "angolo_gradi": 360,
-                     "asse": [[0, 0], [50, 0]],
-                     "contorni": [[[0, -20], [0, 20], [50, 20], [50, -20]]] },
+    { "operation": "revolve",
+      "arguments": { "plane": "front", "angle_deg": 360,
+                     "axis": [[0, 0], [50, 0]],
+                     "contours": [[[0, -20], [0, 20], [50, 20], [50, -20]]] },
       "must_fail": {
         "message_includes": ["deve stare sul piano del profilo",
                                   "il profilo non deve attraversarlo"],

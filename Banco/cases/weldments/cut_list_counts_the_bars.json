@@ -1,48 +1,48 @@
 {
   "name": "cut_list_counts_the_bars",
   "family": "weldments",
-  "why": "VOCE Z-C6. `distinta_taglio` e' a catalogo con `Provata = true` da sempre, e fino al 23/9/2026 **nessun giro di banco la toccava**: ne' un caso dichiarato, ne' il C# del banco, ne' un piano a mano. «Provata» li' voleva dire «qualcuno l'ha misurata una volta», non «qualcosa la controlla ogni volta» — e le due cose si leggono uguali nel file.",
+  "why": "VOCE Z-C6. `cut_list` e' a catalogo con `Provata = true` da sempre, e fino al 23/9/2026 **nessun giro di banco la toccava**: ne' un caso dichiarato, ne' il C# del banco, ne' un piano a mano. «Provata» li' voleva dire «qualcuno l'ha misurata una volta», non «qualcosa la controlla ogni volta» — e le due cose si leggono uguali nel file.",
 
   "_why_it_counts": "E' il documento con cui si va in officina, ed e' il motivo per cui un telaio si fa con i membri strutturali invece che con le estrusioni. Una distinta che conta le barre sbagliate manda a tagliare il ferro sbagliato, e non da' nessun errore.",
 
-  "defect_caught": "**E IL 26/9/2026 NE HA PRESO UNO CHE ERA SFUGGITO (voce GT2).** Il caso era verde con la distinta SBAGLIATA: una voce sola, «QUANTITY 4, LUNGHEZZA 1000» — quattro barre da 1000 dove due sono da 800. Contava i corpi, e i corpi erano giusti. Adesso chiede anche le voci: due, una da 1000 e una da 800, quattro barre in tutto. Poi: una distinta che nasce vuota, o che conta un numero di barre diverso da quelle che ci sono. `corpi_in_distinta` si legge CHIEDENDO alle cartelle della distinta quanti corpi hanno — non ricopiando il numero dei corpi del pezzo — quindi i due numeri possono divergere, ed e' proprio quando divergono che serve saperlo.",
+  "defect_caught": "**E IL 26/9/2026 NE HA PRESO UNO CHE ERA SFUGGITO (voce GT2).** Il caso era verde con la distinta SBAGLIATA: una voce sola, «QUANTITY 4, LUNGHEZZA 1000» — quattro barre da 1000 dove due sono da 800. Contava i corpi, e i corpi erano giusti. Adesso chiede anche le voci: due, una da 1000 e una da 800, quattro barre in tutto. Poi: una distinta che nasce vuota, o che conta un numero di barre diverso da quelle che ci sono. `bodies_in_cut_list` si legge CHIEDENDO alle cartelle della distinta quanti corpi hanno — non ricopiando il numero dei corpi del pezzo — quindi i due numeri possono divergere, ed e' proprio quando divergono che serve saperlo.",
 
   "start": { "new_part": true },
   "steps": [
-    { "operation": "telaio_rettangolare",
+    { "operation": "rectangular_frame",
       "arguments": {
-        "profilo_percorso": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
-        "configurazione": "80X80X5",
-        "lunghezza_mm": 1000,
-        "larghezza_mm": 800,
-        "piano": "frontale",
-        "trattamento_angolo": "quartabuono",
-        "centrato": true
+        "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "80X80X5",
+        "length_mm": 1000,
+        "width_mm": 800,
+        "plane": "front",
+        "corner_treatment": "miter",
+        "centered": true
       },
       "expect": [
-        { "what": "corpi", "equal_to": 4,
+        { "what": "bodies", "equal_to": 4,
           "why": "quattro barre: e' il numero con cui si confronta la distinta due passi piu' sotto. Senza questa riga, «la distinta ne conta quattro» sarebbe vero anche su un telaio venuto male" } ] },
 
-    { "operation": "distinta_taglio",
+    { "operation": "cut_list",
       "arguments": {},
       "expect": [
-        { "what": "misure.corpi_in_distinta", "equal_to": 4,
-          "_and_this_is_the_comparison": "**I DUE NUMERI ARRIVANO DA DUE POSTI DIVERSI.** `corpi` lo conta lo stato del pezzo; `corpi_in_distinta` lo si chiede alle cartelle della distinta, una per una. Sono uguali quando la distinta e' giusta, e quando divergono e' esattamente il momento in cui qualcuno andrebbe in officina col foglio sbagliato.",
+        { "what": "measurements.bodies_in_cut_list", "equal_to": 4,
+          "_and_this_is_the_comparison": "**I DUE NUMERI ARRIVANO DA DUE POSTI DIVERSI.** `bodies` lo conta lo stato del pezzo; `bodies_in_cut_list` lo si chiede alle cartelle della distinta, una per una. Sono uguali quando la distinta e' giusta, e quando divergono e' esattamente il momento in cui qualcuno andrebbe in officina col foglio sbagliato.",
           "why": "quattro barre nel pezzo, quattro voci nella distinta" },
 
-        { "what": "misure.gia_esisteva", "equal_to": false,
+        { "what": "measurements.already_existed", "equal_to": false,
           "why": "la distinta e' NATA in questo passo, non trovata gia' fatta: senza questa riga il caso sarebbe verde anche se l'operazione non avesse fatto niente e si fosse limitata a leggere una distinta preesistente" },
 
-        { "what": "misure.voci_distinte", "equal_to": 2,
+        { "what": "measurements.distinct_entries", "equal_to": 2,
           "why": "due lunghezze, due voci: con la distinta di prima era 1, e il caso non lo vedeva" },
 
-        { "what": "misure.lunghezze_mm", "includes": ["1000", "800"],
+        { "what": "measurements.lengths_mm", "includes": ["1000", "800"],
           "why": "le lunghezze LETTE dalle proprieta' delle voci (l'espressione LENGTH@@@), non ricalcolate: 1000 e 800, come il telaio chiesto" },
 
-        { "what": "misure.quantita_totale", "equal_to": 4,
+        { "what": "measurements.quantity_total", "equal_to": 4,
           "why": "la somma delle quantita' delle voci e' il numero delle barre: due piu' due" },
 
-        { "what": "misure.reso_saldato", "equal_to": true,
-          "why": "il telaio_rettangolare non mette la lavorazione «Saldatura»: e' questo passo che fa del pezzo un saldato, ed e' la ragione per cui le voci si separano" } ] }
+        { "what": "measurements.made_weldment", "equal_to": true,
+          "why": "il rectangular_frame non mette la lavorazione «Saldatura»: e' questo passo che fa del pezzo un saldato, ed e' la ragione per cui le voci si separano" } ] }
   ]
 }

@@ -13,7 +13,7 @@ namespace Riscontro.Disegno
     /// ── PERCHE' E' LA VOCE COL RAPPORTO MIGLIORE ────────────────────────
     ///
     /// Il calcolo difficile — lunghezze e quantita' dei profili di una
-    /// carpenteria — **e' gia' fatto e misurato** da `distinta_taglio`. Qui si
+    /// carpenteria — **e' gia' fatto e misurato** da `cut_list`. Qui si
     /// porta quel dato in tavola. E soprattutto: **la fonte di verita'
     /// indipendente esiste gia'**, quindi la tabella non si dichiara inserita,
     /// si CONFRONTA.
@@ -65,14 +65,14 @@ namespace Riscontro.Disegno
             if (nomi.Count == 0)
                 return Fallito(
                     "La tavola non ha viste: una distinta di taglio si aggancia a una " +
-                    "vista del pezzo. Mettine una con «viste_standard».");
+                    "vista del pezzo. Mettine una con «standard_views».");
 
             // LA VISTA COME LE ALTRE OPERAZIONI DI TAVOLA: per uid (V1, V2...) o
             // per nome. Fino alla 0.124.0 solo per nome — «V1», come la chiama lo
             // stato, rispondeva «non c'e'» (visto dal primo caso di banco che
             // l'ha chiamata, 26/9/2026).
             string motivo;
-            var vista = RisolviVista(disegno, nomi, Str(a, "vista", null), out motivo);
+            var vista = RisolviVista(disegno, nomi, Str(a, "view", null), out motivo);
             if (motivo != null) return Fallito(motivo);
             if (vista == null)
                 return Fallito("Non riesco a prendere la vista della tavola.");
@@ -101,7 +101,7 @@ namespace Riscontro.Disegno
             if (corpiNelPezzo == 0)
                 return Fallito(
                     "Il pezzo dietro la vista non ha nessuna cartella di distinta di " +
-                    "taglio: la tabella nascerebbe vuota. Chiedi prima «distinta_taglio» " +
+                    "taglio: la tabella nascerebbe vuota. Chiedi prima «cut_list» " +
                     "sul pezzo.");
 
             double x = Unita.M(Num(a, "x_mm", 250));
@@ -119,7 +119,7 @@ namespace Riscontro.Disegno
             // takes for the empty name is not measured either. A probe decides
             // it first; the count it is compared with (CorpiNelleCartelleDiDistinta)
             // is read in the part's active configuration.
-            string configurazione = Str(a, "configurazione", "");
+            string configurazione = Str(a, "configuration", "");
             string template = Str(a, "template", "");
 
             object grezza;
@@ -160,7 +160,7 @@ namespace Riscontro.Disegno
                     "La tabella e' nata con " + righe + " righe: e' vuota o ha solo " +
                     "l'intestazione. Una distinta vuota in tavola e' peggio di nessuna " +
                     "distinta, perche' si stampa e sembra che la carpenteria non abbia " +
-                    "barre.");
+                    "bars.");
 
             // ── LA COLONNA DELLE QUANTITA', CHIESTA E NON INDOVINATA ────
             //
@@ -232,17 +232,17 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["vista"] = nomeVista ?? "(senza nome)",
-                ["righe"] = righe,
-                ["colonne"] = colonne,
-                ["voci"] = righe - 1,
-                ["intestazioni"] = intestazioni.ToArray(),
-                ["proprieta_delle_colonne"] = proprietaDiColonna.ToArray(),
-                ["righe_lette"] = voci.ToArray(),
+                ["view"] = nomeVista ?? "(senza nome)",
+                ["rows"] = righe,
+                ["columns"] = colonne,
+                ["entries"] = righe - 1,
+                ["headers"] = intestazioni.ToArray(),
+                ["column_properties"] = proprietaDiColonna.ToArray(),
+                ["rows_read"] = voci.ToArray(),
             };
-            if (!string.IsNullOrWhiteSpace(percorsoPezzo)) misure["pezzo"] = percorsoPezzo;
-            if (corpiNelPezzo >= 0) misure["corpi_nella_distinta_del_pezzo"] = corpiNelPezzo;
-            if (quantitaLetta) misure["quantita_in_tabella"] = quantitaTotale;
+            if (!string.IsNullOrWhiteSpace(percorsoPezzo)) misure["part"] = percorsoPezzo;
+            if (corpiNelPezzo >= 0) misure["bodies_in_part_cut_list"] = corpiNelPezzo;
+            if (quantitaLetta) misure["quantity_in_table"] = quantitaTotale;
             // CAMPI DEDICATI, non una frase in fondo (rilievo L16-8). Nomi nuovi,
             // in inglese come i prossimi del ponte: come si e' trovata la colonna
             // delle quantita' («type», «name» o null) e se il confronto con la
@@ -274,10 +274,10 @@ namespace Riscontro.Disegno
             // si dice che non combaciano.
             if (quantitaLetta && corpiNelPezzo > 0)
             {
-                misure["combaciano"] = quantitaTotale == corpiNelPezzo;
+                misure["match"] = quantitaTotale == corpiNelPezzo;
                 if (quantitaTotale != corpiNelPezzo)
                 {
-                    misure["giudizio"] =
+                    misure["verdict"] =
                         "ATTENZIONE: la tabella in tavola somma " + quantitaTotale +
                         (quantitaTotale == 1 ? " barra" : " barre") + ", e la distinta " +
                         "del pezzo ne ha " + corpiNelPezzo + ". **Le due non combaciano.** " +
@@ -285,13 +285,13 @@ namespace Riscontro.Disegno
                         "dal modello manda in officina la quantita' sbagliata, e nessuno " +
                         "dei due lato da' errore. Di solito vuol dire che il pezzo e' " +
                         "cambiato dopo l'ultimo aggiornamento della distinta: rifai " +
-                        "«distinta_taglio» sul pezzo e poi rimetti la tabella.";
-                    _log("[agente] " + misure["giudizio"]);
+                        "«cut_list» sul pezzo e poi rimetti la tabella.";
+                    _log("[agente] " + misure["verdict"]);
                     return RiuscitoSenzaCreare(misure);
                 }
             }
 
-            misure["giudizio"] =
+            misure["verdict"] =
                 "Distinta di taglio in tavola sulla vista «" + (nomeVista ?? "?") + "»: " +
                 (righe - 1) + (righe - 1 == 1 ? " voce" : " voci") +
                 (quantitaLetta
@@ -304,7 +304,7 @@ namespace Riscontro.Disegno
                     ? " NOTA: non ho trovato la colonna delle quantita' ne' per tipo ne' fra le " +
                       "proprieta' di colonna, quindi non ho sommato niente (comparison_done: false)."
                     : "");
-            _log("[agente] " + misure["giudizio"]);
+            _log("[agente] " + misure["verdict"]);
             return RiuscitoSenzaCreare(misure);
         }
 
@@ -333,7 +333,7 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// Nasconde le colonne che non servono (o tiene quelle chieste con
-        /// «colonne»), misura la tabella e la mette in un posto libero del
+        /// «columns»), misura la tabella e la mette in un posto libero del
         /// foglio: dentro la cornice, fuori dalle viste e dal cartiglio. False
         /// col motivo se il posto non c'e' o se una colonna chiesta non esiste.
         /// </summary>
@@ -343,8 +343,8 @@ namespace Riscontro.Disegno
         {
             motivo = null;
             // ── 1. QUALI COLONNE ────────────────────────────────────────────
-            var chieste = Lista(a, "colonne");
-            bool tutte = chieste.Any(c => string.Equals((c ?? "").Trim(), "tutte", StringComparison.OrdinalIgnoreCase));
+            var chieste = Lista(a, "columns");
+            bool tutte = chieste.Any(c => string.Equals((c ?? "").Trim(), "all", StringComparison.OrdinalIgnoreCase));
             var tenere = new bool[colonne];
             if (tutte)
                 for (int c = 0; c < colonne; c++) tenere[c] = true;
@@ -356,7 +356,7 @@ namespace Riscontro.Disegno
                     if (i < 0)
                     {
                         motivo = "La tabella non ha una colonna «" + ch + "». Ha: " + string.Join(", ", intestazioni) +
-                                 " (oppure chiedi «tutte»).";
+                                 " (oppure chiedi «all»).";
                         return false;
                     }
                     tenere[i] = true;
@@ -400,8 +400,8 @@ namespace Riscontro.Disegno
                     return false;
                 }
             }
-            misure["colonne_visibili"] = visibili.ToArray();
-            misure["colonne_nascoste"] = nascoste.ToArray();
+            misure["columns_visible"] = visibili.ToArray();
+            misure["columns_hidden"] = nascoste.ToArray();
 
             // ── 2. QUANTO E' GRANDE ─────────────────────────────────────────
             double w = 0, h = 0;
@@ -417,13 +417,13 @@ namespace Riscontro.Disegno
                 motivo = "La tabella e' nata ma non riesco a misurarla: senza misura non so se sta nel foglio.";
                 return false;
             }
-            misure["ingombro_tabella_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
+            misure["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
 
             // ── 3. DOVE (OperazioniPostoSulFoglio) ──────────────────────────
             string nomeTabella = null;
             try { nomeTabella = (tabella.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
             var foglio = LeggiIlFoglio(disegno, null, nomeTabella);
-            misure["cartiglio_stimato"] = foglio.CartiglioStimato;
+            misure["title_block_estimated"] = foglio.CartiglioStimato;
             bool chiesta = a.ContainsKey("x_mm") || a.ContainsKey("y_mm");
             double px, py; string dove;
             if (chiesta)
@@ -435,7 +435,7 @@ namespace Riscontro.Disegno
                 {
                     motivo = string.Format(CultureInfo.InvariantCulture,
                         "La tabella ({0:0} x {1:0} mm) messa a {2:0}/{3:0} {4}. Togli «x_mm» e «y_mm» e la metto io in " +
-                        "un posto libero, oppure nascondi colonne con «colonne».", w * 1000, h * 1000, px * 1000, py * 1000, perche);
+                        "un posto libero, oppure nascondi colonne con «columns».", w * 1000, h * 1000, px * 1000, py * 1000, perche);
                     return false;
                 }
                 dove = "dove chiesto";
@@ -447,7 +447,7 @@ namespace Riscontro.Disegno
                 {
                     motivo = string.Format(CultureInfo.InvariantCulture,
                         "Sul foglio non c'e' un posto libero per la tabella ({0:0} x {1:0} mm) fuori dalle viste e dal " +
-                        "cartiglio. Nascondi colonne con «colonne», oppure usa un foglio piu' grande.", w * 1000, h * 1000);
+                        "cartiglio. Nascondi colonne con «columns», oppure usa un foglio piu' grande.", w * 1000, h * 1000);
                     return false;
                 }
                 px = basso[0]; py = basso[1] + h;   // l'ancora e' in alto a sinistra
@@ -466,9 +466,9 @@ namespace Riscontro.Disegno
                          (letta == null ? "niente" : string.Format(CultureInfo.InvariantCulture, "{0:0.#}/{1:0.#} mm", letta[0] * 1000, letta[1] * 1000)) + ").";
                 return false;
             }
-            misure["posizione_tabella_mm"] = new object[] { Math.Round(px * 1000, 1), Math.Round(py * 1000, 1) };
-            misure["dove_sta_la_tabella"] = dove;
-            misure["dentro_il_foglio"] = true;
+            misure["position_table_mm"] = new object[] { Math.Round(px * 1000, 1), Math.Round(py * 1000, 1) };
+            misure["table_location"] = dove;
+            misure["inside_sheet"] = true;
             return true;
         }
 
@@ -498,7 +498,7 @@ namespace Riscontro.Disegno
         /// FirstFeature / GetNextFeature, the top of the tree: the cut-list
         /// folders of a sub-weldment are not descended into, so on a part with
         /// sub-weldments their bodies are not counted and the comparison of
-        /// distinta_taglio_in_tavola can report a mismatch that is this count's.
+        /// drawing_cut_list can report a mismatch that is this count's.
         /// Descending (GetFirstSubFeature of the sub-weldment folders) waits for
         /// a probe on a part with a sub-weldment: whether those folders also
         /// show up in the top-level walk, and would be counted twice, is not

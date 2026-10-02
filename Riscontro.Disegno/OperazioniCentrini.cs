@@ -46,15 +46,15 @@ namespace Riscontro.Disegno
             if (disegno == null)
                 return Fallito(
                     "Il documento attivo non e' una tavola: le croci di centro stanno " +
-                    "su una vista di disegno. Crea prima la tavola con «crea_disegno».");
+                    "su una vista di disegno. Crea prima la tavola con «create_drawing».");
 
             var nomi = NomiDelleViste(disegno);
             if (nomi.Count == 0)
                 return Fallito(
                     "La tavola non ha viste: le croci non avrebbero dove attaccarsi. " +
-                    "Metti prima le viste con «viste_standard» o «vista_modello».");
+                    "Metti prima le viste con «standard_views» o «model_view».");
 
-            string voluta = VistaChiestaPerNome(disegno, Str(a, "vista", null));
+            string voluta = VistaChiestaPerNome(disegno, Str(a, "view", null));
             if (!string.IsNullOrWhiteSpace(voluta) && !NomeDiVistaConosciuto(nomi, voluta))
                 return Fallito(
                     "Non c'e' nessuna vista «" + voluta + "». Ci sono: " + string.Join(", ", nomi) +
@@ -64,30 +64,30 @@ namespace Riscontro.Disegno
             // croci6`): `AddCenterMark` su un ARCO di raccordo selezionato nella
             // vista non fa nascere niente, 4 archi su 4. Le asole hanno due archi
             // e una croce sola in mezzo. Tutt'e due si rifiutano, con la misura.
-            string su = (Str(a, "su", "fori") ?? "fori").Trim().ToLowerInvariant();
+            string su = (Str(a, "applies_to", "holes") ?? "holes").Trim().ToLowerInvariant();
             bool interi = true;
             switch (su)
             {
-                case "": case "fori": break;
+                case "": case "holes": break;
                 case "raccordi":
                 case "tutti":
                     return Fallito("Sui raccordi la croce da codice non nasce: misurato, AddCenterMark su un arco " +
-                                   "selezionato nella vista non mette niente (4 archi su 4). Chiedi «fori»; i centri " +
+                                   "selezionato nella vista non mette niente (4 archi su 4). Chiedi «holes»; i centri " +
                                    "dei raccordi, se servono, vanno messi a mano in SOLIDWORKS.");
                 case "asole":
                     return Fallito("Le asole non le so: un'asola ha due archi e una croce sola in mezzo, e una croce " +
-                                   "per arco sarebbe sbagliata. Chiedi «fori».");
+                                   "per arco sarebbe sbagliata. Chiedi «holes».");
                 default:
-                    return Fallito("«su» puo' essere solo «fori», non «" + su + "».");
+                    return Fallito("«su» puo' essere solo «holes», non «" + su + "».");
             }
 
-            // SENZA `dimensione_mm` la dimensione del documento: e' una
+            // SENZA `size_mm` la dimensione del documento: e' una
             // convenzione di studio, non un numero mio.
-            bool suaDimensione = a != null && a.ContainsKey("dimensione_mm");
-            double dimensione = Unita.M(Num(a, "dimensione_mm", DefaultCentreMarkSizeMm));
+            bool suaDimensione = a != null && a.ContainsKey("size_mm");
+            double dimensione = Unita.M(Num(a, "size_mm", DefaultCentreMarkSizeMm));
             if (!suaDimensione) dimensione = DocumentCentreMarkSize(modello, dimensione);
-            if (dimensione <= 0) return Fallito("«dimensione_mm» deve essere maggiore di zero.");
-            bool linee = Bool(a, "linee_estese", false);
+            if (dimensione <= 0) return Fallito("«size_mm» deve essere maggiore di zero.");
+            bool linee = Bool(a, "extended_lines", false);
 
             IMathUtility mu = null;
             try { mu = _sw.GetMathUtility() as IMathUtility; } catch { }
@@ -128,13 +128,13 @@ namespace Riscontro.Disegno
                 gia += marks.AlreadyMarked;
                 perVista.Add(new Dictionary<string, object>
                 {
-                    ["vista"] = nome ?? "(senza nome)",
-                    ["cerchi"] = marks.Holes,
-                    ["cerchi_che_non_sono_fori"] = marks.CirclesThatAreNotHoles,
-                    ["croci_prima"] = prima,
-                    ["croci_dopo"] = NumeroOppureNull(dopo),
-                    ["croci_aggiunte"] = marks.Added,
-                    ["cerchi_che_avevano_gia_la_croce"] = marks.AlreadyMarked,
+                    ["view"] = nome ?? "(senza nome)",
+                    ["circles"] = marks.Holes,
+                    ["circles_not_holes"] = marks.CirclesThatAreNotHoles,
+                    ["marks_before"] = prima,
+                    ["marks_after"] = NumeroOppureNull(dopo),
+                    ["marks_added"] = marks.Added,
+                    ["circles_already_marked"] = marks.AlreadyMarked,
                 });
                 vista = vista.GetNextView() as IView;
             }
@@ -144,19 +144,19 @@ namespace Riscontro.Disegno
             int aggiunte = Math.Max(0, totaleDopo - totalePrima);
             var misure = new Dictionary<string, object>
             {
-                ["su"] = su,
-                ["viste_guardate"] = perVista.Count,
-                ["croci_prima"] = totalePrima,
-                ["croci_dopo"] = totaleDopo,
-                ["croci_aggiunte"] = aggiunte,
-                ["cerchi_che_avevano_gia_la_croce"] = gia,
-                ["per_vista"] = perVista.ToArray(),
-                ["dimensione_mm"] = Math.Round(dimensione * 1000, 3),
-                ["dimensione_da"] = suaDimensione ? "chiesta" : "documento",
+                ["applies_to"] = su,
+                ["views_checked"] = perVista.Count,
+                ["marks_before"] = totalePrima,
+                ["marks_after"] = totaleDopo,
+                ["marks_added"] = aggiunte,
+                ["circles_already_marked"] = gia,
+                ["per_view"] = perVista.ToArray(),
+                ["size_mm"] = Math.Round(dimensione * 1000, 3),
+                ["size_source"] = suaDimensione ? "requested" : "document",
             };
             if (nonNate.Count > 0)
             {
-                misure["cerchi_senza_croce"] = nonNate.ToArray();
+                misure["circles_without_mark"] = nonNate.ToArray();
                 return Fallito(nonNate.Count + (nonNate.Count == 1 ? " foro e'" : " fori sono") +
                                " senza croce di centro (" + string.Join("; ", nonNate) + ") e da codice la croce non " +
                                "nasce (misurato: AddCenterMark non la mette). La mette SOLIDWORKS creando la vista, se " +
@@ -167,7 +167,7 @@ namespace Riscontro.Disegno
             // ── ZERO CROCI NON E' UN SUCCESSO SILENZIOSO ────────────────
             if (aggiunte == 0)
             {
-                misure["giudizio"] =
+                misure["verdict"] =
                     "NESSUNA CROCE AGGIUNTA. " +
                     (gia > 0
                         ? gia + (gia == 1 ? " cerchio aveva" : " cerchi avevano") + " gia' la croce: niente di nuovo da mettere."
@@ -175,15 +175,15 @@ namespace Riscontro.Disegno
                           " non c'e' nessun " + (interi ? "foro" : "arco") + " visibile: e' la vista sbagliata " +
                           "(i fori si vedono come cerchi dall'alto, di solito V2), oppure il pezzo non ne ha.") +
                     " Il numero e' zero e te lo dico.";
-                _log("[agente] " + misure["giudizio"]);
+                _log("[agente] " + misure["verdict"]);
                 return RiuscitoSenzaCreare(misure);
             }
 
-            misure["giudizio"] =
+            misure["verdict"] =
                 "Messe " + aggiunte + (aggiunte == 1 ? " croce di centro" : " croci di centro") +
                 " su " + perVista.Count + (perVista.Count == 1 ? " vista" : " viste") +
                 " (" + totalePrima + " -> " + totaleDopo + "), una per cerchio, contate sulla tavola.";
-            _log("[agente] " + misure["giudizio"]);
+            _log("[agente] " + misure["verdict"]);
             return RiuscitoSenzaCreare(misure);
         }
 
@@ -236,8 +236,8 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// THE CENTRE MARKS ON THE HOLES OF ONE VIEW, shared by croci_di_centro
-        /// and viste_standard (Z-C21.13; before, this walk lived inside
+        /// THE CENTRE MARKS ON THE HOLES OF ONE VIEW, shared by center_marks
+        /// and standard_views (Z-C21.13; before, this walk lived inside
         /// CrociDiCentro).
         ///
         /// For every WHOLE circle of the view that is a hole seen end-on
@@ -400,7 +400,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// La croce `q` (riferimento della vista) sta sul centro `foglio`? Si prova
+        /// La croce `q` (riferimento della vista) sta sul centro `sheet`? Si prova
         /// con e senza la scala: a scala 1 non si e' potuto dire se GetPosition
         /// la applichi, e mezzo millimetro di tolleranza vale nelle due letture.
         /// </summary>

@@ -56,7 +56,7 @@ namespace Riscontro.Disegno
         /// 2097152 and 8388608; the axis branch selects an axis FEATURE with
         /// Select2 and this mark. Measured to work (Z-C21.9, L7-5 not real): the
         /// Z-C21.3 probe of L7-5 and M16 (28/9/2026) made the right pattern with
-        /// an axis of crea_asse selected this way, by identity and by step
+        /// an axis of create_axis selected this way, by identity and by step
         /// reference, as a row and as a grid (its cases L1, L2, G1, G2); the
         /// bench case the_linear_pattern_follows_a_reference_axis holds the row. The edge branch (SelectByMark) was the only one the
         /// bench used before.
@@ -138,7 +138,7 @@ namespace Riscontro.Disegno
         /// UseAutoSelect; five revolve cases pass that way. Not used yet.
         public const int RevolveAxis = 4;
 
-        // ── IFeatureManager.InsertRefPlane (crea_piano, loft, rib plane) ────
+        // ── IFeatureManager.InsertRefPlane (create_plane, loft, rib plane) ────
 
         /// <summary>The reference plane an offset plane is measured from.</summary>
         /// Guide: IFeatureManager~InsertRefPlane.html, Remarks, «0 = First reference entity».
@@ -183,7 +183,7 @@ namespace Riscontro.Disegno
 
         /// <summary>The edges of a variable-radius fillet.</summary>
         /// Guide: IFeatureManager~FeatureFillet3.html, «Variable radius fillets Call IModelDocExtension::SelectByID2 with Mark = 1 to select the edges to fillet».
-        /// DIVERGES: S9/M37 — raccordo_variabile (OperazioniCorpi) selects the
+        /// DIVERGES: S9/M37 — variable_fillet (OperazioniCorpi) selects the
         /// edge and its two vertices with no mark, measured working
         /// (fillet_that_changes_radius).
         /// Moving to this mark belongs with the CreateDefinition migration of
@@ -194,7 +194,7 @@ namespace Riscontro.Disegno
 
         /// <summary>Each weld-from face or edge of a cosmetic weld bead (weld geometry mode).</summary>
         /// Guide: IFeatureManager~InsertCosmeticWeldBead2.html, «4 for each weld-from entity in WeldFromFaceOrEdgeSet».
-        /// Used by cordone_saldatura since Z-C21.7 (L9-3). Until then it called
+        /// Used by weld_bead since Z-C21.7 (L9-3). Until then it called
         /// the obsolete InsertCosmeticWeldBead with both faces selected with no
         /// mark, because InsertCosmeticWeldBead2 had returned null in every
         /// combination tried on 25/9/2026, none with these marks. The Z-C21.3
@@ -208,7 +208,7 @@ namespace Riscontro.Disegno
         /// Measured and used as <see cref="WeldBeadFrom"/>.
         public const int WeldBeadTo = 8;
 
-        // ── ISimpleFilletFeatureData2, face fillet (raccordo_faccia) ────────
+        // ── ISimpleFilletFeatureData2, face fillet (fillet_face) ────────
 
         /// <summary>The first face set of a face fillet.</summary>
         /// Guide: ISimpleFilletFeatureData2.html, Remarks, «Face fillet/face-face chamfer Call IModelDocExtension::SelectByID2 with: - Mark = 2 to select Face Set 1».
@@ -220,7 +220,7 @@ namespace Riscontro.Disegno
         /// Guide: ISimpleFilletFeatureData2.html, Remarks, «Mark = 4 to select Face Set 2».
         public const int FaceFilletFaceSet2 = 4;
 
-        // ── IFillPatternFeatureData (ripeti_riempimento) ────────────────────
+        // ── IFillPatternFeatureData (fill_pattern) ────────────────────
 
         /// <summary>The direction reference (an edge or an axis) of a fill pattern.</summary>
         /// Guide: IFillPatternFeatureData.html, Remarks, «Direction reference (e.g., edge or axis) Pattern direction (if not selected, SOLIDWORKS chooses a direction reference appropriate for the specified layout) 1».

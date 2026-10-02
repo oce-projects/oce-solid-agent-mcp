@@ -70,17 +70,17 @@ namespace Riscontro.Disegno
         private Esito VerificaSovrasporgenze(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double soglia = Num(a, "soglia_gradi", 45);
+            double soglia = Num(a, "threshold_deg", 45);
             if (soglia <= 0 || soglia >= 90)
                 return Fallito(
-                    "«soglia_gradi» va fra 0 e 90 esclusi. E' l'angolo oltre il quale una " +
+                    "«threshold_deg» va fra 0 e 90 esclusi. E' l'angolo oltre il quale una " +
                     "parete non si regge: 45 per una stampante a filamento normale, 30-35 " +
                     "se vuoi stare largo, 60 se la macchina raffredda bene.");
 
-            double[] su = Direzione(a, "direzione_di_stampa");
+            double[] su = Direzione(a, "print_direction");
             if (su == null)
                 return Fallito(
-                    "«direzione_di_stampa» dev'essere tre numeri, per esempio [0, 0, 1]. " +
+                    "«print_direction» dev'essere tre numeri, per esempio [0, 0, 1]. " +
                     "E' il verso in cui cresce la stampa: il piano della macchina sta sotto, " +
                     "perpendicolare a questo.");
 
@@ -236,30 +236,30 @@ namespace Riscontro.Disegno
                     "senza che si veda. Non ti do un'analisi rovesciata.",
                     concordi + discordi, discordi));
 
-            elenco = elenco.OrderByDescending(v => Convert.ToDouble(v["sporgenza_gradi"])).ToList();
+            elenco = elenco.OrderByDescending(v => Convert.ToDouble(v["overhang_deg"])).ToList();
             const int quanteNeDico = 12;
             bool troncato = elenco.Count > quanteNeDico;
 
             var misure = new Dictionary<string, object>
             {
-                ["soglia_gradi"] = soglia,
-                ["direzione_di_stampa"] = su.Select(x => Math.Round(x, 4)).ToArray(),
-                ["facce_guardate"] = facceGuardate,
-                ["facce_curve"] = facceCurve,
-                ["facce_sporgenti"] = facceSporgenti,
-                ["sporgenza_peggiore_gradi"] = Math.Round(peggiore, 2),
-                ["area_sporgente_mm2"] = Math.Round(areaSporgente, 2),
-                ["area_totale_mm2"] = Math.Round(areaTotale, 2),
-                ["area_appoggiata_al_piano_mm2"] = Math.Round(areaSulPiano, 2),
+                ["threshold_deg"] = soglia,
+                ["print_direction"] = su.Select(x => Math.Round(x, 4)).ToArray(),
+                ["faces_checked"] = facceGuardate,
+                ["faces_curved"] = facceCurve,
+                ["faces_overhanging"] = facceSporgenti,
+                ["overhang_worst_deg"] = Math.Round(peggiore, 2),
+                ["area_overhanging_mm2"] = Math.Round(areaSporgente, 2),
+                ["area_total_mm2"] = Math.Round(areaTotale, 2),
+                ["area_resting_on_plane_mm2"] = Math.Round(areaSulPiano, 2),
                 // NON CONCLUSIVO E' UN TERZO VALORE, non un «si'» (rilievo
                 // L12-2): con una faccia curva che non si e' potuta guardare,
                 // «nessuna sporgenza trovata» non vuol dire «nessuna sporgenza».
                 // Una sporgenza trovata resta un «no» anche cosi'.
-                ["si_stampa_senza_supporti"] = facceSporgenti > 0
+                ["prints_without_supports"] = facceSporgenti > 0
                     ? (object)false
                     : facceNonAnalizzate > 0 ? null : (object)true,
-                ["sporgenze"] = elenco.Take(quanteNeDico).ToArray(),
-                ["triangoli_controllati"] = concordi + discordi,
+                ["overhangs"] = elenco.Take(quanteNeDico).ToArray(),
+                ["triangles_checked"] = concordi + discordi,
                 // Nomi nuovi, in inglese come i prossimi del ponte.
                 ["faces_not_analyzed"] = facceNonAnalizzate,
                 ["hidden_bodies"] = corpiNascosti,
@@ -273,8 +273,8 @@ namespace Riscontro.Disegno
             }
             if (troncato)
             {
-                misure["sporgenze_non_elencate"] = elenco.Count - quanteNeDico;
-                misure["troncato"] = true;
+                misure["overhangs_not_listed"] = elenco.Count - quanteNeDico;
+                misure["truncated"] = true;
             }
 
             int curvedNotAnalysed = facceNonAnalizzate - planarWithoutBox;
@@ -289,7 +289,7 @@ namespace Riscontro.Disegno
                     " WARNING: {0} planar faces ({1:0.##} mm2) hang over the threshold, but their true " +
                     "bounding box could not be measured, so I cannot tell whether they rest on the plate.",
                     planarWithoutBox, planarWithoutBoxArea);
-            misure["giudizio"] = facceSporgenti > 0
+            misure["verdict"] = facceSporgenti > 0
                 ? string.Format(CultureInfo.InvariantCulture,
                     "NON si stampa senza supporti: {0} facce pendono oltre {1:0.#} gradi, " +
                     "la peggiore a {2:0.#}, per {3:0.##} mm2 su {4:0.##} di superficie. " +
@@ -305,7 +305,7 @@ namespace Riscontro.Disegno
                         "Si stampa senza supporti con la soglia di {0:0.#} gradi: non c'e' " +
                         "nessuna superficie che pende oltre.", soglia);
 
-            misure["cosa_non_guarda"] =
+            misure["what_it_does_not_check"] =
                 "Guardo l'angolo di ogni superficie rispetto alla direzione di stampa, e " +
                 "basta. NON guardo: i ponti fra due appoggi (una traversa corta si stampa " +
                 "anche se e' orizzontale), lo spessore delle pareti, le isole staccate che " +
@@ -376,7 +376,7 @@ namespace Riscontro.Disegno
         /// E' la convenzione degli slicer -- «soglia 45 gradi» vuol dire quello
         /// -- e non quella dell'angolo col piano, che e' il complementare. Due
         /// numeri che si somigliano e dicono il contrario: qui si scrive quale
-        /// dei due e', e il campo si chiama `sporgenza_gradi`.
+        /// dei due e', e il campo si chiama `overhang_deg`.
         /// </summary>
         private static double Sporgenza(double[] normale, double[] su)
         {
@@ -427,15 +427,15 @@ namespace Riscontro.Disegno
         {
             var voce = new Dictionary<string, object>
             {
-                ["sporgenza_gradi"] = Math.Round(gradi, 2),
+                ["overhang_deg"] = Math.Round(gradi, 2),
                 ["area_mm2"] = Math.Round(area, 2),
-                ["piana"] = piana,
+                ["planar"] = piana,
             };
             try
             {
                 var b = ApiHelpers.TrueBoundingBox(faccia);   // S6: not IFace2.GetBox, approximate
                 if (b != null && b.Length >= 6)
-                    voce["sta_fra_mm"] = new[]
+                    voce["is_between_mm"] = new[]
                     {
                         Math.Round(Unita.Mm(b[0]), 2), Math.Round(Unita.Mm(b[1]), 2),
                         Math.Round(Unita.Mm(b[2]), 2), Math.Round(Unita.Mm(b[3]), 2),
@@ -477,7 +477,7 @@ namespace Riscontro.Disegno
             // IPartDoc~GetBodies2.html, parametro BVisibleOnly: «True gets only
             // the visible bodies, false gets all of the bodies in the part». Qui
             // c'era `true`: un corpo nascosto per guardare dentro il pezzo usciva
-            // dall'analisi senza che niente lo dicesse, e «si_stampa_senza_supporti»
+            // dall'analisi senza che niente lo dicesse, e «prints_without_supports»
             // poteva dire si' su un corpo che pende. Lo stato usa `false` da tempo
             // (StatoDocumento.cs, «e il false e' voluto»), e con `true` qui «C2»
             // indicava un corpo diverso da quello dello stato.
@@ -492,10 +492,10 @@ namespace Riscontro.Disegno
             var tutti = (grezzi ?? new object[0]).Select(o => o as IBody2).Where(b => b != null).ToList();
             if (tutti.Count == 0) { motivo = "Il pezzo non ha corpi solidi da guardare."; return null; }
 
-            string uid = Str(a, "corpo_uid", null);
+            string uid = Str(a, "body_uid", null);
             if (string.IsNullOrWhiteSpace(uid)) return tutti;
 
-            // IL CORPO PER FIRMA, come in combina_corpi e sposta_corpi (schema S5,
+            // IL CORPO PER FIRMA, come in combine_bodies e move_bodies (schema S5,
             // rilievo L6-1): GetBodies2.html, «May vary the order in which bodies
             // are returned».
             var trovati = CorpiDaUid(stato, new List<string> { uid.Trim() }, a, out motivo);

@@ -13,36 +13,36 @@ namespace Prove.Contratti
     /// THE MACHINING AND ANCHOR FIXES OF Z-C21.8 AND Z-C21.9 THAT THE BENCH
     /// CANNOT REACH.
     ///
-    ///   L5-5   cambia_estrusione. The answer of AccessSelections is read, and a
+    ///   L5-5   edit_extrusion. The answer of AccessSelections is read, and a
     ///          refused definition is read back before anything is said
-    ///          (ExtrusionReadBackTail, M42). sopprimi_istanza reads the same
+    ///          (ExtrusionReadBackTail, M42). suppress_instance reads the same
     ///          answer for its three pattern families.
-    ///   L5-6   modifica_quota. A refused value gets the remedy of its own
+    ///   L5-6   set_dimension. A refused value gets the remedy of its own
     ///          swSetValueReturnStatus_e (SetValueRefusalCause).
-    ///   L5-7   tolleranza_quota. Every displayed dimension answers for itself
+    ///   L5-7   dimension_tolerance. Every displayed dimension answers for itself
     ///          (ToleranceDecimalsFault), not the last one of the loop; the
     ///          tolerance put back is read back (M42).
-    ///   L12-9  distanza_minima. ClosestDistance's -1 («no solution») is said.
+    ///   L12-9  minimum_distance. ClosestDistance's -1 («no solution») is said.
     ///   L17-8  the state. The result code of Get6 is read.
     ///   M24    the flat pattern. Both answers of SetSuppression2 are read.
-    ///   M35    scrivi_proprieta. The text written is compared with ValOut, not
+    ///   M35    set_property. The text written is compared with ValOut, not
     ///          with the evaluated value (PropertyWrittenAsAsked).
-    ///   M36    immagine_nello_schizzo. SetSize and SetOrigin are read, and the
+    ///   M36    sketch_picture. SetSize and SetOrigin are read, and the
     ///          placement is judged to a hundredth (PicturePlacementFault).
-    ///   M37    raccordo_spigoli, smusso_spigoli. The volume must move
+    ///   M37    fillet_edges, chamfer_edges. The volume must move
     ///          (EdgeFeatureVolumeFault); R1 = 0 for the variable fillet.
-    ///   M42    riordina_lavorazione. «Nothing touched» and «put back» after a
+    ///   M42    reorder_feature. «Nothing touched» and «put back» after a
     ///          reread of the tree (TreeReadBackFault).
-    ///   M43    sposta_corpi. A body that cannot be measured is not skipped
+    ///   M43    move_bodies. A body that cannot be measured is not skipped
     ///          (MassOfBodies).
-    ///   N16    verifica_geometria_corpo. An unreadable Check3 is not «no
+    ///   N16    check_body_geometry. An unreadable Check3 is not «no
     ///          defects» (BodyFaultNames answers null).
     ///   N49    the anchors. No direct cast of a sketch point that may be null.
     ///   N53    the anchor sketch. All seven swConstrainedStatus_e values
     ///          (ConstrainedStatusRefusal).
     ///   N56    the anchor of the guided holes. The open sketch is read after
     ///          EditSketch, and the selection is cleared before InsertSketch.
-    ///   C7-3   sopprimi_istanza. Fill and table patterns are named as such
+    ///   C7-3   suppress_instance. Fill and table patterns are named as such
     ///          (NotANumberedPattern), the derived pattern is not.
     ///   C9-6   the three removal helpers. A removed feature is not said to be
     ///          «still in the part» (RemovedButVolumeChanged,
@@ -112,7 +112,7 @@ namespace Prove.Contratti
         }
 
         // ── L5-6: a refused dimension value, by its status ───────────────────
-        // modifica_quota said «usually a dimension governed by an equation or a
+        // set_dimension said «usually a dimension governed by an equation or a
         // relation» for every status of SetSystemValue3. Each status gets its own
         // remedy now; the codes are swSetValueReturnStatus_e (1 Failure, 2
         // InvalidValue, 3 DrivenDimension, 4 ModelNotLoaded, 5 FrozenFeatureOwner).
@@ -385,7 +385,7 @@ namespace Prove.Contratti
                 bool kept = Regex.IsMatch(extrusion, @"\w+\s*=\s*dati\.AccessSelections\(");
                 bool bare = Regex.IsMatch(extrusion, @"(?m)^\s*dati\.AccessSelections\(");
                 int readBacks = Count(extrusion, "ExtrusionReadBack(");
-                Segna("L5-5/M42: cambia_estrusione keeps the answer of AccessSelections and reads a refused definition back",
+                Segna("L5-5/M42: edit_extrusion keeps the answer of AccessSelections and reads a refused definition back",
                       kept && !bare && readBacks >= 2,
                       "answer kept " + kept + ", bare call " + bare + ", ExtrusionReadBack " + readBacks + " (with the definition)");
             }
@@ -398,7 +398,7 @@ namespace Prove.Contratti
                 int voidOpeners = Regex.Matches(patterns, @"void \w+\(object d, IModelDoc2 m\)").Count;
                 int returned = Regex.Matches(patterns, @"return \(\(I\w+PatternFeatureData\)d\)\.AccessSelections\(").Count;
                 int refusals = Count(patterns, "AccessSelections answered false");
-                Segna("L5-5: sopprimi_istanza reads AccessSelections for its three families, where it opens and where it puts back",
+                Segna("L5-5: suppress_instance reads AccessSelections for its three families, where it opens and where it puts back",
                       voidOpeners == 0 && returned == 3 && refusals == 2,
                       voidOpeners + " void openers, " + returned + " returned answers, " + refusals + " refusals on a false answer");
             }
@@ -410,7 +410,7 @@ namespace Prove.Contratti
                 bool kept = Regex.IsMatch(tolerance, @"status\s*=\s*dd\.SetPrecision3\(");
                 int verdicts = Count(tolerance, "ToleranceDecimalsFault(");
                 int restores = Count(tolerance, "RestoreTolerance(");
-                Segna("L5-7/M42: tolleranza_quota keeps every SetPrecision3 answer, judges them all and reads the restore back",
+                Segna("L5-7/M42: dimension_tolerance keeps every SetPrecision3 answer, judges them all and reads the restore back",
                       !bare && kept && verdicts >= 2 && restores >= 3,
                       "bare call " + bare + ", answer kept " + kept + ", ToleranceDecimalsFault " + verdicts +
                       ", RestoreTolerance " + restores + " (definition and two calls expected)");
@@ -420,7 +420,7 @@ namespace Prove.Contratti
             if (measure != null)
             {
                 bool guarded = Regex.IsMatch(measure, @"if \(\w+ < 0\)\s*return Fallito\(\s*""SOLIDWORKS found no closest distance");
-                Segna("L12-9: distanza_minima says ClosestDistance's -1 as «no solution»", guarded,
+                Segna("L12-9: minimum_distance says ClosestDistance's -1 as «no solution»", guarded,
                       guarded ? "guarded" : "no guard on the -1");
             }
 
@@ -449,22 +449,22 @@ namespace Prove.Contratti
                 // And no caller is left without the reason: the overload that
                 // answered only NaN is gone, and the flat-pattern view of a drawing
                 // refuses before placing the view when the flat pattern did not
-                // toggle (vista_sviluppo called the NaN-only overload until the
+                // toggle (flat_pattern_view called the NaN-only overload until the
                 // review of this lot).
                 bool nanOnly = Regex.IsMatch(sheet, @"double LunghezzaSviluppata\(IModelDoc2 \w+, out double \w+\)");
                 string flatView = Read(dir, "OperazioniSviluppoTavola.cs");
                 bool viewReports = flatView != null &&
                                    Regex.IsMatch(flatView, @"LunghezzaSviluppata\(\w+, out double _, out string flatPatternProblem\);") &&
                                    flatView.Contains("if (flatPatternProblem != null)");
-                Segna("M24: every caller of the flat length gets the reason, vista_sviluppo included",
-                      !nanOnly && viewReports, "NaN-only overload " + nanOnly + ", vista_sviluppo reports it " + viewReports);
+                Segna("M24: every caller of the flat length gets the reason, flat_pattern_view included",
+                      !nanOnly && viewReports, "NaN-only overload " + nanOnly + ", flat_pattern_view reports it " + viewReports);
             }
 
             string properties = Read(dir, "OperazioniProprieta.cs");
             if (properties != null)
             {
                 bool compared = Regex.IsMatch(properties, @"if \(!PropertyWrittenAsAsked\(\w+, \w+, \w+\)\)");
-                Segna("M35: scrivi_proprieta compares the text written with ValOut", compared,
+                Segna("M35: set_property compares the text written with ValOut", compared,
                       compared ? "compared" : "PropertyWrittenAsAsked is not called");
             }
 
@@ -474,7 +474,7 @@ namespace Prove.Contratti
                 bool size = Regex.IsMatch(picture, @"\w+ = foto\.SetSize\(");
                 bool origin = Regex.IsMatch(picture, @"\w+ = foto\.SetOrigin\(");
                 int judged = Count(picture, "PicturePlacementFault(");
-                Segna("M36: immagine_nello_schizzo keeps both answers and judges the placement",
+                Segna("M36: sketch_picture keeps both answers and judges the placement",
                       size && origin && judged >= 2, "SetSize kept " + size + ", SetOrigin kept " + origin +
                       ", PicturePlacementFault " + judged + " (with the definition)");
             }
@@ -488,7 +488,7 @@ namespace Prove.Contratti
                 Segna("M37/M43: fillet and chamfer check the volume, and MassaDi goes through MassOfBodies",
                       fillet && chamfer && mass, "fillet " + fillet + ", chamfer " + chamfer + ", MassOfBodies " + mass);
                 bool byStatus = Regex.IsMatch(main, @"SetValueRefusalCause\(\w+\)\);");
-                Segna("L5-6: modifica_quota words its refusal by the status of SetSystemValue3", byStatus,
+                Segna("L5-6: set_dimension words its refusal by the status of SetSystemValue3", byStatus,
                       byStatus ? "SetValueRefusalCause is called" : "SetValueRefusalCause is not called");
             }
 
@@ -504,7 +504,7 @@ namespace Prove.Contratti
             if (order != null)
             {
                 int reread = Count(order, "TreeReadBackFault(");
-                Segna("M42: riordina_lavorazione reads the tree back before «nothing touched» and «put back»",
+                Segna("M42: reorder_feature reads the tree back before «nothing touched» and «put back»",
                       reread >= 3, "TreeReadBackFault " + reread + " (definition and two calls expected)");
             }
 

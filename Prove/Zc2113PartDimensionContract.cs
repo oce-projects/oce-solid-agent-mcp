@@ -12,7 +12,7 @@ namespace Prove.Contratti
     /// part the migration to GetSystemValue3(This, null)[0] can be done again»).
     ///
     /// ApiHelpers.ReadDimension, the reader of every PART dimension
-    /// (modifica_quota, lega_quota, tolleranza_quota, the dimensions of the part
+    /// (set_dimension, link_dimension, dimension_tolerance, the dimensions of the part
     /// state), moved from the obsolete IDimension.SystemValue to
     /// GetSystemValue3(swThisConfiguration, null), which the probe
     /// probe_dimension_value3 measured equal to SystemValue on a part (linear and
@@ -39,8 +39,8 @@ namespace Prove.Contratti
 
         /// <summary>
         /// The files that call ApiHelpers.ReadDimension, each of them a PART
-        /// reader: TrovaQuota answers null on anything but a part (modifica_quota,
-        /// lega_quota, tolleranza_quota), and the state reads the dimensions of a
+        /// reader: TrovaQuota answers null on anything but a part (set_dimension,
+        /// link_dimension, dimension_tolerance), and the state reads the dimensions of a
         /// feature only after its part check. A new caller is added here on
         /// purpose, after checking that it reads a part.
         /// </summary>

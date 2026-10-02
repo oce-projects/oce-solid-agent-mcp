@@ -1,4 +1,4 @@
 [
- { "operazione": "taglio_rettangolare", "argomenti": { "faccia_uid": "F1", "x_mm": -70, "y_mm": 0, "lunghezza_mm": 10, "larghezza_mm": 80, "passante": true } },
- { "operazione": "sposta_corpi", "argomenti": { "corpi_uid": ["C2"], "dx_mm": 0, "dy_mm": 100, "dz_mm": 0 } }
+ { "operation": "rectangular_cut", "arguments": { "face_uid": "F1", "x_mm": -70, "y_mm": 0, "length_mm": 10, "width_mm": 80, "through_all": true } },
+ { "operation": "move_bodies", "arguments": { "bodies_uid": ["C2"], "dx_mm": 0, "dy_mm": 100, "dz_mm": 0 } }
 ]

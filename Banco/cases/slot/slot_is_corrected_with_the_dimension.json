@@ -1,25 +1,25 @@
 {
   "name": "slot_is_corrected_with_the_dimension",
   "family": "slot",
-  "why": "VOCE E18, il pezzo che serviva all'ancora e che vale anche senza. Fino alla libreria 0.117.0 lo schizzo dell'asola nasceva con quattro entita' e basta — niente relazioni, niente quote — e un'asola fatta non si poteva correggere: `modifica_quota` non aveva niente da prendere. Adesso nasce con tangenze, raggi uguali, una mezzeria di costruzione fra i centri e due quote: il RAGGIO (D1 = 10) e la distanza fra i centri (D2 = 40). Misurato il 25/9/2026: portata D2 a 60 l'asola resta un'asola, col volume atteso al centesimo.",
+  "why": "VOCE E18, il pezzo che serviva all'ancora e che vale anche senza. Fino alla libreria 0.117.0 lo schizzo dell'asola nasceva con quattro entita' e basta — niente relazioni, niente quote — e un'asola fatta non si poteva correggere: `set_dimension` non aveva niente da prendere. Adesso nasce con tangenze, raggi uguali, una mezzeria di costruzione fra i centri e due quote: il RAGGIO (D1 = 10) e la distanza fra i centri (D2 = 40). Misurato il 25/9/2026: portata D2 a 60 l'asola resta un'asola, col volume atteso al centesimo.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
-    { "operation": "asola",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
-                     "lunghezza_mm": 60, "larghezza_mm": 20, "passante": true },
+    { "operation": "slot",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
+                     "length_mm": 60, "width_mm": 20, "through_all": true },
       "expect": [
-        { "what": "misure.quote_sullo_schizzo", "equal_to": 2 },
+        { "what": "measurements.dimensions_on_sketch", "equal_to": 2 },
         { "what": "volume_mm3", "equal_to": 457716.81, "tolerance": 0.05,
           "tolerance_why": "480000 meno (40*20 + pi*10^2) * 20" } ] },
-    { "operation": "modifica_quota",
-      "arguments": { "quota": "@quota(feature=Schizzo2,nome=D2)", "valore_mm": 60 },
+    { "operation": "set_dimension",
+      "arguments": { "dimension": "@dimension(feature=Schizzo2,name=D2)", "value_mm": 60 },
       "expect": [
-        { "what": "misure.prima_mm", "equal_to": 40 },
-        { "what": "misure.adesso_mm", "equal_to": 60 },
+        { "what": "measurements.before_mm", "equal_to": 40 },
+        { "what": "measurements.now_mm", "equal_to": 60 },
         { "what": "volume_mm3", "equal_to": 449716.81, "tolerance": 0.05,
           "tolerance_why": "480000 meno (60*20 + pi*10^2) * 20: i centri a 60, le estremita' ancora tonde di raggio 10 e tangenti ai lati" } ] }
   ]

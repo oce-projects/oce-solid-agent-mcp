@@ -3,57 +3,57 @@
   "family": "drawing",
   "why": "VOCE E2-bis. Una tavola d'officina non e' fatta solo di geometria e quote: porta le note generali — «smussare tutti gli spigoli vivi», «zincare dopo saldatura», «tolleranze non indicate ISO 2768-mK». Fino alla 0.100.0 il ponte non sapeva scriverne nemmeno una.",
 
-  "_why_the_count_is_in_TWO_places": "`InsertNote` scrive sul **FOGLIO**, ma `GetNoteCount()` sta su `IView` — e le viste vere di una tavola cominciano DOPO la prima, perche' **la prima «vista» e' il foglio**. Chi contasse solo le viste vere leggerebbe `0 -> 0` con la nota regolarmente al suo posto, e scriverebbe «nemmeno le note nascono: e' un blocco sistemico». Quel falso negativo avrebbe chiuso per sbaglio quattro voci del TODO (rugosita', datum, saldature, GD&T), tutte sbloccate proprio dal fatto che una nota nasce.",
+  "_why_the_count_is_in_TWO_places": "`InsertNote` scrive sul **FOGLIO**, ma `GetNoteCount()` sta su `IView` — e le viste vere di una tavola cominciano DOPO la prima, perche' **la prima «view» e' il foglio**. Chi contasse solo le viste vere leggerebbe `0 -> 0` con la nota regolarmente al suo posto, e scriverebbe «nemmeno le note nascono: e' un blocco sistemico». Quel falso negativo avrebbe chiuso per sbaglio quattro voci del TODO (rugosita', datum, saldature, GD&T), tutte sbloccate proprio dal fatto che una nota nasce.",
 
-  "defect_caught": "Una nota che nasce nel posto sbagliato, o con un testo diverso da quello chiesto. Per questo il caso non si accontenta di `note_messe`: pretende che **le viste restino a zero** — che e' cio' che dice DOVE e' finita — e che il testo **riletto da SOLIDWORKS** contenga la stringa chiesta. Un testo ricopiato da quello in ingresso non proverebbe niente: combacerebbe sempre.",
+  "defect_caught": "Una nota che nasce nel posto sbagliato, o con un testo diverso da quello chiesto. Per questo il caso non si accontenta di `notes_placed`: pretende che **le viste restino a zero** — che e' cio' che dice DOVE e' finita — e che il testo **riletto da SOLIDWORKS** contenga la stringa chiesta. Un testo ricopiato da quello in ingresso non proverebbe niente: combacerebbe sempre.",
 
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80,
-                     "spessore_mm": 10, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 10, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 96000,
           "why": "la piastra che poi va in tavola: se il pezzo non e' quello, non lo e' nemmeno la tavola" } ] },
 
-    { "operation": "salva_documento",
-      "arguments": { "percorso": "{LAVORO}\\note_ends_up_on_the_sheet.sldprt" },
+    { "operation": "save_document",
+      "arguments": { "path": "{LAVORO}\\note_ends_up_on_the_sheet.sldprt" },
       "expect": [
-        { "what": "misure.avvisi", "equal_to": 0,
+        { "what": "measurements.warnings", "equal_to": 0,
           "why": "una tavola si fa su un pezzo salvato: se il salvataggio avvisa, la vista potrebbe puntare a un file che non c'e'" } ] },
 
-    { "operation": "crea_disegno",
-      "arguments": { "formato": "A3" },
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
       "expect": [
-        { "what": "stato.tipo", "equal_to": "tavola",
+        { "what": "state.kind", "equal_to": "drawing",
           "why": "da qui in poi il documento attivo e' un altro, ed e' la condizione di tutto il resto" } ] },
 
-    { "operation": "viste_standard",
-      "arguments": { "modello": "{LAVORO}\\note_ends_up_on_the_sheet.sldprt" },
+    { "operation": "standard_views",
+      "arguments": { "model": "{LAVORO}\\note_ends_up_on_the_sheet.sldprt" },
       "expect": [
-        { "what": "misure.viste_create", "equal_to": 3,
+        { "what": "measurements.views_created", "equal_to": 3,
           "why": "le viste non servono alla nota — che va sul foglio — ma servono al CONTRALTARE: senza viste, «le viste restano a zero» sarebbe vero per mancanza di viste invece che per la nota nel posto giusto" } ] },
 
-    { "operation": "nota_in_tavola",
-      "arguments": { "testo": "TOLLERANZE NON INDICATE ISO 2768-mK", "x_mm": 20, "y_mm": 250 },
+    { "operation": "note",
+      "arguments": { "text": "TOLLERANZE NON INDICATE ISO 2768-mK", "x_mm": 20, "y_mm": 250 },
       "expect": [
-        { "what": "misure.note_messe", "equal_to": 1,
+        { "what": "measurements.notes_placed", "equal_to": 1,
           "why": "quante ne sono NATE, contate prima e dopo — non quante volte ho chiamato l'API. Il valore che torna da chi ha fatto la cosa non e' la misura della cosa" },
 
-        { "what": "misure.note_viste_dopo", "equal_to": 0,
-          "_and_this_says_WHERE": "**IL CONTRALTARE, ed e' il pezzo che vale la voce.** `note_messe` a 1 sarebbe verde anche se la nota fosse finita dentro una vista — e una nota dentro una vista si sposta insieme alla vista, che su una tavola e' un difetto vero. Tre viste ci sono (passo precedente) e restano a zero: la nota e' sul foglio.",
+        { "what": "measurements.notes_views_after", "equal_to": 0,
+          "_and_this_says_WHERE": "**IL CONTRALTARE, ed e' il pezzo che vale la voce.** `notes_placed` a 1 sarebbe verde anche se la nota fosse finita dentro una vista — e una nota dentro una vista si sposta insieme alla vista, che su una tavola e' un difetto vero. Tre viste ci sono (passo precedente) e restano a zero: la nota e' sul foglio.",
           "why": "dice su quale dei due contatori e' salita la misura" },
 
-        { "what": "misure.testo_riletto", "includes": ["2768"],
+        { "what": "measurements.text_reread", "includes": ["2768"],
           "why": "**il testo RILETTO da SOLIDWORKS**, non quello che credevo di aver chiesto. Una nota che compare con un testo diverso si legge come una nota giusta finche' nessuno la confronta: sulla carta e' una riga di testo come le altre" },
 
-        { "what": "misure.testo_chiesto", "includes": ["2768"],
+        { "what": "measurements.text_requested", "includes": ["2768"],
           "why": "il contraltare del riletto: se un giorno questa fosse verde e quella sopra rossa, si saprebbe subito che il problema e' nella scrittura e non nel caso" },
 
-        { "what": "misure.dove_mm", "includes": ["20"],
+        { "what": "measurements.where_mm", "includes": ["20"],
           "why": "la posizione riletta dall'oggetto, non quella impostata: una nota che finisce altrove esiste, si conta, e sulla carta puo' non esserci" },
 
-        { "what": "misure.cosa_non_guarda", "includes": ["testo libero"],
+        { "what": "measurements.what_it_does_not_check", "includes": ["testo libero"],
           "_the_first_draft_searched_for_lowercase_true": "E il giro l'ha vista rossa: la risposta dice «sia VERO» in maiuscolo, e `contiene` distingue le maiuscole. Il difetto era nell'attesa, non nell'operazione — ma da fuori i due si scrivono uguali, e per venti minuti ho guardato il codice giusto. Adesso l'attesa cerca **«testo libero»**, che nella frase sta in minuscolo perche' e' prosa e non un'enfasi: un'attesa appesa a una parola che qualcuno potrebbe decidere di gridare e' un'attesa appesa alla punteggiatura.",
           "why": "la cecita' viaggia con la risposta: l'operazione garantisce che la nota c'e' e dice quello che hai scritto, non che sia giusto scriverlo. «Materiale S355» su un pezzo S275 passa ogni conteggio e ogni rilettura" } ] }
   ]

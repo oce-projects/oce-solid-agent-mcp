@@ -26,7 +26,7 @@ namespace Riscontro.Disegno
     ///
     /// «Sembra una staffa» non e' una misura. Ogni parola di questa frase deve
     /// venire da un numero che sta nello stato, e **dove il numero non c'e' la
-    /// frase tace** — come `posizioni_non_verificate`, che dice «non posso
+    /// frase tace** — come `positions_not_checked`, che dice «non posso
     /// dirlo» invece di tirare a indovinare.
     ///
     /// Concretamente: **il nome della famiglia si scrive solo quando un TIPO di
@@ -64,7 +64,7 @@ namespace Riscontro.Disegno
         public static string Descrivi(Dictionary<string, object> stato)
         {
             if (stato == null) return null;
-            if (!Vero(stato, "corpo_solido")) return null;
+            if (!Vero(stato, "solid_body")) return null;
 
             var pezzi = new List<string>();
 
@@ -73,7 +73,7 @@ namespace Riscontro.Disegno
             // Il rapporto fra volume e ingombro dice una cosa vera e utile
             // senza classificare niente: 98% e' un pieno, 23% e' qualcosa di
             // cavo o di sottile. E' un numero, non un aggettivo.
-            double[] ing = Vettore(stato, "ingombro_mm");
+            double[] ing = Vettore(stato, "bounding_box_mm");
             double volume = Numero(stato, "volume_mm3");
             if (ing != null && ing.Length == 3)
             {
@@ -89,7 +89,7 @@ namespace Riscontro.Disegno
             }
             else if (volume > 0) pezzi.Add("Volume " + Mm(volume) + " mm3");
 
-            int corpi = (int)Numero(stato, "corpi_totali");
+            int corpi = (int)Numero(stato, "bodies_total");
             if (corpi > 1) pezzi.Add(corpi + " corpi separati");
 
             // ── 2. COSA CI HANNO FATTO SOPRA ────────────────────────────
@@ -97,14 +97,14 @@ namespace Riscontro.Disegno
             // Solo tipi che il progettista ha scelto: `Shell` e `Revolution`
             // dicono cos'e' il pezzo perche' cos'e' l'ha deciso lui.
             var feature = Voci(stato, "feature").ToList();
-            if (feature.Any(f => Testo(f, "tipo") == "Revolution"))
+            if (feature.Any(f => Testo(f, "kind") == "Revolution"))
             {
                 pezzi.Add("pezzo di rivoluzione");
                 string profilo = ProfiloTornito(stato, ing, volume);
                 if (profilo != null) pezzi.Add(profilo);
             }
 
-            var guscio = feature.FirstOrDefault(f => Testo(f, "tipo") == "Shell");
+            var guscio = feature.FirstOrDefault(f => Testo(f, "kind") == "Shell");
             if (guscio != null)
             {
                 double parete = PrimaQuota(guscio);
@@ -121,10 +121,10 @@ namespace Riscontro.Disegno
             // Un elenco troncato o delle lavorazioni in errore cambiano il
             // senso di tutta la frase, e tacerle la renderebbe una bugia per
             // omissione: chi legge crederebbe di avere il pezzo intero.
-            int fuori = (int)Numero(stato, "feature_non_elencate");
+            int fuori = (int)Numero(stato, "feature_not_listed");
             if (fuori > 0)
                 pezzi.Add("piu' altre " + fuori + " lavorazioni che non sono nell'elenco");
-            int inErrore = (int)Numero(stato, "lavorazioni_in_errore");
+            int inErrore = (int)Numero(stato, "features_in_error");
             if (inErrore > 0)
                 pezzi.Add(inErrore + " lavorazion" + (inErrore == 1 ? "e" : "i") +
                           " IN ERRORE: il pezzo non e' quello che l'albero dice");
@@ -149,12 +149,12 @@ namespace Riscontro.Disegno
         ///
         /// ── COME SI RICAVA, E DA COSA ────────────────────────────────────
         ///
-        /// Le facce cilindriche di un tornito portano `diametro_mm`, `asse` e
+        /// Le facce cilindriche di un tornito portano `diameter_mm`, `axis` e
         /// l'area. La **lunghezza** di un tratto non c'e' da nessuna parte, ma
         /// un cilindro di diametro d e lunghezza L ha area **π·d·L**: la
         /// lunghezza e' `area / (π·d)`.
         ///
-        /// L'ORDINE viene dal `punto_mm`, proiettato sull'asse. E' un punto
+        /// L'ORDINE viene dal `point_mm`, proiettato sull'asse. E' un punto
         /// sulla superficie e non sull'asse — vedi E16 — ma per ORDINARE
         /// basta: i tratti di un tornito non si sovrappongono lungo l'asse,
         /// quindi qualunque punto dentro un tratto lo colloca giusto. Per una
@@ -189,13 +189,13 @@ namespace Riscontro.Disegno
             int lungoQuale = -1;
             var tratti = new List<double[]>();   // {posizione, diametro, lunghezza}
 
-            foreach (var f in Voci(stato, "facce"))
+            foreach (var f in Voci(stato, "faces"))
             {
-                if (Vero(f, "piana")) continue;
-                double d = Numero(f, "diametro_mm");
+                if (Vero(f, "planar")) continue;
+                double d = Numero(f, "diameter_mm");
                 double area = Numero(f, "area_mm2");
-                var asse = Vettore(f, "asse");
-                var punto = Vettore(f, "punto_mm");
+                var asse = Vettore(f, "axis");
+                var punto = Vettore(f, "point_mm");
                 if (d <= 0 || area <= 0 || asse == null || punto == null) return null;
                 if (asse.Length != 3 || punto.Length != 3) return null;
 
@@ -233,25 +233,25 @@ namespace Riscontro.Disegno
         /// superficie.
         ///
         /// **E' il conto che due modelli hanno sbagliato** (voce E16): dal
-        /// `punto_mm` di una faccia cilindrica, che sta sulla superficie, un
+        /// `point_mm` di una faccia cilindrica, che sta sulla superficie, un
         /// interasse esce corto di un raggio per foro. Una corona Ø90 letta
-        /// Ø79. Qui il conto si fa una volta, con `centro_mm`, e chi legge non
+        /// Ø79. Qui il conto si fa una volta, con `center_mm`, e chi legge non
         /// lo rifa'.
         ///
         /// Si contano solo le facce cilindriche che vengono da una lavorazione
-        /// (`da_lavorazione`): sono i fori e le tasche tonde. I raccordi
+        /// (`from_feature`): sono i fori e le tasche tonde. I raccordi
         /// d'angolo di un profilo sono cilindrici anche loro e fori non sono.
         /// </summary>
         private static IEnumerable<string> Fori(Dictionary<string, object> stato)
         {
             var perDiametro = new Dictionary<string, List<double[]>>();
-            foreach (var f in Voci(stato, "facce"))
+            foreach (var f in Voci(stato, "faces"))
             {
-                if (Vero(f, "piana")) continue;
-                double d = Numero(f, "diametro_mm");
+                if (Vero(f, "planar")) continue;
+                double d = Numero(f, "diameter_mm");
                 if (d <= 0) continue;
-                if (string.IsNullOrEmpty(Testo(f, "da_lavorazione"))) continue;
-                var centro = Vettore(f, "centro_mm");
+                if (string.IsNullOrEmpty(Testo(f, "from_feature"))) continue;
+                var centro = Vettore(f, "center_mm");
                 if (centro == null) continue;
 
                 string chiave = Mm(d);
@@ -383,7 +383,7 @@ namespace Riscontro.Disegno
 
         private static double PrimaQuota(Dictionary<string, object> feature)
         {
-            foreach (var q in Voci(feature, "quote"))
+            foreach (var q in Voci(feature, "dimensions"))
             {
                 double mm = Numero(q, "mm");
                 if (mm > 0) return mm;

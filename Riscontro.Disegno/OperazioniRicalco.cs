@@ -128,9 +128,9 @@ namespace Riscontro.Disegno
         {
             if (!(modello is IPartDoc))
                 return Fallito("Metto l'immagine in uno schizzo di un pezzo. Aprimi un pezzo (anche vuoto).");
-            string percorso = (Str(a, "percorso", "") ?? "").Trim();
+            string percorso = (Str(a, "path", "") ?? "").Trim();
             if (percorso.Length == 0)
-                return Fallito("Dimmi «percorso»: il file dell'immagine da ricalcare (PNG, JPG, BMP, TIF).");
+                return Fallito("Dimmi «path»: il file dell'immagine da ricalcare (PNG, JPG, BMP, TIF).");
             string est = (Path.GetExtension(percorso) ?? "").ToLowerInvariant();
             if (est == ".pdf")
                 return Fallito("Un PDF in uno schizzo non entra (misurato: InsertSketchPicture risponde null). " +
@@ -139,13 +139,13 @@ namespace Riscontro.Disegno
                 return Fallito("«" + percorso + "» non e' un'immagine che so mettere: PNG, JPG, BMP, GIF o TIF.");
             if (!File.Exists(percorso))
                 return Fallito("Il file «" + percorso + "» non c'e'.");
-            string piano = (Str(a, "piano", "") ?? "").Trim().ToLowerInvariant();
-            if (piano != "frontale" && piano != "superiore" && piano != "destro")
-                return Fallito("«piano» e' «frontale», «superiore» o «destro», non «" + piano + "».");
+            string piano = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
+            if (piano != "front" && piano != "top" && piano != "right")
+                return Fallito("«plane» e' «front», «top» o «right», non «" + piano + "».");
             double larghezza; string errore;
-            if (!NumObbligatorio(a, "larghezza_mm", out larghezza, out errore)) return Fallito(errore);
+            if (!NumObbligatorio(a, "width_mm", out larghezza, out errore)) return Fallito(errore);
             if (larghezza <= 0)
-                return Fallito("«larghezza_mm» e' la larghezza VERA dell'immagine in millimetri (una misura nota " +
+                return Fallito("«width_mm» e' la larghezza VERA dell'immagine in millimetri (una misura nota " +
                                "divisa per i suoi pixel, per tutta la larghezza): deve essere positiva.");
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0);
             int fileWidth, fileHeight;
@@ -265,19 +265,19 @@ namespace Riscontro.Disegno
                                " mm invece di " + attesa.ToString("0.###") + ": la scala non e' quella che dice.");
             var misure = new Dictionary<string, object>
             {
-                ["immagine"] = nomeFeature,
-                ["piano"] = piano,
+                ["picture"] = nomeFeature,
+                ["plane"] = piano,
                 ["pixel"] = new[] { pixelWidth, pixelHeight },
                 ["solidworks_pixels"] = new[] { w, h },
-                ["larghezza_mm"] = Math.Round(larghezzaLetta, 4),
-                ["altezza_mm"] = Math.Round(altezzaLetta, 4),
+                ["width_mm"] = Math.Round(larghezzaLetta, 4),
+                ["height_mm"] = Math.Round(altezzaLetta, 4),
                 ["mm_per_pixel"] = Math.Round(mmPerPixel, 6),
-                ["origine_mm"] = new[] { Math.Round(ox * 1000, 4), Math.Round(oy * 1000, 4) },
-                ["verifica_scala_mm"] = Math.Round(distanza, 4),
-                ["come_leggerla"] =
-                    "In the plane of the sketch the lower left corner of the picture is at «origine_mm». The pixel " +
-                    "of the FILE in column c and row r (counted from 0, rows from the top) is at x = origine_mm[0] + " +
-                    "c * mm_per_pixel, y = origine_mm[1] + (" + pixelHeight + " - r) * mm_per_pixel. Trace it from there " +
+                ["origin_mm"] = new[] { Math.Round(ox * 1000, 4), Math.Round(oy * 1000, 4) },
+                ["check_scale_mm"] = Math.Round(distanza, 4),
+                ["how_to_read_it"] =
+                    "In the plane of the sketch the lower left corner of the picture is at «origin_mm». The pixel " +
+                    "of the FILE in column c and row r (counted from 0, rows from the top) is at x = origin_mm[0] + " +
+                    "c * mm_per_pixel, y = origin_mm[1] + (" + pixelHeight + " - r) * mm_per_pixel. Trace it from there " +
                     "with the sketch operations on the same plane.",
             };
             if (compressed)

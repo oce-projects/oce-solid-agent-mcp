@@ -1,12 +1,12 @@
 [
  {
-  "operazione": "estrudi_sezione",
-  "argomenti": {
-   "piano": "superiore",
-   "tipo": "asola",
-   "larghezza_mm": 20,
-   "altezza_mm": 20,
-   "lunghezza_mm": 10
+  "operation": "extrude_section",
+  "arguments": {
+   "plane": "top",
+   "variant": "slot",
+   "width_mm": 20,
+   "height_mm": 20,
+   "length_mm": 10
   }
  }
 ]

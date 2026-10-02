@@ -30,18 +30,18 @@ namespace Riscontro.Disegno
     /// I TETTI CI SONO E SI DICHIARANO
     /// Un pezzo di lamiera piegata ha centinaia di facce. Mandarle tutte a un
     /// modello linguistico costa token e non aiuta: si mandano le piu' grandi,
-    /// e si scrive `troncato: true` invece di far credere che siano tutte.
+    /// e si scrive `truncated: true` invece di far credere che siano tutte.
     ///
     /// Sono quattro, e ognuno dice di essere scattato:
     ///
-    ///   MaxFacce, MaxSpigoli  -> `troncato: true`
-    ///   MaxCorpi              -> `corpi_non_elencati` + `corpi_totali`
-    ///   MaxFeature            -> `feature_non_elencate` + `feature_totali`
-    ///                            + `troncato: true`
+    ///   MaxFacce, MaxSpigoli  -> `truncated: true`
+    ///   MaxCorpi              -> `bodies_not_listed` + `bodies_total`
+    ///   MaxFeature            -> `feature_not_listed` + `feature_total`
+    ///                            + `truncated: true`
     ///
     /// L'ultimo e' stato muto fino alla 0.25.2: le lavorazioni oltre
-    /// l'ottantesima finivano in `altre_feature`, insieme a quelle di tipo
-    /// ignorato, e `troncato` restava false.
+    /// l'ottantesima finivano in `other_feature`, insieme a quelle di tipo
+    /// ignorato, e `truncated` restava false.
     ///
     /// E fino alla 0.30.0 teneva le PIU' VECCHIE, che era il peggiore dei due
     /// modi di troncare: l'albero si scorre in ordine di creazione, quindi la
@@ -77,8 +77,8 @@ namespace Riscontro.Disegno
         ///     1.799  tutto il resto
         ///
         /// L'ottantanove per cento sono due elenchi. Le voci sono gia'
-        /// asciutte — uno spigolo e' `{"uid":"E1","lunghezza_mm":1000,
-        /// "punto_mm":[...],"lungo":"X","fra":["F36","F1"],"corpo":"C3"}` —
+        /// asciutte — uno spigolo e' `{"uid":"E1","length_mm":1000,
+        /// "point_mm":[...],"along":"X","between":["F36","F1"],"body":"C3"}` —
         /// quindi accorciare i campi non sposta niente: **si puo' solo
         /// cambiare QUANTE**. E' la domanda che il commento della prova
         /// poneva gia': *«servono davvero sessanta spigoli?»*.
@@ -86,7 +86,7 @@ namespace Riscontro.Disegno
         /// ── PERCHE' GLI SPIGOLI E NON LE FACCE ──────────────────────
         ///
         /// Le facce sono la superficie di aggancio delle operazioni: quasi
-        /// tutte prendono una `faccia_uid`. Gli spigoli li usano in poche —
+        /// tutte prendono una `face_uid`. Gli spigoli li usano in poche —
         /// raccordi, smussi, quote in tavola — e su un saldato a quattro barre
         /// sono rumore: trecento e passa spigoli di cui se ne mandano sessanta
         /// sono un campione su cui non si puo' contare comunque.
@@ -94,8 +94,8 @@ namespace Riscontro.Disegno
         /// Trenta portano lo stato dello stesso telaio a ~13.300: **il 17 per
         /// cento di margine**, che e' la soglia che la voce K13 si era data.
         ///
-        /// E il tetto continua a dichiararsi: `spigoli_totali` dice quanti ce
-        /// n'erano e `troncato` diventa vero. *Un tetto che non dice di essere
+        /// E il tetto continua a dichiararsi: `edges_total` dice quanti ce
+        /// n'erano e `truncated` diventa vero. *Un tetto che non dice di essere
         /// scattato non e' un tetto.*
         /// </summary>
         public const int MaxSpigoli = 30;
@@ -115,11 +115,11 @@ namespace Riscontro.Disegno
             // Un'estrusione fatta su una FACCIA — un rialzo, un labbro, una
             // torretta — non si chiama «Extrusion»: `GetTypeName2()` torna
             // «ICE». Misurato il 10 settembre 2026, appena nata
-            // `estrudi_su_faccia`: il modello ha fatto un labbro di tenuta
+            // `extrude_on_face`: il modello ha fatto un labbro di tenuta
             // e nello stato del passo dopo quel labbro NON C'ERA. Era
             // finito fra le «altre feature», cioe' in un numero.
             //
-            // Se ne e' accorto il campo `altre_feature_tipi`, aggiunto
+            // Se ne e' accorto il campo `other_feature_kinds`, aggiunto
             // mezz'ora prima proprio per questo: un conteggio nasconde, un
             // elenco no.
             "Extrusion", "ICE", "Cut", "HoleWzd", "Fillet", "Chamfer",
@@ -228,7 +228,7 @@ namespace Riscontro.Disegno
             /// `IFace2.GetFeature()` da' la GENERATRICE, non l'ultima che ha
             /// toccato la faccia: misurato il 14/9/2026 (voce 0.5), un raccordo
             /// rimpicciolisce tre facce e tutte e tre continuano a dire
-            /// «estrusione».
+            /// «extrusion».
             /// </summary>
             public int LavorazioneId = -1;
             public string Lavorazione;
@@ -295,7 +295,7 @@ namespace Riscontro.Disegno
                         oggetto is IFeature ? "lavorazione" : null;
 
                     var voce = new Dictionary<string, object>();
-                    if (cosa != null) voce["tipo"] = cosa;
+                    if (cosa != null) voce["kind"] = cosa;
 
                     // Il nome, se lo stato gliene ha dato uno.
                     foreach (var f in firme)
@@ -318,7 +318,7 @@ namespace Riscontro.Disegno
                         }
                     }
                     if (!voce.ContainsKey("uid"))
-                        voce["nota"] =
+                        voce["note"] =
                             "selezionata, ma non e' fra quelle che ho descritto: " +
                             "non posso nominarla.";
 
@@ -332,7 +332,7 @@ namespace Riscontro.Disegno
         /// <summary>
         /// L'ANCORA DI UNA FACCIA: il baricentro d'area, in mm.
         ///
-        /// PERCHE' NON BASTA `punto_mm`. Quel punto fa un mestiere diverso e lo
+        /// PERCHE' NON BASTA `point_mm`. Quel punto fa un mestiere diverso e lo
         /// fa bene: e' il punto GARANTITO sulla faccia da cui si seleziona, e
         /// per questo si prende con `GetClosestPointOn(0,0,0)` invece del
         /// centro del riquadro — il centro di una faccia bucata cade nel vuoto.
@@ -357,7 +357,7 @@ namespace Riscontro.Disegno
         /// dipende dalla qualita' di visualizzazione del documento. Dentro una
         /// sessione e' deterministica — misurato, dieci letture identiche — ma
         /// fra due macchine con impostazioni diverse potrebbe non esserlo, e per
-        /// questo l'ancora **si affianca** a `punto_mm` invece di sostituirlo.
+        /// questo l'ancora **si affianca** a `point_mm` invece di sostituirlo.
         /// </summary>
         /// <summary>
         /// Il riferimento persistente che SOLIDWORKS da' a un'entita', in
@@ -491,7 +491,7 @@ namespace Riscontro.Disegno
         /// SPENTA DI SERIE, e non per prudenza generica. L'ancora e' il
         /// baricentro d'area e serve a RICONOSCERE una faccia fra due letture;
         /// non serve a chi legge lo stato per decidere cosa fare, e offrirgliela
-        /// accanto a `punto_mm` sarebbe dargli due punti quando ne deve usare
+        /// accanto a `point_mm` sarebbe dargli due punti quando ne deve usare
         /// uno — e la scelta sbagliata non darebbe errore, darebbe un foro
         /// fuori dal materiale.
         ///
@@ -544,9 +544,9 @@ namespace Riscontro.Disegno
 
             var dati = new Dictionary<string, object>
             {
-                ["percorso"] = modello.GetPathName() ?? "",
-                ["titolo"] = modello.GetTitle() ?? "",
-                ["tipo"] = OperazioniSw.NomeTipoDocumento(tipoDoc),
+                ["path"] = modello.GetPathName() ?? "",
+                ["document_title"] = modello.GetTitle() ?? "",
+                ["kind"] = OperazioniSw.NomeTipoDocumento(tipoDoc),
             };
 
             // CHI ALTRO E' APERTO.
@@ -559,7 +559,7 @@ namespace Riscontro.Disegno
             // modello non ha modo di nominarlo, e una vista agganciata a un
             // documento chiuso esce vuota senza dare errore.
             var altri = DocumentiAperti(sw, modello);
-            if (altri != null && altri.Count > 0) dati["documenti_aperti"] = altri;
+            if (altri != null && altri.Count > 0) dati["documents_open"] = altri;
 
             if (tipoDoc == (int)swDocumentTypes_e.swDocDRAWING)
             {
@@ -595,8 +595,8 @@ namespace Riscontro.Disegno
                 // si indovina. Dire «di assieme» come faceva la versione
                 // precedente sarebbe una diagnosi sbagliata su un documento che
                 // nessuno ha guardato.
-                dati["corpo_solido"] = false;
-                dati["nota"] =
+                dati["solid_body"] = false;
+                dati["note"] =
                     "documento di tipo «" + OperazioniSw.NomeTipoDocumento(tipoDoc) +
                     "»: non lo so leggere.";
                 stato.Dati = dati;
@@ -621,7 +621,7 @@ namespace Riscontro.Disegno
             int altreFeature = 0;
             // DUE CONTATORI, NON UNO. `altreFeature` conta le lavorazioni di un
             // TIPO che non entra nell'elenco — invisibili per scelta, e i tipi
-            // si dicono in `altre_feature_tipi`. `featureNonElencate` conta
+            // si dicono in `other_feature_kinds`. `featureNonElencate` conta
             // quelle che sarebbero entrate e non ci stanno per il tetto: sono
             // due cose diverse, e sommarle nascondeva la seconda.
             int featureNonElencate = 0;
@@ -630,9 +630,9 @@ namespace Riscontro.Disegno
             var candidate = new List<Candidata>();
             // QUALI, non solo QUANTE.
             //
-            // «altre_feature: 7» dice che c'e' dell'altro e non dice cosa,
+            // «other_feature: 7» dice che c'e' dell'altro e non dice cosa,
             // e quel numero e' un posto dove le cose spariscono. Misurato
-            // il 10 settembre 2026: appena nata `estrudi_su_faccia`, la
+            // il 10 settembre 2026: appena nata `extrude_on_face`, la
             // lavorazione che aveva appena creato NON compariva nello
             // stato — era finita fra le sette «altre», perche' il suo tipo
             // non e' quello che credevo. Il modello aveva appena fatto una
@@ -665,17 +665,17 @@ namespace Riscontro.Disegno
                 // primo passo, e sembra colpa sua.
                 else if (tipo == "RefAxis")
                 {
-                    // «uid» e «nome» erano LA STESSA STRINGA, scritta due
+                    // «uid» e «name» erano LA STESSA STRINGA, scritta due
                     // volte. Su ottanta lavorazioni con nomi da venti caratteri
                     // erano oltre due chilobyte di messaggio che non dicevano
                     // niente — e il posto che tolgono e' esattamente quello che
                     // serve ai parametri qui sotto. Resta «uid», che e' il nome
                     // con cui tutto il resto del sistema chiama le entita'.
-                    var voceAsse = new Dictionary<string, object> { ["uid"] = nome, ["tipo"] = tipo };
+                    var voceAsse = new Dictionary<string, object> { ["uid"] = nome, ["kind"] = tipo };
 
                     // LA FIRMA DELL'ASSE (voce E4, la parte che mancava). Fino
                     // alla 0.113.0 lo stato di un asse era {uid, tipo} e basta:
-                    // niente da firmare, e `asse_uid` nelle ripetizioni era
+                    // niente da firmare, e `axis_uid` nelle ripetizioni era
                     // controllato per ESISTENZA e non per IDENTITA'. Un asse
                     // rifatto altrove col nome di prima passava. Adesso: un punto
                     // sulla retta, la direzione, l'identificativo della lavorazione.
@@ -690,8 +690,8 @@ namespace Riscontro.Disegno
                             {
                                 var punto = new[] { Math.Round(Unita.Mm(par[0]), 3), Math.Round(Unita.Mm(par[1]), 3), Math.Round(Unita.Mm(par[2]), 3) };
                                 var direzione = new[] { Math.Round(dx / lung, 5), Math.Round(dy / lung, 5), Math.Round(dz / lung, 5) };
-                                voceAsse["punto_mm"] = punto;
-                                voceAsse["direzione"] = direzione;
+                                voceAsse["point_mm"] = punto;
+                                voceAsse["direction"] = direzione;
                                 stato.Firme[nome] = new FirmaEntita
                                 {
                                     Tipo = "AXIS", PuntoMm = punto, Normale = direzione, Entita = f,
@@ -748,7 +748,7 @@ namespace Riscontro.Disegno
             // IL TETTO SI DICHIARA, come gli altri tre. Un elenco incompleto
             // dichiarato e' una cosa diversa da un elenco incompleto spacciato
             // per intero — ed e' quello che questo stato faceva fino alla
-            // 0.25.2, con `troncato: false` su un elenco troncato.
+            // 0.25.2, con `truncated: false` su un elenco troncato.
             if (candidate.Count > MaxFeature)
             {
                 featureNonElencate = candidate.Count - MaxFeature;
@@ -766,7 +766,7 @@ namespace Riscontro.Disegno
             // CHE PRIMA NON AVEVA RISPOSTA.
             //
             // Fino alla 0.29.1 di cio' che c'era nel documento si diceva una
-            // cosa sola: `corpo_solido`, si' o no. A chi deve lavorare su un
+            // cosa sola: `solid_body`, si' o no. A chi deve lavorare su un
             // telaio gia' disegnato — «tappa le estremita' di quelle barre»,
             // «fai i fori sul montante» — un booleano non serve a niente, e il
             // committente lo ha chiesto per nome: «mancano dei tools per
@@ -784,7 +784,7 @@ namespace Riscontro.Disegno
 
             // LA SCATOLA DEL PEZZO, non solo quanto e' grande: DOVE STA.
             // Serve fuori dal blocco dei corpi, quindi si dichiara qui. Vedi
-            // il commento su `ingombro_da_mm` piu' sotto.
+            // il commento su `bounding_box_from_mm` piu' sotto.
             double[] scatolaDelPezzo = null;
 
             object corpiObj = null;
@@ -795,7 +795,7 @@ namespace Riscontro.Disegno
             // Il materiale: null ESPLICITO quando non c'e'.
             //
             // Omettere il campo e scriverlo null non sono la stessa cosa. Un
-            // campo che manca il modello non lo vede; un `materiale: null` gli
+            // campo che manca il modello non lo vede; un `material: null` gli
             // dice che quel posto esiste ed e' vuoto — ed e' l'unico modo
             // perche' si accorga di doverlo riempire. Fino alla 0.29.1 la
             // cartella dei materiali era anzi esclusa apposta dall'albero.
@@ -812,7 +812,7 @@ namespace Riscontro.Disegno
                 if (!string.IsNullOrWhiteSpace(letto)) materiale = letto;
             }
             catch { }
-            dati["materiale"] = materiale;
+            dati["material"] = materiale;
 
             // LA CONFIGURAZIONE ATTIVA, E LE ALTRE.
             //
@@ -832,26 +832,26 @@ namespace Riscontro.Disegno
             // che il nome si porta appresso. Un pezzo nato dal modello di
             // questa azienda ha due configurazioni vere, «Default<A macchina>»
             // e «Default<Saldato>» — la coppia dei saldati. Si riporta com'e',
-            // perche' e' quello che `attiva_configurazione` vuole indietro.
+            // perche' e' quello che `activate_configuration` vuole indietro.
             try
             {
                 var gestoreConf = modello.ConfigurationManager as IConfigurationManager;
-                if (gestoreConf != null) dati["configurazione"] = gestoreConf.ActiveConfiguration.Name;
+                if (gestoreConf != null) dati["configuration"] = gestoreConf.ActiveConfiguration.Name;
             }
             catch { }
             try
             {
                 var nomiConf = modello.GetConfigurationNames() as string[];
-                if (nomiConf != null && nomiConf.Length > 0) dati["configurazioni"] = nomiConf;
+                if (nomiConf != null && nomiConf.Length > 0) dati["configurations"] = nomiConf;
             }
             catch { }
             // QUANTE NE DICHIARA LUI, che non e' per forza quante sono le
-            // righe di «configurazioni»: i nomi li da' `GetConfigurationNames`,
+            // righe di «configurations»: i nomi li da' `GetConfigurationNames`,
             // il conto lo da' `GetConfigurationCount`, e sono due chiamate
             // diverse. Si scrivono tutti e due, perche' il giorno in cui non
             // combaciano quello e' il fatto da sapere -- non un dettaglio da
             // nascondere scegliendo quale dei due mostrare.
-            try { dati["quante_configurazioni"] = modello.GetConfigurationCount(); }
+            try { dati["how_many_configurations"] = modello.GetConfigurationCount(); }
             catch { }
 
             // LE PROPRIETA' PERSONALIZZATE, NEI DUE CASSETTI SEPARATI.
@@ -863,14 +863,14 @@ namespace Riscontro.Disegno
             // solo, «proprieta», sarebbe una fusione che nel file non esiste,
             // e chi rileggesse non avrebbe modo di sapere dove cercare.
             var delDocumento = LeggiProprieta(modello, "");
-            if (delDocumento.Count > 0) dati["proprieta"] = delDocumento;
+            if (delDocumento.Count > 0) dati["property"] = delDocumento;
             try
             {
                 object attiva;
-                if (dati.TryGetValue("configurazione", out attiva))
+                if (dati.TryGetValue("configuration", out attiva))
                 {
                     var dellaConfig = LeggiProprieta(modello, Convert.ToString(attiva) ?? "");
-                    if (dellaConfig.Count > 0) dati["proprieta_configurazione"] = dellaConfig;
+                    if (dellaConfig.Count > 0) dati["configuration_properties"] = dellaConfig;
                 }
             }
             catch { }
@@ -884,17 +884,17 @@ namespace Riscontro.Disegno
                 {
                     var corpo = corpi[i];
                     var voce = new Dictionary<string, object> { ["uid"] = "C" + (i + 1) };
-                    try { voce["nome"] = corpo.Name; } catch { }
+                    try { voce["name"] = corpo.Name; } catch { }
                     var scatola = Ingombro(corpo);
                     if (scatola != null)
                     {
-                        voce["ingombro_mm"] = new[]
+                        voce["bounding_box_mm"] = new[]
                         {
                             Math.Round(scatola[3] - scatola[0], 2),
                             Math.Round(scatola[4] - scatola[1], 2),
                             Math.Round(scatola[5] - scatola[2], 2),
                         };
-                        voce["centro_mm"] = new[]
+                        voce["center_mm"] = new[]
                         {
                             Math.Round((scatola[0] + scatola[3]) / 2, 2),
                             Math.Round((scatola[1] + scatola[4]) / 2, 2),
@@ -909,7 +909,7 @@ namespace Riscontro.Disegno
                     // SolidWorks battezza i corpi di un saldato con il nome
                     // della lavorazione piu' un suffisso:
                     //   nome     = TUBO STRUTTURALE QUADRO 80X80X5(1)[4]
-                    //   fatto_da = TUBO STRUTTURALE QUADRO 80X80X5(1)
+                    //   created_by = TUBO STRUTTURALE QUADRO 80X80X5(1)
                     // Il 10 settembre 2026 questa somiglianza mi ha fatto
                     // togliere il campo quando il nome comincia per la
                     // lavorazione. Sbagliato, per due ragioni che il banco ha
@@ -918,7 +918,7 @@ namespace Riscontro.Disegno
                     // 1. il risparmio era 192 caratteri su un telaio, non 840:
                     //    le barre sono QUATTRO, non ventiquattro (avevo usato
                     //    il tetto `MaxCorpi` al posto del numero vero);
-                    // 2. e soprattutto: `nome` e `fatto_da` condividono la
+                    // 2. e soprattutto: `name` e `created_by` condividono la
                     //    stringa ma NON sono la stessa cosa. Uno e' come si
                     //    chiama il corpo, l'altro e' da dove viene. Che oggi
                     //    l'uno si possa ricavare dall'altro e' una coincidenza
@@ -928,11 +928,11 @@ namespace Riscontro.Disegno
                     //    stiamo togliendo di mezzo al modello.
                     //
                     // La regola «si scrive solo cio' che aggiunge» resta buona
-                    // per i campi identici (`uid`/`nome`) e per quelli che
-                    // ripetono un altro campo (`da_lavorazione` su un saldato).
+                    // per i campi identici (`uid`/`name`) e per quelli che
+                    // ripetono un altro campo (`from_feature` su un saldato).
                     // Non vale per due campi che dicono cose diverse.
                     string lav = FeatureDelCorpo(corpo);
-                    if (lav != null) voce["fatto_da"] = lav;
+                    if (lav != null) voce["created_by"] = lav;
                     corpiDescritti.Add(voce);
 
                     // E il corpo si deve poter RITROVARE. Senza questa firma,
@@ -952,14 +952,14 @@ namespace Riscontro.Disegno
                         Misura = scatola == null ? 0 : Math.Round(
                             (scatola[3] - scatola[0]) * (scatola[4] - scatola[1]) *
                             (scatola[5] - scatola[2]), 2),
-                        PuntoMm = voce.ContainsKey("centro_mm")
-                            ? voce["centro_mm"] as double[]
+                        PuntoMm = voce.ContainsKey("center_mm")
+                            ? voce["center_mm"] as double[]
                             : null,
                         Entita = corpo,
                     };
                 }
-                if (corpi.Count > MaxCorpi) dati["corpi_non_elencati"] = corpi.Count - MaxCorpi;
-                dati["corpi_totali"] = corpi.Count;
+                if (corpi.Count > MaxCorpi) dati["bodies_not_listed"] = corpi.Count - MaxCorpi;
+                dati["bodies_total"] = corpi.Count;
 
                 // ── l'ingombro di tutto il pezzo ──────────────────────────
                 double[] tutto = null;
@@ -974,7 +974,7 @@ namespace Riscontro.Disegno
                 if (tutto != null)
                 {
                     scatolaDelPezzo = tutto;
-                    dati["ingombro_mm"] = new[]
+                    dati["bounding_box_mm"] = new[]
                     {
                         Math.Round(tutto[3] - tutto[0], 2),
                         Math.Round(tutto[4] - tutto[1], 2),
@@ -983,7 +983,7 @@ namespace Riscontro.Disegno
 
                     // ── DOVE STA LA SCATOLA, e non solo quanto e' grande ──
                     //
-                    // `ingombro_mm` dice «140 x 16 x 140» e non dice dove sia
+                    // `bounding_box_mm` dice «140 x 16 x 140» e non dice dove sia
                     // quel volume: un piano che vuole mettere un foro «a 20 mm
                     // dal bordo» deve indovinare se il pezzo e' centrato
                     // sull'origine o appoggiato a essa. Sono tre numeri, una
@@ -994,7 +994,7 @@ namespace Riscontro.Disegno
                     // rispetto al pezzo — che senza l'angolo non si puo'
                     // nemmeno scrivere: 50 su un lato lungo 100 vuol dire meta'
                     // se la scatola parte da zero e tutto se parte da -50.
-                    dati["ingombro_da_mm"] = new[]
+                    dati["bounding_box_from_mm"] = new[]
                     {
                         Math.Round(tutto[0], 2),
                         Math.Round(tutto[1], 2),
@@ -1012,7 +1012,7 @@ namespace Riscontro.Disegno
                 if (materiale != null)
                 {
                     double? kg = Massa(modello, corpi);
-                    if (kg.HasValue) dati["massa_kg"] = Math.Round(kg.Value, 3);
+                    if (kg.HasValue) dati["mass_kg"] = Math.Round(kg.Value, 3);
                 }
 
                 // IL VOLUME: l'unica misura che si muove quando il pezzo cambia
@@ -1031,7 +1031,7 @@ namespace Riscontro.Disegno
                 // UN CORPO CHE NON RISPONDE FA «NON LO SO», NON UN VOLUME PIU'
                 // BASSO (voce Z-C8). Prima si saltava, e la chiave spariva anche
                 // quando il volume non si era letto: assente voleva dire zero
-                // OPPURE «non letto», e `annulla` poteva rifare un passo dopo un
+                // OPPURE «non letto», e `undo` poteva rifare un passo dopo un
                 // annullamento giusto. Adesso: chiave assente = nessun volume
                 // solido; chiave con null = non si e' potuto leggere.
                 double volume = 0;
@@ -1052,7 +1052,7 @@ namespace Riscontro.Disegno
                 // ── facce e spigoli, con il tetto sul TOTALE ──────────────
                 //
                 // Il tetto stava DENTRO il ciclo sui corpi: su un telaio da
-                // quattro barre uscivano 240 facce invece di 60, e `troncato`
+                // quattro barre uscivano 240 facce invece di 60, e `truncated`
                 // restava false perche' nessun corpo singolo superava il tetto.
                 // Il payload cresceva con le barre: ~11 KB per quattro, oltre
                 // 50 KB per venti. Adesso si raccoglie tutto, si ordina una
@@ -1060,8 +1060,8 @@ namespace Riscontro.Disegno
                 var tutteLeFacce = new List<Tuple<IFace2, int>>();
                 var tuttiGliSpigoli = new List<Tuple<IEdge, int>>();
                 // Da quale lavorazione nasce OGNI CORPO. Serve a non ripetere
-                // su ogni faccia una cosa che il campo «corpo» dice gia': vedi
-                // il commento su `da_lavorazione` piu' sotto.
+                // su ogni faccia una cosa che il campo «body» dice gia': vedi
+                // il commento su `from_feature` piu' sotto.
                 var lavorazioneDelCorpo = new string[corpi.Count];
                 for (int i = 0; i < corpi.Count; i++) lavorazioneDelCorpo[i] = FeatureDelCorpo(corpi[i]);
                 for (int i = 0; i < corpi.Count; i++)
@@ -1092,7 +1092,7 @@ namespace Riscontro.Disegno
                 if (ordinate.Count > MaxFacce)
                 {
                     troncato = true;
-                    dati["facce_totali"] = ordinate.Count;
+                    dati["faces_total"] = ordinate.Count;
                 }
                 // Faccia -> uid, per poter dire su quali facce si appoggia
                 // uno spigolo. Si riempie qui perche' le facce si numerano
@@ -1116,15 +1116,15 @@ namespace Riscontro.Disegno
                     {
                         ["uid"] = uid,
                         ["area_mm2"] = areaLetta.HasValue ? (object)Math.Round(areaLetta.Value, 2) : null,
-                        ["punto_mm"] = punto,
-                        ["normale"] = normale,
-                        ["piana"] = normale != null,
+                        ["point_mm"] = punto,
+                        ["normal"] = normale,
+                        ["planar"] = normale != null,
                     };
                     // UN FORO DEVE VEDERSI COME UN FORO, NON COME «UNA FACCIA
                     // NON PIANA DI AREA 1256».
                     //
                     // Fino al 10 settembre 2026 di una faccia cilindrica lo
-                    // stato diceva soltanto `piana: false`. Alla richiesta
+                    // stato diceva soltanto `planar: false`. Alla richiesta
                     // «quel foro portalo da M8 a M10» il modello non aveva
                     // modo di sapere quale faccia fosse un M8: il diametro
                     // c'era nella geometria e non glielo dicevamo.
@@ -1145,9 +1145,9 @@ namespace Riscontro.Disegno
                     if (normale == null &&
                         CilindroDi(t.Item1, out raggioMm, out asseCilindro, out centroCilindro))
                     {
-                        voce["raggio_mm"] = Math.Round(raggioMm, 3);
-                        voce["diametro_mm"] = Math.Round(raggioMm * 2, 3);
-                        voce["asse"] = asseCilindro;
+                        voce["radius_mm"] = Math.Round(raggioMm, 3);
+                        voce["diameter_mm"] = Math.Round(raggioMm * 2, 3);
+                        voce["axis"] = asseCilindro;
                     }
                     // DA QUALE LAVORAZIONE VIENE — MA SOLO SE LO AGGIUNGE.
                     //
@@ -1159,7 +1159,7 @@ namespace Riscontro.Disegno
                     // 10 settembre 2026: su un telaio da quattro barre lo stato
                     // passava da 11.703 a 15.849 caratteri, e tutte le facce di
                     // una barra dicevano «Membro strutturale1[1]» — cioe'
-                    // esattamente quello che il campo «corpo» diceva gia'.
+                    // esattamente quello che il campo «body» diceva gia'.
                     // Costo pieno, informazione zero.
                     //
                     // La regola e' quindi: si scrive quando la faccia viene da
@@ -1173,11 +1173,11 @@ namespace Riscontro.Disegno
                         && (t.Item2 >= lavorazioneDelCorpo.Length
                             || !string.Equals(daFeature, lavorazioneDelCorpo[t.Item2], StringComparison.Ordinal)))
                     {
-                        voce["da_lavorazione"] = daFeature;
+                        voce["from_feature"] = daFeature;
 
-                        // ── DOVE STA IL FORO, e non e' `punto_mm` ──────────
+                        // ── DOVE STA IL FORO, e non e' `point_mm` ──────────
                         //
-                        // `punto_mm` sta sulla SUPERFICIE — serve a
+                        // `point_mm` sta sulla SUPERFICIE — serve a
                         // SELEZIONARE — e dista un raggio dall'asse in una
                         // direzione che nessuno dichiara. Chi lo usa per
                         // misurare un interasse sbaglia di un raggio per ogni
@@ -1188,7 +1188,7 @@ namespace Riscontro.Disegno
                         // sei fori su Ø90: due modelli indipendenti hanno
                         // risposto **Ø79**, tutti e due con confidenza 5 su 5.
                         //
-                        // `centro_mm` e non `asse_mm`: `asse` qui sopra e' gia'
+                        // `center_mm` e non `asse_mm`: `axis` qui sopra e' gia'
                         // la DIREZIONE, e due campi quasi omonimi che vogliono
                         // dire cose diverse sono il modo piu' sicuro di farli
                         // scambiare.
@@ -1210,7 +1210,7 @@ namespace Riscontro.Disegno
                         // DIVERSA da quella che ha fatto il corpo — cioe' un
                         // foro, una tasca, una svasatura: le cose che si
                         // posizionano. E' la stessa regola che decide
-                        // `da_lavorazione`, applicata dove serve, ed e' il
+                        // `from_feature`, applicata dove serve, ed e' il
                         // motivo per cui questa riga sta dentro quel blocco
                         // invece che accanto al raggio.
                         //
@@ -1219,7 +1219,7 @@ namespace Riscontro.Disegno
                         // non prende il centro. Se un giorno servira'
                         // misurarci qualcosa, e' una voce nuova, non una riga
                         // da aggiungere qui di nascosto.
-                        if (centroCilindro != null) voce["centro_mm"] = centroCilindro;
+                        if (centroCilindro != null) voce["center_mm"] = centroCilindro;
                     }
                     // DA CHE PARTE GUARDA, DETTO IN ITALIANO.
                     //
@@ -1237,10 +1237,10 @@ namespace Riscontro.Disegno
                     // deduzione. Il verso e' quello del sistema di SolidWorks:
                     // +X destra, +Y alto, +Z davanti.
                     string verso = Verso(normale);
-                    if (verso != null) voce["verso"] = verso;
+                    if (verso != null) voce["facing"] = verso;
                     // A quale corpo appartiene. Su un saldato senza questo
                     // campo arrivano quaranta facce indistinguibili.
-                    if (corpi.Count > 1 && t.Item2 < MaxCorpi) voce["corpo"] = "C" + (t.Item2 + 1);
+                    if (corpi.Count > 1 && t.Item2 < MaxCorpi) voce["body"] = "C" + (t.Item2 + 1);
 
                     // DA QUALE LAVORAZIONE VIENE. Serve a due cose diverse: a
                     // chi legge lo stato, per capire cos'e' quella faccia; e al
@@ -1264,14 +1264,14 @@ namespace Riscontro.Disegno
                     LavorazioneDellaFaccia(t.Item1, out lavorazioneId, out lavorazione);
                     if (lavorazione != null)
                     {
-                        voce["lavorazione_id"] = lavorazioneId;
+                        voce["feature_id"] = lavorazioneId;
                         nomiDelleLavorazioni[lavorazioneId] = lavorazione;
                     }
 
                     // LE DUE ANCORE, tutt'e due dietro lo stesso interruttore e
                     // tutt'e due destinate alla FIRMA e non a chi legge.
                     //
-                    //   `ancora`     il baricentro d'area: una nostra congettura
+                    //   `anchor`     il baricentro d'area: una nostra congettura
                     //                sulla geometria, che si muove quando la
                     //                faccia cambia davvero;
                     //   `persist_id` la risposta che da' SOLIDWORKS alla stessa
@@ -1287,7 +1287,7 @@ namespace Riscontro.Disegno
                     if (conAncora)
                     {
                         var ancora = AncoraDellaFaccia(t.Item1);
-                        if (ancora != null) voce["ancora"] = ancora;
+                        if (ancora != null) voce["anchor"] = ancora;
 
                         var persistId = PersistIdDi(modello, t.Item1);
                         if (persistId != null) voce["persist_id"] = persistId;
@@ -1314,7 +1314,7 @@ namespace Riscontro.Disegno
                 if (ordinati.Count > MaxSpigoli)
                 {
                     troncato = true;
-                    dati["spigoli_totali"] = ordinati.Count;
+                    dati["edges_total"] = ordinati.Count;
                 }
                 int iSpigolo = 0;
                 foreach (var t in ordinati.Take(MaxSpigoli))
@@ -1328,40 +1328,40 @@ namespace Riscontro.Disegno
                         ["uid"] = uid,
                         // null quando non si e' potuta leggere: -1 e' il «non lo
                         // so» di chi la usa qui dentro, non una lunghezza.
-                        ["lunghezza_mm"] = lung >= 0 ? (object)Math.Round(lung, 2) : null,
-                        ["punto_mm"] = punto,
+                        ["length_mm"] = lung >= 0 ? (object)Math.Round(lung, 2) : null,
+                        ["point_mm"] = punto,
                     };
                     // UNO SPIGOLO SENZA RUOLO NON SI PUO' NOMINARE.
                     //
-                    // Le facce dicono da che parte guardano — «alto»,
-                    // «davanti» — e il modello le sa scegliere. Gli spigoli
+                    // Le facce dicono da che parte guardano — «up»,
+                    // «front» — e il modello le sa scegliere. Gli spigoli
                     // dicevano soltanto quanto sono lunghi. Misurato il 10
                     // settembre 2026 su una piastra 300x200x15: venti
                     // spigoli, tutti uguali a leggersi, e alla richiesta
                     // «raccorda i quattro angoli» il modello non ha nemmeno
                     // provato a nominarli — ha citato un passo inesistente.
                     //
-                    // «lungo: Y» costa quattordici caratteri e dice quello
+                    // «along: Y» costa quattordici caratteri e dice quello
                     // che direbbe un progettista: gli angoli di una piastra
                     // sono gli spigoli nella direzione dello spessore.
                     string lungoAsse;
                     double raggioSpigolo;
                     if (DirezioneSpigolo(t.Item1, out lungoAsse, out raggioSpigolo))
                     {
-                        if (lungoAsse != null) voce["lungo"] = lungoAsse;
+                        if (lungoAsse != null) voce["along"] = lungoAsse;
                     }
                     else
                     {
                         // Non dritto: si dice, perche' come DIREZIONE non
                         // vale e la ripetizione lo rifiuterebbe.
-                        voce["curvo"] = true;
-                        if (raggioSpigolo > 0) voce["raggio_mm"] = Math.Round(raggioSpigolo, 2);
+                        voce["curved"] = true;
+                        if (raggioSpigolo > 0) voce["radius_mm"] = Math.Round(raggioSpigolo, 2);
                     }
                     // SU QUALI FACCE SI APPOGGIA: e' cosi' che si dice «il
                     // bordo della faccia in alto» senza contare i millimetri.
                     var fra = FacceDelloSpigolo(t.Item1, uidDellaFaccia);
-                    if (fra != null) voce["fra"] = fra;
-                    if (corpi.Count > 1 && t.Item2 < MaxCorpi) voce["corpo"] = "C" + (t.Item2 + 1);
+                    if (fra != null) voce["between"] = fra;
+                    if (corpi.Count > 1 && t.Item2 < MaxCorpi) voce["body"] = "C" + (t.Item2 + 1);
                     spigoli.Add(voce);
                     stato.Firme[uid] = new FirmaEntita
                     {
@@ -1373,8 +1373,8 @@ namespace Riscontro.Disegno
                 }
             }
 
-            dati["corpo_solido"] = haCorpo;
-            dati["piani_disponibili"] = nPiani;
+            dati["solid_body"] = haCorpo;
+            dati["planes_available"] = nPiani;
 
             // L'ALBERO E' ROSSO? SI DICE IN TESTA, NON SOLO DENTRO.
             //
@@ -1389,31 +1389,31 @@ namespace Riscontro.Disegno
             // «e' rotto» non sono la stessa cosa, e fidarsi della prima per
             // rispondere alla seconda avrebbe dato una guardia sempre verde.
             if (lavorazioniInErrore > 0)
-                dati["lavorazioni_in_errore"] = lavorazioniInErrore;
+                dati["features_in_error"] = lavorazioniInErrore;
             try
             {
                 if (modello.Extension.NeedsRebuild2 != 0)
-                    dati["ricostruzione_necessaria"] = true;
+                    dati["rebuild_needed"] = true;
             }
             catch { }
 
             dati["feature"] = feature;
-            if (altreFeature > 0) dati["altre_feature"] = altreFeature;
+            if (altreFeature > 0) dati["other_feature"] = altreFeature;
             // Il tetto sulle lavorazioni, dichiarato come quelli su facce,
-            // spigoli e corpi. `troncato` vale per tutto lo stato.
+            // spigoli e corpi. `truncated` vale per tutto lo stato.
             if (featureNonElencate > 0)
             {
-                dati["feature_non_elencate"] = featureNonElencate;
-                dati["feature_totali"] = feature.Count + featureNonElencate;
+                dati["feature_not_listed"] = featureNonElencate;
+                dati["feature_total"] = feature.Count + featureNonElencate;
                 troncato = true;
             }
             // I tipi si mandano SEMPRE quando ce ne sono: e' cio' che
             // permette di accorgersi che una lavorazione e' invisibile.
-            if (tipiIgnoti.Count > 0) dati["altre_feature_tipi"] = tipiIgnoti.ToArray();
-            dati["assi"] = assi;
-            if (corpiDescritti.Count > 0) dati["corpi"] = corpiDescritti;
-            dati["facce"] = facce;
-            dati["spigoli"] = spigoli;
+            if (tipiIgnoti.Count > 0) dati["other_feature_kinds"] = tipiIgnoti.ToArray();
+            dati["axes"] = assi;
+            if (corpiDescritti.Count > 0) dati["bodies"] = corpiDescritti;
+            dati["faces"] = facce;
+            dati["edges"] = spigoli;
             // COSA C'E' SELEZIONATO ADESSO, detto con gli stessi nomi.
             //
             // E' l'altra meta' della firma: invece di descrivere a parole quale
@@ -1432,14 +1432,14 @@ namespace Riscontro.Disegno
                 var mappa = new Dictionary<string, object>();
                 foreach (var v in nomiDelleLavorazioni)
                     mappa[v.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)] = v.Value;
-                dati["lavorazioni"] = mappa;
+                dati["features"] = mappa;
             }
 
             var selezionate = LaSelezione(modello, stato.Firme);
-            if (selezionate != null && selezionate.Count > 0) dati["selezione"] = selezionate;
+            if (selezionate != null && selezionate.Count > 0) dati["selection"] = selezionate;
 
-            dati["troncato"] = troncato;
-            dati["unita_protocollo"] = "mm";
+            dati["truncated"] = troncato;
+            dati["protocol_units"] = "mm";
 
             // LE EQUAZIONI E LE VARIABILI GLOBALI (voce Z-F1), se ce ne sono: chi
             // legge lo stato deve sapere che una quota e' guidata prima di provare
@@ -1448,11 +1448,11 @@ namespace Riscontro.Disegno
             var equazioni = OperazioniSw.EquazioniDelDocumento(modello, out equazioniTotali);
             if (equazioni != null)
             {
-                dati["equazioni"] = equazioni;
+                dati["equations"] = equazioni;
                 if (equazioniTotali > equazioni.Length)
                 {
-                    dati["equazioni_totali"] = equazioniTotali;
-                    dati["troncato"] = true;
+                    dati["equations_total"] = equazioniTotali;
+                    dati["truncated"] = true;
                 }
             }
 
@@ -1476,7 +1476,7 @@ namespace Riscontro.Disegno
             try
             {
                 string forma = FormaAParole.Descrivi(dati);
-                if (!string.IsNullOrEmpty(forma)) dati["forma"] = forma;
+                if (!string.IsNullOrEmpty(forma)) dati["shape"] = forma;
             }
             catch { }
 
@@ -1588,12 +1588,12 @@ namespace Riscontro.Disegno
         {
             if (normale == null || normale.Length < 3) return null;
             const double quasiUno = 0.99;
-            if (normale[0] > quasiUno) return "destra";
-            if (normale[0] < -quasiUno) return "sinistra";
-            if (normale[1] > quasiUno) return "alto";
-            if (normale[1] < -quasiUno) return "basso";
-            if (normale[2] > quasiUno) return "davanti";
-            if (normale[2] < -quasiUno) return "dietro";
+            if (normale[0] > quasiUno) return "right";
+            if (normale[0] < -quasiUno) return "left";
+            if (normale[1] > quasiUno) return "up";
+            if (normale[1] < -quasiUno) return "down";
+            if (normale[2] > quasiUno) return "front";
+            if (normale[2] < -quasiUno) return "back";
             return null;
         }
 
@@ -1651,7 +1651,7 @@ namespace Riscontro.Disegno
                     // progettista dice a voce: «un M8 ISO passante».
                     Metti(voce, "norma", Testo(() => d.Standard));
                     Metti(voce, "tipo_foro", Testo(() => d.FastenerType));
-                    Metti(voce, "taglia", Testo(() => d.FastenerSize));
+                    Metti(voce, "size", Testo(() => d.FastenerSize));
                     // IL DIAMETRO LAVORATO, con la ricetta a quattro famiglie
                     // gia' in produzione in `OperazioniFori`: quale dei quattro
                     // campi sia valorizzato dipende dal tipo di foro, e
@@ -1659,36 +1659,36 @@ namespace Riscontro.Disegno
                     double diam = Math.Max(
                         Math.Max(d.ThruTapDrillDiameter, d.TapDrillDiameter),
                         Math.Max(d.ThruHoleDiameter, d.HoleDiameter)) * 1000.0;
-                    if (diam > 0) voce["diametro_mm"] = Math.Round(diam, 2);
+                    if (diam > 0) voce["diameter_mm"] = Math.Round(diam, 2);
                     if (d.ThreadDiameter > 0)
-                        voce["filetto_mm"] = Math.Round(d.ThreadDiameter * 1000.0, 2);
+                        voce["thread_mm"] = Math.Round(d.ThreadDiameter * 1000.0, 2);
                     double prof = Math.Max(d.HoleDepth, d.Depth) * 1000.0;
-                    if (prof > 0) voce["profondita_mm"] = Math.Round(prof, 2);
+                    if (prof > 0) voce["depth_mm"] = Math.Round(prof, 2);
                 }
                 else if (tipo == "Extrusion" || tipo == "Cut")
                 {
                     var d = definizione as IExtrudeFeatureData2;
                     if (d == null) return;
                     double prof = d.GetDepth(true) * 1000.0;
-                    if (prof > 0) voce["profondita_mm"] = Math.Round(prof, 2);
+                    if (prof > 0) voce["depth_mm"] = Math.Round(prof, 2);
                     if (d.BothDirections)
                     {
-                        voce["due_versi"] = true;
+                        voce["two_directions"] = true;
                         double prof2 = d.GetDepth(false) * 1000.0;
-                        if (prof2 > 0) voce["profondita2_mm"] = Math.Round(prof2, 2);
+                        if (prof2 > 0) voce["depth2_mm"] = Math.Round(prof2, 2);
                     }
                     // «Fino in fondo» e «profondo 12» sono due pezzi diversi, e
                     // la profondita' da sola non li distingue: su un passante
                     // resta scritto un numero che non comanda niente.
-                    voce["condizione"] = CondizioneFine(d.GetEndCondition(true));
+                    voce["end_condition"] = CondizioneFine(d.GetEndCondition(true));
                 }
                 else if (tipo == "Fillet")
                 {
                     var d = definizione as ISimpleFilletFeatureData2;
                     if (d == null) return;
                     if (d.DefaultRadius > 0)
-                        voce["raggio_mm"] = Math.Round(d.DefaultRadius * 1000.0, 2);
-                    if (d.IsMultipleRadius) voce["raggio_variabile"] = true;
+                        voce["radius_mm"] = Math.Round(d.DefaultRadius * 1000.0, 2);
+                    if (d.IsMultipleRadius) voce["radius_variable"] = true;
                     // NOT FilletItemsCount (C7-2): «This method returns -1 if
                     // this simple fillet feature is not multiple radius»
                     // (ISimpleFilletFeatureData2~FilletItemsCount.html,
@@ -1811,16 +1811,16 @@ namespace Riscontro.Disegno
                 return;
             }
             double first = edgeDistance(0) * 1000.0;
-            if (first > 0) entry["lato1_mm"] = Math.Round(first, 2);
+            if (first > 0) entry["leg1_mm"] = Math.Round(first, 2);
             if (type != angleDistance)
             {
                 double second = edgeDistance(1) * 1000.0;
-                if (second > 0 && Math.Abs(second - first) > 0.001) entry["lato2_mm"] = Math.Round(second, 2);
+                if (second > 0 && Math.Abs(second - first) > 0.001) entry["leg2_mm"] = Math.Round(second, 2);
             }
             if (type != distanceDistance)
             {
                 double radians = angle();
-                if (radians > 0) entry["angolo_gradi"] = Math.Round(Unita.Gradi(radians), 1);
+                if (radians > 0) entry["angle_deg"] = Math.Round(Unita.Gradi(radians), 1);
             }
         }
 
@@ -1845,7 +1845,7 @@ namespace Riscontro.Disegno
             switch (codice)
             {
                 case (int)swEndConditions_e.swEndCondBlind: return "profondita' data";
-                case (int)swEndConditions_e.swEndCondThroughAll: return "passante";
+                case (int)swEndConditions_e.swEndCondThroughAll: return "through_all";
                 case (int)swEndConditions_e.swEndCondThroughAllBoth: return "passante nei due versi";
                 case (int)swEndConditions_e.swEndCondMidPlane: return "simmetrica sul piano";
                 case (int)swEndConditions_e.swEndCondUpToVertex: return "fino a un vertice";
@@ -1876,12 +1876,12 @@ namespace Riscontro.Disegno
         /// DOVE sta il foro.
         ///
         /// **Cosa restava a chi legge.** Di una faccia cilindrica lo stato
-        /// diceva `punto_mm`, `raggio_mm`, `diametro_mm` e `asse`. Ma
-        /// `punto_mm` viene da `PuntoSuFaccia`, ed e' un punto **sulla
+        /// diceva `point_mm`, `radius_mm`, `diameter_mm` e `axis`. Ma
+        /// `point_mm` viene da `PuntoSuFaccia`, ed e' un punto **sulla
         /// superficie**, garantito a un raggio dall'asse in una direzione
         /// qualunque: serve a SELEZIONARE, non a dire dove sia il foro. E
-        /// `asse` e' una direzione, non una posizione. Il centro non era
-        /// ricavabile: per una faccia cilindrica `normale` e' null, quindi non
+        /// `axis` e' una direzione, non una posizione. Il centro non era
+        /// ricavabile: per una faccia cilindrica `normal` e' null, quindi non
         /// c'e' nemmeno la direzione in cui correggere.
         ///
         /// **La misura, del 15/9/2026 (voce V2).** Due modelli, ognuno per
@@ -2052,8 +2052,8 @@ namespace Riscontro.Disegno
                     try { prossimo = f.GetNextDisplayDimension(display); } catch { }
                     display = prossimo;
                 }
-                if (quote.Count > 0) voce["quote"] = quote;
-                if (altre > 0) voce["altre_quote"] = altre;
+                if (quote.Count > 0) voce["dimensions"] = quote;
+                if (altre > 0) voce["other_dimensions"] = altre;
             }
             catch { }
         }
@@ -2068,7 +2068,7 @@ namespace Riscontro.Disegno
         /// moltiplicava per mille qualunque cosa — la conversione metri→mm — e
         /// la usciva come `mm`. Su una rivoluzione a 360 gradi:
         ///
-        ///     "nome": "D1@Rivoluzione1", "mm": 6283.185
+        ///     "name": "D1@Rivoluzione1", "mm": 6283.185
         ///
         /// che e' **2π × 1000**. Lo stato dichiarava una quota di sei metri e
         /// ventotto su un pezzo lungo novanta millimetri, e nessuno se ne
@@ -2081,7 +2081,7 @@ namespace Riscontro.Disegno
         ///
         /// ── IL NOME DEL CAMPO CAMBIA CON L'UNITA' ────────────────────────
         ///
-        /// Un angolo esce come `"gradi": 360`, non come `"mm": 360`. Tenere il
+        /// Un angolo esce come `"deg": 360`, non come `"mm": 360`. Tenere il
         /// nome `mm` e cambiare solo il numero sarebbe stato peggio di prima:
         /// un valore giusto sotto un'etichetta falsa non si puo' nemmeno
         /// sospettare, mentre 6283 almeno saltava all'occhio.
@@ -2135,15 +2135,15 @@ namespace Riscontro.Disegno
                 try { readValue = Math.Round(ApiHelpers.ReadDimension(d) * 180.0 / Math.PI, 3); } catch { }
                 return new Dictionary<string, object>
                 {
-                    ["nome"] = nome,
-                    ["gradi"] = readValue,
+                    ["name"] = nome,
+                    ["deg"] = readValue,
                 };
             }
 
             try { readValue = Math.Round(Unita.Mm(ApiHelpers.ReadDimension(d)), 3); } catch { }
             return new Dictionary<string, object>
             {
-                ["nome"] = nome,
+                ["name"] = nome,
                 ["mm"] = readValue,
             };
         }
@@ -2229,7 +2229,7 @@ namespace Riscontro.Disegno
             //
             // Fino alla libreria 0.119.0 qui c'era la distanza fra gli estremi,
             // «approssimata ma stabile, mai mostrata come quota». Era mostrata
-            // eccome: finisce in `lunghezza_mm` nello stato, e per uno spigolo
+            // eccome: finisce in `length_mm` nello stato, e per uno spigolo
             // CHIUSO — il bordo di un foro — gli estremi coincidono e la corda
             // vale ZERO. Misurato col banchetto: una piastra con due fori O12
             // pubblicava quattro spigoli «lunghi 0», e chi legge lo stato vedeva
@@ -2325,14 +2325,14 @@ namespace Riscontro.Disegno
         /// <param name="inErrore">
         /// Si incrementa per ogni lavorazione che porta un errore. E' un
         /// contatore di chi chiama, e passa per riferimento perche' il
-        /// conteggio finisce in `lavorazioni_in_errore` sullo stato intero:
+        /// conteggio finisce in `features_in_error` sullo stato intero:
         /// tenerlo qui dentro vorrebbe dire perderlo.
         /// </param>
         private static Dictionary<string, object> DettaglioFeature(
             IFeature f, string tipo, string nome, ref int inErrore)
         {
             var voceF = new Dictionary<string, object>
-            { ["uid"] = nome, ["tipo"] = tipo };
+            { ["uid"] = nome, ["kind"] = tipo };
 
             // L'UID DI UNA LAVORAZIONE E' IL SUO NOME, e un nome
             // si rinomina. Chi rinomina «Taglio1» in «Foro cavo» e
@@ -2353,7 +2353,7 @@ namespace Riscontro.Disegno
             // normale» ottanta volte.
             // Read in the active configuration with IsSuppressed2 since Z-C21.7
             // (S3, M44; ApiHelpers.IsSuppressedHere has the probe numbers).
-            try { if (ApiHelpers.IsSuppressedHere(f)) voceF["soppressa"] = true; } catch { }
+            try { if (ApiHelpers.IsSuppressedHere(f)) voceF["suppressed"] = true; } catch { }
 
             // UNA LAVORAZIONE IN ERRORE E UNA SANA ERANO
             // INDISTINGUIBILI, ed e' peggio della soppressa.
@@ -2368,7 +2368,7 @@ namespace Riscontro.Disegno
             // **esattamente** 100x10x3: il raccordo non aveva
             // fatto niente, e chi leggeva vedeva un pezzo sano.
             //
-            // Si scrive solo quando c'e', come per `soppressa`:
+            // Si scrive solo quando c'e', come per `suppressed`:
             // e' il caso raro.
             try
             {
@@ -2376,9 +2376,9 @@ namespace Riscontro.Disegno
                 int codice = f.GetErrorCode2(out soloAvviso);
                 if (codice != 0)
                 {
-                    voceF["errore"] = ErroriFeature.Frase(codice);
-                    voceF["errore_codice"] = codice;
-                    if (soloAvviso) voceF["solo_avviso"] = true;
+                    voceF["error"] = ErroriFeature.Frase(codice);
+                    voceF["error_code"] = codice;
+                    if (soloAvviso) voceF["warning_only"] = true;
                     inErrore++;
                 }
             }
@@ -2399,7 +2399,7 @@ namespace Riscontro.Disegno
             //
             // Una quota ha un NOME che si puo' citare
             // («D1@Schizzo1») e un valore. Metterli qui e' cio'
-            // che rende possibile `modifica_quota`.
+            // che rende possibile `set_dimension`.
             QuoteDellaFeature(f, voceF);
             return voceF;
         }
@@ -2438,7 +2438,7 @@ namespace Riscontro.Disegno
         ///     F1  verso=dietro  area=24000  normale=[0,0,-1]
         ///     F2  verso=dietro  area=24000  normale=[0,0,-1]
         ///
-        /// Due facce opposte, la stessa normale, e nessuna faccia «davanti» in
+        /// Due facce opposte, la stessa normale, e nessuna faccia «front» in
         /// tutto il documento. Quindici prove sono morte li'. E non era un
         /// difetto del banco: e' cio' che il MODELLO leggeva. A chi chiede «un
         /// foro sulla faccia davanti» lo stato rispondeva che una faccia

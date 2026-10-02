@@ -88,14 +88,14 @@ namespace Riscontro.Disegno
                 return Fallito(
                     "Per accoppiare servono due componenti, e qui ce n'" +
                     (componenti.Count == 1 ? "e' uno solo" : "e' nessuno") +
-                    ". Inseriscili con «inserisci_componente».");
+                    ". Inseriscili con «insert_component».");
 
-            string uidA = Str(a, "componente_a", null);
-            string uidB = Str(a, "componente_b", null);
+            string uidA = Str(a, "component_a", null);
+            string uidB = Str(a, "component_b", null);
             var compA = PerUid(componenti, uidA);
             var compB = PerUid(componenti, uidB);
-            if (compA == null) return Fallito(NonTrovato(uidA, "componente_a", componenti));
-            if (compB == null) return Fallito(NonTrovato(uidB, "componente_b", componenti));
+            if (compA == null) return Fallito(NonTrovato(uidA, "component_a", componenti));
+            if (compB == null) return Fallito(NonTrovato(uidB, "component_b", componenti));
             if (ReferenceEquals(compA, compB))
                 return Fallito(
                     "«" + uidA + "» e «" + uidB + "» sono lo stesso componente. Un " +
@@ -113,7 +113,7 @@ namespace Riscontro.Disegno
             // esistono: a catalogo c'erano due tipi che non potevano mai riuscire,
             // e fallivano con un errore di SOLIDWORKS che mandava a cercare
             // altrove. Si dice il perche' prima di toccare niente.
-            string chiesto = (Str(a, "tipo", "coincidente") ?? "").Trim().ToLowerInvariant();
+            string chiesto = (Str(a, "variant", "coincidente") ?? "").Trim().ToLowerInvariant();
             if (chiesto == "concentrico" || chiesto == "tangente")
                 return Fallito(
                     "«" + chiesto + "» vuole almeno una faccia curva (un cilindro, un foro), e qui " +
@@ -122,8 +122,8 @@ namespace Riscontro.Disegno
                     "piane ci sono coincidente, parallelo, perpendicolare e distanza. Non ho toccato " +
                     "niente.");
 
-            string versoA = Str(a, "faccia_a", null);
-            string versoB = Str(a, "faccia_b", null);
+            string versoA = Str(a, "face_a", null);
+            string versoB = Str(a, "face_b", null);
             // THE DIRECTIONS ARE THE ASSEMBLY'S (finding M1, lot Z-C21.5): the
             // faces come from the bodies in the PART's coordinates, so each
             // normal is turned by the component's Transform2 before it is
@@ -135,22 +135,22 @@ namespace Riscontro.Disegno
             var facciaB = FacciaVersoDi(compB, versoB, ComponentAxes(compB), out string perche2);
             if (facciaB == null) return Fallito("Su «" + uidB + "»: " + perche2);
 
-            string nomeTipo = Str(a, "tipo", "coincidente");
+            string nomeTipo = Str(a, "variant", "coincidente");
             int tipo = TipoDiAccoppiamento(nomeTipo);
             if (tipo < 0)
                 return Fallito(
                     "Accoppiamento «" + nomeTipo + "» sconosciuto. Ci sono: " +
                     string.Join(", ", TipiConosciuti) + ".");
 
-            double distanza = Num(a, "distanza_mm", double.NaN);
+            double distanza = Num(a, "distance_mm", double.NaN);
             if (tipo == (int)swMateType_e.swMateDISTANCE && double.IsNaN(distanza))
                 return Fallito(
-                    "Un accoppiamento «distanza» senza «distanza_mm» non ha nessun " +
+                    "Un accoppiamento «distanza» senza «distance_mm» non ha nessun " +
                     "valore predefinito ragionevole: sceglierne uno vorrebbe dire " +
                     "decidere al posto tuo di quanto stanno lontane due facce.");
             if (double.IsNaN(distanza)) distanza = 0;
 
-            string allineamento = Str(a, "allineamento", "allineato");
+            string allineamento = Str(a, "alignment", "allineato");
             int align = allineamento.Equals("opposto", StringComparison.OrdinalIgnoreCase)
                 ? (int)swMateAlign_e.swMateAlignANTI_ALIGNED
                 : 0;   // swAlignNONE = allineato
@@ -238,7 +238,7 @@ namespace Riscontro.Disegno
             // ── E SI CONTA DOPO ─────────────────────────────────────────
             //
             // Le maniglie possono essere state invalidate dalla ricostruzione:
-            // si rileggono per nome, come fa `inserisci_componente`.
+            // si rileggono per nome, come fa `insert_component`.
             var dopoComp = StatoDocumento.ComponentiInOrdine(
                 assieme.GetComponents(false) as object[]);
             // By the names read before the test of the directions (Z-C14):
@@ -303,17 +303,17 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["tipo"] = nomeTipo,
-                ["accoppiamenti_prima"] = new object[] { primaA, primaB },
-                ["accoppiamenti_dopo"] = new object[] { dopoA, dopoB },
+                ["kind"] = nomeTipo,
+                ["mates_before"] = new object[] { primaA, primaB },
+                ["mates_after"] = new object[] { dopoA, dopoB },
             };
-            if (tipo == (int)swMateType_e.swMateDISTANCE) misure["distanza_mm"] = distanza;
+            if (tipo == (int)swMateType_e.swMateDISTANCE) misure["distance_mm"] = distanza;
 
             bool fissoA = EFisso(riA), fissoB = EFisso(riB);
-            misure["appoggiato_a"] = !fissoA && dopoA == 0;
-            misure["appoggiato_b"] = !fissoB && dopoB == 0;
+            misure["resting_a"] = !fissoA && dopoA == 0;
+            misure["resting_b"] = !fissoB && dopoB == 0;
 
-            // Z-C14: per component, in the order of accoppiamenti_prima/dopo.
+            // Z-C14: per component, in the order of mates_before/dopo.
             misure["blocked_directions_before"] = new object[] { beforeA.Blocked, beforeB.Blocked };
             misure["blocked_directions_after"] = new object[] { afterA.Blocked, afterB.Blocked };
             misure["degrees_removed"] = new object[] { DegreesRemoved(beforeA, afterA), DegreesRemoved(beforeB, afterB) };
@@ -332,7 +332,7 @@ namespace Riscontro.Disegno
                     : VerdictTail(verdict)) + " " +
                 HowDirectionsAreMeasured;
             if (notStandard != null) misure["not_judged_because"] = "the assembly has " + notStandard;
-            misure["giudizio"] = giudizio;
+            misure["verdict"] = giudizio;
             _log("[agente] " + giudizio);
 
             return RiuscitoSenzaCreare(misure);
@@ -1193,7 +1193,7 @@ namespace Riscontro.Disegno
         /// in the space of the part (RAG 82zq: the lid at y 0..4 in the part,
         /// 5..9 in the assembly), so IFace2.Normal is a direction of the part
         /// file. Up to library 0.145.0 it was compared as it came, and on a
-        /// turned component «alto» took the face that looks up in the part
+        /// turned component «up» took the face that looks up in the part
         /// file, wherever it looks in the assembly: the mate went on another
         /// face, with no error. Now each normal is turned into the assembly
         /// with the component's axes (<paramref name="axes"/>, Transform2
@@ -1303,18 +1303,18 @@ namespace Riscontro.Disegno
         }
 
         private static readonly string[] VersiConosciuti =
-            { "alto", "basso", "destra", "sinistra", "davanti", "dietro" };
+            { "up", "down", "right", "left", "front", "back" };
 
         private static double[] Direzione(string verso)
         {
             switch (verso.Trim().ToLowerInvariant())
             {
-                case "destra": return new double[] { 1, 0, 0 };
-                case "sinistra": return new double[] { -1, 0, 0 };
-                case "alto": return new double[] { 0, 1, 0 };
-                case "basso": return new double[] { 0, -1, 0 };
-                case "davanti": return new double[] { 0, 0, 1 };
-                case "dietro": return new double[] { 0, 0, -1 };
+                case "right": return new double[] { 1, 0, 0 };
+                case "left": return new double[] { -1, 0, 0 };
+                case "up": return new double[] { 0, 1, 0 };
+                case "down": return new double[] { 0, -1, 0 };
+                case "front": return new double[] { 0, 0, 1 };
+                case "back": return new double[] { 0, 0, -1 };
                 default: return null;
             }
         }

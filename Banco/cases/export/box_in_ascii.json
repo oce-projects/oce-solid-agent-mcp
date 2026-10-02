@@ -5,18 +5,18 @@
   "_why_there_are_no_bytes": "la dimensione di un STL ASCII dipende da come il float viene scritto, e un'attesa su quella sarebbe un'attesa sul formattatore di SOLIDWORKS, non sul pezzo.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "esporta_stl",
-      "arguments": { "percorso": "{LAVORO}\\gp2_ascii.stl", "binario": false },
+    { "operation": "export_stl",
+      "arguments": { "path": "{LAVORO}\\gp2_ascii.stl", "binary": false },
       "expect": [
-        { "what": "misure.triangoli", "equal_to": 12,
+        { "what": "measurements.triangles", "equal_to": 12,
           "_why_twelve": "gli stessi dodici del caso binario: e' il pezzo, non il formato" },
-        { "what": "misure.formato", "equal_to": "ASCII" },
-        { "what": "misure.triangoli_come_li_so",
+        { "what": "measurements.file_format", "equal_to": "ASCII" },
+        { "what": "measurements.how_triangles_are_known",
           "includes": ["righe", "facet"] },
-        { "what": "misure.unita", "equal_to": "mm" } ] }
+        { "what": "measurements.units", "equal_to": "mm" } ] }
   ]
 }

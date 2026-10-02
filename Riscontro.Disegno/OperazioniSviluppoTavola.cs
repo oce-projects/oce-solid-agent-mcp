@@ -31,9 +31,9 @@ namespace Riscontro.Disegno
             var disegno = modello as IDrawingDoc;
             if (disegno == null)
                 return Fallito("Il documento attivo non e' una tavola: la vista dello sviluppo si mette in una " +
-                               "tavola. Creala con «crea_disegno».");
+                               "tavola. Creala con «create_drawing».");
 
-            string percorsoModello = Str(a, "modello", null);
+            string percorsoModello = Str(a, "model", null);
             if (string.IsNullOrWhiteSpace(percorsoModello))
             {
                 string perche;
@@ -55,12 +55,12 @@ namespace Riscontro.Disegno
                 return Fallito("«" + System.IO.Path.GetFileName(percorsoSw) + "» non e' di lamiera (non ha la " +
                                "lavorazione «SheetMetal»): non c'e' uno sviluppo da mettere in tavola.");
 
-            string configurazione = Str(a, "configurazione", null);
+            string configurazione = Str(a, "configuration", null);
             if (string.IsNullOrWhiteSpace(configurazione))
                 try { configurazione = (pezzo.GetActiveConfiguration() as IConfiguration)?.Name ?? ""; } catch { configurazione = ""; }
             double x = Unita.M(Num(a, "x_mm", 300));
             double y = Unita.M(Num(a, "y_mm", 90));
-            bool nascondiPieghe = Bool(a, "nascondi_pieghe", false);
+            bool nascondiPieghe = Bool(a, "hide_bends", false);
 
             // ── LO SVILUPPO DEL PEZZO, MISURATO PRIMA ────────────────────────
             // Z-C21.8, finding M24: a flat pattern that did not unsuppress, or
@@ -121,25 +121,25 @@ namespace Riscontro.Disegno
             double[] ingombro = IngombroDagliSpigoli(vista);
             var misure = new Dictionary<string, object>
             {
-                ["vista"] = nome,
-                ["modello"] = percorsoSw,
-                ["configurazione"] = configurazione,
-                ["viste_prima"] = prima,
-                ["viste_dopo"] = ContaViste(disegno),
-                ["piatta"] = true,
-                ["linee_di_piega"] = NumeroOppureNull(pieghe),
-                ["ingombro_mm"] = ingombro == null ? null : new object[] { ingombro[0], ingombro[1] },
-                ["lunghezza_sviluppo_mm"] = double.IsNaN(lungoPezzo) ? null : (object)Math.Round(lungoPezzo, 3),
+                ["view"] = nome,
+                ["model"] = percorsoSw,
+                ["configuration"] = configurazione,
+                ["views_before"] = prima,
+                ["views_after"] = ContaViste(disegno),
+                ["flat"] = true,
+                ["bend_lines"] = NumeroOppureNull(pieghe),
+                ["bounding_box_mm"] = ingombro == null ? null : new object[] { ingombro[0], ingombro[1] },
+                ["flat_pattern_length_mm"] = double.IsNaN(lungoPezzo) ? null : (object)Math.Round(lungoPezzo, 3),
             };
-            try { misure["scala"] = vista.ScaleDecimal; } catch { }
-            misure["dove_sta_la_vista"] = dove;
+            try { misure["scale"] = vista.ScaleDecimal; } catch { }
+            misure["view_location"] = dove;
             try
             {
                 var o = vista.GetOutline() as double[];
-                if (o != null) misure["contorno_vista_mm"] = new object[] { Math.Round(o[0] * 1000, 1), Math.Round(o[1] * 1000, 1), Math.Round(o[2] * 1000, 1), Math.Round(o[3] * 1000, 1) };
+                if (o != null) misure["contour_view_mm"] = new object[] { Math.Round(o[0] * 1000, 1), Math.Round(o[1] * 1000, 1), Math.Round(o[2] * 1000, 1), Math.Round(o[3] * 1000, 1) };
             }
             catch { }
-            misure["dentro_il_foglio"] = true;
+            misure["inside_sheet"] = true;
             if (ingombro == null)
             {
                 bool removedUnmeasured = RemoveNewView(modello, nome);
@@ -163,7 +163,7 @@ namespace Riscontro.Disegno
                                "misurare), e senza non so dire se la vista mostra lo sviluppo giusto. " +
                                (tolta ? "Ho tolto la vista." : "Togli la vista: " + Frasi.CosiSiRitira + "."));
             }
-            misure["combacia_col_pezzo"] = true;
+            misure["matches_with_part"] = true;
             return SenzaFeature(misure);
         }
 

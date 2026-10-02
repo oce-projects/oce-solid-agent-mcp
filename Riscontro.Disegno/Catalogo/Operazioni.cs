@@ -31,16 +31,16 @@ namespace Riscontro.Disegno.Catalogo
             new List<KeyValuePair<string, string>>
             {
                 new KeyValuePair<string, string>(
-                    "estrusioni",
+                    "extrusions",
                     "fare il primo corpo del pezzo"),
                 new KeyValuePair<string, string>(
-                    "lavorazioni",
+                    "features",
                     "togliere o modificare materiale su un corpo che c'e' gia'"),
                 new KeyValuePair<string, string>(
-                    "saldature",
+                    "weldments",
                     "carpenteria: barre, telai, tagli fra barre, distinta"),
                 new KeyValuePair<string, string>(
-                    "riferimenti",
+                    "references",
                     "piani e assi su cui costruire"),
                 // LA FAMIGLIA CHE NON E' UN PEZZO. Tutte le altre lavorano
                 // dentro un documento di parte; questa mette insieme parti che
@@ -49,24 +49,24 @@ namespace Riscontro.Disegno.Catalogo
                 // componenti liberi sembra montato senza esserlo. La riga qui
                 // sotto lo dice al modello prima che chieda l'elenco.
                 new KeyValuePair<string, string>(
-                    "assiemi",
+                    "assemblies",
                     "mettere insieme pezzi che esistono gia'. Inserire NON e' " +
-                    "accoppiare: guarda sempre «appoggiato»"),
+                    "accoppiare: guarda sempre «resting»"),
                 new KeyValuePair<string, string>(
-                    "proprieta",
+                    "physical_properties",
                     "cio' che il pezzo E', non la sua forma"),
                 new KeyValuePair<string, string>(
-                    "tavola",
+                    "drawing",
                     "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF"),
                 // LA FAMIGLIA CHE NON DISEGNA. Fino alla 0.76.0 nessuna
                 // operazione del catalogo sapeva rispondere a «com'e' venuto?»:
                 // le misure c'erano ma erano private dentro le operazioni, e il
                 // modello non poteva chiamarne nessuna.
                 new KeyValuePair<string, string>(
-                    "verifiche",
+                    "checks",
                     "dire com'e' venuto, senza toccarlo"),
                 new KeyValuePair<string, string>(
-                    "esportazioni",
+                    "exports",
                     "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D, "
                     + "STEP e IGES per chi lo deve lavorare"),
                 // QUELLO CHE IL PEZZO DICE DI SE'. Il numero di disegno e la
@@ -74,19 +74,19 @@ namespace Riscontro.Disegno.Catalogo
                 // cartiglio e alla scheda del PDM: un pezzo giusto con la
                 // revisione sbagliata e' un pezzo sbagliato.
                 new KeyValuePair<string, string>(
-                    "identita",
+                    "identity",
                     "quello che il pezzo dice di se': numero disegno, revisione, "
                     + "cliente, e le sue varianti"),
                 // LA LAMIERA (voce GP18). La famiglia che produce il file che va
                 // alla macchina di taglio: un difetto silenzioso qui costa
                 // lamiera vera, e lo sviluppo si confronta sempre col conto a mano.
                 new KeyValuePair<string, string>(
-                    "lamiera",
+                    "sheet_metal",
                     "lamiera piegata e il suo sviluppo in DXF per il taglio"),
                 // LE QUOTE NEL MODELLO (voce Z-H3): DimXpert dal nucleo. Non e'
                 // la tavola: le quote stanno sul pezzo.
                 new KeyValuePair<string, string>(
-                    "quote",
+                    "dimensions",
                     "quote e tolleranze messe sul PEZZO (DimXpert), non su una tavola"),
             };
 
@@ -95,10 +95,10 @@ namespace Riscontro.Disegno.Catalogo
             {
                 new OperazioneDisegno
                 {
-                    Nome = "estrudi_cerchio",
-                    Famiglia = "estrusioni",
-                    Esempio = "{\"piano\":\"frontale\",\"diametro_mm\":6,\"altezza_mm\":10}",   // da `thread_on_pin`
-                    DocumentoRichiesto = "parte",
+                    Nome = "extrude_circle",
+                    Famiglia = "extrusions",
+                    Esempio = "{\"plane\":\"front\",\"diameter_mm\":6,\"height_mm\":10}",   // da `thread_on_pin`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un cilindro pieno centrato sull'origine.",
@@ -109,31 +109,31 @@ namespace Riscontro.Disegno.Catalogo
                         + "bodies it touches (merge and automatic body selection are on, as the guide "
                         + "describes them); it cannot merge with a body it does not touch, and the "
                         + "document state counts the bodies afterwards.",
-                    Precondizione = "documento_senza_corpo",
+                    Precondizione = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
-                            "diametro_mm", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right"),
+                            "diameter_mm", O(
                                 "type", "number"),
-                            "altezza_mm", O(
+                            "height_mm", O(
                                 "type", "number",
                                 "description", "lunghezza del cilindro, in mm")),
                         "required", A(
-                            "diametro_mm",
-                            "altezza_mm")),
+                            "diameter_mm",
+                            "height_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "estrudi_profilo",
-                    Famiglia = "estrusioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "extrude_profile",
+                    Famiglia = "extrusions",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una sagoma qualunque, data per contorni, estrusa: il modo "
@@ -158,18 +158,18 @@ namespace Riscontro.Disegno.Catalogo
                         + "it touches (merge and automatic body selection are on, as the guide describes "
                         + "them); it cannot merge with a body it does not touch, and the document state "
                         + "counts the bodies afterwards.",
-                    Precondizione = "documento_senza_corpo",
+                    Precondizione = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
-                            "contorni", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right"),
+                            "contours", O(
                                 "type", "array",
                                 "description", "Il PRIMO contorno e' il bordo esterno, i successivi sono i vuoti "
                                     + "dentro di esso.\n\nOgni contorno puo' avere DUE forme:\n1) una "
@@ -177,32 +177,32 @@ namespace Riscontro.Disegno.Catalogo
                                     + "[[0,0],[100,0],[100,60],[0,60]]. L'ultimo vertice si unisce al "
                                     + "primo da solo: NON ripeterlo.\n2) un CERCHIO, e per un foro o un "
                                     + "tondo va usato questo e non una spezzata con tanti lati: "
-                                    + "{\"cerchio\": [x_centro, y_centro], \"diametro_mm\": 20}. Un cerchio "
+                                    + "{\"circle\": [x_centro, y_centro], \"diameter_mm\": 20}. Un cerchio "
                                     + "approssimato a segmenti ha il materiale dentro la circonferenza, "
                                     + "e un albero non ci entra.\n\nEsempio, TUBO diametro esterno 60 "
-                                    + "spessore 5:\n[{\"cerchio\": [0, 0], \"diametro_mm\": 60}, {\"cerchio\": "
-                                    + "[0, 0], \"diametro_mm\": 50}]\nEsempio, TUBOLARE quadro 80x80 parete "
+                                    + "spessore 5:\n[{\"circle\": [0, 0], \"diameter_mm\": 60}, {\"circle\": "
+                                    + "[0, 0], \"diameter_mm\": 50}]\nEsempio, TUBOLARE quadro 80x80 parete "
                                     + "5:\n[[[-40,-40],[40,-40],[40,40],[-40,40]], "
                                     + "[[-35,-35],[35,-35],[35,35],[-35,35]]]",
                                 "items", O(
                                     "description", "una spezzata (elenco di [x_mm, y_mm]) oppure un cerchio "
-                                        + "({\"cerchio\": [x, y], \"diametro_mm\": d})")),
-                            "spessore_mm", O(
+                                        + "({\"circle\": [x, y], \"diameter_mm\": d})")),
+                            "thickness_mm", O(
                                 "type", "number",
                                 "description", "quanto si estrude, in mm"),
-                            "simmetrico", O(
+                            "symmetric", O(
                                 "type", "boolean",
                                 "description", "estrusione meta' da una parte e meta' dall'altra del piano (predefinito: no)")),
                         "required", A(
-                            "contorni",
-                            "spessore_mm")),
+                            "contours",
+                            "thickness_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "estrudi_rettangolo",
-                    Famiglia = "estrusioni",
-                    Esempio = "{\"piano\":\"frontale\",\"lunghezza_mm\":200,\"larghezza_mm\":120,\"spessore_mm\":20,\"centrato\":true}",   // da `blind_slot`
-                    DocumentoRichiesto = "parte",
+                    Nome = "extrude_rectangle",
+                    Famiglia = "extrusions",
+                    Esempio = "{\"plane\":\"front\",\"length_mm\":200,\"width_mm\":120,\"thickness_mm\":20,\"centered\":true}",   // da `blind_slot`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una piastra rettangolare piena, il primo corpo del pezzo.",
@@ -210,49 +210,49 @@ namespace Riscontro.Disegno.Catalogo
                         "Crea una piastra rettangolare: disegna un rettangolo su un piano "
                         + "e lo estrude. E' l'operazione per piastre, staffe, basi, flange "
                         + "squadrate."
-                        + "\n\n«piano» takes «frontale», «superiore» or «destro» (the case of "
+                        + "\n\n«plane» takes «front», «top» or «right» (the case of "
                         + "the letters does not matter); any other name is refused, it never "
                         + "falls back to the front plane."
                         + "\n\nOn a part that already has a body, the new plate merges with the bodies "
                         + "it touches (merge and automatic body selection are on, as the guide describes "
                         + "them); it cannot merge with a body it does not touch, and the document state "
                         + "counts the bodies afterwards.",
-                    Precondizione = "documento_senza_corpo",
+                    Precondizione = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
-                            "lunghezza_mm", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right"),
+                            "length_mm", O(
                                 "type", "number",
                                 "description", "primo lato, in mm"),
-                            "larghezza_mm", O(
+                            "width_mm", O(
                                 "type", "number",
                                 "description", "secondo lato, in mm"),
-                            "spessore_mm", O(
+                            "thickness_mm", O(
                                 "type", "number",
                                 "description", "QUANTO SI ESTRUDE, in mm. Per una piastra e' lo spessore; per una "
                                     + "barra o un profilo e' la LUNGHEZZA. Il rettangolo e' la sezione, "
                                     + "questo e' quanto va in profondita': una barra 80x80 lunga 1000 si "
-                                    + "fa con lunghezza_mm 80, larghezza_mm 80, spessore_mm 1000."),
-                            "centrato", O(
+                                    + "fa con length_mm 80, width_mm 80, thickness_mm 1000."),
+                            "centered", O(
                                 "type", "boolean",
                                 "description", "rettangolo centrato sull'origine (predefinito: si')")),
                         "required", A(
-                            "lunghezza_mm",
-                            "larghezza_mm",
-                            "spessore_mm")),
+                            "length_mm",
+                            "width_mm",
+                            "thickness_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "estrudi_sezione",
-                    Famiglia = "estrusioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "extrude_section",
+                    Famiglia = "extrusions",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una barra da sezione normalizzata (tubolare, tondo, angolare, U, "
@@ -262,7 +262,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "angolare a L, profilato a U o a T, piatto, esagono, asola — e "
                         + "ottiene un CORPO SOLIDO con quella forma.\n\nNON E' L'OPERAZIONE "
                         + "DELLA CARPENTERIA. Per un elemento di telaio usa "
-                        + "«membro_strutturale»: un corpo estruso ha la stessa forma di una "
+                        + "«structural_member»: un corpo estruso ha la stessa forma di una "
                         + "barra, ma non e' un membro strutturale, quindi NON genera la "
                         + "distinta di taglio, non porta il nome del profilo, e non si "
                         + "lascia tagliare a 45 gradi agli incroci. Chi va in officina con "
@@ -275,7 +275,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "  diametro\n• angolare / u / t   larghezza, altezza, spessore\n• "
                         + "piatto / asola     larghezza, altezza\n• esagono   chiave "
                         + "(l'apertura in chiave, non il diametro "
-                        + "circoscritto)\n\n«lunghezza_mm» e' quanto e' lunga la barra: per un "
+                        + "circoscritto)\n\n«length_mm» e' quanto e' lunga la barra: per un "
                         + "tubolare 80x80x5 lungo 1000 sono larghezza 80, altezza 80, parete "
                         + "5, lunghezza 1000.\n\nGLI SPIGOLI SONO VIVI, e sul peso si "
                         + "vede. Un profilo commerciale ha gli angoli raggiati, quindi "
@@ -283,7 +283,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "viene 1.500.000 mm3 contro i circa 1.443.000 del profilo vero, "
                         + "cioe' il 4% in piu'. Per la forma non cambia niente; se il "
                         + "numero che ti serve e' il PESO, prendi il profilo dalla "
-                        + "libreria con «membro_strutturale».\n\nL'ASOLA E' UN POLIGONO: le "
+                        + "libreria con «structural_member».\n\nL'ASOLA E' UN POLIGONO: le "
                         + "due estremita' sono 24 lati ciascuna, coi vertici sul cerchio "
                         + "circoscritto, cosi' che l'asola non sia mai piu' stretta del "
                         + "nominale. Esce larga lo 0,2% in piu' (20,043 per 20) e con lo 0,2% "
@@ -296,61 +296,61 @@ namespace Riscontro.Disegno.Catalogo
                         + "touches (merge and automatic body selection are on, as the guide describes "
                         + "them); it cannot merge with a body it does not touch, and the document state "
                         + "counts the bodies afterwards.",
-                    Precondizione = "documento_senza_corpo",
+                    Precondizione = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
-                            "tipo", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right"),
+                            "variant", O(
                                 "type", "string",
                                 "enum", A(
-                                    "tubolare",
-                                    "tondo",
-                                    "tubo",
-                                    "angolare",
+                                    "tubular",
+                                    "round",
+                                    "tube",
+                                    "angle",
                                     "u",
                                     "t",
-                                    "piatto",
-                                    "esagono",
-                                    "asola"),
+                                    "flat",
+                                    "hexagon",
+                                    "slot"),
                                 "description", "quale sezione"),
-                            "lunghezza_mm", O(
+                            "length_mm", O(
                                 "type", "number",
                                 "description", "quanto e' lunga la barra, in mm"),
-                            "larghezza_mm", O(
+                            "width_mm", O(
                                 "type", "number"),
-                            "altezza_mm", O(
+                            "height_mm", O(
                                 "type", "number"),
-                            "parete_mm", O(
+                            "wall_mm", O(
                                 "type", "number",
                                 "description", "spessore della parete, per tubolare e tubo"),
-                            "spessore_mm", O(
+                            "thickness_mm", O(
                                 "type", "number",
                                 "description", "spessore del profilo, per angolare, U e T"),
-                            "diametro_mm", O(
+                            "diameter_mm", O(
                                 "type", "number"),
-                            "chiave_mm", O(
+                            "across_flats_mm", O(
                                 "type", "number",
                                 "description", "apertura in chiave dell'esagono"),
-                            "simmetrico", O(
+                            "symmetric", O(
                                 "type", "boolean",
                                 "description", "meta' per parte del piano (predefinito: no)")),
                         "required", A(
-                            "tipo",
-                            "lunghezza_mm")),
+                            "variant",
+                            "length_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "rivoluzione",
-                    Famiglia = "estrusioni",
-                    Esempio = "{\"piano\":\"frontale\",\"angolo_gradi\":360,\"asse\":[[0,0],[90,0]],\"contorni\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // da `drilled_shaft_no_longer_declares_profile`
-                    DocumentoRichiesto = "parte",
+                    Nome = "revolve",
+                    Famiglia = "extrusions",
+                    Esempio = "{\"plane\":\"front\",\"angle_deg\":360,\"axis\":[[0,0],[90,0]],\"contours\":[[[0,0],[0,15],[40,15],[40,10],[70,10],[70,17],[90,17],[90,0]]]}",   // da `drilled_shaft_no_longer_declares_profile`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un solido a simmetria di rotazione: boccole, distanziali, alberi "
@@ -360,8 +360,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "di rotazione. E' l'operazione per tutto cio' che si fa al tornio "
                         + "quando la forma VARIA lungo l'asse: alberi a gradini, boccole con "
                         + "gole, flange, pulegge. Per un cilindro costante bastano "
-                        + "«estrudi_cerchio» o «estrudi_sezione», piu' semplici.\n\nIl profilo "
-                        + "si da' con gli stessi CONTORNI di «estrudi_profilo»: il primo e' "
+                        + "«extrude_circle» o «extrude_section», piu' semplici.\n\nIl profilo "
+                        + "si da' con gli stessi CONTORNI di «extrude_profile»: il primo e' "
                         + "il bordo, i successivi sono vuoti.\n\nLA DIFFERENZA E' L'ASSE. Il "
                         + "profilo e' una MEZZA SEZIONE, vista di fianco come al tornio: sta "
                         + "tutto da un lato dell'asse, al piu' toccandolo. NON deve "
@@ -381,28 +381,28 @@ namespace Riscontro.Disegno.Catalogo
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
                         + "locked, «sketch_lock_note» with the reason.",
-                    Precondizione = "documento_senza_corpo",
+                    Precondizione = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
-                            "contorni", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right"),
+                            "contours", O(
                                 "type", "array",
-                                "description", "il profilo da ruotare, stessa sintassi di «estrudi_profilo»: il "
+                                "description", "il profilo da ruotare, stessa sintassi di «extrude_profile»: il "
                                     + "primo contorno e' il bordo, i successivi sono vuoti. Ogni "
                                     + "contorno e' una spezzata chiusa di vertici [x_mm, y_mm] (l'ultimo "
-                                    + "si chiude da solo, non ripeterlo) oppure {\"cerchio\": [x, y], "
-                                    + "\"diametro_mm\": d}. Sta tutto da un lato dell'asse.",
+                                    + "si chiude da solo, non ripeterlo) oppure {\"circle\": [x, y], "
+                                    + "\"diameter_mm\": d}. Sta tutto da un lato dell'asse.",
                                 "items", O(
                                     "description", "una spezzata (elenco di [x_mm, y_mm]) oppure un cerchio "
-                                        + "({\"cerchio\": [x, y], \"diametro_mm\": d})")),
-                            "asse", O(
+                                        + "({\"circle\": [x, y], \"diameter_mm\": d})")),
+                            "axis", O(
                                 "type", "array",
                                 "description", "la retta di rivoluzione: DUE punti [x_mm, y_mm] nello stesso "
                                     + "sistema dei contorni. Per un pezzo tornito e' quasi sempre l'asse "
@@ -412,25 +412,25 @@ namespace Riscontro.Disegno.Catalogo
                                     "type", "array",
                                     "items", O(
                                         "type", "number"))),
-                            "angolo_gradi", O(
+                            "angle_deg", O(
                                 "type", "number",
                                 "description", "predefinito 360, un giro completo")),
                         "required", A(
-                            "contorni",
-                            "asse")),
+                            "contours",
+                            "axis")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "ruota_dentata",
-                    Famiglia = "estrusioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "spur_gear",
+                    Famiglia = "extrusions",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una ruota dentata a evolvente, con foro e cava per linguetta.",
                     Descrizione =
                         "Crea una RUOTA DENTATA cilindrica a denti dritti, dal numero di "
                         + "denti e dal modulo. Il profilo del dente e' a evolvente e lo "
-                        + "calcolo io: tu dai solo i dati di progetto.\n\nCon foro_mm "
+                        + "calcolo io: tu dai solo i dati di progetto.\n\nCon bore_mm "
                         + "si ottiene anche il foro centrale.\n\nIL LIMITE: sotto 17 denti "
                         + "(con l'angolo di pressione standard di 20 gradi) rifiuto, perche' "
                         + "servirebbe la correzione di profilo contro l'intaglio del piede e "
@@ -440,47 +440,47 @@ namespace Riscontro.Disegno.Catalogo
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
                         + "locked, «sketch_lock_note» with the reason.",
-                    Precondizione = "documento_senza_corpo",
+                    Precondizione = "document_without_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
-                            "denti", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right"),
+                            "teeth", O(
                                 "type", "integer",
                                 "description", "numero di denti (z)"),
-                            "modulo_mm", O(
+                            "module_mm", O(
                                 "type", "number",
                                 "description", "il modulo m in mm. Diametro primitivo = m x z, esterno = m x (z+2)."),
-                            "spessore_mm", O(
+                            "thickness_mm", O(
                                 "type", "number",
                                 "description", "larghezza di fascia"),
-                            "angolo_pressione_gradi", O(
+                            "pressure_angle_deg", O(
                                 "type", "number",
                                 "description", "predefinito 20, che e' lo standard"),
-                            "foro_mm", O(
+                            "bore_mm", O(
                                 "type", "number",
                                 "description", "diametro del foro centrale; omettilo per una ruota piena"),
-                            "cava_linguetta", O(
+                            "keyway", O(
                                 "type", "boolean",
                                 "description", "cava per linguetta nel foro, con larghezza e profondita' "
                                     + "normalizzate (ISO/R 773, DIN 6885-1) ricavate dal diametro del "
                                     + "foro. Non chiedere le quote della cava: le sceglie la norma.")),
                         "required", A(
-                            "denti",
-                            "modulo_mm",
-                            "spessore_mm")),
+                            "teeth",
+                            "module_mm",
+                            "thickness_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "asola",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "slot",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un foro allungato: il fissaggio che si registra in montaggio.",
@@ -492,10 +492,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "misura sul pezzo e come si scrive a disegno; la LARGHEZZA e' il "
                         + "diametro delle estremita', cioe' il diametro della vite piu' il "
                         + "gioco. Per una M10 che deve scorrere 40 mm: larghezza 11, "
-                        + "lunghezza 51.\n\n«angolo_gradi» ruota l'asola nel piano della "
+                        + "lunghezza 51.\n\n«angle_deg» ruota l'asola nel piano della "
                         + "faccia: 0 e' orizzontale, 90 verticale. Serve quando la "
                         + "registrazione va in una direzione precisa.\n\nNon e' una tasca "
-                        + "rettangolare. «taglio_rettangolare» ci somiglia ma ha gli spigoli "
+                        + "rettangolare. «rectangular_cut» ci somiglia ma ha gli spigoli "
                         + "vivi, e la vite ci balla dentro invece di scorrere."
                         + "\n\nMI RIFIUTO IN QUATTRO CASI, e li dico prima perche' provarli costa un giro: "
                         + "se l'asola non e' passante e non mi dai la profondita'; se cade tutta "
@@ -503,35 +503,35 @@ namespace Riscontro.Disegno.Catalogo
                         + "piu' grande della faccia e la coprirebbe tutta; e se lunghezza e "
                         + "larghezza sono uguali -- quella e' una circonferenza, e la lunghezza qui "
                         + "si misura da fuori a fuori.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_uid", O(
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "una faccia che c'e' gia', presa dallo stato"),
-                            "faccia_rif", O(
+                            "face_ref", O(
                                 "type", "object",
                                 "description", "la faccia creata da un passo precedente di questo stesso piano. "
-                                    + "Metti questo OPPURE faccia_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- faccia_di_fondo: il fondo della tasca (c'e' solo se la "
-                                    + "tasca e' cieca)\n- faccia_inferiore: la faccia sul piano di "
-                                    + "schizzo, il fondo dell'estrusione\n- faccia_superiore: la faccia "
+                                    + "Metti questo OPPURE face_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- pocket_floor: il fondo della tasca (c'e' solo se la "
+                                    + "tasca e' cieca)\n- bottom_face: la faccia sul piano di "
+                                    + "schizzo, il fondo dell'estrusione\n- top_face: la faccia "
                                     + "in cima all'estrusione, quella opposta al piano di schizzo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "faccia_di_fondo",
-                                            "faccia_inferiore",
-                                            "faccia_superiore"))),
+                                            "pocket_floor",
+                                            "bottom_face",
+                                            "top_face"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
+                                    "step",
+                                    "kind")),
                             "x_mm", O(
                                 "type", "number",
                                 "description", "COORDINATE DEL MODELLO in mm, non coordinate della faccia. Prendi "
@@ -539,48 +539,48 @@ namespace Riscontro.Disegno.Catalogo
                                     + "faccia, in ordine X, Y, Z: normale lungo Z -> x_mm e' la X del "
                                     + "modello e y_mm la Y; normale lungo Y -> x_mm e' la X e y_mm la Z; "
                                     + "normale lungo X -> x_mm e' la Y e y_mm la Z. Sono gli stessi "
-                                    + "numeri di «punto_mm» che leggi nello stato del documento, quindi "
+                                    + "numeri di «point_mm» che leggi nello stato del documento, quindi "
                                     + "puoi partire da quelli. La terza coordinata non serve: e' il "
                                     + "piano della faccia."),
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
-                            "ancora", SchemaAncora("l'asola"),
-                            "lunghezza_mm", O(
+                            "anchor", SchemaAncora("l'asola"),
+                            "length_mm", O(
                                 "type", "number",
                                 "description", "lunghezza TOTALE da fuori a fuori, non la corsa. Dev'essere "
                                     + "maggiore della larghezza."),
-                            "larghezza_mm", O(
+                            "width_mm", O(
                                 "type", "number",
                                 "description", "larghezza dell'asola, cioe' il diametro delle estremita' tonde"),
-                            "angolo_gradi", O(
+                            "angle_deg", O(
                                 "type", "number",
                                 "description", "rotazione nel piano della faccia, predefinito 0. Lo schizzo "
                                     + "nasce quotato (raggio e distanza fra i centri): a 0 e 90 gradi anche "
                                     + "l'orientamento e' fissato; obliqua, l'angolo si quota contro il primo "
-                                    + "spigolo dell'«ancora», e senza ancora resta libero (te lo dico)."
+                                    + "spigolo dell'«anchor», e senza ancora resta libero (te lo dico)."
                                     + " The angle dimension is read back: it must measure the angle "
                                     + "between the slot and that edge (or its supplement), or I refuse. "
                                     + "If the four tangencies and the equal radii of the slot cannot be "
                                     + "counted, or not all of them were born, the response says so in "
                                     + "«slot_relations»."),
-                            "passante", O(
+                            "through_all", O(
                                 "type", "boolean",
                                 "description", "predefinito: si'"),
-                            "profondita_mm", O(
+                            "depth_mm", O(
                                 "type", "number",
                                 "description", "solo se non passante")),
                         "required", A(
                             "x_mm",
                             "y_mm",
-                            "lunghezza_mm",
-                            "larghezza_mm")),
+                            "length_mm",
+                            "width_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "estrudi_su_faccia",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "extrude_on_face",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Fa CRESCERE materiale da una faccia: un rialzo, un labbro, un "
@@ -590,76 +590,76 @@ namespace Riscontro.Disegno.Catalogo
                         + "FUORI, aggiungendo materiale al pezzo.\n\nE' L'OPERAZIONE CHE FA "
                         + "CRESCERE UN RIALZO. Le altre su un pezzo esistente tolgono (fori, "
                         + "tagli, asole), svuotano (guscio) o spostano; aggiungono materiale "
-                        + "anche «incidi_testo» in rilievo, ma solo una scritta, e "
-                        + "«combina_corpi», che unisce corpi che ci sono gia'. Senza questa non si "
+                        + "anche «engrave_text» in rilievo, ma solo una scritta, e "
+                        + "«combine_bodies», che unisce corpi che ci sono gia'. Senza questa non si "
                         + "possono fare: il labbro di tenuta di un coperchio, i distanziali "
                         + "su cui appoggia qualcosa, un'aletta di fissaggio, una torretta "
                         + "per una vite, un rialzo attorno a un foro.\n\nI CONTORNI SONO NELLE "
-                        + "COORDINATE DELLA FACCIA, come per «taglio_rettangolare»: (0, 0) "
+                        + "COORDINATE DELLA FACCIA, come per «rectangular_cut»: (0, 0) "
                         + "e' il centro della faccia. Piu' contorni annidati fanno una "
                         + "cornice — quello fuori e quello dentro — ed e' cosi' che si fa un "
-                        + "labbro attorno a un bordo invece di un blocco pieno.\n\n«unisci» a "
+                        + "labbro attorno a un bordo invece di un blocco pieno.\n\n«merge» a "
                         + "vero (predefinito) fonde il rialzo con il pezzo. A falso nasce un "
                         + "CORPO SEPARATO: quasi mai quello che si vuole, e l'albero cresce "
                         + "uguale, quindi lo si nota solo contando i corpi."
                         + "\n\nMI RIFIUTO se il rialzo non aggiunge materiale (e' cresciuto DENTRO "
-                        + "il pezzo), se con «unisci» i corpi non restano quelli, e se chiedi "
-                        + "l'«ancora» su piu' di un contorno o su un contorno che non e' ne' tondo "
+                        + "il pezzo), se con «merge» i corpi non restano quelli, e se chiedi "
+                        + "l'«anchor» su piu' di un contorno o su un contorno che non e' ne' tondo "
                         + "ne' un rettangolo allineato: il punto che l'ancora tiene e' il centro, "
                         + "e il centro di un poligono qualunque non lo indovino.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_uid", O(
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "la faccia da cui far crescere il materiale"),
-                            "faccia_rif", O(
+                            "face_ref", O(
                                 "type", "object",
                                 "description", "la faccia creata da un passo precedente di questo stesso piano. "
-                                    + "Metti questo OPPURE faccia_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- faccia_di_fondo: il fondo della tasca (c'e' solo se la "
-                                    + "tasca e' cieca)\n- faccia_inferiore: la faccia sul piano di "
-                                    + "schizzo, il fondo dell'estrusione\n- faccia_superiore: la faccia "
+                                    + "Metti questo OPPURE face_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- pocket_floor: il fondo della tasca (c'e' solo se la "
+                                    + "tasca e' cieca)\n- bottom_face: la faccia sul piano di "
+                                    + "schizzo, il fondo dell'estrusione\n- top_face: la faccia "
                                     + "in cima all'estrusione, quella opposta al piano di schizzo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "faccia_di_fondo",
-                                            "faccia_inferiore",
-                                            "faccia_superiore"))),
+                                            "pocket_floor",
+                                            "bottom_face",
+                                            "top_face"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "contorni", O(
+                                    "step",
+                                    "kind")),
+                            "contours", O(
                                 "type", "array",
                                 "description", "la sagoma da estrudere, nelle coordinate della faccia. Ogni "
-                                    + "contorno e' {\"vertici\": [[x, y], ...]} — spezzata chiusa, "
-                                    + "l'ultimo punto si chiude da solo — oppure {\"cerchio\": [x, y], "
-                                    + "\"diametro_mm\": d}. Due contorni annidati fanno una cornice.",
+                                    + "contorno e' {\"vertices\": [[x, y], ...]} — spezzata chiusa, "
+                                    + "l'ultimo punto si chiude da solo — oppure {\"circle\": [x, y], "
+                                    + "\"diameter_mm\": d}. Due contorni annidati fanno una cornice.",
                                 "items", O(
                                     "type", "object")),
-                            "altezza_mm", O(
+                            "height_mm", O(
                                 "type", "number",
                                 "description", "quanto sporge dalla faccia"),
-                            "ancora", SchemaAncora("il rialzo", true),
-                            "unisci", O(
+                            "anchor", SchemaAncora("il rialzo", true),
+                            "merge", O(
                                 "type", "boolean",
                                 "description", "predefinito: si'. A falso fa un corpo separato.")),
                         "required", A(
-                            "contorni",
-                            "altezza_mm")),
+                            "contours",
+                            "height_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "foro_guidato",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "hole_wizard",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un foro come si fa un foro: creazione guidata, norma ISO, "
@@ -667,67 +667,67 @@ namespace Riscontro.Disegno.Catalogo
                         + "una volta.",
                     Descrizione =
                         "IL MODO GIUSTO DI FARE UN FORO: la creazione guidata fori di "
-                        + "SolidWorks, norma ISO. Da preferire SEMPRE a «taglio_cilindrico» "
+                        + "SolidWorks, norma ISO. Da preferire SEMPRE a «cylindrical_cut» "
                         + "quando il foro alloggia una vite, un perno o una filettatura.\n\nLe "
                         + "misure le prende dalla norma: tu dai la taglia della vite («M8») "
                         + "e il tipo, non i diametri. Un foro filettato M8 esce con il "
                         + "preforo 6.8 e il filetto; uno di passaggio M8 esce 9.\n\nPiu' fori "
-                        + "uguali si fanno in UNA SOLA chiamata mettendo piu' «posizioni»: "
+                        + "uguali si fanno in UNA SOLA chiamata mettendo piu' «positions»: "
                         + "e' cosi' che si disegna una serie di fori, e in officina si legge "
                         + "come una lavorazione sola."
-                        + "\n\nOgni posizione puo' portare un'«ancora» (una quota da uno spigolo, o "
+                        + "\n\nOgni posizione puo' portare un'«anchor» (una quota da uno spigolo, o "
                         + "il centro fra due spigoli, per asse): allora il foro segue il bordo "
                         + "quando il pezzo cambia. I REFUSE if only some positions carry an "
                         + "anchor (all or none: the holes are in one sketch), if a distance is "
                         + "less than the radius of the hole, or if, on a centred axis, the gap "
                         + "between the two edges is narrower than the hole. The radius is the "
-                        + "widest cut: the counterbore for «lamato», the countersink for "
-                        + "«svasato». I know it only once the hole is made, and then I remove "
+                        + "widest cut: the counterbore for «counterbore», the countersink for "
+                        + "«countersink». I know it only once the hole is made, and then I remove "
                         + "the hole. If SOLIDWORKS does not declare the diameter, the response "
                         + "says so in «anchor_fit_not_checked».\n\nMI RIFIUTO, e tolgo il foro, anche se "
                         + "ricostruisce in errore o non toglie materiale: per esempio una "
                         + "posizione che sta fuori dalla faccia.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_uid", O(
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "una faccia che c'e' gia', presa dallo stato"),
-                            "faccia_rif", O(
+                            "face_ref", O(
                                 "type", "object",
                                 "description", "la faccia creata da un passo precedente di questo stesso piano. "
-                                    + "Metti questo OPPURE faccia_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- faccia_di_fondo: il fondo della tasca (c'e' solo se la "
-                                    + "tasca e' cieca)\n- faccia_inferiore: la faccia sul piano di "
-                                    + "schizzo, il fondo dell'estrusione\n- faccia_superiore: la faccia "
+                                    + "Metti questo OPPURE face_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- pocket_floor: il fondo della tasca (c'e' solo se la "
+                                    + "tasca e' cieca)\n- bottom_face: la faccia sul piano di "
+                                    + "schizzo, il fondo dell'estrusione\n- top_face: la faccia "
                                     + "in cima all'estrusione, quella opposta al piano di schizzo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "faccia_di_fondo",
-                                            "faccia_inferiore",
-                                            "faccia_superiore"))),
+                                            "pocket_floor",
+                                            "bottom_face",
+                                            "top_face"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "tipo", O(
+                                    "step",
+                                    "kind")),
+                            "variant", O(
                                 "type", "string",
                                 "enum", A(
-                                    "passaggio",
-                                    "filettato",
-                                    "lamato",
-                                    "svasato"),
-                                "description", "passaggio = foro liscio per far passare la vite; filettato = "
-                                    + "maschiato, la vite ci si avvita; lamato = con la sede per la "
-                                    + "testa cilindrica (ISO 4762); svasato = con la sede conica per la "
-                                    + "testa svasata (ISO 10642). Predefinito: passaggio."),
-                            "taglia", O(
+                                    "clearance",
+                                    "threaded",
+                                    "counterbore",
+                                    "countersink"),
+                                "description", "clearance = foro liscio per far passare la vite; threaded = "
+                                    + "maschiato, la vite ci si avvita; counterbore = con la sede per la "
+                                    + "testa cilindrica (ISO 4762); countersink = con la sede conica per la "
+                                    + "testa svasata (ISO 10642). Predefinito: clearance."),
+                            "size", O(
                                 "type", "string",
                                 "enum", A(
                                     "M3",
@@ -743,10 +743,10 @@ namespace Riscontro.Disegno.Catalogo
                                     "M24"),
                                 "description", "la taglia della VITE, non il diametro del foro. Copiala da questo "
                                     + "elenco: e' quello che la tabella ISO di SolidWorks conosce."),
-                            "posizioni", O(
+                            "positions", O(
                                 "type", "array",
                                 "description", "dove vanno i fori, sul piano della faccia. Piu' fori uguali "
-                                    + "stanno in una chiamata sola. L'«ancora» si da' a TUTTE le posizioni o a "
+                                    + "stanno in una chiamata sola. L'«anchor» si da' a TUTTE le posizioni o a "
                                     + "nessuna: i fori stanno in uno schizzo solo, e un punto senza ancora lo "
                                     + "lascerebbe libero di muoversi. I refuse if a distance is less than "
                                     + "the radius of the hole, or a centred gap is narrower than the hole, "
@@ -762,139 +762,139 @@ namespace Riscontro.Disegno.Catalogo
                                                 + "faccia, in ordine X, Y, Z: normale lungo Z -> x_mm e' la X del "
                                                 + "modello e y_mm la Y; normale lungo Y -> x_mm e' la X e y_mm la Z; "
                                                 + "normale lungo X -> x_mm e' la Y e y_mm la Z. Sono gli stessi "
-                                                + "numeri di «punto_mm» che leggi nello stato del documento, quindi "
+                                                + "numeri di «point_mm» che leggi nello stato del documento, quindi "
                                                 + "puoi partire da quelli. La terza coordinata non serve: e' il "
                                                 + "piano della faccia."),
                                         "y_mm", O(
                                             "type", "number",
                                             "description", "vedi x_mm"),
-                                        "ancora", SchemaAncora("il foro")),
+                                        "anchor", SchemaAncora("il foro")),
                                     "required", A(
                                         "x_mm",
                                         "y_mm"))),
-                            "passante", O(
+                            "through_all", O(
                                 "type", "boolean",
                                 "description", "predefinito: si'"),
-                            "profondita_mm", O(
+                            "depth_mm", O(
                                 "type", "number",
                                 "description", "obbligatoria se non passante")),
                         "required", A(
-                            "taglia",
-                            "posizioni")),
+                            "size",
+                            "positions")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "guscio",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "shell",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Svuota un corpo pieno lasciando una parete di spessore costante: "
                         + "scatole, carter, coperchi.",
                     Descrizione =
                         "Il guscio: prende un corpo pieno e lo svuota, lasciando una "
-                        + "parete di spessore costante. Le facce indicate in «facce_uid» "
+                        + "parete di spessore costante. Le facce indicate in «faces_uid» "
                         + "vengono TOLTE, cioe' restano aperte — una faccia sola apre una "
                         + "scatola da un lato, due facce opposte fanno un tubo passante.\n\nLo "
                         + "spessore si toglie verso l'INTERNO: l'ingombro esterno non "
-                        + "cambia, come aprendo una scatola. Con «verso_esterno» lo spessore "
+                        + "cambia, come aprendo una scatola. Con «outward» lo spessore "
                         + "si aggiunge da fuori, e serve quando e' l'ingombro INTERNO la "
                         + "quota fissa — un vano che deve restare della misura data.\n\nUn "
                         + "guscio senza nessuna faccia tolta e' un corpo cavo chiuso: "
                         + "legittimo ma raro, e quasi sempre il segno che manca una faccia "
-                        + "nella richiesta. Per questo va confermato con «tutto_chiuso».",
-                    Precondizione = "corpo_solido_e_faccia",
+                        + "nella richiesta. Per questo va confermato con «fully_closed».",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "facce_uid", O(
+                            "faces_uid", O(
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
                                 "description", "le facce da TOGLIERE (restano aperte), prese dallo stato del documento"),
-                            "facce_rif", O(
+                            "faces_ref", O(
                                 "type", "array",
                                 "description", "le facce da TOGLIERE, quando le crea un passo PRECEDENTE di questo "
                                     + "stesso piano e quindi non hanno ancora un identificativo. Metti "
-                                    + "questo OPPURE «facce_uid», non tutti e due.\n\nUn elemento per "
+                                    + "questo OPPURE «faces_uid», non tutti e due.\n\nUn elemento per "
                                     + "ogni faccia da aprire: «fai un blocco e poi svuotalo dall'alto» "
-                                    + "e' un piano solo.\n\nGeneri ammessi:\n- faccia_superiore: la "
+                                    + "e' un piano solo.\n\nGeneri ammessi:\n- top_face: la "
                                     + "faccia in cima all'estrusione, quella opposta al piano di "
-                                    + "schizzo\n- faccia_inferiore: la faccia sul piano di schizzo\n"
-                                    + "- faccia_di_fondo: il fondo di una tasca cieca\n"
-                                    + "- faccia_del_foro: la parete cilindrica di un foro",
+                                    + "schizzo\n- bottom_face: la faccia sul piano di schizzo\n"
+                                    + "- pocket_floor: il fondo di una tasca cieca\n"
+                                    + "- hole_face: la parete cilindrica di un foro",
                                 "items", O(
                                     "type", "object",
                                     "properties", O(
-                                        "passo", O(
+                                        "step", O(
                                             "type", "integer",
                                             "description", "il numero d'ordine del passo che crea la geometria, "
                                                 + "contando da 1. Deve essere un passo PRECEDENTE a questo."),
-                                        "genere", O(
+                                        "kind", O(
                                             "type", "string",
                                             "enum", A(
-                                                "faccia_superiore", "faccia_inferiore",
-                                                "faccia_di_fondo", "faccia_del_foro"))),
-                                    "required", A("passo", "genere"))),
-                            "spessore_mm", O(
+                                                "top_face", "bottom_face",
+                                                "pocket_floor", "hole_face"))),
+                                    "required", A("step", "kind"))),
+                            "thickness_mm", O(
                                 "type", "number",
                                 "description", "spessore della parete che resta"),
-                            "verso_esterno", O(
+                            "outward", O(
                                 "type", "boolean",
                                 "description", "predefinito no: lo spessore si toglie verso l'interno e "
                                     + "l'ingombro esterno non cambia"),
-                            "tutto_chiuso", O(
+                            "fully_closed", O(
                                 "type", "boolean",
                                 "description", "conferma esplicita per un guscio senza nessuna faccia tolta. Di "
                                     + "solito manca una faccia: usalo solo se e' davvero questo che "
                                     + "serve.")),
                         "required", A(
-                            "spessore_mm")),
+                            "thickness_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "cambia_estrusione",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "edit_extrusion",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
-                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione1\",\"passante\":true}",   // da `blind_becomes_through`
+                    Esempio = "{\"feature_uid\":\"Cut-Extrude1\",\"through_all\":true}",   // da `blind_becomes_through`
                     Sommario = "Cambia un'estrusione o un taglio gia' fatti: cieco -> passante, o un'altra profondita'.",
                     Descrizione =
                         "Cambia la definizione di un'estrusione o di un taglio estruso che c'e' gia': un "
-                        + "foro cieco che deve diventare passante («passante»: true), o una profondita' "
-                        + "diversa («profondita_mm»). Non si rifa' il pezzo: la lavorazione cambia al suo "
+                        + "foro cieco che deve diventare passante («through_all»: true), o una profondita' "
+                        + "diversa («depth_mm»). Non si rifa' il pezzo: la lavorazione cambia al suo "
                         + "posto nell'albero, e quelle a valle la seguono.\n\nDopo rileggo la definizione "
                         + "(condizione e profondita'), il volume prima e dopo e le lavorazioni in errore: se "
                         + "la modifica ne rompe una a valle, rimetto com'era e mi rifiuto. Se il volume non "
                         + "cambia te lo dico (un cieco piu' profondo del materiale e' gia' passante).\n\nMI "
                         + "RIFIUTO se la lavorazione non e' un'estrusione o un taglio estruso (per una quota "
-                        + "qualunque c'e' «modifica_quota»), se chiedi «passante» per un'estrusione — anche "
-                        + "per un rialzo fatto su una faccia con «estrudi_su_faccia», che nello stato ha tipo "
+                        + "qualunque c'e' «set_dimension»), se chiedi «through_all» per un'estrusione — anche "
+                        + "per un rialzo fatto su una faccia con «extrude_on_face», che nello stato ha tipo "
                         + "«ICE» come i tagli ma e' un'estrusione —, se l'estrusione va in DUE VERSI "
                         + "indipendenti (cambio e rileggo solo il primo, e il secondo resterebbe com'era), e "
-                        + "se non mi dai uno solo fra «passante» e «profondita_mm».",
+                        + "se non mi dai uno solo fra «through_all» e «depth_mm».",
                     Precondizione = "un pezzo con un'estrusione o un taglio estruso",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "feature_uid", O(
                                 "type", "string",
-                                "description", "la lavorazione da cambiare, col nome dallo stato («feature»)."),
-                            "passante", O(
+                                "description", "la lavorazione da cambiare, col nome dallo stato («feature»). The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is."),
+                            "through_all", O(
                                 "type", "boolean",
-                                "description", "true: il taglio attraversa tutto. Oppure «profondita_mm»."),
-                            "profondita_mm", O(
+                                "description", "true: il taglio attraversa tutto. Oppure «depth_mm»."),
+                            "depth_mm", O(
                                 "type", "number",
-                                "description", "la profondita' nuova, in mm (cieca). Oppure «passante».")),
+                                "description", "la profondita' nuova, in mm (cieca). Oppure «through_all».")),
                         "required", A("feature_uid")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "riordina_lavorazione",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "reorder_feature",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
-                    Esempio = "{\"feature_uid\":\"Svuota1\",\"rispetto_a_uid\":\"Taglio-Estrusione1\",\"dove\":\"prima\"}",   // da `order_changes_the_part`
+                    Esempio = "{\"feature_uid\":\"Shell1\",\"relative_to_uid\":\"Cut-Extrude1\",\"placement\":\"before\"}",   // da `order_changes_the_part`
                     Sommario = "Sposta una lavorazione prima o dopo un'altra nell'albero, e dice come e' cambiato il pezzo.",
                     Descrizione =
                         "Sposta una lavorazione nell'albero, prima o dopo un'altra: uno svuotamento "
@@ -903,8 +903,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "dopo, il volume e i corpi prima e dopo; se il pezzo non cambia te lo dico."
                         + "\n\nSE LO SPOSTAMENTO ROMPE UNA LAVORAZIONE A VALLE la rimetto dov'era e "
                         + "mi rifiuto.\n\nMI RIFIUTO se una delle due lavorazioni non c'e' o non e' "
-                        + "piu' quella dello stato (il nome si rinomina, l'ID no), se «dove» non e' "
-                        + "«prima» o «dopo», e se SOLIDWORKS non la sposta: succede quando dipende da "
+                        + "piu' quella dello stato (il nome si rinomina, l'ID no), se «placement» non e' "
+                        + "«before» o «after», e se SOLIDWORKS non la sposta: succede quando dipende da "
                         + "una lavorazione che verrebbe dopo (un foro prima dell'estrusione su cui "
                         + "sta).",
                     Precondizione = "un pezzo con almeno due lavorazioni",
@@ -913,85 +913,85 @@ namespace Riscontro.Disegno.Catalogo
                         "properties", O(
                             "feature_uid", O(
                                 "type", "string",
-                                "description", "la lavorazione da spostare, col nome dallo stato («feature»)."),
-                            "rispetto_a_uid", O(
+                                "description", "la lavorazione da spostare, col nome dallo stato («feature»). The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is."),
+                            "relative_to_uid", O(
                                 "type", "string",
                                 "description", "la lavorazione accanto a cui metterla."),
-                            "dove", O(
+                            "placement", O(
                                 "type", "string",
-                                "enum", A("prima", "dopo"),
-                                "description", "prima o dopo di «rispetto_a_uid».")),
-                        "required", A("feature_uid", "rispetto_a_uid", "dove")),
+                                "enum", A("before", "after"),
+                                "description", "before o after di «relative_to_uid».")),
+                        "required", A("feature_uid", "relative_to_uid", "placement")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "variabile_globale",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "global_variable",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
-                    Esempio = "{\"nome\":\"parete\",\"valore_mm\":12}",   // da `wall_has_a_name`
+                    Esempio = "{\"name\":\"parete\",\"value_mm\":12}",   // da `wall_has_a_name`
                     Sommario = "Dai un NOME a un numero (parete = 3 mm): le quote legate cambiano con lui.",
                     Descrizione =
                         "Crea o cambia una variabile globale del pezzo: «parete» = 12 mm, oppure "
                         + "un'espressione («2 * \"parete\" + 1mm»). Le quote legate con "
-                        + "«lega_quota» cambiano quando la cambi: e' il modo di fare un pezzo che "
+                        + "«link_dimension» cambiano quando la cambi: e' il modo di fare un pezzo che "
                         + "si modifica senza rompersi, senza ripetere lo stesso numero in dieci "
                         + "posti.\n\nDopo averla scritta la rileggo, e ti dico quali quote guida e "
                         + "il volume prima e dopo.\n\nMI RIFIUTO se il nome non e' fatto di lettere, "
-                        + "cifre e «_», se mi dai insieme (o nessuno dei due) «valore_mm» ed "
-                        + "«espressione», e se SOLIDWORKS non accetta il nome: nel SOLIDWORKS in "
+                        + "cifre e «_», se mi dai insieme (o nessuno dei due) «value_mm» ed "
+                        + "«expression», e se SOLIDWORKS non accetta il nome: nel SOLIDWORKS in "
                         + "italiano «spessore» e' gia' preso (misurato) — usa per esempio «parete».",
                     Precondizione = "un pezzo aperto",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "nome", O(
+                            "name", O(
                                 "type", "string",
                                 "description", "il nome della variabile: lettere, cifre e «_», comincia con una lettera."),
-                            "valore_mm", O(
+                            "value_mm", O(
                                 "type", "number",
-                                "description", "il valore, in millimetri. Oppure «espressione»."),
-                            "espressione", O(
+                                "description", "il valore, in millimetri. Oppure «expression»."),
+                            "expression", O(
                                 "type", "string",
                                 "description", "un'espressione di SOLIDWORKS, coi nomi fra virgolette doppie: "
-                                    + "«2 * \"parete\" + 1mm». Oppure «valore_mm».")),
-                        "required", A("nome")),
+                                    + "«2 * \"parete\" + 1mm». Oppure «value_mm».")),
+                        "required", A("name")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "lega_quota",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "link_dimension",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario = "Lega una quota a una variabile o a un conto: la guida l'equazione.",
                     Descrizione =
-                        "Lega una quota del pezzo (il suo nome dallo stato, «D1@Schizzo1») a "
+                        "Lega una quota del pezzo (il suo nome dallo stato, «D1@Sketch1») a "
                         + "un'espressione: una variabile globale («\"parete\"») o un conto "
                         + "(«2 * \"parete\" + 1mm»). Da li' la quota la guida l'equazione, e "
-                        + "cambia quando cambia la variabile; «modifica_quota» non la cambia piu'."
+                        + "cambia quando cambia la variabile; «set_dimension» non la cambia piu'."
                         + "\n\nDopo il legame rileggo la quota: deve valere quanto dice "
                         + "l'equazione, e ti do il volume prima e dopo.\n\nMI RIFIUTO se la quota "
                         + "non c'e' (ti dico quali ci sono) o se SOLIDWORKS non accetta "
                         + "l'espressione (una variabile che non esiste: creala prima con "
-                        + "«variabile_globale»).",
+                        + "«global_variable»).",
                     Precondizione = "un pezzo aperto con almeno una quota",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "quota", O(
+                            "dimension", O(
                                 "type", "string",
-                                "description", "il nome della quota, copiato dallo stato del documento."),
-                            "espressione", O(
+                                "description", "il nome della quota, copiato dallo stato del documento. The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is."),
+                            "expression", O(
                                 "type", "string",
                                 "description", "a cosa legarla, coi nomi fra virgolette doppie: «\"parete\"», "
                                     + "«2 * \"parete\" + 1mm».")),
-                        "required", A("quota", "espressione")),
+                        "required", A("dimension", "expression")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "modifica_quota",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "set_dimension",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Cambia una quota di una lavorazione che c'e' gia', senza rifare niente.",
@@ -1004,7 +1004,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "fori, raccordi, nervature costruite su quella geometria.\n\nIL NOME "
                         + "DELLA QUOTA LO TROVI NELLO STATO DEL DOCUMENTO: ogni lavorazione "
                         + "porta le sue, con nome e valore in mm (per esempio "
-                        + "«D1@Svuota1@Parte3.Part» = 6). Copia il nome cosi' com'e'.\n\nIl "
+                        + "«D1@Shell1@Part3.Part» = 6). Copia il nome cosi' com'e'.\n\nIl "
                         + "valore cambia in TUTTE le configurazioni: cambiarne una sola "
                         + "lascerebbe il pezzo diverso a seconda di come lo si guarda.\n\nSe "
                         + "la quota cambia ma il volume del pezzo no, viene detto: quasi "
@@ -1020,34 +1020,34 @@ namespace Riscontro.Disegno.Catalogo
                         + "SOLIDWORKS non da' errore, cambia la forma da solo, e la lavorazione "
                         + "di base perde una faccia intera. Rimette il valore di prima e dice "
                         + "quale smusso o raccordo.\n\nUNA QUOTA ANGOLARE (lo stato la scrive in "
-                        + "«gradi») si cambia in GRADI: «valore_mm» porta i gradi, e la risposta "
-                        + "dice «before_deg» e «after_deg» invece di «prima_mm» e «adesso_mm». "
+                        + "«deg») si cambia in GRADI: «value_mm» porta i gradi, e la risposta "
+                        + "dice «before_deg» e «after_deg» invece di «before_mm» e «now_mm». "
                         + "A dimension the document state lists with its value null (not 0) could "
-                        + "not be read from SOLIDWORKS; modifica_quota refuses it before changing "
+                        + "not be read from SOLIDWORKS; set_dimension refuses it before changing "
                         + "anything.\n\n"
                         + "RIFIUTA le quote di sola lettura (non le scavalco, anche se SOLIDWORKS "
                         + "lo permetterebbe), quelle guidate, che misurano e non comandano, e "
                         + "quelle intere, come le copie di una ripetizione.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "quota", O(
+                            "dimension", O(
                                 "type", "string",
-                                "description", "il nome della quota, copiato dallo stato del documento"),
-                            "valore_mm", O(
+                                "description", "il nome della quota, copiato dallo stato del documento The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is."),
+                            "value_mm", O(
                                 "type", "number",
                                 "description", "il valore nuovo, in millimetri; in gradi se la quota e' "
                                     + "angolare")),
                         "required", A(
-                            "quota",
-                            "valore_mm")),
+                            "dimension",
+                            "value_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "tolleranza_quota",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "dimension_tolerance",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "La tolleranza su una quota del modello (±, bilaterale, accoppiamento ISO), riscontrata e con i decimali giusti.",
@@ -1055,7 +1055,7 @@ namespace Riscontro.Disegno.Catalogo
                         "Mette la TOLLERANZA su una quota del modello: simmetrica (±valore), bilaterale "
                         + "(scostamenti superiore e inferiore) o un accoppiamento ISO (classe, es. H7 per un "
                         + "foro, g6 per un albero). Sulla quota del modello arriva in tavola da sola con "
-                        + "«quote_dal_modello».\n\nL'ACCOPPIAMENTO SI RISCONTRA: gli scostamenti li calcola "
+                        + "«model_dimensions».\n\nL'ACCOPPIAMENTO SI RISCONTRA: gli scostamenti li calcola "
                         + "SOLIDWORKS, e io controllo che l'ampiezza sia il grado IT della tabella ISO 286-1 per "
                         + "quel diametro (IT5..IT11, fino a 500 mm) e che il segno sia quello della lettera "
                         + "(H da zero in su, h da zero in giu'). Se non torna la rimetto com'era e te lo dico."
@@ -1068,40 +1068,40 @@ namespace Riscontro.Disegno.Catalogo
                         + "risposta porta scostamenti e limiti (10,000 / 10,015 per un Ø10 H7).\n\nMI RIFIUTO "
                         + "per un grado IT fuori da 5..11 o una quota oltre 500 mm (non li so riscontrare), per "
                         + "una bilaterale con l'inferiore sopra il superiore, e quando il riscontro non torna.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "quota", O(
+                            "dimension", O(
                                 "type", "string",
-                                "description", "il nome della quota, copiato dallo stato del documento (es. «D1@Schizzo2»)"),
-                            "tipo", O(
+                                "description", "il nome della quota, copiato dallo stato del documento (es. «D1@Sketch2») The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is."),
+                            "variant", O(
                                 "type", "string",
-                                "enum", A("simmetrica", "bilaterale", "accoppiamento", "nessuna"),
-                                "description", "che tolleranza. «nessuna» la toglie."),
-                            "valore_mm", O("type", "number", "description", "per «simmetrica»: il ± (0,05 = ±0,05)."),
-                            "superiore_mm", O("type", "number", "description", "per «bilaterale»: lo scostamento superiore (es. 0,1)."),
-                            "inferiore_mm", O("type", "number", "description", "per «bilaterale»: lo scostamento inferiore (es. -0,05)."),
-                            "classe", O("type", "string", "description", "per «accoppiamento»: la classe ISO, maiuscola per un foro (H7), minuscola per un albero (g6).")),
-                        "required", A("quota", "tipo")),
+                                "enum", A("symmetric", "bilateral", "fit", "none"),
+                                "description", "che tolleranza. «none» la toglie."),
+                            "value_mm", O("type", "number", "description", "per «symmetric»: il ± (0,05 = ±0,05)."),
+                            "upper_mm", O("type", "number", "description", "per «bilateral»: lo scostamento superiore (es. 0,1)."),
+                            "lower_mm", O("type", "number", "description", "per «bilateral»: lo scostamento inferiore (es. -0,05)."),
+                            "fit_class", O("type", "string", "description", "per «fit»: la classe ISO, maiuscola per un foro (H7), minuscola per un albero (g6).")),
+                        "required", A("dimension", "variant")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "sopprimi_lavorazione",
-                    Famiglia = "lavorazioni",
-                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione2\"}",   // da `limit_suppress_twice`
-                    DocumentoRichiesto = "parte",
+                    Nome = "suppress_feature",
+                    Famiglia = "features",
+                    Esempio = "{\"feature_uid\":\"Cut-Extrude2\"}",   // da `limit_suppress_twice`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "SPEGNE una lavorazione dell'albero, senza cancellarla. Si riaccende.",
                     Descrizione =
                         "Spegne una lavorazione: il pezzo torna com'era senza di lei, ma lei "
-                        + "resta nell'albero e si puo' riaccendere con «riattiva».\n\nE' la "
+                        + "resta nell'albero e si puo' riaccendere con «reactivate».\n\nE' la "
                         + "strada da prendere quando vuoi VEDERE il pezzo senza una "
                         + "lavorazione senza impegnarti. Per toglierla davvero c'e' "
-                        + "«elimina_lavorazione», che non si disfa.\n\nIL NOME DELLA "
+                        + "«delete_feature», che non si disfa.\n\nIL NOME DELLA "
                         + "LAVORAZIONE STA NELLO STATO DEL DOCUMENTO, dentro «feature» (per "
-                        + "esempio «Taglio-Estrusione2»). Copialo cosi' com'e'.\n\nI FIGLI SI "
+                        + "esempio «Cut-Extrude2»). Copialo cosi' com'e'.\n\nI FIGLI SI "
                         + "SPENGONO CON LEI, ed e' quasi sempre cio' che si vuole: sopprimere "
                         + "un foro spegne anche i suoi raccordi. La risposta dice quali sono "
                         + "stati.\n\nDOPO, GLI IDENTIFICATIVI NON VALGONO PIU'. Sopprimere fa "
@@ -1111,14 +1111,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "l'operazione che la riattiva. Sopprimere due volte non fa niente e non "
                         + "da' errore: e' il modo piu' facile di credere di aver cambiato il pezzo "
                         + "senza averlo toccato.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "feature_uid", O(
                                 "type", "string",
-                                "description", "il nome della lavorazione, copiato dallo stato del documento"),
-                            "riattiva", O(
+                                "description", "il nome della lavorazione, copiato dallo stato del documento The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is."),
+                            "reactivate", O(
                                 "type", "boolean",
                                 "description", "a vero RIACCENDE una lavorazione soppressa, invece di spegnerla. "
                                     + "Predefinito: falso.")),
@@ -1127,10 +1127,10 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "elimina_lavorazione",
-                    Famiglia = "lavorazioni",
-                    Esempio = "{\"feature_uid\":\"Taglio-Estrusione1\"}",   // da `delete_first_hole`
-                    DocumentoRichiesto = "parte",
+                    Nome = "delete_feature",
+                    Famiglia = "features",
+                    Esempio = "{\"feature_uid\":\"Cut-Extrude1\"}",   // da `delete_first_hole`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "CANCELLA una lavorazione dall'albero. Non si disfa con un'altra operazione.",
@@ -1138,9 +1138,9 @@ namespace Riscontro.Disegno.Catalogo
                         "Toglie una lavorazione dall'albero per sempre. Lo schizzo che aveva "
                         + "assorbito se ne va con lei, cosi' nell'albero non resta niente di "
                         + "orfano.\n\nNON SI DISFA con un'altra operazione: l'unica strada "
-                        + "indietro e' lo strumento «annulla», e solo se non hai fatto "
+                        + "indietro e' lo strumento «undo», e solo se non hai fatto "
                         + "altro dopo. Se vuoi solo vedere il pezzo senza quella lavorazione, "
-                        + "usa «sopprimi_lavorazione», che si riaccende.\n\nSE QUALCOSA "
+                        + "usa «suppress_feature», che si riaccende.\n\nSE QUALCOSA "
                         + "DIPENDE DA LEI, MI RIFIUTO e ti dico cosa. Cancellare una "
                         + "lavorazione da cui ne dipendono altre le farebbe sparire tutte, e "
                         + "SOLIDWORKS lo fa senza chiedere: se e' proprio lei che vuoi "
@@ -1148,21 +1148,21 @@ namespace Riscontro.Disegno.Catalogo
                         + "LAVORAZIONE STA NELLO STATO DEL DOCUMENTO, dentro «feature». "
                         + "Copialo cosi' com'e'.\n\nDOPO, GLI IDENTIFICATIVI NON VALGONO "
                         + "PIU': rileggi il pezzo prima del passo seguente.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "feature_uid", O(
                                 "type", "string",
-                                "description", "il nome della lavorazione, copiato dallo stato del documento")),
+                                "description", "il nome della lavorazione, copiato dallo stato del documento The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is.")),
                         "required", A(
                             "feature_uid")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "raccordo_spigoli",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "fillet_edges",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Raccordo a raggio costante su uno o piu' spigoli.",
@@ -1185,51 +1185,51 @@ namespace Riscontro.Disegno.Catalogo
                         + "there to undo. On a concave edge the volume grows, and that is fine. "
                         + "material_change_mm3 gives the change (after minus before); volume_not_read "
                         + "says when the volume could not be read.",
-                    Precondizione = "corpo_solido_e_spigolo",
+                    Precondizione = "solid_body_and_edge",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "spigoli_uid", O(
+                            "edges_uid", O(
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
                                 "description", "identificativi di spigoli che ci sono GIA', presi dallo stato del documento"),
-                            "spigoli_rif", O(
+                            "edges_ref", O(
                                 "type", "object",
                                 "description", "gli spigoli creati da un passo precedente di questo stesso piano "
                                     + "— per esempio «arrotonda i quattro angoli della piastra che fai "
                                     + "al passo 1». Quanti spigoli siano si sa solo dentro SolidWorks. "
-                                    + "Metti questo OPPURE spigoli_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- spigoli_inferiori: gli spigoli del bordo sul fondo "
-                                    + "dell'estrusione\n- spigoli_laterali: gli spigoli lungo la "
-                                    + "direzione di estrusione, i verticali\n- spigoli_superiori: gli "
-                                    + "spigoli del bordo in cima all'estrusione\n- tutti_gli_spigoli: "
+                                    + "Metti questo OPPURE edges_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- bottom_edges: gli spigoli del bordo sul fondo "
+                                    + "dell'estrusione\n- side_edges: gli spigoli lungo la "
+                                    + "direzione di estrusione, i verticali\n- top_edges: gli "
+                                    + "spigoli del bordo in cima all'estrusione\n- all_edges: "
                                     + "tutti gli spigoli creati da quel passo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "spigoli_inferiori",
-                                            "spigoli_laterali",
-                                            "spigoli_superiori",
-                                            "tutti_gli_spigoli"))),
+                                            "bottom_edges",
+                                            "side_edges",
+                                            "top_edges",
+                                            "all_edges"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "raggio_mm", O(
+                                    "step",
+                                    "kind")),
+                            "radius_mm", O(
                                 "type", "number")),
                         "required", A(
-                            "raggio_mm")),
+                            "radius_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "ripeti_circolare",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "circular_pattern",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Ripete una lavorazione in circolo attorno a un asse o a uno spigolo dritto.",
@@ -1242,68 +1242,68 @@ namespace Riscontro.Disegno.Catalogo
                         + "a un FORO serve un asse che passi per il suo centro: il bordo del "
                         + "foro e' un cerchio, non una retta, e come direzione viene "
                         + "rifiutato. Se quell'asse non c'e' ancora, fallo prima con "
-                        + "«crea_asse».",
-                    Precondizione = "feature_e_direzione",
+                        + "«create_axis».",
+                    Precondizione = "feature_and_direction",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "feature_uid", O(
                                 "type", "string",
                                 "description", "cosa ripetere, se c'e' gia' nell'albero"),
-                            "feature_rif", O(
+                            "feature_ref", O(
                                 "type", "object",
                                 "description", "la lavorazione fatta da un passo precedente di questo stesso "
                                     + "piano — «fai un foro e poi ripetilo 6 volte». Metti questo OPPURE "
                                     + "feature_uid, non tutti e due.\n\nGeneri ammessi:\n- feature: la "
                                     + "lavorazione fatta da quel passo, per ripeterla",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
                                             "feature"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "asse_uid", O(
+                                    "step",
+                                    "kind")),
+                            "axis_uid", O(
                                 "type", "string",
                                 "description", "attorno a cosa: un asse gia' nel documento, oppure uno spigolo "
                                     + "DRITTO del pezzo («E1», «E2»...) preso dallo stato"),
-                            "asse_rif", O(
+                            "axis_ref", O(
                                 "type", "object",
                                 "description", "l'asse creato da un passo precedente di questo stesso piano — "
                                     + "«fai l'asse del foro e poi ripeti la lavorazione 6 volte "
-                                    + "attorno». Metti questo OPPURE asse_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- asse: l'asse creato dal passo, dal centro di un foro o "
+                                    + "attorno». Metti questo OPPURE axis_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- axis: l'asse creato dal passo, dal centro di un foro o "
                                     + "di un albero",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "asse"))),
+                                            "axis"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "numero_istanze", O(
+                                    "step",
+                                    "kind")),
+                            "instance_count", O(
                                 "type", "integer"),
-                            "angolo_totale_gradi", O(
+                            "total_angle_deg", O(
                                 "type", "number",
                                 "description", "predefinito: 360")),
                         "required", A(
-                            "numero_istanze")),
+                            "instance_count")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "ripeti_lineare",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "linear_pattern",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Ripete una lavorazione in fila, o in griglia su due direzioni: "
@@ -1311,7 +1311,7 @@ namespace Riscontro.Disegno.Catalogo
                     Descrizione =
                         "Ripete una lavorazione gia' fatta, in fila lungo un asse — o in "
                         + "griglia, lungo due assi insieme. E' il gemello di "
-                        + "«ripeti_circolare» e si indica allo stesso modo.\n\nOtto fori in "
+                        + "«circular_pattern» e si indica allo stesso modo.\n\nOtto fori in "
                         + "fila si fanno COSI', non chiamando otto volte il foro con otto "
                         + "coordinate: il pezzo finito dichiara che quei fori sono una "
                         + "serie, e cambiarne il passo diventa una quota sola.\n\nLA DIREZIONE "
@@ -1319,94 +1319,94 @@ namespace Riscontro.Disegno.Catalogo
                         + "del documento elenca come «E1», «E2»... Per una fila lungo la "
                         + "piastra si indica lo spigolo lungo; per una griglia, due spigoli "
                         + "perpendicolari fra loro.\n\nVa bene anche un asse fatto con "
-                        + "«crea_asse», ma quello nasce dal centro di un foro ed e' "
+                        + "«create_axis», ma quello nasce dal centro di un foro ed e' "
                         + "perpendicolare alla faccia forata: serve per ripetere NELLO "
-                        + "SPESSORE, quasi mai per una fila.\n\n«asse1_uid» e' obbligatorio. "
-                        + "«asse2_uid» serve solo per una griglia — una piastra forata a "
+                        + "SPESSORE, quasi mai per una fila.\n\n«axis1_uid» e' obbligatorio. "
+                        + "«axis2_uid» serve solo per una griglia — una piastra forata a "
                         + "matrice; per una fila sola omettilo insieme a passo2 e "
-                        + "numero_istanze2.\n\nIl verso lo decide l'asse, non un segno nei "
+                        + "instance_count2.\n\nIl verso lo decide l'asse, non un segno nei "
                         + "parametri: se la ripetizione esce dalla parte sbagliata usa "
-                        + "«capovolgi_1»."
+                        + "«flip1»."
                         + "\n\nMI RIFIUTO SE LA DIREZIONE ARRIVA DA UNO SPIGOLO CURVO: serve uno "
                         + "spigolo rettilineo. Un arco non ha una direzione sola, e prenderne una "
                         + "a caso vorrebbe dire una ripetizione storta che sembra giusta.",
-                    Precondizione = "feature_e_direzione",
+                    Precondizione = "feature_and_direction",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "feature_uid", O(
                                 "type", "string",
                                 "description", "cosa ripetere, se c'e' gia' nell'albero"),
-                            "feature_rif", O(
+                            "feature_ref", O(
                                 "type", "object",
                                 "description", "la lavorazione fatta da un passo precedente di questo piano. "
                                     + "Metti questo OPPURE feature_uid, non tutti e due.\n\nGeneri "
                                     + "ammessi:\n- feature: la lavorazione fatta da quel passo, per "
                                     + "ripeterla",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
                                             "feature"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "asse1_uid", O(
+                                    "step",
+                                    "kind")),
+                            "axis1_uid", O(
                                 "type", "string",
                                 "description", "direzione 1: uno spigolo DRITTO del pezzo («E1», «E2»...) preso "
                                     + "dallo stato, oppure un asse gia' nel documento"),
-                            "asse1_rif", O(
+                            "axis1_ref", O(
                                 "type", "object",
                                 "description", "la direzione 1, se l'asse lo crea un passo precedente di questo "
-                                    + "piano con «crea_asse». Uno OPPURE l'altro.\n\nGeneri ammessi:\n- "
-                                    + "asse: l'asse creato dal passo, dal centro di un foro o di un "
+                                    + "piano con «create_axis». Uno OPPURE l'altro.\n\nGeneri ammessi:\n- "
+                                    + "axis: l'asse creato dal passo, dal centro di un foro o di un "
                                     + "albero",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "asse"))),
+                                            "axis"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "passo1_mm", O(
+                                    "step",
+                                    "kind")),
+                            "pitch1_mm", O(
                                 "type", "number",
                                 "description", "distanza fra le istanze"),
-                            "numero_istanze1", O(
+                            "instance_count1", O(
                                 "type", "integer",
                                 "description", "quante copie in tutto, l'originale compreso"),
-                            "capovolgi_1", O(
+                            "flip1", O(
                                 "type", "boolean",
                                 "description", "inverte il verso"),
-                            "asse2_uid", O(
+                            "axis2_uid", O(
                                 "type", "string",
                                 "description", "direzione 2, solo per una griglia"),
-                            "passo2_mm", O(
+                            "pitch2_mm", O(
                                 "type", "number",
-                                "description", "solo con asse2_uid"),
-                            "numero_istanze2", O(
+                                "description", "solo con axis2_uid"),
+                            "instance_count2", O(
                                 "type", "integer",
-                                "description", "solo con asse2_uid"),
-                            "capovolgi_2", O(
+                                "description", "solo con axis2_uid"),
+                            "flip2", O(
                                 "type", "boolean",
                                 "description", "inverte il verso 2")),
                         "required", A(
-                            "passo1_mm",
-                            "numero_istanze1")),
+                            "pitch1_mm",
+                            "instance_count1")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "ripeti_riempimento",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "fill_pattern",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     // true SOLO dopo il banco verde su cases/patterns (il verde e i tre rifiuti).
                     Provata = true,
                     Sommario =
@@ -1416,21 +1416,21 @@ namespace Riscontro.Disegno.Catalogo
                         "Riempie una faccia piana di copie di una lavorazione gia' fatta: una "
                         + "piastra forata per alleggerire, una griglia di sfiato, un crivello. "
                         + "SOLIDWORKS mette la prima copia al CENTRO della faccia e aggiunge giri "
-                        + "concentrici distanti «passo_mm», con «copie_per_giro» copie su ogni giro, "
+                        + "concentrici distanti «pitch_mm», con «copies_per_turn» copie su ogni giro, "
                         + "finche' la faccia le contiene; quelle che uscirebbero dal contorno (meno "
-                        + "«margine_mm») non si fanno. L'originale resta dov'era.\n\nQUANTE COPIE "
+                        + "«margin_mm») non si fanno. L'originale resta dov'era.\n\nQUANTE COPIE "
                         + "ENTRANO LO DECIDE LA FACCIA, non un numero che dai tu: la risposta le conta "
                         + "in «copies_made». Su una piastra 100 x 60 con un foro Ø8, passo circa 17 "
                         + "e 10 copie per giro, sono 14.\n\nServono tre cose: la lavorazione "
-                        + "(«feature_uid» o «feature_rif»), la faccia di contorno su cui sta "
-                        + "(«faccia_uid» o «faccia_rif») e una DIREZIONE, cioe' uno spigolo dritto "
-                        + "che corre lungo la faccia («asse_uid», per esempio il suo bordo lungo) "
-                        + "or an axis that lies along that face («asse_rif»). The axis of a hole "
-                        + "drilled into the face, as «crea_asse» makes it, runs across the face and is "
+                        + "(«feature_uid» o «feature_ref»), la faccia di contorno su cui sta "
+                        + "(«face_uid» o «face_ref») e una DIREZIONE, cioe' uno spigolo dritto "
+                        + "che corre lungo la faccia («axis_uid», per esempio il suo bordo lungo) "
+                        + "or an axis that lies along that face («axis_ref»). The axis of a hole "
+                        + "drilled into the face, as «create_axis» makes it, runs across the face and is "
                         + "refused. The direction orients the loops. Measured with an edge of the "
                         + "boundary face; an axis lying along the face is accepted, but no test has "
-                        + "used one yet.\n\nPer copie in fila o in griglia usa «ripeti_lineare»; per un "
-                        + "cerchio di copie attorno a un asse, «ripeti_circolare». La disposizione e' "
+                        + "used one yet.\n\nPer copie in fila o in griglia usa «linear_pattern»; per un "
+                        + "cerchio di copie attorno a un asse, «circular_pattern». La disposizione e' "
                         + "solo circolare: quadrata, poligonale e a perforazione non sono provate."
                         + "\n\nMI RIFIUTO SE MANCA LA DIREZIONE: senza, SOLIDWORKS non crea niente e "
                         + "non dice perche' (misurato, anche se la guida la dice facoltativa). MI "
@@ -1438,9 +1438,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "NEL PIANO DELLA FACCIA (uno spigolo dello spessore). E mi rifiuto, togliendo "
                         + "la ripetizione, se nasce con lavorazioni in errore, con i corpi cambiati o "
                         + "con copie che mordono il bordo o si fondono fra loro.",
-                    Precondizione = "feature_e_direzione",
+                    Precondizione = "feature_and_direction",
                     // Niente Esempio: il caso verde usa selettori del banco
-                    // (@feature, @faccia, @spigolo), e un esempio che il client non
+                    // (@feature, @face, @edge), e un esempio che il client non
                     // puo' copiare e' una trappola (ProveGliEsempi, voce Z-G1).
                     Schema = O(
                         "type", "object",
@@ -1448,102 +1448,102 @@ namespace Riscontro.Disegno.Catalogo
                             "feature_uid", O(
                                 "type", "string",
                                 "description", "la lavorazione da ripetere, se c'e' gia' nell'albero"),
-                            "feature_rif", O(
+                            "feature_ref", O(
                                 "type", "object",
                                 "description", "la lavorazione fatta da un passo precedente di questo piano. "
                                     + "Metti questo OPPURE feature_uid, non tutti e due.\n\nGeneri "
                                     + "ammessi:\n- feature: la lavorazione fatta da quel passo, per "
                                     + "ripeterla",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
                                             "feature"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "faccia_uid", O(
+                                    "step",
+                                    "kind")),
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "la faccia PIANA dentro cui disporre le copie, presa dallo stato "
                                     + "(«F1»...): di solito quella da cui parte il foro"),
-                            "faccia_rif", O(
+                            "face_ref", O(
                                 "type", "object",
                                 "description", "la faccia creata da un passo precedente di questo stesso piano. "
-                                    + "Metti questo OPPURE faccia_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- faccia_di_fondo: il fondo della tasca (c'e' solo se la "
-                                    + "tasca e' cieca)\n- faccia_inferiore: la faccia sul piano di "
-                                    + "schizzo, il fondo dell'estrusione\n- faccia_superiore: la faccia "
+                                    + "Metti questo OPPURE face_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- pocket_floor: il fondo della tasca (c'e' solo se la "
+                                    + "tasca e' cieca)\n- bottom_face: la faccia sul piano di "
+                                    + "schizzo, il fondo dell'estrusione\n- top_face: la faccia "
                                     + "in cima all'estrusione, quella opposta al piano di schizzo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "faccia_di_fondo",
-                                            "faccia_inferiore",
-                                            "faccia_superiore"))),
+                                            "pocket_floor",
+                                            "bottom_face",
+                                            "top_face"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "asse_uid", O(
+                                    "step",
+                                    "kind")),
+                            "axis_uid", O(
                                 "type", "string",
                                 "description", "the direction of the loops: a STRAIGHT edge that runs along the "
                                     + "boundary face («E1», «E2»...), for example its long edge, or an axis "
                                     + "already in the document that lies along the face. Always needed: without "
                                     + "it the pattern is not born"),
-                            "asse_rif", O(
+                            "axis_ref", O(
                                 "type", "object",
                                 "description", "the direction, when a previous step of this plan makes the axis "
-                                    + "with «crea_asse»: only an axis that lies along the boundary face works "
+                                    + "with «create_axis»: only an axis that lies along the boundary face works "
                                     + "(for example the axis of a shaft lying on it); the axis of a hole "
                                     + "drilled into the face runs across it and is refused. One OR the "
-                                    + "other.\n\nAllowed kinds:\n- asse: the axis made by that step",
+                                    + "other.\n\nAllowed kinds:\n- axis: the axis made by that step",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "asse"))),
+                                            "axis"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "passo_mm", O(
+                                    "step",
+                                    "kind")),
+                            "pitch_mm", O(
                                 "type", "number",
                                 "description", "distanza fra un giro di copie e il successivo, da centro a centro"),
-                            "copie_per_giro", O(
+                            "copies_per_turn", O(
                                 "type", "integer",
                                 "description", "quante copie su ogni giro attorno al centro della faccia"),
-                            "margine_mm", O(
+                            "margin_mm", O(
                                 "type", "number",
                                 "description", "quanto le copie restano lontane dal bordo della faccia; predefinito 0")),
                         "required", A(
-                            "passo_mm",
-                            "copie_per_giro")),
+                            "pitch_mm",
+                            "copies_per_turn")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "smusso_spigoli",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "chamfer_edges",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Smussa uno o piu' spigoli: bava, invito di montaggio, cianfrino da saldare.",
                     Descrizione =
-                        "Smusso su uno o piu' spigoli. E' il gemello di «raccordo_spigoli» "
+                        "Smusso su uno o piu' spigoli. E' il gemello di «fillet_edges» "
                         + "e si indica allo stesso modo.\n\nPredefinito 45 gradi, che e' lo "
                         + "smusso di gran lunga piu' comune. Per uno smusso non simmetrico — "
                         + "un cianfrino di saldatura, un invito che deve entrare in una sede "
-                        + "— metti «secondo_lato_mm» e l'angolo viene ignorato.\n\nSmusso o "
+                        + "— metti «second_leg_mm» e l'angolo viene ignorato.\n\nSmusso o "
                         + "raccordo non e' una preferenza estetica: uno smusso si fa con una "
                         + "fresa o una lima, un raccordo vuole un utensile di raggio. Se "
                         + "l'utente dice «smussa», non arrotondare."
@@ -1552,8 +1552,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "esce una geometria degenere che passa il ricalcolo."
                         + "\n\nThe chamfer follows tangent edges like the fillet. The document state "
                         + "lists each chamfer with «selected_edges» and «faces», and its sizes by type: "
-                        + "angle-distance «lato1_mm» + «angolo_gradi», distance-distance «lato1_mm» + "
-                        + "«lato2_mm», and a vertex chamfer (made by hand) «vertex_distances_mm», its "
+                        + "angle-distance «leg1_mm» + «angle_deg», distance-distance «leg1_mm» + "
+                        + "«leg2_mm», and a vertex chamfer (made by hand) «vertex_distances_mm», its "
                         + "three distances along the corner's edges. The answer carries «selected_edges» "
                         + "and «faces» too, read the same way."
                         + "\n\nI refuse when the volume of the part does not change after the chamfer is "
@@ -1561,63 +1561,63 @@ namespace Riscontro.Disegno.Catalogo
                         + "there to undo. On a concave edge the volume grows, and that is fine. "
                         + "material_change_mm3 gives the change (after minus before); volume_not_read "
                         + "says when the volume could not be read.",
-                    Precondizione = "corpo_solido_e_spigolo",
+                    Precondizione = "solid_body_and_edge",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "spigoli_uid", O(
+                            "edges_uid", O(
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
                                 "description", "spigoli che ci sono GIA', presi dallo stato"),
-                            "spigoli_rif", O(
+                            "edges_ref", O(
                                 "type", "object",
                                 "description", "gli spigoli creati da un passo precedente di questo piano. Metti "
-                                    + "questo OPPURE spigoli_uid, non tutti e due.\n\nGeneri ammessi:\n- "
-                                    + "spigoli_inferiori: gli spigoli del bordo sul fondo "
-                                    + "dell'estrusione\n- spigoli_laterali: gli spigoli lungo la "
-                                    + "direzione di estrusione, i verticali\n- spigoli_superiori: gli "
-                                    + "spigoli del bordo in cima all'estrusione\n- tutti_gli_spigoli: "
+                                    + "questo OPPURE edges_uid, non tutti e due.\n\nGeneri ammessi:\n- "
+                                    + "bottom_edges: gli spigoli del bordo sul fondo "
+                                    + "dell'estrusione\n- side_edges: gli spigoli lungo la "
+                                    + "direzione di estrusione, i verticali\n- top_edges: gli "
+                                    + "spigoli del bordo in cima all'estrusione\n- all_edges: "
                                     + "tutti gli spigoli creati da quel passo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "spigoli_inferiori",
-                                            "spigoli_laterali",
-                                            "spigoli_superiori",
-                                            "tutti_gli_spigoli"))),
+                                            "bottom_edges",
+                                            "side_edges",
+                                            "top_edges",
+                                            "all_edges"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "lato_mm", O(
+                                    "step",
+                                    "kind")),
+                            "leg_mm", O(
                                 "type", "number",
                                 "description", "quanto materiale si toglie, misurato su una faccia"),
-                            "angolo_gradi", O(
+                            "angle_deg", O(
                                 "type", "number",
-                                "description", "predefinito 45; ignorato se dai «secondo_lato_mm»"),
-                            "secondo_lato_mm", O(
+                                "description", "predefinito 45; ignorato se dai «second_leg_mm»"),
+                            "second_leg_mm", O(
                                 "type", "number",
                                 "description", "solo per uno smusso non simmetrico: il lato sull'altra faccia")),
                         "required", A(
-                            "lato_mm")),
+                            "leg_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "specchia",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "mirror",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Specchia una lavorazione rispetto a uno dei tre piani base.",
                     Descrizione =
                         "Specchia una lavorazione gia' fatta rispetto a un piano di "
                         + "simmetria. La lavorazione si indica come per "
-                        + "«ripeti_circolare».\n\nIl piano e' sempre uno dei tre base, e va "
+                        + "«circular_pattern».\n\nIl piano e' sempre uno dei tre base, e va "
                         + "detto: sbagliarlo non sposta la geometria di poco, la mette da "
                         + "un'altra parte del pezzo, e la costruzione riesce lo stesso.\n\nSi "
                         + "specchia la LAVORAZIONE, non il corpo intero: per un pezzo "
@@ -1625,51 +1625,51 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nMI RIFIUTO SE IL PIANO NON ESISTE, e ti dico quali ci sono. I nomi "
                         + "inventati -- diagonale, obliquo -- non li interpreto: specchiare sul "
                         + "piano sbagliato produce un pezzo plausibile e sbagliato.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "feature_uid", O(
                                 "type", "string",
                                 "description", "cosa specchiare, se c'e' gia' nell'albero"),
-                            "feature_rif", O(
+                            "feature_ref", O(
                                 "type", "object",
                                 "description", "la lavorazione fatta da un passo precedente di questo piano. "
                                     + "Metti questo OPPURE feature_uid, non tutti e due.\n\nGeneri "
                                     + "ammessi:\n- feature: la lavorazione fatta da quel passo, per "
                                     + "ripeterla",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
                                             "feature"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "piano", O(
+                                    "step",
+                                    "kind")),
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro")),
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right")),
                         "required", A(
-                            "piano")),
+                            "plane")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "sposta_corpi",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "move_bodies",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Sposta o COPIA dei corpi gia' fatti, di una distanza data.",
                     Descrizione =
-                        "Sposta i corpi indicati di «dx_mm», «dy_mm», «dz_mm». Con «copia» "
+                        "Sposta i corpi indicati di «dx_mm», «dy_mm», «dz_mm». Con «copy» "
                         + "a vero li LASCIA DOVE SONO e ne mette delle copie piu' in la': e' "
                         + "cosi' che si fanno due telai uguali a una certa distanza.\n\nSERVE "
                         + "QUANDO IL PEZZO HA DUE PARTI UGUALI IN POSTI DIVERSI. Un castello "
@@ -1677,38 +1677,38 @@ namespace Riscontro.Disegno.Catalogo
                         + "volte il telaio: la seconda volta verrebbe rifiutata, perche' due "
                         + "volte la stessa operazione con gli stessi numeri fa due corpi "
                         + "sovrapposti. Si fa UN telaio, e poi lo si copia spostato di 600 "
-                        + "in Z.\n\nQuali corpi: «corpi_uid» per quelli che ci sono GIA' nel "
-                        + "documento (C1, C2...), «corpi_rif» per quelli che li crea un "
+                        + "in Z.\n\nQuali corpi: «bodies_uid» per quelli che ci sono GIA' nel "
+                        + "documento (C1, C2...), «bodies_ref» per quelli che li crea un "
                         + "passo precedente di questo stesso piano. Uno o l'altro, mai tutti "
                         + "e due.\n\nSolo spostamento in linea retta: questa operazione non "
                         + "ruota niente. Se serve ruotare, dillo invece di far finta.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "corpi_uid", O(
+                            "bodies_uid", O(
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
                                 "description", "i corpi da spostare, per identificativo dello stato del documento "
                                     + "(C1, C2...)"),
-                            "corpi_rif", O(
+                            "bodies_ref", O(
                                 "type", "object",
                                 "description", "i corpi creati da un passo precedente di questo stesso piano. "
-                                    + "Metti questo OPPURE corpi_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+                                    + "Metti questo OPPURE bodies_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "corpi"))),
+                                            "bodies"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
+                                    "step",
+                                    "kind")),
                             "dx_mm", O(
                                 "type", "number",
                                 "description", "spostamento lungo X, in mm"),
@@ -1718,21 +1718,21 @@ namespace Riscontro.Disegno.Catalogo
                             "dz_mm", O(
                                 "type", "number",
                                 "description", "spostamento lungo Z"),
-                            "copia", O(
+                            "copy", O(
                                 "type", "boolean",
                                 "description", "vero: lascia gli originali e aggiunge delle copie spostate. "
                                     + "Predefinito: falso, cioe' li sposta e basta."),
-                            "quante_copie", O(
+                            "copy_count", O(
                                 "type", "integer",
-                                "description", "quante copie, solo se «copia» e' vero. Predefinito 1. La copia "
+                                "description", "quante copie, solo se «copy» e' vero. Predefinito 1. La copia "
                                     + "numero k finisce a k volte lo spostamento.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "taglio_cilindrico",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "cylindrical_cut",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un taglio tondo su una faccia: per un passaggio che NON e' un "
@@ -1743,38 +1743,38 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nMI RIFIUTO SE IL FORO CADE TUTTO FUORI DAL MATERIALE (ti dico fra quali "
                         + "coordinate sta la faccia) e se e' cosi' largo da coprire tutta la "
                         + "faccia: quello non e' un foro, e' un pezzo che sparisce.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_uid", O(
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "identificativo della faccia, preso dallo stato del documento. "
                                     + "Usalo per una faccia che c'e' GIA'."),
-                            "faccia_rif", O(
+                            "face_ref", O(
                                 "type", "object",
                                 "description", "la faccia creata da un passo precedente di questo stesso piano, "
                                     + "quando il foro va su geometria che stai creando adesso e che "
                                     + "quindi non ha ancora nessun identificativo. Metti questo OPPURE "
-                                    + "faccia_uid, non tutti e due.\n\nGeneri ammessi:\n- faccia_di_fondo: "
+                                    + "face_uid, non tutti e due.\n\nGeneri ammessi:\n- pocket_floor: "
                                     + "il fondo della tasca (c'e' solo se la tasca e' cieca)\n- "
-                                    + "faccia_inferiore: la faccia sul piano di schizzo, il fondo "
-                                    + "dell'estrusione\n- faccia_superiore: la faccia in cima "
+                                    + "bottom_face: la faccia sul piano di schizzo, il fondo "
+                                    + "dell'estrusione\n- top_face: la faccia in cima "
                                     + "all'estrusione, quella opposta al piano di schizzo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "faccia_di_fondo",
-                                            "faccia_inferiore",
-                                            "faccia_superiore"))),
+                                            "pocket_floor",
+                                            "bottom_face",
+                                            "top_face"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
+                                    "step",
+                                    "kind")),
                             "x_mm", O(
                                 "type", "number",
                                 "description", "COORDINATE DEL MODELLO in mm, non coordinate della faccia. Prendi "
@@ -1782,31 +1782,31 @@ namespace Riscontro.Disegno.Catalogo
                                     + "faccia, in ordine X, Y, Z: normale lungo Z -> x_mm e' la X del "
                                     + "modello e y_mm la Y; normale lungo Y -> x_mm e' la X e y_mm la Z; "
                                     + "normale lungo X -> x_mm e' la Y e y_mm la Z. Sono gli stessi "
-                                    + "numeri di «punto_mm» che leggi nello stato del documento, quindi "
+                                    + "numeri di «point_mm» che leggi nello stato del documento, quindi "
                                     + "puoi partire da quelli. La terza coordinata non serve: e' il "
                                     + "piano della faccia."),
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
-                            "ancora", SchemaAncora("il foro"),
-                            "diametro_mm", O(
+                            "anchor", SchemaAncora("il foro"),
+                            "diameter_mm", O(
                                 "type", "number"),
-                            "passante", O(
+                            "through_all", O(
                                 "type", "boolean",
                                 "description", "predefinito: si'"),
-                            "profondita_mm", O(
+                            "depth_mm", O(
                                 "type", "number",
                                 "description", "solo se non passante")),
                         "required", A(
                             "x_mm",
                             "y_mm",
-                            "diametro_mm")),
+                            "diameter_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "taglio_rettangolare",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "rectangular_cut",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una tasca rettangolare su una faccia.",
@@ -1815,35 +1815,35 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nMI RIFIUTO SE LA TASCA COPRE TUTTA LA FACCIA, e ti dico quanto misura. "
                         + "Una tasca grande quanto il pezzo non e' una tasca: e' il pezzo che non "
                         + "c'e' piu'.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_uid", O(
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "una faccia che c'e' gia', presa dallo stato"),
-                            "faccia_rif", O(
+                            "face_ref", O(
                                 "type", "object",
                                 "description", "la faccia creata da un passo precedente di questo stesso piano. "
-                                    + "Metti questo OPPURE faccia_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- faccia_di_fondo: il fondo della tasca (c'e' solo se la "
-                                    + "tasca e' cieca)\n- faccia_inferiore: la faccia sul piano di "
-                                    + "schizzo, il fondo dell'estrusione\n- faccia_superiore: la faccia "
+                                    + "Metti questo OPPURE face_uid, non tutti e due.\n\nGeneri "
+                                    + "ammessi:\n- pocket_floor: il fondo della tasca (c'e' solo se la "
+                                    + "tasca e' cieca)\n- bottom_face: la faccia sul piano di "
+                                    + "schizzo, il fondo dell'estrusione\n- top_face: la faccia "
                                     + "in cima all'estrusione, quella opposta al piano di schizzo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "faccia_di_fondo",
-                                            "faccia_inferiore",
-                                            "faccia_superiore"))),
+                                            "pocket_floor",
+                                            "bottom_face",
+                                            "top_face"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
+                                    "step",
+                                    "kind")),
                             "x_mm", O(
                                 "type", "number",
                                 "description", "COORDINATE DEL MODELLO in mm, non coordinate della faccia. Prendi "
@@ -1851,36 +1851,36 @@ namespace Riscontro.Disegno.Catalogo
                                     + "faccia, in ordine X, Y, Z: normale lungo Z -> x_mm e' la X del "
                                     + "modello e y_mm la Y; normale lungo Y -> x_mm e' la X e y_mm la Z; "
                                     + "normale lungo X -> x_mm e' la Y e y_mm la Z. Sono gli stessi "
-                                    + "numeri di «punto_mm» che leggi nello stato del documento, quindi "
+                                    + "numeri di «point_mm» che leggi nello stato del documento, quindi "
                                     + "puoi partire da quelli. La terza coordinata non serve: e' il "
                                     + "piano della faccia."),
                             "y_mm", O(
                                 "type", "number",
                                 "description", "vedi x_mm"),
-                            "ancora", SchemaAncora("la tasca"),
-                            "lunghezza_mm", O(
+                            "anchor", SchemaAncora("la tasca"),
+                            "length_mm", O(
                                 "type", "number",
                                 "description", "lungo x_mm"),
-                            "larghezza_mm", O(
+                            "width_mm", O(
                                 "type", "number",
                                 "description", "lungo y_mm"),
-                            "passante", O(
+                            "through_all", O(
                                 "type", "boolean",
                                 "description", "predefinito: no"),
-                            "profondita_mm", O(
+                            "depth_mm", O(
                                 "type", "number")),
                         "required", A(
                             "x_mm",
                             "y_mm",
-                            "lunghezza_mm",
-                            "larghezza_mm")),
+                            "length_mm",
+                            "width_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "applica_materiale",
-                    Famiglia = "proprieta",
-                    Esempio = "{\"materiale\":\"AISI 304\"}",   // da `mass_of_a_steel_cube`
-                    DocumentoRichiesto = "parte",
+                    Nome = "apply_material",
+                    Famiglia = "physical_properties",
+                    Esempio = "{\"material\":\"AISI 304\"}",   // da `mass_of_a_steel_cube`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Assegna il materiale al pezzo: senza, non c'e' peso ne' distinta utile.",
@@ -1903,20 +1903,20 @@ namespace Riscontro.Disegno.Catalogo
                         + "reaches only the active configuration and the ones derived from it). The "
                         + "answer lists them in «configurations»; I refuse the step, naming them, if "
                         + "any configuration does not take the material.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "materiale", O(
+                            "material", O(
                                 "type", "string",
                                 "default", "S235JR",
                                 "description", "per esempio «S235JR», «AISI 304», «Lega 6061». "
                                     + "Se non lo dici uso S235JR, e te lo scrivo nella risposta."),
-                            "archivio", O(
+                            "library", O(
                                 "type", "string",
                                 "description", "opzionale: il nome dell'archivio, se sai in quale cercare. "
                                     + "Lascialo stare se non lo sai.")),
-                        // Z-G3: `materiale` NON e' piu' obbligatorio — c'e' un
+                        // Z-G3: `material` NON e' piu' obbligatorio — c'e' un
                         // predefinito d'officina, e la risposta dichiara di averlo
                         // usato. Un campo che si chiede sempre e la cui risposta e'
                         // sempre la stessa fa scrivere al modello una riga che non
@@ -1925,9 +1925,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "crea_asse",
-                    Famiglia = "riferimenti",
-                    DocumentoRichiesto = "parte",
+                    Nome = "create_axis",
+                    Famiglia = "references",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un asse lungo il centro di un foro o di un albero: serve per "
@@ -1935,7 +1935,7 @@ namespace Riscontro.Disegno.Catalogo
                     Descrizione =
                         "Crea un asse di riferimento lungo il centro di una faccia "
                         + "cilindrica o conica gia' esistente — il foro o l'albero attorno a "
-                        + "cui poi ripetere qualcosa con «ripeti_circolare».\n\nQUANDO SERVE "
+                        + "cui poi ripetere qualcosa con «circular_pattern».\n\nQUANDO SERVE "
                         + "DAVVERO: per ripetere attorno a un FORO. Il bordo di un foro e' "
                         + "un cerchio, non una retta, e come direzione viene rifiutato; "
                         + "l'asse invece passa per il suo centro.\n\nQUANDO NON SERVE: per una "
@@ -1944,46 +1944,46 @@ namespace Riscontro.Disegno.Catalogo
                         + "L'asse di un foro punta NELLO SPESSORE della piastra: ripetere "
                         + "lungo quello non fa una fila.\n\nSolo facce cilindriche o coniche: "
                         + "una faccia piana non ha un asse. Nello stato del documento sono "
-                        + "quelle con «piana: false»."
+                        + "quelle con «planar: false»."
                         + "\n\nOn a sheet-metal part too: the axis is the one the call made, wherever "
                         + "SOLIDWORKS puts it in the tree (before the flat pattern).",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_uid", O(
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "la faccia cilindrica o conica, presa dallo stato del documento"),
-                            "faccia_rif", O(
+                            "face_ref", O(
                                 "type", "object",
                                 "description", "la faccia creata da un passo precedente di questo piano. Metti "
-                                    + "questo OPPURE faccia_uid, non tutti e due.\n\nGeneri ammessi:\n- "
-                                    + "faccia_di_fondo: il fondo della tasca (c'e' solo se la tasca e' "
-                                    + "cieca)\n- faccia_inferiore: la faccia sul piano di schizzo, il "
-                                    + "fondo dell'estrusione\n- faccia_superiore: la faccia in cima "
+                                    + "questo OPPURE face_uid, non tutti e due.\n\nGeneri ammessi:\n- "
+                                    + "pocket_floor: il fondo della tasca (c'e' solo se la tasca e' "
+                                    + "cieca)\n- bottom_face: la faccia sul piano di schizzo, il "
+                                    + "fondo dell'estrusione\n- top_face: la faccia in cima "
                                     + "all'estrusione, quella opposta al piano di schizzo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "faccia_di_fondo",
-                                            "faccia_inferiore",
-                                            "faccia_superiore"))),
+                                            "pocket_floor",
+                                            "bottom_face",
+                                            "top_face"))),
                                 "required", A(
-                                    "passo",
-                                    "genere"))),
+                                    "step",
+                                    "kind"))),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "crea_piano",
-                    Famiglia = "riferimenti",
-                    Esempio = "{\"piano\":\"frontale\",\"distanza_mm\":-250}",   // da `front_plane_minus_250`
-                    DocumentoRichiesto = "parte",
+                    Nome = "create_plane",
+                    Famiglia = "references",
+                    Esempio = "{\"plane\":\"front\",\"distance_mm\":-250}",   // da `front_plane_minus_250`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un piano di riferimento nuovo, parallelo a un piano base e "
@@ -2005,24 +2005,24 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
-                            "distanza_mm", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right"),
+                            "distance_mm", O(
                                 "type", "number",
                                 "description", "quanto si sposta dal piano base. Negativo per l'altro verso.")),
                         "required", A(
-                            "distanza_mm")),
+                            "distance_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "cordone_saldatura",
-                    Famiglia = "saldature",
-                    DocumentoRichiesto = "parte",
+                    Nome = "weld_bead",
+                    Famiglia = "weldments",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Cordone di saldatura cosmetico fra due facce di due barre che si toccano ad angolo.",
@@ -2041,31 +2041,31 @@ namespace Riscontro.Disegno.Catalogo
                         + "rifiuto: SOLIDWORKS il cordone lo creerebbe lo stesso, e in "
                         + "distinta finirebbe una saldatura che non esiste. La lunghezza che "
                         + "ti torno e' quella dello spigolo in comune.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "da_faccia_uid", O(
+                            "start_face_uid", O(
                                 "type", "string",
                                 "description", "una faccia del primo corpo, presa dallo stato del documento "
                                     + "(F1, F2...)"),
-                            "a_faccia_uid", O(
+                            "end_face_uid", O(
                                 "type", "string",
                                 "description", "una faccia dell'ALTRO corpo, che tocca la prima lungo uno "
                                     + "spigolo e fa angolo con lei"),
-                            "lato_mm", O(
+                            "leg_mm", O(
                                 "type", "number",
                                 "description", "lato del cordone (a)")),
                         "required", A(
-                            "da_faccia_uid",
-                            "a_faccia_uid",
-                            "lato_mm")),
+                            "start_face_uid",
+                            "end_face_uid",
+                            "leg_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "distinta_taglio",
-                    Famiglia = "saldature",
-                    DocumentoRichiesto = "parte",
+                    Nome = "cut_list",
+                    Famiglia = "weldments",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Crea o aggiorna la distinta di taglio del pezzo saldato. Va per ultima.",
@@ -2092,11 +2092,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "before library 0.124.0) is refused: delete it first. When a refusal removes "
                         + "the weldment feature this step added, the message says whether IsWeldment "
                         + "reads false again.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "aggiorna_se_esiste", O(
+                            "update_if_exists", O(
                                 "type", "boolean",
                                 "description", "se la distinta c'e' gia', la ricalcola invece di crearne una "
                                     + "seconda (predefinito: si')")),
@@ -2104,9 +2104,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "fazzoletto",
-                    Famiglia = "saldature",
-                    DocumentoRichiesto = "parte",
+                    Nome = "gusset",
+                    Famiglia = "weldments",
+                    DocumentoRichiesto = "part",
                     // ── PROVATA DAL 28/9/2026 (voce GP20) ───────────────
                     //
                     // Fino alla libreria 0.139.0 non e' mai nato un fazzoletto:
@@ -2132,17 +2132,17 @@ namespace Riscontro.Disegno.Catalogo
                         + "barre e i tagli, guardandole. Devono essere PIANE, fare un angolo e "
                         + "toccarsi lungo uno spigolo: per una barra in battuta su un'altra, la "
                         + "faccia LATERALE della barra e la faccia su cui arriva (le stesse di "
-                        + "«cordone_saldatura»). In un angolo di tubolari le facce candidate sono "
+                        + "«weld_bead»). In un angolo di tubolari le facce candidate sono "
                         + "quattro, e sceglierne due «probabili» vorrebbe dire mettere il rinforzo "
                         + "dalla parte sbagliata. Facce parallele, lontane o curve: rifiuto, prima "
-                        + "di toccare il pezzo.\n\nIL PROFILO: «triangolare» (il predefinito) coi "
-                        + "due lati «lato1_mm» e «lato2_mm» lungo le due facce; oppure «poligonale», "
-                        + "che taglia la punta e vuole anche i due lati corti «lato3_mm» e "
-                        + "«lato4_mm», piu' corti dei due lati. Un poligono senza lati corti e' "
+                        + "di toccare il pezzo.\n\nIL PROFILO: «triangular» (il predefinito) coi "
+                        + "due lati «leg1_mm» e «leg2_mm» lungo le due facce; oppure «polygonal», "
+                        + "che taglia la punta e vuole anche i due lati corti «side3_mm» e "
+                        + "«side4_mm», piu' corti dei due lati. Un poligono senza lati corti e' "
                         + "degenere e lo rifiuto: e' il difetto per cui questa operazione non ha "
                         + "mai creato niente fino alla libreria 0.139.0. Lo spessore sta da tutte e "
-                        + "due le parti del piano del fazzoletto; «posizione» e' «inizio», «centro» "
-                        + "(il predefinito) o «fine» lungo lo spigolo comune, e un altro valore lo "
+                        + "due le parti del piano del fazzoletto; «position» e' «start», «center» "
+                        + "(il predefinito) o «end» lungo lo spigolo comune, e un altro valore lo "
                         + "rifiuto invece di metterlo al centro di nascosto.\n\nLA RISPOSTA E' "
                         + "RILETTA, non ripetuta: il volume aggiunto contro il conto a mano "
                         + "(«volume_added_mm3», «volume_expected_mm3»), i corpi prima e dopo, lo "
@@ -2151,64 +2151,64 @@ namespace Riscontro.Disegno.Catalogo
                         + "«supporting_faces_area_mm2»), il corpo nuovo e la sua scatola "
                         + "(«new_body», «new_body_box_mm»). Se una di queste non torna, il "
                         + "fazzoletto lo tolgo e te lo dico. Se ti serve solo documentare la "
-                        + "saldatura, usa «cordone_saldatura».",
+                        + "saldatura, usa «weld_bead».",
                     // Niente esempio: i due casi verdi nominano le facce coi
-                    // selettori del banco (@faccia(area~=...,verso=...)), che il
+                    // selettori del banco (@face(area~=...,normal=...)), che il
                     // client non puo' copiare (vedi OperazioneDisegno.Esempio).
                     Esempio = null,
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "facce_uid", O(
+                            "faces_uid", O(
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
                                 "description", "esattamente DUE facce piane, una per barra, che si toccano lungo "
                                     + "uno spigolo e fanno angolo, prese dallo stato del documento (F1, F2...)"),
-                            "spessore_mm", O(
+                            "thickness_mm", O(
                                 "type", "number",
                                 "description", "spessore della piastra, da tutte e due le parti del suo piano"),
-                            "lato1_mm", O(
+                            "leg1_mm", O(
                                 "type", "number",
                                 "description", "uno dei due lati del fazzoletto, quelli che corrono lungo le due "
                                     + "facce. Quale lato vada su quale faccia la guida non lo dice e nessuna "
                                     + "prova lo ha distinto (misurato solo con lati uguali): se ti importa, "
                                     + "guarda il pezzo dopo"),
-                            "lato2_mm", O(
+                            "leg2_mm", O(
                                 "type", "number",
-                                "description", "l'altro lato, lungo l'altra faccia (vedi lato1_mm)"),
-                            "profilo", O(
+                                "description", "l'altro lato, lungo l'altra faccia (vedi leg1_mm)"),
+                            "profile", O(
                                 "type", "string",
                                 "enum", A(
-                                    "triangolare",
-                                    "poligonale"),
-                                "description", "forma della piastra (predefinito: triangolare). Il poligonale "
-                                    + "taglia la punta e vuole «lato3_mm» e «lato4_mm»"),
-                            "lato3_mm", O(
+                                    "triangular",
+                                    "polygonal"),
+                                "description", "forma della piastra (predefinito: triangular). Il poligonale "
+                                    + "taglia la punta e vuole «side3_mm» e «side4_mm»"),
+                            "side3_mm", O(
                                 "type", "number",
                                 "description", "solo col profilo poligonale: primo lato corto, piu' corto dei due lati"),
-                            "lato4_mm", O(
+                            "side4_mm", O(
                                 "type", "number",
                                 "description", "solo col profilo poligonale: secondo lato corto, piu' corto dei due lati"),
-                            "posizione", O(
+                            "position", O(
                                 "type", "string",
                                 "enum", A(
-                                    "inizio",
-                                    "centro",
-                                    "fine"),
-                                "description", "dove sta lungo lo spigolo fra le due facce (predefinito: centro)")),
+                                    "start",
+                                    "center",
+                                    "end"),
+                                "description", "dove sta lungo lo spigolo fra le due facce (predefinito: center)")),
                         "required", A(
-                            "facce_uid",
-                            "spessore_mm",
-                            "lato1_mm",
-                            "lato2_mm")),
+                            "faces_uid",
+                            "thickness_mm",
+                            "leg1_mm",
+                            "leg2_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "membro_strutturale",
-                    Famiglia = "saldature",
-                    DocumentoRichiesto = "parte",
+                    Nome = "structural_member",
+                    Famiglia = "weldments",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Barre vere di carpenteria lungo i segmenti che dai: e' cio' che "
@@ -2223,8 +2223,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "DISTINTA DI TAGLIO, porta il nome del profilo, e si lascia "
                         + "tagliare a 45 gradi agli incroci. Una barra estrusa ha la stessa "
                         + "forma e non serve a fare il pezzo.\n\nPRIMA CHIAMA "
-                        + "«profili_saldatura» e copia da li' «profilo_percorso» e "
-                        + "«configurazione» alla lettera. Non comporre il nome della misura: "
+                        + "«weldment_profiles» e copia da li' «profile_path» e "
+                        + "«configuration» alla lettera. Non comporre il nome della misura: "
                         + "la libreria non e' uniforme e un nome inventato fa usare a "
                         + "SolidWorks un'altra misura, senza errore.\n\nI segmenti sono le "
                         + "linee lungo cui corrono le barre, in coordinate del modello in "
@@ -2238,7 +2238,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "sentence: the library is still LOADED, hidden (an open document references it, or the close did nothing), "
                         + "with the insertion's changes in memory even if its save "
                         + "flag reads clean."
-                        + "\n\nI refuse an empty «configurazione» when the profile file has several "
+                        + "\n\nI refuse an empty «configuration» when the profile file has several "
                         + "sizes, and list them: with an empty size SOLIDWORKS builds the size the file "
                         + "was saved on (measured: the 20 x 20 of the four in iso\\square tube.sldlfp). "
                         + "An empty size is accepted only on a file with one size, and the answer says so "
@@ -2247,68 +2247,68 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "profilo_percorso", O(
+                            "profile_path", O(
                                 "type", "string",
-                                "description", "percorso completo del .sldlfp, copiato da profili_saldatura"),
-                            "configurazione", O(
+                                "description", "percorso completo del .sldlfp, copiato da weldment_profiles"),
+                            "configuration", O(
                                 "type", "string",
-                                "description", "la misura, copiata ALLA LETTERA da profili_saldatura (es. "
+                                "description", "la misura, copiata ALLA LETTERA da weldment_profiles (es. "
                                     + "«80X80X5»: maiuscole e virgole comprese). Empty only for a profile "
                                     + "file with one size."),
-                            "segmenti", O(
+                            "segments", O(
                                 "type", "array",
                                 "description", "le linee lungo cui corrono le barre, in mm nelle coordinate del modello",
                                 "items", O(
                                     "type", "object",
                                     "properties", O(
-                                        "da", O(
+                                        "start", O(
                                             "type", "array",
                                             "items", O(
                                                 "type", "number"),
                                             "description", "[x, y, z] di partenza, in mm"),
-                                        "a", O(
+                                        "end", O(
                                             "type", "array",
                                             "items", O(
                                                 "type", "number"),
                                             "description", "[x, y, z] di arrivo, in mm")),
                                     "required", A(
-                                        "da",
-                                        "a"))),
-                            "rotazione_gradi", O(
+                                        "start",
+                                        "end"))),
+                            "rotation_deg", O(
                                 "type", "number",
                                 "description", "rotazione del profilo attorno al proprio asse (predefinito: 0). "
                                     + "Serve quando un angolare o una U vanno girati."),
-                            "trattamento_angolo", O(
+                            "corner_treatment", O(
                                 "type", "string",
                                 "enum", A(
-                                    "nessuno",
-                                    "quartabuono",
-                                    "testa1",
-                                    "testa2"),
+                                    "none",
+                                    "miter",
+                                    "butt1",
+                                    "butt2"),
                                 "description", "come si incontrano fra loro le barre di QUESTO gruppo, DOVE SI "
-                                    + "TOCCANO. «quartabuono» e' il taglio a 45 gradi negli angoli "
-                                    + "(default: quartabuono, the 45 degree miter, wherever the bars of "
+                                    + "TOCCANO. «miter» e' il taglio a 45 gradi negli angoli "
+                                    + "(default: miter, the 45 degree miter, wherever the bars of "
                                     + "this group touch, closed or open path; the answer says it was the "
-                                    + "default in «corner_treatment_note»); «testa1»/«testa2» e' una "
-                                    + "barra che va in battuta sull'altra; «nessuno» le lascia "
+                                    + "default in «corner_treatment_note»); «butt1»/«butt2» e' una "
+                                    + "barra che va in battuta sull'altra; «none» le lascia "
                                     + "compenetrate e va detto solo se lo si vuole davvero.\n\nNON taglia "
                                     + "le estremita' LIBERE. Su una barra sola, o sui due capi di un "
                                     + "telaio aperto, non c'e' niente contro cui tagliare e questo "
                                     + "parametro non ha effetto."),
-                            "gioco_mm", O(
+                            "gap_mm", O(
                                 "type", "number",
                                 "description", "gioco fra le barre agli incroci, per il cordone di saldatura "
                                     + "(predefinito: 0)")),
                         "required", A(
-                            "profilo_percorso",
-                            "configurazione",
-                            "segmenti")),
+                            "profile_path",
+                            "configuration",
+                            "segments")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "taglia_membri",
-                    Famiglia = "saldature",
-                    DocumentoRichiesto = "parte",
+                    Nome = "trim_members",
+                    Famiglia = "weldments",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Taglia o estende le barre dove si incontrano.",
@@ -2324,11 +2324,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nA bar that stops short of the other one is extended to its face "
                         + "(measured: a bar 20 mm short grows by 20 mm, Options 1|2|8); a bar that "
                         + "enters the other is cut at its face as before. The coped cut is not used.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "corpi_da_tagliare_uid", O(
+                            "bodies_to_trim_uid", O(
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
@@ -2337,23 +2337,23 @@ namespace Riscontro.Disegno.Catalogo
                                     + "C2...). Use this for bodies that exist ALREADY; the other field for "
                                     + "bodies a previous step of this plan creates. One or the other, never "
                                     + "both."),
-                            "corpi_da_tagliare_rif", O(
+                            "bodies_to_trim_ref", O(
                                 "type", "object",
                                 "description", "the bars to trim or extend, made by a previous step\n\nGeneri "
-                                    + "ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+                                    + "ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "corpi"))),
+                                            "bodies"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "corpi_di_taglio_uid", O(
+                                    "step",
+                                    "kind")),
+                            "trim_boundary_uid", O(
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
@@ -2361,34 +2361,34 @@ namespace Riscontro.Disegno.Catalogo
                                     + "stato del documento (C1, C2...). Usa questo per corpi che ci sono "
                                     + "GIA'; l'altro campo per corpi che li crea un passo precedente di "
                                     + "questo piano. Uno o l'altro, mai tutti e due."),
-                            "corpi_di_taglio_rif", O(
+                            "trim_boundary_ref", O(
                                 "type", "object",
                                 "description", "le barre contro cui tagliare, da un passo precedente\n\nGeneri "
-                                    + "ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+                                    + "ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "corpi"))),
+                                            "bodies"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "condizione", O(
+                                    "step",
+                                    "kind")),
+                            "end_condition", O(
                                 "type", "string",
                                 "enum", A(
-                                    "quartabuono",
-                                    "testa1",
-                                    "testa2",
-                                    "taglio"),
-                                "description", "come si chiude il taglio (predefinito: taglio). Any other "
+                                    "miter",
+                                    "butt1",
+                                    "butt2",
+                                    "cut"),
+                                "description", "come si chiude il taglio (predefinito: cut). Any other "
                                     + "word is refused before the part is touched, a word meaning no "
                                     + "corner included: the trim/extend has no such corner type, and none "
                                     + "was measured. The answer names the condition used in end_condition."),
-                            "gioco_mm", O(
+                            "gap_mm", O(
                                 "type", "number",
                                 "description", "gioco lasciato (predefinito: 0). Il gioco che passi e' "
                                     + "sempre quello applicato, anche 0: l'ultimo gioco dato a mano "
@@ -2397,9 +2397,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "tappo_estremita",
-                    Famiglia = "saldature",
-                    DocumentoRichiesto = "parte",
+                    Nome = "end_cap",
+                    Famiglia = "weldments",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Chiude con un tappo le estremita' aperte delle barre cave.",
@@ -2419,11 +2419,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "by the bar itself, so an end whose inner edges were chamfered or "
                         + "counterbored is left out the same way. When a face cannot be told "
                         + "apart, nothing is capped and the answer says why.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "corpi_uid", O(
+                            "bodies_uid", O(
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
@@ -2431,28 +2431,28 @@ namespace Riscontro.Disegno.Catalogo
                                     + "preso dallo stato del documento (C1, C2...). Usa questo per corpi "
                                     + "che ci sono GIA'; l'altro campo per corpi che li crea un passo "
                                     + "precedente di questo piano. Uno o l'altro, mai tutti e due."),
-                            "estremita_rif", O(
+                            "ends_ref", O(
                                 "type", "object",
                                 "description", "le facce di estremita' da tappare, da un passo precedente\n\nGeneri "
-                                    + "ammessi:\n- estremita_libere: le facce di estremita' ancora aperte "
+                                    + "ammessi:\n- free_ends: le facce di estremita' ancora aperte "
                                     + "delle barre di quel passo, quelle che si tappano"
                                     + " (a wall with a hole machined into it is not an end: it is left out)",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "estremita_libere"))),
+                                            "free_ends"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "spessore_mm", O(
+                                    "step",
+                                    "kind")),
+                            "thickness_mm", O(
                                 "type", "number",
                                 "description", "spessore del tappo"),
-                            "rientro_mm", O(
+                            "inset_mm", O(
                                 "type", "number",
                                 "description", "NOT a depth: the side gap between the cap and the inside of "
                                     + "the tube wall, on every side. The cap always sits flush with the end "
@@ -2460,19 +2460,19 @@ namespace Riscontro.Disegno.Catalogo
                                     + "an 80 x 80 x 5 tube, 70 x 70 inside: 65 x 65 caps); a value above 0 is "
                                     + "that gap. A cap that fills the whole inside with no gap cannot be asked "
                                     + "for yet."),
-                            "smusso_mm", O(
+                            "chamfer_mm", O(
                                 "type", "number",
                                 "description", "IGNORED today: the corner treatment of the cap is off, and "
                                     + "without it SOLIDWORKS drops the chamfer (measured: 2 mm gives the same "
                                     + "volume as none). The cap corners stay sharp whatever the value.")),
                         "required", A(
-                            "spessore_mm")),
+                            "thickness_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "telaio_rettangolare",
-                    Famiglia = "saldature",
-                    DocumentoRichiesto = "parte",
+                    Nome = "rectangular_frame",
+                    Famiglia = "weldments",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un telaio rettangolare di quattro barre, dato con due quote "
@@ -2482,13 +2482,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "angoli. E' il caso piu' comune della carpenteria, e si chiede con "
                         + "due quote invece che con otto coordinate.\n\nLe quote sono "
                         + "l'INGOMBRO ESTERNO del telaio finito. Il piano dice su quale "
-                        + "piano principale sta.\n\nCome per «membro_strutturale», profilo e "
-                        + "misura si copiano da «profili_saldatura»."
+                        + "piano principale sta.\n\nCome per «structural_member», profilo e "
+                        + "misura si copiano da «weldment_profiles»."
                         + "\n\nI refuse the frame, and draw nothing, when the profile does not "
                         + "fit in the two sizes (its overhang, measured on a trial frame, is as "
-                        + "large as a side), and when «misure» is neither «ingombro» nor "
-                        + "«interasse» (upper or lower case does not matter). The answer says "
-                        + "which reading it used («misure»), whether the profile's overhang was "
+                        + "large as a side), and when «measured_as» is neither «overall» nor "
+                        + "«center_distance» (upper or lower case does not matter). The answer says "
+                        + "which reading it used («measured_as»), whether the profile's overhang was "
                         + "measured now or remembered from an earlier frame («overhang_source»: "
                         + "«measured» or «archive»), and, if the weldment profile library is "
                         + "still open and modified in SOLIDWORKS afterwards, "
@@ -2500,65 +2500,65 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "profilo_percorso", O(
+                            "profile_path", O(
                                 "type", "string"),
-                            "configurazione", O(
+                            "configuration", O(
                                 "type", "string",
-                                "description", "the profile size, copied from profili_saldatura. Empty is "
+                                "description", "the profile size, copied from weldment_profiles. Empty is "
                                     + "accepted only on a profile file with one size; with several sizes it is "
                                     + "refused, and the sizes are listed."),
-                            "lunghezza_mm", O(
+                            "length_mm", O(
                                 "type", "number",
                                 "description", "ingombro esterno"),
-                            "larghezza_mm", O(
+                            "width_mm", O(
                                 "type", "number",
                                 "description", "ingombro esterno"),
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
-                            "trattamento_angolo", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "piano di costruzione: front, top o right"),
+                            "corner_treatment", O(
                                 "type", "string",
                                 "enum", A(
-                                    "quartabuono",
-                                    "testa1",
-                                    "testa2",
-                                    "nessuno"),
-                                "description", "default: quartabuono (45 degree miter); the answer says when "
+                                    "miter",
+                                    "butt1",
+                                    "butt2",
+                                    "none"),
+                                "description", "default: miter (45 degree miter); the answer says when "
                                     + "it was the default («corner_treatment_note»)"),
-                            "rotazione_gradi", O(
+                            "rotation_deg", O(
                                 "type", "number"),
-                            "gioco_mm", O(
+                            "gap_mm", O(
                                 "type", "number"),
-                            "misure", O(
+                            "measured_as", O(
                                 "type", "string",
                                 "enum", A(
-                                    "ingombro",
-                                    "interasse"),
-                                "description", "cosa vogliono dire le due quote: «ingombro» e' la misura del "
+                                    "overall",
+                                    "center_distance"),
+                                "description", "cosa vogliono dire le due quote: «overall» e' la misura del "
                                     + "pezzo finito da fuori a fuori (e' quello che intende un "
-                                    + "progettista quando dice «telaio 1000x800»); «interasse» e' la "
-                                    + "distanza fra gli assi delle barre. Predefinito: ingombro."
+                                    + "progettista quando dice «telaio 1000x800»); «center_distance» e' la "
+                                    + "distanza fra gli assi delle barre. Predefinito: overall."
                                     + " Upper or lower case does not matter («Ingombro» is "
-                                    + "«ingombro»); any other word is refused."),
-                            "centrato", O(
+                                    + "«overall»); any other word is refused."),
+                            "centered", O(
                                 "type", "boolean",
                                 "description", "telaio centrato sull'origine (predefinito: si')")),
                         "required", A(
-                            "profilo_percorso",
-                            "configurazione",
-                            "lunghezza_mm",
-                            "larghezza_mm")),
+                            "profile_path",
+                            "configuration",
+                            "length_mm",
+                            "width_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "crea_disegno",
-                    Famiglia = "tavola",
-                    Esempio = "{\"formato\":\"A3\"}",   // da `two_sheets_and_the_same_projection_angle`
-                    DocumentoRichiesto = "parte/assieme",
+                    Nome = "create_drawing",
+                    Famiglia = "drawing",
+                    Esempio = "{\"paper_size\":\"A3\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    DocumentoRichiesto = "part/assembly",
                     Provata = true,
                     Sommario =
                         "Apre la tavola del pezzo che stai guardando.",
@@ -2567,7 +2567,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "Il pezzo resta aperto: una vista di tavola si aggancia al "
                         + "PERCORSO di un documento aperto, non a un file.\n\nIL PEZZO DEVE "
                         + "ESSERE GIA' SALVATO. Se non lo e', salvalo prima con "
-                        + "«salva_documento».\n\nIl modello di tavola NON si sceglie: si usa "
+                        + "«save_document».\n\nIl modello di tavola NON si sceglie: si usa "
                         + "quello di questa installazione, che porta il cartiglio "
                         + "dell'officina e il diedro giusto. Da qui in poi il documento "
                         + "attivo e' la TAVOLA, e le operazioni di disegno del pezzo non "
@@ -2576,7 +2576,7 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "formato", O(
+                            "paper_size", O(
                                 "type", "string",
                                 "enum", A(
                                     "A4",
@@ -2590,9 +2590,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "esporta_pdf",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "export_pdf",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "Il PDF di TUTTI i fogli, con le pagine contate.",
@@ -2610,20 +2610,20 @@ namespace Riscontro.Disegno.Catalogo
                         + "save_warnings (the swFileSaveWarning_e names, or «none») and "
                         + "save_warnings_note when the drawing needed a rebuild, had rebuild "
                         + "errors, or had views needing an update. A failed save gives the error "
-                        + "and warning names next to the raw codes.\n\nCon «cerca» il PDF si RILEGGE: dimmi le "
+                        + "and warning names next to the raw codes.\n\nCon «search» il PDF si RILEGGE: dimmi le "
                         + "scritte che devono esserci (il numero di disegno, il nome del "
-                        + "pezzo) e ti dico quali ci sono («trovati») e quali no "
-                        + "(«non_trovati»). Il testo nel PDF e' scritto come indici di "
+                        + "pezzo) e ti dico quali ci sono («found») e quali no "
+                        + "(«not_found»). Il testo nel PDF e' scritto come indici di "
                         + "glifo, e una ricerca nei byte non lo trova: qui si decodifica.",
                     Precondizione = "una tavola aperta",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso", O(
+                            "path", O(
                                 "type", "string",
                                 "description", "dove scrivere il PDF. Se non lo dici, accanto alla tavola con lo "
                                     + "stesso nome."),
-                            "cerca", O(
+                            "search", O(
                                 "type", "array",
                                 "items", O("type", "string"),
                                 "description", "scritte che il PDF deve contenere: si rilegge il file e si dice quali ci sono")),
@@ -2631,9 +2631,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "imposta_foglio",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "set_sheet",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "Formato e scala del foglio.",
@@ -2649,7 +2649,7 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "formato", O(
+                            "paper_size", O(
                                 "type", "string",
                                 "enum", A(
                                     "A4",
@@ -2659,19 +2659,19 @@ namespace Riscontro.Disegno.Catalogo
                                     "A1",
                                     "A0"),
                                 "description", "formato del foglio"),
-                            "scala_numeratore", O(
+                            "scale_numerator", O(
                                 "type", "number",
                                 "description", "il primo numero della scala: 1 in «1:2»"),
-                            "scala_denominatore", O(
+                            "scale_denominator", O(
                                 "type", "number",
                                 "description", "il secondo numero della scala: 2 in «1:2»")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "quote_dal_modello",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "model_dimensions",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "Porta in tavola le quote che il pezzo ha gia'.",
@@ -2679,7 +2679,7 @@ namespace Riscontro.Disegno.Catalogo
                         "Prende le quote dal MODELLO e le mette sulle viste.\n\nThe import "
                         + "works from this bridge, out of process: measured on 26/9/2026 (7 "
                         + "dimensions on a plate) and again on 28/9/2026. To put on the drawing "
-                        + "a dimension the model does not have, «quota_in_tavola» CREATES it on "
+                        + "a dimension the model does not have, «drawing_dimension» CREATES it on "
                         + "the edges the view shows.\n\nEach model dimension comes in once: I "
                         + "ask SOLIDWORKS to eliminate duplicates (DuplicateDims true), so a "
                         + "dimension already shown in one view is not repeated in another "
@@ -2689,10 +2689,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "permette di scrivere in tavola un testo che la geometria non ha."
                         + "\n\nDi serie arrivano solo le quote "
                         + "MARCATE per il disegno, cioe' quelle scelte per essere mostrate: "
-                        + "con «tutte_le_quote» arrivano anche le altre, e la tavola diventa "
+                        + "con «all_dimensions» arrivano anche le altre, e la tavola diventa "
                         + "parecchio piu' fitta.\n\nBy default only the dimensions MARKED for "
                         + "drawing come in, fallbacks included. If the part has dimensions and "
-                        + "none is marked, I refuse and say so: pass tutte_le_quote=true to "
+                        + "none is marked, I refuse and say so: pass all_dimensions=true to "
                         + "import them all, or mark on the model the ones the drawing must show."
                         + "\n\nMI RIFIUTO se la tavola non ha viste (le quote "
                         + "non avrebbero dove attaccarsi) e se non arriva nessuna quota: te lo dico "
@@ -2701,13 +2701,13 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "tutte_le_quote", O(
+                            "all_dimensions", O(
                                 "type", "boolean",
                                 "description", "anche le quote non marcate per il disegno. Rende la tavola piu' "
                                     + "fitta: usalo quando quelle marcate non bastano. Without it, "
                                     + "a part where no dimension is marked for drawing is refused, not "
                                     + "imported."),
-                            "callout_fori", O(
+                            "hole_callouts", O(
                                 "type", "boolean",
                                 "description", "anche le indicazioni dei fori guidati (M8, profondita', filetto). "
                                     + "Attive se non dici niente.")),
@@ -2715,9 +2715,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "croci_di_centro",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "center_marks",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     // ── PROVATA DAL 26/9/2026 (libreria 0.125.0) ──────────
                     //
                     // Dal 17/9 era `Provata = false`: `AutoInsertCenterMarks2`
@@ -2735,7 +2735,7 @@ namespace Riscontro.Disegno.Catalogo
                         "CONTROLLA che ogni foro visibile nelle viste abbia la croce di centro, e "
                         + "prova a metterla dove manca. SOLIDWORKS le mette da se' creando la vista, "
                         + "se l'opzione del documento «Croci di centro sui fori» e' accesa: quei fori "
-                        + "li riconosco («cerchi_che_avevano_gia_la_croce»). Da codice una croce "
+                        + "li riconosco («circles_already_marked»). Da codice una croce "
                         + "nuova non nasce (misurato): un foro senza croce e' un rifiuto, con la "
                         + "strada — l'opzione accesa e la vista rifatta.\n\nPERCHE' SERVE. Una tavola con dodici fori e "
                         + "nessuna croce di centro si stampa e sembra completa. In officina manca "
@@ -2745,30 +2745,30 @@ namespace Riscontro.Disegno.Catalogo
                         + "numero e' **zero** te lo dico invece di dire «fatto» — quasi sempre la "
                         + "vista e' quella sbagliata (i fori come cerchi si vedono dall'alto, di "
                         + "solito V2).\n\nLA DIMENSIONE, se non me la dici, e' quella del "
-                        + "documento: e' una convenzione di studio.\n\nSenza «vista» le guardo "
+                        + "documento: e' una convenzione di studio.\n\nSenza «view» le guardo "
                         + "tutte. Raccordi e asole no: misurato, sugli archi la croce da codice "
                         + "non nasce.\n\nLE CROCI SI CONTANO ENUMERANDOLE: il contatore di "
                         + "SOLIDWORKS (GetCenterMarkCount) non vede quelle messe alla creazione "
                         + "della vista, e diceva zero su un foglio che ne aveva tre."
-                        + "\n\nThe walk over the holes is the one viste_standard also uses on views "
+                        + "\n\nThe walk over the holes is the one standard_views also uses on views "
                         + "left with no mark.",
                     Precondizione = "una tavola con almeno una vista",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O(
+                            "view", O(
                                 "type", "string",
                                 "description", "UNA vista, come la chiama lo stato della tavola (V1, V2...) "
                                     + "o per nome. Vuoto = tutte le viste."),
-                            "su", O(
+                            "applies_to", O(
                                 "type", "string",
-                                "enum", A("fori"),
-                                "description", "«fori», i cerchi interi (l'unico: sui raccordi la croce da codice non nasce, misurato)."),
-                            "dimensione_mm", O(
+                                "enum", A("holes"),
+                                "description", "«holes», i cerchi interi (l'unico: sui raccordi la croce da codice non nasce, misurato)."),
+                            "size_mm", O(
                                 "type", "number",
                                 "description", "quanto e' grande la croce. Se non lo dici uso le "
                                     + "impostazioni del documento, che e' quasi sempre la cosa giusta."),
-                            "linee_estese", O(
+                            "extended_lines", O(
                                 "type", "boolean",
                                 "description", "le linee d'asse che escono dalla croce fino al bordo "
                                     + "del cerchio. Spente se non dici niente.")),
@@ -2776,10 +2776,10 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "quota_in_tavola",
-                    Famiglia = "tavola",
-                    Esempio = "{\"spigoli\":[0,1,2,3]}",   // da `drawing_dimensions_itself`
-                    DocumentoRichiesto = "tavola",
+                    Nome = "drawing_dimension",
+                    Famiglia = "drawing",
+                    Esempio = "{\"edges\":[0,1,2,3]}",   // da `drawing_dimensions_itself`
+                    DocumentoRichiesto = "drawing",
                     // ── PROVATA, E COSA VUOL DIRE QUI ──────────────────
                     //
                     // Misurato il 18/9/2026 fuori processo: quattro quote su
@@ -2800,12 +2800,12 @@ namespace Riscontro.Disegno.Catalogo
                         "Mette quote di riferimento sugli spigoli di una vista di tavola, e "
                         + "per ognuna ti dice **quanti millimetri misura**, riletti da "
                         + "SOLIDWORKS dopo averla messa.\n\nQUESTA E' L'OPERAZIONE CHE "
-                        + "QUOTA. «quote_dal_modello» fa un'altra cosa: IMPORTA le quote "
+                        + "QUOTA. «model_dimensions» fa un'altra cosa: IMPORTA le quote "
                         + "che il pezzo ha gia', e su questa installazione non ne porta "
                         + "nessuna (misurato su otto modelli di tavola diversi). Se ti "
                         + "serve una tavola quotata, usa questa.\n\nGLI SPIGOLI HANNO UN "
                         + "NUMERO, e te lo dico io: la vista espone il suo elenco, e senza "
-                        + "«spigoli» quoto i primi «quante». Chiedimi uno spigolo che non "
+                        + "«edges» quoto i primi «count». Chiedimi uno spigolo che non "
                         + "c'e' e ti rispondo quanti ne ha la vista, invece di quotarne un "
                         + "altro.\n\nTI DICO QUANTE NE SONO NATE, non che ho chiamato "
                         + "l'API: le quote si contano prima e dopo, una per una. Se non ne "
@@ -2816,7 +2816,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nOVERLAPS ARE CHECKED AND REPORTED, not avoided: the true rectangle of "
                         + "every dimension text, read back from SOLIDWORKS, against the other texts of "
                         + "the whole drawing and against the lines of the part in this view. "
-                        + "«testi_che_si_accavallano» lists each overlap, and the answer also gives "
+                        + "«overlapping_texts» lists each overlap, and the answer also gives "
                         + "their count and how many texts were read; null, not 0, means the texts "
                         + "could not be read, or the walk over the dimensions of the drawing broke off "
                         + "before the end, so overlaps are unknown. Dimension lines, "
@@ -2832,16 +2832,16 @@ namespace Riscontro.Disegno.Catalogo
                         + "(«Ø8 ↧5»); se il richiamo non nasce, la scrivo io dalla geometria."
                         + "\n\nTHE «4×» IS READ BACK: after writing the count in front of the "
                         + "callout I read its prefix again (fori[].prefix_read). If the count did "
-                        + "not stick, the holes are listed in spigoli_non_quotati and the count "
-                        + "must be written by hand; «quanti» is the number of holes, not the text."
+                        + "not stick, the holes are listed in edges_not_dimensioned and the count "
+                        + "must be written by hand; «how_many» is the number of holes, not the text."
                         + "\n\nUN CERCHIO NON E' SEMPRE UN FORO: il contorno di un pezzo tondo "
-                        + "visto di fronte ha una quota di diametro (diametri_esterni)."
+                        + "visto di fronte ha una quota di diametro (outer_diameters)."
                         + "\n\nIL PEZZO TONDO VISTO DI FIANCO (albero, boccola, perno) lo quoto "
                         + "cosi': le LUNGHEZZE fra le facce in parallelo dalla faccia di "
-                        + "un'estremita' (tondo_lunghezze_mm) e i DIAMETRI dalle due generatrici "
-                        + "di ogni cilindro, col Ø (tondo_diametri_mm), ognuno riletto. SOLIDWORKS "
+                        + "un'estremita' (round_lengths_mm) e i DIAMETRI dalle due generatrici "
+                        + "di ogni cilindro, col Ø (round_diameters_mm), ognuno riletto. SOLIDWORKS "
                         + "non sempre espone le generatrici di un cilindro: quei diametri te li "
-                        + "dico in tondo_diametri_non_raggiunti, e vanno quotati a mano (un foro "
+                        + "dico in round_diameters_not_reached, e vanno quotati a mano (un foro "
                         + "interno si quota dalla vista in cui e' un cerchio)."
                         + "\n\nUNA QUOTA SOLA PER ELEMENTO IN TUTTA LA TAVOLA: se la stessa "
                         + "estensione del pezzo e' gia' quotata in un'altra vista, qui la salto "
@@ -2857,14 +2857,14 @@ namespace Riscontro.Disegno.Catalogo
                         + "views_of_other_models_not_counted."
                         + "\n\nA DIMENSION BORN WITHOUT ITS OBJECT (the count of dimensions went up, "
                         + "the call returned nothing) stays: it is listed with its values null and "
-                        + "named in spigoli_non_quotati, since its value was not read back. For a hole "
+                        + "named in edges_not_dimensioned, since its value was not read back. For a hole "
                         + "it does not trigger the fallback diameter dimension, which would be a second "
                         + "annotation on the same hole. The same holds in the turned view: a length or "
-                        + "a diameter born without its object is not in tondo_lunghezze_mm or "
-                        + "tondo_diametri_mm (they list what was read back), is not dimensioned again in "
+                        + "a diameter born without its object is not in round_lengths_mm or "
+                        + "round_diameters_mm (they list what was read back), is not dimensioned again in "
                         + "another view and is not reported as not reached; one born between two "
                         + "silhouette edges without a face cannot be matched to a cylinder, so no further "
-                        + "pair is tried, and its line in spigoli_non_quotati says so."
+                        + "pair is tried, and its line in edges_not_dimensioned says so."
                         + "\n\nMI RIFIUTO SE LO SPIGOLO CHIESTO NON ESISTE nella vista, e ti dico "
                         + "quanti ne mostra. Un indice che non c'e' e' l'errore piu' facile da "
                         + "fare quotando alla cieca. E rifiuto una vista in cui non resta niente "
@@ -2874,24 +2874,24 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O(
+                            "view", O(
                                 "type", "string",
                                 "description", "UNA vista: il suo identificativo nello stato della "
                                     + "tavola (V1, V2...) oppure il suo nome. Vuoto = la prima vista vera."),
-                            "spigoli", O(
+                            "edges", O(
                                 "type", "array",
                                 "items", O("type", "integer"),
                                 "description", "i numeri degli spigoli da quotare, dall'elenco che la "
-                                    + "vista espone (il primo e' 0). Vuoto = i primi «quante»."),
-                            "quante", O(
+                                    + "vista espone (il primo e' 0). Vuoto = i primi «count»."),
+                            "count", O(
                                 "type", "integer",
                                 "description", "quante quote mettere quando non dici quali spigoli. "
                                     + "Predefinito 4."),
-                            "distacco_mm", O(
+                            "offset_mm", O(
                                 "type", "number",
                                 "description", "quanto sotto l'ingombro della vista mettere la prima "
                                     + "quota. Predefinito 12."),
-                            "passo_mm", O(
+                            "pitch_mm", O(
                                 "type", "number",
                                 "description", "la distanza fra una quota e la successiva. "
                                     + "Predefinito 10.")),
@@ -2899,9 +2899,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "tabella_fori_in_tavola",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "hole_table",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "La tabella fori su una vista: un tag per foro, la posizione dall'origine e la misura.",
@@ -2912,8 +2912,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "una piastra con tanti fori, al posto di una quota per foro.\n\nLa vista e' "
                         + "quella in cui i fori si vedono come cerchi (di solito V2, dall'alto): la "
                         + "faccia la sceglie l'operazione fra quelle che guardano verso chi legge, la "
-                        + "piu' forata. «origine» dice da quale angolo di quella faccia si misura "
-                        + "(predefinito basso_sinistra).\n\nLa tabella si RILEGGE: le righe devono "
+                        + "piu' forata. «origin» dice da quale angolo di quella faccia si misura "
+                        + "(predefinito bottom_left).\n\nLa tabella si RILEGGE: le righe devono "
                         + "essere i fori piu' l'intestazione, e ogni posizione scritta deve "
                         + "corrispondere a un foro del pezzo misurato sulla vista. Misurato: con "
                         + "l'origine e la faccia selezionate male SOLIDWORKS fa nascere una tabella "
@@ -2924,23 +2924,23 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O(
+                            "view", O(
                                 "type", "string",
                                 "description", "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."),
-                            "origine", O(
+                            "origin", O(
                                 "type", "string",
-                                "enum", A("basso_sinistra", "basso_destra", "alto_sinistra", "alto_destra"),
-                                "description", "da quale angolo della faccia forata si misurano le posizioni. Predefinito basso_sinistra."),
+                                "enum", A("bottom_left", "bottom_right", "top_left", "top_right"),
+                                "description", "da quale angolo della faccia forata si misurano le posizioni. Predefinito bottom_left."),
                             "x_mm", O("type", "number", "description", "dove va l'angolo in alto a sinistra della tabella sul foglio, in mm. Predefinito 15."),
                             "y_mm", O("type", "number", "description", "idem in verticale. Predefinito 15 sotto il bordo alto del foglio."),
-                            "inizio_tag", O("type", "string", "description", "la lettera dei tag. Predefinito «A».")),
+                            "tag_start", O("type", "string", "description", "la lettera dei tag. Predefinito «A».")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "vista_sviluppo",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "flat_pattern_view",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario = "La vista dello SVILUPPO di una lamiera in tavola, misurata contro il pezzo.",
                     Descrizione =
@@ -2963,18 +2963,18 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "modello", O("type", "string", "description", "il percorso del pezzo di lamiera. Vuoto = quello della tavola."),
-                            "configurazione", O("type", "string", "description", "la configurazione del pezzo. Vuota = quella attiva."),
+                            "model", O("type", "string", "description", "il percorso del pezzo di lamiera. Vuoto = quello della tavola."),
+                            "configuration", O("type", "string", "description", "la configurazione del pezzo. Vuota = quella attiva."),
                             "x_mm", O("type", "number", "description", "dove va il centro della vista sul foglio, in mm. Vuoto = un posto libero fuori dalle viste e dal cartiglio."),
                             "y_mm", O("type", "number", "description", "idem in verticale."),
-                            "nascondi_pieghe", O("type", "boolean", "description", "senza le linee di piega. Predefinito falso: chi piega le vuole.")),
+                            "hide_bends", O("type", "boolean", "description", "senza le linee di piega. Predefinito falso: chi piega le vuole.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "saldatura_in_tavola",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "drawing_weld_symbol",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario = "Il simbolo di saldatura ISO sul giunto fra due corpi, in una vista.",
                     Descrizione =
@@ -2983,7 +2983,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "(angolo, V, mezza V, testa), la gola «a» a sinistra e, se la dai, la "
                         + "lunghezza a destra.\n\nIL GIUNTO LO TROVO IO: fra gli spigoli che la vista "
                         + "mostra, quello in cui un corpo tocca l'altro (il piu' lungo). Il simbolo "
-                        + "si sposta fuori dal pezzo, dalla parte di «lato», oltre le quote gia' "
+                        + "si sposta fuori dal pezzo, dalla parte di «side», oltre le quote gia' "
                         + "messe.\n\nSI RILEGGE: simbolo, gola, lunghezza, «tutto attorno». The "
                         + "count of its texts is checked too: a code the library does not draw leaves "
                         + "one text (the throat) instead of two, and that symbol is refused. Il "
@@ -2997,31 +2997,31 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O("type", "string", "description", "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."),
-                            "tipo", O("type", "string", "enum", A("angolo", "v", "mezza_v", "testa"), "description", "il cordone. Predefinito angolo."),
-                            "a_mm", O("type", "number", "description", "la gola del cordone in mm (ISO 2553, «a»). Da 0 a 50."),
-                            "lunghezza_mm", O("type", "number", "description", "la lunghezza del cordone, a destra del simbolo. Vuota = tutto il giunto."),
-                            "tutto_attorno", O("type", "boolean", "description", "il cerchio del cordone tutto attorno. Predefinito falso."),
-                            "in_opera", O("type", "boolean", "description", "la bandierina della saldatura in opera (in cantiere). Predefinito falso."),
-                            "entrambi_i_lati", O("type", "boolean", "description", "il cordone dai due lati del giunto. Predefinito falso."),
-                            "lato", O("type", "string", "enum", A("alto", "basso", "sinistra", "destra"), "description", "da che parte della vista va il simbolo. Predefinito alto.")),
-                        "required", A("a_mm")),
+                            "view", O("type", "string", "description", "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."),
+                            "variant", O("type", "string", "enum", A("fillet", "v", "half_v", "butt"), "description", "il cordone. Predefinito fillet."),
+                            "throat_mm", O("type", "number", "description", "la gola del cordone in mm (ISO 2553, «a»). Da 0 a 50."),
+                            "length_mm", O("type", "number", "description", "la lunghezza del cordone, a destra del simbolo. Vuota = tutto il giunto."),
+                            "all_around", O("type", "boolean", "description", "il cerchio del cordone tutto attorno. Predefinito falso."),
+                            "field_weld", O("type", "boolean", "description", "la bandierina della saldatura in opera (in cantiere). Predefinito falso."),
+                            "both_sides", O("type", "boolean", "description", "il cordone dai due lati del giunto. Predefinito falso."),
+                            "side", O("type", "string", "enum", A("top", "bottom", "left", "right"), "description", "da che parte della vista va il simbolo. Predefinito top.")),
+                        "required", A("throat_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "distinta_base_in_tavola",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "drawing_bom",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario = "La distinta base di un assieme in tavola, confrontata coi componenti dell'assieme.",
                     Descrizione =
                         "Mette in tavola la DISTINTA BASE dell'assieme che sta dietro una vista: numero di "
-                        + "voce, componente, quantita'. Di serie il primo livello; «solo_parti» o "
-                        + "«indentata» per le altre.\n\nLA CONFRONTO: l'assieme sa per conto suo quali "
+                        + "voce, componente, quantita'. Di serie il primo livello; «parts_only» o "
+                        + "«indented» per le altre.\n\nLA CONFRONTO: l'assieme sa per conto suo quali "
                         + "componenti ha e quanti; le voci e la somma delle quantita' devono combaciare. Se non "
                         + "combaciano la tolgo e te lo dico.\n\nPoi la misuro e la metto in un posto libero "
                         + "del foglio, fuori dalle viste e dal cartiglio.\n\nMI RIFIUTO se dietro la vista non "
-                        + "c'e' un assieme (per un saldato c'e' «distinta_taglio_in_tavola») o se sul foglio non "
+                        + "c'e' un assieme (per un saldato c'e' «drawing_cut_list») o se sul foglio non "
                         + "c'e' posto."
                         + "\n\nThe count on the assembly side follows how each sub-assembly shows its "
                         + "children in the BOM (ChildComponentDisplayInBOM): in a top-level table a "
@@ -3052,16 +3052,16 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O("type", "string", "description", "la vista dell'assieme (V1, V2...) o per nome. Predefinita la prima."),
-                            "tipo", O("type", "string", "enum", A("primo_livello", "solo_parti", "indentata"), "description", "che distinta. Predefinito primo_livello."),
+                            "view", O("type", "string", "description", "la vista dell'assieme (V1, V2...) o per nome. Predefinita la prima."),
+                            "variant", O("type", "string", "enum", A("top_level", "parts_only", "indented"), "description", "che distinta. Predefinito top_level."),
                             "template", O("type", "string", "description", "il modello di tabella. Vuoto = il primo della cartella dei modelli di distinta.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "bollatura",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "balloons",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario = "La bollatura: i palloncini coi numeri di voce della distinta sui componenti di una vista, contati.",
                     Descrizione =
@@ -3071,7 +3071,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "dice quali voci restano senza (quel componente in questa vista non si vede: bolla "
                         + "un'altra vista). Se ogni voce ha gia' il suo palloncino altrove, non ne mette e "
                         + "risponde «niente da aggiungere».\n\nMI RIFIUTO se in tavola non c'e' ancora una distinta base (la bollatura "
-                        + "porta il suo numero di voce: mettila prima con «distinta_base_in_tavola») o se "
+                        + "porta il suo numero di voce: mettila prima con «drawing_bom») o se "
                         + "dietro la vista non c'e' un assieme."
                         + "\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 "
                         + "runs. balloons_returned is the number of notes AutoBalloon5 returned (null "
@@ -3081,21 +3081,21 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O("type", "string", "description", "la vista (V1, V2...) o per nome. Predefinita la prima."),
-                            "disposizione", O("type", "string", "enum", A("quadrato", "cerchio", "sopra", "sotto"), "description", "come disporre i palloncini attorno alla vista. Predefinito quadrato.")),
+                            "view", O("type", "string", "description", "la vista (V1, V2...) o per nome. Predefinita la prima."),
+                            "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "come disporre i palloncini attorno alla vista. Predefinito square.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "rugosita_in_tavola",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "surface_finish",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario = "Il simbolo di rugosita' (Ra in micrometri) su uno spigolo di bordo di una vista.",
                     Descrizione =
                         "Mette il simbolo di RUGOSITA' (UNI EN ISO 1302) con la linea di richiamo sullo spigolo "
-                        + "di bordo di una vista, dal «lato» chiesto, e lo porta fuori dal pezzo. «lavorazione»: "
-                        + "asportazione (la barretta, predefinito), qualsiasi, senza_asportazione (il cerchietto)."
+                        + "di bordo di una vista, dal «side» chiesto, e lo porta fuori dal pezzo. «process»: "
+                        + "asportazione (la barretta, predefinito), qualsiasi, no_removal (il cerchietto)."
                         + "\n\nIl Ra si RILEGGE dal simbolo. Misurato: senza spostarlo, SOLIDWORKS mette il simbolo "
                         + "fuori cornice ignorando le coordinate; per questo la posizione si imposta e si rilegge."
                         + "\n\nMI RIFIUTO se Ra non sta fra 0 e 100 micrometri, se la vista non ha uno spigolo dritto "
@@ -3104,28 +3104,28 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
-                            "lato", O(
+                            "view", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "side", O(
                                 "type", "string",
-                                "enum", A("alto", "basso", "sinistra", "destra"),
-                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «alto»."),
+                                "enum", A("top", "bottom", "left", "right"),
+                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «top»."),
                             "ra_um", O("type", "number", "description", "la rugosita' Ra in micrometri, per esempio 3.2"),
-                            "lavorazione", O(
+                            "process", O(
                                 "type", "string",
-                                "enum", A("asportazione", "qualsiasi", "senza_asportazione"),
-                                "description", "come si ottiene la superficie. Predefinito «asportazione».")),
+                                "enum", A("material_removal", "any", "no_removal"),
+                                "description", "come si ottiene la superficie. Predefinito «material_removal».")),
                         "required", A("ra_um")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "datum_in_tavola",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "datum",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario = "Un riferimento (datum A, B...) su uno spigolo di bordo di una vista.",
                     Descrizione =
                         "Mette un DATUM (UNI EN ISO 5459): il triangolo sullo spigolo di bordo della vista dal "
-                        + "«lato» chiesto, e la bandierina con la «lettera» fuori dal pezzo, dalla stessa parte. "
+                        + "«side» chiesto, e la bandierina con la «letter» fuori dal pezzo, dalla stessa parte. "
                         + "E' il riferimento che le tolleranze geometriche citano.\n\nLa lettera si RILEGGE. "
                         + "Misurato: lasciato dove nasce, SOLIDWORKS mette la bandierina dall'altra parte dello "
                         + "spigolo e la linea attraversa il pezzo; per questo si sposta.\n\nMI RIFIUTO se la "
@@ -3135,31 +3135,31 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
-                            "lato", O(
+                            "view", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "side", O(
                                 "type", "string",
-                                "enum", A("alto", "basso", "sinistra", "destra"),
-                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «basso»."),
-                            "lettera", O("type", "string", "description", "la lettera del riferimento, dalla A alla Z. Predefinita «A».")),
+                                "enum", A("top", "bottom", "left", "right"),
+                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «bottom»."),
+                            "letter", O("type", "string", "description", "la lettera del riferimento, dalla A alla Z. Predefinita «A».")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "tolleranza_geometrica_in_tavola",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "geometric_tolerance",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario = "Una cornice di tolleranza geometrica (planarita', perpendicolarita', posizione...) su uno spigolo.",
                     Descrizione =
                         "Mette una CORNICE DI TOLLERANZA GEOMETRICA (UNI EN ISO 1101) con la freccia sullo spigolo "
-                        + "di bordo della vista dal «lato» chiesto: la «caratteristica», l'ampiezza della zona in mm "
-                        + "e i «riferimenti» (fino a tre lettere di datum, nell'ordine primario, secondario, "
-                        + "terziario). «diametro» mette il Ø davanti al valore (una zona cilindrica, per la "
+                        + "di bordo della vista dal «side» chiesto: la «characteristic», l'ampiezza della zona in mm "
+                        + "e i «references» (fino a tre lettere di datum, nell'ordine primario, secondario, "
+                        + "terziario). «diameter» mette il Ø davanti al valore (una zona cilindrica, per la "
                         + "posizione di un asse).\n\nSimbolo, valore e riferimenti si RILEGGONO dalla cornice, "
                         + "and so does the Ø (diameter_read, from IGtol.GetFrameDiameterSymbols)."
                         + "\n\nMI RIFIUTO se una tolleranza di forma (rettilineita', planarita', circolarita', "
                         + "cilindricita') cita un datum, se una di orientamento o di posizione non ne cita nessuno, "
-                        + "se un datum citato non c'e' in tavola (mettilo prima con «datum_in_tavola»), e se la "
+                        + "se un datum citato non c'e' in tavola (mettilo prima con «datum»), e se la "
                         + "cornice nata non dice cio' che si e' chiesto, Ø included: such a frame, or one "
                         + "that cannot be filled, is removed from the sheet, and said removed only after "
                         + "the frames of the drawing are counted again.",
@@ -3167,31 +3167,31 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
-                            "lato", O(
+                            "view", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "side", O(
                                 "type", "string",
-                                "enum", A("alto", "basso", "sinistra", "destra"),
-                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «destra»."),
-                            "caratteristica", O(
+                                "enum", A("top", "bottom", "left", "right"),
+                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «right»."),
+                            "characteristic", O(
                                 "type", "string",
-                                "enum", A("rettilineita", "planarita", "circolarita", "cilindricita", "profilo_linea",
-                                          "profilo_superficie", "inclinazione", "perpendicolarita", "parallelismo",
-                                          "posizione", "concentricita", "simmetria", "oscillazione_circolare",
-                                          "oscillazione_totale"),
+                                "enum", A("straightness", "flatness", "circularity", "cylindricity", "profile_of_line",
+                                          "profile_of_surface", "angularity", "perpendicularity", "parallelism",
+                                          "position", "concentricity", "symmetry", "circular_runout",
+                                          "total_runout"),
                                 "description", "la caratteristica geometrica"),
-                            "valore_mm", O("type", "number", "description", "l'ampiezza della zona di tolleranza, in mm"),
-                            "riferimenti", O(
+                            "value_mm", O("type", "number", "description", "l'ampiezza della zona di tolleranza, in mm"),
+                            "references", O(
                                 "type", "array", "items", O("type", "string"),
                                 "description", "le lettere dei datum, fino a tre, nell'ordine primario, secondario, terziario"),
-                            "diametro", O("type", "boolean", "description", "zona cilindrica: il Ø davanti al valore")),
-                        "required", A("caratteristica", "valore_mm")),
+                            "diameter", O("type", "boolean", "description", "zona cilindrica: il Ø davanti al valore")),
+                        "required", A("characteristic", "value_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "nota_in_tavola",
-                    Famiglia = "tavola",
-                    Esempio = "{\"testo\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `note_ends_up_on_the_sheet`
-                    DocumentoRichiesto = "tavola",
+                    Nome = "note",
+                    Famiglia = "drawing",
+                    Esempio = "{\"text\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}",   // da `note_ends_up_on_the_sheet`
+                    DocumentoRichiesto = "drawing",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
                     // Che la nota NASCA, che finisca sul FOGLIO e non dentro
@@ -3226,7 +3226,7 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "testo", O(
+                            "text", O(
                                 "type", "string",
                                 "description", "il testo della nota. Obbligatorio: una nota vuota "
                                     + "occupa un posto sul foglio e non dice niente."),
@@ -3238,16 +3238,16 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "number",
                                 "description", "altezza dal bordo inferiore del foglio, in "
                                     + "millimetri. Predefinito 20 mm sotto il bordo alto.")),
-                        "required", A("testo")),
+                        "required", A("text")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "sezione_in_tavola",
+                    Nome = "section_view",
                     // Z-C13 (26/9/2026): una lettera gia' usata da una sezione o da un
                     // dettaglio si rifiuta; la lettera effettiva si rilegge.
-                    Famiglia = "tavola",
-                    Esempio = "{\"etichetta\":\"A\",\"a_mm\":0}",   // da `section_cuts_the_part`
-                    DocumentoRichiesto = "tavola",
+                    Famiglia = "drawing",
+                    Esempio = "{\"label\":\"A\",\"offset_mm\":0}",   // da `section_cuts_the_part`
+                    DocumentoRichiesto = "drawing",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
                     // Che la vista di sezione NASCA (il conto delle viste
@@ -3271,7 +3271,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "forma ha.\n\n"
                         + "LA LINEA DI TAGLIO LA TRACCIO IO, da parte a parte della "
                         + "vista: una linea che la sfiora da' una sezione vuota senza "
-                        + "dire niente. Di serie taglio in mezzo; con «a_mm» sposti il "
+                        + "dire niente. Di serie taglio in mezzo; con «offset_mm» sposti il "
                         + "taglio, in millimetri **di foglio** — non del modello, "
                         + "perche' sul foglio la vista e' in scala.\n\n"
                         + "TI DICO SE E' NATA contando le viste prima e dopo, non "
@@ -3287,10 +3287,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "materiale: sul foglio resta una vista che sembra buona e non "
                         + "mostra niente, e nessun errore lo direbbe. Preferisco "
                         + "fallire e dirti dove ho tagliato.\n\n"
-                        + "LA LETTERA E' UNA SOLA PER TAVOLA: se «etichetta» e' gia' di "
+                        + "LA LETTERA E' UNA SOLA PER TAVOLA: se «label» e' gia' di "
                         + "un'altra sezione o di un dettaglio mi rifiuto e ti dico quelle "
                         + "usate — due «A-A» sembrano lo stesso taglio. La lettera che la "
-                        + "vista ha davvero te la rileggo («etichetta_riletta»).\n\n"
+                        + "vista ha davvero te la rileggo («label_reread»).\n\n"
                         + "QUELLO CHE NON POSSO SAPERE e' se quella e' la sezione che "
                         + "serviva. So dirti che il taglio ha incontrato materiale, non "
                         + "che passa per la cavita' che volevi mostrare.",
@@ -3298,26 +3298,26 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O(
+                            "view", O(
                                 "type", "string",
                                 "description", "quale vista sezionare, per nome. Senza, "
                                     + "la prima vista di modello del foglio."),
-                            "verso", O(
+                            "orientation", O(
                                 "type", "string",
-                                "enum", A("verticale", "orizzontale"),
+                                "enum", A("vertical", "horizontal"),
                                 "description", "come corre la linea di taglio. "
-                                    + "Predefinito «verticale»."),
-                            "a_mm", O(
+                                    + "Predefinito «vertical»."),
+                            "offset_mm", O(
                                 "type", "number",
                                 "description", "di quanto spostare il taglio dal centro "
                                     + "della vista, in millimetri DI FOGLIO. Positivo "
                                     + "verso destra (o verso l'alto). Predefinito 0, "
                                     + "cioe' in mezzo."),
-                            "etichetta", O(
+                            "label", O(
                                 "type", "string",
                                 "description", "la lettera della sezione: «A» da' "
                                     + "«Vista in sezione A-A». Predefinito «A»."),
-                            "profondita_mm", O(
+                            "depth_mm", O(
                                 "type", "number",
                                 "description", "profondita' del taglio per una sezione "
                                     + "parziale. Predefinito 0, che taglia da parte a "
@@ -3326,10 +3326,10 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "dettaglio_in_tavola",
-                    Famiglia = "tavola",
-                    Esempio = "{\"etichetta\":\"B\",\"scala\":2,\"raggio_mm\":8}",   // da `detail_enlarges`
-                    DocumentoRichiesto = "tavola",
+                    Nome = "detail_view",
+                    Famiglia = "drawing",
+                    Esempio = "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8}",   // da `detail_enlarges`
+                    DocumentoRichiesto = "drawing",
                     // ── PROVATA, E SU COSA ─────────────────────────────
                     //
                     // Che la vista di dettaglio NASCA, che sia del tipo
@@ -3354,7 +3354,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "smusso, un raccordo con la sua quota.\n\n"
                         + "IL CERCHIO LO TRACCIO IO, dentro la vista. Di serie al centro "
                         + "con raggio un quarto del lato minore; con «x_mm» e «y_mm» lo "
-                        + "sposti e con «raggio_mm» lo cambi, in millimetri **di foglio** "
+                        + "sposti e con «radius_mm» lo cambi, in millimetri **di foglio** "
                         + "— non del modello, perche' sul foglio la vista e' in scala.\n\n"
                         + "MI RIFIUTO SE IL CERCHIO SBORDA dalla vista: un cerchio fuori "
                         + "ingrandisce del vuoto, e il vuoto ingrandito e' comunque una "
@@ -3367,9 +3367,9 @@ namespace Riscontro.Disegno.Catalogo
                         + "and no error would say so. The view I read is the one the call "
                         + "returned (view_read_from); when the detail is not born, the "
                         + "circle I drew is removed.\n\n"
-                        + "LA LETTERA E' UNA SOLA PER TAVOLA: se «etichetta» e' gia' di una "
+                        + "LA LETTERA E' UNA SOLA PER TAVOLA: se «label» e' gia' di una "
                         + "sezione o di un altro dettaglio mi rifiuto e ti dico quelle usate. "
-                        + "La lettera vera te la rileggo («etichetta_riletta»).\n\n"
+                        + "La lettera vera te la rileggo («label_reread»).\n\n"
                         + "QUELLO CHE NON POSSO SAPERE e' se quello e' il particolare che "
                         + "serviva: un cerchio spostato di dieci millimetri ingrandisce un "
                         + "pezzo di piano liscio, ed e' altrettanto valido.",
@@ -3377,7 +3377,7 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O(
+                            "view", O(
                                 "type", "string",
                                 "description", "quale vista dettagliare, per nome. Senza, "
                                     + "la prima vista di modello del foglio."),
@@ -3391,16 +3391,16 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "di quanto spostarlo in verticale, in "
                                     + "millimetri DI FOGLIO. Positivo verso l'alto. "
                                     + "Predefinito 0."),
-                            "raggio_mm", O(
+                            "radius_mm", O(
                                 "type", "number",
                                 "description", "il raggio del cerchio, in millimetri di "
                                     + "foglio. Predefinito: un quarto del lato minore "
                                     + "della vista."),
-                            "scala", O(
+                            "scale", O(
                                 "type", "number",
                                 "description", "quante volte ingrandire. Predefinito 2, "
                                     + "cioe' 2:1."),
-                            "etichetta", O(
+                            "label", O(
                                 "type", "string",
                                 "description", "la lettera del dettaglio. Predefinito «B», "
                                     + "perche' «A» di solito se la prende la sezione.")),
@@ -3408,9 +3408,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "cartiglio",
-                    Famiglia = "verifiche",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "title_block",
+                    Famiglia = "checks",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "Dice quali proprieta' il cartiglio CHIEDE e quali MOSTRA. "
@@ -3421,7 +3421,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "sta mostrando**.\n\nPERCHE' SONO DUE COSE. Un cartiglio non "
                         + "contiene testo: contiene collegamenti, scritti "
                         + "`$PRP:\"Descrizione\"`. Riempirlo vuol dire scrivere quelle "
-                        + "proprieta' con «scrivi_proprieta».\n\n**IL NOME VA COPIATO "
+                        + "proprieta' con «set_property».\n\n**IL NOME VA COPIATO "
                         + "ALLA LETTERA.** Se lo scrivi con una maiuscola o uno spazio "
                         + "diversi da quelli che il cartiglio referenzia, **non succede "
                         + "niente di visibile**: SOLIDWORKS scrive la proprieta', il "
@@ -3444,10 +3444,10 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "verifica_interferenze",
-                    Famiglia = "verifiche",
-                    Esempio = "{\"toccarsi_conta\":true}",   // da `touching_is_not_interpenetrating`
-                    DocumentoRichiesto = "assieme",
+                    Nome = "interference_check",
+                    Famiglia = "checks",
+                    Esempio = "{\"touching_counts\":true}",   // da `touching_is_not_interpenetrating`
+                    DocumentoRichiesto = "assembly",
                     Provata = true,
                     Sommario =
                         "Dice se i componenti dell'assieme si compenetrano, e di quanto "
@@ -3468,13 +3468,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "coperchio appoggiato condivide una faccia con la base. Ma un "
                         + "albero in un foro dello stesso diametro condivide la superficie "
                         + "cilindrica, e li' e' proprio il problema: quel pezzo non entra. "
-                        + "Se e' quello che ti interessa, chiedimelo con «toccarsi_conta», "
+                        + "Se e' quello che ti interessa, chiedimelo con «touching_counts», "
                         + "e ti dico sempre quale delle due ho usato."
-                        + "\n\nTHE COUNT AND THE LIST MUST AGREE. «quante» is the count "
+                        + "\n\nTHE COUNT AND THE LIST MUST AGREE. «how_many» is the count "
                         + "SOLIDWORKS gives; «interferences_read» is how many interferences its "
-                        + "list actually held. When the two differ, «volume_totale_mm3» is left "
+                        + "list actually held. When the two differ, «volume_total_mm3» is left "
                         + "out (a sum over part of the list would be smaller than the truth) and "
-                        + "«cosa_non_so» says what was missing; a count of zero with "
+                        + "«what_is_not_known» says what was missing; a count of zero with "
                         + "interferences in the list is refused instead of answered «none»."
                         + "\n\nPOSSIBLE interferences (IsPossibleInterference) are counted apart: "
                         + "certain_interferences and possible_interferences, and the verdict counts "
@@ -3485,17 +3485,17 @@ namespace Riscontro.Disegno.Catalogo
                         + "reads back; if one reads back different from the request, the check is "
                         + "refused."
                         + "\n\nNon modifica "
-                        + "niente: si puo' chiedere anche con «misura».",
+                        + "niente: si puo' chiedere anche con «measure».",
                     Precondizione = "un assieme aperto con almeno due componenti",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "toccarsi_conta", O(
+                            "touching_counts", O(
                                 "type", "boolean",
                                 "description", "vero: due facce che si toccano esattamente contano come "
                                     + "interferenza. Serve per «questo albero entra in questo foro?». "
                                     + "Falso (predefinito): un coperchio appoggiato non e' un errore."),
-                            "dentro_le_parti", O(
+                            "inside_parts", O(
                                 "type", "boolean",
                                 "description", "vero: cerca anche fra i corpi DENTRO lo stesso "
                                     + "componente multicorpo. Falso (predefinito): solo fra componenti "
@@ -3504,13 +3504,13 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "distinta_taglio_in_tavola",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "drawing_cut_list",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     // ── PROVATA DAL 26/9/2026 (libreria 0.125.0) ──────────
                     //
                     // La tabella nasce quando il pezzo e' un SALDATO con la
-                    // distinta automatica — che `distinta_taglio` adesso fa. Il
+                    // distinta automatica — che `cut_list` adesso fa. Il
                     // testo qui sotto e' del 17/9: la causa non era la tavola,
                     // era il pezzo (`IsWeldment` falso). Misurato: telaio
                     // 1000 x 800, tabella con 2 voci, 2 x 1000 e 2 x 800.
@@ -3531,7 +3531,7 @@ namespace Riscontro.Disegno.Catalogo
                     // diversi, tre dei quali di serie** (iso, din, ansi);
                     // documento gia' attivo e riattivato con `ActivateDoc3`.
                     //
-                    // E' lo stesso blocco di `croci_di_centro` (voce W2.11):
+                    // E' lo stesso blocco di `center_marks` (voce W2.11):
                     // due API di annotazione che non c'entrano niente fra loro,
                     // tutte e due mute sulla stessa tavola. Vedi la voce GT2
                     // del TODO per dove ripartire.
@@ -3549,7 +3549,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "che dichiara una quantita' diversa dal modello manda in officina "
                         + "il numero sbagliato di barre, e nessuno dei due lati da' "
                         + "errore.\n\nDi solito vuol dire che il pezzo e' cambiato dopo "
-                        + "l'ultimo «distinta_taglio»: si rifa' quello e si rimette la "
+                        + "l'ultimo «cut_list»: si rifa' quello e si rimette la "
                         + "tabella.\n\nLa colonna delle quantita' non la indovino per "
                         + "posizione: la chiedo al modello di tabella, prima per tipo e poi per "
                         + "nome della proprieta'. Se non la trovo il confronto non si fa, e la "
@@ -3557,8 +3557,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "in fondo.\n\nLE COLONNE E IL POSTO: "
                         + "tengo quelle che in officina servono per tagliare (numero, quantita', "
                         + "lunghezza, i due angoli, descrizione) e nascondo le altre — il modello "
-                        + "di tabella di casa ne ha 17, e la tabella usciva dal foglio. «colonne» "
-                        + "ne sceglie altre per intestazione, o «tutte». Poi misuro la tabella e "
+                        + "di tabella di casa ne ha 17, e la tabella usciva dal foglio. «columns» "
+                        + "ne sceglie altre per intestazione, o «all». Poi misuro la tabella e "
                         + "la metto in un posto libero dentro la cornice, fuori dalle viste e dal "
                         + "cartiglio; se non c'e' posto la tolgo e lo dico."
                         + "\n\nWHAT THE COMPARISON COUNTS: the bodies of the cut-list folders at the top "
@@ -3571,7 +3571,7 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O(
+                            "view", O(
                                 "type", "string",
                                 "description", "quale vista. Vuoto = la prima della tavola."),
                             "x_mm", O(
@@ -3580,11 +3580,11 @@ namespace Riscontro.Disegno.Catalogo
                             "y_mm", O(
                                 "type", "number",
                                 "description", "idem, in verticale."),
-                            "colonne", O(
+                            "columns", O(
                                 "type", "array",
                                 "items", O("type", "string"),
-                                "description", "le intestazioni delle colonne da tenere, o [\"tutte\"]. Vuoto = numero, quantita', lunghezza, angoli, descrizione."),
-                            "configurazione", O(
+                                "description", "le intestazioni delle colonne da tenere, o [\"all\"]. Vuoto = numero, quantita', lunghezza, angoli, descrizione."),
+                            "configuration", O(
                                 "type", "string",
                                 "description", "which configuration of the part: the guide asks for the "
                                     + "name of the «As Welded» configuration. Passed as given. Empty: "
@@ -3597,10 +3597,10 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "nuovo_foglio",
-                    Famiglia = "tavola",
-                    Esempio = "{\"nome\":\"Montaggio\"}",   // da `two_sheets_and_the_same_projection_angle`
-                    DocumentoRichiesto = "tavola",
+                    Nome = "new_sheet",
+                    Famiglia = "drawing",
+                    Esempio = "{\"name\":\"Assembly\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "Aggiunge un foglio alla tavola, con lo stesso diedro del primo.",
@@ -3622,26 +3622,26 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "nome", O(
+                            "name", O(
                                 "type", "string",
                                 "description", "come chiamarlo. Vuoto = il primo «FoglioN» libero."),
-                            "formato", O(
+                            "paper_size", O(
                                 "type", "string",
                                 "description", "A0, A1, A2, A3, A4, A4V. Vuoto = quello del foglio corrente."),
-                            "scala_numeratore", O(
+                            "scale_numerator", O(
                                 "type", "number",
                                 "description", "il primo numero della scala. Vuoto = quella del foglio corrente."),
-                            "scala_denominatore", O(
+                            "scale_denominator", O(
                                 "type", "number",
                                 "description", "il secondo numero della scala. 1:2 si scrive 1 e 2.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "attiva_foglio",
-                    Famiglia = "tavola",
-                    Esempio = "{\"nome\":\"Foglio1\"}",   // da `two_sheets_and_the_same_projection_angle`
-                    DocumentoRichiesto = "tavola",
+                    Nome = "activate_sheet",
+                    Famiglia = "drawing",
+                    Esempio = "{\"name\":\"Sheet1\"}",   // da `two_sheets_and_the_same_projection_angle`
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "Mette davanti un foglio della tavola, per nome.",
@@ -3653,7 +3653,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "risposta: dopo averlo attivato richiedo alla tavola quale "
                         + "foglio ha davanti, e se non e' quello che hai chiesto mi fermo "
                         + "-- altrimenti i passi dopo lavorerebbero altrove.\n\nI nomi "
-                        + "dei fogli stanno in «guarda_il_pezzo», sotto «fogli»."
+                        + "dei fogli stanno in «inspect_part», sotto «sheets»."
                         + "\n\nMI RIFIUTO SE IL FOGLIO NON C'E', e ti elenco quelli che ci sono col "
                         + "loro nome. Su una tavola a piu' fogli sbagliare foglio non da' nessun "
                         + "errore: le viste finiscono su quello attivo, e in officina arriva un "
@@ -3662,16 +3662,16 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "nome", O(
+                            "name", O(
                                 "type", "string",
-                                "description", "il nome esatto del foglio, come lo riporta lo stato")),
-                        "required", A("nome")),
+                                "description", "il nome esatto del foglio, come lo riporta lo stato The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is.")),
+                        "required", A("name")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "salva_documento",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "qualunque",
+                    Nome = "save_document",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "any",
                     Provata = true,
                     Sommario =
                         "Salva il documento aperto.",
@@ -3689,7 +3689,7 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso", O(
+                            "path", O(
                                 "type", "string",
                                 "description", "dove salvare. Se non lo dici si salva dov'era gia'; un documento "
                                     + "mai salvato senza percorso e' un errore.")),
@@ -3697,9 +3697,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "vista_modello",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "model_view",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "Una vista con nome: isometrica, fronte, sopra...",
@@ -3714,35 +3714,35 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "vista", O(
+                            "view", O(
                                 "type", "string",
                                 "enum", A(
-                                    "isometrica",
-                                    "dimetrica",
-                                    "trimetrica",
-                                    "fronte",
-                                    "dietro",
-                                    "sopra",
-                                    "sotto",
-                                    "destra",
-                                    "sinistra"),
-                                "description", "quale vista; isometrica se non dici niente"),
+                                    "isometric",
+                                    "dimetric",
+                                    "trimetric",
+                                    "front",
+                                    "back",
+                                    "top",
+                                    "bottom",
+                                    "right",
+                                    "left"),
+                                "description", "quale vista; isometric se non dici niente"),
                             "x_mm", O(
                                 "type", "number",
                                 "description", "posizione sul foglio da sinistra, in mm"),
                             "y_mm", O(
                                 "type", "number",
                                 "description", "posizione sul foglio dal basso, in mm"),
-                            "modello", O(
+                            "model", O(
                                 "type", "string",
                                 "description", "il percorso del pezzo. Se non lo dici si usa il primo pezzo aperto.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "viste_standard",
-                    Famiglia = "tavola",
-                    DocumentoRichiesto = "tavola",
+                    Nome = "standard_views",
+                    Famiglia = "drawing",
+                    DocumentoRichiesto = "drawing",
                     Provata = true,
                     Sommario =
                         "Le tre viste standard, in primo diedro.",
@@ -3770,17 +3770,17 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "modello", O(
+                            "model", O(
                                 "type", "string",
                                 "description", "il percorso del pezzo da mettere in vista. Se non lo dici si usa "
-                                    + "il primo pezzo aperto. Lo trovi in «documenti_aperti» nello stato.")),
+                                    + "il primo pezzo aperto. Lo trovi in «documents_open» nello stato.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "verifica_geometria_corpo",
-                    Famiglia = "verifiche",
-                    DocumentoRichiesto = "parte",
+                    Nome = "check_body_geometry",
+                    Famiglia = "checks",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Dice se i corpi sono solidi chiusi e sani. Non tocca il pezzo.",
@@ -3791,13 +3791,13 @@ namespace Riscontro.Disegno.Catalogo
                         + "stampato o esportato.\n\nPer ogni corpo risponde: il tipo (solido, "
                         + "foglio, filo), quante facce ha, se e' chiuso, quante fessure e "
                         + "quanti difetti topologici, col NOME del difetto e non col numero. "
-                        + "Poi un giudizio in una frase: «stampabile» vuol dire UN SOLO corpo "
+                        + "Poi un giudizio in una frase: «printable» vuol dire UN SOLO corpo "
                         + "solido, chiuso, senza difetti.\n\nUn corpo APERTO -- una superficie "
                         + "rimasta li' per sbaglio -- e' il caso che conta e quello che "
                         + "nessuno vede: non da' errore da nessuna parte, sembra un pezzo, e "
                         + "lo STL che ne esce non racchiude niente."
-                        + "\n\nWITH «corpo_uid» THE VERDICT IS ABOUT THAT BODY ONLY: "
-                        + "«stampabile» and «giudizio» speak for it, and «verdict_about» says so "
+                        + "\n\nWITH «body_uid» THE VERDICT IS ABOUT THAT BODY ONLY: "
+                        + "«printable» and «verdict» speak for it, and «verdict_about» says so "
                         + "(«body C2»; «part» when you ask for the whole part). «bodies_in_part» "
                         + "always counts every body of the part: a sound body of a part of two "
                         + "is still a part whose STL is two separate shells."
@@ -3807,29 +3807,29 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nATTENZIONE a cosa NON "
                         + "guarda: lo spessore delle pareti e le sovrasporgenze. Un guscio da "
                         + "tre decimi passa di qui senza una parola.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "corpo_uid", O(
+                            "body_uid", O(
                                 "type", "string",
                                 "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
                                     + "dici li guarda tutti. Gli identificativi stanno nello stato del "
-                                    + "documento, dentro «corpi». With it the verdict speaks for that "
+                                    + "documento, dentro «bodies». With it the verdict speaks for that "
                                     + "body only; «bodies_in_part» still says how many bodies the part has. "
                                     + "The identifier is resolved through the document state and checked "
                                     + "against its signature (centre and box): if the part changed since "
                                     + "and it now names another body, the step is refused. Only the solid "
                                     + "bodies of the state have an identifier; to check sheet bodies too, "
-                                    + "leave corpo_uid out.")),
+                                    + "leave body_uid out.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "verifica_sovrasporgenze",
-                    Famiglia = "verifiche",
-                    Esempio = "{\"soglia_gradi\":70}",   // da `walls_at_sixty_degrees_do_not_print`
-                    DocumentoRichiesto = "parte",
+                    Nome = "check_overhangs",
+                    Famiglia = "checks",
+                    Esempio = "{\"threshold_deg\":70}",   // da `walls_at_sixty_degrees_do_not_print`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Dice cosa non si stampa senza supporti, e di quanto. Non tocca il "
@@ -3855,25 +3855,25 @@ namespace Riscontro.Disegno.Catalogo
                         + "il pezzo o smussare.\n\nGUARDO ANCHE I CORPI NASCOSTI (quanti sono "
                         + "te lo dico in «hidden_bodies»). Una faccia curva che non si lascia "
                         + "tassellare non la posso guardare: la conto in «faces_not_analyzed», "
-                        + "e se non ho trovato sporgenze altrove «si_stampa_senza_supporti» "
+                        + "e se non ho trovato sporgenze altrove «prints_without_supports» "
                         + "e' null, non true.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "soglia_gradi", O(
+                            "threshold_deg", O(
                                 "type", "number",
                                 "description", "oltre quanti gradi dalla verticale serve il supporto. "
                                     + "Predefinito 45, che e' il valore normale di una stampante a "
                                     + "filamento; 30-35 per stare larghi, 60 se la macchina raffredda "
                                     + "bene."),
-                            "direzione_di_stampa", O(
+                            "print_direction", O(
                                 "type", "array",
                                 "items", O("type", "number"),
                                 "description", "il verso in cui cresce la stampa, tre numeri. Predefinito "
                                     + "[0, 0, 1]. Cambiarlo e' il modo di chiedere «e se lo stampassi "
                                     + "girato?» senza girare il pezzo."),
-                            "corpo_uid", O(
+                            "body_uid", O(
                                 "type", "string",
                                 "description", "un corpo solo (per esempio «C2»). Se non lo dici li guardo "
                                     + "tutti.")),
@@ -3881,9 +3881,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "dipendenze",
-                    Famiglia = "verifiche",
-                    DocumentoRichiesto = "qualunque",
+                    Nome = "file_dependencies",
+                    Famiglia = "checks",
+                    DocumentoRichiesto = "any",
                     Provata = true,
                     Sommario = "Da quali file dipende il documento, e quali mancano sul disco. Non tocca niente.",
                     Descrizione =
@@ -3904,9 +3904,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "proprieta_di_massa",
-                    Famiglia = "verifiche",
-                    DocumentoRichiesto = "parte/assieme",
+                    Nome = "mass_properties",
+                    Famiglia = "checks",
+                    DocumentoRichiesto = "part/assembly",
                     Provata = true,
                     Sommario =
                         "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
@@ -3918,7 +3918,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "risponderebbe lo stesso usando la densita' predefinita del modello "
                         + "-- di solito 1000 kg/m3, cioe' acqua -- e un pezzo d'acciaio che "
                         + "pesa come l'acqua e' un numero credibile e sbagliato di otto "
-                        + "volte. Usa prima «applica_materiale».\n\nLa massa arriva anche "
+                        + "volte. Usa prima «apply_material».\n\nLa massa arriva anche "
                         + "RICALCOLATA a mano (volume per densita') accanto a quella di "
                         + "SOLIDWORKS: se le due divergono, una delle misure non e' nelle "
                         + "unita' che dichiara, ed e' il modo in cui un fattore mille si fa "
@@ -3940,15 +3940,15 @@ namespace Riscontro.Disegno.Catalogo
                         + "refuse. A component whose load state cannot be read refuses the step too, and so "
                         + "does one that is neither a part nor a sub-assembly by its file extension or its "
                         + "document."
-                        + "\n\nWITH «corpo_uid», a body named from an earlier reading of the state is "
+                        + "\n\nWITH «body_uid», a body named from an earlier reading of the state is "
                         + "checked against its signature (centre and box): if the part changed since and "
                         + "the identifier now names another body, the step is refused instead of weighing "
                         + "the other one.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "corpo_uid", O(
+                            "body_uid", O(
                                 "type", "string",
                                 "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
                                     + "dici li pesa tutti insieme. A body named from an earlier reading of "
@@ -3966,9 +3966,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "ingombro_corpo",
-                    Famiglia = "verifiche",
-                    DocumentoRichiesto = "parte/assieme",
+                    Nome = "body_bounding_box",
+                    Famiglia = "checks",
+                    DocumentoRichiesto = "part/assembly",
                     Provata = true,
                     Sommario =
                         "La scatola del pezzo in mm, corpo per corpo e tutta insieme.",
@@ -3991,11 +3991,11 @@ namespace Riscontro.Disegno.Catalogo
                         + "the box too, named in «envelope_components» and «hidden_components». A component "
                         + "whose load state cannot be read refuses the step, and so does one that is neither a "
                         + "part nor a sub-assembly by its file extension or its document.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "corpo_uid", O(
+                            "body_uid", O(
                                 "type", "string",
                                 "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
                                     + "dici misura tutti i corpi e la scatola che li contiene. A body named "
@@ -4008,9 +4008,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "filettatura_cosmetica",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "cosmetic_thread",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Dice «qui c'e' un filetto» su un perno o un foro gia' fatto. Non "
@@ -4021,43 +4021,43 @@ namespace Riscontro.Disegno.Catalogo
                         + "quello di prima, e se cambia fallisco -- vorrebbe dire che ha "
                         + "tagliato davvero.\n\nServe quando il filetto e' su un perno o su un "
                         + "foro fatto a mano: per un foro filettato guidato c'e' gia' "
-                        + "«foro_guidato», che le misure le prende dalla norma.\n\nSI ATTACCA "
+                        + "«hole_wizard», che le misure le prende dalla norma.\n\nSI ATTACCA "
                         + "ALLO SPIGOLO, non alla faccia: il bordo circolare del cilindro o "
                         + "del foro.\n\nATTENZIONE ALLA DENOMINAZIONE: il testo che scrivi -- "
                         + "«M6x1» -- e' quello che finisce sulla tavola, PAROLA PER PAROLA. "
                         + "Questa chiamata di SOLIDWORKS ignora lo standard e la taglia: non "
                         + "c'e' nessuna tabella che controlli se «M6x1» e' giusto per un "
                         + "perno da 6. Se lo scrivi sbagliato, in officina arriva sbagliato.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "spigolo_uid", O(
+                            "edge_uid", O(
                                 "type", "string",
                                 "description", "il bordo TONDO su cui attaccare il filetto, preso dallo stato "
                                     + "del documento (per esempio «E3»)."),
-                            "denominazione", O(
+                            "designation", O(
                                 "type", "string",
                                 "description", "il testo del filetto, per esempio «M6x1». Finisce in tavola "
                                     + "com'e' scritto qui."),
-                            "profondita_mm", O(
+                            "depth_mm", O(
                                 "type", "number",
                                 "description", "quanto e' profondo il filetto, in mm. Non serve se e' passante."),
-                            "passante", O(
+                            "through_all", O(
                                 "type", "boolean",
                                 "description", "vero: il filetto va da parte a parte, e la profondita' non serve."),
-                            "diametro_mm", O(
+                            "diameter_mm", O(
                                 "type", "number",
                                 "description", "il diametro, se vuoi che lo controlli: se non combacia con quello "
                                     + "dello spigolo te lo dico invece di filettare il bordo sbagliato. Se non "
                                     + "lo dici, lo misuro dallo spigolo.")),
-                        "required", A("spigolo_uid", "denominazione")),
+                        "required", A("edge_uid", "designation")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "raccordo_variabile",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "variable_fillet",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un raccordo che cambia raggio da un capo all'altro dello spigolo.",
@@ -4066,7 +4066,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "piccolo dall'altra.\n\nServe dove il pezzo deve incassare un carico "
                         + "in un punto e non ha posto nell'altro -- una staffa che si allarga "
                         + "verso l'attacco, il bordo di un coperchio che si assottiglia. Per "
-                        + "un raccordo uguale da capo a fondo c'e' «raccordo_spigoli».\n\nLo "
+                        + "un raccordo uguale da capo a fondo c'e' «fillet_edges».\n\nLo "
                         + "spigolo dev'essere aperto, con due estremi: su un cerchio -- il "
                         + "bordo di un foro -- non c'e' un «da» e un «a» fra cui variare."
                         + "\n\nIl raggio piu' grande deve starci sullo spigolo: se supera la "
@@ -4074,27 +4074,27 @@ namespace Riscontro.Disegno.Catalogo
                         + "controllo che abbia tolto davvero del materiale: una feature che "
                         + "nasce senza togliere niente lascia lo spigolo vivo, e l'albero "
                         + "cresciuto per finta.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "spigolo_uid", O(
+                            "edge_uid", O(
                                 "type", "string",
                                 "description", "lo spigolo da raccordare, preso dallo stato del documento "
                                     + "(per esempio «E7»)."),
-                            "raggio_inizio_mm", O(
+                            "start_radius_mm", O(
                                 "type", "number",
                                 "description", "il raggio a un capo dello spigolo, in mm."),
-                            "raggio_fine_mm", O(
+                            "end_radius_mm", O(
                                 "type", "number",
                                 "description", "il raggio all'altro capo, in mm.")),
-                        "required", A("spigolo_uid", "raggio_inizio_mm", "raggio_fine_mm")),
+                        "required", A("edge_uid", "start_radius_mm", "end_radius_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "raccordo_faccia",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "fillet_face",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un raccordo appoggiato a due facce invece che a uno spigolo: la palla "
@@ -4103,7 +4103,7 @@ namespace Riscontro.Disegno.Catalogo
                         "Arrotonda il passaggio fra DUE FACCE: la superficie che nasce e' "
                         + "quella lasciata da una palla del raggio chiesto che rotola "
                         + "appoggiata a tutte e due. Sullo spigolo fra due facce che si "
-                        + "toccano da' lo stesso pezzo di «raccordo_spigoli»; la differenza "
+                        + "toccano da' lo stesso pezzo di «fillet_edges»; la differenza "
                         + "e' che non serve nominare uno spigolo, bastano le due facce."
                         + "\n\nSu uno spigolo ESTERNO toglie materiale, in un angolo interno "
                         + "ne aggiunge: nella risposta c'e' di quanto e' cambiato il volume "
@@ -4116,7 +4116,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "back, and the answer says so. On any other pair of faces the expected change "
                         + "is null and nothing is compared.\n\nMI RIFIUTO PRIMA DI "
                         + "PROVARE quando la stessa faccia e' in tutti e due gli insiemi "
-                        + "(per i bordi di una faccia sola c'e' «raccordo_spigoli»), e "
+                        + "(per i bordi di una faccia sola c'e' «fillet_edges»), e "
                         + "quando le due facce sono piane e PARALLELE: se guardano dalla "
                         + "stessa parte, o si danno le spalle come il davanti e il dietro di "
                         + "un blocco, nessuna palla le tocca tutte e due. Due pareti che si "
@@ -4127,120 +4127,120 @@ namespace Riscontro.Disegno.Catalogo
                         + "errore. Se una di queste non torna tolgo il raccordo, ricontrollo "
                         + "che il pezzo sia com'era e te lo dico. Se non nasce -- di solito e' "
                         + "il raggio, che non ci sta sulle facce -- lo dico e ti indico "
-                        + "«raccordo_spigoli».\n\nUna faccia per insieme; le facce si nominano "
+                        + "«fillet_edges».\n\nUna faccia per insieme; le facce si nominano "
                         + "con gli identificativi dello stato, non con un riferimento a un "
                         + "passo.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_1_uid", O(
+                            "face_1_uid", O(
                                 "type", "string",
                                 "description", "la prima faccia, presa dallo stato del documento "
                                     + "(per esempio «F1»)."),
-                            "faccia_2_uid", O(
+                            "face_2_uid", O(
                                 "type", "string",
                                 "description", "la seconda faccia, diversa dalla prima (per esempio "
                                     + "«F3»). Due facce piane parallele non si raccordano."),
-                            "raggio_mm", O(
+                            "radius_mm", O(
                                 "type", "number",
                                 "description", "il raggio del raccordo, in mm. Deve starci su tutte e "
                                     + "due le facce.")),
-                        "required", A("faccia_1_uid", "faccia_2_uid", "raggio_mm")),
+                        "required", A("face_1_uid", "face_2_uid", "radius_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "combina_corpi",
-                    Famiglia = "lavorazioni",
-                    Esempio = "{\"operazione\":\"interseca\"}",   // da `intersect_two_cubes`
-                    DocumentoRichiesto = "parte",
+                    Nome = "combine_bodies",
+                    Famiglia = "features",
+                    Esempio = "{\"operation\":\"intersect\"}",   // da `intersect_two_cubes`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Unisce, sottrae o interseca due o piu' corpi dello stesso pezzo.",
                     Descrizione =
-                        "La booleana fra CORPI dello stesso pezzo: «unisci» li fonde in uno, "
-                        + "«sottrai» toglie gli altri dal principale, «interseca» tiene solo "
+                        "La booleana fra CORPI dello stesso pezzo: «union» li fonde in uno, "
+                        + "«subtract» toglie gli altri dal principale, «intersect» tiene solo "
                         + "quello che hanno in comune.\n\nServe agli stampi e alle dime, e ai "
                         + "pezzi disegnati come piu' corpi e poi messi insieme. I corpi "
-                        + "separati nascono con «sposta_corpi» e la copia.\n\nNELLA "
+                        + "separati nascono con «move_bodies» e la copia.\n\nNELLA "
                         + "SOTTRAZIONE L'ORDINE CAMBIA IL PEZZO: il corpo principale e' "
                         + "quello che RESTA, gli altri sono quelli che gli vanno addosso. Se "
                         + "non dici quale, e' il primo, e te lo scrivo nella risposta.\n\nQuali "
                         + "corpi: gli identificativi dello stato (C1, C2...) con «_uid», oppure i "
-                        + "corpi di un passo precedente di questo stesso piano con «_rif». Dopo un "
+                        + "corpi di un passo precedente di questo stesso piano con «_ref». Dopo un "
                         + "taglio gli identificativi letti prima non valgono piu', e un uid vecchio "
                         + "lo rifiuto invece di combinare un altro corpo.\n\nDopo "
                         + "l'unione conto i corpi: se sono ancora due, non si sono fusi -- di "
                         + "solito non si toccano davvero -- e fallisco invece di confermarti "
                         + "un pezzo diverso da quello che credi.\n\nDopo una booleana gli "
                         + "identificativi di corpi e facce NON valgono piu': rileggi il pezzo."
-                        + "\n\nSE NON DICI QUALE BOOLEANA faccio «unisci», ed e' scritto "
-                        + "nella risposta. «sottrai» e «interseca» si chiedono per nome, "
+                        + "\n\nSE NON DICI QUALE BOOLEANA faccio «union», ed e' scritto "
+                        + "nella risposta. «subtract» e «intersect» si chiedono per nome, "
                         + "perche' cambiano il pezzo in modo opposto.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "operazione", O(
+                            "operation", O(
                                 "type", "string",
-                                "enum", A("unisci", "sottrai", "interseca"),
-                                "default", "unisci",
-                                "description", "che booleana fare. Se non lo dici e' «unisci», "
+                                "enum", A("union", "subtract", "intersect"),
+                                "default", "union",
+                                "description", "che booleana fare. Se non lo dici e' «union», "
                                     + "e te lo scrivo nella risposta."),
-                            "corpo_principale_uid", O(
+                            "main_body_uid", O(
                                 "type", "string",
                                 "description", "il corpo che RESTA (per esempio «C1»). Se non lo dici e' il "
-                                    + "primo. Conta solo per «sottrai», ma scriverlo non fa mai male."),
-                            "corpo_principale_rif", O(
+                                    + "primo. Conta solo per «subtract», ma scriverlo non fa mai male."),
+                            "main_body_ref", O(
                                 "type", "object",
                                 "description", "il corpo che RESTA, se lo crea un passo precedente di questo "
                                     + "stesso piano (per esempio dopo un taglio, che cambia gli "
-                                    + "identificativi). Metti questo OPPURE corpo_principale_uid, non tutti e "
-                                    + "due. Il passo deve lasciare UN corpo solo.\n\nGeneri ammessi:\n- corpi: "
+                                    + "identificativi). Metti questo OPPURE main_body_uid, non tutti e "
+                                    + "due. Il passo deve lasciare UN corpo solo.\n\nGeneri ammessi:\n- bodies: "
                                     + "i corpi toccati da quel passo",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "corpi"))),
+                                            "bodies"))),
                                 "required", A(
-                                    "passo",
-                                    "genere")),
-                            "corpi_utensile_uid", O(
+                                    "step",
+                                    "kind")),
+                            "tool_bodies_uid", O(
                                 "type", "array",
                                 "items", O("type", "string"),
                                 "description", "i corpi da unire, sottrarre o intersecare col principale. Se "
                                     + "non li dici, tutti gli altri."),
-                            "corpi_utensile_rif", O(
+                            "tool_bodies_ref", O(
                                 "type", "object",
                                 "description", "i corpi da unire, sottrarre o intersecare, se li crea un passo "
                                     + "precedente di questo stesso piano. Metti questo OPPURE "
-                                    + "corpi_utensile_uid, non tutti e due.\n\nGeneri ammessi:\n- corpi: i corpi "
+                                    + "tool_bodies_uid, non tutti e due.\n\nGeneri ammessi:\n- bodies: i corpi "
                                     + "toccati da quel passo, tutti insieme",
                                 "properties", O(
-                                    "passo", O(
+                                    "step", O(
                                         "type", "integer",
                                         "description", "il numero d'ordine del passo che crea la geometria, contando da "
                                             + "1. Deve essere un passo PRECEDENTE a questo."),
-                                    "genere", O(
+                                    "kind", O(
                                         "type", "string",
                                         "enum", A(
-                                            "corpi"))),
+                                            "bodies"))),
                                 "required", A(
-                                    "passo",
-                                    "genere"))),
-                        // Z-G3: predefinito «unisci», dichiarato nella risposta.
+                                    "step",
+                                    "kind"))),
+                        // Z-G3: predefinito «union», dichiarato nella risposta.
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "distanza_minima",
-                    Famiglia = "verifiche",
-                    DocumentoRichiesto = "parte",
+                    Nome = "minimum_distance",
+                    Famiglia = "checks",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Quanto distano due facce o due spigoli, col controllo che il "
@@ -4255,24 +4255,24 @@ namespace Riscontro.Disegno.Catalogo
                         + "tornano, la chiamata e' fallita e ha risposto lo stesso, e in quel "
                         + "caso fallisco invece di darti il numero.\n\nZero vuol dire che le "
                         + "due cose si toccano, e te lo dico.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "da_uid", O(
+                            "start_uid", O(
                                 "type", "string",
                                 "description", "identificativo della prima faccia o del primo spigolo, preso "
                                     + "dallo stato del documento (per esempio «F3» o «E7»)."),
-                            "a_uid", O(
+                            "end_uid", O(
                                 "type", "string",
                                 "description", "identificativo della seconda.")),
-                        "required", A("da_uid", "a_uid")),
+                        "required", A("start_uid", "end_uid")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "misura_fra_entita",
-                    Famiglia = "verifiche",
-                    DocumentoRichiesto = "parte",
+                    Nome = "measure_between",
+                    Famiglia = "checks",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Lo strumento di misura: area, perimetro, distanza, angolo, "
@@ -4282,7 +4282,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "raggio -- oppure DUE, e allora dice anche distanza, differenze sui "
                         + "tre assi, angolo, se sono parallele o perpendicolari.\n\nE' lo "
                         + "stesso strumento di misura che si usa a mano in SOLIDWORKS. Per la "
-                        + "sola distanza minima fra due cose, «distanza_minima» e' piu' "
+                        + "sola distanza minima fra due cose, «minimum_distance» e' piu' "
                         + "robusta: controlla il risultato coi punti.\n\nQuello che non si "
                         + "applica non torna: il perimetro di una faccia che non ne ha, il "
                         + "raggio di un piano. SOLIDWORKS li darebbe come -1, che e' un "
@@ -4293,7 +4293,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "read back from SOLIDWORKS) and «projection»: none. Measured on two holes "
                         + "D10 and D20 at 50 mm centres: centre 50, minimum 35 (the wall between "
                         + "them), maximum 65. I refuse any other value of «arc_measure».",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -4315,21 +4315,21 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "esporta_stl",
-                    Famiglia = "esportazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "export_stl",
+                    Famiglia = "exports",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Scrive lo STL per la stampa 3D, in millimetri. Verifica il pezzo "
                         + "prima, e rifiuta se non e' un solido chiuso.",
                     Descrizione =
                         "Scrive il pezzo come STL, il formato che gli slicer delle stampanti "
-                        + "3D leggono.\n\nPRIMA DI SCRIVERE chiama «verifica_geometria_corpo» e "
+                        + "3D leggono.\n\nPRIMA DI SCRIVERE chiama «check_body_geometry» e "
                         + "SI RIFIUTA se il pezzo non e' un solo corpo solido chiuso senza "
                         + "difetti. Non e' prudenza: un STL non porta con se' niente che dica "
                         + "che il pezzo era a posto -- si apre, si affetta e si stampa lo "
                         + "stesso, e il buco si vede quando il pezzo e' in mano. Se sai quello "
-                        + "che fai, «esporta_comunque»: true lo scrive lo stesso e te lo dice "
+                        + "che fai, «export_anyway»: true lo scrive lo stesso e te lo dice "
                         + "nella risposta.\n\nLE UNITA' SONO SEMPRE MILLIMETRI, imposte a mano "
                         + "prima di scrivere e rimesse com'erano dopo. Il file non le porta "
                         + "con se' e lo slicer assume i millimetri: esportato in pollici, il "
@@ -4342,25 +4342,25 @@ namespace Riscontro.Disegno.Catalogo
                         + "rebuild errors; preferences_not_restored names any user preference that "
                         + "could not be put back. A failed save gives the error and warning names "
                         + "next to the raw codes.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso", O(
+                            "path", O(
                                 "type", "string",
                                 "description", "dove scrivere il file, estensione .stl compresa. Se non lo dici "
                                     + "si usa il percorso del pezzo con l'estensione cambiata, e allora il "
                                     + "pezzo dev'essere gia' stato salvato."),
-                            "qualita", O(
+                            "quality", O(
                                 "type", "string",
-                                "enum", A("fine", "grossolana"),
+                                "enum", A("fine", "coarse"),
                                 "description", "«fine» (predefinito) fa piu' triangoli e segue meglio le "
-                                    + "curve; «grossolana» fa un file piu' piccolo e sfaccetta i tondi."),
-                            "binario", O(
+                                    + "curve; «coarse» fa un file piu' piccolo e sfaccetta i tondi."),
+                            "binary", O(
                                 "type", "boolean",
                                 "description", "vero (predefinito): file binario, molto piu' piccolo. Falso: "
                                     + "ASCII, leggibile ma dieci volte piu' grosso."),
-                            "esporta_comunque", O(
+                            "export_anyway", O(
                                 "type", "boolean",
                                 "description", "scrive il file anche se la verifica dice di no. Predefinito: "
                                     + "falso. Usalo solo sapendo che cosa non andava.")),
@@ -4368,9 +4368,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "esporta_step",
-                    Famiglia = "esportazioni",
-                    DocumentoRichiesto = "parte/assieme",
+                    Nome = "export_step",
+                    Famiglia = "exports",
+                    DocumentoRichiesto = "part/assembly",
                     Provata = true,
                     Sommario =
                         "Scrive lo STEP per chi deve lavorare il pezzo, e rilegge dal file "
@@ -4387,12 +4387,12 @@ namespace Riscontro.Disegno.Catalogo
                         + "governa la cosa e' un numero senza nome nell'API, e l'unica prova "
                         + "e' il FILE_SCHEMA scritto dentro il file. Se non combacia, "
                         + "fallisce -- certi fornitori accettano solo l'AP203.\n\nCon "
-                        + "«riapri_e_confronta» il file viene riaperto in SOLIDWORKS e il suo "
+                        + "«reopen_and_compare» il file viene riaperto in SOLIDWORKS e il suo "
                         + "volume confrontato col pezzo: e' l'unica misura che dice che la "
                         + "GEOMETRIA e' sopravvissuta alla traduzione. Costa un'apertura di "
                         + "documento, quindi non e' il predefinito."
                         + "\n\nANCHE UN ASSIEME: lo scrivo intero e conto i solidi nel file contro "
-                        + "quelli dei pezzi non soppressi. «riapri_e_confronta» su un assieme lo "
+                        + "quelli dei pezzi non soppressi. «reopen_and_compare» su un assieme lo "
                         + "rifiuto: rileggere lo STEP di un assieme apre una finestra e la chiamata "
                         + "non torna. An instance changed in the assembly (a cut: user bodies in "
                         + "GetBodies3's BodiesInfo) is a shape of its own and counts all its bodies; "
@@ -4415,16 +4415,16 @@ namespace Riscontro.Disegno.Catalogo
                         + "save_warnings_note when the model needed a rebuild or had rebuild errors; "
                         + "preferences_not_restored names any user preference that could not be put "
                         + "back. A failed save gives the error and warning names next to the raw codes.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso", O(
+                            "path", O(
                                 "type", "string",
                                 "description", "where to write the file, extension included: .step or .stp for AP214 "
                                     + "and AP203, only .stp for AP242 (a .step path is refused before writing). "
                                     + "If you leave it out, the part's own path is used with the extension changed."),
-                            "protocollo", O(
+                            "protocol", O(
                                 "type", "string",
                                 "enum", A("AP214", "AP203", "AP242"),
                                 "description", "AP214 (the default) also carries the colours; AP203 is the oldest and "
@@ -4432,7 +4432,7 @@ namespace Riscontro.Disegno.Catalogo
                                     + "SOLIDWORKS MBD (PublishSTEP242File), needs the SOLIDWORKS MBD licence and a "
                                     + "path ending in .stp. Without the licence I refuse and say so, and a file "
                                     + "already at the path stays as it was."),
-                            "riapri_e_confronta", O(
+                            "reopen_and_compare", O(
                                 "type", "boolean",
                                 "description", "riapre il file appena scritto e confronta il volume col pezzo, "
                                     + "fallendo oltre un millesimo di scarto. Predefinito: falso, perche' "
@@ -4445,9 +4445,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "esporta_iges",
-                    Famiglia = "esportazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "export_iges",
+                    Famiglia = "exports",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Scrive l'IGES, per i CAD e le macchine che lo STEP non lo leggono.",
@@ -4475,21 +4475,21 @@ namespace Riscontro.Disegno.Catalogo
                         + "rebuild errors; preferences_not_restored names any user preference that "
                         + "could not be put back. A failed save gives the error and warning names "
                         + "next to the raw codes.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso", O(
+                            "path", O(
                                 "type", "string",
                                 "description", "dove scrivere il file, estensione .iges o .igs compresa. Se non "
                                     + "lo dici si usa il percorso del pezzo con l'estensione cambiata."),
-                            "rappresentazione", O(
+                            "representation", O(
                                 "type", "string",
-                                "enum", A("solidi", "superfici"),
-                                "description", "«solidi» (predefinito) scrive i corpi come BREP, ed e' quello "
-                                    + "che serve a chi deve lavorare il pezzo; «superfici» scrive facce "
+                                "enum", A("solids", "surfaces"),
+                                "description", "«solids» (predefinito) scrive i corpi come BREP, ed e' quello "
+                                    + "che serve a chi deve lavorare il pezzo; «surfaces» scrive facce "
                                     + "tagliate."),
-                            "riapri_e_confronta", O(
+                            "reopen_and_compare", O(
                                 "type", "boolean",
                                 "description", "riapre il file appena scritto e confronta il volume col pezzo. "
                                     + "Predefinito: falso."
@@ -4501,10 +4501,10 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "profili_saldatura",
-                    Famiglia = "saldature",
-                    Esempio = "{\"cerca\":\"TUBO STRUTTURALE QUADRO\"}",   // da `profiles_are_read_first`
-                    DocumentoRichiesto = "nessuno",
+                    Nome = "weldment_profiles",
+                    Famiglia = "weldments",
+                    Esempio = "{\"search\":\"TUBO STRUTTURALE QUADRO\"}",   // da `profiles_are_read_first`
+                    DocumentoRichiesto = "none",
                     Provata = true,
                     Sommario =
                         "Elenca i profili della libreria e le loro misure, scritte come vanno "
@@ -4512,25 +4512,25 @@ namespace Riscontro.Disegno.Catalogo
                     Descrizione =
                         "Dice quali profili ci sono -- tubolari, IPE, angolari, piatti -- e "
                         + "per ognuno quali misure, scritte esattamente come vanno copiate."
-                        + "\n\nCHIAMAMI PRIMA di «membro_strutturale» e «telaio_rettangolare». "
-                        + "Loro vogliono «profilo_percorso» e «configurazione» ALLA LETTERA, e "
+                        + "\n\nCHIAMAMI PRIMA di «structural_member» e «rectangular_frame». "
+                        + "Loro vogliono «profile_path» e «configuration» ALLA LETTERA, e "
                         + "alla lettera vuol dire davvero: maiuscole, spazi e virgole contano. "
                         + "Una misura scritta quasi giusta NON DA' ERRORE -- SOLIDWORKS usa la "
                         + "configurazione attiva del profilo, il pezzo esce con una parete "
                         + "diversa da quella che credi, la ricostruzione e' pulita, e te ne "
                         + "accorgi in officina.\n\nLeggo i file senza aprirli: non apro "
                         + "documenti e non lascio niente in giro.\n\nSe la libreria e' grande "
-                        + "te ne do i primi quaranta e te lo dico: con «cerca» e un pezzo del "
+                        + "te ne do i primi quaranta e te lo dico: con «search» e un pezzo del "
                         + "nome li restringi.",
                     Precondizione = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "cerca", O(
+                            "search", O(
                                 "type", "string",
                                 "description", "un pezzo del nome del profilo, per restringere: per esempio "
                                     + "«tubo», «IPE», «angolare». Senza, li elenca tutti."),
-                            "con_misure", O(
+                            "with_measurements", O(
                                 "type", "boolean",
                                 "description", "vero (predefinito) per avere anche le misure di ogni profilo. "
                                     + "Falso se ti basta sapere quali profili esistono: costa meno.")),
@@ -4538,9 +4538,9 @@ namespace Riscontro.Disegno.Catalogo
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "accoppia",
-                    Famiglia = "assiemi",
-                    DocumentoRichiesto = "assieme",
+                    Nome = "mate",
+                    Famiglia = "assemblies",
+                    DocumentoRichiesto = "assembly",
                     Provata = true,
                     Sommario =
                         "Vincola due componenti fra loro prendendo una faccia per uno. "
@@ -4549,13 +4549,13 @@ namespace Riscontro.Disegno.Catalogo
                         "Mette un accoppiamento fra due componenti dell'assieme aperto.\n\n"
                         + "LE FACCE SI NOMINANO PER VERSO, non per identificativo: «la "
                         + "faccia in basso di C2 sulla faccia in alto di C1». I componenti "
-                        + "sono quelli che «guarda_il_pezzo» elenca come C1, C2, ... e quegli "
+                        + "sono quelli che «inspect_part» elenca come C1, C2, ... e quegli "
                         + "identificativi sono STABILI (al contrario di quelli delle facce di "
                         + "una parte, che si rinumerano a ogni lettura)."
                         + "\n\nTHE DIRECTIONS ARE THE ASSEMBLY'S: the faces come from the component's "
                         + "bodies in the part's own coordinates, and each normal is turned with the "
                         + "component's placement in the assembly (Transform2) before it is compared, so "
-                        + "on a turned or mirrored component «alto» is the face that looks up in the "
+                        + "on a turned or mirrored component «up» is the face that looks up in the "
                         + "assembly. If no flat face looks that way I say so instead of taking one at "
                         + "random; if the placement of the component cannot be read, I refuse without "
                         + "touching anything.\n\nFra piu' facce nello stesso "
@@ -4591,57 +4591,57 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "componente_a", O(
+                            "component_a", O(
                                 "type", "string",
                                 "description", "l'identificativo del primo componente, da "
-                                    + "«guarda_il_pezzo»: «C1», «C2», ..."),
-                            "faccia_a", O(
+                                    + "«inspect_part»: «C1», «C2», ..."),
+                            "face_a", O(
                                 "type", "string",
-                                "description", "quale sua faccia, per verso: alto, basso, destra, "
-                                    + "sinistra, davanti, dietro. Directions of the assembly: on a turned "
+                                "description", "quale sua faccia, per verso: up, down, right, "
+                                    + "left, front, back. Directions of the assembly: on a turned "
                                     + "component, the face that looks that way after the rotation."),
-                            "componente_b", O(
+                            "component_b", O(
                                 "type", "string",
                                 "description", "l'identificativo del secondo componente."),
-                            "faccia_b", O(
+                            "face_b", O(
                                 "type", "string",
                                 "description", "quale sua faccia, per verso."),
-                            "tipo", O(
+                            "variant", O(
                                 "type", "string",
                                 "description", "coincidente (predefinito), parallelo, perpendicolare, "
                                     + "distanza. Concentrico e tangente li rifiuto: vogliono una "
                                     + "faccia curva, e le facce qui si scelgono per verso, che vale "
                                     + "solo per quelle piane."),
-                            "distanza_mm", O(
+                            "distance_mm", O(
                                 "type", "number",
                                 "description", "solo per «distanza»: quanto stanno lontane. Senza, "
                                     + "mi rifiuto -- non c'e' nessun valore predefinito ragionevole."),
-                            "allineamento", O(
+                            "alignment", O(
                                 "type", "string",
                                 "description", "«allineato» (predefinito) o «opposto». Se SOLIDWORKS "
                                     + "rifiuta per allineamento, prova l'altro: due facce che si "
                                     + "guardano vogliono «opposto».")),
-                        "required", A("componente_a", "faccia_a", "componente_b", "faccia_b")),
+                        "required", A("component_a", "face_a", "component_b", "face_b")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "specchia_componente",
-                    Famiglia = "assiemi",
-                    DocumentoRichiesto = "assieme",
+                    Nome = "mirror_component",
+                    Famiglia = "assemblies",
+                    DocumentoRichiesto = "assembly",
                     Provata = true,
-                    Esempio = "{\"componente\":\"C2\",\"piano\":\"destro\",\"modo\":\"istanza\"}",   // da `right_bracket_and_left_bracket`
+                    Esempio = "{\"component\":\"C2\",\"plane\":\"right\",\"mode\":\"instance\"}",   // da `right_bracket_and_left_bracket`
                     Sommario = "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
                     Descrizione =
                         "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). "
-                        + "DEVI SCEGLIERE COME, perche' sono tre pezzi diversi:\n- «istanza»: lo stesso "
-                        + "file, specchiato. Giusto per un pezzo simmetrico.\n- «opposto_legato»: un file "
+                        + "DEVI SCEGLIERE COME, perche' sono tre pezzi diversi:\n- «instance»: lo stesso "
+                        + "file, specchiato. Giusto per un pezzo simmetrico.\n- «opposite_linked»: un file "
                         + "nuovo che SEGUE l'originale. Cambi la destra e cambia anche la sinistra.\n- "
-                        + "«opposto_slegato»: un file nuovo INDIPENDENTE. Correggi la destra e la sinistra "
+                        + "«opposite_unlinked»: un file nuovo INDIPENDENTE. Correggi la destra e la sinistra "
                         + "resta com'era, senza che niente te lo dica.\n\nDopo lo verifico: il centro del "
                         + "pezzo nuovo contro lo specchio del centro dell'originale, e per gli opposti "
                         + "l'albero del file nuovo (legato o no). Il file nuovo prende il nome "
-                        + "dell'originale col «suffisso» (predefinito «_spec»), nella stessa cartella."
-                        + "\n\nMI RIFIUTO se non mi dici «modo» (ti spiego i tre), se il piano non e' uno "
+                        + "dell'originale col «suffix» (predefinito «_spec»), nella stessa cartella."
+                        + "\n\nMI RIFIUTO se non mi dici «mode» (ti spiego i tre), se il piano non e' uno "
                         + "dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono)."
                         + "\n\nThe three planes are recognised by their geometry (the plane's normal "
                         + "through the origin), not by their place in the tree nor by their name: if no "
@@ -4660,7 +4660,7 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "componente", O(
+                            "component", O(
                                 "type", "string",
                                 "description", "l'identificativo del componente, dallo stato: «C1», «C2», ..."),
                             "orientation", O(
@@ -4671,27 +4671,27 @@ namespace Riscontro.Disegno.Catalogo
                                     + "turned, as SOLIDWORKS names it (swMirrorComponentOrientation2_e). Default "
                                     + "mirrored_x_mirrored_y, the SOLIDWORKS default. Refused with an opposite-hand "
                                     + "mode."),
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
-                                "enum", A("frontale", "superiore", "destro"),
+                                "enum", A("front", "top", "right"),
                                 "description", "il piano dell'assieme su cui specchiare."),
-                            "modo", O(
+                            "mode", O(
                                 "type", "string",
-                                "enum", A("istanza", "opposto_legato", "opposto_slegato"),
-                                "description", "istanza (stesso file), opposto_legato (file nuovo che segue "
-                                    + "l'originale), opposto_slegato (file nuovo indipendente)."),
-                            "suffisso", O(
+                                "enum", A("instance", "opposite_linked", "opposite_unlinked"),
+                                "description", "instance (stesso file), opposite_linked (file nuovo che segue "
+                                    + "l'originale), opposite_unlinked (file nuovo indipendente)."),
+                            "suffix", O(
                                 "type", "string",
                                 "description", "per gli opposti: cosa aggiungere al nome del file. Predefinito «_spec».")),
-                        "required", A("componente", "piano", "modo")),
+                        "required", A("component", "plane", "mode")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "fissa_componente",
-                    Famiglia = "assiemi",
-                    DocumentoRichiesto = "assieme",
+                    Nome = "fix_component",
+                    Famiglia = "assemblies",
+                    DocumentoRichiesto = "assembly",
                     Provata = true,
-                    Esempio = "{\"componente\":\"C2\",\"fisso\":true}",   // da `fixed_is_not_mated`
+                    Esempio = "{\"component\":\"C2\",\"grounded\":true}",   // da `fixed_is_not_mated`
                     Sommario = "Fissa o libera un componente dell'assieme, e lo rilegge.",
                     Descrizione =
                         "Fissa un componente (non si muove piu', qualunque accoppiamento abbia) o "
@@ -4701,7 +4701,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "da solo, e un assieme che sta fermo solo per quello non e' montato. "
                         + "Dopo averlo cambiato lo rileggo, e ti dico quanti accoppiamenti ha: un "
                         + "componente libero con zero accoppiamenti e' appoggiato, si muove."
-                        + "\n\nMI RIFIUTO se non mi dici «fisso» (true o false: sono due cose "
+                        + "\n\nMI RIFIUTO se non mi dici «grounded» (true o false: sono due cose "
                         + "opposte, non c'e' un verso d'ufficio) o se il componente non c'e' "
                         + "(ti dico quali ci sono)."
                         + "\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly "
@@ -4713,19 +4713,19 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "componente", O(
+                            "component", O(
                                 "type", "string",
                                 "description", "l'identificativo del componente, dallo stato: «C1», «C2», ..."),
-                            "fisso", O(
+                            "grounded", O(
                                 "type", "boolean",
                                 "description", "true per fissarlo, false per liberarlo.")),
-                        "required", A("componente", "fisso")),
+                        "required", A("component", "grounded")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "sostituisci_componente",
-                    Famiglia = "assiemi",
-                    DocumentoRichiesto = "assieme",
+                    Nome = "replace_component",
+                    Famiglia = "assemblies",
+                    DocumentoRichiesto = "assembly",
                     Provata = true,
                     Sommario =
                         "Cambia il file di un componente gia' montato, e ti dice se i "
@@ -4742,19 +4742,19 @@ namespace Riscontro.Disegno.Catalogo
                         + "Percio' ti dico due cose, non una: quanti accoppiamenti ci sono "
                         + "prima e dopo, E quanti problemi ha il documento prima e dopo. Se i "
                         + "problemi sono aumentati te lo grido, e la cosa da fare e' togliere "
-                        + "quei vincoli e rimetterli con «accoppia».\n\nIL FILE NUOVO "
+                        + "quei vincoli e rimetterli con «mate».\n\nIL FILE NUOVO "
                         + "DEV'ESSERE GIA' APERTO in SOLIDWORKS, come per "
-                        + "«inserisci_componente»: copia il percorso da «documenti_aperti».\n\n"
+                        + "«insert_component»: copia il percorso da «documents_open».\n\n"
                         + "Se gli dai lo stesso file che c'e' gia' mi rifiuto: riuscirebbe e "
                         + "non cambierebbe niente, e tu crederesti di aver cambiato il "
                         + "pezzo."
-                        + "\n\nTHE CONFIGURATION IS CHECKED, NOT YET CHOSEN. A «configurazione» the new "
+                        + "\n\nTHE CONFIGURATION IS CHECKED, NOT YET CHOSEN. A «configuration» the new "
                         + "file does not have is refused before the swap, and nothing changes. The swap "
                         + "asks SOLIDWORKS to match the configuration of the old component with one of "
                         + "the new file (its «match name» choice); the choice that uses the named "
                         + "configuration waits for a probe that shows it opens no window. So after the "
                         + "swap I read back the configuration the new component references and give it "
-                        + "in the answer («configurazione»), and, when you asked for one, "
+                        + "in the answer («configuration»), and, when you asked for one, "
                         + "«configuration_as_asked»: false means SOLIDWORKS took another one, the verdict "
                         + "opens with a WARNING, and the swap stays (undo it if the size matters)."
                         + "\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly is refused "
@@ -4768,15 +4768,15 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "componente", O(
+                            "component", O(
                                 "type", "string",
                                 "description", "l'identificativo del componente da sostituire, da "
-                                    + "«guarda_il_pezzo»: «C1», «C2», ..."),
-                            "percorso", O(
+                                    + "«inspect_part»: «C1», «C2», ..."),
+                            "path", O(
                                 "type", "string",
                                 "description", "percorso completo del file NUOVO, gia' aperto in "
                                     + "SOLIDWORKS."),
-                            "configurazione", O(
+                            "configuration", O(
                                 "type", "string",
                                 "description", "a configuration of the new file, whole name. Refused "
                                     + "before the swap if the file does not have it. SOLIDWORKS matches "
@@ -4784,17 +4784,17 @@ namespace Riscontro.Disegno.Catalogo
                                     + "differ: the answer reads it back («configuration_as_asked»). "
                                     + "Empty: not checked; the guide says an empty name means the default "
                                     + "configuration of the new file."),
-                            "tutte_le_istanze", O(
+                            "all_instances", O(
                                 "type", "boolean",
                                 "description", "vero (predefinito): se lo stesso pezzo e' montato piu' "
                                     + "volte, le sostituisce tutte. Falso: solo quella.")),
-                        "required", A("componente", "percorso")),
+                        "required", A("component", "path")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "inserisci_componente",
-                    Famiglia = "assiemi",
-                    DocumentoRichiesto = "assieme",
+                    Nome = "insert_component",
+                    Famiglia = "assemblies",
+                    DocumentoRichiesto = "assembly",
                     Provata = true,
                     Sommario =
                         "Mette un pezzo gia' aperto dentro l'assieme aperto, e ti dice "
@@ -4805,23 +4805,23 @@ namespace Riscontro.Disegno.Catalogo
                         + "appare, l'albero si riempie, la ricostruzione e' pulita -- e il "
                         + "componente e' appoggiato li', libero. Quattro componenti liberi "
                         + "sembrano un assieme, si aprono, si ruotano, si esportano, e si "
-                        + "montano sbagliati.\n\nPercio' ti rispondo con «fisso», "
-                        + "«accoppiamenti» e «appoggiato». Non fisso piu' zero "
+                        + "montano sbagliati.\n\nPercio' ti rispondo con «grounded», "
+                        + "«mates» e «resting». Non fisso piu' zero "
                         + "accoppiamenti vuol dire APPOGGIATO: il pezzo sta li' e basta, e "
                         + "finche' e' cosi' l'assieme non e' montato, e' un mucchio "
                         + "ordinato.\n\nQUELLO CHE NON TI SO DIRE, e te lo dico: **di "
                         + "quanto** un componente sia ancora libero. SOLIDWORKS non mi da' i "
                         + "gradi di liberta' residui da qui -- risponde «non disponibile» su "
                         + "ogni componente, fisso o libero che sia -- e un numero inventato "
-                        + "sarebbe peggio di nessun numero. Quindi «appoggiato: false» vuol "
+                        + "sarebbe peggio di nessun numero. Quindi «resting: false» vuol "
                         + "dire «ha almeno un accoppiamento», NON «non si muove piu'». One "
                         + "coincident mate leaves three of the six directions free (measured), "
-                        + "and «accoppia» says which directions each mate blocks.\n\nIL "
+                        + "and «mate» says which directions each mate blocks.\n\nIL "
                         + "COMPONENTE DEV'ESSERE GIA' APERTO in SOLIDWORKS: io lo cerco per "
                         + "percorso, e su un file chiuso l'inserimento risponde «non fatto» "
                         + "senza dire perche'. I percorsi che puoi usare sono quelli in "
-                        + "«documenti_aperti» dello stato: copiali da li'."
-                        + "\n\n«configurazione» chooses the configuration of the part to mount. The name "
+                        + "«documents_open» dello stato: copiali da li'."
+                        + "\n\n«configuration» chooses the configuration of the part to mount. The name "
                         + "is checked against the configurations of the open file BEFORE inserting, "
                         + "compared whole (the part in angle brackets included): a name the file does "
                         + "not have is refused and nothing is inserted. Then SOLIDWORKS is asked for it "
@@ -4831,10 +4831,10 @@ namespace Riscontro.Disegno.Catalogo
                         + "was confirmed by counting the components. Without a name the component comes "
                         + "in with the file's last saved configuration "
                         + "(swAddComponentConfigOptions_CurrentSelectedConfig), and the answer's "
-                        + "«configurazione» says which one.\n\nATTENZIONE SULLE "
+                        + "«configuration» says which one.\n\nATTENZIONE SULLE "
                         + "COORDINATE, perche' i due numeri non tornano e non e' un errore: "
                         + "«x_mm, y_mm, z_mm» posizionano il **centro dell'ingombro**; "
-                        + "«origine_mm», che ti rispondo io e che rileggerai nello stato, e' "
+                        + "«origin_mm», che ti rispondo io e che rileggerai nello stato, e' "
                         + "dove e' finita l'**origine** del pezzo. Se il pezzo ha l'origine su "
                         + "una faccia -- cioe' quasi sempre -- i due punti distano meta' "
                         + "ingombro. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a "
@@ -4846,38 +4846,38 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso", O(
+                            "path", O(
                                 "type", "string",
                                 "description", "percorso completo del file da inserire, copiato da "
-                                    + "«documenti_aperti». Dev'essere gia' aperto in SOLIDWORKS."),
+                                    + "«documents_open». Dev'essere gia' aperto in SOLIDWORKS."),
                             "x_mm", O(
                                 "type", "number",
                                 "description", "dove va il CENTRO dell'ingombro del componente, in mm. "
                                     + "Predefinito 0. Non e' un accoppiamento: e' solo dove "
                                     + "appoggiarlo. E NON e' dove finisce la sua origine: se il "
                                     + "pezzo ha l'origine su una faccia, l'origine si sposta di "
-                                    + "meta' ingombro. Ti rispondo con «origine_mm» per questo."),
+                                    + "meta' ingombro. Ti rispondo con «origin_mm» per questo."),
                             "y_mm", O(
                                 "type", "number",
                                 "description", "dove va il CENTRO dell'ingombro, in mm. Predefinito 0."),
                             "z_mm", O(
                                 "type", "number",
                                 "description", "dove va il CENTRO dell'ingombro, in mm. Predefinito 0."),
-                            "configurazione", O(
+                            "configuration", O(
                                 "type", "string",
                                 "description", "the configuration of the part to mount, by its whole "
                                     + "name (the part in angle brackets included). A name the file does "
                                     + "not have is refused before inserting; the component comes in with "
                                     + "it, read back, or is taken out again. Empty: the file's last saved "
                                     + "configuration.")),
-                        "required", A("percorso")),
+                        "required", A("path")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "sweep_circolare",
-                    Famiglia = "estrusioni",
-                    Esempio = "{\"percorso_mm\":[[0,0,0],[100,0,0]],\"diametro_mm\":20}",   // da `straight_pipe_area_per_length`
-                    DocumentoRichiesto = "parte",
+                    Nome = "circular_sweep",
+                    Famiglia = "extrusions",
+                    Esempio = "{\"path_mm\":[[0,0,0],[100,0,0]],\"diameter_mm\":20}",   // da `straight_pipe_area_per_length`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un tubo pieno di diametro dato lungo un percorso di punti. Su un "
@@ -4902,22 +4902,22 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso_mm", O(
+                            "path_mm", O(
                                 "type", "array",
                                 "items", O("type", "array", "items", O("type", "number")),
                                 "description", "i punti della strada, almeno due, ognuno [x, y, z] in mm. "
                                     + "Per esempio [[0,0,0], [100,0,0]] fa un tubo dritto lungo 100."),
-                            "diametro_mm", O(
+                            "diameter_mm", O(
                                 "type", "number",
                                 "description", "il diametro del tubo, in mm.")),
-                        "required", A("percorso_mm", "diametro_mm")),
+                        "required", A("path_mm", "diameter_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "loft_fra_due_cerchi",
-                    Famiglia = "estrusioni",
-                    Esempio = "{\"piano\":\"frontale\",\"diametro1_mm\":40,\"diametro2_mm\":20,\"distanza_mm\":50}",   // da `loft_is_not_a_cone`
-                    DocumentoRichiesto = "parte",
+                    Nome = "loft_two_circles",
+                    Famiglia = "extrusions",
+                    Esempio = "{\"plane\":\"front\",\"diameter1_mm\":40,\"diameter2_mm\":20,\"distance_mm\":50}",   // da `loft_is_not_a_cone`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una transizione fra due cerchi di diametro diverso, e ti dico di "
@@ -4930,7 +4930,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "volume si scosta dalla formula del tronco di cono di qualche "
                         + "millesimo di per cento, sempre in difetto. Ti do tutti e due i "
                         + "numeri e lo scarto, cosi' non insegui un difetto che non c'e'. Se "
-                        + "ti serve il cono esatto, «rivoluzione» su un trapezio lo fa."
+                        + "ti serve il cono esatto, «revolve» su un trapezio lo fa."
                         + "\n\nI due cerchi stanno su piani paralleli a quello che scegli, "
                         + "alla distanza che dici. Puoi sfalsarli uno rispetto all'altro per "
                         + "fare una transizione obliqua.",
@@ -4938,42 +4938,42 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
-                                "enum", A("frontale", "superiore", "destro"),
-                                "description", "il piano del primo cerchio. Predefinito «frontale»."),
-                            "diametro1_mm", O(
+                                "enum", A("front", "top", "right"),
+                                "description", "il piano del primo cerchio. Predefinito «front»."),
+                            "diameter1_mm", O(
                                 "type", "number",
                                 "description", "il diametro del primo cerchio, sul piano scelto."),
-                            "diametro2_mm", O(
+                            "diameter2_mm", O(
                                 "type", "number",
                                 "description", "il diametro del secondo."),
-                            "distanza_mm", O(
+                            "distance_mm", O(
                                 "type", "number",
                                 "description", "how far the second circle is from the first, in mm. "
                                     + "Greater than zero: the second circle goes on the side the chosen "
                                     + "plane faces (+Z for frontale, +Y for superiore, +X for destro). A "
                                     + "negative or zero distance is refused."),
-                            "sfalsa1_mm", O(
+                            "offset1_mm", O(
                                 "type", "number",
                                 "description", "di quanto spostare di lato il primo cerchio. Predefinito 0."),
-                            "sfalsa2_mm", O(
+                            "offset2_mm", O(
                                 "type", "number",
                                 "description", "di quanto spostare di lato il secondo: serve per una "
                                     + "transizione obliqua. Predefinito 0.")),
-                        "required", A("diametro1_mm", "diametro2_mm", "distanza_mm")),
+                        "required", A("diameter1_mm", "diameter2_mm", "distance_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "immagine_nello_schizzo",
-                    Famiglia = "riferimenti",
-                    DocumentoRichiesto = "parte",
+                    Nome = "sketch_picture",
+                    Famiglia = "references",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario = "Mette una foto o uno schizzo a mano, in scala, su un piano: da ricalcare.",
                     Descrizione =
                         "Mette un'immagine (una foto del pezzo, uno schizzo con le quote a penna) in uno "
                         + "schizzo su un piano, IN SCALA: tu mi dici quanto e' larga davvero tutta "
-                        + "l'immagine («larghezza_mm» — una misura nota divisa per i suoi pixel, per la "
+                        + "l'immagine («width_mm» — una misura nota divisa per i suoi pixel, per la "
                         + "larghezza dell'immagine) e dove va l'angolo in basso a sinistra. Poi ricalchi "
                         + "sullo stesso piano con le operazioni di schizzo.\n\nLA SCALA LA VERIFICO: il "
                         + "primo e l'ultimo pixel della prima riga, nello schizzo, devono distare quanto "
@@ -4984,7 +4984,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "\n\nOver 2048 px SOLIDWORKS compresses the picture in a part, even with "
                         + "HighestResolution (measured: 4096 x 2048 is held as 2048 x 1024). «pixel» and "
                         + "«mm_per_pixel» are the FILE's, the pixels you count in the image: the scale is "
-                        + "«larghezza_mm» divided by the FILE's pixel width. «solidworks_pixels» is the map "
+                        + "«width_mm» divided by the FILE's pixel width. «solidworks_pixels» is the map "
                         + "SOLIDWORKS holds, and «compression» says when the two differ. I also refuse when "
                         + "the file's pixel size cannot be read and SOLIDWORKS holds 2048 px or more on a "
                         + "side, and when the picture SOLIDWORKS holds does not have the file's shape. "
@@ -4995,32 +4995,32 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso", O(
+                            "path", O(
                                 "type", "string",
                                 "description", "il file dell'immagine: PNG, JPG, BMP, GIF o TIF."),
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
-                                "enum", A("frontale", "superiore", "destro"),
+                                "enum", A("front", "top", "right"),
                                 "description", "il piano su cui metterla."),
-                            "larghezza_mm", O(
+                            "width_mm", O(
                                 "type", "number",
                                 "description", "quanto e' larga davvero TUTTA l'immagine, in mm: la scala."),
                             "x_mm", O("type", "number", "description", "dove va l'angolo in basso a sinistra, x. Predefinito 0."),
                             "y_mm", O("type", "number", "description", "dove va l'angolo in basso a sinistra, y. Predefinito 0.")),
-                        "required", A("percorso", "piano", "larghezza_mm")),
+                        "required", A("path", "plane", "width_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "piano_per_tre_punti",
-                    Famiglia = "riferimenti",
-                    Esempio = "{\"punto1_mm\":[0,0,0],\"punto2_mm\":[50,0,0],\"punto3_mm\":[100,10,0]}",   // da `limit_three_points_in_a_row`
-                    DocumentoRichiesto = "parte",
+                    Nome = "plane_three_points",
+                    Famiglia = "references",
+                    Esempio = "{\"point1_mm\":[0,0,0],\"point2_mm\":[50,0,0],\"point3_mm\":[100,10,0]}",   // da `limit_three_points_in_a_row`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Un piano obliquo, dato per tre punti, e rileggo la sua normale per "
                         + "dirti che e' quello.",
                     Descrizione =
-                        "«crea_piano» sa fare solo il piano SFALSATO da uno dei tre standard: "
+                        "«create_plane» sa fare solo il piano SFALSATO da uno dei tre standard: "
                         + "serve a tutto quello che e' allineato agli assi e a niente altro. "
                         + "Per un foro inclinato, una faccia obliqua o una staffa a 30 gradi "
                         + "non c'era nessun piano su cui disegnare.\n\nI PUNTI SONO "
@@ -5038,25 +5038,25 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "punto1_mm", O(
+                            "point1_mm", O(
                                 "type", "array",
                                 "items", O("type", "number"),
                                 "description", "il primo punto, tre numeri in mm: [x, y, z]."),
-                            "punto2_mm", O(
+                            "point2_mm", O(
                                 "type", "array",
                                 "items", O("type", "number"),
                                 "description", "il secondo punto."),
-                            "punto3_mm", O(
+                            "point3_mm", O(
                                 "type", "array",
                                 "items", O("type", "number"),
                                 "description", "il terzo punto. Non dev'essere sulla retta degli altri due.")),
-                        "required", A("punto1_mm", "punto2_mm", "punto3_mm")),
+                        "required", A("point1_mm", "point2_mm", "point3_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "flangia_base",
-                    Famiglia = "lamiera",
-                    DocumentoRichiesto = "parte",
+                    Nome = "base_flange",
+                    Famiglia = "sheet_metal",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una lamiera piegata da un profilo aperto: spessore, raggio di piega, profondita'.",
@@ -5068,7 +5068,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "dall'alto verso destra, lo sviluppo esce 80,712 mm, uguale al conto a "
                         + "mano sulle facce interne. Dato al contrario, lo spessore va dall'altra "
                         + "parte e i punti diventano le facce ESTERNE: la risposta dice sempre "
-                        + "quale delle due («i_punti_sono_le_facce»), perche' fra le due passano "
+                        + "quale delle due («points_are_faces»), perche' fra le due passano "
                         + "2 volte lo spessore per piega.\n\nLa risposta porta anche lo SVILUPPO: "
                         + "la lunghezza del pezzo spianato misurata da SOLIDWORKS, accanto a "
                         + "quella calcolata a mano col fattore K riletto dal pezzo. Se non "
@@ -5084,35 +5084,35 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
-                                "enum", A("frontale", "superiore", "destro"),
-                                "description", "il piano base su cui sta il profilo. Predefinito «frontale»."),
-                            "punti", O(
+                                "enum", A("front", "top", "right"),
+                                "description", "il piano base su cui sta il profilo. Predefinito «front»."),
+                            "points", O(
                                 "type", "array",
                                 "items", O("type", "array", "items", O("type", "number")),
                                 "description", "il profilo APERTO, almeno due punti [x, y] in mm sul piano. "
                                     + "Una L: [[0,30],[0,0],[50,0]]."),
-                            "spessore_mm", O("type", "number", "description", "lo spessore della lamiera"),
-                            "raggio_mm", O("type", "number", "description", "il raggio INTERNO delle pieghe"),
-                            "profondita_mm", O("type", "number", "description", "quanto e' profonda la lamiera, perpendicolare al piano")),
-                        "required", A("punti", "spessore_mm", "raggio_mm", "profondita_mm")),
+                            "thickness_mm", O("type", "number", "description", "lo spessore della lamiera"),
+                            "radius_mm", O("type", "number", "description", "il raggio INTERNO delle pieghe"),
+                            "depth_mm", O("type", "number", "description", "quanto e' profonda la lamiera, perpendicolare al piano")),
+                        "required", A("points", "thickness_mm", "radius_mm", "depth_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "flangia_spigolo",
-                    Famiglia = "lamiera",
-                    DocumentoRichiesto = "parte",
+                    Nome = "edge_flange",
+                    Famiglia = "sheet_metal",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una piega nuova su uno spigolo di bordo di una lamiera che c'e' gia'.",
                     Descrizione =
                         "Aggiunge una FLANGIA a 90 gradi su uno spigolo di bordo di una lamiera "
-                        + "(fatta con «flangia_base»): e' cosi' che si chiude una scatola, con pieghe "
+                        + "(fatta con «base_flange»): e' cosi' che si chiude una scatola, con pieghe "
                         + "su spigoli di direzioni diverse.\n\nLo spigolo e' quello fra la faccia "
                         + "larga della lamiera e una faccia di TESTA, larga quanto lo spessore; la "
                         + "flangia si alza dalla parte verso cui guarda la faccia larga. "
-                        + "«lunghezza_mm» e' misurata allo SPIGOLO VIRTUALE ESTERNO, e il materiale "
+                        + "«length_mm» e' misurata allo SPIGOLO VIRTUALE ESTERNO, e il materiale "
                         + "resta dentro l'ingombro di prima: il lato su cui pieghi si accorcia di "
                         + "raggio + spessore. Spessore, raggio e fattore K sono quelli della "
                         + "lamiera, riletti.\n\nLa risposta porta il volume aggiunto accanto al "
@@ -5128,33 +5128,33 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "spigolo_uid", O(
+                            "edge_uid", O(
                                 "type", "string",
                                 "description", "lo spigolo di bordo su cui piegare, dallo stato del documento (E1, E2...)"),
-                            "lunghezza_mm", O(
+                            "length_mm", O(
                                 "type", "number",
                                 "description", "quanto e' lunga la flangia, misurata allo spigolo virtuale esterno")),
-                        "required", A("spigolo_uid", "lunghezza_mm")),
+                        "required", A("edge_uid", "length_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "orlo",
-                    Famiglia = "lamiera",
-                    DocumentoRichiesto = "parte",
+                    Nome = "hem",
+                    Famiglia = "sheet_metal",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Il bordo di una lamiera ripiegato su se stesso, chiuso o aperto.",
                     Descrizione =
-                        "Ripiega su se stesso il bordo di una lamiera (fatta con «flangia_base»): "
-                        + "l'orlo che toglie il filo tagliente e irrigidisce il bordo. «chiuso» e' "
-                        + "schiacciato sulla lamiera; «aperto» lascia «gioco_mm» fra il bordo e la "
+                        "Ripiega su se stesso il bordo di una lamiera (fatta con «base_flange»): "
+                        + "l'orlo che toglie il filo tagliente e irrigidisce il bordo. «closed» e' "
+                        + "schiacciato sulla lamiera; «open» lascia «gap_mm» fra il bordo e la "
                         + "lamiera. Resta dentro l'ingombro di prima.\n\nLo spigolo e' quello fra la "
                         + "faccia larga e una faccia di testa, larga quanto lo spessore. La risposta "
                         + "porta il volume aggiunto accanto al conto a mano: per l'aperto e' la piega "
                         + "a 180 gradi col raggio interno pari a meta' del gioco, misurata tre volte "
                         + "al millesimo; per il chiuso il conto usa un raggio di 0,05 mm, misurato "
                         + "con spessore 2, e si dice ma non decide.\n\nMI RIFIUTO se l'orlo non "
-                        + "lascia niente di dritto, se «aperto» non ha gioco, se lo spigolo non e' "
+                        + "lascia niente di dritto, se «open» non ha gioco, se lo spigolo non e' "
                         + "dritto o non sta sul bordo, e se l'orlo nasce senza aggiungere materiale."
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
@@ -5163,32 +5163,32 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "spigolo_uid", O(
+                            "edge_uid", O(
                                 "type", "string",
                                 "description", "lo spigolo di bordo da ripiegare, dallo stato del documento (E1, E2...)"),
-                            "tipo", O(
+                            "variant", O(
                                 "type", "string",
-                                "enum", A("chiuso", "aperto"),
-                                "description", "chiuso (schiacciato) o aperto (con gioco). Predefinito «chiuso»."),
-                            "lunghezza_mm", O(
+                                "enum", A("closed", "open"),
+                                "description", "closed (schiacciato) o open (con gioco). Predefinito «closed»."),
+                            "length_mm", O(
                                 "type", "number",
                                 "description", "quanto e' lungo il bordo ripiegato"),
-                            "gioco_mm", O(
+                            "gap_mm", O(
                                 "type", "number",
-                                "description", "solo per «aperto»: lo spazio fra il bordo ripiegato e la lamiera")),
-                        "required", A("spigolo_uid", "lunghezza_mm")),
+                                "description", "solo per «open»: lo spazio fra il bordo ripiegato e la lamiera")),
+                        "required", A("edge_uid", "length_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "piega_da_schizzo",
-                    Famiglia = "lamiera",
-                    DocumentoRichiesto = "parte",
+                    Nome = "sketched_bend",
+                    Famiglia = "sheet_metal",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Piega una lamiera lungo una linea tracciata su una sua faccia.",
                     Descrizione =
                         "Piega una lamiera che c'e' gia' lungo una LINEA tracciata su una sua "
-                        + "faccia piana, dall'estremo «da_mm» a «a_mm» (punti [x, y, z] in mm sul "
+                        + "faccia piana, dall'estremo «start_mm» a «end_mm» (punti [x, y, z] in mm sul "
                         + "piano della faccia). La linea attraversa la faccia da bordo a bordo.\n\n"
                         + "La lamiera si piega verso la parte a cui GUARDA la faccia: per piegare "
                         + "dall'altra parte, traccia la linea sull'altra faccia. Il raggio e' quello "
@@ -5205,25 +5205,25 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_uid", O(
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "la faccia piana su cui si traccia la linea, dallo stato del documento (F1, F2...)"),
-                            "da_mm", O(
+                            "start_mm", O(
                                 "type", "array", "items", O("type", "number"),
                                 "description", "un estremo della linea di piega, [x, y, z] in mm sulla faccia"),
-                            "a_mm", O(
+                            "end_mm", O(
                                 "type", "array", "items", O("type", "number"),
                                 "description", "l'altro estremo, [x, y, z] in mm sulla faccia"),
-                            "angolo_gradi", O(
+                            "angle_deg", O(
                                 "type", "number",
                                 "description", "l'angolo di piega. Predefinito 90.")),
-                        "required", A("faccia_uid", "da_mm", "a_mm")),
+                        "required", A("face_uid", "start_mm", "end_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "sviluppo_dxf",
-                    Famiglia = "lamiera",
-                    DocumentoRichiesto = "parte",
+                    Nome = "flat_pattern_dxf",
+                    Famiglia = "sheet_metal",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Il DXF dello sviluppo di una lamiera, per il taglio.",
@@ -5234,7 +5234,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "clicchi — misurato. Si rifiuta prima di chiamare.\n\nIl DXF si RILEGGE: "
                         + "il suo ingombro deve avere per lato lungo lo sviluppo misurato sul "
                         + "pezzo, se no si rifiuta — un DXF di un'altra cosa si apre uguale. Senza "
-                        + "«percorso» va accanto al pezzo, col suo nome."
+                        + "«path» va accanto al pezzo, col suo nome."
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
@@ -5242,16 +5242,16 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "percorso", O(
+                            "path", O(
                                 "type", "string",
                                 "description", "dove scrivere il .dxf. Predefinito: accanto al pezzo, col suo nome.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "schema_di_quote",
-                    Famiglia = "quote",
-                    DocumentoRichiesto = "parte",
+                    Nome = "dimension_scheme",
+                    Famiglia = "dimensions",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Quota il pezzo nel modello con DimXpert, da tre facce di riferimento.",
@@ -5264,29 +5264,29 @@ namespace Riscontro.Disegno.Catalogo
                         + "terziaria (due fianchi perpendicolari). Da loro partono le quote di "
                         + "posizione. Con meno di tre rifiuta: DimXpert non rifiuterebbe, "
                         + "metterebbe una quota sola.\n\nLa risposta porta i VALORI delle quote "
-                        + "(«valori_mm»), letti dalle quote nate: e' il modo di vedere se ha "
+                        + "(«values_mm»), letti dalle quote nate: e' il modo di vedere se ha "
                         + "quotato quello che serviva. La risposta di SOLIDWORKS alla chiamata "
-                        + "(«risposta_di_auto_dimension_scheme») vale False anche quando ha "
+                        + "(«auto_dimension_scheme_response») vale False anche quando ha "
                         + "quotato — misurato: non la si guarda.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "riferimenti_uid", O(
+                            "references_uid", O(
                                 "type", "array",
                                 "items", O("type", "string"),
                                 "description", "TRE facce piane dallo stato del documento: primaria, secondaria, terziaria"),
-                            "tolleranza", O(
+                            "tolerance", O(
                                 "type", "string",
-                                "enum", A("piu_meno", "geometrica"),
+                                "enum", A("plus_minus", "geometric"),
                                 "description", "piu'/meno sulle quote (predefinito) o tolleranze geometriche")),
-                        "required", A("riferimenti_uid")),
+                        "required", A("references_uid")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "sformo",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "draft",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Inclina delle facce di un angolo, rispetto a una faccia che resta "
@@ -5297,8 +5297,8 @@ namespace Riscontro.Disegno.Catalogo
                         + "anche alle fusioni e alle lavorazioni con angolo di spoglia."
                         + "\n\nDUE FACCE DIVERSE, E NON VANNO CONFUSE. La faccia NEUTRA e' "
                         + "quella che resta ferma: e' il piano da cui si misura l'angolo, e "
-                        + "va in «faccia_neutra_uid». Le facce da inclinare vanno in "
-                        + "«facce_uid». Se le scambi, SOLIDWORKS fa una lavorazione lo "
+                        + "va in «neutral_face_uid». Le facce da inclinare vanno in "
+                        + "«faces_uid». Se le scambi, SOLIDWORKS fa una lavorazione lo "
                         + "stesso, la chiama con lo stesso nome e non da' nessun errore -- "
                         + "ma ha sformato altre facce, di un'altra quantita'. Io me ne "
                         + "accorgo e ti fermo.\n\nCOME ME NE ACCORGO. La lavorazione, "
@@ -5306,51 +5306,51 @@ namespace Riscontro.Disegno.Catalogo
                         + "anche quando non ha inclinato niente. Percio' conto le facce del "
                         + "pezzo che stanno davvero all'angolo giusto rispetto alla neutra, "
                         + "prima e dopo, e se non ne sono comparse abbastanza mi rifiuto."
-                        + "\n\nIL VERSO. Con «capovolgi» la parete pende dall'altra parte: il "
+                        + "\n\nIL VERSO. Con «flip» la parete pende dall'altra parte: il "
                         + "pezzo cresce invece di calare. Ti rispondo quanto materiale si e' "
                         + "mosso e da che parte, cosi' lo vedi senza guardare il pezzo di "
                         + "lato.\n\nSOLO FACCE PIANE: una faccia cilindrica sformata diventa "
                         + "conica e non ha un'inclinazione sola, quindi non la conto.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "faccia_neutra_uid", O(
+                            "neutral_face_uid", O(
                                 "type", "string",
                                 "description", "la faccia che RESTA FERMA, da cui si misura l'angolo (per "
                                     + "esempio «F1»). Di solito e' il fondo o la bocca dello stampo."),
-                            "facce_uid", O(
+                            "faces_uid", O(
                                 "type", "array",
                                 "items", O("type", "string"),
                                 "description", "le facce da inclinare. Devono toccare la neutra."),
-                            "angolo_gradi", O(
+                            "angle_deg", O(
                                 "type", "number",
                                 "description", "di quanto inclinarle, in gradi. Per uno stampo 1-3 gradi; "
                                     + "per una fusione in sabbia anche 5."),
-                            "capovolgi", O(
+                            "flip", O(
                                 "type", "boolean",
                                 "description", "vero per far pendere le pareti dall'altra parte -- il pezzo "
                                     + "cresce invece di calare. Predefinito falso.")),
-                        "required", A("faccia_neutra_uid", "facce_uid", "angolo_gradi")),
+                        "required", A("neutral_face_uid", "faces_uid", "angle_deg")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "nervatura",
-                    Famiglia = "lavorazioni",
-                    Esempio = "{\"piano\":\"frontale\",\"distanza_mm\":25,\"da_mm\":[10,40,25],\"a_mm\":[40,10,25],\"spessore_mm\":6}",   // da `rib_in_the_corner_of_the_l`
-                    DocumentoRichiesto = "parte",
+                    Nome = "rib",
+                    Famiglia = "features",
+                    Esempio = "{\"plane\":\"front\",\"distance_mm\":25,\"start_mm\":[10,40,25],\"end_mm\":[40,10,25],\"thickness_mm\":6}",   // da `rib_in_the_corner_of_the_l`
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Una nervatura di irrigidimento: riempie, nel piano di una linea, lo spazio "
                         + "fra la linea e le pareti del pezzo. Misura il materiale aggiunto.",
                     Descrizione =
                         "Irrigidisce una parete sottile: l'angolo di una staffa a L, il fondo di una "
-                        + "scatola svuotata. Dai una LINEA con due estremi «da_mm» e «a_mm» (punti "
+                        + "scatola svuotata. Dai una LINEA con due estremi «start_mm» e «end_mm» (punti "
                         + "[x, y, z] in mm nel sistema del modello) che sta su un piano: uno dei tre "
-                        + "base («piano»), eventualmente spostato parallelo a se stesso di «distanza_mm» "
+                        + "base («plane»), eventualmente spostato parallelo a se stesso di «distance_mm» "
                         + "(il piano sfalsato lo creo io). La nervatura cresce NEL piano della linea, "
                         + "dalla linea fino alle pareti che la linea -- prolungata -- incontra, ed e' "
-                        + "spessa «spessore_mm», divisi a meta' dalle due parti del piano.\n\n"
+                        + "spessa «thickness_mm», divisi a meta' dalle due parti del piano.\n\n"
                         + "LA LINEA STA NEL VUOTO, con gli estremi (o il loro prolungamento) sulle pareti "
                         + "da unire. Esempio: L 60x60 spessa 10 e profonda 50, piano frontale a distanza "
                         + "25, linea da [10, 40, 25] a [40, 10, 25]: la nervatura e' il triangolo "
@@ -5364,45 +5364,45 @@ namespace Riscontro.Disegno.Catalogo
                         + "proietto in silenzio), se la linea e' piu' corta di un millimetro, e se la "
                         + "nervatura non nasce in nessuno dei due versi: di solito vuol dire che dalla "
                         + "linea non c'e' niente da incontrare, come su una piastra senza pareti (per un "
-                        + "rilievo su una faccia piana c'e' «estrudi_su_faccia»). Quando rifiuto tolgo "
+                        + "rilievo su una faccia piana c'e' «extrude_on_face»). Quando rifiuto tolgo "
                         + "lo schizzo e il piano che avevo fatto: il pezzo resta com'era.\n\n"
                         + "Non faccio nervature sformate e non guardo QUALI pareti la nervatura ha "
                         + "unito: misuro che e' nata, il materiale aggiunto e che il pezzo non si e' "
                         + "rotto.",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "piano", O(
+                            "plane", O(
                                 "type", "string",
                                 "enum", A(
-                                    "frontale",
-                                    "superiore",
-                                    "destro"),
-                                "description", "il piano base parallelo a quello della nervatura: frontale "
-                                    + "(XY), superiore (XZ) o destro (YZ)"),
-                            "distanza_mm", O(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "il piano base parallelo a quello della nervatura: front "
+                                    + "(XY), top (XZ) o right (YZ)"),
+                            "distance_mm", O(
                                 "type", "number",
                                 "description", "di quanto il piano della nervatura e' spostato dal piano base, "
                                     + "lungo la sua normale (+Z, +Y, +X). Negativo per l'altro verso. "
                                     + "Predefinito 0: la nervatura sta sul piano base."),
-                            "da_mm", O(
+                            "start_mm", O(
                                 "type", "array", "items", O("type", "number"),
                                 "description", "un estremo della linea, [x, y, z] in mm, sul piano della nervatura"),
-                            "a_mm", O(
+                            "end_mm", O(
                                 "type", "array", "items", O("type", "number"),
                                 "description", "l'altro estremo, [x, y, z] in mm, sul piano della nervatura"),
-                            "spessore_mm", O(
+                            "thickness_mm", O(
                                 "type", "number",
                                 "description", "lo spessore della nervatura, in mm, diviso a meta' dalle due "
                                     + "parti del piano. Per una staffa da 10 di solito 4-6.")),
-                        "required", A("piano", "da_mm", "a_mm", "spessore_mm")),
+                        "required", A("plane", "start_mm", "end_mm", "thickness_mm")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "sopprimi_istanza",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "suppress_instance",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Toglie una o piu' copie da una ripetizione gia' fatta, e si "
@@ -5410,7 +5410,7 @@ namespace Riscontro.Disegno.Catalogo
                     Descrizione =
                         "Una griglia di fori che ne salta uno dove passa una nervatura, una "
                         + "fila di asole che si ferma prima della piega. La ripetizione si fa "
-                        + "prima, intera, con «ripeti_lineare» o «ripeti_circolare»; poi si "
+                        + "prima, intera, con «linear_pattern» o «circular_pattern»; poi si "
                         + "toglie quello che non deve esserci.\n\nLE COPIE SI CONTANO DA 1, E "
                         + "L'ORIGINALE NON E' UNA COPIA. In una fila di quattro, la 1 e' la "
                         + "prima dopo l'originale e la 3 e' l'ultima.\n\nMI RIFIUTO SE LA "
@@ -5422,7 +5422,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "caduta fuori dal pezzo, RIESCE e non cambia niente. Io conto le "
                         + "facce prima e dopo, e se non sono calate ti dico che quella copia "
                         + "non c'era e rimetto tutto com'era.\n\nSi puo' rimettere una copia "
-                        + "tolta con «riattiva».\n\nNON TUTTE LE RIPETIZIONI SANNO FARLO: "
+                        + "tolta con «reactivate».\n\nNON TUTTE LE RIPETIZIONI SANNO FARLO: "
                         + "quelle guidate da uno schizzo, da una catena o da una quota non "
                         + "hanno le copie numerate. Uno specchio ha una copia sola: si toglie "
                         + "cancellandolo. A FILL pattern and a TABLE-driven pattern do skip "
@@ -5438,7 +5438,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "il conto delle facce non torna e non posso dire cosa ho tolto. Nella "
                         + "risposta «faces_per_copy» dice quante facce vale una copia (null se "
                         + "non l'ho potuto leggere: allora questo controllo non si e' fatto).",
-                    Precondizione = "corpo_solido",
+                    Precondizione = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -5447,22 +5447,22 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "la RIPETIZIONE da cui togliere le copie (per esempio «L3»), non "
                                     + "la lavorazione ripetuta. Gli identificativi stanno nello stato "
                                     + "del documento, dentro «feature»."),
-                            "copie", O(
+                            "copies", O(
                                 "type", "array",
                                 "items", O("type", "integer"),
                                 "description", "i numeri delle copie da togliere, contando da 1 dopo "
                                     + "l'originale. Per esempio [2] toglie la seconda copia."),
-                            "riattiva", O(
+                            "reactivate", O(
                                 "type", "boolean",
                                 "description", "vero per RIMETTERE copie tolte prima, invece di toglierne. "
                                     + "Predefinito falso.")),
-                        "required", A("feature_uid", "copie")),
+                        "required", A("feature_uid", "copies")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "incidi_testo",
-                    Famiglia = "lavorazioni",
-                    DocumentoRichiesto = "parte",
+                    Nome = "engrave_text",
+                    Famiglia = "features",
+                    DocumentoRichiesto = "part",
                     Provata = true,
                     Sommario =
                         "Incide (o fa in rilievo) una scritta su una faccia piana, e si "
@@ -5480,18 +5480,18 @@ namespace Riscontro.Disegno.Catalogo
                         + "seconda volta sai gia' che numeri passare.\n\nL'ancora e' "
                         + "l'inizio della scritta in basso a sinistra: da li' va a destra. "
                         + "L'area delle lettere che ti rispondo va col quadrato "
-                        + "dell'altezza -- raddoppiando «altezza_mm» l'area quadruplica -- ed "
+                        + "dell'altezza -- raddoppiando «height_mm» l'area quadruplica -- ed "
                         + "e' il modo di controllare due marcature l'una con l'altra."
                         + "\n\nNON SU UNA FACCIA CURVA: il testo avvolto e' un'altra "
                         + "lavorazione, che non ho.",
-                    Precondizione = "corpo_solido_e_faccia",
+                    Precondizione = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "testo", O(
+                            "text", O(
                                 "type", "string",
                                 "description", "la scritta, per esempio «SN-0042» o «ALTO»."),
-                            "faccia_uid", O(
+                            "face_uid", O(
                                 "type", "string",
                                 "description", "la faccia piana su cui scrivere (per esempio «F1»). Gli "
                                     + "identificativi stanno nello stato del documento."),
@@ -5503,15 +5503,15 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "number",
                                 "description", "l'altra coordinata dell'ancora. Predefinito 0. L'ancora e' "
                                     + "l'ANGOLO IN BASSO A SINISTRA della scritta, non il suo centro."),
-                            "altezza_mm", O(
+                            "height_mm", O(
                                 "type", "number",
                                 "description", "l'altezza delle lettere in mm. Predefinito 5."),
-                            "profondita_mm", O(
+                            "depth_mm", O(
                                 "type", "number",
-                                "description", "quanto in profondita' incidere, o quanto alzare se «in_rilievo». "
+                                "description", "quanto in profondita' incidere, o quanto alzare se «raised». "
                                     + "Predefinito 0,5 mm, che e' una marcatura da leggere. Per una "
                                     + "che si senta al tatto servono 0,3-0,8 mm."),
-                            "in_rilievo", O(
+                            "raised", O(
                                 "type", "boolean",
                                 "description", "vero per una scritta in rilievo invece che incisa. Predefinito "
                                     + "falso. In rilievo si stampa meglio in 3D, incisa si legge "
@@ -5521,18 +5521,18 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "il nome del carattere, per esempio «Arial». Se non lo dici uso "
                                     + "quello del documento. Un font che non c'e' su questo computer "
                                     + "cambia la larghezza della scritta."),
-                            "grassetto", O(
+                            "bold", O(
                                 "type", "boolean",
                                 "description", "vero per il grassetto: lettere piu' spesse, che su una stampa "
                                     + "3D o una fusione si leggono meglio. Predefinito falso.")),
-                        "required", A("testo", "faccia_uid")),
+                        "required", A("text", "face_uid")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "scrivi_proprieta",
-                    Famiglia = "identita",
-                    Esempio = "{\"nome\":\"NumeroDisegno\",\"valore\":\"DIS-1234\"}",   // da `the_two_lists_do_not_see_each_other`
-                    DocumentoRichiesto = "qualunque",
+                    Nome = "set_property",
+                    Famiglia = "identity",
+                    Esempio = "{\"name\":\"NumeroDisegno\",\"value_text\":\"DIS-1234\"}",   // da `the_two_lists_do_not_see_each_other`
+                    DocumentoRichiesto = "any",
                     Provata = true,
                     Sommario =
                         "Scrive una proprieta' personalizzata -- numero disegno, revisione, "
@@ -5540,10 +5540,10 @@ namespace Riscontro.Disegno.Catalogo
                     Descrizione =
                         "Scrive una proprieta' personalizzata: e' cio' che finisce nel "
                         + "cartiglio della tavola e nella scheda del PDM. «Numero disegno», "
-                        + "«Revisione», «Cliente», «Descrizione».\n\nIL DOCUMENTO E UNA "
+                        + "«Revision», «Cliente», «Descrizione».\n\nIL DOCUMENTO E UNA "
                         + "CONFIGURAZIONE SONO DUE CASSETTI SEPARATI. Una proprieta' scritta "
                         + "sul documento da una configurazione NON SI VEDE, e viceversa: non "
-                        + "si ereditano. Se dici «configurazione» la scrivo li' e solo li'; "
+                        + "si ereditano. Se dici «configuration» la scrivo li' e solo li'; "
                         + "se non la dici la scrivo sul documento e solo sul documento. Te lo "
                         + "ripeto nella risposta ogni volta, perche' e' l'errore che non da' "
                         + "errore: si scrive il numero di disegno sul documento, lo si "
@@ -5560,27 +5560,27 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "nome", O(
+                            "name", O(
                                 "type", "string",
                                 "description", "il nome della proprieta', per esempio «Numero disegno» o "
-                                    + "«Revisione». Scrivilo come lo vuoi vedere nel cartiglio: il nome "
+                                    + "«Revision». Scrivilo come lo vuoi vedere nel cartiglio: il nome "
                                     + "e' quello che vedra' chi legge la scheda."),
-                            "valore", O(
+                            "value_text", O(
                                 "type", "string",
                                 "description", "il valore da scrivere. Stringa vuota per svuotarla."),
-                            "configurazione", O(
+                            "configuration", O(
                                 "type", "string",
                                 "description", "il nome della configurazione su cui scriverla. Se non lo dici "
                                     + "la scrivo sul DOCUMENTO, ed e' un posto diverso. I nomi stanno "
-                                    + "nello stato del documento, dentro «configurazioni».")),
-                        "required", A("nome", "valore")),
+                                    + "nello stato del documento, dentro «configurations».")),
+                        "required", A("name", "value_text")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "crea_configurazione",
-                    Famiglia = "identita",
-                    Esempio = "{\"nome\":\"Sinistra\",\"descrizione\":\"staffa sinistra\"}",   // da `the_two_lists_do_not_see_each_other`
-                    DocumentoRichiesto = "parte/assieme",
+                    Nome = "create_configuration",
+                    Famiglia = "identity",
+                    Esempio = "{\"name\":\"Left\",\"details\":\"staffa sinistra\"}",   // da `the_two_lists_do_not_see_each_other`
+                    DocumentoRichiesto = "part/assembly",
                     Provata = true,
                     Sommario =
                         "Fa una variante del pezzo -- sinistra e destra, con e senza foro -- "
@@ -5592,7 +5592,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "sposta subito il documento sulla configurazione nuova, senza che "
                         + "glielo si chieda: tutto quello che disegni dopo, e tutto quello "
                         + "che lo stato ti racconta dopo, riguarda QUELLA. Te lo dico nella "
-                        + "risposta. Per tornare a un'altra c'e' «attiva_configurazione»."
+                        + "risposta. Per tornare a un'altra c'e' «activate_configuration»."
                         + "\n\nIL NOME CHE TI RISPONDO E' QUELLO DA USARE, e non e' detto che "
                         + "sia quello che mi hai chiesto: i nomi di SOLIDWORKS possono avere "
                         + "delle parentesi angolari dentro, e quelle fanno parte del nome. "
@@ -5605,25 +5605,25 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "nome", O(
+                            "name", O(
                                 "type", "string",
-                                "description", "il nome della configurazione, per esempio «Sinistra» o "
+                                "description", "il nome della configurazione, per esempio «Left» o "
                                     + "«Senza foro». Se ce n'e' gia' una cosi' mi rifiuto."),
-                            "descrizione", O(
+                            "details", O(
                                 "type", "string",
                                 "description", "la descrizione che comparira' nell'elenco delle "
                                     + "configurazioni."),
-                            "commento", O(
+                            "comment", O(
                                 "type", "string",
                                 "description", "un commento libero.")),
-                        "required", A("nome")),
+                        "required", A("name")),
                 },
                 new OperazioneDisegno
                 {
-                    Nome = "attiva_configurazione",
-                    Famiglia = "identita",
-                    Esempio = "{\"nome\":\"Sinistra\"}",   // da `limit_configuration_that_already_exists`
-                    DocumentoRichiesto = "parte/assieme",
+                    Nome = "activate_configuration",
+                    Famiglia = "identity",
+                    Esempio = "{\"name\":\"Left\"}",   // da `limit_configuration_that_already_exists`
+                    DocumentoRichiesto = "part/assembly",
                     Provata = true,
                     Sommario =
                         "Passa a una configurazione gia' esistente, e verifica che ci sia "
@@ -5638,7 +5638,7 @@ namespace Riscontro.Disegno.Catalogo
                         + "configurazioni che cominciano per «Default» ce n'e' piu' d'una (la "
                         + "coppia dei saldati: «<A macchina>» e «<Saldato>»), per cui non c'e' "
                         + "nemmeno un modo giusto di indovinare. NON INDOVINO: copia il nome "
-                        + "intero da «configurazioni» nello stato del documento.\n\nDOPO AVER "
+                        + "intero da «configurations» nello stato del documento.\n\nDOPO AVER "
                         + "CHIESTO CONTROLLO QUALE E' ATTIVA "
                         + "ADESSO: non mi basta che il comando abbia detto di si', perche' "
                         + "lavorare per mezz'ora sulla variante sbagliata non da' nessun "
@@ -5652,17 +5652,17 @@ namespace Riscontro.Disegno.Catalogo
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "nome", O(
+                            "name", O(
                                 "type", "string",
                                 "description", "il nome INTERO della configurazione da attivare, copiato da "
-                                    + "«configurazioni» nello stato del documento. Suffisso fra "
+                                    + "«configurations» nello stato del documento. Suffisso fra "
                                     + "parentesi angolari compreso, se c'e'.")),
-                        "required", A("nome")),
+                        "required", A("name")),
                 },
             };
 
         /// <summary>
-        /// L'argomento `ancora` (voce E18), lo stesso per il foro e la tasca. E'
+        /// L'argomento `anchor` (voce E18), lo stesso per il foro e la tasca. E'
         /// un metodo e non un campo: la lista qui sopra si inizializza prima dei
         /// campi dichiarati dopo di lei, e un campo varrebbe ancora null.
         /// </summary>
@@ -5677,9 +5677,9 @@ namespace Riscontro.Disegno.Catalogo
                 "description", "COSA TIENE " + cosa.ToUpperInvariant() + " DOV'E' QUANDO IL PEZZO CAMBIA. Senza, "
                     + "x_mm/y_mm sono coordinate assolute: se la piastra si allunga, " + cosa + " resta "
                     + "dov'era. Per OGNI asse, «x» e «y», tutti e due obbligatori, una di due cose: "
-                    + "{\"spigolo_uid\": \"E7\", \"distanza_mm\": 20}, la distanza dal CENTRO a uno "
+                    + "{\"edge_uid\": \"E7\", \"distance_mm\": 20}, la distanza dal CENTRO a uno "
                     + "spigolo dritto della stessa faccia che corre lungo l'altro asse; oppure "
-                    + "{\"centrata_fra\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. " + punto
+                    + "{\"centered_between\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. " + punto
                     + "\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso "
                     + "punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro "
                     + "asse o sta sul bordo di uno smusso o di un raccordo (l'altra faccia dello "
@@ -5703,15 +5703,15 @@ namespace Riscontro.Disegno.Catalogo
             string altro = asse == "x" ? "y" : "x";
             return O(
                 "type", "object",
-                "description", "l'ancora lungo " + asse + "_mm: spigolo_uid + distanza_mm, oppure centrata_fra",
+                "description", "l'ancora lungo " + asse + "_mm: edge_uid + distance_mm, oppure centered_between",
                 "properties", O(
-                    "spigolo_uid", O(
+                    "edge_uid", O(
                         "type", "string",
                         "description", "uno spigolo dritto della faccia, dallo stato, che corre lungo " + altro + "_mm"),
-                    "distanza_mm", O(
+                    "distance_mm", O(
                         "type", "number",
                         "description", "dal CENTRO del profilo allo spigolo, misurata lungo " + asse + "_mm"),
-                    "centrata_fra", O(
+                    "centered_between", O(
                         "type", "array",
                         "items", O("type", "string"),
                         "description", "due spigoli opposti della faccia, dallo stato, che corrono lungo "

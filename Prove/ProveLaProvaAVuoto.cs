@@ -50,13 +50,13 @@ namespace Prove.Contratti
                 // 4. un rimando a un passo che non c'e' ancora
                 var brutta = Ogg(Chiedi(p, 20,
                     "{\"jsonrpc\":\"2.0\",\"id\":20,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"disegna\",\"arguments\":{\"prova\":true,\"passi\":[" +
-                    "{\"operazione\":\"estrudi_rettangolino\"}," +
-                    "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":{\"lunghezza_mm\":100}}," +
-                    "{\"operazione\":\"estrudi_cerchio\",\"argomenti\":" +
-                    "{\"diametro_mm\":40,\"altezza_mm\":10,\"profondita_mm\":5}}," +
-                    "{\"operazione\":\"guscio\",\"argomenti\":{\"spessore_mm\":3," +
-                    "\"faccia_rif\":{\"passo\":9,\"genere\":\"faccia_superiore\"}}}" +
+                    "{\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" +
+                    "{\"operation\":\"estrudi_rettangolino\"}," +
+                    "{\"operation\":\"extrude_rectangle\",\"arguments\":{\"length_mm\":100}}," +
+                    "{\"operation\":\"extrude_circle\",\"arguments\":" +
+                    "{\"diameter_mm\":40,\"height_mm\":10,\"depth_mm\":5}}," +
+                    "{\"operation\":\"shell\",\"arguments\":{\"thickness_mm\":3," +
+                    "\"face_ref\":{\"step\":9,\"kind\":\"top_face\"}}}" +
                     "]}}}"));
 
                 var risultato = Dentro(brutta, "result") as Dictionary<string, object>;
@@ -74,21 +74,21 @@ namespace Prove.Contratti
                       "e prova a suggerire nomi simili");
 
                 Segna("prende l'argomento obbligatorio che manca",
-                      testo.Contains("larghezza_mm") || testo.Contains("spessore_mm"),
-                      "su «estrudi_rettangolo» manca piu' di un obbligatorio");
+                      testo.Contains("width_mm") || testo.Contains("thickness_mm"),
+                      "su «extrude_rectangle» manca piu' di un obbligatorio");
 
                 // IL PIU' PREZIOSO DEI QUATTRO: un argomento scritto male non
                 // da' nessun errore, viene ignorato, e il pezzo esce diverso
                 // da come lo si e' chiesto. E' il difetto che non si vede.
                 Segna("prende l'argomento SCONOSCIUTO, che verrebbe ignorato",
-                      testo.Contains("profondita_mm") &&
+                      testo.Contains("depth_mm") &&
                       testo.IndexOf("IGNORATO", StringComparison.OrdinalIgnoreCase) >= 0,
                       "il difetto che non da' errore");
 
                 Segna("prende il rimando a un passo che non c'e'",
                       testo.Contains("passo 9") ||
                       testo.IndexOf("non e' ancora stato fatto", StringComparison.Ordinal) >= 0,
-                      "faccia_rif verso il passo 9, in un piano di quattro");
+                      "face_ref verso il passo 9, in un piano di quattro");
 
                 Segna("e la risposta e' marcata come errore",
                       risultato != null && risultato.ContainsKey("isError") &&
@@ -107,10 +107,10 @@ namespace Prove.Contratti
                 // protegge piu' niente.
                 var buona = Ogg(Chiedi(p, 21,
                     "{\"jsonrpc\":\"2.0\",\"id\":21,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"disegna\",\"arguments\":{\"prova\":true,\"passi\":[" +
-                    "{\"operazione\":\"estrudi_rettangolo\",\"argomenti\":" +
-                    "{\"piano\":\"frontale\",\"lunghezza_mm\":120,\"larghezza_mm\":80," +
-                    "\"spessore_mm\":20}}]}}}"));
+                    "{\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" +
+                    "{\"operation\":\"extrude_rectangle\",\"arguments\":" +
+                    "{\"plane\":\"front\",\"length_mm\":120,\"width_mm\":80," +
+                    "\"thickness_mm\":20}}]}}}"));
                 var suoBuona = Dentro(buona, "result") as Dictionary<string, object>;
                 var testoBuona = TestoDi(suoBuona);
 
@@ -121,19 +121,19 @@ namespace Prove.Contratti
                       testoBuona.Contains("NON controllati"),
                       "soprattutto quando regge");
 
-                // ── E `prova` E' DICHIARATO NELLO SCHEMA ─────────────────
+                // ── E `dry_run` E' DICHIARATO NELLO SCHEMA ─────────────────
                 //
                 // Una capacita' che c'e' e non si vede in `tools/list` e' una
                 // capacita' che nessun modello usera' mai.
                 // LA RIGA GREZZA, non il dizionario: `Convert.ToString` su un
                 // `Dictionary` da' il nome del tipo, e questa riga era nata
-                // rossa proprio cosi' — cercava «prova» dentro
+                // rossa proprio cosi' — cercava «dry_run» dentro
                 // «System.Collections.Generic.Dictionary...».
                 var rigaStrumenti = Chiedi(p, 22,
                     "{\"jsonrpc\":\"2.0\",\"id\":22,\"method\":\"tools/list\",\"params\":{}}");
-                Segna("«prova» e' dichiarato nello schema di «disegna»",
+                Segna("«dry_run» e' dichiarato nello schema di «build»",
                       rigaStrumenti != null &&
-                      rigaStrumenti.Contains("\"prova\"") &&
+                      rigaStrumenti.Contains("\"dry_run\"") &&
                       rigaStrumenti.Contains("PROVA A VUOTO"),
                       "una capacita' che non si vede in tools/list non la usa nessuno");
             }

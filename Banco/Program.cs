@@ -302,7 +302,7 @@ namespace ProvaSaldatura
             // ── E PERCHE' IL GIRO INTERO RESTA IL PREDEFINITO ─────────────
             //
             // Perche' «provo solo quella che ho cambiato» NON funziona, e lo
-            // stesso giorno l'ha dimostrato due volte: `centro_mm` sulle facce
+            // stesso giorno l'ha dimostrato due volte: `center_mm` sulle facce
             // dei fori ha fatto sforare il tetto dei 16 KB su un telaio da
             // quattro barre — che fori non ne ha, ma ha i raccordi d'angolo dei
             // profili — e il ritaglio delle immagini ha cambiato un'asserzione
@@ -414,6 +414,21 @@ namespace ProvaSaldatura
                 _tOperazioni = _addin.GetType(NS + "OperazioniSw", true);
                 _tStato = _addin.GetType(NS + "StatoDocumento", true);
                 _tEsito = _addin.GetType(NS + "OperazioniSw+Esito", true);
+                // The Italian selectors of before W3.1-bis.5, read through the
+                // dictionary of the library (Alias.cs); a library from before
+                // it has none, and the selectors are read as written.
+                var tAlias = _addin.GetType(NS + "Alias", false);
+                var selectorMethod = tAlias == null ? null
+                    : tAlias.GetMethod("Selector", new[] { typeof(string), typeof(List<string>) });
+                if (selectorMethod != null)
+                    Attese.SelectorAlias = (s, notes) => (string)selectorMethod.Invoke(null, new object[] { s, notes });
+                var usesProperty = tAlias == null ? null
+                    : tAlias.GetProperty("Uses", BindingFlags.Public | BindingFlags.Static);
+                if (usesProperty != null)
+                {
+                    Attese.AliasUsesNow = () => (int)usesProperty.GetValue(null, null);
+                    AliasUsesNow();   // the start of the count of the run
+                }
             }
             catch (Exception ex)
             {
@@ -627,6 +642,7 @@ namespace ProvaSaldatura
             ControllaIlContoPerGruppo();
             CheckTheTestIdentities();
             CheckTheReflectionLog();
+            WriteAliasUses();
 
             var riepilogo =
                 (nonLanciati.Count > 0
@@ -741,9 +757,9 @@ namespace ProvaSaldatura
             {
                 new Gruppo { Nome = "sezioni",   Cosa = "Services.SezioneProfilo",      Azioni = una(Sezioni) },
                 new Gruppo { Nome = "archivio",  Cosa = "Services.MaterialiSolidWorks", Azioni = una(Materiali) },
-                new Gruppo { Nome = "telai",     Cosa = "telaio_rettangolare",          Azioni = una(Telai) },
-                new Gruppo { Nome = "fori",      Cosa = "foro_guidato",                 Azioni = una(Fori) },
-                new Gruppo { Nome = "materiale", Cosa = "applica_materiale",            Azioni = una(Materiale) },
+                new Gruppo { Nome = "telai",     Cosa = "rectangular_frame",          Azioni = una(Telai) },
+                new Gruppo { Nome = "fori",      Cosa = "hole_wizard",                 Azioni = una(Fori) },
+                new Gruppo { Nome = "materiale", Cosa = "apply_material",            Azioni = una(Materiale) },
                 new Gruppo { Nome = "stato",     Cosa = "StatoDocumento",               Azioni = una(Stato) },
                 new Gruppo { Nome = "viste",     Cosa = "VistaDelPezzo (V1)",           Azioni = una(ProvaFotografia) },
                 new Gruppo { Nome = "tetto",     Cosa = "il tetto sulle lavorazioni (E12)",
@@ -754,20 +770,20 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "scatto",       Cosa = "scatta la vista",        Azioni = una(ScattaLaVista) },
                 new Gruppo { Nome = "quanto-vede",  Cosa = "quanto vede il modello", Azioni = una(QuantoVedeIlModello) },
                 new Gruppo { Nome = "facce",        Cosa = "le facce della piastra", Azioni = una(StampaFaccePiastra) },
-                new Gruppo { Nome = "sposta-corpi", Cosa = "sposta_corpi",           Azioni = una(ProvaSpostaCorpi) },
-                // «asola» non c'e' piu': e' diventata quindici file in
+                new Gruppo { Nome = "sposta-corpi", Cosa = "move_bodies",           Azioni = una(ProvaSpostaCorpi) },
+                // «slot» non c'e' piu': e' diventata quindici file in
                 // `cases/slot/`, e si lancia con `--gruppo casi` (voce F11).
                 // «smusso» non c'e' piu': e' diventato tre file in
                 // `cases/chamfer/`, e si lancia con `--gruppo casi` (voce F11).
-                // «rivoluzione» non c'e' piu': e' diventata cinque file in
+                // «revolve» non c'e' piu': e' diventata cinque file in
                 // `cases/revolve/`. La tolleranza e' la differenza: il C#
                 // accettava `atteso * 0.02`, che sul cilindro da 62.831 mm³
                 // sono 1.256 mm³ di scarto ammesso.
-                // «guscio» non c'e' piu': e' diventato due file in
+                // «shell» non c'e' piu': e' diventato due file in
                 // `cases/features/`, e si lancia con `--gruppo casi`.
                 // «crea-piano» non c'e' piu': e' diventato tre file in
                 // `cases/plane/`, e l'attesa e' su DOVE E' FINITO il piano
-                // (`ultimo_piano_mm`), non sulla distanza che il ponte
+                // (`last_plane_mm`), non sulla distanza che il ponte
                 // ricopia.
                 // «crea-asse» e' rimasto in C# per UNA riga sola: che l'asse
                 // si riagganci con SelectByID2("AXIS"), che e' una chiamata
@@ -775,7 +791,7 @@ namespace ProvaSaldatura
                 // famiglia sta in `cases/axis/`.
                 new Gruppo { Nome = "crea-asse",    Cosa = "l'asse si ritrova per nome", Azioni = una(ProvaCreaAsse) },
                 // LA QUOTA SENZA SPIGOLO (voce Z-A2): il rosso che un caso
-                // dichiarato non sa costruire, perche' dopo `crea_disegno` non
+                // dichiarato non sa costruire, perche' dopo `create_drawing` non
                 // torna al pezzo per sopprimere.
                 new Gruppo { Nome = "orfane",       Cosa = "la quota che resta senza spigolo (Z-A2)", Azioni = una(ProvaLeQuoteOrfane) },
                 // IL NUMERO STAMPATO (voce Z-C2): nessuna operazione del catalogo
@@ -786,10 +802,10 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "porta-del-cliente",
                              Cosa = "i casi che passano dal ponte (F14)",
                              Azioni = una(LaPortaDelCliente) },
-                // «ripeti», «specchia» e «togliere» non ci sono piu': sono
+                // «ripeti», «mirror» e «togliere» non ci sono piu': sono
                 // diventati `cases/patterns/`, `cases/mirror/` e
                 // `cases/removal/`, e si lanciano con `--gruppo casi`.
-                // «forma» non c'e' piu': e' diventata `cases/sentence/`, da quando
+                // «shape» non c'e' piu': e' diventata `cases/sentence/`, da quando
                 // le attese sanno chiedere «includes» e «does_not_include».
                 new Gruppo { Nome = "dove-stava",   Cosa = "dove stava, e il grep vuoto (E10)",
                              Azioni = new Action[] { ProvaDoveStava, ProvaCheLaFrazioneNonDecide } },
@@ -1557,8 +1573,8 @@ namespace ProvaSaldatura
         ///
         /// ── IL DIFETTO, PAGATO DUE VOLTE ─────────────────────────────────
         ///
-        /// Lo stato di un documento elenca `documenti_aperti`, quindi la prova
-        /// «stato: sotto i 16 KB su un telaio da quattro barre» misura anche
+        /// Lo stato di un documento elenca `documents_open`, quindi la prova
+        /// «state: sotto i 16 KB su un telaio da quattro barre» misura anche
         /// cio' che c'e' aperto oltre al telaio. Il 14/9/2026 sei parti
         /// rimaste aperte da un giro di `corri_piani.js` valevano ~650
         /// caratteri e portavano la prova da 15.628 a 16.280: **rossa senza
@@ -1633,7 +1649,7 @@ namespace ProvaSaldatura
                 if (nomi.Count > 20) Console.WriteLine("    ... e altri " + (nomi.Count - 20));
                 Console.WriteLine();
                 Console.WriteLine("Il giro NON parte. Lo stato di un documento elenca i documenti");
-                Console.WriteLine("aperti, quindi questi farebbero fallire «stato: sotto i 16 KB»");
+                Console.WriteLine("aperti, quindi questi farebbero fallire «state: sotto i 16 KB»");
                 Console.WriteLine("dopo un'ora di prove, senza che niente sia cambiato nel codice.");
                 Console.WriteLine();
                 Console.WriteLine("  .\\Banco\\bin\\ProvaSaldatura.exe --chiudi-gli-scarti");
@@ -1669,7 +1685,7 @@ namespace ProvaSaldatura
             if (restano > 0)
             {
                 Console.WriteLine("Non e' partito lo stesso: quelli che restano farebbero fallire");
-                Console.WriteLine("«stato: sotto i 16 KB». Chiudili a mano e rilancia.");
+                Console.WriteLine("«state: sotto i 16 KB». Chiudili a mano e rilancia.");
                 return false;
             }
             return true;
@@ -1759,13 +1775,13 @@ namespace ProvaSaldatura
         private static void Telai()
         {
             Console.WriteLine();
-            Console.WriteLine("=== telaio_rettangolare (add-in) ===");
-            Telaio("quadro 80x80x5, 1000x800, frontale", QUADRO, "80X80X5", 1000, 800, "frontale", true);
-            Telaio("quadro 40x40x3, 1000x800, superiore", QUADRO, "40x40x3", 1000, 800, "superiore", true);
-            Telaio("rettangolare 80x50x5, 1200x600, frontale", RETT, "80X50X5", 1200, 600, "frontale", true);
-            Telaio("quadro 80x80x5, 600x400, angolo sull'origine", QUADRO, "80X80X5", 600, 400, "frontale", false);
+            Console.WriteLine("=== rectangular_frame (add-in) ===");
+            Telaio("quadro 80x80x5, 1000x800, frontale", QUADRO, "80X80X5", 1000, 800, "front", true);
+            Telaio("quadro 40x40x3, 1000x800, superiore", QUADRO, "40x40x3", 1000, 800, "top", true);
+            Telaio("rettangolare 80x50x5, 1200x600, frontale", RETT, "80X50X5", 1200, 600, "front", true);
+            Telaio("quadro 80x80x5, 600x400, angolo sull'origine", QUADRO, "80X80X5", 600, 400, "front", false);
             // e uno che DEVE fallire: sezione piu' grande del telaio
-            Telaio("quadro 80x80x5, 60x60 (deve fallire)", QUADRO, "80X80X5", 60, 60, "frontale", true, deveFallire: true);
+            Telaio("quadro 80x80x5, 60x60 (deve fallire)", QUADRO, "80X80X5", 60, 60, "front", true, deveFallire: true);
         }
 
         private static void Telaio(string nome, string profilo, string config,
@@ -1778,26 +1794,26 @@ namespace ProvaSaldatura
                 doc = NuovaParte();
                 var argomenti = new Dictionary<string, object>
                 {
-                    ["profilo_percorso"] = profilo,
-                    ["configurazione"] = config,
-                    ["lunghezza_mm"] = L,
-                    ["larghezza_mm"] = W,
-                    ["piano"] = piano,
-                    ["centrato"] = centrato,
-                    ["trattamento_angolo"] = "quartabuono",
-                    ["segmenti"] = SegmentiNominali(L, W, piano, centrato),
-                    ["telaio"] = new Dictionary<string, object>
+                    ["profile_path"] = profilo,
+                    ["configuration"] = config,
+                    ["length_mm"] = L,
+                    ["width_mm"] = W,
+                    ["plane"] = piano,
+                    ["centered"] = centrato,
+                    ["corner_treatment"] = "miter",
+                    ["segments"] = SegmentiNominali(L, W, piano, centrato),
+                    ["frame"] = new Dictionary<string, object>
                     {
-                        ["lunghezza_mm"] = L,
-                        ["larghezza_mm"] = W,
-                        ["piano"] = piano,
-                        ["centrato"] = centrato,
-                        ["misure"] = "ingombro",
+                        ["length_mm"] = L,
+                        ["width_mm"] = W,
+                        ["plane"] = piano,
+                        ["centered"] = centrato,
+                        ["measured_as"] = "overall",
                     },
                 };
 
                 string errore;
-                var misure = Esegui(doc, "telaio_rettangolare", argomenti, out errore);
+                var misure = Esegui(doc, "rectangular_frame", argomenti, out errore);
                 if (deveFallire)
                 {
                     Segna(nome, misure == null && !string.IsNullOrEmpty(errore),
@@ -1806,10 +1822,10 @@ namespace ProvaSaldatura
                 }
                 if (misure == null) { Segna(nome, false, "fallito: " + Corto(errore)); return; }
 
-                string ingombro = misure.ContainsKey("ingombro_esterno_mm")
-                    ? Convert.ToString(misure["ingombro_esterno_mm"]) : "(non verificato)";
-                bool verificato = misure.ContainsKey("ingombro_verificato") &&
-                                  Convert.ToBoolean(misure["ingombro_verificato"]);
+                string ingombro = misure.ContainsKey("bounding_box_outer_mm")
+                    ? Convert.ToString(misure["bounding_box_outer_mm"]) : "(non verificato)";
+                bool verificato = misure.ContainsKey("bounding_box_checked") &&
+                                  Convert.ToBoolean(misure["bounding_box_checked"]);
                 // e si controlla anche qui, indipendentemente
                 var scatola = ScatolaDelDocumento(doc);
                 double gu, gv;
@@ -1820,8 +1836,8 @@ namespace ProvaSaldatura
                 Segna(nome, ok, string.Format(
                     "add-in dice {0}, misurato {1:0.##}x{2:0.##}, sporgenza {3}, barre {4}",
                     ingombro, gu, gv,
-                    misure.ContainsKey("sporgenza_profilo_mm") ? misure["sporgenza_profilo_mm"] : "?",
-                    misure.ContainsKey("barre") ? misure["barre"] : "?"));
+                    misure.ContainsKey("overhang_profile_mm") ? misure["overhang_profile_mm"] : "?",
+                    misure.ContainsKey("bars") ? misure["bars"] : "?"));
             }
             catch (Exception ex) { Segna(nome, false, Perche(ex)); }
             finally { Chiudi(doc); }
@@ -1833,19 +1849,19 @@ namespace ProvaSaldatura
         private static void Fori()
         {
             Console.WriteLine();
-            Console.WriteLine("=== foro_guidato (add-in) ===");
-            Foro("quattro M10 passanti", "passaggio", "M10", true, 0,
+            Console.WriteLine("=== hole_wizard (add-in) ===");
+            Foro("quattro M10 passanti", "clearance", "M10", true, 0,
                  new[] { new[] { -70.0, -40.0 }, new[] { 70.0, -40.0 },
                          new[] { 70.0, 40.0 }, new[] { -70.0, 40.0 } }, 11.0);
-            Foro("un M8 filettato passante", "filettato", "M8", true, 0,
+            Foro("un M8 filettato passante", "threaded", "M8", true, 0,
                  new[] { new[] { 0.0, 0.0 } }, 6.8);
-            Foro("un M12 filettato cieco 12", "filettato", "M12", false, 12,
+            Foro("un M12 filettato cieco 12", "threaded", "M12", false, 12,
                  new[] { new[] { 30.0, 20.0 } }, 10.2);
-            Foro("due lamati M8", "lamato", "M8", true, 0,
+            Foro("due lamati M8", "counterbore", "M8", true, 0,
                  new[] { new[] { -50.0, 0.0 }, new[] { 50.0, 0.0 } }, 9.0);
-            Foro("taglia inventata (deve fallire)", "filettato", "M7", true, 0,
+            Foro("taglia inventata (deve fallire)", "threaded", "M7", true, 0,
                  new[] { new[] { 0.0, 0.0 } }, 0, deveFallire: true);
-            Foro("due fori nello stesso punto (deve fallire)", "passaggio", "M8", true, 0,
+            Foro("due fori nello stesso punto (deve fallire)", "clearance", "M8", true, 0,
                  new[] { new[] { 10.0, 0.0 }, new[] { 10.0, 0.0 } }, 0, deveFallire: true);
         }
 
@@ -1864,19 +1880,19 @@ namespace ProvaSaldatura
 
                 var argomenti = new Dictionary<string, object>
                 {
-                    ["faccia_uid"] = uid,
-                    ["tipo"] = tipo,
-                    ["taglia"] = taglia,
-                    ["passante"] = passante,
-                    ["posizioni"] = posizioni.Select(p => (object)new Dictionary<string, object>
+                    ["face_uid"] = uid,
+                    ["variant"] = tipo,
+                    ["size"] = taglia,
+                    ["through_all"] = passante,
+                    ["positions"] = posizioni.Select(p => (object)new Dictionary<string, object>
                     {
                         ["x_mm"] = p[0], ["y_mm"] = p[1],
                     }).ToList(),
                 };
-                if (!passante) argomenti["profondita_mm"] = profondita;
+                if (!passante) argomenti["depth_mm"] = profondita;
 
                 string errore;
-                var misure = Esegui(doc, "foro_guidato", argomenti, out errore, stato);
+                var misure = Esegui(doc, "hole_wizard", argomenti, out errore, stato);
                 if (deveFallire)
                 {
                     Segna(nome, misure == null && !string.IsNullOrEmpty(errore),
@@ -1885,8 +1901,8 @@ namespace ProvaSaldatura
                 }
                 if (misure == null) { Segna(nome, false, "fallito: " + Corto(errore)); return; }
 
-                double d = misure.ContainsKey("diametro_lavorato_mm")
-                    ? Convert.ToDouble(misure["diametro_lavorato_mm"]) : 0;
+                double d = misure.ContainsKey("diameter_machined_mm")
+                    ? Convert.ToDouble(misure["diameter_machined_mm"]) : 0;
                 // LA CHIAVE C'ERA SEMPRE, e questo ramo non poteva scattare.
                 // Fino alla 0.25.1 qui c'era `misure.ContainsKey(...)`, e il
                 // ponte scriveva quella chiave senza condizione: `verificate`
@@ -1895,14 +1911,14 @@ namespace ProvaSaldatura
                 // credendo di misurare anche le posizioni.
                 // Adesso la chiave va letta E deve essere vera, e il ponte ne
                 // scrive una DIVERSA quando non ha potuto guardare.
-                bool verificate = misure.ContainsKey("posizioni_verificate") &&
-                                  Convert.ToBoolean(misure["posizioni_verificate"]);
-                string perche = misure.ContainsKey("posizioni_non_verificate")
-                    ? Convert.ToString(misure["posizioni_non_verificate"]) : null;
+                bool verificate = misure.ContainsKey("positions_checked") &&
+                                  Convert.ToBoolean(misure["positions_checked"]);
+                string perche = misure.ContainsKey("positions_not_checked")
+                    ? Convert.ToString(misure["positions_not_checked"]) : null;
                 bool ok = verificate && Math.Abs(d - diametroAtteso) < 0.05;
                 Segna(nome, ok, string.Format("diametro {0:0.##} (atteso {1:0.##}), fori {2}, {3}",
                     d, diametroAtteso,
-                    misure.ContainsKey("fori") ? misure["fori"] : "?",
+                    misure.ContainsKey("holes") ? misure["holes"] : "?",
                     verificate
                         ? "posizioni verificate"
                         : "POSIZIONI NON VERIFICATE" + (perche == null ? "" : ": " + Corto(perche))));
@@ -1917,7 +1933,7 @@ namespace ProvaSaldatura
         private static void Materiale()
         {
             Console.WriteLine();
-            Console.WriteLine("=== applica_materiale (add-in) ===");
+            Console.WriteLine("=== apply_material (add-in) ===");
             foreach (var caso in new[]
             {
                 new object[] { "S235JR", "1.0037 (S235JR)", false },
@@ -1932,8 +1948,8 @@ namespace ProvaSaldatura
                     doc = NuovaParte();
                     Piastra(doc, 100, 60, 10);
                     string errore;
-                    var misure = Esegui(doc, "applica_materiale",
-                        new Dictionary<string, object> { ["materiale"] = caso[0] }, out errore);
+                    var misure = Esegui(doc, "apply_material",
+                        new Dictionary<string, object> { ["material"] = caso[0] }, out errore);
                     bool deveFallire = (bool)caso[2];
                     if (deveFallire)
                     {
@@ -1950,10 +1966,10 @@ namespace ProvaSaldatura
                     bool ok = letto == (string)caso[1];
                     // e adesso c'e' anche la massa?
                     var stato = LeggiStato(doc);
-                    bool haMassa = stato.ContainsKey("massa_kg");
+                    bool haMassa = stato.ContainsKey("mass_kg");
                     Segna("materiale «" + caso[0] + "»", ok && haMassa,
                           "sul documento: «" + letto + "»" +
-                          (haMassa ? ", massa " + stato["massa_kg"] + " kg" : ", MASSA ASSENTE"));
+                          (haMassa ? ", massa " + stato["mass_kg"] + " kg" : ", MASSA ASSENTE"));
                 }
                 catch (Exception ex) { Segna("materiale «" + caso[0] + "»", false, Perche(ex)); }
                 finally { Chiudi(doc); }
@@ -1973,66 +1989,66 @@ namespace ProvaSaldatura
                 doc = NuovaParte();
                 var stato = LeggiStato(doc);
                 Segna("documento vuoto: materiale null esplicito",
-                      stato.ContainsKey("materiale") && stato["materiale"] == null);
+                      stato.ContainsKey("material") && stato["material"] == null);
                 Segna("documento vuoto: nessun corpo",
-                      stato.ContainsKey("corpo_solido") && !Convert.ToBoolean(stato["corpo_solido"]));
+                      stato.ContainsKey("solid_body") && !Convert.ToBoolean(stato["solid_body"]));
                 Segna("documento vuoto: nessuna massa (manca il materiale)",
-                      !stato.ContainsKey("massa_kg"));
+                      !stato.ContainsKey("mass_kg"));
 
                 // un telaio vero
                 var argomenti = new Dictionary<string, object>
                 {
-                    ["profilo_percorso"] = QUADRO,
-                    ["configurazione"] = "80X80X5",
-                    ["lunghezza_mm"] = 1000.0,
-                    ["larghezza_mm"] = 800.0,
-                    ["piano"] = "frontale",
-                    ["centrato"] = true,
-                    ["trattamento_angolo"] = "quartabuono",
-                    ["segmenti"] = SegmentiNominali(1000, 800, "frontale", true),
-                    ["telaio"] = new Dictionary<string, object>
+                    ["profile_path"] = QUADRO,
+                    ["configuration"] = "80X80X5",
+                    ["length_mm"] = 1000.0,
+                    ["width_mm"] = 800.0,
+                    ["plane"] = "front",
+                    ["centered"] = true,
+                    ["corner_treatment"] = "miter",
+                    ["segments"] = SegmentiNominali(1000, 800, "front", true),
+                    ["frame"] = new Dictionary<string, object>
                     {
-                        ["lunghezza_mm"] = 1000.0, ["larghezza_mm"] = 800.0,
-                        ["piano"] = "frontale", ["centrato"] = true, ["misure"] = "ingombro",
+                        ["length_mm"] = 1000.0, ["width_mm"] = 800.0,
+                        ["plane"] = "front", ["centered"] = true, ["measured_as"] = "overall",
                     },
                 };
                 string errore;
-                var misure = Esegui(doc, "telaio_rettangolare", argomenti, out errore);
+                var misure = Esegui(doc, "rectangular_frame", argomenti, out errore);
                 if (misure == null) { Segna("telaio per lo stato", false, Corto(errore)); return; }
 
                 stato = LeggiStato(doc);
-                var corpi = stato.ContainsKey("corpi") ? stato["corpi"] as System.Collections.IList : null;
+                var corpi = stato.ContainsKey("bodies") ? stato["bodies"] as System.Collections.IList : null;
                 Segna("telaio: quattro corpi nello stato", corpi != null && corpi.Count == 4,
                       corpi == null ? "assenti" : corpi.Count + " corpi");
                 if (corpi != null && corpi.Count > 0)
                 {
                     var c0 = corpi[0] as Dictionary<string, object>;
                     Segna("corpo: ha uid, ingombro, centro e chi lo ha fatto",
-                          c0.ContainsKey("uid") && c0.ContainsKey("ingombro_mm") &&
-                          c0.ContainsKey("centro_mm") && c0.ContainsKey("fatto_da"),
+                          c0.ContainsKey("uid") && c0.ContainsKey("bounding_box_mm") &&
+                          c0.ContainsKey("center_mm") && c0.ContainsKey("created_by"),
                           Riga(c0));
                 }
-                var ing = stato.ContainsKey("ingombro_mm") ? stato["ingombro_mm"] as double[] : null;
+                var ing = stato.ContainsKey("bounding_box_mm") ? stato["bounding_box_mm"] as double[] : null;
                 Segna("pezzo: ingombro 1000x800x80",
                       ing != null && Math.Abs(ing[0] - 1000) < 0.5 &&
                       Math.Abs(ing[1] - 800) < 0.5 && Math.Abs(ing[2] - 80) < 0.5,
                       ing == null ? "assente" : string.Join("x", ing.Select(x => x.ToString("0.##"))));
-                Segna("pezzo: nessuna massa senza materiale", !stato.ContainsKey("massa_kg"));
+                Segna("pezzo: nessuna massa senza materiale", !stato.ContainsKey("mass_kg"));
 
                 var feature = stato["feature"] as System.Collections.IList;
                 var nomi = feature.Cast<Dictionary<string, object>>()
-                    .Select(f => Convert.ToString(f["tipo"])).ToList();
+                    .Select(f => Convert.ToString(f["kind"])).ToList();
                 Segna("feature: solo quelle che contano",
                       nomi.Contains("WeldMemberFeat") &&
                       !nomi.Contains("HistoryFolder") && !nomi.Contains("SolidBodyFolder"),
                       string.Join(", ", nomi));
 
-                int nFacce = (stato["facce"] as System.Collections.IList).Count;
+                int nFacce = (stato["faces"] as System.Collections.IList).Count;
                 Segna("facce: tetto sul totale, non per corpo", nFacce <= 60,
                       nFacce + " facce" +
-                      (stato.ContainsKey("facce_totali") ? " su " + stato["facce_totali"] : ""));
-                var f0 = (stato["facce"] as System.Collections.IList)[0] as Dictionary<string, object>;
-                Segna("faccia: dice a quale corpo appartiene", f0.ContainsKey("corpo"), Riga(f0));
+                      (stato.ContainsKey("faces_total") ? " su " + stato["faces_total"] : ""));
+                var f0 = (stato["faces"] as System.Collections.IList)[0] as Dictionary<string, object>;
+                Segna("faccia: dice a quale corpo appartiene", f0.ContainsKey("body"), Riga(f0));
 
                 // IL TETTO E' NOSTRO, NON DI SOLIDWORKS NE' DEL MODELLO.
                 //
@@ -2070,7 +2086,7 @@ namespace ProvaSaldatura
                 // QUESTA PROVA MISURA ANCHE CIO' CHE NON DOVREBBE, e va detto
                 // nel messaggio invece che scoperto ogni volta.
                 //
-                // Lo stato elenca `documenti_aperti`, quindi la misura dipende
+                // Lo stato elenca `documents_open`, quindi la misura dipende
                 // da cosa c'e' aperto in SOLIDWORKS oltre al telaio. Misurato
                 // il 14/9/2026: sei parti salvate da un giro di `corri_piani.js`
                 // rimaste aperte valgono ~650 caratteri, e portano la prova da
@@ -2087,8 +2103,8 @@ namespace ProvaSaldatura
                 int aperti = 0;
                 try
                 {
-                    var elenco = stato.ContainsKey("documenti_aperti")
-                        ? stato["documenti_aperti"] as System.Collections.IList : null;
+                    var elenco = stato.ContainsKey("documents_open")
+                        ? stato["documents_open"] as System.Collections.IList : null;
                     if (elenco != null) aperti = elenco.Count;
                 }
                 catch { }
@@ -2133,10 +2149,10 @@ namespace ProvaSaldatura
         // dove lo stato si legge senza nient'altro in mezzo.
         //
         // Ed e' anche l'unico posto dove costa poco. Provato il 14/9/2026 a
-        // passare dal ponte: un piano con 85 `taglio_cilindrico` ci ha messo
+        // passare dal ponte: un piano con 85 `cylindrical_cut` ci ha messo
         // 26 secondi a taglio e si e' fatto uccidere dal tetto dei trenta
         // minuti al quarantaseiesimo passo. Spezzarlo in cinque piani non
-        // funziona — `faccia_rif: {passo: 1}` e' relativo AL PIANO, quindi nel
+        // funziona — `face_ref: {step: 1}` e' relativo AL PIANO, quindi nel
         // secondo blocco «passo 1» e' il primo taglio del blocco e non la
         // barra, e il ponte l'ha rifiutato (giustamente e a voce alta).
         //
@@ -2199,13 +2215,13 @@ namespace ProvaSaldatura
             try
             {
                 string errore;
-                var misure = Esegui(doc, "estrudi_rettangolo", new Dictionary<string, object>
+                var misure = Esegui(doc, "extrude_rectangle", new Dictionary<string, object>
                 {
-                    ["piano"] = "superiore",
-                    ["lunghezza_mm"] = 200.0,
-                    ["larghezza_mm"] = 100.0,
-                    ["spessore_mm"] = 20.0,
-                    ["centrato"] = true,
+                    ["plane"] = "top",
+                    ["length_mm"] = 200.0,
+                    ["width_mm"] = 100.0,
+                    ["thickness_mm"] = 20.0,
+                    ["centered"] = true,
                 }, out errore);
                 if (misure == null) { Segna("fotografia: il blocco", false, Corto(errore)); return; }
 
@@ -2230,7 +2246,7 @@ namespace ProvaSaldatura
                 // com'era.
                 double[] prima = Orientamento(vista);
 
-                var p = new object[] { doc, "isometrica", 800, 600, null };
+                var p = new object[] { doc, "isometric", 800, 600, null };
                 var png = scatta.Invoke(null, p) as byte[];
                 string motivo = p[4] as string;
 
@@ -2263,7 +2279,7 @@ namespace ProvaSaldatura
                 string perche = q[4] as string;
                 Segna("fotografia: una vista inventata e' rifiutata, coi nomi veri",
                       nulla == null && perche != null &&
-                      perche.IndexOf("isometrica", StringComparison.OrdinalIgnoreCase) >= 0,
+                      perche.IndexOf("isometric", StringComparison.OrdinalIgnoreCase) >= 0,
                       nulla != null
                           ? "ha scattato lo stesso"
                           : Corto(perche));
@@ -2333,13 +2349,13 @@ namespace ProvaSaldatura
             try
             {
                 string errore;
-                var misure = Esegui(doc, "estrudi_rettangolo", new Dictionary<string, object>
+                var misure = Esegui(doc, "extrude_rectangle", new Dictionary<string, object>
                 {
-                    ["piano"] = "superiore",
-                    ["lunghezza_mm"] = (Quanti - 1) * 10.0 + 30,
-                    ["larghezza_mm"] = 30.0,
-                    ["spessore_mm"] = 8.0,
-                    ["centrato"] = true,
+                    ["plane"] = "top",
+                    ["length_mm"] = (Quanti - 1) * 10.0 + 30,
+                    ["width_mm"] = 30.0,
+                    ["thickness_mm"] = 8.0,
+                    ["centered"] = true,
                 }, out errore);
                 if (misure == null) { Segna("tetto: la barra", false, Corto(errore)); return; }
 
@@ -2354,13 +2370,13 @@ namespace ProvaSaldatura
                     string uidAlto = FacciaInAlto(stato);
                     if (uidAlto == null) break;
 
-                    var m = Esegui(doc, "taglio_cilindrico", new Dictionary<string, object>
+                    var m = Esegui(doc, "cylindrical_cut", new Dictionary<string, object>
                     {
-                        ["faccia_uid"] = uidAlto,
+                        ["face_uid"] = uidAlto,
                         ["x_mm"] = x0 + i * 10.0,
                         ["y_mm"] = 0.0,
-                        ["diametro_mm"] = 4.0,
-                        ["passante"] = true,
+                        ["diameter_mm"] = 4.0,
+                        ["through_all"] = true,
                     }, out errore, stato);
                     if (m == null) break;
                     fatti++;
@@ -2375,12 +2391,12 @@ namespace ProvaSaldatura
                 int inElenco = elenco == null ? 0 : elenco.Count;
 
                 // 1. IL TETTO SI DICHIARA.
-                int totali = finale.ContainsKey("feature_totali")
-                    ? Convert.ToInt32(finale["feature_totali"]) : 0;
-                int fuori = finale.ContainsKey("feature_non_elencate")
-                    ? Convert.ToInt32(finale["feature_non_elencate"]) : 0;
-                bool troncato = finale.ContainsKey("troncato") &&
-                                Convert.ToBoolean(finale["troncato"]);
+                int totali = finale.ContainsKey("feature_total")
+                    ? Convert.ToInt32(finale["feature_total"]) : 0;
+                int fuori = finale.ContainsKey("feature_not_listed")
+                    ? Convert.ToInt32(finale["feature_not_listed"]) : 0;
+                bool troncato = finale.ContainsKey("truncated") &&
+                                Convert.ToBoolean(finale["truncated"]);
                 Segna("tetto: dichiarato",
                       totali == Quanti + 1 && fuori == Quanti + 1 - Tetto && troncato,
                       "elencate " + inElenco + ", totali " + totali + ", fuori " + fuori +
@@ -2427,14 +2443,14 @@ namespace ProvaSaldatura
         /// <summary>L'uid della faccia piana rivolta in alto, dallo stato.</summary>
         private static string FacciaInAlto(Dictionary<string, object> stato)
         {
-            var facce = stato != null && stato.ContainsKey("facce")
-                ? stato["facce"] as System.Collections.IList : null;
+            var facce = stato != null && stato.ContainsKey("faces")
+                ? stato["faces"] as System.Collections.IList : null;
             if (facce == null) return null;
             foreach (var v in facce)
             {
                 var f = v as Dictionary<string, object>;
                 if (f == null) continue;
-                if (f.ContainsKey("verso") && Convert.ToString(f["verso"]) == "alto" &&
+                if (f.ContainsKey("facing") && Convert.ToString(f["facing"]) == "up" &&
                     f.ContainsKey("uid"))
                     return Convert.ToString(f["uid"]);
             }
@@ -2458,7 +2474,7 @@ namespace ProvaSaldatura
         ///
         /// ── PERCHE' SERVE, E PERCHE' NON SI GUARDA IL DOCUMENTO ATTIVO ───
         ///
-        /// `crea_disegno` apre una tavola e da li' in poi si lavora su quella:
+        /// `create_drawing` apre una tavola e da li' in poi si lavora su quella:
         /// e' l'unico cambio di documento legittimo del catalogo. Finche' il
         /// banco eseguiva ogni passo sempre sullo STESSO documento, un caso che
         /// creava una tavola metteva le viste **dentro il pezzo** — o piu'
@@ -2468,12 +2484,12 @@ namespace ProvaSaldatura
         ///
         /// **Non si chiede a SOLIDWORKS qual e' il documento attivo.** La
         /// regola di questo progetto e' tenere il riferimento, non
-        /// `ActiveDoc`: su una macchina dove SOLIDWORKS e' condiviso, «attivo»
+        /// `ActiveDoc`: su una macchina dove SOLIDWORKS e' condiviso, «active»
         /// e' cio' che ha davanti *chiunque*, e basta che qualcuno apra una
         /// finestra perche' il banco misuri il documento di un altro.
         ///
         /// L'operazione lo **dichiara**: `Esito.DocumentoNuovo`, che
-        /// `crea_disegno` riempie apposta. Un cambio dichiarato si puo'
+        /// `create_drawing` riempie apposta. Un cambio dichiarato si puo'
         /// seguire; uno dedotto si puo' solo subire.
         /// </summary>
         private static Dictionary<string, object> Esegui(
@@ -2557,10 +2573,10 @@ namespace ProvaSaldatura
         /// <summary>La faccia piana piu' grande: su una piastra e' una delle due grandi.</summary>
         private static string FacciaInCima(Dictionary<string, object> stato)
         {
-            var facce = stato["facce"] as System.Collections.IList;
+            var facce = stato["faces"] as System.Collections.IList;
             foreach (Dictionary<string, object> f in facce)
             {
-                var n = f["normale"] as double[];
+                var n = f["normal"] as double[];
                 if (n == null) continue;
                 bool assiale = Math.Abs(n[0]) > 0.99 || Math.Abs(n[1]) > 0.99 || Math.Abs(n[2]) > 0.99;
                 if (assiale) return Convert.ToString(f["uid"]);
@@ -2585,7 +2601,7 @@ namespace ProvaSaldatura
             for (int i = 0; i < 4; i++)
                 fuori.Add(new Dictionary<string, object>
                 {
-                    ["da"] = angoli[i], ["a"] = angoli[(i + 1) % 4],
+                    ["start"] = angoli[i], ["end"] = angoli[(i + 1) % 4],
                 });
             return fuori;
         }
@@ -2594,8 +2610,8 @@ namespace ProvaSaldatura
         {
             switch ((piano ?? "").ToLowerInvariant())
             {
-                case "superiore": u = 0; v = 2; return;
-                case "destro": u = 1; v = 2; return;
+                case "top": u = 0; v = 2; return;
+                case "right": u = 1; v = 2; return;
                 default: u = 0; v = 1; return;
             }
         }

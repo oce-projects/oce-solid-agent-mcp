@@ -39,7 +39,7 @@ namespace ProvaSaldatura
     ///
     /// Gli identificativi dello stato sono POSIZIONALI — le facce si rinumerano
     /// per area a ogni lettura — quindi un caso non puo' scrivere «F3». Scrive
-    /// che cosa vuole (`@faccia(verso=davanti)`) e lo si risolve sullo stato
+    /// che cosa vuole (`@face(normal=front)`) e lo si risolve sullo stato
     /// del momento.
     ///
     /// **Un selettore che trova ZERO o PIU' DI UNA cosa fallisce, e non sceglie
@@ -61,6 +61,10 @@ namespace ProvaSaldatura
         /// Una famiglia nuova si aggiunge qui, e chi la dimentica lo scopre
         /// subito: i suoi casi non girano e il conto delle attese non sale.
         /// </summary>
+        /// <summary>The Italian names each case was run with (W3.1-bis.5, D4), and whether it is a case of Banco/cases/aliases.</summary>
+        private static readonly Dictionary<string, int> AliasUses = new Dictionary<string, int>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, bool> AliasCaseFolder = new Dictionary<string, bool>(StringComparer.Ordinal);
+
         private static readonly string[] Famiglie =
         {
             "features", "pairs", "slot", "chamfer", "revolve", "plane",
@@ -76,11 +80,11 @@ namespace ProvaSaldatura
             // cartella di casi che non ci sta dentro e' un insieme di file che
             // sembrano prove e non girano mai. Misurato lo stesso giorno: le
             // altre cartelle fuori elenco (`bridge`, `limits`, `views`, `pezzi`,
-            // `forma`) contengono solo PIANI, che e' giusto — ma e' un fatto
+            // `shape`) contengono solo PIANI, che e' giusto — ma e' un fatto
             // misurato, non una garanzia del meccanismo.
             "weldments",
-            // «extrusions» (then «estrusioni») e' entrata il 24/9/2026, ancora Z-C6: `estrudi_profilo`
-            // ed `estrudi_sezione` avevano solo piani a mano. Il controllo di
+            // «extrusions» (then «extrusions») e' entrata il 24/9/2026, ancora Z-C6: `extrude_profile`
+            // ed `extrude_section` avevano solo piani a mano. Il controllo di
             // contratto che guarda questo elenco l'ha detta MUTA prima che il
             // banco girasse: e' il difetto in agguato del commento qui sopra,
             // preso stavolta da una prova e non da una lettura.
@@ -94,6 +98,11 @@ namespace ProvaSaldatura
             // «uid_from_step», l'unico modo di far fare al banco la strada del
             // ponte.
             "reanchor",
+            // «aliases» (W3.1-bis.5, decision D4): one case per kind of name
+            // of before the rename (operation, argument, value, selector),
+            // written with that name on purpose. Removed in W3.1-bis.11 with
+            // the aliases.
+            "aliases",
         };
 
         /// <summary>
@@ -236,6 +245,10 @@ namespace ProvaSaldatura
             Console.WriteLine("casi verdi: " + string.Join(" ",
                 comeEAndata.Where(kv => kv.Value).Select(kv => kv.Key)
                            .OrderBy(k => k, StringComparer.Ordinal)));
+
+            // THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5): the line is written
+            // at the end of the run (WriteAliasUses, from Main), when the
+            // regression and every other group have run too.
         }
 
         /// <summary>
@@ -411,20 +424,20 @@ namespace ProvaSaldatura
 
             Func<string, string, Dictionary<string, object>> faccia =
                 (uid, verso) => new Dictionary<string, object>
-                    { ["uid"] = uid, ["verso"] = verso, ["area_mm2"] = 6000.0 };
+                    { ["uid"] = uid, ["facing"] = verso, ["area_mm2"] = 6000.0 };
 
             // ── UNA SOLA: si prende ────────────────────────────────────────
             var unaSola = new Dictionary<string, object>
             {
-                ["facce"] = new List<object> { faccia("F1", "davanti"), faccia("F2", "dietro") },
+                ["faces"] = new List<object> { faccia("F1", "front"), faccia("F2", "back") },
             };
             Segna("F3: una faccia sola, si prende",
-                  Prova(() => Seleziona("@faccia(verso=davanti)", unaSola)) == "F1", "");
+                  Prova(() => Seleziona("@face(normal=front)", unaSola)) == "F1", "");
 
             // ── ZERO: si rifiuta ───────────────────────────────────────────
-            Segna("F3 ROSSO: nessuna faccia «alto», si rifiuta",
-                  Perche(() => Seleziona("@faccia(verso=alto)", unaSola)).Contains("non l'ho trovata"),
-                  Perche(() => Seleziona("@faccia(verso=alto)", unaSola)));
+            Segna("F3 ROSSO: nessuna faccia «up», si rifiuta",
+                  Perche(() => Seleziona("@face(normal=up)", unaSola)).Contains("non l'ho trovata"),
+                  Perche(() => Seleziona("@face(normal=up)", unaSola)));
 
             // ── DUE: si rifiuta, NON si prende la prima ────────────────────
             //
@@ -434,26 +447,26 @@ namespace ProvaSaldatura
             // e' verde» non vorrebbe dire «ha lavorato dove diceva».
             var dueUguali = new Dictionary<string, object>
             {
-                ["facce"] = new List<object> { faccia("F1", "davanti"), faccia("F7", "davanti") },
+                ["faces"] = new List<object> { faccia("F1", "front"), faccia("F7", "front") },
             };
-            Segna("F3 ROSSO: due facce «davanti», si rifiuta invece di indovinare",
-                  Perche(() => Seleziona("@faccia(verso=davanti)", dueUguali)).Contains("ne ho trovate 2"),
-                  Perche(() => Seleziona("@faccia(verso=davanti)", dueUguali)));
+            Segna("F3 ROSSO: due facce «front», si rifiuta invece di indovinare",
+                  Perche(() => Seleziona("@face(normal=front)", dueUguali)).Contains("ne ho trovate 2"),
+                  Perche(() => Seleziona("@face(normal=front)", dueUguali)));
 
             // ── LO SPIGOLO, per asse e lunghezza ───────────────────────────
             var spigoli = new Dictionary<string, object>
             {
-                ["spigoli"] = new List<object>
+                ["edges"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "E1", ["lungo"] = "Z", ["lunghezza_mm"] = 40.0 },
-                    new Dictionary<string, object> { ["uid"] = "E2", ["lungo"] = "Z", ["lunghezza_mm"] = 100.0 },
-                    new Dictionary<string, object> { ["uid"] = "E3", ["lungo"] = "X", ["lunghezza_mm"] = 100.0 },
+                    new Dictionary<string, object> { ["uid"] = "E1", ["along"] = "Z", ["length_mm"] = 40.0 },
+                    new Dictionary<string, object> { ["uid"] = "E2", ["along"] = "Z", ["length_mm"] = 100.0 },
+                    new Dictionary<string, object> { ["uid"] = "E3", ["along"] = "X", ["length_mm"] = 100.0 },
                 },
             };
             Segna("F3: lo spigolo si sceglie per asse e lunghezza",
-                  Prova(() => Seleziona("@spigolo(asse=Z,lungo~=100)", spigoli)) == "E2", "");
+                  Prova(() => Seleziona("@edge(axis=Z,length~=100)", spigoli)) == "E2", "");
             Segna("F3 ROSSO: senza la lunghezza, due spigoli su Z sono ambigui",
-                  Perche(() => Seleziona("@spigolo(asse=Z)", spigoli)).Contains("ne ho trovate 2"),
+                  Perche(() => Seleziona("@edge(axis=Z)", spigoli)).Contains("ne ho trovate 2"),
                   "");
 
             // ── LA FEATURE ENNESIMA: l'ordine lo decide chi scrive il caso ──
@@ -461,15 +474,15 @@ namespace ProvaSaldatura
             {
                 ["feature"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "Foro1", ["tipo"] = "HoleWzd" },
-                    new Dictionary<string, object> { ["uid"] = "Foro2", ["tipo"] = "HoleWzd" },
-                    new Dictionary<string, object> { ["uid"] = "Estrusione1", ["tipo"] = "Extrusion" },
+                    new Dictionary<string, object> { ["uid"] = "Foro1", ["kind"] = "HoleWzd" },
+                    new Dictionary<string, object> { ["uid"] = "Foro2", ["kind"] = "HoleWzd" },
+                    new Dictionary<string, object> { ["uid"] = "Estrusione1", ["kind"] = "Extrusion" },
                 },
             };
             Segna("F3: @feature(n=2) prende la seconda",
-                  Prova(() => Seleziona("@feature(tipo=HoleWzd,n=2)", feature)) == "Foro2", "");
+                  Prova(() => Seleziona("@feature(kind=HoleWzd,n=2)", feature)) == "Foro2", "");
             Segna("F3 ROSSO: @feature(n=3) su due, si rifiuta",
-                  Perche(() => Seleziona("@feature(tipo=HoleWzd,n=3)", feature)).Contains("ne ho trovate 2"),
+                  Perche(() => Seleziona("@feature(kind=HoleWzd,n=3)", feature)).Contains("ne ho trovate 2"),
                   "");
 
             // ── LA QUOTA: il titolo del documento lo mette il banco ─────────
@@ -484,16 +497,16 @@ namespace ProvaSaldatura
                     new Dictionary<string, object>
                     {
                         ["uid"] = "Estrusione1",
-                        ["quote"] = new List<object>
+                        ["dimensions"] = new List<object>
                         {
-                            new Dictionary<string, object> { ["nome"] = "D1@Schizzo1@Parte99.Part" },
-                            new Dictionary<string, object> { ["nome"] = "D2@Schizzo1@Parte99.Part" },
+                            new Dictionary<string, object> { ["name"] = "D1@Schizzo1@Parte99.Part" },
+                            new Dictionary<string, object> { ["name"] = "D2@Schizzo1@Parte99.Part" },
                         },
                     },
                 },
             };
-            Segna("F3: @quota torna il nome col documento di ADESSO",
-                  Prova(() => Seleziona("@quota(feature=Schizzo1,nome=D1)", conQuote))
+            Segna("F3: @dimension torna il nome col documento di ADESSO",
+                  Prova(() => Seleziona("@dimension(feature=Schizzo1,name=D1)", conQuote))
                       == "D1@Schizzo1@Parte99.Part", "");
 
             // ── IL CORPO, PER NOME: le parentesi del nome non rompono niente ─
@@ -504,17 +517,17 @@ namespace ProvaSaldatura
             // (2). Un selettore che tornasse «il secondo corpo» sbaglierebbe.
             var corpi = new Dictionary<string, object>
             {
-                ["corpi"] = new List<object>
+                ["bodies"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "C1", ["nome"] = "TUBO 80X80X5(2)" },
-                    new Dictionary<string, object> { ["uid"] = "C2", ["nome"] = "TUBO 80X80X5(1)" },
+                    new Dictionary<string, object> { ["uid"] = "C1", ["name"] = "TUBO 80X80X5(2)" },
+                    new Dictionary<string, object> { ["uid"] = "C2", ["name"] = "TUBO 80X80X5(1)" },
                 },
             };
-            Segna("F3: @corpo(nome=...) prende il corpo per nome, parentesi comprese",
-                  Prova(() => Seleziona("@corpo(nome=TUBO 80X80X5(2))", corpi)) == "C1",
-                  Prova(() => Seleziona("@corpo(nome=TUBO 80X80X5(2))", corpi)));
-            Segna("F3 ROSSO: @corpo con un nome che non c'e', si rifiuta",
-                  Perche(() => Seleziona("@corpo(nome=TUBO 80X80X5(3))", corpi)).Contains("non l'ho trovata"),
+            Segna("F3: @body(name=...) prende il corpo per nome, parentesi comprese",
+                  Prova(() => Seleziona("@body(name=TUBO 80X80X5(2))", corpi)) == "C1",
+                  Prova(() => Seleziona("@body(name=TUBO 80X80X5(2))", corpi)));
+            Segna("F3 ROSSO: @body con un nome che non c'e', si rifiuta",
+                  Perche(() => Seleziona("@body(name=TUBO 80X80X5(3))", corpi)).Contains("non l'ho trovata"),
                   "");
 
             // ── UNA TOLLERANZA SENZA IL PERCHE' E' UN CASO ROTTO ────────────
@@ -534,7 +547,7 @@ namespace ProvaSaldatura
             // valore, non per il formato: il punto e' che ci ARRIVA).
             var colPerche = new Dictionary<string, object>
             {
-                ["what"] = "misure.x", ["equal_to"] = 100.0, ["tolerance"] = 5.0,
+                ["what"] = "measurements.x", ["equal_to"] = 100.0, ["tolerance"] = 5.0,
                 ["tolerance_why"] = "si misura con un righello",
             };
             var misureFinte = new Dictionary<string, object> { ["x"] = 102.0 };
@@ -566,20 +579,20 @@ namespace ProvaSaldatura
             Console.WriteLine();
             Console.WriteLine("=== un campo che non c'e' non e' uno zero (F4) ===");
 
-            // Le misure che `applica_materiale` riporta davvero. Non c'e'
-            // «materiale_tolto_mm3»: quell'operazione non toglie niente.
+            // Le misure che `apply_material` riporta davvero. Non c'e'
+            // «material_removed_mm3»: quell'operazione non toglie niente.
             var misure = new Dictionary<string, object>
             {
-                ["materiale"] = "1.0037 (S235JR)",
-                ["archivio"] = "solidworks materials",
-                ["classe"] = "Acciaio",
+                ["material"] = "1.0037 (S235JR)",
+                ["library"] = "solidworks materials",
+                ["class_name"] = "Acciaio",
             };
 
             string detto = Perche(() =>
             {
                 string d;
                 Combacia(new Dictionary<string, object>
-                { ["what"] = "misure.materiale_tolto_mm3", ["equal_to"] = 0.0 },
+                { ["what"] = "measurements.material_removed_mm3", ["equal_to"] = 0.0 },
                          null, null, misure, out d);
                 return d;
             });
@@ -590,21 +603,21 @@ namespace ProvaSaldatura
 
             // ── E UN NULL DICHIARATO NON E' UN CAMPO ASSENTE ───────────────
             //
-            // Lo stato scrive `materiale: null` APPOSTA, per dire «quel posto
+            // Lo stato scrive `material: null` APPOSTA, per dire «quel posto
             // esiste ed e' vuoto»: e' l'unico modo perche' il modello si accorga
             // di doverlo riempire. Confonderlo con un campo che manca
             // toglierebbe di mezzo proprio quella distinzione.
-            var statoSenzaMateriale = new Dictionary<string, object> { ["materiale"] = null };
+            var statoSenzaMateriale = new Dictionary<string, object> { ["material"] = null };
             string d2;
             bool ok = false;
             try
             {
                 ok = Combacia(new Dictionary<string, object>
-                { ["what"] = "stato.materiale", ["equal_to"] = "" },
+                { ["what"] = "state.material", ["equal_to"] = "" },
                               null, statoSenzaMateriale, null, out d2);
             }
             catch (Exception ex) { d2 = ex.Message; }
-            Segna("F4: «materiale: null» si misura, non e' un campo assente", ok, Corto(d2));
+            Segna("F4: «material: null» si misura, non e' un campo assente", ok, Corto(d2));
 
             // ── IL CONTO DELLE ATTESE ──────────────────────────────────────
             //
@@ -649,10 +662,10 @@ namespace ProvaSaldatura
         ///
         /// ── IL FALSO CIECO, E COME SI EVITA ──────────────────────────────
         ///
-        /// Mutare un argomento che l'operazione **ignora** — `profondita_mm`
+        /// Mutare un argomento che l'operazione **ignora** — `depth_mm`
         /// su un taglio passante — resta giustamente verde e non e' cecita'.
         /// Quelle mutazioni si saltano **leggendo il catalogo**: lo schema di
-        /// `profondita_mm` dice «solo se non passante», e quella riga si legge
+        /// `depth_mm` dice «solo se non passante», e quella riga si legge
         /// invece di ricopiarla qui.
         ///
         /// ── E SI MUTANO SOLO I PASSI CON LE ATTESE ───────────────────────
@@ -738,7 +751,7 @@ namespace ProvaSaldatura
 
         private sealed class Mutazione
         {
-            public string Come;                           // «passo 1 · spessore_mm 40 -> 60»
+            public string Come;                           // «passo 1 · thickness_mm 40 -> 60»
             public Dictionary<string, object> Caso;       // il caso intero, gia' mutato
         }
 
@@ -955,7 +968,7 @@ namespace ProvaSaldatura
                     "verde sotto ogni perturbazione e' **cieco**: le sue attese non vincolano",
                     "i suoi argomenti.",
                     "",
-                    "Le mutazioni su argomenti che l'operazione ignora — `profondita_mm` su un",
+                    "Le mutazioni su argomenti che l'operazione ignora — `depth_mm` su un",
                     "taglio passante — sono saltate leggendo il catalogo, non indovinate.",
                     "",
                     "| caso | mutazioni | rosse | |",
@@ -981,7 +994,7 @@ namespace ProvaSaldatura
         /// Un elenco e non una catena di `if` per un motivo misurato: l'elenco
         /// dei nomi viveva in `Attese.Misura`, lontano da chi misura davvero, e
         /// due misure nuove aggiunte qui e dimenticate la' sono uscite come
-        /// «non so misurare «ultimo_piano_mm»: i nomi sono …» con accanto
+        /// «non so misurare «last_plane_mm»: i nomi sono …» con accanto
         /// l'elenco vecchio — un messaggio che diceva il falso su se stesso.
         /// Adesso i nomi sono le chiavi, e il messaggio le legge.
         ///
@@ -1020,8 +1033,8 @@ namespace ProvaSaldatura
             return new Dictionary<string, Func<IModelDoc2, Dictionary<string, object>, object>>
         {
             { "volume_mm3",  (doc, stato) => VolumeDelDocumento(doc) },
-            { "corpi",       (doc, stato) => ContaCorpi(doc) },
-            { "ingombro_mm", (doc, stato) => IngombroDelDocumento(doc) },
+            { "bodies",       (doc, stato) => ContaCorpi(doc) },
+            { "bounding_box_mm", (doc, stato) => IngombroDelDocumento(doc) },
 
             // ── DOVE STANNO I FORI, E NON QUANTO MATERIALE MANCA ─────────
             //
@@ -1032,10 +1045,10 @@ namespace ProvaSaldatura
             //
             // Ordinati, perche' l'ordine in cui SOLIDWORKS elenca le facce non
             // e' una cosa su cui un caso possa contare.
-            { "centri_x_mm", (doc, stato) => CentriDeiCilindri(doc, 0) },
-            { "centri_y_mm", (doc, stato) => CentriDeiCilindri(doc, 1) },
-            { "centri_z_mm", (doc, stato) => CentriDeiCilindri(doc, 2) },
-            { "diametri_mm", (doc, stato) => DiametriDeiCilindri(doc) },
+            { "centers_x_mm", (doc, stato) => CentriDeiCilindri(doc, 0) },
+            { "centers_y_mm", (doc, stato) => CentriDeiCilindri(doc, 1) },
+            { "centers_z_mm", (doc, stato) => CentriDeiCilindri(doc, 2) },
+            { "diameters_mm", (doc, stato) => DiametriDeiCilindri(doc) },
 
             // ── E PER CIO' CHE CILINDRI NON NE LASCIA ────────────────────
             //
@@ -1044,34 +1057,34 @@ namespace ProvaSaldatura
             // si calcola a mano. E' l'invariante di posizione per tutto quello
             // che non e' un foro: il volume da solo non distingue una tasca
             // ferma da una tasca che ha seguito il bordo.
-            { "centro_massa_mm", (doc, stato) => CentroDiMassa(doc) },
+            { "center_of_mass_mm", (doc, stato) => CentroDiMassa(doc) },
 
             // ── DOVE E' FINITO L'ULTIMO PIANO CREATO ─────────────────────
             //
-            // `crea_piano` risponde con la distanza CHIESTA, non con quella
-            // ottenuta: un'attesa su `misure.distanza_mm` verificherebbe che il
+            // `create_plane` risponde con la distanza CHIESTA, non con quella
+            // ottenuta: un'attesa su `measurements.distance_mm` verificherebbe che il
             // ponte sa ricopiare un numero. Il segno lo si vede solo misurando
             // il piano, ed e' il difetto che «sembra giusto» — l'add-in passa
             // il valore assoluto piu' `OptionFlip`, ma circolano macro che
             // passano il segno, e con quelle il piano a -100 finisce a +100
             // senza che niente fallisca.
-            { "ultimo_piano_mm", (doc, stato) => TraslazioneUltimoPiano(doc) },
+            { "last_plane_mm", (doc, stato) => TraslazioneUltimoPiano(doc) },
 
             // Quanti spigoli curvi ha il pezzo. Serve all'attesa «nessuno
             // spigolo curvo e' offerto al modello»: il bordo di un foro e' un
             // cerchio, e come direzione di una ripetizione viene rifiutato.
-            { "spigoli_curvi", (doc, stato) => SpigoliCurvi(stato) },
+            { "edges_curved", (doc, stato) => SpigoliCurvi(stato) },
 
-            // Quanti assi di riferimento ci sono. `crea_asse` non torna una
+            // Quanti assi di riferimento ci sono. `create_axis` non torna una
             // feature — torna un booleano — e l'unica prova che l'asse esiste
             // davvero e' che lo stato lo elenchi al passo dopo.
-            { "assi_creati", (doc, stato) => QuantiNellElenco(stato, "assi") },
+            { "axes_created", (doc, stato) => QuantiNellElenco(stato, "axes") },
 
-            // Quante lavorazioni ha l'albero. Serve a `elimina_lavorazione`:
+            // Quante lavorazioni ha l'albero. Serve a `delete_feature`:
             // il volume dice che il materiale e' tornato, questo dice che la
             // lavorazione non c'e' piu'. Sono due cose diverse — una feature
             // soppressa lascia il volume com'e' e resta nell'elenco.
-            { "quante_lavorazioni", (doc, stato) => QuanteFeature(stato) },
+            { "how_many_features", (doc, stato) => QuanteFeature(stato) },
 
             // QUANTI NOMI DI CONFIGURAZIONE DICHIARA IL PEZZO.
             //
@@ -1080,7 +1093,7 @@ namespace ProvaSaldatura
             // lo stato di visualizzazione ed e' localizzato, quindi un caso
             // che lo scrivesse sarebbe verde su questa installazione e rosso
             // sulla prossima. Il CONTO invece e' un fatto: se
-            // `crea_configurazione` non creasse niente resterebbe quello di
+            // `create_configuration` non creasse niente resterebbe quello di
             // prima mentre l'operazione risponde che e' andata bene.
             //
             // «NOMI» E NON «CONFIGURAZIONI», e la distinzione e' costata un
@@ -1089,12 +1102,12 @@ namespace ProvaSaldatura
             // dava per scontato «un pezzo nuovo, una configurazione» ha
             // trovato tre dove ne aspettava due. Il conto vero, quello che
             // `GetConfigurationCount()` risponde, e' la misura qui sotto.
-            { "quanti_nomi_di_configurazione", (doc, stato) => QuantiNellElenco(stato, "configurazioni") },
+            { "how_many_configuration_names", (doc, stato) => QuantiNellElenco(stato, "configurations") },
 
             // QUANTE NE CONTA SOLIDWORKS, che e' un'altra chiamata e puo'
             // rispondere un altro numero. Sta nello stato, letta da
             // `GetConfigurationCount()`.
-            { "quante_configurazioni", (doc, stato) => DalloStato(stato, "quante_configurazioni") },
+            { "how_many_configurations", (doc, stato) => DalloStato(stato, "how_many_configurations") },
         };
         }
 
@@ -1139,15 +1152,15 @@ namespace ProvaSaldatura
         /// <summary>Quanti spigoli lo stato dichiara curvi.</summary>
         private static int SpigoliCurvi(Dictionary<string, object> stato)
         {
-            var spigoli = (stato != null && stato.ContainsKey("spigoli")
-                ? stato["spigoli"] : null) as System.Collections.IList;
+            var spigoli = (stato != null && stato.ContainsKey("edges")
+                ? stato["edges"] : null) as System.Collections.IList;
             if (spigoli == null) return 0;
             int n = 0;
             foreach (var s in spigoli)
             {
                 var voce = s as Dictionary<string, object>;
-                if (voce != null && voce.ContainsKey("curvo") &&
-                    Convert.ToString(voce["curvo"]).Equals("True", StringComparison.OrdinalIgnoreCase))
+                if (voce != null && voce.ContainsKey("curved") &&
+                    Convert.ToString(voce["curved"]).Equals("True", StringComparison.OrdinalIgnoreCase))
                     n++;
             }
             return n;
@@ -1320,6 +1333,7 @@ namespace ProvaSaldatura
             // secondo messaggio che direbbe la stessa cosa peggio.
             Preparazione preparato = null;
             bool verde;
+            int aliasUsesAtStart = AliasUsesNow();
             try
             {
                 preparato = PreparaIlDocumento(nome, caso);
@@ -1340,9 +1354,72 @@ namespace ProvaSaldatura
                 return false;
             }
             catch (Exception ex) { Segna(nome, false, Perche(ex)); return false; }
-            finally { ButtaViaLaPreparazione(preparato); }
+            finally
+            {
+                ButtaViaLaPreparazione(preparato);
+                CountAliasUses(nome, percorso, aliasUsesAtStart);
+            }
 
             return SuQuestaLibreria(nome, caso, verde);
+        }
+
+        // ── THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5, decision D4) ─────
+        //
+        // The library counts every name its aliases translate (Alias.Uses); the
+        // bench reads the counter before and after each case, so a case is
+        // charged with everything it made the library translate: its steps,
+        // the failed ones too, the selectors of its steps and of its
+        // expectations, the components of its assembly. A line per step would
+        // miss all of those. The whole run is read too, so a name translated
+        // outside any case (a group of the bench) is counted as well.
+        // Removed in W3.1-bis.11.
+        private static int _aliasUsesAtStartOfRun = -1;
+        private static int _aliasUsesInAliasCases;
+
+        private static int AliasUsesNow()
+        {
+            var read = Attese.AliasUsesNow;
+            if (read == null) return 0;
+            int now = read();
+            if (_aliasUsesAtStartOfRun < 0) _aliasUsesAtStartOfRun = now;
+            return now;
+        }
+
+        private static void CountAliasUses(string name, string path, int atStart)
+        {
+            if (Attese.AliasUsesNow == null) return;
+            int used = AliasUsesNow() - atStart;
+            if (used <= 0) return;
+            int before;
+            AliasUses.TryGetValue(name, out before);
+            AliasUses[name] = before + used;
+            bool inAliases = path != null &&
+                string.Equals(Path.GetFileName(Path.GetDirectoryName(path)), "aliases", StringComparison.Ordinal);
+            AliasCaseFolder[name] = inAliases;
+            if (inAliases) _aliasUsesInAliasCases += used;
+        }
+
+        /// <summary>
+        /// The line «alias uses: ...» at the end of the run, which banco.ps1
+        /// writes into last.json as alias_uses: the names of every case, and the
+        /// whole run as the library counted it. «outside the alias cases» is the
+        /// whole run minus the alias cases, and must be 0.
+        /// </summary>
+        internal static void WriteAliasUses()
+        {
+            if (Attese.AliasUsesNow == null)
+            {
+                Console.WriteLine("alias uses: not counted (a library without the aliases of W3.1-bis.5)");
+                return;
+            }
+            int start = _aliasUsesAtStartOfRun < 0 ? Attese.AliasUsesNow() : _aliasUsesAtStartOfRun;
+            int whole = Attese.AliasUsesNow() - start;
+            int inCases = AliasUses.Values.Sum();
+            var outside = AliasUses.Keys.Where(k => !AliasCaseFolder[k]).OrderBy(k => k, StringComparer.Ordinal).ToList();
+            Console.WriteLine("alias uses: " + whole + " in the whole run, " + inCases + " in " + AliasUses.Count +
+                              " cases; outside the alias cases: " + (whole - _aliasUsesInAliasCases) +
+                              (outside.Count > 0 ? " (" + string.Join(" ", outside) + ")" : "") +
+                              (whole - inCases > 0 ? " (" + (whole - inCases) + " outside any case)" : ""));
         }
 
         /// <summary>
@@ -1386,7 +1463,7 @@ namespace ProvaSaldatura
         ///
         /// Sta in un metodo suo perche' `--muta` (voce F6) riesegue lo STESSO
         /// caso con un argomento cambiato, e quel caso non viene da un file:
-        /// viene da una copia in memoria. `gemelle` e `percorso` possono essere
+        /// viene da una copia in memoria. `gemelle` e `path` possono essere
         /// nulli — li' non c'e' nessuna coppia da registrare e nessun file
         /// accanto a cui guardare.
         /// </summary>
@@ -1401,7 +1478,7 @@ namespace ProvaSaldatura
             {
                 // IL DOCUMENTO PUO' CAMBIARE A META' CASO (voce GT0).
                 //
-                // `crea_disegno` apre una tavola, e da li' in poi i passi
+                // `create_drawing` apre una tavola, e da li' in poi i passi
                 // lavorano su quella. Finche' questo era `doc` e basta, un caso
                 // che creava una tavola metteva le viste dentro il pezzo — o
                 // piu' spesso si fermava su «il documento attivo non e' una
@@ -1412,7 +1489,7 @@ namespace ProvaSaldatura
                 // Si segue solo cio' che l'operazione **dichiara**
                 // (`Esito.DocumentoNuovo`), mai il documento attivo di
                 // SOLIDWORKS: su questa macchina SOLIDWORKS e' condiviso, e
-                // «attivo» e' cio' che ha davanti chiunque.
+                // «active» e' cio' che ha davanti chiunque.
                 var attuale = doc;
                 var stato = LeggiStato(attuale);
                 // Lo stato com'era PRIMA di ogni passo: serve a «uid_from_step».
@@ -1461,6 +1538,7 @@ namespace ProvaSaldatura
                     // UN SELETTORE CHE NON RISOLVE NON E' UNA PROVA ROSSA:
                     // il caso non si e' potuto ESEGUIRE, e dirlo «fallito»
                     // farebbe credere che si sia misurato qualcosa (voce F4).
+                    DeprecatedSelectors.Clear();
                     try { argomenti = Risolvi(grezziArg, statoDegliUid) as Dictionary<string, object>; }
                     catch (NonHoPotutoMisurare ex) { ErroreDiBanco(etichetta, ex.Message); return false; }
                     catch (Exception ex) { Segna(etichetta, false, ex.Message); return false; }
@@ -1505,7 +1583,7 @@ namespace ProvaSaldatura
                     // «activate_before» (Z-C21.4, finding L16-2): a configuration of
                     // ANOTHER open document made active when the step starts, as the
                     // user leaves it by working on the model while the drawing is
-                    // open. attiva_configurazione acts on the current document only,
+                    // open. activate_configuration acts on the current document only,
                     // so without this field a drawing step could never find the
                     // model on a configuration other than the one its views show.
                     object toActivate;
@@ -1525,8 +1603,22 @@ namespace ProvaSaldatura
                     string errore;
                     IModelDoc2 nato;
                     var misure = Esegui(attuale, operazione, argomenti, out errore, out nato, stato);
+                    // The Italian selectors this step was written with (Attese.SelectorAlias):
+                    // the bench resolves selectors before the library sees the step, so it adds
+                    // them to the library's own `deprecated` lines. Removed in W3.1-bis.11.
+                    if (misure != null && DeprecatedSelectors.Count > 0)
+                    {
+                        object fromLibrary;
+                        var library = misure.TryGetValue("deprecated", out fromLibrary) && fromLibrary is string[]
+                            ? (string[])fromLibrary : new string[0];
+                        misure["deprecated"] = DeprecatedSelectors.Concat(library).ToArray();
+                    }
+                    // The Italian names are counted per case from the library's own
+                    // counter (CountAliasUses, around the whole case), not from these
+                    // lines: a failed step, a selector of an expectation and the
+                    // steps that prepare an assembly leave none here.
 
-                    // SI CAMBIA SOLO SE IL PASSO E' RIUSCITO. Un `crea_disegno`
+                    // SI CAMBIA SOLO SE IL PASSO E' RIUSCITO. Un `create_drawing`
                     // fallito a meta' puo' aver lasciato un documento a monitor
                     // e non e' quello su cui si continua: seguire un documento
                     // nato da un passo rosso vorrebbe dire misurare il relitto.
@@ -1757,7 +1849,7 @@ namespace ProvaSaldatura
                 // UN CORPO, O IL CORPO DI UNA FACCIA. I nomi dei corpi dopo una
                 // copia o una lavorazione non sono prevedibili, e i numeri C1, C2
                 // cambiano fra un giro e l'altro (voce Z-C16); una faccia invece si
-                // nomina per DOVE sta (`@faccia(verso=davanti,x~=150)`).
+                // nomina per DOVE sta (`@face(normal=front,x~=150)`).
                 var corpo = entita[i] as IBody2;
                 var faccia = entita[i] as IFace2;
                 if (corpo == null && faccia != null) corpo = faccia.GetBody() as IBody2;

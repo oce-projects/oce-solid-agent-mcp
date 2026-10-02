@@ -4,11 +4,11 @@
   "why": "Cieca senza dire quanto: non c'e' nessun valore predefinito ragionevole, e sceglierne uno vorrebbe dire decidere al posto di chi disegna quanto materiale togliere.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120, "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120, "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
-    { "operation": "asola",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0, "lunghezza_mm": 51, "larghezza_mm": 11, "angolo_gradi": 0, "passante": false },
+    { "operation": "slot",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": false },
       "must_fail": {
         "message_includes": ["non passante senza profondita"],
         "volume_unchanged": true,

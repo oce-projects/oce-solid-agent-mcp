@@ -1,19 +1,19 @@
 [
  {
-  "operazione": "telaio_rettangolare",
-  "argomenti": {
-   "profilo_percorso": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
-   "configurazione": "80X80X5",
-   "lunghezza_mm": 1000,
-   "larghezza_mm": 800,
-   "piano": "frontale",
-   "centrato": true,
-   "trattamento_angolo": "quartabuono",
-   "segmenti": [
-    { "da": [-500, -400, 0], "a": [500, -400, 0] },
-    { "da": [500, -400, 0], "a": [500, 400, 0] },
-    { "da": [500, 400, 0], "a": [-500, 400, 0] },
-    { "da": [-500, 400, 0], "a": [-500, -400, 0] }
+  "operation": "rectangular_frame",
+  "arguments": {
+   "profile_path": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
+   "configuration": "80X80X5",
+   "length_mm": 1000,
+   "width_mm": 800,
+   "plane": "front",
+   "centered": true,
+   "corner_treatment": "miter",
+   "segments": [
+    { "start": [-500, -400, 0], "end": [500, -400, 0] },
+    { "start": [500, -400, 0], "end": [500, 400, 0] },
+    { "start": [500, 400, 0], "end": [-500, 400, 0] },
+    { "start": [-500, 400, 0], "end": [-500, -400, 0] }
    ]
   }
  }

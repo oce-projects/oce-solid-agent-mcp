@@ -66,25 +66,25 @@ namespace Riscontro.Disegno
         private Esito Sformo(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double angolo = Num(a, "angolo_gradi", 0);
+            double angolo = Num(a, "angle_deg", 0);
             if (angolo <= 0)
                 return Fallito(
-                    "Manca «angolo_gradi», o e' zero: uno sformo di zero gradi non e' uno " +
+                    "Manca «angle_deg», o e' zero: uno sformo di zero gradi non e' uno " +
                     "sformo, e' una parete dritta.");
             if (angolo >= 90)
                 return Fallito(
-                    "«angolo_gradi» dev'essere sotto i 90: a 90 gradi la parete si " +
+                    "«angle_deg» dev'essere sotto i 90: a 90 gradi la parete si " +
                     "sdraia sulla faccia neutra. Per uno stampo si usa 1-3 gradi.");
 
-            string neutraUid = Str(a, "faccia_neutra_uid", "");
+            string neutraUid = Str(a, "neutral_face_uid", "");
             var neutra = RisolviFaccia(stato, a, neutraUid, out string motivo);
             if (neutra == null) return Fallito("Faccia neutra: " + motivo);
 
-            var uid = Lista(a, "facce_uid");
+            var uid = Lista(a, "faces_uid");
             if (uid.Count == 0)
                 return Fallito(
-                    "Manca «facce_uid»: quali facce sformare. La faccia NEUTRA -- quella " +
-                    "che resta ferma -- si dice a parte, in «faccia_neutra_uid».");
+                    "Manca «faces_uid»: quali facce sformare. La faccia NEUTRA -- quella " +
+                    "che resta ferma -- si dice a parte, in «neutral_face_uid».");
             if (uid.Contains(neutraUid, StringComparer.OrdinalIgnoreCase))
                 return Fallito(
                     "«" + neutraUid + "» e' insieme la faccia neutra e una da sformare. " +
@@ -103,7 +103,7 @@ namespace Riscontro.Disegno
             if (normaleNeutra == null)
                 return Fallito("Non riesco a leggere l'orientamento della faccia neutra.");
 
-            bool capovolgi = Bool(a, "capovolgi", false);
+            bool capovolgi = Bool(a, "flip", false);
             double? volumePrima = VolumeMm3(modello);
             int corpiPrima = ContaCorpiSolidi(modello);
             int inclinatePrima = QuanteFacceInclinate(modello, normaleNeutra, angolo);
@@ -186,18 +186,18 @@ namespace Riscontro.Disegno
             double? mosso = volumeDopo - volumePrima;
             var misure = new Dictionary<string, object>
             {
-                ["angolo_gradi"] = angolo,
-                ["facce_sformate"] = facce.Count,
-                ["facce_all_angolo_prima"] = inclinatePrima,
-                ["facce_all_angolo_dopo"] = inclinateDopo,
-                ["capovolgi"] = capovolgi,
-                ["materiale_mm3"] = NumeroOppureNull(mosso, 2),
-                ["il_pezzo_e_cresciuto"] = mosso.HasValue ? (object)(mosso.Value > 0) : null,
-                ["corpi"] = NumeroOppureNull(corpiDopo),
+                ["angle_deg"] = angolo,
+                ["faces_drafted"] = facce.Count,
+                ["faces_at_corner_before"] = inclinatePrima,
+                ["faces_at_corner_after"] = inclinateDopo,
+                ["flip"] = capovolgi,
+                ["material_mm3"] = NumeroOppureNull(mosso, 2),
+                ["part_grew"] = mosso.HasValue ? (object)(mosso.Value > 0) : null,
+                ["bodies"] = NumeroOppureNull(corpiDopo),
                 // L'ANGOLO DICHIARATO DALLA FEATURE, accanto a quello misurato
                 // e con scritto che cos'e'. Non si nasconde: si nomina.
-                ["angolo_dichiarato_dalla_feature"] = AngoloDellaFeature(feature),
-                ["cosa_non_guarda"] =
+                ["angle_declared_by_feature"] = AngoloDellaFeature(feature),
+                ["what_it_does_not_check"] =
                     "Ho contato le facce che stanno all'angolo chiesto rispetto alla neutra, " +
                     "non VERIFICATO UNA PER UNA che siano proprio quelle che mi hai " +
                     "indicato: dopo uno sformo le facce si rinumerano. Se il conto torna e " +

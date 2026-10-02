@@ -60,7 +60,7 @@ namespace ProvaSaldatura
         /// si puo' svuotare in qualunque momento.
         ///
         /// Serve da quando ci sono operazioni che producono FILE —
-        /// `esporta_stl`, `esporta_pdf`, `salva_documento`. Un caso che scrive
+        /// `export_stl`, `export_pdf`, `save_document`. Un caso che scrive
         /// in una cartella sua la riempirebbe di roba che nessuno pulisce; un
         /// caso che scrive accanto al repository sporcherebbe `git status`.
         /// La cartella si crea se non c'e': un caso non deve fallire perche'
@@ -150,7 +150,7 @@ namespace ProvaSaldatura
 
             // ── QUANDO LA MISURA E' UNA FRASE ─────────────────────────────
             //
-            // `stato.forma` non e' un numero: e' la descrizione che il pezzo
+            // `state.shape` non e' un numero: e' la descrizione che il pezzo
             // da' di se stesso — «una rivoluzione del profilo Ø30 per 40, Ø20
             // per 30, Ø34 per 20». Pretenderla UGUALE vorrebbe dire riscrivere
             // il caso a ogni virgola sistemata; quello che conta e' che i
@@ -254,7 +254,7 @@ namespace ProvaSaldatura
                 return Math.Abs(numeroMisurato - numeroAtteso) <= tolleranza;
             }
 
-            // Tutto il resto si confronta come testo: «materiale», un booleano.
+            // Tutto il resto si confronta come testo: «material», un booleano.
             string a = Convert.ToString(atteso, CultureInfo.InvariantCulture);
             string m = Convert.ToString(misurato, CultureInfo.InvariantCulture);
             dettaglio = cosa + " «" + m + "» (atteso «" + a + "»)";
@@ -287,7 +287,7 @@ namespace ProvaSaldatura
 
             // ── UN ELENCO NON E' «System.String[]» ───────────────────────
             //
-            // `misure.profili[0].misure` e' un elenco di misure: «80X80X5»,
+            // `measurements.profiles[0].measurements` e' un elenco di misure: «80X80X5»,
             // «100X100X6». Chiedere che CONTENGA una voce e' la cosa piu'
             // naturale che ci sia, e fino alla 0.91.0 falliva con
             //
@@ -412,8 +412,8 @@ namespace ProvaSaldatura
 
         /// <summary>
         /// Da dove si legge un `what`. Tre sorgenti, e il prefisso lo dice:
-        /// niente = quello che misura il banco per conto suo, `stato.` = lo
-        /// stato dell'add-in, `misure.` = quello che l'operazione ha riportato.
+        /// niente = quello che misura il banco per conto suo, `state.` = lo
+        /// stato dell'add-in, `measurements.` = quello che l'operazione ha riportato.
         /// </summary>
         internal static object Misura(
             string cosa, Func<string, object> dalDocumento,
@@ -429,17 +429,17 @@ namespace ProvaSaldatura
             // vecchio accanto — un messaggio che dice il falso su se stesso.
             // Tutto cio' che non ha un prefisso lo si chiede a chi il documento
             // ce l'ha, ed e' lui a dire se quel nome non lo conosce.
-            if (!cosa.StartsWith("stato.", StringComparison.Ordinal) &&
-                !cosa.StartsWith("misure.", StringComparison.Ordinal))
+            if (!cosa.StartsWith("state.", StringComparison.Ordinal) &&
+                !cosa.StartsWith("measurements.", StringComparison.Ordinal))
             {
                 if (dalDocumento == null)
                     throw new NonHoPotutoMisurare(
                         "«" + cosa + "» si misura sul documento, e qui non ce n'e' uno");
                 return dalDocumento(cosa);
             }
-            if (cosa.StartsWith("stato.", StringComparison.Ordinal))
-                return Dentro(stato, cosa.Substring(6), cosa);
-            return Dentro(misure, cosa.Substring(7), cosa);
+            if (cosa.StartsWith("state.", StringComparison.Ordinal))
+                return Dentro(stato, cosa.Substring("state.".Length), cosa);
+            return Dentro(misure, cosa.Substring("measurements.".Length), cosa);
         }
 
         /// <summary>
@@ -494,7 +494,7 @@ namespace ProvaSaldatura
         ///
         /// ── L'ECCEZIONE DELL'ARGOMENTO UNICO, CHE E' ARITMETICA ───────────
         ///
-        /// `crea_asse` prende `faccia_uid` e basta. Due casi che differiscono
+        /// `create_axis` prende `face_uid` e basta. Due casi che differiscono
         /// per quell'unico argomento NON POSSONO averne uno in comune: la
         /// regola li rifiuterebbe sempre, e non perche' siano scollegati ma
         /// perche' l'operazione ha un argomento solo. Rifiutarli vorrebbe dire
@@ -555,7 +555,7 @@ namespace ProvaSaldatura
         /// nella scatola svuotata e non nasce sulla piastra senza pareti. La
         /// regola di `SiSomigliano` pretende un argomento diverso, e prima di
         /// questa funzione l'unico modo di rispettarla era scriverne uno che non
-        /// fa niente (un `distanza_mm: 0` che e' il predefinito): F5 verde senza
+        /// fa niente (un `distance_mm: 0` che e' il predefinito): F5 verde senza
         /// provare niente.
         ///
         /// Qui la differenza si DICHIARA (<see cref="CampoDifferenzaNelPezzo"/>)
@@ -628,7 +628,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Un percorso dentro un dizionario: `facce[0].area_mm2`.
+        /// Un percorso dentro un dizionario: `faces[0].area_mm2`.
         /// Null quando il percorso non porta da nessuna parte — e chi chiama lo
         /// fa diventare un rosso, perche' un campo assente non e' uno zero.
         /// </summary>
@@ -653,7 +653,7 @@ namespace ProvaSaldatura
                         "» andrebbe cercato dentro qualcosa che non e' un oggetto");
 
                 // LA CHIAVE CHE NON C'E' E UN VALORE NULL NON SONO LA STESSA
-                // COSA, ed e' tutta la voce F4. `materiale: null` vuol dire
+                // COSA, ed e' tutta la voce F4. `material: null` vuol dire
                 // «quel posto esiste ed e' vuoto»; una chiave che manca vuol
                 // dire che il caso sta leggendo un campo che non esiste piu' —
                 // e un `null` confrontato con un `null` passerebbe.
@@ -739,8 +739,31 @@ namespace ProvaSaldatura
             return grezzo;
         }
 
+        /// <summary>
+        /// THE SELECTORS OF BEFORE W3.1-bis.5 (decision D4): a selector written with
+        /// the names of before the rename is read as its English spelling. Set by the bench when it loads the
+        /// library (Riscontro.Disegno.Alias.Selector, the name map itself); the
+        /// contracts leave it null and read selectors as written. Each name it
+        /// translates goes into <see cref="DeprecatedSelectors"/>, which the
+        /// runner of the cases adds to the step's `measurements.deprecated`.
+        /// Removed in W3.1-bis.11.
+        /// </summary>
+        internal static Func<string, List<string>, string> SelectorAlias;
+        internal static readonly List<string> DeprecatedSelectors = new List<string>();
+
+        /// <summary>
+        /// How many Italian names the library has translated since the bench
+        /// started (Riscontro.Disegno.Alias.Uses): every step, a failed one
+        /// too, every selector of a step or of an expectation, every step that
+        /// prepares the components of an assembly. The bench counts the
+        /// difference over each case. Null with a library from before the
+        /// aliases. Removed in W3.1-bis.11.
+        /// </summary>
+        internal static Func<int> AliasUsesNow;
+
         internal static string Seleziona(string espressione, Dictionary<string, object> stato)
         {
+            if (SelectorAlias != null) espressione = SelectorAlias(espressione, DeprecatedSelectors);
             int apre = espressione.IndexOf('(');
             if (apre < 0 || !espressione.EndsWith(")", StringComparison.Ordinal))
                 throw new NonHoPotutoMisurare("selettore storto: «" + espressione + "»");
@@ -753,10 +776,10 @@ namespace ProvaSaldatura
                 // spigoli lunghi uguali non esiste nessun criterio, e chi
                 // scrive il caso l'ordine puo' deciderlo — purche' lo DICA.
                 // Senza `n=` l'ambiguita' resta un rifiuto.
-                case "faccia":  return UnoSolo(espressione, "facce", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
-                case "spigolo": return UnoSolo(espressione, "spigoli", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
+                case "face":  return UnoSolo(espressione, "faces", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
+                case "edge": return UnoSolo(espressione, "edges", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
                 case "feature": return UnaFeature(espressione, stato, condizioni);
-                case "quota":   return UnaQuota(espressione, stato, condizioni);
+                case "dimension":   return UnaQuota(espressione, stato, condizioni);
                 // I CORPI SI CHIAMANO PER NOME, NON PER NUMERO. Misurato il
                 // 25/9/2026 su tre membri strutturali creati nello stesso
                 // ordine in due giri: una volta lo stato dice C1 = la barra
@@ -765,10 +788,10 @@ namespace ProvaSaldatura
                 // segue invece l'ordine di creazione, ed e' quello che il caso
                 // intende. Il nome ha le parentesi dentro, e il selettore le
                 // regge: si apre alla PRIMA e si chiude all'ULTIMA.
-                case "corpo":   return UnoSolo(espressione, "corpi", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
+                case "body":   return UnoSolo(espressione, "bodies", stato, condizioni, "uid", Ennesimo(espressione, condizioni));
                 default:
                     throw new NonHoPotutoMisurare("selettore sconosciuto «@" + tipo + "»: ci sono " +
-                                        "@faccia, @spigolo, @feature, @quota, @corpo");
+                                        "@face, @edge, @feature, @dimension, @body");
             }
         }
 
@@ -804,16 +827,17 @@ namespace ProvaSaldatura
         }
 
         // I NOMI DEL CASO E I NOMI DELLO STATO NON SONO GLI STESSI, e la
-        // traduzione sta qui e in un punto solo. `@spigolo(asse=Z)` si legge
-        // bene; il campo dello stato si chiama `lungo`, che da solo vorrebbe
+        // traduzione sta qui e in un punto solo. `@edge(axis=Z)` si legge
+        // bene; il campo dello stato si chiama `along`, che da solo vorrebbe
         // dire un'altra cosa.
         internal static string CampoDelloStato(string nomeNelCaso)
         {
             switch (nomeNelCaso)
             {
-                case "asse":  return "lungo";
-                case "lungo": return "lunghezza_mm";
-                case "area":  return "area_mm2";
+                case "axis":   return "along";
+                case "length": return "length_mm";
+                case "area":   return "area_mm2";
+                case "normal": return "facing";
                 default:      return nomeNelCaso;
             }
         }
@@ -821,13 +845,13 @@ namespace ProvaSaldatura
         /// <summary>
         /// Il valore che una condizione del selettore confronta.
         ///
-        /// `x`, `y`, `z` SONO LE COORDINATE DI `punto_mm` (25/9/2026, voce E18).
+        /// `x`, `y`, `z` SONO LE COORDINATE DI `point_mm` (25/9/2026, voce E18).
         /// Fra i quattro spigoli lunghi 120 di una piastra nessun campo dello
         /// stato distingueva il fianco sinistro davanti da quello dietro, e
         /// `n=` sceglie per ORDINE — lo stesso ordine che per i corpi si e'
         /// visto cambiare fra un giro e l'altro (voce Z-C16). Con le
         /// coordinate lo spigolo si nomina per DOVE sta:
-        /// `@spigolo(asse=Y,x~=-100,z~=20)`.
+        /// `@edge(axis=Y,x~=-100,z~=20)`.
         /// </summary>
         internal static bool ValoreDelCampo(Dictionary<string, object> voce, string campo, out object valore)
         {
@@ -836,7 +860,7 @@ namespace ProvaSaldatura
             {
                 valore = null;
                 object punto;
-                if (!voce.TryGetValue("punto_mm", out punto)) return false;
+                if (!voce.TryGetValue("point_mm", out punto)) return false;
                 var elenco = punto as System.Collections.IList;
                 if (elenco == null || elenco.Count < 3) return false;
                 valore = elenco[indice];
@@ -924,7 +948,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// `@quota(feature=Schizzo1,nome=D1)` -> il nome ESTESO della quota, come
+        /// `@dimension(feature=Schizzo1,name=D1)` -> il nome ESTESO della quota, come
         /// lo scrive lo stato: `D1@Schizzo1@Parte286.Part`.
         ///
         /// E' il selettore che la voce chiamava «non un lusso»:
@@ -933,8 +957,8 @@ namespace ProvaSaldatura
         /// si puo' rieseguire.** Risolvendolo sullo stato, il caso nomina la
         /// quota e il titolo lo mette il banco.
         ///
-        /// `angolare=true` (voce Z-C21.2, rilievo M3) tiene solo le quote che lo
-        /// stato scrive in `gradi`, e allora «nome» si puo' omettere: i nomi che
+        /// `angular=true` (voce Z-C21.2, rilievo M3) tiene solo le quote che lo
+        /// stato scrive in `deg`, e allora «name» si puo' omettere: i nomi che
         /// SOLIDWORKS da' alle quote di uno smusso (D1, D2) e l'ordine in cui le
         /// elenca non sono misurati, mentre «l'unica quota angolare del pezzo» e'
         /// un fatto che lo stato dice.
@@ -943,18 +967,18 @@ namespace ProvaSaldatura
             string espressione, Dictionary<string, object> stato, List<Condizione> condizioni)
         {
             string dentroA = condizioni.FirstOrDefault(c => c.Campo == "feature")?.Valore;
-            string chiamata = condizioni.FirstOrDefault(c => c.Campo == "nome")?.Valore;
-            string angolareTesto = condizioni.FirstOrDefault(c => c.Campo == "angolare")?.Valore;
+            string chiamata = condizioni.FirstOrDefault(c => c.Campo == "name")?.Valore;
+            string angolareTesto = condizioni.FirstOrDefault(c => c.Campo == "angular")?.Valore;
             bool? angolare = null;
             if (angolareTesto != null)
             {
                 bool a;
                 if (!bool.TryParse(angolareTesto, out a))
-                    throw new NonHoPotutoMisurare(espressione + ": «angolare» e' true o false");
+                    throw new NonHoPotutoMisurare(espressione + ": «angular» e' true o false");
                 angolare = a;
             }
             if (chiamata == null && angolare == null)
-                throw new NonHoPotutoMisurare(espressione + ": serve «nome» (oppure «angolare»)");
+                throw new NonHoPotutoMisurare(espressione + ": serve «name» (oppure «angular»)");
 
             var feature = (stato != null && stato.ContainsKey("feature")
                 ? stato["feature"] : null) as System.Collections.IList;
@@ -964,20 +988,20 @@ namespace ProvaSaldatura
             foreach (var f in feature)
             {
                 var voce = f as Dictionary<string, object>;
-                if (voce == null || !voce.ContainsKey("quote")) continue;
-                var quote = voce["quote"] as System.Collections.IList;
+                if (voce == null || !voce.ContainsKey("dimensions")) continue;
+                var quote = voce["dimensions"] as System.Collections.IList;
                 if (quote == null) continue;
                 foreach (var q in quote)
                 {
                     var quota = q as Dictionary<string, object>;
-                    if (quota == null || !quota.ContainsKey("nome")) continue;
-                    string esteso = Convert.ToString(quota["nome"]);
+                    if (quota == null || !quota.ContainsKey("name")) continue;
+                    string esteso = Convert.ToString(quota["name"]);
                     // «D1@Schizzo1@Parte286.Part» -> corto «D1», dentro «Schizzo1»
                     var pezzi = esteso.Split('@');
                     if (pezzi.Length < 2) continue;
                     if (chiamata != null &&
                         !string.Equals(pezzi[0], chiamata, StringComparison.OrdinalIgnoreCase)) continue;
-                    if (angolare.HasValue && quota.ContainsKey("gradi") != angolare.Value) continue;
+                    if (angolare.HasValue && quota.ContainsKey("deg") != angolare.Value) continue;
                     if (dentroA != null &&
                         !string.Equals(pezzi[1], dentroA, StringComparison.OrdinalIgnoreCase)) continue;
                     trovate.Add(esteso);

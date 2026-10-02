@@ -1,24 +1,24 @@
 {
   "name": "axis_from_hole_wall",
   "family": "axis",
-  "why": "`crea_asse` NON TORNA UNA FEATURE: torna un booleano, e l'asse si ritrova in coda all'albero. «In coda» e' una deduzione, non un fatto, e l'unica prova che l'asse esista davvero e' che lo stato lo elenchi al passo dopo. Si parte dalla parete di un foro perche' l'asse si fa dal centro di una faccia cilindrica.",
+  "why": "`create_axis` NON TORNA UNA FEATURE: torna un booleano, e l'asse si ritrova in coda all'albero. «In coda» e' una deduzione, non un fatto, e l'unica prova che l'asse esista davvero e' che lo stato lo elenchi al passo dopo. Si parte dalla parete di un foro perche' l'asse si fa dal centro di una faccia cilindrica.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 120, "larghezza_mm": 120,
-                     "spessore_mm": 15, "centrato": true },
-      "expect": [ { "what": "assi_creati", "equal_to": 0 } ] },
-    { "operation": "taglio_cilindrico",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
-                     "diametro_mm": 10, "passante": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 120, "width_mm": 120,
+                     "thickness_mm": 15, "centered": true },
+      "expect": [ { "what": "axes_created", "equal_to": 0 } ] },
+    { "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
+                     "diameter_mm": 10, "through_all": true },
       "expect": [
-        { "what": "diametri_mm", "equal_to": [10], "tolerance": 0.02,
+        { "what": "diameters_mm", "equal_to": [10], "tolerance": 0.02,
           "tolerance_why": "il diametro si legge da CylinderParams" },
-        { "what": "assi_creati", "equal_to": 0 } ] },
-    { "operation": "crea_asse",
-      "arguments": { "faccia_uid": "@faccia(piana=false)" },
+        { "what": "axes_created", "equal_to": 0 } ] },
+    { "operation": "create_axis",
+      "arguments": { "face_uid": "@face(planar=false)" },
       "expect": [
-        { "what": "assi_creati", "equal_to": 1 },
+        { "what": "axes_created", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 214821.9, "tolerance": 0.5,
           "tolerance_why": "120*120*15 meno pi*5^2*15: un asse di riferimento non toglie materiale, e questo lo dice" } ] }
   ]

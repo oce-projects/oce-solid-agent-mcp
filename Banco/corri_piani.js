@@ -119,15 +119,15 @@ function unGiro(elenco, suQuesto) {
                   clientInfo: { name: "banco", version: "1" } } },
       { jsonrpc: "2.0", method: "notifications/initialized" },
       { jsonrpc: "2.0", id: 2, method: "tools/call",
-        params: { name: "guarda_il_pezzo", arguments: {} } },
+        params: { name: "inspect_part", arguments: {} } },
     ];
     const nome = {};
     elenco.forEach((f, i) => {
       richieste.push({
         jsonrpc: "2.0", id: 10 + i, method: "tools/call",
-        params: { name: "disegna",
+        params: { name: "build",
                   arguments: {
-                    passi: JSON.parse(risolviSegnaposto(fs.readFileSync(f, "utf8"))),
+                    steps: JSON.parse(risolviSegnaposto(fs.readFileSync(f, "utf8"))),
                   } },
       });
       nome[10 + i] = f;
@@ -149,7 +149,7 @@ function unGiro(elenco, suQuesto) {
         if (m.id === 2) {
           const t = (m.result && m.result.content || []).map(c => c.text).join("\n");
           try { statoIniziale = JSON.parse(t); } catch (e) { }
-          console.log("guarda_il_pezzo: ok");
+          console.log("inspect_part: ok");
           if (elenco.length === 0) { p.stdin.end(); clearTimeout(sveglia); }
           continue;
         }
@@ -174,8 +174,8 @@ function unGiro(elenco, suQuesto) {
 }
 
 function titoliAperti(stato) {
-  if (!stato || !Array.isArray(stato.documenti_aperti)) return [];
-  return stato.documenti_aperti.map(d => d && d.titolo).filter(Boolean);
+  if (!stato || !Array.isArray(stato.documents_open)) return [];
+  return stato.documents_open.map(d => d && d.document_title).filter(Boolean);
 }
 
 function attrezzo(percorso, args) {
@@ -196,7 +196,7 @@ async function principale() {
     const stato = await unGiro([], null);
     daRisparmiare = titoliAperti(stato);
     console.log("documenti gia' aperti, che non tocchiamo: " +
-                (daRisparmiare.length ? daRisparmiare.join(", ") : "nessuno"));
+                (daRisparmiare.length ? daRisparmiare.join(", ") : "none"));
   }
 
   // IL TEMPO PER PIANO, non solo il totale.

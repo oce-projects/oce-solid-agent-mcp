@@ -5,25 +5,25 @@
   "_why_the_bytes": "un STL binario e' 80 byte di intestazione, 4 col numero di triangoli, poi 50 per triangolo: 84 + 50*12 = 684. Il file deve pesare ESATTAMENTE quello. Se il conto non torna, il file si apre lo stesso e non e' il pezzo -- e questo e' l'unico posto in tutta la catena in cui la cosa si puo' vedere.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "esporta_stl",
-      "arguments": { "percorso": "{LAVORO}\\gp2_scatola.stl" },
+    { "operation": "export_stl",
+      "arguments": { "path": "{LAVORO}\\gp2_scatola.stl" },
       "expect": [
-        { "what": "misure.triangoli", "equal_to": 12,
+        { "what": "measurements.triangles", "equal_to": 12,
           "_why_twelve": "sei facce piane, due triangoli ciascuna" },
-        { "what": "misure.byte", "equal_to": 684,
+        { "what": "measurements.byte", "equal_to": 684,
           "_why_684": "84 + 50*12: l'intestazione piu' i dodici triangoli" },
-        { "what": "misure.formato", "equal_to": "binario",
+        { "what": "measurements.file_format", "equal_to": "binary",
           "why": "e' il predefinito, e un ASCII peserebbe dieci volte tanto" },
-        { "what": "misure.unita", "equal_to": "mm",
+        { "what": "measurements.units", "equal_to": "mm",
           "why": "il file NON le porta con se' e lo slicer assume i millimetri: se questa riga non ci fosse, l'unica risposta possibile sarebbe «boh, prova»" },
-        { "what": "misure.triangoli_come_li_so",
+        { "what": "measurements.how_triangles_are_known",
           "includes": ["dopo l'intestazione del file binario"],
           "why": "i triangoli si contano RILEGGENDO IL FILE, non chiedendoli a chi l'ha scritto" },
-        { "what": "misure.verifica", "includes": ["si puo' esportare"],
-          "why": "la verifica ha girato DAVVERO prima di scrivere, e la sua frase viaggia con la risposta. Che il campo «esportato_comunque» qui non ci sia lo prova il caso `two_bodies_exported_by_force`, dove invece c'e'" } ] }
+        { "what": "measurements.check", "includes": ["si puo' esportare"],
+          "why": "la verifica ha girato DAVVERO prima di scrivere, e la sua frase viaggia con la risposta. Che il campo «exported_anyway» qui non ci sia lo prova il caso `two_bodies_exported_by_force`, dove invece c'e'" } ] }
   ]
 }

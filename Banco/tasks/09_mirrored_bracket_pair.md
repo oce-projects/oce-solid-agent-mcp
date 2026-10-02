@@ -21,8 +21,8 @@ It doesn't say which plane to mirror on, nor whether the mirrored bracket must b
 | components | 3 | — | plate, right bracket, left bracket |
 | volume_mm3 (each bracket) | 67,782 | ± 200 | the same number, for the same reason, as task 01: mirroring doesn't change the volume |
 | volume_mm3 (plate) | 360,000 | ± 50 | 300×120×10 |
-| measurements.mirrored | 1 | — | at least one component must have been born from a mirror operation, not a second independent modelling pass: that's the point of the task |
-| measurements.interferences | 0 | — | the brackets rest on the plate, they don't wedge into it |
+| measurements.new_component (of the `mirror_component` step) | present | — | at least one component must have been born from a mirror operation, not a second independent modelling pass: that's the point of the task. The mirror answers with the name of the component it made |
+| measurements.how_many (of the `interference_check` step) | 0 | — | the brackets rest on the plate, they don't wedge into it |
 
 ## What this measurement does not see
 

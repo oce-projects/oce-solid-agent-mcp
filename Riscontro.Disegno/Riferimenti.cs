@@ -71,8 +71,8 @@ namespace Riscontro.Disegno
         {
             switch (piano)
             {
-                case "superiore": return new double[] { 0, 1, 0 };
-                case "destro": return new double[] { 1, 0, 0 };
+                case "top": return new double[] { 0, 1, 0 };
+                case "right": return new double[] { 1, 0, 0 };
                 default: return new double[] { 0, 0, 1 }; // frontale
             }
         }
@@ -103,7 +103,7 @@ namespace Riscontro.Disegno
         /// Until Z-C21.5 the bridge took «frontale / superiore / destro» as the
         /// first / second / third RefPlane of the tree, in four places
         /// (TrovaPianoBase, SelezionaPiano, the section of VistaDelPezzo and
-        /// specchia_componente). IPartDoc~IFirstFeature.html: «This method
+        /// mirror_component). IPartDoc~IFirstFeature.html: «This method
         /// returns features in the current order for the part, and this order
         /// changes when the part is edited»; the same page rules out the names
         /// too («you cannot assume that the first reference plane feature is
@@ -117,10 +117,10 @@ namespace Riscontro.Disegno
         /// normal and the origin come from IRefPlane.Transform
         /// (<see cref="PlaneFrame"/>).
         ///
-        /// Parts and assemblies alike (specchia_componente mirrors on the
+        /// Parts and assemblies alike (mirror_component mirrors on the
         /// assembly planes). The probe of C3-6 read the frames on a PART; on an
         /// assembly the reading is not probed, and the bench cases of
-        /// specchia_componente (right_bracket_and_left_bracket,
+        /// mirror_component (right_bracket_and_left_bracket,
         /// the_mirrored_instance_turns_as_asked) mirror on the assembly's Right,
         /// Top and Front planes: they are the check. An unknown name, or no
         /// plane passing the rule, is null with <paramref name="reason"/> saying
@@ -178,7 +178,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>The names of the three base planes, in the catalogue's spelling.</summary>
-        public static readonly string[] BasePlaneNames = { "frontale", "superiore", "destro" };
+        public static readonly string[] BasePlaneNames = { "front", "top", "right" };
 
         /// <summary>
         /// THE DECISION OF <see cref="BasePlane"/>, WITH NO INTEROP: which of the
@@ -236,9 +236,9 @@ namespace Riscontro.Disegno
         /// elements define the translation component». So the NORMAL IS THE
         /// THIRD ROW (indices 6, 7, 8), not the third column, measured on
         /// 16/9/2026 on an oblique plane where the column gives a turned vector
-        /// (piano_per_tre_punti, OperazioniPiani); the ORIGIN is the translation
+        /// (plane_three_points, OperazioniPiani); the ORIGIN is the translation
         /// (indices 9, 10, 11), which is what the bench reads as
-        /// «ultimo_piano_mm» (top_plane_plus_100: [0, 100, 0]).
+        /// «last_plane_mm» (top_plane_plus_100: [0, 100, 0]).
         /// </summary>
         public static bool PlaneFrame(IRefPlane plane, out double[] normal, out double[] origin)
         {
@@ -277,12 +277,12 @@ namespace Riscontro.Disegno
 
             switch (genere)
             {
-                case "faccia_superiore":
+                case "top_face":
                     return Estremo(passo, facce, +1, out faccia, out motivo);
-                case "faccia_inferiore":
+                case "bottom_face":
                     return Estremo(passo, facce, -1, out faccia, out motivo);
 
-                case "faccia_del_foro":
+                case "hole_face":
                 {
                     // ── UN FORO E' CONCAVO, UN RACCORDO E' CONVESSO ───────
                     //
@@ -353,7 +353,7 @@ namespace Riscontro.Disegno
                     return true;
                 }
 
-                case "faccia_di_fondo":
+                case "pocket_floor":
                 {
                     // Il fondo di una tasca e' la faccia piana perpendicolare
                     // alla direzione del taglio. Se la tasca e' passante non
@@ -395,7 +395,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Gli spigoli indicati da un genere della famiglia «spigoli».
+        /// Gli spigoli indicati da un genere della famiglia «edges».
         ///
         /// Gli spigoli NON si deduplicano, ed e' voluto: uno spigolo appartiene
         /// a due facce, quindi scorrendo le facce lo si incontra due volte.
@@ -412,10 +412,10 @@ namespace Riscontro.Disegno
             var facce = FacceDi(passo, out motivo);
             if (facce == null) return false;
 
-            if (genere == "spigoli_superiori" || genere == "spigoli_inferiori")
+            if (genere == "top_edges" || genere == "bottom_edges")
             {
                 IFace2 cima;
-                if (!Estremo(passo, facce, genere == "spigoli_superiori" ? +1 : -1,
+                if (!Estremo(passo, facce, genere == "top_edges" ? +1 : -1,
                              out cima, out motivo))
                     return false;
 
@@ -435,7 +435,7 @@ namespace Riscontro.Disegno
                 // passi in ordine inverso dava il pezzo giusto.
                 if (!SpigoliDelBordoEsterno(cima, spigoli, out motivo)) return false;
             }
-            else if (genere == "spigoli_laterali")
+            else if (genere == "side_edges")
             {
                 if (passo.Direzione == null)
                 {
@@ -460,7 +460,7 @@ namespace Riscontro.Disegno
                     }
                 }
             }
-            else if (genere == "tutti_gli_spigoli")
+            else if (genere == "all_edges")
             {
                 foreach (var f in facce) AggiungiSpigoli(f, spigoli);
             }
@@ -702,11 +702,11 @@ namespace Riscontro.Disegno
         /// reads the same thing (StatoDocumento, LavorazioneId: a fillet
         /// shrinks three faces and all three still answer the extrusion,
         /// measured 14/9/2026; and the faces of a bar all answered the member,
-        /// measured 10/9/2026, see «da_lavorazione» there). Features are
+        /// measured 10/9/2026, see «from_feature» there). Features are
         /// compared by IFeature.GetID, «unique within the document»
         /// (IFeature~GetID.html), not by name.
         ///
-        /// WHY BOTH, AND NOT ONE FEATURE: an end trimmed by taglia_membri
+        /// WHY BOTH, AND NOT ONE FEATURE: an end trimmed by trim_members
         /// belongs to the trim while the walls around it still belong to the
         /// member; an end whose OUTER edges were filleted or chamfered has the
         /// fillet across its outer loop, while the end face itself still

@@ -1,1 +1,1 @@
-[{"operazione":"estrudi_rettangolo","argomenti":{"lunghezza_mm":200,"larghezza_mm":100,"spessore_mm":20,"piano":"superiore","centrato":true}}]
+[{"operation":"extrude_rectangle","arguments":{"length_mm":200,"width_mm":100,"thickness_mm":20,"plane":"top","centered":true}}]

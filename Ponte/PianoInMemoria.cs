@@ -91,14 +91,14 @@ namespace Oce.Solid.Agent.Ponte
             int ordine, bool riuscito, Dictionary<string, object> misure, string errore)
         {
             object numeri = null;
-            if (misure != null) misure.TryGetValue("misure", out numeri);
+            if (misure != null) misure.TryGetValue("measurements", out numeri);
 
             Esiti.Add(new Dictionary<string, object>
             {
-                ["operazione"] = Nome(ordine),
-                ["riuscita"] = riuscito,
-                ["errore"] = riuscito ? null : errore,
-                ["misure"] = numeri,
+                ["operation"] = Nome(ordine),
+                ["succeeded"] = riuscito,
+                ["error"] = riuscito ? null : errore,
+                ["measurements"] = numeri,
             });
             return Task.FromResult(0);
         }

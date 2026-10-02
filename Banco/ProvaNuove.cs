@@ -21,12 +21,12 @@ namespace ProvaSaldatura
     /// sciogliere, e che se sbagliato produce un pezzo diverso da quello
     /// confermato SENZA dare errore:
     ///
-    ///   smusso_spigoli  swChamferType_e: e' davvero uno smusso o un raccordo?
+    ///   chamfer_edges  swChamferType_e: e' davvero uno smusso o un raccordo?
     ///   rivoluzione     l'auto-selezione risolve profilo E centerline?
     ///   guscio          «Outward» vuol dire davvero verso l'esterno?
-    ///   crea_piano      il segno: valore assoluto + OptionFlip, o segnato?
-    ///   crea_asse       l'asse si ritrova poi per nome con SelectByID2?
-    ///   ripeti_lineare  il Mark della direzione, e da che parte va
+    ///   create_plane      il segno: valore assoluto + OptionFlip, o segnato?
+    ///   create_axis       l'asse si ritrova poi per nome con SelectByID2?
+    ///   linear_pattern  il Mark della direzione, e da che parte va
     ///   specchia        i Mark del piano (1) e della lavorazione (4)
     ///
     /// Ogni prova COSTRUISCE e MISURA: volume asportato, ingombro, posizione
@@ -68,7 +68,7 @@ namespace ProvaSaldatura
 
 
         // ==================================================================
-        // R2. sopprimi_lavorazione ed elimina_lavorazione: ADESSO SONO FILE
+        // R2. suppress_feature ed delete_feature: ADESSO SONO FILE
         // ==================================================================
         //
         // `cases\removal\*.json` (voce F11) - cinque casi, gli stessi numeri:
@@ -80,7 +80,7 @@ namespace ProvaSaldatura
         //
         // IL FILE PINZA DI PIU'. Il C# guardava il volume e il campo
         // Â«soppressaÂ»; i casi guardano anche QUALE foro si e' spento -
-        // `centri_x_mm` passa da [-60, 0, 60] a [-60, 0] - e quante
+        // `centers_x_mm` passa da [-60, 0, 60] a [-60, 0] - e quante
         // lavorazioni restano nell'albero, che e' tutta la differenza fra
         // sopprimere e cancellare. Si lanciano con `--gruppo casi`.
 
@@ -119,15 +119,15 @@ namespace ProvaSaldatura
                 doc = NuovaParte();
                 PiastraCentrata(doc, 200, 120, 20);
                 var stato0 = LeggiStato(doc);
-                string davanti = FacciaConVerso(stato0, "davanti");
+                string davanti = FacciaConVerso(stato0, "front");
                 string errore, nomeForo;
-                EseguiConNome(doc, "foro_guidato", new Dictionary<string, object>
+                EseguiConNome(doc, "hole_wizard", new Dictionary<string, object>
                 {
-                    ["faccia_uid"] = davanti,
-                    ["tipo"] = "filettato",
-                    ["taglia"] = "M8",
-                    ["passante"] = true,
-                    ["posizioni"] = new List<object>
+                    ["face_uid"] = davanti,
+                    ["variant"] = "threaded",
+                    ["size"] = "M8",
+                    ["through_all"] = true,
+                    ["positions"] = new List<object>
                     {
                         new Dictionary<string, object> { ["x_mm"] = -70.0, ["y_mm"] = -40.0 },
                         new Dictionary<string, object> { ["x_mm"] = 70.0, ["y_mm"] = -40.0 },
@@ -150,7 +150,7 @@ namespace ProvaSaldatura
                 // uscire da questa macchina (`Controlli\controlla-pubblicabilita.ps1`).
                 string cartella = System.IO.Path.Combine(
                     System.IO.Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".",
-                    "lavoro", "viste");
+                    "lavoro", "views");
                 if (!System.IO.Directory.Exists(cartella)) System.IO.Directory.CreateDirectory(cartella);
 
                 // Piu' viste, perche' UNA SOLA NON BASTA e vale la pena
@@ -171,10 +171,10 @@ namespace ProvaSaldatura
                 //   swFrontView=1 swTopView=5 swIsometricView=7 swTrimetricView=8
                 var viste = new[]
                 {
-                    Tuple.Create("isometrica", (int)swStandardViews_e.swIsometricView),
-                    Tuple.Create("trimetrica", (int)swStandardViews_e.swTrimetricView),
-                    Tuple.Create("frontale", (int)swStandardViews_e.swFrontView),
-                    Tuple.Create("superiore", (int)swStandardViews_e.swTopView),
+                    Tuple.Create("isometric", (int)swStandardViews_e.swIsometricView),
+                    Tuple.Create("trimetric", (int)swStandardViews_e.swTrimetricView),
+                    Tuple.Create("front", (int)swStandardViews_e.swFrontView),
+                    Tuple.Create("top", (int)swStandardViews_e.swTopView),
                 };
                 int fatte = 0;
                 foreach (var vista in viste)
@@ -229,15 +229,15 @@ namespace ProvaSaldatura
                 doc = NuovaParte();
                 PiastraCentrata(doc, 200, 120, 20);
                 var stato0 = LeggiStato(doc);
-                string davanti = FacciaConVerso(stato0, "davanti");
+                string davanti = FacciaConVerso(stato0, "front");
                 string errore, nomeForo;
-                EseguiConNome(doc, "foro_guidato", new Dictionary<string, object>
+                EseguiConNome(doc, "hole_wizard", new Dictionary<string, object>
                 {
-                    ["faccia_uid"] = davanti,
-                    ["tipo"] = "filettato",
-                    ["taglia"] = "M8",
-                    ["passante"] = true,
-                    ["posizioni"] = new List<object>
+                    ["face_uid"] = davanti,
+                    ["variant"] = "threaded",
+                    ["size"] = "M8",
+                    ["through_all"] = true,
+                    ["positions"] = new List<object>
                     {
                         new Dictionary<string, object> { ["x_mm"] = -70.0, ["y_mm"] = -40.0 },
                         new Dictionary<string, object> { ["x_mm"] = 70.0, ["y_mm"] = -40.0 },
@@ -278,7 +278,7 @@ namespace ProvaSaldatura
 
                 Console.WriteLine();
                 Console.WriteLine("  --- una faccia, per esteso ---");
-                var facce = stato["facce"] as System.Collections.IList;
+                var facce = stato["faces"] as System.Collections.IList;
                 if (facce != null && facce.Count > 0)
                 {
                     var d = facce[0] as Dictionary<string, object>;
@@ -322,15 +322,15 @@ namespace ProvaSaldatura
                 var stato = LeggiStato(doc);
                 Console.WriteLine();
                 Console.WriteLine("=== che facce ha la piastra di prova 200x120x20 ===");
-                var facce = stato["facce"] as System.Collections.IList;
+                var facce = stato["faces"] as System.Collections.IList;
                 Console.WriteLine("  corpi solidi: " + ContaCorpi(doc) +
                                   ", facce nello stato: " + (facce == null ? 0 : facce.Count));
                 if (facce != null)
                     foreach (Dictionary<string, object> f in facce)
                     {
                         object v, n, area;
-                        f.TryGetValue("verso", out v);
-                        f.TryGetValue("normale", out n);
+                        f.TryGetValue("facing", out v);
+                        f.TryGetValue("normal", out n);
                         f.TryGetValue("area_mm2", out area);
                         Console.WriteLine(string.Format(
                             "  {0,-4} verso={1,-9} area={2,-10} normale={3}",
@@ -346,7 +346,7 @@ namespace ProvaSaldatura
         }
 
         // ==================================================================
-        // 00. sposta_corpi — il baricentro dice se la distanza e' quella giusta
+        // 00. move_bodies — il baricentro dice se la distanza e' quella giusta
         // ==================================================================
         //
         // LA DOMANDA A CUI QUESTE PROVE RISPONDONO. `InsertMoveCopyBody2`
@@ -362,7 +362,7 @@ namespace ProvaSaldatura
         private static void ProvaSpostaCorpi()
         {
             Console.WriteLine();
-            Console.WriteLine("=== sposta_corpi (add-in) ===");
+            Console.WriteLine("=== move_bodies (add-in) ===");
 
             // Due piastre uguali, staccate: 100x100x10 = 100.000 mm3 ciascuna.
             // Spostandone UNA di 50 mm in Z, il baricentro di tutto il pezzo si
@@ -438,16 +438,16 @@ namespace ProvaSaldatura
                     // una misura sensibile. Muovendoli tutti, il baricentro si
                     // sposterebbe esattamente di d e non distinguerebbe un
                     // corpo dimenticato indietro.
-                    ["corpi_uid"] = new List<string> { uidFinto ?? uid[1] },
+                    ["bodies_uid"] = new List<string> { uidFinto ?? uid[1] },
                     ["dx_mm"] = dx,
                     ["dy_mm"] = dy,
                     ["dz_mm"] = dz,
-                    ["copia"] = copia,
+                    ["copy"] = copia,
                 };
-                if (copia) argomenti["quante_copie"] = copie;
+                if (copia) argomenti["copy_count"] = copie;
 
                 string errore;
-                var misure = Esegui(doc, "sposta_corpi", argomenti, out errore, stato);
+                var misure = Esegui(doc, "move_bodies", argomenti, out errore, stato);
                 if (deveFallire)
                 {
                     Segna(nome, misure == null && !string.IsNullOrEmpty(errore),
@@ -478,7 +478,7 @@ namespace ProvaSaldatura
         {
             var fuori = new List<string>();
             object grezzi;
-            if (stato == null || !stato.TryGetValue("corpi", out grezzi)) return fuori;
+            if (stato == null || !stato.TryGetValue("bodies", out grezzi)) return fuori;
             var lista = grezzi as System.Collections.IEnumerable;
             if (lista == null) return fuori;
             foreach (var c in lista)
@@ -583,15 +583,15 @@ namespace ProvaSaldatura
         // scarto non prova il foro, e tenerla in giro come rete di sicurezza
         // sarebbe tenere in giro proprio il difetto che F3 chiude.
         // ==================================================================
-        // 4. crea_piano ADESSO E' UN GRUPPO DI FILE
+        // 4. create_plane ADESSO E' UN GRUPPO DI FILE
         // ==================================================================
         //
         // `cases\plane\*.json` (voce F11) - tre casi. L'attesa non e' sulla
         // distanza che il ponte ricopia dalla richiesta, ma su DOVE E' FINITO
-        // il piano: `ultimo_piano_mm`, tre numeri letti dalla matrice del
+        // il piano: `last_plane_mm`, tre numeri letti dalla matrice del
         // piano creato. Il segno si vede solo cosi'. `--gruppo casi`.
 
-        // 5. crea_asse — e la domanda vera: si ritrova poi per nome?
+        // 5. create_axis — e la domanda vera: si ritrova poi per nome?
         // ==================================================================
         //
         // ── QUASI TUTTA QUESTA FAMIGLIA ADESSO E' DUE FILE ────────────────
@@ -606,7 +606,7 @@ namespace ProvaSaldatura
         //
         // La domanda vera non e' «l'asse esiste», e' «le ripetizioni lo
         // RITROVANO». Lo ritrovano con `SelectByID2(nome, "AXIS", ...)`: se
-        // quella riga non aggancia, `crea_asse` riesce, lo stato mostra
+        // quella riga non aggancia, `create_axis` riesce, lo stato mostra
         // l'asse, e la ripetizione fallisce subito dopo — cioe' l'operazione
         // e' inutile e niente lo dice.
         //
@@ -616,60 +616,60 @@ namespace ProvaSaldatura
         private static void ProvaCreaAsse()
         {
             Console.WriteLine();
-            Console.WriteLine("=== crea_asse: l'asse si ritrova per nome? (add-in) ===");
+            Console.WriteLine("=== create_axis: l'asse si ritrova per nome? (add-in) ===");
             IModelDoc2 doc = null;
             try
             {
                 doc = NuovaParte();
                 PiastraCentrata(doc, 120, 120, 15);
                 var stato = LeggiStato(doc);
-                string facciaPiana = FacciaConVerso(stato, "davanti");
-                if (facciaPiana == null) { Segna("crea_asse: faccia di partenza", false, "assente"); return; }
+                string facciaPiana = FacciaConVerso(stato, "front");
+                if (facciaPiana == null) { Segna("create_axis: faccia di partenza", false, "assente"); return; }
 
                 string errore, nomeForo;
-                var foro = EseguiConNome(doc, "foro_guidato", new Dictionary<string, object>
+                var foro = EseguiConNome(doc, "hole_wizard", new Dictionary<string, object>
                 {
-                    ["faccia_uid"] = facciaPiana,
-                    ["tipo"] = "passaggio",
-                    ["taglia"] = "M10",
-                    ["passante"] = true,
-                    ["posizioni"] = new List<object>
+                    ["face_uid"] = facciaPiana,
+                    ["variant"] = "clearance",
+                    ["size"] = "M10",
+                    ["through_all"] = true,
+                    ["positions"] = new List<object>
                     {
                         new Dictionary<string, object> { ["x_mm"] = 0.0, ["y_mm"] = 0.0 },
                     },
                 }, out errore, out nomeForo, stato);
-                if (foro == null) { Segna("crea_asse: foro di prova", false, Corto(errore)); return; }
+                if (foro == null) { Segna("create_axis: foro di prova", false, Corto(errore)); return; }
 
                 stato = LeggiStato(doc);
                 string cilindrica = FacciaNonPiana(stato);
                 if (cilindrica == null)
                 {
-                    Segna("crea_asse: la parete del foro compare nello stato", false,
-                          "nessuna faccia con «piana: false»: il modello non avrebbe " +
-                          "niente da passare a crea_asse");
+                    Segna("create_axis: la parete del foro compare nello stato", false,
+                          "nessuna faccia con «planar: false»: il modello non avrebbe " +
+                          "niente da passare a create_axis");
                     return;
                 }
 
                 string nomeAsse;
-                var misure = EseguiConNome(doc, "crea_asse", new Dictionary<string, object>
+                var misure = EseguiConNome(doc, "create_axis", new Dictionary<string, object>
                 {
-                    ["faccia_uid"] = cilindrica,
+                    ["face_uid"] = cilindrica,
                 }, out errore, out nomeAsse, stato);
-                if (misure == null) { Segna("crea_asse: l'asse per il gancio", false, Corto(errore)); return; }
-                string asse = misure.ContainsKey("asse") ? Convert.ToString(misure["asse"]) : "";
+                if (misure == null) { Segna("create_axis: l'asse per il gancio", false, Corto(errore)); return; }
+                string asse = misure.ContainsKey("axis") ? Convert.ToString(misure["axis"]) : "";
                 if (string.IsNullOrEmpty(asse))
                 {
                     // NON E' IL ROSSO DI QUESTA PROVA: senza il nome non c'e'
                     // niente da agganciare, e dirlo e' meglio che agganciare
                     // la stringa vuota e chiamarlo fallimento del gancio.
-                    Segna("crea_asse: l'operazione dice come si chiama l'asse", false,
-                          "le misure non hanno «asse»");
+                    Segna("create_axis: l'operazione dice come si chiama l'asse", false,
+                          "le misure non hanno «axis»");
                     return;
                 }
 
-                // LA PROVA CHE CONTA: «ripeti_lineare» e «ripeti_circolare»
+                // LA PROVA CHE CONTA: «linear_pattern» e «circular_pattern»
                 // ritrovano l'asse con SelectByID2(nome, "AXIS", ...). Se
-                // quella riga non aggancia, crea_asse riesce, lo stato mostra
+                // quella riga non aggancia, create_axis riesce, lo stato mostra
                 // l'asse, e la ripetizione fallisce subito dopo — cioe'
                 // l'operazione e' inutile e niente lo dice.
                 bool agganciato = false;
@@ -679,14 +679,14 @@ namespace ProvaSaldatura
                     agganciato = doc.Extension.SelectByID2(asse, "AXIS", 0, 0, 0, false, 1, null, 0);
                 }
                 catch { }
-                Segna("crea_asse: l'asse si aggancia con SelectByID2(\"AXIS\")", agganciato,
+                Segna("create_axis: l'asse si aggancia con SelectByID2(\"AXIS\")", agganciato,
                       agganciato ? "asse «" + asse + "»" : "la ripetizione non lo trovera' mai");
             }
-            catch (Exception ex) { Segna("crea_asse", false, Perche(ex)); }
+            catch (Exception ex) { Segna("create_axis", false, Perche(ex)); }
             finally { Chiudi(doc); }
         }
         // ==================================================================
-        // 6. ripeti_lineare e 7. specchia ADESSO SONO DUE GRUPPI DI FILE
+        // 6. linear_pattern e 7. specchia ADESSO SONO DUE GRUPPI DI FILE
         // ==================================================================
         //
         // `cases\patterns\*.json` - tre fori a passo 40 lungo uno spigolo, la
@@ -820,12 +820,12 @@ namespace ProvaSaldatura
         // ==================================================================
         private static string FacciaConVerso(Dictionary<string, object> stato, string verso)
         {
-            var facce = stato["facce"] as System.Collections.IList;
+            var facce = stato["faces"] as System.Collections.IList;
             if (facce == null) return null;
             foreach (Dictionary<string, object> f in facce)
             {
                 object v;
-                if (f.TryGetValue("verso", out v) && Convert.ToString(v) == verso)
+                if (f.TryGetValue("facing", out v) && Convert.ToString(v) == verso)
                     return Convert.ToString(f["uid"]);
             }
             return null;
@@ -833,12 +833,12 @@ namespace ProvaSaldatura
 
         private static string FacciaNonPiana(Dictionary<string, object> stato)
         {
-            var facce = stato["facce"] as System.Collections.IList;
+            var facce = stato["faces"] as System.Collections.IList;
             if (facce == null) return null;
             foreach (Dictionary<string, object> f in facce)
             {
                 object v;
-                if (f.TryGetValue("piana", out v) && !Convert.ToBoolean(v))
+                if (f.TryGetValue("planar", out v) && !Convert.ToBoolean(v))
                     return Convert.ToString(f["uid"]);
             }
             return null;
@@ -846,7 +846,7 @@ namespace ProvaSaldatura
 
         private static string SpigoloPiuLungo(Dictionary<string, object> stato)
         {
-            var spigoli = stato.ContainsKey("spigoli") ? stato["spigoli"] as System.Collections.IList : null;
+            var spigoli = stato.ContainsKey("edges") ? stato["edges"] as System.Collections.IList : null;
             if (spigoli == null || spigoli.Count == 0) return null;
             // Lo stato li ordina gia' per lunghezza decrescente.
             return Convert.ToString((spigoli[0] as Dictionary<string, object>)["uid"]);

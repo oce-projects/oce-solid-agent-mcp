@@ -6,25 +6,25 @@
   "intent_why": "«il foro sul fondo» vuol dire sul fondo. La scatola e' aperta di sotto e il fondo e' il soffitto, spesso 5: alzandola da 52 a 80 il fondo passa da z = 47 a z = 75. Un foro che resta a z assoluto non e' piu' sul fondo, e li' non c'e' piu' materiale da togliere.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 314, "larghezza_mm": 274,
-                     "spessore_mm": 52, "centrato": true }
+      "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 314, "width_mm": 274,
+                     "thickness_mm": 52, "centered": true }
     },
     {
-      "operation": "guscio",
-      "arguments": { "facce_uid": ["@faccia(verso=dietro)"], "spessore_mm": 5,
-                     "verso_esterno": false }
+      "operation": "shell",
+      "arguments": { "faces_uid": ["@face(normal=back)"], "thickness_mm": 5,
+                     "outward": false }
     },
     {
-      "operation": "taglio_cilindrico",
-      "arguments": { "faccia_uid": "@faccia(verso=dietro,area=80256)", "x_mm": 0, "y_mm": 0,
-                     "diametro_mm": 60, "passante": false, "profondita_mm": 3 }
+      "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(normal=back,area=80256)", "x_mm": 0, "y_mm": 0,
+                     "diameter_mm": 60, "through_all": false, "depth_mm": 3 }
     }
   ],
-  "modify": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 80 },
+  "modify": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "value_mm": 80 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [314, 274, 80] },
-    { "what": "centro_massa_mm", "equal_to": [0, 0, 57.253],
+    { "what": "bounding_box_mm", "equal_to": [314, 274, 80] },
+    { "what": "center_of_mass_mm", "equal_to": [0, 0, 57.253],
       "tolerance": 0.05,
       "tolerance_why": "il guscio da solo ha il baricentro a 57,443; il foro (z 75..78, centro 76,5) lo porta a 57,253. Se il foro restasse dov'era, a z 47..50, si troverebbe nel VUOTO e non toglierebbe niente: 57,443. Centonovanta millesimi fra le due risposte, e cinque centesimi di tolleranza le distinguono. IL VOLUME NON SI USA APPOSTA: il guscio che SOLIDWORKS costruisce ha 960 mm3 in piu' del modello a scatole annidate (misurato), e quel 960 non c'entra niente col foro -- un'attesa sul volume assoluto classificherebbe male il caso per un errore nel MIO conto, non nel pezzo" }
   ]

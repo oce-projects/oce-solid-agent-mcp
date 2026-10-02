@@ -70,10 +70,10 @@ namespace Controlli.Seleziona
             bool preso = false;
             switch (cosa)
             {
-                case "corpo":
+                case "body":
                     try { preso = corpo.Select2(aggiungi, null); } catch { }
                     break;
-                case "spigolo":
+                case "edge":
                 {
                     var spigoli = corpo.GetEdges() as object[];
                     if (spigoli != null && spigoli.Length >= quale)

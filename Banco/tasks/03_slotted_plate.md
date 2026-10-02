@@ -20,8 +20,7 @@ It says "centre-to-centre of the two round ends", not just "60 long": the same l
 |---|---|---|---|
 | volume_mm3 | 111,489.03 | ± 0.1 | plate 150×80×10 = 120,000; minus the slot (a 60×12 rectangle plus the two radius-6 half-circles, i.e. 60×12 + π×6² = 833.0973 of area, ×10 thick = 8,330.97); minus four 3×3 chamfers (each 0.5×3×3×10 = 45, 180 for four). 120,000 − 8,330.97 − 180 = 111,489.03 |
 | bodies | 1 | — | a machined plate stays one part |
-| measurements.slots | 1 | — | the slot is counted in its own vocabulary, not the holes' one |
-| measurements.holes | 0 | — | a dedicated entry: zero round holes, because none was asked for. A non-zero number here would mean the slot got counted (or built) as a hole, blurring two families the glossary keeps apart |
+| diameters_mm | [12, 12] | ± 0.02 | the only curved faces are the two round ends of the slot, half-cylinders of radius 6: a round hole (none was asked for) would add a diameter, and a slot built from straight cuts would give none. The slot is counted by its own shape, not as holes |
 
 ## What this measurement does not see
 

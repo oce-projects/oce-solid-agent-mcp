@@ -5,26 +5,26 @@
   "_why_letting_solidworks_fail_is_not_enough": "Il messaggio che ne uscirebbe sarebbe «il piano non e' stato creato e SOLIDWORKS non dice perche'», che e' vero e inutile. Chi ha sbagliato un numero non saprebbe quale dei tre.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
-      "expect": [ { "what": "stato.piani_disponibili", "equal_to": 3 } ] },
-    { "operation": "piano_per_tre_punti",
-      "arguments": { "punto1_mm": [0, 0, 0], "punto2_mm": [50, 0, 0],
-                     "punto3_mm": [100, 0, 0] },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [ { "what": "state.planes_available", "equal_to": 3 } ] },
+    { "operation": "plane_three_points",
+      "arguments": { "point1_mm": [0, 0, 0], "point2_mm": [50, 0, 0],
+                     "point3_mm": [100, 0, 0] },
       "must_fail": {
         "message_includes": ["sono in fila", "infiniti piani"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "oblique_plane_through_three_points" } },
-    { "operation": "piano_per_tre_punti",
-      "arguments": { "punto1_mm": [0, 0, 0], "punto2_mm": [50, 0, 0],
-                     "punto3_mm": [100, 10, 0] },
+    { "operation": "plane_three_points",
+      "arguments": { "point1_mm": [0, 0, 0], "point2_mm": [50, 0, 0],
+                     "point3_mm": [100, 10, 0] },
       "expect": [
-        { "what": "misure.normale_riletta", "equal_to": [0, 0, 1], "tolerance": 0.0001,
+        { "what": "measurements.normal_reread", "equal_to": [0, 0, 1], "tolerance": 0.0001,
           "tolerance_why": "tre punti sul piano z=0: la normale e' l'asse Z",
           "why": "SPOSTANDO IL TERZO PUNTO DI DIECI MILLIMETRI FUORI DALLA RETTA, il piano nasce. E' la meta' che dice che il rifiuto di sopra guarda l'allineamento e non qualcos'altro: cambia un solo numero su nove." },
-        { "what": "stato.piani_disponibili", "equal_to": 4,
+        { "what": "state.planes_available", "equal_to": 4,
           "why": "e dopo il rifiuto i piani erano ancora tre: il passo rifiutato non ne aveva lasciato nessuno per strada" } ] }
   ]
 }

@@ -52,12 +52,12 @@ namespace Riscontro.Disegno
                     "inseriscono solo in un assieme: aprine uno, oppure crealo, " +
                     "e poi richiamami.");
 
-            string percorso = Str(a, "percorso", null);
+            string percorso = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(percorso))
                 return Fallito(
-                    "Non mi hai detto quale componente inserire: «percorso» e' il " +
+                    "Non mi hai detto quale componente inserire: «path» e' il " +
                     "percorso completo del file, e dev'essere uno dei documenti " +
-                    "gia' aperti. Li trovi in «documenti_aperti» dello stato.");
+                    "gia' aperti. Li trovi in «documents_open» dello stato.");
 
             if (!File.Exists(percorso))
                 return Fallito(
@@ -77,12 +77,12 @@ namespace Riscontro.Disegno
                     CosaEAperto());
 
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0), z = Num(a, "z_mm", 0);
-            string configurazione = Str(a, "configurazione", "");
+            string configurazione = Str(a, "configuration", "");
             bool configurationAsked = !string.IsNullOrWhiteSpace(configurazione);
 
             // ── THE CONFIGURATION ASKED FOR IS CHECKED BEFORE INSERTING ──────
             //
-            // Z-C21.4, finding L11-1. Until library 0.145.0 «configurazione» went
+            // Z-C21.4, finding L11-1. Until library 0.145.0 «configuration» went
             // to AddComponent5 with UseConfigForPartReferences false, so it was
             // never used (see the call below), and a name the file does not have
             // was not refused either. The names are read from the open document
@@ -186,13 +186,13 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["componenti_prima"] = prima,
-                ["componenti_dopo"] = dopo,
+                ["components_before"] = prima,
+                ["components_after"] = dopo,
             };
 
-            if (!string.IsNullOrWhiteSpace(nome)) misure["componente"] = nome;
+            if (!string.IsNullOrWhiteSpace(nome)) misure["component"] = nome;
 
-            if (!string.IsNullOrWhiteSpace(referenced)) misure["configurazione"] = referenced;
+            if (!string.IsNullOrWhiteSpace(referenced)) misure["configuration"] = referenced;
 
             // ── E' VINCOLATO? LE MISURE CHE FUNZIONANO DAVVERO ──────────
             //
@@ -212,18 +212,18 @@ namespace Riscontro.Disegno
             // questo lo si sa per certo. Non si sa DI QUANTO sia libero, e
             // infatti non lo si dice.
             var gradi = GradiDiLiberta(vero);
-            misure["stato_gradi_di_liberta"] = gradi.Stato;
-            if (gradi.Disponibile) misure["gradi_di_liberta_residui"] = gradi.Quanti;
+            misure["degrees_of_freedom_state"] = gradi.Stato;
+            if (gradi.Disponibile) misure["degrees_of_freedom_remaining"] = gradi.Quanti;
 
             bool fisso = false;
             try { fisso = vero != null && vero.IsFixed(); } catch { }
-            misure["fisso"] = fisso;
+            misure["grounded"] = fisso;
 
             int accoppiamenti = ContaGliAccoppiamenti(vero);
-            if (accoppiamenti >= 0) misure["accoppiamenti"] = accoppiamenti;
+            if (accoppiamenti >= 0) misure["mates"] = accoppiamenti;
 
             bool appoggiato = !fisso && accoppiamenti == 0;
-            misure["appoggiato"] = appoggiato;
+            misure["resting"] = appoggiato;
 
             // DOVE E' FINITA L'ORIGINE, che NON e' il punto che hai chiesto.
             //
@@ -238,15 +238,15 @@ namespace Riscontro.Disegno
             // e vedere due numeri diversi senza spiegazione e' peggio che
             // vederne uno solo.
             var origine = OrigineDelComponenteMm(vero);
-            if (origine != null) misure["origine_mm"] = origine;
+            if (origine != null) misure["origin_mm"] = origine;
 
             // IL GIUDIZIO E' UNA FRASE, NON UN NUMERO, e viaggia con le misure.
             //
-            // «gradi_di_liberta_residui: 6» da solo non dice cosa fare. E chi
+            // «degrees_of_freedom_remaining: 6» da solo non dice cosa fare. E chi
             // legge questa risposta potrebbe non aver mai letto la descrizione
             // dell'operazione: l'avvertimento va qui, dove arriva comunque. E'
-            // la stessa scelta di `verifica_geometria_corpo`, che accanto a
-            // `stampabile` scrive `giudizio`.
+            // la stessa scelta di `check_body_geometry`, che accanto a
+            // `printable` scrive `verdict`.
             string giudizio =
                 "Inserito «" + (nome ?? Path.GetFileName(percorso)) + "» a " +
                 MmDiAssieme(x) + ", " + MmDiAssieme(y) + ", " + MmDiAssieme(z) + " mm. " +
@@ -264,7 +264,7 @@ namespace Riscontro.Disegno
                               "non fornisce i gradi di liberta' residui da qui."
                             : "Non sono riuscito a dire se sia vincolato: non ho potuto " +
                               "leggere ne' gli accoppiamenti ne' lo stato.");
-            misure["giudizio"] = giudizio;
+            misure["verdict"] = giudizio;
             _log("[agente] " + giudizio);
 
             return RiuscitoSenzaCreare(misure);
@@ -286,7 +286,7 @@ namespace Riscontro.Disegno
         /// **6**: tre traslazioni e tre rotazioni. Uno **zero** su un componente
         /// che nessuno ha accoppiato non vuol dire «vincolato bene»: vuol dire
         /// FISSO, che e' un'altra cosa — per questo lo stato scrive anche
-        /// `fisso` a parte (voce GA1).
+        /// `grounded` a parte (voce GA1).
         /// </summary>
         /// <remarks>
         /// `internal` e non `private`: la legge anche `StatoAssieme` (voce GA5),
@@ -340,7 +340,7 @@ namespace Riscontro.Disegno
         ///
         /// Fino alla 0.58.0 questo metodo tornava direttamente il valore di
         /// `GetRemainingDOFs` e lo si pubblicava come
-        /// `gradi_di_liberta_residui`. **Era sbagliato: quel valore non e' un
+        /// `degrees_of_freedom_remaining`. **Era sbagliato: quel valore non e' un
         /// conteggio, e' uno stato** (`swRemainingDofs_e`). Misurato il
         /// 16/9/2026: su un assieme appena costruito risponde **2**, che vuol
         /// dire `Unavailable` — e lo risponde **identico su un componente fisso
@@ -384,7 +384,7 @@ namespace Riscontro.Disegno
             {
                 case (int)swRemainingDofs_e.swRemainingDofs_Restricted: return "vincolato";
                 case (int)swRemainingDofs_e.swRemainingDofs_Unrestricted: return "libero";
-                case (int)swRemainingDofs_e.swRemainingDofs_Unavailable: return "non disponibile";
+                case (int)swRemainingDofs_e.swRemainingDofs_Unavailable: return "unavailable";
                 case (int)swRemainingDofs_e.swRemainingDofs_Failed: return "non riuscito";
                 case (int)swRemainingDofs_e.swRemainingDofs_RootComponent: return "componente radice";
                 default: return "sconosciuto (" + esito.ToString(CultureInfo.InvariantCulture) + ")";
@@ -438,7 +438,7 @@ namespace Riscontro.Disegno
         /// nemmeno il nome, non si sa niente e si dice `-1`.
         ///
         /// La differenza non e' accademica: `accoppiamenti = 0` porta a
-        /// «appoggiato», che e' un **avvertimento**; `-1` porta a «non lo so»,
+        /// «resting», che e' un **avvertimento**; `-1` porta a «non lo so»,
         /// che e' un'altra cosa. Confonderle vorrebbe dire o tacere un pericolo
         /// o gridarne uno che non c'e'.
         ///
@@ -537,7 +537,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// The open document whose path is <paramref name="percorso"/>, or null.
+        /// The open document whose path is <paramref name="path"/>, or null.
         /// The same walk EAperto always made, by full path, so that the
         /// configuration check of L11-1 reads the very document the insertion
         /// will use.

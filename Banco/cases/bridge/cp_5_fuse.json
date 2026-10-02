@@ -1,12 +1,12 @@
 [
  {
-  "operazione": "ripeti_lineare",
-  "argomenti": {
+  "operation": "linear_pattern",
+  "arguments": {
    "feature_uid": "Taglio-Estrusione1",
-   "asse1_uid": "E1",
-   "passo1_mm": 5,
-   "numero_istanze1": 4,
-   "capovolgi_1": true
+   "axis1_uid": "E1",
+   "pitch1_mm": 5,
+   "instance_count1": 4,
+   "flip1": true
   }
  }
 ]

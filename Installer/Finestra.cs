@@ -27,6 +27,7 @@ namespace Oce.Solid.Agent.Installer
         private readonly ListView _controlli = new ListView();
         private readonly TextBox _cartella = new TextBox();
         private readonly TextBox _addin = new TextBox();
+        private readonly TextBox _weldmentProfiles = new TextBox();
         private readonly CheckedListBox _client = new CheckedListBox();
         private readonly TextBox _registro = new TextBox();
         private readonly Button _installa = new Button();
@@ -40,8 +41,8 @@ namespace Oce.Solid.Agent.Installer
         public Finestra()
         {
             Text = Passi.NomeProdotto + " — installazione";
-            Size = new Size(820, 700);
-            MinimumSize = new Size(720, 600);
+            Size = new Size(820, 754);
+            MinimumSize = new Size(720, 654);
             StartPosition = FormStartPosition.CenterScreen;
             Font = new Font("Segoe UI", 9F);
             BackColor = Color.White;
@@ -104,6 +105,18 @@ namespace Oce.Solid.Agent.Installer
             _addin.ReadOnly = true;
             _addin.ForeColor = Color.Gray;
             Campo(_addin, ref y);
+
+            // THE WELDMENT PROFILES (entry H19, A6): prefilled with the folder
+            // SOLIDWORKS uses, or the one it installs, only when one exists;
+            // empty otherwise. Written as PROFILI_SALDATURA in the client's env.
+            // A folder already in an installed client's entry comes first: it
+            // was chosen by someone (H19 review).
+            Aggiungi(Titoletto("Weldment profiles folder (optional: profili_saldatura needs it)", ref y));
+            string source;
+            _weldmentProfiles.Text =
+                Configurazione.ExistingWeldmentProfiles(Configurazione.ClientTrovati().Where(c => c.Installato)) ??
+                Passi.FindWeldmentProfiles(Passi.TrovaRedist(), out source) ?? "";
+            CampoConBottone(_weldmentProfiles, "Browse…", ref y, ChooseWeldmentProfiles);
 
             // ── client ───────────────────────────────────────────────────
             Aggiungi(Titoletto("Quali programmi collegare", ref y));
@@ -257,6 +270,12 @@ namespace Oce.Solid.Agent.Installer
                 if (d.ShowDialog(this) == DialogResult.OK) _cartella.Text = d.SelectedPath;
         }
 
+        private void ChooseWeldmentProfiles()
+        {
+            using (var d = new FolderBrowserDialog { SelectedPath = _weldmentProfiles.Text })
+                if (d.ShowDialog(this) == DialogResult.OK) _weldmentProfiles.Text = d.SelectedPath;
+        }
+
         // ─────────────────────────────────────────────────────────────────
 
         private void Installa()
@@ -265,6 +284,11 @@ namespace Oce.Solid.Agent.Installer
             _registro.Clear();
             try
             {
+                var weldmentProfiles = _weldmentProfiles.Text.Trim();
+                if (weldmentProfiles.Length > 0 && !Directory.Exists(weldmentProfiles))
+                    throw new Exception("the weldment profiles folder does not exist: " + weldmentProfiles);
+                if (weldmentProfiles.Length == 0) weldmentProfiles = null;
+
                 Scrivi("— installazione —");
                 var eseguibile = Passi.Installa(_cartella.Text, Scrivi);
 
@@ -273,45 +297,55 @@ namespace Oce.Solid.Agent.Installer
                 // cancellare gli altri server no.
                 Scrivi("");
                 Scrivi("— collegamento —");
-                bool qualcuno = false;
+                bool qualcuno = false, notWired = false;
                 for (int i = 0; i < _clientTrovati.Count; i++)
                 {
                     if (!_client.GetItemChecked(i)) continue;
                     var client = _clientTrovati[i];
                     try
                     {
-                        Configurazione.Collega(client, eseguibile, _redist, Scrivi);
+                        Programma.Wire(client, eseguibile, _redist, weldmentProfiles, null, Scrivi);
                         qualcuno = true;
                         if (Configurazione.EAperto(client))
                             Scrivi("  ATTENZIONE: " + client.Nome + " e' aperto adesso. " +
                                    "Chiudilo e riaprilo, se no non legge la configurazione nuova.");
                     }
-                    catch (Exception ex) { Scrivi("  " + client.Nome + ": " + ex.Message); }
+                    catch (Exception ex) { Scrivi("  " + client.Nome + ": " + ex.Message); notWired = true; }
                 }
-                if (!qualcuno)
+                if (!qualcuno || notWired)
                 {
-                    Scrivi("  nessun client scelto. Il blocco da incollare a mano:");
-                    Scrivi(Configurazione.BloccoDaIncollare(eseguibile, _redist));
+                    Scrivi("  " + Programma.PasteHeader);
+                    Scrivi(Configurazione.BloccoDaIncollare(eseguibile, _redist, weldmentProfiles));
                 }
 
                 // IL GIRO SECCO: e' l'unica cosa che permette di dire
                 // «installato» sapendo che e' vero.
                 Scrivi("");
                 Scrivi("— prova —");
-                bool inPiedi;
-                foreach (var riga in Passi.Prova(eseguibile, _redist, out inPiedi)
+                int code;
+                foreach (var riga in Passi.Prova(eseguibile, _redist, out code)
                              .Split('\n')) Scrivi("  " + riga.TrimEnd());
 
-                if (inPiedi)
+                // The exit code of the self-test decides (entry H19, B3). This
+                // window used to say "SOLIDWORKS is not open" for every
+                // failure, including SOLIDWORKS not installed.
+                if (code == Passi.SelfTestAttached && !notWired)
                 {
                     _esito.Text = "Fatto: il ponte gira e vede il documento aperto.";
                     _esito.ForeColor = Color.FromArgb(0, 120, 40);
                 }
-                else
+                else if (Passi.SelfTestAccepted(code) && !notWired)
                 {
                     _esito.Text = "Installato. SOLIDWORKS non e' aperto, quindi la " +
                                   "verifica completa non si e' potuta fare.";
                     _esito.ForeColor = Color.FromArgb(160, 110, 0);
+                }
+                else
+                {
+                    _esito.Text = notWired
+                        ? "Installed, but a client is not wired: paste the block in the log."
+                        : "Installed, but the self-test did not confirm: " + Passi.SelfTestMeaning(code) + ".";
+                    _esito.ForeColor = Color.FromArgb(190, 30, 30);
                 }
             }
             catch (Exception ex)
@@ -337,12 +371,21 @@ namespace Oce.Solid.Agent.Installer
             Scrivi("— disinstallazione —");
             foreach (var client in _clientTrovati)
             {
-                try { Configurazione.Scollega(client, Scrivi); }
+                try { Programma.Unwire(client, _cartella.Text, null, Scrivi); }
                 catch (Exception ex) { Scrivi("  " + client.Nome + ": " + ex.Message); }
             }
-            Passi.Disinstalla(_cartella.Text, Scrivi);
-            _esito.Text = "Disinstallato.";
-            _esito.ForeColor = Color.DimGray;
+            var left = Passi.Disinstalla(_cartella.Text, Scrivi);
+            if (left.Count > 0)
+            {
+                _esito.Text = "Not every file could be removed: " + string.Join(", ", left) +
+                              ". Close the MCP client and try again.";
+                _esito.ForeColor = Color.FromArgb(190, 30, 30);
+            }
+            else
+            {
+                _esito.Text = "Disinstallato.";
+                _esito.ForeColor = Color.DimGray;
+            }
             Ricontrolla();
         }
     }

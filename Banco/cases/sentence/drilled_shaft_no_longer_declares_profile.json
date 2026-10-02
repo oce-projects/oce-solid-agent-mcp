@@ -3,23 +3,23 @@
   "family": "sentence",
   "why": "E' IL ROSSO VERO DELLA FRASE, e sta tutto in «non_contiene». Lo stesso albero, con un foro assiale passante: la faccia cilindrica INTERNA che ne nasce manda in vacca la formula che ricostruisce il profilo da un solido di rotazione. La descrizione deve continuare a dire che e' un pezzo di rivoluzione -- quello e' vero -- e deve SMETTERE di dichiarare il profilo, che non e' piu' quello.",
   "_why_it_is_the_defect_that_gives_no_error": "una frase che dichiara «Ø30 per 40, Ø20 per 30, Ø34 per 20» su un pezzo che quel profilo non ce l'ha piu' non fallisce niente: e' una descrizione giusta di un altro pezzo, e il modello ci costruisce sopra. Si prende solo pretendendo che una parola SPARISCA, ed e' per questo che l'operatore «non_contiene» esiste.",
-  "_why_that_face": "@faccia(area~=907.92) e' il fondello Ø34, l'unica faccia piana da 907,92 mm2 del pezzo: le altre sono il fondello Ø30 (706,86) e i due risalti anulari (392,70 e 593,76). Si sceglie per misura e non per verso perche' su un solido di rotazione il verso delle due teste dipende da come e' nato l'asse.",
+  "_why_that_face": "@face(area~=907.92) e' il fondello Ø34, l'unica faccia piana da 907,92 mm2 del pezzo: le altre sono il fondello Ø30 (706,86) e i due risalti anulari (392,70 e 593,76). Si sceglie per misura e non per verso perche' su un solido di rotazione il verso delle due teste dipende da come e' nato l'asse.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "rivoluzione",
-      "arguments": { "piano": "frontale", "angolo_gradi": 360,
-                     "asse": [[0, 0], [90, 0]],
-                     "contorni": [[[0, 0], [0, 15], [40, 15], [40, 10],
+    { "operation": "revolve",
+      "arguments": { "plane": "front", "angle_deg": 360,
+                     "axis": [[0, 0], [90, 0]],
+                     "contours": [[[0, 0], [0, 15], [40, 15], [40, 10],
                                    [70, 10], [70, 17], [90, 17], [90, 0]]] },
       "expect": [
-        { "what": "stato.forma", "includes": ["profilo", "Ø30 per 40"] } ] },
-    { "operation": "taglio_cilindrico",
-      "arguments": { "faccia_uid": "@faccia(area~=907.92)", "x_mm": 0, "y_mm": 0,
-                     "diametro_mm": 10, "passante": true },
+        { "what": "state.shape", "includes": ["profilo", "Ø30 per 40"] } ] },
+    { "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(area~=907.92)", "x_mm": 0, "y_mm": 0,
+                     "diameter_mm": 10, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 48788.95, "tolerance": 0.5,
           "tolerance_why": "55857,53 meno pi*5^2*90: il conto ha pi dentro" },
-        { "what": "stato.forma",
+        { "what": "state.shape",
           "includes": ["rivoluzione", "1 foro"],
           "does_not_include": ["profilo"] } ] }
   ]

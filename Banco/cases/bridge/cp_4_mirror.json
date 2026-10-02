@@ -1,9 +1,9 @@
 [
  {
-  "operazione": "specchia",
-  "argomenti": {
+  "operation": "mirror",
+  "arguments": {
    "feature_uid": "Taglio-Estrusione1",
-   "piano": "destro"
+   "plane": "right"
   }
  }
 ]

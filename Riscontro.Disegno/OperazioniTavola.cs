@@ -58,7 +58,7 @@ namespace Riscontro.Disegno
             (int)swUserPreferenceStringValue_e.swDefaultTemplateDrawing;
 
         // ─────────────────────────────────────────────────────────────────
-        // crea_disegno
+        // create_drawing
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -109,7 +109,7 @@ namespace Riscontro.Disegno
 
             // Formato e scala si passano gia' qui: `NewDocument` li accetta, e
             // farlo in due tempi vorrebbe dire un foglio buttato.
-            int formato = FormatoFoglio(Str(a, "formato", "A3"));
+            int formato = FormatoFoglio(Str(a, "paper_size", "A3"));
             object nuovo;
             try { nuovo = _sw.NewDocument(template, formato, 0, 0); }
             catch (Exception ex) { return Fallito("Non riesco a creare la tavola: " + ex.Message); }
@@ -141,10 +141,10 @@ namespace Riscontro.Disegno
             var misure = new Dictionary<string, object>
             {
                 ["template"] = template,
-                ["formato"] = Str(a, "formato", "A3"),
-                ["modello_in_tavola"] = percorsoModello,
-                ["fogli"] = NumeroOppureNull(ContaFogli(disegno)),
-                ["documenti_aperti"] = DocumentiAperti().Count,
+                ["paper_size"] = Str(a, "paper_size", "A3"),
+                ["model_in_drawing"] = percorsoModello,
+                ["sheets"] = NumeroOppureNull(ContaFogli(disegno)),
+                ["documents_open"] = DocumentiAperti().Count,
             };
             _log("[agente] tavola creata da " + template);
             var esito = SenzaFeature(misure);
@@ -157,7 +157,7 @@ namespace Riscontro.Disegno
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // imposta_foglio
+        // set_sheet
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -174,10 +174,10 @@ namespace Riscontro.Disegno
             catch (Exception ex) { return Fallito("Non riesco a leggere il foglio: " + ex.Message); }
             if (foglio == null) return Fallito("La tavola non ha un foglio attivo.");
 
-            string nomeFormato = Str(a, "formato", "A3");
+            string nomeFormato = Str(a, "paper_size", "A3");
             int formato = FormatoFoglio(nomeFormato);
-            double scalaNum = Num(a, "scala_numeratore", 1);
-            double scalaDen = Num(a, "scala_denominatore", 1);
+            double scalaNum = Num(a, "scale_numerator", 1);
+            double scalaDen = Num(a, "scale_denominator", 1);
             if (scalaNum <= 0 || scalaDen <= 0)
                 return Fallito("La scala deve avere due numeri positivi, per esempio 1:2.");
 
@@ -231,11 +231,11 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["formato"] = nomeFormato,
-                ["larghezza_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[0], 1) : null,
-                ["altezza_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[1], 1) : null,
-                ["scala"] = scalaDopo != null ? scalaDopo[0] + ":" + scalaDopo[1] : null,
-                ["diedro"] = primoDiedro ? "primo" : "terzo",
+                ["paper_size"] = nomeFormato,
+                ["width_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[0], 1) : null,
+                ["height_mm"] = misureFoglio != null ? (object)Math.Round(misureFoglio[1], 1) : null,
+                ["scale"] = scalaDopo != null ? scalaDopo[0] + ":" + scalaDopo[1] : null,
+                ["projection_angle"] = primoDiedro ? "first" : "third",
             };
             // IL DIEDRO SI DICE SEMPRE, anche quando e' giusto. Non e' un
             // avviso: e' l'unico modo perche' qualcuno se ne accorga prima
@@ -246,7 +246,7 @@ namespace Riscontro.Disegno
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // viste_standard
+        // standard_views
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -262,7 +262,7 @@ namespace Riscontro.Disegno
             var disegno = modello as IDrawingDoc;
             if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
 
-            string percorsoModello = Str(a, "modello", null);
+            string percorsoModello = Str(a, "model", null);
             if (string.IsNullOrWhiteSpace(percorsoModello))
             {
                 string perche;
@@ -416,12 +416,12 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["diedro"] = "primo",
-                ["modello"] = percorsoSw,
-                ["viste_prima"] = prima,
-                ["viste_dopo"] = dopo,
-                ["viste_create"] = dopo - prima,
-                ["nomi"] = NomiDelleViste(disegno),
+                ["projection_angle"] = "first",
+                ["model"] = percorsoSw,
+                ["views_before"] = prima,
+                ["views_after"] = dopo,
+                ["views_created"] = dopo - prima,
+                ["names"] = NomiDelleViste(disegno),
                 // The marks SOLIDWORKS put, after the rebuild and before the bridge.
                 ["centre_marks_after_rebuild"] = centreMarks >= 0 ? (object)centreMarks : null,
                 ["centre_marks_added_by_bridge"] = addedByBridge,
@@ -451,7 +451,7 @@ namespace Riscontro.Disegno
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // vista_modello (isometrica e le altre viste con nome)
+        // model_view (isometrica e le altre viste con nome)
         // ─────────────────────────────────────────────────────────────────
 
         private Esito VistaModello(IModelDoc2 modello, Dictionary<string, object> a)
@@ -459,7 +459,7 @@ namespace Riscontro.Disegno
             var disegno = modello as IDrawingDoc;
             if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
 
-            string percorsoModello = Str(a, "modello", null);
+            string percorsoModello = Str(a, "model", null);
             if (string.IsNullOrWhiteSpace(percorsoModello))
             {
                 string perche;
@@ -474,7 +474,7 @@ namespace Riscontro.Disegno
             // PROGETTISTA. Si accetta l'italiano e si traduce: chiedere a chi
             // scrive il piano di ricordarsi «*Isometric» con l'asterisco e'
             // un modo di far fallire il piano per una stella.
-            string chiesta = (Str(a, "vista", "isometrica") ?? "").Trim().ToLowerInvariant();
+            string chiesta = (Str(a, "view", "isometric") ?? "").Trim().ToLowerInvariant();
             var nomiSw = NomiVistaSw(chiesta);
             if (nomiSw == null)
                 return Fallito(
@@ -556,18 +556,18 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["vista"] = chiesta,
-                ["nome_sw"] = nomeSw,
-                ["nomi_rifiutati"] = rifiutati.Count > 0 ? (object)string.Join(",", rifiutati) : null,
-                ["nome"] = nome,
-                ["scala"] = scala > 0 ? (object)Math.Round(scala, 4) : null,
-                ["viste_dopo"] = dopo,
+                ["view"] = chiesta,
+                ["sw_name"] = nomeSw,
+                ["names_rejected"] = rifiutati.Count > 0 ? (object)string.Join(",", rifiutati) : null,
+                ["name"] = nome,
+                ["scale"] = scala > 0 ? (object)Math.Round(scala, 4) : null,
+                ["views_after"] = dopo,
             };
             return SenzaFeature(misure);
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // quote_dal_modello
+        // model_dimensions
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -619,8 +619,8 @@ namespace Riscontro.Disegno
                     "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
                     "Metti prima le viste.");
 
-            bool tutte = Bool(a, "tutte_le_quote", false);
-            int extra = Bool(a, "callout_fori", true)
+            bool tutte = Bool(a, "all_dimensions", false);
+            int extra = Bool(a, "hole_callouts", true)
                 ? (int)swInsertAnnotation_e.swInsertholeCallout
                 : 0;
 
@@ -629,7 +629,7 @@ namespace Riscontro.Disegno
             // tutte le quote del modello e' illeggibile.
             // The masks, and every fallback below, come from the ModelImport*
             // members after this method (Z-C21.3, findings M2 and N9): with
-            // tutte_le_quote false no step may carry the NOT-MARKED bit or
+            // all_dimensions false no step may carry the NOT-MARKED bit or
             // ignore the mask. Prove.Contratti (Zc212DrawingContract) reads the
             // method from the first line of this comment to its closing brace.
             var maschere = ModelImportMasks(tutte);
@@ -744,7 +744,7 @@ namespace Riscontro.Disegno
                             if (doc.Extension.SelectByID2(
                                     v.Name, "DRAWINGVIEW", 0, 0, 0, false, 0, null, 0))
                             {
-                                // The types follow tutte_le_quote (N9: the
+                                // The types follow all_dimensions (N9: the
                                 // NOT-MARKED bit here brought 7 unmarked
                                 // dimensions with nothing marked), and
                                 // DuplicateDims is the same TRUE as above (M2).
@@ -798,7 +798,7 @@ namespace Riscontro.Disegno
                         "): the part has " + nomiQuote.Count + " dimensions and none is marked " +
                         "for drawing (" + string.Join(", ", nomiQuote) + "). By default only the " +
                         "MARKED dimensions are imported, and no fallback brings the others " +
-                        "unasked. Pass tutte_le_quote=true to import them all, or mark on the " +
+                        "unasked. Pass all_dimensions=true to import them all, or mark on the " +
                         "model the ones the drawing must show. I tried: " +
                         string.Join(", ", provati) + ".");
 
@@ -824,24 +824,24 @@ namespace Riscontro.Disegno
                           "The import works out of process (measured on 26/9/2026 and " +
                           "28/9/2026). A dimension marked on the sketch may still not be " +
                           "one the MARKED mask brings (measured on 28/9/2026: two sketch " +
-                          "dimensions marked, 0 imported). Pass tutte_le_quote=true to import " +
+                          "dimensions marked, 0 imported). Pass all_dimensions=true to import " +
                           "every dimension of the model, or create the ones you need with " +
                           "quota_in_tavola."));
             }
 
             var misure = new Dictionary<string, object>
             {
-                ["come"] = comeFatto,
-                ["quote_prima"] = prima,
-                ["quote_dopo"] = dopo,
-                ["quote_inserite"] = dopo - prima,
-                ["viste"] = viste,
-                ["solo_marcate_per_il_disegno"] = !tutte,
+                ["how"] = comeFatto,
+                ["dimensions_before"] = prima,
+                ["dimensions_after"] = dopo,
+                ["dimensions_inserted"] = dopo - prima,
+                ["views"] = viste,
+                ["only_marked_for_drawing"] = !tutte,
             };
             return SenzaFeature(misure);
         }
 
-        // ── THE IMPORT CHAIN OF quote_dal_modello, AS VALUES (Z-C21.3: M2, N9) ──
+        // ── THE IMPORT CHAIN OF model_dimensions, AS VALUES (Z-C21.3: M2, N9) ──
         //
         // Small static members with no interop in the signature, so that
         // Prove.Contratti (Zc212DrawingContract) reads them by reflection. The
@@ -913,7 +913,7 @@ namespace Riscontro.Disegno
         /// dimensions in the view»: there is no mask. Measured by
         /// the N9 probe: with nothing selected it brought 0, with the
         /// first view selected it brought 2 unmarked dimensions — and nothing
-        /// in quote_dal_modello decides what is selected when it gets there.
+        /// in model_dimensions decides what is selected when it gets there.
         /// </summary>
         internal static bool ModelImportMayTakeEveryViewDimension(bool allDimensions)
         {
@@ -933,7 +933,7 @@ namespace Riscontro.Disegno
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // esporta_pdf
+        // export_pdf
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -950,7 +950,7 @@ namespace Riscontro.Disegno
             var disegno = modello as IDrawingDoc;
             if (disegno == null) return Fallito("Il documento attivo non e' una tavola.");
 
-            string dove = Str(a, "percorso", null);
+            string dove = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(dove))
             {
                 string suo = "";
@@ -1037,9 +1037,9 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["percorso"] = dove,
-                ["fogli"] = fogli,
-                ["pagine"] = pagine > 0 ? (object)pagine : null,
+                ["path"] = dove,
+                ["sheets"] = fogli,
+                ["pages"] = pagine > 0 ? (object)pagine : null,
                 ["byte"] = new FileInfo(dove).Length,
                 // L13-6: what SetSheets answered; false has been measured on PDFs
                 // that came out complete, so the page count above is the check.
@@ -1057,7 +1057,7 @@ namespace Riscontro.Disegno
             // decodifica. Si dice cosa c'e' e cosa no, senza rifiutare: un
             // numero di disegno mancante nel PDF e' una cosa da sapere, non un
             // PDF da buttare.
-            var cercati = Lista(a, "cerca");
+            var cercati = Lista(a, "search");
             if (cercati.Count > 0)
             {
                 string testo = "";
@@ -1066,10 +1066,10 @@ namespace Riscontro.Disegno
                 var mancanti = new List<object>();
                 foreach (var c in cercati)
                     (testo.IndexOf(c, StringComparison.Ordinal) >= 0 ? trovati : mancanti).Add(c);
-                misure["trovati"] = trovati.ToArray();
-                misure["non_trovati"] = mancanti.ToArray();
+                misure["found"] = trovati.ToArray();
+                misure["not_found"] = mancanti.ToArray();
                 if (mancanti.Count > 0)
-                    misure["attenzione"] = "Nel PDF scritto non trovo: «" + string.Join("», «", mancanti) +
+                    misure["warning"] = "Nel PDF scritto non trovo: «" + string.Join("», «", mancanti) +
                         "». Se dovevano esserci, controlla la tavola prima di mandarla.";
             }
             // ── LE QUOTE ARRIVANO NEL PDF? (voce Z-C9, la meta' «oggetti») ──
@@ -1080,10 +1080,10 @@ namespace Riscontro.Disegno
             // almeno tante volte quante lo stampano (OperazioniQuoteNelPdf).
             int quoteInTavola, quoteSenzaTesto;
             var numeriAttesi = NumeriDelleQuote(disegno, out quoteInTavola, out quoteSenzaTesto);
-            misure["quote_in_tavola"] = quoteInTavola;
-            misure["quote_non_controllate"] = quoteSenzaTesto;   // il loro testo non si legge
+            misure["dimensions_in_drawing"] = quoteInTavola;
+            misure["dimensions_not_checked"] = quoteSenzaTesto;   // il loro testo non si legge
             if (quoteSenzaTesto > 0)
-                misure["attenzione"] = (misure.ContainsKey("attenzione") ? misure["attenzione"] + " " : "") +
+                misure["warning"] = (misure.ContainsKey("warning") ? misure["warning"] + " " : "") +
                     quoteSenzaTesto + (quoteSenzaTesto == 1 ? " quota non ha" : " quote non hanno") +
                     " un testo che io sappia leggere: se arrivano nel PDF non l'ho controllato.";
             if (quoteInTavola > 0)
@@ -1091,14 +1091,14 @@ namespace Riscontro.Disegno
                 string testoPdf = null;
                 try { testoPdf = TestoDelPdf.Leggi(dove); } catch { }
                 if (string.IsNullOrWhiteSpace(testoPdf))
-                    misure["quote_mancanti_nel_pdf"] = null;   // il testo non si legge: non lo so
+                    misure["dimensions_missing_in_pdf"] = null;   // il testo non si legge: non lo so
                 else
                 {
                     var mancano = QuoteCheMancanoNelPdf(numeriAttesi, testoPdf);
-                    misure["quote_mancanti_nel_pdf"] = mancano.ToArray();
-                    misure["quanti_numeri_di_quota_mancano"] = mancano.Count;
+                    misure["dimensions_missing_in_pdf"] = mancano.ToArray();
+                    misure["how_many_dimension_numbers_missing"] = mancano.Count;
                     if (mancano.Count > 0)
-                        misure["attenzione"] = (misure.ContainsKey("attenzione") ? misure["attenzione"] + " " : "") +
+                        misure["warning"] = (misure.ContainsKey("warning") ? misure["warning"] + " " : "") +
                             "Nel PDF mancano numeri che le quote della tavola stampano: " + string.Join(", ", mancano) +
                             ". Di solito e' una quota su un livello che non si stampa o in una vista nascosta: " +
                             "guarda la tavola prima di mandarla in officina.";
@@ -1109,14 +1109,14 @@ namespace Riscontro.Disegno
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // salva_documento
+        // save_document
         // ─────────────────────────────────────────────────────────────────
 
         private Esito SalvaDocumento(IModelDoc2 modello, Dictionary<string, object> a)
         {
             if (modello == null) return Fallito("Non c'e' nessun documento aperto.");
 
-            string dove = Str(a, "percorso", null);
+            string dove = Str(a, "path", null);
             int errori = 0, avvisi = 0;
             bool ok;
 
@@ -1178,10 +1178,10 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["percorso"] = dove,
+                ["path"] = dove,
                 ["byte"] = new FileInfo(dove).Length,
                 // The raw mask stays: bench cases read it (misure.avvisi = 0).
-                ["avvisi"] = avvisi,
+                ["warnings"] = avvisi,
                 // L13-7: and its swFileSaveWarning_e names.
                 ["save_warnings"] = SaveWarningsForAnswer(avvisi),
             };
@@ -1231,26 +1231,15 @@ namespace Riscontro.Disegno
         {
             switch (chiesta)
             {
-                case "isometrica":
-                case "isometrico":
-                case "iso": return new[] { "isometri", "isometric" };
-                case "dimetrica":
-                case "dimetrico": return new[] { "dimetri", "dimetric" };
-                case "trimetrica":
-                case "trimetrico": return new[] { "trimetri", "trimetric" };
-                case "fronte":
-                case "anteriore":
-                case "frontale": return new[] { "anterior", "front" };
-                case "dietro":
-                case "posteriore": return new[] { "posterior", "back" };
-                case "sopra":
-                case "superiore":
-                case "alto": return new[] { "superior", "top" };
-                case "sotto":
-                case "inferiore":
-                case "basso": return new[] { "inferior", "bottom" };
-                case "destra": return new[] { "destra", "right" };
-                case "sinistra": return new[] { "sinistr", "left" };
+                case "isometric": return new[] { "isometri", "isometric" };
+                case "dimetric": return new[] { "dimetri", "dimetric" };
+                case "trimetric": return new[] { "trimetri", "trimetric" };
+                case "front": return new[] { "anterior", "front" };
+                case "back": return new[] { "posterior", "back" };
+                case "top": return new[] { "superior", "top" };
+                case "bottom": return new[] { "inferior", "bottom" };
+                case "right": return new[] { "destra", "right" };
+                case "left": return new[] { "sinistr", "left" };
                 default: return null;
             }
         }
@@ -1274,7 +1263,7 @@ namespace Riscontro.Disegno
         /// Quanti fogli ha la tavola, o **-1 se non si e' potuto leggere**
         /// (voce Z-C8). Una tavola ha sempre almeno un foglio: un elenco che
         /// non arriva non e' uno zero, e' una lettura andata male — e con lo
-        /// zero `esporta_pdf` rispondeva «la tavola non ha fogli».
+        /// zero `export_pdf` rispondeva «la tavola non ha fogli».
         /// </summary>
         private int ContaFogli(IModelDoc2 disegno)
         {
@@ -1351,7 +1340,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Il conteggio delle quote NON e' salito da `prima`? Si dice solo di
+        /// Il conteggio delle quote NON e' salito da `before`? Si dice solo di
         /// due conteggi letti. Se uno dei due non si legge, resta l'unica
         /// misura che c'e': l'oggetto che la chiamata ha restituito (null =
         /// non nata). E' meno di quanto vorrebbe la regola di casa — «il
@@ -1418,7 +1407,7 @@ namespace Riscontro.Disegno
 
                                 // MARCATA O NO, ACCANTO AL NOME, ed e' la
                                 // differenza che divide la diagnosi in due.
-                                // `quote_dal_modello` di serie importa SOLO le
+                                // `model_dimensions` di serie importa SOLO le
                                 // marcate: senza questo dato, «il pezzo ha 7
                                 // quote e nessuna arriva» lascia aperte due
                                 // spiegazioni opposte — che nessuna sia
@@ -1501,9 +1490,9 @@ namespace Riscontro.Disegno
                     try { tipo = d.GetType(); } catch { }
                     fuori.Add(new Dictionary<string, object>
                     {
-                        ["percorso"] = percorso,
-                        ["titolo"] = titolo,
-                        ["tipo"] = NomeTipoDocumento(tipo),
+                        ["path"] = percorso,
+                        ["document_title"] = titolo,
+                        ["kind"] = NomeTipoDocumento(tipo),
                     });
                     d = d.GetNext() as IModelDoc2;
                 }
@@ -1516,9 +1505,9 @@ namespace Riscontro.Disegno
         {
             switch (tipo)
             {
-                case (int)swDocumentTypes_e.swDocPART: return "parte";
-                case (int)swDocumentTypes_e.swDocASSEMBLY: return "assieme";
-                case (int)swDocumentTypes_e.swDocDRAWING: return "tavola";
+                case (int)swDocumentTypes_e.swDocPART: return "part";
+                case (int)swDocumentTypes_e.swDocASSEMBLY: return "assembly";
+                case (int)swDocumentTypes_e.swDocDRAWING: return "drawing";
                 default: return "altro";
             }
         }
@@ -1563,7 +1552,7 @@ namespace Riscontro.Disegno
             foreach (var d in DocumentiAperti())
             {
                 object p;
-                if (!d.TryGetValue("percorso", out p)) continue;
+                if (!d.TryGetValue("path", out p)) continue;
                 var suo = Convert.ToString(p);
                 if (StessoFile(suo, percorso)) return suo;
             }
@@ -1587,8 +1576,8 @@ namespace Riscontro.Disegno
         /// rimasto aperto da prima.
         ///
         /// Il difetto che ne e' uscito, misurato dal banco:
-        /// `crea_disegno` faceva la tavola del pezzo GIUSTO — quello che gli
-        /// viene passato — e subito dopo `viste_standard`, che gira **sulla
+        /// `create_drawing` faceva la tavola del pezzo GIUSTO — quello che gli
+        /// viene passato — e subito dopo `standard_views`, che gira **sulla
         /// tavola** e il pezzo non ce l'ha piu' in mano, ci metteva dentro le
         /// viste di **un altro pezzo**, rimasto aperto dal caso precedente.
         ///
@@ -1618,7 +1607,7 @@ namespace Riscontro.Disegno
         {
             try
             {
-                // La prima «vista» e' il FOGLIO: le viste vere cominciano dopo.
+                // La prima «view» e' il FOGLIO: le viste vere cominciano dopo.
                 var v = (disegno.GetFirstView() as IView)?.GetNextView() as IView;
                 while (v != null)
                 {
@@ -1642,9 +1631,9 @@ namespace Riscontro.Disegno
             var candidati = new List<string>();
             foreach (var d in DocumentiAperti())
             {
-                var tipo = Convert.ToString(d["tipo"]);
-                if (tipo != "parte" && tipo != "assieme") continue;
-                var p = Convert.ToString(d["percorso"]);
+                var tipo = Convert.ToString(d["kind"]);
+                if (tipo != "part" && tipo != "assembly") continue;
+                var p = Convert.ToString(d["path"]);
                 if (!string.IsNullOrWhiteSpace(p) &&
                     !candidati.Contains(p, StringComparer.OrdinalIgnoreCase))
                     candidati.Add(p);
@@ -1664,7 +1653,7 @@ namespace Riscontro.Disegno
                 "Ci sono " + candidati.Count + " documenti aperti che potrei mettere in " +
                 "vista, e sceglierne uno sarebbe un sorteggio: " +
                 string.Join(", ", candidati) +
-                ". Dimmi quale con l'argomento «modello», scrivendo il percorso. " +
+                ". Dimmi quale con l'argomento «model», scrivendo il percorso. " +
                 "NON e' pignoleria: fino al 18/9/2026 qui si prendeva il primo " +
                 "dell'elenco, e una tavola e' uscita con le viste del pezzo sbagliato " +
                 "senza che niente desse errore.";
@@ -1711,7 +1700,7 @@ namespace Riscontro.Disegno
         /// <summary>
         /// Why the PDF just written cannot be handed over, or null when its
         /// pages match the sheets (Z-C21.8, finding L13-6). Counting the pages
-        /// is the one check of esporta_pdf that can fail, so a count that could
+        /// is the one check of export_pdf that can fail, so a count that could
         /// not be taken is a refusal, not a pass: the file stays where it was
         /// written, and the message says so.
         /// </summary>

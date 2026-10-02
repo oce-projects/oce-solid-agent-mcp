@@ -65,7 +65,7 @@ namespace ProvaSaldatura
 
                 // IL DOCUMENTO DELLA SESSIONE VA MESSO DAVANTI.
                 //
-                // «Aperto» e «attivo» non sono la stessa cosa, e da quando
+                // «Aperto» e «active» non sono la stessa cosa, e da quando
                 // le operazioni lavorano sul documento ATTIVO la differenza
                 // si paga: un disegno rimasto aperto da una sessione
                 // precedente restava davanti, e il primo passo lavorava su
@@ -145,7 +145,7 @@ namespace ProvaSaldatura
                             // IL DOCUMENTO ATTIVO PUO' CAMBIARE SOTTO I PIEDI.
                             //
                             // Finche' si facevano solo pezzi, il documento
-                            // era uno e restava quello. `crea_disegno` ne
+                            // era uno e restava quello. `create_drawing` ne
                             // apre un secondo e lo mette davanti: da li' in
                             // poi lavorare sul primo vorrebbe dire mettere
                             // le viste dentro il pezzo.
@@ -159,10 +159,10 @@ namespace ProvaSaldatura
                                           (ok ? "" : "  -> " + Corto(errore)));
                         esiti.Add(new Dictionary<string, object>
                         {
-                            ["operazione"] = nome,
-                            ["riuscita"] = ok,
-                            ["errore"] = ok ? null : errore,
-                            ["misure"] = misure,
+                            ["operation"] = nome,
+                            ["succeeded"] = ok,
+                            ["error"] = ok ? null : errore,
+                            ["measurements"] = misure,
                         });
                         // NON si va avanti dopo un fallimento: un piano e' una
                         // sequenza, e il passo dopo quasi sempre nomina cio' che
@@ -188,7 +188,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// Mette in `_firme` la descrizione delle entita' che il piano nomina.
+        /// Mette in `_signatures` la descrizione delle entita' che il piano nomina.
         ///
         /// E' quello che il server fa per ogni piano vero prima di mandarlo:
         /// senza, chi esegue non ha modo di accorgersi che una faccia si e'
@@ -201,19 +201,19 @@ namespace ProvaSaldatura
             var firme = new Dictionary<string, object>();
 
             // I CORPI COME LE FACCE (voce Z-C21.2, rilievo L6-1). Il ponte manda
-            // le firme dei corpi da tempo (`Attrezzi.FirmeDelloStato`, «centro_mm»
-            // e «ingombro_mm»); il banco no, e con «uid_dal_passo» un corpo
+            // le firme dei corpi da tempo (`Attrezzi.FirmeDelloStato`, «center_mm»
+            // e «bounding_box_mm»); il banco no, e con «uid_dal_passo» un corpo
             // nominato prima di un taglio arrivava SENZA firma: `FirmaCombacia`
             // non aveva niente da confrontare e diceva si'. La voce E4 — il corpo
             // rinumerato da un taglio — dal banco non si poteva vedere.
             var dove = new[]
             {
-                Tuple.Create("facce", new[] { "faccia_uid", "facce_uid" }),
-                Tuple.Create("spigoli", new[] { "spigoli_uid", "spigolo_uid" }),
-                Tuple.Create("corpi", new[]
+                Tuple.Create("faces", new[] { "face_uid", "faces_uid" }),
+                Tuple.Create("edges", new[] { "edges_uid", "edge_uid" }),
+                Tuple.Create("bodies", new[]
                 {
-                    "corpi_uid", "corpo_uid", "corpo_principale_uid", "corpi_utensile_uid",
-                    "corpi_da_tagliare_uid", "corpi_di_taglio_uid",
+                    "bodies_uid", "body_uid", "main_body_uid", "tool_bodies_uid",
+                    "bodies_to_trim_uid", "trim_boundary_uid",
                 }),
             };
             foreach (var coppia in dove)
@@ -224,7 +224,7 @@ namespace ProvaSaldatura
                 if (elenco == null) continue;
 
                 // GLI SPIGOLI DELL'ANCORA (voce E18) stanno un livello piu' giu',
-                // in `ancora.x` e `ancora.y`: il ponte manda le firme di TUTTO lo
+                // in `anchor.x` e `anchor.y`: il ponte manda le firme di TUTTO lo
                 // stato, e la libreria rifiuta un'ancora il cui spigolo non ha
                 // firma in un piano che ne porta. Senza questo, il banco vedrebbe
                 // un rifiuto che in produzione non c'e'.
@@ -234,7 +234,7 @@ namespace ProvaSaldatura
                     object valore;
                     if (argomenti.TryGetValue(campo, out valore) && valore != null) sorgenti.Add(valore);
                 }
-                if (coppia.Item1 == "spigoli") sorgenti.AddRange(SpigoliDellAncora(argomenti));
+                if (coppia.Item1 == "edges") sorgenti.AddRange(SpigoliDellAncora(argomenti));
 
                 foreach (var valore in sorgenti)
                 {
@@ -259,8 +259,8 @@ namespace ProvaSaldatura
                                     StringComparison.OrdinalIgnoreCase)) continue;
                             var firma = new Dictionary<string, object>();
                             foreach (var campoFirma in
-                                     new[] { "punto_mm", "normale", "area_mm2", "lunghezza_mm",
-                                             "centro_mm", "ingombro_mm" })
+                                     new[] { "point_mm", "normal", "area_mm2", "length_mm",
+                                             "center_mm", "bounding_box_mm" })
                             {
                                 object x;
                                 if (voce.TryGetValue(campoFirma, out x) && x != null)
@@ -273,7 +273,7 @@ namespace ProvaSaldatura
                             if (firma.Count > 0)
                             {
                                 var scatola = ScatolaDelPezzo(stato);
-                                if (scatola != null) firma["scatola_pezzo_mm"] = scatola;
+                                if (scatola != null) firma["box_part_mm"] = scatola;
                             }
                             if (firma.Count > 0) firme[uid] = firma;
                             break;
@@ -282,23 +282,23 @@ namespace ProvaSaldatura
                 }
             }
 
-            if (firme.Count > 0) argomenti["_firme"] = firme;
+            if (firme.Count > 0) argomenti["_signatures"] = firme;
         }
 
-        /// <summary>Gli uid degli spigoli nominati da `ancora` (spigolo_uid e centrata_fra, per asse).</summary>
+        /// <summary>Gli uid degli spigoli nominati da `anchor` (edge_uid e centered_between, per asse).</summary>
         private static List<object> SpigoliDellAncora(Dictionary<string, object> argomenti)
         {
             var fuori = new List<object>();
             object grezza;
-            var ancora = argomenti.TryGetValue("ancora", out grezza) ? grezza as Dictionary<string, object> : null;
+            var ancora = argomenti.TryGetValue("anchor", out grezza) ? grezza as Dictionary<string, object> : null;
             if (ancora == null) return fuori;
             foreach (var asse in ancora.Values)
             {
                 var voce = asse as Dictionary<string, object>;
                 if (voce == null) continue;
                 object v;
-                if (voce.TryGetValue("spigolo_uid", out v) && v != null) fuori.Add(v);
-                if (voce.TryGetValue("centrata_fra", out v) && v != null) fuori.Add(v);
+                if (voce.TryGetValue("edge_uid", out v) && v != null) fuori.Add(v);
+                if (voce.TryGetValue("centered_between", out v) && v != null) fuori.Add(v);
             }
             return fuori;
         }
@@ -310,8 +310,8 @@ namespace ProvaSaldatura
         /// </summary>
         private static double[] ScatolaDelPezzo(Dictionary<string, object> stato)
         {
-            double[] da = TreNumeri(stato, "ingombro_da_mm");
-            double[] lati = TreNumeri(stato, "ingombro_mm");
+            double[] da = TreNumeri(stato, "bounding_box_from_mm");
+            double[] lati = TreNumeri(stato, "bounding_box_mm");
             if (da == null || lati == null) return null;
             return new[]
             {
@@ -393,7 +393,7 @@ namespace ProvaSaldatura
             {
                 var d = radice as Dictionary<string, object>;
                 object p;
-                if (d != null && d.TryGetValue("passi", out p)) elenco = p as object[];
+                if (d != null && d.TryGetValue("steps", out p)) elenco = p as object[];
             }
             if (elenco == null) return fuori;
             foreach (var voce in elenco)
@@ -401,8 +401,8 @@ namespace ProvaSaldatura
                 var d = voce as Dictionary<string, object>;
                 if (d == null) continue;
                 object nome, arg;
-                d.TryGetValue("operazione", out nome);
-                d.TryGetValue("argomenti", out arg);
+                d.TryGetValue("operation", out nome);
+                d.TryGetValue("arguments", out arg);
                 fuori.Add(Tuple.Create(
                     Convert.ToString(nome),
                     (arg as Dictionary<string, object>) ?? new Dictionary<string, object>()));
@@ -415,10 +415,10 @@ namespace ProvaSaldatura
             var stato = LeggiStato(doc);
             var fuori = new Dictionary<string, object>
             {
-                ["passo"] = k,
-                ["stato"] = stato,
-                ["esiti"] = esiti,
-                ["corpi"] = ContaCorpi(doc),
+                ["step"] = k,
+                ["state"] = stato,
+                ["outcomes"] = esiti,
+                ["bodies"] = ContaCorpi(doc),
                 ["volume_mm3"] = Math.Round(VolumeDelDocumento(doc), 1),
             };
             // Si scrive su un file temporaneo e poi si rinomina: chi legge

@@ -291,13 +291,13 @@ namespace Controlli.ProvaRuota
             var d = contorni[0] as Dictionary<string, object>;
             if (d == null) return fuori;
             object grezzo;
-            if (!d.TryGetValue("tratti", out grezzo)) return fuori;
+            if (!d.TryGetValue("strokes", out grezzo)) return fuori;
             foreach (var t in (object[])grezzo)
             {
                 var tratto = t as Dictionary<string, object>;
                 if (tratto == null) continue;
                 object pp;
-                if (!tratto.TryGetValue("punti", out pp)) continue;
+                if (!tratto.TryGetValue("points", out pp)) continue;
                 foreach (var p in (object[])pp)
                 {
                     var c = p as object[];

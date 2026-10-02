@@ -5,7 +5,7 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  ProbeRaccordoFaccia — GP7, la parte «raccordo_faccia» (face fillet)
+//  ProbeRaccordoFaccia — GP7, la parte «fillet_face» (face fillet)
 // =============================================================================
 //
 //  CONTESTO (letto da note-interne/TODO.md §GP7, CHANGELOG.md 0.47.0, e dalla

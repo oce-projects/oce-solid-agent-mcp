@@ -99,6 +99,8 @@
     <Compile Include="Zc2113ExportUnitsContract.cs" />
     <Compile Include="Zc2113SplineCentreMarksContract.cs" />
     <Compile Include="DocumentByPathContract.cs" />
+    <Compile Include="AliasLayerContract.cs" />
+    <Compile Include="DescriptionValuesContract.cs" />
     <Compile Include="Zc2189WeldAssemblyContract.cs" />
     <Compile Include="Zc2189DrawingContract.cs" />
     <Compile Include="Zc2189MachiningContract.cs" />
@@ -113,6 +115,7 @@
     <Compile Include="LanguageGateTests.cs" />
     <Compile Include="CaseKeysTests.cs" />
     <Compile Include="ConsumedStringsContract.cs" />
+    <Compile Include="H19InstallerContract.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="SafetyNetSelfTests.cs" />
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.

@@ -8,32 +8,32 @@
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
       { "name": "coperchio",
         "position_mm": [0, 5, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "verifica_interferenze",
+    { "operation": "interference_check",
       "arguments": {},
       "expect": [
-        { "what": "misure.quante", "equal_to": 1,
+        { "what": "measurements.how_many", "equal_to": 1,
           "why": "una compenetrazione, fra due pezzi. Il numero esatto e non «maggiore di zero»: una soglia lascerebbe passare una seconda interferenza comparsa per un'altra ragione, e il caso smetterebbe di misurare quello che dice di misurare." },
-        { "what": "misure.volume_totale_mm3", "equal_to": 19200, "tolerance": 1,
+        { "what": "measurements.volume_total_mm3", "equal_to": 19200, "tolerance": 1,
           "tolerance_why": "120 x 80 x 2 = 19200 mm3 esatti, il conto e' su facce piane e paralleli: 1 mm3 copre l'arrotondamento di `GetMassProperties`, non un errore di geometria. **E' questa attesa che distingue «si sfiorano» da «uno e' dentro l'altro»**, ed e' la ragione per cui la voce vale." },
-        { "what": "misure.toccarsi_conta", "equal_to": false,
+        { "what": "measurements.touching_counts", "equal_to": false,
           "why": "l'impostazione che cambia il verdetto compare NEL verdetto. Un'interferenza trovata con le coincidenze contate e una trovata senza sono due fatti diversi, e chi rilegge la risposta fra un mese deve poterli distinguere senza indovinare." },
-        { "what": "misure.componenti_guardati", "equal_to": 2,
+        { "what": "measurements.components_checked", "equal_to": 2,
           "why": "su quanti componenti e' calcolato il conto. Un totale che copre in silenzio solo una parte e' peggio di nessun totale." },
-        { "what": "misure.giudizio", "includes": ["ATTENZIONE", "non entrano"],
+        { "what": "measurements.verdict", "includes": ["ATTENZIONE", "non entrano"],
           "why": "IL PUNTO DELL'OPERAZIONE. Il numero da solo non basta: chi legge deve sapere che quei pezzi non si possono fare cosi'. Un avvertimento che non dice la conseguenza si impara a ignorare." },
-        { "what": "stato.quanti_componenti", "equal_to": 2,
-          "why": "la verifica NON tocca il pezzo: e' della famiglia «verifiche», e dopo averla chiamata l'assieme dev'essere quello di prima. Un controllo che modifica cio' che controlla non e' un controllo." } ] }
+        { "what": "state.how_many_components", "equal_to": 2,
+          "why": "la verifica NON tocca il pezzo: e' della famiglia «checks», e dopo averla chiamata l'assieme dev'essere quello di prima. Un controllo che modifica cio' che controlla non e' un controllo." } ] }
   ]
 }

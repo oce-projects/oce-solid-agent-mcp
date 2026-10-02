@@ -6,22 +6,22 @@
   "intent_why": "senza ancora x_mm/y_mm sono coordinate del modello: alzando la piastra a 180 (da Y -60..+60 a -60..+120) i fori restano a y = +/-40.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 200,
-        "larghezza_mm": 120,
-        "spessore_mm": 20,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 200,
+        "width_mm": 120,
+        "thickness_mm": 20,
+        "centered": true
       }
     },
     {
-      "operation": "foro_guidato",
+      "operation": "hole_wizard",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
-        "taglia": "M8",
-        "passante": true,
-        "posizioni": [
+        "face_uid": "@face(normal=front)",
+        "size": "M8",
+        "through_all": true,
+        "positions": [
           {
             "x_mm": -80,
             "y_mm": -40
@@ -43,12 +43,12 @@
     }
   ],
   "modify": {
-    "quota": "@quota(feature=Schizzo1,nome=D2)",
-    "valore_mm": 180
+    "dimension": "@dimension(feature=Schizzo1,name=D2)",
+    "value_mm": 180
   },
   "after": [
     {
-      "what": "ingombro_mm",
+      "what": "bounding_box_mm",
       "equal_to": [
         200,
         180,
@@ -56,7 +56,7 @@
       ]
     },
     {
-      "what": "centri_y_mm",
+      "what": "centers_y_mm",
       "equal_to": [
         -40,
         -40,

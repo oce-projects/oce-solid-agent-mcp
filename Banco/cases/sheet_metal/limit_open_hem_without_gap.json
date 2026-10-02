@@ -1,18 +1,18 @@
 {
   "name": "limit_open_hem_without_gap",
   "family": "sheet_metal",
-  "why": "Un orlo «aperto» senza gioco e' un orlo chiuso chiesto col nome sbagliato: si rifiuta prima di toccare il pezzo, dicendo cosa manca e come si chiama la cosa che forse si voleva.",
+  "why": "Un orlo «open» senza gioco e' un orlo chiuso chiesto col nome sbagliato: si rifiuta prima di toccare il pezzo, dicendo cosa manca e come si chiama la cosa che forse si voleva.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "flangia_base",
-      "arguments": { "piano": "frontale", "punti": [[0, 30], [0, 0], [50, 0]],
-                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
-      "expect": [ { "what": "corpi", "equal_to": 1 } ] },
-    { "operation": "orlo",
-      "arguments": { "spigolo_uid": "@spigolo(asse=Z,x~=50,y~=0)", "tipo": "aperto",
-                     "lunghezza_mm": 10, "gioco_mm": 0 },
+    { "operation": "base_flange",
+      "arguments": { "plane": "front", "points": [[0, 30], [0, 0], [50, 0]],
+                     "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
+      "expect": [ { "what": "bodies", "equal_to": 1 } ] },
+    { "operation": "hem",
+      "arguments": { "edge_uid": "@edge(axis=Z,x~=50,y~=0)", "variant": "open",
+                     "length_mm": 10, "gap_mm": 0 },
       "must_fail": {
-        "message_includes": ["gioco_mm", "maggiore di zero", "«chiuso»"],
+        "message_includes": ["gap_mm", "maggiore di zero", "«closed»"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "open_hem_checks_out" } }

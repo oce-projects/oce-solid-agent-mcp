@@ -79,7 +79,7 @@ namespace Prove.Contratti
         private static readonly string OldReader = OwnNames[4];
 
         /// <summary>The operation of the catalogue whose schema must declare the mass argument.</summary>
-        private const string MassOperation = "proprieta_di_massa";
+        private const string MassOperation = "mass_properties";
 
         internal static void RunAll()
         {

@@ -5,27 +5,27 @@
   "start": { "new_part": true },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 314,
-        "larghezza_mm": 274,
-        "spessore_mm": 52,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 314,
+        "width_mm": 274,
+        "thickness_mm": 52,
+        "centered": true
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 4473872 },
-        { "what": "stato.ingombro_da_mm", "equal_to": [-157, -137, 0] }
+        { "what": "state.bounding_box_from_mm", "equal_to": [-157, -137, 0] }
       ]
     },
     {
-      "operation": "taglio_cilindrico",
+      "operation": "cylindrical_cut",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
+        "face_uid": "@face(normal=front)",
         "x_mm": 5000,
         "y_mm": 5000,
-        "diametro_mm": 60,
-        "passante": true
+        "diameter_mm": 60,
+        "through_all": true
       },
       "must_fail": {
         "message_includes": ["cade tutto fuori dal materiale", "-157 a 157"],

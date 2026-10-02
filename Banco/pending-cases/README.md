@@ -25,11 +25,11 @@ prima: un caso in `cases/` è una promessa che il giro mantiene.
 **One case, from 28/9/2026 (Z-C21.10, C8-2):**
 `a_dimension_hidden_by_hand_does_not_count.json`. It measures that a drawing
 dimension hidden by hand (IAnnotation.Visible = swAnnotationHidden) does not
-count as «already dimensioned» in `quota_in_tavola`. The library does it; the
+count as «already dimensioned» in `drawing_dimension`. The library does it; the
 bench cannot build the situation yet: no catalogue operation hides a dimension,
 and the runner has no preamble field for it. It moves to `Banco/cases/drawing/`
 in the commit that brings the runner field `hide_dimensions_first`
-(`{"vista": "V1"}`: every display dimension of that view is selected with
+(`{"view": "V1"}`: every display dimension of that view is selected with
 IAnnotation.Select3 and hidden with IModelDoc2.HideDimension, then read back;
 one that is not swAnnotationHidden is a bench error), with a bench run.
 
@@ -46,10 +46,10 @@ la prossima volta che un caso nasce prima della cosa che misura, va qui.
 
 ### Una cosa che è successa mentre erano qui, e vale la pena ricordarla
 
-I due casi di `combina_corpi` mettevano i corpi a **120 mm** di distanza, per
+I due casi di `combine_bodies` mettevano i corpi a **120 mm** di distanza, per
 rendere inconfondibili i tre esiti (unione = somma, sottrazione = il solo
 principale, intersezione = zero). Rileggendo la descrizione dell'operazione
-prima di spostarli è saltato fuori che **`combina_corpi` dichiara di fallire**
+prima di spostarli è saltato fuori che **`combine_bodies` dichiara di fallire**
 quando dopo l'unione i corpi sono ancora due: *«di solito non si toccano
 davvero, e fallisco invece di confermarti un pezzo diverso da quello che
 credi»*.
@@ -77,16 +77,16 @@ presa la decisione.
 Quindi i casi non si accontentano che l'operazione riesca. Pretendono che la
 risposta **dica l'assunzione**: quale valore, e che è stato assunto, non
 chiesto. Si pretende che ci siano **due parole** — il valore (`S235JR`,
-`unisci`) e la parola `predefinito`. Il valore da solo direbbe soltanto cosa
+`union`) e la parola `predefinito`. Il valore da solo direbbe soltanto cosa
 c'è adesso; `predefinito` dice **chi l'ha scelto**, ed è l'unica differenza
 fra un aiuto e una decisione presa di nascosto.
 
 ## Una cosa che questi casi propongono e non hanno il diritto di decidere
 
-Il campo su cui guardano si chiama **`misure.nota_assunto`** — si chiamava
+Il campo su cui guardano si chiama **`measurements.note_assumption`** — si chiamava
 `misure.assunto` finché era una proposta, ed è stato allineato alla
-convenzione `nota_*` che il repository usava già (`nota_identificativi`,
-`nota_volume`) quando è stato implementato, il 24/9/2026. Chi implementa può chiamarlo
+convenzione `note_*` che il repository usava già (`note_identifiers`,
+`note_volume`) quando è stato implementato, il 24/9/2026. Chi implementa può chiamarlo
 diversamente o metterlo altrove — in quel caso si cambia la riga `what` dei
 quattro casi, che è un minuto.
 

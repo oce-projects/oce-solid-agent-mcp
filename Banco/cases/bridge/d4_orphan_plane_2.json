@@ -1,4 +1,4 @@
 [
- { "operazione": "crea_piano", "argomenti": { "piano": "superiore", "distanza_mm": 50 } },
- { "operazione": "raccordo_spigoli", "argomenti": { "spigoli_uid": ["E1"], "raggio_mm": 500 } }
+ { "operation": "create_plane", "arguments": { "plane": "top", "distance_mm": 50 } },
+ { "operation": "fillet_edges", "arguments": { "edges_uid": ["E1"], "radius_mm": 500 } }
 ]

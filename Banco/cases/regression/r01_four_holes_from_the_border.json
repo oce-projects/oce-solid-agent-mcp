@@ -6,75 +6,75 @@
   "intent_why": "i fori stanno a 20 mm dai bordi: allargando la piastra da 120 a 180 devono restare a 20 mm, cioe' i due in basso restano a y = -40 e i due in alto vanno da +40 a +100: la piastra cresce DA UNA PARTE SOLA (voce E2), da Y -60..+60 a Y -60..+120.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 200,
-        "larghezza_mm": 120,
-        "spessore_mm": 20,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 200,
+        "width_mm": 120,
+        "thickness_mm": 20,
+        "centered": true
       }
     },
     {
-      "operation": "foro_guidato",
+      "operation": "hole_wizard",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
-        "taglia": "M8",
-        "passante": true,
-        "posizioni": [
+        "face_uid": "@face(normal=front)",
+        "size": "M8",
+        "through_all": true,
+        "positions": [
           {
             "x_mm": -80,
             "y_mm": -40,
-            "ancora": {
+            "anchor": {
               "x": {
-                "spigolo_uid": "@spigolo(asse=Y,x~=-100,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=Y,x~=-100,z~=20)",
+                "distance_mm": 20
               },
               "y": {
-                "spigolo_uid": "@spigolo(asse=X,y~=-60,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=X,y~=-60,z~=20)",
+                "distance_mm": 20
               }
             }
           },
           {
             "x_mm": 80,
             "y_mm": -40,
-            "ancora": {
+            "anchor": {
               "x": {
-                "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=Y,x~=100,z~=20)",
+                "distance_mm": 20
               },
               "y": {
-                "spigolo_uid": "@spigolo(asse=X,y~=-60,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=X,y~=-60,z~=20)",
+                "distance_mm": 20
               }
             }
           },
           {
             "x_mm": 80,
             "y_mm": 40,
-            "ancora": {
+            "anchor": {
               "x": {
-                "spigolo_uid": "@spigolo(asse=Y,x~=100,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=Y,x~=100,z~=20)",
+                "distance_mm": 20
               },
               "y": {
-                "spigolo_uid": "@spigolo(asse=X,y~=60,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=X,y~=60,z~=20)",
+                "distance_mm": 20
               }
             }
           },
           {
             "x_mm": -80,
             "y_mm": 40,
-            "ancora": {
+            "anchor": {
               "x": {
-                "spigolo_uid": "@spigolo(asse=Y,x~=-100,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=Y,x~=-100,z~=20)",
+                "distance_mm": 20
               },
               "y": {
-                "spigolo_uid": "@spigolo(asse=X,y~=60,z~=20)",
-                "distanza_mm": 20
+                "edge_uid": "@edge(axis=X,y~=60,z~=20)",
+                "distance_mm": 20
               }
             }
           }
@@ -83,12 +83,12 @@
     }
   ],
   "modify": {
-    "quota": "@quota(feature=Schizzo1,nome=D2)",
-    "valore_mm": 180
+    "dimension": "@dimension(feature=Schizzo1,name=D2)",
+    "value_mm": 180
   },
   "after": [
     {
-      "what": "ingombro_mm",
+      "what": "bounding_box_mm",
       "equal_to": [
         200,
         180,
@@ -96,14 +96,14 @@
       ]
     },
     {
-      "what": "centri_y_mm",
+      "what": "centers_y_mm",
       "equal_to": [
         -40,
         -40,
         100,
         100
       ],
-      "_why_these_numbers": "fino al 25/9/2026 l'attesa era [-70, -70, 70, 70], cioe' una piastra che cresce simmetrica: E2 ha misurato che non lo fa, e con quell'attesa il caso non avrebbe potuto reggere nemmeno con l'ancora giusta. Corretta scrivendo E18, prima di dare l'ancora a foro_guidato.",
+      "_why_these_numbers": "fino al 25/9/2026 l'attesa era [-70, -70, 70, 70], cioe' una piastra che cresce simmetrica: E2 ha misurato che non lo fa, e con quell'attesa il caso non avrebbe potuto reggere nemmeno con l'ancora giusta. Corretta scrivendo E18, prima di dare l'ancora a hole_wizard.",
       "tolerance": 0.05,
       "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri: il centesimo e' arrotondamento"
     }

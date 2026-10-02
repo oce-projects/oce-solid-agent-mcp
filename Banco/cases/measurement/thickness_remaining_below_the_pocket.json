@@ -5,23 +5,23 @@
   "_why_faces_are_chosen_by_area": "dopo la tasca ci sono DUE facce che guardano avanti -- il piano di sopra e il fondo della cava -- e chiederne una per verso sarebbe ambiguo. Il fondo della cava fa 1600 mm2 e la faccia dietro 10.000: si nominano per misura, che e' l'unica cosa che le distingue.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "taglio_rettangolare",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
-                     "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "passante": false, "profondita_mm": 15 },
+    { "operation": "rectangular_cut",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
+                     "length_mm": 40, "width_mm": 40,
+                     "through_all": false, "depth_mm": 15 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 176000,
           "why": "200.000 meno 40*40*15 = 24.000" } ] },
-    { "operation": "distanza_minima",
-      "arguments": { "da_uid": "@faccia(area~=1600)", "a_uid": "@faccia(area~=10000)" },
+    { "operation": "minimum_distance",
+      "arguments": { "start_uid": "@face(area~=1600)", "end_uid": "@face(area~=10000)" },
       "expect": [
-        { "what": "misure.distanza_mm", "equal_to": 5, "tolerance": 0.001,
+        { "what": "measurements.distance_mm", "equal_to": 5, "tolerance": 0.001,
           "tolerance_why": "20 di piastra meno 15 di tasca; la distanza arriva in metri" },
-        { "what": "misure.scarto_del_controllo_mm", "equal_to": 0, "tolerance": 0.0005,
+        { "what": "measurements.deviation_of_check_mm", "equal_to": 0, "tolerance": 0.0005,
           "tolerance_why": "il numero e i suoi punti devono dire la stessa cosa" } ] }
   ]
 }

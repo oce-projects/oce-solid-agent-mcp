@@ -14,7 +14,7 @@
 //
 // COME SI RIFA' TUTTA LA MISURA:
 //   1. `node raccogli_viste.js`   costruisce i cinque pezzi veri e scrive
-//                                 lo stato, che contiene il campo `forma`
+//                                 lo stato, che contiene il campo `shape`
 //   2. si danno le cinque frasi a un modello ISOLATO, che scrive i piani in
 //      `cases/forma/1..5.json` senza aver visto niente altro
 //   3. `node prova_forma.js`      esegue i piani e confronta
@@ -139,18 +139,18 @@ async function provaUno(numero, nome) {
   const r = spawnSync(NUOVA, [], { encoding: "utf8" });
   if (r.status !== 0) { segna("pezzo " + numero, false, "parte nuova non creata"); return; }
 
-  await chiama("guarda_il_pezzo");
-  const fatto = await chiama("disegna", { passi: passi });
+  await chiama("inspect_part");
+  const fatto = await chiama("build", { steps: passi });
   if (fatto.errore) {
     segna("pezzo " + numero, false, "il piano non passa: " + corto(fatto.testo));
     return;
   }
 
-  const rifatto = (fatto.dati || {}).stato_dopo || {};
+  const rifatto = (fatto.dati || {}).state_after || {};
   const volumeRifatto = rifatto.volume_mm3;
   const volumeVero = vero.volume_mm3;
   const okVolume = vicini(volumeRifatto, volumeVero, TOLLERANZA);
-  const okIngombro = stessoIngombro(rifatto.ingombro_mm, vero.ingombro_mm);
+  const okIngombro = stessoIngombro(rifatto.bounding_box_mm, vero.bounding_box_mm);
 
   const scarto = (volumeVero && volumeRifatto)
     ? ((volumeRifatto - volumeVero) / volumeVero * 100).toFixed(1) + "%"
@@ -159,8 +159,8 @@ async function provaUno(numero, nome) {
   segna("pezzo " + numero + " " + nome.slice(2), okVolume && okIngombro,
         "volume " + (volumeRifatto == null ? "?" : Math.round(volumeRifatto * 10) / 10) +
         " contro " + volumeVero + " (" + scarto + ")" +
-        (okIngombro ? "" : ", INGOMBRO diverso: " + JSON.stringify(rifatto.ingombro_mm) +
-                            " contro " + JSON.stringify(vero.ingombro_mm)));
+        (okIngombro ? "" : ", INGOMBRO diverso: " + JSON.stringify(rifatto.bounding_box_mm) +
+                            " contro " + JSON.stringify(vero.bounding_box_mm)));
 }
 
 (async function () {

@@ -5,28 +5,28 @@
   "start": { "new_part": true },
   "steps": [
     {
-      "operation": "estrudi_rettangolo",
+      "operation": "extrude_rectangle",
       "arguments": {
-        "piano": "frontale",
-        "lunghezza_mm": 314,
-        "larghezza_mm": 274,
-        "spessore_mm": 52,
-        "centrato": true
+        "plane": "front",
+        "length_mm": 314,
+        "width_mm": 274,
+        "thickness_mm": 52,
+        "centered": true
       },
       "expect": [
         { "what": "volume_mm3", "equal_to": 4473872 },
-        { "what": "stato.ingombro_da_mm", "equal_to": [-157, -137, 0] }
+        { "what": "state.bounding_box_from_mm", "equal_to": [-157, -137, 0] }
       ]
     },
     {
-      "operation": "asola",
+      "operation": "slot",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
+        "face_uid": "@face(normal=front)",
         "x_mm": 0,
         "y_mm": 0,
-        "lunghezza_mm": 500,
-        "larghezza_mm": 300,
-        "passante": true
+        "length_mm": 500,
+        "width_mm": 300,
+        "through_all": true
       },
       "must_fail": {
         "message_includes": ["copre tutto il pezzo", "314 x 274"],

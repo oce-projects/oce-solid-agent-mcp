@@ -39,9 +39,9 @@ namespace ProvaSaldatura
     /// **Fino alla libreria 0.115.0 il sistema sapeva esprimere solo il
     /// primo:** `x_mm: 80` e' assoluto per costruzione, e i casi
     /// `ancorato_a_bordo` fallivano tutti — la misura di partenza di E6/E7.
-    /// Dalla 0.116.0 le operazioni su faccia prendono `ancora` (voce E18:
-    /// `taglio_cilindrico` e `taglio_rettangolare`; dalla 0.118.0 `asola`;
-    /// dalla 0.119.0 `estrudi_su_faccia` e `foro_guidato`): i casi il cui
+    /// Dalla 0.116.0 le operazioni su faccia prendono `anchor` (voce E18:
+    /// `cylindrical_cut` e `rectangular_cut`; dalla 0.118.0 `slot`;
+    /// dalla 0.119.0 `extrude_on_face` e `hole_wizard`): i casi il cui
     /// piano la usa possono reggere. Dichiararli attesi-verdi sarebbe barare;
     /// dichiararli attesi-rossi sarebbe rendere permanente un limite. Si
     /// contano e basta.
@@ -87,7 +87,9 @@ namespace ProvaSaldatura
                 using (var scope = Ledger.OpenCase(Path.GetFileNameWithoutExtension(f),
                                                    Path.GetFileName(Path.GetDirectoryName(f)), "regression"))
                 {
+                    int aliasUsesAtStart = AliasUsesNow();
                     var e = UnCaso(f);
+                    CountAliasUses("regression/" + Path.GetFileNameWithoutExtension(f), f, aliasUsesAtStart);
                     scope.Outcome = scope.HasBenchErrors ? "bench_error"
                                   : e.Come == Esito.Regge ? "holds"
                                   : e.Come == Esito.SiStaccaELoDice ? "breaks_and_says_so"
@@ -244,7 +246,7 @@ namespace ProvaSaldatura
                 }
                 var suoi = Risolvi(modifica, stato) as Dictionary<string, object>;
                 string erroreMod;
-                var fatta = Esegui(doc, "modifica_quota", suoi, out erroreMod, stato);
+                var fatta = Esegui(doc, "set_dimension", suoi, out erroreMod, stato);
 
                 // ── LE TRE STRADE ────────────────────────────────────────
                 //
@@ -285,7 +287,7 @@ namespace ProvaSaldatura
                     // `same_as_before`: l'atteso e' la misura di prima, e si mette
                     // nell'attesa adesso. Cosi' il confronto lo fa lo stesso
                     // codice di sempre, e il messaggio esce nello stesso
-                    // formato: «centri_x_mm [...] (atteso [...])».
+                    // formato: «centers_x_mm [...] (atteso [...])».
                     if (Vero(attesa, "same_as_before"))
                     {
                         object era;
@@ -334,7 +336,7 @@ namespace ProvaSaldatura
         private static int LavorazioniInErroreDelloStato(Dictionary<string, object> stato)
         {
             object v;
-            if (stato == null || !stato.TryGetValue("lavorazioni_in_errore", out v) || v == null) return 0;
+            if (stato == null || !stato.TryGetValue("features_in_error", out v) || v == null) return 0;
             try { return Convert.ToInt32(v); } catch { return 0; }
         }
 
@@ -369,7 +371,7 @@ namespace ProvaSaldatura
                     "> La terza riga si scrive **anche quando vale zero**: un conteggio che",
                     "> sparisce quando e' zero e' un conteggio che nessuno controlla.",
                     "",
-                    "Senza `ancora` `x_mm: 80` e' assoluto per costruzione. Con `ancora`",
+                    "Senza `anchor` `x_mm: 80` e' assoluto per costruzione. Con `anchor`",
                     "(voce E18: fori, tasche, asole, rialzi e fori guidati) il profilo segue",
                     "lo spigolo. Un caso `ancorato_a_bordo` che resta in silenzio e' un intento",
                     "che il sistema non sa ancora esprimere: la misura di cio' che manca.",

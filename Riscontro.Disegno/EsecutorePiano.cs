@@ -96,8 +96,8 @@ namespace Riscontro.Disegno
         ///     una tavola li' e' quasi sempre un errore di chi ha cambiato
         ///     finestra, e fermarsi e' giusto;
         ///   * il ponte MCP ha cinque operazioni di tavola in catalogo
-        ///     (`crea_disegno`, `viste_standard`, `imposta_foglio`,
-        ///     `quote_dal_modello`, `esporta_pdf`). Rifiutare le tavole
+        ///     (`create_drawing`, `standard_views`, `set_sheet`,
+        ///     `model_dimensions`, `export_pdf`). Rifiutare le tavole
         ///     renderebbe inutili proprio quelle.
         ///
         /// Sorvegliata da `Controlli\controlla-documenti-senza-file.ps1`
@@ -123,8 +123,8 @@ namespace Riscontro.Disegno
         /// Fino al 18/9/2026 `ControlliPreliminari` rifiutava **ogni** assieme,
         /// e la riga di commento che difendeva quella scelta diceva: *«nessuna
         /// operazione della libreria sa lavorare su un assieme»*. Era vero
-        /// quando fu scritta. Il 17/9 sono arrivate `inserisci_componente`,
-        /// `accoppia`, `sostituisci_componente` e `verifica_interferenze` — e
+        /// quando fu scritta. Il 17/9 sono arrivate `insert_component`,
+        /// `mate`, `replace_component` e `interference_check` — e
         /// **il catalogo servito ai client le elencava tutte e quattro**.
         ///
         /// Il ponte prometteva quattro operazioni che avrebbe rifiutato prima
@@ -171,7 +171,7 @@ namespace Riscontro.Disegno
             /// <summary>
             /// Z-C21.14: the document the plan was working on when it ended:
             /// the plan document, or the new one a step declared
-            /// (DocumentoNuovo, e.g. the drawing of crea_disegno).
+            /// (DocumentoNuovo, e.g. the drawing of create_drawing).
             /// </summary>
             public IModelDoc2 FinalDocument;
 
@@ -489,7 +489,7 @@ namespace Riscontro.Disegno
                             ? new Dictionary<string, object>
                             {
                                 ["feature"] = esito.FeatureCreata,
-                                ["misure"] = esito.Misure,
+                                ["measurements"] = esito.Misure,
                             }
                             : null,
                         esito.Errore);

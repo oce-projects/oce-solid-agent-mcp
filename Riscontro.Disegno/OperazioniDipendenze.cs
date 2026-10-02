@@ -77,21 +77,21 @@ namespace Riscontro.Disegno
                     if (!esiste) mancanti.Add(percorso);
                     file.Add(new Dictionary<string, object>
                     {
-                        ["nome"] = nome,
-                        ["percorso"] = percorso,
-                        ["esiste"] = esiste,
+                        ["name"] = nome,
+                        ["path"] = percorso,
+                        ["exists"] = esiste,
                     });
                 }
             string mio = "";
             try { mio = modello.GetPathName() ?? ""; } catch { }
             var misure = new Dictionary<string, object>
             {
-                ["documento"] = mio.Length > 0 ? mio : null,
+                ["document"] = mio.Length > 0 ? mio : null,
                 ["file"] = file.ToArray(),
-                ["quanti_file"] = file.Count,
-                ["mancanti"] = mancanti.ToArray(),
-                ["quanti_mancano"] = mancanti.Count,
-                ["come_lo_so"] = "GetDependencies lists the files the document depends on, at every level, at the path " +
+                ["how_many_files"] = file.Count,
+                ["missing"] = mancanti.ToArray(),
+                ["how_many_missing"] = mancanti.Count,
+                ["how_known"] = "GetDependencies lists the files the document depends on, at every level, at the path " +
                                  "where each one was last saved (Searchflag false: the search rules can answer another " +
                                  "file with the same name, found in another folder, for a component that is not loaded; " +
                                  "measured). Whether each file is there, the disk says (File.Exists): a missing file is " +
@@ -100,17 +100,17 @@ namespace Riscontro.Disegno
             if (voci == null)
             {
                 // L'API NON HA RISPOSTO: «non lo so», non «zero file» — e nemmeno
-                // «zero mancanti» (revisione del 27/9/2026: quanti_mancano diceva 0).
-                misure["quanti_file"] = null;
-                misure["mancanti"] = null;
-                misure["quanti_mancano"] = null;
-                misure["attenzione"] = "GetDependencies non ha risposto: non so da quali file dipende il documento, " +
+                // «zero mancanti» (revisione del 27/9/2026: how_many_missing diceva 0).
+                misure["how_many_files"] = null;
+                misure["missing"] = null;
+                misure["how_many_missing"] = null;
+                misure["warning"] = "GetDependencies non ha risposto: non so da quali file dipende il documento, " +
                                        "ne' se ne manca qualcuno. Non prenderlo per un documento senza dipendenze.";
             }
             if (mancanti.Count > 0)
-                misure["attenzione"] = mancanti.Count + (mancanti.Count == 1 ? " file manca" : " file mancano") + " sul disco: " +
+                misure["warning"] = mancanti.Count + (mancanti.Count == 1 ? " file manca" : " file mancano") + " sul disco: " +
                     string.Join(", ", mancanti) + ". In un assieme quei componenti risultano soppressi: ritrova i file " +
-                    "(o sostituiscili con «sostituisci_componente») prima di misurare o esportare.";
+                    "(o sostituiscili con «replace_component») prima di misurare o esportare.";
             return RiuscitoSenzaCreare(misure);
         }
     }

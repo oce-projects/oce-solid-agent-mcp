@@ -1,37 +1,37 @@
 {
   "name": "the_interference_array_is_as_long_as_the_count",
   "family": "assemblies",
-  "why": "Z-C21.10, finding N34. verifica_interferenze sums the volumes of the array GetInterferences returns, and the count comes from GetInterferenceCount. With a null array, a shorter one or an item that is not an IInterference, the sum was partial and still went into volume_totale_mm3 and into the verdict («2 INTERFERENZE, per 0 mm3 in tutto», riuscita:true). The fix trusts the sum only when the array is as long as the count, as IInterferenceDetectionMgr~GetInterferenceCount.html says it is: «Call this method before calling IInterferenceDetectionMgr::IGetInterferences to determine the size of the array for the interferences». This case measures that sentence on SOLIDWORKS 2021 at every run: if the array were not as long as the count, the fix would drop the volume of every correct answer.",
-  "defect_caught": "Not the broken branch: a null or short array cannot be built from a case (see «se_resta_verde_sulla_libreria_vecchia»). What it takes is the other half of the fix going wrong: «interferences_read» must equal «quante», and «volume_totale_mm3» must still be there. If the new check fired on a correct array, the volume would disappear and the verdict would lose its size.",
+  "why": "Z-C21.10, finding N34. interference_check sums the volumes of the array GetInterferences returns, and the count comes from GetInterferenceCount. With a null array, a shorter one or an item that is not an IInterference, the sum was partial and still went into volume_total_mm3 and into the verdict («2 INTERFERENZE, per 0 mm3 in tutto», riuscita:true). The fix trusts the sum only when the array is as long as the count, as IInterferenceDetectionMgr~GetInterferenceCount.html says it is: «Call this method before calling IInterferenceDetectionMgr::IGetInterferences to determine the size of the array for the interferences». This case measures that sentence on SOLIDWORKS 2021 at every run: if the array were not as long as the count, the fix would drop the volume of every correct answer.",
+  "defect_caught": "Not the broken branch: a null or short array cannot be built from a case (see «se_resta_verde_sulla_libreria_vecchia»). What it takes is the other half of the fix going wrong: «interferences_read» must equal «count», and «volume_total_mm3» must still be there. If the new check fired on a correct array, the volume would disappear and the verdict would lose its size.",
   "_if_it_stays_green_on_the_old_library": "It does not go red on 0.140.0: it stops with «campo assente: misure.interferences_read», a bench error, because the old library does not report the field. The situation of the defect -- GetInterferences throwing, returning null or fewer items than the count -- is not something SOLIDWORKS does on request. The branches are covered without SOLIDWORKS: the contract group «the pure rules of the Z-C21.10 fixes» in Prove calls InterferenceListProblem on the built library with a whole array, a short one, a missing one and a foreign item.",
   "_the_numbers": "As in `cover_inside_base`: base 120 x 80 x 10 at y = 0 occupies y from -5 to +5; lid 120 x 80 x 4 at y = 5 occupies y from +3 to +7. Overlap 2 mm over the whole face: 120 x 80 x 2 = 19200 mm3, one interference, so one item in the array.",
   "assembly": {
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
       { "name": "coperchio",
         "position_mm": [0, 5, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "verifica_interferenze",
+    { "operation": "interference_check",
       "arguments": {},
       "expect": [
-        { "what": "misure.quante", "equal_to": 1,
+        { "what": "measurements.how_many", "equal_to": 1,
           "why": "the count, from GetInterferenceCount" },
-        { "what": "misure.interferences_read", "equal_to": 1,
+        { "what": "measurements.interferences_read", "equal_to": 1,
           "why": "the items of the array that are an IInterference: as many as the count, which is what the guide says the count is for" },
-        { "what": "misure.volume_totale_mm3", "equal_to": 19200, "tolerance": 1,
+        { "what": "measurements.volume_total_mm3", "equal_to": 19200, "tolerance": 1,
           "tolerance_why": "120 x 80 x 2 = 19200 mm3 exactly on flat parallel faces: 1 mm3 covers the rounding of GetMassProperties",
           "why": "the sum is still written when the array is whole: the new check must not fire on a correct answer" },
-        { "what": "misure.giudizio", "includes": [ "ATTENZIONE", "mm3 in tutto" ],
+        { "what": "measurements.verdict", "includes": [ "ATTENZIONE", "mm3 in tutto" ],
           "why": "and the verdict still carries the size: «mm3 in tutto» is written only when the volumes were all read (the number itself is asked above, with its tolerance)" } ] }
   ]
 }

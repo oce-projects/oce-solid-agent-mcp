@@ -4,12 +4,12 @@
   "why": "La distanza di una faccia da se stessa e' zero, e lo zero e' la risposta piu' pericolosa che questa operazione possa dare: «zero» vuol dire «si toccano», ed e' cio' che si guarda per sapere se due pezzi interferiscono. Uno zero che viene da un uid ripetuto per distrazione e' indistinguibile da uno che viene da due pezzi che si toccano davvero.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "spessore_mm": 10, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 40, "width_mm": 40,
+                     "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 16000 } ] },
-    { "operation": "distanza_minima",
-      "arguments": { "da_uid": "@faccia(verso=davanti)", "a_uid": "@faccia(verso=davanti)" },
+    { "operation": "minimum_distance",
+      "arguments": { "start_uid": "@face(normal=front)", "end_uid": "@face(normal=front)" },
       "must_fail": {
         "message_includes": ["la stessa cosa", "non e' una misura"],
         "volume_unchanged": true,

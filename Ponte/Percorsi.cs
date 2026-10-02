@@ -44,7 +44,7 @@ namespace Oce.Solid.Agent.Ponte
         /// <summary>I nomi di argomento che contengono un percorso su cui si scrive.</summary>
         private static readonly string[] CampiDiScrittura =
         {
-            "percorso", "file", "percorso_pdf", "percorso_file", "destinazione",
+            "path", "file", "percorso_pdf", "percorso_file", "destinazione",
         };
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace Oce.Solid.Agent.Ponte
             return null;
         }
 
-        public static string ControllaUno(string percorso, string campo = "percorso")
+        public static string ControllaUno(string percorso, string campo = "path")
         {
             string pieno;
             try
@@ -164,7 +164,7 @@ namespace Oce.Solid.Agent.Ponte
         }
 
         /// <summary>
-        /// `pieno` sta dentro `cartella`?
+        /// `pieno` sta dentro `folder`?
         ///
         /// Il separatore in coda non e' pignoleria: senza, «C:\Dati2» risulta
         /// dentro «C:\Dati», e un controllo che dice di si' quando e' no e' un

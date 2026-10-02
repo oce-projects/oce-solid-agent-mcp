@@ -5,8 +5,8 @@
 //  PERCHE' ESISTE (voce Z-G7)
 //
 //  Le cinque operazioni del catalogo senza nessun caso di banco --
-//  `ripeti_circolare`, `cordone_saldatura`, `fazzoletto`, `taglia_membri`,
-//  `tappo_estremita` -- le abbiamo scelte NOI. Quali servano davvero non lo sa
+//  `circular_pattern`, `weld_bead`, `gusset`, `trim_members`,
+//  `end_cap` -- le abbiamo scelte NOI. Quali servano davvero non lo sa
 //  nessuno, e chiederlo alle persone non lo fa sapere: chi usa il ponte non ha
 //  l'elenco di cio' che non c'e'.
 //
@@ -84,16 +84,16 @@ for (const r of righe) {
 }
 
 // EXPECTED KEYS (W3.1-bis.2, item 5). Every record is written by
-// `Strumenti/RegistroDelleDomande.cs` with `quando`, `tipo` and `nome`
-// (`simili` only when there are neighbours). A record without one of them is
+// `Strumenti/RegistroDelleDomande.cs` with `timestamp`, `kind` and `name`
+// (`similar` only when there are neighbours). A record without one of them is
 // a producer that renamed its keys: read with a fallback, every question
 // would count as "?" with an empty name, and the report would look like one.
 const withoutKeys = voci.filter(v => v === null || typeof v !== 'object' || Array.isArray(v) ||
-  ['quando', 'tipo', 'nome'].some(k => typeof v[k] !== 'string') ||
-  (v.simili !== undefined && !Array.isArray(v.simili)));
+  ['timestamp', 'kind', 'name'].some(k => typeof v[k] !== 'string') ||
+  (v.similar !== undefined && !Array.isArray(v.similar)));
 if (withoutKeys.length) {
   console.log('EXPECTED KEYS MISSING: ' + withoutKeys.length + ' of ' + voci.length +
-              ' records lack "quando", "tipo" or "nome" (strings). The first:');
+              ' records lack "timestamp", "kind" or "name" (strings). The first:');
   console.log('    ' + JSON.stringify(withoutKeys[0]).slice(0, 200));
   console.log('If the bridge renamed them, this reader is renamed in the same commit.');
   process.exit(1);
@@ -101,32 +101,32 @@ if (withoutKeys.length) {
 
 if (perRighe) {
   for (const v of voci) {
-    console.log('  ' + (v.quando || '?') + '  ' + (v.tipo || '?') + '  ' +
-                JSON.stringify(v.nome) +
-                (v.simili ? '   vicini: ' + v.simili.join(', ') : ''));
+    console.log('  ' + (v.timestamp || '?') + '  ' + (v.kind || '?') + '  ' +
+                JSON.stringify(v.name) +
+                (v.similar ? '   vicini: ' + v.similar.join(', ') : ''));
   }
   console.log('');
 }
 
 const conti = new Map();
 for (const v of voci) {
-  const chiave = (v.tipo || '?') + '\u0000' + (v.nome || '');
+  const chiave = (v.kind || '?') + '\u0000' + (v.name || '');
   let c = conti.get(chiave);
   if (!c) {
-    c = { tipo: v.tipo || '?', nome: v.nome || '', quante: 0,
-          prima: v.quando, ultima: v.quando, vicini: new Set() };
+    c = { kind: v.kind || '?', name: v.name || '', quante: 0,
+          prima: v.timestamp, ultima: v.timestamp, vicini: new Set() };
     conti.set(chiave, c);
   }
   c.quante++;
-  if (v.quando) {
-    if (!c.prima || v.quando < c.prima) c.prima = v.quando;
-    if (!c.ultima || v.quando > c.ultima) c.ultima = v.quando;
+  if (v.timestamp) {
+    if (!c.prima || v.timestamp < c.prima) c.prima = v.timestamp;
+    if (!c.ultima || v.timestamp > c.ultima) c.ultima = v.timestamp;
   }
-  for (const s of (v.simili || [])) c.vicini.add(s);
+  for (const s of (v.similar || [])) c.vicini.add(s);
 }
 
 const tutte = [...conti.values()].sort((a, b) => b.quante - a.quante ||
-                                                 a.nome.localeCompare(b.nome));
+                                                 a.name.localeCompare(b.name));
 
 console.log('domande registrate:        ' + voci.length);
 console.log('nomi distinti:             ' + tutte.length);
@@ -143,8 +143,8 @@ function stampa(titolo, elenco, coda) {
   console.log(titolo);
   for (const c of elenco) {
     const v = c.vicini.size ? '   vicini: ' + [...c.vicini].join(', ') : '';
-    console.log('  ' + String(c.quante).padStart(4) + '  [' + c.tipo + '] ' +
-                c.nome + v);
+    console.log('  ' + String(c.quante).padStart(4) + '  [' + c.kind + '] ' +
+                c.name + v);
     console.log('        dal ' + (c.prima || '?') + ' al ' + (c.ultima || '?'));
   }
   console.log('');

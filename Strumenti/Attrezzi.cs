@@ -25,22 +25,22 @@ namespace Oce.Solid.Agent.Strumenti
     ///      Gli strumenti in fila — guarda, cerca, approfondisci, fai —
     ///      rendono difficile saltare il primo.
     ///
-    /// `guarda_il_pezzo` non e' un accessorio: e' il primo, e senza di lui gli
+    /// `inspect_part` non e' un accessorio: e' il primo, e senza di lui gli
     /// identificativi che gli altri vogliono (`F1`, `E4`, `Corpo1`) non
     /// esistono.
     ///
-    /// **IL QUINTO E' `annulla`, ed e' arrivato dopo (voce R1).** Non e'
+    /// **IL QUINTO E' `undo`, ed e' arrivato dopo (voce R1).** Non e'
     /// un'operazione di disegno, e sta fuori dal catalogo per una ragione
-    /// precisa: le operazioni si eseguono dentro `disegna`, cioe' dentro un
+    /// precisa: le operazioni si eseguono dentro `build`, cioe' dentro un
     /// piano, e annullare un piano da dentro il piano stesso e' un nodo. Il
     /// motivo per cui gli strumenti non sono trentotto — non esporre le
     /// operazioni una per una — non riguarda un gesto che operazione non e'.
     ///
     /// **Togliere una lavorazione invece SI'**, ed e' nel catalogo
-    /// (`sopprimi_lavorazione`, `elimina_lavorazione`, voce R2): quelle sono
+    /// (`suppress_feature`, `delete_feature`, voce R2): quelle sono
     /// operazioni sul pezzo come tutte le altre, si scrivono dentro un piano e
-    /// hanno senso in mezzo a una sequenza. La differenza con `annulla` non e'
-    /// «toglie» contro «aggiunge»: e' che `annulla` disfa **un piano**, e un
+    /// hanno senso in mezzo a una sequenza. La differenza con `undo` non e'
+    /// «toglie» contro «aggiunge»: e' che `undo` disfa **un piano**, e un
     /// piano non e' geometria.
     ///
     /// Fino alla 0.31.0 questo ponte diceva **ventuno volte** «annullalo con
@@ -81,13 +81,13 @@ namespace Oce.Solid.Agent.Strumenti
             return new object[]
             {
                 Strumento(
-                    "guarda_il_pezzo",
+                    "inspect_part",
                     "GUARDA il documento aperto in SolidWorks prima di toccarlo: " +
                     "ingombro, volume, corpi, lavorazioni con le loro quote, facce " +
                     "e spigoli con il loro identificativo. Gli identificativi (F1, " +
                     "E4, Corpo1) che le altre operazioni vogliono nascono QUI e " +
                     "valgono per questa lettura: dopo ogni modifica si rilegge.\n\n" +
-                    "Con «viste» torna anche una FOTOGRAFIA del pezzo, che e' " +
+                    "Con «views» torna anche una FOTOGRAFIA del pezzo, che e' " +
                     "l'unico modo di sapere che FORMA ha: l'elenco delle facce " +
                     "dice quante sono e quanto misurano, non com'e' fatto. " +
                     "Costa: ogni vista pesa piu' dell'intero stato scritto, " +
@@ -97,13 +97,13 @@ namespace Oce.Solid.Agent.Strumenti
                     Oggetto(
                         new Dictionary<string, object>
                         {
-                            ["viste"] = new Dictionary<string, object>
+                            ["views"] = new Dictionary<string, object>
                             {
                                 ["type"] = "array",
                                 ["description"] =
                                     "quali viste fotografare, al massimo " +
                                     MassimoDiViste + ". Se non sai quale, chiedi " +
-                                    "«isometrica»: e' la sola che da sola mostra una " +
+                                    "«isometric»: e' la sola che da sola mostra una " +
                                     "forma. Ci sono: " +
                                     string.Join(", ", Sessione.NomiDelleViste) + ".",
                                 ["items"] = new Dictionary<string, object>
@@ -112,7 +112,7 @@ namespace Oce.Solid.Agent.Strumenti
                                     ["enum"] = Nomi(Sessione.NomiDelleViste),
                                 },
                             },
-                            ["sezione"] = new Dictionary<string, object>
+                            ["section"] = new Dictionary<string, object>
                             {
                                 ["type"] = "object",
                                 ["description"] =
@@ -123,7 +123,7 @@ namespace Oce.Solid.Agent.Strumenti
                                     "si toglie da sola appena scattata.",
                                 ["properties"] = new Dictionary<string, object>
                                 {
-                                    ["piano"] = new Dictionary<string, object>
+                                    ["plane"] = new Dictionary<string, object>
                                     {
                                         ["type"] = "string",
                                         ["enum"] = Nomi(Sessione.NomiDeiPiani),
@@ -138,49 +138,50 @@ namespace Oce.Solid.Agent.Strumenti
                                             "per l'origine, non per il centro del pezzo.",
                                     },
                                 },
-                                ["required"] = new[] { "piano" },
+                                ["required"] = new[] { "plane" },
                             },
                         },
                         new string[0]),
                     soloLettura: true, distruttivo: false, idempotente: true),
 
                 Strumento(
-                    "elenco_operazioni",
+                    "list_operations",
                     "L'elenco corto di cosa si puo' chiedere, per famiglia: un " +
                     "nome e una riga ciascuna. Per lo schema completo di una, usa " +
-                    "«descrivi_operazione».",
+                    "«describe_operation».",
                     Oggetto(
                         new Dictionary<string, object>
                         {
-                            ["famiglia"] = new Dictionary<string, object>
+                            ["family"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
                                 ["description"] =
-                                    "solo una famiglia: estrusioni, lavorazioni, " +
-                                    "riferimenti, corpi, saldature, proprieta', tavola",
+                                    "solo una famiglia: extrusions, features, weldments, " +
+                                    "references, assemblies, physical_properties, drawing, " +
+                                    "checks, exports, identity, sheet_metal, dimensions",
                             },
                         },
                         new string[0]),
                     soloLettura: true, distruttivo: false, idempotente: true),
 
                 Strumento(
-                    "descrivi_operazione",
+                    "describe_operation",
                     "Lo schema completo di una operazione: cosa vuole, in che " +
                     "unita', cosa deve esserci gia' nel documento.",
                     Oggetto(
                         new Dictionary<string, object>
                         {
-                            ["nome"] = new Dictionary<string, object>
+                            ["name"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
-                                ["description"] = "il nome esatto, da «elenco_operazioni»",
+                                ["description"] = "il nome esatto, da «list_operations»",
                             },
                         },
-                        new[] { "nome" }),
+                        new[] { "name" }),
                     soloLettura: true, distruttivo: false, idempotente: true),
 
                 Strumento(
-                    "disegna",
+                    "build",
                     "Esegue in SolidWorks una sequenza di operazioni e RIPORTA " +
                     "COS'E' VENUTO: le misure di ogni passo e lo stato del " +
                     "documento dopo.\n\n" +
@@ -191,19 +192,19 @@ namespace Oce.Solid.Agent.Strumenti
                     "Se invece un passo fallisce mentre viene eseguito, ci si " +
                     "ferma li': i passi seguenti quasi sempre nominano cio' che " +
                     "il passo fallito avrebbe dovuto creare. Quello che era gia' " +
-                    "stato costruito resta, e «annulla» lo toglie tutto in una " +
+                    "stato costruito resta, e «undo» lo toglie tutto in una " +
                     "volta.\n\n" +
-                    "Con «prova: true» il piano viene SOLO controllato: non " +
+                    "Con «dry_run: true» il piano viene SOLO controllato: non " +
                     "viene toccato niente, e la risposta dice cosa e' stato " +
                     "guardato e cosa no. Serve a sbagliare prima, invece che " +
                     "a meta' pezzo.\n\n" +
                     "Un passo puo' nominare la geometria creata da un passo " +
-                    "PRECEDENTE dello stesso piano (per esempio faccia_rif: " +
-                    "{passo: 1, genere: \"faccia_superiore\"}): e' l'unico modo, " +
+                    "PRECEDENTE dello stesso piano (per esempio face_ref: " +
+                    "{step: 1, kind: \"top_face\"}): e' l'unico modo, " +
                     "perche' quella faccia non ha ancora nessun identificativo.\n\n" +
                     "The plan runs on the document you looked at; if another window " +
                     "came to the front in between, it stops before writing. " +
-                    "«volume_dopo_mm3» is the plan's document; «stato_dopo» is the " +
+                    "«volume_after_mm3» is the plan's document; «state_after» is the " +
                     "document in front, and when that is another one the answer says " +
                     "so in «document_in_front» and «note_document_in_front» (after " +
                     "a drawing step it is the new drawing, and the next plan works " +
@@ -212,7 +213,7 @@ namespace Oce.Solid.Agent.Strumenti
                     Oggetto(
                         new Dictionary<string, object>
                         {
-                            ["passi"] = new Dictionary<string, object>
+                            ["steps"] = new Dictionary<string, object>
                             {
                                 ["type"] = "array",
                                 ["description"] =
@@ -220,33 +221,33 @@ namespace Oce.Solid.Agent.Strumenti
                                 ["items"] = Oggetto(
                                     new Dictionary<string, object>
                                     {
-                                        ["operazione"] = new Dictionary<string, object>
+                                        ["operation"] = new Dictionary<string, object>
                                         {
                                             ["type"] = "string",
                                             ["description"] = "il nome dell'operazione",
                                         },
-                                        ["argomenti"] = new Dictionary<string, object>
+                                        ["arguments"] = new Dictionary<string, object>
                                         {
                                             ["type"] = "object",
                                             ["description"] =
-                                                "gli argomenti, come da «descrivi_operazione»",
+                                                "gli argomenti, come da «describe_operation»",
                                         },
                                     },
-                                    new[] { "operazione" }),
+                                    new[] { "operation" }),
                             },
-                            ["documento"] = new Dictionary<string, object>
+                            ["document"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
                                 ["description"] =
                                     "Su quale documento disegnare: il titolo o il " +
-                                    "percorso, copiato da «guarda_il_pezzo». Serve " +
+                                    "percorso, copiato da «inspect_part». Serve " +
                                     "SOLO se il documento davanti e' cambiato da " +
                                     "quando l'hai guardato: normalmente si omette. " +
                                     "Nominarlo vuol dire «so quale pezzo sto " +
                                     "toccando», e un nome che non corrisponde viene " +
                                     "rifiutato.",
                             },
-                            ["prova"] = new Dictionary<string, object>
+                            ["dry_run"] = new Dictionary<string, object>
                             {
                                 ["type"] = "boolean",
                                 ["description"] =
@@ -263,7 +264,7 @@ namespace Oce.Solid.Agent.Strumenti
                                     "SOLIDWORKS chiuso.",
                             },
                         },
-                        new[] { "passi" }),
+                        new[] { "steps" }),
                     // Rieseguire lo stesso piano NON rimette il pezzo
                     // com'era: fa un secondo foro. Dichiararlo idempotente
                     // inviterebbe un client a riprovare da solo dopo un
@@ -275,18 +276,18 @@ namespace Oce.Solid.Agent.Strumenti
                 // Non e' una comodita' ed e' l'unico modo di dire la verita' nel
                 // protocollo: le annotazioni MCP viaggiano su `tools/list`,
                 // cioe' stanno sullo STRUMENTO e partono prima che esista una
-                // chiamata. Finche' c'era solo `disegna`, il client leggeva
+                // chiamata. Finche' c'era solo `build`, il client leggeva
                 // «distruttivo» e chiedeva conferma anche per
-                // `proprieta_di_massa`, che non muove un millimetro cubo — e chi
+                // `mass_properties`, che non muove un millimetro cubo — e chi
                 // conferma dieci volte di fila smette di leggere cosa conferma.
-                // Non si poteva riparare dentro `disegna`: al momento
+                // Non si poteva riparare dentro `build`: al momento
                 // dell'annotazione non si sa ancora quale operazione arrivera'.
                 // Serviva uno strumento in piu', e questo e' quello.
                 Strumento(
-                    "misura",
+                    "measure",
                     "MISURA il pezzo senza toccarlo. Prende le stesse " +
-                    "operazioni di «disegna», ma accetta SOLO quelle della " +
-                    "famiglia «verifiche» — quelle che leggono e basta.\n\n" +
+                    "operazioni di «build», ma accetta SOLO quelle della " +
+                    "famiglia «checks» — quelle che leggono e basta.\n\n" +
                     "Se hai solo bisogno di sapere com'e' fatto il pezzo, usa " +
                     "questo: il tuo client sa che non cambia niente e non ti " +
                     "chiede conferma.\n\n" +
@@ -296,52 +297,52 @@ namespace Oce.Solid.Agent.Strumenti
                     Oggetto(
                         new Dictionary<string, object>
                         {
-                            ["passi"] = new Dictionary<string, object>
+                            ["steps"] = new Dictionary<string, object>
                             {
                                 ["type"] = "array",
                                 ["description"] =
                                     "le misure da prendere, in ordine — solo " +
-                                    "operazioni della famiglia «verifiche»",
+                                    "operazioni della famiglia «checks»",
                                 ["items"] = Oggetto(
                                     new Dictionary<string, object>
                                     {
-                                        ["operazione"] = new Dictionary<string, object>
+                                        ["operation"] = new Dictionary<string, object>
                                         {
                                             ["type"] = "string",
                                             ["description"] =
                                                 "il nome dell'operazione di verifica",
                                         },
-                                        ["argomenti"] = new Dictionary<string, object>
+                                        ["arguments"] = new Dictionary<string, object>
                                         {
                                             ["type"] = "object",
                                             ["description"] =
-                                                "gli argomenti, come da «descrivi_operazione»",
+                                                "gli argomenti, come da «describe_operation»",
                                         },
                                     },
-                                    new[] { "operazione" }),
+                                    new[] { "operation" }),
                             },
-                            ["documento"] = new Dictionary<string, object>
+                            ["document"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
                                 ["description"] =
                                     "Su quale documento misurare: il titolo o il " +
-                                    "percorso, copiato da «guarda_il_pezzo». " +
+                                    "percorso, copiato da «inspect_part». " +
                                     "Normalmente si omette.",
                             },
                         },
-                        new[] { "passi" }),
+                        new[] { "steps" }),
                     // Idempotente sul serio, e non per cortesia: misurare due
                     // volte da' due volte la stessa risposta perche' non
-                    // cambia niente in mezzo. E' la differenza con `disegna`,
+                    // cambia niente in mezzo. E' la differenza con `build`,
                     // che al secondo giro fa un SECONDO foro.
                     soloLettura: true, distruttivo: false, idempotente: true),
 
                 Strumento(
-                    "annulla",
-                    "RITIRA l'ultimo piano eseguito da «disegna», tutto intero. " +
+                    "undo",
+                    "RITIRA l'ultimo piano eseguito da «build», tutto intero. " +
                     "E' il gesto che questo ponte chiedeva di fare con Ctrl+Z, " +
                     "che tu non hai.\n\n" +
-                    "Si annulla SOLO se il pezzo e' ancora come «disegna» lo " +
+                    "Si annulla SOLO se il pezzo e' ancora come «build» lo " +
                     "aveva lasciato: se dopo il piano qualcuno ha lavorato a " +
                     "mano, mi fermo e dico cosa e' cambiato — annullare " +
                     "allora toglierebbe il lavoro di qualcun altro.\n\n" +
@@ -373,18 +374,18 @@ namespace Oce.Solid.Agent.Strumenti
                     soloLettura: false, distruttivo: true, idempotente: false),
 
                 Strumento(
-                    "documento",
+                    "document",
                     "Il DOCUMENTO su cui si lavora: crearne uno, aprirne uno dal " +
                     "disco, sapere quali sono aperti, portarne uno davanti.\n\n" +
                     "Senza documenti aperti gli altri strumenti non hanno niente " +
-                    "da guardare: si comincia con «nuovo» (una parte vuota dal " +
-                    "modello predefinito) o con «apri».\n\n" +
+                    "da guardare: si comincia con «create» (una parte vuota dal " +
+                    "modello predefinito) o con «open».\n\n" +
                     "Ogni volta che il documento davanti cambia, quello che avevi " +
-                    "guardato non vale piu': prima di disegnare, «guarda_il_pezzo». " +
+                    "guardato non vale piu': prima di disegnare, «inspect_part». " +
                     "Il ponte lo pretende.\n\n" +
                     "Un file aperto in SOLA LETTURA lo dico sempre: di solito vuol " +
-                    "dire che un collega lo ha aperto, e «disegna» non ci scrive.\n\n" +
-                    "«chiudi» RIFIUTA un documento con modifiche non salvate: non " +
+                    "dire che un collega lo ha aperto, e «build» non ci scrive.\n\n" +
+                    "«close» RIFIUTA un documento con modifiche non salvate: non " +
                     "butto il lavoro di nessuno. Salvalo prima, o chiudilo a mano.\n\n" +
                     "Closing: a saved document is closed by its full path, and one never " +
                     "saved as the active document or by a title that no other open " +
@@ -400,41 +401,41 @@ namespace Oce.Solid.Agent.Strumenti
                     Oggetto(
                         new Dictionary<string, object>
                         {
-                            ["azione"] = new Dictionary<string, object>
+                            ["action"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
-                                ["enum"] = new[] { "nuovo", "apri", "elenca", "attiva", "chiudi" },
+                                ["enum"] = new[] { "create", "open", "list", "activate", "close" },
                                 ["description"] =
-                                    "«nuovo»: crea un documento vuoto e lo porta davanti. " +
-                                    "«apri»: apre un file dal disco. «elenca»: i documenti " +
-                                    "aperti, e quale e' davanti. «attiva»: porta davanti uno " +
-                                    "gia' aperto. «chiudi»: chiude uno aperto, solo se non ha " +
+                                    "«create»: crea un documento vuoto e lo porta davanti. " +
+                                    "«open»: apre un file dal disco. «list»: i documenti " +
+                                    "aperti, e quale e' davanti. «activate»: porta davanti uno " +
+                                    "gia' aperto. «close»: chiude uno aperto, solo se non ha " +
                                     "modifiche da salvare.",
                             },
-                            ["tipo"] = new Dictionary<string, object>
+                            ["variant"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
-                                ["enum"] = new[] { "parte", "assieme" },
+                                ["enum"] = new[] { "part", "assembly" },
                                 ["description"] =
-                                    "solo con «nuovo». Predefinito «parte». Una tavola " +
-                                    "nasce da un pezzo: «crea_disegno», dentro un piano.",
+                                    "solo con «create». Predefinito «part». Una tavola " +
+                                    "nasce da un pezzo: «create_drawing», dentro un piano.",
                             },
-                            ["percorso"] = new Dictionary<string, object>
+                            ["path"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
                                 ["description"] =
-                                    "con «apri»: il file .sldprt, .sldasm o .slddrw, col " +
-                                    "percorso intero. Con «attiva» e «chiudi»: il percorso " +
+                                    "con «open»: il file .sldprt, .sldasm o .slddrw, col " +
+                                    "percorso intero. Con «activate» e «close»: il percorso " +
                                     "o, per un documento mai salvato, il titolo che " +
-                                    "«elenca» ha dato.",
+                                    "«list» ha dato.",
                             },
                         },
-                        new[] { "azione" }),
-                    // NON e' di sola lettura: «nuovo», «apri», «attiva» e
-                    // «chiudi» cambiano il documento davanti. NON e' distruttivo:
-                    // «chiudi» rifiuta un documento con modifiche non salvate,
+                        new[] { "action" }),
+                    // NON e' di sola lettura: «create», «open», «activate» e
+                    // «close» cambiano il documento davanti. NON e' distruttivo:
+                    // «close» rifiuta un documento con modifiche non salvate,
                     // quindi chiude solo cio' che e' gia' tutto su disco, e non
-                    // butta niente. NON e' idempotente: «nuovo» due volte fa due
+                    // butta niente. NON e' idempotente: «create» due volte fa due
                     // documenti. Still true for hidden documents (Z-C21.13 N11):
                     // a close that would take hidden documents with unsaved
                     // changes is refused.
@@ -591,7 +592,7 @@ namespace Oce.Solid.Agent.Strumenti
         }
 
         /// <summary>
-        /// Lo strumento «documento» (voci Z-B1, Z-B2, Z-B5, Z-B6).
+        /// Lo strumento «document» (voci Z-B1, Z-B2, Z-B5, Z-B6).
         ///
         /// Tutto il lavoro sta in `Ponte/Documenti.cs`; qui c'e' la parte che
         /// solo il ponte sa fare: quando il documento davanti cambia, quello
@@ -605,68 +606,68 @@ namespace Oce.Solid.Agent.Strumenti
             if (!_sessione.Agganciata)
                 return Protocollo.Contenuto("Il ponte non e' agganciato a SolidWorks.", true);
 
-            string azione = TestoDi(argomenti, "azione");
+            string azione = TestoDi(argomenti, "action");
             string errore;
             Dictionary<string, object> scheda;
             switch (azione)
             {
-                case "elenca":
+                case "list":
                 {
                     var elenco = _sessione.Documenti(out int nascosti, out errore);
                     if (elenco == null) return Protocollo.Contenuto(errore, true);
                     var fuori = new Dictionary<string, object>
                     {
-                        ["documenti"] = elenco,
-                        ["quanti"] = elenco.Count,
-                        ["caricati_dentro_un_assieme"] = nascosti,
+                        ["documents"] = elenco,
+                        ["how_many"] = elenco.Count,
+                        ["loaded_inside_assembly"] = nascosti,
                     };
                     if (elenco.Count == 0)
-                        fuori["nota"] = "Nessun documento aperto: comincia con «nuovo» o «apri».";
+                        fuori["note"] = "Nessun documento aperto: comincia con «create» o «open».";
                     return Protocollo.ContenutoConDati(Protocollo.InJson(fuori), fuori);
                 }
-                case "nuovo":
-                    string tipo = TestoDi(argomenti, "tipo");
-                    scheda = _sessione.NuovoDocumento(string.IsNullOrWhiteSpace(tipo) ? "parte" : tipo, out errore);
+                case "create":
+                    string tipo = TestoDi(argomenti, "variant");
+                    scheda = _sessione.NuovoDocumento(string.IsNullOrWhiteSpace(tipo) ? "part" : tipo, out errore);
                     break;
-                case "apri":
-                    scheda = _sessione.ApriDocumento(TestoDi(argomenti, "percorso"), out errore);
+                case "open":
+                    scheda = _sessione.ApriDocumento(TestoDi(argomenti, "path"), out errore);
                     break;
-                case "attiva":
-                    scheda = _sessione.AttivaDocumento(TestoDi(argomenti, "percorso"), out errore);
+                case "activate":
+                    scheda = _sessione.AttivaDocumento(TestoDi(argomenti, "path"), out errore);
                     break;
-                case "chiudi":
+                case "close":
                 {
-                    var chiuso = _sessione.ChiudiDocumento(TestoDi(argomenti, "percorso"), out errore);
+                    var chiuso = _sessione.ChiudiDocumento(TestoDi(argomenti, "path"), out errore);
                     if (chiuso == null) return Protocollo.Contenuto(errore, true);
                     // Il documento guardato potrebbe essere proprio quello chiuso:
                     // si butta lo sguardo come per ogni cambio di documento.
                     _guardato = null;
                     _firmaGuardata = null;
                     _firmeViste = null;
-                    chiuso["prossimo_passo"] = chiuso["davanti_adesso"] == null
-                        ? "Non c'e' piu' nessun documento aperto: «nuovo» o «apri» per continuare."
-                        : "Davanti adesso c'e' «" + Convert.ToString(chiuso["davanti_adesso"]) + "». " +
-                          "Prima di disegnare, «guarda_il_pezzo».";
+                    chiuso["next_step"] = chiuso["in_front_now"] == null
+                        ? "Non c'e' piu' nessun documento aperto: «create» o «open» per continuare."
+                        : "Davanti adesso c'e' «" + Convert.ToString(chiuso["in_front_now"]) + "». " +
+                          "Prima di disegnare, «inspect_part».";
                     return Protocollo.ContenutoConDati(Protocollo.InJson(chiuso), chiuso);
                 }
                 default:
                     return Protocollo.Contenuto(
-                        "«azione» vale «nuovo», «apri», «elenca», «attiva» o «chiudi». Ho ricevuto «" +
+                        "«action» vale «create», «open», «list», «activate» o «close». Ho ricevuto «" +
                         (azione ?? "") + "».", true);
             }
             if (scheda == null) return Protocollo.Contenuto(errore, true);
 
             // IL DOCUMENTO DAVANTI E' CAMBIATO (o potrebbe esserlo): quello che
-            // era stato guardato e le sue firme si buttano INSIEME. «disegna» a
+            // era stato guardato e le sue firme si buttano INSIEME. «build» a
             // questo punto risponde «non ho ancora guardato nessun pezzo», che
             // e' la verita'.
             _guardato = null;
             _firmaGuardata = null;
             _firmeViste = null;
 
-            scheda["prossimo_passo"] =
-                "Davanti adesso c'e' «" + Convert.ToString(scheda["titolo"]) + "». " +
-                "Prima di disegnare, «guarda_il_pezzo»: quello che avevi guardato " +
+            scheda["next_step"] =
+                "Davanti adesso c'e' «" + Convert.ToString(scheda["document_title"]) + "». " +
+                "Prima di disegnare, «inspect_part»: quello che avevi guardato " +
                 "prima non vale piu'.";
             return Protocollo.ContenutoConDati(Protocollo.InJson(scheda), scheda);
         }
@@ -694,15 +695,69 @@ namespace Oce.Solid.Agent.Strumenti
             // da dove era arrivata la prima.
             _filo = new Mcp.Avanzamento.Filo(gettone);
 
+            // THE NAMES OF BEFORE W3.1-bis.5 (Riscontro.Disegno/Alias.cs,
+            // decision D4): a tool, an action, a family, an operation, an
+            // argument or a value written with its Italian name is translated
+            // BEFORE any check of this bridge reads it, and the answer lists
+            // each one in `deprecated`. Input only: the answers, the catalogue
+            // and describe_operation speak English. Removed in W3.1-bis.11.
+            List<string> deprecated = new List<string>();
+            nome = Riscontro.Disegno.Alias.Tool(nome, deprecated);
+            if (argomenti != null)
+                Riscontro.Disegno.Alias.ToolArguments(nome, argomenti, ToolSchema(nome), deprecated);
+            return WithDeprecated(Dispatch(nome, argomenti), deprecated);
+        }
+
+        /// <summary>The input schema of a tool, as tools/list gives it, or null.</summary>
+        private Dictionary<string, object> ToolSchema(string nome)
+        {
+            var tools = Elenco() as object[];
+            if (tools == null) return null;
+            foreach (var x in tools)
+            {
+                var s = x as Dictionary<string, object>;
+                object n, schema;
+                if (s != null && s.TryGetValue("name", out n) && string.Equals(n as string, nome, StringComparison.Ordinal) &&
+                    s.TryGetValue("inputSchema", out schema))
+                    return schema as Dictionary<string, object>;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The answer of a tool, with the Italian names it accepted: in
+        /// `structuredContent.deprecated` when there is structured content, and
+        /// always as a last text item, so that a client reading only the text
+        /// sees it too.
+        /// </summary>
+        internal static Dictionary<string, object> WithDeprecated(Dictionary<string, object> answer, List<string> deprecated)
+        {
+            if (answer == null || deprecated == null || deprecated.Count == 0) return answer;
+            object data;
+            var structured = answer.TryGetValue("structuredContent", out data) ? data as Dictionary<string, object> : null;
+            if (structured != null) structured["deprecated"] = deprecated.ToArray();
+            object c;
+            var content = answer.TryGetValue("content", out c) ? c as object[] : null;
+            var line = new Dictionary<string, object>
+            {
+                ["type"] = "text",
+                ["text"] = "deprecated: " + string.Join("; ", deprecated),
+            };
+            answer["content"] = (content ?? new object[0]).Concat(new object[] { line }).ToArray();
+            return answer;
+        }
+
+        private Dictionary<string, object> Dispatch(string nome, Dictionary<string, object> argomenti)
+        {
             switch (nome)
             {
-                case "guarda_il_pezzo": return GuardaIlPezzo(argomenti);
-                case "elenco_operazioni": return ElencoOperazioni(argomenti);
-                case "descrivi_operazione": return DescriviOperazione(argomenti);
-                case "disegna": return Disegna(argomenti);
-                case "misura": return Misura(argomenti);
-                case "annulla": return Annulla();
-                case "documento": return Documento(argomenti);
+                case "inspect_part": return GuardaIlPezzo(argomenti);
+                case "list_operations": return ElencoOperazioni(argomenti);
+                case "describe_operation": return DescriviOperazione(argomenti);
+                case "build": return Disegna(argomenti);
+                case "measure": return Misura(argomenti);
+                case "undo": return Annulla();
+                case "document": return Documento(argomenti);
                 case "api_search": return ApiSearch(argomenti);
                 case "api_signature": return ApiSignature(argomenti);
                 default:
@@ -723,15 +778,15 @@ namespace Oce.Solid.Agent.Strumenti
                         "Non conosco lo strumento «" + nome + "». Ci sono " +
                         "questi: " + string.Join(", ", NomiDegliStrumenti) + ". " +
                         "Le sessanta OPERAZIONI di disegno non sono strumenti: " +
-                        "si chiedono a «disegna» (o a «misura», se leggono e " +
-                        "basta) e si elencano con «elenco_operazioni».", true);
+                        "si chiedono a «build» (o a «measure», se leggono e " +
+                        "basta) e si elencano con «list_operations».", true);
             }
         }
 
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// L'ultimo documento che «guarda_il_pezzo» ha descritto.
+        /// L'ultimo documento che «inspect_part» ha descritto.
         ///
         /// Non e' un ricordo di comodo: e' il contratto fra i due strumenti.
         /// Un piano nasce guardando UN documento, e va eseguito su QUELLO.
@@ -739,7 +794,7 @@ namespace Oce.Solid.Agent.Strumenti
         private Dictionary<string, object> _guardato;
 
         /// <summary>
-        /// COM'ERA FATTO IL PEZZO quando «guarda_il_pezzo» l'ha guardato
+        /// COM'ERA FATTO IL PEZZO quando «inspect_part» l'ha guardato
         /// (voce X2) — non QUALE pezzo era, che e' `_guardato`.
         ///
         /// ── DUE DOMANDE CHE SEMBRANO UNA ─────────────────────────────
@@ -755,7 +810,7 @@ namespace Oce.Solid.Agent.Strumenti
         /// se la geometria e' cambiata, «F1» indica un'altra faccia e
         /// l'operazione riesce sul posto sbagliato — che e' il difetto gia'
         /// misurato il 14 settembre con le due tasche, tutte e due
-        /// «riuscita: true».
+        /// «succeeded: true».
         ///
         /// ── COSA CI SI METTE, E PERCHE' SOLO QUESTO ──────────────────
         ///
@@ -774,7 +829,7 @@ namespace Oce.Solid.Agent.Strumenti
         private Dictionary<string, object> _firmaGuardata;
 
         /// <summary>
-        /// Com'erano fatte le entita' quando «guarda_il_pezzo» le ha
+        /// Com'erano fatte le entita' quando «inspect_part» le ha
         /// descritte: uid -> punto, normale, area, lunghezza.
         ///
         /// GLI UID SONO POSIZIONALI. L'add-in li riassegna a ogni lettura
@@ -783,17 +838,17 @@ namespace Oce.Solid.Agent.Strumenti
         /// nasce da UNA lettura: i suoi uid parlano di quel momento li'.
         ///
         /// MISURATO il 14 settembre 2026, tre passi in una sola chiamata a
-        /// «disegna» su un blocco 200x100x20:
+        /// «build» su un blocco 200x100x20:
         ///   1. estrudi il blocco          -> F1 = faccia di sopra, 20.000 mm2
         ///   2. tasca Ø60 profonda 5 su F1 -> la faccia di sopra scende a
         ///      17.172,57 mm2 e passa DIETRO a quella di sotto nell'ordine
         ///   3. tasca Ø10 profonda 5 su F1 -> «F1» adesso e' quella di SOTTO
-        /// Tutti e tre i passi hanno risposto «riuscita: true». La tasca
+        /// Tutti e tre i passi hanno risposto «succeeded: true». La tasca
         /// piccola e' finita sulla faccia sbagliata, le profondita' erano
         /// quelle chieste, e il volume tornava: 385.470,1 mm3, esatto. Non
         /// c'era niente, in quella risposta, che facesse sospettare.
         ///
-        /// L'add-in sa gia' difendersi: legge «_firme» dagli argomenti e
+        /// L'add-in sa gia' difendersi: legge «_signatures» dagli argomenti e
         /// confronta. Ma quella chiave la scriveva solo il server di
         /// OpenPDM, e qui non la scriveva nessuno — quindi il confronto
         /// non aveva termini e passava sempre. Questo campo e' il termine
@@ -838,13 +893,13 @@ namespace Oce.Solid.Agent.Strumenti
             TogliLeAncore(stato);
 
             var chieste = VisteChieste(argomenti);
-            var sezione = Prendi(argomenti, "sezione") as Dictionary<string, object>;
+            var sezione = Prendi(argomenti, "section") as Dictionary<string, object>;
             if (chieste.Count == 0 && sezione == null)
                 // Il testo per chi legge, i dati per chi li deve usare (W2.4).
                 return Protocollo.ContenutoConDati(Protocollo.InJson(stato), stato);
 
             // LO STATO ESCE COMUNQUE, anche se nessuna fotografia riesce.
-            // Un `guarda_il_pezzo` che fallisce perche' non si e' potuto
+            // Un `inspect_part` che fallisce perche' non si e' potuto
             // scattare toglierebbe a chi legge anche l'elenco delle facce —
             // cioe' l'unica cosa che gli serviva davvero. I motivi delle
             // fotografie mancate si dicono nel testo, accanto allo stato.
@@ -909,7 +964,7 @@ namespace Oce.Solid.Agent.Strumenti
                 }
                 else
                 {
-                    string piano = Testo(sezione, "piano");
+                    string piano = Testo(sezione, "plane");
                     double offset = 0;
                     object grezzo = Prendi(sezione, "offset_mm");
                     if (grezzo != null)
@@ -985,8 +1040,8 @@ namespace Oce.Solid.Agent.Strumenti
                              "— in isometrica gli spessori sono scorciati e " +
                              "sembrano piu' grossi. Prima di usare una misura " +
                              "in un passo, prendila dallo stato qui di seguito " +
-                             "oppure chiedila con «misura_fra_entita», " +
-                             "«distanza_minima» o «ingombro_corpo». Nello stato " +
+                             "oppure chiedila con «measure_between», " +
+                             "«minimum_distance» o «body_bounding_box». Nello stato " +
                              "stanno anche gli identificativi.\n\n");
             }
             if (mancate.Count > 0)
@@ -1012,7 +1067,7 @@ namespace Oce.Solid.Agent.Strumenti
         {
             // `Stringhe` C'ERA GIA', e fa esattamente la cosa difficile: una
             // stringa e' un `IEnumerable` **di caratteri**, quindi
-            // `viste: "isometrica"` — l'errore piu' naturale del mondo, e lo
+            // `views: "isometric"` — l'errore piu' naturale del mondo, e lo
             // schema chiede un elenco — scorso come sequenza darebbe tre viste
             // che si chiamano «i», «s», «o». Tre rifiuti incomprensibili al
             // posto della fotografia chiesta.
@@ -1021,7 +1076,7 @@ namespace Oce.Solid.Agent.Strumenti
             // questo progetto ha visto tre volte oggi: la regola giusta gia'
             // scritta da un'altra parte, e una riga nuova che non la fa.
             var fuori = new List<string>();
-            foreach (var x in Stringhe(Prendi(argomenti, "viste")))
+            foreach (var x in Stringhe(Prendi(argomenti, "views")))
             {
                 var nome = x.Trim();
                 if (nome.Length == 0) continue;
@@ -1045,9 +1100,9 @@ namespace Oce.Solid.Agent.Strumenti
         {
             switch (piano)
             {
-                case "frontale": return "frontale";
-                case "superiore": return "superiore";
-                case "destro": return "destra";
+                case "front": return "front";
+                case "top": return "top";
+                case "right": return "right";
                 default: return null;
             }
         }
@@ -1066,12 +1121,12 @@ namespace Oce.Solid.Agent.Strumenti
         /// L'ANCORA NON SI MANDA A CHI LEGGE, e non e' per risparmiare posto —
         /// anche se ne risparmia.
         ///
-        /// `punto_mm` e `ancora` fanno due mestieri diversi e hanno due
+        /// `point_mm` e `anchor` fanno due mestieri diversi e hanno due
         /// destinatari diversi:
         ///
-        ///   * `punto_mm` serve a **selezionare**: e' un punto garantito sulla
+        ///   * `point_mm` serve a **selezionare**: e' un punto garantito sulla
         ///     faccia, e chi legge lo usa per dire dove lavorare;
-        ///   * `ancora` serve a **riconoscere**: e' il baricentro d'area, che
+        ///   * `anchor` serve a **riconoscere**: e' il baricentro d'area, che
         ///     non sta necessariamente sulla faccia (quello di una faccia a
         ///     ferro di cavallo cade nel vuoto) e non si puo' usare per
         ///     selezionare niente.
@@ -1089,14 +1144,14 @@ namespace Oce.Solid.Agent.Strumenti
         private static void TogliLeAncore(Dictionary<string, object> stato)
         {
             if (stato == null) return;
-            var facce = (stato.TryGetValue("facce", out var g) ? g : null)
+            var facce = (stato.TryGetValue("faces", out var g) ? g : null)
                         as System.Collections.IEnumerable;
             if (facce == null) return;
             foreach (var v in facce)
             {
                 var voce = v as Dictionary<string, object>;
                 if (voce == null) continue;
-                voce.Remove("ancora");
+                voce.Remove("anchor");
                 // IL PERSIST ID SI TOGLIE PER DUE RAGIONI, e la seconda basta
                 // da sola. Non e' leggibile — e' un blob opaco, e chi legge non
                 // ci puo' fare niente. E pesa: 375-423 byte per faccia, cioe'
@@ -1124,7 +1179,7 @@ namespace Oce.Solid.Agent.Strumenti
             // LA SCATOLA DEL PEZZO, la stessa per tutte le entita'.
             //
             // Sta nella firma di ognuna e non una volta sola in fondo perche'
-            // `_firme` e' una mappa uid -> firma, e chi la legge cerca per uid:
+            // `_signatures` e' una mappa uid -> firma, e chi la legge cerca per uid:
             // una chiave che uid non e' sarebbe un caso speciale da ricordarsi
             // in tre posti. Sei numeri per entita' in un allegato che porta gia'
             // ~530 caratteri di persist ID a faccia non si notano.
@@ -1137,7 +1192,7 @@ namespace Oce.Solid.Agent.Strumenti
 
             // I CORPI SONO ENTITA' COME LE ALTRE: per un saldato sono LE
             // entita', e «tappa le estremita' di C1» nomina corpi.
-            foreach (var famiglia in new[] { "facce", "spigoli", "feature", "assi", "corpi" })
+            foreach (var famiglia in new[] { "faces", "edges", "feature", "axes", "bodies" })
             {
                 // SI SCORRE COME IEnumerable, NON SI CASTA A object[].
                 // Lo stato arriva dall'add-in con i suoi tipi veri, e la' le
@@ -1155,24 +1210,24 @@ namespace Oce.Solid.Agent.Strumenti
                     if (voce == null || !voce.TryGetValue("uid", out var uid) || uid == null)
                         continue;
                     var firma = new Dictionary<string, object>();
-                    // `lavorazione` e `lavorazione_id` servono alla
+                    // `feature` e `feature_id` servono alla
                     // corroborazione del ritrovamento (voce E3): senza, una
                     // faccia di un'altra lavorazione finita nello stesso posto
                     // e' indistinguibile da quella che si cercava.
-                    // `centro_mm` e `ingombro_mm` sono la firma dei CORPI, e
+                    // `center_mm` e `bounding_box_mm` sono la firma dei CORPI, e
                     // fino alla 0.24.0 non venivano copiati: per «C1» la firma
                     // usciva vuota, `FirmaCombacia` non aveva niente da
                     // confrontare e rispondeva sempre di si'. I corpi erano
                     // controllati per ESISTENZA e non per IDENTITA'.
                     foreach (var campo in new[]
                              {
-                                 "punto_mm", "normale", "area_mm2", "lunghezza_mm",
-                                 "lavorazione_id", "centro_mm", "ingombro_mm", "ancora",
+                                 "point_mm", "normal", "area_mm2", "length_mm",
+                                 "feature_id", "center_mm", "bounding_box_mm", "anchor",
                                  "feature_id",
                                  // LA DIREZIONE DI UN ASSE (voce E4): senza, la
                                  // firma dell'asse avrebbe solo un punto, e un asse
                                  // girato attorno a quel punto passerebbe.
-                                 "direzione",
+                                 "direction",
                                  // IL PERSIST ID VIAGGIA QUI E SOLO QUI.
                                  // E' il CANDIDATO del ritrovamento (voce E6):
                                  // ~530 caratteri in base64 per faccia, che
@@ -1193,17 +1248,17 @@ namespace Oce.Solid.Agent.Strumenti
                     // va a nessun modello — e' un allegato interno al passo — e
                     // serve a scrivere un rifiuto che nomina la lavorazione
                     // attesa invece di darne il numero.
-                    if (firma.TryGetValue("lavorazione_id", out var idLav) && idLav != null)
+                    if (firma.TryGetValue("feature_id", out var idLav) && idLav != null)
                     {
                         var nome = NomeLavorazione(stato, idLav);
-                        if (nome != null) firma["lavorazione"] = nome;
+                        if (nome != null) firma["feature"] = nome;
                     }
                     // DOPO il conteggio di sopra, mai prima: una firma che
                     // avesse SOLO la scatola del pezzo non direbbe niente di
-                    // quell'entita', e finirebbe lo stesso in `_firme` facendo
+                    // quell'entita', e finirebbe lo stesso in `_signatures` facendo
                     // credere che una firma ci sia.
                     if (firma.Count > 0 && scatolaPezzo != null)
-                        firma["scatola_pezzo_mm"] = scatolaPezzo;
+                        firma["box_part_mm"] = scatolaPezzo;
                     if (firma.Count > 0) fuori[Convert.ToString(uid)] = firma;
                 }
             }
@@ -1217,8 +1272,8 @@ namespace Oce.Solid.Agent.Strumenti
             if (stato == null) return null;
             return new Dictionary<string, object>
             {
-                ["titolo"] = stato.TryGetValue("titolo", out var t) ? t : "",
-                ["percorso"] = stato.TryGetValue("percorso", out var p) ? p : "",
+                ["document_title"] = stato.TryGetValue("document_title", out var t) ? t : "",
+                ["path"] = stato.TryGetValue("path", out var p) ? p : "",
             };
         }
 
@@ -1244,19 +1299,19 @@ namespace Oce.Solid.Agent.Strumenti
 
             if (stato.TryGetValue("feature", out var e) &&
                 e is System.Collections.IList elenco)
-                f["lavorazioni"] = elenco.Count;
+                f["features"] = elenco.Count;
 
             // LA DATA DEL FILE PRENDE CIO' CHE IL VOLUME NON VEDE: un salvataggio
             // fatto da fuori. Un pezzo mai salvato non ha un file, e non avere la
             // chiave e' la risposta giusta — non «data zero».
             var percorso = Convert.ToString(
-                stato.TryGetValue("percorso", out var p) ? p : "");
+                stato.TryGetValue("path", out var p) ? p : "");
             if (!string.IsNullOrWhiteSpace(percorso))
             {
                 try
                 {
                     if (File.Exists(percorso))
-                        f["file_scritto"] = File.GetLastWriteTimeUtc(percorso)
+                        f["file_written"] = File.GetLastWriteTimeUtc(percorso)
                             .ToString("o", CultureInfo.InvariantCulture);
                 }
                 catch { }
@@ -1280,7 +1335,7 @@ namespace Oce.Solid.Agent.Strumenti
             if (prima == null || adesso == null) return null;
 
             var detti = new List<string>();
-            foreach (var chiave in new[] { "volume_mm3", "lavorazioni", "file_scritto" })
+            foreach (var chiave in new[] { "volume_mm3", "features", "file_written" })
             {
                 bool cePrima = prima.TryGetValue(chiave, out var a);
                 bool ceAdesso = adesso.TryGetValue(chiave, out var b);
@@ -1293,7 +1348,7 @@ namespace Oce.Solid.Agent.Strumenti
                 if (chiave == "volume_mm3")
                     detti.Add("il volume e' passato da " + (testoA ?? "(nessuno)") +
                               " a " + (testoB ?? "(nessuno)") + " mm3");
-                else if (chiave == "lavorazioni")
+                else if (chiave == "features")
                     detti.Add("le lavorazioni sono passate da " + (testoA ?? "(nessuna)") +
                               " a " + (testoB ?? "(nessuna)"));
                 else
@@ -1307,9 +1362,9 @@ namespace Oce.Solid.Agent.Strumenti
         private static string NomeLeggibile(Dictionary<string, object> identita)
         {
             if (identita == null) return "(nessuno)";
-            var p = Convert.ToString(identita.TryGetValue("percorso", out var x) ? x : "");
+            var p = Convert.ToString(identita.TryGetValue("path", out var x) ? x : "");
             if (!string.IsNullOrWhiteSpace(p)) return p;
-            var t = Convert.ToString(identita.TryGetValue("titolo", out var y) ? y : "");
+            var t = Convert.ToString(identita.TryGetValue("document_title", out var y) ? y : "");
             return string.IsNullOrWhiteSpace(t) ? "(senza nome)" : t;
         }
 
@@ -1318,7 +1373,7 @@ namespace Oce.Solid.Agent.Strumenti
         {
             if (_catalogo.ErroreDiCaricamento != null)
                 return Protocollo.Contenuto(_catalogo.ErroreDiCaricamento, true);
-            var famiglia = Testo(argomenti, "famiglia");
+            var famiglia = Testo(argomenti, "family");
             var elenco = _catalogo.Elenco(famiglia);
             return Protocollo.ContenutoConDati(Protocollo.InJson(elenco), elenco);
         }
@@ -1329,7 +1384,7 @@ namespace Oce.Solid.Agent.Strumenti
             if (_catalogo.ErroreDiCaricamento != null)
                 return Protocollo.Contenuto(_catalogo.ErroreDiCaricamento, true);
 
-            var nome = Testo(argomenti, "nome");
+            var nome = Testo(argomenti, "name");
             var descrizione = _catalogo.Descrizione(nome);
             if (descrizione == null)
             {
@@ -1341,7 +1396,7 @@ namespace Oce.Solid.Agent.Strumenti
                     "Non c'e' nessuna operazione che si chiama «" + nome + "»." +
                     (simili.Count > 0
                         ? " Forse cercavi: " + string.Join(", ", simili) + "."
-                        : " Chiedi «elenco_operazioni» per vedere quali ci sono."),
+                        : " Chiedi «list_operations» per vedere quali ci sono."),
                     true);
             }
             return Protocollo.ContenutoConDati(Protocollo.InJson(descrizione), descrizione);
@@ -1369,7 +1424,7 @@ namespace Oce.Solid.Agent.Strumenti
             "com'era. Correggi questo passo e rimanda il piano intero.";
 
         /// <summary>
-        /// `misura` — `disegna` senza il permesso di toccare.
+        /// `measure` — `build` senza il permesso di toccare.
         ///
         /// IL CANCELLO STA QUI E NON DENTRO `Disegna`, e il motivo e' che deve
         /// scattare PRIMA che il piano cominci. Un piano di tre misure e
@@ -1434,16 +1489,16 @@ namespace Oce.Solid.Agent.Strumenti
                     ? Convert.ToString(v, CultureInfo.InvariantCulture)
                     : "-";
             };
-            return campo("volume_mm3") + "|" + campo("corpi") + "|" +
-                   campo("quante_lavorazioni") + "|" + campo("titolo");
+            return campo("volume_mm3") + "|" + campo("bodies") + "|" +
+                   campo("how_many_features") + "|" + campo("document_title");
         }
 
         private Dictionary<string, object> Misura(Dictionary<string, object> argomenti)
         {
-            var passi = Prendi(argomenti, "passi") as object[];
+            var passi = Prendi(argomenti, "steps") as object[];
             if (passi == null || passi.Length == 0)
                 return Protocollo.Contenuto(
-                    "Non c'e' niente da misurare: «passi» deve essere un elenco " +
+                    "Non c'e' niente da misurare: «steps» deve essere un elenco " +
                     "di {operazione, argomenti}.", true);
 
             // UN CANCELLO CHE NON SA NIENTE DEVE CHIUDERE, NON APRIRE.
@@ -1451,7 +1506,7 @@ namespace Oce.Solid.Agent.Strumenti
             // Il cancello qui sotto decide guardando la FAMIGLIA, e la famiglia
             // la sa solo il catalogo. Se il catalogo non si e' caricato,
             // `Famiglia()` risponde null per tutto, ogni passo passa il
-            // controllo, e `misura` — che si e' dichiarata di sola lettura nel
+            // controllo, e `measure` — che si e' dichiarata di sola lettura nel
             // protocollo, e per cui il client ha gia' deciso di NON chiedere
             // conferma — eseguirebbe un'estrusione.
             //
@@ -1463,15 +1518,15 @@ namespace Oce.Solid.Agent.Strumenti
                     "Non posso misurare: il catalogo non si e' caricato (" +
                     _catalogo.ErroreDiCaricamento + "). Senza catalogo non so " +
                     "quali operazioni leggono e quali toccano il pezzo, e " +
-                    "«misura» non esegue niente di cui non sappia rispondere. " +
-                    "Con «disegna» lo stesso piano parte, ma il tuo client sa " +
+                    "«measure» non esegue niente di cui non sappia rispondere. " +
+                    "Con «build» lo stesso piano parte, ma il tuo client sa " +
                     "che quello puo' modificare.", true);
 
             var fuoriPosto = new List<string>();
             for (int i = 0; i < passi.Length; i++)
             {
                 var passo = passi[i] as Dictionary<string, object>;
-                string nome = passo == null ? null : Testo(passo, "operazione");
+                string nome = passo == null ? null : Testo(passo, "operation");
                 if (string.IsNullOrWhiteSpace(nome)) continue;   // lo dira' Disegna
 
                 string famiglia = _catalogo.Famiglia(nome);
@@ -1487,38 +1542,38 @@ namespace Oce.Solid.Agent.Strumenti
 
             if (fuoriPosto.Count > 0)
                 return Protocollo.Contenuto(
-                    "«misura» legge e basta, e " +
+                    "«measure» legge e basta, e " +
                     (fuoriPosto.Count == 1 ? "questo passo tocca" : "questi passi toccano") +
                     " il pezzo: " + string.Join("; ", fuoriPosto) + ". " +
                     "Non ho eseguito niente — nemmeno le misure che venivano " +
                     "prima, perche' meta' piano e' un risultato che non si sa " +
-                    "leggere. Per fare queste operazioni usa «disegna», che il " +
+                    "leggere. Per fare queste operazioni usa «build», che il " +
                     "tuo client sa essere distruttivo. Per sapere cosa sa " +
-                    "leggere «misura»: «elenco_operazioni» con famiglia «" +
+                    "leggere «measure»: «list_operations» con famiglia «" +
                     FamigliaDiSolaLettura + "».", true);
 
             // SENZA la guardia sulla ripetizione: misurare due volte la stessa
-            // cosa e' legittimo, e `misura` si dichiara idempotente.
+            // cosa e' legittimo, e `measure` si dichiara idempotente.
             return EseguiIlPiano(argomenti, guardaSeERipetuto: false);
         }
 
         /// <summary>
         /// L'unica famiglia che non tocca il pezzo.
         ///
-        /// NON c'e' anche «identita» qui, e va detto perche' e' il verso in cui
-        /// sbagliare costa di piu': `scrivi_proprieta`, `crea_configurazione` e
-        /// `attiva_configurazione` SCRIVONO nel documento. Dichiararle di sola
+        /// NON c'e' anche «identity» qui, e va detto perche' e' il verso in cui
+        /// sbagliare costa di piu': `set_property`, `create_configuration` e
+        /// `activate_configuration` SCRIVONO nel documento. Dichiararle di sola
         /// lettura vorrebbe dire un client che non chiede conferma mentre
         /// qualcuno cambia la configurazione attiva di un pezzo confermato.
         /// </summary>
-        private const string FamigliaDiSolaLettura = "verifiche";
+        private const string FamigliaDiSolaLettura = "checks";
 
         /// <summary>
         /// LA PROVA A VUOTO: sbagliare senza toccare il pezzo (voce Z-G6).
         ///
         /// ── PERCHE' SERVE ────────────────────────────────────────────
         ///
-        /// `disegna` controlla gia' tutto il piano prima di cominciare, ed
+        /// `build` controlla gia' tutto il piano prima di cominciare, ed
         /// e' il pezzo piu' prezioso del ponte: un piano sbagliato non tocca
         /// niente. Ma quel controllo **non era raggiungibile senza eseguire**:
         /// per sapere se un piano regge bisognava lanciarlo, e un piano che
@@ -1543,10 +1598,10 @@ namespace Oce.Solid.Agent.Strumenti
             if (_catalogo.ErroreDiCaricamento != null)
                 return Protocollo.Contenuto(_catalogo.ErroreDiCaricamento, true);
 
-            var passi = Prendi(argomenti, "passi") as object[];
+            var passi = Prendi(argomenti, "steps") as object[];
             if (passi == null || passi.Length == 0)
                 return Protocollo.Contenuto(
-                    "Il piano e' vuoto: «passi» deve essere un elenco di " +
+                    "Il piano e' vuoto: «steps» deve essere un elenco di " +
                     "{operazione, argomenti}.", true);
 
             var guai = new List<string>();
@@ -1563,9 +1618,9 @@ namespace Oce.Solid.Agent.Strumenti
                 _filo.Passo(i + 1, "controllo il " + dove + " di " + passi.Length);
                 if (passo == null) { guai.Add(dove + ": non e' un oggetto"); continue; }
 
-                var nome = Testo(passo, "operazione");
+                var nome = Testo(passo, "operation");
                 if (string.IsNullOrWhiteSpace(nome))
-                { guai.Add(dove + ": manca «operazione»"); continue; }
+                { guai.Add(dove + ": manca «operation»"); continue; }
 
                 if (!_catalogo.Conosce(nome))
                 {
@@ -1579,7 +1634,7 @@ namespace Oce.Solid.Agent.Strumenti
                 }
 
                 var schema = _catalogo.Schema(nome);
-                var dati = Prendi(passo, "argomenti") as Dictionary<string, object>
+                var dati = Prendi(passo, "arguments") as Dictionary<string, object>
                            ?? new Dictionary<string, object>();
                 if (schema == null) continue;
 
@@ -1595,8 +1650,8 @@ namespace Oce.Solid.Agent.Strumenti
                         // dichiara obbligatorio uno dei due, e chiederli
                         // tutti e due sarebbe un rifiuto sbagliato.
                         var gemello = campo.EndsWith("_uid", StringComparison.Ordinal)
-                            ? campo.Substring(0, campo.Length - 4) + "_rif"
-                            : campo.EndsWith("_rif", StringComparison.Ordinal)
+                            ? campo.Substring(0, campo.Length - 4) + "_ref"
+                            : campo.EndsWith("_ref", StringComparison.Ordinal)
                                 ? campo.Substring(0, campo.Length - 4) + "_uid"
                                 : null;
                         if (dati.ContainsKey(campo)) continue;
@@ -1616,13 +1671,13 @@ namespace Oce.Solid.Agent.Strumenti
                                  "e verrebbe IGNORATO");
                     }
 
-                // I riferimenti a un passo precedente: `{passo: N, genere: ...}`.
+                // I riferimenti a un passo precedente: `{step: N, kind: ...}`.
                 foreach (var coppia in dati)
                 {
-                    if (!coppia.Key.EndsWith("_rif", StringComparison.Ordinal)) continue;
+                    if (!coppia.Key.EndsWith("_ref", StringComparison.Ordinal)) continue;
                     var rif = coppia.Value as Dictionary<string, object>;
                     if (rif == null) continue;
-                    var n = Prendi(rif, "passo");
+                    var n = Prendi(rif, "step");
                     int quale;
                     if (n == null || !int.TryParse(Convert.ToString(n), out quale)) continue;
                     if (quale >= 1 && quale <= i) continue;
@@ -1652,7 +1707,7 @@ namespace Oce.Solid.Agent.Strumenti
                          "che le facce e gli spigoli nominati esistano ancora, " +
                          "e se la geometria che chiedi sia possibile. " +
                          (_sessione.Agganciata
-                             ? "SOLIDWORKS e' agganciato: «disegna» senza «prova» " +
+                             ? "SOLIDWORKS e' agganciato: «build» senza «dry_run» " +
                                "li controlla tutti prima di toccare qualunque cosa."
                              : "SOLIDWORKS NON e' agganciato adesso.") + "\n");
 
@@ -1662,7 +1717,7 @@ namespace Oce.Solid.Agent.Strumenti
         {
             // LA PROVA A VUOTO NON TOCCA NIENTE, e non vuole nemmeno che
             // SOLIDWORKS sia agganciato: serve proprio a sbagliare prima.
-            var chiesta = Prendi(argomenti, "prova");
+            var chiesta = Prendi(argomenti, "dry_run");
             bool prova = false;
             if (chiesta != null) { try { prova = Convert.ToBoolean(chiesta); } catch { } }
             if (prova) return ProvaIlPiano(argomenti);
@@ -1670,22 +1725,22 @@ namespace Oce.Solid.Agent.Strumenti
         }
 
         /// <summary>
-        /// Il corpo di `disegna`, con o senza la guardia sulla ripetizione.
+        /// Il corpo di `build`, con o senza la guardia sulla ripetizione.
         ///
-        /// ── PERCHE' `misura` NON LA VUOLE, ED E' UN BUG TROVATO SCRIVENDOLA ──
+        /// ── PERCHE' `measure` NON LA VUOLE, ED E' UN BUG TROVATO SCRIVENDOLA ──
         ///
-        /// `misura` passa di qui: sono le stesse operazioni, con un cancello
+        /// `measure` passa di qui: sono le stesse operazioni, con un cancello
         /// davanti. Ma **misurare due volte la stessa cosa e' legittimo** — anzi,
         /// e' il caso normale: si guarda, si pensa, si riguarda. E siccome una
         /// misura non cambia il documento, lo stato dopo e' identico allo stato
         /// prima: la guardia sulla ripetizione avrebbe visto un piano identico
         /// su un documento identico e **avrebbe rifiutato la seconda misura.**
         ///
-        /// Non sarebbe stato solo scomodo: `misura` si dichiara
+        /// Non sarebbe stato solo scomodo: `measure` si dichiara
         /// `idempotentHint: true` nelle annotazioni, e un client legge quella
         /// riga per decidere se puo' riprovare da solo. Rifiutare il secondo
         /// tentativo avrebbe reso quella dichiarazione **una bugia nel
-        /// protocollo** — la stessa categoria di difetto che `misura` esiste per
+        /// protocollo** — la stessa categoria di difetto che `measure` esiste per
         /// non avere.
         ///
         /// Un parametro con valore predefinito su `Disegna` sarebbe bastato, ma
@@ -1696,23 +1751,23 @@ namespace Oce.Solid.Agent.Strumenti
         ///
         /// **Una sola, e il criterio conta piu' dell'elenco**: ci finisce
         /// cio' che toglie qualcosa che non si puo' rimettere con
-        /// un'operazione del catalogo. `sopprimi_lavorazione` non c'e',
-        /// perche' esiste `riattiva`; `elimina_lavorazione` si', perche' una
+        /// un'operazione del catalogo. `suppress_feature` non c'e',
+        /// perche' esiste `reactivate`; `delete_feature` si', perche' una
         /// lavorazione eliminata non torna.
         ///
         /// Un elenco lungo sarebbe peggio: chi conferma dieci volte di fila
         /// smette di leggere cosa conferma, ed e' la stessa ragione per cui
-        /// `misura` esiste separata da `disegna`.
+        /// `measure` esiste separata da `build`.
         /// </summary>
-        private static readonly string[] NonSiAnnullano = { "elimina_lavorazione" };
+        private static readonly string[] NonSiAnnullano = { "delete_feature" };
 
         private Dictionary<string, object> EseguiIlPiano(
             Dictionary<string, object> argomenti, bool guardaSeERipetuto)
         {
-            var passi = Prendi(argomenti, "passi") as object[];
+            var passi = Prendi(argomenti, "steps") as object[];
             if (passi == null || passi.Length == 0)
                 return Protocollo.Contenuto(
-                    "Il piano e' vuoto: «passi» deve essere un elenco di " +
+                    "Il piano e' vuoto: «steps» deve essere un elenco di " +
                     "{operazione, argomenti}.", true);
 
             // ── SI CHIEDE PRIMA DI TOCCARE QUALUNQUE COSA (voce W2.5) ──
@@ -1723,7 +1778,7 @@ namespace Oce.Solid.Agent.Strumenti
             // SOLIDWORKS puo' non tornare (voce Z-C4). La domanda riguarda
             // l'intenzione, e l'intenzione si puo' chiedere a costo zero.
             //
-            // `misura` non passa di qui con `guardaSeERipetuto` falso? Passa,
+            // `measure` non passa di qui con `guardaSeERipetuto` falso? Passa,
             // ma non puo' eseguire operazioni distruttive: il cancello e'
             // prima. Chiedere conferma li' sarebbe chiedere il permesso di
             // fare una cosa che verra' rifiutata comunque.
@@ -1734,7 +1789,7 @@ namespace Oce.Solid.Agent.Strumenti
                 {
                     var passo = x as Dictionary<string, object>;
                     if (passo == null) continue;
-                    var nome = Testo(passo, "operazione");
+                    var nome = Testo(passo, "operation");
                     if (string.IsNullOrEmpty(nome)) continue;
                     foreach (var brutta in NonSiAnnullano)
                         if (string.Equals(nome, brutta, StringComparison.OrdinalIgnoreCase) &&
@@ -1778,7 +1833,7 @@ namespace Oce.Solid.Agent.Strumenti
 
             // SENZA ANCORA: questa lettura serve a sapere su QUALE documento si
             // lavora, quanto volume c'era e quante lavorazioni erano gia' in
-            // errore. Non se ne costruiscono firme (quelle si fanno su «dopo»,
+            // errore. Non se ne costruiscono firme (quelle si fanno su «after»,
             // piu' sotto) e non torna a chi legge. L'ancora costa un
             // GetTessTriangles per faccia, e qui si pagava per buttarla.
             var prima = _sessione.StatoSenzaAncora(out var erroreLettura);
@@ -1795,11 +1850,11 @@ namespace Oce.Solid.Agent.Strumenti
             // senza un errore, senza un avviso.
             //
             // Qui non si indovina e non si cambia finestra da soli: si
-            // CONFRONTA con quello che «guarda_il_pezzo» aveva descritto, e se
+            // CONFRONTA con quello che «inspect_part» aveva descritto, e se
             // non combacia ci si ferma. Chi sa cosa sta facendo puo' dire
             // esplicitamente «si', quello davanti» con `qualunque_documento`.
             var adesso = IdentitaDelloStato(prima);
-            var nominato = Testo(argomenti, "documento");
+            var nominato = Testo(argomenti, "document");
 
             // SI NOMINA IL DOCUMENTO, NON SI SPEGNE IL CONTROLLO.
             //
@@ -1821,7 +1876,7 @@ namespace Oce.Solid.Agent.Strumenti
                     new Dictionary<string, object>
                     {
                         [nominato.IndexOfAny(new[] { '\\', '/' }) >= 0
-                            ? "percorso" : "titolo"] = nominato,
+                            ? "path" : "document_title"] = nominato,
                     });
 
             if (!loHaNominato)
@@ -1830,7 +1885,7 @@ namespace Oce.Solid.Agent.Strumenti
                     return Protocollo.Contenuto(
                         "Non ho ancora guardato nessun pezzo, quindi non so su quale " +
                         "documento vuoi che disegni: adesso davanti c'e' «" +
-                        NomeLeggibile(adesso) + "». Chiama prima «guarda_il_pezzo» — " +
+                        NomeLeggibile(adesso) + "». Chiama prima «inspect_part» — " +
                         "serve comunque, perche' gli identificativi delle facce " +
                         "nascono li'.", true);
 
@@ -1842,8 +1897,8 @@ namespace Oce.Solid.Agent.Strumenti
                         "scrivere nel pezzo sbagliato, e gli identificativi del tuo " +
                         "piano non valgono su questo.\n\n" +
                         "Se e' cambiato per una ragione che conosci, rileggilo con " +
-                        "«guarda_il_pezzo». Se sai gia' che vuoi lavorare proprio su " +
-                        "quello che c'e' adesso, ripeti passando «documento»: \"" +
+                        "«inspect_part». Se sai gia' che vuoi lavorare proprio su " +
+                        "quello che c'e' adesso, ripeti passando «document»: \"" +
                         NomeLeggibile(adesso) + "\".", true);
             }
             // ── LO STESSO DOCUMENTO, CON DENTRO UN'ALTRA COSA (voce X2) ──
@@ -1872,7 +1927,7 @@ namespace Oce.Solid.Agent.Strumenti
                         "lettura e valgono per quella. Su una geometria cambiata «F1» " +
                         "puo' indicare un'altra faccia, e l'operazione riuscirebbe nel " +
                         "posto sbagliato senza dare nessun errore.\n\n" +
-                        "Rileggi con «guarda_il_pezzo» e rifa' il piano sugli " +
+                        "Rileggi con «inspect_part» e rifa' il piano sugli " +
                         "identificativi nuovi.", true);
             }
 
@@ -1888,7 +1943,7 @@ namespace Oce.Solid.Agent.Strumenti
             // `_guardato` dice QUALE documento, `_firmaGuardata` e
             // `_firmeViste` dicono COM'ERA. Finche' questa riga spostava
             // solo il primo, bastava un piano che nominasse un altro
-            // documento — `documento: "..."`, la strada legittima — perche'
+            // documento — `document: "..."`, la strada legittima — perche'
             // da quel momento `_guardato` indicasse il pezzo nuovo e le
             // firme il pezzo vecchio.
             //
@@ -1902,7 +1957,7 @@ namespace Oce.Solid.Agent.Strumenti
             // variabile locale: **meglio nessun confronto che un confronto
             // fra due pezzi diversi.** Qui lo si applica anche ai campi che
             // restano: se il documento cambia, le firme vecchie si buttano.
-            // Le rifara' `guarda_il_pezzo`, oppure la fine di questo piano.
+            // Le rifara' `inspect_part`, oppure la fine di questo piano.
             if (!quelloGuardato)
             {
                 _firmeViste = null;
@@ -1915,7 +1970,7 @@ namespace Oce.Solid.Agent.Strumenti
             // Un client che non riceve la risposta — rete, timeout, riavvio —
             // rimanda la stessa richiesta. E' il comportamento normale di
             // qualunque client, ed e' documentato nelle annotazioni di questo
-            // ponte: `disegna` **non** e' idempotente, rieseguire lo stesso
+            // ponte: `build` **non** e' idempotente, rieseguire lo stesso
             // piano non rimette il pezzo com'era, **fa un secondo foro**.
             //
             // Finora niente lo fermava. Adesso si', e il criterio e' stretto
@@ -1938,14 +1993,14 @@ namespace Oce.Solid.Agent.Strumenti
             {
                 return Protocollo.Contenuto(
                     "Questo piano l'ho gia' eseguito, e il documento e' ancora " +
-                    "esattamente come l'ho lasciato. Non lo rifaccio: «disegna» " +
+                    "esattamente come l'ho lasciato. Non lo rifaccio: «build» " +
                     "non e' ripetibile — rieseguirlo non rimette il pezzo com'era, " +
                     "farebbe un SECONDO foro.\n\n" +
                     "Se la risposta di prima non ti e' arrivata, chiama " +
-                    "«guarda_il_pezzo»: lo stato di adesso e' il risultato di " +
+                    "«inspect_part»: lo stato di adesso e' il risultato di " +
                     "quel piano.\n\n" +
                     "Se invece vuoi davvero rifarlo, cambia qualcosa nel piano " +
-                    "oppure usa «annulla» e poi rilancialo: cosi' e' una scelta, " +
+                    "oppure usa «undo» e poi rilancialo: cosi' e' una scelta, " +
                     "non un rinvio.", true);
             }
 
@@ -1980,14 +2035,14 @@ namespace Oce.Solid.Agent.Strumenti
                 if (passo == null) continue;
                 ordine++;
 
-                var nome = Testo(passo, "operazione");
+                var nome = Testo(passo, "operation");
                 _filo.Passo(ordine, "controllo il passo " + ordine + " di " +
                                     passi.Length + ": " + nome);
-                var suoi = Prendi(passo, "argomenti") as Dictionary<string, object>
+                var suoi = Prendi(passo, "arguments") as Dictionary<string, object>
                            ?? new Dictionary<string, object>();
 
                 // SI CONTROLLA IL NOME PRIMA DI ESEGUIRE. L'add-in, davanti a
-                // un nome che non conosce ma con dei «contorni» dentro, ricade
+                // un nome che non conosce ma con dei «contours» dentro, ricade
                 // sull'estrusione di profilo: comodo per le ricette del server,
                 // pericoloso qui, dove un nome storto diventerebbe un pezzo
                 // storto senza che nessuno dica niente.
@@ -1997,9 +2052,9 @@ namespace Oce.Solid.Agent.Strumenti
                     _registro.OperazioneCheNonCe(nome, simili);
                     esiti.Add(new Dictionary<string, object>
                     {
-                        ["operazione"] = nome,
-                        ["riuscita"] = false,
-                        ["errore"] =
+                        ["operation"] = nome,
+                        ["succeeded"] = false,
+                        ["error"] =
                             "Non esiste nessuna operazione «" + nome + "»." +
                             (simili.Count > 0
                                 ? " Forse cercavi: " + string.Join(", ", simili) + "."
@@ -2014,12 +2069,12 @@ namespace Oce.Solid.Agent.Strumenti
                 // and until 0.140.0 the step went on under the name as it was
                 // written. The library dispatches Ordinal: «Estrudi_Rettangolo»
                 // came back «Operazione sconosciuta» right after this check had
-                // said it exists, and «Rivoluzione», which carries «contorni»,
+                // said it exists, and «Rivoluzione», which carries «contours»,
                 // fell into the profile extrusion the comment above warns
-                // about, with no «spessore_mm». Same rule as the enum values
+                // about, with no «thickness_mm». Same rule as the enum values
                 // in Ponte/Forma.cs: what passes here goes on spelled as the
                 // catalogue spells it.
-                nome = Testo(_catalogo.Trova(nome), "nome") ?? nome;
+                nome = Testo(_catalogo.Trova(nome), "name") ?? nome;
 
                 // I PERCORSI SI CONTROLLANO PRIMA DI ESEGUIRE.
                 // Sono l'unica cosa che questo ponte scrive fuori dal
@@ -2029,9 +2084,9 @@ namespace Oce.Solid.Agent.Strumenti
                 {
                     esiti.Add(new Dictionary<string, object>
                     {
-                        ["operazione"] = nome,
-                        ["riuscita"] = false,
-                        ["errore"] = percorsoStorto + NienteToccato,
+                        ["operation"] = nome,
+                        ["succeeded"] = false,
+                        ["error"] = percorsoStorto + NienteToccato,
                     });
                     tuttoBene = false;
                     break;
@@ -2040,7 +2095,7 @@ namespace Oce.Solid.Agent.Strumenti
                 // GLI ARGOMENTI RISPETTANO LO SCHEMA CHE ABBIAMO
                 // DICHIARATO NOI? Il ponte offre trentasei operazioni con
                 // schemi dettagliati: non guardarli vuol dire che lo
-                // schema serve solo a suggerire, e che uno «spessore_mm»
+                // schema serve solo a suggerire, e che uno «thickness_mm»
                 // dimenticato arriva a valle come zero — un'estrusione di
                 // spessore nullo, rifiutata da SOLIDWORKS con un messaggio
                 // suo, nel migliore dei casi.
@@ -2049,7 +2104,7 @@ namespace Oce.Solid.Agent.Strumenti
                 //
                 // AND THE FORMA REWRITES `suoi` IN PLACE (Z-C21.10, S20): an
                 // enum value accepted with a different case («Superiore»)
-                // comes out spelled as the catalogue spells it («superiore»).
+                // comes out spelled as the catalogue spells it («top»).
                 // `suoi` is the very dictionary the step below hands to the
                 // library, which compares Ordinal.
                 var formaStorta = Ponte.Forma.Controlla(
@@ -2058,9 +2113,9 @@ namespace Oce.Solid.Agent.Strumenti
                 {
                     esiti.Add(new Dictionary<string, object>
                     {
-                        ["operazione"] = nome,
-                        ["riuscita"] = false,
-                        ["errore"] = formaStorta + NienteToccato,
+                        ["operation"] = nome,
+                        ["succeeded"] = false,
+                        ["error"] = formaStorta + NienteToccato,
                     });
                     tuttoBene = false;
                     break;
@@ -2074,7 +2129,7 @@ namespace Oce.Solid.Agent.Strumenti
                 // perche' quando lo stato e' stato letto quella faccia non
                 // c'era. Nessuna firma, nessun confronto, e il piano passa.
                 //
-                // Misurato il 14/9/2026: `[estrudi_rettangolo, taglio_cilindrico
+                // Misurato il 14/9/2026: `[extrude_rectangle, cylindrical_cut
                 // su F1]` su un documento vuoto riusciva, volume 117.738,1. Il
                 // foro e' finito sulla faccia piu' grande — che in quel caso era
                 // anche quella giusta, ma **non l'aveva scelta nessuno**: «F1»
@@ -2085,9 +2140,9 @@ namespace Oce.Solid.Agent.Strumenti
                 {
                     esiti.Add(new Dictionary<string, object>
                     {
-                        ["operazione"] = nome,
-                        ["riuscita"] = false,
-                        ["errore"] = uidStorto + NienteToccato,
+                        ["operation"] = nome,
+                        ["succeeded"] = false,
+                        ["error"] = uidStorto + NienteToccato,
                     });
                     tuttoBene = false;
                     break;
@@ -2097,8 +2152,8 @@ namespace Oce.Solid.Agent.Strumenti
                 // Non si sovrascrive quello che il chiamante ha gia' messo:
                 // un piano che porta le sue firme sa meglio di noi di cosa
                 // sta parlando.
-                if (firme != null && !suoi.ContainsKey("_firme"))
-                    suoi["_firme"] = firme;
+                if (firme != null && !suoi.ContainsKey("_signatures"))
+                    suoi["_signatures"] = firme;
 
                 daFare.Add(new Riscontro.Disegno.PassoDelPiano
                 {
@@ -2124,7 +2179,7 @@ namespace Oce.Solid.Agent.Strumenti
                 // THE EXECUTOR RUNS ON THE DOCUMENT CHECKED ABOVE (review F7).
                 // Up to bridge 0.125.0 it took the active document by itself,
                 // so a window brought to the front between the reading of
-                // `prima` and this call got the plan, and the memory mixed the
+                // `before` and this call got the plan, and the memory mixed the
                 // numbers of two documents. It now stops before writing when
                 // the active document is not `adesso`.
                 var fatti = _sessione.EseguiPiano(daFare, out var erroreGiro, _filo,
@@ -2138,13 +2193,13 @@ namespace Oce.Solid.Agent.Strumenti
                     tuttoBene = false;
                     // Un piano fermato PRIMA del primo passo non lascia nessun
                     // esito: senza questo, la risposta sarebbe un elenco vuoto
-                    // e un «riuscita» implicito che nessuno ha detto.
+                    // e un «succeeded» implicito che nessuno ha detto.
                     if (fatti == null || fatti.Count == 0)
                         esiti.Add(new Dictionary<string, object>
                         {
-                            ["operazione"] = daFare.Count > 0 ? daFare[0].Operazione : null,
-                            ["riuscita"] = false,
-                            ["errore"] = erroreGiro,
+                            ["operation"] = daFare.Count > 0 ? daFare[0].Operazione : null,
+                            ["succeeded"] = false,
+                            ["error"] = erroreGiro,
                         });
                 }
             }
@@ -2153,9 +2208,9 @@ namespace Oce.Solid.Agent.Strumenti
 
             // ── TWO READINGS WHEN THE PLAN ENDS ON ANOTHER WINDOW (Z-C21.14) ──
             //
-            // `dopo` above is the document IN FRONT. Up to bridge 0.124.1 it
+            // `after` above is the document IN FRONT. Up to bridge 0.124.1 it
             // was also the only reading after the plan, and when the window
-            // changed during the plan (a `crea_disegno`, another session, the
+            // changed during the plan (a `create_drawing`, another session, the
             // person) the undo memory got the numbers of the other
             // document: the live probe M19 (1/10/2026, line BRIDGE-R1 (X2))
             // saw the next undo refuse a right undo («the part changed
@@ -2163,12 +2218,12 @@ namespace Oce.Solid.Agent.Strumenti
             // plan's document, by the reference the executor kept
             // (`PlanDocument`, the documentoAtteso it read once at the start).
             //
-            // «stato_dopo» KEEPS DESCRIBING THE DOCUMENT IN FRONT, on purpose:
+            // «state_after» KEEPS DESCRIBING THE DOCUMENT IN FRONT, on purpose:
             // the next plan works on the document in front, and after
-            // [..., crea_disegno] the next plan is `viste_standard` on the
+            // [..., create_drawing] the next plan is `standard_views` on the
             // drawing, the most normal sequence there is. What describes the
-            // plan's document is `volume_dopo_mm3` (paired with
-            // `volume_prima_mm3`, read on the same document before), the error
+            // plan's document is `volume_after_mm3` (paired with
+            // `volume_before_mm3`, read on the same document before), the error
             // counts and the undo memory; and when the two documents
             // differ the answer says which one is in front.
             var frontIdentity = IdentitaDelloStato(dopo);
@@ -2205,7 +2260,7 @@ namespace Oce.Solid.Agent.Strumenti
             // ── IS THE WINDOW IN FRONT THE PLAN'S? (review F5) ──────────────
             //
             // It is when the plan ended on it: the plan document, or the new
-            // document a step declared (the drawing of `crea_disegno`). When a
+            // document a step declared (the drawing of `create_drawing`). When a
             // window came to the front from outside during the plan (scenario
             // X2 of the probe M19: another session, the person), it is not, and
             // up to bridge 0.125.0 its identity and signatures were adopted
@@ -2214,7 +2269,7 @@ namespace Oce.Solid.Agent.Strumenti
             // document, the class of the 14 September 2026. Now nothing is
             // adopted from a window the plan did not end on: the identity and
             // the signatures are cleared, and the next plan asks for
-            // «guarda_il_pezzo» first.
+            // «inspect_part» first.
             bool frontIsThePlans;
             object finalDocument = wroteOnADocument ? planRun.FinalDocument : null;
             if (finalDocument != null)
@@ -2224,11 +2279,11 @@ namespace Oce.Solid.Agent.Strumenti
                 frontIsThePlans = frontIdentity != null &&
                                   Ponte.Sessione.StessoDocumento(planIdentity, frontIdentity);
 
-            // «stato_dopo» E' LA LETTURA SUCCESSIVA, E VA FIRMATA COME TALE.
+            // «state_after» E' LA LETTURA SUCCESSIVA, E VA FIRMATA COME TALE.
             //
             // Questa risposta porta con se' lo stato del documento dopo i
             // passi, con gli identificativi nuovi: chi legge scrivera' il
-            // piano seguente su QUESTI, non su quelli di «guarda_il_pezzo».
+            // piano seguente su QUESTI, non su quelli di «inspect_part».
             // Se le firme restassero quelle di prima, il piano seguente —
             // scritto giusto — verrebbe rifiutato perche' confrontato con una
             // lettura che il suo autore non ha mai visto. Sarebbe un rifiuto
@@ -2236,7 +2291,7 @@ namespace Oce.Solid.Agent.Strumenti
             // E LA FIRMA SEGUE LA STESSA REGOLA (voce X2). Il pezzo e'
             // cambiato, ma l'ha cambiato il ponte facendo quello che gli e'
             // stato chiesto: se la firma restasse quella di
-            // «guarda_il_pezzo», il `disegna` seguente si fermerebbe
+            // «inspect_part», il `build` seguente si fermerebbe
             // dicendo «qualcuno ha toccato il pezzo a mano». Sarebbe il
             // falso positivo che la voce X2 metteva fra i rischi, e sarebbe
             // fastidioso al punto giusto per insegnare a ignorare l'avviso.
@@ -2248,23 +2303,23 @@ namespace Oce.Solid.Agent.Strumenti
                 // ── E ANCHE CHI E', NON SOLO COM'E' FATTO ────────────────
                 //
                 // `_guardato` veniva riportato all'identita' letta PRIMA di
-                // eseguire, e un piano che contiene `salva_documento` cambia
+                // eseguire, e un piano che contiene `save_document` cambia
                 // l'identita' del documento mentre gira: prima del salvataggio
                 // e' «Parte1597» senza percorso, dopo e' un percorso su disco.
                 //
-                // **Il `disegna` seguente veniva rifiutato**, con un messaggio
+                // **Il `build` seguente veniva rifiutato**, con un messaggio
                 // giusto e una causa sbagliata: «il documento e' cambiato,
                 // avevi guardato Parte1597». Era cambiato, si' — l'aveva
                 // cambiato il ponte facendo quello che gli era stato chiesto.
                 //
                 // Trovato il 23/9/2026 con una sonda che preparava una tavola:
-                // estrudi -> taglia -> salva -> crea_disegno, che e' la
+                // estrudi -> taglia -> salva -> create_drawing, che e' la
                 // sequenza piu' normale che esista, e il quarto passo non
                 // partiva. Il banco non poteva vederlo: chiama la libreria,
                 // non il ponte. L'ha visto il gruppo che passa dalla porta del
                 // cliente (voce F14), il giorno dopo essere nato.
                 //
-                // `annulla` faceva gia' cosi' tre metodi piu' sotto. Qui no.
+                // `undo` faceva gia' cosi' tre metodi piu' sotto. Qui no.
                 _guardato = IdentitaDelloStato(dopo);
             }
             else
@@ -2281,13 +2336,13 @@ namespace Oce.Solid.Agent.Strumenti
                 // SI DICE SEMPRE SU COSA SI E' LAVORATO. Anche quando e' ovvio:
                 // e' l'unico modo perche' chi legge se ne accorga quando ovvio
                 // non era.
-                ["documento"] = NomeLeggibile(adesso),
-                ["esiti"] = esiti,
-                ["stato_dopo"] = dopo,
-                ["nota_stato"] = dopo == null ? erroreStato : null,
-                ["volume_prima_mm3"] = Volume(prima),
+                ["document"] = NomeLeggibile(adesso),
+                ["outcomes"] = esiti,
+                ["state_after"] = dopo,
+                ["note_state"] = dopo == null ? erroreStato : null,
+                ["volume_before_mm3"] = Volume(prima),
                 // On the plan's document, like the line above (Z-C21.14).
-                ["volume_dopo_mm3"] = Volume(planStateAfter),
+                ["volume_after_mm3"] = Volume(planStateAfter),
             };
 
             // WHICH DOCUMENT IS IN FRONT, when it is not the plan's (Z-C21.14),
@@ -2310,7 +2365,7 @@ namespace Oce.Solid.Agent.Strumenti
 
             // IL CONTEGGIO DEGLI ERRORI SI DA' COME DELTA, NON COME NUMERO.
             //
-            // «lavorazioni_in_errore: 1» dopo un piano sembra dire «il piano ha
+            // «features_in_error: 1» dopo un piano sembra dire «il piano ha
             // rotto qualcosa». Puo' voler dire l'opposto: il pezzo era gia'
             // rotto quando e' arrivato, e il piano non c'entra. Il numero
             // assoluto mente su chi sia stato, ed e' il rischio scritto nella
@@ -2320,16 +2375,16 @@ namespace Oce.Solid.Agent.Strumenti
             // un pezzo sano che resta sano non c'e' niente da dire, e ripeterlo
             // a ogni risposta e' posto tolto a cio' che conta.
             int erroriPrima = LavorazioniInErrore(prima);
-            // The same document as `prima` (Z-C21.14), not the window in front.
+            // The same document as `before` (Z-C21.14), not the window in front.
             int erroriDopo = LavorazioniInErrore(planStateAfter);
             if (erroriPrima > 0 || erroriDopo > 0)
             {
-                risultato["lavorazioni_in_errore_prima"] = erroriPrima;
-                risultato["nota_errori"] =
+                risultato["features_in_error_before"] = erroriPrima;
+                risultato["note_errors"] =
                     erroriDopo > erroriPrima
                         ? "Il pezzo ha " + erroriDopo + " lavorazioni in errore, e prima " +
                           "ne aveva " + erroriPrima + ": questo piano ne ha rotte " +
-                          (erroriDopo - erroriPrima) + ". Guarda «stato_dopo» per sapere quali."
+                          (erroriDopo - erroriPrima) + ". Guarda «state_after» per sapere quali."
                         : erroriDopo < erroriPrima
                             ? "Le lavorazioni in errore sono passate da " + erroriPrima +
                               " a " + erroriDopo + ": questo piano ne ha riparate " +
@@ -2339,7 +2394,7 @@ namespace Oce.Solid.Agent.Strumenti
                               "non le ha rotte questo piano.";
             }
 
-            // ── IL RICORDO PER «annulla» (voce R1) ───────────────────────
+            // ── IL RICORDO PER «undo» (voce R1) ───────────────────────
             //
             // Si tiene com'era il pezzo quando questo piano ha finito: e'
             // l'unica cosa che permettera' di ritirarlo senza rischiare di
@@ -2377,7 +2432,7 @@ namespace Oce.Solid.Agent.Strumenti
             //    recording answers false; whether it leaves an entry on the
             //    stack is undecided, and the bench case
             //    `undo case c` decides it. If that entry were on top, a press
-            //    would take away nothing visible, `annulla` would see the part
+            //    would take away nothing visible, `undo` would see the part
             //    unchanged and say so, without a redo;
             //  * a measure that recorded a non-empty entry covers the memory
             //    (it is not a plan to withdraw, and its entry sits above);
@@ -2393,7 +2448,7 @@ namespace Oce.Solid.Agent.Strumenti
             // rilettura e un piano nuovo; un annullamento di troppo cancella il
             // lavoro di una persona, e nessun messaggio lo rimette. Quando i due
             // errori non costano uguale, il criterio si rovescia.
-            // On the plan's document (Z-C21.14): `prima` was read on it before
+            // On the plan's document (Z-C21.14): `before` was read on it before
             // the plan, `planStateAfter` after, whatever window is in front now.
             double? volPrima = NumeroDi(prima, "volume_mm3");
             double? volDopo = NumeroDi(planStateAfter, "volume_mm3");
@@ -2402,7 +2457,7 @@ namespace Oce.Solid.Agent.Strumenti
             var snapshotBefore = PartSnapshot.Of(prima);
             var snapshotAfter = PartSnapshot.Of(planStateAfter);
 
-            // Un volume che non si e' letto non conta come «cambiato» (voce
+            // Un volume che non si e' letto non conta come «changed» (voce
             // Z-C8): qui si sbaglia nel verso di NON ricordare, per la ragione
             // scritta sopra — un annullamento di troppo cancella il lavoro di
             // una persona.
@@ -2461,11 +2516,11 @@ namespace Oce.Solid.Agent.Strumenti
             // ha appena corretto l'errore — cioe' la difesa scatterebbe contro
             // il caso che deve lasciar passare.
             // E non si ricorda niente di una MISURA: non ha cambiato il pezzo,
-            // e ricordarla farebbe rifiutare un `disegna` successivo che per
+            // e ricordarla farebbe rifiutare un `build` successivo che per
             // caso avesse la stessa impronta.
             // The plan's document and its own summary (review F6): up to bridge
             // 0.125.0 the document was the plan's and the summary the window
-            // in front's, so after [..., crea_disegno] a resent plan on the part
+            // in front's, so after [..., create_drawing] a resent plan on the part
             // was not recognised and built a second time.
             if (tuttoBene && guardaSeERipetuto)
             {
@@ -2549,7 +2604,7 @@ namespace Oce.Solid.Agent.Strumenti
             {
                 if (stato == null) return null;
                 int unlisted = 0;
-                if (stato.TryGetValue("feature_non_elencate", out var u) && u != null)
+                if (stato.TryGetValue("feature_not_listed", out var u) && u != null)
                     try { unlisted = Convert.ToInt32(u, CultureInfo.InvariantCulture); } catch { }
                 return new PartSnapshot
                 {
@@ -2615,7 +2670,7 @@ namespace Oce.Solid.Agent.Strumenti
             bool measure, string planDocumentName, out string reason)
         {
             reason = null;
-            string what = measure ? "The last «misura»" : "The last «disegna»";
+            string what = measure ? "The last «measure»" : "The last «build»";
             string on = " «" + (planDocumentName ?? "") + "»";
 
             if (turnRefusedOnMemoryDocument && hasMemory && !alreadyCovered)
@@ -2699,29 +2754,29 @@ namespace Oce.Solid.Agent.Strumenti
         internal static string IdentityForTheExecutor(Dictionary<string, object> identity)
         {
             if (identity == null) return null;
-            string path = Convert.ToString(identity.TryGetValue("percorso", out var p) ? p : null) ?? "";
+            string path = Convert.ToString(identity.TryGetValue("path", out var p) ? p : null) ?? "";
             if (path.Trim().Length > 0) return path;
-            string title = Convert.ToString(identity.TryGetValue("titolo", out var t) ? t : null) ?? "";
+            string title = Convert.ToString(identity.TryGetValue("document_title", out var t) ? t : null) ?? "";
             return title.Trim().Length > 0 ? "titolo:" + title : null;
         }
 
         /// <summary>
-        /// The note of `disegna` when another document is in front (Z-C21.14,
+        /// The note of `build` when another document is in front (Z-C21.14,
         /// review F5). Pure, so that a contract can call it.
         /// </summary>
         internal static string NoteDocumentInFront(string planDocument, string front, bool frontIsThePlans)
         {
-            const string bringBack = "(«documento» with «azione»: «attiva»)";
+            const string bringBack = "(«document» with «action»: «activate»)";
             string head = "The plan worked on «" + planDocument + "», and in front now is «" + front + "»";
             if (frontIsThePlans)
-                return head + ", the document the plan ended on. «stato_dopo» describes «" + front + "», the document " +
-                       "the next plan works on; «volume_dopo_mm3» is of «" + planDocument + "». To withdraw this " +
+                return head + ", the document the plan ended on. «state_after» describes «" + front + "», the document " +
+                       "the next plan works on; «volume_after_mm3» is of «" + planDocument + "». To withdraw this " +
                        "plan with an undo, bring «" + planDocument + "» to the front first " + bringBack + ".";
             return head + ", a window the plan did not end on: it came to the front from outside while the plan ran. " +
-                   "«stato_dopo» describes «" + front + "» for information only: I keep neither its identity nor its " +
-                   "signatures, so the next plan asks for «guarda_il_pezzo» first. To go on with «" + planDocument +
-                   "», bring it back " + bringBack + " and call «guarda_il_pezzo»; to work on «" +
-                   front + "», call «guarda_il_pezzo» now.";
+                   "«state_after» describes «" + front + "» for information only: I keep neither its identity nor its " +
+                   "signatures, so the next plan asks for «inspect_part» first. To go on with «" + planDocument +
+                   "», bring it back " + bringBack + " and call «inspect_part»; to work on «" +
+                   front + "», call «inspect_part» now.";
         }
 
         /// <summary>
@@ -2730,8 +2785,8 @@ namespace Oce.Solid.Agent.Strumenti
         /// first.
         /// </summary>
         internal const string NoMemoryRemedy =
-            "If something must go, take it away with a new plan («elimina_lavorazione» or «sopprimi_lavorazione» " +
-            "on the feature, by the name «guarda_il_pezzo» gives it); the person at the SOLIDWORKS screen can also " +
+            "If something must go, take it away with a new plan («delete_feature» or «suppress_feature» " +
+            "on the feature, by the name «inspect_part» gives it); the person at the SOLIDWORKS screen can also " +
             "undo by hand (Edit > Undo), seeing what each step takes away.";
 
         /// <summary>
@@ -2758,7 +2813,7 @@ namespace Oce.Solid.Agent.Strumenti
         ///
         /// LA MACCHINA C'ERA GIA'. `EsecutorePiano` apre e chiude una voce di
         /// annullamento intorno a ogni piano (voce B8, misurata: «un solo
-        /// Ctrl+Z riporta il documento al valore di volume_prima_mm3»). Si
+        /// Ctrl+Z riporta il documento al valore di volume_before_mm3»). Si
         /// azionava solo con una tastiera umana. E' la stessa forma della
         /// sezione V — la capacita' c'e', e non arriva a chi legge.
         ///
@@ -2767,7 +2822,7 @@ namespace Oce.Solid.Agent.Strumenti
         /// Fra il piano e questa chiamata il progettista puo' aver lavorato a
         /// mano. Premere annulla allora gli toglie il SUO lavoro, ed e' un
         /// danno che nessun messaggio ripara. Quindi si confrontano DUE
-        /// numeri che la risposta di `disegna` gia' conteneva — il volume e
+        /// numeri che la risposta di `build` gia' conteneva — il volume e
         /// quante lavorazioni ci sono — e se non tornano **ci si ferma e si
         /// dice cosa e' cambiato**.
         ///
@@ -2807,8 +2862,8 @@ namespace Oce.Solid.Agent.Strumenti
             var memoria = _ultimoPiano;
             if (memoria == null)
                 return Protocollo.Contenuto(
-                    "Non ho nessun piano da ritirare: «annulla» disfa l'ultimo " +
-                    "«disegna» di questa conversazione, e qui non ne ho ancora " +
+                    "Non ho nessun piano da ritirare: «undo» disfa l'ultimo " +
+                    "«build» di questa conversazione, e qui non ne ho ancora " +
                     "eseguito nessuno che abbia costruito qualcosa.\n\n" +
                     "Non premo annulla alla cieca: toglierei qualcosa che non ho " +
                     "fatto io, e non saprei nemmeno dire cosa." +
@@ -2859,7 +2914,7 @@ namespace Oce.Solid.Agent.Strumenti
                     "Mi fermo: dopo il piano il pezzo e' cambiato, e non l'ho " +
                     "cambiato io.\n\n" +
                     Confronto("volume", after.Volume.Value, now.Volume.Value, "mm³") +
-                    Confronto("lavorazioni", after.Count, now.Count, "") +
+                    Confronto("features", after.Count, now.Count, "") +
                     "\nUn passo indietro adesso non disferebbe il mio piano: " +
                     "disferebbe l'ultima cosa fatta, che e' di qualcun altro. " +
                     "Se vuoi comunque tornare indietro, e' un gesto che deve fare " +
@@ -2895,7 +2950,7 @@ namespace Oce.Solid.Agent.Strumenti
             {
                 _ultimoPiano = null;
                 _noMemoryBecause =
-                    "The last «annulla» pressed undo and then could not read the volume: what is on " +
+                    "The last «undo» pressed undo and then could not read the volume: what is on " +
                     "top of the undo stack now is not known.";
                 return Protocollo.Contenuto(
                     "Ho premuto annulla, ma poi non riesco a misurare il volume del pezzo: " +
@@ -2918,7 +2973,7 @@ namespace Oce.Solid.Agent.Strumenti
                 // did not throw. Measured on 1/10/2026 (probe `redo`): an undo
                 // entry recorded through the API is never redone, so that
                 // answer lied for every plan of this bridge. Now the part is
-                // compared with how it was before pressing (`prima`): only when
+                // compared with how it was before pressing (`before`): only when
                 // the press took away something visible is ONE redo tried (it
                 // can bring back an action that was not recorded, measured),
                 // and then the part is read again and compared once more. The
@@ -2958,7 +3013,7 @@ namespace Oce.Solid.Agent.Strumenti
                 {
                     _ultimoPiano = null;
                     _noMemoryBecause =
-                        "The last «annulla» took away something that was not the plan, and it did not come " +
+                        "The last «undo» took away something that was not the plan, and it did not come " +
                         "back: what is on top of the undo stack now is not known.";
                 }
 
@@ -2979,31 +3034,31 @@ namespace Oce.Solid.Agent.Strumenti
                 return Protocollo.Contenuto(Protocollo.InJson(
                     new Dictionary<string, object>
                     {
-                        ["annullato"] = false,
-                        ["documento"] = NomeLeggibile(adesso),
-                        ["motivo"] = answerText,
+                        ["undone"] = false,
+                        ["document"] = NomeLeggibile(adesso),
+                        ["reason"] = answerText,
                         ["not_as_before_the_plan"] = notAsBeforeThePlan,
                         ["what_the_undo_took_away"] = takenAway,
                         ["redo_tried"] = redoTried,
                         ["restored"] = restored,
                         ["still_different"] = stillDifferent,
-                        ["stato_dopo"] = readAgain,
+                        ["state_after"] = readAgain,
                     }), true);
             }
 
             // RIUSCITO: IL RICORDO SI CANCELLA.
-            // Un secondo «annulla» non deve disfare quello che c'era PRIMA del
+            // Un secondo «undo» non deve disfare quello che c'era PRIMA del
             // piano: quello non l'ha fatto questo ponte, e la pila degli
             // annullamenti non sa distinguere.
             _ultimoPiano = null;
             _noMemoryBecause =
-                "The last «annulla» already withdrew the plan; one more step back would take away what " +
+                "The last «undo» already withdrew the plan; one more step back would take away what " +
                 "was there before it, which this bridge did not make.";
 
             // GLI IDENTIFICATIVI NON SONO PIU' QUELLI, e chi legge deve
             // saperlo dalla risposta invece di scoprirlo al piano seguente:
             // gli uid sono posizionali e si rinumerano per area a ogni
-            // lettura. Si firma questa lettura, esattamente come fa `disegna`.
+            // lettura. Si firma questa lettura, esattamente come fa `build`.
             _guardato = IdentitaDelloStato(dopo);
             _firmeViste = FirmeDelloStato(dopo);
             _firmaGuardata = FirmaLeggera(dopo);
@@ -3016,18 +3071,18 @@ namespace Oce.Solid.Agent.Strumenti
             bool checkedByReading = SnapshotDiffers(before, after).Count > 0;
             var fuori = new Dictionary<string, object>
             {
-                ["annullato"] = true,
-                ["documento"] = NomeLeggibile(adesso),
-                ["volume_prima_mm3"] = Math.Round(now.Volume.Value, 2),
-                ["volume_dopo_mm3"] = Math.Round(back.Volume.Value, 2),
-                ["lavorazioni_prima"] = now.Count,
-                ["lavorazioni_dopo"] = back.Count,
+                ["undone"] = true,
+                ["document"] = NomeLeggibile(adesso),
+                ["volume_before_mm3"] = Math.Round(now.Volume.Value, 2),
+                ["volume_after_mm3"] = Math.Round(back.Volume.Value, 2),
+                ["features_before"] = now.Count,
+                ["features_after"] = back.Count,
                 ["checked_by_reading"] = checkedByReading,
-                ["nota"] =
+                ["note"] =
                     "Il piano e' stato ritirato tutto intero e il pezzo e' " +
-                    "tornato com'era. Gli identificativi di «stato_dopo» sono " +
+                    "tornato com'era. Gli identificativi di «state_after» sono " +
                     "quelli validi adesso: quelli di prima non valgono piu'.",
-                ["stato_dopo"] = dopo,
+                ["state_after"] = dopo,
             };
             if (!checkedByReading)
                 fuori["note_checked"] =
@@ -3049,11 +3104,11 @@ namespace Oce.Solid.Agent.Strumenti
         {
             var fuori = new Dictionary<string, object>
             {
-                ["annullato"] = false,
+                ["undone"] = false,
                 ["refused_before_pressing"] = true,
-                ["documento"] = NomeLeggibile(memory.Documento),
+                ["document"] = NomeLeggibile(memory.Documento),
                 ["covered_by_recorded_entry"] = memory.CoveredByRecordedEntry,
-                ["motivo"] = RefusalCoveredText(memory.CoveredBecause, memory.CoveredByRecordedEntry),
+                ["reason"] = RefusalCoveredText(memory.CoveredBecause, memory.CoveredByRecordedEntry),
             };
             return Protocollo.ContenutoConDati(Protocollo.InJson(fuori), fuori, true);
         }
@@ -3065,8 +3120,8 @@ namespace Oce.Solid.Agent.Strumenti
         /// second (review F1).
         /// </summary>
         internal const string WithdrawInsteadRemedy =
-            "If the plan must go: take its features away with a new plan («elimina_lavorazione» or " +
-            "«sopprimi_lavorazione», by the names «guarda_il_pezzo» gives), or ask the person at the SOLIDWORKS " +
+            "If the plan must go: take its features away with a new plan («delete_feature» or " +
+            "«suppress_feature», by the names «inspect_part» gives), or ask the person at the SOLIDWORKS " +
             "screen, who can see what each step removes, to undo by hand (Edit > Undo).";
 
         /// <summary>
@@ -3097,11 +3152,11 @@ namespace Oce.Solid.Agent.Strumenti
         {
             var fuori = new Dictionary<string, object>
             {
-                ["annullato"] = false,
+                ["undone"] = false,
                 ["refused_before_pressing"] = true,
-                ["documento"] = NomeLeggibile(memory.Documento),
+                ["document"] = NomeLeggibile(memory.Documento),
                 ["what_changed_since_the_plan"] = changed,
-                ["motivo"] = RefusalChangedSinceThePlanText(changed, namesPartial),
+                ["reason"] = RefusalChangedSinceThePlanText(changed, namesPartial),
             };
             return Protocollo.ContenutoConDati(Protocollo.InJson(fuori), fuori, true);
         }
@@ -3172,7 +3227,7 @@ namespace Oce.Solid.Agent.Strumenti
 
         /// <summary>
         /// True when either reading has features beyond the list of the state
-        /// (`feature_non_elencate`): the names and the order are then compared
+        /// (`feature_not_listed`): the names and the order are then compared
         /// only on the listed ones (review F16).
         /// </summary>
         private static bool NamesComparedOnlyInPart(PartSnapshot a, PartSnapshot b)
@@ -3253,7 +3308,7 @@ namespace Oce.Solid.Agent.Strumenti
                    ", and the part is NOT as it was before pressing: " + string.Join("; ", stillDifferent) +
                    ". SOLIDWORKS cannot redo an undo entry recorded through the API (measured on " +
                    "1/10/2026), so what the undo took away is lost. Look at the part in SOLIDWORKS before " +
-                   "going on, and make it again with «disegna» if you need it.";
+                   "going on, and make it again with «build» if you need it.";
         }
 
         /// <summary>Una riga di confronto, solo se i due numeri sono diversi.</summary>
@@ -3293,7 +3348,7 @@ namespace Oce.Solid.Agent.Strumenti
         /// Quante lavorazioni ha il pezzo, comprese quelle che il tetto ha
         /// lasciato fuori.
         ///
-        /// SENZA `feature_non_elencate` QUESTO CONTEGGIO MENTIREBBE su ogni
+        /// SENZA `feature_not_listed` QUESTO CONTEGGIO MENTIREBBE su ogni
         /// pezzo con piu' di ottanta lavorazioni: si fermerebbe a ottanta e
         /// direbbe «non e' cambiato niente» anche dopo dieci fori nuovi. E'
         /// esattamente il difetto della voce E12, ripetuto da questa parte.
@@ -3304,7 +3359,7 @@ namespace Oce.Solid.Agent.Strumenti
             int quante = 0;
             foreach (var v in VociDi(stato, "feature")) { if (v != null) quante++; }
             object fuori;
-            if (stato.TryGetValue("feature_non_elencate", out fuori) && fuori != null)
+            if (stato.TryGetValue("feature_not_listed", out fuori) && fuori != null)
                 try { quante += Convert.ToInt32(fuori); } catch { }
             return quante;
         }
@@ -3373,12 +3428,12 @@ namespace Oce.Solid.Agent.Strumenti
                     return
                         "«" + campo + "» cita «" + uid + "», che nel pezzo che ho " +
                         "guardato non c'era. " + cosaCe + "\n\n" +
-                        "Gli identificativi nascono da «guarda_il_pezzo» e valgono per " +
+                        "Gli identificativi nascono da «inspect_part» e valgono per " +
                         "QUELLA lettura. Se la geometria la crea un passo precedente di " +
                         "questo stesso piano, non ha ancora nessun identificativo e va " +
                         "nominata con il riferimento al passo — per esempio " +
-                        "\"" + campo.Replace("_uid", "_rif") + "\": {\"passo\": 1, " +
-                        "\"genere\": \"faccia_superiore\"}. Se invece c'era gia', " +
+                        "\"" + campo.Replace("_uid", "_ref") + "\": {\"step\": 1, " +
+                        "\"kind\": \"top_face\"}. Se invece c'era gia', " +
                         "rileggi il pezzo e copia l'identificativo da li'.";
                 }
             }
@@ -3402,10 +3457,10 @@ namespace Oce.Solid.Agent.Strumenti
         /// Fino alla 0.25.2 guardava solo il campo `uid` delle cinque famiglie.
         /// Ma lo stato pubblica nomi di lavorazione anche in tre altri posti:
         ///
-        ///   * `da_lavorazione` su ogni faccia — ed e' messo li' apposta per
+        ///   * `from_feature` su ogni faccia — ed e' messo li' apposta per
         ///     «quel foro portalo a M10»;
-        ///   * `fatto_da` su ogni corpo;
-        ///   * la mappa `lavorazioni` in fondo.
+        ///   * `created_by` su ogni corpo;
+        ///   * la mappa `features` in fondo.
         ///
         /// E l'elenco `feature` invece e' FILTRATO per tipo e tagliato a
         /// `MaxFeature`. Quindi bastava un pezzo con piu' di ottanta
@@ -3414,7 +3469,7 @@ namespace Oce.Solid.Agent.Strumenti
         /// inesistente.
         ///
         /// SI ALLARGA E NON SI STRINGE. L'insieme e' unico e non distingue le
-        /// famiglie: `faccia_uid` accetta anche un nome di lavorazione. E'
+        /// famiglie: `face_uid` accetta anche un nome di lavorazione. E'
         /// voluto — questo e' un controllo di ESISTENZA, non di tipo, e chi
         /// sbaglia famiglia viene fermato dopo con un messaggio che sa dire di
         /// che tipo e' quell'entita' (`NonLavoroSu`). Stringere qui vorrebbe
@@ -3426,7 +3481,7 @@ namespace Oce.Solid.Agent.Strumenti
             var fuori = new HashSet<string>(StringComparer.Ordinal);
 
             // 1. Gli uid veri e propri.
-            foreach (var famiglia in new[] { "facce", "spigoli", "corpi", "assi", "feature" })
+            foreach (var famiglia in new[] { "faces", "edges", "bodies", "axes", "feature" })
                 foreach (var voce in VociDi(stato, famiglia))
                 {
                     object uid;
@@ -3435,23 +3490,23 @@ namespace Oce.Solid.Agent.Strumenti
                 }
 
             // 2. I nomi di lavorazione scritti sulle facce e sui corpi.
-            foreach (var voce in VociDi(stato, "facce"))
+            foreach (var voce in VociDi(stato, "faces"))
             {
                 object nome;
-                if (voce.TryGetValue("da_lavorazione", out nome) && nome != null)
+                if (voce.TryGetValue("from_feature", out nome) && nome != null)
                     fuori.Add(Convert.ToString(nome));
             }
-            foreach (var voce in VociDi(stato, "corpi"))
+            foreach (var voce in VociDi(stato, "bodies"))
             {
                 object nome;
-                if (voce.TryGetValue("fatto_da", out nome) && nome != null)
+                if (voce.TryGetValue("created_by", out nome) && nome != null)
                     fuori.Add(Convert.ToString(nome));
             }
 
             // 3. La mappa delle lavorazioni: le CHIAVI sono i numeri, i VALORI
             //    sono i nomi. Chi scrive un piano copia il nome, non il numero.
             object grezzo;
-            if (stato.TryGetValue("lavorazioni", out grezzo))
+            if (stato.TryGetValue("features", out grezzo))
             {
                 var mappa = grezzo as Dictionary<string, object>;
                 if (mappa != null)
@@ -3520,7 +3575,7 @@ namespace Oce.Solid.Agent.Strumenti
         private static string NomeLavorazione(Dictionary<string, object> stato, object id)
         {
             if (stato == null || id == null) return null;
-            if (!stato.TryGetValue("lavorazioni", out var g) || g == null) return null;
+            if (!stato.TryGetValue("features", out var g) || g == null) return null;
             var mappa = g as Dictionary<string, object>;
             if (mappa == null) return null;
             var chiave = Convert.ToString(id);
@@ -3532,7 +3587,7 @@ namespace Oce.Solid.Agent.Strumenti
         /// <summary>
         /// La scatola del pezzo — {minX,minY,minZ,maxX,maxY,maxZ} in mm —
         /// ricavata dai due campi che lo stato pubblica: l'angolo
-        /// (`ingombro_da_mm`) e i lati (`ingombro_mm`).
+        /// (`bounding_box_from_mm`) e i lati (`bounding_box_mm`).
         ///
         /// Null se uno dei due manca. NON si inventa l'angolo mettendolo a
         /// zero: uno stato che dichiarasse una scatola appoggiata all'origine
@@ -3542,8 +3597,8 @@ namespace Oce.Solid.Agent.Strumenti
         /// </summary>
         private static double[] ScatolaDelPezzo(Dictionary<string, object> stato)
         {
-            double[] da = TreNumeri(stato, "ingombro_da_mm");
-            double[] lati = TreNumeri(stato, "ingombro_mm");
+            double[] da = TreNumeri(stato, "bounding_box_from_mm");
+            double[] lati = TreNumeri(stato, "bounding_box_mm");
             if (da == null || lati == null) return null;
             return new[]
             {
@@ -3580,7 +3635,7 @@ namespace Oce.Solid.Agent.Strumenti
         {
             if (stato == null) return 0;
             object v;
-            if (!stato.TryGetValue("lavorazioni_in_errore", out v) || v == null) return 0;
+            if (!stato.TryGetValue("features_in_error", out v) || v == null) return 0;
             try { return Convert.ToInt32(v); } catch { return 0; }
         }
 
@@ -3613,15 +3668,15 @@ namespace Oce.Solid.Agent.Strumenti
         ///
         /// PERCHE' LE ANNOTAZIONI NON SONO UN DETTAGLIO DI PROTOCOLLO.
         /// Il client MCP le usa per decidere se fermarsi a chiedere conferma a
-        /// chi sta lavorando. Senza, `guarda_il_pezzo` — che non tocca niente —
-        /// e `disegna` — che modifica il pezzo in modo che nessuno annulla per
+        /// chi sta lavorando. Senza, `inspect_part` — che non tocca niente —
+        /// e `build` — che modifica il pezzo in modo che nessuno annulla per
         /// lui — arrivano al client identici, e il client tratta identiche due
         /// cose che non lo sono.
         ///
         /// Per un progetto la cui tesi e' «nessuna geometria esiste senza che
         /// qualcuno l'abbia confermata», dichiararle e' il minimo.
         ///
-        /// `idempotente` merita una riga: `disegna` NON lo e'. Rieseguire lo
+        /// `idempotente` merita una riga: `build` NON lo e'. Rieseguire lo
         /// stesso piano non rimette il pezzo com'era — fa un SECONDO foro.
         /// Dichiararlo idempotente inviterebbe un client a riprovare da solo
         /// dopo un errore di rete, e il pezzo uscirebbe con il doppio delle
@@ -3645,7 +3700,7 @@ namespace Oce.Solid.Agent.Strumenti
                 // `annotations`, dove resta per compatibilita'. Un client nuovo
                 // legge quello di sopra, uno vecchio quello di sotto, e
                 // scriverne uno solo vuol dire che meta' dei client mostra il
-                // nome tecnico `guarda_il_pezzo` a chi sta lavorando.
+                // nome tecnico `inspect_part` a chi sta lavorando.
                 // Scriverli tutti e due costa due righe e nessuna scelta.
                 ["title"] = TitoloUmano(nome),
                 ["description"] = descrizione,
@@ -3674,8 +3729,8 @@ namespace Oce.Solid.Agent.Strumenti
         /// </summary>
         internal static readonly string[] NomiDegliStrumenti =
         {
-            "guarda_il_pezzo", "elenco_operazioni", "descrivi_operazione",
-            "disegna", "misura", "annulla", "documento",
+            "inspect_part", "list_operations", "describe_operation",
+            "build", "measure", "undo", "document",
             "api_search", "api_signature",
         };
 
@@ -3683,13 +3738,13 @@ namespace Oce.Solid.Agent.Strumenti
         {
             switch (nome)
             {
-                case "guarda_il_pezzo": return "Guarda il pezzo aperto";
-                case "elenco_operazioni": return "Elenco delle operazioni";
-                case "descrivi_operazione": return "Descrivi una operazione";
-                case "disegna": return "Disegna nel pezzo";
-                case "misura": return "Misura il pezzo, senza toccarlo";
-                case "annulla": return "Ritira l'ultimo piano";
-                case "documento": return "Apri, crea o scegli il documento";
+                case "inspect_part": return "Inspect the open part";
+                case "list_operations": return "List the operations";
+                case "describe_operation": return "Describe an operation";
+                case "build": return "Build in the part";
+                case "measure": return "Measure the part, without touching it";
+                case "undo": return "Withdraw the last plan";
+                case "document": return "Open, create or pick the document";
                 case "api_search": return "Search the SOLIDWORKS API";
                 case "api_signature": return "Signature and knowledge of an API member";
                 default: return nome;

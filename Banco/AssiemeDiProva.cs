@@ -142,14 +142,14 @@ namespace ProvaSaldatura
                 {
                     new Dictionary<string, object>
                     {
-                        ["operation"] = "estrudi_rettangolo",
+                        ["operation"] = "extrude_rectangle",
                         ["arguments"] = new Dictionary<string, object>
                         {
-                            ["piano"] = "superiore",
-                            ["lunghezza_mm"] = lunghezza,
-                            ["larghezza_mm"] = larghezza,
-                            ["spessore_mm"] = spessore,
-                            ["centrato"] = true,
+                            ["plane"] = "top",
+                            ["length_mm"] = lunghezza,
+                            ["width_mm"] = larghezza,
+                            ["thickness_mm"] = spessore,
+                            ["centered"] = true,
                         },
                     },
                 },
@@ -282,7 +282,7 @@ namespace ProvaSaldatura
             // ── 1-3. i componenti, uno per uno, costruiti e salvati ───────
             //
             // `da_inserire: false` COSTRUISCE MA NON INSERISCE, ed e' il modo in
-            // cui un caso prova `inserisci_componente`: il file c'e', e' aperto,
+            // cui un caso prova `insert_component`: il file c'e', e' aperto,
             // e l'inserimento lo fa il PASSO, non la preparazione. Senza questa
             // riga un caso non potrebbe mai provare l'operazione che inserisce —
             // troverebbe il componente gia' dentro, e misurerebbe il lavoro
@@ -350,7 +350,7 @@ namespace ProvaSaldatura
             }
 
             // ── 5a. TUTTI i componenti si riaprono, anche quelli che non si
-            //        inseriscono: `inserisci_componente` vuole il documento
+            //        inseriscono: `insert_component` vuole il documento
             //        aperto, e chi lo chiama dal caso lo trova cosi'.
             foreach (var f in new List<string>(fuori.FileDaCancellare))
                 if (!Apri(f, nome)) return null;
@@ -593,7 +593,7 @@ namespace ProvaSaldatura
         ///      that is not above zero and a count of top-level components that
         ///      is not the one built.
         /// The documents of the components stay closed: a step that needs one
-        /// open (inserisci_componente) cannot follow, which step 0 refuses. Any
+        /// open (insert_component) cannot follow, which step 0 refuses. Any
         /// failure closes and deletes what the preparation made.
         /// </summary>
         private static IModelDoc2 ReopenLightweight(string nome, IModelDoc2 doc, int topLevelCount, Preparazione fuori)
@@ -763,7 +763,7 @@ namespace ProvaSaldatura
         /// could not be written as a case.
         ///
         /// IConfigurationManager.AddConfiguration2 ACTIVATES the new
-        /// configuration (measured on parts by crea_configurazione, read back
+        /// configuration (measured on parts by create_configuration, read back
         /// here on the assembly), so each one is set while it is the active one:
         /// IComponent2.SetSuppression2 acts on the active configuration, and
         /// SetExcludeFromBOM2 is given swThisConfiguration. Every setting is READ
@@ -1110,8 +1110,8 @@ namespace ProvaSaldatura
         /// «position_mm», and that assembly is saved as
         /// <paramref name="path"/> («&lt;stem&gt;.sldasm»), which the caller then
         /// registers and inserts like a part. Without it no case could hold a
-        /// component inside a sub-assembly, and fissa_componente and
-        /// sostituisci_componente, which work on the top level only, could not
+        /// component inside a sub-assembly, and fix_component and
+        /// replace_component, which work on the top level only, could not
         /// be seen refusing one.
         ///
         /// The children are registered here, BEFORE the caller registers the
@@ -1336,7 +1336,7 @@ namespace ProvaSaldatura
         /// e previsto prima di misurarlo: spesso 4 chiesto a z=30 → origine a
         /// (0, -2, 30); spesso 10 chiesto a 0 → (0, -5, 0).
         ///
-        /// Il campo si chiama `position_mm` e non `posizione`: e' la stessa
+        /// Il campo si chiama `position_mm` e non `position`: e' la stessa
         /// convenzione del catalogo, dove l'unita' sta nel nome perche' un
         /// numero senza unita' e' un numero che qualcuno interpretera' in
         /// metri.

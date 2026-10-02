@@ -4,20 +4,20 @@
   "why": "La gemella di `limit_dimension_that_will_not_leave_the_fillet_alone`: stessi due raccordi da 8, spessore portato a 12 invece che a 6. I raccordi ci stanno, l'estrusione non perde facce, e la modifica deve riuscire col volume del conto a mano. Prova che la guardia sugli smussi e i raccordi che non ci stanno non rifiuta ogni assottigliamento.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 60,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 60,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 120000 } ] },
-    { "operation": "raccordo_spigoli",
-      "arguments": { "spigoli_uid": [ "@spigolo(asse=X,y~=30,z~=20)", "@spigolo(asse=X,y~=-30,z~=20)" ],
-                     "raggio_mm": 8 },
+    { "operation": "fillet_edges",
+      "arguments": { "edges_uid": [ "@edge(axis=X,y~=30,z~=20)", "@edge(axis=X,y~=-30,z~=20)" ],
+                     "radius_mm": 8 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 117253.1, "tolerance": 0.05,
           "tolerance_why": "120000 meno 2 x (1 - pi/4) x 8^2 x 100 = 2746,9: il conto ha pi dentro" } ] },
-    { "operation": "modifica_quota",
-      "arguments": { "quota": "@quota(feature=Estrusione-Estrusione1,nome=D1)", "valore_mm": 12 },
+    { "operation": "set_dimension",
+      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "value_mm": 12 },
       "expect": [
-        { "what": "misure.adesso_mm", "equal_to": 12 },
+        { "what": "measurements.now_mm", "equal_to": 12 },
         { "what": "volume_mm3", "equal_to": 69253.1, "tolerance": 0.05,
           "tolerance_why": "100 x 60 x 12 meno gli stessi 2746,9 dei raccordi" } ] }
   ]

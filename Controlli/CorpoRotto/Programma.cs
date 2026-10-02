@@ -18,7 +18,7 @@ namespace Controlli.CorpoRotto
     ///    voglia dire *sano* o *zero difetti controllati*. La risposta
     ///    sbagliata e' indistinguibile da una giusta.»
     ///
-    /// Un'operazione `verifica_geometria_corpo` costruita sopra a uno zero di
+    /// Un'operazione `check_body_geometry` costruita sopra a uno zero di
     /// cui non si conosce il significato e' il difetto che non da' errore
     /// nella sua forma piu' cara: dice «sano» su qualunque cosa, e chi la
     /// chiama esporta uno STL con un buco.
@@ -162,7 +162,7 @@ namespace Controlli.CorpoRotto
         //    `Diagnose().GetGapsCount()` lo vede**. Uno STL che esce di li'
         //    non contiene un volume, e si stampa come una lamina.
         //
-        //    Un'operazione `verifica_geometria_corpo` costruita su `Check3` —
+        //    Un'operazione `check_body_geometry` costruita su `Check3` —
         //    che e' la via che la voce GP1 nominava per prima — direbbe
         //    «nessun problema» esattamente sul caso per cui esiste.
         private static int _rotti;
@@ -260,7 +260,7 @@ namespace Controlli.CorpoRotto
             try
             {
                 int t = c.GetType();
-                if (t == (int)swBodyType_e.swSolidBody) return "solido";
+                if (t == (int)swBodyType_e.swSolidBody) return "solid";
                 if (t == (int)swBodyType_e.swSheetBody) return "foglio";
                 if (t == (int)swBodyType_e.swWireBody)  return "filo";
                 return t.ToString();

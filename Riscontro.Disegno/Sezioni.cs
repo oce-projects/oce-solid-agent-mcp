@@ -7,7 +7,7 @@ namespace Riscontro.Disegno
     /// <summary>
     /// LE SEZIONI NORMALIZZATE: da due o tre quote ai contorni da estrudere.
     ///
-    /// E' la ricetta di `estrudi_sezione`. Viveva solo nel server Python
+    /// E' la ricetta di `extrude_section`. Viveva solo nel server Python
     /// (`profilo_sezione`), quindi dal ponte l'operazione era **dichiarata nel
     /// catalogo e non eseguibile**: il modello poteva chiederla e si prendeva
     /// «operazione sconosciuta».
@@ -34,22 +34,22 @@ namespace Riscontro.Disegno
         public static readonly Dictionary<string, string[]> Volute =
             new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
             {
-                ["tubolare"] = new[] { "larghezza_mm", "altezza_mm", "parete_mm" },
-                ["tondo"] = new[] { "diametro_mm" },
-                ["tubo"] = new[] { "diametro_mm", "parete_mm" },
-                ["angolare"] = new[] { "larghezza_mm", "altezza_mm", "spessore_mm" },
-                ["u"] = new[] { "larghezza_mm", "altezza_mm", "spessore_mm" },
-                ["t"] = new[] { "larghezza_mm", "altezza_mm", "spessore_mm" },
-                ["piatto"] = new[] { "larghezza_mm", "altezza_mm" },
-                ["esagono"] = new[] { "chiave_mm" },
-                ["asola"] = new[] { "larghezza_mm", "altezza_mm" },
+                ["tubular"] = new[] { "width_mm", "height_mm", "wall_mm" },
+                ["round"] = new[] { "diameter_mm" },
+                ["tube"] = new[] { "diameter_mm", "wall_mm" },
+                ["angle"] = new[] { "width_mm", "height_mm", "thickness_mm" },
+                ["u"] = new[] { "width_mm", "height_mm", "thickness_mm" },
+                ["t"] = new[] { "width_mm", "height_mm", "thickness_mm" },
+                ["flat"] = new[] { "width_mm", "height_mm" },
+                ["hexagon"] = new[] { "across_flats_mm" },
+                ["slot"] = new[] { "width_mm", "height_mm" },
             };
 
         /// <summary>
         /// I contorni di una sezione, o null con il motivo.
         ///
         /// I contorni escono nella stessa forma che il parser gia' capisce, e
-        /// finiscono nello stesso esecutore di `estrudi_profilo`: una sezione
+        /// finiscono nello stesso esecutore di `extrude_profile`: una sezione
         /// non e' un'altra operazione, e' un modo di scrivere dei contorni.
         /// </summary>
         public static List<object> Contorni(
@@ -64,9 +64,9 @@ namespace Riscontro.Disegno
 
             switch (tipo.Trim().ToLowerInvariant())
             {
-                case "tubolare":
+                case "tubular":
                 {
-                    double b = m["larghezza_mm"], h = m["altezza_mm"], t = m["parete_mm"];
+                    double b = m["width_mm"], h = m["height_mm"], t = m["wall_mm"];
                     motivo = PareteStaDentro(t, Math.Min(b, h), "tubolare");
                     if (motivo != null) return null;
                     // Origine al centro. Due rettangoli concentrici: l'ingombro
@@ -79,12 +79,12 @@ namespace Riscontro.Disegno
                     };
                 }
 
-                case "tondo":
-                    return new List<object> { Cerchio(0, 0, m["diametro_mm"]) };
+                case "round":
+                    return new List<object> { Cerchio(0, 0, m["diameter_mm"]) };
 
-                case "tubo":
+                case "tube":
                 {
-                    double d = m["diametro_mm"], t = m["parete_mm"];
+                    double d = m["diameter_mm"], t = m["wall_mm"];
                     motivo = PareteStaDentro(t, d, "tubo");
                     if (motivo != null) return null;
                     return new List<object>
@@ -94,19 +94,19 @@ namespace Riscontro.Disegno
                     };
                 }
 
-                case "piatto":
+                case "flat":
                     return new List<object>
                     {
-                        Poligonale(Rettangolo(m["larghezza_mm"], m["altezza_mm"])),
+                        Poligonale(Rettangolo(m["width_mm"], m["height_mm"])),
                     };
 
-                case "esagono":
+                case "hexagon":
                 {
                     // QUOTATO SULL'APERTURA IN CHIAVE, che e' come si compra e
                     // come si misura con una chiave fissa. Il diametro
                     // circoscritto e' un'altra cosa, e confonderli da' un
                     // esagono piu' grande del 15%.
-                    double c = m["chiave_mm"];
+                    double c = m["across_flats_mm"];
                     double r = c / Math.Sqrt(3.0);
                     var punti = new List<double[]>();
                     for (int i = 0; i < 6; i++)
@@ -117,9 +117,9 @@ namespace Riscontro.Disegno
                     return new List<object> { Poligonale(punti) };
                 }
 
-                case "angolare":
+                case "angle":
                 {
-                    double b = m["larghezza_mm"], h = m["altezza_mm"], t = m["spessore_mm"];
+                    double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
                     motivo = SpessoreStaDentro(t, Math.Min(b, h), "un'ala", "un piatto");
                     if (motivo != null) return null;
                     // Origine sullo SPIGOLO INTERNO: e' un punto che esiste sul
@@ -141,7 +141,7 @@ namespace Riscontro.Disegno
 
                 case "u":
                 {
-                    double b = m["larghezza_mm"], h = m["altezza_mm"], t = m["spessore_mm"];
+                    double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
                     motivo = SpessoreStaDentro(2 * t, b, "l'anima", "un piatto")
                              ?? SpessoreStaDentro(t, h, "un'ala", "un piatto");
                     if (motivo != null) return null;
@@ -165,7 +165,7 @@ namespace Riscontro.Disegno
 
                 case "t":
                 {
-                    double b = m["larghezza_mm"], h = m["altezza_mm"], t = m["spessore_mm"];
+                    double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
                     motivo = SpessoreStaDentro(t, b, "l'ala", "un piatto")
                              ?? SpessoreStaDentro(t, h, "l'anima", "un piatto");
                     if (motivo != null) return null;
@@ -188,9 +188,9 @@ namespace Riscontro.Disegno
                     };
                 }
 
-                case "asola":
+                case "slot":
                 {
-                    double b = m["larghezza_mm"], h = m["altezza_mm"];
+                    double b = m["width_mm"], h = m["height_mm"];
                     if (b <= h)
                     {
                         motivo = string.Format(CultureInfo.InvariantCulture,
@@ -313,8 +313,8 @@ namespace Riscontro.Disegno
             foreach (var p in vertici) v.Add(new object[] { p[0], p[1] });
             return new Dictionary<string, object>
             {
-                ["tipo"] = "poligonale",
-                ["vertici"] = v.ToArray(),
+                ["kind"] = "polygonal",
+                ["vertices"] = v.ToArray(),
             };
         }
 
@@ -322,9 +322,9 @@ namespace Riscontro.Disegno
         {
             return new Dictionary<string, object>
             {
-                ["tipo"] = "cerchio",
-                ["centro"] = new object[] { Q(cx), Q(cy) },
-                ["diametro_mm"] = diametro,
+                ["kind"] = "circle",
+                ["center"] = new object[] { Q(cx), Q(cy) },
+                ["diameter_mm"] = diametro,
             };
         }
     }

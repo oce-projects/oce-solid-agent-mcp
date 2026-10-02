@@ -5,26 +5,26 @@
   "_why_i_do_not_guess_it": "E anche volendo, non si potrebbe. Un pezzo appena nato dal modello di questa azienda ha GIA' DUE configurazioni vere che cominciano per «Default» -- «<A macchina>» e «<Saldato>», la coppia dei saldati, e `GetConfigurationCount()` risponde 2. Tradurre il nome corto vorrebbe dire sceglierne una, e sbagliare quella scelta non da' nessun errore. Il messaggio dice invece com'e' fatto il nome, che e' l'unica cosa che serve.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 100, "larghezza_mm": 100,
-                     "spessore_mm": 20, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
-    { "operation": "crea_configurazione",
-      "arguments": { "nome": "Sinistra" },
-      "expect": [ { "what": "stato.configurazione", "equal_to": "Sinistra" } ] },
-    { "operation": "attiva_configurazione",
-      "arguments": { "nome": "Default" },
+    { "operation": "create_configuration",
+      "arguments": { "name": "Left" },
+      "expect": [ { "what": "state.configuration", "equal_to": "Left" } ] },
+    { "operation": "activate_configuration",
+      "arguments": { "name": "Default" },
       "must_fail": {
         "message_includes": ["non e' un nome intero", "Default<", "fa parte del nome"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "goes_back_with_the_full_name" } },
-    { "operation": "attiva_configurazione",
-      "arguments": { "nome": "Sinistra" },
+    { "operation": "activate_configuration",
+      "arguments": { "name": "Left" },
       "expect": [
-        { "what": "stato.configurazione", "equal_to": "Sinistra",
+        { "what": "state.configuration", "equal_to": "Left",
           "why": "DOPO IL RIFIUTO SI E' ANCORA DOVE SI ERA. Un rifiuto che avesse gia' spostato il documento sarebbe la cosa peggiore delle due: un errore da leggere e una variante cambiata lo stesso." },
-        { "what": "misure.era_gia_attiva", "equal_to": true,
+        { "what": "measurements.was_already_active", "equal_to": true,
           "_why_true": "E QUESTO PASSO E' COSTATO UN ROSSO. `ShowConfiguration2` risponde FALSE anche quando la configurazione chiesta e' gia' quella attiva: quel booleano non distingue «non l'ho fatto» da «non c'era niente da fare». Il rifiuto che ne usciva diceva da solo di essere sbagliato -- «ho chiesto di attivare Sinistra e adesso e' attiva Sinistra». Adesso il criterio e' quale configurazione e' attiva, e il booleano torna qui come informazione." } ] }
   ]
 }

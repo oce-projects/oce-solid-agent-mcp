@@ -28,16 +28,16 @@ namespace Riscontro.Disegno
                 return Fallito("Questo non e' un assieme: fissare o liberare vale per un componente di un " +
                                "assieme. Aprimi l'assieme.");
             object grezzoFisso;
-            if (a == null || !a.TryGetValue("fisso", out grezzoFisso) || !(grezzoFisso is bool))
-                return Fallito("Dimmi «fisso»: true per fissarlo (non si muove piu'), false per liberarlo. " +
+            if (a == null || !a.TryGetValue("grounded", out grezzoFisso) || !(grezzoFisso is bool))
+                return Fallito("Dimmi «grounded»: true per fissarlo (non si muove piu'), false per liberarlo. " +
                                "Non c'e' un verso d'ufficio: sono due cose opposte.");
             bool voglio = (bool)grezzoFisso;
             object[] grezzi = null;
             try { grezzi = assieme.GetComponents(false) as object[]; } catch { }
             var componenti = StatoDocumento.ComponentiInOrdine(grezzi);
-            string uid = Str(a, "componente", null);
+            string uid = Str(a, "component", null);
             var c = PerUid(componenti, uid);
-            if (c == null) return Fallito(NonTrovato(uid, "componente", componenti));
+            if (c == null) return Fallito(NonTrovato(uid, "component", componenti));
             // TOP LEVEL ONLY (finding L11-3, lot Z-C21.5). Up to library 0.145.0
             // a nested component was read with IsFixed from the root, which the
             // guide says does not apply to it, and could come back «it was
@@ -51,11 +51,11 @@ namespace Riscontro.Disegno
             if (prima == voglio)
                 return RiuscitoSenzaCreare(new Dictionary<string, object>
                 {
-                    ["componente"] = uid,
-                    ["nome"] = NomeDi(c),
-                    ["fisso_prima"] = prima,
-                    ["fisso_dopo"] = prima,
-                    ["giudizio"] = "«" + NomeDi(c) + "» era gia' " + (voglio ? "fisso" : "libero") + ": niente da cambiare.",
+                    ["component"] = uid,
+                    ["name"] = NomeDi(c),
+                    ["grounded_before"] = prima,
+                    ["grounded_after"] = prima,
+                    ["verdict"] = "«" + NomeDi(c) + "» era gia' " + (voglio ? "fisso" : "libero") + ": niente da cambiare.",
                 });
             bool presa = false;
             try
@@ -79,12 +79,12 @@ namespace Riscontro.Disegno
             int acc = AccoppiamentiDi(c);
             var misure = new Dictionary<string, object>
             {
-                ["componente"] = uid,
-                ["nome"] = NomeDi(c),
-                ["fisso_prima"] = prima,
-                ["fisso_dopo"] = dopo,
-                ["accoppiamenti"] = acc >= 0 ? (object)acc : null,
-                ["giudizio"] = "«" + NomeDi(c) + "» adesso e' " + (dopo ? "FISSO: non si muove piu', qualunque accoppiamento abbia." :
+                ["component"] = uid,
+                ["name"] = NomeDi(c),
+                ["grounded_before"] = prima,
+                ["grounded_after"] = dopo,
+                ["mates"] = acc >= 0 ? (object)acc : null,
+                ["verdict"] = "«" + NomeDi(c) + "» adesso e' " + (dopo ? "FISSO: non si muove piu', qualunque accoppiamento abbia." :
                     "LIBERO: lo tengono solo i suoi accoppiamenti" + (acc == 0 ? " — e non ne ha: e' appoggiato, si muove." : ".")),
             };
             _log("[agente] " + NomeDi(c) + (dopo ? " fissato" : " liberato"));
@@ -92,8 +92,8 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// THE TOP-LEVEL CHECK shared by fissa_componente (L11-3) and
-        /// sostituisci_componente (L11-5), lot Z-C21.5: null when
+        /// THE TOP-LEVEL CHECK shared by fix_component (L11-3) and
+        /// replace_component (L11-5), lot Z-C21.5: null when
         /// <paramref name="component"/> is a top-level component of
         /// <paramref name="assembly"/>, otherwise the refusal, which names the
         /// top-level sub-assembly that holds it and its uid.

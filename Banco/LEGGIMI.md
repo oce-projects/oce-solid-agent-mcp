@@ -8,7 +8,7 @@ Sono due banchi diversi, per due domande diverse:
 |---|---|---|
 | `ProvaSaldatura.exe` | le operazioni della libreria fanno il pezzo giusto? | si' |
 | `corri_piani.js` | il ponte MCP esegue i piani come deve? | si' |
-| `prova_annulla.js` | `annulla` ritira il piano — e si **rifiuta** quando deve? | si' |
+| `prova_annulla.js` | `undo` ritira il piano — e si **rifiuta** quando deve? | si' |
 | `raccogli_viste.js` | costruisce le cinque forme di V2/V3 e ne salva immagini e stato | si' |
 | `prova_forma.js` | dalla sola **frase** un modello sa ridisegnare il pezzo? (V3) | si' |
 | `prova_sezione.js` | lo **spaccato** mostra la parete, e si toglie da solo? (V4) | si' |
@@ -190,22 +190,22 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
   "why": "«Outward» toglie verso l'esterno o verso l'interno?",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "guscio",
-      "arguments": { "facce_uid": ["@faccia(verso=davanti)"],
-                     "spessore_mm": 5, "verso_esterno": false },
+    { "operation": "shell",
+      "arguments": { "faces_uid": ["@face(normal=front)"],
+                     "thickness_mm": 5, "outward": false },
       "expect": [ { "what": "volume_mm3", "equal_to": 82500 },
-                  { "what": "ingombro_mm", "equal_to": [100, 60, 40] },
-                  { "what": "misure.verso", "equal_to": "interno" } ] } ] }
+                  { "what": "bounding_box_mm", "equal_to": [100, 60, 40] },
+                  { "what": "measurements.facing", "equal_to": "inner" } ] } ] }
 ```
 
 | | |
 |---|---|
-| `what` | senza prefisso = lo misura il banco sul documento; `stato.…` = lo stato dell'add-in; `misure.…` = quello che l'operazione riporta |
-| misure del banco | `volume_mm3`, `corpi`, `ingombro_mm`, `centri_x_mm`/`_y_`/`_z_`, `diametri_mm`, `centro_massa_mm`, `ultimo_piano_mm`, `spigoli_curvi`, `assi_creati`, `quante_lavorazioni`. **L'elenco non e' scritto da nessuna parte a mano**: e' l'elenco delle chiavi di chi le misura, e il messaggio «non so misurare …» lo legge da li' |
+| `what` | senza prefisso = lo misura il banco sul documento; `state.…` = lo stato dell'add-in; `measurements.…` = quello che l'operazione riporta |
+| misure del banco | `volume_mm3`, `bodies`, `bounding_box_mm`, `centers_x_mm`/`_y_`/`_z_`, `diameters_mm`, `center_of_mass_mm`, `last_plane_mm`, `edges_curved`, `axes_created`, `how_many_features`. **L'elenco non e' scritto da nessuna parte a mano**: e' l'elenco delle chiavi di chi le misura, e il messaggio «non so misurare …» lo legge da li' |
 | `equal_to` | un numero, un testo, un elenco di numeri (con tolleranza) o un elenco di TESTO (uno a uno, e l'ordine conta) |
-| `includes` / `does_not_include` | per le misure che sono **frasi** (`stato.forma`): una stringa o un elenco. Non si mettono insieme a `equal_to` |
+| `includes` / `does_not_include` | per le misure che sono **frasi** (`state.shape`): una stringa o un elenco. Non si mettono insieme a `equal_to` |
 | `tolerance` | **assoluta**, in mm o mm³. Diversa da zero → serve `tolerance_why`, altrimenti il caso e' **rotto** |
-| selettori | `@faccia(verso=…)`, `@faccia(piana=false)`, `@faccia(area~=907.92)`, `@faccia(verso=davanti,x~=150)` (x, y, z sono il punto che lo stato pubblica), `@spigolo(asse=Z,lungo~=100)`, `@spigolo(curvo=true,n=1)`, `@feature(tipo=…,n=2)`, `@quota(feature=Schizzo1,nome=D1)`, `@quota(angolare=true)` (l'unica quota in gradi, voce Z-C21.2) |
+| selettori | `@face(normal=…)`, `@face(planar=false)`, `@face(area~=907.92)`, `@face(normal=front,x~=150)` (x, y, z sono il punto che lo stato pubblica), `@edge(axis=Z,length~=100)`, `@edge(curved=true,n=1)`, `@feature(kind=…,n=2)`, `@dimension(feature=Schizzo1,name=D1)`, `@dimension(angular=true)` (l'unica quota in gradi, voce Z-C21.2) |
 | prima del passo | `select_first`: uid o selettori lasciati SELEZIONATI quando il passo parte, come li lascerebbe chi sta davanti a SOLIDWORKS (lo STL che esportava solo la faccia selezionata). `hide_first`: corpi, o il corpo di una faccia, NASCOSTI prima del passo (il corpo nascosto che usciva dalla verifica delle sporgenze). Tutti e due si contano dopo averli fatti: una selezione non riuscita e' un errore di banco, non un verde (voce Z-C21.2) |
 | `activate_before` | `{ "document": path, "configuration": name }`: a configuration of ANOTHER open document made active before the step, read back (ShowConfiguration2 answers false on the one already active, so its answer decides nothing). It is how a drawing step finds its model on a configuration other than the one the views show (Z-C21.4, L16-2); a document that is not open, or a configuration that does not become the active one, is a bench error |
 | segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Banco\lavoro\`, ignorata da git); `{DATI}` i file d'ingresso versionati (`Banco\dati\`); `{SOLIDWORKS}` la cartella di installazione di SOLIDWORKS, per i file DI SERIE che non si versionano (i modelli di tabella; `SW_INSTALL_PATH` se non e' quella predefinita, voce Z-C21.2). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
@@ -233,7 +233,7 @@ operazioni dei casi**, salvata in `Banco\lavoro`, riaperta e inserita.
 "assembly": {
   "components": [
     { "name": "base",
-      "steps": [ { "operation": "estrudi_rettangolo", "arguments": { … } } ] },
+      "steps": [ { "operation": "extrude_rectangle", "arguments": { … } } ] },
     { "name": "coperchio", "to_insert": false,
       "position_mm": [0, 0, 30],
       "steps": [ … ] }
@@ -244,8 +244,8 @@ operazioni dei casi**, salvata in `Banco\lavoro`, riaperta e inserita.
 | | |
 |---|---|
 | `name` | entra nel nome del file: `<caso>_<nome>.sldprt` in `Banco\lavoro`. Il caso lo nomina con `{LAVORO}\<caso>_<nome>.sldprt` |
-| `position_mm` | dove va il **centro dell'ingombro**, non l'origine. Assente = nell'origine dell'assieme. **Non e' un accoppiamento**. `AddComponent5` posiziona il centro: un pezzo con l'origine su una faccia — qualunque cosa estrusa a una direzione sola — si ritrova l'origine spostata di meta' ingombro, e nello stato lo si rilegge come `origine_mm`. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a `[0, -2, 30]` |
-| `to_insert` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `inserisci_componente`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
+| `position_mm` | dove va il **centro dell'ingombro**, non l'origine. Assente = nell'origine dell'assieme. **Non e' un accoppiamento**. `AddComponent5` posiziona il centro: un pezzo con l'origine su una faccia — qualunque cosa estrusa a una direzione sola — si ritrova l'origine spostata di meta' ingombro, e nello stato lo si rilegge come `origin_mm`. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a `[0, -2, 30]` |
+| `to_insert` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `insert_component`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
 | `configurations` | next to `components`: `[{ "name": …, "suppressed": [component names], "excluded_from_bom": [component names] }]`, made in this order after the components are in (Z-C21.4, L16-2 and L16-3). Each new configuration becomes the active one, is set while active (suppression, exclusion from the BOM of that configuration only) and every setting is read back; the last one made stays active. No operation of the catalogue suppresses a component or excludes it from the BOM in one configuration |
 | `components` inside a component | a SUB-ASSEMBLY instead of a part (Z-C21.5, L11-3 and L11-5): each child is built like a component (its own `name`, `steps`, `position_mm` inside the sub-assembly) as `<case>_<name>_<child>.sldprt`, inserted into a new assembly, saved as `<case>_<name>.sldasm`, and that is inserted like a part. One level only. In the state a nested component is named with its whole path (`<case>_<name>-1/<case>_<name>_<child>-1`), so it sorts right after its sub-assembly |
 | a repeated child `name` | inside a sub-assembly, two children with the same `name` are two instances of ONE part, built and registered from the first; the later one brings only its `position_mm`, and `steps` of its own are a bench error (Z-C21.11, M23) |
@@ -287,7 +287,7 @@ che dice quali c'erano), un caso senza `why`, un passo **senza attese**, un
 `must_fail` senza `message_includes`, una tolleranza senza il suo
 perche', una `twin` che non esiste, un selettore che non risolve.
 
-Un `null` **dichiarato** invece si misura: `materiale: null` vuol dire «quel
+Un `null` **dichiarato** invece si misura: `material: null` vuol dire «quel
 posto esiste ed e' vuoto», ed e' una cosa diversa da un campo che manca.
 
 ### E quando SOLIDWORKS se ne va a meta' giro (uscita 4)
@@ -353,10 +353,10 @@ Quattro coppie, tutte sullo stesso blocco 314 x 274 x 52:
 
 | rifiuta | riesce | differiscono per |
 |---|---|---|
-| foro 500 passante | foro 270 su faccia 274 | `diametro_mm` |
-| tasca 400x400 passante | la stessa, **cieca** da 5 | `passante` |
+| foro 500 passante | foro 270 su faccia 274 | `diameter_mm` |
+| tasca 400x400 passante | la stessa, **cieca** da 5 | `through_all` |
 | foro a (5000, 5000) | foro 60 **col centro sul bordo** | `x_mm`, `y_mm` |
-| asola 500x300 | asola 30x9 | `lunghezza_mm`, `larghezza_mm` |
+| asola 500x300 | asola 30x9 | `length_mm`, `width_mm` |
 
 Il banco dice **quanti argomenti differiscono** e rifiuta solo i due casi che
 contano: una gemella identica al rifiuto (e' una copia) e una che non ha nemmeno
@@ -406,7 +406,7 @@ Due campi in piu' rispetto ai casi normali:
 * **`come_prima: true`** su un'attesa — l'invariante e' «com'era», e si misura
   prima della modifica. Calcolarlo a mano vorrebbe dire rifare un conto che
   SOLIDWORKS ha gia' fatto, e sbagliarlo creerebbe un falso silenzio;
-* **`centro_massa_mm`** fra i `what` — l'invariante di posizione per cio' che
+* **`center_of_mass_mm`** fra i `what` — l'invariante di posizione per cio' che
   fori non ne lascia. Il volume da solo non distingue una tasca ferma da una
   tasca che ha seguito il bordo.
 
@@ -429,7 +429,7 @@ quindi si lancia prima di una consegna, non ogni sera. Scrive
 `Banco/report/mutazioni.md`, una riga per caso, e ha un riepilogo suo
 (`MUTAZIONI — 11 casi, 0 ciechi`): i rossi che produce sono **cercati**.
 
-Le mutazioni su argomenti che l'operazione **ignora** (`profondita_mm` su un
+Le mutazioni su argomenti che l'operazione **ignora** (`depth_mm` su un
 taglio passante) sono saltate leggendo il catalogo, non indovinate; e si mutano
 solo i passi **con attese**.
 
@@ -499,23 +499,23 @@ esiti.
 ```
 node Banco\corri_piani.js Banco\cases\bridge\c4r_primary.json
 node Banco\guarda.js                  leggi lo stato senza mandare un piano
-node Banco\prova_annulla.js           «annulla» (voce R1), coi suoi tre rossi
+node Banco\prova_annulla.js           «undo» (voce R1), coi suoi tre rossi
 ```
 
 `prova_annulla.js` sta qui e non in `ProvaSaldatura` per una ragione precisa:
-`annulla` **non e' nella libreria**. E' uno strumento del ponte, e la parte che
+`undo` **non e' nella libreria**. E' uno strumento del ponte, e la parte che
 conta — il ricordo dell'ultimo piano, e i tre casi in cui si RIFIUTA — vive in
 `Attrezzi`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
 
-Since Z-C21.14 four more `annulla` cases run in the full bench, in the group that
+Since Z-C21.14 four more `undo` cases run in the full bench, in the group that
 talks to the bridge (`PortaDelCliente.cs`, `UndoHonesty`): (a) a later plan that
-only reorders two holes is the last plan, and `annulla` must withdraw it and leave
-the first plan; (b) a plan that ends with `crea_disegno` leaves the drawing in
-front, the part comes back with `documento`/`attiva`, and `annulla` must withdraw
-the plan from the part; (c) a `misura` after a plan does not stop `annulla` from
+only reorders two holes is the last plan, and `undo` must withdraw it and leave
+the first plan; (b) a plan that ends with `create_drawing` leaves the drawing in
+front, the part comes back with `document`/`activate`, and `undo` must withdraw
+the plan from the part; (c) a `measure` after a plan does not stop `undo` from
 withdrawing it (this case decides whether an empty undo recording stands in the
 way); (d) a second bridge process reorders the holes of the first one's plan, and
-the first one's `annulla` must refuse before pressing.
+the first one's `undo` must refuse before pressing.
 
 ### `prova_forma.js` — una MISURA, non un controllo
 
@@ -527,7 +527,7 @@ Va rifatta in tre passi, e il secondo non lo fa una macchina:
 
 ```
 node raccogli_viste.js        costruisce i cinque pezzi veri e salva lo stato,
-                              che dentro ha il campo `forma`
+                              che dentro ha il campo `shape`
                               -- poi si danno le cinque frasi, E NIENTE ALTRO,
                                  a un modello isolato, che scrive i piani in
                                  cases/forma/1..5.json
@@ -580,7 +580,7 @@ errore di banco.
 ```
 cases/features/ 37   il guscio, e da che parte toglie;
                        la piastra simmetrica che cresce dalle due parti
-                       con cambia_estrusione (revisione del 27/9, Z-C20);
+                       con edit_extrusion (revisione del 27/9, Z-C20);
                        la quota che fa uscire l'asola dal materiale, rifiutata
                        e rimessa com'era (voce E18 c), e la sua gemella;
                        il raccordo sui quattro angoli e il foro guidato che
@@ -612,7 +612,7 @@ cases/features/ 37   il guscio, e da che parte toglie;
                        chamfers (Z-C21, C7-2, N14)
 cases/pairs/       8   i rifiuti con la loro gemella
 cases/slot/       18   ogni faccia, non una sola; lo schizzo quotato che si
-                       corregge con modifica_quota, e l'ancora dritta e obliqua
+                       corregge con set_dimension, e l'ancora dritta e obliqua
                        (voce E18)
 cases/chamfer/       4   dove un raccordo toglierebbe un altro volume; l'angolo
                        dello smusso si cambia in gradi (Z-C21.2)
@@ -628,7 +628,7 @@ cases/patterns/      15   la direzione, che e' il dubbio vero; l'asse riconosciu
                        il riempimento che fa quattordici fori, e rifiutato
                        senza direzione, su una faccia curva e con la direzione
                        fuori dalla faccia (W1.1); the linear pattern along an
-                       axis from crea_asse, and the circular pattern around a
+                       axis from create_axis, and the circular pattern around a
                        straight edge (Z-C21.9, L7-5 and M16)
 cases/axis/         2   l'asse dalla parete di un foro
 cases/removal/     5   sopprimere, riaccendere, cancellare
@@ -672,7 +672,7 @@ cases/assemblies/     22   inserire non e' accoppiare; un vincolo solo non basta
                        instance turns as asked (Z-C21, N26); the turned pin is
                        mated by the directions of the assembly (Z-C21.5, M1);
                        a component inside a sub-assembly is refused by
-                       fissa_componente and sostituisci_componente, and the
+                       fix_component and replace_component, and the
                        state says it is nested (Z-C21.5, L11-3, L11-5); the
                        component comes in with the configuration asked, and the
                        replaced one says its configuration (Z-C21.4, L11-1, M18);
@@ -704,7 +704,7 @@ cases/drawing/      42   il primo caso che arriva in TAVOLA (voce GT0);
                        vale zero (voce GT4, l'altra meta');
                        il cerchio piu' grande della vista (la gemella);
                        la tabella fori dice dove sono i fori, riletta contro il
-                       pezzo, e quota_in_tavola lascia i fori alla tabella
+                       pezzo, e drawing_dimension lascia i fori alla tabella
                        (voce GT5); la tabella sulla vista di fianco, rifiutata;
                        datum, rugosita' e tolleranze geometriche attaccate agli
                        spigoli e fuori dal pezzo (voci GT6, GT8), coi quattro
@@ -739,7 +739,7 @@ cases/weldments/   14   la distinta conta le barre, e i due numeri vengono da
                        e fra barre che non si incontrano rifiuta; il cordone
                        va fra facce che si toccano ad angolo; il tappo chiude
                        il tubo dentro (voce Z-C6). I corpi per NOME, con
-                       @corpo(nome=...): i numeri C1, C2 cambiano fra un giro
+                       @body(name=...): i numeri C1, C2 cambiano fra un giro
                        e l'altro; il taglio senza gioco non eredita quello
                        rimasto (Z-C21.2); il fazzoletto nell'angolo della T,
                        triangolare e poligonale, coi volumi misurati e la
@@ -747,7 +747,7 @@ cases/weldments/   14   la distinta conta le barre, e i due numeri vengono da
                        elenco, le facce che non si toccano o parallele, il
                        poligono degenere e i lati corti troppo lunghi (GP20);
                        the frame too small for its profile closes the weldment
-                       profile library again, and the frame's «misure» is read
+                       profile library again, and the frame's «measured_as» is read
                        whatever the case, any other word refused (Z-C21.10,
                        N31, N32); a member group is mitred by default, an
                        empty profile size names the sizes, the trim extends
@@ -783,7 +783,7 @@ cases/dimensions/        7   la variabile che non scavalca lo smusso, rifiutata 
                        modello arrivano in tavola, e senza viste rifiuta (Z-C1-bis);
                        la parete ha un nome: variabile globale e quota legata,
                        che seguono il cambio (Z-F1); every part dimension
-                       reader (modifica_quota, tolleranza_quota, lega_quota)
+                       reader (set_dimension, dimension_tolerance, link_dimension)
                        with the fourth configuration active, the before and
                        after of S1 in parts (Z-C21.13)
 cases/regression/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
@@ -793,6 +793,10 @@ cases/reanchor/    3   lo spigolo nominato con l'uid letto PRIMA di due fori si
                        si rifiuta, mai il piu' vicino; doppio (due corpi che si
                        toccano) si rifiuta, «non scelgo io» (voce E19,
                        `uid_from_step`)
+cases/aliases/     4   the names of before the rename, accepted until the first
+                       release (W3.1-bis.5, D4): an operation, an argument, a
+                       value and a selector written in Italian give the same
+                       part, and the step lists them in measurements.deprecated
 ```
 
 `-Famiglia` (voce E19) fa girare solo quelle cartelle dei casi dichiarati: il
@@ -803,7 +807,7 @@ PRIMA di scrivere il codice. Il giro e' parziale come con `-Gruppo`, e riscrive
 `"uid_from_step": N` in un passo prende selettori e firme dallo stato di PRIMA
 del passo N, come fa il ponte con un piano scritto guardando lo stato una volta.
 Le firme sono quelle di facce, spigoli e — dalla voce Z-C21.2 — corpi
-(`centro_mm`, `ingombro_mm`, come le manda il ponte): prima un corpo nominato
+(`center_mm`, `bounding_box_mm`, come le manda il ponte): prima un corpo nominato
 cosi' arrivava senza firma, e il corpo rinumerato da un taglio (voce E4) dal banco
 non si poteva vedere.
 
@@ -833,7 +837,7 @@ primo tentativo.
 
 **`cases/drawing/` contiene tutt'e due le cose, dal 17/9/2026** (voce GT0), ed e'
 l'unica cartella cosi'. I sette `tav_*.json` sono piani; i casi dichiarati della
-famiglia `tavola` stanno li' accanto. **Non si distinguono dal nome, si
+famiglia `drawing` stanno li' accanto. **Non si distinguono dal nome, si
 distinguono dalla FORMA**: un piano e' un array di passi, un caso e' un oggetto
 con `name`, `why` e `steps`. Il caricatore guarda la radice del JSON, salta
 gli array, e **dice a ogni giro quanti ne ha saltati e quali**:

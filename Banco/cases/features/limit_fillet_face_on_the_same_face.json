@@ -1,18 +1,18 @@
 {
   "name": "limit_fillet_face_on_the_same_face",
   "family": "features",
-  "why": "La stessa faccia in tutti e due gli insiemi. E' la confusione di chi voleva arrotondare i bordi di UNA faccia: un raccordo di faccia si appoggia a DUE facce diverse, e per i bordi di una faccia c'e' «raccordo_spigoli». Si rifiuta prima di chiamare SOLIDWORKS, dicendo quale operazione serve, invece di lasciar tornare un NULL che non spiega niente.",
+  "why": "La stessa faccia in tutti e due gli insiemi. E' la confusione di chi voleva arrotondare i bordi di UNA faccia: un raccordo di faccia si appoggia a DUE facce diverse, e per i bordi di una faccia c'e' «fillet_edges». Si rifiuta prima di chiamare SOLIDWORKS, dicendo quale operazione serve, invece di lasciar tornare un NULL che non spiega niente.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "spessore_mm": 40, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 40, "width_mm": 40,
+                     "thickness_mm": 40, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 64000 } ] },
-    { "operation": "raccordo_faccia",
-      "arguments": { "faccia_1_uid": "@faccia(verso=davanti)", "faccia_2_uid": "@faccia(verso=davanti)",
-                     "raggio_mm": 5 },
+    { "operation": "fillet_face",
+      "arguments": { "face_1_uid": "@face(normal=front)", "face_2_uid": "@face(normal=front)",
+                     "radius_mm": 5 },
       "must_fail": {
-        "message_includes": ["in tutti e due gli insiemi", "raccordo_spigoli"],
+        "message_includes": ["in tutti e due gli insiemi", "fillet_edges"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fillet_face_between_two_faces_of_a_cube" } }

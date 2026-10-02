@@ -1,4 +1,4 @@
-// Chiama `guarda_il_pezzo` e stampa poche cose: serve a leggere lo stato fra
+// Chiama `inspect_part` e stampa poche cose: serve a leggere lo stato fra
 // un passo e l'altro del banco, senza mandare un piano.
 //
 //   node guarda.js                stampa il riassunto
@@ -21,7 +21,7 @@ const richieste = [
               clientInfo: { name: "banco", version: "1" } } },
   { jsonrpc: "2.0", method: "notifications/initialized" },
   { jsonrpc: "2.0", id: 2, method: "tools/call",
-    params: { name: "guarda_il_pezzo", arguments: {} } },
+    params: { name: "inspect_part", arguments: {} } },
 ];
 
 const p = spawn(ESE, [], { stdio: ["pipe", "pipe", "pipe"] });
@@ -40,12 +40,12 @@ p.stdout.on("data", d => {
     if (tutto) { console.log(t); p.stdin.end(); return; }
     let s; try { s = JSON.parse(t); } catch (e) { console.log(t); p.stdin.end(); return; }
     console.log(
-      "documento: " + s.titolo +
-      "  piani: " + s.piani_disponibili +
+      "documento: " + s.document_title +
+      "  piani: " + s.planes_available +
       "  feature: " + (s.feature ? s.feature.length : 0) +
-      "  altre: " + (s.altre_feature || 0) +
-      (s.altre_feature_tipi ? " " + JSON.stringify(s.altre_feature_tipi) : "") +
-      "  corpi: " + (s.corpi_totali || 0) +
+      "  altre: " + (s.other_feature || 0) +
+      (s.other_feature_kinds ? " " + JSON.stringify(s.other_feature_kinds) : "") +
+      "  corpi: " + (s.bodies_total || 0) +
       "  volume: " + (s.volume_mm3 == null ? "-" : s.volume_mm3));
     p.stdin.end();
   }

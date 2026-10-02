@@ -74,7 +74,7 @@ namespace Riscontro.Disegno
     ///
     /// La piastra senza pareti non fa nascere niente, e va bene cosi': dalla
     /// linea non c'e' niente da incontrare. Si rifiuta dicendolo, e nominando
-    /// `estrudi_su_faccia` per un rilievo su una faccia piana.
+    /// `extrude_on_face` per un rilievo su una faccia piana.
     ///
     /// ── COSA RESTA NEL PEZZO SE MI RIFIUTO ───────────────────────────────
     ///
@@ -88,7 +88,7 @@ namespace Riscontro.Disegno
     {
         /// <summary>
         /// Quanto puo' stare fuori dal piano un estremo della linea, in mm. Lo
-        /// stesso margine di `piega_da_schizzo`: cinque centesimi coprono gli
+        /// stesso margine di `sketched_bend`: cinque centesimi coprono gli
         /// arrotondamenti dello stato e restano lontani da qualunque errore vero.
         /// </summary>
         private const double NervaturaFuoriPianoMm = 0.05;
@@ -105,40 +105,40 @@ namespace Riscontro.Disegno
                 return Fallito("La nervatura si fa su un pezzo. Aprimi il pezzo.");
 
             // ── GLI ARGOMENTI, PRIMA DI TOCCARE IL PEZZO ─────────────────
-            string piano = (Str(a, "piano", "") ?? "").Trim().ToLowerInvariant();
-            if (piano != "frontale" && piano != "superiore" && piano != "destro")
+            string piano = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
+            if (piano != "front" && piano != "top" && piano != "right")
                 return Fallito(
-                    "Dimmi «piano»: frontale, superiore o destro. E' il piano in cui sta la linea " +
-                    "e in cui la nervatura cresce; con «distanza_mm» lo sposto parallelo a se stesso " +
+                    "Dimmi «plane»: frontale, superiore o destro. E' il piano in cui sta la linea " +
+                    "e in cui la nervatura cresce; con «distance_mm» lo sposto parallelo a se stesso " +
                     "(per esempio a meta' profondita' di una staffa).");
             // FACOLTATIVA, MA SE C'E' DEV'ESSERE UN NUMERO: `Num` inghiottirebbe
             // «25mm» e restituirebbe zero, cioe' la nervatura sul piano base.
             double distanza = 0;
-            if (a != null && a.TryGetValue("distanza_mm", out var grezza) && grezza != null &&
-                !NumObbligatorio(a, "distanza_mm", out distanza, out string erroreDistanza))
+            if (a != null && a.TryGetValue("distance_mm", out var grezza) && grezza != null &&
+                !NumObbligatorio(a, "distance_mm", out distanza, out string erroreDistanza))
                 return Fallito(erroreDistanza + " Scrivila in mm, per esempio 25; senza, la nervatura sta " +
                                "sul piano base.");
 
-            if (!NumObbligatorio(a, "spessore_mm", out double spessore, out string errore))
+            if (!NumObbligatorio(a, "thickness_mm", out double spessore, out string errore))
                 return Fallito(errore + " E' lo spessore della nervatura: scrivilo in mm (si divide a " +
                                "meta' dalle due parti del piano).");
             if (spessore <= 0)
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
-                    "«spessore_mm» dev'essere piu' di zero: {0:0.###} non e' una nervatura. Per una " +
+                    "«thickness_mm» dev'essere piu' di zero: {0:0.###} non e' una nervatura. Per una " +
                     "staffa di lamiera da 10 si usa di solito 4-6 mm.", spessore));
 
-            var da = Terna(a, "da_mm");
-            var fino = Terna(a, "a_mm");
+            var da = Terna(a, "start_mm");
+            var fino = Terna(a, "end_mm");
             if (da == null || fino == null)
                 return Fallito(
-                    "«da_mm» e «a_mm» sono i due estremi della linea della nervatura: punti [x, y, z] " +
+                    "«start_mm» e «end_mm» sono i due estremi della linea della nervatura: punti [x, y, z] " +
                     "in mm nel sistema del modello, tutti e due sul piano indicato. Per esempio, " +
                     "nell'angolo di una L: da [10, 40, 25] a [40, 10, 25].");
 
-            // I DUE PUNTI STANNO SUL PIANO? Il piano base «frontale» e' XY
-            // (normale +Z), «superiore» XZ (+Y), «destro» YZ (+X): la stessa
+            // I DUE PUNTI STANNO SUL PIANO? Il piano base «front» e' XY
+            // (normale +Z), «top» XZ (+Y), «right» YZ (+X): la stessa
             // tabella di `Riferimenti.NormaleDelPiano`, e il segno della
-            // distanza e' quello di `crea_piano` (frontale -250 -> z = -250,
+            // distanza e' quello di `create_plane` (frontale -250 -> z = -250,
             // misurato dal caso front_plane_minus_250).
             var normale = Riferimenti.NormaleDelPiano(piano);
             Func<double[], double> quota = p => p[0] * normale[0] + p[1] * normale[1] + p[2] * normale[2];
@@ -148,8 +148,8 @@ namespace Riscontro.Disegno
                     "La linea non sta sul piano {0} a distanza {1:0.###} mm: un estremo ne dista " +
                     "{2:0.###} mm. I due punti vanno presi sul piano della nervatura (sul {0} " +
                     "sfalsato di {1:0.###}, la coordinata {3} di tutti e due e' {1:0.###}); oppure " +
-                    "cambia «distanza_mm».",
-                    piano, distanza, scarto, piano == "frontale" ? "z" : piano == "superiore" ? "y" : "x"));
+                    "cambia «distance_mm».",
+                    piano, distanza, scarto, piano == "front" ? "z" : piano == "top" ? "y" : "x"));
             double lunga = Math.Sqrt(Math.Pow(fino[0] - da[0], 2) + Math.Pow(fino[1] - da[1], 2) + Math.Pow(fino[2] - da[2], 2));
             if (lunga < 1)
                 return Fallito("La linea della nervatura e' lunga meno di un millimetro: i due punti " +
@@ -161,7 +161,7 @@ namespace Riscontro.Disegno
             if (foto.Corpi == 0)
                 return Fallito(
                     "Nel pezzo non c'e' un corpo solido: la nervatura riempie lo spazio fra una linea e " +
-                    "pareti che ci sono gia'. Fai prima il pezzo (per esempio con «estrudi_profilo»).");
+                    "pareti che ci sono gia'. Fai prima il pezzo (per esempio con «extrude_profile»).");
             var ribPrima = NervaturaNomiDelTipo(modello, "Rib");
             var schizziPrima = NervaturaNomiDelTipo(modello, "ProfileFeature");
 
@@ -189,7 +189,7 @@ namespace Riscontro.Disegno
             //
             // Sul piano destro la x dello schizzo va in -Z del modello (RAG 81r):
             // non ci si ragiona, si trasforma. E' la ricetta della sonda e di
-            // `piega_da_schizzo`.
+            // `sketched_bend`.
             modello.ClearSelection2(true);
             if (!pianoDelloSchizzo.Select2(false, 0))
                 return Fallito("Non sono riuscito a selezionare il piano dello schizzo." +
@@ -269,7 +269,7 @@ namespace Riscontro.Disegno
                             string.Join("», «", nomiIntrusi) + "»): non provo l'altro verso sopra una " +
                             "lavorazione che non ho chiesto. Di solito la linea non sta fra due pareti: " +
                             "spostala nel vuoto, con gli estremi (o il loro prolungamento) sulle pareti da " +
-                            "unire; per un rilievo su una faccia piana usa «estrudi_su_faccia»." +
+                            "unire; per un rilievo su una faccia piana usa «extrude_on_face»." +
                             NervaturaRitira(modello, mie, foto));
                     }
                     continue;
@@ -304,7 +304,7 @@ namespace Riscontro.Disegno
                     "l'angolo di una L, il fondo e i fianchi di una scatola svuotata. Quando non nasce " +
                     "in nessun verso, di solito dalla linea non c'e' niente da incontrare: una piastra " +
                     "senza pareti (misurato), o una linea fuori dal pezzo. Per un rilievo su una faccia " +
-                    "piana usa «estrudi_su_faccia»; oppure sposta la linea fra due pareti." +
+                    "piana usa «extrude_on_face»; oppure sposta la linea fra due pareti." +
                     NervaturaRitira(modello, mie, foto));
 
             // ── LE GUARDIE, SUL PEZZO E NON SULLA FEATURE ────────────────
@@ -322,7 +322,7 @@ namespace Riscontro.Disegno
             // COSA DICHIARA LA FEATURE (IRibFeatureData2), accanto a cio' che
             // si e' misurato. Non decide niente: lo spessore e il verso
             // dichiarati sono quelli chiesti anche quando il pezzo e' un altro
-            // (la lezione dello sformo, `angolo_dichiarato_dalla_feature`).
+            // (la lezione dello sformo, `angle_declared_by_feature`).
             object spessoreDichiarato = null, versoDichiarato = null, paralleloDichiarato = null;
             try
             {
@@ -361,7 +361,7 @@ namespace Riscontro.Disegno
                     "pareti da tutte e due le parti, il verso dritto vince anche se tu pensavi l'altro. " +
                     "Nessuno sformo: la nervatura ha le facce dritte.",
             };
-            if (volumeDopo == null) misure["volume_non_riletto"] = NotaVolumeNonRiletto;
+            if (volumeDopo == null) misure["volume_not_reread"] = NotaVolumeNonRiletto;
 
             _log(string.Format(CultureInfo.InvariantCulture,
                 "[agente] nervatura {0} su {1}{2}: {3}, volume {4} -> {5}",
@@ -413,7 +413,7 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// The plane parallel to the base plane, offset by `distanzaMm`: the
-        /// same call as `crea_piano` since Z-C21.7 (L8-1), IFeatureManager.
+        /// same call as `create_plane` since Z-C21.7 (L8-1), IFeatureManager.
         /// InsertRefPlane with the base plane selected by name with mark 0
         /// (ApiHelpers.SelectOffsetPlaneBase / InsertOffsetPlane, where the
         /// guide pages and the numbers of the Z-C21.3 probe are: G1 top +100,
@@ -456,7 +456,7 @@ namespace Riscontro.Disegno
                 motivo = "Il piano della nervatura, parallelo al " + piano + " a " +
                          distanzaMm.ToString("0.###", CultureInfo.InvariantCulture) +
                          " mm, non e' nato (piani " + pianiPrima + " -> " + pianiDopo + "). Puoi farlo prima " +
-                         "con «crea_piano» e guardare dove finisce.";
+                         "con «create_plane» e guardare dove finisce.";
                 return null;
             }
             return ultima;
@@ -591,7 +591,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// The ONE feature of that type whose name was not in <paramref name="prima"/>,
+        /// The ONE feature of that type whose name was not in <paramref name="before"/>,
         /// or null; <paramref name="born"/> says how many were born (-1: the tree
         /// was not read). Z-C21.5 (S7, review of the leftovers, 30/9/2026): this
         /// kept the LAST new one, so two born would have given one of them without
@@ -603,7 +603,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Every feature of that type whose name was not in <paramref name="prima"/>,
+        /// Every feature of that type whose name was not in <paramref name="before"/>,
         /// in tree order: what goes back out when a step is taken away. Empty when
         /// the tree cannot be read.
         /// </summary>

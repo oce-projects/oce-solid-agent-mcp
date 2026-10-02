@@ -18,7 +18,7 @@ It doesn't say how the check should be configured (whether to count exactly-touc
 
 | what | expected value | tolerance | why |
 |---|---|---|---|
-| measurements.interferences | 0 | — | the lid in task 08's assembly rests on the base without overlapping it: zero is the correct result, not a defect to fix |
+| measurements.how_many (of the `interference_check` step) | 0 | — | the lid in task 08's assembly rests on the base without overlapping it: zero is the correct result, not a defect to fix |
 
 ## What this measurement does not see
 

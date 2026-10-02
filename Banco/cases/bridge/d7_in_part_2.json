@@ -1,13 +1,13 @@
 [
  {
-  "operazione": "estrudi_profilo",
-  "argomenti": {
-   "piano": "superiore", "spessore_mm": 20,
-   "contorni": [ [[0,0],[100,0],[100,40],[40,40],[40,80],[0,80]] ]
+  "operation": "extrude_profile",
+  "arguments": {
+   "plane": "top", "thickness_mm": 20,
+   "contours": [ [[0,0],[100,0],[100,40],[40,40],[40,80],[0,80]] ]
   }
  },
  {
-  "operazione": "taglio_cilindrico",
-  "argomenti": { "faccia_rif": { "passo": 1, "genere": "faccia_superiore" }, "x_mm": 45, "y_mm": -45, "diametro_mm": 20, "passante": false, "profondita_mm": 0 }
+  "operation": "cylindrical_cut",
+  "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "x_mm": 45, "y_mm": -45, "diameter_mm": 20, "through_all": false, "depth_mm": 0 }
  }
 ]

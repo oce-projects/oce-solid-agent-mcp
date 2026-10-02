@@ -114,7 +114,7 @@ namespace Riscontro.Disegno
                             if (e != null && e.Length >= 6)
                             {
                                 double x0 = Math.Min(e[0], e[3]), y0 = Math.Min(e[1], e[4]), x1 = Math.Max(e[0], e[3]), y1 = Math.Max(e[1], e[4]);
-                                // una «nota» grande mezzo foglio e' una cornice del formato, non un ingombro
+                                // una «note» grande mezzo foglio e' una cornice del formato, non un ingombro
                                 if ((x1 - x0) * (y1 - y0) < 0.5 * f.Larghezza * f.Altezza && x1 > x0 && y1 > y0)
                                     f.Ingombri.Add(new[] { x0, y0, x1, y1 });
                             }

@@ -4,21 +4,21 @@
   "why": "VOCE GP18, la quinta operazione. Una lamiera piatta 100 x 40 x 2 (R 2), piegata a 90 gradi lungo una linea di traverso a x = 50 sulla faccia alta. Misurata col banchetto (`prova0089 piega`) prima di scriverla: volume invariato, e l'ingombro che torna col conto — 46 di piano (50 - R - T), la piega da 4,712, e il resto (49,288) che sale da y = 2. Una piega non aggiunge lamiera, la sposta: lo sviluppo resta 100.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "flangia_base",
-      "arguments": { "piano": "frontale", "punti": [[0, 0], [100, 0]],
-                     "spessore_mm": 2, "raggio_mm": 2, "profondita_mm": 40 },
+    { "operation": "base_flange",
+      "arguments": { "plane": "front", "points": [[0, 0], [100, 0]],
+                     "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "expect": [ { "what": "volume_mm3", "equal_to": 8000, "tolerance": 0.05,
                     "tolerance_why": "100 x 40 x 2; misurato 8000,02" } ] },
-    { "operation": "piega_da_schizzo",
-      "arguments": { "faccia_uid": "@faccia(verso=alto)", "da_mm": [50, 0, 0], "a_mm": [50, 0, 40],
-                     "angolo_gradi": 90 },
+    { "operation": "sketched_bend",
+      "arguments": { "face_uid": "@face(normal=up)", "start_mm": [50, 0, 0], "end_mm": [50, 0, 40],
+                     "angle_deg": 90 },
       "expect": [
-        { "what": "ingombro_mm", "equal_to": [50, 53.288, 40], "tolerance": 0.01,
+        { "what": "bounding_box_mm", "equal_to": [50, 53.288, 40], "tolerance": 0.01,
           "tolerance_why": "in y: da -2 a R + (100 - (50 - R - T) - pi/2 * (R + K T)) = 51,288. Il lato fermo e' quello a x < 50: lo sceglie SOLIDWORKS, ed e' il motivo per cui l'attesa e' sull'ingombro intero" },
-        { "what": "misure.volume_mm3", "equal_to": 8000, "tolerance": 0.05,
+        { "what": "measurements.volume_mm3", "equal_to": 8000, "tolerance": 0.05,
           "tolerance_why": "una piega non aggiunge lamiera" },
-        { "what": "misure.lunghezza_sviluppo_mm", "equal_to": 100, "tolerance": 0.01,
+        { "what": "measurements.flat_pattern_length_mm", "equal_to": 100, "tolerance": 0.01,
           "tolerance_why": "spianata torna la lamiera di prima" },
-        { "what": "corpi", "equal_to": 1 } ] }
+        { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

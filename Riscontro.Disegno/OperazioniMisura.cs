@@ -80,7 +80,7 @@ namespace Riscontro.Disegno
                 return Fallito("Questo documento non e' un pezzo ne' un assieme: non ha corpi da pesare. " +
                                "Aprimi il pezzo o l'assieme.");
 
-            var corpi = CorpiScelti(parte, stato, a, Str(a, "corpo_uid", null), out string motivo);
+            var corpi = CorpiScelti(parte, stato, a, Str(a, "body_uid", null), out string motivo);
             if (corpi == null) return Fallito(motivo);
 
             // ── UNA MISURA NUOVA PER OGNI NUMERO, E NON E' PIGNOLERIA ────
@@ -144,14 +144,14 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["corpi"] = corpi.Count,
+                ["bodies"] = corpi.Count,
                 ["volume_mm3"] = Math.Round(volumeM3 * 1e9, 2),
                 ["area_mm2"] = Math.Round(areaM2 * 1e6, 2),
-                ["centro_massa_mm"] = centro,
+                ["center_of_mass_mm"] = centro,
                 // LE UNITA' NELLA RISPOSTA, non solo nei nomi dei campi. E' la
                 // stessa ragione dello STL: chi legge puo' non aver mai visto
                 // la descrizione dell'operazione.
-                ["unita"] = "millimetri e chilogrammi; la densita' in kg/m3",
+                ["units"] = "millimetri e chilogrammi; la densita' in kg/m3",
             };
 
             // LA MASSA SENZA MATERIALE NON E' ZERO, E' «NON SI SA».
@@ -162,28 +162,28 @@ namespace Riscontro.Disegno
             // volte, e il posto in cui si scopre e' il preventivo.
             if (string.IsNullOrEmpty(materiale))
             {
-                misure["materiale"] = null;
-                misure["massa_kg"] = null;
-                misure["densita_kg_m3"] = null;
-                misure["perche_niente_massa"] =
+                misure["material"] = null;
+                misure["mass_kg"] = null;
+                misure["density_kg_m3"] = null;
+                misure["why_no_mass"] =
                     "Al pezzo non e' stato dato nessun materiale, quindi la massa non si sa. " +
                     "SOLIDWORKS risponderebbe lo stesso usando la densita' predefinita del " +
                     "modello (di solito 1000 kg/m3, cioe' acqua): un numero credibile e " +
-                    "sbagliato di otto volte su un pezzo d'acciaio. Usa «applica_materiale» " +
+                    "sbagliato di otto volte su un pezzo d'acciaio. Usa «apply_material» " +
                     "e richiedimelo.";
             }
             else
             {
-                misure["materiale"] = materiale;
-                misure["massa_kg"] = Math.Round(massaKg, 4);
-                misure["densita_kg_m3"] = Math.Round(densita, 2);
+                misure["material"] = materiale;
+                misure["mass_kg"] = Math.Round(massaKg, 4);
+                misure["density_kg_m3"] = Math.Round(densita, 2);
                 // IL CONTO RIFATTO A MANO, accanto a quello di SOLIDWORKS. Se
                 // i due divergono, una delle due misure e' in unita' diverse
                 // da quelle che dice — ed e' il modo in cui un fattore 1000 si
                 // fa vedere invece di nascondersi.
                 double aMano = volumeM3 * densita;
-                misure["massa_ricalcolata_kg"] = Math.Round(aMano, 4);
-                misure["scarto_sul_ricalcolo"] = massaKg > 0
+                misure["mass_recomputed_kg"] = Math.Round(aMano, 4);
+                misure["deviation_on_recompute"] = massaKg > 0
                     ? (object)Math.Round(Math.Abs(aMano - massaKg) / massaKg, 6)
                     : null;
             }
@@ -235,7 +235,7 @@ namespace Riscontro.Disegno
                 return Fallito("Questo documento non e' un pezzo ne' un assieme: non ha corpi da misurare. " +
                                "Aprimi il pezzo o l'assieme.");
 
-            string askedUid = Str(a, "corpo_uid", null);
+            string askedUid = Str(a, "body_uid", null);
             var corpi = CorpiScelti(parte, stato, a, askedUid, out string motivo);
             if (corpi == null) return Fallito(motivo);
             if (corpi.Count == 0)
@@ -254,10 +254,10 @@ namespace Riscontro.Disegno
                 {
                     // The body asked for keeps its own uid: numbering the list
                     // of one body said «C1» of the body «C2» (Z-C21.5, S5).
-                    ["corpo"] = string.IsNullOrWhiteSpace(askedUid) ? "C" + (i + 1) : askedUid.Trim().ToUpperInvariant(),
-                    ["da_mm"] = new[] { Tondo(scatola[0]), Tondo(scatola[1]), Tondo(scatola[2]) },
-                    ["a_mm"] = new[] { Tondo(scatola[3]), Tondo(scatola[4]), Tondo(scatola[5]) },
-                    ["ingombro_mm"] = new[]
+                    ["body"] = string.IsNullOrWhiteSpace(askedUid) ? "C" + (i + 1) : askedUid.Trim().ToUpperInvariant(),
+                    ["from_mm"] = new[] { Tondo(scatola[0]), Tondo(scatola[1]), Tondo(scatola[2]) },
+                    ["to_mm"] = new[] { Tondo(scatola[3]), Tondo(scatola[4]), Tondo(scatola[5]) },
+                    ["bounding_box_mm"] = new[]
                     {
                         Tondo(scatola[3] - scatola[0]),
                         Tondo(scatola[4] - scatola[1]),
@@ -274,27 +274,27 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["corpi"] = elenco.ToArray(),
-                ["da_mm"] = new[] { Tondo(tutto[0]), Tondo(tutto[1]), Tondo(tutto[2]) },
-                ["a_mm"] = new[] { Tondo(tutto[3]), Tondo(tutto[4]), Tondo(tutto[5]) },
-                ["ingombro_mm"] = new[]
+                ["bodies"] = elenco.ToArray(),
+                ["from_mm"] = new[] { Tondo(tutto[0]), Tondo(tutto[1]), Tondo(tutto[2]) },
+                ["to_mm"] = new[] { Tondo(tutto[3]), Tondo(tutto[4]), Tondo(tutto[5]) },
+                ["bounding_box_mm"] = new[]
                 {
                     Tondo(tutto[3] - tutto[0]),
                     Tondo(tutto[4] - tutto[1]),
                     Tondo(tutto[5] - tutto[2]),
                 },
-                ["unita"] = "millimetri, nel sistema di coordinate del modello",
+                ["units"] = "millimetri, nel sistema di coordinate del modello",
                 // IL LIMITE DICHIARATO: e' la scatola ALLINEATA AGLI ASSI. Un
                 // pezzo lungo messo in diagonale ha una scatola molto piu'
                 // grande di quanto serva per imballarlo, e questa misura non
                 // dice come girarlo.
-                ["cosa_non_guarda"] =
+                ["what_it_does_not_check"] =
                     "E' la scatola allineata agli assi del modello, non la piu' piccola " +
                     "possibile: un pezzo messo in diagonale ha un ingombro molto piu' " +
                     "grande di quello che gli servirebbe girato bene.",
             };
             _log("[agente] ingombro: " +
-                 string.Join(" x ", ((double[])misure["ingombro_mm"]).Select(x => x.ToString("0.##"))) +
+                 string.Join(" x ", ((double[])misure["bounding_box_mm"]).Select(x => x.ToString("0.##"))) +
                  " mm su " + corpi.Count + " corpi");
             return RiuscitoSenzaCreare(misure);
         }
@@ -325,15 +325,15 @@ namespace Riscontro.Disegno
         private Esito DistanzaMinima(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string uidA = Str(a, "da_uid", null);
-            string uidB = Str(a, "a_uid", null);
+            string uidA = Str(a, "start_uid", null);
+            string uidB = Str(a, "end_uid", null);
             if (string.IsNullOrWhiteSpace(uidA) || string.IsNullOrWhiteSpace(uidB))
                 return Fallito(
-                    "Mi servono due cose fra cui misurare: «da_uid» e «a_uid». Gli " +
+                    "Mi servono due cose fra cui misurare: «start_uid» e «end_uid». Gli " +
                     "identificativi di facce e spigoli stanno nello stato del documento.");
             if (string.Equals(uidA, uidB, StringComparison.OrdinalIgnoreCase))
                 return Fallito(
-                    "«da_uid» e «a_uid» sono la stessa cosa (" + uidA + "): la distanza " +
+                    "«start_uid» e «end_uid» sono la stessa cosa (" + uidA + "): la distanza " +
                     "di una faccia da se stessa e' zero, e non e' una misura.");
 
             string motivo;
@@ -386,20 +386,20 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["da"] = uidA,
-                ["a"] = uidB,
-                ["distanza_mm"] = Tondo(metri * 1000.0),
-                ["punto_da_mm"] = Scala(puntoA, 1000.0),
-                ["punto_a_mm"] = Scala(puntoB, 1000.0),
+                ["source"] = uidA,
+                ["target"] = uidB,
+                ["distance_mm"] = Tondo(metri * 1000.0),
+                ["point_source_mm"] = Scala(puntoA, 1000.0),
+                ["point_target_mm"] = Scala(puntoB, 1000.0),
                 // SI RIPORTA ANCHE IL CONTROLLO, non solo il suo esito: chi
                 // legge vede che il numero e' stato verificato e con che
                 // scarto, invece di doverci credere.
-                ["distanza_fra_i_punti_mm"] = Tondo(fraIPunti * 1000.0),
-                ["scarto_del_controllo_mm"] = Tondo(scartoMm),
-                ["unita"] = "millimetri; SOLIDWORKS li da' in metri e la conversione e' qui",
+                ["distance_between_points_mm"] = Tondo(fraIPunti * 1000.0),
+                ["deviation_of_check_mm"] = Tondo(scartoMm),
+                ["units"] = "millimetri; SOLIDWORKS li da' in metri e la conversione e' qui",
             };
             if (metri * 1000.0 < 0.001)
-                misure["si_toccano"] =
+                misure["touch"] =
                     "Le due cose si toccano o si intersecano: la distanza e' zero, e i due " +
                     "punti sono lo stesso punto.";
 
@@ -453,7 +453,7 @@ namespace Riscontro.Disegno
             if (uid.Count > 2)
                 return Fallito(
                     "Ne hai date " + uid.Count + ": ne misuro una sola o due. Con piu' di " +
-                    "due, «distanza» e «angolo» non vogliono dire piu' niente.");
+                    "due, «distanza» e «fillet» non vogliono dire piu' niente.");
 
             string arcMeasure = (Str(a, "arc_measure", "centre") ?? "centre").Trim().ToLowerInvariant();
             int arcOption;
@@ -524,8 +524,8 @@ namespace Riscontro.Disegno
 
             var fuori = new Dictionary<string, object>
             {
-                ["misurate"] = uid.ToArray(),
-                ["unita"] = "millimetri, millimetri quadri e gradi; SOLIDWORKS li da' in " +
+                ["measured"] = uid.ToArray(),
+                ["units"] = "millimetri, millimetri quadri e gradi; SOLIDWORKS li da' in " +
                             "metri e radianti, e la conversione e' qui",
             };
             // ── `Area` E `TotalArea` NON SONO LA STESSA COSA, E SI ALTERNANO
@@ -541,15 +541,15 @@ namespace Riscontro.Disegno
             // e' uscito con «campo assente: misure.area_mm2». Si riportano
             // tutte e due, col nome che dice quale e' quale.
             Metti(fuori, "area_mm2", misura.Area, 1e6);
-            Metti(fuori, "area_totale_mm2", misura.TotalArea, 1e6);
+            Metti(fuori, "area_total_mm2", misura.TotalArea, 1e6);
             Metti(fuori, "perimetro_mm", misura.Perimeter, 1000.0);
-            Metti(fuori, "lunghezza_mm", misura.TotalLength, 1000.0);
-            Metti(fuori, "raggio_mm", misura.Radius, 1000.0);
-            Metti(fuori, "diametro_mm", misura.Diameter, 1000.0);
+            Metti(fuori, "length_mm", misura.TotalLength, 1000.0);
+            Metti(fuori, "radius_mm", misura.Radius, 1000.0);
+            Metti(fuori, "diameter_mm", misura.Diameter, 1000.0);
             if (uid.Count == 2)
             {
                 // Read back after Calculate: the probe read the value it had set.
-                // If SOLIDWORKS answered with another option, «distanza_mm» would
+                // If SOLIDWORKS answered with another option, «distance_mm» would
                 // be another kind of distance under the name the caller asked for.
                 int arcOptionRead = misura.ArcOption;
                 if (arcOptionRead != arcOption)
@@ -559,9 +559,9 @@ namespace Riscontro.Disegno
                         "kind of distance, and I do not give it.");
                 fuori["arc_measure"] = arcMeasure;
                 fuori["projection"] = "none";
-                Metti(fuori, "distanza_mm", misura.Distance, 1000.0);
+                Metti(fuori, "distance_mm", misura.Distance, 1000.0);
                 Metti(fuori, "distanza_normale_mm", misura.NormalDistance, 1000.0);
-                Metti(fuori, "distanza_fra_i_centri_mm", misura.CenterDistance, 1000.0);
+                Metti(fuori, "distance_between_centers_mm", misura.CenterDistance, 1000.0);
                 // I DELTA POSSONO ESSERE NEGATIVI PER DAVVERO: un delta e' una
                 // differenza, e -20 vuol dire «venti dall'altra parte». Qui
                 // `-1` non e' un segnale, quindi non si filtra.
@@ -571,15 +571,15 @@ namespace Riscontro.Disegno
                     Tondo(misura.DeltaY * 1000.0),
                     Tondo(misura.DeltaZ * 1000.0),
                 };
-                fuori["parallele"] = misura.IsParallel;
-                fuori["perpendicolari"] = misura.IsPerpendicular;
-                fuori["si_intersecano"] = misura.IsIntersect;
+                fuori["parallel"] = misura.IsParallel;
+                fuori["perpendicular"] = misura.IsPerpendicular;
+                fuori["intersect"] = misura.IsIntersect;
                 double gradi = misura.Angle * 180.0 / Math.PI;
-                if (gradi >= 0) fuori["angolo_gradi"] = Tondo(gradi);
+                if (gradi >= 0) fuori["angle_deg"] = Tondo(gradi);
             }
 
             _log("[agente] misura fra " + string.Join(" e ", uid) +
-                 (fuori.ContainsKey("distanza_mm") ? ": " + fuori["distanza_mm"] + " mm" : ""));
+                 (fuori.ContainsKey("distance_mm") ? ": " + fuori["distance_mm"] + " mm" : ""));
             return RiuscitoSenzaCreare(fuori);
         }
 
@@ -655,12 +655,12 @@ namespace Riscontro.Disegno
         /// numeri su niente sono peggio di un rifiuto.
         ///
         /// A BODY ASKED FOR IS RESOLVED THROUGH THE DOCUMENT STATE AND ITS
-        /// SIGNATURE (Z-C21.5, scheme S5), as combina_corpi and the overhang check (OperazioniSporgenze) do:
+        /// SIGNATURE (Z-C21.5, scheme S5), as combine_bodies and the overhang check (OperazioniSporgenze) do:
         /// <see cref="BodyAskedFor"/>. Until then «C2» was the second body of a
         /// GetBodies2 made now (IPartDoc~GetBodies2.html, Remarks: «May vary the
         /// order in which bodies are returned»), and a body named before a cut
         /// that renumbers the bodies was measured in the place of another one,
-        /// with plausible numbers. ingombro_corpo and proprieta_di_massa both
+        /// with plausible numbers. body_bounding_box and mass_properties both
         /// come through here.
         /// </summary>
         private List<object> CorpiScelti(
@@ -698,10 +698,10 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// THE BODY A «corpo_uid» NAMES, through the document state and its
+        /// THE BODY A «body_uid» NAMES, through the document state and its
         /// signature (Z-C21.5, scheme S5): <c>CorpiDaUid</c>, which calls
-        /// FirmaCombacia, the helper combina_corpi and OperazioniSporgenze already use.
-        /// Null with <paramref name="motivo"/> when the uid is not a solid body
+        /// FirmaCombacia, the helper combine_bodies and OperazioniSporgenze already use.
+        /// Null with <paramref name="reason"/> when the uid is not a solid body
         /// of the state (the words of the old refusal, which the bench cases
         /// read), or when it no longer names the body the plan looked at (a cut
         /// renumbered the bodies, E4).
@@ -709,8 +709,8 @@ namespace Riscontro.Disegno
         /// The Z-C21.3 probe of L12-3 found the solids in the same order in its
         /// four parts: that is a tolerance for the bench, not a licence to
         /// resolve a uid by its position (the lesson of the wrong number that
-        /// looks plausible). ingombro_corpo, proprieta_di_massa and
-        /// verifica_geometria_corpo come through here.
+        /// looks plausible). body_bounding_box, mass_properties and
+        /// check_body_geometry come through here.
         /// </summary>
         private IBody2 BodyAskedFor(StatoDocumento stato, Dictionary<string, object> a, string uid, out string motivo)
         {
@@ -719,13 +719,13 @@ namespace Riscontro.Disegno
             if (stato == null || !stato.Firme.TryGetValue(uid, out firma) || firma.Tipo != "BODY")
             {
                 motivo = "Non trovo il corpo «" + uid + "». Gli identificativi dei corpi " +
-                         "stanno nello stato del documento, dentro «corpi».";
+                         "stanno nello stato del documento, dentro «bodies».";
                 return null;
             }
             var corpi = CorpiDaUid(stato, new List<string> { uid }, a, out string perche);
             if (corpi == null || corpi.Count != 1)
             {
-                motivo = "«corpo_uid» «" + uid + "» no longer names the body the plan looked at, and I do not " +
+                motivo = "«body_uid» «" + uid + "» no longer names the body the plan looked at, and I do not " +
                          "measure another one in its place: " + perche;
                 return null;
             }
@@ -760,7 +760,7 @@ namespace Riscontro.Disegno
                 if (parte == null) return null;
                 // The empty string means the active configuration (measured by
                 // Z-C21.3, L17-1), as `StatoDocumento` asks for it. Since M10
-                // `applica_materiale` sets and reads back every configuration by
+                // `apply_material` sets and reads back every configuration by
                 // name instead. The material is PER CONFIGURATION: in an assembly
                 // the configuration the component uses is asked.
                 string nome = parte.GetMaterialPropertyName2(configurazione ?? "", out database);

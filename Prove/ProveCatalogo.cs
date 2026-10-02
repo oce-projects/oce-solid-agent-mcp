@@ -70,9 +70,9 @@ namespace Prove.Contratti
             }
             catch (Exception ex) { Segna("il catalogo si legge", false, ex.Message); return; }
 
-            var operazioni = (radice != null && radice.ContainsKey("operazioni")
-                ? radice["operazioni"] : null) as object[];
-            if (operazioni == null) { Segna("il catalogo ha «operazioni»", false, ""); return; }
+            var operazioni = (radice != null && radice.ContainsKey("operations")
+                ? radice["operations"] : null) as object[];
+            if (operazioni == null) { Segna("il catalogo ha «operations»", false, ""); return; }
             Segna("il catalogo ha almeno trenta operazioni", operazioni.Length >= 30,
                   operazioni.Length + " operazioni");
 
@@ -86,12 +86,12 @@ namespace Prove.Contratti
             {
                 var v = o as Dictionary<string, object>;
                 if (v == null) { senza.Add("(una voce non e' un oggetto)"); continue; }
-                string nome = v.ContainsKey("nome") ? Convert.ToString(v["nome"]) : null;
+                string nome = v.ContainsKey("name") ? Convert.ToString(v["name"]) : null;
                 if (nome != null) nomiCatalogo.Add(nome);
-                foreach (var campo in new[] { "nome", "famiglia", "sommario", "descrizione", "schema" })
+                foreach (var campo in new[] { "name", "family", "summary", "details", "schema" })
                     if (!v.ContainsKey(campo) || v[campo] == null)
                         senza.Add((nome ?? "?") + " senza «" + campo + "»");
-                if (v.ContainsKey("famiglia")) famiglie.Add(Convert.ToString(v["famiglia"]));
+                if (v.ContainsKey("family")) famiglie.Add(Convert.ToString(v["family"]));
             }
             Segna("ogni operazione ha nome, famiglia, sommario, descrizione, schema",
                   senza.Count == 0, string.Join("; ", senza.Take(4)));
@@ -101,7 +101,7 @@ namespace Prove.Contratti
             // Una famiglia usata e non dichiarata e' un'operazione che nel
             // menu non compare: il modello non la vede, e nessuno se ne
             // accorge finche' non la cerca per nome.
-            var dichiarate = (radice.ContainsKey("famiglie") ? radice["famiglie"] : null)
+            var dichiarate = (radice.ContainsKey("families") ? radice["families"] : null)
                              as Dictionary<string, object>;
             if (dichiarate == null) Segna("il catalogo dichiara le famiglie", false, "");
             else
@@ -152,9 +152,9 @@ namespace Prove.Contratti
         /// `catalogo.json` combacia ancora con il catalogo C# che lo genera?
         ///
         /// COSTATO UN GIRO IL 22/9/2026. Scritta l'operazione
-        /// `nota_in_tavola`, compilata, il ponte l'ha rifiutata con «non
-        /// esiste nessuna operazione «nota_in_tavola». Forse cercavi:
-        /// quota_in_tavola» — mentre esisteva, era nel dispatcher ed era
+        /// `note`, compilata, il ponte l'ha rifiutata con «non
+        /// esiste nessuna operazione «note». Forse cercavi:
+        /// drawing_dimension» — mentre esisteva, era nel dispatcher ed era
         /// dentro la DLL che il ponte aveva appena caricato. Mancava solo dal
         /// JSON, che e' l'unica cosa che il ponte guarda per sapere cosa
         /// esiste.
@@ -283,8 +283,8 @@ namespace Prove.Contratti
         ///
         /// IL BUCO CHE QUESTO CONTROLLO PRENDE, misurato il 22/9/2026.
         /// `NomiEseguibili` ne contava **70**, `catalogo.json` ne dichiarava
-        /// **68**, e le due che mancavano — `croci_di_centro` e
-        /// `distinta_taglio_in_tavola` — erano fuori **per una buona ragione**
+        /// **68**, e le due che mancavano — `center_marks` e
+        /// `drawing_cut_list` — erano fuori **per una buona ragione**
         /// (`Provata=false`: le API dicono di si' e non creano niente, 0 -> 0).
         ///
         /// Ma fino a qui nessuno confrontava i due elenchi, e la stessa
@@ -409,7 +409,7 @@ namespace Prove.Contratti
         /// `Catalogo.Simili()`: il caso per cui la funzione e' stata riscritta.
         ///
         /// Il primo tentativo cercava la parola intera dentro il nome, e su
-        /// «asole» **non trovava «asola»** — cioe' falliva proprio dove
+        /// «asole» **non trovava «slot»** — cioe' falliva proprio dove
         /// serviva: chi sbaglia un nome quasi sempre ne ha in mente uno vicino,
         /// e lo sbaglia di una lettera.
         /// </summary>
@@ -443,10 +443,10 @@ namespace Prove.Contratti
                 (simili.Invoke(catalogo, new object[] { n }) as System.Collections.IEnumerable)
                     ?.Cast<object>().Select(Convert.ToString).ToList() ?? new List<string>();
 
-            Segna("«asole» trova «asola»", di("asole").Contains("asola"),
-                  string.Join(", ", di("asole")));
-            Segna("«foro» trova «foro_guidato»", di("foro").Contains("foro_guidato"),
-                  string.Join(", ", di("foro")));
+            Segna("«slots» trova «slot»", di("slots").Contains("slot"),
+                  string.Join(", ", di("slots")));
+            Segna("«hole» trova «hole_wizard»", di("hole").Contains("hole_wizard"),
+                  string.Join(", ", di("hole")));
             Segna("un nome vuoto non esplode e non inventa", di("").Count == 0);
             Segna("un nome che non somiglia a niente non inventa",
                   di("qwertyuiop").Count == 0, string.Join(", ", di("qwertyuiop")));

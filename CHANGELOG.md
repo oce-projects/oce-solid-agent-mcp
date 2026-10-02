@@ -28,6 +28,614 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — H19 L1+L2: the installer tells the truth and verifies itself (branch `installatore-l1`) · bridge 0.126.0 · library 0.149.0 (unchanged)
+
+**Lots L1 and L2 of TODO entry H19** (the installer finished for v0.1.0; the
+audit of the installer kept with the internal notes, defects 1-7). New options and
+texts are born in English; the existing Italian option names (`--silenzioso`,
+`--cartella`, `--senza-client`, `--disinstalla`, `--redist`, `--config`, `--aiuto`,
+the bridge's `--prova`) stay as they are in this lot and are renamed, with no
+aliases, in L2-bis (decision L0a). MINOR raised: new user-visible options. The
+library (`Riscontro.Disegno`) is not touched, so its version stays 0.149.0 and the
+bench has not run on this branch: the three bench-freshness checks of
+Prove.Contratti are red until it does, and they are the only red ones (790 checks;
+`Prove/LEGGIMI.md` said 785).
+
+### Exit codes that do not lie (B1)
+
+`Installa.exe --silenzioso` exited 0 when no client had been wired (the exceptions of
+`Collega` were printed and swallowed; with no client found nothing was printed).
+Now, checked in this order (`Installer/Programma.cs`, constants `Exit*`):
+
+| code | silent install |
+|---|---|
+| 1 | nothing installed: a prerequisite failed, `--weldment-profiles` names a folder that does not exist, the copy failed, or an unhandled error |
+| 3 | files installed, but a client that should have been wired was not (malformed or locked config, the `claude` command and the file both failed), or no client was found; the block to paste is printed after `Paste this into the MCP client's configuration file` |
+| 2 | installed and wired, but the bridge's self-test did not confirm (its code is not 0, 3 or 5) |
+| 0 | installed, every client tried is wired (or `--senza-client`), self-test 0, 3 or 5 |
+
+3 is stricter than "no client at all": one client failing while another is wired
+also gives 3, so no exception of `Collega` turns into a 0. Uninstall: 0 done, 1 a file
+of the installation stayed, 3 files gone but a client entry left. `--verify`: 0 all
+green, 2 only warnings, 1 something failed.
+
+### A real console, a log, and the launch forms measured (B2)
+
+`Installer/Output.cs`: silent, uninstall and verify modes attach to the parent's
+console (as `--aiuto` already did) unless standard output is already a file or a
+pipe; `--log <file>` writes the same lines to a UTF-8 file. Measured on 1-2 October
+2026 in a fresh console window, no redirection anywhere: 0.125.0 with a run that
+stops at the prerequisites (exit 1), 0.126.0 with a malformed client config (exit 3).
+
+| form | exit code seen | console output |
+|---|---|---|
+| PowerShell `& .\Installa.exe ...` | none: PowerShell does not wait | 0.126.0 yes (after the prompt); 0.125.0 none |
+| PowerShell `Start-Process -Wait -PassThru -NoNewWindow` → `.ExitCode` | right (1; 3) | 0.126.0 yes; 0.125.0 none |
+| PowerShell `cmd /c Installa.exe ...` | right | 0.126.0 yes; 0.125.0 none |
+| PowerShell `cmd /c "start "" /wait Installa.exe ..."` (one line) | **wrong: 0 both times** | 0.126.0 yes; 0.125.0 none |
+| cmd batch file: `Installa.exe ...` then `%ERRORLEVEL%` | right | 0.126.0 yes; 0.125.0 none |
+| cmd batch file: `start "" /wait Installa.exe ...` then `%ERRORLEVEL%` | right | 0.126.0 yes; 0.125.0 none |
+| PowerShell `& .\Installa.exe ... \| Out-Null` | right (a pipe waits) | into the pipe |
+
+INSTALL-FOR-AI gives the second form for PowerShell and `start "" /wait` in a batch
+file for cmd, and warns against the one-line `cmd /c "start /wait"`. The table is
+also in the comment of `Output.cs`; `prova-installatore.js` launches those two forms
+(B2 cases).
+
+### The self-test answers with a code, and the installer reads it (B3)
+
+`Ponte/Sessione.cs`: `AttachFailure` (None, NotRunning, NotInstalled, Skipped, Other)
+and `FailureOf(hresult)`; `Programma.cs`: `--prova` exits **0** attached, **3**
+SOLIDWORKS not running (MK_E_UNAVAILABLE), **4** not installed or not registered
+(CO_E_CLASSSTRING, REGDB_E_CLASSNOTREG), **5** not tried (`OCE_NO_ATTACH`), **1**
+anything else; 2 is left to the installer. With code 3 and a `SLDWORKS` process
+running it adds that SOLIDWORKS may run as administrator (the ROT is not shared
+across integrity levels). The human sentences stay. The installer (`Passi.Prova`,
+`SelfTestAccepted`) and the window read the code; the two entries of
+`Controlli/lingua/consumed-strings.json` that bound the installer to the bridge's
+sentences (`installer-bridge-standing`, `installer-solidworks-not-open`) are dropped
+in this commit, and two new consumers of the installer's English output enter
+(`installer-paste-header`, `installer-uninstall-file-left`): 39 entries, the floor.
+`Prove/H19InstallerContract.cs` (7 checks): each HRESULT gives the promised code by
+reflection, every `AttachFailure` has a code and none is 2, and the numbers in
+`Programma.cs` and `Installer/Passi.cs` agree (seen red on purpose with the installer's
+`SelfTestSkipped` changed to 6: "SelfTestSkipped bridge 5, installer 6").
+
+### `OCE_NO_ATTACH` (new variable of the bridge)
+
+Any value except empty, `0`, `false`: the bridge starts, answers the protocol, lists
+its tools, does not attach, and says so; `--prova` exits 5. Needed because the
+installer runs the installed bridge (self-test, and the `--verify` handshake), which
+attached to the running SOLIDWORKS and read its active document: with the bench
+running, `prova-installatore.js` could not run at all. It sets the variable unless
+given `--attach`. In the README table.
+
+### Uninstall is coherent (A5)
+
+`--disinstalla` removes the client entry too, unless `--keep-client` (decision L0b:
+the author's default; TODO H15 point 3 stays the owner's to change), and only an
+entry whose command is the bridge in the uninstalled folder; an entry pointing at
+another installation is left alone and named. With `--config` only that file. The
+window does the same through the same code. It removes `domande-senza-risposta.jsonl`
+(`Passi.BridgeOwnFiles`), and exits 1 naming the file when one stays.
+
+### Weldment profiles reach the bridge (A6)
+
+`--weldment-profiles <folder>` and a field in the window write `PROFILI_SALDATURA`
+into the client entry's `env` (also into the block to paste and into
+`claude mcp add -e`). A folder that does not exist stops the run with exit 1 before
+anything is installed. Without the option, `Passi.FindWeldmentProfiles` proposes a
+folder only if one exists. Checked on this machine (SOLIDWORKS 2021 SP5.1): (1)
+`HKCU\Software\SolidWorks\SOLIDWORKS <year>\ExtReferences`, value
+`Weldment Profile Folders`, is the folder SOLIDWORKS itself uses (Tools > Options >
+File Locations); it exists here and is used first; (2) `<SOLIDWORKS root>\lang\<language>\weldment profiles`
+exists for all 15 language folders (ANSI, ansi inch, AS, BSI, CISC, DIN, GB, iso,
+JIS), language taken from the same key's `Weldment Cut List Template Folders` /
+`Weld Table Template Folder`, else english. The year comes from the interop's major
+version. Not checked on another SOLIDWORKS version or a machine where the setting
+was never touched.
+
+### Stale texts (A7)
+
+`--aiuto` no longer lists `--addin` and lists the new options and the measured
+launch forms; the "SOLIDWORKS installed" check names `--redist` and `SW_INSTALL_PATH`
+instead of a Browse button that does not exist; `TrovaRedist` reads `SW_INSTALL_PATH`
+(the root) before `SW_REDIST`, like the bridge, and `Passi.Prova` hands the bridge the
+redist the installer chose.
+
+### `Installa.exe --verify [--json]` (B4)
+
+`Installer/Verify.cs`: files and versions (bridge from its `VERSION.txt`, library,
+installer); each client's `solidworks` entry runs the installed exe or not, and its
+`PROFILI_SALDATURA`; `api\redist` and the SOLIDWORKS year; the self-test code; an MCP
+handshake on the installed exe (`initialize`, `notifications/initialized`,
+`tools/list` over stdio, every wait with a timeout, replies matched by id). One JSON
+line with `--json`, `[ok]`/`[~]`/`[NO]` lines without.
+
+### Claude Code through `claude mcp add` (B5)
+
+`Installer/ClaudeCli.cs`: when `claude` (`.exe`, `.cmd`, `.bat`) is on PATH and no
+`--config` is given, Claude Code is wired with `claude mcp remove --scope user
+solidworks` then `claude mcp add --scope user solidworks -e "K=V" ... -- "<exe>"`
+(and unwired with `claude mcp remove`); if it is absent or fails, the file is written
+as before and the output says so. **The overwrite risk, measured first**
+(`Controlli/claude-json-watch.js`, read only, 180 s while Claude Code ran on this
+machine): 5 rewrites of `%USERPROFILE%\.claude.json`, shortest gap about 20 s, no lock
+file, and a leftover `.claude.json.tmp.<pid>.<hex>`: Claude Code writes a temporary
+file and renames it. So the installer's "file locked?" check can never see it, and a
+session that writes back a copy read before the installer wrote would drop the entry
+with no error. **Not measured:** whether Claude Code re-reads the file before each
+write (no live session was put under test), and the real `claude mcp add` (there is
+no `claude` on PATH on this machine: the case uses a fake `claude.cmd`). Both stay for
+the owner (H19 L4/B8).
+
+### `Controlli/prova-installatore.js`: 55 cases
+
+Red first on the installer of 47d0f8f (c7ab519 plus `OCE_NO_ATTACH` only): **21 PASS,
+28 FAIL**; green on 0.126.0: **55 PASS, 0 FAIL**, without touching SOLIDWORKS. New
+cases: B1 (malformed config → 3, untouched, block printed; `--senza-client` → 0; a
+prerequisite → 1, nothing created; case 6 → 0; case 4 → 3), A7 (no Browse button;
+`--aiuto` without `--addin` and with the new options; `SW_INSTALL_PATH`), B2 (`--log`;
+Start-Process and `start "" /wait` both report 3), B3 (`--prova` with `OCE_NO_ATTACH`
+→ 5), B4 (one JSON line; files present; bridge version; entry → installed exe; the
+tool count equals an independent handshake: 9; self-test 5; exit 2; readable lines;
+empty folder → 1), A6 (env written, other servers intact; missing folder → 1, nothing
+installed, config untouched), A5 (entry removed, others kept, `.jsonl` and folder
+gone; `--keep-client`; an entry elsewhere left alone; a locked file → 1, named), B5
+(fake `claude.cmd` on PATH found; remove then add with `-e`; success and failure
+reported), case 3 (exit 0, entry gone, with `--config`).
+
+**Expected results that need SOLIDWORKS or the owner** (not run here):
+`node Controlli\prova-installatore.js --attach` with the bench stopped (the self-test
+attaches; `--verify` should then exit 0 with SOLIDWORKS 2021 open and a client
+wired); self-test 3 with SOLIDWORKS closed and 4 on a machine without it; the
+elevated case (SOLIDWORKS as administrator: self-test 3 plus the warning); the real
+`claude mcp add` and a live Claude Code session during an install; the window by
+hand (new weldment profiles field, uninstall result); a clean machine (H6 cases 1, 4,
+5).
+
+### Review fixes (adversarial review of L1+L2, inside and outside the diff)
+
+- **Claude Code was "installed" on every machine** (high). Its file sits in the
+  profile, and "installed" meant "the folder of the file exists": the profile always
+  does. A silent install with no client at all wrote a `.claude.json` nobody reads and
+  exited 0; the "no MCP client found → 3" branch could never run. Now Claude Code is
+  there when its `.claude.json` exists, or its own folder (`%USERPROFILE%\.claude`, or
+  `CLAUDE_CONFIG_DIR`), or `claude` is on PATH (`Configurazione.ClaudeCodePresent`).
+  Its file is `.claude.json` in `CLAUDE_CONFIG_DIR`, else in `%USERPROFILE%`, as Claude
+  Code 2.1.281 reads it (`Configurazione.ClaudeCodeFile`): with `CLAUDE_CONFIG_DIR`
+  set, `claude mcp add` and `--verify` looked at two different files.
+- **A reinstall dropped the entry's own variables** (medium). The file route replaced
+  the whole `solidworks` entry and `claude mcp remove` + `add` did the same:
+  `RISCONTRO_RADICE` / `RISCONTRO_SOLA_LETTURA` (where the bridge may write) or a
+  `PROFILI_SALDATURA` set by hand vanished on update, silently.
+  `Configurazione.MergedEnv` keeps every variable; the installer sets or removes
+  `SW_REDIST` and sets `PROFILI_SALDATURA` only when it has one. Without
+  `--weldment-profiles` a folder already in a client entry that exists wins over the
+  one the installer would find, and the output says "kept from the existing client
+  entry" (the window prefills it the same way).
+- **No backup on the `claude mcp` route** (medium): `Configurazione.Backup` (the old
+  backup code, now public) runs before `claude mcp remove`/`add` and before the
+  uninstall's `claude mcp remove`.
+- **SOLIDWORKS as administrator was "installed", exit 0** (medium). Self-test 3 with a
+  `SLDWORKS` process present was accepted like a closed SOLIDWORKS, the hint was one
+  line among the others. Now `--prova` exits **6** when attach says "not running" and a
+  `SLDWORKS` process runs in this Windows session (another user's session does not
+  count); the installer does not accept 6 (silent exit 2, window red, `--verify`
+  fail). `Programma.SelfTestCodeSeen` is the pure rule, checked by the contracts.
+- **Quoting for `claude`** (low). `ClaudeCli.Quote` only escaped quotes: a value
+  ending in `\` (`PROFILI_SALDATURA=D:\Profiles\`) became `\"` and swallowed the next
+  arguments. Now the `CommandLineToArgvW` rules (backslashes doubled before a quote
+  and at the end); an argument with `%` is not sent through `cmd.exe` (it would be
+  expanded) and the file route is used instead. `--weldment-profiles` is stored
+  without a trailing backslash.
+- **`--verify` all green beside a malformed config** (low): a client whose config
+  cannot be read was treated like one without an entry. Now it is a warning naming the
+  file (`readError` in the JSON row), and the clients line names the clients that have
+  no entry.
+- **The B5 cases were red on the network drive** (test): they loaded the installer
+  with `LoadFrom`, which the drive the repository lives on refuses (0x80131515,
+  measured). Now from the bytes.
+- Smaller: the new Browse button of the window in English; the registry path in the
+  comment of `Passi.FindWeldmentProfiles` had lost its backslashes; the skip reason of
+  `prova-installatore.js` in `snapshot-scripts.json` no longer says it attaches;
+  `Prove/LEGGIMI.md` counts the checks of a run with the TODO present (798; the 790
+  written before came from a run without it, and the run on the main copy would have
+  been red).
+
+Seen red first: the new cases of `prova-installatore.js` on the installer of bda8946
+(**56 PASS, 6 FAIL**; the install cases of the no-client block refused to run there,
+because that installer would have written the real profile), then **65 PASS, 0 FAIL**;
+the new contracts on the bridge and installer of bda8946 (quoting:
+`[PROFILI_SALDATURA=D:\Weld Profiles" C:\Some]`), then green. The self-test 6 case
+with a fake `SLDWORKS.exe` runs only with no real SOLIDWORKS open: NOT run here.
+
+**The real `claude mcp add`, measured** (it was "not measured" above): Claude Code
+2.1.281 (`%APPDATA%\Claude\claude-code\2.1.281\claude.exe`, the one Claude Desktop
+ships, not on PATH here) put on PATH for one run, with `CLAUDE_CONFIG_DIR`,
+`USERPROFILE` and `APPDATA` pointing into a scratch folder. First a probe entry with
+another name proved the sandbox (it landed in the scratch `.claude.json`, the real one
+did not change). Then `Installa.exe --silenzioso` into a folder with spaces: exit 0,
+backup made, "registered with claude mcp add --scope user", entry
+`{"type":"stdio","command":"...\inst dir with spaces\oce-solid-agent-mcp.exe","args":[],
+"env":{"PROFILI_SALDATURA":"S:\..."}}` (a value with spaces, through `-e`);
+`--verify --json`: files, solidworks, clients, weldment profiles, handshake ok,
+self-test warn (`OCE_NO_ATTACH`), exit 2; a variable added by hand to the entry
+survived a reinstall through `remove` + `add`; `--disinstalla` exit 0, "removed with
+claude mcp remove", the probe entry left alone. The real `.claude.json` and Claude
+Desktop config were unchanged. Still not measured: a LIVE Claude Code session that
+rewrites `.claude.json` while the installer writes it by the file route (L4, B8).
+
+## Unreleased — W3.1-bis.5, rename window 2: the MCP surface (branch w31bis-5) · bridge 0.127.0 (with H19 L1+L2) · library 0.150.0
+
+Merged together with H19 L1+L2 (below), on a branch rebased on main e49d4d6.
+`Banco/banco.ps1` also counts the documents left open from the last line of
+`ChiudiScarti.exe --chiudi`: the late-bound `GetDocumentCount()` of e49d4d6
+fails from PowerShell (TYPE_E_ELEMENTNOTFOUND), so the restart before a full
+run never fired.
+
+Bridge 0.126.0 · library 0.150.0.
+
+**The second of the three rename windows of W3.1-bis (TODO entry W3.1-bis.5):
+the protocol of the bridge is English.** The seven tools and their
+sub-actions, the 99 operations and their 12 families, every argument and the
+value of every argument whose schema lists one, the selectors, the fields of
+every answer and the value of every response field the map covers, the keys
+of `Strumenti/catalogo.json`, the MCP resources and the tool titles get the
+English names of the name map (`Controlli/lingua/name-map.tsv`, W3.1-bis.3),
+and so do the bench cases that speak that protocol, the readers of the
+catalogue and every code name quoted in a message, a comment or a document.
+The texts themselves (descriptions, messages, comments) stay in the language
+they were written in: only the names inside them change. Classes, files and
+folders of the code are window 3 (W3.1-bis.6). A few values outside any enum
+(`mate`'s `variant` and `alignment`, the `kind` of a mate, a drawing view, a
+selection or `check_body_geometry` in the state) are not in the map yet and
+stay Italian: W3.1-bis.8.
+
+### The script of the window
+
+- **`Controlli/lingua/window-2-surface.js`**, driven by the map (types tool,
+  sub_action, operation, catalogue_family, argument, enum_value,
+  catalogue_key, response_field, response_value, selector), in one pass over
+  every tracked text file but the excluded ones (this CHANGELOG, the map and its
+  extractor, the gate: `detect-italian.js`, its lexicon, its exceptions and
+  baseline, `language-gate.ps1`; window 1's script):
+  - the catalogue token by token: keys, families, operation names, schema
+    properties, enums, `required`, the examples, and the code names in the
+    descriptions; `Riscontro.Disegno/Catalogo/Operazioni.cs` gets the same
+    renames, so the catalogue the library exports is byte for byte the one the
+    script writes;
+  - every case and plan: operations, arguments (by the operation of the step),
+    values (by the enum of the argument), selectors
+    (`@faccia(verso=davanti)` → `@face(normal=front)`), the paths and the
+    values of the expectations, the pieces a message must contain, and the
+    code names in the free notes;
+  - the string literals of the C#, JavaScript and PowerShell sources by their
+    code context (an argument read with `Str(a, "…")`, a field written with
+    `misure["…"]`, a step of a plan, a key of an answer), with a table of
+    sites (`CS_SITES`) for the words that have two senses in the map (`a_mm` is
+    `throat_mm` in `drawing_weld_symbol` and `offset_mm` in `section_view`;
+    `formato` is `paper_size` for `create_drawing` and `set_sheet`,
+    `sheet_format` for `title_block`); every row of the table must be used by
+    the run, or it stops;
+  - the code names in messages, comments and documents: only between
+    backticks, guillemets or quotes, as a whole snake_case token, a selector or
+    a resource URI. **A common word is never replaced inside prose** («la
+    quota», «il foro» stay as they are), and the names an Italian SOLIDWORKS
+    gives (`Taglio-Estrusione1`, «Piano frontale»; class
+    `solidworks-localized` of `exceptions.json`) are never touched.
+- JSON is rewritten token by token: indentation, line ends, key order and the
+  hand-made layout of every case stay byte for byte.
+- `--reverse` runs the window backwards with the ledger the forward run writes
+  (`Controlli/lingua/window-2-reverse.json`, 122 entries in 34 files): the words
+  the map read backwards would not give back, a name that was already English
+  before the window (`feature`, `faces`, `orientation`) or a form the map merges with another.
+  `--reverse-proof <rev>` and `--forward-proof <rev>` compare the JSON files of
+  the window (catalogue, cases, plans, tasks) with another revision; `--check`
+  says whether the tree is after the window (it is in the snapshot registry);
+  `--todo` and `--notes` rename the code names of notes outside the repository.
+  A forward run on a tree that is already after the window stops (it would
+  read the English names as the names before it): `--check` is the second run.
+- **`Controlli/lingua/update-names-in-notes.js`** drives `--notes` and `--todo`
+  on explicit paths (the TODO, the CLAUDE.md files, `INSTALL-FOR-AI.md` copies,
+  the memories, the RAG notes), with `--dry-run`, `--list` and `--self-test`.
+  It touches code names only (decision D10).
+- `snapshot.js compare --window 2` reads a snapshot taken before the window
+  through its renames (operations, paths and values of the assertions, the
+  catalogue, the tools), so a renamed name is the same one, not one gone and
+  one new.
+
+### What changed
+
+606 files rewritten by the script, 431 of them the cases and plans of the
+bench: 1374 operations, 695 catalogue keys,
+1078 argument blocks and 394 plan keys, 1425 expectation paths, 113
+expectation values, 43 message pieces, 281 free notes of cases, 4356 string
+literals of the sources, 971 messages and 1011 comments that quote a code name.
+
+- **The readers of the catalogue in the same commit**:
+  `Controlli/conta-provate.js` and `Controlli/controlla-catalogo.ps1` read
+  `operations`, `families`, `name`, `family`; the bridge, the bench, the
+  contracts and `Controlli/expected-keys-test.js` read the English keys too.
+  Same counts as the snapshot of 1/10/2026.
+- **The resources**: `catalog://operations` and `catalog://operation/{name}`
+  (were `catalogo://operazioni`, `catalogo://operazione/{nome}`).
+- **The tool titles**: «Inspect the open part», «List the operations»,
+  «Describe an operation», «Build in the part», «Measure the part, without
+  touching it», «Withdraw the last plan», «Open, create or pick the document».
+- **The arguments the bench writes in place**: an initializer reads as an
+  answer unless the line says otherwise, and where the map gives the field and
+  the argument different names the site table says which one the line is:
+  `paper_size` for `create_drawing` (`Banco/NumeriDelleQuote.cs`,
+  `Banco/Orfane.cs`), `variant` for `hole_wizard` (`Banco/Program.cs`,
+  `Banco/ProvaNuove.cs`), `measured_as` and the segment ends `start`/`end`
+  inside `rectangular_frame` (`Banco/Program.cs`). The library echoes the
+  paper size as `paper_size` (`create_drawing`, `set_sheet`) and the sheet
+  format of `title_block` as `sheet_format` (the notes of the map).
+- **The facings**: the face a selector or a mate names by its normal
+  (`up`, `down`, `right`, `left`, `front`, `back`), in the selectors, in the
+  `facing` field of the state, in `face_a`/`face_b` of `mate` and in the bench
+  (`Banco/Attese.cs` maps `normal` to `facing`).
+- **D12, the examples of the catalogue with a SOLIDWORKS name**: they were
+  copied from cases run on an Italian installation (`Taglio-Estrusione1`,
+  `Svuota1`, `Foglio1`, `D1@Schizzo2`); they now carry the name an English
+  installation gives (`Cut-Extrude1`, `Shell1`, `Sheet1`, `D1@Sketch2`), and
+  the description of the argument says that the name is the installation's, in
+  its language, to be copied from the state (8 arguments of 8 operations).
+- The README section «Language» is rewritten: what is English, what comes from
+  SOLIDWORKS in the language of the installation, and the aliases below.
+
+### The Italian names, accepted on input until the first release (decision D4)
+
+- **`Riscontro.Disegno/Alias.cs`**: the dictionary is the name map itself,
+  embedded in the library (`Riscontro.Disegno.csproj`, `name-map.tsv`), so the
+  rows that renamed the surface are the rows that read the old names. A key is
+  translated only to a name the schema of the operation has at that level (the
+  two senses of `a_mm`: `throat_mm` in `drawing_weld_symbol`, `offset_mm` in
+  `section_view`), a value only to a value the schema lists, a selector field
+  by field (`normal=front`). Input only: the answers, the catalogue,
+  `describe_operation` and reflection speak English.
+- **Where**: `OperazioniSw.Esegui` translates a step for the callers of the
+  library that do not come through the bridge (the bench, the add-in) and
+  writes `measurements.deprecated`; the switch moved to
+  `ExecuteWithCurrentNames`, and `Controlli/controlla-catalogo.ps1` reads the
+  `case` labels there. The bridge translates in `Attrezzi.Chiama`, before any
+  of its checks: the tool, its arguments, the action of `document`, the family
+  of `list_operations`, the operation of `describe_operation`, the steps of a
+  plan with their arguments; the answer carries the lines in
+  `structuredContent.deprecated` and as its last text item. The bench reads
+  its selectors through the same dictionary (`Attese.SelectorAlias`) and adds
+  them to the step's `measurements.deprecated`.
+- **How it warns**: one line per name, «old» is deprecated, use «new» (the
+  Italian names are accepted until the first release).
+- **The bench**: `Banco/cases/aliases/`, one case per kind of name (an
+  operation, an argument, a value, a selector), each checking the part and the
+  deprecated line. The window and its proofs leave the folder alone, and
+  `conta-provate.js` does not count it (it exercises the dictionary, not an
+  operation).
+- **The contract** `AliasLayerContract` (14 checks): the library by reflection
+  (an operation step, its arguments and value, an English step left alone,
+  `a_mm` in its two operations, a value the schema does not list, a selector)
+  and the bridge over stdio with a dry run (an Italian tool, plan and step give
+  the dry run of the English plan and list all ten old names; an Italian
+  family and operation are answered in English only). The Italian names come
+  from the map, not from the contract. **Seen red** with the map not embedded:
+  11 of the 14 fail (the Italian tool is refused as unknown).
+- **The bench counts them**: every step whose answer carries `deprecated` adds
+  its lines to its case, and the run ends with a line `alias uses: N in M cases;
+  outside the alias cases: K` that `banco.ps1` writes into `last.json` as
+  `alias_uses`. K must be 0: a case of before the rename would otherwise hide
+  behind the aliases until they go. `Alias.cs` and its contract are excluded
+  from the window, which would otherwise rename the old names they quote.
+- **Removed in W3.1-bis.11**, before the tag: `Alias.cs`, the embedded map, the
+  calls in `OperazioniSw.Esegui`, `Attrezzi.Chiama` and `Attese`, the cases of
+  `Banco/cases/aliases`, the contract.
+
+### The tasks of the autonomous run (D9)
+
+- **The measured fields are real**: the tables of `Banco/tasks/*.md` named 14
+  fields no operation writes (`holes` for every way of making a hole,
+  `holes_on_circle`, `slots`, `hems`, `cut_list_rows`, the three
+  `envelope_*`, `mirrored`, `bom_quantity_total`, `cut_list_matches`,
+  `geometry_check_ok`, `export_succeeded`, `bodies_in_file`, `volume_mismatch`)
+  and six more a field under another name (`interferences` is the list, the
+  count is `how_many`; `balloons_placed`; `length_mm` and `width_mm` that no
+  sheet-metal step writes). 20 rows are rewritten on what the bridge and the
+  bench do write (`diameters_mm`, `bounding_box_mm`, `measurements.<field>`
+  of a named step).
+- **`Banco/tasks/run-autonomous.ps1`** hands each task to `claude -p` with the
+  bridge as the only MCP server and keeps the transcript and the state of the
+  finished part; **`Banco/tasks/score-autonomous.js`** scores RIGHT, WRONG or
+  NOT DONE per session, the median per task, and `--compare` is the threshold
+  of D9 (at most one task of fifteen worse). Self-test without SOLIDWORKS; the
+  run itself needs SOLIDWORKS and has not been made. The commands are in
+  `Banco/tasks/README.md`. The Italian version of the tasks is not in the
+  repository.
+
+### The renames (old → new)
+
+The full list is the map (`Controlli/lingua/name-map.tsv`): 205 arguments and
+689 answer fields are not repeated here.
+
+**Tools** (7)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `annulla` | `undo` | `descrivi_operazione` | `describe_operation` |
+| `disegna` | `build` | `documento` | `document` |
+| `elenco_operazioni` | `list_operations` | `guarda_il_pezzo` | `inspect_part` |
+| `misura` | `measure` | | |
+
+**Sub-actions** (5)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `apri` | `open` | `attiva` | `activate` |
+| `chiudi` | `close` | `elenca` | `list` |
+| `nuovo` | `create` | | |
+
+**Operations** (99)
+
+| Italian | English | Italian | English | Italian | English |
+|---|---|---|---|---|---|
+| `accoppia` | `mate` | `applica_materiale` | `apply_material` | `asola` | `slot` |
+| `attiva_configurazione` | `activate_configuration` | `attiva_foglio` | `activate_sheet` | `bollatura` | `balloons` |
+| `cambia_estrusione` | `edit_extrusion` | `cartiglio` | `title_block` | `combina_corpi` | `combine_bodies` |
+| `cordone_saldatura` | `weld_bead` | `crea_asse` | `create_axis` | `crea_configurazione` | `create_configuration` |
+| `crea_disegno` | `create_drawing` | `crea_piano` | `create_plane` | `croci_di_centro` | `center_marks` |
+| `datum_in_tavola` | `datum` | `dettaglio_in_tavola` | `detail_view` | `dipendenze` | `file_dependencies` |
+| `distanza_minima` | `minimum_distance` | `distinta_base_in_tavola` | `drawing_bom` | `distinta_taglio` | `cut_list` |
+| `distinta_taglio_in_tavola` | `drawing_cut_list` | `elimina_lavorazione` | `delete_feature` | `esporta_iges` | `export_iges` |
+| `esporta_pdf` | `export_pdf` | `esporta_step` | `export_step` | `esporta_stl` | `export_stl` |
+| `estrudi_cerchio` | `extrude_circle` | `estrudi_profilo` | `extrude_profile` | `estrudi_rettangolo` | `extrude_rectangle` |
+| `estrudi_sezione` | `extrude_section` | `estrudi_su_faccia` | `extrude_on_face` | `fazzoletto` | `gusset` |
+| `filettatura_cosmetica` | `cosmetic_thread` | `fissa_componente` | `fix_component` | `flangia_base` | `base_flange` |
+| `flangia_spigolo` | `edge_flange` | `foro_guidato` | `hole_wizard` | `guscio` | `shell` |
+| `immagine_nello_schizzo` | `sketch_picture` | `imposta_foglio` | `set_sheet` | `incidi_testo` | `engrave_text` |
+| `ingombro_corpo` | `body_bounding_box` | `inserisci_componente` | `insert_component` | `lega_quota` | `link_dimension` |
+| `loft_fra_due_cerchi` | `loft_two_circles` | `membro_strutturale` | `structural_member` | `misura_fra_entita` | `measure_between` |
+| `modifica_quota` | `set_dimension` | `nervatura` | `rib` | `nota_in_tavola` | `note` |
+| `nuovo_foglio` | `new_sheet` | `orlo` | `hem` | `piano_per_tre_punti` | `plane_three_points` |
+| `piega_da_schizzo` | `sketched_bend` | `profili_saldatura` | `weldment_profiles` | `proprieta_di_massa` | `mass_properties` |
+| `quota_in_tavola` | `drawing_dimension` | `quote_dal_modello` | `model_dimensions` | `raccordo_faccia` | `fillet_face` |
+| `raccordo_spigoli` | `fillet_edges` | `raccordo_variabile` | `variable_fillet` | `riordina_lavorazione` | `reorder_feature` |
+| `ripeti_circolare` | `circular_pattern` | `ripeti_lineare` | `linear_pattern` | `ripeti_riempimento` | `fill_pattern` |
+| `rivoluzione` | `revolve` | `rugosita_in_tavola` | `surface_finish` | `ruota_dentata` | `spur_gear` |
+| `saldatura_in_tavola` | `drawing_weld_symbol` | `salva_documento` | `save_document` | `schema_di_quote` | `dimension_scheme` |
+| `scrivi_proprieta` | `set_property` | `sezione_in_tavola` | `section_view` | `sformo` | `draft` |
+| `smusso_spigoli` | `chamfer_edges` | `sopprimi_istanza` | `suppress_instance` | `sopprimi_lavorazione` | `suppress_feature` |
+| `sostituisci_componente` | `replace_component` | `specchia` | `mirror` | `specchia_componente` | `mirror_component` |
+| `sposta_corpi` | `move_bodies` | `sviluppo_dxf` | `flat_pattern_dxf` | `sweep_circolare` | `circular_sweep` |
+| `tabella_fori_in_tavola` | `hole_table` | `taglia_membri` | `trim_members` | `taglio_cilindrico` | `cylindrical_cut` |
+| `taglio_rettangolare` | `rectangular_cut` | `tappo_estremita` | `end_cap` | `telaio_rettangolare` | `rectangular_frame` |
+| `tolleranza_geometrica_in_tavola` | `geometric_tolerance` | `tolleranza_quota` | `dimension_tolerance` | `variabile_globale` | `global_variable` |
+| `verifica_geometria_corpo` | `check_body_geometry` | `verifica_interferenze` | `interference_check` | `verifica_sovrasporgenze` | `check_overhangs` |
+| `vista_modello` | `model_view` | `vista_sviluppo` | `flat_pattern_view` | `viste_standard` | `standard_views` |
+
+**Catalogue families** (12)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `assiemi` | `assemblies` | `esportazioni` | `exports` |
+| `estrusioni` | `extrusions` | `identita` | `identity` |
+| `lamiera` | `sheet_metal` | `lavorazioni` | `features` |
+| `proprieta` | `physical_properties` | `quote` | `dimensions` |
+| `riferimenti` | `references` | `saldature` | `weldments` |
+| `tavola` | `drawing` | `verifiche` | `checks` |
+
+**Catalogue keys** (9)
+
+| Italian | English | Italian | English | Italian | English |
+|---|---|---|---|---|---|
+| `descrizione` | `details` | `documento` | `document` | `esempio` | `example` |
+| `famiglia` | `family` | `famiglie` | `families` | `nome` | `name` |
+| `operazioni` | `operations` | `precondizione` | `precondition` | `sommario` | `summary` |
+
+**Selectors** (20)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `@corpo` | `@body` | `@faccia` | `@face` |
+| `@quota` | `@dimension` | `@spigolo` | `@edge` |
+| `angolare` | `angular` | `asse` | `axis` |
+| `curvo` | `curved` | `diametro_mm` | `diameter_mm` |
+| `lungo` | `length` | `nome` | `name` |
+| `piana` | `planar` | `raggio_mm` | `radius_mm` |
+| `tipo` | `kind` | `verso` | `normal` |
+| `verso=alto` | `normal=up` | `verso=basso` | `normal=down` |
+| `verso=davanti` | `normal=front` | `verso=destra` | `normal=right` |
+| `verso=dietro` | `normal=back` | `verso=sinistra` | `normal=left` |
+
+**Enum values (argument=value)** (128)
+
+| Italian | English | Italian | English |
+|---|---|---|---|
+| `caratteristica=cilindricita` | `characteristic=cylindricity` | `caratteristica=circolarita` | `characteristic=circularity` |
+| `caratteristica=concentricita` | `characteristic=concentricity` | `caratteristica=inclinazione` | `characteristic=angularity` |
+| `caratteristica=oscillazione_circolare` | `characteristic=circular_runout` | `caratteristica=oscillazione_totale` | `characteristic=total_runout` |
+| `caratteristica=parallelismo` | `characteristic=parallelism` | `caratteristica=perpendicolarita` | `characteristic=perpendicularity` |
+| `caratteristica=planarita` | `characteristic=flatness` | `caratteristica=posizione` | `characteristic=position` |
+| `caratteristica=profilo_linea` | `characteristic=profile_of_line` | `caratteristica=profilo_superficie` | `characteristic=profile_of_surface` |
+| `caratteristica=rettilineita` | `characteristic=straightness` | `caratteristica=simmetria` | `characteristic=symmetry` |
+| `condizione=quartabuono` | `end_condition=miter` | `condizione=taglio` | `end_condition=cut` |
+| `condizione=testa1` | `end_condition=butt1` | `condizione=testa2` | `end_condition=butt2` |
+| `disposizione=cerchio` | `layout=circle` | `disposizione=quadrato` | `layout=square` |
+| `disposizione=sopra` | `layout=above` | `disposizione=sotto` | `layout=below` |
+| `documento=assieme` | `document=assembly` | `documento=nessuno` | `document=none` |
+| `documento=parte` | `document=part` | `documento=parte/assieme` | `document=part/assembly` |
+| `documento=qualunque` | `document=any` | `documento=tavola` | `document=drawing` |
+| `dove=dopo` | `placement=after` | `dove=prima` | `placement=before` |
+| `genere=asse` | `kind=axis` | `genere=corpi` | `kind=bodies` |
+| `genere=estremita_libere` | `kind=free_ends` | `genere=faccia_del_foro` | `kind=hole_face` |
+| `genere=faccia_di_fondo` | `kind=pocket_floor` | `genere=faccia_inferiore` | `kind=bottom_face` |
+| `genere=faccia_superiore` | `kind=top_face` | `genere=spigoli_inferiori` | `kind=bottom_edges` |
+| `genere=spigoli_laterali` | `kind=side_edges` | `genere=spigoli_superiori` | `kind=top_edges` |
+| `genere=tutti_gli_spigoli` | `kind=all_edges` | `lato=alto` | `side=top` |
+| `lato=basso` | `side=bottom` | `lato=destra` | `side=right` |
+| `lato=sinistra` | `side=left` | `lavorazione=asportazione` | `process=material_removal` |
+| `lavorazione=qualsiasi` | `process=any` | `lavorazione=senza_asportazione` | `process=no_removal` |
+| `misure=ingombro` | `measured_as=overall` | `misure=interasse` | `measured_as=center_distance` |
+| `modo=istanza` | `mode=instance` | `modo=opposto_legato` | `mode=opposite_linked` |
+| `modo=opposto_slegato` | `mode=opposite_unlinked` | `operazione=interseca` | `operation=intersect` |
+| `operazione=sottrai` | `operation=subtract` | `operazione=unisci` | `operation=union` |
+| `origine=alto_destra` | `origin=top_right` | `origine=alto_sinistra` | `origin=top_left` |
+| `origine=basso_destra` | `origin=bottom_right` | `origine=basso_sinistra` | `origin=bottom_left` |
+| `piano=destro` | `plane=right` | `piano=frontale` | `plane=front` |
+| `piano=superiore` | `plane=top` | `posizione=centro` | `position=center` |
+| `posizione=fine` | `position=end` | `posizione=inizio` | `position=start` |
+| `precondizione=corpo_solido` | `precondition=solid_body` | `precondizione=corpo_solido_e_faccia` | `precondition=solid_body_and_face` |
+| `precondizione=corpo_solido_e_spigolo` | `precondition=solid_body_and_edge` | `precondizione=documento_senza_corpo` | `precondition=document_without_body` |
+| `precondizione=feature_e_direzione` | `precondition=feature_and_direction` | `profilo=poligonale` | `profile=polygonal` |
+| `profilo=triangolare` | `profile=triangular` | `qualita=grossolana` | `quality=coarse` |
+| `rappresentazione=solidi` | `representation=solids` | `rappresentazione=superfici` | `representation=surfaces` |
+| `su=fori` | `applies_to=holes` | `tipo=accoppiamento` | `variant=fit` |
+| `tipo=angolare` | `variant=angle` | `tipo=angolo` | `variant=fillet` |
+| `tipo=aperto` | `variant=open` | `tipo=asola` | `variant=slot` |
+| `tipo=assieme` | `variant=assembly` | `tipo=bilaterale` | `variant=bilateral` |
+| `tipo=chiuso` | `variant=closed` | `tipo=esagono` | `variant=hexagon` |
+| `tipo=filettato` | `variant=threaded` | `tipo=indentata` | `variant=indented` |
+| `tipo=lamato` | `variant=counterbore` | `tipo=mezza_v` | `variant=half_v` |
+| `tipo=nessuna` | `variant=none` | `tipo=parte` | `variant=part` |
+| `tipo=passaggio` | `variant=clearance` | `tipo=piatto` | `variant=flat` |
+| `tipo=primo_livello` | `variant=top_level` | `tipo=simmetrica` | `variant=symmetric` |
+| `tipo=solo_parti` | `variant=parts_only` | `tipo=svasato` | `variant=countersink` |
+| `tipo=testa` | `variant=butt` | `tipo=tondo` | `variant=round` |
+| `tipo=tubo` | `variant=tube` | `tipo=tubolare` | `variant=tubular` |
+| `tolleranza=geometrica` | `tolerance=geometric` | `tolleranza=piu_meno` | `tolerance=plus_minus` |
+| `trattamento_angolo=nessuno` | `corner_treatment=none` | `trattamento_angolo=quartabuono` | `corner_treatment=miter` |
+| `trattamento_angolo=testa1` | `corner_treatment=butt1` | `trattamento_angolo=testa2` | `corner_treatment=butt2` |
+| `verso=orizzontale` | `orientation=horizontal` | `verso=verticale` | `orientation=vertical` |
+| `vista=destra` | `view=right` | `vista=dietro` | `view=back` |
+| `vista=dimetrica` | `view=dimetric` | `vista=fronte` | `view=front` |
+| `vista=isometrica` | `view=isometric` | `vista=sinistra` | `view=left` |
+| `vista=sopra` | `view=top` | `vista=sotto` | `view=bottom` |
+| `vista=trimetrica` | `view=trimetric` | `viste=destra` | `views=right` |
+| `viste=dimetrica` | `views=dimetric` | `viste=frontale` | `views=front` |
+| `viste=inferiore` | `views=bottom` | `viste=isometrica` | `views=isometric` |
+| `viste=posteriore` | `views=back` | `viste=sinistra` | `views=left` |
+| `viste=superiore` | `views=top` | `viste=trimetrica` | `views=trimetric` |
+
+**Response values** (48)
+
+| Italian | English | Italian | English | Italian | English |
+|---|---|---|---|---|---|
+| `Catalogo delle operazioni` | `Operation catalog` | `Destra` | `Right` | `Montaggio` | `Assembly` |
+| `Revisione` | `Revision` | `Sinistra` | `Left` | `Una operazione` | `Single operation` |
+| `assieme` | `assembly` | `assieme illeggibile` | `unreadable assembly` | `binario` | `binary` |
+| `centro` | `center` | `cerchio` | `circle` | `chiesta` | `requested` |
+| `chiuso` | `closed` | `cieca` | `blind` | `completamente definito` | `fully defined` |
+| `composito` | `composite` | `diametro del tondo` | `round diameter` | `diametro esterno` | `outer diameter` |
+| `documento` | `document` | `esterne` | `outer` | `esterno` | `outer` |
+| `estrusione` | `extrusion` | `frontale` | `front` | `il documento` | `the document` |
+| `ingombro` | `overall` | `interne` | `inner` | `interno` | `inner` |
+| `linee` | `lines` | `lunghezza del tondo` | `round length` | `millimetri e chilogrammi` | `millimeter kilogram` |
+| `nessuno` | `none` | `non disponibile` | `unavailable` | `orizzontale` | `horizontal` |
+| `passante` | `through_all` | `piano medio` | `mid plane` | `poligonale` | `polygonal` |
+| `primo` | `first` | `quartabuono` | `miter` | `quota da smusso` | `chamfer dimension` |
+| `solidi` | `solids` | `solido` | `solid` | `taglio` | `cut` |
+| `tavola` | `drawing` | `tavola illeggibile` | `unreadable drawing` | `terzo` | `third` |
+| `triangolare` | `triangular` | `unisci` | `merge` | `verticale` | `vertical` |
+
 ## Unreleased — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
 
 **Bench, 2/10/2026, on e49d4d6 (W3.1-bis.3, Z-C21.14 and this window together):

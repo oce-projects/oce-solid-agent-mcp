@@ -19,7 +19,7 @@ namespace Prove.Contratti
     ///
     /// In `EseguiIlPiano` c'era una riga che spostava **solo la prima**:
     /// `_guardato = adesso;`. Bastava un piano che nominasse un altro documento
-    /// — `documento: "..."`, la strada legittima e documentata — perche' da quel
+    /// — `document: "..."`, la strada legittima e documentata — perche' da quel
     /// momento `_guardato` indicasse il pezzo nuovo e le firme il pezzo vecchio.
     ///
     /// ── PERCHE' NON SI VEDEVA ────────────────────────────────────────────

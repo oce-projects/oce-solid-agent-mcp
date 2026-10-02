@@ -59,7 +59,7 @@ namespace Controlli.DettaglioInTavola
             var tavola = (IDrawingDoc)doc;
             Console.WriteLine("tavola: " + doc.GetTitle());
 
-            // 1. LA VISTA DA DETTAGLIARE. La prima «vista» e' il foglio: si salta.
+            // 1. LA VISTA DA DETTAGLIARE. La prima «view» e' il foglio: si salta.
             IView bersaglio = null;
             int viste = 0;
             var v = tavola.GetFirstView() as IView;

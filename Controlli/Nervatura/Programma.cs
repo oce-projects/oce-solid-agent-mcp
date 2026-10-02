@@ -6,7 +6,7 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  ProbeRib — the rib ("nervatura", TODO W1.2), rewritten by the review of 28/9/2026
+//  ProbeRib — the rib ("rib", TODO W1.2), rewritten by the review of 28/9/2026
 // =============================================================================
 //
 //  WHAT THE HISTORICAL PROBES REALLY DID (NervaturaProva, SbloccoProva, SbloccoProva2,

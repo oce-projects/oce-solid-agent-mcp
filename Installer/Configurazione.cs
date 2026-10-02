@@ -17,6 +17,11 @@ namespace Oce.Solid.Agent.Installer
         public bool Installato;
         /// <summary>Come si chiama il processo, per sapere se e' aperto adesso.</summary>
         public string Processo;
+        /// <summary>
+        /// Claude Code: wired through `claude mcp add` when `claude` is on
+        /// PATH (entry H19, B5; see ClaudeCli), through the file otherwise.
+        /// </summary>
+        public bool ClaudeCode;
     }
 
     /// <summary>
@@ -61,7 +66,6 @@ namespace Oce.Solid.Agent.Installer
         public static List<Client> ClientTrovati()
         {
             var appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var profilo = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
             var tutti = new List<Client>
             {
@@ -74,8 +78,9 @@ namespace Oce.Solid.Agent.Installer
                 new Client
                 {
                     Nome = "Claude Code",
-                    File = Path.Combine(profilo, ".claude.json"),
+                    File = ClaudeCodeFile(),
                     Processo = null,
+                    ClaudeCode = true,
                 },
             };
 
@@ -86,6 +91,14 @@ namespace Oce.Solid.Agent.Installer
                     // «Installato» vuol dire che c'e' la CARTELLA del client:
                     // il file di configurazione puo' non esistere ancora, ed e'
                     // il caso normale di chi non ha mai aggiunto un server MCP.
+                    //
+                    // NOT FOR CLAUDE CODE (H19 review): its file sits in the
+                    // user's profile, a folder that always exists, so Claude
+                    // Code was "installed" on every machine. A silent install
+                    // with no client at all then created a .claude.json nobody
+                    // reads and exited 0, and the "no MCP client found" exit 3
+                    // could never happen. See ClaudeCodePresent.
+                    if (c.ClaudeCode) { c.Installato = ClaudeCodePresent(c.File); continue; }
                     var cartella = Path.GetDirectoryName(c.File);
                     c.Installato = Directory.Exists(cartella) || File.Exists(c.File);
                 }
@@ -101,6 +114,50 @@ namespace Oce.Solid.Agent.Installer
             catch { return false; }
         }
 
+        /// <summary>
+        /// The file where Claude Code keeps its user-scope MCP servers, where
+        /// Claude Code itself looks for it (H19 review; read in its 2.1.281
+        /// binary): <c>.claude.json</c> in CLAUDE_CONFIG_DIR when that is set,
+        /// else in the home folder, which for Claude Code on Windows is
+        /// %USERPROFILE%. The installer used the profile folder of the
+        /// account only, so with CLAUDE_CONFIG_DIR set `claude mcp add` wrote
+        /// one file and --verify read another.
+        /// </summary>
+        public static string ClaudeCodeFile()
+        {
+            var dir = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+            if (string.IsNullOrWhiteSpace(dir)) dir = Home();
+            return Path.Combine(dir.Trim(), ".claude.json");
+        }
+
+        private static string Home()
+        {
+            var home = Environment.GetEnvironmentVariable("USERPROFILE");
+            return string.IsNullOrWhiteSpace(home)
+                ? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                : home.Trim();
+        }
+
+        /// <summary>
+        /// True when Claude Code is on this machine: its file exists, or its
+        /// own folder does (CLAUDE_CONFIG_DIR, else %USERPROFILE%\.claude,
+        /// which Claude Code creates the first time it runs), or `claude` is
+        /// on PATH. The folder that holds the file is no evidence: it is the
+        /// profile, and it always exists.
+        /// </summary>
+        public static bool ClaudeCodePresent(string file)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(file) && File.Exists(file)) return true;
+                var own = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+                if (string.IsNullOrWhiteSpace(own)) own = Path.Combine(Home(), ".claude");
+                if (Directory.Exists(own.Trim())) return true;
+            }
+            catch { }
+            return ClaudeCli.Find() != null;
+        }
+
         // ─────────────────────────────────────────────────────────────────
         // Scrivere
         // ─────────────────────────────────────────────────────────────────
@@ -111,7 +168,7 @@ namespace Oce.Solid.Agent.Installer
         /// copia di sicurezza, o null se il file non esisteva.
         /// </summary>
         public static string Collega(
-            Client client, string eseguibile, string redist, Action<string> racconta)
+            Client client, string eseguibile, string redist, string weldmentProfiles, Action<string> racconta)
         {
             if (client == null) throw new Exception("Nessun client scelto.");
             if (string.IsNullOrWhiteSpace(eseguibile) || !File.Exists(eseguibile))
@@ -128,10 +185,16 @@ namespace Oce.Solid.Agent.Installer
             // `env` solo se serve davvero: una variabile scritta «tanto per»
             // e' una cosa in piu' che puo' diventare sbagliata quando qualcuno
             // sposta SOLIDWORKS, e nessuno andra' a rileggerla.
-            if (!string.IsNullOrWhiteSpace(redist) && !RedistStandard(redist))
+            object previous;
+            server.TryGetValue(NomeServer, out previous);
+            var env = MergedEnv(EnvOf(previous), redist, weldmentProfiles, racconta);
+            if (env.Count > 0)
             {
-                voce["env"] = new Dictionary<string, object> { ["SW_REDIST"] = redist };
-                racconta("aggiungo SW_REDIST: SOLIDWORKS non e' nel percorso solito");
+                voce["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+                if (env.ContainsKey("SW_REDIST"))
+                    racconta("aggiungo SW_REDIST: SOLIDWORKS non e' nel percorso solito");
+                if (env.ContainsKey("PROFILI_SALDATURA"))
+                    racconta("adding PROFILI_SALDATURA: " + env["PROFILI_SALDATURA"]);
             }
 
             bool cera = server.ContainsKey(NomeServer);
@@ -143,23 +206,161 @@ namespace Oce.Solid.Agent.Installer
             return copia;
         }
 
-        /// <summary>Toglie la voce del ponte, lasciando gli altri server.</summary>
-        public static void Scollega(Client client, Action<string> racconta)
+        /// <summary>
+        /// The variables the bridge needs in the client's `env`, and only those
+        /// (entry H19, A6): SW_REDIST when SOLIDWORKS is not where the bridge
+        /// looks by itself, PROFILI_SALDATURA when a weldment profiles folder
+        /// is known. One place, so the file, the block to paste and
+        /// `claude mcp add` cannot say different things.
+        /// </summary>
+        public static Dictionary<string, string> EnvFor(string redist, string weldmentProfiles)
+        {
+            var env = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (!string.IsNullOrWhiteSpace(redist) && !RedistStandard(redist)) env["SW_REDIST"] = redist;
+            if (!string.IsNullOrWhiteSpace(weldmentProfiles)) env["PROFILI_SALDATURA"] = weldmentProfiles;
+            return env;
+        }
+
+        /// <summary>
+        /// The `env` an entry gets when it is written again (H19 review).
+        ///
+        /// Until this review a reinstall replaced the whole entry with the
+        /// variables of <see cref="EnvFor"/>, and `claude mcp remove` + `add`
+        /// did the same: whatever the user had added to the bridge's own entry
+        /// was dropped without a word. RISCONTRO_RADICE and
+        /// RISCONTRO_SOLA_LETTURA (the folders the bridge may and may not
+        /// write) are such variables, and so is a PROFILI_SALDATURA set by
+        /// hand, as the README told people to do before the installer wrote
+        /// it. Now the existing variables stay; of the two the installer owns,
+        /// SW_REDIST is set or removed as the installer decided, and
+        /// PROFILI_SALDATURA is set when the installer has a folder and kept
+        /// as it was when it has none.
+        /// </summary>
+        public static Dictionary<string, string> MergedEnv(
+            IDictionary<string, string> existing, string redist, string weldmentProfiles, Action<string> racconta)
+        {
+            var env = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (existing != null)
+                foreach (var kv in existing) env[kv.Key] = kv.Value;
+            var fresh = EnvFor(redist, weldmentProfiles);
+            if (fresh.ContainsKey("SW_REDIST")) env["SW_REDIST"] = fresh["SW_REDIST"];
+            else env.Remove("SW_REDIST");
+            if (fresh.ContainsKey("PROFILI_SALDATURA")) env["PROFILI_SALDATURA"] = fresh["PROFILI_SALDATURA"];
+
+            var kept = env.Keys.Where(k => k != "SW_REDIST" && !(k == "PROFILI_SALDATURA" && fresh.ContainsKey(k)))
+                          .OrderBy(k => k, StringComparer.Ordinal).ToList();
+            if (kept.Count > 0 && racconta != null)
+                racconta("keeping from the existing entry's env: " + string.Join(", ", kept));
+            return env;
+        }
+
+        /// <summary>The `env` of an entry as read from a config file; empty when it has none.</summary>
+        private static Dictionary<string, string> EnvOf(object entry)
+        {
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            var d = entry as Dictionary<string, object>;
+            object env;
+            if (d != null && d.TryGetValue("env", out env) && env is Dictionary<string, object>)
+                foreach (var kv in (Dictionary<string, object>)env) result[kv.Key] = Convert.ToString(kv.Value);
+            return result;
+        }
+
+        /// <summary>
+        /// A PROFILI_SALDATURA already in one of these clients' entries that
+        /// names a folder that exists, or null (H19 review). A folder chosen
+        /// by hand is worth more than the one the installer would find: it is
+        /// kept on a reinstall unless --weldment-profiles names another.
+        /// </summary>
+        public static string ExistingWeldmentProfiles(IEnumerable<Client> clients)
+        {
+            foreach (var c in clients ?? Enumerable.Empty<Client>())
+            {
+                var env = ConfiguredEnv(c);
+                string v;
+                if (env != null && env.TryGetValue("PROFILI_SALDATURA", out v) &&
+                    !string.IsNullOrWhiteSpace(v) && Directory.Exists(v))
+                    return v;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Why this client's config cannot be read (malformed, locked), or
+        /// null when it reads or does not exist yet. For --verify, which used
+        /// to treat an unreadable file like a file without an entry and could
+        /// come out all green right after an install that exited 3 for it.
+        /// </summary>
+        public static string ReadProblem(Client client)
+        {
+            if (client == null || !File.Exists(client.File)) return null;
+            try { Leggi(client.File); return null; }
+            catch (Exception ex) { return ex.Message; }
+        }
+
+        /// <summary>
+        /// Toglie la voce del ponte, lasciando gli altri server.
+        ///
+        /// ONLY OUR OWN ENTRY (entry H19, A5). With <paramref name="folder"/>
+        /// given, the entry is removed only if its command is the bridge in
+        /// that folder: a "solidworks" entry that points at another
+        /// installation (or at another program that took the same name) is
+        /// someone else's, and is left alone with a line that says so.
+        /// Returns true when an entry was removed.
+        /// </summary>
+        public static bool Scollega(Client client, string folder, Action<string> racconta)
         {
             if (client == null || !File.Exists(client.File))
             {
                 racconta("niente da scollegare");
-                return;
+                return false;
             }
             var radice = Leggi(client.File);
             var server = Sotto(radice, "mcpServers");
-            if (!server.Remove(NomeServer))
+            object entry;
+            if (!server.TryGetValue(NomeServer, out entry))
             {
                 racconta("la voce non c'era");
-                return;
+                return false;
             }
+            if (!string.IsNullOrWhiteSpace(folder) && !PointsInto(entry, folder))
+            {
+                racconta(client.Nome + ": the \"" + NomeServer + "\" entry points at another installation (" +
+                         CommandOf(entry) + "): left alone");
+                return false;
+            }
+            server.Remove(NomeServer);
             Scrivi(client.File, radice, racconta);
             racconta("tolta la voce da " + client.Nome);
+            return true;
+        }
+
+        /// <summary>True when the entry's command is the bridge inside <paramref name="folder"/>.</summary>
+        public static bool PointsInto(object entry, string folder)
+        {
+            var c = CommandOf(entry);
+            return !string.IsNullOrWhiteSpace(c) &&
+                   Passi.PercorsiUguali(c, Path.Combine(folder, Passi.NomeEseguibile));
+        }
+
+        private static string CommandOf(object entry)
+        {
+            var d = entry as Dictionary<string, object>;
+            object c;
+            return d != null && d.TryGetValue("command", out c) ? Convert.ToString(c) : null;
+        }
+
+        /// <summary>The `env` of our entry, or null when there is no entry (for --verify).</summary>
+        public static Dictionary<string, string> ConfiguredEnv(Client client)
+        {
+            try
+            {
+                if (client == null || !File.Exists(client.File)) return null;
+                var server = Sotto(Leggi(client.File), "mcpServers");
+                object entry;
+                if (!server.TryGetValue(NomeServer, out entry)) return null;
+                return EnvOf(entry);
+            }
+            catch { return null; }
         }
 
         /// <summary>Cosa c'e' scritto adesso per questo server, se c'e'.</summary>
@@ -252,17 +453,7 @@ namespace Oce.Solid.Agent.Installer
                 }
             }
 
-            string copia = null;
-            if (File.Exists(file))
-            {
-                // Il nome della copia porta la data: cosi' si capisce quale e'
-                // quale.
-                copia = file + PrefissoCopia +
-                        DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
-                File.Copy(file, copia, true);
-                racconta("copia di sicurezza: " + Path.GetFileName(copia));
-                PotaLeCopie(file, racconta);
-            }
+            var copia = Backup(file, racconta);
 
             var testo = Indenta(Json().Serialize(radice));
 
@@ -283,6 +474,25 @@ namespace Oce.Solid.Agent.Installer
                 throw;
             }
 
+            return copia;
+        }
+
+        /// <summary>
+        /// The backup of a config file before it is changed, and the pruning
+        /// of the old ones; null when the file does not exist. Public since the
+        /// H19 review: `claude mcp remove` + `add` rewrite .claude.json too,
+        /// and until then that route made no backup at all.
+        /// </summary>
+        public static string Backup(string file, Action<string> racconta)
+        {
+            if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) return null;
+            // Il nome della copia porta la data: cosi' si capisce quale e'
+            // quale.
+            var copia = file + PrefissoCopia +
+                        DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".bak";
+            File.Copy(file, copia, true);
+            racconta?.Invoke("copia di sicurezza: " + Path.GetFileName(copia));
+            PotaLeCopie(file, racconta ?? (s => { }));
             return copia;
         }
 
@@ -400,11 +610,11 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>Il blocco da incollare a mano, per chi usa un altro client.</summary>
-        public static string BloccoDaIncollare(string eseguibile, string redist)
+        public static string BloccoDaIncollare(string eseguibile, string redist, string weldmentProfiles)
         {
             var voce = new Dictionary<string, object> { ["command"] = eseguibile };
-            if (!string.IsNullOrWhiteSpace(redist) && !RedistStandard(redist))
-                voce["env"] = new Dictionary<string, object> { ["SW_REDIST"] = redist };
+            var env = EnvFor(redist, weldmentProfiles);
+            if (env.Count > 0) voce["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
 
             var radice = new Dictionary<string, object>
             {

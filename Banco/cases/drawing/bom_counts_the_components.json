@@ -7,40 +7,40 @@
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
       { "name": "coperchio",
         "position_mm": [0, 7, 0],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 4, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "salva_documento",
-      "arguments": { "percorso": "{LAVORO}\\bom_counts_the_components.sldasm" },
-      "expect": [ { "what": "misure.avvisi", "equal_to": 0, "why": "la vista si aggancia al FILE dell'assieme" } ] },
-    { "operation": "crea_disegno",
-      "arguments": { "formato": "A3" },
-      "expect": [ { "what": "stato.tipo", "equal_to": "tavola" } ] },
-    { "operation": "viste_standard",
-      "arguments": { "modello": "{LAVORO}\\bom_counts_the_components.sldasm" },
-      "expect": [ { "what": "misure.viste_create", "equal_to": 3 } ] },
-    { "operation": "distinta_base_in_tavola",
-      "arguments": { "vista": "V1" },
+    { "operation": "save_document",
+      "arguments": { "path": "{LAVORO}\\bom_counts_the_components.sldasm" },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "la vista si aggancia al FILE dell'assieme" } ] },
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
+    { "operation": "standard_views",
+      "arguments": { "model": "{LAVORO}\\bom_counts_the_components.sldasm" },
+      "expect": [ { "what": "measurements.views_created", "equal_to": 3 } ] },
+    { "operation": "drawing_bom",
+      "arguments": { "view": "V1" },
       "expect": [
-        { "what": "misure.voci", "equal_to": 2, "why": "base e coperchio" },
-        { "what": "misure.quantita_in_tabella", "equal_to": 2, "why": "un pezzo per voce" },
-        { "what": "misure.combaciano", "equal_to": true, "why": "la tabella e l'assieme, letti ognuno per conto suo" },
-        { "what": "misure.dentro_il_foglio", "equal_to": true, "why": "misurata e messa in un posto libero" } ] },
-    { "operation": "bollatura",
-      "arguments": { "vista": "V1" },
+        { "what": "measurements.entries", "equal_to": 2, "why": "base e coperchio" },
+        { "what": "measurements.quantity_in_table", "equal_to": 2, "why": "un pezzo per voce" },
+        { "what": "measurements.match", "equal_to": true, "why": "la tabella e l'assieme, letti ognuno per conto suo" },
+        { "what": "measurements.inside_sheet", "equal_to": true, "why": "misurata e messa in un posto libero" } ] },
+    { "operation": "balloons",
+      "arguments": { "view": "V1" },
       "expect": [
-        { "what": "misure.palloncini_messi", "equal_to": 2, "why": "uno per componente, contati dopo sulla vista" },
-        { "what": "misure.numeri", "includes": ["1", "2"], "why": "i numeri di voce della distinta" },
-        { "what": "misure.quante_voci_senza_bollatura", "equal_to": 0,
+        { "what": "measurements.balloons_placed", "equal_to": 2, "why": "uno per componente, contati dopo sulla vista" },
+        { "what": "measurements.numbers", "includes": ["1", "2"], "why": "i numeri di voce della distinta" },
+        { "what": "measurements.how_many_entries_without_balloon", "equal_to": 0,
           "why": "ogni voce della distinta ha il suo palloncino: sull'assieme Starlink (26/9/2026) il disco, coperto nell'isometrica, restava senza e la risposta diceva «fatto»" } ] }
   ]
 }

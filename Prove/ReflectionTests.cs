@@ -808,6 +808,12 @@ namespace Prove.Contratti
                 var assemblies = new List<Assembly> { Carica.Ponte(files[0]) };
                 assemblies.Add(Assembly.Load(File.ReadAllBytes(files[1])));
                 assemblies.Add(Assembly.Load(File.ReadAllBytes(files[2])));
+                // THE INSTALLER TOO, WHEN IT IS BUILT (H19 review): the
+                // contracts look up its rules by name (H19InstallerContract).
+                // build.ps1 writes it beside the bridge; without it those names
+                // stay unresolved here, as they should.
+                var installer = Path.Combine(bin, "Installa.exe");
+                if (ProdottoDaBuild(installer)) assemblies.Add(Assembly.Load(File.ReadAllBytes(installer)));
                 missing = Unresolved(names, assemblies, out unreadable);
             }
             catch (Exception ex)

@@ -7,47 +7,47 @@
     "components": [
       { "name": "base",
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 120, "larghezza_mm": 80, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
       { "name": "staffa",
         "position_mm": [40, 10, 30],
         "steps": [
-          { "operation": "estrudi_rettangolo",
-            "arguments": { "piano": "superiore", "lunghezza_mm": 20, "larghezza_mm": 40, "spessore_mm": 10, "centrato": true } }
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 20, "width_mm": 40, "thickness_mm": 10, "centered": true } }
         ] }
     ]
   },
   "steps": [
-    { "operation": "specchia_componente",
-      "arguments": { "componente": "C2", "piano": "destro", "modo": "istanza" },
+    { "operation": "mirror_component",
+      "arguments": { "component": "C2", "plane": "right", "mode": "instance" },
       "expect": [
-        { "what": "misure.nuovo_file", "equal_to": false, "why": "un'istanza dello stesso file" },
-        { "what": "misure.centro_nuovo_mm", "equal_to": [-40, 10, 30], "tolerance": 0.01,
+        { "what": "measurements.new_file", "equal_to": false, "why": "un'istanza dello stesso file" },
+        { "what": "measurements.new_center_mm", "equal_to": [-40, 10, 30], "tolerance": 0.01,
           "tolerance_why": "punti estremi veri, arrotondati",
           "why": "sul piano destro (YZ) la x cambia segno" },
-        { "what": "stato.quanti_componenti", "equal_to": 3 } ] },
-    { "operation": "specchia_componente",
-      "arguments": { "componente": "C2", "piano": "frontale", "modo": "opposto_legato", "suffisso": "_legata" },
+        { "what": "state.how_many_components", "equal_to": 3 } ] },
+    { "operation": "mirror_component",
+      "arguments": { "component": "C2", "plane": "front", "mode": "opposite_linked", "suffix": "_legata" },
       "expect": [
-        { "what": "misure.nuovo_file", "equal_to": true },
-        { "what": "misure.legato_all_originale", "equal_to": true, "why": "l'albero del file nuovo e' MirrorStock: segue l'originale" },
-        { "what": "misure.centro_nuovo_mm", "equal_to": [40, 10, -30], "tolerance": 0.01,
+        { "what": "measurements.new_file", "equal_to": true },
+        { "what": "measurements.linked_to_original", "equal_to": true, "why": "l'albero del file nuovo e' MirrorStock: segue l'originale" },
+        { "what": "measurements.new_center_mm", "equal_to": [40, 10, -30], "tolerance": 0.01,
           "tolerance_why": "la stessa",
           "why": "sul piano frontale (XY) la z cambia segno" } ] },
-    { "operation": "specchia_componente",
-      "arguments": { "componente": "C2", "piano": "superiore", "modo": "opposto_slegato", "suffisso": "_slegata" },
+    { "operation": "mirror_component",
+      "arguments": { "component": "C2", "plane": "top", "mode": "opposite_unlinked", "suffix": "_slegata" },
       "expect": [
-        { "what": "misure.nuovo_file", "equal_to": true },
-        { "what": "misure.legato_all_originale", "equal_to": false, "why": "le lavorazioni copiate: non segue piu' l'originale" },
-        { "what": "misure.centro_nuovo_mm", "equal_to": [40, -10, 30], "tolerance": 0.01,
+        { "what": "measurements.new_file", "equal_to": true },
+        { "what": "measurements.linked_to_original", "equal_to": false, "why": "le lavorazioni copiate: non segue piu' l'originale" },
+        { "what": "measurements.new_center_mm", "equal_to": [40, -10, 30], "tolerance": 0.01,
           "tolerance_why": "la stessa",
           "why": "sul piano superiore (XZ) la y cambia segno" },
-        { "what": "stato.quanti_componenti", "equal_to": 5 } ] },
-    { "operation": "specchia_componente",
-      "arguments": { "componente": "C2", "piano": "destro" },
+        { "what": "state.how_many_components", "equal_to": 5 } ] },
+    { "operation": "mirror_component",
+      "arguments": { "component": "C2", "plane": "right" },
       "must_fail": {
-        "message_includes": ["Dimmi «modo»", "istanza"],
+        "message_includes": ["Dimmi «mode»", "instance"],
         "twin": "right_bracket_and_left_bracket" } }
   ]
 }

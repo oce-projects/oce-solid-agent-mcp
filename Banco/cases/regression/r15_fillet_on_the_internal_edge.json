@@ -6,29 +6,29 @@
   "intent_why": "il raccordo e' agganciato allo spigolo interno della L, che la larghezza della base non muove. Il raggio resta 8, e i raccordi restano uno: e' «com'era», e infatti si scrive cosi'.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
-                     "spessore_mm": 20, "centrato": true }
+      "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120,
+                     "thickness_mm": 20, "centered": true }
     },
     {
-      "operation": "estrudi_su_faccia",
+      "operation": "extrude_on_face",
       "arguments": {
-        "faccia_uid": "@faccia(verso=davanti)",
-        "contorni": [ { "vertici": [ [-100, -60], [-80, -60], [-80, 60], [-100, 60] ] } ],
-        "altezza_mm": 60
+        "face_uid": "@face(normal=front)",
+        "contours": [ { "vertices": [ [-100, -60], [-80, -60], [-80, 60], [-100, 60] ] } ],
+        "height_mm": 60
       }
     },
     {
-      "operation": "raccordo_spigoli",
-      "arguments": { "spigoli_uid": [ "@spigolo(asse=Y,lungo~=120,n=1)" ], "raggio_mm": 8 }
+      "operation": "fillet_edges",
+      "arguments": { "edges_uid": [ "@edge(axis=Y,length~=120,n=1)" ], "radius_mm": 8 }
     }
   ],
-  "modify": { "quota": "@quota(feature=Schizzo1,nome=D2)", "valore_mm": 160 },
+  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 160 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [200, 160, 80],
+    { "what": "bounding_box_mm", "equal_to": [200, 160, 80],
       "tolerance": 0.05,
       "tolerance_why": "l'ingombro si legge con GetExtremePoint" },
-    { "what": "diametri_mm", "same_as_before": true,
+    { "what": "diameters_mm", "same_as_before": true,
       "tolerance": 0.02,
       "tolerance_why": "il raccordo lascia una faccia cilindrica di raggio 8: il diametro si legge da CylinderParams" }
   ]

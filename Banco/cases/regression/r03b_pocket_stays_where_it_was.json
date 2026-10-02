@@ -1,26 +1,26 @@
 {
   "name": "r03b_pocket_stays_where_it_was",
   "family": "regression",
-  "why": "IL GEMELLO ASSOLUTO di `r03_centered_pocket` (voce E18): la stessa tasca, senza `ancora`. Prova che il vecchio modo continua a funzionare quando e' quello che si vuole — una tasca che sta a x = 0 perche' li' c'e' qualcosa che le corrisponde, non perche' e' il centro.",
+  "why": "IL GEMELLO ASSOLUTO di `r03_centered_pocket` (voce E18): la stessa tasca, senza `anchor`. Prova che il vecchio modo continua a funzionare quando e' quello che si vuole — una tasca che sta a x = 0 perche' li' c'e' qualcosa che le corrisponde, non perche' e' il centro.",
   "intent": "ancorato_a_assoluto",
   "intent_why": "senza ancora x_mm/y_mm sono coordinate del modello: portando la lunghezza a 260 la piastra va da X -100 a +160 e la tasca resta a x = 0. Il baricentro va a x = 30,588 invece di 30: e' la differenza che `r03` misura, vista dall'altra parte.",
   "build": [
     {
-      "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 200, "larghezza_mm": 120,
-                     "spessore_mm": 20, "centrato": true }
+      "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120,
+                     "thickness_mm": 20, "centered": true }
     },
     {
-      "operation": "taglio_rettangolare",
-      "arguments": { "faccia_uid": "@faccia(verso=davanti)", "x_mm": 0, "y_mm": 0,
-                     "lunghezza_mm": 60, "larghezza_mm": 40,
-                     "passante": false, "profondita_mm": 5 }
+      "operation": "rectangular_cut",
+      "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
+                     "length_mm": 60, "width_mm": 40,
+                     "through_all": false, "depth_mm": 5 }
     }
   ],
-  "modify": { "quota": "@quota(feature=Schizzo1,nome=D1)", "valore_mm": 260 },
+  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
   "after": [
-    { "what": "ingombro_mm", "equal_to": [260, 120, 20] },
-    { "what": "centro_massa_mm", "equal_to": [30.588, 0, 9.853],
+    { "what": "bounding_box_mm", "equal_to": [260, 120, 20] },
+    { "what": "center_of_mass_mm", "equal_to": [30.588, 0, 9.853],
       "tolerance": 0.02,
       "tolerance_why": "piastra 624000 mm3 in (30,0,10) meno tasca 12000 in (0,0,17.5): x = 624000*30/612000 = 30,588. Il centesimo copre l'arrotondamento" }
   ]

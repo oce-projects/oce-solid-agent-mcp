@@ -12,11 +12,11 @@ namespace Prove.Contratti
     /// THE SKETCH JUST DRAWN IS THE ONE BORN SINCE ITS CALLER OPENED IT
     /// (Z-C21.5, scheme S7: the two sketch lookups library 0.146.0 left).
     ///
-    /// Until library 0.146.0 eight operations of OperazioniSw and incidi_testo
+    /// Until library 0.146.0 eight operations of OperazioniSw and engrave_text
     /// selected «the sketch just made» as the LAST ProfileFeature of the tree
-    /// (SchizzoAppenaCreato), `estrudi_profilo` and `rivoluzione` found the
+    /// (SchizzoAppenaCreato), `extrude_profile` and `revolve` found the
     /// sketch to lock after the feature the same way (BloccaSchizzo), and
-    /// sweep_circolare took its path as the last sketch of the tree, 2D or 3D
+    /// circular_sweep took its path as the last sketch of the tree, 2D or 3D
     /// (UltimoSchizzoFeature). Since then each caller takes the names of the
     /// tree (FeatureNamesNow) before it selects the plane or face and opens the
     /// sketch, and the sketch is the one of its type born since (FeatureBorn),

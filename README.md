@@ -71,7 +71,7 @@ Nove, non novantanove. Le operazioni di disegno sono novantanove, ma esporne
 una per strumento costerebbe decine di migliaia di caratteri di schemi in
 ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
 (Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
-scritta sotto la tabella, non per coprire di piu'. Il settimo, `documento`,
+scritta sotto la tabella, non per coprire di piu'. Il settimo, `document`,
 dalla 0.87.0: senza, per cominciare un pezzo da zero serviva una persona che
 cliccasse File > Nuovo.)
 
@@ -83,31 +83,31 @@ layer; `api_objects` and `api_call` come with U1.2-U1.3.*
 
 | strumento | a cosa serve |
 |---|---|
-| `guarda_il_pezzo` | lo stato del documento aperto: ingombro, volume, corpi, lavorazioni con le loro quote, facce e spigoli con il loro identificativo. Con `viste` torna anche una **fotografia** del pezzo |
-| `elenco_operazioni` | l'elenco corto per famiglia: un nome e una riga |
-| `descrivi_operazione` | lo schema completo di una |
-| `disegna` | esegue una sequenza e **riporta cos'e' venuto**: le misure di ogni passo e lo stato dopo |
-| `misura` | le stesse operazioni, ma **solo quelle che leggono** (famiglia `verifiche`). Si dichiara di sola lettura, cosi' il client non chiede conferma per una misura |
-| `annulla` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `disegna` l'aveva lasciato |
-| `documento` | crea una parte o un assieme vuoti, apre un file dal disco, elenca i documenti aperti, ne porta uno davanti, ne chiude uno — e **rifiuta di chiudere** un documento con modifiche non salvate. Dice sempre se un file e' aperto in **sola lettura**; e dopo ogni cambio di documento `disegna` pretende un nuovo `guarda_il_pezzo` |
+| `inspect_part` | lo stato del documento aperto: ingombro, volume, corpi, lavorazioni con le loro quote, facce e spigoli con il loro identificativo. Con `views` torna anche una **fotografia** del pezzo |
+| `list_operations` | l'elenco corto per famiglia: un nome e una riga |
+| `describe_operation` | lo schema completo di una |
+| `build` | esegue una sequenza e **riporta cos'e' venuto**: le misure di ogni passo e lo stato dopo |
+| `measure` | le stesse operazioni, ma **solo quelle che leggono** (famiglia `checks`). Si dichiara di sola lettura, cosi' il client non chiede conferma per una misura |
+| `undo` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `build` l'aveva lasciato |
+| `document` | crea una parte o un assieme vuoti, apre un file dal disco, elenca i documenti aperti, ne porta uno davanti, ne chiude uno — e **rifiuta di chiudere** un documento con modifiche non salvate. Dice sempre se un file e' aperto in **sola lettura**; e dopo ogni cambio di documento `build` pretende un nuovo `inspect_part` |
 | `api_search` | searches the whole API by a piece of a name and answers with the **real signatures** read from the interop on this machine; the four old interfaces (`IModelDoc`, `IBody`, `IFace`, `IComponent`) are named with the sister to use, never shown. Read only |
 | `api_signature` | the card of one member: every overload, property or method, the `&` out parameters, the typed `I…` variant, the numbered family with the last one marked **«latest by number, not verified»**, the **Void** flag, and what is known of it from `Strumenti/api_knowledge.json` — state, enum map (**«enum not tabulated»** where nobody wrote one), measured indices (**«index not tabulated»** otherwise), measured types, source. Read only |
 
-**`misura` esiste perche' le annotazioni stanno sullo strumento.** Il client MCP
+**`measure` esiste perche' le annotazioni stanno sullo strumento.** Il client MCP
 legge `readOnlyHint` e `destructiveHint` in `tools/list`, cioe' **prima** che
-esista una chiamata: con il solo `disegna` chiedeva conferma anche per
-`proprieta_di_massa`, che non muove un millimetro cubo. Chi conferma dieci volte
+esista una chiamata: con il solo `build` chiedeva conferma anche per
+`mass_properties`, che non muove un millimetro cubo. Chi conferma dieci volte
 di fila smette di leggere cosa conferma. Un'operazione che tocca il pezzo,
-dentro `misura`, viene rifiutata **prima** che il piano parta — mai meta' piano.
+dentro `measure`, viene rifiutata **prima** che il piano parta — mai meta' piano.
 
-**`guarda_il_pezzo` non e' un accessorio.** Gli identificativi che gli altri
+**`inspect_part` non e' un accessorio.** Gli identificativi che gli altri
 strumenti vogliono — `F1`, `E4`, `Corpo1` — nascono li' e valgono per quella
 lettura: sono POSIZIONALI, si rinumerano per area a ogni lettura, e dopo
 ogni modifica vanno riletti. Chi salta il primo strumento lavora alla cieca,
 ed e' il difetto piu' caro di tutto il progetto.
 
-**Misurare e vedere non sono la stessa cosa.** Dalla 0.31.0 `guarda_il_pezzo`
-accetta `viste` — per esempio `["isometrica"]` — e risponde con una o piu'
+**Misurare e vedere non sono la stessa cosa.** Dalla 0.31.0 `inspect_part`
+accetta `views` — per esempio `["isometric"]` — e risponde con una o piu'
 immagini PNG accanto allo stato.
 
 **Quanto serve, misurato.** Cinque pezzi di forma diversa (piastra forata,
@@ -132,7 +132,7 @@ indovinare, dando pero' proporzioni giuste (rapporto lati 1,6-1,7:1 contro
 Un modello, un giro per condizione. Su «numeri sbagliati» **3 contro 1 e' un
 solo giro**, e un solo giro non e' una tendenza.
 
-**E la forma si puo' anche DIRE.** Lo stato porta un campo `forma` che riassume
+**E la forma si puo' anche DIRE.** Lo stato porta un campo `shape` che riassume
 il pezzo in una riga — 68-152 caratteri contro i 40-115 kB di un'immagine:
 
 ```
@@ -175,7 +175,7 @@ pagherebbe anche chi voleva solo sapere quanti corpi ci sono.
 Fotografare **non tocca la vista di chi lavora**: l'orientamento si salva prima
 e si rimette dopo, anche quando la fotografia fallisce a meta'.
 
-**E si puo' guardare dentro.** Con `sezione: {piano: "destro"}` il pezzo arriva
+**E si puo' guardare dentro.** Con `section: {plane: "right"}` il pezzo arriva
 in **spaccato**: uno spaccato dice di un guscio piu' di dieci viste esterne —
 dall'esterno una scatola svuotata e una piena sono lo stesso parallelepipedo, e
 lo spessore del fondo non si legge.
@@ -185,18 +185,18 @@ nessun corpo diviso. E si toglie da sola appena scattata, come l'orientamento.
 
 **E si puo' tornare indietro.** Fino alla 0.31.0 le operazioni erano tutte
 additive o parametriche: l'albero poteva solo crescere, e chi si accorgeva di
-aver sbagliato doveva costruirci sopra o rifare il pezzo da capo. `annulla`
-ritira l'ultimo piano tutto intero — `disegna` lo esegue gia' dentro **una sola**
+aver sbagliato doveva costruirci sopra o rifare il pezzo da capo. `undo`
+ritira l'ultimo piano tutto intero — `build` lo esegue gia' dentro **una sola**
 voce di annullamento.
 
 **E si puo' togliere una lavorazione in mezzo**, non solo l'ultimo piano:
-`sopprimi_lavorazione` la spegne (e `riattiva` la riaccende),
-`elimina_lavorazione` la cancella. La seconda **si rifiuta quando qualcosa
+`suppress_feature` la spegne (e `reactivate` la riaccende),
+`delete_feature` la cancella. La seconda **si rifiuta quando qualcosa
 dipende da quella lavorazione**, e dice cosa: cancellarla la porterebbe via
 insieme ai suoi figli, e SOLIDWORKS lo fa senza chiedere.
 
 **Si rifiuta se il pezzo e' cambiato dopo.** Volume e numero di lavorazioni
-devono essere ancora quelli che `disegna` aveva lasciato: se il progettista ha
+devono essere ancora quelli che `build` aveva lasciato: se il progettista ha
 lavorato a mano nel frattempo, annullare toglierebbe il suo lavoro, e il ponte
 si ferma dicendo cosa e' cambiato.
 
@@ -267,6 +267,11 @@ bin\oce-solid-agent-mcp.exe --prova
 
 Stampa su stderr se si e' agganciato, quale add-in ha caricato, quante
 operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
+Its exit code says the same in a number (from 0.126.0): 0 attached, 3
+SOLIDWORKS not running, 4 not installed or not registered, 5 not tried
+(`OCE_NO_ATTACH`), 6 SOLIDWORKS running in this session but not answering
+(usually started as administrator while the client is not), 1 anything else.
+The installer reads the number, not the text.
 
 ### Variabili d'ambiente
 
@@ -281,7 +286,8 @@ operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
 | `SW_REDIST` | il vecchio nome, ancora letto. Voleva la sottocartella `api\redist` e non la radice: se sono impostate tutte e due vince `SW_INSTALL_PATH` |
 | `RISCONTRO_RADICE` | l'unica cartella dentro cui il ponte puo' scrivere. Se e' impostata, tutto il resto del disco e' fuori |
 | `RISCONTRO_SOLA_LETTURA` | cartelle che il ponte non deve scrivere, separate da `;` — esempio `S:\CAD;S:\_LIBRERIE`. Si aggiungono a quelle di sistema, non le sostituiscono |
-| `PROFILI_SALDATURA` | la libreria dei profili saldati (`.SLDLFP`), se non e' dove la mette questa installazione |
+| `PROFILI_SALDATURA` | the folder of the weldment profiles (`.sldlfp`) that `profili_saldatura` reads. It has no default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>` or from the folder SOLIDWORKS is set to (Tools > Options > File Locations > Weldment Profiles), else the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
+| `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so; `--prova` exits 5. For a session busy with a batch job or the bench, and for the installer's own tests (`Controlli/prova-installatore.js` sets it unless given `--attach`) |
 
 `RISCONTRO_DISEGNO` non decide piu' quale libreria caricare, e resta letta
 apposta: se punta altrove, il ponte lo **dice**. Una variabile d'ambiente che
@@ -294,12 +300,49 @@ quella che sta girando.
 
 ## Language
 
-The repository is moving to English **entirely, names included**: operations,
-arguments, case keys, classes, files and folders (decision of 28 September 2026,
-entry W3.1-bis). It replaces the earlier choice, written here until today, to keep
-the names Italian because they are the protocol. Until the names change
-(W3.1-bis.4 to .6) the protocol is still Italian, and this section will be
-rewritten then.
+**The protocol is English.** The seven tools (`inspect_part`, `list_operations`,
+`describe_operation`, `build`, `measure`, `undo`, `document`) and their
+sub-actions, the 99 operations and their families, every argument and the
+value of every argument whose schema lists one, the selectors
+(`@face(normal=front)`), the fields of every answer and the value of every
+response field the name map covers, the keys of `Strumenti/catalogo.json`, the
+MCP resources (`catalog://operations`, `catalog://operation/{name}`) and the
+tool titles are English names (rename window 2, W3.1-bis.5). The cases of the
+bench were renamed in window 1 (W3.1-bis.4); the classes, files and folders of
+the code follow in window 3 (W3.1-bis.6). The texts of the answers, the
+descriptions of the catalogue and the comments are still partly Italian, and
+become English entry by entry.
+
+**A few values outside any enum are still Italian** (W3.1-bis.8): `mate`'s
+`variant` and `alignment` (free text, not checked against the catalogue), and
+the `kind` the state reports for a mate, a drawing view, a selection or
+`check_body_geometry`. The name map has no row for them yet.
+
+**What comes from SOLIDWORKS stays in the language of the installation.** The
+names SOLIDWORKS gives to features, sketches, planes and configurations
+(`Boss-Extrude1`, `Sketch1`, `Front Plane`, `Default` on an English
+installation; `Estrusione1`, `Schizzo1`, `Piano frontale`, `Predefinito` on an
+Italian one), the custom properties of the templates (`Descrizione`,
+`Materiale` in the templates this bridge was measured with) and the messages
+SOLIDWORKS itself writes are read and passed on as they are: the bridge never
+translates them, and an operation that takes such a name takes it as the
+installation spells it. Where the catalogue gives an example with a feature
+name, it gives the English one and says that the name is the one of the
+installation. The Italian feature, sketch, sheet and plane names the bench
+meets are listed in `Controlli/lingua/exceptions.json` (class
+`solidworks-localized`): the language gate does not count them and the rename
+does not touch them.
+
+**The Italian names are aliases until the first release.** A client that still
+sends a tool, a sub-action, an operation, a family, an argument or a value by
+its Italian name gets the same answer as with the English name, plus the lines
+of `deprecated` (in `structuredContent` and as the last text of the answer)
+that say which names were accepted and which English name to use instead;
+the selectors of the bench written with the old names are read the same way. The aliases are accepted on input only: the answers, the
+catalogue and `describe_operation` speak English only. They are read from
+`Controlli/lingua/name-map.tsv`, the map the rename was generated from
+(embedded in the library, `Riscontro.Disegno/Alias.cs`), and they are removed
+with the map in W3.1-bis.11, before the release tag.
 
 What holds already: **new text is written in English**, and a language gate
 (`Controlli/lingua/detect-italian.js`) keeps the Italian from growing, on every
@@ -314,7 +357,7 @@ Contiene solo le operazioni **misurate dentro il software SOLIDWORKS**.
 
 Un'operazione che esiste nella libreria ma non crea niente **resta fuori dal
 file** (`Provata=false`): un client non deve poterla chiamare. Oggi non ce
-n'e' nessuna: l'ultima era `fazzoletto`, null in sedici varianti (misurato il
+n'e' nessuna: l'ultima era `gusset`, null in sedici varianti (misurato il
 25/9/2026), rientrata con la voce GP20 quando la guida API ha detto cosa
 mancava (la marca 1 sulle due facce e un profilo non degenere). Il banco stampa
 in intestazione **tutti e due i numeri col loro nome** — «eseguibili: 99
@@ -327,16 +370,16 @@ copie della libreria che divergevano.
 
 | famiglia | documento |
 |---|---|
-| `estrusioni`, `lavorazioni`, `saldature`, `riferimenti`, `proprieta`, `esportazioni`, `identita`, `lamiera`, `quote` | una **parte** |
-| `tavola` | una **tavola** |
-| `assiemi` — `inserisci_componente`, `accoppia`, `sostituisci_componente` | un **assieme** |
-| `verifiche` | quasi tutte su una parte; `verifica_interferenze` vuole un **assieme** |
+| `extrusions`, `features`, `weldments`, `references`, `physical_properties`, `exports`, `identity`, `sheet_metal`, `dimensions` | una **parte** |
+| `drawing` | una **tavola** |
+| `assemblies` — `insert_component`, `mate`, `replace_component` | un **assieme** |
+| `checks` | quasi tutte su una parte; `interference_check` vuole un **assieme** |
 
 Non e' una tabella decorativa: **c'e' un controllo che la fa rispettare.**
 `Prove.Contratti` confronta le famiglie del catalogo servito coi tipi di
 documento che l'esecutore ammette, e diventa rosso se il ponte promette una
 famiglia che rifiuterebbe prima del primo passo. E' nato rosso: fino al
-18/9/2026 il catalogo elencava la famiglia `assiemi` per intero mentre
+18/9/2026 il catalogo elencava la famiglia `assemblies` per intero mentre
 l'esecutore rifiutava ogni assieme. **Il banco non poteva accorgersene — chiama
 la libreria, non il ponte.**
 
@@ -437,8 +480,8 @@ il fatto che la ricostruzione sia andata.
 **I quattro silenzi avevano due cause, non quattro** (misurato il 23/9/2026).
 Tre erano la stessa: *un'operazione agganciata a una **faccia** segue la
 geometria; le coordinate `x_mm`/`y_mm` dentro il piano di schizzo di quella
-faccia no.* Dal 25/9 (voce E18) `taglio_cilindrico` e `taglio_rettangolare`
-prendono `ancora` — una quota da uno spigolo, o il centro fra due spigoli, per
+faccia no.* Dal 25/9 (voce E18) `cylindrical_cut` e `rectangular_cut`
+prendono `anchor` — una quota da uno spigolo, o il centro fra due spigoli, per
 asse — e il profilo segue il bordo:
 
 - la tasca centrata (`r03`) regge, e il suo gemello senza ancora (`r03b`)
@@ -454,7 +497,7 @@ come irreparabile: uno smusso piu' grande del materiale **non fallisce**.
 SOLIDWORKS ricostruisce pulito e si mangia un millimetro di larghezza. Si
 prende rileggendo il pezzo dopo — e il segno c'era gia': la lavorazione di
 base perde una faccia intera, quella che lo smusso adesso si prende tutta.
-Dalla libreria 0.121.0 `modifica_quota` guarda proprio quello: se una
+Dalla libreria 0.121.0 `set_dimension` guarda proprio quello: se una
 lavorazione che non e' un taglio perde facce e piu' avanti c'e' uno smusso o
 un raccordo, **rifiuta, dice quale, e rimette il valore di prima**. `r05` e'
 passato alla riga di mezzo, e la terza e' a zero.

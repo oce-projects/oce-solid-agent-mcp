@@ -1,16 +1,16 @@
 [
  {
-  "operazione": "estrudi_rettangolo",
-  "argomenti": {
-   "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 60,
-   "spessore_mm": 20, "centrato": true
+  "operation": "extrude_rectangle",
+  "arguments": {
+   "plane": "top", "length_mm": 100, "width_mm": 60,
+   "thickness_mm": 20, "centered": true
   }
  },
  {
-  "operazione": "estrudi_rettangolo",
-  "argomenti": {
-   "piano": "frontale", "lunghezza_mm": 30, "larghezza_mm": 30,
-   "spessore_mm": 30, "centrato": true
+  "operation": "extrude_rectangle",
+  "arguments": {
+   "plane": "front", "length_mm": 30, "width_mm": 30,
+   "thickness_mm": 30, "centered": true
   }
  }
 ]

@@ -323,7 +323,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito MembroStrutturale(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            string profile = Str(a, "profilo_percorso", "");
+            string profile = Str(a, "profile_path", "");
             // WAS THE LIBRARY ALREADY OPEN BEFORE US? It must be read NOW,
             // before the probe or the insertion can open it: afterwards «it
             // was already open» and «we opened it» look the same, and closing
@@ -368,20 +368,20 @@ namespace Riscontro.Disegno
         internal static string EmptyProfileSizeRefusal(string fileName, string[] sizes, string whyUnread)
         {
             if (sizes == null || sizes.Length == 0)
-                return "The profile size («configurazione») is empty, and I cannot read " +
+                return "The profile size («configuration») is empty, and I cannot read " +
                        "the sizes of «" + fileName + "»" +
                        (whyUnread == null ? "" : " (" + whyUnread + ")") + ". An empty size " +
                        "is only safe on a file with one size: on a file with several, " +
                        "SOLIDWORKS builds the size the file was saved on, without an error. " +
-                       "Write the size in «configurazione», copied from «profili_saldatura».";
+                       "Write the size in «configuration», copied from «weldment_profiles».";
             if (sizes.Length > 1)
-                return "The profile size («configurazione») is empty, and «" + fileName +
+                return "The profile size («configuration») is empty, and «" + fileName +
                        "» has " + sizes.Length + " sizes: " + string.Join(", ", sizes.Take(12)) +
                        (sizes.Length > 12 ? " and " + (sizes.Length - 12) + " more" : "") +
                        ". With an empty size SOLIDWORKS " +
                        "does not refuse: it builds the size the file was saved on (measured: " +
                        "the 20 x 20 of the four in «square tube»), whatever size you meant. " +
-                       "Write one of them in «configurazione», exactly as listed.";
+                       "Write one of them in «configuration», exactly as listed.";
             return null;
         }
 
@@ -391,8 +391,8 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito BuildStructuralMember(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            string profilo = Str(a, "profilo_percorso", "");
-            string configurazione = Str(a, "configurazione", "");
+            string profilo = Str(a, "profile_path", "");
+            string configurazione = Str(a, "configuration", "");
             if (string.IsNullOrWhiteSpace(profilo))
                 return Fallito("Manca il percorso del profilo di saldatura.");
             // An empty size is no longer refused here (Z-C21.3, finding N25):
@@ -496,9 +496,9 @@ namespace Riscontro.Disegno
             var segmenti = SegmentiDa(a, out string motivo);
             if (segmenti == null && telaioChiesto == null) return Fallito(motivo);
 
-            double rotazione = Num(a, "rotazione_gradi", 0);
-            double gioco = Num(a, "gioco_mm", 0);
-            string trattamento = Str(a, "trattamento_angolo", "");
+            double rotazione = Num(a, "rotation_deg", 0);
+            double gioco = Num(a, "gap_mm", 0);
+            string trattamento = Str(a, "corner_treatment", "");
 
             // THE CORNER DEFAULT IS SET, NOT LEFT TO SOLIDWORKS (Z-C21.3,
             // finding N25). The catalogue promises the 45 degree miter when the
@@ -521,7 +521,7 @@ namespace Riscontro.Disegno
             // reads it (the trial frame must have the same corners as the real
             // one), and the answer says it was the default.
             bool cornerAssumed = string.IsNullOrWhiteSpace(trattamento);
-            if (cornerAssumed) trattamento = "quartabuono";
+            if (cornerAssumed) trattamento = "miter";
 
             // ── IL TELAIO A QUOTE ESTERNE ────────────────────────────────
             //
@@ -543,7 +543,7 @@ namespace Riscontro.Disegno
             // SezioneProfilo costruisce un TELAIO di prova con le
             // stesse opzioni e misura di quanto sporge.
             //
-            // Il server manda `telaio` INSIEME ai segmenti gia' calcolati sul
+            // Il server manda `frame` INSIEME ai segmenti gia' calcolati sul
             // nominale: quelli servono al riassunto e restano il ripiego se
             // qualcuno chiede esplicitamente le quote d'asse.
             double[] ingombroPromesso = null;
@@ -558,25 +558,25 @@ namespace Riscontro.Disegno
             // THE READING OF THE TWO SIZES, IN THE CATALOGUE SPELLING
             // (Z-C21.10 N32). The comparisons below are Ordinal, and until
             // library 0.140.0 the value arrived as written: «Ingombro» was not
-            // «ingombro», so it fell into the centre-line branch and a
+            // «overall», so it fell into the centre-line branch and a
             // 1000x800 frame came out 1080x880 with riuscito = true — and so
-            // did any other word («esterno»). The bridge's Forma accepts enum
+            // did any other word («outer»). The bridge's Forma accepts enum
             // values without regard to case and rewrites the top-level ones in
             // the catalogue spelling (Ponte/Forma.cs, pattern S20), but the
-            // nested «telaio» the server builds is not in the catalogue schema
+            // nested «frame» the server builds is not in the catalogue schema
             // at all, and the bench and the add-in do not go through the
             // bridge: no check upstream sees every caller. Here the value is
             // matched without regard to case, and anything that is neither
             // reading is refused before a single line is drawn. The reading
-            // used goes back in the answer as «misure».
-            string askedReading = Str(telaio, "misure", "ingombro");
+            // used goes back in the answer as «measured_as».
+            string askedReading = Str(telaio, "measured_as", "overall");
             string comeSiMisura = FrameReading(askedReading);
             if (telaio != null && comeSiMisura == null)
                 return Fallito(
-                    "«misure» can only be «ingombro» (the outside size of the finished " +
-                    "frame, the default) or «interasse» (the distance between the bar " +
+                    "«measured_as» can only be «overall» (the outside size of the finished " +
+                    "frame, the default) or «center_distance» (the distance between the bar " +
                     "axes), and it says «" + askedReading + "». Write one of the two, " +
-                    "or leave «misure» out for «ingombro». I do not guess: read the " +
+                    "or leave «measured_as» out for «overall». I do not guess: read the " +
                     "other way, the frame would come out larger or smaller by the size " +
                     "of the profile.");
 
@@ -589,24 +589,24 @@ namespace Riscontro.Disegno
             // arretramento.
             //
             // Il catalogo lo documenta da sempre fra i valori ammessi di
-            // «misure». Il C# no: cadeva nel ripiego dei segmenti, che pero'
+            // «measured_as». Il C# no: cadeva nel ripiego dei segmenti, che pero'
             // questa operazione esiste apposta per non far scrivere.
             if (telaio != null && segmenti == null &&
-                !string.Equals(comeSiMisura, "ingombro", StringComparison.Ordinal))
+                !string.Equals(comeSiMisura, "overall", StringComparison.Ordinal))
             {
-                string pianoAsse = Str(telaio, "piano", "frontale");
+                string pianoAsse = Str(telaio, "plane", "front");
                 int aU, aV;
                 if (!AssiDelPiano(pianoAsse, out aU, out aV))
                     return Fallito("Non conosco il piano «" + pianoAsse + "» per un telaio.");
 
-                double lungoAsse = Num(telaio, "lunghezza_mm", 0);
-                double largoAsse = Num(telaio, "larghezza_mm", 0);
+                double lungoAsse = Num(telaio, "length_mm", 0);
+                double largoAsse = Num(telaio, "width_mm", 0);
                 if (lungoAsse <= 0 || largoAsse <= 0)
                     return Fallito("Il telaio non ha due quote utilizzabili.");
 
                 segmenti = SegmentiTelaio(
                     lungoAsse, largoAsse, aU, aV,
-                    Bool(telaio, "centrato", true), new[] { 0.0, 0.0 });
+                    Bool(telaio, "centered", true), new[] { 0.0, 0.0 });
                 _log(string.Format(
                     "[agente] telaio a interasse {0:0.#}x{1:0.#}: il percorso e' " +
                     "quello, e l'ingombro finito sara' piu' grande di quanto " +
@@ -614,14 +614,14 @@ namespace Riscontro.Disegno
             }
 
             if (telaio != null &&
-                string.Equals(comeSiMisura, "ingombro", StringComparison.Ordinal))
+                string.Equals(comeSiMisura, "overall", StringComparison.Ordinal))
             {
-                string piano = Str(telaio, "piano", "frontale");
+                string piano = Str(telaio, "plane", "front");
                 if (!AssiDelPiano(piano, out asseU, out asseV))
                     return Fallito("Non conosco il piano «" + piano + "» per un telaio.");
 
-                double lungo = Num(telaio, "lunghezza_mm", 0);
-                double largo = Num(telaio, "larghezza_mm", 0);
+                double lungo = Num(telaio, "length_mm", 0);
+                double largo = Num(telaio, "width_mm", 0);
                 if (lungo <= 0 || largo <= 0)
                     return Fallito("Il telaio non ha due quote utilizzabili.");
 
@@ -655,7 +655,7 @@ namespace Riscontro.Disegno
 
                 segmenti = SegmentiTelaio(
                     lungo - sporgenze[0], largo - sporgenze[1],
-                    asseU, asseV, Bool(telaio, "centrato", true), sporgenze);
+                    asseU, asseV, Bool(telaio, "centered", true), sporgenze);
                 ingombroPromesso = new[] { lungo, largo };
                 _log(string.Format(
                     "[agente] telaio a quote esterne {0:0.#}x{1:0.#}: sporgenza misurata " +
@@ -665,15 +665,15 @@ namespace Riscontro.Disegno
             }
 
             // SE ARRIVATI QUI I SEGMENTI ANCORA NON CI SONO, il telaio c'era
-            // ma non era utilizzabile — «misure» diverso da «ingombro», o un
+            // ma non era utilizzabile — «measured_as» diverso da «overall», o un
             // piano che non si riconosce. Si dice quello, non «manca il
             // percorso»: chi ha scritto un telaio ha chiesto un telaio.
             if (segmenti == null)
                 return Fallito(
                     "Hai chiesto un telaio ma non ho potuto ricavarne il " +
                     "percorso, e non mi hai dato dei segmenti su cui ripiegare. " +
-                    "Un telaio vuole «lunghezza_mm», «larghezza_mm» e «piano»; " +
-                    "se invece vuoi dare tu il percorso, passa «segmenti».");
+                    "Un telaio vuole «length_mm», «width_mm» e «plane»; " +
+                    "se invece vuoi dare tu il percorso, passa «segments».");
 
             // ── lo schizzo 3D del percorso ──────────────────────────────
             modello.ClearSelection2(true);
@@ -738,7 +738,7 @@ namespace Riscontro.Disegno
                 int codice;
                 if (TrattamentiAngolo.TryGetValue(trattamento ?? "", out codice))
                 {
-                    // «nessuno» non e' un trattamento: e' l'assenza. Chiederlo a
+                    // «none» non e' un trattamento: e' l'assenza. Chiederlo a
                     // SolidWorks come tipo 0 CON ApplyCornerTreatment acceso
                     // darebbe un risultato diverso da non chiederlo affatto.
                     gruppo.ApplyCornerTreatment = codice != 0;
@@ -808,11 +808,11 @@ namespace Riscontro.Disegno
             double lunghezza = segmenti.Sum(s => Distanza(s.Da, s.A));
             var misure = new Dictionary<string, object>
             {
-                ["profilo"] = Path.GetFileNameWithoutExtension(profilo),
-                ["configurazione"] = configurazione,
-                ["barre"] = segmenti.Count,
-                ["lunghezza_percorso_mm"] = Math.Round(lunghezza, 2),
-                ["trattamento_angolo"] = trattamento,
+                ["profile"] = Path.GetFileNameWithoutExtension(profilo),
+                ["configuration"] = configurazione,
+                ["bars"] = segmenti.Count,
+                ["path_length_mm"] = Math.Round(lunghezza, 2),
+                ["corner_treatment"] = trattamento,
                 // Z-C21.3 N25: always written, like the material's note: a
                 // default that is applied without saying so reads the same as
                 // a choice somebody made.
@@ -828,12 +828,12 @@ namespace Riscontro.Disegno
                 misure["configuration_note"] =
                     "empty size accepted: the profile file has one size only, «" + onlySize + "».";
             if (sporgenze != null)
-                misure["sporgenza_profilo_mm"] =
+                misure["overhang_profile_mm"] =
                     Math.Round(sporgenze[0], 2) + "x" + Math.Round(sporgenze[1], 2);
             // Z-C21.10 N32: which reading of the two sizes was used, always,
             // so that a frame read as centre lines cannot pass for an outside
             // size without the answer saying so.
-            if (telaio != null) misure["misure"] = comeSiMisura;
+            if (telaio != null) misure["measured_as"] = comeSiMisura;
             // Z-C21.10 N36: measured now, or taken from the archive.
             if (overhangSource != null) misure["overhang_source"] = overhangSource;
 
@@ -853,7 +853,7 @@ namespace Riscontro.Disegno
             var scatola = IngombroDeiCorpi(feature);
             if (scatola != null)
             {
-                misure["ingombro_mm"] = string.Format(
+                misure["bounding_box_mm"] = string.Format(
                     System.Globalization.CultureInfo.InvariantCulture,
                     "{0:0.##}x{1:0.##}x{2:0.##}",
                     scatola[3] - scatola[0], scatola[4] - scatola[1], scatola[5] - scatola[2]);
@@ -862,7 +862,7 @@ namespace Riscontro.Disegno
             {
                 if (scatola == null)
                 {
-                    misure["ingombro_verificato"] = false;
+                    misure["bounding_box_checked"] = false;
                     _log("[agente] non ho potuto misurare l'ingombro del telaio appena fatto.");
                 }
                 else
@@ -892,8 +892,8 @@ namespace Riscontro.Disegno
                             ingombroPromesso[0], ingombroPromesso[1], vistoU, vistoV,
                             sporgenze[0], sporgenze[1]) +
                             OverhangNote(overhangSource, overhangDropped));
-                    misure["ingombro_verificato"] = true;
-                    misure["ingombro_esterno_mm"] =
+                    misure["bounding_box_checked"] = true;
+                    misure["bounding_box_outer_mm"] =
                         Math.Round(vistoU, 2) + "x" + Math.Round(vistoV, 2);
                 }
             }
@@ -909,29 +909,29 @@ namespace Riscontro.Disegno
         {
             int nDa, nContro;
             string perche;
-            var daTagliare = CorpiDalRiferimento(a, "corpi_da_tagliare_rif", stato, out nDa, out perche);
+            var daTagliare = CorpiDalRiferimento(a, "bodies_to_trim_ref", stato, out nDa, out perche);
             if (daTagliare == null) return Fallito(perche);
-            var contro = CorpiDalRiferimento(a, "corpi_di_taglio_rif", stato, out nContro, out perche);
+            var contro = CorpiDalRiferimento(a, "trim_boundary_ref", stato, out nContro, out perche);
             if (contro == null) return Fallito(perche);
 
             // AN END CONDITION THAT IS NOT ONE OF THE FOUR IS REFUSED (finding
             // N22). Until library 0.144.0 an unknown word fell back to Trim in
             // silence, and the answer did not say which condition was used.
-            // «nessuno» is in the shared table of corner treatments (it means
+            // «none» is in the shared table of corner treatments (it means
             // «no corner treatment» for a member group), but the catalogue
             // offers four conditions for this operation, the trim/extend of
             // SOLIDWORKS has no «none» corner type, and no probe ever trimmed
             // with swEndConditionNone (the Z-C21.3 trim probe measured 1, 2, 3
             // and 4): so it is refused here too, rather than documented.
-            string askedCondition = (Str(a, "condizione", "taglio") ?? "").Trim();
-            if (askedCondition.Length == 0) askedCondition = "taglio";   // empty reads as absent
+            string askedCondition = (Str(a, "end_condition", "cut") ?? "").Trim();
+            if (askedCondition.Length == 0) askedCondition = "cut";   // empty reads as absent
             int codice = TrimEndCondition(askedCondition);
             if (codice < 0)
                 return Fallito(
-                    "«condizione» can be «taglio» (the default), «quartabuono», «testa1» or «testa2», and " +
-                    "it says «" + askedCondition + "». I do not fall back to «taglio» for you: write one of " +
-                    "the four, or leave «condizione» out for «taglio». Nothing was changed.");
-            double gioco = Num(a, "gioco_mm", 0);
+                    "«end_condition» can be «cut» (the default), «miter», «butt1» or «butt2», and " +
+                    "it says «" + askedCondition + "». I do not fall back to «cut» for you: write one of " +
+                    "the four, or leave «end_condition» out for «cut». Nothing was changed.");
+            double gioco = Num(a, "gap_mm", 0);
 
             // IL BIT DEL GIOCO SI ACCENDE SEMPRE, ANCHE CON ZERO (voce Z-C21.2,
             // rilievo L9-2).
@@ -946,9 +946,9 @@ namespace Riscontro.Disegno
             //
             // Il commento che stava qui ragionava al contrario: temeva un
             // GapValue positivo ignorato, e accendeva il bit solo con `gioco > 0`.
-            // Il danno vero era l'altro: con `gioco_mm` a 0 — il predefinito — il
+            // Il danno vero era l'altro: con `gap_mm` a 0 — il predefinito — il
             // bit restava spento e SOLIDWORKS usava l'ultimo gioco dato a mano
-            // da Accorcia/Estendi, mentre il riassunto diceva `gioco_mm: 0`. Il
+            // da Accorcia/Estendi, mentre il riassunto diceva `gap_mm: 0`. Il
             // ponte gira sullo stesso SOLIDWORKS del lavoro vero: basta che chi
             // disegna abbia usato un gioco da interfaccia perche' le chiamate dopo
             // lo ereditino. Il caso `cut_without_gap_does_not_inherit` lo guarda.
@@ -996,7 +996,7 @@ namespace Riscontro.Disegno
             // always a phantom», was measured with object[] and proved nothing:
             // with Body2[] the extension bits extend, see the Options above.)
             //
-            // `distinta_taglio` passava gia' `Body2[]` ed e' per questo che
+            // `cut_list` passava gia' `Body2[]` ed e' per questo che
             // funzionava.
             Body2[] daTagliareTipizzati, controTipizzati;
             try
@@ -1035,7 +1035,7 @@ namespace Riscontro.Disegno
             // LA FEATURE TORNATA NON BASTA: bisogna che sia nell'albero e che
             // il pezzo sia cambiato. E' la guardia che avrebbe preso il
             // difetto qui sopra il primo giorno — l'operazione diceva
-            // «corpi_tagliati: 1» su un pezzo identico a prima.
+            // «bodies_trimmed: 1» su un pezzo identico a prima.
             try { modello.EditRebuild3(); } catch { }
             int featureDopo = ContaFeatureDellAlbero(modello);
             // Con l'albero illeggibile non si puo' dire che la feature non c'e':
@@ -1055,12 +1055,12 @@ namespace Riscontro.Disegno
             if (volumeDopo == null)
                 return Riuscito(feature, new Dictionary<string, object>
                 {
-                    ["corpi_tagliati"] = nDa,
-                    ["corpi_di_taglio"] = nContro,
-                    ["gioco_mm"] = gioco,
+                    ["bodies_trimmed"] = nDa,
+                    ["trim_boundary_bodies"] = nContro,
+                    ["gap_mm"] = gioco,
                     ["end_condition"] = askedCondition.ToLowerInvariant(),   // N22: the one used
-                    ["variazione_volume_mm3"] = null,
-                    ["volume_non_riletto"] = NotaVolumeNonRiletto,
+                    ["volume_change_mm3"] = null,
+                    ["volume_not_reread"] = NotaVolumeNonRiletto,
                 });
             double variazione = volumeDopo.Value - volumePrima.Value;
             if (Math.Abs(variazione) < 0.01)
@@ -1073,12 +1073,12 @@ namespace Riscontro.Disegno
 
             return Riuscito(feature, new Dictionary<string, object>
             {
-                ["corpi_tagliati"] = nDa,
-                ["corpi_di_taglio"] = nContro,
-                ["gioco_mm"] = gioco,
+                ["bodies_trimmed"] = nDa,
+                ["trim_boundary_bodies"] = nContro,
+                ["gap_mm"] = gioco,
                 ["end_condition"] = askedCondition.ToLowerInvariant(),   // N22: the one used
                 // Negativo = tolto (taglio), positivo = aggiunto (estensione).
-                ["variazione_volume_mm3"] = Math.Round(variazione, 2),
+                ["volume_change_mm3"] = Math.Round(variazione, 2),
             });
         }
 
@@ -1127,7 +1127,7 @@ namespace Riscontro.Disegno
         /// </summary>
         private Esito DistintaTaglio(IModelDoc2 modello, Dictionary<string, object> a)
         {
-            bool aggiorna = Bool(a, "aggiorna_se_esiste", true);
+            bool aggiorna = Bool(a, "update_if_exists", true);
             var parte = modello as IPartDoc;
             if (parte == null) return Fallito("La distinta di taglio si fa su una parte.");
 
@@ -1139,7 +1139,7 @@ namespace Riscontro.Disegno
                     "Nel pezzo c'e' gia' una distinta di taglio. Crearne una " +
                     "seconda vorrebbe dire due elenchi della stessa " +
                     "carpenteria: se vuoi ricalcolare quella che c'e', " +
-                    "chiedi «aggiorna_se_esiste».");
+                    "chiedi «update_if_exists».");
 
             object[] corpiSolidi;
             try { corpiSolidi = parte.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[]; }
@@ -1296,10 +1296,10 @@ namespace Riscontro.Disegno
                 if (itemProblem != null) itemProblems.Add(itemProblem);
                 voci.Add(new Dictionary<string, object>
                 {
-                    ["descrizione"] = descrizione,
-                    ["lunghezza_mm"] = lNum ? (object)Math.Round(l, 2) : lunghezza,
-                    ["quantita"] = qNum ? (object)q : quantita,
-                    ["corpi"] = NumeroOppureNull(corpi),
+                    ["details"] = descrizione,
+                    ["length_mm"] = lNum ? (object)Math.Round(l, 2) : lunghezza,
+                    ["quantity"] = qNum ? (object)q : quantita,
+                    ["bodies"] = NumeroOppureNull(corpi),
                     // N15: true when every body of the item has the same volume;
                     // null when a volume could not be read (or the item has none).
                     ["bodies_equal"] = BodiesAreEqual(itemVolumes),
@@ -1308,13 +1308,13 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["corpi_in_distinta"] = corpiInDistinta,
-                ["voci_distinte"] = voci.Count,
-                ["voci"] = voci.ToArray(),
-                ["lunghezze_mm"] = lunghezze.ToArray(),
-                ["quantita_totale"] = quantitaTotale,
-                ["gia_esisteva"] = giaEsisteva,
-                ["reso_saldato"] = eraSaldato.HasValue ? (object)!eraSaldato.Value : null,
+                ["bodies_in_cut_list"] = corpiInDistinta,
+                ["distinct_entries"] = voci.Count,
+                ["entries"] = voci.ToArray(),
+                ["lengths_mm"] = lunghezze.ToArray(),
+                ["quantity_total"] = quantitaTotale,
+                ["already_existed"] = giaEsisteva,
+                ["made_weldment"] = eraSaldato.HasValue ? (object)!eraSaldato.Value : null,
                 // N15, N41: what SOLIDWORKS answered, read and not assumed. A
                 // null automatic_cut_list_set means it was not asked: the cut
                 // list was automatic already.
@@ -1347,7 +1347,7 @@ namespace Riscontro.Disegno
                 warnings.Add("SOLIDWORKS did not turn on the automatic update of the cut list " +
                              "(SetAutomaticUpdate answered false): after a change to the bars, ask for the cut " +
                              "list again before reading it.");
-            if (warnings.Count > 0) misure["attenzione"] = string.Join(" ", warnings);
+            if (warnings.Count > 0) misure["warning"] = string.Join(" ", warnings);
             // Una distinta che c'era gia' non e' una feature creata adesso.
             if (primaCartella != null && !giaEsisteva) return Riuscito(primaCartella, misure);
             return SenzaFeature(misure);
@@ -1358,13 +1358,13 @@ namespace Riscontro.Disegno
         {
             int quante, machinedFaces;
             string perche;
-            var facce = FacceDalRiferimento(a, "estremita_rif", stato, out quante, out machinedFaces, out perche);
+            var facce = FacceDalRiferimento(a, "ends_ref", stato, out quante, out machinedFaces, out perche);
             if (facce == null) return Fallito(perche);
 
-            double spessore = Num(a, "spessore_mm", 0);
+            double spessore = Num(a, "thickness_mm", 0);
             if (spessore <= 0) return Fallito("Il tappo non ha spessore.");
-            double rientro = Num(a, "rientro_mm", 0);
-            double smusso = Num(a, "smusso_mm", 0);
+            double rientro = Num(a, "inset_mm", 0);
+            double smusso = Num(a, "chamfer_mm", 0);
 
             modello.ClearSelection2(true);
             int selezionate = 0;
@@ -1403,8 +1403,8 @@ namespace Riscontro.Disegno
 
             return Riuscito(feature, new Dictionary<string, object>
             {
-                ["estremita_tappate"] = selezionate,
-                ["spessore_mm"] = spessore,
+                ["end_capped"] = selezionate,
+                ["thickness_mm"] = spessore,
                 // N7: planar faces with an inner loop made by another feature
                 // (a drilled wall counts twice, outer and inner face), looked
                 // at and NOT capped. A true zero: every face was read, or the
@@ -1463,7 +1463,7 @@ namespace Riscontro.Disegno
         //
         // Sulla T di tubolari 80x80x5 (lunga 600 in X, corta 300 in Z, la corta
         // tagliata dalla lunga), fra la faccia alta della lunga e la faccia
-        // laterale della corta — le stesse su cui nasce `cordone_saldatura`:
+        // laterale della corta — le stesse su cui nasce `weld_bead`:
         //
         //   la ricetta spedita (poligono, D3 = D4 = 0, senza marca)  -> null
         //   la stessa con marca 1/1                                  -> null
@@ -1514,23 +1514,23 @@ namespace Riscontro.Disegno
             // Percio' qui le facce si indicano per identificativo, prese dallo
             // stato del documento: e' un'operazione che si chiede DOPO aver
             // fatto il telaio, guardandolo.
-            var uid = Lista(a, "facce_uid");
+            var uid = Lista(a, "faces_uid");
             if (uid.Count != 2)
                 return Fallito(
                     "Il fazzoletto va appoggiato su DUE facce, una per barra. " +
-                    "Ne hai indicate " + uid.Count + ": indica in «facce_uid» esattamente due " +
+                    "Ne hai indicate " + uid.Count + ": indica in «faces_uid» esattamente due " +
                     "identificativi presi dallo stato del documento (F1, F2...).");
 
-            double spessore = Num(a, "spessore_mm", 0);
-            double lato1 = Num(a, "lato1_mm", 0);
-            double lato2 = Num(a, "lato2_mm", 0);
+            double spessore = Num(a, "thickness_mm", 0);
+            double lato1 = Num(a, "leg1_mm", 0);
+            double lato2 = Num(a, "leg2_mm", 0);
             if (spessore <= 0)
-                return Fallito("Il fazzoletto non ha spessore: indica «spessore_mm» maggiore di zero, per esempio 5.");
+                return Fallito("Il fazzoletto non ha spessore: indica «thickness_mm» maggiore di zero, per esempio 5.");
             if (lato1 <= 0 || lato2 <= 0)
-                return Fallito("Il fazzoletto non ha i due lati: indica «lato1_mm» e «lato2_mm» maggiori di zero, per esempio 60 e 60.");
+                return Fallito("Il fazzoletto non ha i due lati: indica «leg1_mm» e «leg2_mm» maggiori di zero, per esempio 60 e 60.");
 
             // ── IL PROFILO: triangolare, oppure poligonale NON degenere ─────
-            string profilo = (Str(a, "profilo", "triangolare") ?? "").Trim().ToLowerInvariant();
+            string profilo = (Str(a, "profile", "triangular") ?? "").Trim().ToLowerInvariant();
             Func<string, bool> dato = k =>
             {
                 object g;
@@ -1538,57 +1538,57 @@ namespace Riscontro.Disegno
             };
             bool poligono;
             double lato3 = 0, lato4 = 0;
-            if (profilo == "triangolare")
+            if (profilo == "triangular")
             {
                 poligono = false;
                 // Un ingresso che non si usa non si inghiotte (rilievo C1-1).
-                if (dato("lato3_mm") || dato("lato4_mm"))
+                if (dato("side3_mm") || dato("side4_mm"))
                     return Fallito(
-                        "«lato3_mm» e «lato4_mm» valgono solo col profilo «poligonale»: col " +
+                        "«side3_mm» e «side4_mm» valgono solo col profilo «polygonal»: col " +
                         "triangolare li butterei via senza dirtelo. Toglili, oppure chiedi " +
-                        "«profilo»: «poligonale».");
+                        "«profile»: «polygonal».");
             }
-            else if (profilo == "poligonale")
+            else if (profilo == "polygonal")
             {
                 poligono = true;
-                lato3 = Num(a, "lato3_mm", 0);
-                lato4 = Num(a, "lato4_mm", 0);
+                lato3 = Num(a, "side3_mm", 0);
+                lato4 = Num(a, "side4_mm", 0);
                 if (lato3 <= 0 || lato4 <= 0)
                     return Fallito(
-                        "Un profilo «poligonale» senza «lato3_mm» e «lato4_mm», o con uno dei due a zero, " +
+                        "Un profilo «polygonal» senza «side3_mm» e «side4_mm», o con uno dei due a zero, " +
                         "e' degenere: il poligono si chiude su se stesso e SOLIDWORKS non crea niente, " +
                         "senza dire perche'. This is the defect that kept this operation from ever " +
                         "creating a gusset up to library 0.139.0 (entry GP20). Dai i due lati corti, " +
-                        "oppure usa «profilo»: «triangolare».");
+                        "oppure usa «profile»: «triangular».");
                 double corto = Math.Min(lato1, lato2);
                 if (lato3 >= corto || lato4 >= corto)
                     return Fallito(
-                        "«lato3_mm» e «lato4_mm» sono i due lati CORTI del poligono, quelli che tagliano " +
-                        "la punta: devono essere piu' corti di «lato1_mm» e «lato2_mm» (qui " +
+                        "«side3_mm» e «side4_mm» sono i due lati CORTI del poligono, quelli che tagliano " +
+                        "la punta: devono essere piu' corti di «leg1_mm» e «leg2_mm» (qui " +
                         corto.ToString("0.###", CultureInfo.InvariantCulture) + " mm), se no il " +
                         "poligono non e' piu' un fazzoletto. Se lo vuoi pieno fino in punta, usa " +
-                        "«profilo»: «triangolare».");
+                        "«profile»: «triangular».");
             }
             else
                 return Fallito(
-                    "«profilo» e' «triangolare» o «poligonale», non «" + profilo + "»: usa il " +
-                    "triangolare (il predefinito), oppure il poligonale con «lato3_mm» e «lato4_mm».");
+                    "«profile» e' «triangular» o «polygonal», non «" + profilo + "»: usa il " +
+                    "triangolare (il predefinito), oppure il poligonale con «side3_mm» e «side4_mm».");
 
             // ── LA POSIZIONE LUNGO LO SPIGOLO (rilievo C1-1) ────────────────
             // Up to library 0.139.0 (N69) an unknown value went to the centre
             // in silence, and the answer repeated the string it was given.
-            string posizione = (Str(a, "posizione", "centro") ?? "").Trim().ToLowerInvariant();
+            string posizione = (Str(a, "position", "center") ?? "").Trim().ToLowerInvariant();
             int dove;
             switch (posizione)
             {
-                case "inizio": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationStart; break;
-                case "centro": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationCenter; break;
-                case "fine": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationEnd; break;
+                case "start": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationStart; break;
+                case "center": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationCenter; break;
+                case "end": dove = (int)swGussetProfileLocationType_e.swGussetProfileLocationEnd; break;
                 default:
                     return Fallito(
-                        "«posizione» e' «inizio», «centro» o «fine» lungo lo spigolo fra le due facce, " +
+                        "«position» e' «start», «center» o «end» lungo lo spigolo fra le due facce, " +
                         "non «" + posizione + "». Non la metto al centro di nascosto: usa uno dei tre, " +
-                        "oppure togli «posizione» e vale il centro.");
+                        "oppure togli «position» e vale il centro.");
             }
 
             // ── LE DUE FACCE, dallo stato ───────────────────────────────────
@@ -1722,9 +1722,9 @@ namespace Riscontro.Disegno
             // exit of the call, the refusals inside it included.
             string alternativa =
                 " Shorter sides may fit where these did not" +
-                (poligono ? ", and so may the «triangolare» profile" : "") + ": that is a " +
+                (poligono ? ", and so may the «triangular» profile" : "") + ": that is a " +
                 "suggestion, not a measured cause. If you only need to document the weld between these " +
-                "two faces, there is «cordone_saldatura».";
+                "two faces, there is «weld_bead».";
             if (feature == null)
             {
                 int adesso = ContaFeature(modello);
@@ -1747,7 +1747,7 @@ namespace Riscontro.Disegno
 
             // ── E ADESSO SI MISURA COSA E' NATO ─────────────────────────────
             // 1. nell'albero: una feature tornata che nell'albero non c'e' e' la
-            //    feature fantasma di `taglia_membri` (array non tipizzati).
+            //    feature fantasma di `trim_members` (array non tipizzati).
             int featureDopo = ContaFeature(modello);
             if (featureDopo >= 0 && featureDopo <= featurePrima)
                 return Fallito(
@@ -2016,8 +2016,8 @@ namespace Riscontro.Disegno
         // NOME dell'enum, mai per cifra; null se il valore non e' fra quelli noti.
         private static string NomeDelProfilo(int v)
         {
-            if (v == (int)swGussetProfileType_e.swGussetProfileTriangle) return "triangolare";
-            if (v == (int)swGussetProfileType_e.swGussetProfilePolygon) return "poligonale";
+            if (v == (int)swGussetProfileType_e.swGussetProfileTriangle) return "triangular";
+            if (v == (int)swGussetProfileType_e.swGussetProfilePolygon) return "polygonal";
             return null;
         }
 
@@ -2031,9 +2031,9 @@ namespace Riscontro.Disegno
 
         private static string NomeDellaPosizione(int v)
         {
-            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationStart) return "inizio";
-            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationCenter) return "centro";
-            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationEnd) return "fine";
+            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationStart) return "start";
+            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationCenter) return "center";
+            if (v == (int)swGussetProfileLocationType_e.swGussetProfileLocationEnd) return "end";
             return null;
         }
 
@@ -2061,7 +2061,7 @@ namespace Riscontro.Disegno
         //
         //   InsertCosmeticWeldBead2, facce come object[], Face2[] o
         //   DispatchWrapper[], tutte o solo le due che si toccano, modo
-        //   «geometria» o «percorso» sugli spigoli        -> null, sempre
+        //   «geometria» o «path» sugli spigoli        -> null, sempre
         //   InsertCosmeticWeldBead (la vecchia, per selezione), UNA faccia
         //   per parte                                      -> cordone vero,
         //                                    lunghezza 68 mm = il lato piatto
@@ -2083,11 +2083,11 @@ namespace Riscontro.Disegno
         private Esito CordoneSaldatura(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            double lato = Num(a, "lato_mm", 0);
+            double lato = Num(a, "leg_mm", 0);
             if (lato <= 0) return Fallito("Il cordone non ha lato.");
 
             var facce = new IFace2[2];
-            var nomi = new[] { "da_faccia_uid", "a_faccia_uid" };
+            var nomi = new[] { "start_face_uid", "end_face_uid" };
             for (int i = 0; i < 2; i++)
             {
                 string u = Str(a, nomi[i], "");
@@ -2220,13 +2220,13 @@ namespace Riscontro.Disegno
 
             return Riuscito(feature, new Dictionary<string, object>
             {
-                ["lato_mm"] = lato,
-                ["lato_riletto_mm"] = latoLetto >= 0 ? (object)Math.Round(latoLetto, 3) : null,
+                ["leg_mm"] = lato,
+                ["leg_reread_mm"] = latoLetto >= 0 ? (object)Math.Round(latoLetto, 3) : null,
                 // La lunghezza e' quella dello spigolo in comune, contata qui
                 // sulla geometria: non dipende dalle unita' del documento.
-                ["lunghezza_mm"] = Math.Round(contatto, 2),
-                ["corpo_da"] = corpoDa,
-                ["corpo_a"] = corpoA,
+                ["length_mm"] = Math.Round(contatto, 2),
+                ["body_source"] = corpoDa,
+                ["body_target"] = corpoA,
             });
         }
 
@@ -2298,7 +2298,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// Removes the weldment feature that distinta_taglio added before a
+        /// Removes the weldment feature that cut_list added before a
         /// refusal, and returns the tail of the refusal message: what was done,
         /// read back (finding N30).
         ///
@@ -2366,7 +2366,7 @@ namespace Riscontro.Disegno
         }
 
         /// <summary>
-        /// The tail of the refusal of distinta_taglio after the weldment feature
+        /// The tail of the refusal of cut_list after the weldment feature
         /// it added was removed, or not (N30). «The part is as it was» only when
         /// the deletion answered true AND IsWeldment reads false again; a count
         /// of bodies that changed is said too. -1 bodies is «not read». No
@@ -2551,29 +2551,29 @@ namespace Riscontro.Disegno
         private static readonly Dictionary<string, int> TrattamentiAngolo =
             new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
-                { "nessuno", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionNone },
-                { "quartabuono", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionMiter },
-                { "testa1", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt1 },
-                { "testa2", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt2 },
-                { "taglio", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionTrim },
+                { "none", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionNone },
+                { "miter", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionMiter },
+                { "butt1", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt1 },
+                { "butt2", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt2 },
+                { "cut", (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionTrim },
             };
 
         /// <summary>
-        /// The end condition of taglia_membri, as swSolidworksWeldmentEndCondOptions_e
+        /// The end condition of trim_members, as swSolidworksWeldmentEndCondOptions_e
         /// (IFeatureManager~InsertWeldmentTrimFeature2.html, «End condition as
         /// defined by swSolidworksWeldmentEndCondOptions_e»), for the four words
         /// the catalogue offers, whatever their case; -1 for anything else,
-        /// «nessuno» included (finding N22: see TagliaMembri). No interop type in
+        /// «none» included (finding N22: see TagliaMembri). No interop type in
         /// the signature: Prove.Contratti calls it by reflection.
         /// </summary>
         internal static int TrimEndCondition(string asked)
         {
             switch ((asked ?? "").Trim().ToLowerInvariant())
             {
-                case "taglio": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionTrim;
-                case "quartabuono": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionMiter;
-                case "testa1": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt1;
-                case "testa2": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt2;
+                case "cut": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionTrim;
+                case "miter": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionMiter;
+                case "butt1": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt1;
+                case "butt2": return (int)swSolidworksWeldmentEndCondOptions_e.swEndConditionButt2;
                 default: return -1;
             }
         }
@@ -2603,9 +2603,9 @@ namespace Riscontro.Disegno
         {
             switch ((piano ?? "").Trim().ToLowerInvariant())
             {
-                case "superiore": u = 0; v = 2; return true;   // XZ
-                case "destro": u = 1; v = 2; return true;      // YZ
-                case "frontale":
+                case "top": u = 0; v = 2; return true;   // XZ
+                case "right": u = 1; v = 2; return true;      // YZ
+                case "front":
                 case "": u = 0; v = 1; return true;            // XY
                 default: u = -1; v = -1; return false;
             }
@@ -2613,18 +2613,18 @@ namespace Riscontro.Disegno
 
         /// <summary>
         /// The reading of a frame's two sizes in the catalogue spelling
-        /// («ingombro» or «interasse»), or null when the value is neither
+        /// («overall» or «center_distance»), or null when the value is neither
         /// (Z-C21.10 N32). Matched the way <see cref="AssiDelPiano"/> matches
         /// the plane: trimmed, without regard to case; empty means the
-        /// default, «ingombro», as a missing value does.
+        /// default, «overall», as a missing value does.
         /// </summary>
         private static string FrameReading(string asked)
         {
             switch ((asked ?? "").Trim().ToLowerInvariant())
             {
                 case "":
-                case "ingombro": return "ingombro";
-                case "interasse": return "interasse";
+                case "overall": return "overall";
+                case "center_distance": return "center_distance";
                 default: return null;
             }
         }
@@ -2768,8 +2768,8 @@ namespace Riscontro.Disegno
         /// IL CATALOGO NE DOCUMENTA UNA E IL SERVER NE MANDA UN'ALTRA, e
         /// vanno servite tutte e due:
         ///
-        ///   dal catalogo:  { lunghezza_mm, larghezza_mm, piano, centrato, misure }
-        ///   dal server:    { telaio: { lunghezza_mm, ... }, segmenti: [...] }
+        ///   dal catalogo:  { length_mm, width_mm, piano, centrato, misure }
+        ///   dal server:    { telaio: { length_mm, ... }, segmenti: [...] }
         ///
         /// La prima e' quella che il catalogo dichiara nel suo `required` e
         /// che la descrizione promette («si chiede con due quote invece che
@@ -2784,28 +2784,28 @@ namespace Riscontro.Disegno
         /// </summary>
         private static Dictionary<string, object> TelaioChiesto(Dictionary<string, object> a)
         {
-            var annidato = Mappa(a, "telaio");
+            var annidato = Mappa(a, "frame");
             if (annidato != null) return annidato;
             if (a == null) return null;
 
             // Senza le due quote non c'e' nessun telaio da ricavare: sara'
             // un membro strutturale con i suoi segmenti, che passa da qui
             // perche' condivide il `case`.
-            if (!a.ContainsKey("lunghezza_mm") || !a.ContainsKey("larghezza_mm"))
+            if (!a.ContainsKey("length_mm") || !a.ContainsKey("width_mm"))
                 return null;
 
             var fuori = new Dictionary<string, object>
             {
-                ["lunghezza_mm"] = a["lunghezza_mm"],
-                ["larghezza_mm"] = a["larghezza_mm"],
+                ["length_mm"] = a["length_mm"],
+                ["width_mm"] = a["width_mm"],
                 // I predefiniti sono quelli che il catalogo promette: il
                 // piano frontale, centrato, e le quote lette come ingombro
                 // esterno. Quest'ultimo e' il punto dell'operazione: chi
                 // chiede un telaio 1000x800 vuole misurare 1000x800 sul
                 // pezzo, non sulla linea d'asse.
-                ["piano"] = a.ContainsKey("piano") ? a["piano"] : "frontale",
-                ["centrato"] = a.ContainsKey("centrato") ? a["centrato"] : true,
-                ["misure"] = a.ContainsKey("misure") ? a["misure"] : "ingombro",
+                ["plane"] = a.ContainsKey("plane") ? a["plane"] : "front",
+                ["centered"] = a.ContainsKey("centered") ? a["centered"] : true,
+                ["measured_as"] = a.ContainsKey("measured_as") ? a["measured_as"] : "overall",
             };
             return fuori;
         }
@@ -2814,7 +2814,7 @@ namespace Riscontro.Disegno
         {
             motivo = null;
             object grezzo;
-            if (a == null || !a.TryGetValue("segmenti", out grezzo) || grezzo == null)
+            if (a == null || !a.TryGetValue("segments", out grezzo) || grezzo == null)
             {
                 motivo = "Il piano non porta nessun segmento: non c'e' percorso.";
                 return null;
@@ -2837,9 +2837,9 @@ namespace Riscontro.Disegno
                     motivo = "Il segmento " + i + " non e' leggibile.";
                     return null;
                 }
-                double[] da = Punto(mappa, "da", i, out motivo);
+                double[] da = Punto(mappa, "start", i, out motivo);
                 if (da == null) return null;
-                double[] b = Punto(mappa, "a", i, out motivo);
+                double[] b = Punto(mappa, "end", i, out motivo);
                 if (b == null) return null;
                 if (Distanza(da, b) < 0.001)
                 {
@@ -2933,7 +2933,7 @@ namespace Riscontro.Disegno
                 return daPasso.Cast<object>().ToArray();
             }
 
-            string campoUid = campo.EndsWith("_rif", StringComparison.Ordinal)
+            string campoUid = campo.EndsWith("_ref", StringComparison.Ordinal)
                 ? campo.Substring(0, campo.Length - 4) + "_uid"
                 : campo + "_uid";
             var uid = Lista(a, campoUid);
@@ -2968,7 +2968,7 @@ namespace Riscontro.Disegno
         /// IDENTITA'. Misurato il 14/9/2026 (voce E4): due blocchi, un taglio
         /// che spezza il primo in due, poi «sposta C2». Il taglio rinumera i
         /// corpi, «C2» diventa mezzo blocco grande, e viene spostato quello —
-        /// **`riuscita: true`, nessun avviso**, e il blocco piccolo resta dov'e'.
+        /// **`succeeded: true`, nessun avviso**, e il blocco piccolo resta dov'e'.
         ///
         /// Un commento che descrive un controllo che non c'e' e' peggio di
         /// nessun commento: chi legge smette di cercare il buco proprio dove
@@ -3047,11 +3047,11 @@ namespace Riscontro.Disegno
             {
                 // In un messaggio nuovo non c'e' nessun passo da citare: si
                 // parte dai corpi che lo stato del documento elenca.
-                var uid = Lista(a, "corpi_uid");
+                var uid = Lista(a, "bodies_uid");
                 if (uid.Count == 0)
                 {
                     motivo =
-                        "Non hai detto quali barre tappare. Indica «corpi_uid» con " +
+                        "Non hai detto quali barre tappare. Indica «bodies_uid» con " +
                         "gli identificativi dello stato (C1, C2...), oppure " +
                         "«" + campo + "» se le barre le crea un passo precedente " +
                         "di questo stesso piano.";

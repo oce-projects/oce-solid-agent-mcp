@@ -1,14 +1,14 @@
 [
  {
-  "operazione": "estrudi_profilo",
-  "argomenti": {
-   "piano": "superiore",
-   "spessore_mm": 10,
-   "contorni": [
-    {"tipo": "composito", "tratti": [
-      {"tratto": "linee", "punti": [[0,0],[50,0]]},
-      {"tratto": "linee", "punti": [[52,0],[50,40]]},
-      {"tratto": "linee", "punti": [[50,40],[0,0]]}
+  "operation": "extrude_profile",
+  "arguments": {
+   "plane": "top",
+   "thickness_mm": 10,
+   "contours": [
+    {"variant": "composite", "strokes": [
+      {"stroke": "lines", "points": [[0,0],[50,0]]},
+      {"stroke": "lines", "points": [[52,0],[50,40]]},
+      {"stroke": "lines", "points": [[50,40],[0,0]]}
     ]}
    ]
   }

@@ -62,7 +62,7 @@ namespace Riscontro.Disegno
         /// moved the drawing readers too and was withdrawn when the drawing
         /// cases failed (0.143.0, 29/9/2026: 12 failures, dimensions made and
         /// discarded by the readback). Every caller of this method
-        /// reads a part (modifica_quota, lega_quota, tolleranza_quota and the
+        /// reads a part (set_dimension, link_dimension, dimension_tolerance and the
         /// part state: each one reaches it only after a part check); the
         /// drawing readers stay on <see cref="ReadDimensionInConfiguration"/>.
         ///
@@ -101,7 +101,7 @@ namespace Riscontro.Disegno
         /// <summary>
         /// The value of a dimension in system units in a named configuration;
         /// every call site today passes "" (the call it made before Z-C21.6).
-        /// Used by the drawing readers (quota_in_tavola, the turned view, the
+        /// Used by the drawing readers (drawing_dimension, the turned view, the
         /// drawing state) and by the anchor checks.
         ///
         /// Guide: IDimension~GetSystemValue2.html, «ConfigName Name of

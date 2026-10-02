@@ -1,11 +1,11 @@
 [
  {
-  "_why": "IL RAMO `tutto_chiuso` DEL GUSCIO NON HA MAI FUNZIONATO (voce E15). `corpi[0] as IEntity` torna SEMPRE null nell'interop -- un corpo non e' una IEntity, i corpi hanno il loro IBody2.Select2 -- quindi «tutto_chiuso: true» rispondeva «Non sono riuscito a selezionare il corpo solido» su QUALUNQUE pezzo. Non era un caso limite: era rotto sempre.\n\nLa cosa che fa male e' che la lezione era gia' scritta nello stesso file, quattromila righe piu' su, nel commento di sposta_corpi: misurata dentro SOLIDWORKS il 10/9/2026, con cinque prove che dicevano «i corpi indicati non si sono lasciati selezionare», e li' gia' riparata. Qui no.\n\nATTESO dalla 0.30.0: riuscito, e il volume deve CALARE. Blocco 100x60x40 = 240.000 mm3; guscio 5 mm tutto chiuso lascia il guscio esterno, cioe' 240.000 meno il vuoto interno 90x50x30 = 135.000, quindi 105.000 mm3.",
-  "operazione": "estrudi_rettangolo",
-  "argomenti": { "piano": "superiore", "lunghezza_mm": 100, "larghezza_mm": 60, "spessore_mm": 40, "centrato": true }
+  "_why": "IL RAMO `fully_closed` DEL GUSCIO NON HA MAI FUNZIONATO (voce E15). `corpi[0] as IEntity` torna SEMPRE null nell'interop -- un corpo non e' una IEntity, i corpi hanno il loro IBody2.Select2 -- quindi «fully_closed: true» rispondeva «Non sono riuscito a selezionare il corpo solido» su QUALUNQUE pezzo. Non era un caso limite: era rotto sempre.\n\nLa cosa che fa male e' che la lezione era gia' scritta nello stesso file, quattromila righe piu' su, nel commento di move_bodies: misurata dentro SOLIDWORKS il 10/9/2026, con cinque prove che dicevano «i corpi indicati non si sono lasciati selezionare», e li' gia' riparata. Qui no.\n\nATTESO dalla 0.30.0: riuscito, e il volume deve CALARE. Blocco 100x60x40 = 240.000 mm3; guscio 5 mm tutto chiuso lascia il guscio esterno, cioe' 240.000 meno il vuoto interno 90x50x30 = 135.000, quindi 105.000 mm3.",
+  "operation": "extrude_rectangle",
+  "arguments": { "plane": "top", "length_mm": 100, "width_mm": 60, "thickness_mm": 40, "centered": true }
  },
  {
-  "operazione": "guscio",
-  "argomenti": { "spessore_mm": 5, "tutto_chiuso": true }
+  "operation": "shell",
+  "arguments": { "thickness_mm": 5, "fully_closed": true }
  }
 ]

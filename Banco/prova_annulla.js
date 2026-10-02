@@ -1,9 +1,9 @@
-// Prova lo strumento `annulla` (voce R1) parlando al ponte come un client MCP.
+// Prova lo strumento `undo` (voce R1) parlando al ponte come un client MCP.
 //
 //   node prova_annulla.js
 //
 // PERCHE' QUI E NON NEL BANCO. `ProvaSaldatura` prova la LIBRERIA per
-// riflessione; `annulla` non sta nella libreria — e' uno strumento del ponte,
+// riflessione; `undo` non sta nella libreria — e' uno strumento del ponte,
 // e la parte che conta (il ricordo dell'ultimo piano, i rifiuti) vive in
 // `Attrezzi`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
 //
@@ -11,7 +11,7 @@
 //
 // Il verde e' uno: un piano di due passi viene ritirato tutto intero e il pezzo
 // torna a volume zero. I rossi sono tre, e sono la ragione per cui questo file
-// esiste — «annulla» che funziona non e' la parte difficile, «annulla» che si
+// esiste — «undo» che funziona non e' la parte difficile, «undo» che si
 // RIFIUTA lo e':
 //
 //   R1a  senza nessun piano eseguito          -> deve rifiutare
@@ -32,27 +32,27 @@ const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.ex
 
 const PIANO_DUE_PASSI = [
   {
-    operazione: "estrudi_rettangolo",
-    argomenti: {
-      piano: "superiore", lunghezza_mm: 200, larghezza_mm: 100,
-      spessore_mm: 20, centrato: true,
+    operation: "extrude_rectangle",
+    arguments: {
+      plane: "top", length_mm: 200, width_mm: 100,
+      thickness_mm: 20, centered: true,
     },
   },
   {
-    operazione: "taglio_cilindrico",
-    argomenti: {
-      faccia_rif: { passo: 1, genere: "faccia_superiore" },
-      x_mm: 0, y_mm: 0, diametro_mm: 12, passante: true,
+    operation: "cylindrical_cut",
+    arguments: {
+      face_ref: { step: 1, kind: "top_face" },
+      x_mm: 0, y_mm: 0, diameter_mm: 12, through_all: true,
     },
   },
 ];
 
 const PIANO_UN_PASSO = [
   {
-    operazione: "estrudi_rettangolo",
-    argomenti: {
-      piano: "superiore", lunghezza_mm: 80, larghezza_mm: 80,
-      spessore_mm: 10, centrato: true,
+    operation: "extrude_rectangle",
+    arguments: {
+      plane: "top", length_mm: 80, width_mm: 80,
+      thickness_mm: 10, centered: true,
     },
   },
 ];
@@ -137,7 +137,7 @@ async function giro() {
         nomi.join(", "));
   if (nomi.indexOf("annulla") < 0) return;
 
-  const suo = strumenti.filter(function (t) { return t.name === "annulla"; })[0] || {};
+  const suo = strumenti.filter(function (t) { return t.name === "undo"; })[0] || {};
   const ann = suo.annotations || {};
   segna("annulla si dichiara distruttivo e non idempotente",
         ann.destructiveHint === true && ann.idempotentHint === false &&
@@ -147,7 +147,7 @@ async function giro() {
   // ── ROSSO 1: niente da ritirare ────────────────────────────────────────
   // Questa e' la PRIMA chiamata della conversazione: il ponte non ha eseguito
   // nessun piano, quindi non sa cosa toglierebbe.
-  const vuoto = await chiama("annulla");
+  const vuoto = await chiama("undo");
   segna("ROSSO 1: senza nessun piano, rifiuta",
         vuoto.errore && /nessun piano da ritirare/i.test(vuoto.testo),
         corto(vuoto.testo));
@@ -157,28 +157,28 @@ async function giro() {
     return;
   }
 
-  const visto = await chiama("guarda_il_pezzo");
+  const visto = await chiama("inspect_part");
   segna("il pezzo pulito si legge", !visto.errore && visto.dati != null,
         visto.dati ? "volume " + visto.dati.volume_mm3 : corto(visto.testo));
 
   // ── IL VERDE: due passi, ritirati insieme ──────────────────────────────
-  const fatto = await chiama("disegna", { passi: PIANO_DUE_PASSI });
-  const volumeDopoIlPiano = fatto.dati ? fatto.dati.volume_dopo_mm3 : null;
+  const fatto = await chiama("build", { steps: PIANO_DUE_PASSI });
+  const volumeDopoIlPiano = fatto.dati ? fatto.dati.volume_after_mm3 : null;
   segna("il piano di due passi costruisce", !fatto.errore && volumeDopoIlPiano > 0,
         fatto.errore ? corto(fatto.testo) : "volume " + volumeDopoIlPiano);
   if (fatto.errore) return;
 
-  const ritirato = await chiama("annulla");
+  const ritirato = await chiama("undo");
   const d = ritirato.dati || {};
   segna("annulla ritira il piano intero",
-        !ritirato.errore && d.annullato === true,
-        ritirato.errore ? corto(ritirato.testo) : "annullato");
+        !ritirato.errore && d.undone === true,
+        ritirato.errore ? corto(ritirato.testo) : "undone");
   segna("il volume torna a zero",
-        d.volume_dopo_mm3 != null && Math.abs(d.volume_dopo_mm3) < 0.001,
-        "volume " + d.volume_dopo_mm3 + " (era " + d.volume_prima_mm3 + ")");
+        d.volume_after_mm3 != null && Math.abs(d.volume_after_mm3) < 0.001,
+        "volume " + d.volume_after_mm3 + " (era " + d.volume_before_mm3 + ")");
   segna("le lavorazioni tornano a zero",
-        d.lavorazioni_dopo === 0,
-        d.lavorazioni_prima + " -> " + d.lavorazioni_dopo);
+        d.features_after === 0,
+        d.features_before + " -> " + d.features_after);
 
   // LO STATO NUOVO VIENE CON LA RISPOSTA, e non e' un di piu': dopo un
   // annullamento gli identificativi sono altri, e chi legge deve poterli
@@ -191,26 +191,26 @@ async function giro() {
   // Un'asserzione su un campo che legittimamente non c'e' non prova
   // l'assenza dello stato: prova che chi l'ha scritta non aveva letto lo stato.
   segna("la risposta porta lo stato di adesso",
-        d.stato_dopo != null &&
-        typeof d.stato_dopo.titolo === "string" &&
-        ("corpo_solido" in d.stato_dopo),
-        d.stato_dopo ? "titolo «" + d.stato_dopo.titolo + "», corpo_solido " +
-                       d.stato_dopo.corpo_solido
+        d.state_after != null &&
+        typeof d.state_after.document_title === "string" &&
+        ("solid_body" in d.state_after),
+        d.state_after ? "titolo «" + d.state_after.document_title + "», solid_body " +
+                       d.state_after.solid_body
                      : "assente");
 
   // ── ROSSO 2: due volte di fila ─────────────────────────────────────────
   // Il primo annullamento ha consumato il ricordo. Il secondo toglierebbe
   // quello che c'era PRIMA del piano, che questo ponte non ha fatto.
-  const bis = await chiama("annulla");
+  const bis = await chiama("undo");
   segna("ROSSO 2: la seconda volta rifiuta",
         bis.errore && /nessun piano da ritirare/i.test(bis.testo),
         corto(bis.testo));
 
   // ── ROSSO 3: un altro documento davanti ────────────────────────────────
-  const altro = await chiama("disegna", { passi: PIANO_UN_PASSO });
+  const altro = await chiama("build", { steps: PIANO_UN_PASSO });
   segna("un secondo piano costruisce", !altro.errore,
         altro.errore ? corto(altro.testo)
-                     : "volume " + (altro.dati || {}).volume_dopo_mm3);
+                     : "volume " + (altro.dati || {}).volume_after_mm3);
   if (altro.errore) return;
 
   if (!pezzoPulito()) {
@@ -218,7 +218,7 @@ async function giro() {
           "NuovaParte non ha risposto");
     return;
   }
-  const sbagliato = await chiama("annulla");
+  const sbagliato = await chiama("undo");
   segna("ROSSO 3: con un altro documento davanti, rifiuta",
         sbagliato.errore && /documento e' cambiato/i.test(sbagliato.testo),
         corto(sbagliato.testo));

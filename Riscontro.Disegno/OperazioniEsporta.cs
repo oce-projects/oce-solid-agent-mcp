@@ -76,7 +76,7 @@ namespace Riscontro.Disegno
             if (parte == null)
                 return Fallito(
                     "Questo documento non e' un pezzo: lo STL si esporta da una parte. Per mandare un " +
-                    "assieme usa «esporta_step», che lo porta intero.");
+                    "assieme usa «export_step», che lo porta intero.");
 
             // ── 1. LA VERIFICA VIENE PRIMA, e puo' fermare tutto ──────────
             //
@@ -88,21 +88,21 @@ namespace Riscontro.Disegno
             if (!verifica.Riuscito) return verifica;
 
             bool stampabile = verifica.Misure != null &&
-                              verifica.Misure.ContainsKey("stampabile") &&
-                              Convert.ToBoolean(verifica.Misure["stampabile"]);
-            string giudizio = verifica.Misure != null && verifica.Misure.ContainsKey("giudizio")
-                ? Convert.ToString(verifica.Misure["giudizio"]) : "";
+                              verifica.Misure.ContainsKey("printable") &&
+                              Convert.ToBoolean(verifica.Misure["printable"]);
+            string giudizio = verifica.Misure != null && verifica.Misure.ContainsKey("verdict")
+                ? Convert.ToString(verifica.Misure["verdict"]) : "";
 
-            bool forza = Bool(a, "esporta_comunque", false);
+            bool forza = Bool(a, "export_anyway", false);
             if (!stampabile && !forza)
                 return Fallito(
                     "Non esporto: " + giudizio + "\n\n" +
                     "Un STL non porta con se' niente che dica che il pezzo era cosi': " +
                     "si apre, si affetta e si stampa lo stesso. Sistema il pezzo, " +
-                    "oppure passa «esporta_comunque»: true se sai quello che fai.");
+                    "oppure passa «export_anyway»: true se sai quello che fai.");
 
             // ── 2. DOVE ──────────────────────────────────────────────────
-            string dove = Str(a, "percorso", null);
+            string dove = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(dove))
             {
                 string suo = "";
@@ -110,7 +110,7 @@ namespace Riscontro.Disegno
                 if (string.IsNullOrWhiteSpace(suo))
                     return Fallito(
                         "Il pezzo non e' mai stato salvato e non mi hai detto dove mettere " +
-                        "lo STL. Dimmi «percorso», oppure salva prima il pezzo.");
+                        "lo STL. Dimmi «path», oppure salva prima il pezzo.");
                 dove = Path.ChangeExtension(suo, ".stl");
             }
             if (!".stl".Equals(Path.GetExtension(dove), StringComparison.OrdinalIgnoreCase))
@@ -124,13 +124,13 @@ namespace Riscontro.Disegno
             if (!Directory.Exists(cartella))
                 return Fallito("La cartella «" + cartella + "» non esiste: non la creo io.");
 
-            bool binario = Bool(a, "binario", true);
-            string qualitaChiesta = (Str(a, "qualita", "fine") ?? "fine").Trim().ToLowerInvariant();
+            bool binario = Bool(a, "binary", true);
+            string qualitaChiesta = (Str(a, "quality", "fine") ?? "fine").Trim().ToLowerInvariant();
             int qualita;
             if (qualitaChiesta == "fine") qualita = (int)swSTLQuality_e.swSTLQuality_Fine;
-            else if (qualitaChiesta == "grossolana") qualita = (int)swSTLQuality_e.swSTLQuality_Coarse;
+            else if (qualitaChiesta == "coarse") qualita = (int)swSTLQuality_e.swSTLQuality_Coarse;
             else return Fallito(
-                "Qualita' «" + qualitaChiesta + "» sconosciuta: ci sono «fine» e «grossolana».");
+                "Qualita' «" + qualitaChiesta + "» sconosciuta: ci sono «fine» e «coarse».");
 
             // ── 3. LE PREFERENZE: lette, imposte, rimesse ────────────────
             var prima = LeggiPreferenzeStl();
@@ -165,7 +165,7 @@ namespace Riscontro.Disegno
                 // chi sta davanti a SOLIDWORKS — faceva uscire uno STL con quella
                 // faccia sola, e i controlli qui sotto non potevano accorgersene:
                 // confrontano il file con se stesso (84 + 50 per triangolo), non
-                // col pezzo. `triangoli_dalla_geometria` resta un numero riportato
+                // col pezzo. `triangles_from_geometry` resta un numero riportato
                 // accanto e non diventa un vincolo: la tassellatura di schermo e
                 // quella di esportazione non hanno la stessa tolleranza, e una
                 // soglia sull'ordine di grandezza non si fissa senza averla
@@ -205,19 +205,19 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["percorso"] = posato,
+                ["path"] = posato,
                 ["byte"] = quantoPesa,
-                ["formato"] = binario ? "binario" : "ASCII",
-                ["qualita"] = qualitaChiesta,
+                ["file_format"] = binario ? "binary" : "ASCII",
+                ["quality"] = qualitaChiesta,
                 // LE UNITA' SI DICONO SEMPRE. Il file non le porta, e chi apre
                 // lo STL non ha nessun modo di saperle: se questa riga non
                 // c'e', l'unica risposta possibile e' «boh, prova».
-                ["unita"] = "mm",
-                ["triangoli"] = triangoliNelFile >= 0 ? (object)triangoliNelFile : null,
-                ["triangoli_come_li_so"] = comeLoSo,
-                ["triangoli_dalla_geometria"] = triangoliDelPezzo >= 0
+                ["units"] = "mm",
+                ["triangles"] = triangoliNelFile >= 0 ? (object)triangoliNelFile : null,
+                ["how_triangles_are_known"] = comeLoSo,
+                ["triangles_from_geometry"] = triangoliDelPezzo >= 0
                     ? (object)triangoliDelPezzo : null,
-                ["verifica"] = giudizio,
+                ["check"] = giudizio,
                 // L13-7: the Warnings of SaveAs3, decoded, also on a success.
                 ["save_warnings"] = SaveWarningsForAnswer(avvisi),
             };
@@ -226,8 +226,8 @@ namespace Riscontro.Disegno
             string stlPreferencesNote = PreferencesNotRestoredNote(preferencesNotRestored);
             if (stlPreferencesNote != null) misure["preferences_not_restored"] = stlPreferencesNote;
             if (!stampabile)
-                misure["esportato_comunque"] =
-                    "L'hai chiesto tu con «esporta_comunque»: il file c'e' e il pezzo " +
+                misure["exported_anyway"] =
+                    "L'hai chiesto tu con «export_anyway»: il file c'e' e il pezzo " +
                     "non era a posto. " + giudizio;
 
             // UN FILE CHE NON TORNA NON E' UN FILE. Su un STL binario la
@@ -531,7 +531,7 @@ namespace Riscontro.Disegno
         //
         // ── PERCHE' NON RIFIUTANO COME LO STL ────────────────────────────
         //
-        // `esporta_stl` si rifiuta se il pezzo non e' un solo corpo solido
+        // `export_stl` si rifiuta se il pezzo non e' un solo corpo solido
         // chiuso. Qui NO, ed e' una differenza voluta: un STEP con dieci
         // corpi e' **normale** — un saldato si manda al fornitore cosi' — e
         // uno con delle superfici aperte pure, perche' STEP e IGES le
@@ -617,23 +617,23 @@ namespace Riscontro.Disegno
                 return Fallito(
                     "Questo documento non e' un pezzo ne' un assieme: STEP e IGES si esportano da una " +
                     "parte o da un assieme. Aprimi quello da mandare.");
-            if (assieme != null && Bool(a, "riapri_e_confronta", false))
+            if (assieme != null && Bool(a, "reopen_and_compare", false))
                 return Fallito(
-                    "Su un assieme «riapri_e_confronta» non lo faccio: rileggere lo STEP di un assieme apre " +
+                    "Su un assieme «reopen_and_compare» non lo faccio: rileggere lo STEP di un assieme apre " +
                     "la finestra «Nuovo documento» e la chiamata non torna (misurato). Il controllo che faccio " +
                     "e' il conto dei solidi nel file contro quelli dei pezzi: toglilo e richiedimelo.");
 
-            bool iges = operazione == "esporta_iges";
+            bool iges = operazione == "export_iges";
             // L'IGES DELL'ASSIEME NO (revisione avversariale del 27/9/2026): non ha la
             // verifica dei solidi che ha lo STEP, e dipende da una preferenza globale
             // (swIGESComponentsIntoOneFile) che non si imposta — con quella spenta
-            // SOLIDWORKS scrive un file per componente, e quello in «percorso» puo'
+            // SOLIDWORKS scrive un file per componente, e quello in «path» puo'
             // non contenere l'assieme intero. Finche' non e' misurato, si rifiuta.
             if (iges && assieme != null)
                 return Fallito(
                     "L'IGES di un assieme non lo scrivo: non so verificare che dentro ci sia l'assieme intero (con " +
                     "certe impostazioni SOLIDWORKS scrive un file per componente). Per mandare l'assieme usa " +
-                    "«esporta_step», che lo porta intero e lo controllo; per un pezzo solo, aprilo e chiedimi l'IGES li'.");
+                    "«export_step», che lo porta intero e lo controllo; per un pezzo solo, aprilo e chiedimi l'IGES li'.");
 
             // THE PROTOCOL BEFORE THE PATH (Z-C21.13, C5-7): AP242 decides which
             // extension the path may have.
@@ -644,20 +644,20 @@ namespace Riscontro.Disegno
             string rappresentazioneChiesta = null;
             if (iges)
             {
-                rappresentazioneChiesta = (Str(a, "rappresentazione", "solidi") ?? "solidi")
+                rappresentazioneChiesta = (Str(a, "representation", "solids") ?? "solids")
                     .Trim().ToLowerInvariant();
-                if (rappresentazioneChiesta == "solidi")
+                if (rappresentazioneChiesta == "solids")
                     rappresentazione = (int)swIGESRepresentation_e.swIGES_BREP;
-                else if (rappresentazioneChiesta == "superfici")
+                else if (rappresentazioneChiesta == "surfaces")
                     rappresentazione = (int)swIGESRepresentation_e.swIGES_TRMSRF;
                 else return Fallito(
                     "Rappresentazione «" + rappresentazioneChiesta + "» sconosciuta: ci sono " +
-                    "«solidi» (BREP, quella che serve a chi deve lavorare il pezzo) e " +
-                    "«superfici».");
+                    "«solids» (BREP, quella che serve a chi deve lavorare il pezzo) e " +
+                    "«surfaces».");
             }
             else
             {
-                protocolloChiesto = (Str(a, "protocollo", "AP214") ?? "AP214")
+                protocolloChiesto = (Str(a, "protocol", "AP214") ?? "AP214")
                     .Trim().ToUpperInvariant();
                 if (protocolloChiesto == "AP203") protocollo = 203;
                 else if (protocolloChiesto == "AP214") protocollo = 214;
@@ -681,12 +681,12 @@ namespace Riscontro.Disegno
             if (parte != null)
             {
                 var verifica = VerificaGeometriaCorpo(modello, new Dictionary<string, object>(), stato);
-                if (verifica.Riuscito && verifica.Misure != null && verifica.Misure.ContainsKey("giudizio"))
-                    giudizio = Convert.ToString(verifica.Misure["giudizio"]);
+                if (verifica.Riuscito && verifica.Misure != null && verifica.Misure.ContainsKey("verdict"))
+                    giudizio = Convert.ToString(verifica.Misure["verdict"]);
             }
             else giudizio = "assieme: la verifica dei corpi si fa sui pezzi, uno per uno";
 
-            string dove = Str(a, "percorso", null);
+            string dove = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(dove))
             {
                 string suo = "";
@@ -694,7 +694,7 @@ namespace Riscontro.Disegno
                 if (string.IsNullOrWhiteSpace(suo))
                     return Fallito(
                         "Il pezzo non e' mai stato salvato e non mi hai detto dove mettere " +
-                        "il file. Dimmi «percorso», oppure salva prima il pezzo.");
+                        "il file. Dimmi «path», oppure salva prima il pezzo.");
                 dove = Path.ChangeExtension(suo, estensioniBuone[0]);
             }
 
@@ -780,9 +780,9 @@ namespace Riscontro.Disegno
             long quantoPesa = new FileInfo(dove).Length;
             var misure = new Dictionary<string, object>
             {
-                ["percorso"] = dove,
+                ["path"] = dove,
                 ["byte"] = quantoPesa,
-                ["verifica"] = giudizio,
+                ["check"] = giudizio,
             };
             // L13-7: the Warnings of SaveAs3, decoded, also on a success. The
             // AP242 door (PublishSTEP242File) has no Warnings mask to read, so
@@ -800,12 +800,12 @@ namespace Riscontro.Disegno
 
             if (iges)
             {
-                misure["formato"] = "IGES";
-                misure["rappresentazione"] = rappresentazioneChiesta;
+                misure["file_format"] = "IGES";
+                misure["representation"] = rappresentazioneChiesta;
                 string perche;
                 int record = RecordIges(dove, out perche);
-                misure["record_di_parametri"] = record >= 0 ? (object)record : null;
-                misure["come_lo_so"] = perche;
+                misure["parameter_record"] = record >= 0 ? (object)record : null;
+                misure["how_known"] = perche;
                 if (record == 0)
                     return Fallito(
                         "L'IGES e' stato scritto ma non ha nessun record di parametri: e' " +
@@ -842,8 +842,8 @@ namespace Riscontro.Disegno
             }
             else
             {
-                misure["formato"] = "STEP";
-                misure["protocollo_chiesto"] = protocolloChiesto;
+                misure["file_format"] = "STEP";
+                misure["protocol_requested"] = protocolloChiesto;
                 // WHICH DOOR WROTE IT (C5-7): the two do not share their settings.
                 misure["written_with"] = ap242
                     ? "IModelDocExtension.PublishSTEP242File (SOLIDWORKS MBD)"
@@ -853,9 +853,9 @@ namespace Riscontro.Disegno
                 string schema = SchemaDelloStep(dove, out entita, out perche);
                 string uscito = DalloSchema(schema);
                 misure["file_schema"] = schema;
-                misure["protocollo_uscito"] = uscito;
-                misure["entita"] = entita >= 0 ? (object)entita : null;
-                misure["come_lo_so"] = perche;
+                misure["protocol_returned"] = uscito;
+                misure["entity"] = entita >= 0 ? (object)entita : null;
+                misure["how_known"] = perche;
 
                 if (schema == null)
                     return Fallito(
@@ -879,8 +879,8 @@ namespace Riscontro.Disegno
                     var hiddenLeftOut = new List<string>();
                     int attesi = SolidiAttesiNellAssieme(assieme, hiddenLeftOut);
                     int nelFile = SolidiNelloStep(dove);
-                    misure["solidi_attesi"] = attesi >= 0 ? (object)attesi : null;
-                    misure["solidi_nel_file"] = nelFile >= 0 ? (object)nelFile : null;
+                    misure["solids_expected"] = attesi >= 0 ? (object)attesi : null;
+                    misure["solids_in_file"] = nelFile >= 0 ? (object)nelFile : null;
                     // Z-C21.11: hidden components are not written (measured), and the
                     // export resolved lightweight components (measured): both are said.
                     if (hiddenLeftOut.Count > 0)
@@ -904,7 +904,7 @@ namespace Riscontro.Disegno
             // dimensione di un file non lo dice, e nemmeno il numero di
             // entita'. Non e' il predefinito perche' costa un'apertura di
             // documento: su un pezzo grosso sono minuti.
-            if (Bool(a, "riapri_e_confronta", false))
+            if (Bool(a, "reopen_and_compare", false))
             {
                 // IL CONFRONTO VUOLE DUE VOLUMI LETTI (voce Z-C8): con lo zero
                 // di una lettura fallita da questa parte, «il pezzo ne ha 0: la
@@ -913,8 +913,8 @@ namespace Riscontro.Disegno
                 string comE;
                 double suo = VolumeRiaprendo(dove, out comE);
                 misure["volume_mm3"] = NumeroOppureNull(mioLetto, 2);
-                misure["volume_riletto_mm3"] = suo >= 0 ? (object)Math.Round(suo, 2) : null;
-                misure["come_e_andata_la_rilettura"] = comE;
+                misure["volume_reread_mm3"] = suo >= 0 ? (object)Math.Round(suo, 2) : null;
+                misure["how_the_reread_went"] = comE;
                 if (suo < 0)
                     return Fallito(
                         "Il file e' scritto ma non sono riuscito a rileggerlo per " +
@@ -929,7 +929,7 @@ namespace Riscontro.Disegno
                 // millesimo di volume ha perso una faccia, e su un pezzo che
                 // va in officina non e' un arrotondamento.
                 double scarto = mio > 0 ? Math.Abs(suo - mio) / mio : Math.Abs(suo - mio);
-                misure["scarto_relativo"] = Math.Round(scarto, 6);
+                misure["deviation_relative"] = Math.Round(scarto, 6);
                 if (scarto > 0.001)
                     return Fallito(
                         "Il file riaperto ha volume " + suo.ToString("0.##") + " mm3 e il " +

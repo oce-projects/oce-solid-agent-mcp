@@ -23,7 +23,7 @@ namespace Prove.Contratti
     /// ── COSA PROVA ────────────────────────────────────────────────────────
     ///
     ///   * il **catalogo**: campi, famiglie, nessun percorso di questa macchina
-    ///     dentro le descrizioni, e `Simili()` che su «asole» trova «asola»;
+    ///     dentro le descrizioni, e `Simili()` che su «asole» trova «slot»;
     ///   * `Sessione.StessoDocumento()` — la guardia contro il blocco estruso
     ///     nel pezzo di qualcun altro, che fino a oggi non aveva una prova;
     ///   * il **protocollo MCP**, parlando col ponte su stdin/stdout come
@@ -372,6 +372,7 @@ namespace Prove.Contratti
             ProveAttese.Tutte();
             ProveCatalogo.Tutte();
             ProveSessione.Tutte();
+            H19InstallerContract.RunAll();
             ProveProtocollo.Tutte();
             ProveIlBanco.Tutte();
             ProveLaSentinella.Tutte();
@@ -403,6 +404,8 @@ namespace Prove.Contratti
             Zc2113ExportUnitsContract.RunAll();
             Zc2113SplineCentreMarksContract.RunAll();
             DocumentByPathContract.RunAll();
+            AliasLayerContract.RunAll();
+            DescriptionValuesContract.RunAll();
             Zc2189WeldAssemblyContract.RunAll();
             Zc2189DrawingContract.RunAll();
             Zc2189MachiningContract.RunAll();
@@ -682,7 +685,7 @@ namespace Prove.Contratti
         ///
         /// Il LEGGIMI del banco ha una tabella «cartella / quanti casi / cosa
         /// provano». Guardata il 17/9/2026: **quattro numeri su venti erano
-        /// sbagliati** — `lavorazioni` diceva 2 e ne aveva 7, `ripeti` 3 e ne
+        /// sbagliati** — `features` diceva 2 e ne aveva 7, `ripeti` 3 e ne
         /// aveva 6. Nessuno se n'era accorto, perche' un numero in un documento
         /// non fallisce: invecchia.
         ///
@@ -768,7 +771,7 @@ namespace Prove.Contratti
         /// passo di ogni piano**, e per tutti e quattro gli strumenti del ponte
         /// — ammette solo `swDocPART` e, se `AncheSuTavole`, `swDocDRAWING`.
         /// Gli assiemi no. Intanto il catalogo servito ai client elencava tre
-        /// operazioni di famiglia `assiemi`.
+        /// operazioni di famiglia `assemblies`.
         ///
         /// **Il ponte prometteva operazioni che avrebbe rifiutato prima di
         /// cominciare, e nessuna delle 710 prove del banco poteva vederlo: il
@@ -785,9 +788,9 @@ namespace Prove.Contratti
         ///
         /// ── COSA **NON** PRENDE, e va detto ──────────────────────────────
         ///
-        /// Guarda le FAMIGLIE, non le singole operazioni. `verifica_interferenze`
-        /// sta in famiglia `verifiche` e vuole un assieme: questa prova la
-        /// classifica come «parte» e la lascia passare. Il rimedio vero e' un
+        /// Guarda le FAMIGLIE, non le singole operazioni. `interference_check`
+        /// sta in famiglia `checks` e vuole un assieme: questa prova la
+        /// classifica come «part» e la lascia passare. Il rimedio vero e' un
         /// campo `DocumentoRichiesto` su `OperazioneDisegno` — voce a se',
         /// perche' tocca la libreria. Finche' non c'e', **questa prova copre la
         /// famiglia e non il caso singolo**, ed e' scritto qui perche' chi la
@@ -856,16 +859,16 @@ namespace Prove.Contratti
             }
             catch (Exception ex) { Segna("il catalogo si legge", false, ex.Message); return; }
 
-            var elenco = (radice != null && radice.ContainsKey("operazioni")
-                ? radice["operazioni"] : null) as object[];
-            if (elenco == null) { Segna("il catalogo ha «operazioni»", false, ""); return; }
+            var elenco = (radice != null && radice.ContainsKey("operations")
+                ? radice["operations"] : null) as object[];
+            if (elenco == null) { Segna("il catalogo ha «operations»", false, ""); return; }
 
             var famiglie = new SortedSet<string>(StringComparer.Ordinal);
             foreach (var o in elenco)
             {
                 var v = o as Dictionary<string, object>;
-                if (v != null && v.ContainsKey("famiglia") && v["famiglia"] != null)
-                    famiglie.Add(Convert.ToString(v["famiglia"]));
+                if (v != null && v.ContainsKey("family") && v["family"] != null)
+                    famiglie.Add(Convert.ToString(v["family"]));
             }
             Segna("ci sono famiglie da controllare", famiglie.Count >= 5,
                   famiglie.Count + ": " + string.Join(", ", famiglie));
@@ -877,20 +880,20 @@ namespace Prove.Contratti
             // una deve dire su cosa gira.
             var serve = new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                { "assiemi",      "swDocASSEMBLY" },
-                { "tavola",       "swDocDRAWING"  },
-                { "estrusioni",   "swDocPART"     },
-                { "lavorazioni",  "swDocPART"     },
-                { "saldature",    "swDocPART"     },
-                { "riferimenti",  "swDocPART"     },
-                { "proprieta",    "swDocPART"     },
-                { "verifiche",    "swDocPART"     },
-                { "esportazioni", "swDocPART"     },
-                { "identita",     "swDocPART"     },
-                { "documento",    "swDocPART"     },
+                { "assemblies",      "swDocASSEMBLY" },
+                { "drawing",       "swDocDRAWING"  },
+                { "extrusions",   "swDocPART"     },
+                { "features",  "swDocPART"     },
+                { "weldments",    "swDocPART"     },
+                { "references",  "swDocPART"     },
+                { "physical_properties",    "swDocPART"     },
+                { "checks",    "swDocPART"     },
+                { "exports", "swDocPART"     },
+                { "identity",     "swDocPART"     },
+                { "document",    "swDocPART"     },
                 { "annullare",    "swDocPART"     },
-                { "lamiera",      "swDocPART"     },
-                { "quote",        "swDocPART"     },
+                { "sheet_metal",      "swDocPART"     },
+                { "dimensions",        "swDocPART"     },
             };
 
             var sconosciute = famiglie.Where(f => !serve.ContainsKey(f)).ToList();
@@ -1135,7 +1138,7 @@ namespace Prove.Contratti
         }
 
         /// <summary>
-        /// IL RIFIUTO DI `quote_dal_modello` DICE ANCORA QUELLO CHE SERVE.
+        /// IL RIFIUTO DI `model_dimensions` DICE ANCORA QUELLO CHE SERVE.
         ///
         /// ── PERCHE' ESISTE, E COSA NON E' ────────────────────────────────
         ///
@@ -1177,12 +1180,12 @@ namespace Prove.Contratti
             const string ancora = "Non e' arrivata nessuna quota";
             if (codice.IndexOf(ancora, StringComparison.Ordinal) < 0)
             {
-                Segna("trovo il rifiuto di quote_dal_modello", false,
+                Segna("trovo il rifiuto di model_dimensions", false,
                       "«" + ancora + "» non c'e' piu' in OperazioniTavola.cs: " +
                       "se l'import e' stato riparato questa prova va RISCRITTA, non tolta");
                 return;
             }
-            Segna("trovo il rifiuto di quote_dal_modello", true, "");
+            Segna("trovo il rifiuto di model_dimensions", true, "");
 
             // Ogni pezzo, e accanto PERCHE' quel pezzo: un elenco di stringhe
             // senza il motivo e' la prima cosa che qualcuno taglia.

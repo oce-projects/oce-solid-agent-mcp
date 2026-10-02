@@ -12,7 +12,7 @@ namespace Prove.Contratti
     ///
     /// E' la funzione che impedisce al ponte di lavorare sul documento di
     /// qualcun altro: piu' sessioni sullo stesso SOLIDWORKS, il documento
-    /// «attivo» e' stato globale condiviso, e il 14/9/2026 un blocco estruso e'
+    /// «active» e' stato globale condiviso, e il 14/9/2026 un blocco estruso e'
     /// finito nel pezzo dell'altra sessione. Fino a oggi quella guardia non
     /// aveva **nemmeno una prova**.
     ///
@@ -43,7 +43,7 @@ namespace Prove.Contratti
                 (a, b) => (bool)stesso.Invoke(null, new object[] { a, b });
 
             Func<string, string, Dictionary<string, object>> id = (percorso, titolo) =>
-                new Dictionary<string, object> { ["percorso"] = percorso, ["titolo"] = titolo };
+                new Dictionary<string, object> { ["path"] = percorso, ["document_title"] = titolo };
 
             // ── IL PERCORSO VINCE SUL TITOLO ─────────────────────────────
             //
@@ -130,9 +130,10 @@ namespace Prove.Contratti
         ///
         /// Un solo `catch (COMException)` dava la stessa frase per tutte e due,
         /// e chi installa per conto di qualcuno faceva aprire un programma che
-        /// non c'era. Le tre risposte si provano per codice, senza SOLIDWORKS: e
-        /// la regola che conta e' che la frase del «non installato» NON contenga
-        /// «non risulta aperto», che l'installatore legge come «tutto a posto».
+        /// non c'era. Le tre risposte si provano per codice, senza SOLIDWORKS.
+        /// Since entry H19 (B3) the installer reads the exit code of --prova and
+        /// no sentence (H19InstallerContract checks the codes): these checks
+        /// keep the two sentences for a person apart, nothing more.
         /// </summary>
         private static void NonInstallatoONonAperto(string ponte)
         {
@@ -149,14 +150,14 @@ namespace Prove.Contratti
             Func<uint, string> frase = c => (string)m.Invoke(null, new object[] { unchecked((int)c) });
 
             var aperto = frase(0x800401E3);
-            Segna("MK_E_UNAVAILABLE: «non risulta aperto», come l'installatore la cerca",
+            Segna("MK_E_UNAVAILABLE: the sentence says SOLIDWORKS is not running",
                   aperto.IndexOf("non risulta aperto", StringComparison.Ordinal) >= 0, aperto);
             foreach (var c in new uint[] { 0x800401F3, 0x80040154 })
             {
                 var t = frase(c);
                 Segna("0x" + c.ToString("X8") + ": dice «non e' installato»",
                       t.IndexOf("non e' installato", StringComparison.Ordinal) >= 0, t);
-                Segna("0x" + c.ToString("X8") + ": e NON dice «non risulta aperto», se no l'installatore esce 0",
+                Segna("0x" + c.ToString("X8") + ": and does NOT say it is not running (it is not installed)",
                       t.IndexOf("non risulta aperto", StringComparison.Ordinal) < 0, t);
             }
             var altro = frase(0x80004005);
@@ -308,14 +309,14 @@ namespace Prove.Contratti
             {
                 var d = new Dictionary<string, object>(StringComparer.Ordinal);
                 if (vol != null) d["volume_mm3"] = vol;
-                if (lav != null) d["lavorazioni"] = lav;
+                if (lav != null) d["features"] = lav;
                 return d;
             };
 
             // ── NIENTE DI CAMBIATO E' `null`, NON UNA FRASE VUOTA ────────
             //
             // Il chiamante scrive `if (cambiato != null)`. Una stringa vuota
-            // passerebbe quel controllo e fermerebbe «disegna» dicendo niente:
+            // passerebbe quel controllo e fermerebbe «build» dicendo niente:
             // il peggiore dei due modi di sbagliare, perche' l'avviso c'e' e
             // non si capisce di cosa parli.
             Segna("due firme uguali: non e' cambiato niente",
@@ -359,7 +360,7 @@ namespace Prove.Contratti
             //
             // `null` vuol dire «non ho guardato niente», e non e' «e' tutto
             // uguale» ne' «e' cambiato tutto»: e' l'assenza della domanda. Se
-            // rispondesse «cambiato», «disegna» si fermerebbe sempre alla prima
+            // rispondesse «changed», «build» si fermerebbe sempre alla prima
             // chiamata dopo un ponte appena partito.
             Segna("senza la firma di prima non si dice niente",
                   che(null, firma(96000.0, 3)) == null);
@@ -368,9 +369,9 @@ namespace Prove.Contratti
 
             // ── LA DATA DEL FILE ─────────────────────────────────────────
             var scritto1 = new Dictionary<string, object>(StringComparer.Ordinal)
-                { ["file_scritto"] = "2026-09-23T05:00:00.0000000Z" };
+                { ["file_written"] = "2026-09-23T05:00:00.0000000Z" };
             var scritto2 = new Dictionary<string, object>(StringComparer.Ordinal)
-                { ["file_scritto"] = "2026-09-23T07:00:00.0000000Z" };
+                { ["file_written"] = "2026-09-23T07:00:00.0000000Z" };
             var riscritto = che(scritto1, scritto2);
             Segna("un file riscritto si dice", riscritto != null && riscritto.Contains("riscritto"),
                   riscritto ?? "(null)");

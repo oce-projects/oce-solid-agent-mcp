@@ -78,10 +78,10 @@ namespace Riscontro.Disegno
             string tipo = "";
             try { tipo = ripetizione.GetTypeName2(); } catch { }
 
-            var copie = Interi(a, "copie");
+            var copie = Interi(a, "copies");
             if (copie.Count == 0)
                 return Fallito(
-                    "Manca «copie»: quali copie togliere, per numero. La prima copia " +
+                    "Manca «copies»: quali copie togliere, per numero. La prima copia " +
                     "dopo l'originale e' la 1.");
             if (copie.Any(c => c < 1))
                 // LO ZERO NON E' UNA COPIA, ED E' PEGGIO DI UN NUMERO FUORI
@@ -97,7 +97,7 @@ namespace Riscontro.Disegno
                     "L'originale non si toglie da qui — si sopprime la lavorazione, " +
                     "oppure si cancella la ripetizione.");
 
-            bool riattiva = Bool(a, "riattiva", false);
+            bool riattiva = Bool(a, "reactivate", false);
 
             var dati = LeggiDefinizione(ripetizione, out ISaltaIstanze porta, out string perche);
             if (dati == null)
@@ -152,7 +152,7 @@ namespace Riscontro.Disegno
 
             if (nuove.Length == giaSaltate.Length)
                 // GIA' COM'E' CHIESTA. Non e' un errore ma non e' «fatto»:
-                // stessa regola di `sopprimi_lavorazione`.
+                // stessa regola di `suppress_feature`.
                 return Fallito(
                     "Le copie " + Elenco(copie) + " di «" + uid + "» sono gia' " +
                     (riattiva ? "attive" : "tolte") + ": non ho cambiato niente. " +
@@ -234,7 +234,7 @@ namespace Riscontro.Disegno
                 string rimesso = Rimetti(modello, ripetizione, porta, giaSaltate);
                 return Fallito(string.Format(CultureInfo.InvariantCulture,
                     "Le facce della ripetizione sono passate da {0} a {1}, ma {2} {3} di «{4}» ne " +
-                    "valgono {5} ({6} per copia): {7} Guarda «copie_fatte» su questa ripetizione. {8}",
+                    "valgono {5} ({6} per copia): {7} Guarda «copies_done» su questa ripetizione. {8}",
                     faccePrima, facceDopo, quante, quante == 1 ? "copia" : "copie", uid,
                     facceDelSeme * quante, facceDelSeme,
                     riattiva ? "qualche copia rimessa non e' tornata." : "qualche copia tolta non c'era.",
@@ -260,7 +260,7 @@ namespace Riscontro.Disegno
                     "e' cambiato: le facce della ripetizione erano {0} e sono {1}. Quasi " +
                     "sempre vuol dire che {2} non {3}: una ripetizione costruisce le copie " +
                     "che stanno nel materiale e risponde «riuscito» lo stesso, quindi la " +
-                    "copia {4} puo' non esserci mai stata. Guarda «copie_fatte» su questa " +
+                    "copia {4} puo' non esserci mai stata. Guarda «copies_done» su questa " +
                     "ripetizione prima di togliere. {5}",
                     faccePrima, facceDopo,
                     copie.Count == 1 ? "quella copia" : "quelle copie",
@@ -272,18 +272,18 @@ namespace Riscontro.Disegno
             int corpiDopo = ContaCorpiSolidi(modello);
             var misure = new Dictionary<string, object>
             {
-                ["copie_tolte_adesso"] = riattiva ? new int[0] : copie.ToArray(),
-                ["copie_rimesse_adesso"] = riattiva ? copie.ToArray() : new int[0],
-                ["copie_tolte_in_tutto"] = nuove,
-                ["facce_della_ripetizione"] = NumeroOppureNull(facceDopo),
-                ["facce_prima"] = NumeroOppureNull(faccePrima),
+                ["copies_removed_now"] = riattiva ? new int[0] : copie.ToArray(),
+                ["copies_restored_now"] = riattiva ? copie.ToArray() : new int[0],
+                ["copies_removed_total"] = nuove,
+                ["pattern_faces"] = NumeroOppureNull(facceDopo),
+                ["faces_before"] = NumeroOppureNull(faccePrima),
                 // QUANTE FACCE VALE UNA COPIA, o null se i semi non si sono letti
                 // (revisione di Z-C21.2): con null il controllo «perdita = facce
                 // del seme x copie tolte» qui sopra NON si e' fatto, e chi legge
                 // lo deve poter vedere. Nome nuovo, in inglese.
                 ["faces_per_copy"] = facceDelSeme > 0 ? (object)facceDelSeme : null,
-                ["corpi"] = NumeroOppureNull(corpiDopo),
-                [riattiva ? "materiale_tolto_mm3" : "materiale_tornato_mm3"] =
+                ["bodies"] = NumeroOppureNull(corpiDopo),
+                [riattiva ? "material_removed_mm3" : "material_returned_mm3"] =
                     NumeroOppureNull(volumeDopo.HasValue && volumePrima.HasValue
                         ? Math.Abs(volumeDopo.Value - volumePrima.Value) : (double?)null, 2),
             };
@@ -291,7 +291,7 @@ namespace Riscontro.Disegno
             // confronto era fra un int e un oggetto, e con una lettura fallita
             // lo zero diceva che il pezzo si era rotto.
             if (corpiPrima >= 0 && corpiDopo >= 0 && corpiPrima != corpiDopo)
-                misure["attenzione_corpi"] =
+                misure["warning_bodies"] =
                     "I corpi sono passati da " + corpiPrima + " a " + corpiDopo +
                     ": togliere una copia ha spezzato il pezzo.";
 
@@ -501,14 +501,14 @@ namespace Riscontro.Disegno
         /// for this table-driven pattern feature». They are not numbered as one
         /// row of copies, and a copy number is not translated into their
         /// positions here. The derived pattern also has the array, but it is an
-        /// assembly pattern and sopprimi_istanza runs on parts (DocumentoRichiesto
-        /// «parte»), so it is not named. Kept apart from the document so that
+        /// assembly pattern and suppress_instance runs on parts (DocumentoRichiesto
+        /// «part»), so it is not named. Kept apart from the document so that
         /// Prove.Contratti can call it without SOLIDWORKS.
         /// </summary>
         internal static string NotANumberedPattern(bool fill, bool table)
         {
             const string instead =
-                " Copies are removed here from «ripeti_lineare» and «ripeti_circolare» patterns " +
+                " Copies are removed here from «linear_pattern» and «circular_pattern» patterns " +
                 "(and curve-driven ones), whose copies are counted 1, 2, 3 along one row.";
             if (fill)
                 return "it is a FILL pattern: SOLIDWORKS skips its instances by (row, column), not by one copy " +
@@ -541,10 +541,10 @@ namespace Riscontro.Disegno
         ///                                   facce 2 -> 3, volume tornato
         ///                                   rilettura: int[0] {}
         ///
-        /// **Lo zero e' il modo di dire «nessuna», non un indice.** E si scrive
+        /// **Lo zero e' il modo di dire «none», non un indice.** E si scrive
         /// in un modo e si rilegge in un altro: si manda `{0}`, torna `{}`.
         ///
-        /// E' anche la ragione vera per cui `copie: [0]` si rifiuta dal di
+        /// E' anche la ragione vera per cui `copies: [0]` si rifiuta dal di
         /// fuori. Non perche' «lo zero e' l'originale» — perche' passato di la'
         /// cosi' com'e' **cancellerebbe tutte le copie tolte prima**, in
         /// silenzio, rispondendo che e' andata bene.
@@ -605,7 +605,7 @@ namespace Riscontro.Disegno
         private static string Elenco(IEnumerable<int> numeri)
         {
             var v = numeri.ToArray();
-            if (v.Length == 0) return "nessuna";
+            if (v.Length == 0) return "none";
             if (v.Length == 1) return v[0].ToString(CultureInfo.InvariantCulture);
             return string.Join(", ", v.Take(v.Length - 1).Select(x => x.ToString(CultureInfo.InvariantCulture))) +
                    " e " + v[v.Length - 1].ToString(CultureInfo.InvariantCulture);

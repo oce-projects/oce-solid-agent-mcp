@@ -11,7 +11,7 @@ namespace Riscontro.Disegno
     ///
     /// Numero disegno, revisione, cliente: le proprieta' personalizzate sono
     /// cio' che finisce nel cartiglio e nella scheda del PDM. Fino a qui
-    /// `applica_materiale` era l'unico aggancio fra il catalogo e quel mondo.
+    /// `apply_material` era l'unico aggancio fra il catalogo e quel mondo.
     ///
     /// E le configurazioni sono la stessa famiglia di staffe sinistra/destra,
     /// con e senza foro: una richiesta standard di un'officina a disegno.
@@ -23,10 +23,10 @@ namespace Riscontro.Disegno
     /// `IModelDocExtension.get_CustomPropertyManager(nome)` dia risultati
     /// equivalenti: due strade mai confrontate». Misurato il 16/9/2026:
     ///
-    ///   scritta «Mano» = SX via Extension(nome)
+    ///   scritta «Hand» = SX via Extension(nome)
     ///       riletta via Extension(nome)  ->  «SX»
     ///       riletta via IConfiguration   ->  «SX»
-    ///   scritta «Revisione» = B via IConfiguration
+    ///   scritta «Revision» = B via IConfiguration
     ///       riletta via IConfiguration   ->  «B»
     ///       riletta via Extension(nome)  ->  «B»
     ///
@@ -38,7 +38,7 @@ namespace Riscontro.Disegno
     /// E questa NON e' una cosa che si sapeva:
     ///
     ///   «Numero disegno», scritta sul DOCUMENTO, letta dalla config  -> non c'e'
-    ///   «Mano», scritta sulla CONFIG, letta dal documento            -> non c'e'
+    ///   «Hand», scritta sulla CONFIG, letta dal documento            -> non c'e'
     ///
     /// Non si ereditano e non si vedono. Chi scrive il numero di disegno sul
     /// documento e poi legge le proprieta' di una configurazione **non lo
@@ -94,18 +94,18 @@ namespace Riscontro.Disegno
         private Esito ScriviProprieta(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string nome = Str(a, "nome", null);
+            string nome = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(nome))
                 return Fallito(
-                    "Manca il «nome» della proprieta', per esempio «Numero disegno» o " +
-                    "«Revisione».");
-            string valore = Str(a, "valore", null);
+                    "Manca il «name» della proprieta', per esempio «Numero disegno» o " +
+                    "«Revision».");
+            string valore = Str(a, "value_text", null);
             if (valore == null)
                 return Fallito(
-                    "Manca il «valore». Se vuoi svuotare la proprieta', passa una stringa " +
+                    "Manca il «value_text». Se vuoi svuotare la proprieta', passa una stringa " +
                     "vuota: cancellarla e' un'altra cosa, e non la faccio di nascosto.");
 
-            string configurazione = Str(a, "configurazione", null);
+            string configurazione = Str(a, "configuration", null);
             bool sullaConfigurazione = !string.IsNullOrWhiteSpace(configurazione);
             if (sullaConfigurazione)
             {
@@ -187,7 +187,7 @@ namespace Riscontro.Disegno
             // Ed e' l'unico modo perche' il banco possa vedere il giorno in
             // cui SOLIDWORKS cambiasse idea e cominciasse a ereditarle.
             string altroCassetto = sullaConfigurazione
-                ? "il documento"
+                ? "the document"
                 : "la configurazione attiva";
             bool siVedeDiLa = false;
             try
@@ -210,21 +210,21 @@ namespace Riscontro.Disegno
 
             var misure = new Dictionary<string, object>
             {
-                ["proprieta"] = nome,
-                ["valore"] = letto,
-                ["dove"] = sullaConfigurazione
+                ["property"] = nome,
+                ["value_text"] = letto,
+                ["location"] = sullaConfigurazione
                     ? "la configurazione «" + configurazione + "»"
-                    : "il documento",
-                ["si_vede_dall_altro_cassetto"] = siVedeDiLa,
+                    : "the document",
+                ["visible_from_other_list"] = siVedeDiLa,
                 // I DUE CASSETTI SONO SEPARATI, e va detto ogni volta: e' la
                 // cosa che nessuno si aspetta.
-                ["i_due_cassetti"] =
+                ["two_lists"] =
                     "Le proprieta' del documento e quelle di una configurazione sono due " +
                     "elenchi separati: non si ereditano e non si vedono a vicenda. Ho " +
                     "guardato: da " + altroCassetto + " questa proprieta' " +
                     (siVedeDiLa ? "SI VEDE." : "NON si vede."),
             };
-            if (sullaConfigurazione) misure["configurazione"] = configurazione;
+            if (sullaConfigurazione) misure["configuration"] = configurazione;
             if (risolto != null && !string.Equals(risolto, letto, StringComparison.Ordinal))
                 misure["resolved_value"] = risolto;
 
@@ -236,9 +236,9 @@ namespace Riscontro.Disegno
         private Esito CreaConfigurazione(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string nome = Str(a, "nome", null);
+            string nome = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(nome))
-                return Fallito("Manca il «nome» della configurazione, per esempio «Sinistra».");
+                return Fallito("Manca il «name» della configurazione, per esempio «Left».");
 
             var gestore = modello.ConfigurationManager as IConfigurationManager;
             if (gestore == null)
@@ -259,11 +259,11 @@ namespace Riscontro.Disegno
                 // torna l'oggetto configurazione. Vedi il commento in testa.
                 nuova = gestore.AddConfiguration2(
                     nome,                              // Name
-                    Str(a, "commento", "") ?? "",      // Comment
+                    Str(a, "comment", "") ?? "",      // Comment
                     "",                                // AlternateName
                     0,                                 // Options
                     "",                                // ParentConfigName
-                    Str(a, "descrizione", "") ?? "",   // Description
+                    Str(a, "details", "") ?? "",   // Description
                     true) as IConfiguration;           // Rebuild
             }
             catch (Exception ex) { return Fallito("La configurazione non e' stata creata: " + ex.Message); }
@@ -278,15 +278,15 @@ namespace Riscontro.Disegno
 
             return RiuscitoSenzaCreare(new Dictionary<string, object>
             {
-                ["configurazione"] = nuova.Name,
-                ["attiva_adesso"] = attiva,
-                ["configurazioni"] = NomiDelleConfigurazioni(modello).ToArray(),
+                ["configuration"] = nuova.Name,
+                ["active_now"] = attiva,
+                ["configurations"] = NomiDelleConfigurazioni(modello).ToArray(),
                 // ATTIVA DA SOLA, e i passi dopo lavorano su quella.
-                ["nota_attivazione"] =
+                ["note_activation"] =
                     "Creando una configurazione SOLIDWORKS la ATTIVA: adesso il documento e' " +
                     "su «" + attiva + "», e i passi che seguono lavorano li'. Con " +
-                    "«attiva_configurazione» si torna a un'altra.",
-                ["nota_nome"] =
+                    "«activate_configuration» si torna a un'altra.",
+                ["note_name"] =
                     "Il nome buono per le altre operazioni e' quello scritto qui: puo' avere " +
                     "un suffisso fra parentesi angolari (lo stato di visualizzazione) che fa " +
                     "parte del nome.",
@@ -296,9 +296,9 @@ namespace Riscontro.Disegno
         private Esito AttivaConfigurazione(
             IModelDoc2 modello, Dictionary<string, object> a, StatoDocumento stato)
         {
-            string chiesta = Str(a, "nome", null);
+            string chiesta = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(chiesta))
-                return Fallito("Manca il «nome» della configurazione da attivare.");
+                return Fallito("Manca il «name» della configurazione da attivare.");
 
             string perche;
             string nome = NomeVeroDellaConfigurazione(modello, chiesta, out perche);
@@ -321,7 +321,7 @@ namespace Riscontro.Disegno
             // `ShowConfiguration2` risponde **false anche quando la
             // configurazione chiesta e' gia' quella attiva**. Misurato dal
             // banco il 16/9/2026: due casi rossi con il messaggio «ho chiesto
-            // di attivare "Sinistra" e adesso e' attiva "Sinistra"» — cioe' il
+            // di attivare "Left" e adesso e' attiva "Left"» — cioe' il
             // rifiuto diceva da solo che il rifiuto era sbagliato.
             //
             // Quel `false` non distingue «non l'ho fatto» da «non c'era niente
@@ -340,13 +340,13 @@ namespace Riscontro.Disegno
 
             return RiuscitoSenzaCreare(new Dictionary<string, object>
             {
-                ["configurazione"] = attiva,
-                ["configurazioni"] = NomiDelleConfigurazioni(modello).ToArray(),
+                ["configuration"] = attiva,
+                ["configurations"] = NomiDelleConfigurazioni(modello).ToArray(),
                 // «era gia' questa»: chi legge deve poter distinguere uno
                 // spostamento da un non-spostamento, perche' SOLIDWORKS non lo
                 // distingue (vedi sopra) e la differenza conta quando il passo
                 // seguente da' per scontato di essere appena arrivato.
-                ["era_gia_attiva"] = !fatto,
+                ["was_already_active"] = !fatto,
             });
         }
 

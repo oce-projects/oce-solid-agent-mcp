@@ -61,20 +61,20 @@ namespace Riscontro.Disegno
 
                     var voce = new Dictionary<string, object>
                     {
-                        ["titolo"] = titolo,
-                        ["tipo"] = OperazioniSw.NomeTipoDocumento(tipo),
+                        ["document_title"] = titolo,
+                        ["kind"] = OperazioniSw.NomeTipoDocumento(tipo),
                     };
                     // Il percorso solo se c'e': un documento mai salvato non ne
                     // ha, e una stringa vuota in un elenco di percorsi e' un
                     // invito a usarla.
-                    if (!string.IsNullOrWhiteSpace(percorso)) voce["percorso"] = percorso;
+                    if (!string.IsNullOrWhiteSpace(percorso)) voce["path"] = percorso;
                     bool eLui =
                         !string.IsNullOrWhiteSpace(percorsoAttivo)
                             ? string.Equals(percorso, percorsoAttivo,
                                   StringComparison.OrdinalIgnoreCase)
                             : (!string.IsNullOrWhiteSpace(titoloAttivo) &&
                                string.Equals(titolo, titoloAttivo, StringComparison.Ordinal));
-                    if (eLui) voce["attivo"] = true;
+                    if (eLui) voce["active"] = true;
 
                     fuori.Add(voce);
                     d = d.GetNext() as IModelDoc2;
@@ -89,7 +89,7 @@ namespace Riscontro.Disegno
         {
             if (disegno == null)
             {
-                dati["nota"] = "tavola illeggibile";
+                dati["note"] = "unreadable drawing";
                 return;
             }
 
@@ -108,27 +108,27 @@ namespace Riscontro.Disegno
                         var voce = new Dictionary<string, object>
                         {
                             ["uid"] = "S" + (i + 1),
-                            ["nome"] = nomi[i],
+                            ["name"] = nomi[i],
                         };
                         if (string.Equals(nomi[i], attivo, StringComparison.Ordinal))
-                            voce["attivo"] = true;
+                            voce["active"] = true;
 
                         // Le proprieta' del foglio si leggono solo da quello
                         // ATTIVO senza cambiare foglio, e cambiare foglio per
                         // leggere sarebbe una lettura che modifica: si legge
                         // quello che si puo' e si tace il resto.
-                        if (voce.ContainsKey("attivo"))
+                        if (voce.ContainsKey("active"))
                         {
                             var p = ProprietaFoglio(disegno);
                             if (p != null)
                             {
-                                voce["formato_mm"] = new object[]
+                                voce["paper_size_mm"] = new object[]
                                 {
                                     Math.Round(Unita.Mm(p[5]), 1),
                                     Math.Round(Unita.Mm(p[6]), 1),
                                 };
                                 if (p[3] != 0)
-                                    voce["scala"] = FormattaScala(p[2], p[3]);
+                                    voce["scale"] = FormattaScala(p[2], p[3]);
                                 // IL DIEDRO SI VEDE. E' l'unica cosa di una
                                 // tavola che puo' essere sbagliata senza che
                                 // nessuna misura se ne accorga: destra e
@@ -136,7 +136,7 @@ namespace Riscontro.Disegno
                                 // pezzo specchiato. Se non e' scritto qui, il
                                 // modello non ha modo di guardarlo.
                                 if (p.Length > 4)
-                                    voce["diedro"] = p[4] != 0 ? "primo" : "terzo";
+                                    voce["projection_angle"] = p[4] != 0 ? "first" : "third";
                             }
                         }
                         fogli.Add(voce);
@@ -144,7 +144,7 @@ namespace Riscontro.Disegno
                 }
             }
             catch { }
-            if (fogli.Count > 0) dati["fogli"] = fogli;
+            if (fogli.Count > 0) dati["sheets"] = fogli;
 
             // ── le viste ──────────────────────────────────────────────────
             //
@@ -183,7 +183,7 @@ namespace Riscontro.Disegno
             {
                 var foglioVista = disegno.GetFirstView() as IView;
                 if (foglioVista != null)
-                    dati["annotazioni_del_foglio"] = Annotazioni(foglioVista);
+                    dati["sheet_annotations"] = Annotazioni(foglioVista);
             }
             catch { }
 
@@ -258,30 +258,30 @@ namespace Riscontro.Disegno
                         {
                             ["uid"] = "V" + visteTotali,
                         };
-                        try { voce["nome"] = v.Name; } catch { }
-                        try { voce["tipo"] = NomeTipoVista(v.Type); } catch { }
+                        try { voce["name"] = v.Name; } catch { }
+                        try { voce["kind"] = NomeTipoVista(v.Type); } catch { }
 
                         var pos = PosizioneVista(v);
-                        if (pos != null) voce["posizione_mm"] = pos;
+                        if (pos != null) voce["position_mm"] = pos;
 
                         try
                         {
                             double s = v.ScaleDecimal;
-                            if (s > 0) voce["scala"] = Math.Round(s, 4);
+                            if (s > 0) voce["scale"] = Math.Round(s, 4);
                         }
                         catch { }
 
                         // Zero quote non e' un dettaglio: e' la differenza fra
                         // una tavola e un disegnino. Si scrive sempre.
-                        voce["quote"] = quote;
+                        voce["dimensions"] = quote;
                         // E zero croci non e' un dettaglio nemmeno lui: e' la
                         // differenza fra una tavola che si puo' forare e una
                         // che si puo' solo guardare. Si scrive sempre, per lo
                         // stesso motivo — **un campo che compare solo quando ha
                         // un valore interessante insegna a non cercarlo.**
-                        voce["croci_di_centro"] = croci;
-                        voce["quote_numero_non_del_modello"] = falsi;
-                        voce["quote_orfane"] = orfane;
+                        voce["center_marks"] = croci;
+                        voce["dimensions_with_number_not_from_model"] = falsi;
+                        voce["dimensions_orphan"] = orfane;
                         // Unknown when the orphans are unknown: the same reading.
                         voce["dimensions_not_verifiable"] = orfane.HasValue ? (object)notVerifiable : null;
 
@@ -290,13 +290,13 @@ namespace Riscontro.Disegno
                         // quando ha un valore interessante insegna a non
                         // cercarlo, e chi non lo trova conclude che l'API non
                         // sappia rispondere invece che il numero sia zero.
-                        voce["annotazioni"] = Sei(gtol, datum, saldature, rugosita, note, annotazioni);
+                        voce["annotations"] = Sei(gtol, datum, saldature, rugosita, note, annotazioni);
 
                         try
                         {
                             var rif = v.ReferencedDocument as IModelDoc2;
                             var p = rif?.GetPathName();
-                            if (!string.IsNullOrWhiteSpace(p)) voce["modello"] = p;
+                            if (!string.IsNullOrWhiteSpace(p)) voce["model"] = p;
                         }
                         catch { }
 
@@ -311,64 +311,64 @@ namespace Riscontro.Disegno
                 // delle viste, e nessuno lo saprebbe. Diventano «non lo so».
                 quoteTotali = crociTotali = null;
                 gtolTot = datumTot = saldTot = rugTot = noteTot = annTot = null;
-                dati["viste_lette_a_meta"] = true;
+                dati["views_half_read"] = true;
             }
 
-            if (viste.Count > 0) dati["viste"] = viste;
-            dati["viste_totali"] = visteTotali;
-            dati["quote_totali"] = quoteTotali;
-            dati["croci_di_centro_totali"] = crociTotali;
-            dati["quote_numero_non_del_modello_totali"] = numeriFalsiTot;
+            if (viste.Count > 0) dati["views"] = viste;
+            dati["views_total"] = visteTotali;
+            dati["dimensions_total"] = quoteTotali;
+            dati["center_marks_total"] = crociTotali;
+            dati["dimensions_with_number_not_from_model_total"] = numeriFalsiTot;
             if (numeriFalsi.Count > 0)
             {
-                dati["quote_numero_non_del_modello"] = numeriFalsi;
-                dati["attenzione_numeri"] =
+                dati["dimensions_with_number_not_from_model"] = numeriFalsi;
+                dati["warning_numbers"] =
                     numeriFalsi.Count + (numeriFalsi.Count == 1 ? " quota stampa" : " quote stampano") +
                     " un numero che non e' quello del modello (sovrascritto, o il valore spento " +
                     "con del testo al suo posto). La geometria e' giusta, la carta no: in officina " +
                     "si lavora col numero stampato.";
             }
-            dati["annotazioni_totali"] = Sei(gtolTot, datumTot, saldTot, rugTot, noteTot, annTot);
-            dati["quote_orfane_totali"] = orfaneSconosciute && orfaneTot == 0 ? (object)null : orfaneTot;
+            dati["annotations_total"] = Sei(gtolTot, datumTot, saldTot, rugTot, noteTot, annTot);
+            dati["dimensions_orphan_total"] = orfaneSconosciute && orfaneTot == 0 ? (object)null : orfaneTot;
             dati["dimensions_not_verifiable_total"] =
                 orfaneSconosciute && notVerifiableTotal == 0 ? (object)null : notVerifiableTotal;
             if (orfaneTot > 0)
-                dati["attenzione_quote"] = orfaneTot + " quote sono attaccate a spigoli che le viste non " +
+                dati["warning_dimensions"] = orfaneTot + " quote sono attaccate a spigoli che le viste non " +
                     "mostrano piu': sul foglio si stampano col numero di prima, appese al niente. Di " +
                     "solito il pezzo e' cambiato dopo che la tavola e' stata quotata.";
 
             // DUE CECITA' DICHIARATE, e tutte e due porterebbero a conclusioni
             // sbagliate se restassero implicite.
-            dati["cosa_non_so_delle_annotazioni"] =
+            dati["what_is_not_known_about_annotations"] =
                 // 1. IL CARTIGLIO NON E' QUI DENTRO. Questi conteggi girano
                 //    sulle VISTE VERE; le note del formato del foglio stanno
-                //    sulla prima «vista», che e' il foglio, e sono decine — su
+                //    sulla prima «view», che e' il foglio, e sono decine — su
                 //    questo modello di tavola, trentanove. Chi somma le viste e
                 //    confronta col totale del documento trova una differenza
                 //    grande e conclude che si sia perso qualcosa.
-                "«annotazioni_totali» somma le VISTE; le note del cartiglio " +
+                "«annotations_total» somma le VISTE; le note del cartiglio " +
                 "stanno sul FOGLIO e si contano a parte, in " +
-                "«annotazioni_del_foglio» — su questo modello di tavola sono " +
+                "«sheet_annotations» — su questo modello di tavola sono " +
                 "sessantasette, e sommarle alle viste farebbe sembrare quotata " +
                 "una tavola vuota. E un'annotazione su un layer non stampabile " +
                 "esiste, viene contata, e nel PDF non c'e': il conteggio dice " +
                 "cosa c'e' nel documento, non cosa esce dalla stampante. " +
-                "«quote_orfane» checks whether the edges and vertices each dimension is " +
+                "«dimensions_orphan» checks whether the edges and vertices each dimension is " +
                 "attached to are among those the view shows. A dimension attached to a " +
                 "SILHOUETTE (the apparent outline of a cylinder: the diameters of a turned " +
                 "part seen from the side) cannot be checked, because SOLIDWORKS does not " +
                 "match it with any silhouette the view shows: it is not counted as an " +
                 "orphan but in «dimensions_not_verifiable». A dimension attached to a hidden " +
                 "edge still reads as an orphan without being one.";
-            if (visteTotali > viste.Count) dati["viste_troncate"] = true;
+            if (visteTotali > viste.Count) dati["views_truncated"] = true;
 
             // LA TAVOLA VUOTA VA DETTA, non lasciata dedurre da un elenco che
             // manca. E' lo stato in cui nasce ogni tavola, ed e' quello in cui
             // resta se `Create1stAngleViews2` ha detto «si'» senza fare niente.
             if (visteTotali == 0)
-                dati["nota"] = "la tavola non ha ancora nessuna vista";
+                dati["note"] = "la tavola non ha ancora nessuna vista";
             else if (quoteTotali.HasValue && quoteTotali.Value == 0)
-                dati["nota"] = "le viste ci sono ma non c'e' nessuna quota";
+                dati["note"] = "le viste ci sono ma non c'e' nessuna quota";
         }
 
         /// <summary>
@@ -477,9 +477,9 @@ namespace Riscontro.Disegno
         /// <summary>
         /// I sei numeri di una vista (o del foglio), sempre tutti e sei.
         ///
-        /// `tutte` si chiama cosi' e non «totale»: `GetAnnotationCount` **non
+        /// `all` si chiama cosi' e non «total»: `GetAnnotationCount` **non
         /// e' la somma** delle altre cinque — conta anche le quote e cio' che
-        /// nessuna delle cinque famiglie nomina. Chiamarlo «totale» farebbe
+        /// nessuna delle cinque famiglie nomina. Chiamarlo «total» farebbe
         /// aspettare una somma che non torna, e chi la vede non tornare cerca
         /// un difetto dove non c'e'.
         /// </summary>
@@ -521,17 +521,17 @@ namespace Riscontro.Disegno
                         {
                             var dim = q.GetDimension2(0);
                             var voce = new Dictionary<string, object>();
-                            try { voce["quota"] = dim.FullName; } catch { }
-                            try { voce["vista"] = v.Name; } catch { }
-                            try { voce["del_modello_mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000.0, 3); } catch { }
+                            try { voce["dimension"] = dim.FullName; } catch { }
+                            try { voce["view"] = v.Name; } catch { }
+                            try { voce["of_model_mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000.0, 3); } catch { }
                             if (sovrascritta)
-                                voce["come"] = "numero sovrascritto: stampa " +
+                                voce["how"] = "numero sovrascritto: stampa " +
                                     Math.Round(q.GetOverrideValue() * 1000.0, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) + " mm";
                             else
                             {
                                 string testo = "";
                                 try { testo = (q.GetText(1) ?? "") + (q.GetText(2) ?? ""); } catch { }
-                                voce["come"] = "valore spento" + (testo.Length > 0 ? ": al suo posto «" + testo + "»" : "");
+                                voce["how"] = "valore spento" + (testo.Length > 0 ? ": al suo posto «" + testo + "»" : "");
                             }
                             dettagli.Add(voce);
                         }
@@ -561,10 +561,10 @@ namespace Riscontro.Disegno
             {
                 ["gtol"] = gtol,
                 ["datum"] = datum,
-                ["saldature"] = saldature,
-                ["rugosita"] = rugosita,
+                ["welds"] = saldature,
+                ["surface_finish"] = rugosita,
                 ["note"] = note,
-                ["tutte"] = tutte,
+                ["all"] = tutte,
             };
         }
 

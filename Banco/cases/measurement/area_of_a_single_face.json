@@ -5,20 +5,20 @@
   "_already_seen_red": "`Area` e `TotalArea` si alternano, e questo caso l'ha preso. Misurato il 15/9/2026: con UNA faccia `Area` vale 1600 e `TotalArea` risponde -1; con DUE facce `Area` risponde -1 e `TotalArea` vale 3200. Quella che vale e' sempre l'altra. Leggendone una sola, il campo spariva a seconda di quante cose si chiedevano -- «campo assente: misure.area_mm2» -- e questo caso e' cio' che lo tiene detto.",
   "start": { "new_part": true },
   "steps": [
-    { "operation": "estrudi_rettangolo",
-      "arguments": { "piano": "frontale", "lunghezza_mm": 40, "larghezza_mm": 40,
-                     "spessore_mm": 10, "centrato": true },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 40, "width_mm": 40,
+                     "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 16000 } ] },
-    { "operation": "misura_fra_entita",
-      "arguments": { "uid": "@faccia(verso=davanti)", "uid2": "@faccia(verso=dietro)" },
-      "expect": [ { "what": "misure.area_totale_mm2", "equal_to": 3200, "tolerance": 0.5,
+    { "operation": "measure_between",
+      "arguments": { "uid": "@face(normal=front)", "uid2": "@face(normal=back)" },
+      "expect": [ { "what": "measurements.area_total_mm2", "equal_to": 3200, "tolerance": 0.5,
                     "tolerance_why": "due facce da 1600, ed e' «area_totale» perche' con due entita' `Area` non risponde" } ] },
-    { "operation": "misura_fra_entita",
-      "arguments": { "uid": "@faccia(verso=davanti)" },
+    { "operation": "measure_between",
+      "arguments": { "uid": "@face(normal=front)" },
       "expect": [
-        { "what": "misure.area_mm2", "equal_to": 1600, "tolerance": 0.5,
+        { "what": "measurements.area_mm2", "equal_to": 1600, "tolerance": 0.5,
           "tolerance_why": "UNA faccia da 40x40, subito dopo averne misurate due: e' qui che si vede se la selezione e' stata svuotata" },
-        { "what": "misure.unita", "includes": ["millimetri quadri", "gradi"],
+        { "what": "measurements.units", "includes": ["millimetri quadri", "gradi"],
           "why": "le unita' viaggiano con la risposta: un'area in metri quadri e una in millimetri quadri sono tutte e due numeri credibili" } ] }
   ]
 }
