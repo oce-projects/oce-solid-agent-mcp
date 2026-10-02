@@ -246,15 +246,9 @@ namespace ProvaSaldatura
                 comeEAndata.Where(kv => kv.Value).Select(kv => kv.Key)
                            .OrderBy(k => k, StringComparer.Ordinal)));
 
-            // THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5): a line of its own,
-            // like the green cases, which banco.ps1 writes into last.json as
-            // «alias_uses». Outside the alias cases the number must be 0: a case
-            // that still speaks the old names would hide behind the aliases until
-            // W3.1-bis.11 removes them.
-            var outside = AliasUses.Keys.Where(k => !AliasCaseFolder[k]).OrderBy(k => k, StringComparer.Ordinal).ToList();
-            Console.WriteLine("alias uses: " + AliasUses.Keys.Sum(k => AliasUses[k]) + " in " + AliasUses.Count +
-                              " cases; outside the alias cases: " + outside.Sum(k => AliasUses[k]) +
-                              (outside.Count > 0 ? " (" + string.Join(" ", outside) + ")" : ""));
+            // THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5): the line is written
+            // at the end of the run (WriteAliasUses, from Main), when the
+            // regression and every other group have run too.
         }
 
         /// <summary>
@@ -1339,6 +1333,7 @@ namespace ProvaSaldatura
             // secondo messaggio che direbbe la stessa cosa peggio.
             Preparazione preparato = null;
             bool verde;
+            int aliasUsesAtStart = AliasUsesNow();
             try
             {
                 preparato = PreparaIlDocumento(nome, caso);
@@ -1359,9 +1354,72 @@ namespace ProvaSaldatura
                 return false;
             }
             catch (Exception ex) { Segna(nome, false, Perche(ex)); return false; }
-            finally { ButtaViaLaPreparazione(preparato); }
+            finally
+            {
+                ButtaViaLaPreparazione(preparato);
+                CountAliasUses(nome, percorso, aliasUsesAtStart);
+            }
 
             return SuQuestaLibreria(nome, caso, verde);
+        }
+
+        // ── THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5, decision D4) ─────
+        //
+        // The library counts every name its aliases translate (Alias.Uses); the
+        // bench reads the counter before and after each case, so a case is
+        // charged with everything it made the library translate: its steps,
+        // the failed ones too, the selectors of its steps and of its
+        // expectations, the components of its assembly. A line per step would
+        // miss all of those. The whole run is read too, so a name translated
+        // outside any case (a group of the bench) is counted as well.
+        // Removed in W3.1-bis.11.
+        private static int _aliasUsesAtStartOfRun = -1;
+        private static int _aliasUsesInAliasCases;
+
+        private static int AliasUsesNow()
+        {
+            var read = Attese.AliasUsesNow;
+            if (read == null) return 0;
+            int now = read();
+            if (_aliasUsesAtStartOfRun < 0) _aliasUsesAtStartOfRun = now;
+            return now;
+        }
+
+        private static void CountAliasUses(string name, string path, int atStart)
+        {
+            if (Attese.AliasUsesNow == null) return;
+            int used = AliasUsesNow() - atStart;
+            if (used <= 0) return;
+            int before;
+            AliasUses.TryGetValue(name, out before);
+            AliasUses[name] = before + used;
+            bool inAliases = path != null &&
+                string.Equals(Path.GetFileName(Path.GetDirectoryName(path)), "aliases", StringComparison.Ordinal);
+            AliasCaseFolder[name] = inAliases;
+            if (inAliases) _aliasUsesInAliasCases += used;
+        }
+
+        /// <summary>
+        /// The line «alias uses: ...» at the end of the run, which banco.ps1
+        /// writes into last.json as alias_uses: the names of every case, and the
+        /// whole run as the library counted it. «outside the alias cases» is the
+        /// whole run minus the alias cases, and must be 0.
+        /// </summary>
+        internal static void WriteAliasUses()
+        {
+            if (Attese.AliasUsesNow == null)
+            {
+                Console.WriteLine("alias uses: not counted (a library without the aliases of W3.1-bis.5)");
+                return;
+            }
+            int start = _aliasUsesAtStartOfRun < 0 ? Attese.AliasUsesNow() : _aliasUsesAtStartOfRun;
+            int whole = Attese.AliasUsesNow() - start;
+            int inCases = AliasUses.Values.Sum();
+            var outside = AliasUses.Keys.Where(k => !AliasCaseFolder[k]).OrderBy(k => k, StringComparer.Ordinal).ToList();
+            Console.WriteLine("alias uses: " + whole + " in the whole run, " + inCases + " in " + AliasUses.Count +
+                              " cases; outside the alias cases: " + (whole - _aliasUsesInAliasCases) +
+                              (outside.Count > 0 ? " (" + string.Join(" ", outside) + ")" : "") +
+                              (whole - inCases > 0 ? " (" + (whole - inCases) + " outside any case)" : ""));
         }
 
         /// <summary>
@@ -1555,17 +1613,10 @@ namespace ProvaSaldatura
                             ? (string[])fromLibrary : new string[0];
                         misure["deprecated"] = DeprecatedSelectors.Concat(library).ToArray();
                     }
-                    // Every Italian name a step was written with is counted per case:
-                    // outside Banco/cases/aliases the count must be 0 (W3.1-bis.5,
-                    // «alias uses = 0 in the report»). Removed in W3.1-bis.11.
-                    object deprecatedLines;
-                    if (misure != null && misure.TryGetValue("deprecated", out deprecatedLines) && deprecatedLines is string[])
-                    {
-                        int before;
-                        AliasUses.TryGetValue(nome, out before);
-                        AliasUses[nome] = before + ((string[])deprecatedLines).Length;
-                        AliasCaseFolder[nome] = string.Equals(Path.GetFileName(Path.GetDirectoryName(percorso)), "aliases", StringComparison.Ordinal);
-                    }
+                    // The Italian names are counted per case from the library's own
+                    // counter (CountAliasUses, around the whole case), not from these
+                    // lines: a failed step, a selector of an expectation and the
+                    // steps that prepare an assembly leave none here.
 
                     // SI CAMBIA SOLO SE IL PASSO E' RIUSCITO. Un `create_drawing`
                     // fallito a meta' puo' aver lasciato un documento a monitor

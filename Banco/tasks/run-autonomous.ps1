@@ -14,8 +14,10 @@
 #                                  session ended (inspect_part, read by a fresh
 #                                  bridge): the FINISHED part the tables of the
 #                                  tasks measure
-#    <out>/run.json                what ran: language, bridge, catalogue hash,
-#                                  repeats, model, start and end
+#    <out>/run.json                what ran: language, bridge, its version and
+#                                  protocol (en, or it for the bridge before
+#                                  the rename), catalogue hash, repeats, model,
+#                                  the isolation of the sessions, start and end
 #
 #  Scoring is another step (score-autonomous.js), so that a scorer that gets
 #  better never needs the model to run again.
@@ -29,6 +31,19 @@
 #  with -Between (a command that closes the documents left open by the task
 #  before, for example), because a task that finds the part of the previous
 #  one in front is not measuring the model.
+#
+#  THE SESSION SEES THE BRIDGE AND NOTHING ELSE. A session started in the
+#  repository could read Banco/tasks/NN_*.md, with the table of the expected
+#  answers, and the cases; it would load the CLAUDE.md and the memories of the
+#  person who runs it. So every session runs in an empty temporary folder of
+#  its own (deleted after), with no built-in tool (--tools ""), no settings
+#  file (--setting-sources ""), no skill (--disable-slash-commands) and the
+#  bridge as its only MCP server (--strict-mcp-config). The user CLAUDE.md
+#  (~/.claude/CLAUDE.md) is skipped only by --bare, which takes the API key
+#  from ANTHROPIC_API_KEY and never the login: with that variable set the run
+#  uses --bare, without it the run says so and records it in run.json
+#  (isolation.user_claude_md). The options are those of claude 2.1.281
+#  (claude --help); check them on the CLI that runs.
 #
 #      .\Banco\tasks\run-autonomous.ps1 -Language en -DryRun
 #      .\Banco\tasks\run-autonomous.ps1 -Language it -TasksDir <Italian tasks> -Repeats 3 -Label after
@@ -90,12 +105,53 @@ if (-not $Out) {
     $name = $stamp + '-' + $Language + $(if ($Label) { '-' + $Label } else { '' })
     $Out = Join-Path $root (Join-Path 'Banco\report\autonomous' $name)
 }
+# absolute: every session runs in a temporary folder of its own
+$Out = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Out)
+$Bridge = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Bridge)
 $catalogue = Join-Path (Split-Path -Parent $Bridge) 'catalogo.json'
 $catalogueHash = if (Test-Path -LiteralPath $catalogue) { (Get-FileHash -LiteralPath $catalogue -Algorithm SHA256).Hash.Substring(0, 12) } else { '(none next to the bridge)' }
 
 # The bridge as the only MCP server of the session.
 $config = [ordered]@{ mcpServers = [ordered]@{ solidworks = [ordered]@{ command = $Bridge; args = @() } } }
 $configJson = $config | ConvertTo-Json -Depth 5
+
+# The isolation of every session (see the head of this file). An empty string
+# reaches a native program from Windows PowerShell only written as "".
+$empty = $(if ($PSVersionTable.PSVersion.Major -ge 7) { '' } else { '""' })
+$bare = -not [string]::IsNullOrEmpty($env:ANTHROPIC_API_KEY)
+$isolation = [ordered]@{
+    working_folder = 'an empty temporary folder per session, deleted after'
+    built_in_tools = 'none (--tools "")'
+    settings_files = 'none (--setting-sources "")'
+    skills = 'none (--disable-slash-commands)'
+    mcp_servers = 'the bridge only (--strict-mcp-config)'
+    user_claude_md = $(if ($bare) { 'skipped (--bare, ANTHROPIC_API_KEY)' } else { 'LOADED: without ANTHROPIC_API_KEY --bare cannot run, and ~/.claude/CLAUDE.md reaches the session' })
+}
+if (-not $bare) {
+    Write-Host "ANTHROPIC_API_KEY is not set: the sessions cannot use --bare and will load ~/.claude/CLAUDE.md (recorded in run.json)." -ForegroundColor Yellow
+}
+function SessionArguments([string] $text, [string] $configFile) {
+    $a = @('-p', $text, '--mcp-config', $configFile, '--strict-mcp-config',
+           '--allowedTools', 'mcp__solidworks', '--tools', $empty, '--setting-sources', $empty,
+           '--disable-slash-commands', '--output-format', 'stream-json', '--verbose',
+           '--max-turns', [string]$MaxTurns)
+    if ($bare) { $a += '--bare' }
+    if ($Model) { $a += @('--model', $Model) }
+    return $a
+}
+
+# The bridge's version and protocol, read before anything runs: the run before
+# the rename speaks Italian, and the scorer reads it through the name map.
+$bridgeInfo = $null
+if (-not $DryRun) {
+    $infoLine = & node (Join-Path $PSScriptRoot 'score-autonomous.js') --bridge-info $Bridge
+    try { $bridgeInfo = $infoLine | ConvertFrom-Json } catch { $bridgeInfo = $null }
+    if ($null -eq $bridgeInfo -or $bridgeInfo.protocol -eq 'unknown') {
+        Write-Host ("the bridge did not say its tools (" + $infoLine + "): no run") -ForegroundColor Red
+        exit 1
+    }
+    Write-Host ("bridge " + $bridgeInfo.version + ", protocol " + $bridgeInfo.protocol)
+}
 
 Write-Host ("autonomous run: " + $tasks.Count + " tasks x " + $Repeats + ", language " + $Language +
             ", bridge " + $Bridge + " (catalogue " + $catalogueHash + ")")
@@ -113,9 +169,8 @@ foreach ($c in $commands) {
 
 if ($DryRun) {
     foreach ($c in $commands) {
-        Write-Host ("  " + $c.Task + " #" + $c.N + ": " + $Claude + " -p <" + $c.Text.Length + " characters> --mcp-config <bridge only> " +
-                    "--strict-mcp-config --allowedTools mcp__solidworks --output-format stream-json --verbose --max-turns " + $MaxTurns +
-                    $(if ($Model) { " --model " + $Model } else { "" }))
+        $shown = (SessionArguments ('<' + $c.Text.Length + ' characters>') '<out>\mcp-config.json') | ForEach-Object { if ($_ -eq '' -or $_ -eq '""') { '""' } else { $_ } }
+        Write-Host ("  " + $c.Task + " #" + $c.N + ", in an empty temporary folder: " + $Claude + " " + ($shown -join ' '))
     }
     Write-Host "dry run: nothing started"
     exit 0
@@ -134,10 +189,11 @@ foreach ($c in $commands) {
         & powershell -NoProfile -Command $Between | Out-Host
     }
     Write-Host ("  " + $c.Task + " #" + $c.N + " ...")
-    $arguments = @('-p', $c.Text, '--mcp-config', $configFile, '--strict-mcp-config',
-                   '--allowedTools', 'mcp__solidworks', '--output-format', 'stream-json', '--verbose',
-                   '--max-turns', [string]$MaxTurns)
-    if ($Model) { $arguments += @('--model', $Model) }
+    $arguments = SessionArguments $c.Text $configFile
+    # an empty folder of its own: nothing of the repository, no project memory
+    $work = Join-Path ([IO.Path]::GetTempPath()) ('d9-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Force -Path $work | Out-Null
+    Push-Location -LiteralPath $work
     try {
         & $Claude @arguments 2> ($base + '.stderr.txt') | Out-File -LiteralPath ($base + '.jsonl') -Encoding utf8
         if ($LASTEXITCODE -ne 0) { Write-Host ("    the session ended with " + $LASTEXITCODE) -ForegroundColor Yellow }
@@ -145,6 +201,9 @@ foreach ($c in $commands) {
         Write-Host ("    the session did not start: " + $_.Exception.Message) -ForegroundColor Red
         $failed++
         continue
+    } finally {
+        Pop-Location
+        try { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction Stop } catch { Write-Host ("    could not remove " + $work) -ForegroundColor Yellow }
     }
     # The finished part, read by a fresh bridge.
     & node (Join-Path $PSScriptRoot 'score-autonomous.js') --read-state $Bridge ($base + '.state.json') | Out-Host
@@ -152,6 +211,7 @@ foreach ($c in $commands) {
 
 $run = [ordered]@{
     language = $Language; tasks_dir = $TasksDir; repeats = $Repeats; bridge = $Bridge
+    bridge_version = $bridgeInfo.version; bridge_protocol = $bridgeInfo.protocol; isolation = $isolation
     catalogue_sha256 = $catalogueHash; model = $Model; max_turns = $MaxTurns; label = $Label
     started = $started.ToString('s'); ended = (Get-Date).ToString('s'); sessions = $commands.Count; not_started = $failed
 }

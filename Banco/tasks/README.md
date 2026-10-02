@@ -87,6 +87,28 @@ cannot read (one component of an assembly) is listed BY HAND with its session.
 `score-autonomous.js --self-test` checks the reading of the tables and of the
 outcomes without SOLIDWORKS.
 
+**The run before speaks the protocol of before.** The bridge of 9384b2c answers
+`esiti`, `riuscita`, `misure` and describes the part with `corpi_totali` and <!-- window-2: keep -->
+`facce`; read with the English keys only, every session of the run before would <!-- window-2: keep -->
+be NOT DONE and «at most one task worse» could not fail. So the scorer reads
+every answer and every state through the name map (the rows `response_field`,
+`operation`, `enum_value`, `response_value`, with the sites of
+`Controlli/lingua/window-2-surface.js`), `--read-state` reads the state with the
+tool the bridge has (`inspect_part`, or `guarda_il_pezzo` before the rename), <!-- window-2: keep -->
+`run.json` records the bridge's version and protocol, a run in which no session
+gave a single outcome is refused instead of scored, and `--compare` refuses a
+`score.json` of a scorer that did not read the protocol of before. The
+self-test has a session of the bridge before that must score RIGHT (seen red
+with the reading through the map switched off: 3 checks fail).
+
+**Each session sees the bridge and nothing else**: an empty temporary folder of
+its own (so no `Banco/tasks/NN_*.md` with the expected answers, no cases, no
+project memory), no built-in tool (`--tools ""`), no settings file
+(`--setting-sources ""`), no skill, the bridge as the only MCP server. The user
+`~/.claude/CLAUDE.md` is skipped only with `--bare`, which needs
+`ANTHROPIC_API_KEY`; without it the runner says so and `run.json` records it
+(`isolation.user_claude_md`). Set the key for the run that counts.
+
 **The measured fields are the ones the bridge writes.** Fourteen rows named a
 field no operation writes (`holes_on_circle`, `cut_list_rows`,
 `export_succeeded`...) and six more a field written under another name or not

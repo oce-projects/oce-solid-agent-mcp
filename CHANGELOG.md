@@ -34,15 +34,19 @@ Bridge 0.126.0 · library 0.150.0.
 
 **The second of the three rename windows of W3.1-bis (TODO entry W3.1-bis.5):
 the protocol of the bridge is English.** The seven tools and their
-sub-actions, the 99 operations and their 12 families, every argument and every
-value an argument takes, the selectors, the fields and the values of the
-answers, the keys of `Strumenti/catalogo.json`, the MCP resources and the tool
-titles get the English names of the name map (`Controlli/lingua/name-map.tsv`,
-W3.1-bis.3), and so do the bench cases that speak that protocol, the readers of
-the catalogue and every code name quoted in a message, a comment or a document.
+sub-actions, the 99 operations and their 12 families, every argument and the
+value of every argument whose schema lists one, the selectors, the fields of
+every answer and the value of every response field the map covers, the keys
+of `Strumenti/catalogo.json`, the MCP resources and the tool titles get the
+English names of the name map (`Controlli/lingua/name-map.tsv`, W3.1-bis.3),
+and so do the bench cases that speak that protocol, the readers of the
+catalogue and every code name quoted in a message, a comment or a document.
 The texts themselves (descriptions, messages, comments) stay in the language
 they were written in: only the names inside them change. Classes, files and
-folders of the code are window 3 (W3.1-bis.6).
+folders of the code are window 3 (W3.1-bis.6). A few values outside any enum
+(`mate`'s `variant` and `alignment`, the `kind` of a mate, a drawing view, a
+selection or `check_body_geometry` in the state) are not in the map yet and
+stay Italian: W3.1-bis.8.
 
 ### The script of the window
 

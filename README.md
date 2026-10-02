@@ -296,15 +296,21 @@ quella che sta girando.
 
 **The protocol is English.** The seven tools (`inspect_part`, `list_operations`,
 `describe_operation`, `build`, `measure`, `undo`, `document`) and their
-sub-actions, the 99 operations and their families, every argument and every
-value an argument takes, the selectors (`@face(normal=front)`), the fields and
-the values of every answer, the keys of `Strumenti/catalogo.json`, the MCP
-resources (`catalog://operations`, `catalog://operation/{name}`) and the tool
-titles are English names (rename window 2, W3.1-bis.5). The cases of the bench
-were renamed in window 1 (W3.1-bis.4); the classes, files and folders of the
-code follow in window 3 (W3.1-bis.6). The texts of the answers, the descriptions
-of the catalogue and the comments are still partly Italian, and become English
-entry by entry.
+sub-actions, the 99 operations and their families, every argument and the
+value of every argument whose schema lists one, the selectors
+(`@face(normal=front)`), the fields of every answer and the value of every
+response field the name map covers, the keys of `Strumenti/catalogo.json`, the
+MCP resources (`catalog://operations`, `catalog://operation/{name}`) and the
+tool titles are English names (rename window 2, W3.1-bis.5). The cases of the
+bench were renamed in window 1 (W3.1-bis.4); the classes, files and folders of
+the code follow in window 3 (W3.1-bis.6). The texts of the answers, the
+descriptions of the catalogue and the comments are still partly Italian, and
+become English entry by entry.
+
+**A few values outside any enum are still Italian** (W3.1-bis.8): `mate`'s
+`variant` and `alignment` (free text, not checked against the catalogue), and
+the `kind` the state reports for a mate, a drawing view, a selection or
+`check_body_geometry`. The name map has no row for them yet.
 
 **What comes from SOLIDWORKS stays in the language of the installation.** The
 names SOLIDWORKS gives to features, sketches, planes and configurations

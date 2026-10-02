@@ -24,7 +24,19 @@
 //  names an Italian SOLIDWORKS writes (Schizzo1, «Piano frontale») are never
 //  touched. In a TODO (--todo) the closed entries ([x]) and the (com'era)
 //  sections are history and stay as they are, as Controlli/percorsi-del-todo.js
-//  reads them.
+//  reads them; so does the entry W3.1-bis with its stages (the rename itself:
+//  its tables and decisions quote the Italian name next to the English one).
+//
+//  Left as they are, everywhere, and listed with --list:
+//    - a line that already names the English name a rename would write (a
+//      table «| `guarda_il_pezzo` | `inspect_part` |», an arrow, «X diventa
+//      Y»): renaming it would write «`inspect_part` | `inspect_part`»;
+//    - a name the map gives two English names, alone between backticks
+//      (`misure` is the field `measurements` of an answer and the argument
+//      `measured_as` of a frame; `piano`, `passo`, `quota`): no code around it
+//      says which;
+//    - a word the notes use for another subject (`modello`, the model of
+//      graphify in the memories).
 //
 //  It takes EXPLICIT paths only (files, or folders whose *.md files it
 //  walks), never a default: the owner runs it on the real files at the merge
@@ -32,8 +44,11 @@
 //  would change.
 //
 //  USAGE
-//    node Controlli/lingua/update-names-in-notes.js [--dry-run] [--list] <path>...
-//    node Controlli/lingua/update-names-in-notes.js [--dry-run] --todo <TODO.md>
+//    node Controlli/lingua/update-names-in-notes.js [--dry-run] [--list] [--only-mentioning <regex>] <path>...
+//    node Controlli/lingua/update-names-in-notes.js [--dry-run] [--list] --todo <TODO.md>
+//        --only-mentioning skips a note whose text does not match: the RAG
+//        holds the notes of OpenPDM too, whose `stato`, `errore` or
+//        `qualita` are not names of the bridge
 //    node Controlli/lingua/update-names-in-notes.js --self-test
 //        fake notes in a temporary folder: every rule seen doing what it says
 //
@@ -53,7 +68,8 @@ const WINDOW = path.join(__dirname, 'window-2-surface.js');
 const ROOT = path.resolve(__dirname, '..', '..');
 
 function usage() {
-  console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 46).join('\n'));
+  const lines = fs.readFileSync(__filename, 'utf8').split('\n');
+  console.log(lines.slice(1, lines.findIndex(l => /^'use strict'/.test(l))).join('\n'));
 }
 
 function run(args) {
@@ -72,6 +88,8 @@ function selfTest() {
     'La faccia si sceglie con @faccia(verso=davanti) e lo strumento ' + BT + 'guarda_il_pezzo' + BT + '.',
     'Una asola e un guscio restano parole: «asola» e "guscio" sono citazioni.',
     'Il nome dell albero resta Schizzo1, e la risorsa e\' catalogo://operazioni.',
+    '| ' + BT + 'guarda_il_pezzo' + BT + ' | ' + BT + 'inspect_part' + BT + ' |',
+    'Il campo ' + BT + 'misure' + BT + ' da solo ha due sensi; il ' + BT + 'modello' + BT + ' di graphify e\' un altro discorso.',
   ].join('\n') + '\n';
   const todo = [
     '## Le voci',
@@ -79,6 +97,12 @@ function selfTest() {
     'Si chiama ' + BT + 'disegna' + BT + '.',
     '#### [x] Una voce chiusa',
     'Si chiamava ' + BT + 'disegna' + BT + '.',
+    '#### [ ] W3.1-bis — la rinomina',
+    'La regola: ' + BT + 'disegna' + BT + ' resta nella tabella, e ' + BT + 'asola' + BT + ' resta.',
+    '##### [ ] W3.1-bis.5 — una tappa',
+    'Si rinomina ' + BT + 'estrudi_rettangolo' + BT + '.',
+    '#### [ ] Una voce dopo',
+    'Si chiama ' + BT + 'guarda_il_pezzo' + BT + '.',
   ].join('\n') + '\n';
   const a = path.join(dir, 'nota.md'), b = path.join(dir, 'TODO.md');
   fs.writeFileSync(a, note);
@@ -97,12 +121,16 @@ function selfTest() {
   check('a common word stays a word, also quoted', n.includes('Una asola e un guscio') && n.includes('«asola»') && n.includes('"guscio"'));
   check('a name of an Italian SOLIDWORKS is not touched', n.includes('Schizzo1'));
   check('the resource URI is renamed', n.includes('catalog://operations'));
+  check('a line that names both the old and the new name is left whole', n.includes('| ' + BT + 'guarda_il_pezzo' + BT + ' | ' + BT + 'inspect_part' + BT + ' |'));
+  check('a name with two senses alone, and a word of another subject, stay', n.includes(BT + 'misure' + BT + ' da solo') && n.includes(BT + 'modello' + BT + ' di graphify'));
   run(['--notes', a]);
   check('a second run changes nothing', fs.readFileSync(a, 'utf8') === n);
   run(['--todo', b]);
   const t = fs.readFileSync(b, 'utf8');
   check('an open entry of the TODO is renamed', t.includes('Si chiama ' + BT + 'build' + BT));
   check('a closed entry of the TODO is history', t.includes('Si chiamava ' + BT + 'disegna' + BT));
+  check('the entry W3.1-bis and its stages are left whole', t.includes('La regola: ' + BT + 'disegna' + BT + ' resta nella tabella, e ' + BT + 'asola' + BT + ' resta.') && t.includes('Si rinomina ' + BT + 'estrudi_rettangolo' + BT));
+  check('the entry after W3.1-bis is renamed again', t.includes('Si chiama ' + BT + 'inspect_part' + BT));
   try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* left */ }
   const bad = checks.filter(c => !c[1]).length;
   console.log((checks.length - bad) + ' of ' + checks.length + ' checks as expected.');
@@ -114,16 +142,21 @@ function main(argv) {
   if (argv.includes('--self-test')) return selfTest();
   const dry = argv.includes('--dry-run');
   const list = argv.includes('--list');
+  const oi = argv.indexOf('--only-mentioning');
+  const only = oi >= 0 ? argv[oi + 1] : null;
+  if (oi >= 0 && !only) { console.error('--only-mentioning needs a regular expression'); return 2; }
+  if (oi >= 0) argv = argv.filter((x, k) => k !== oi && k !== oi + 1);
+  const extra = (dry ? ['--dry-run'] : []).concat(list ? ['--list'] : []).concat(only ? ['--only-mentioning', only] : []);
   const ti = argv.indexOf('--todo');
   if (ti >= 0) {
     const todo = argv[ti + 1];
     if (!todo) { console.error('--todo needs a file'); return 2; }
-    return run(['--todo', path.resolve(todo)].concat(dry ? ['--dry-run'] : []).concat(list ? ['--list'] : []));
+    return run(['--todo', path.resolve(todo)].concat(extra));
   }
   const paths = argv.filter(a => !a.startsWith('--'));
   if (!paths.length) { console.error('no path: the notes are named one by one (see --help)'); return 2; }
   for (const p of paths) if (!fs.existsSync(p)) { console.error('no such file or folder: ' + p); return 2; }
-  return run(['--notes'].concat(paths.map(p => path.resolve(p))).concat(dry ? ['--dry-run'] : []).concat(list ? ['--list'] : []));
+  return run(['--notes'].concat(paths.map(p => path.resolve(p))).concat(extra));
 }
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));

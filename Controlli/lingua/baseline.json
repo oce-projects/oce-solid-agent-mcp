@@ -2,15 +2,15 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 144945,
-  "strings": 54178,
+  "comments": 145002,
+  "strings": 54187,
   "markdown": 33938,
-  "json_values": 54732,
+  "json_values": 54674,
   "identifiers": 5054,
   "json_keys": 15,
-  "protocol": 1067,
+  "protocol": 1063,
   "paths": 220,
-  "transition": 2180
+  "transition": 2192
  },
  "files": {
   ".gitattributes": {
@@ -468,7 +468,7 @@
    "json_values": 155
   },
   "Banco/cases/extrusions/unknown_plane_does_not_fall_back_to_front.json": {
-   "json_values": 16
+   "json_values": 15
   },
   "Banco/cases/features/anchored_hole_follows_the_border.json": {
    "json_values": 115
@@ -999,6 +999,9 @@
   "Banco/tasks/one_meter_frame.json": {
    "json_values": 296
   },
+  "Banco/tasks/score-autonomous.js": {
+   "transition": 10
+  },
   "CHANGELOG.md": {
    "markdown": 22887
   },
@@ -1226,12 +1229,13 @@
    "strings": 1
   },
   "Controlli/lingua/update-names-in-notes.js": {
-   "comments": 5,
-   "strings": 44
+   "comments": 6,
+   "strings": 79
   },
   "Controlli/lingua/window-2-surface.js": {
-   "comments": 46,
-   "strings": 224
+   "comments": 88,
+   "transition": 2,
+   "strings": 255
   },
   "Controlli/moduli-di-solidworks.ps1": {
    "comments": 523,
@@ -1346,10 +1350,15 @@
    "strings": 166
   },
   "Prove/AliasLayerContract.cs": {
+   "strings": 1,
    "transition": 4
   },
   "Prove/Carica.cs": {
    "comments": 195
+  },
+  "Prove/DescriptionValuesContract.cs": {
+   "comments": 13,
+   "strings": 9
   },
   "Prove/FormaSpellingContract.cs": {
    "comments": 1,
@@ -1483,6 +1492,9 @@
   "Riscontro.Catalogo/Riscontro.Catalogo.csproj": {
    "comments": 75
   },
+  "Riscontro.Disegno/Alias.cs": {
+   "comments": 1
+  },
   "Riscontro.Disegno/ApiHelpers.Drawing.cs": {
    "comments": 1
   },
@@ -1498,7 +1510,7 @@
   },
   "Riscontro.Disegno/Catalogo/Operazioni.cs": {
    "comments": 868,
-   "strings": 17231
+   "strings": 17174
   },
   "Riscontro.Disegno/ErroriFeature.cs": {
    "comments": 164,
@@ -1800,7 +1812,7 @@
   },
   "Strumenti/Attrezzi.cs": {
    "comments": 5801,
-   "strings": 1684
+   "strings": 1674
   },
   "Strumenti/Catalogo.cs": {
    "comments": 307,
@@ -1817,7 +1829,7 @@
    "json_values": 7
   },
   "Strumenti/catalogo.json": {
-   "json_values": 18285
+   "json_values": 18228
   },
   "build.ps1": {
    "comments": 517,
@@ -7299,7 +7311,6 @@
    "apertura",
    "api_sw_array_tipizzati",
    "api_sw_che_aprono_finestre",
-   "applica_materiale",
    "applicazione",
    "appoggiato",
    "apri",
@@ -7514,7 +7525,6 @@
    "forma_del_pezzo",
    "formato",
    "foro",
-   "foro_guidato",
    "fortissimo",
    "fotogrammi",
    "frase",
@@ -7859,7 +7869,6 @@
    "sporgenza",
    "sposta",
    "sposta-corpi",
-   "sposta_corpi",
    "spostata",
    "squadrate",
    "staccata",
@@ -7886,7 +7895,6 @@
    "telai",
    "telaio",
    "telaio_da_un_metro",
-   "telaio_rettangolare",
    "tentativo",
    "tenuti",
    "tenuto",

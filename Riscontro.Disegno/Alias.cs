@@ -191,6 +191,49 @@ namespace Riscontro.Disegno
         /// <summary>A family of the catalogue.</summary>
         public static string Family(string name, List<string> notes) { return Lookup(_table.Family, name, notes); }
 
+        // The URIs of the MCP resources of the catalogue (Mcp/Risorse.cs), before
+        // and after window 2. Written here, not read from the bridge: the bridge
+        // is not this assembly, and its constants say only the English URIs.
+        private const string OldResourceList = "catalogo://operazioni";
+        private const string OldResourceOne = "catalogo://operazione/";
+        private const string ResourceList = "catalog://operations";
+        private const string ResourceOne = "catalog://operation/";
+
+        /// <summary>
+        /// A URI of the catalogue resources written as before window 2
+        /// (`catalogo://operazioni`, `catalogo://operazione/&lt;name&gt;` with
+        /// the Italian or the English name of an operation): the English URI,
+        /// with one deprecated line; any other URI as it came.
+        /// </summary>
+        public static string ResourceUri(string uri, List<string> notes)
+        {
+            if (uri == null || !_table.Loaded) return uri;
+            if (string.Equals(uri, OldResourceList, StringComparison.Ordinal))
+            {
+                Record(notes, uri, ResourceList);
+                return ResourceList;
+            }
+            string name = null;
+            if (uri.StartsWith(OldResourceOne, StringComparison.Ordinal)) name = uri.Substring(OldResourceOne.Length);
+            else if (uri.StartsWith(ResourceOne, StringComparison.Ordinal))
+            {
+                // the English URI with the Italian name of the operation
+                string tail = uri.Substring(ResourceOne.Length), unescaped = tail;
+                try { unescaped = Uri.UnescapeDataString(tail); } catch (UriFormatException) { }
+                string en;
+                if (!_table.Operation.TryGetValue(unescaped, out en)) return uri;
+                Record(notes, unescaped, en);
+                return ResourceOne + en;
+            }
+            if (name == null) return uri;
+            string decoded = name;
+            try { decoded = Uri.UnescapeDataString(name); } catch (UriFormatException) { }
+            string english;
+            string now = ResourceOne + (_table.Operation.TryGetValue(decoded, out english) ? english : decoded);
+            Record(notes, uri, now);
+            return now;
+        }
+
         /// <summary>
         /// The keys and values of `arguments`, in place, against a JSON schema
         /// (the deserialized schema of the operation): an Italian key becomes
@@ -270,9 +313,17 @@ namespace Riscontro.Disegno
             Dictionary<string, string> values;
             string en;
             if (!_table.EnumValue.TryGetValue(key, out values) || !values.TryGetValue(value, out en)) return value;
-            // only into a value the schema lists, when it lists any
+            // only into a value the schema lists. An argument without an enum
+            // takes free text (the `variant` of mate, the `view` of a drawing
+            // operation, which names a view): a word there is not a value of
+            // the map, even when another operation has an argument of the same
+            // name whose enum lists it («angolo» is a fillet weld, not a mate).
+            // The facings of mate are the one set of values the schema does
+            // not list (face_a, face_b take the values of the selector field
+            // normal).
             object e;
             var allowed = rule != null && rule.TryGetValue("enum", out e) ? e as IEnumerable : null;
+            if (allowed == null && Array.IndexOf(FacingArguments, key) < 0) return value;
             if (allowed != null && !allowed.Cast<object>().Any(x => string.Equals(Convert.ToString(x), en, StringComparison.Ordinal)))
                 return value;
             Record(notes, value, en);

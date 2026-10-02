@@ -308,12 +308,23 @@ namespace Riscontro.Disegno
             // in English. Removed in W3.1-bis.11.
             List<string> deprecated = Alias.Step(ref operazione, argomenti);
             Esito esito = ExecuteWithCurrentNames(modello, operazione, argomenti, stato, passiFatti);
-            if (deprecated.Count > 0 && esito != null)
-            {
-                if (esito.Misure != null) esito.Misure["deprecated"] = deprecated.ToArray();
-                else if (!esito.Riuscito) esito.Errore = esito.Errore + " (" + string.Join("; ", deprecated) + ")";
-            }
+            AttachDeprecated(esito, deprecated);
             return esito;
+        }
+
+        /// <summary>
+        /// The deprecated lines of a step on its outcome: always in
+        /// `measurements.deprecated` (an outcome whose operation left no
+        /// measurements gets them anyway, or the warning would be lost on a
+        /// step that worked), and on a failed step in the error too, which is
+        /// what a caller reads first. Removed with the aliases in W3.1-bis.11.
+        /// </summary>
+        public static void AttachDeprecated(Esito esito, List<string> deprecated)
+        {
+            if (esito == null || deprecated == null || deprecated.Count == 0) return;
+            if (esito.Misure == null) esito.Misure = new Dictionary<string, object>();
+            esito.Misure["deprecated"] = deprecated.ToArray();
+            if (!esito.Riuscito) esito.Errore = esito.Errore + " (" + string.Join("; ", deprecated) + ")";
         }
 
         private Esito ExecuteWithCurrentNames(

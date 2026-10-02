@@ -422,6 +422,13 @@ namespace ProvaSaldatura
                     : tAlias.GetMethod("Selector", new[] { typeof(string), typeof(List<string>) });
                 if (selectorMethod != null)
                     Attese.SelectorAlias = (s, notes) => (string)selectorMethod.Invoke(null, new object[] { s, notes });
+                var usesProperty = tAlias == null ? null
+                    : tAlias.GetProperty("Uses", BindingFlags.Public | BindingFlags.Static);
+                if (usesProperty != null)
+                {
+                    Attese.AliasUsesNow = () => (int)usesProperty.GetValue(null, null);
+                    AliasUsesNow();   // the start of the count of the run
+                }
             }
             catch (Exception ex)
             {
@@ -635,6 +642,7 @@ namespace ProvaSaldatura
             ControllaIlContoPerGruppo();
             CheckTheTestIdentities();
             CheckTheReflectionLog();
+            WriteAliasUses();
 
             var riepilogo =
                 (nonLanciati.Count > 0
@@ -749,9 +757,9 @@ namespace ProvaSaldatura
             {
                 new Gruppo { Nome = "sezioni",   Cosa = "Services.SezioneProfilo",      Azioni = una(Sezioni) },
                 new Gruppo { Nome = "archivio",  Cosa = "Services.MaterialiSolidWorks", Azioni = una(Materiali) },
-                new Gruppo { Nome = "telai",     Cosa = "telaio_rettangolare",          Azioni = una(Telai) },
-                new Gruppo { Nome = "fori",      Cosa = "foro_guidato",                 Azioni = una(Fori) },
-                new Gruppo { Nome = "materiale", Cosa = "applica_materiale",            Azioni = una(Materiale) },
+                new Gruppo { Nome = "telai",     Cosa = "rectangular_frame",          Azioni = una(Telai) },
+                new Gruppo { Nome = "fori",      Cosa = "hole_wizard",                 Azioni = una(Fori) },
+                new Gruppo { Nome = "materiale", Cosa = "apply_material",            Azioni = una(Materiale) },
                 new Gruppo { Nome = "stato",     Cosa = "StatoDocumento",               Azioni = una(Stato) },
                 new Gruppo { Nome = "viste",     Cosa = "VistaDelPezzo (V1)",           Azioni = una(ProvaFotografia) },
                 new Gruppo { Nome = "tetto",     Cosa = "il tetto sulle lavorazioni (E12)",
@@ -762,7 +770,7 @@ namespace ProvaSaldatura
                 new Gruppo { Nome = "scatto",       Cosa = "scatta la vista",        Azioni = una(ScattaLaVista) },
                 new Gruppo { Nome = "quanto-vede",  Cosa = "quanto vede il modello", Azioni = una(QuantoVedeIlModello) },
                 new Gruppo { Nome = "facce",        Cosa = "le facce della piastra", Azioni = una(StampaFaccePiastra) },
-                new Gruppo { Nome = "sposta-corpi", Cosa = "sposta_corpi",           Azioni = una(ProvaSpostaCorpi) },
+                new Gruppo { Nome = "sposta-corpi", Cosa = "move_bodies",           Azioni = una(ProvaSpostaCorpi) },
                 // «slot» non c'e' piu': e' diventata quindici file in
                 // `cases/slot/`, e si lancia con `--gruppo casi` (voce F11).
                 // «smusso» non c'e' piu': e' diventato tre file in

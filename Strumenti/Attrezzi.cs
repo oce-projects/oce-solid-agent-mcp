@@ -156,8 +156,9 @@ namespace Oce.Solid.Agent.Strumenti
                             {
                                 ["type"] = "string",
                                 ["description"] =
-                                    "solo una famiglia: estrusioni, lavorazioni, " +
-                                    "riferimenti, corpi, saldature, proprieta', tavola",
+                                    "solo una famiglia: extrusions, features, weldments, " +
+                                    "references, assemblies, physical_properties, drawing, " +
+                                    "checks, exports, identity, sheet_metal, dimensions",
                             },
                         },
                         new string[0]),
@@ -199,7 +200,7 @@ namespace Oce.Solid.Agent.Strumenti
                     "a meta' pezzo.\n\n" +
                     "Un passo puo' nominare la geometria creata da un passo " +
                     "PRECEDENTE dello stesso piano (per esempio face_ref: " +
-                    "{passo: 1, genere: \"top_face\"}): e' l'unico modo, " +
+                    "{step: 1, kind: \"top_face\"}): e' l'unico modo, " +
                     "perche' quella faccia non ha ancora nessun identificativo.\n\n" +
                     "The plan runs on the document you looked at; if another window " +
                     "came to the front in between, it stops before writing. " +
@@ -1670,7 +1671,7 @@ namespace Oce.Solid.Agent.Strumenti
                                  "e verrebbe IGNORATO");
                     }
 
-                // I riferimenti a un passo precedente: `{passo: N, genere: ...}`.
+                // I riferimenti a un passo precedente: `{step: N, kind: ...}`.
                 foreach (var coppia in dati)
                 {
                     if (!coppia.Key.EndsWith("_ref", StringComparison.Ordinal)) continue;

@@ -26,7 +26,7 @@ const path = require("path");
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
 const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
-const USCITA = path.join(__dirname, "views");
+const USCITA = path.join(__dirname, "viste");
 
 // Lo stesso guscio della misura V2/V3: scatola 120x80x50, parete 4, aperta in
 // alto. Dall'esterno e' un parallelepipedo; la parete si vede solo dentro.

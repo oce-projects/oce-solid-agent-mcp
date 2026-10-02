@@ -27,7 +27,7 @@ const path = require("path");
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
 const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
-const USCITA = path.join(__dirname, "views");
+const USCITA = path.join(__dirname, "viste");
 
 // DUE CHIAMATE, NON UNA: il ponte ne da' al massimo tre per volta, ed e' un
 // tetto voluto (una vista costa piu' di dieci volte l'intero stato scritto).

@@ -263,10 +263,19 @@ namespace Oce.Solid.Agent
                         return Protocollo.Errore(
                             id, Protocollo.ParametriNonValidi, "manca «uri»");
 
+                    // THE URIs OF BEFORE W3.1-bis.5 (Riscontro.Disegno/Alias.cs, decision
+                    // D4): read as the English ones until the first release, and the
+                    // answer says so in `deprecated`. Removed in W3.1-bis.11.
+                    var deprecated = new List<string>();
+                    uri = Riscontro.Disegno.Alias.ResourceUri(uri, deprecated);
                     var risorse = new Risorse(catalogo);
                     var contenuto = risorse.Leggi(uri);
                     if (contenuto != null)
+                    {
+                        var answerWithNotes = contenuto as Dictionary<string, object>;
+                        if (deprecated.Count > 0 && answerWithNotes != null) answerWithNotes["deprecated"] = deprecated.ToArray();
                         return Protocollo.Risposta(id, contenuto);
+                    }
 
                     // UN URI CHE NON ESISTE DICE COSA ESISTE. Un «non trovato»
                     // nudo lascia a chi chiede l'unico rimedio che non
@@ -276,7 +285,7 @@ namespace Oce.Solid.Agent
                         id, Protocollo.ParametriNonValidi,
                         "Non conosco la risorsa «" + uri + "». C'e' «" +
                         Risorse.UriElenco + "» (tutte le operazioni in breve) e " +
-                        "«" + Risorse.PrefissoOperazione + "<nome>» per una sola." +
+                        "«" + Risorse.PrefissoOperazione + "<name>» per una sola." +
                         (simili.Count == 0
                             ? ""
                             : " Forse cercavi: " + string.Join(", ", simili) + "."));

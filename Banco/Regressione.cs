@@ -87,7 +87,9 @@ namespace ProvaSaldatura
                 using (var scope = Ledger.OpenCase(Path.GetFileNameWithoutExtension(f),
                                                    Path.GetFileName(Path.GetDirectoryName(f)), "regression"))
                 {
+                    int aliasUsesAtStart = AliasUsesNow();
                     var e = UnCaso(f);
+                    CountAliasUses("regression/" + Path.GetFileNameWithoutExtension(f), f, aliasUsesAtStart);
                     scope.Outcome = scope.HasBenchErrors ? "bench_error"
                                   : e.Come == Esito.Regge ? "holds"
                                   : e.Come == Esito.SiStaccaELoDice ? "breaks_and_says_so"

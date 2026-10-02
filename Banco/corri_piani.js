@@ -89,13 +89,13 @@ const DA_COPIARE = {
 };
 
 function preparaLaCartella() {
-  for (const c of [LAVORO, path.join(LAVORO, "part"), path.join(LAVORO, "profiles")]) {
+  for (const c of [LAVORO, path.join(LAVORO, "pezzo"), path.join(LAVORO, "profili")]) {
     if (!fs.existsSync(c)) fs.mkdirSync(c, { recursive: true });
   }
 
   for (const [origine, copia] of Object.entries(DA_COPIARE)) {
     const da = path.join(PROFILI, origine);
-    const a = path.join(LAVORO, "profiles", copia);
+    const a = path.join(LAVORO, "profili", copia);
     if (fs.existsSync(a)) continue;
     if (!fs.existsSync(da)) {
       // SI DICE, e non si muore: chi clona il repository non ha quella
@@ -211,7 +211,7 @@ async function principale() {
     const partito = process.hrtime.bigint();
     await unGiro([f], null);
     const secondi = Number(process.hrtime.bigint() - partito) / 1e9;
-    tempi.push({ plane: path.basename(f), secondi });
+    tempi.push({ piano: path.basename(f), secondi });
     console.log("  [tempo] " + path.basename(f) + ": " + secondi.toFixed(1) + " s");
 
     // SI CHIUDE DOPO OGNI PIANO, NON ALLA FINE.
@@ -229,7 +229,7 @@ async function principale() {
     console.log("=== I tempi, in ordine di esecuzione");
     tempi.forEach((t, i) =>
       console.log("  " + String(i + 1).padStart(3) + ". " +
-                  t.plane.padEnd(28) + t.secondi.toFixed(1) + " s"));
+                  t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));
     const primi = tempi.slice(0, 3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, tempi.length);
     const ultimi = tempi.slice(-3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, tempi.length);
     console.log("  primi tre: " + primi.toFixed(1) + " s di media" +

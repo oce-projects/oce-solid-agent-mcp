@@ -119,7 +119,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
+                                "description", "piano di costruzione: front, top o right"),
                             "diameter_mm", O(
                                 "type", "number"),
                             "height_mm", O(
@@ -168,7 +168,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
+                                "description", "piano di costruzione: front, top o right"),
                             "contours", O(
                                 "type", "array",
                                 "description", "Il PRIMO contorno e' il bordo esterno, i successivi sono i vuoti "
@@ -227,7 +227,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
+                                "description", "piano di costruzione: front, top o right"),
                             "length_mm", O(
                                 "type", "number",
                                 "description", "primo lato, in mm"),
@@ -306,7 +306,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
+                                "description", "piano di costruzione: front, top o right"),
                             "variant", O(
                                 "type", "string",
                                 "enum", A(
@@ -391,7 +391,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
+                                "description", "piano di costruzione: front, top o right"),
                             "contours", O(
                                 "type", "array",
                                 "description", "il profilo da ruotare, stessa sintassi di «extrude_profile»: il "
@@ -450,7 +450,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
+                                "description", "piano di costruzione: front, top o right"),
                             "teeth", O(
                                 "type", "integer",
                                 "description", "numero di denti (z)"),
@@ -723,10 +723,10 @@ namespace Riscontro.Disegno.Catalogo
                                     "threaded",
                                     "counterbore",
                                     "countersink"),
-                                "description", "passaggio = foro liscio per far passare la vite; filettato = "
-                                    + "maschiato, la vite ci si avvita; lamato = con la sede per la "
-                                    + "testa cilindrica (ISO 4762); svasato = con la sede conica per la "
-                                    + "testa svasata (ISO 10642). Predefinito: passaggio."),
+                                "description", "clearance = foro liscio per far passare la vite; threaded = "
+                                    + "maschiato, la vite ci si avvita; counterbore = con la sede per la "
+                                    + "testa cilindrica (ISO 4762); countersink = con la sede conica per la "
+                                    + "testa svasata (ISO 10642). Predefinito: clearance."),
                             "size", O(
                                 "type", "string",
                                 "enum", A(
@@ -920,7 +920,7 @@ namespace Riscontro.Disegno.Catalogo
                             "placement", O(
                                 "type", "string",
                                 "enum", A("before", "after"),
-                                "description", "prima o dopo di «relative_to_uid».")),
+                                "description", "before o after di «relative_to_uid».")),
                         "required", A("feature_uid", "relative_to_uid", "placement")),
                 },
                 new OperazioneDisegno
@@ -1277,7 +1277,7 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "l'asse creato da un passo precedente di questo stesso piano — "
                                     + "«fai l'asse del foro e poi ripeti la lavorazione 6 volte "
                                     + "attorno». Metti questo OPPURE axis_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- asse: l'asse creato dal passo, dal centro di un foro o "
+                                    + "ammessi:\n- axis: l'asse creato dal passo, dal centro di un foro o "
                                     + "di un albero",
                                 "properties", O(
                                     "step", O(
@@ -1363,7 +1363,7 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "object",
                                 "description", "la direzione 1, se l'asse lo crea un passo precedente di questo "
                                     + "piano con «create_axis». Uno OPPURE l'altro.\n\nGeneri ammessi:\n- "
-                                    + "asse: l'asse creato dal passo, dal centro di un foro o di un "
+                                    + "axis: l'asse creato dal passo, dal centro di un foro o di un "
                                     + "albero",
                                 "properties", O(
                                     "step", O(
@@ -1504,7 +1504,7 @@ namespace Riscontro.Disegno.Catalogo
                                     + "with «create_axis»: only an axis that lies along the boundary face works "
                                     + "(for example the axis of a shaft lying on it); the axis of a hole "
                                     + "drilled into the face runs across it and is refused. One OR the "
-                                    + "other.\n\nAllowed kinds:\n- asse: the axis made by that step",
+                                    + "other.\n\nAllowed kinds:\n- axis: the axis made by that step",
                                 "properties", O(
                                     "step", O(
                                         "type", "integer",
@@ -1656,7 +1656,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro")),
+                                "description", "piano di costruzione: front, top o right")),
                         "required", A(
                             "plane")),
                 },
@@ -1696,7 +1696,7 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "object",
                                 "description", "i corpi creati da un passo precedente di questo stesso piano. "
                                     + "Metti questo OPPURE bodies_uid, non tutti e due.\n\nGeneri "
-                                    + "ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+                                    + "ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
                                 "properties", O(
                                     "step", O(
                                         "type", "integer",
@@ -2011,7 +2011,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
+                                "description", "piano di costruzione: front, top o right"),
                             "distance_mm", O(
                                 "type", "number",
                                 "description", "quanto si sposta dal piano base. Negativo per l'altro verso.")),
@@ -2183,7 +2183,7 @@ namespace Riscontro.Disegno.Catalogo
                                 "enum", A(
                                     "triangular",
                                     "polygonal"),
-                                "description", "forma della piastra (predefinito: triangolare). Il poligonale "
+                                "description", "forma della piastra (predefinito: triangular). Il poligonale "
                                     + "taglia la punta e vuole «side3_mm» e «side4_mm»"),
                             "side3_mm", O(
                                 "type", "number",
@@ -2197,7 +2197,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "start",
                                     "center",
                                     "end"),
-                                "description", "dove sta lungo lo spigolo fra le due facce (predefinito: centro)")),
+                                "description", "dove sta lungo lo spigolo fra le due facce (predefinito: center)")),
                         "required", A(
                             "faces_uid",
                             "thickness_mm",
@@ -2287,7 +2287,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "butt2"),
                                 "description", "come si incontrano fra loro le barre di QUESTO gruppo, DOVE SI "
                                     + "TOCCANO. «miter» e' il taglio a 45 gradi negli angoli "
-                                    + "(default: quartabuono, the 45 degree miter, wherever the bars of "
+                                    + "(default: miter, the 45 degree miter, wherever the bars of "
                                     + "this group touch, closed or open path; the answer says it was the "
                                     + "default in «corner_treatment_note»); «butt1»/«butt2» e' una "
                                     + "barra che va in battuta sull'altra; «none» le lascia "
@@ -2340,7 +2340,7 @@ namespace Riscontro.Disegno.Catalogo
                             "bodies_to_trim_ref", O(
                                 "type", "object",
                                 "description", "the bars to trim or extend, made by a previous step\n\nGeneri "
-                                    + "ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+                                    + "ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
                                 "properties", O(
                                     "step", O(
                                         "type", "integer",
@@ -2364,7 +2364,7 @@ namespace Riscontro.Disegno.Catalogo
                             "trim_boundary_ref", O(
                                 "type", "object",
                                 "description", "le barre contro cui tagliare, da un passo precedente\n\nGeneri "
-                                    + "ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+                                    + "ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
                                 "properties", O(
                                     "step", O(
                                         "type", "integer",
@@ -2384,7 +2384,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "butt1",
                                     "butt2",
                                     "cut"),
-                                "description", "come si chiude il taglio (predefinito: taglio). Any other "
+                                "description", "come si chiude il taglio (predefinito: cut). Any other "
                                     + "word is refused before the part is touched, a word meaning no "
                                     + "corner included: the trim/extend has no such corner type, and none "
                                     + "was measured. The answer names the condition used in end_condition."),
@@ -2519,7 +2519,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: frontale, superiore o destro"),
+                                "description", "piano di costruzione: front, top o right"),
                             "corner_treatment", O(
                                 "type", "string",
                                 "enum", A(
@@ -2527,7 +2527,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "butt1",
                                     "butt2",
                                     "none"),
-                                "description", "default: quartabuono (45 degree miter); the answer says when "
+                                "description", "default: miter (45 degree miter); the answer says when "
                                     + "it was the default («corner_treatment_note»)"),
                             "rotation_deg", O(
                                 "type", "number"),
@@ -2541,7 +2541,7 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "cosa vogliono dire le due quote: «overall» e' la misura del "
                                     + "pezzo finito da fuori a fuori (e' quello che intende un "
                                     + "progettista quando dice «telaio 1000x800»); «center_distance» e' la "
-                                    + "distanza fra gli assi delle barre. Predefinito: ingombro."
+                                    + "distanza fra gli assi delle barre. Predefinito: overall."
                                     + " Upper or lower case does not matter («Ingombro» is "
                                     + "«overall»); any other word is refused."),
                             "centered", O(
@@ -2998,13 +2998,13 @@ namespace Riscontro.Disegno.Catalogo
                         "type", "object",
                         "properties", O(
                             "view", O("type", "string", "description", "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."),
-                            "variant", O("type", "string", "enum", A("fillet", "v", "half_v", "butt"), "description", "il cordone. Predefinito angolo."),
+                            "variant", O("type", "string", "enum", A("fillet", "v", "half_v", "butt"), "description", "il cordone. Predefinito fillet."),
                             "throat_mm", O("type", "number", "description", "la gola del cordone in mm (ISO 2553, «a»). Da 0 a 50."),
                             "length_mm", O("type", "number", "description", "la lunghezza del cordone, a destra del simbolo. Vuota = tutto il giunto."),
                             "all_around", O("type", "boolean", "description", "il cerchio del cordone tutto attorno. Predefinito falso."),
                             "field_weld", O("type", "boolean", "description", "la bandierina della saldatura in opera (in cantiere). Predefinito falso."),
                             "both_sides", O("type", "boolean", "description", "il cordone dai due lati del giunto. Predefinito falso."),
-                            "side", O("type", "string", "enum", A("top", "bottom", "left", "right"), "description", "da che parte della vista va il simbolo. Predefinito alto.")),
+                            "side", O("type", "string", "enum", A("top", "bottom", "left", "right"), "description", "da che parte della vista va il simbolo. Predefinito top.")),
                         "required", A("throat_mm")),
                 },
                 new OperazioneDisegno
@@ -3082,7 +3082,7 @@ namespace Riscontro.Disegno.Catalogo
                         "type", "object",
                         "properties", O(
                             "view", O("type", "string", "description", "la vista (V1, V2...) o per nome. Predefinita la prima."),
-                            "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "come disporre i palloncini attorno alla vista. Predefinito quadrato.")),
+                            "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "come disporre i palloncini attorno alla vista. Predefinito square.")),
                         "required", A()),
                 },
                 new OperazioneDisegno
@@ -3726,7 +3726,7 @@ namespace Riscontro.Disegno.Catalogo
                                     "bottom",
                                     "right",
                                     "left"),
-                                "description", "quale vista; isometrica se non dici niente"),
+                                "description", "quale vista; isometric se non dici niente"),
                             "x_mm", O(
                                 "type", "number",
                                 "description", "posizione sul foglio da sinistra, in mm"),
@@ -4196,7 +4196,7 @@ namespace Riscontro.Disegno.Catalogo
                                 "description", "il corpo che RESTA, se lo crea un passo precedente di questo "
                                     + "stesso piano (per esempio dopo un taglio, che cambia gli "
                                     + "identificativi). Metti questo OPPURE main_body_uid, non tutti e "
-                                    + "due. Il passo deve lasciare UN corpo solo.\n\nGeneri ammessi:\n- corpi: "
+                                    + "due. Il passo deve lasciare UN corpo solo.\n\nGeneri ammessi:\n- bodies: "
                                     + "i corpi toccati da quel passo",
                                 "properties", O(
                                     "step", O(
@@ -4219,7 +4219,7 @@ namespace Riscontro.Disegno.Catalogo
                                 "type", "object",
                                 "description", "i corpi da unire, sottrarre o intersecare, se li crea un passo "
                                     + "precedente di questo stesso piano. Metti questo OPPURE "
-                                    + "tool_bodies_uid, non tutti e due.\n\nGeneri ammessi:\n- corpi: i corpi "
+                                    + "tool_bodies_uid, non tutti e due.\n\nGeneri ammessi:\n- bodies: i corpi "
                                     + "toccati da quel passo, tutti insieme",
                                 "properties", O(
                                     "step", O(
@@ -4678,7 +4678,7 @@ namespace Riscontro.Disegno.Catalogo
                             "mode", O(
                                 "type", "string",
                                 "enum", A("instance", "opposite_linked", "opposite_unlinked"),
-                                "description", "istanza (stesso file), opposite_linked (file nuovo che segue "
+                                "description", "instance (stesso file), opposite_linked (file nuovo che segue "
                                     + "l'originale), opposite_unlinked (file nuovo indipendente)."),
                             "suffix", O(
                                 "type", "string",
@@ -5169,7 +5169,7 @@ namespace Riscontro.Disegno.Catalogo
                             "variant", O(
                                 "type", "string",
                                 "enum", A("closed", "open"),
-                                "description", "chiuso (schiacciato) o aperto (con gioco). Predefinito «closed»."),
+                                "description", "closed (schiacciato) o open (con gioco). Predefinito «closed»."),
                             "length_mm", O(
                                 "type", "number",
                                 "description", "quanto e' lungo il bordo ripiegato"),
@@ -5379,8 +5379,8 @@ namespace Riscontro.Disegno.Catalogo
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "il piano base parallelo a quello della nervatura: frontale "
-                                    + "(XY), superiore (XZ) o destro (YZ)"),
+                                "description", "il piano base parallelo a quello della nervatura: front "
+                                    + "(XY), top (XZ) o right (YZ)"),
                             "distance_mm", O(
                                 "type", "number",
                                 "description", "di quanto il piano della nervatura e' spostato dal piano base, "

@@ -23,7 +23,11 @@ namespace Prove.Contratti
     ///   2. the library by reflection (Riscontro.Disegno.Alias): an operation
     ///      step, a word of two senses (`a_mm` in the weld symbol and in the
     ///      section line), a value only into a value the schema lists, and a
-    ///      selector.
+    ///      selector; a free-text argument left alone (mate's variant) while
+    ///      the facings of mate are translated; the URIs of the resources of
+    ///      before; and the deprecated line kept on a step that worked with no
+    ///      measurements (OperazioniSw.AttachDeprecated). Over stdio, a
+    ///      resource read with the URI of before.
     ///
     /// The Italian names are read from the name map (Controlli/lingua/name-map.tsv)
     /// by their English name, not written here: the contract is about the
@@ -160,7 +164,53 @@ namespace Prove.Contratti
             var sel = selector.Invoke(null, new object[] { old, selNotes }) as string;
             Segna("an Italian selector becomes the English one", sel == "@face(normal=front)" && selNotes.Count == 1,
                   "«" + old + "» -> «" + sel + "»");
+
+            // an argument without an enum takes free text: a word that is a value
+            // of another operation's argument of the same name stays as written
+            // (mate's variant is free; «fillet» is a value of the weld symbol)
+            string filletIt = ValueOf(it, "variant", "fillet");
+            var free = new Dictionary<string, object> { ["variant"] = filletIt };
+            var freeNotes = step.Invoke(null, new object[] { "mate", free }) as List<string>;
+            Segna("a free-text argument keeps a word that is an enum value elsewhere",
+                  filletIt != null && Equals(free["variant"], filletIt) && freeNotes != null && freeNotes.Count == 0,
+                  "mate variant = " + free["variant"] + (freeNotes == null ? "" : ", " + freeNotes.Count + " deprecated lines"));
+            // ... but the facings of mate are values, though no enum lists them
+            string frontFacing = frontIt == null ? null : frontIt.Substring(frontIt.IndexOf('=') + 1);
+            var facing = new Dictionary<string, object> { ["face_a"] = frontFacing };
+            step.Invoke(null, new object[] { "mate", facing });
+            Segna("the facings of mate are translated, though no enum lists them",
+                  Equals(facing["face_a"], "front"), "face_a = " + facing["face_a"]);
+
+            // the URIs of the catalogue resources of before
+            var resourceUri = alias.GetMethod("ResourceUri");
+            string slotIt = it("operation", "slot");
+            string oldList = OldUri("operazioni"), oldOne = OldUri("operazione/");
+            var uriNotes = new List<string>();
+            var listUri = resourceUri == null ? null : resourceUri.Invoke(null, new object[] { oldList, uriNotes }) as string;
+            var oneUri = resourceUri == null ? null : resourceUri.Invoke(null, new object[] { oldOne + slotIt, uriNotes }) as string;
+            var mixedUri = resourceUri == null ? null : resourceUri.Invoke(null, new object[] { "catalog://operation/" + slotIt, uriNotes }) as string;
+            Segna("an old URI of the resources is read as the English one, with a deprecated line each",
+                  listUri == "catalog://operations" && oneUri == "catalog://operation/slot" && mixedUri == "catalog://operation/slot" && uriNotes.Count == 3,
+                  listUri + ", " + oneUri + ", " + mixedUri + "; " + uriNotes.Count + " lines");
+
+            // a step that worked and left no measurements keeps its warning
+            var ops = alias.Assembly.GetType("Riscontro.Disegno.OperazioniSw", false);
+            var outcomeType = alias.Assembly.GetType("Riscontro.Disegno.OperazioniSw+Esito", false);
+            var attach = ops == null ? null : ops.GetMethod("AttachDeprecated");
+            if (attach == null || outcomeType == null) { Segna("the library attaches the deprecated lines to an outcome", false, "OperazioniSw.AttachDeprecated or Esito not found"); return; }
+            var outcome = Activator.CreateInstance(outcomeType);
+            outcomeType.GetField("Riuscito").SetValue(outcome, true);
+            outcomeType.GetField("Misure").SetValue(outcome, null);
+            attach.Invoke(null, new object[] { outcome, new List<string> { "«x» is deprecated, use «y»" } });
+            var measured = outcomeType.GetField("Misure").GetValue(outcome) as Dictionary<string, object>;
+            Segna("a step that worked with no measurements keeps its deprecated line",
+                  measured != null && measured.ContainsKey("deprecated"),
+                  measured == null ? "measurements still null: the warning is lost" : string.Join(", ", measured.Keys));
         }
+
+        // An old URI of the resources (Mcp/Risorse.cs before window 2): the map
+        // has no row for the URIs, so they are written here.
+        private static string OldUri(string tail) { return "catalogo://" + tail; }
 
         // The Italian value of an English argument=value, from the map.
         private static string ValueOf(Func<string, string, string> it, string argument, string value)
@@ -233,6 +283,17 @@ namespace Prove.Contratti
                 Segna("and the description carries no Italian name of its schema",
                       describedText.IndexOf("\"" + it("argument", "length_mm") + "\"", StringComparison.Ordinal) < 0,
                       "no «" + it("argument", "length_mm") + "» key");
+
+                // a resource read with the URI of before
+                var resource = Dentro(Ogg(Chiedi(p, 43,
+                    "{\"jsonrpc\":\"2.0\",\"id\":43,\"method\":\"resources/read\",\"params\":" +
+                    "{\"uri\":\"" + OldUri("operazione/") + slotIt + "\"}}")), "result") as Dictionary<string, object>;
+                var contents = Dentro(resource, "contents") as object[];
+                var first = contents != null && contents.Length > 0 ? contents[0] : null;
+                Segna("a resource asked with the URI of before is the English one, and says so in «deprecated»",
+                      Equals(Dentro(first, "uri"), "catalog://operation/slot") && Dentro(resource, "deprecated") is object[] &&
+                      Convert.ToString(Dentro(first, "text")).Contains("\"name\""),
+                      "uri " + Dentro(first, "uri") + ", deprecated " + (Dentro(resource, "deprecated") is object[] ? "listed" : "missing"));
             }
             finally { Chiudi(p); }
         }

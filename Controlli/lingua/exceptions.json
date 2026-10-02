@@ -187,5 +187,29 @@
   "reason": "the alias contract (entry W3.1-bis.5) recognises the dry run of the bridge and its refusal of an unknown operation by the words the bridge writes, still Italian. Counted as transition: the contract leaves the tree with the aliases in W3.1-bis.11",
   "signed_by": "W3.1-bis.5",
   "date": "2026-10-01"
+ },
+ {
+  "class": "transition",
+  "file": "^Controlli/lingua/window-2-surface\\.js$",
+  "pattern": "\\bgenere\\b",
+  "applies_to": [
+   "detector",
+   "translator"
+  ],
+  "reason": "the review of W3.1-bis.5 (finding 6): a tool of the rename window is itself written against the names it renames, the same reason the name map carries a transition exception. `genere` is the Italian name of the bullet argument `kind`, read by bulletWordsOf and the reverse direction. Counted as transition: the word leaves the tree with the reverse direction in W3.1-bis.11",
+  "signed_by": "W3.1-bis.5",
+  "date": "2026-10-02"
+ },
+ {
+  "class": "transition",
+  "file": "^Banco/tasks/score-autonomous\\.js$",
+  "pattern": "\\b(?:esiti|riuscita|corpi_totali|stato_dopo|orlo|esporta_stl)\\b",
+  "applies_to": [
+   "detector",
+   "translator"
+  ],
+  "reason": "the review of W3.1-bis.5 (finding 1 and finding 6): the scorer reads the protocol the bridge of 9384b2c speaks, so ITALIAN_MARKS and the self-test fixture of a session of that bridge name its fields and two of its operations as that bridge wrote them, not as a global allowance. Counted as transition: the bridge of before leaves the autonomous run in W3.1-bis.11",
+  "signed_by": "W3.1-bis.5",
+  "date": "2026-10-02"
  }
 ]

@@ -29,7 +29,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      },
      "diameter_mm": {
       "type": "number"
@@ -63,7 +63,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      },
      "contours": {
       "type": "array",
@@ -105,7 +105,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      },
      "length_mm": {
       "type": "number",
@@ -149,7 +149,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      },
      "variant": {
       "type": "string",
@@ -220,7 +220,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      },
      "contours": {
       "type": "array",
@@ -268,7 +268,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      },
      "teeth": {
       "type": "integer",
@@ -584,7 +584,7 @@
        "counterbore",
        "countersink"
       ],
-      "description": "passaggio = foro liscio per far passare la vite; filettato = maschiato, la vite ci si avvita; lamato = con la sede per la testa cilindrica (ISO 4762); svasato = con la sede conica per la testa svasata (ISO 10642). Predefinito: passaggio."
+      "description": "clearance = foro liscio per far passare la vite; threaded = maschiato, la vite ci si avvita; counterbore = con la sede per la testa cilindrica (ISO 4762); countersink = con la sede conica per la testa svasata (ISO 10642). Predefinito: clearance."
      },
      "size": {
       "type": "string",
@@ -807,7 +807,7 @@
        "before",
        "after"
       ],
-      "description": "prima o dopo di «relative_to_uid»."
+      "description": "before o after di «relative_to_uid»."
      }
     },
     "required": [
@@ -1083,7 +1083,7 @@
      },
      "axis_ref": {
       "type": "object",
-      "description": "l'asse creato da un passo precedente di questo stesso piano — «fai l'asse del foro e poi ripeti la lavorazione 6 volte attorno». Metti questo OPPURE axis_uid, non tutti e due.\n\nGeneri ammessi:\n- asse: l'asse creato dal passo, dal centro di un foro o di un albero",
+      "description": "l'asse creato da un passo precedente di questo stesso piano — «fai l'asse del foro e poi ripeti la lavorazione 6 volte attorno». Metti questo OPPURE axis_uid, non tutti e due.\n\nGeneri ammessi:\n- axis: l'asse creato dal passo, dal centro di un foro o di un albero",
       "properties": {
        "step": {
         "type": "integer",
@@ -1155,7 +1155,7 @@
      },
      "axis1_ref": {
       "type": "object",
-      "description": "la direzione 1, se l'asse lo crea un passo precedente di questo piano con «create_axis». Uno OPPURE l'altro.\n\nGeneri ammessi:\n- asse: l'asse creato dal passo, dal centro di un foro o di un albero",
+      "description": "la direzione 1, se l'asse lo crea un passo precedente di questo piano con «create_axis». Uno OPPURE l'altro.\n\nGeneri ammessi:\n- axis: l'asse creato dal passo, dal centro di un foro o di un albero",
       "properties": {
        "step": {
         "type": "integer",
@@ -1275,7 +1275,7 @@
      },
      "axis_ref": {
       "type": "object",
-      "description": "the direction, when a previous step of this plan makes the axis with «create_axis»: only an axis that lies along the boundary face works (for example the axis of a shaft lying on it); the axis of a hole drilled into the face runs across it and is refused. One OR the other.\n\nAllowed kinds:\n- asse: the axis made by that step",
+      "description": "the direction, when a previous step of this plan makes the axis with «create_axis»: only an axis that lies along the boundary face works (for example the axis of a shaft lying on it); the axis of a hole drilled into the face runs across it and is refused. One OR the other.\n\nAllowed kinds:\n- axis: the axis made by that step",
       "properties": {
        "step": {
         "type": "integer",
@@ -1413,7 +1413,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      }
     },
     "required": [
@@ -1441,7 +1441,7 @@
      },
      "bodies_ref": {
       "type": "object",
-      "description": "i corpi creati da un passo precedente di questo stesso piano. Metti questo OPPURE bodies_uid, non tutti e due.\n\nGeneri ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+      "description": "i corpi creati da un passo precedente di questo stesso piano. Metti questo OPPURE bodies_uid, non tutti e due.\n\nGeneri ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
       "properties": {
        "step": {
         "type": "integer",
@@ -1803,7 +1803,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      },
      "distance_mm": {
       "type": "number",
@@ -1901,7 +1901,7 @@
        "triangular",
        "polygonal"
       ],
-      "description": "forma della piastra (predefinito: triangolare). Il poligonale taglia la punta e vuole «side3_mm» e «side4_mm»"
+      "description": "forma della piastra (predefinito: triangular). Il poligonale taglia la punta e vuole «side3_mm» e «side4_mm»"
      },
      "side3_mm": {
       "type": "number",
@@ -1918,7 +1918,7 @@
        "center",
        "end"
       ],
-      "description": "dove sta lungo lo spigolo fra le due facce (predefinito: centro)"
+      "description": "dove sta lungo lo spigolo fra le due facce (predefinito: center)"
      }
     },
     "required": [
@@ -1987,7 +1987,7 @@
        "butt1",
        "butt2"
       ],
-      "description": "come si incontrano fra loro le barre di QUESTO gruppo, DOVE SI TOCCANO. «miter» e' il taglio a 45 gradi negli angoli (default: quartabuono, the 45 degree miter, wherever the bars of this group touch, closed or open path; the answer says it was the default in «corner_treatment_note»); «butt1»/«butt2» e' una barra che va in battuta sull'altra; «none» le lascia compenetrate e va detto solo se lo si vuole davvero.\n\nNON taglia le estremita' LIBERE. Su una barra sola, o sui due capi di un telaio aperto, non c'e' niente contro cui tagliare e questo parametro non ha effetto."
+      "description": "come si incontrano fra loro le barre di QUESTO gruppo, DOVE SI TOCCANO. «miter» e' il taglio a 45 gradi negli angoli (default: miter, the 45 degree miter, wherever the bars of this group touch, closed or open path; the answer says it was the default in «corner_treatment_note»); «butt1»/«butt2» e' una barra che va in battuta sull'altra; «none» le lascia compenetrate e va detto solo se lo si vuole davvero.\n\nNON taglia le estremita' LIBERE. Su una barra sola, o sui due capi di un telaio aperto, non c'e' niente contro cui tagliare e questo parametro non ha effetto."
      },
      "gap_mm": {
       "type": "number",
@@ -2021,7 +2021,7 @@
      },
      "bodies_to_trim_ref": {
       "type": "object",
-      "description": "the bars to trim or extend, made by a previous step\n\nGeneri ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+      "description": "the bars to trim or extend, made by a previous step\n\nGeneri ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
       "properties": {
        "step": {
         "type": "integer",
@@ -2048,7 +2048,7 @@
      },
      "trim_boundary_ref": {
       "type": "object",
-      "description": "le barre contro cui tagliare, da un passo precedente\n\nGeneri ammessi:\n- corpi: le barre create da quel passo, tutte insieme",
+      "description": "le barre contro cui tagliare, da un passo precedente\n\nGeneri ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
       "properties": {
        "step": {
         "type": "integer",
@@ -2074,7 +2074,7 @@
        "butt2",
        "cut"
       ],
-      "description": "come si chiude il taglio (predefinito: taglio). Any other word is refused before the part is touched, a word meaning no corner included: the trim/extend has no such corner type, and none was measured. The answer names the condition used in end_condition."
+      "description": "come si chiude il taglio (predefinito: cut). Any other word is refused before the part is touched, a word meaning no corner included: the trim/extend has no such corner type, and none was measured. The answer names the condition used in end_condition."
      },
      "gap_mm": {
       "type": "number",
@@ -2173,7 +2173,7 @@
        "top",
        "right"
       ],
-      "description": "piano di costruzione: frontale, superiore o destro"
+      "description": "piano di costruzione: front, top o right"
      },
      "corner_treatment": {
       "type": "string",
@@ -2183,7 +2183,7 @@
        "butt2",
        "none"
       ],
-      "description": "default: quartabuono (45 degree miter); the answer says when it was the default («corner_treatment_note»)"
+      "description": "default: miter (45 degree miter); the answer says when it was the default («corner_treatment_note»)"
      },
      "rotation_deg": {
       "type": "number"
@@ -2197,7 +2197,7 @@
        "overall",
        "center_distance"
       ],
-      "description": "cosa vogliono dire le due quote: «overall» e' la misura del pezzo finito da fuori a fuori (e' quello che intende un progettista quando dice «telaio 1000x800»); «center_distance» e' la distanza fra gli assi delle barre. Predefinito: ingombro. Upper or lower case does not matter («Ingombro» is «overall»); any other word is refused."
+      "description": "cosa vogliono dire le due quote: «overall» e' la misura del pezzo finito da fuori a fuori (e' quello che intende un progettista quando dice «telaio 1000x800»); «center_distance» e' la distanza fra gli assi delle barre. Predefinito: overall. Upper or lower case does not matter («Ingombro» is «overall»); any other word is refused."
      },
      "centered": {
       "type": "boolean",
@@ -2494,7 +2494,7 @@
        "half_v",
        "butt"
       ],
-      "description": "il cordone. Predefinito angolo."
+      "description": "il cordone. Predefinito fillet."
      },
      "throat_mm": {
       "type": "number",
@@ -2524,7 +2524,7 @@
        "left",
        "right"
       ],
-      "description": "da che parte della vista va il simbolo. Predefinito alto."
+      "description": "da che parte della vista va il simbolo. Predefinito top."
      }
     },
     "required": [
@@ -2587,7 +2587,7 @@
        "above",
        "below"
       ],
-      "description": "come disporre i palloncini attorno alla vista. Predefinito quadrato."
+      "description": "come disporre i palloncini attorno alla vista. Predefinito square."
      }
     },
     "required": []
@@ -3018,7 +3018,7 @@
        "right",
        "left"
       ],
-      "description": "quale vista; isometrica se non dici niente"
+      "description": "quale vista; isometric se non dici niente"
      },
      "x_mm": {
       "type": "number",
@@ -3288,7 +3288,7 @@
      },
      "main_body_ref": {
       "type": "object",
-      "description": "il corpo che RESTA, se lo crea un passo precedente di questo stesso piano (per esempio dopo un taglio, che cambia gli identificativi). Metti questo OPPURE main_body_uid, non tutti e due. Il passo deve lasciare UN corpo solo.\n\nGeneri ammessi:\n- corpi: i corpi toccati da quel passo",
+      "description": "il corpo che RESTA, se lo crea un passo precedente di questo stesso piano (per esempio dopo un taglio, che cambia gli identificativi). Metti questo OPPURE main_body_uid, non tutti e due. Il passo deve lasciare UN corpo solo.\n\nGeneri ammessi:\n- bodies: i corpi toccati da quel passo",
       "properties": {
        "step": {
         "type": "integer",
@@ -3315,7 +3315,7 @@
      },
      "tool_bodies_ref": {
       "type": "object",
-      "description": "i corpi da unire, sottrarre o intersecare, se li crea un passo precedente di questo stesso piano. Metti questo OPPURE tool_bodies_uid, non tutti e due.\n\nGeneri ammessi:\n- corpi: i corpi toccati da quel passo, tutti insieme",
+      "description": "i corpi da unire, sottrarre o intersecare, se li crea un passo precedente di questo stesso piano. Metti questo OPPURE tool_bodies_uid, non tutti e due.\n\nGeneri ammessi:\n- bodies: i corpi toccati da quel passo, tutti insieme",
       "properties": {
        "step": {
         "type": "integer",
@@ -3607,7 +3607,7 @@
        "opposite_linked",
        "opposite_unlinked"
       ],
-      "description": "istanza (stesso file), opposite_linked (file nuovo che segue l'originale), opposite_unlinked (file nuovo indipendente)."
+      "description": "instance (stesso file), opposite_linked (file nuovo che segue l'originale), opposite_unlinked (file nuovo indipendente)."
      },
      "suffix": {
       "type": "string",
@@ -3980,7 +3980,7 @@
        "closed",
        "open"
       ],
-      "description": "chiuso (schiacciato) o aperto (con gioco). Predefinito «closed»."
+      "description": "closed (schiacciato) o open (con gioco). Predefinito «closed»."
      },
      "length_mm": {
       "type": "number",
@@ -4145,7 +4145,7 @@
        "top",
        "right"
       ],
-      "description": "il piano base parallelo a quello della nervatura: frontale (XY), superiore (XZ) o destro (YZ)"
+      "description": "il piano base parallelo a quello della nervatura: front (XY), top (XZ) o right (YZ)"
      },
      "distance_mm": {
       "type": "number",

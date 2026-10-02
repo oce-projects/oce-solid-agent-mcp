@@ -751,6 +751,16 @@ namespace ProvaSaldatura
         internal static Func<string, List<string>, string> SelectorAlias;
         internal static readonly List<string> DeprecatedSelectors = new List<string>();
 
+        /// <summary>
+        /// How many Italian names the library has translated since the bench
+        /// started (Riscontro.Disegno.Alias.Uses): every step, a failed one
+        /// too, every selector of a step or of an expectation, every step that
+        /// prepares the components of an assembly. The bench counts the
+        /// difference over each case. Null with a library from before the
+        /// aliases. Removed in W3.1-bis.11.
+        /// </summary>
+        internal static Func<int> AliasUsesNow;
+
         internal static string Seleziona(string espressione, Dictionary<string, object> stato)
         {
             if (SelectorAlias != null) espressione = SelectorAlias(espressione, DeprecatedSelectors);
@@ -938,7 +948,7 @@ namespace ProvaSaldatura
         }
 
         /// <summary>
-        /// `@quota(feature=Schizzo1,nome=D1)` -> il nome ESTESO della quota, come
+        /// `@dimension(feature=Schizzo1,name=D1)` -> il nome ESTESO della quota, come
         /// lo scrive lo stato: `D1@Schizzo1@Parte286.Part`.
         ///
         /// E' il selettore che la voce chiamava «non un lusso»:

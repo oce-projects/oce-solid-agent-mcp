@@ -25,12 +25,12 @@ const path = require("path");
 const RADICE = path.resolve(__dirname, "..");
 const ESE = process.env.PONTE || path.join(RADICE, "bin", "oce-solid-agent-mcp.exe");
 const NUOVA = path.join(RADICE, "Controlli", "NuovaParte", "bin", "NuovaParte.exe");
-const PIANI = path.join(__dirname, "cases", "shape");
+const PIANI = path.join(__dirname, "cases", "forma");
 
 // I PEZZI VERI, presi da `Banco/viste/*-stato.json`, che e' il file che il
 // modello NON ha visto. Se manca, la misura non si puo' fare: non si inventa
 // un valore atteso.
-const VISTE = path.join(__dirname, "views");
+const VISTE = path.join(__dirname, "viste");
 const FORME = [
   "1_drilled_plate", "2_open_shell", "3_l_bracket",
   "4_drilled_flange", "5_stepped_shaft",

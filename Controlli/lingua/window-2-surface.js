@@ -51,7 +51,12 @@
 //  that carries the marker `window-2: keep` is never rewritten, in either
 //  direction.
 //
-//  It is re-runnable: a second run on its own output changes nothing. And it
+//  A second forward run on its own output does NOT run: it stops with exit 2
+//  (the catalogue already says «operations»), because it would read the
+//  English names as the names before the window and write a ledger of
+//  nonsense; with --dry-run too. The second run is --check: it writes
+//  nothing, runs the window in memory and says which files a forward run
+//  would still change (none, on the tree after the window). And the window
 //  runs backwards (--reverse): the map read from English to Italian. The proof
 //  of the window is that the reverse run on the new tree gives back the
 //  catalogue and every case and plan of the old tree, byte for byte after
@@ -79,11 +84,19 @@
 //        the other way: extracts <rev>, runs the window there, and compares
 //        the catalogue and the cases and plans with HEAD.
 //    node Controlli/lingua/window-2-surface.js --todo <TODO.md>
-//        only that file, outside its closed entries: code names only (D10).
+//        only that file, outside its closed entries and outside the entry
+//        W3.1-bis (the rename itself, whose tables quote both names): code
+//        names only (D10).
 //    node Controlli/lingua/window-2-surface.js --notes <file|folder>...
 //        the same rewrite on explicit notes (memories, RAG notes, CLAUDE.md,
-//        INSTALL-FOR-AI.md): code names only, every line. Used by
-//        Controlli/lingua/update-names-in-notes.js.
+//        INSTALL-FOR-AI.md): code names only. Used by
+//        Controlli/lingua/update-names-in-notes.js. In both, a line that
+//        already names the English name it would write is left whole (a
+//        table of the rename), and a name with two English names (`misure`,
+//        `piano`, `passo`, `quota` alone) or of another subject (`modello`)
+//        is left as it is; --list prints both. --only-mentioning <regex>
+//        skips the notes whose text does not match (the RAG holds the notes
+//        of OpenPDM too, whose `stato` or `errore` are not the bridge's).
 //    options:
 //      --root <dir>     another tree (default: the repository of this file)
 //      --no-git         a walk of the file system instead of git ls-files
@@ -146,6 +159,7 @@ const EXCLUDED = new Set([
   'Controlli/lingua/window-1-cases.js',          // window 1: it names the Italian keys it renamed
   'Controlli/lingua/window-2-surface.js',        // this file
   'Controlli/lingua/update-names-in-notes.js',   // its driver for the notes outside the repository
+  'Banco/tasks/score-autonomous.js',             // reads the protocol the bridge of before speaks (W3.1-bis.5, review finding 1): it names the old names on purpose
 ]);
 // The D9 tasks keep the words a person types: only the measurement paths of
 // their JSON (come_si_misura[].cosa) are renamed, never the prompt.
@@ -217,6 +231,7 @@ function parseArgs(argv) {
     else if (x === '--dump') a.dump = path.resolve(argv[++i] || cannot('--dump needs a file'));
     else if (x === '--todo') a.todo = path.resolve(argv[++i] || cannot('--todo needs a file'));
     else if (x === '--notes') { a.notes = []; while (argv[i + 1] && !argv[i + 1].startsWith('--')) a.notes.push(path.resolve(argv[++i])); if (!a.notes.length) cannot('--notes needs at least one path'); }
+    else if (x === '--only-mentioning') { const r = argv[++i] || cannot('--only-mentioning needs a regular expression'); try { a.onlyMentioning = new RegExp(r, 'i'); } catch (e) { cannot('--only-mentioning: ' + e.message); } }
     else if (x === '--check') a.check = true;
     else if (x === '--reverse-proof') a.proof = argv[++i] || cannot('--reverse-proof needs a revision');
     else if (x === '--forward-proof') a.forwardProof = argv[++i] || cannot('--forward-proof needs a revision');
@@ -620,9 +635,15 @@ function rewriteName(d, s, ctx) {
   // is an argument of the operation in context: «a» is also the throat of a
   // weld, «da» and «a» the ends of anything
   if (ctx.prose && s.length <= 2 && !d.reverse) return null;
+  // in a note a word with two English names has no code around it to decide:
+  // it is left as it is and listed (a note that says `misure` alone may mean
+  // the field of an answer or the argument of a frame); so are the words a
+  // note uses for another subject (NOTES_KEEP)
+  if (ctx.notes && NOTES_KEEP.has(s) && d.universe.has(s)) { if (ctx.left) ctx.left.push(s + ' (another subject in the notes)'); return null; }
   const u = unanimous(d, s);
   if (u === null) return null;
   if (u !== CONFLICT) return u === s ? null : u;
+  if (ctx.notes && !ctx.sense) { if (ctx.left) ctx.left.push(s + ' (' + sensesOf(d, s) + ')'); return null; }
   // two senses: the context decides
   let sense = ctx.sense;
   if (!sense && ctx.args && ctx.args.has(s)) sense = 'argument';
@@ -673,12 +694,58 @@ function rewriteProse(d, raw, mode, ctx, prot) {
   const selRx = /@(?:faccia|spigolo|corpo|quota|face|edge|body|dimension)(?:\((?:[^()\n]|\([^()\n]*\))*\))?/g;
   while ((m = selRx.exec(view))) {
     const a = m.index, b = a + m[0].length;
-    if (!free(a, b)) continue;
+    if (taken.some(([x, y]) => a < y && b > x)) continue;
     const s = raw.slice(a, b);
     if (s.includes('\\')) continue;
+    // a selector may hold a name of an Italian SOLIDWORKS as the value of a
+    // field (@quota(feature=Schizzo1,nome=D1)): the kind and the fields are
+    // renamed, the protected name is not (rewriteSelector never touches a
+    // value outside the selector rows, and this checks it)
+    const inner = prot ? prot.filter(([x, y]) => x < b && y > a) : [];
+    if (inner.some(([x, y]) => x < a || y > b)) continue;
     const to = rewriteSelector(d, s);
-    if (to !== null) push(a, b, to);
+    if (to !== null && inner.every(([x, y]) => to.split(raw.slice(x, y)).length === s.split(raw.slice(x, y)).length)) push(a, b, to);
     else taken.push([a, b]);
+  }
+  // 1b. an object written inline in prose, before the spans:
+  //     {passo: 1, genere: "faccia_superiore"} (the example of a description).
+  //     Every key must be an argument of the map, or it is not one; the keys
+  //     are renamed, and a quoted value by the enum of its key.
+  if (!ctx.notes) {
+    const objRx = /\{([^{}\n]{1,160})\}/g;
+    while ((m = objRx.exec(view))) {
+      const a = m.index + 1, b = a + m[1].length;
+      if (!free(a - 1, b + 1)) continue;
+      // inside a backtick span the span decides (`sezione: {piano: "destro"}`)
+      const lineStart = view.lastIndexOf('\n', m.index) + 1;
+      if ((view.slice(lineStart, m.index).split('`').length - 1) % 2 === 1) continue;
+      const parts = [];
+      let k = a;
+      for (const piece of m[1].split(',')) { parts.push([k, k + piece.length]); k += piece.length + 1; }
+      const fields = [];
+      let ok = parts.length > 0;
+      for (const [x, y] of parts) {
+        const pm = /^(\s*)([a-z_][a-z0-9_]*)(\s*:\s*)(.*?)\s*$/.exec(view.slice(x, y));
+        if (!pm || !d.arg.has(pm[2])) { ok = false; break; }
+        const ks = x + pm[1].length;
+        const vs = ks + pm[2].length + pm[3].length;
+        fields.push({ key: pm[2], ks, vs, ve: vs + pm[4].length });
+      }
+      if (!ok) continue;
+      const local = [];
+      for (const f of fields) {
+        const kTo = inSense(d, f.key, 'argument', ctx.op);
+        if (kTo && kTo !== f.key) local.push([f.ks, f.ks + f.key.length, kTo]);
+        const vView = view.slice(f.vs, f.ve);
+        const q = vView.startsWith(QUOTE) && vView.endsWith(QUOTE) && vView.length > 2 * QUOTE.length ? QUOTE.length : 0;
+        if (!q) continue;
+        const inner = raw.slice(f.vs + q, f.ve - q);
+        const em = d.enumByArg.get(f.key);
+        if (RX_NAME.test(inner) && em && em.has(inner)) local.push([f.vs + q, f.ve - q, em.get(inner)]);
+      }
+      for (const [x, y, t] of local) push(x, y, t);
+      taken.push([a - 1, b + 1]);
+    }
   }
   // 2. spans: `...`, «...», "..."
   const openers = ctx.notes ? [['`', '`']] : [['`', '`'], ['\u00ab', '\u00bb'], [QUOTE, QUOTE]];
@@ -696,6 +763,13 @@ function rewriteProse(d, raw, mode, ctx, prot) {
       if (!/[\u0001\u0002]/.test(contentView) && free(startC, j)) {
         const lead = /^\s*/.exec(content)[0], trail = /\s*$/.exec(content)[0];
         const core = content.slice(lead.length, content.length - trail.length);
+        // a span that is an inline object (`{passo: N, genere: ...}`): its
+        // keys, when every key is an argument of the map
+        const ob = /^\{([^{}]*)\}$/.exec(core);
+        if (ob && o === '`' && ob[1].split(',').every(p => { const pm = /^\s*([a-z_][a-z0-9_]*)\s*:/.exec(p); return pm && d.arg.has(pm[1]); })) {
+          const to = rewriteObjectish(d, core, Object.assign({}, ctx, { prose: true }));
+          if (to !== core) { push(startC + lead.length, startC + lead.length + core.length, to); i = j + c.length - 1; break; }
+        }
         if (core && /^[@A-Za-z_][\w.@=~()\-[\], :"\u2026{}]*$/.test(core) && !/\s{2,}/.test(core)) {
           const to = rewriteExpr(d, core, Object.assign({}, ctx, { prose: true, at: startC }));
           if (to !== null) { push(startC + lead.length, startC + lead.length + core.length, to); i = j + c.length - 1; break; }
@@ -823,6 +897,143 @@ function stringEdit(edits, node, newValue, file) {
 }
 function keyEdit(edits, node, newKey, file) { stringEdit(edits, node, newKey, file); }
 
+// ── the values of an argument named in its own description ───────────────
+// A description that teaches the values of its argument as bare words
+// («passaggio = foro liscio ...; Predefinito: passaggio», «piano di
+// costruzione: frontale, superiore o destro», «Generi ammessi:\n- asse: ...»)
+// would teach the model the Italian values the schema no longer lists. The
+// words are renamed where the sentence uses them AS VALUES, never elsewhere
+// («l'asse creato dal passo» stays prose):
+//   R1  after Predefinito / default:          Predefinito: passaggio
+//   R2  a definition, value =:                passaggio = foro liscio; lamato = ...
+//   R3  a value glossed in parentheses:       chiuso (schiacciato) o aperto (con gioco)
+//   R4  a list of values only:                : frontale, superiore o destro / prima o dopo
+//   R5  a bullet of the kinds a reference takes, under «Generi ammessi:»
+//   R6  the default said in words:            isometrica se non dici niente
+// The words are the enum values of the argument the description belongs to
+// (in the language of the run), and for R5 the values of `genere`. The same
+// rules run on the catalogue and on its C# source, which must agree.
+const ENUM_WORD_L = 'A-Za-zÀ-ÿ0-9_';
+function enumWordEdits(text, words, bulletWords) {
+  const edits = new Map();
+  const add = (s, w, map) => { if (!edits.has(s) && map.has(w)) edits.set(s, [s, s + w.length, map.get(w)]); };
+  const alt = (map) => [...map.keys()].sort((a, b) => b.length - a.length).map(escapeRx).join('|');
+  const nb = '(?![' + ENUM_WORD_L + '])';
+  if (words && words.size) {
+    const W = alt(words);
+    let m;
+    const r1 = new RegExp('(?:[Pp]redefinit[oa]|[Dd]efault):? «?(' + W + ')' + nb, 'g');
+    while ((m = r1.exec(text))) add(m.index + m[0].length - m[1].length, m[1], words);
+    const r2 = new RegExp('(?:^|; |\\. )(' + W + ') = ', 'g');
+    while ((m = r2.exec(text))) add(m.index + m[0].length - 3 - m[1].length, m[1], words);
+    const r3 = new RegExp('(?:^|: |, | o | oppure )(' + W + ') \\(', 'g');
+    while ((m = r3.exec(text))) { add(m.index + m[0].length - 2 - m[1].length, m[1], words); r3.lastIndex = m.index + m[0].length - 1; }
+    const r4 = new RegExp('(?:^|: )((?:' + W + ')(?:, (?:' + W + '))*(?: o | oppure )(?:' + W + '))' + nb, 'g');
+    while ((m = r4.exec(text))) {
+      const base = m.index + m[0].length - m[1].length;
+      const one = new RegExp('(?<![' + ENUM_WORD_L + '])(' + W + ')' + nb, 'g');
+      let w;
+      while ((w = one.exec(m[1]))) add(base + w.index, w[1], words);
+    }
+    const r6 = new RegExp('(?:^|[.;] )(' + W + ') se non dici niente', 'g');
+    while ((m = r6.exec(text))) add(m.index + m[0].length - ' se non dici niente'.length - m[1].length, m[1], words);
+  }
+  if (bulletWords && bulletWords.size) {
+    const h = /(?:Generi ammessi|Allowed kinds):/.exec(text);
+    if (h) {
+      const r5 = new RegExp('(?:\\n|\\\\n)- (' + alt(bulletWords) + '):', 'g');
+      r5.lastIndex = h.index;
+      let m;
+      while ((m = r5.exec(text))) add(m.index + m[0].length - 1 - m[1].length, m[1], bulletWords);
+    }
+  }
+  return [...edits.values()].sort((a, b) => a[0] - b[0]);
+}
+function applyWordEdits(text, edits) {
+  let out = '', at = 0;
+  for (const [s, e, to] of edits) { out += text.slice(at, s) + to; at = e; }
+  return out + text.slice(at);
+}
+// The words of an argument of an operation: its enum values (from the
+// catalogue of the tree, in the language of the run) that the map renames.
+function enumWordsOf(d, opCtx, op, prop) {
+  const out = new Map();
+  const oc = opCtx && op ? opCtx.get(op) : null;
+  const vals = oc && prop ? oc.enums.get(prop) : null;
+  const m = prop ? d.enumByArg.get(prop) : null;
+  if (!vals || !m) return out;
+  for (const v of vals) if (m.has(v) && m.get(v) !== v) out.set(v, m.get(v));
+  return out;
+}
+function bulletWordsOf(d) {
+  const m = d.enumByArg.get(d.reverse ? 'kind' : 'genere');
+  return m ? new Map([...m].filter(([a, b]) => a !== b)) : new Map();
+}
+// The catalogue: every description of a schema, with the argument it
+// describes (items describe the argument of their array).
+function enumWordsInCatalogue(d, text, file, report) {
+  const tree = parseJsonTree(text, file);
+  const raw = JSON.parse(text.replace(/^﻿/, ''));
+  const opCtx = new Map();
+  for (const o of raw.operazioni || raw.operations || []) opCtx.set(o.nome || o.name, opContext(o.schema));
+  const bullets = bulletWordsOf(d);
+  const edits = [];
+  const walk = (node, op, prop) => {
+    if (!node || node.type !== 'object') return;
+    for (const e of node.entries) {
+      const k = e.key.value;
+      if (k === 'properties' && e.value.type === 'object') for (const p of e.value.entries) walk(p.value, op, p.key.value);
+      else if (k === 'items') walk(e.value, op, prop);
+      else if (k === 'description' && e.value.type === 'string') {
+        const we = enumWordEdits(e.value.value, enumWordsOf(d, opCtx, op, prop), bullets);
+        if (we.length) { stringEdit(edits, e.value, applyWordEdits(e.value.value, we), file); report.enum_words_described = (report.enum_words_described || 0) + we.length; }
+      }
+    }
+  };
+  for (const e of tree.entries) {
+    if ((e.key.value !== 'operazioni' && e.key.value !== 'operations') || e.value.type !== 'array') continue;
+    for (const o of e.value.items) {
+      if (o.type !== 'object') continue;
+      const nameNode = o.entries.find(x => x.key.value === 'nome' || x.key.value === 'name');
+      const op = nameNode && nameNode.value.type === 'string' ? nameNode.value.value : null;
+      const sch = o.entries.find(x => x.key.value === 'schema');
+      if (sch) walk(sch.value, op, null);
+    }
+  }
+  return applyEdits(text, edits);
+}
+// The C# source of the catalogue: a description is O("description", "..." +
+// "..."), a run of literals joined by +; the rules run on the run as one
+// text (a word split between two literals is not renamed, on either side).
+function enumWordsInOperationsCs(d, text, opCtx) {
+  const tokens = lexCs(text);
+  const frames = callFrames(text, tokens);
+  const opStarts = [];
+  { const rx = /\bNome\s*=\s*"([a-z0-9_]+)"/g; let m; while ((m = rx.exec(text))) opStarts.push([m.index, m[1]]); }
+  const opAt = (p) => { let op = null; for (const [i, o] of opStarts) { if (i > p) break; op = o; } return op; };
+  const bullets = bulletWordsOf(d);
+  const strs = tokens.filter(t => t.kind === 'str');
+  const edits = [];
+  for (let i = 0; i < strs.length; i++) {
+    const f = frames.get(strs[i].start);
+    if (!f || !f.length || f[0].name !== 'O' || f[0].index % 2 !== 1 || f[0].keys[f[0].index - 1] !== 'description') continue;
+    const run = [strs[i]];
+    while (i + 1 < strs.length && /^\s*\+\s*$/.test(text.slice(run[run.length - 1].end + 1, strs[i + 1].open))) run.push(strs[++i]);
+    const segs = [];
+    let joined = '';
+    for (const t of run) { segs.push([joined.length, t.start]); joined += text.slice(t.start, t.end); }
+    const we = enumWordEdits(joined, enumWordsOf(d, opCtx, opAt(run[0].start), propertyOf(f, 0)), bullets);
+    for (const [s, e, to] of we) {
+      let k = segs.length - 1;
+      while (k > 0 && segs[k][0] > s) k--;
+      const segEnd = k + 1 < segs.length ? segs[k + 1][0] : joined.length;
+      if (e > segEnd) continue;
+      edits.push({ start: segs[k][1] + (s - segs[k][0]), end: segs[k][1] + (e - segs[k][0]), text: to });
+    }
+  }
+  return applyEdits(text, edits);
+}
+
 // ── the catalogue ─────────────────────────────────────────────────────────
 // A schema node (a tree of parseJsonTree), rewritten in place into `edits`.
 // `prop` is the property this node describes (source language).
@@ -927,7 +1138,8 @@ function rewriteCatalogue(d, text, file, report) {
   return d12(rewriteCatalogueNames(d, text, file, report), false, report);
 }
 
-function rewriteCatalogueNames(d, text, file, report) {
+function rewriteCatalogueNames(d, text0, file, report) {
+  const text = enumWordsInCatalogue(d, text0, file, report);
   const tree = parseJsonTree(text, file);
   if (tree.type !== 'object') cannot(file + ': the catalogue is not an object');
   const edits = [];
@@ -1373,7 +1585,7 @@ function positionClass(before, after) {
 // must be used by a forward run on the tree it was written for.
 const CS_SITES = [
   // bench groups and their labels: the names of `--gruppo`, not protocol
-  { file: 'Banco/Program.cs', line: 'new Gruppo { Nome = ', literal: '*', to: 'keep', why: 'the names of the bench groups (--gruppo), not the MCP surface' },
+  { file: 'Banco/Program.cs', line: 'new Gruppo { Nome = ', literal: '*', before: /\bNome\s*=\s*$/, to: 'keep', why: 'the names of the bench groups (--gruppo), not the MCP surface; the label (Cosa) names the operation a group exercises and follows the map' },
   { file: 'Banco/NumeriDelleQuote.cs', line: 'ErroreDiBanco("numeri"', literal: 'numeri', to: 'keep', why: 'the label of a bench group' },
   // words searched in Italian prose
   { file: 'Banco/Attese.cs', line: 'suArgomenti.IndexOf("copia"', literal: 'copia', to: 'keep', why: 'a word of an Italian sentence of the bench' },
@@ -1456,8 +1668,8 @@ const CS_SITES = [
   { file: 'Riscontro.Disegno/Sezioni.cs', line: '["angolare"] =', literal: 'angolare', to: 'enum:tipo' },
   { file: 'Riscontro.Disegno/Sezioni.cs', line: 'case "angolare":', literal: 'angolare', to: 'enum:tipo' },
 ];
-function siteFor(rel, line, lit) {
-  for (const s of CS_SITES) if (s.file === rel && (s.literal === lit || s.literal === '*') && line.includes(s.line)) { s.used = true; return s; }
+function siteFor(rel, line, lit, before) {
+  for (const s of CS_SITES) if (s.file === rel && (s.literal === lit || s.literal === '*') && line.includes(s.line) && (!s.before || s.before.test(before || ''))) { s.used = true; return s; }
   return null;
 }
 
@@ -1477,7 +1689,8 @@ const VALUE_SENSE_BY_FILE = {
   'Controlli/expected-keys-test.js': { tipo: 'response_field' },
 };
 
-function rewriteCs(d, text0, rel, report, opts) {
+function rewriteCs(d, text00, rel, report, opts) {
+  const text0 = rel === OPERATIONS_CS ? enumWordsInOperationsCs(d, text00, opts.opCtx) : text00;
   const { text, guarded } = applySourceEditsFirst(d, rel, text0);
   const tokens = lexCs(text);
   const isOps = rel === OPERATIONS_CS;
@@ -1512,9 +1725,10 @@ function rewriteCs(d, text0, rel, report, opts) {
     const raw = text.slice(tok.start, tok.end);
     const mode = tok.kind === 'vstr' || (tok.kind === 'ipart' && tok.verb) ? 'verbatim' : 'backslash';
     let to = null;
-    const site = tok.kind === 'str' ? siteFor(rel, line, raw) : null;
-    if (site && site.to === 'keep') continue;
     const before = text.slice(Math.max(0, (tok.open !== undefined ? tok.open : tok.start) - 200), tok.open !== undefined ? tok.open : tok.start);
+    const site = tok.kind === 'str' ? siteFor(rel, line, raw, before) : null;
+    if (site && site.to === 'keep') continue;
+    if (tok.kind === 'str' && !site && isPathPart(before, 'cs')) continue;
     const after = text.slice(tok.end + 1, tok.end + 200);
     const opsSense = isOps && tok.kind === 'str' ? operationsCsSense(frames.get(tok.start)) : null;
     if (opsSense && opsSense.sense === 'enum' && d.enumByArg.get(opsSense.prop) && d.enumByArg.get(opsSense.prop).has(raw)) {
@@ -1764,6 +1978,14 @@ const SOURCE_EDITS = {
     'PrefissoOperazione + "<name>, oppure con lo strumento " +',
   ]],
   'Strumenti/Attrezzi.cs': [[
+    // the families list_operations takes, as the catalogue names them: the
+    // list was written by hand (and «corpi» was never a family)
+    '                                    "solo una famiglia: estrusioni, lavorazioni, " +\n' +
+    '                                    "riferimenti, corpi, saldature, proprieta\', tavola",\n',
+    '                                    "solo una famiglia: extrusions, features, weldments, " +\n' +
+    '                                    "references, assemblies, physical_properties, drawing, " +\n' +
+    '                                    "checks, exports, identity, sheet_metal, dimensions",\n',
+  ], [
     // the titles of the tools, which a client shows to the person
     '                case "guarda_il_pezzo": return "Guarda il pezzo aperto";\n' +
     '                case "elenco_operazioni": return "Elenco delle operazioni";\n' +
@@ -1830,6 +2052,18 @@ SOURCE_EDITS['Prove/LanguageGateTests.cs'] = [
 SOURCE_EDITS['README.md'] = [
   ["> «operazioni» e' indistinguibile, per chi legge in fretta, da quello che dice",
    "> «operazioni» e' indistinguibile, per chi legge in fretta, da quello che dice"],
+];
+// The timings of corri_piani.js are the runner's own record, one per plan
+// file: `piano` there is the plan, not the plane of the map (the key stays
+// for window 3, which renames the identifiers of the runner).
+SOURCE_EDITS['Banco/corri_piani.js'] = [
+  ['    tempi.push({ piano: path.basename(f), secondi });', '    tempi.push({ piano: path.basename(f), secondi });'],
+  ['                  t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));', '                  t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));'],
+];
+// The message of an unknown resource names the template of the URI, written
+// apart from its prefix as in Mcp/Risorse.cs.
+SOURCE_EDITS['Programma.cs'] = [
+  ['"«" + Risorse.PrefissoOperazione + "<nome>» per una sola." +', '"«" + Risorse.PrefissoOperazione + "<name>» per una sola." +'],
 ];
 SOURCE_EDITS['Banco/pending-cases/README.md'] = [
   ['convenzione `nota_*` che il repository usava', 'convenzione `note_*` che il repository usava'],
@@ -2173,6 +2407,21 @@ function isTextSearch(before, raw) {
   return !/[_.@]/.test(raw) && /\.(?:Contains|IndexOf|LastIndexOf|StartsWith|EndsWith|includes|indexOf|startsWith|endsWith)\(\s*$/.test(before);
 }
 
+// A literal handed to a call that builds a path (path.join, path.resolve,
+// Path.Combine, Join-Path) is a folder or a file name, not a name of the
+// protocol: the plans write {BANCO}/pezzo, the frames go to Banco/viste
+// (which .gitignore names), and the folder is the one on disk. Folders and
+// files are window 3 (W3.1-bis.6), never this one. The call must still be
+// open where the literal stands (one level of nested calls inside it).
+const RX_PATH_CALL_JS = /\bpath\.(?:join|resolve)\(\s*(?:[^()]|\([^()]*\))*$/;
+const RX_PATH_CALL_CS = /\b(?:Path\.Combine|Path\.Join)\(\s*(?:[^()]|\([^()]*\))*$/;
+const RX_PATH_CALL_PS = /\bJoin-Path\b[^\r\n|;]*$/;
+function isPathPart(before, lang) {
+  if (lang === 'js') return RX_PATH_CALL_JS.test(before);
+  if (lang === 'cs') return RX_PATH_CALL_CS.test(before);
+  return RX_PATH_CALL_PS.test(before);
+}
+
 function rewriteJs(d, text0, rel, report, opts) {
   const { text, guarded } = applySourceEditsFirst(d, rel, text0);
   const tokens = lexJs(text);
@@ -2204,7 +2453,8 @@ function rewriteJs(d, text0, rel, report, opts) {
     else {
       const mode = tok.kind === 'str' && tok.q === '"' ? 'backslash' : 'jsq';
       const before = text.slice(Math.max(0, tok.start - 200), tokStart);
-      const site = siteFor(rel, line, raw);
+      if (tok.kind === 'str' && isPathPart(before, 'js')) continue;
+      const site = siteFor(rel, line, raw, before);
       if (site && site.to === 'keep') continue;
       if (raw && /^[@A-Za-z_][\w.@=~()\-[\]]*$/.test(raw)) {
         if (!site && isTextSearch(before, raw)) continue;
@@ -2256,6 +2506,7 @@ function rewritePs(d, text, rel, report, opts) {
     const raw = text.slice(tok.start, tok.end);
     const ctx = { file: rel, conflicts, prose: true, at: tok.start, text: line.trim().slice(0, 120) };
     let to;
+    if (tok.kind !== 'comment' && isPathPart(text.slice(Math.max(0, open - 200), open), 'ps')) continue;
     if (tok.kind === 'comment') to = rewriteProse(d, raw, 'plain', ctx, shift(prot, tok.start));
     else if (raw && /^[@A-Za-z_][\w.@=~()\-[\]]*$/.test(raw)) { to = codeName(d, raw, null, Object.assign({}, ctx, { prose: false }), rel, line); if (to === undefined || to === null) to = raw; }
     else to = rewriteProse(d, raw, tok.kind === 'pstr1' ? 'jsq' : 'ps2', ctx, null);
@@ -2374,7 +2625,7 @@ function runWindow(opts) {
   // A forward run on a tree that is already after the window would read the
   // English names as the tree before it, and write a ledger of nonsense:
   // it stops (--check says whether a forward run would change anything).
-  if (!opts.reverse && !opts.checkMode && catText !== null && !opts.dry) {
+  if (!opts.reverse && !opts.checkMode && catText !== null) {
     let english = false;
     try { english = Array.isArray(JSON.parse(catText).operations); } catch (e) { /* the run says why */ }
     if (english) cannot('the tree is already after the window (the catalogue has «operations»): nothing to do; --check says whether anything is left');
@@ -2667,6 +2918,24 @@ function runForwardProof(opts) {
 // backticks, so only backtick spans, snake_case tokens and selectors are
 // renamed; a word between guillemets in a note is a quote, not a name. In
 // the TODO the closed entries and the (com'era) sections are history.
+// Words the notes use for another subject than the argument or field of the
+// map: `modello` in the memories is the model of graphify, not the template
+// argument. Left as they are, and listed.
+const NOTES_KEEP = new Set(['modello']);
+// The entry of the TODO about the rename itself (W3.1-bis and its stages):
+// its tables, decisions and rules quote the Italian names next to the
+// English ones on purpose, and renaming them would make «`disegna` -> `build`,
+// non `draw`» read «`build` -> `build`». Left whole, as history.
+const RX_RENAME_ENTRY = /^(#{2,5}) (?:\[[ x~]\] )?W3\.1-bis\b/;
+// A line that already has, as a word, the name a rename would write is a
+// line about the rename (a table, an arrow, «X diventa Y»): left whole.
+function namesBoth(line, out) {
+  const a = words(line), b = words(out);
+  const count = (list) => { const c = new Map(); for (let i = 1; i < list.length; i += 2) c.set(list[i], (c.get(list[i]) || 0) + 1); return c; };
+  const ca = count(a), cb = count(b);
+  for (const [w, n] of cb) if (n > (ca.get(w) || 0) && ca.has(w)) return w;
+  return null;
+}
 function runNotes(opts) {
   const map = loadMap(opts.root);
   const catText = fs.existsSync(path.join(opts.root, CATALOGUE_REL)) ? fs.readFileSync(path.join(opts.root, CATALOGUE_REL), 'utf8') : null;
@@ -2683,15 +2952,22 @@ function runNotes(opts) {
     } else files.push(p);
   }
   let total = 0, filesChanged = 0;
+  let notMentioning = 0;
   for (const file of files) {
     const text = fs.readFileSync(file, 'utf8');
+    if (opts.onlyMentioning && !opts.onlyMentioning.test(text)) { notMentioning++; if (opts.list) console.log('skipped ' + file + ': it does not mention ' + opts.onlyMentioning.source); continue; }
     const eol = eolOf(text);
     const lines = text.split(/\r?\n/);
-    let state = null, changed = 0, skipped = 0;
-    const shown = [];
+    let state = null, changed = 0, skipped = 0, inRename = 0, renameLevel = 0, both = 0;
+    const shown = [], left = [], whole = [];
     for (let i = 0; i < lines.length; i++) {
       const l = lines[i];
       if (opts.todoRule) {
+        const hl = /^(#{1,5}) /.exec(l);
+        if (hl && renameLevel && hl[1].length <= renameLevel && !RX_RENAME_ENTRY.test(l)) renameLevel = 0;
+        const re = RX_RENAME_ENTRY.exec(l);
+        if (re && !renameLevel) renameLevel = re[1].length;
+        if (renameLevel) { if (rewriteNoteLine(d, l) !== l) inRename++; continue; }
         const h = l.match(/^#{2,5} \[([ x~])\]/);
         if (h) state = h[1];
         else if (/^#{2,5} \(com'era\)/.test(l)) state = 'x';
@@ -2699,26 +2975,37 @@ function runNotes(opts) {
         if (state === 'x') { if (rewriteNoteLine(d, l) !== l) skipped++; continue; }
       }
       if (l.includes(KEEP_MARK)) continue;
-      const n = rewriteNoteLine(d, l);
-      if (n !== l) { changed++; if (shown.length < (opts.list ? 1e9 : 8)) shown.push('    ' + (i + 1) + ': ' + n.trim().slice(0, 170)); lines[i] = n; }
+      const lineLeft = [];
+      const n = rewriteNoteLine(d, l, lineLeft);
+      for (const x of lineLeft) left.push('    ' + (i + 1) + ': `' + x.replace(/ \(.*$/, '') + '` left: ' + x.replace(/^\S+ /, ''));
+      if (n === l) continue;
+      const w = namesBoth(l, n);
+      if (w) { both++; whole.push('    ' + (i + 1) + ': left whole, it already names `' + w + '`: ' + l.trim().slice(0, 150)); continue; }
+      changed++; if (shown.length < (opts.list ? 1e9 : 8)) shown.push('    ' + (i + 1) + ': ' + n.trim().slice(0, 170)); lines[i] = n;
     }
     if (changed) filesChanged++;
     total += changed;
-    console.log((changed ? (opts.dry ? 'would rewrite ' : 'rewrote ') : 'nothing in ') + file + (changed ? ': ' + changed + ' lines' : '') + (skipped ? ' (' + skipped + ' lines left in closed entries)' : ''));
+    console.log((changed ? (opts.dry ? 'would rewrite ' : 'rewrote ') : 'nothing in ') + file + (changed ? ': ' + changed + ' lines' : '') +
+                (skipped ? ' (' + skipped + ' lines left in closed entries)' : '') +
+                (inRename ? ' (' + inRename + ' lines left in the entry W3.1-bis, the rename itself)' : '') +
+                (both ? ' (' + both + ' lines left whole: they name the old and the new name)' : '') +
+                (left.length ? ' (' + left.length + ' names left: two senses or another subject; --list names them)' : ''));
     for (const s of shown) console.log(s);
+    if (opts.list) { for (const s of whole) console.log(s); for (const s of left) console.log(s); }
     if (!opts.dry && changed) fs.writeFileSync(file, lines.join(eol));
   }
-  console.log('window 2, code names in notes' + (opts.dry ? ' (dry run)' : '') + ': ' + total + ' lines in ' + filesChanged + ' of ' + files.length + ' files');
+  console.log('window 2, code names in notes' + (opts.dry ? ' (dry run)' : '') + ': ' + total + ' lines in ' + filesChanged + ' of ' + files.length + ' files' +
+              (notMentioning ? ' (' + notMentioning + ' skipped: they do not mention ' + opts.onlyMentioning.source + ')' : ''));
   return 0;
 }
-function rewriteNoteLine(d, line) {
-  return rewriteProse(d, line, 'plain', { prose: true, notes: true }, null);
+function rewriteNoteLine(d, line, left) {
+  return rewriteProse(d, line, 'plain', { prose: true, notes: true, left: left || [] }, null);
 }
 
 function main() {
   let opts;
   try { opts = parseArgs(process.argv.slice(2)); } catch (e) { if (e instanceof Stop) { console.error(e.message); return 2; } throw e; }
-  if (opts.help) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 100).join('\n')); return 0; }
+  if (opts.help) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 119).join('\n')); return 0; }
   try {
     if (opts.proof) return runReverseProof(opts);
     if (opts.forwardProof) return runForwardProof(opts);

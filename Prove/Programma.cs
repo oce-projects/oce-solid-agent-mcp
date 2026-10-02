@@ -404,6 +404,7 @@ namespace Prove.Contratti
             Zc2113SplineCentreMarksContract.RunAll();
             DocumentByPathContract.RunAll();
             AliasLayerContract.RunAll();
+            DescriptionValuesContract.RunAll();
             Zc2189WeldAssemblyContract.RunAll();
             Zc2189DrawingContract.RunAll();
             Zc2189MachiningContract.RunAll();

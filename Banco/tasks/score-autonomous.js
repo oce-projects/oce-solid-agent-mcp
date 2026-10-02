@@ -26,21 +26,90 @@
 //      node Banco/tasks/score-autonomous.js <run folder>
 //      node Banco/tasks/score-autonomous.js --compare <run before> <run after>
 //      node Banco/tasks/score-autonomous.js --read-state <bridge.exe> <out.json>
+//      node Banco/tasks/score-autonomous.js --bridge-info <bridge.exe>
 //      node Banco/tasks/score-autonomous.js --self-test
+//
+//  --read-state asks the bridge for its tools first and reads the state with
+//  the tool that bridge has (inspect_part, or guarda_il_pezzo before the
+//  rename); --bridge-info prints its version and protocol (en or it), which
+//  run-autonomous.ps1 records in run.json.
 //
 //  --compare is the threshold of D9: the median per task (1 = right, 0 =
 //  not) of the run after against the run before; the run holds when at most
 //  one task of fifteen is worse.
 //
+//  THE RUN BEFORE SPEAKS THE PROTOCOL OF BEFORE. D9 compares the bridge before
+//  the rename (9384b2c: `esiti`, `riuscita`, `misure`, `corpi_totali`) with the
+//  bridge after it; a scorer that read only the English keys would find no
+//  outcome in the run before, call every session NOT DONE, and the comparison
+//  «at most one task worse» could not fail. So every answer and every state is
+//  read through the name map first (Controlli/lingua/name-map.tsv, the rows
+//  response_field, operation, enum_value and response_value, with the sites of
+//  Controlli/lingua/window-2-surface.js where a field has two English names):
+//  an answer of the bridge before becomes the answer the bridge after would
+//  write, and an English answer goes through unchanged. score.json records
+//  which protocol each session spoke, and the scorer refuses to score a run in
+//  which no session gave a single outcome, and --compare refuses a score.json
+//  written by a scorer that did not read the protocol of before.
+//
 //  Exit 0 on a score written (or a comparison that holds), 1 when the
-//  comparison does not hold or the self-test fails, 2 on a bad argument.
+//  comparison does not hold or the self-test fails, 2 on a bad argument, a run
+//  with no outcome read, or a score.json of an older scorer.
 // =============================================================================
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
 
+const SCORER_VERSION = 2;
+
 function fail(m) { console.error('score-autonomous: ' + m); process.exit(2); }
+
+// ── the protocol of before, read through the map ─────────────────────────
+// The direction Italian -> English of window 2 (its tables of sites included).
+let DIRECTION = null;
+function direction() {
+  if (DIRECTION) return DIRECTION;
+  const root = path.resolve(__dirname, '..', '..');
+  const w = require(path.join(root, 'Controlli', 'lingua', 'window-2-surface.js'));
+  DIRECTION = w.direction(w.loadMap(root), false, null);
+  return DIRECTION;
+}
+// Keys only the bridge before the rename writes: an answer or a state with one
+// of them speaks the Italian protocol.
+const ITALIAN_MARKS = ['esiti', 'riuscita', 'misure', 'corpi_totali', 'facce', 'stato_dopo', 'operazione'];
+function speaksItalian(v) {
+  if (Array.isArray(v)) return v.some(speaksItalian);
+  if (!v || typeof v !== 'object') return false;
+  return Object.keys(v).some(k => ITALIAN_MARKS.includes(k) || speaksItalian(v[k]));
+}
+// An answer (or a state) of the bridge before, as the bridge after writes it:
+// every key by the response_field rows (a field that depends on the field it
+// sits in, or on the operation that writes it, by the sites of the window),
+// the operation of a step by the operation rows, a value by the enum of its
+// key or by the response_value rows. English keys and values have no row and
+// go through as they are.
+function toEnglish(v, op, parent) {
+  const d = direction();
+  if (Array.isArray(v)) return v.map(x => toEnglish(x, op, parent));
+  if (!v || typeof v !== 'object') return v;
+  const opHere = typeof v.operazione === 'string' ? v.operazione : op;
+  const out = {};
+  for (const [k, val] of Object.entries(v)) {
+    let key = d.field.get(k) || k;
+    if (parent && d.fieldInside.has(parent) && d.fieldInside.get(parent).has(k)) key = d.fieldInside.get(parent).get(k);
+    else if (parent === 'misure' && opHere && d.fieldByOp.has(opHere) && d.fieldByOp.get(opHere).has(k)) key = d.fieldByOp.get(opHere).get(k);
+    let now;
+    if (k === 'operazione' && typeof val === 'string') now = d.op.get(val) || val;
+    else if (typeof val === 'string') {
+      const e = d.enumByArg.get(k);
+      now = e && e.has(val) ? e.get(val) : d.rvalue.get(val) || val;
+    } else now = toEnglish(val, opHere, k);
+    out[key] = now;
+  }
+  return out;
+}
+function readAnswer(a) { return speaksItalian(a) ? { answer: toEnglish(a, null, null), italian: true } : { answer: a, italian: false }; }
 
 // ── the table of a task ─────────────────────────────────────────────────
 function tableOf(md) {
@@ -90,9 +159,12 @@ function readRow(r) {
 }
 
 // ── the transcript ───────────────────────────────────────────────────────
-// Every outcome of every step the bridge answered, in order.
+// Every outcome of every step the bridge answered, in order, in the English
+// protocol (an answer of the bridge before is read through the map:
+// `out.italian` says how many were).
 function outcomesOf(jsonl) {
   const out = [];
+  out.italian = 0;
   for (const line of jsonl.split(/\r?\n/)) {
     if (!line.trim()) continue;
     let o;
@@ -103,9 +175,11 @@ function outcomesOf(jsonl) {
       const parts = Array.isArray(c.content) ? c.content : [{ type: 'text', text: String(c.content || '') }];
       for (const part of parts) {
         if (part.type !== 'text') continue;
-        let a;
-        try { a = JSON.parse(part.text); } catch (e) { continue; }
-        if (a && Array.isArray(a.outcomes)) for (const s of a.outcomes) out.push(s);
+        let raw;
+        try { raw = JSON.parse(part.text); } catch (e) { continue; }
+        const r = readAnswer(raw);
+        const a = r.answer;
+        if (a && Array.isArray(a.outcomes)) { if (r.italian) out.italian++; for (const s of a.outcomes) out.push(s); }
       }
     }
   }
@@ -182,24 +256,42 @@ function scoreRun(dir) {
     const mdFile = path.join(tasksDir, task + '.md');
     const rows = fs.existsSync(mdFile) ? tableOf(fs.readFileSync(mdFile, 'utf8')) : [];
     const stateFile = path.join(dir, task + '-' + m[2] + '.state.json');
-    const state = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8').replace(/^﻿/, '')) : null;
-    const s = scoreSession(rows, outcomesOf(fs.readFileSync(path.join(dir, f), 'utf8')), state);
-    (perTask[task] = perTask[task] || []).push(Object.assign({ n: Number(m[2]) }, s));
+    const rawState = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8').replace(/^﻿/, '')) : null;
+    const st = readAnswer(rawState);
+    const outcomes = outcomesOf(fs.readFileSync(path.join(dir, f), 'utf8'));
+    const s = scoreSession(rows, outcomes, st.answer);
+    const protocol = outcomes.italian > 0 || st.italian ? 'it (read through the name map)' : outcomes.length || rawState ? 'en' : 'nothing read';
+    (perTask[task] = perTask[task] || []).push(Object.assign({ n: Number(m[2]), outcomes_read: outcomes.length, protocol }, s));
   }
+  // A run in which not one session gave an outcome is not a run of NOT DONE:
+  // it is a run the scorer cannot read (another protocol, a bridge that did
+  // not answer). Scoring it would make every comparison hold.
+  const sessions = [].concat(...Object.values(perTask));
+  if (sessions.length && sessions.every(x => x.outcomes_read === 0))
+    fail('no session of ' + dir + ' gave a single outcome of a step: the answers are not in a protocol this scorer reads, or the bridge never answered. Not scored.');
   const summary = {};
   for (const [task, list] of Object.entries(perTask)) {
-    summary[task] = { sessions: list.map(x => x.outcome), median_right: median(list.map(x => x.outcome === 'RIGHT' ? 1 : 0)) };
-    console.log(task + ': ' + list.map(x => '#' + x.n + ' ' + x.outcome).join(', ') + '  (median ' + summary[task].median_right + ')');
+    summary[task] = { sessions: list.map(x => x.outcome), median_right: median(list.map(x => x.outcome === 'RIGHT' ? 1 : 0)),
+      protocols: [...new Set(list.map(x => x.protocol))] };
+    console.log(task + ': ' + list.map(x => '#' + x.n + ' ' + x.outcome).join(', ') + '  (median ' + summary[task].median_right + '; ' + summary[task].protocols.join(', ') + ')');
     for (const x of list) for (const r of x.rows) if (r.byHand || r.held === false) console.log('    #' + x.n + ' ' + r.what + ': ' + (r.byHand ? 'BY HAND (' + r.byHand + ')' : 'got ' + JSON.stringify(r.got)));
   }
-  fs.writeFileSync(path.join(dir, 'score.json'), JSON.stringify({ run, summary, detail: perTask }, null, 1));
+  fs.writeFileSync(path.join(dir, 'score.json'), JSON.stringify({ scorer: SCORER_VERSION, run, summary, detail: perTask }, null, 1));
   console.log('score written: ' + path.join(dir, 'score.json'));
   return summary;
 }
 
 function compare(before, after) {
-  const a = JSON.parse(fs.readFileSync(path.join(before, 'score.json'), 'utf8')).summary;
-  const b = JSON.parse(fs.readFileSync(path.join(after, 'score.json'), 'utf8')).summary;
+  const read = (dir) => {
+    const j = JSON.parse(fs.readFileSync(path.join(dir, 'score.json'), 'utf8'));
+    if (j.scorer !== SCORER_VERSION) fail(path.join(dir, 'score.json') + ' was written by a scorer that did not read the protocol of before the rename (scorer ' + (j.scorer || 1) + '): score the run again');
+    return j;
+  };
+  const ja = read(before), jb = read(after);
+  const protocols = (j) => [...new Set([].concat(...Object.values(j.summary).map(t => t.protocols || [])))].join(', ');
+  console.log('before: ' + protocols(ja) + '; after: ' + protocols(jb) + ' (both scored on the English protocol)');
+  const a = ja.summary;
+  const b = jb.summary;
   const worse = Object.keys(a).filter(t => b[t] && b[t].median_right < a[t].median_right);
   const missing = Object.keys(a).filter(t => !b[t]);
   for (const t of Object.keys(a).sort()) console.log(t + ': ' + a[t].median_right + ' -> ' + (b[t] ? b[t].median_right : '(not run)'));
@@ -209,23 +301,40 @@ function compare(before, after) {
   return ok;
 }
 
-// The state of the document in front, read by a fresh bridge over stdio.
-function readState(bridge, outFile) {
+// A fresh bridge over stdio: initialize, tools/list and, when asked, the tool
+// that reads the state, by the name THAT bridge gives it (inspect_part after
+// the rename, guarda_il_pezzo before it: the run before uses the bridge of
+// before, and asking it for inspect_part would read no state at all).
+const INSPECT = { en: 'inspect_part', it: 'guarda_il_pezzo' };
+function askBridge(bridge, withState) {
   const req = (id, method, params) => JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n';
-  const input = req(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'score-autonomous', version: '1' } }) +
-    JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n' +
-    req(2, 'tools/call', { name: 'inspect_part', arguments: {} });
-  const r = cp.spawnSync(bridge, [], { input, encoding: 'utf8', timeout: 180000, cwd: path.dirname(bridge), windowsHide: true, maxBuffer: 64 << 20 });
-  let state = null;
+  let input = req(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'score-autonomous', version: '1' } }) +
+    JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n' + req(2, 'tools/list', {});
+  if (withState) input += req(3, 'tools/call', { name: INSPECT.en, arguments: {} }) + req(4, 'tools/call', { name: INSPECT.it, arguments: {} });
+  const r = cp.spawnSync(bridge, [], { input, encoding: 'utf8', timeout: 240000, cwd: path.dirname(bridge), windowsHide: true, maxBuffer: 64 << 20 });
+  const by = {};
   for (const line of String(r.stdout || '').split(/\r?\n/)) {
     let o;
     try { o = JSON.parse(line); } catch (e) { continue; }
-    if (o.id !== 2 || !o.result) continue;
-    state = o.result.structuredContent || null;
-    if (!state && Array.isArray(o.result.content) && o.result.content[0]) { try { state = JSON.parse(o.result.content[0].text); } catch (e) { /* text only */ } }
+    if (o && o.id !== undefined) by[o.id] = o;
   }
-  fs.writeFileSync(outFile, JSON.stringify(state, null, 1));
-  console.log('    state of the finished part: ' + (state ? outFile : 'not read (see the bridge)'));
+  const info = by[1] && by[1].result && by[1].result.serverInfo ? by[1].result.serverInfo : {};
+  const names = by[2] && by[2].result && Array.isArray(by[2].result.tools) ? by[2].result.tools.map(t => t.name) : [];
+  const protocol = names.includes(INSPECT.en) ? 'en' : names.includes(INSPECT.it) ? 'it' : 'unknown';
+  let state = null;
+  const answer = by[protocol === 'it' ? 4 : 3];
+  if (withState && answer && answer.result && !answer.result.isError) {
+    state = answer.result.structuredContent || null;
+    if (!state && Array.isArray(answer.result.content) && answer.result.content[0]) { try { state = JSON.parse(answer.result.content[0].text); } catch (e) { /* text only */ } }
+  }
+  return { version: info.version || null, protocol, tool: protocol === 'unknown' ? null : INSPECT[protocol], state };
+}
+
+// The state of the document in front, read by a fresh bridge over stdio.
+function readState(bridge, outFile) {
+  const b = askBridge(bridge, true);
+  fs.writeFileSync(outFile, JSON.stringify(b.state, null, 1));
+  console.log('    state of the finished part: ' + (b.state ? outFile + ' (' + b.tool + ', protocol ' + b.protocol + ')' : 'not read (bridge protocol ' + b.protocol + '; see the bridge)'));
 }
 
 function selfTest() {
@@ -251,6 +360,19 @@ function selfTest() {
   check('no successful step is NOT DONE', scoreSession(rows, [{ operation: 'hem', succeeded: false }], state).outcome === 'NOT DONE');
   const jsonl = JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', content: [{ type: 'text', text: JSON.stringify({ outcomes }) }] }] } });
   check('the outcomes are read from a transcript', outcomesOf(jsonl).length === 2);
+  // the run before: the bridge of 9384b2c answers and describes the part in
+  // the Italian protocol, and the same session must score the same
+  const outcomesIt = [{ operazione: 'orlo', riuscita: true, misure: { tipo: 'chiuso' } },
+                      { operazione: 'esporta_stl', riuscita: true, misure: { byte: 684 } }];
+  const jsonlIt = JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', content: [{ type: 'text', text: JSON.stringify({ esiti: outcomesIt }) }] }] } });
+  const stateIt = { volume_mm3: 67700, corpi_totali: 1, facce: [{ diametro_mm: 9.01 }, { normale: [0, 0, 1] }, { diametro_mm: 8.99 }] };
+  const readIt = outcomesOf(jsonlIt);
+  check('the outcomes of the bridge before the rename are read, through the map', readIt.length === 2 && readIt.italian === 1 &&
+        readIt[0].operation === 'hem' && readIt[0].succeeded === true && readIt[0].measurements.kind === 'closed');
+  check('the state of before is read through the map', readAnswer(stateIt).italian && readAnswer(stateIt).answer.bodies_total === 1);
+  check('a session of the bridge before that holds every row is RIGHT, not NOT DONE',
+        scoreSession(rows.slice(0, 6), readIt, readAnswer(stateIt).answer).outcome === 'RIGHT');
+  check('an English answer goes through the reading unchanged', !readAnswer({ outcomes }).italian && readAnswer({ outcomes }).answer.outcomes === outcomes);
   check('the median of 1, 0, 1 is 1', median([1, 0, 1]) === 1);
   console.log(bad ? 'self-test: ' + bad + ' failed' : 'self-test: all held');
   return bad === 0;
@@ -259,6 +381,7 @@ function selfTest() {
 const argv = process.argv.slice(2);
 if (argv[0] === '--self-test') process.exit(selfTest() ? 0 : 1);
 else if (argv[0] === '--read-state') { if (argv.length !== 3) fail('--read-state <bridge> <out.json>'); readState(argv[1], argv[2]); }
+else if (argv[0] === '--bridge-info') { if (argv.length !== 2) fail('--bridge-info <bridge>'); const b = askBridge(argv[1], false); console.log(JSON.stringify({ version: b.version, protocol: b.protocol })); process.exit(b.protocol === 'unknown' ? 2 : 0); }
 else if (argv[0] === '--compare') { if (argv.length !== 3) fail('--compare <run before> <run after>'); process.exit(compare(argv[1], argv[2]) ? 0 : 1); }
 else if (argv.length === 1) scoreRun(argv[0]);
 else fail('usage: <run folder> | --compare <before> <after> | --read-state <bridge> <out> | --self-test');
