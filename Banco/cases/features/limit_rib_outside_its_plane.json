@@ -15,7 +15,7 @@
                      "start_mm": [10, 40, 20], "end_mm": [40, 10, 20],
                      "thickness_mm": 6 },
       "must_fail": {
-        "message_includes": ["non sta sul piano frontale", "5 mm", "distance_mm"],
+        "message_includes": ["non sta sul piano front", "5 mm", "distance_mm"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "rib_in_the_corner_of_the_l" } }

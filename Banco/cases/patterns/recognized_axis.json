@@ -22,7 +22,7 @@
         "axis_uid": "Assi1",
         "instance_count": 6,
         "total_angle_deg": 360,
-        "_firme": { "Assi1": { "point_mm": [0, 0, 25], "direction": [0, 0, 1] } }
+        "_signatures": { "Assi1": { "point_mm": [0, 0, 25], "direction": [0, 0, 1] } }
       },
       "_the_signature_is_written_by_hand_and_stated": "`_signatures` e' quello che il ponte allega a ogni passo con le firme lette dallo stato quando il piano e' stato confermato. Qui si scrive a mano per costruire le due situazioni — asse al suo posto, asse altrove — senza dover spostare davvero l'asse fra la lettura e l'esecuzione, che un caso dichiarato non sa fare. Il punto (0, 0, 25) sta a meta' dell'asse del cilindro, non al suo inizio: e' la retta che conta.",
       "expect": [

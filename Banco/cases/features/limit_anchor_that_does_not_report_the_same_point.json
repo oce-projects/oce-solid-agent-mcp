@@ -45,7 +45,7 @@
                         "no_extra_feature": true, "twin": "anchored_hole_follows_the_border" } },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 80, "y_mm": 40, "diameter_mm": 10, "through_all": true,
-                     "_firme": { "E999": {} },
+                     "_signatures": { "E999": {} },
                      "anchor": { "x": { "edge_uid": "@edge(axis=Y,x~=100,z~=20)", "distance_mm": 20 },
                                  "y": { "edge_uid": "@edge(axis=X,y~=60,z~=20)", "distance_mm": 20 } } },
       "_why_the_fake_signatures": "Rischio 2 del critico: senza firma `FirmaCombacia` dice si', e fra spigoli uguali l'ordine dello stato non e' garantito. Il ponte manda le firme di TUTTO lo stato, quindi un piano che porta `_signatures` senza quella di uno spigolo dell'ancora non sa quale spigolo intendeva. Il banco dichiarato non attacca firme: questa voce finta ne mette una che non c'entra, ed e' abbastanza perche' la regola scatti.",

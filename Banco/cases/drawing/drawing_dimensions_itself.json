@@ -78,8 +78,8 @@
         { "what": "measurements.dimensions_mm", "does_not_include": ["80"],
           "why": "IL CONTRALTARE, ed e' quello che dice **su quale vista** ha quotato. 80 e' la larghezza della piastra: si vede nella vista dall'alto, non in questa. Se comparisse, l'operazione avrebbe quotato **un'altra vista** — e le due attese qui sopra sarebbero verdi lo stesso, perche' anche li' c'e' un 120. Senza questa riga, «contiene 120» non dice dove." },
 
-        { "what": "measurements.what_it_does_not_check", "includes": ["accavall"],
-          "_the_root_not_the_whole_word": "Questa attesa cercava «accavallano» ed e' diventata rossa il 23/9 riscrivendo `what_it_does_not_check`: il testo nuovo dice «si accavalla», singolare. L'operazione non era cambiata in nulla che conti — era cambiata una desinenza. E' la seconda volta in due giorni che un'attesa si appende a una forma di parola (la prima cercava «vero» dove il testo diceva «VERO»). Si cerca la RADICE: quello che l'attesa vuole davvero sapere e' che la cecita' sull'accavallamento resti dichiarata, non come e' coniugata.",
+        { "what": "measurements.what_it_does_not_check", "includes": ["overlapping_texts"],
+          "_the_root_not_the_whole_word": "Questa attesa cercava la radice «accavall», non la parola intera (misurato il 23/9: «accavallano» -> «si accavalla»). Il 26/9 il testo ha smesso di coniugarla e cita il nome del campo, «overlapping_texts»: la finestra 2 ha tradotto quella citazione, e con lei la radice italiana. Il nome citato e' oggi la prova piu' stabile: e' quello che il codice scrive alla lettera.",
           "why": "la cecita' viaggia con la risposta: l'operazione mette quote GIUSTE, non una tavola BELLA, e non guarda se si sovrappongono al disegno. Chi legge questa risposta potrebbe non aver letto il catalogo" },
 
         { "what": "state.dimensions_orphan_total", "equal_to": 0,

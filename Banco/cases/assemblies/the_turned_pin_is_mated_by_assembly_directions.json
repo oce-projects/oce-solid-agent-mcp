@@ -60,7 +60,7 @@
         "variant": "coincidente", "alignment": "opposto"
       },
       "must_fail": {
-        "message_includes": ["C2", "«alto»", "in the assembly"],
+        "message_includes": ["C2", "«up»", "in the assembly"],
         "twin": "the_turned_pin_is_mated_by_assembly_directions" } }
   ]
 }

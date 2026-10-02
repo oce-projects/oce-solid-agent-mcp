@@ -39,7 +39,7 @@
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
                      "axis1_uid": "Assi1",
                      "pitch1_mm": 40, "instance_count1": 3,
-                     "_firme": { "Assi1": { "point_mm": [0, 50, 10], "direction": [1, 0, 0] } } },
+                     "_signatures": { "Assi1": { "point_mm": [0, 50, 10], "direction": [1, 0, 0] } } },
       "_the_signature": "`_signatures` is what the bridge attaches with the signatures read from the state when the plan was confirmed; written by hand here, as in recognized_axis. (0, 50, 10) is a point on the tunnel's axis and the direction is X; the check compares the line, so the sense of the direction does not matter.",
       "expect": [
         { "what": "diameters_mm", "equal_to": [6, 9, 9, 9], "tolerance": 0.02,

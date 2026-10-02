@@ -10,7 +10,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "set_property",
-      "arguments": { "name": "NumeroDisegno", "value_text": "DIS-1234" },
+      "arguments": { "name": "DrawingNumber", "value_text": "DIS-1234" },
       "expect": [
         { "what": "measurements.value_text", "equal_to": "DIS-1234" },
         { "what": "measurements.visible_from_other_list", "equal_to": false,
@@ -20,7 +20,7 @@
       "arguments": { "name": "Left", "details": "staffa sinistra" },
       "expect": [ { "what": "measurements.configuration", "equal_to": "Left" } ] },
     { "operation": "set_property",
-      "arguments": { "name": "Mano", "value_text": "SX", "configuration": "Left" },
+      "arguments": { "name": "Hand", "value_text": "SX", "configuration": "Left" },
       "expect": [
         { "what": "measurements.value_text", "equal_to": "SX" },
         { "what": "measurements.configuration", "equal_to": "Left" },
@@ -32,7 +32,7 @@
         { "what": "state.configuration_properties.Hand", "equal_to": "SX",
           "why": "e quella della configurazione sta nell'altro elenco. Sono due campi nello stato apposta: un campo solo sarebbe una fusione che nel file non esiste." } ] },
     { "operation": "set_property",
-      "arguments": { "name": "NumeroDisegno", "value_text": "DIS-1234", "configuration": "Left" },
+      "arguments": { "name": "DrawingNumber", "value_text": "DIS-1234", "configuration": "Left" },
       "expect": [
         { "what": "measurements.visible_from_other_list", "equal_to": true,
           "_why_true": "ADESSO SI VEDE DI LA', ma perche' ce n'e' una SUA che si chiama uguale -- non perche' sia la stessa. Questa riga sta qui perche' il «falso» delle righe sopra dev'essere un fatto misurato e non una costante scritta a mano: un campo che risponde sempre falso e' indistinguibile da un campo giusto, finche' non si costruisce il caso in cui deve rispondere vero." } ] }

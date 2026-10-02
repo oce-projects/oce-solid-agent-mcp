@@ -597,8 +597,8 @@ namespace ProvaSaldatura
                 return d;
             });
             Segna("F4 ROSSO: campo assente, e dice quali c'erano",
-                  detto.Contains("campo assente: misure.materiale_tolto_mm3") &&
-                  detto.Contains("ci sono: archivio, classe, materiale"),
+                  detto.Contains("campo assente: measurements.material_removed_mm3") &&
+                  detto.Contains("ci sono: class_name, library, material"),
                   Corto(detto));
 
             // ── E UN NULL DICHIARATO NON E' UN CAMPO ASSENTE ───────────────

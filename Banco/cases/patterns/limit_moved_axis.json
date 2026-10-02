@@ -22,7 +22,7 @@
         "axis_uid": "Assi1",
         "instance_count": 6,
         "total_angle_deg": 360,
-        "_firme": { "Assi1": { "point_mm": [30, 0, 25], "direction": [0, 0, 1] } }
+        "_signatures": { "Assi1": { "point_mm": [30, 0, 25], "direction": [0, 0, 1] } }
       },
       "must_fail": {
         "message_includes": ["si e' spostato", "asse sbagliato"],
