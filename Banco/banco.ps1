@@ -119,8 +119,14 @@ try {
 # --- 3. via i documenti rimasti aperti --------------------------------------
 
 $chiudi = Join-Path $Radice "Controlli\ChiudiScarti\bin\ChiudiScarti.exe"
+$openAfterCleanup = -1
 if (Test-Path $chiudi) {
-    & $chiudi --chiudi (Join-Path $Banco "lavoro") | Out-Null
+    # Its last line says how many documents are still open: the count decides
+    # the restart below (late-bound ISldWorks calls fail from PowerShell with
+    # TYPE_E_ELEMENTNOTFOUND, measured 2/10/2026).
+    $cleanup = & $chiudi --chiudi (Join-Path $Banco "lavoro") 2>&1
+    $countLine = @($cleanup | Where-Object { "$_" -match ':\s*(\d+)\s*$' }) | Select-Object -Last 1
+    if ($countLine -and ("$countLine" -match ':\s*(\d+)\s*$')) { $openAfterCleanup = [int]$Matches[1] }
 } else {
     Write-Output "ChiudiScarti non c'e': i documenti aperti restano, e lo stato li elenca."
 }
@@ -135,8 +141,7 @@ if (Test-Path $chiudi) {
 # there (those are someone's work: never killed) or -NoRestart is given.
 $fullRun = [string]::IsNullOrWhiteSpace($Gruppo) -and [string]::IsNullOrWhiteSpace($Famiglia)
 if ($fullRun -and -not $NoRestart) {
-    $openDocuments = -1
-    try { $openDocuments = $sw.GetDocumentCount() } catch { }
+    $openDocuments = $openAfterCleanup
     $process = Get-Process SLDWORKS -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($openDocuments -ne 0 -or $process -eq $null) {
         Write-Output ("SOLIDWORKS not restarted: " + $openDocuments + " document(s) still open (or the process was not found).")

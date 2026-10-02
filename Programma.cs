@@ -384,6 +384,102 @@ namespace Oce.Solid.Agent
             return "2024-11-05";
         }
 
+        // ── THE EXIT CODES OF --prova (entry H19, B3) ────────────────────
+        //
+        // The installer reads these, and no longer the sentences: a sentence
+        // is for a person and gets translated, a code does not. The same
+        // numbers are written in Installer/Passi.cs (SelfTest*), which cannot
+        // reference this assembly; a contract in Prove reads both.
+        //
+        //   0  attached (with or without a document)
+        //   1  anything else: the library did not load, an unknown HRESULT,
+        //      the open document could not be read
+        //   3  SOLIDWORKS installed and not running (MK_E_UNAVAILABLE)
+        //   4  SOLIDWORKS not installed or not registered (CO_E_CLASSSTRING,
+        //      REGDB_E_CLASSNOTREG)
+        //   5  not tried: OCE_NO_ATTACH is set
+        //   6  MK_E_UNAVAILABLE, but a SLDWORKS process runs in this Windows
+        //      session: it runs as administrator while this process does not
+        //      (or the other way round: the running object table is not
+        //      shared across integrity levels), or it is still starting
+        //
+        // 2 is left out on purpose: it is the installer's own "not confirmed".
+        //
+        // 6 IS NOT 3 (H19 review). Until then the elevated case exited 3, the
+        // installer accepted 3 as "SOLIDWORKS is simply closed" and said
+        // "Installato" with exit 0, and the hint about administrator rights
+        // was a line among the others: whoever read only the code (an AI, as
+        // INSTALL-FOR-AI asks) concluded the bridge would attach, and it
+        // never does until the two are started the same way.
+        internal const int SelfTestAttached = 0;
+        internal const int SelfTestOther = 1;
+        internal const int SelfTestNotRunning = 3;
+        internal const int SelfTestNotInstalled = 4;
+        internal const int SelfTestSkipped = 5;
+        internal const int SelfTestNotReachable = 6;
+
+        internal static int SelfTestExitCode(AttachFailure failure)
+        {
+            switch (failure)
+            {
+                case AttachFailure.None: return SelfTestAttached;
+                case AttachFailure.NotRunning: return SelfTestNotRunning;
+                case AttachFailure.NotInstalled: return SelfTestNotInstalled;
+                case AttachFailure.Skipped: return SelfTestSkipped;
+                default: return SelfTestOther;
+            }
+        }
+
+        /// <summary>
+        /// The code of --prova, with what this process can see of SOLIDWORKS:
+        /// "not running" while a SLDWORKS process runs in this session is 6.
+        /// Pure, so the contracts can try both sides without SOLIDWORKS.
+        /// </summary>
+        internal static int SelfTestCodeSeen(AttachFailure failure, bool solidWorksProcessInThisSession)
+        {
+            int code = SelfTestExitCode(failure);
+            return code == SelfTestNotRunning && solidWorksProcessInThisSession ? SelfTestNotReachable : code;
+        }
+
+        internal static string SelfTestMeaning(int code)
+        {
+            switch (code)
+            {
+                case SelfTestAttached: return "attached to SOLIDWORKS";
+                case SelfTestNotRunning: return "SOLIDWORKS is installed but not running: open it";
+                case SelfTestNotInstalled: return "SOLIDWORKS is not installed, or not registered: install or repair it";
+                case SelfTestSkipped: return "attach not tried, OCE_NO_ATTACH is set";
+                case SelfTestNotReachable:
+                    return "a SOLIDWORKS process is running but did not answer: it may run as administrator " +
+                           "while this process does not (or the other way round), or it is still starting. " +
+                           "Start SOLIDWORKS and the MCP client the same way, then try again";
+                default: return "not attached, for another reason: read the lines above";
+            }
+        }
+
+        /// <summary>
+        /// A SLDWORKS process in THIS Windows session. Another user's
+        /// SOLIDWORKS on the same machine (fast user switching, a terminal
+        /// server) is not one this process could ever attach to, and must not
+        /// turn "not running" into "not reachable". A process whose session
+        /// cannot be read counts: on a workstation it is almost always ours.
+        /// </summary>
+        private static bool SolidWorksProcessInThisSession()
+        {
+            try
+            {
+                int mine = System.Diagnostics.Process.GetCurrentProcess().SessionId;
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName("SLDWORKS"))
+                {
+                    try { if (p.SessionId == mine) return true; }
+                    catch { return true; }
+                    finally { p.Dispose(); }
+                }
+            }
+            catch { }
+            return false;
+        }
+
         /// <summary>
         /// `--prova`: un giro secco senza client, per sapere se il ponte sta in
         /// piedi su questa macchina. Stampa su stderr e non tocca il pezzo.
@@ -401,7 +497,17 @@ namespace Oce.Solid.Agent
                 Protocollo.Nota("[prova] prime operazioni: " + qualcuna);
             }
 
-            if (!sessione.Agganciata) return 1;
+            if (!sessione.Agganciata)
+            {
+                // SOLIDWORKS "not running" while a SLDWORKS process exists in
+                // this session is the elevated case: started as administrator,
+                // its session is not in the running object table this process
+                // can see. It gets its own code (6), not a line beside a 3.
+                bool processHere = sessione.Failure == AttachFailure.NotRunning && SolidWorksProcessInThisSession();
+                int code = SelfTestCodeSeen(sessione.Failure, processHere);
+                Protocollo.Nota("[self-test] exit code " + code + ": " + SelfTestMeaning(code));
+                return code;
+            }
 
             // AGGANCIATO E SENZA DOCUMENTI E' UN PONTE IN PIEDI (voce H6-bis).
             //
@@ -425,7 +531,7 @@ namespace Oce.Solid.Agent
             }
 
             var stato = sessione.Stato(out var errore);
-            if (stato == null) { Protocollo.Nota("[prova] " + errore); return 1; }
+            if (stato == null) { Protocollo.Nota("[prova] " + errore); return SelfTestOther; }
 
             foreach (var chiave in new[] { "document_title", "kind", "volume_mm3", "bodies_total" })
                 if (stato.TryGetValue(chiave, out var v))

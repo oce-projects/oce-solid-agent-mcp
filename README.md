@@ -267,6 +267,11 @@ bin\oce-solid-agent-mcp.exe --prova
 
 Stampa su stderr se si e' agganciato, quale add-in ha caricato, quante
 operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
+Its exit code says the same in a number (from 0.126.0): 0 attached, 3
+SOLIDWORKS not running, 4 not installed or not registered, 5 not tried
+(`OCE_NO_ATTACH`), 6 SOLIDWORKS running in this session but not answering
+(usually started as administrator while the client is not), 1 anything else.
+The installer reads the number, not the text.
 
 ### Variabili d'ambiente
 
@@ -281,7 +286,8 @@ operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
 | `SW_REDIST` | il vecchio nome, ancora letto. Voleva la sottocartella `api\redist` e non la radice: se sono impostate tutte e due vince `SW_INSTALL_PATH` |
 | `RISCONTRO_RADICE` | l'unica cartella dentro cui il ponte puo' scrivere. Se e' impostata, tutto il resto del disco e' fuori |
 | `RISCONTRO_SOLA_LETTURA` | cartelle che il ponte non deve scrivere, separate da `;` — esempio `S:\CAD;S:\_LIBRERIE`. Si aggiungono a quelle di sistema, non le sostituiscono |
-| `PROFILI_SALDATURA` | la libreria dei profili saldati (`.SLDLFP`), se non e' dove la mette questa installazione |
+| `PROFILI_SALDATURA` | the folder of the weldment profiles (`.sldlfp`) that `profili_saldatura` reads. It has no default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>` or from the folder SOLIDWORKS is set to (Tools > Options > File Locations > Weldment Profiles), else the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
+| `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so; `--prova` exits 5. For a session busy with a batch job or the bench, and for the installer's own tests (`Controlli/prova-installatore.js` sets it unless given `--attach`) |
 
 `RISCONTRO_DISEGNO` non decide piu' quale libreria caricare, e resta letta
 apposta: se punta altrove, il ponte lo **dice**. Una variabile d'ambiente che

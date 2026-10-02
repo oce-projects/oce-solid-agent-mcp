@@ -115,6 +115,7 @@
     <Compile Include="LanguageGateTests.cs" />
     <Compile Include="CaseKeysTests.cs" />
     <Compile Include="ConsumedStringsContract.cs" />
+    <Compile Include="H19InstallerContract.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="SafetyNetSelfTests.cs" />
     <!-- IL VALUTATORE DELLE ATTESE, lo stesso file che compila il banco.

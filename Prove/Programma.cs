@@ -372,6 +372,7 @@ namespace Prove.Contratti
             ProveAttese.Tutte();
             ProveCatalogo.Tutte();
             ProveSessione.Tutte();
+            H19InstallerContract.RunAll();
             ProveProtocollo.Tutte();
             ProveIlBanco.Tutte();
             ProveLaSentinella.Tutte();
