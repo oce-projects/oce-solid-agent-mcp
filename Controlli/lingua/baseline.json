@@ -2,11 +2,11 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 145002,
-  "strings": 54187,
-  "markdown": 33938,
+  "comments": 144924,
+  "strings": 54148,
+  "markdown": 33914,
   "json_values": 54674,
-  "identifiers": 5054,
+  "identifiers": 5051,
   "json_keys": 15,
   "protocol": 1063,
   "paths": 220,
@@ -1274,7 +1274,7 @@
    "strings": 145
   },
   "INSTALL-FOR-AI.md": {
-   "markdown": 18
+   "markdown": 5
   },
   "Installer/Configurazione.cs": {
    "comments": 469,
@@ -1282,7 +1282,7 @@
   },
   "Installer/Finestra.cs": {
    "comments": 138,
-   "strings": 95
+   "strings": 88
   },
   "Installer/Installa.csproj": {
    "comments": 121,
@@ -1290,15 +1290,15 @@
   },
   "Installer/Passi.cs": {
    "comments": 648,
-   "strings": 228
+   "strings": 215
   },
   "Installer/Payload.cs": {
    "comments": 244,
    "strings": 40
   },
   "Installer/Programma.cs": {
-   "comments": 242,
-   "strings": 80
+   "comments": 218,
+   "strings": 77
   },
   "Installer/app.manifest": {
    "comments": 82
@@ -1339,7 +1339,7 @@
    "strings": 3
   },
   "Ponte/Sessione.cs": {
-   "comments": 2016,
+   "comments": 1983,
    "strings": 222
   },
   "Ponte/TurnoSulDocumento.cs": {
@@ -1469,8 +1469,8 @@
    "strings": 257
   },
   "Prove/ProveSessione.cs": {
-   "comments": 709,
-   "strings": 374
+   "comments": 688,
+   "strings": 358
   },
   "Prove/SelectionMarksContract.cs": {
    "comments": 4,
@@ -1483,7 +1483,7 @@
    "markdown": 3
   },
   "README.md": {
-   "markdown": 2535
+   "markdown": 2524
   },
   "Riscontro.Catalogo/Programma.cs": {
    "comments": 79,
@@ -5009,7 +5009,6 @@
    "i_punti_sono_le_facce",
    "idDomanda",
    "idLav",
-   "idProcesso",
    "idProgressivo",
    "idempotente",
    "identita",
@@ -5059,7 +5058,6 @@
    "inErrore",
    "inErroreDopo",
    "inModifica",
-   "inPiedi",
    "inRilievo",
    "inStringa",
    "inTutteLeConfigurazioni",
@@ -6146,7 +6144,6 @@
    "rispetto_a_uid",
    "risposta",
    "ristretto",
-   "risulta",
    "risultato",
    "ritirato",
    "ritrovare",
