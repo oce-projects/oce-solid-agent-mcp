@@ -30,6 +30,15 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ## Unreleased — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
 
+**Bench, 2/10/2026, on e49d4d6 (W3.1-bis.3, Z-C21.14 and this window together):
+2179 tests, 0 failed, 1 skipped (`--lento`), expectations 1771 of 1771.** Three
+runs before it did not count, for causes outside the code: run 31 on a
+SOLIDWORKS session of ~4,900 documents (window resources exhausted: rebuilds
+skipped in silence), run 32 killed by a network-drive hiccup in Tee-Object
+(c008f7a writes the live output locally), run 33 on a 7-hour session (centre
+marks and dimensions not inserted; the same families green on a restarted
+SOLIDWORKS). e49d4d6 restarts SOLIDWORKS before a full run.
+
 **The first of the three rename windows of W3.1-bis (TODO entry W3.1-bis.4):
 the cases of the bench get English keys, English names, English folders and
 English files, generated from the name map of W3.1-bis.3.** The bench and its
