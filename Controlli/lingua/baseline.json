@@ -2,7 +2,7 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Controlli/lingua/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 144924,
+  "comments": 144915,
   "strings": 54145,
   "markdown": 33914,
   "json_values": 54655,
@@ -43,7 +43,7 @@
    "strings": 129
   },
   "Banco/Attese.cs": {
-   "comments": 1792,
+   "comments": 1783,
    "strings": 275
   },
   "Banco/CasiDichiarati.cs": {
