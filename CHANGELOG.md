@@ -30,6 +30,13 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ## Unreleased — H19 L1+L2: the installer tells the truth and verifies itself (branch `installatore-l1`) · bridge 0.126.0 · library 0.149.0 (unchanged)
 
+**Bench, 3/10/2026, on 4c9e465 (window 2 and H19 L1+L2 together, bridge 0.127.0,
+library 0.150.0): 2191 tests, 0 failed, 1 skipped (`--lento`), expectations 1783
+of 1783.** Run 35 had found 8 case data the window had missed (fixed in
+1764232), run 36 ended green but with one bench error, a save into the bench
+work folder on the network drive that left no file: the work folder is now
+local (4c9e465).
+
 **Lots L1 and L2 of TODO entry H19** (the installer finished for v0.1.0; the
 audit of the installer kept with the internal notes, defects 1-7). New options and
 texts are born in English; the existing Italian option names (`--silenzioso`,
